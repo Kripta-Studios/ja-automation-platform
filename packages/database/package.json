@@ -1,0 +1,23 @@
+{
+  "name": "@ja/database",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "db:check": "node --experimental-strip-types src/cli.ts check",
+    "db:migrate:fresh": "node --experimental-strip-types src/cli.ts fresh",
+    "db:integrity": "node --experimental-strip-types src/cli.ts integrity"
+  },
+  "dependencies": {
+    "drizzle-orm": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "drizzle-kit": "catalog:",
+    "typescript": "catalog:"
+  }
+}

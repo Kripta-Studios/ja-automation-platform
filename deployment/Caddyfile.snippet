@@ -1,0 +1,10 @@
+handle /j-aautomation/app/* {
+  reverse_proxy 127.0.0.1:5100
+}
+handle /j-aautomation/api/public/* {
+  reverse_proxy 127.0.0.1:5100
+}
+handle /j-aautomation/* {
+  root * /var/www/jaautomation/site
+  file_server
+}

@@ -1,0 +1,58 @@
+packages:
+  - apps/*
+  - packages/*
+
+allowBuilds:
+  esbuild: true
+
+catalog:
+  '@axe-core/playwright': 4.13.0
+  '@eslint/js': 9.39.1
+  '@playwright/test': 1.62.1
+  '@better-auth/passkey': 1.7.0
+  '@sveltejs/adapter-node': 5.5.7
+  '@sveltejs/adapter-static': 3.0.10
+  '@sveltejs/enhanced-img': 0.11.0
+  '@sveltejs/kit': 2.70.3
+  '@sveltejs/vite-plugin-svelte': 7.0.0
+  '@tailwindcss/vite': 4.3.3
+  '@types/node': 24.10.1
+  better-auth: 1.7.0
+  drizzle-kit: 0.31.10
+  drizzle-orm: 0.45.2
+  eslint: 9.39.1
+  eslint-config-prettier: 10.1.8
+  eslint-plugin-svelte: 3.13.1
+  idb: 8.0.3
+  playwright: 1.62.1
+  prettier: 3.7.4
+  prettier-plugin-svelte: 3.4.1
+  svelte: 5.56.9
+  svelte-check: 4.3.4
+  tailwindcss: 4.3.3
+  typescript: 6.0.3
+  typescript-eslint: 8.52.0
+  uuid: 14.0.1
+  vite: 8.2.1
+  vitest: 4.1.11
+  zod: 4.4.3
+
+minimumReleaseAgeExclude:
+  - '@better-auth/core@1.7.0'
+  - '@better-auth/drizzle-adapter@1.7.0'
+  - '@better-auth/kysely-adapter@1.7.0'
+  - '@better-auth/memory-adapter@1.7.0'
+  - '@better-auth/mongo-adapter@1.7.0'
+  - '@better-auth/passkey@1.7.0'
+  - '@better-auth/prisma-adapter@1.7.0'
+  - '@better-auth/telemetry@1.7.0'
+  - '@sveltejs/kit@2.70.3'
+  - '@vitest/expect@4.1.11'
+  - '@vitest/mocker@4.1.11'
+  - '@vitest/pretty-format@4.1.11'
+  - '@vitest/runner@4.1.11'
+  - '@vitest/snapshot@4.1.11'
+  - '@vitest/spy@4.1.11'
+  - '@vitest/utils@4.1.11'
+  - better-auth@1.7.0
+  - vitest@4.1.11

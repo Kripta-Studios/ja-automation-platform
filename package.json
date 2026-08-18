@@ -1,0 +1,52 @@
+{
+  "name": "ja-automation-v3",
+  "type": "module",
+  "private": true,
+  "version": "3.0.0",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": "24.19.0",
+    "pnpm": "11.22.0"
+  },
+  "scripts": {
+    "dev:site": "pnpm --filter @ja/site dev",
+    "dev:portal": "pnpm --filter @ja/portal dev",
+    "build": "pnpm -r --if-present build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test:unit": "vitest run --exclude tests/integration/** --exclude tests/e2e/**",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "playwright test",
+    "test:invariants": "vitest run tests/invariants",
+    "test:security": "vitest run tests/security",
+    "test:offline": "vitest run tests/offline",
+    "db:check": "pnpm --filter @ja/database db:check",
+    "db:migrate:fresh": "pnpm --filter @ja/database db:migrate:fresh",
+    "db:integrity": "pnpm --filter @ja/database db:integrity",
+    "ops:backup:test": "node deployment/scripts/backup-test.mjs",
+    "ops:restore-test": "node deployment/scripts/restore-test.mjs"
+  },
+  "devDependencies": {
+    "@ja/billing-engine": "workspace:*",
+    "@ja/database": "workspace:*",
+    "@ja/domain": "workspace:*",
+    "@ja/money": "workspace:*",
+    "@ja/schemas": "workspace:*",
+    "@axe-core/playwright": "catalog:",
+    "@eslint/js": "catalog:",
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "eslint-config-prettier": "catalog:",
+    "eslint-plugin-svelte": "catalog:",
+    "playwright": "catalog:",
+    "prettier": "catalog:",
+    "prettier-plugin-svelte": "catalog:",
+    "svelte": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "@ja/site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "svelte-kit sync && tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@ja/i18n": "workspace:*",
+    "@ja/ui-tokens": "workspace:*"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "catalog:",
+    "@sveltejs/kit": "catalog:",
+    "@sveltejs/vite-plugin-svelte": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "svelte": "catalog:",
+    "svelte-check": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}

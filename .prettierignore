@@ -1,0 +1,11 @@
+website/
+Images/
+node_modules/
+**/.svelte-kit/
+**/build/
+data/
+packages/database/data/
+J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md
+pnpm-lock.yaml
+apps/site/static/
+apps/portal/static/

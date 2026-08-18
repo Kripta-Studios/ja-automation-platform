@@ -1,0 +1,31 @@
+services:
+  portal:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.portal
+    image: ja-automation-portal:${JA_RELEASE_TAG:-local}
+    restart: unless-stopped
+    env_file:
+      - path: /etc/j-aautomation/portal.env
+        required: false
+    environment:
+      HOST: 0.0.0.0
+      PORT: 5100
+      JA_DATABASE_PATH: /var/lib/j-aautomation/app.db
+      JA_DOCUMENTS_PATH: /var/lib/j-aautomation/documents
+    ports:
+      - 127.0.0.1:5100:5100
+    volumes:
+      - /var/lib/j-aautomation:/var/lib/j-aautomation
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test:
+        [
+          CMD-SHELL,
+          'node -e "fetch(''http://127.0.0.1:5100/j-aautomation/app/api/health'').then(r=>{if(!r.ok)process.exit(1)})"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3

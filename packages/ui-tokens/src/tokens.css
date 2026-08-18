@@ -1,0 +1,15 @@
+:root {
+  --ja-red: #d71920;
+  --ja-red-dark: #a90f15;
+  --ja-ink: #17191b;
+  --ja-paper: #f4f1eb;
+  --ja-white: #fff;
+  --ja-steel: #697077;
+  --ja-line: #c8c7c2;
+  --ja-success: #17663a;
+  --ja-warning: #9a5b00;
+  --ja-danger: #a40f18;
+  --ja-radius: 0.2rem;
+  --ja-max: 90rem;
+  --ja-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}

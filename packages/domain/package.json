@@ -1,0 +1,15 @@
+{
+  "name": "@ja/domain",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "uuid": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

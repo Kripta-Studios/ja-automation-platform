@@ -1,0 +1,33 @@
+{
+  "name": "@ja/portal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --port 5174",
+    "build": "vite build",
+    "preview": "node build",
+    "typecheck": "svelte-kit sync && tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@better-auth/passkey": "catalog:",
+    "@ja/database": "workspace:*",
+    "@ja/domain": "workspace:*",
+    "@ja/schemas": "workspace:*",
+    "@ja/ui-tokens": "workspace:*",
+    "better-auth": "catalog:",
+    "idb": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-node": "catalog:",
+    "@sveltejs/kit": "catalog:",
+    "@sveltejs/vite-plugin-svelte": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "svelte": "catalog:",
+    "svelte-check": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}

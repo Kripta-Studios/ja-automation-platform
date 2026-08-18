@@ -1,0 +1,19 @@
+FROM node:24.19.0-bookworm-slim AS build
+WORKDIR /workspace
+RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
+COPY apps/site ./apps/site
+COPY packages ./packages
+COPY content ./content
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @ja/site build
+
+FROM node:24.19.0-bookworm-slim
+ENV NODE_ENV=production HOST=0.0.0.0 PORT=5101 STATIC_ROOT=/srv/site
+RUN useradd --system --uid 10002 --create-home jasite
+WORKDIR /srv
+COPY --from=build --chown=jasite:jasite /workspace/apps/site/build ./site
+COPY --chown=jasite:jasite deployment/static-server.mjs ./static-server.mjs
+USER jasite
+EXPOSE 5101
+CMD ["node","static-server.mjs"]

@@ -1,6 +1,12 @@
 import { v7 as uuidv7 } from 'uuid';
 
-export const roles = ['owner_admin', 'finance_admin', 'project_manager', 'worker'] as const;
+export const roles = [
+  'owner_admin',
+  'finance_admin',
+  'project_manager',
+  'worker',
+  'auditor_read_only',
+] as const;
 export type Role = (typeof roles)[number];
 export const approvalStates = [
   'draft',
@@ -19,10 +25,29 @@ export type OwnedRecord = Readonly<{ ownerId: string; projectId: string }>;
 export const newId = (): string => uuidv7();
 
 export function canReadRecord(principal: Principal, record: OwnedRecord): boolean {
-  if (principal.role === 'owner_admin' || principal.role === 'finance_admin') return true;
+  if (
+    principal.role === 'owner_admin' ||
+    principal.role === 'finance_admin' ||
+    principal.role === 'auditor_read_only'
+  )
+    return true;
   if (!principal.projectIds.has(record.projectId)) return false;
   return principal.role === 'project_manager' || principal.userId === record.ownerId;
 }
+
+export const canManageClients = (principal: Principal): boolean =>
+  principal.role === 'owner_admin' || principal.role === 'finance_admin';
+
+export const canManageBilling = (principal: Principal): boolean =>
+  principal.role === 'owner_admin' || principal.role === 'finance_admin';
+
+export const canReviewProject = (principal: Principal, projectId: string): boolean =>
+  principal.role === 'owner_admin' ||
+  (principal.role === 'project_manager' && principal.projectIds.has(projectId));
+
+export const canManageAssignments = (principal: Principal, projectId: string): boolean =>
+  principal.role === 'owner_admin' ||
+  (principal.role === 'project_manager' && principal.projectIds.has(projectId));
 
 const transitions: Record<ApprovalState, readonly ApprovalState[]> = {
   draft: ['submitted'],

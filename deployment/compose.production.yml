@@ -1,4 +1,21 @@
 services:
+  site:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.site
+    image: ja-automation-site:${JA_RELEASE_TAG:-local}
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:5101:5101
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test:
+        [CMD, node, -e, "fetch('http://127.0.0.1:5101/en/').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
   portal:
     build:
       context: ..
@@ -12,7 +29,10 @@ services:
       HOST: 0.0.0.0
       PORT: 5100
       JA_DATABASE_PATH: /var/lib/j-aautomation/app.db
-      JA_DOCUMENTS_PATH: /var/lib/j-aautomation/documents
+      JA_MIGRATIONS_PATH: /app/migrations
+      JA_DOCUMENT_ROOT: /var/lib/j-aautomation/documents
+      JA_PUBLIC_BASE_PATH: /j-aautomation
+      JA_PORTAL_BASE_PATH: /j-aautomation/app
     ports:
       - 127.0.0.1:5100:5100
     volumes:
@@ -29,3 +49,17 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+  demo-seed:
+    profiles: [tools]
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.portal
+      target: tools
+    working_dir: /workspace/packages/database
+    user: 10001:10001
+    environment:
+      JA_DATABASE_PATH: /var/lib/j-aautomation/app.db
+      JA_MIGRATIONS_PATH: /workspace/migrations
+    volumes:
+      - /var/lib/j-aautomation:/var/lib/j-aautomation
+    command: [pnpm, demo:seed]

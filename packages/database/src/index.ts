@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -17,14 +17,32 @@ export function openDatabase(
 export function migrate(sqlite: DatabaseSync): void {
   const configured = process.env.JA_MIGRATIONS_PATH;
   const candidates = [
-    configured,
-    resolve(process.cwd(), 'migrations/0001_v3_initial.sql'),
-    resolve(process.cwd(), '../../migrations/0001_v3_initial.sql'),
+    configured ? resolve(configured) : undefined,
+    resolve(process.cwd(), 'migrations'),
+    resolve(process.cwd(), '../../migrations'),
   ].filter((value): value is string => Boolean(value));
-  const migration = candidates.find((value) => existsSync(value));
-  if (!migration) throw new Error('Migration 0001_v3_initial.sql was not found');
-  const sql = readFileSync(migration, 'utf8');
-  sqlite.exec(sql);
+  const migrationDirectory = candidates.find((value) => existsSync(value));
+  if (!migrationDirectory) throw new Error('Migration directory was not found');
+  const files = readdirSync(migrationDirectory)
+    .filter((file) => /^\d{4}_.+\.sql$/.test(file))
+    .sort();
+  if (files.length === 0) throw new Error('No reviewed SQL migrations were found');
+  const hasMigrationTable = Boolean(
+    sqlite
+      .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='schema_migration'")
+      .get(),
+  );
+  const applied = new Set<number>(
+    hasMigrationTable
+      ? (
+          sqlite.prepare('SELECT version FROM schema_migration').all() as Array<{ version: number }>
+        ).map((row) => row.version)
+      : [],
+  );
+  for (const file of files) {
+    const version = Number(file.slice(0, 4));
+    if (!applied.has(version)) sqlite.exec(readFileSync(resolve(migrationDirectory, file), 'utf8'));
+  }
 }
 
 export function createDatabase(path?: string) {
@@ -37,3 +55,5 @@ export function integrityCheck(sqlite: DatabaseSync): string {
   const result = sqlite.prepare('PRAGMA integrity_check').get() as { integrity_check: string };
   return result.integrity_check;
 }
+
+export * from './repository.ts';

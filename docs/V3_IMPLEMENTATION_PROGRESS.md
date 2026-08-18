@@ -1,5 +1,9 @@
 # V3 implementation progress
 
+> Scope note (2026-08-18): the current delivery target is the polished MVP demo described in
+> [MVP_DEMO_STATUS.md](MVP_DEMO_STATUS.md). V3 remains the production roadmap and is not the
+> completion checklist for this run. Working V3 foundations have been preserved.
+
 ## Environment
 
 - Started: 2026-08-18, Europe/Madrid
@@ -7,7 +11,8 @@
 - Available runtime at start: Node 25.8.1, pnpm 11.22.0
 - Source authority: `J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md`
 - Legacy `website/` retained as a read-only migration reference until parity review.
-- No VPS, remote repository, legacy database, or credential was accessed.
+- The VPS was inspected read-only for deployment compatibility. No remote configuration, service,
+  repository, database, or credential was changed.
 
 ## Phase log
 
@@ -49,7 +54,21 @@ Visual inspection covered the 390×844 and 1440×900 full-page captures. The rem
 - Authenticated portal route shell, worker views, local IndexedDB queue contract, scoped service worker, cache purge, and responsive phone navigation.
 - Non-root Node container, Compose, Caddy routing, systemd unit, health endpoint, online-backup proof, and restore proof.
 
-## Remaining V3 work
+## MVP delivery added after the scope change
+
+- Deterministic synthetic seed with Antonny Nascimento as owner/admin, three clients, four projects,
+  six users, assignments, time, daily and PLC reports, expenses, rates, budgets, and invoice drafts.
+- Repository-backed worker entry flows for actual time, daily reports, PLC reports, and receipt
+  expenses, plus manager project and approval views.
+- Coherent project finance showing planned versus actual hours, direct cost, travel/expense cost,
+  billable value, Contribution Margin, invoiced amount, and budget consumption.
+- Independent labor and expense billing streams with separate tax profiles and professional,
+  print-ready invoice previews marked as demonstrations.
+- Responsive worker and admin experiences verified at 390×844, 768×1024, and 1440×900.
+- Ubuntu deployment bundle for two non-root containers behind native Caddy, bound only to loopback,
+  with a systemd unit and explicit installation/verification procedure.
+
+## Remaining V3 work (post-MVP)
 
 The repository now provides a runnable migration baseline, not the complete V3 product. The following work remains before production or removal of `website/`:
 

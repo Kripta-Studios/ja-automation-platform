@@ -5,5 +5,19 @@ export default {
   kit: {
     adapter: adapter({ out: 'build', precompress: true }),
     paths: { base: process.env.JA_PUBLIC_BASE_PATH ?? '/j-aautomation', relative: false },
+    csp: {
+      mode: 'auto',
+      directives: {
+        'default-src': ['self'],
+        'img-src': ['self', 'data:', 'blob:'],
+        'style-src': ['self', 'unsafe-inline'],
+        'script-src': ['self'],
+        'worker-src': ['self'],
+        'connect-src': ['self'],
+        'frame-ancestors': ['none'],
+        'base-uri': ['self'],
+        'form-action': ['self'],
+      },
+    },
   },
 };

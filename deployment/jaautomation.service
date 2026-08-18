@@ -6,7 +6,9 @@ Requires=docker.service
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/opt/j-aautomation/current
-ExecStart=/usr/bin/docker compose -f deployment/compose.production.yml up -d
+EnvironmentFile=/etc/j-aautomation/portal.env
+ExecStartPre=/usr/bin/docker compose -f deployment/compose.production.yml config --quiet
+ExecStart=/usr/bin/docker compose -f deployment/compose.production.yml up -d --build --remove-orphans
 ExecStop=/usr/bin/docker compose -f deployment/compose.production.yml down
 TimeoutStartSec=180
 [Install]

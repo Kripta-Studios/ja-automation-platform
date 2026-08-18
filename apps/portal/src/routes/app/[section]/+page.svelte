@@ -1,6 +1,6 @@
 <script lang="ts">
   import PortalShell from '$lib/PortalShell.svelte';
-  let { data } = $props();
+  let { data, form } = $props();
 </script>
 
-<PortalShell {data} />
+<PortalShell {data} {form} />

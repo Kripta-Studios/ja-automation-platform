@@ -25,6 +25,7 @@
     "db:check": "pnpm --filter @ja/database db:check",
     "db:migrate:fresh": "pnpm --filter @ja/database db:migrate:fresh",
     "db:integrity": "pnpm --filter @ja/database db:integrity",
+    "demo:seed": "pnpm --filter @ja/database demo:seed",
     "ops:backup:test": "node deployment/scripts/backup-test.mjs",
     "ops:restore-test": "node deployment/scripts/restore-test.mjs"
   },

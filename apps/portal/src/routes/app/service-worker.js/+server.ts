@@ -1,10 +1,10 @@
 import { base } from '$app/paths';
 export const GET = () => {
   const scope = `${base}/app/`;
-  const source = `const CACHE='ja-portal-shell-v1';const SCOPE=${JSON.stringify(scope)};self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll([SCOPE,SCOPE+'manifest.webmanifest']))));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(!u.pathname.startsWith(SCOPE)||u.pathname.startsWith(SCOPE+'api/')||e.request.method!=='GET')return;e.respondWith(fetch(e.request).then(r=>{const x=r.clone();caches.open(CACHE).then(c=>c.put(e.request,x));return r}).catch(()=>caches.match(e.request).then(r=>r||caches.match(SCOPE))))});`;
+  const source = `const CACHE='ja-portal-shell-v2';const SCOPE=${JSON.stringify(scope)};self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));self.addEventListener('fetch',event=>{const url=new URL(event.request.url);if(!url.pathname.startsWith(SCOPE)||url.pathname.startsWith(SCOPE+'api/')||event.request.method!=='GET')return;event.respondWith(fetch(event.request).then(response=>{if(response.ok){const copy=response.clone();void caches.open(CACHE).then(cache=>cache.put(event.request,copy))}return response}).catch(()=>caches.match(event.request).then(response=>response||Response.error())))});`;
   return new Response(source, {
     headers: {
-      'content-type': 'text/javascript',
+      'content-type': 'application/javascript; charset=utf-8',
       'service-worker-allowed': scope,
       'cache-control': 'no-cache',
     },

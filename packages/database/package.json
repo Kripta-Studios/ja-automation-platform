@@ -10,9 +10,12 @@
     "typecheck": "tsc --noEmit",
     "db:check": "node --experimental-strip-types src/cli.ts check",
     "db:migrate:fresh": "node --experimental-strip-types src/cli.ts fresh",
-    "db:integrity": "node --experimental-strip-types src/cli.ts integrity"
+    "db:integrity": "node --experimental-strip-types src/cli.ts integrity",
+    "demo:seed": "node --experimental-strip-types src/demo-seed.ts"
   },
   "dependencies": {
+    "@ja/domain": "workspace:*",
+    "@ja/money": "workspace:*",
     "drizzle-orm": "catalog:"
   },
   "devDependencies": {

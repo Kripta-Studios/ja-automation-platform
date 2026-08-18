@@ -260,6 +260,12 @@ importers:
 
   packages/database:
     dependencies:
+      '@ja/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@ja/money':
+        specifier: workspace:*
+        version: link:../money
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(kysely@0.29.5)

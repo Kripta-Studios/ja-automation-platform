@@ -3,6 +3,8 @@
   let state = $state<'idle' | 'sending' | 'error'>('idle');
   let message = $state('');
   async function login(event: SubmitEvent) {
+    const submitter = event.submitter as HTMLButtonElement | null;
+    if (submitter?.formAction.endsWith('/app/demo-login')) return;
     event.preventDefault();
     state = 'sending';
     const form = new FormData(event.currentTarget as HTMLFormElement);
@@ -31,7 +33,7 @@
     <img src={`${base}/app/logo.png`} alt="J&A Automation" />
     <p class="portal-kicker">EMPLOYEE PORTAL / SECURE ACCESS</p>
     <h1>Field work, reports and project records.</h1>
-    <p>Use the account from your single-use invitation. J&A does not offer public registration.</p>
+    <p>Record field work, review controls activity and follow each project into billing.</p>
   </section>
   <form onsubmit={login}>
     <h2>Sign in</h2>
@@ -47,5 +49,44 @@
     >
     <p class="login-status" aria-live="polite">{message}</p>
     <small>Production accounts require MFA. Passkeys require user verification.</small>
+    <div class="demo-access">
+      <span>COMPANY DEMONSTRATION</span>
+      <p>Enter a populated workspace without production credentials.</p>
+      <button
+        type="submit"
+        name="role"
+        value="admin"
+        formaction={`${base}/app/demo-login`}
+        formmethod="post"
+        formnovalidate>Open admin demo</button
+      >
+      <button
+        type="submit"
+        name="role"
+        value="manager"
+        formaction={`${base}/app/demo-login`}
+        formmethod="post"
+        formnovalidate
+        class="secondary">Open PM demo</button
+      >
+      <button
+        type="submit"
+        name="role"
+        value="finance"
+        formaction={`${base}/app/demo-login`}
+        formmethod="post"
+        formnovalidate
+        class="secondary">Open finance demo</button
+      >
+      <button
+        type="submit"
+        name="role"
+        value="worker"
+        formaction={`${base}/app/demo-login`}
+        formmethod="post"
+        formnovalidate
+        class="secondary">Open worker demo</button
+      >
+    </div>
   </form>
 </main>

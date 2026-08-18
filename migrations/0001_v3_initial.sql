@@ -3,7 +3,7 @@ BEGIN IMMEDIATE;
 CREATE TABLE IF NOT EXISTS schema_migration (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL) STRICT;
 INSERT OR IGNORE INTO schema_migration VALUES (1, strftime('%Y-%m-%dT%H:%M:%fZ','now'));
 
-CREATE TABLE IF NOT EXISTS user (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, email_verified INTEGER NOT NULL DEFAULT 0 CHECK(email_verified IN (0,1)), image TEXT, role TEXT NOT NULL DEFAULT 'worker' CHECK(role IN ('owner_admin','finance_admin','project_manager','worker')), status TEXT NOT NULL DEFAULT 'invited' CHECK(status IN ('invited','active','suspended','offboarded')), mfa_enrolled INTEGER NOT NULL DEFAULT 0 CHECK(mfa_enrolled IN (0,1)), created_at TEXT NOT NULL, updated_at TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1 CHECK(version > 0)) STRICT;
+CREATE TABLE IF NOT EXISTS user (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, email_verified INTEGER NOT NULL DEFAULT 0 CHECK(email_verified IN (0,1)), image TEXT, role TEXT NOT NULL DEFAULT 'worker' CHECK(role IN ('owner_admin','finance_admin','project_manager','worker','auditor_read_only')), status TEXT NOT NULL DEFAULT 'invited' CHECK(status IN ('invited','active','suspended','offboarded')), mfa_enrolled INTEGER NOT NULL DEFAULT 0 CHECK(mfa_enrolled IN (0,1)), created_at TEXT NOT NULL, updated_at TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1 CHECK(version > 0)) STRICT;
 CREATE TABLE IF NOT EXISTS session (id TEXT PRIMARY KEY, token TEXT NOT NULL UNIQUE, user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE, expires_at TEXT NOT NULL, ip_address TEXT, user_agent TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL) STRICT;
 CREATE INDEX IF NOT EXISTS session_user_idx ON session(user_id);
 CREATE TABLE IF NOT EXISTS account (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, provider_id TEXT NOT NULL, user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE, access_token TEXT, refresh_token TEXT, password TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(provider_id, account_id)) STRICT;
@@ -56,4 +56,3 @@ CREATE TRIGGER IF NOT EXISTS issued_line_no_delete BEFORE DELETE ON invoice_line
 CREATE TRIGGER IF NOT EXISTS all_in_expense_invoice_guard BEFORE UPDATE OF invoice_id ON expense WHEN OLD.client_treatment='all_in' AND NEW.invoice_id IS NOT NULL BEGIN SELECT RAISE(ABORT,'all-in expense cannot enter customer invoice'); END;
 
 COMMIT;
-

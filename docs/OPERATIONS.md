@@ -17,7 +17,6 @@ Do not run destructive database copies, live deletes, production seed, or `drizz
 reviewed migrations, the online backup script and the staged restore procedure. Keep auto-issue and
 auto-send disabled unless the specification and an explicit reviewed business change permit them.
 
-For a synthetic walkthrough, the explicit exception is the showcase seed procedure in
-[SHOWCASE_ACCESS.md](SHOWCASE_ACCESS.md). It must run before the jobs timer is enabled, and its
-printed owner ID must be configured as `JA_JOB_ACTOR_ID`. The showcase database is disposable demo
-data; do not mix it with customer records.
+The fixture seed is limited to isolated development and automated validation. Never run it against
+the production database. Production jobs require an explicitly configured finance-capable
+`JA_JOB_ACTOR_ID`, and all portal access uses invitation-only Better Auth sessions.

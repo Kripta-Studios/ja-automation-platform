@@ -1988,7 +1988,7 @@ export class V3Repository {
     const project = this.sqlite
       .prepare(
         `SELECT client_id,currency,client_daily_minimum_minutes,revenue_budget_minor,po_cap_minor,
-                labor_budget_minutes,travel_budget_minor,planned_minutes
+                labor_budget_minutes,travel_budget_minor,planned_minutes,billing_model,fixed_price_minor
          FROM project WHERE id=?`,
       )
       .get(projectId) as
@@ -2001,6 +2001,8 @@ export class V3Repository {
           labor_budget_minutes: number | null;
           travel_budget_minor: number | null;
           planned_minutes: number | null;
+          billing_model: string;
+          fixed_price_minor: number | null;
         }
       | undefined;
     if (!project) throw new V3ValidationError('Project not found');
@@ -2258,16 +2260,18 @@ export class V3Repository {
     }
     const milestoneRows = this.sqlite
       .prepare(
-        `SELECT id,amount_minor,currency,approval_state,invoice_id
+        `SELECT id,amount_minor,currency,approval_state,invoice_id,due_on
          FROM project_milestone
-         WHERE project_id=? AND approval_state IN ('approved','final')`,
+         WHERE project_id=? AND approval_state IN ('approved','final')
+           AND (? IS NULL OR due_on IS NULL OR due_on BETWEEN ? AND ?)`,
       )
-      .all(projectId) as Array<{
+      .all(projectId, periodStart ?? null, periodStart ?? null, periodEnd ?? null) as Array<{
       id: string;
       amount_minor: number;
       currency: V3Currency;
       approval_state: string;
       invoice_id: string | null;
+      due_on: string | null;
     }>;
     const milestoneRevenue = milestoneRows
       .filter((row) => row.currency === project.currency && row.invoice_id === null)
@@ -2290,7 +2294,17 @@ export class V3Repository {
          WHERE i.project_id=? AND i.state<>'void'${invoicePeriodFilter}`,
       )
       .get(...invoiceValues) as { total: number };
-    const revenue = laborRevenue + expenseRevenue + milestoneRevenue;
+    const operationalRevenue = laborRevenue + expenseRevenue + milestoneRevenue;
+    // The operational value is useful for management even when the commercial
+    // model bills a fixed amount or is explicitly internal. The customer-facing
+    // candidate must follow the configured project model instead of blindly
+    // adding every approved source.
+    const revenue =
+      project.billing_model === 'all_in' && project.fixed_price_minor !== null
+        ? BigInt(project.fixed_price_minor) + milestoneRevenue
+        : project.billing_model === 'internal'
+          ? 0n
+          : operationalRevenue;
     const directCost = laborCost + expenseCost;
     const contribution = revenue - directCost;
     const budget = project.po_cap_minor ?? project.revenue_budget_minor;
@@ -2423,6 +2437,9 @@ export class V3Repository {
     if (missingRates > 0) alerts.push('MISSING_RATE');
     return {
       currency: project.currency,
+      billingModel: project.billing_model,
+      fixedPriceMinor:
+        project.fixed_price_minor === null ? null : String(project.fixed_price_minor),
       periodStart: periodStart ?? null,
       periodEnd: periodEnd ?? null,
       actualMinutes,
@@ -2435,6 +2452,7 @@ export class V3Repository {
       laborRevenueMinor: laborRevenue.toString(),
       expenseRevenueMinor: expenseRevenue.toString(),
       milestoneRevenueMinor: milestoneRevenue.toString(),
+      operationalRevenueCandidateMinor: operationalRevenue.toString(),
       revenueCandidateMinor: revenue.toString(),
       directLaborCostMinor: laborCost.toString(),
       workerCompensationMinor: workerCompensation.toString(),
@@ -3580,6 +3598,74 @@ export class V3Repository {
            WHERE e.project_id=? AND e.spent_on BETWEEN ? AND ? ORDER BY e.spent_on,e.id`,
         )
         .all(input.projectId, input.periodStart, input.periodEnd) as Array<Record<string, unknown>>;
+      const finance = this.projectFinance(
+        principal,
+        input.projectId,
+        input.periodStart,
+        input.periodEnd,
+      );
+      const commercialSummary = {
+        currency: finance.currency,
+        billingModel: finance.billingModel,
+        actualMinutes: finance.actualMinutes,
+        approvedMinutes: finance.approvedMinutes,
+        billableMinutes: finance.billableMinutes,
+        laborRevenueMinor: finance.laborRevenueMinor,
+        expenseRevenueMinor: finance.expenseRevenueMinor,
+        milestoneRevenueMinor: finance.milestoneRevenueMinor,
+        operationalRevenueCandidateMinor: finance.operationalRevenueCandidateMinor,
+        candidateSubtotalMinor: finance.revenueCandidateMinor,
+        invoicedNetMinor: finance.invoicedMinor,
+        invoicedGrossMinor: finance.invoicedGrossMinor,
+        paidMinor: finance.paidMinor,
+        receivableMinor: finance.receivableMinor,
+        approvedUnbilledWipMinor: finance.approvedUnbilledWipMinor,
+        unapprovedWipMinor: finance.unapprovedWipMinor,
+        dailyMinimumTopUpMinor: finance.dailyMinimumTopUpMinor,
+        sourceCounts: {
+          dailyReports: 0,
+          technicalReports: 0,
+          technicalChanges: 0,
+          timeEntries: 0,
+          expenses: 0,
+        },
+      };
+      const commercialLines =
+        finance.billingModel === 'all_in' && finance.fixedPriceMinor !== null
+          ? [
+              {
+                type: 'fixed_price',
+                basis: 'Configured all-in project price',
+                minutes: null,
+                amountMinor: finance.fixedPriceMinor,
+              },
+              {
+                type: 'milestone',
+                basis: 'Approved milestones eligible for this period and not yet invoiced',
+                minutes: null,
+                amountMinor: finance.milestoneRevenueMinor,
+              },
+            ]
+          : [
+              {
+                type: 'labor',
+                basis: 'Approved billable minutes × effective client labor rates',
+                minutes: finance.billableMinutes,
+                amountMinor: finance.laborRevenueMinor,
+              },
+              {
+                type: 'expense',
+                basis: 'Approved reimbursable expenses plus configured markup',
+                minutes: null,
+                amountMinor: finance.expenseRevenueMinor,
+              },
+              {
+                type: 'milestone',
+                basis: 'Approved milestones eligible for this period',
+                minutes: null,
+                amountMinor: finance.milestoneRevenueMinor,
+              },
+            ];
       const documents = this.sqlite
         .prepare(
           `SELECT id,safe_filename,media_type,byte_length,sha256,sensitivity,created_at
@@ -3588,11 +3674,12 @@ export class V3Repository {
         .all(input.projectId) as Array<Record<string, unknown>>;
       const reports = this.sqlite
         .prepare(
-          'SELECT id,audience,state,snapshot_json FROM period_report WHERE project_id=? AND period_start=? AND period_end=? ORDER BY audience',
+          'SELECT id,audience,report_type,state,snapshot_json FROM period_report WHERE project_id=? AND period_start=? AND period_end=? ORDER BY audience,report_type',
         )
         .all(input.projectId, input.periodStart, input.periodEnd) as Array<{
         id: string;
         audience: 'customer' | 'internal';
+        report_type: string;
         state: string;
         snapshot_json: string;
       }>;
@@ -3643,6 +3730,8 @@ export class V3Repository {
         const reportChanges = visibleTechnicalChanges.map((change) =>
           customer
             ? {
+                id: change.id,
+                date: change.created_at,
                 component: change.component,
                 changeMade: change.change_made,
                 productionImpact: change.production_impact,
@@ -3656,6 +3745,8 @@ export class V3Repository {
         const reportTechnical = visibleTechnicalReports.map((technical) =>
           customer
             ? {
+                id: technical.id,
+                date: technical.created_at,
                 system: technical.system_name,
                 site: technical.plant_site,
                 area: technical.area_line,
@@ -3670,6 +3761,7 @@ export class V3Repository {
             : technical,
         );
         const reportDaily = visibleDailyReports.map((daily) => ({
+          id: daily.id,
           date: daily.work_date,
           worker: customer ? undefined : daily.worker_name,
           summary: daily.summary,
@@ -3700,6 +3792,7 @@ export class V3Repository {
           periodStart: input.periodStart,
           periodEnd: input.periodEnd,
           audience: report.audience,
+          reportType: report.report_type,
           locale: reportLocale,
           dailyReports: reportDaily,
           timeSummary: visibleTime.map((row) => ({
@@ -3712,6 +3805,25 @@ export class V3Repository {
           technicalReports: reportTechnical,
           technicalChanges: reportChanges,
           expenses: reportExpenses,
+          commercialSummary: {
+            ...commercialSummary,
+            sourceCounts: {
+              dailyReports: visibleDailyReports.length,
+              technicalReports: visibleTechnicalReports.length,
+              technicalChanges: visibleTechnicalChanges.length,
+              timeEntries: visibleTime.length,
+              expenses: visibleExpenses.length,
+            },
+          },
+          commercialCalculation: commercialLines,
+          financialSummary: customer
+            ? undefined
+            : {
+                ...finance,
+                timeEconomics: finance.timeEconomics,
+                expenseEconomics: finance.expenseEconomics,
+                dailyMinimumAdjustments: finance.dailyMinimumAdjustments,
+              },
           backupArtifacts: customer
             ? visibleDocuments.map((document) => ({
                 filename: document.safe_filename,
@@ -3724,7 +3836,7 @@ export class V3Repository {
         } satisfies Record<string, unknown>;
         this.sqlite
           .prepare(
-            "UPDATE period_report SET snapshot_json=?,state=CASE WHEN state='draft' THEN 'review' ELSE state END,updated_at=? WHERE id=?",
+            "UPDATE period_report SET snapshot_json=?,state=CASE WHEN state='draft' THEN 'review' ELSE state END,pdf_storage_key=NULL,pdf_sha256=NULL,pdf_byte_length=NULL,updated_at=? WHERE id=?",
           )
           .run(JSON.stringify(snapshot), now, report.id);
         this.sqlite.prepare('DELETE FROM report_source WHERE report_id=?').run(report.id);

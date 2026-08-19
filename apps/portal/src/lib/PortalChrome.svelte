@@ -57,6 +57,8 @@
     onCloseMenu: () => void;
   } = $props();
 
+  let accountOpen = $state(false);
+
   const navIconPaths: Record<string, string> = {
     Today: 'M3 10.75 12 3l9 7.75V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.25Z',
     Dashboard: 'M3 10.75 12 3l9 7.75V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.25Z',
@@ -177,9 +179,53 @@
       {/each}
     </select>
   </label>
-  <a class="user" href={href('profile')}>
-    <span class="user-avatar" aria-hidden="true">{initials(data.user.name)}</span>
-    <span class="user-copy"><b>{data.user.name}</b><small>{data.user.role ?? 'worker'}</small></span
+  <div class="account-menu-wrap">
+    <button
+      type="button"
+      class="user account-trigger"
+      aria-haspopup="menu"
+      aria-expanded={accountOpen}
+      onclick={() => (accountOpen = !accountOpen)}
+      onkeydown={(event) => {
+        if (event.key === 'Escape') accountOpen = false;
+      }}
     >
-  </a>
+      <span class="user-avatar" aria-hidden="true">{initials(data.user.name)}</span>
+      <span class="user-copy"
+        ><b>{data.user.name}</b><small>{data.user.role ?? 'worker'}</small></span
+      >
+      <span class="account-chevron" aria-hidden="true">{accountOpen ? '⌃' : '⌄'}</span>
+    </button>
+    {#if accountOpen}
+      <div class="account-menu" role="menu" aria-label="Account options">
+        <div class="account-menu-summary" role="presentation">
+          <span class="portal-kicker">SIGNED IN</span>
+          <strong>{data.user.name}</strong>
+          <small>{data.user.role ?? 'worker'} workspace access</small>
+        </div>
+        <a role="menuitem" href={href('profile')} onclick={() => (accountOpen = false)}>
+          <span class="account-menu-icon" aria-hidden="true">◎</span>
+          <span><b>Profile & security</b><small>Personal details, MFA and availability</small></span
+          >
+        </a>
+        <a role="menuitem" href={href('notifications')} onclick={() => (accountOpen = false)}>
+          <span class="account-menu-icon" aria-hidden="true">◌</span>
+          <span><b>Notifications</b><small>Review changes and approval activity</small></span>
+        </a>
+        <a role="menuitem" href={href('pay')} onclick={() => (accountOpen = false)}>
+          <span class="account-menu-icon" aria-hidden="true">€</span>
+          <span><b>My pay</b><small>Compensation, expenses and pay history</small></span>
+        </a>
+        <a role="menuitem" href={href('documents')} onclick={() => (accountOpen = false)}>
+          <span class="account-menu-icon" aria-hidden="true">□</span>
+          <span><b>My documents</b><small>Private files shared with your workspace</small></span>
+        </a>
+        <div class="account-menu-divider" role="separator"></div>
+        <button type="button" class="account-signout" role="menuitem" onclick={logout}>
+          <span class="account-menu-icon" aria-hidden="true">↪</span>
+          <span><b>Log out</b><small>End this session on this device</small></span>
+        </button>
+      </div>
+    {/if}
+  </div>
 </header>

@@ -6,6 +6,7 @@ import {
   e2eDocumentRoot as documentRoot,
   e2eRoot as root,
 } from './environment';
+import { seedE2ECredentialAccounts } from './auth';
 
 function removeDatabaseArtifacts(): void {
   for (const path of [databasePath, `${databasePath}-wal`, `${databasePath}-shm`]) {
@@ -26,7 +27,7 @@ export default async function globalSetup() {
     JA_DATABASE_PATH: databasePath,
     JA_MIGRATIONS_PATH: join(root, 'migrations'),
     JA_DOCUMENT_ROOT: documentRoot,
-    JA_DEMO_MODE: 'true',
+    JA_FIXTURE_RESET_DOCUMENTS: 'false',
     JA_DEMO_SEED_PRESERVE_DB: 'true',
     JA_AUTH_SECRET: 'e2e-only-secret-do-not-use-in-production',
     JA_PUBLIC_BASE_PATH: '/j-aautomation',
@@ -41,6 +42,7 @@ export default async function globalSetup() {
       stdio: 'inherit',
     },
   );
+  await seedE2ECredentialAccounts(databasePath);
   return async () => {
     removeDatabaseArtifacts();
     if (existsSync(documentRoot)) rmSync(documentRoot, { recursive: true, force: true });

@@ -48,7 +48,7 @@ export default defineConfig({
         JA_DATABASE_PATH: e2eDatabasePath,
         JA_MIGRATIONS_PATH: join(root, 'migrations'),
         JA_DOCUMENT_ROOT: e2eDocumentRoot,
-        JA_DEMO_MODE: 'true',
+        JA_FIXTURE_RESET_DOCUMENTS: 'false',
         JA_AUTH_SECRET: 'e2e-only-secret-do-not-use-in-production',
         JA_PUBLIC_BASE_PATH: '/j-aautomation',
         JA_PORTAL_BASE_PATH: '/j-aautomation/app',

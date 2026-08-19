@@ -18,7 +18,7 @@ const demoDocumentRoot = resolve(
 );
 if (
   process.env.JA_DEMO_SEED_PRESERVE_DB !== 'true' &&
-  (!configuredDocumentRoot || process.env.JA_DEMO_MODE === 'true') &&
+  (!configuredDocumentRoot || process.env.JA_FIXTURE_RESET_DOCUMENTS === 'true') &&
   existsSync(demoDocumentRoot)
 )
   rmSync(demoDocumentRoot, { recursive: true, force: true });
@@ -236,7 +236,7 @@ for (const [projectId, timezone] of [
     wednesdayMinutes: 600,
     thursdayMinutes: 600,
     fridayMinutes: 600,
-    saturdayMinutes: 360,
+    saturdayMinutes: 600,
     sundayMinutes: 0,
     effectiveFrom: '2026-07-01',
   });
@@ -443,6 +443,90 @@ const pending = repository.createTimeEntry(worker, {
 });
 repository.submitTime(worker, pending.id, pending.version);
 
+// Current-week showcase data makes the weekly timesheet legible: approved days,
+// a submitted day with a shortfall, and category-level context instead of one
+// isolated placeholder row.
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-17',
+  'regular',
+  480,
+  'Completed planned Line 4 startup checks and operator handover.',
+);
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-17',
+  'standby',
+  120,
+  'Waited for production clearance before the live-cycle window.',
+);
+const submittedStandby = repository.createTimeEntry(worker, {
+  projectId: line.id,
+  workDate: '2026-08-18',
+  category: 'standby',
+  minutes: 120,
+  summary: 'Held for a customer production window after sensor timing checks.',
+});
+repository.submitTime(worker, submittedStandby.id, submittedStandby.version);
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-19',
+  'commissioning',
+  480,
+  'Validated restart sequence and confirmed interlock recovery.',
+);
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-19',
+  'remote_support',
+  120,
+  'Remote support for the evening shift diagnostic review.',
+);
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-20',
+  'regular',
+  600,
+  'Completed production observation and closed the remaining startup notes.',
+);
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-21',
+  'regular',
+  480,
+  'Completed final point-to-point checks and signed the handover checklist.',
+);
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-21',
+  'travel',
+  120,
+  'Travel between the controls office and the customer line.',
+);
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-22',
+  'commissioning',
+  540,
+  'Saturday commissioning window for final sequence validation.',
+);
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-22',
+  'standby',
+  60,
+  'Held for the production restart confirmation.',
+);
+
 const daily = repository.createDailyReport(worker, {
   projectId: line.id,
   workDate: '2026-08-11',
@@ -478,6 +562,41 @@ const pendingDaily = repository.createDailyReport(worker, {
   safetyRelated: false,
 });
 repository.submitReport(worker, 'daily', pendingDaily.id, pendingDaily.version);
+repository.updateDailyReport(worker, {
+  projectId: line.id,
+  workDate: '2026-08-18',
+  siteShift: 'Body shop · first shift',
+  summary: 'Startup support, sensor timing investigation and customer handover notes.',
+  tasksCompleted: 'Cleared timing faults and documented affected devices.',
+  problemsFound: 'Two prox sensors showed inconsistent transition timing.',
+  correctiveActions: 'Adjusted debounce parameters within the approved range.',
+  clientDecisions: '',
+  downtimeMinutes: 0,
+  standbyReason: '',
+  blockers: '',
+  openItems: 'Monitor through afternoon production.',
+  nextDayPlan: 'Close issue after trend review.',
+  safetyRelated: false,
+  customerContact: '',
+  id: pendingDaily.id,
+  version: pendingDaily.version + 1,
+});
+const submittedDaily = repository.createDailyReport(worker2, {
+  projectId: palletizer.id,
+  workDate: '2026-08-19',
+  siteShift: 'Commissioning bay · second shift',
+  summary: 'Palletizer layer transition review submitted for project approval.',
+  tasksCompleted: 'Verified layer timing, guard signals and restart behavior.',
+  problemsFound: 'No blocking issues found during the planned validation run.',
+  correctiveActions: 'Recorded an observation for the next maintenance window.',
+  clientDecisions: 'Customer requested the observation remain open until handover.',
+  downtimeMinutes: 0,
+  blockers: '',
+  openItems: 'Confirm maintenance window date.',
+  nextDayPlan: 'Review handover checklist with the plant lead.',
+  safetyRelated: false,
+});
+repository.submitReport(worker2, 'daily', submittedDaily.id, submittedDaily.version);
 const plc = repository.createTechnicalReport(worker, {
   projectId: line.id,
   systemName: 'Line 4 Main Conveyor',

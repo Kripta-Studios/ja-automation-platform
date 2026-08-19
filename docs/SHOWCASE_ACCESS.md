@@ -1,77 +1,34 @@
-# V3 showcase access
+# J&A Automation portal access
 
-This is the safe access sheet for the VPS showcase release. The workspace is populated by
-`packages/database/src/demo-seed.ts` with synthetic clients, contacts, projects, users, workers,
-operational records, private documents, travel expenses, planning data and finance artifacts.
+The portal is the finished private workspace described by the V3 product specification. The public
+site links to `/j-aautomation/app/login`, and that page always uses the real Better Auth flow:
+invite-only accounts, secure cookie sessions, password sign-in, passkeys where supported, TOTP MFA
+and recovery codes.
 
-The showcase deliberately enables `JA_DEMO_MODE=true`. The role buttons create an eight-hour,
-HMAC-signed demo cookie; they do not create a Better Auth session and they do not require a
-password. This is suitable for a public product walkthrough only. Turn demo mode off and replace
-the database before using the deployment for real users or customer data.
+There is no demo button, shared account, passwordless role switch or public registration. A browser
+visitor who is not authenticated can see only the sign-in surface; every protected query still checks
+the authenticated role, project membership and ownership on the server.
 
-## URLs
+## Production access
 
-- Public website: `https://gex-dashboard.hopto.org/j-aautomation/en`
-- Portal login: `https://gex-dashboard.hopto.org/j-aautomation/app/login`
-- Portal base path: `/j-aautomation/app/`
+1. An operator provisions the first owner once with `pnpm portal:bootstrap-owner`. The command uses
+   the reviewed migrations, Better Auth's password hashing and an audited `owner_admin` record. It
+   never prints or stores the password in the repository.
+2. The owner signs in at `https://example.invalid/j-aautomation/app/login`, enrolls MFA on first
+   access and verifies a passkey when available.
+3. The owner opens Projects → Team and creates a single-use invitation for each team member. The
+   invitee sets a password of 12–128 characters on the activation page, then signs in normally.
+4. Suspended, offboarded and archived accounts are rejected before protected portal data is loaded.
 
-If the hostname changes, update the four origin/RP values in the VPS environment before building.
+Replace `example.invalid` with the configured production origin. The portal service worker remains
+scoped to `/j-aautomation/app/`, and auth tokens are never placed in localStorage, sessionStorage,
+IndexedDB or URLs.
 
-## Demo accounts
+## Local and automated validation
 
-| Role button           | Name               | Email                             | Role              | Password                  |
-| --------------------- | ------------------ | --------------------------------- | ----------------- | ------------------------- |
-| Owner admin · Antonny | Antonny Nascimento | `antonny.luty@j-aautomation.com`  | `owner_admin`     | None; use the demo button |
-| Finance               | Elena Costa        | `finance@demo.jaautomation.local` | `finance_admin`   | None; use the demo button |
-| Project manager       | Daniel Brooks      | `pm@demo.jaautomation.local`      | `project_manager` | None; use the demo button |
-| Field worker          | Alex Rivera        | `worker@demo.jaautomation.local`  | `worker`          | None; use the demo button |
+`packages/database/src/demo-seed.ts` is disposable fixture tooling only. It creates synthetic records
+for repository, billing, reporting and browser tests; it is not a deployment access mode and it does
+not create a passwordless session. The browser suite adds isolated Better Auth credential hashes to
+its temporary database and signs in through the same endpoint used by a real invited account.
 
-The seed also creates two additional workers for assignments and team listings:
-
-- Rafael Santos — `rafael@demo.jaautomation.local`
-- Maya Chen — `maya@demo.jaautomation.local`
-
-These `.local` addresses are synthetic display data and must not receive email. The supplied
-company address belongs only to the owner/admin showcase identity.
-
-## Mock workspace
-
-| Client                           | Projects                                                            | Showcase focus                                         |
-| -------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------ |
-| Northline Mobility (Demo)        | Body Shop Line 4 Controls Upgrade; Remote Controls Support Retainer | automotive controls, daily minimums and remote support |
-| Harbor Packaging Group (Demo)    | High-Speed Palletizer Commissioning                                 | all-in commissioning and travel expense treatment      |
-| BlueRiver Process Systems (Demo) | Caustic Recovery Skid Integration                                   | time-and-materials process controls work               |
-
-The seed contains four projects, six active users, three workers, six client contacts, approved and
-pending actual time, daily and technical reports, approved reimbursable/all-in expenses, planning
-assignments, schedules, skills, worker availability, client/worker/internal rates, legal/tax
-configuration, notifications, two technical-change approval states, two milestone approval states,
-three separate draft invoice streams (labor, expense and milestone), closed billing periods, period
-reports, an Accounting Pack draft and a project closeout draft. The expense set includes hotel
-folios, an airfare ticket/boarding-pass document, rental-car invoice, fuel, ground transport, meals,
-per diem, tolls, tools and materials. Each receipt is a real, valid synthetic PDF stored under the
-private document root and marked clean for the showcase scanner workflow. Planned/expected/minimum
-minutes never become actual time, labor and expense billing remain separate, auto-issue and auto-send
-remain disabled, and every monetary value stays synthetic and not for payment.
-
-## Local access
-
-```powershell
-pnpm install --frozen-lockfile
-$env:JA_DATABASE_PATH="$PWD\packages\database\data\demo.db"
-$env:JA_MIGRATIONS_PATH="$PWD\migrations"
-$env:JA_DOCUMENT_ROOT="$PWD\data\documents"
-$env:JA_DEMO_MODE="true"
-pnpm demo:seed
-pnpm dev:portal
-```
-
-Open `http://127.0.0.1:5174/j-aautomation/app/login` and select a role button. The public site can
-run separately with `pnpm dev:site` at `http://127.0.0.1:5173/j-aautomation/en`.
-
-## VPS handoff
-
-The complete archive and exact extraction/seed/start commands are described in
-`deployment/README_VPS.md`. The archive contains source and deployment definitions, not a database,
-private uploads, `.env` secrets, `node_modules` or generated build output. The database is created
-on the VPS by the reviewed demo seed after the migration-aware portal image is built.
+Do not copy fixture databases, uploads, credentials or generated financial artifacts into a release.

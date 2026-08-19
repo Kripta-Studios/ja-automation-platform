@@ -88,7 +88,26 @@ services:
       JA_DATABASE_PATH: /var/lib/jaautomation/data/jaautomation.sqlite
       JA_MIGRATIONS_PATH: /workspace/migrations
       JA_DOCUMENT_ROOT: /var/lib/jaautomation/files
-      JA_DEMO_MODE: ${JA_DEMO_MODE:-true}
+      JA_FIXTURE_RESET_DOCUMENTS: ${JA_FIXTURE_RESET_DOCUMENTS:-false}
     volumes:
       - /var/lib/jaautomation:/var/lib/jaautomation
     command: [node, --experimental-strip-types, src/demo-seed.ts]
+  bootstrap-owner:
+    profiles: [tools]
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.portal
+      target: tools
+    working_dir: /workspace
+    user: 10001:10001
+    env_file:
+      - path: /etc/jaautomation/jaautomation.env
+        required: false
+    environment:
+      COREPACK_HOME: /tmp/corepack
+      JA_DATABASE_PATH: /var/lib/jaautomation/data/jaautomation.sqlite
+      JA_MIGRATIONS_PATH: /workspace/migrations
+      JA_PORTAL_BASE_PATH: /j-aautomation/app
+    volumes:
+      - /var/lib/jaautomation:/var/lib/jaautomation
+    command: [node, --experimental-strip-types, apps/portal/src/cli/bootstrap-owner.ts]

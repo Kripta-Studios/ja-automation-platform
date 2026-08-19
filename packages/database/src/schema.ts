@@ -401,7 +401,7 @@ export const outboxEvents = sqliteTable('outbox_event', {
 
 // The tables below are intentionally declared alongside the operational
 // tables rather than hidden in generated output. This keeps Drizzle's model
-// aligned with reviewed migrations 0001–0017 and makes schema review useful.
+// aligned with reviewed migrations 0001–0018 and makes schema review useful.
 export const accounts = sqliteTable('account', {
   id: text('id').primaryKey(),
   issuer: text('issuer').notNull().default('local:credential'),
@@ -437,6 +437,7 @@ export const passkeys = sqliteTable('passkey', {
   backedUp: integer('backed_up', { mode: 'boolean' }).notNull(),
   transports: text('transports'),
   createdAt: text('created_at').notNull(),
+  aaguid: text('aaguid'),
 });
 export const twoFactors = sqliteTable('two_factor', {
   id: text('id').primaryKey(),

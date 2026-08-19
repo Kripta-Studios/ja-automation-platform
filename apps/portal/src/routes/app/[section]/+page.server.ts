@@ -136,6 +136,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
       user: locals.user,
       section,
       searchQuery,
+      searchSuggestions: context.repository.searchSuggestions(context.principal),
       searchResults:
         searchQuery.length >= 2 ? context.repository.search(context.principal, searchQuery) : [],
     };

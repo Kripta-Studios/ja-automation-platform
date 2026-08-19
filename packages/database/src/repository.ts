@@ -1342,6 +1342,302 @@ export class PortalRepository {
     return { id, version: 1 };
   }
 
+  private reportSourceType(type: 'daily' | 'technical'): string {
+    return `${type}_report`;
+  }
+
+  private reportIsLocked(type: 'daily' | 'technical', id: string): boolean {
+    return Boolean(
+      this.sqlite
+        .prepare(
+          "SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type=? AND rs.source_id=? AND pr.state='final' LIMIT 1",
+        )
+        .get(this.reportSourceType(type), id),
+    );
+  }
+
+  private canViewReport(principal: Principal, projectId: string, ownerId: string): boolean {
+    if (
+      principal.role === 'owner_admin' ||
+      principal.role === 'finance_admin' ||
+      principal.role === 'auditor_read_only'
+    )
+      return true;
+    if (principal.role === 'project_manager') return principal.projectIds.has(projectId);
+    return principal.role === 'worker' && principal.userId === ownerId;
+  }
+
+  private canMutateReport(principal: Principal, projectId: string, ownerId: string): boolean {
+    if (principal.role === 'auditor_read_only') return false;
+    if (principal.role === 'owner_admin' || principal.role === 'finance_admin') return true;
+    if (principal.role === 'project_manager') return principal.projectIds.has(projectId);
+    return principal.role === 'worker' && principal.userId === ownerId;
+  }
+
+  private reportNotificationRecipients(projectId: string, actorId: string) {
+    const candidates = this.sqlite
+      .prepare(
+        "SELECT id,role FROM user WHERE status='active' AND role IN ('owner_admin','finance_admin','project_manager')",
+      )
+      .all() as Array<{ id: string; role: string }>;
+    return candidates.filter((candidate) => {
+      if (candidate.id === actorId) return false;
+      if (candidate.role === 'project_manager')
+        return Boolean(
+          this.sqlite
+            .prepare(
+              "SELECT 1 FROM project_member WHERE project_id=? AND user_id=? AND status='active'",
+            )
+            .get(projectId, candidate.id),
+        );
+      return true;
+    });
+  }
+
+  private notifyReportChanged(
+    principal: Principal,
+    type: 'daily' | 'technical',
+    reportId: string,
+    projectId: string,
+    changedFields: readonly string[],
+    action: 'report_modified' | 'report_deleted',
+    occurredAt: string,
+  ): void {
+    for (const recipient of this.reportNotificationRecipients(projectId, principal.userId))
+      this.sqlite
+        .prepare(
+          'INSERT INTO notification(id,user_id,kind,subject_id,created_at) VALUES(?,?,?,?,?)',
+        )
+        .run(newId(), recipient.id, action, reportId, occurredAt);
+    this.audit(principal, `report.${action}`, this.reportSourceType(type), reportId, {
+      projectId,
+      changedFields,
+    });
+  }
+
+  reportDetail(principal: Principal, id: string) {
+    this.assertReadable(principal);
+    const daily = this.sqlite
+      .prepare(
+        `SELECT 'daily' type,d.*,p.project_number,p.name project_name,p.site_name,p.client_id,
+                u.name author_name,u.email author_email
+         FROM daily_report d JOIN project p ON p.id=d.project_id JOIN user u ON u.id=d.worker_id
+         WHERE d.id=?`,
+      )
+      .get(id) as Record<string, unknown> | undefined;
+    const technical = this.sqlite
+      .prepare(
+        `SELECT 'technical' type,t.*,t.author_id owner_id,p.project_number,p.name project_name,
+                p.site_name,p.client_id,u.name author_name,u.email author_email
+         FROM technical_report t JOIN project p ON p.id=t.project_id JOIN user u ON u.id=t.author_id
+         WHERE t.id=?`,
+      )
+      .get(id) as Record<string, unknown> | undefined;
+    const report = daily ?? technical;
+    if (!report) throw new ValidationError('Report not found');
+    const type = String(report.type) === 'technical' ? 'technical' : 'daily';
+    const projectId = String(report.project_id);
+    const ownerId = String(report.owner_id ?? report.worker_id ?? report.author_id);
+    if (!this.canViewReport(principal, projectId, ownerId))
+      throw new AccessDeniedError('Report access required');
+    const locked = this.reportIsLocked(type, id);
+    const hasTechnicalChildren =
+      type === 'technical' &&
+      Boolean(
+        this.sqlite.prepare('SELECT 1 FROM technical_change WHERE technical_report_id=?').get(id),
+      );
+    const history = this.sqlite
+      .prepare(
+        `SELECT ae.action,ae.occurred_at,ae.details_json,u.name actor_name
+         FROM audit_event ae LEFT JOIN user u ON u.id=ae.actor_id
+         WHERE ae.entity_type=? AND ae.entity_id=? ORDER BY ae.occurred_at DESC,ae.id DESC LIMIT 50`,
+      )
+      .all(this.reportSourceType(type), id);
+    return {
+      type,
+      report,
+      history,
+      locked,
+      canEdit: !locked && this.canMutateReport(principal, projectId, ownerId),
+      canDelete: !locked && principal.role === 'owner_admin' && !hasTechnicalChildren,
+    };
+  }
+
+  private updateReport(
+    principal: Principal,
+    type: 'daily' | 'technical',
+    input: Record<string, unknown>,
+  ) {
+    this.assertActive(principal);
+    const table = type === 'daily' ? 'daily_report' : 'technical_report';
+    const current = this.sqlite
+      .prepare(`SELECT * FROM ${table} WHERE id=?`)
+      .get(String(input.id)) as Record<string, unknown> | undefined;
+    if (!current) throw new ValidationError('Report not found');
+    const projectId = String(current.project_id);
+    const ownerId = String(current.worker_id ?? current.author_id);
+    if (!this.canMutateReport(principal, projectId, ownerId))
+      throw new AccessDeniedError('Report edit access required');
+    if (type === 'daily' && principal.role === 'worker')
+      this.assertProjectMembership(principal, projectId, String(input.workDate));
+    if (this.reportIsLocked(type, String(input.id)))
+      throw new ConflictError('This report is part of a finalized report and cannot be edited');
+    const version = Number(input.version);
+    if (!Number.isInteger(version) || version !== Number(current.version))
+      throw new ConflictError('Report changed or cannot be edited');
+    const fields =
+      type === 'daily'
+        ? ([
+            ['workDate', 'work_date'],
+            ['siteShift', 'site_shift'],
+            ['summary', 'summary'],
+            ['tasksCompleted', 'tasks_completed'],
+            ['problemsFound', 'problems_found'],
+            ['correctiveActions', 'corrective_actions'],
+            ['clientDecisions', 'client_decisions'],
+            ['downtimeMinutes', 'downtime_minutes'],
+            ['standbyReason', 'standby_reason'],
+            ['blockers', 'blockers'],
+            ['openItems', 'open_items'],
+            ['nextDayPlan', 'next_day_plan'],
+            ['safetyRelated', 'safety_related'],
+            ['customerContact', 'customer_contact'],
+          ] as const)
+        : ([
+            ['systemName', 'system_name'],
+            ['plantSite', 'plant_site'],
+            ['areaLine', 'area_line'],
+            ['stationMachine', 'station_machine'],
+            ['systemType', 'system_type'],
+            ['plcPlatform', 'plc_platform'],
+            ['controller', 'controller'],
+            ['hmiScada', 'hmi_scada'],
+            ['networkProtocol', 'network_protocol'],
+            ['softwareVersion', 'software_version'],
+            ['programReference', 'program_reference'],
+            ['changeSummary', 'change_summary'],
+            ['safetyRelated', 'safety_related'],
+            ['productionImpact', 'production_impact'],
+            ['validation', 'validation'],
+            ['validationResult', 'validation_result'],
+            ['openRisk', 'open_risk'],
+            ['rollbackPlan', 'rollback_plan'],
+          ] as const);
+    const normalized = (field: string, value: unknown): unknown =>
+      field === 'safetyRelated' ? Boolean(value) : value === undefined ? null : value;
+    const currentValue = (field: string, column: string): unknown =>
+      field === 'safetyRelated' ? Boolean(Number(current[column] ?? 0)) : (current[column] ?? null);
+    const changedFields = fields
+      .filter(([field, column]) => normalized(field, input[field]) !== currentValue(field, column))
+      .map(([field]) => field);
+    if (changedFields.length === 0) return { id: String(input.id), version };
+    const before = Object.fromEntries(
+      fields
+        .filter(([field]) => changedFields.includes(field))
+        .map(([field, column]) => [field, currentValue(field, column)]),
+    );
+    const after = Object.fromEntries(
+      fields
+        .filter(([field]) => changedFields.includes(field))
+        .map(([field]) => [field, normalized(field, input[field])]),
+    );
+    const timestamp = now();
+    const nextState = ['submitted', 'approved'].includes(String(current.approval_state))
+      ? 'needs_changes'
+      : String(current.approval_state);
+    const setClause = fields.map(([, column]) => `${column}=?`).join(',');
+    const values: Array<string | number | null> = fields.map(([field]) => {
+      const value = normalized(field, input[field]);
+      if (field === 'safetyRelated') return value ? 1 : 0;
+      return typeof value === 'string' || typeof value === 'number' || value === null
+        ? value
+        : null;
+    });
+    const result = this.transaction(() => {
+      const update = this.sqlite
+        .prepare(
+          `UPDATE ${table} SET ${setClause},approval_state=?,reviewed_by=NULL,reviewed_at=NULL,updated_at=?,version=version+1 WHERE id=? AND version=?`,
+        )
+        .run(...values, nextState, timestamp, String(input.id), version);
+      if (update.changes !== 1) throw new ConflictError('Report changed or cannot be edited');
+      this.audit(
+        principal,
+        `report.${type}.update`,
+        this.reportSourceType(type),
+        String(input.id),
+        {
+          projectId,
+          changedFields,
+          before,
+          after,
+        },
+      );
+      this.notifyReportChanged(
+        principal,
+        type,
+        String(input.id),
+        projectId,
+        changedFields,
+        'report_modified',
+        timestamp,
+      );
+      return { id: String(input.id), version: version + 1, changedFields };
+    });
+    return result;
+  }
+
+  updateDailyReport(
+    principal: Principal,
+    input: DailyReportInput & { id: string; version: number },
+  ) {
+    return this.updateReport(principal, 'daily', input as unknown as Record<string, unknown>);
+  }
+
+  updateTechnicalReport(
+    principal: Principal,
+    input: TechnicalReportInput & { id: string; version: number },
+  ) {
+    return this.updateReport(principal, 'technical', input as unknown as Record<string, unknown>);
+  }
+
+  deleteReport(principal: Principal, type: 'daily' | 'technical', id: string, version: number) {
+    this.assertActive(principal);
+    if (principal.role !== 'owner_admin') throw new AccessDeniedError('Owner access required');
+    const table = type === 'daily' ? 'daily_report' : 'technical_report';
+    const current = this.sqlite.prepare(`SELECT * FROM ${table} WHERE id=?`).get(id) as
+      | Record<string, unknown>
+      | undefined;
+    if (!current) throw new ValidationError('Report not found');
+    if (this.reportIsLocked(type, id))
+      throw new ConflictError('Finalized reports cannot be deleted');
+    if (
+      type === 'technical' &&
+      this.sqlite.prepare('SELECT 1 FROM technical_change WHERE technical_report_id=?').get(id)
+    )
+      throw new ConflictError('Remove linked technical changes before deleting this report');
+    const result = this.transaction(() => {
+      const deleted = this.sqlite
+        .prepare(`DELETE FROM ${table} WHERE id=? AND version=?`)
+        .run(id, version);
+      if (deleted.changes !== 1) throw new ConflictError('Report changed or cannot be deleted');
+      this.audit(principal, `report.${type}.delete`, this.reportSourceType(type), id, {
+        projectId: String(current.project_id),
+        before: current,
+      });
+      this.notifyReportChanged(
+        principal,
+        type,
+        id,
+        String(current.project_id),
+        ['record'],
+        'report_deleted',
+        now(),
+      );
+      return { id };
+    });
+    return result;
+  }
+
   submitReport(principal: Principal, type: 'daily' | 'technical', id: string, baseVersion: number) {
     this.assertActive(principal);
     const table = type === 'daily' ? 'daily_report' : 'technical_report';
@@ -2591,10 +2887,20 @@ export class PortalRepository {
     return this.transaction(() => {
       const existing = this.sqlite
         .prepare(
-          'SELECT id FROM invoice WHERE billing_rule_id=? AND period_start=? AND period_end=?',
+          'SELECT id,state FROM invoice WHERE billing_rule_id=? AND period_start=? AND period_end=?',
         )
-        .get(billingRuleId, periodStart, periodEnd) as { id: string } | undefined;
-      if (existing) return { id: existing.id, created: false };
+        .get(billingRuleId, periodStart, periodEnd) as { id: string; state: string } | undefined;
+      let refreshed = false;
+      if (existing) {
+        if (existing.state !== 'draft') return { id: existing.id, created: false, refreshed };
+        // Drafts are previews, so they can be rebuilt from newly approved
+        // source data. Issued/approved invoices take a separate immutable
+        // workflow and never reach this branch.
+        this.sqlite.prepare('DELETE FROM invoice_source WHERE invoice_id=?').run(existing.id);
+        this.sqlite.prepare('DELETE FROM invoice_line WHERE invoice_id=?').run(existing.id);
+        this.sqlite.prepare("DELETE FROM invoice WHERE id=? AND state='draft'").run(existing.id);
+        refreshed = true;
+      }
       const rule = this.sqlite
         .prepare(
           `SELECT br.*,p.billing_model,p.po_cap_minor,p.fixed_price_minor
@@ -2911,7 +3217,7 @@ export class PortalRepository {
         periodStart,
         periodEnd,
       });
-      return { id, created: true };
+      return { id, created: !refreshed, refreshed };
     });
   }
 
@@ -4088,11 +4394,69 @@ export class PortalRepository {
 
   listNotifications(principal: Principal) {
     this.assertReadable(principal);
-    return this.sqlite
+    const notifications = this.sqlite
       .prepare(
         'SELECT id,kind,subject_id,read_at,created_at FROM notification WHERE user_id=? ORDER BY created_at DESC LIMIT 50',
       )
       .all(principal.userId);
+    return notifications.map((notification) => {
+      const row = notification as {
+        id: string;
+        kind: string;
+        subject_id: string;
+        read_at: string | null;
+        created_at: string;
+      };
+      const audit = this.sqlite
+        .prepare(
+          `SELECT ae.action,ae.details_json,ae.occurred_at,u.name actor_name
+           FROM audit_event ae LEFT JOIN user u ON u.id=ae.actor_id
+           WHERE ae.entity_id=? AND ae.action LIKE 'report.%update'
+           ORDER BY ae.occurred_at DESC,ae.id DESC LIMIT 1`,
+        )
+        .get(row.subject_id) as
+        | { action: string; details_json: string; occurred_at: string; actor_name: string | null }
+        | undefined;
+      const source = this.sqlite
+        .prepare(
+          `SELECT d.project_id,d.work_date date,d.summary title,p.project_number,p.name project_name
+           FROM daily_report d JOIN project p ON p.id=d.project_id WHERE d.id=?
+           UNION ALL
+           SELECT t.project_id,substr(t.created_at,1,10),t.change_summary,p.project_number,p.name
+           FROM technical_report t JOIN project p ON p.id=t.project_id WHERE t.id=? LIMIT 1`,
+        )
+        .get(row.subject_id, row.subject_id) as
+        | {
+            project_id: string;
+            date: string;
+            title: string;
+            project_number: string;
+            project_name: string;
+          }
+        | undefined;
+      let changedFields: string[] = [];
+      if (audit?.details_json) {
+        try {
+          const details = JSON.parse(audit.details_json) as { changedFields?: unknown };
+          if (Array.isArray(details.changedFields))
+            changedFields = details.changedFields.filter(
+              (field): field is string => typeof field === 'string',
+            );
+        } catch {
+          changedFields = [];
+        }
+      }
+      return {
+        ...row,
+        actor_name: audit?.actor_name ?? null,
+        changed_fields: changedFields,
+        project_id: source?.project_id ?? row.subject_id,
+        project_number: source?.project_number ?? null,
+        project_name: source?.project_name ?? null,
+        record_date: source?.date ?? null,
+        record_title: source?.title ?? null,
+      };
+    });
   }
 
   markNotificationRead(principal: Principal, notificationId: string): void {
@@ -4105,7 +4469,8 @@ export class PortalRepository {
 
   search(principal: Principal, query: string) {
     this.assertReadable(principal);
-    const term = assertText(query, 'Search query', 120);
+    const term = typeof query === 'string' ? query.trim() : '';
+    if (term.length > 120) throw new ValidationError('Search query is too long');
     const pattern = `%${term.replaceAll('%', '\\%').replaceAll('_', '\\_')}%`;
     const projectIds = principal.role === 'project_manager' ? [...principal.projectIds] : [];
     const projectRestriction =
@@ -4234,6 +4599,12 @@ export class PortalRepository {
     );
   }
 
+  searchSuggestions(principal: Principal, limit = 24) {
+    this.assertReadable(principal);
+    const bounded = Math.max(1, Math.min(50, Math.trunc(limit)));
+    return this.search(principal, '').slice(0, bounded);
+  }
+
   listAuditEvents(principal: Principal, limit = 200) {
     this.assertReadable(principal);
     if (principal.role !== 'owner_admin' && principal.role !== 'auditor_read_only')
@@ -4253,6 +4624,29 @@ export class PortalRepository {
         'SELECT t.id,t.project_id,t.work_date,t.category,t.activity_code,t.minutes,t.activity_summary,t.approval_state,t.billability_state,t.version,p.project_number,p.name project_name FROM time_entry t JOIN project p ON p.id=t.project_id WHERE t.worker_id=? ORDER BY t.work_date DESC,t.created_at DESC LIMIT 400',
       )
       .all(principal.userId);
+  }
+
+  timeDetail(principal: Principal, id: string) {
+    this.assertReadable(principal);
+    const privateFields =
+      principal.role === 'worker'
+        ? ''
+        : ',t.billable_minutes,t.client_rate_minor,t.compensation_amount_minor,t.internal_cost_minor,t.billing_status,t.locked_at';
+    const row = this.sqlite
+      .prepare(
+        `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
+                t.project_timezone,t.activity_summary,t.approval_state,t.billability_state,
+                t.submitted_at,t.approved_at,t.start_time,t.end_time,t.break_minutes,t.site,
+                p.project_number,p.name project_name,p.site_name,p.currency,
+                u.name worker_name,u.email worker_email${privateFields}
+         FROM time_entry t JOIN project p ON p.id=t.project_id JOIN user u ON u.id=t.worker_id
+         WHERE t.id=?`,
+      )
+      .get(id) as Record<string, unknown> | undefined;
+    if (!row) throw new ValidationError('Time entry not found');
+    if (!this.canViewReport(principal, String(row.project_id), String(row.worker_id)))
+      throw new AccessDeniedError('Time entry access required');
+    return row;
   }
 
   listOwnTimeWeek(principal: Principal, weekStart: string) {
@@ -4382,6 +4776,22 @@ export class PortalRepository {
       .all(principal.userId);
   }
 
+  expenseDetail(principal: Principal, id: string) {
+    this.assertReadable(principal);
+    const row = this.sqlite
+      .prepare(
+        `SELECT e.*,p.project_number,p.name project_name,p.site_name,p.currency project_currency,
+                u.name worker_name,u.email worker_email
+         FROM expense e JOIN project p ON p.id=e.project_id JOIN user u ON u.id=e.worker_id
+         WHERE e.id=?`,
+      )
+      .get(id) as Record<string, unknown> | undefined;
+    if (!row) throw new ValidationError('Expense not found');
+    if (!this.canViewReport(principal, String(row.project_id), String(row.worker_id)))
+      throw new AccessDeniedError('Expense access required');
+    return row;
+  }
+
   listAssignedProjects(principal: Principal) {
     this.assertReadable(principal);
     if (
@@ -4391,12 +4801,12 @@ export class PortalRepository {
     )
       return this.sqlite
         .prepare(
-          'SELECT id,project_number,name,status,currency,timezone FROM project ORDER BY project_number',
+          'SELECT id,project_number,name,status,currency,timezone,start_date,planned_end_date,actual_end_date FROM project ORDER BY project_number',
         )
         .all();
     return this.sqlite
       .prepare(
-        "SELECT p.id,p.project_number,p.name,p.status,p.currency,p.timezone FROM project p JOIN project_member pm ON pm.project_id=p.id WHERE pm.user_id=? AND pm.status='active' ORDER BY p.project_number",
+        "SELECT p.id,p.project_number,p.name,p.status,p.currency,p.timezone,p.start_date,p.planned_end_date,p.actual_end_date FROM project p JOIN project_member pm ON pm.project_id=p.id WHERE pm.user_id=? AND pm.status='active' ORDER BY p.project_number",
       )
       .all(principal.userId);
   }
@@ -4459,7 +4869,7 @@ export class PortalRepository {
       throw new AccessDeniedError('Worker administration required');
     return this.sqlite
       .prepare(
-        "SELECT id,name,email,role,status FROM user WHERE status='active' ORDER BY name,email",
+        "SELECT id,name,email,role,status,created_at,offboarded_at FROM user WHERE status='active' ORDER BY name,email",
       )
       .all();
   }

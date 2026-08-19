@@ -10,8 +10,7 @@ health checks, disk-space preflight, backup/restore scripts, release tagging and
 No real VPS was modified by this repository session. Before go-live, operators must supply real
 secrets, legal/tax/numbering configuration, recipient adapters, scanner and off-site backup values.
 
-For the requested walkthrough deployment, use [SHOWCASE_ACCESS.md](SHOWCASE_ACCESS.md) together with
-[deployment/README_VPS.md](../deployment/README_VPS.md). It enables the explicit showcase-only demo
-environment, builds the site and portal, runs the reviewed seed inside the portal tools image, and
-sets the printed owner ID as the jobs actor before enabling timers. Demo mode is not a production
-authentication method.
+For a production deployment, use [SHOWCASE_ACCESS.md](SHOWCASE_ACCESS.md) together with
+[deployment/README_VPS.md](../deployment/README_VPS.md). It provisions the first owner through the
+operator-only bootstrap command, then uses invitation-only Better Auth accounts. No demo or
+passwordless access mode is part of the release.

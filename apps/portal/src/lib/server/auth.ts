@@ -73,7 +73,16 @@ export const auth = betterAuth({
     modelName: 'verification',
     fields: { expiresAt: 'expires_at', createdAt: 'created_at', updatedAt: 'updated_at' },
   },
-  emailAndPassword: { enabled: true, requireEmailVerification: production },
+  emailAndPassword: {
+    enabled: true,
+    // New accounts are created only through the server-side invitation flow.
+    // The public endpoint is denied in hooks.server.ts; invitations still use
+    // Better Auth's own password hashing and account creation implementation.
+    requireEmailVerification: production,
+    minPasswordLength: 12,
+    maxPasswordLength: 128,
+    revokeSessionsOnPasswordReset: true,
+  },
   advanced: { useSecureCookies: production, cookiePrefix: 'ja_portal' },
   plugins: [
     twoFactor({
@@ -98,6 +107,23 @@ export const auth = betterAuth({
       rpID: process.env.JA_WEBAUTHN_RP_ID ?? 'localhost',
       rpName: 'J&A Automation',
       origin: process.env.ORIGIN ?? process.env.JA_WEBAUTHN_ORIGIN ?? 'http://localhost:5174',
+      // Keep Better Auth's passkey model keys aligned with the reviewed
+      // snake_case SQLite schema. This also prevents the management endpoint
+      // from issuing 500 responses before a user can complete sign-in.
+      schema: {
+        passkey: {
+          fields: {
+            publicKey: 'public_key',
+            userId: 'user_id',
+            credentialID: 'credential_id',
+            deviceType: 'device_type',
+            backedUp: 'backed_up',
+            transports: 'transports',
+            createdAt: 'created_at',
+            aaguid: 'aaguid',
+          },
+        },
+      },
     }),
     sveltekitCookies(getRequestEvent),
   ],

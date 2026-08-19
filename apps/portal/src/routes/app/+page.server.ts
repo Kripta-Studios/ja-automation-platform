@@ -10,12 +10,14 @@ export const load: PageServerLoad = ({ locals, url }) => {
     const searchQuery = url.searchParams.get('q')?.trim() ?? '';
     const searchResults =
       searchQuery.length >= 2 ? context.repository.search(context.principal, searchQuery) : [];
+    const searchSuggestions = context.repository.searchSuggestions(context.principal);
     if (context.principal.role === 'worker')
       return {
         user: locals.user,
         section: 'today',
         searchQuery,
         searchResults,
+        searchSuggestions,
         records: context.repository.listPlanning(context.principal),
         projects: context.repository.listAssignedProjects(context.principal),
       };
@@ -24,6 +26,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
       section: 'today',
       searchQuery,
       searchResults,
+      searchSuggestions,
       dashboard: context.repository.dashboard(context.principal),
       projects: context.repository.listAssignedProjects(context.principal),
       records: context.repository.listApprovalQueue(context.principal),

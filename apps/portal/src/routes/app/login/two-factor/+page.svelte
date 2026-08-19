@@ -23,7 +23,6 @@
 <main class="login-page">
   <section class="login-showcase">
     <div class="login-ambient ambient-one"></div>
-    <div class="login-ambient ambient-two"></div>
     <div class="login-showcase-content">
       <a class="login-brand" href={`${base}/app/login`} aria-label="J&A Automation portal">
         <img src={`${base}/app/logo.png`} alt="J&A Automation" />

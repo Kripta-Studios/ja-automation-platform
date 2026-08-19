@@ -30,7 +30,7 @@
     type OfflineAttachment,
   } from './offline';
 
-  type Row = Record<string, string | number | boolean | null>;
+  type Row = Record<string, string | number | boolean | string[] | null>;
   type PortalData = {
     user: {
       id?: string;
@@ -88,6 +88,7 @@
       estimatedPendingMinor: string;
     };
     searchQuery?: string;
+    searchSuggestions?: Row[];
     searchResults?: Row[];
     pay?: {
       currency: string;
@@ -165,6 +166,8 @@
   );
   let stepUpMessage = $state('');
   let menuOpen = $state(false);
+  let searchOpen = $state(false);
+  let searchValue = $derived(data.searchQuery ?? '');
   let offlineProjects = $state<Row[]>([]);
   let expenseClientTreatment = $state('non_billable');
   let expenseBillingTreatment = $state('internal_non_billable');
@@ -227,13 +230,34 @@
   const href = (section: string) =>
     section === 'today' ? `${base}/app/` : `${base}/app/${section}`;
   const itemHref = (item: NavItem) => item.href ?? href(item.section);
+  const searchTerm = $derived(searchValue.trim().toLowerCase());
+  const visibleSearchSuggestions = $derived(
+    (data.searchSuggestions ?? [])
+      .filter((row) => {
+        if (!searchTerm) return true;
+        return `${String(row.label ?? '')} ${String(row.detail ?? '')} ${String(row.type ?? '')}`
+          .toLowerCase()
+          .includes(searchTerm);
+      })
+      .slice(0, 8),
+  );
   const searchHref = (row: Row) => {
     const id = String(row.id ?? '');
     if (row.type === 'project') return `${base}/app/projects/${id}`;
+    if (row.type === 'client')
+      return `${base}/app/projects?view=clients&focus=${encodeURIComponent(id)}`;
     if (row.type === 'invoice') return `${base}/app/billing/invoices/${id}`;
+    if (row.type === 'report') return `${base}/app/reports/${id}`;
+    if (row.type === 'expense') return `${base}/app/expenses/${id}`;
     if (row.type === 'worker') return `${base}/app/planning`;
-    if (row.type === 'expense') return `${base}/app/expenses`;
-    return `${base}/app/reports`;
+    return `${base}/app/`;
+  };
+  const recordHref = (row: Row) => {
+    const id = String(row.id ?? '');
+    if (row.type === 'time') return `${base}/app/time/${id}`;
+    if (row.type === 'expense') return `${base}/app/expenses/${id}`;
+    if (row.type === 'daily' || row.type === 'technical') return `${base}/app/reports/${id}`;
+    return `${base}/app/approvals`;
   };
   const initials = (name: string) =>
     name
@@ -293,7 +317,6 @@
       void navigator.serviceWorker.register(`${base}/app/service-worker.js`, {
         scope: `${base}/app/`,
       });
-    // Demo sessions are intentionally separate from Better Auth sessions.
     // Only ask the passkey endpoint for a real authenticated Better Auth
     // session; otherwise its expected 401 would surface as a browser error.
     void authClient.getSession().then((result) => {
@@ -317,7 +340,6 @@
   });
   async function logout() {
     await fetch(`${base}/app/api/auth/sign-out`, { method: 'POST' });
-    await fetch(`${base}/app/demo-login`, { method: 'DELETE' });
     await purgeUserCache();
     location.assign(`${base}/app/login`);
   }
@@ -603,16 +625,55 @@
         <h1>{titles[data.section]}</h1>
       </div>
       <div class="portal-heading-tools">
-        <form class="global-search" method="GET" action={href(data.section)} role="search">
+        <form
+          class="global-search"
+          method="GET"
+          action={href(data.section)}
+          role="search"
+          onsubmit={() => (searchOpen = false)}
+        >
           <label class="visually-hidden" for="portal-global-search">Search workspace</label>
           <input
             id="portal-global-search"
             name="q"
-            value={data.searchQuery ?? ''}
+            bind:value={searchValue}
             placeholder="Search projects, people, invoices…"
             autocomplete="off"
+            onfocus={() => (searchOpen = true)}
+            oninput={() => (searchOpen = true)}
           />
           <button type="submit">Search</button>
+          {#if searchOpen}
+            <div class="search-popover" role="listbox" aria-label="Search recommendations">
+              <div class="search-popover-heading">
+                <span>{searchTerm ? 'Matching records' : 'Recommended records'}</span>
+                <small>Only records in your access scope</small>
+              </div>
+              {#each visibleSearchSuggestions as suggestion}
+                <a
+                  class="search-popover-item"
+                  href={searchHref(suggestion)}
+                  role="option"
+                  aria-selected="false"
+                  onclick={() => (searchOpen = false)}
+                >
+                  <span>
+                    <strong>{String(suggestion.label ?? 'Record')}</strong>
+                    <small
+                      >{String(suggestion.type ?? 'record')} · {String(
+                        suggestion.detail ?? '',
+                      )}</small
+                    >
+                  </span>
+                  <i aria-hidden="true">↗</i>
+                </a>
+              {:else}
+                <p class="search-popover-empty">
+                  No recommendation matches. Press Enter to search all authorized records.
+                </p>
+              {/each}
+            </div>
+          {/if}
         </form>
       </div>
     </div>
@@ -677,28 +738,28 @@
           <strong>{data.dashboard.activeProjects}<small>active projects</small></strong>
         </div>
         <div class="finance-grid dashboard-metrics">
-          <section class="metric">
+          <a class="metric" href={`${base}/app/time`}>
             <span>RECORDED HOURS</span><strong
               >{(data.dashboard.actualMinutes / 60).toFixed(1)}</strong
             >
             <p>Approved and submitted field time</p>
-          </section>
-          <section class="metric attention">
+          </a>
+          <a class="metric attention" href={`${base}/app/approvals`}>
             <span>PENDING REPORTS</span><strong>{data.dashboard.pendingReports}</strong>
             <p>Daily and PLC records awaiting review</p>
-          </section>
-          <section class="metric">
+          </a>
+          <a class="metric" href={`${base}/app/expenses`}>
             <span>PROJECT EXPENSES</span><strong
               >{money(data.dashboard.expenseMinor, data.dashboard.currency)}</strong
             >
             <p>All-in and reimbursable combined</p>
-          </section>
-          <section class="metric">
+          </a>
+          <a class="metric" href={`${base}/app/billing`}>
             <span>UPCOMING BILLING</span><strong
               >{money(data.dashboard.upcomingInvoiceMinor, data.dashboard.currency)}</strong
             >
             <p>{data.dashboard.upcomingInvoices} draft invoice streams</p>
-          </section>
+          </a>
         </div>
         <section class="record-list dashboard-projects">
           <div class="panel-title">
@@ -717,17 +778,17 @@
         <div class="portal-grid">
           <section class="assignment">
             <span class="status-chip"><b></b>TODAY / 10 H EXPECTED</span>
+            <div class="quick-actions">
+              <a href={`${base}/app/time`}>Log actual time</a><a href={`${base}/app/reports`}
+                >Write field report</a
+              ><a href={`${base}/app/expenses`}>Add expense</a>
+            </div>
             <h2>{data.records?.[0]?.project_name ?? 'Field workspace'}</h2>
             <p>
               {data.records?.[0]
                 ? `${data.records[0].site} · ${String(data.records[0].starts_at).slice(11, 16)}–${String(data.records[0].ends_at).slice(11, 16)}`
                 : 'No published assignment for today.'}
             </p>
-            <div class="quick-actions">
-              <a href={`${base}/app/time`}>Log actual time</a><a href={`${base}/app/reports`}
-                >Write field report</a
-              ><a href={`${base}/app/expenses`}>Add expense</a>
-            </div>
           </section>
           <section class="sync-panel">
             <span class="portal-kicker">DEVICE STATUS</span><strong
@@ -754,6 +815,16 @@
               <label>Week of<input name="week" type="date" value={data.weekStart} /></label>
               <button type="submit">Open week</button>
             </form>
+          </div>
+          <div class="timesheet-guide" aria-label="How to read this timesheet">
+            <div><strong>Actual</strong><span>Minutes you really recorded.</span></div>
+            <div>
+              <strong>Expected</strong><span>Planning target only; it never creates time.</span>
+            </div>
+            <div><strong>Difference</strong><span>Actual minus expected for the day.</span></div>
+            <div>
+              <strong>Status</strong><span>Draft, submitted, approved or needs changes.</span>
+            </div>
           </div>
           <div class="timesheet-table-wrap">
             <table class="timesheet-table">
@@ -880,12 +951,15 @@
             <h2>Recent entries</h2>
             <span>{data.records?.length ?? 0}</span>
           </div>
-          {#each data.records ?? [] as row}<article class="record-card">
-              <div>
+          {#each data.records ?? [] as row}<article
+              class:is-modified={row.approval_state === 'needs_changes'}
+              class="record-card"
+            >
+              <a class="record-card-link" href={`${base}/app/time/${String(row.id)}`}>
                 <strong>{row.work_date} · {row.project_number}</strong><small
                   >{row.category} · {row.minutes} min · {row.approval_state}</small
                 >
-              </div>
+              </a>
               {#if row.approval_state === 'draft'}<div class="record-actions">
                   <details>
                     <summary>Edit draft</summary>
@@ -1052,13 +1126,13 @@
             <span>{data.records?.length ?? 0}</span>
           </div>
           {#each data.records ?? [] as row}<article class="record-card">
-              <div>
+              <a class="record-card-link" href={`${base}/app/expenses/${String(row.id)}`}>
                 <strong>{row.vendor} · {money(row.amount_minor, String(row.currency))}</strong
                 ><small
                   >{row.spent_on} · {row.project_number} · {row.approval_state} · {row.who_paid} ·
                   {row.reimbursement_state}</small
                 >
-              </div>
+              </a>
               {#if row.approval_state === 'draft'}<form method="POST" action="?/submitExpense">
                   <input type="hidden" name="id" value={row.id} /><input
                     type="hidden"
@@ -1208,14 +1282,20 @@
             <h2>Report register</h2>
             <span>{data.records?.length ?? 0}</span>
           </div>
-          {#each data.records ?? [] as row}<article class="record-card">
-              <div>
+          {#each data.records ?? [] as row}<article
+              class:is-modified={row.approval_state === 'needs_changes'}
+              class="record-card"
+            >
+              <a class="record-card-link" href={`${base}/app/reports/${String(row.id)}`}>
                 <span class:technical={row.type === 'technical'} class="report-type"
                   >{row.type === 'technical' ? 'PLC' : 'DAILY'}</span
                 ><strong>{row.title}</strong><small
                   >{row.date} · {row.project_number} · {row.approval_state}</small
                 >
-              </div>
+                {#if row.approval_state === 'needs_changes'}<span class="change-summary"
+                    >Modified · owner/admin review required</span
+                  >{/if}
+              </a>
               {#if row.approval_state === 'draft' || row.approval_state === 'needs_changes'}<form
                   method="POST"
                   action="?/submitReport"
@@ -1229,6 +1309,41 @@
                 </form>{/if}
             </article>{:else}<div class="empty">No field reports recorded.</div>{/each}
         </section>
+        {#if data.user.role === 'owner_admin' || data.user.role === 'finance_admin'}
+          <form
+            method="POST"
+            action="?/generatePeriodReports"
+            class="admin-form-grid report-generation-form"
+          >
+            <h2>Generate reports</h2>
+            <p class="form-help">
+              Refresh customer and internal period summaries from reviewed source records and create
+              the PDF downloads. This does not issue or send an invoice.
+            </p>
+            <label
+              >Project<select name="projectId" required
+                ><option value="">Select project</option>{#each availableProjects as project}<option
+                    value={project.id}>{project.project_number} — {project.name}</option
+                  >{/each}</select
+              ></label
+            ><label
+              >Period start<input
+                name="periodStart"
+                type="date"
+                value="2026-08-01"
+                required
+              /></label
+            ><label
+              >Period end<input name="periodEnd" type="date" value="2026-08-31" required /></label
+            ><label
+              >Report language<select name="reportLocale"
+                ><option value="en">English</option><option value="es">Español</option><option
+                  value="pt">Português</option
+                ></select
+              ></label
+            ><button>Refresh PDF reports</button>
+          </form>
+        {/if}
         <section class="record-list full period-report-list">
           <div class="panel-title">
             <div>
@@ -1240,18 +1355,22 @@
             <span>{data.periodReports?.length ?? 0}</span>
           </div>
           {#each data.periodReports ?? [] as report}<article class="record-card">
-              <div>
+              <a class="record-card-link" href={`${base}/app/reports/period/${String(report.id)}`}>
                 <strong
-                  >{String(report.project_number)} · {String(report.audience).toUpperCase()}</strong
+                  >{String(report.project_number)} · {String(
+                    report.report_type ?? 'period_summary',
+                  )} · {String(report.audience).toUpperCase()}</strong
                 ><small
                   >{String(report.period_start)} → {String(report.period_end)} · {String(
                     report.state,
                   )}</small
                 >
-              </div>
+              </a>
               {#if report.pdf_storage_key}<a
                   class="preview-link"
-                  href={`${base}/app/api/reports/${String(report.id)}/pdf`}>PDF</a
+                  href={`${base}/app/api/reports/${String(report.id)}/pdf`}
+                  target="_blank"
+                  rel="noreferrer">PDF</a
                 >{/if}
             </article>{:else}<div class="empty">No generated period summaries yet.</div>{/each}
         </section>
@@ -1524,7 +1643,7 @@
               ></label
             ><label>Site timezone<input name="timezone" value="America/New_York" required /></label
             ><label>Start date<input name="startDate" type="date" /></label><label
-              >Planned end date<input name="plannedEndDate" type="date" /></label
+              >Planned end date (optional)<input name="plannedEndDate" type="date" /></label
             ><label
               >Expected minutes / day<input
                 name="expectedMinutesPerDay"
@@ -1589,7 +1708,9 @@
               ></label
             ><label>Role<input name="assignmentRole" value="worker" required /></label><label
               >Starts on<input name="startsOn" type="date" required /></label
-            ><button>Assign</button>
+            ><label>Ends on (optional)<input name="endsOn" type="date" /></label><button
+              >Assign</button
+            >
           </form>
           <form method="POST" action="?/createClientContact" class="admin-form-grid">
             <h2>Add client contact</h2>
@@ -1713,7 +1834,8 @@
             >
               <div>
                 <strong>{row.project_number} · {row.name}</strong><small
-                  >{row.status} · {row.currency} · {row.timezone}</small
+                  >{row.status} · {row.currency} · {row.timezone} · {row.start_date ?? 'No start'} → {row.planned_end_date ??
+                    'Open target'}</small
                 >
               </div>
               <span>OPEN PROJECT →</span>
@@ -1747,7 +1869,11 @@
               <article class="record-card">
                 <div>
                   <strong>{worker.name}</strong>
-                  <small>{worker.email} · {worker.role} · {worker.status}</small>
+                  <small
+                    >{worker.email} · {worker.role} · {worker.status} · joined {String(
+                      worker.created_at ?? '',
+                    ).slice(0, 10)} → {worker.offboarded_at ?? 'open'}</small
+                  >
                 </div>
                 {#if data.user.role === 'owner_admin'}
                   <form method="POST" action="?/updateUserStatus" class="compact-form">
@@ -1845,12 +1971,12 @@
           <span>{data.records?.length ?? 0}</span>
         </div>
         {#each data.records ?? [] as row}<article class="approval-row">
-            <div>
+            <a class="record-card-link" href={recordHref(row)}>
               <strong>{row.type} · {row.date}</strong><small
                 >{row.amount}
                 {row.type === 'time' ? 'minutes' : 'minor units'} · {row.approval_state}</small
               >
-            </div>
+            </a>
             <div class="record-actions">
               {#if isAuditor}<span class="state-tag">Read-only review</span
                 >{:else if row.review_stage === 'report'}<form
@@ -2807,6 +2933,10 @@
                   class="preview-link"
                   href={`${base}/app/api/accounting-pack/${String(pack.id)}/invoice_csv`}
                   >Invoice CSV</a
+                ><a
+                  class="preview-link"
+                  href={`${base}/app/api/accounting-pack/${String(pack.id)}/expense_csv`}
+                  >Expense CSV</a
                 >{#if !isAuditor && String(pack.state) !== 'final'}<form
                     method="POST"
                     action="?/finalizeAccountingPack"
@@ -2993,14 +3123,39 @@
           <h2>Activity inbox</h2>
           <span>{data.records?.length ?? 0}</span>
         </div>
-        {#each data.records ?? [] as row}<article>
-            <div>
-              <strong>{String(row.kind).replaceAll('_', ' ')}</strong><small
-                >{String(row.created_at).replace('T', ' ').slice(0, 16)}</small
-              >
-            </div>
+        {#each data.records ?? [] as row}
+          {@const notificationKind = String(row.kind)}
+          {@const notificationTarget =
+            notificationKind === 'report_deleted'
+              ? base + '/app/notifications/' + String(row.id)
+              : notificationKind.startsWith('report_')
+                ? base + '/app/reports/' + String(row.subject_id)
+                : notificationKind.includes('expense')
+                  ? base + '/app/expenses/' + String(row.subject_id)
+                  : notificationKind === 'assignment_published'
+                    ? base + '/app/projects/' + String(row.subject_id)
+                    : base + '/app/notifications/' + String(row.id)}
+          <article class:unread={!row.read_at} class="notification-row">
+            <a class="record-card-link" href={notificationTarget}>
+              <strong>{notificationKind.replaceAll('_', ' ')}</strong>
+              <small>
+                {#if row.record_title}{String(row.record_title)} ·
+                {/if}
+                {#if row.project_number}{String(row.project_number)} ·
+                {/if}
+                {String(row.created_at).replace('T', ' ').slice(0, 16)}
+              </small>
+              {#if Array.isArray(row.changed_fields) && row.changed_fields.length > 0}
+                <span class="change-summary"
+                  >Changed: {row.changed_fields
+                    .map((field) => field.replaceAll(/([A-Z])/g, ' $1').toLowerCase())
+                    .join(', ')}</span
+                >
+              {/if}
+            </a>
             <span class="state-tag">{row.read_at ? 'read' : 'new'}</span>
-          </article>{:else}<div class="empty">No notifications.</div>{/each}
+          </article>
+        {:else}<div class="empty">No notifications.</div>{/each}
       </section>
     {:else if data.section === 'audit'}
       <section class="record-list full">

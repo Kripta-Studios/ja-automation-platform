@@ -1,6 +1,17 @@
 import { expect, test } from '@playwright/test';
+import { e2eCredentials } from './auth';
 
 const portal = (value: string) => `http://127.0.0.1:4174/j-aautomation/app${value}`;
+
+async function signIn(page: import('@playwright/test').Page, role: keyof typeof e2eCredentials) {
+  const credentials = e2eCredentials[role];
+  await page.goto(portal('/login'));
+  await page.getByLabel('Work email').fill(credentials.email);
+  await page.getByLabel('Password').fill(credentials.password);
+  await page.getByRole('button', { name: 'Continue to workspace' }).click();
+  await expect(page).toHaveURL(portal(''));
+  await page.waitForLoadState('networkidle');
+}
 
 async function expectNoHorizontalOverflow(page: import('@playwright/test').Page) {
   const result = await page.evaluate(() => {
@@ -58,13 +69,14 @@ test('critical portal surfaces render without runtime errors', async ({ page }, 
   expect(csp).not.toContain("'unsafe-inline'");
   expect(loginResponse?.headers()['x-correlation-id']).toMatch(/^[A-Za-z0-9._:-]{8,96}$/);
   await expect(
-    page.getByRole('heading', { name: 'Everything in the field, clearly in view.' }),
+    page.getByRole('heading', { name: 'Run every project with confidence.' }),
   ).toBeVisible();
+  await expect(page.getByRole('button', { name: /demo/i })).toHaveCount(0);
+  await expect(page.getByText(/password none|use the demo/i)).toHaveCount(0);
+  expect((await page.request.get(portal('/demo-login'))).status()).toBe(404);
 
   if (testInfo.project.name === 'phone-390') {
-    await page.getByRole('button', { name: 'Field worker' }).click();
-    await expect(page).toHaveURL(portal(''));
-    await page.waitForLoadState('networkidle');
+    await signIn(page, 'worker');
     await expect(page.getByText('TODAY / 10 H EXPECTED')).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath('worker-today-390.png'), fullPage: true });
     for (const [route, heading, shot] of [
@@ -79,9 +91,7 @@ test('critical portal surfaces render without runtime errors', async ({ page }, 
       await page.screenshot({ path: testInfo.outputPath(shot), fullPage: true });
     }
   } else {
-    await page.getByRole('button', { name: /Owner admin · Antonny/ }).click();
-    await expect(page).toHaveURL(portal(''));
-    await page.waitForLoadState('networkidle');
+    await signIn(page, 'owner');
     await expect(page.getByRole('heading', { name: 'Field operations overview' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'PLC / Technical' })).toBeVisible();
@@ -120,8 +130,7 @@ test('portal language switcher translates navigation without changing data route
   page,
 }) => {
   await page.goto(portal('/login'));
-  await page.getByRole('button', { name: 'Field worker' }).click();
-  await expect(page).toHaveURL(portal(''));
+  await signIn(page, 'worker');
   await page.waitForLoadState('networkidle');
   await page.goto(portal('/?lang=pt'));
   const ptProjects =
@@ -139,11 +148,25 @@ test('portal language switcher translates navigation without changing data route
   await expect(page).toHaveURL(/lang=es/);
 });
 
+test('account menu exposes profile, activity and session controls', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop');
+  await page.goto(portal('/login'));
+  await signIn(page, 'worker');
+  await page.getByRole('button', { name: /Alex Rivera worker/ }).click();
+  const menu = page.getByRole('menu', { name: 'Account options' });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole('menuitem', { name: /Profile & security/ })).toHaveAttribute(
+    'href',
+    '/j-aautomation/app/profile',
+  );
+  await expect(menu.getByRole('menuitem', { name: /Notifications/ })).toBeVisible();
+  await expect(menu.getByRole('menuitem', { name: /Log out/ })).toBeVisible();
+});
+
 test('worker can record time, a daily report and a receipt expense', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'phone-390');
   await page.goto(portal('/login'));
-  await page.getByRole('button', { name: 'Field worker' }).click();
-  await expect(page).toHaveURL(portal(''));
+  await signIn(page, 'worker');
   await page.goto(portal('/time'));
   await page.locator('select[name="projectId"]').selectOption({ index: 1 });
   await page.locator('input[name="workDate"]').fill('2026-08-18');
@@ -193,8 +216,7 @@ test('worker can create an offline time draft and sync it once online', async ({
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop');
   await page.goto(portal('/login'));
-  await page.getByRole('button', { name: 'Field worker' }).click();
-  await expect(page).toHaveURL(portal(''));
+  await signIn(page, 'worker');
   await page.goto(portal('/time'));
   // Prime every worker-safe route before taking the browser offline. The
   // service worker may serve these cached shells while all API calls remain

@@ -104,6 +104,9 @@
         >{project.start_date ?? '—'} → {project.planned_end_date ?? '—'}</strong
       >
     </div>
+    <div>
+      <span>ACTUAL END</span><strong>{project.actual_end_date ?? 'Open / not closed'}</strong>
+    </div>
   </section>
 
   {#if overview.financial}<section class="project-finance">
@@ -195,7 +198,8 @@
           </div>
           <div>
             <strong>{worker.name}</strong><small
-              >{worker.assignment_role} · from {worker.starts_on}</small
+              >{worker.assignment_role} · {worker.starts_on} → {worker.ends_on ??
+                'open assignment'}</small
             >
           </div>
           <b>{Number(worker.planned_minutes ?? 0) / 60} h plan</b>
@@ -222,20 +226,26 @@
         <h2>Field & PLC reports</h2>
         <span>{overview.reports.length}</span>
       </div>
-      {#each overview.reports as report}<article>
+      {#each overview.reports as report}<a
+          class="record-card-link project-record-link"
+          href={`${base}/app/reports/${String(report.id)}`}
+        >
           <span class:plc={report.type === 'PLC'} class="activity-code">{report.type}</span>
           <div>
             <strong>{report.title}</strong><small>{report.date} · {report.approval_state}</small>
           </div>
           {#if report.safety_related}<b class="safety-flag">SAFETY</b>{/if}
-        </article>{/each}
+        </a>{/each}
     </section>
     <section class="detail-panel">
       <div class="panel-title">
         <h2>Expense treatment</h2>
         <span>{money(totalExpenses)}</span>
       </div>
-      {#each overview.expenses as expense}<article>
+      {#each overview.expenses as expense}<a
+          class="record-card-link project-record-link"
+          href={`${base}/app/expenses/${String(expense.id)}`}
+        >
           <span class:all-in={expense.client_treatment === 'all_in'} class="activity-code"
             >{expense.client_treatment === 'all_in' ? 'ALL-IN' : 'REIMB.'}</span
           >
@@ -246,7 +256,7 @@
             >
           </div>
           <b>{money(expense.project_currency_amount_minor ?? expense.amount_minor)}</b>
-        </article>{/each}
+        </a>{/each}
     </section>
   </div>
   <section class="detail-panel schedule-panel">

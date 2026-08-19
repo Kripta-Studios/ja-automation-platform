@@ -8,7 +8,7 @@ durable billing workflows. The revised unified specification is the authority fo
 
 - `website`: public Next.js website in English, Portuguese, and Spanish.
 - `apps/portal`: private SvelteKit portal for workers, project managers, finance, and owner/admin.
-- `packages/database`: reviewed SQLite migrations, repositories, and the demo seed.
+- `packages/database`: reviewed SQLite migrations, repositories, and disposable fixture tooling.
 - `packages/money` and `packages/billing-engine`: exact money, tax, and billing-period logic.
 - `deployment`: Docker, Compose, Caddy, and systemd files for Ubuntu.
 
@@ -21,14 +21,19 @@ pnpm install --frozen-lockfile
 $env:JA_DATABASE_PATH="$PWD\packages\database\data\demo.db"
 $env:JA_MIGRATIONS_PATH="$PWD\migrations"
 $env:JA_DOCUMENT_ROOT="$PWD\data\documents"
-$env:JA_DEMO_MODE="true"
 pnpm demo:seed
 pnpm dev:portal
 ```
 
 The portal opens at `http://127.0.0.1:5174/j-aautomation/app/login`. The public website includes an
-Employee Portal login button in the header, mobile menu and footer. Demo role buttons require
-`JA_DEMO_MODE=true`; production access is invite-only.
+Employee Portal login button in the header, mobile menu and footer. The portal always uses the
+Better Auth credential/passkey session flow; there is no passwordless role switch or public
+registration.
+
+For a fresh non-fixture database, provision the first owner account once with
+`pnpm portal:bootstrap-owner`. Supply `JA_BOOTSTRAP_EMAIL` and `JA_BOOTSTRAP_NAME`; the command
+prompts for the password without echoing it, requires MFA enrollment on first access, and lets the
+owner invite the rest of the team from the portal.
 
 Start the public website in another terminal:
 
@@ -38,17 +43,24 @@ pnpm dev:site
 
 Open `http://127.0.0.1:5173/j-aautomation/en`.
 
-## Demo data and showcase access
+## Disposable fixture data
 
-`pnpm demo:seed` deletes and recreates `packages/database/data/demo.db`. The seed marks synthetic
-clients, projects, users, time, expenses, and invoice previews as demo records. Planned time remains
-separate from actual time. Labor and expense billing use separate streams.
+`pnpm demo:seed` deletes and recreates a disposable synthetic database for automated workflow and
+artifact validation. It is not a deployment mode and it does not grant portal access. The seed marks
+synthetic clients, projects, users, time, expenses, and invoice previews as fixture records. Planned
+time remains separate from actual time. Labor and expense billing use separate streams.
 
-The owner/admin showcase identity is Antonny Nascimento at `antonny.luty@j-aautomation.com`. When
-`JA_DEMO_MODE=true`, the portal login presents role buttons for the owner admin, finance admin,
-project manager and field worker; these buttons use an expiring signed demo cookie and do not store a
-password. See [docs/SHOWCASE_ACCESS.md](docs/SHOWCASE_ACCESS.md) for the full mock workspace and
-credentials sheet.
+Automated browser tests provision disposable credential hashes in their isolated database and sign in
+through the same Better Auth endpoint as a real invited account. Fixture identities and passwords are
+never production credentials.
+
+Period reports and financial details are recalculated from the current database inputs: actual
+approved minutes, effective rates, compensation/internal costs, expense treatments, milestones,
+invoice/payment state, WIP, budgets and forecast data. Customer reports exclude internal economics;
+finance/owner reports include the detailed calculation basis. Projects support start, optional planned
+end and actual close dates; assignments support an optional end date; worker offboarding records the
+optional account end date. Draft invoices are refreshable previews, while approved and issued
+invoices remain immutable.
 
 ## Quality gates
 
@@ -72,8 +84,8 @@ pnpm ops:restore-test
 Follow [deployment/README_VPS.md](deployment/README_VPS.md). Caddy proxies the Next.js website to
 `127.0.0.1:5101` and the SvelteKit portal to `127.0.0.1:5100`.
 
-For the public walkthrough release, use the showcase environment template and seed procedure in
-[docs/SHOWCASE_ACCESS.md](docs/SHOWCASE_ACCESS.md). Do not use showcase demo mode for production.
+For production access, use [docs/SHOWCASE_ACCESS.md](docs/SHOWCASE_ACCESS.md) as the portal access
+and first-owner runbook. It contains no passwordless or shared account procedure.
 
 Public-site-only releases contain the `website/` source, exact workspace manifests, the site
 Dockerfile and a verified standalone build. The site Dockerfile prepares a production dependency
@@ -82,5 +94,5 @@ and is checked during the Linux container smoke test. Deploying one rebuilds and
 `site` container. It does not seed the database, migrate the portal or change Caddy.
 
 [J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md](J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md)
-for the product authority. Historical demo notes are retained in
-[docs/MVP_DEMO_STATUS.md](docs/MVP_DEMO_STATUS.md) and are not an active completion checklist.
+for the product authority. Historical fixture notes are retained in
+[docs/MVP_DEMO_STATUS.md](docs/MVP_DEMO_STATUS.md) and are not an active product access path.

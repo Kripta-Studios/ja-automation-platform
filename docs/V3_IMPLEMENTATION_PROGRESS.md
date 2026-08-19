@@ -35,7 +35,7 @@ numbering are implemented.
 Reviewed migrations remain contiguous and unsquashed: `0001`–`0011` plus `0012_session_step_up`,
 `0013_audit_detail_fields`, `0014_commercial_billing_controls`,
 `0015_user_lifecycle_mfa_policy`, `0016_better_auth_two_factor_fields`, and
-`0017_better_auth_account_issuer`. `packages/database/src/schema.ts` declares the migrated
+`0017_better_auth_account_issuer`, plus `0018_better_auth_passkey_aaguid`. `packages/database/src/schema.ts` declares the migrated
 Better Auth, commercial, reporting, finance, document, job, and offline tables and columns.
 
 Evidence: `tests/billing-engine.test.ts`, `tests/billing.test.ts`,
@@ -44,7 +44,7 @@ Evidence: `tests/billing-engine.test.ts`, `tests/billing.test.ts`,
 `tests/integration/database.test.ts`, and `tests/invariants/invoice.test.ts`. The integration suite
 includes concurrent period close and concurrent issue attempts, plus declared-schema to migrated-
 SQLite column parity; populated upgrade starts with a
-pre-V3 business dataset and verifies its rows survive through migration 17.
+pre-V3 business dataset and verifies its rows survive through migration 18.
 
 ## Phase 2 — identity, authorization, documents, and audit
 
@@ -179,7 +179,7 @@ Validation evidence:
   same-origin CSP compatible with the deployed bundle without a hard-coded GEX asset origin.
 - Site image rehearsal: `/j-aautomation/en` HTTP 200.
 - Portal image rehearsal after installer-equivalent UID 10001 directory provisioning: live 200,
-  detailed API health 200, migration 17/17, writable directories true, write-ready true.
+  detailed API health 200, migration 18/18, writable directories true, write-ready true.
 - Disposable staged-release rehearsal passed with `ja-automation-site:audit-final3` /
   `ja-automation-portal:audit-final3`, then rollback to the prior `audit-final2` images on the same
   fresh named volume: both site HTTP 200 and portal readiness passed in each stage; all containers
@@ -194,7 +194,7 @@ Validation evidence:
   by `apps/portal/package.json`.
 - Final-image read-only container smoke on a disposable SQLite volume passed after installer-style
   private-directory provisioning: `/j-aautomation/health/ready` returned 200, detailed health showed
-  migration 17/17, WAL/integrity OK, writable directories and write readiness true, and the
+  migration 18/18, WAL/integrity OK, writable directories and write readiness true, and the
   same-origin portal CSS asset returned 200.
 - `pnpm ops:backup:test`: pass; `pnpm ops:restore-test`: pass.
 
@@ -216,8 +216,8 @@ All commands were run under Node 24.19.0/pnpm 11.22.0 unless noted.
 | `pnpm test:reporting` with `JA_CHROMIUM_PATH=/usr/bin/chromium`    | Pass; 1 file, 3 tests (EN/PT-BR/ES locale coverage)                         |
 | `pnpm build`                                                       | Pass; Next.js 219 generated routes and portal production build              |
 | `pnpm jobs:build`                                                  | Pass; durable runner bundle                                                 |
-| `pnpm db:migrate:fresh && pnpm db:integrity && pnpm db:check`      | Pass; WAL, FK, integrity and migration 17                                   |
-| populated migration upgrade (`tests/integration/database.test.ts`) | Pass; business rows preserved through 17                                    |
+| `pnpm db:migrate:fresh && pnpm db:integrity && pnpm db:check`      | Pass; WAL, FK, integrity and migration 18                                   |
+| populated migration upgrade (`tests/integration/database.test.ts`) | Pass; business rows preserved through 18                                    |
 | full Playwright E2E with Chromium                                  | Pass; 16 tests, 13 passed, 3 intentional scope skips                        |
 | Axe accessibility E2E                                              | Pass; 4 tests (phone/desktop public + portal)                               |
 | final-image visual QA                                              | Pass; styled weekly timesheet at 390×844 and 1440×900; no document overflow |
@@ -274,13 +274,14 @@ an operator/coding-agent action. The authority specification was not modified.
 ## Schema, legacy, and external prerequisites
 
 - Declared Drizzle schema, repositories, documentation and reviewed SQL migrations agree through
-  migration 17. No migration was squashed or renumbered.
+  migration 18. No migration was squashed or renumbered.
 - Report language selection is persisted in immutable invoice, period-report, and Accounting Pack
   snapshots, so no schema migration is needed for this language-neutral structured-data extension.
 - `simplePdf` and the duplicate portal/job artifact implementation were retired/consolidated behind
   `packages/reporting/src/artifact-jobs.ts`; the shared handler contract has a focused unit test.
-- `docs/MVP_DEMO_STATUS.md` now documents the disposable showcase seed. Obsolete .NET/PostgreSQL code was not
-  exhaustively traversed because the revised specification does not require it.
+- `docs/MVP_DEMO_STATUS.md` is retained as a compatibility pointer to the disposable fixture boundary.
+  Obsolete .NET/PostgreSQL code was not exhaustively traversed because the revised specification does
+  not require it.
 - Software-verifiable requirements have no known implementation blocker. External configuration still
   required before a real release is customer-specific: production `JA_AUTH_SECRET`, WebAuthn/DNS,
   SMTP/outbox/alert/malware-scanner endpoints, encrypted off-site backup target, accountant-approved
@@ -293,3 +294,130 @@ an operator/coding-agent action. The authority specification was not modified.
 The 42-step normative scenario is mapped in `docs/V3_DOD_EVIDENCE.md`; repository integration,
 security, artifact, offline and E2E tests provide the executable evidence. Remaining external items
 are configuration approvals only, not code-implementable TODOs.
+
+## Finished portal access hardening — 2026-08-19
+
+Status: the portal access surface is now production-only and invitation-based. The public website's
+Employee Portal links resolve to the real Better Auth sign-in page; no demo button, shared account,
+passwordless role switch or auth bypass remains in the runtime path.
+
+- Replaced the showcase role/passwordless controls with a polished credential/passkey sign-in page
+  that gives generic failure responses, rate-limit feedback, invitation-only guidance and a safe
+  MFA redirect. Login sessions remain server-side cookie sessions; browser storage is not used for
+  bearer credentials.
+- Removed the demo session signer and `/app/demo-login` endpoint. Protected requests always resolve
+  the Better Auth session and then load the active user before repository authorization runs.
+- Added the operator-only `portal:bootstrap-owner` flow. It hashes a 12–128 character password with
+  Better Auth, creates an audited `owner_admin` in one transaction, marks MFA enrollment required,
+  and never prints or commits the password. Additional users enter through single-use invitations.
+- Added reviewed migration `0018_better_auth_passkey_aaguid.sql` and explicit Better Auth passkey
+  field mappings for the snake_case SQLite schema. This removed the passkey list 500s found during
+  the first real credential smoke test and keeps passkey registration/management compatible with
+  production data.
+- Browser fixtures now create temporary Better Auth credential hashes in their isolated database;
+  fixture seed data no longer enables any portal authentication mode. Documentation and Compose
+  examples describe fixture tooling only as non-production validation.
+
+## Verification — 2026-08-19
+
+All commands below were run with Node `24.19.0` and pnpm `11.22.0`.
+
+| Command                          | Result                                                 |
+| -------------------------------- | ------------------------------------------------------ |
+| `pnpm format:check`              | Pass                                                   |
+| `pnpm typecheck`                 | Pass; 10 workspace projects                            |
+| `pnpm test:integration`          | Pass; 5 files, 10 tests, including migration 18/parity |
+| `pnpm --filter @ja/portal build` | Pass; production SvelteKit build                       |
+| `pnpm test:e2e`                  | Pass; 13 passed, 3 intentional viewport/role skips     |
+
+The first E2E run exposed `no such column: passkey.userId` from the unaligned adapter. That blocker
+was resolved by the reviewed passkey mappings and migration above; the targeted smoke test then
+passed on both 390px mobile and desktop with no browser 4xx/5xx errors. No VPS service, production
+database or external credentials were changed in this session.
+
+## Portal interaction and account-menu follow-up — 2026-08-19
+
+Status: implemented locally against the lightweight V3 specification; no production data or VPS
+service was changed.
+
+- Restored the official red/black/white logo presentation by removing the white-only CSS filter,
+  removed the unexplained login ambient red circle, improved login copy line separation, and made
+  the left navigation independently scrollable. Form grids/selects now use zero-minimum tracks and
+  ellipsis-safe controls so long selected options cannot overlap adjacent inputs.
+- Replaced the header user link with an accessible account menu containing Profile & security,
+  Notifications, My Pay, My documents and Log out. Added a focused E2E assertion for the menu.
+- Added authorized search recommendations for empty and typed searches. Sensitive entities remain
+  excluded for workers, and result links now open the relevant project, invoice, report or expense
+  source record.
+- Added complete time, expense, report and notification detail routes. Report records are now
+  editable by the worker/authorized manager/owner roles subject to version and finalization checks;
+  only the owner can delete an eligible report. Updates reset submitted/approved reports to
+  `needs_changes`, write before/after audit data, notify active owner/admin/project-manager
+  recipients, and display changed fields in the inbox and report detail history.
+- Added project/report/expense/approval/period-register links, a reviewed-period report generator,
+  and an explanatory weekly-timesheet legend. The fixture now contains a populated current week
+  with approved, submitted and categorized actual time plus a modified daily report notification.
+- Reporting remains backed by the existing shared company-logo PDF/XLSX/CSV artifact pipeline;
+  invoice issue/send and other automatic financial actions remain disabled.
+
+Validation in this follow-up (host Node `25.8.1`, pnpm `11.22.0`; the required Node `24.19.0`
+runtime was not installed, so pnpm emitted the repository engine warning):
+
+- `pnpm typecheck`: pass; all 10 checked workspace projects.
+- `pnpm format:check`: pass.
+- `pnpm --filter @ja/database typecheck`: pass.
+- `pnpm --filter @ja/portal typecheck`: pass.
+- `pnpm --filter @ja/portal build`: pass.
+- `pnpm lint`: pass.
+- `pnpm test:unit`: pass, 10 files / 23 tests.
+- `pnpm test:integration`: pass, 5 files / 10 tests.
+- `pnpm test:reporting`: pass, 1 file / 3 tests.
+- Isolated `pnpm demo:seed` with a temporary database/document root: pass; 19 time entries,
+  3 daily reports, 1 technical report, 4 period reports and 1 Accounting Pack.
+- Initial full E2E exposed an 11px phone timesheet overflow; the mobile grid/scroll containment
+  fix was applied. The post-fix full E2E passed with 14 tests and 4 intentional viewport/role
+  skips, including the new desktop account-menu assertion.
+- `git diff --check`: pass. Generated QA databases/documents were kept outside the repository.
+
+## Dynamic financial reporting and lifecycle follow-up — 2026-08-19
+
+Status: implemented and locally validated; the authority specification remains unchanged.
+
+- Period-report snapshots now recalculate commercial and internal values from current source rows:
+  actual/approved/billable minutes, effective client labor rates, worker compensation and internal
+  cost rules, daily minimum adjustments, reimbursable expenses and markups, eligible milestones,
+  invoice/payment totals, receivable, approved/unapproved WIP, budgets and forecast values.
+  Customer snapshots remain free of internal costs, client rates and margin detail; internal snapshots
+  retain the finance economics and source counts.
+- Added a period-report detail route with calculation basis, drill-down links to source records,
+  internal economics for authorized roles, PDF readiness and a finance-authorized recalculation action.
+  Period-report PDFs now include calculated metrics, commercial lines, source counts and the company
+  logo; template version is `2026.08.19.4`. Refreshing a snapshot clears stale PDF metadata before
+  the replacement artifact is generated.
+- Draft invoices are refreshable previews: a new draft build can rebuild a still-draft invoice from
+  newly approved source data. Approved and issued invoices remain immutable. Labor, expense and
+  milestone streams remain independent.
+- Lifecycle UI and data semantics are explicit: projects expose start, optional planned end and
+  actual close dates; project assignments expose required start and optional end dates; worker
+  accounts expose the creation date as the start marker and offboarding as the optional end marker.
+- Updated the architecture, README and VPS handoff documentation. Deployment packaging intentionally
+  includes `website/`, `apps/portal/`, reviewed packages/migrations and demo-seed source, while
+  excluding databases, uploads, generated output and secrets. The release ZIP is to be transferred
+  to `/home/kripta/` and verified before extraction.
+
+Validation on the available host (Node `25.8.1`, pnpm `11.22.0`; repository requires Node
+`24.19.0`, so pnpm emitted the engine warning):
+
+- `pnpm format:check`: pass.
+- `pnpm lint`: pass.
+- `pnpm typecheck`: pass; all 10 workspace projects.
+- Unit: 10 files / 23 tests passed.
+- Integration: 5 files / 10 tests passed, including dynamic report totals and stale-PDF
+  invalidation coverage.
+- Invariants: 1 file / 1 test passed.
+- Security: 4 files / 8 tests passed.
+- Offline: 1 file / 2 tests passed.
+- Reporting: 1 file / 3 tests passed.
+- `pnpm build`: pass for the website and portal; `pnpm jobs:build`: pass.
+- Full Playwright E2E: 18 tests, 14 passed and 4 intentional viewport/role skips.
+- `git diff --check`: pass. The authority specification was not changed.

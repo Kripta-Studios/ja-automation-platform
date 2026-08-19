@@ -211,7 +211,7 @@ export function xlsxFromSheets(
   ]);
 }
 
-export const REPORT_TEMPLATE_VERSION = '2026.08.19.3';
+export const REPORT_TEMPLATE_VERSION = '2026.08.19.4';
 export const REPORT_LOCALES = ['en', 'pt', 'es'] as const;
 export type ReportLocale = (typeof REPORT_LOCALES)[number];
 
@@ -251,6 +251,21 @@ type ReportLabels = Readonly<{
   expenseInvoice: string;
   fixedMilestoneInvoice: string;
   creditAdjustment: string;
+  actualHours: string;
+  approvedHours: string;
+  billableHours: string;
+  candidateSubtotal: string;
+  operationalCandidate: string;
+  invoiced: string;
+  paid: string;
+  receivable: string;
+  directCost: string;
+  contribution: string;
+  contributionMargin: string;
+  calculation: string;
+  calculationBasis: string;
+  sourceRecords: string;
+  noCalculation: string;
 }>;
 
 const labels: Record<ReportLocale, ReportLabels> = {
@@ -284,6 +299,21 @@ const labels: Record<ReportLocale, ReportLabels> = {
     expenseInvoice: 'Expense Invoice',
     fixedMilestoneInvoice: 'Fixed / Milestone Invoice',
     creditAdjustment: 'Credit / Adjustment',
+    actualHours: 'Actual hours',
+    approvedHours: 'Approved hours',
+    billableHours: 'Billable hours',
+    candidateSubtotal: 'Calculated bill candidate',
+    operationalCandidate: 'Operational value',
+    invoiced: 'Already invoiced',
+    paid: 'Paid',
+    receivable: 'Receivable',
+    directCost: 'Direct cost',
+    contribution: 'Contribution',
+    contributionMargin: 'Contribution margin',
+    calculation: 'Calculation basis',
+    calculationBasis: 'Basis',
+    sourceRecords: 'Source records',
+    noCalculation: 'No calculated values are available.',
   },
   pt: {
     accountingPack: 'Pacote Contábil',
@@ -315,6 +345,21 @@ const labels: Record<ReportLocale, ReportLabels> = {
     expenseInvoice: 'Fatura de Despesas',
     fixedMilestoneInvoice: 'Fatura Fixa / por Marco',
     creditAdjustment: 'Crédito / Ajuste',
+    actualHours: 'Horas reais',
+    approvedHours: 'Horas aprovadas',
+    billableHours: 'Horas faturáveis',
+    candidateSubtotal: 'Candidato de faturação calculado',
+    operationalCandidate: 'Valor operacional',
+    invoiced: 'Já faturado',
+    paid: 'Recebido',
+    receivable: 'A receber',
+    directCost: 'Custo direto',
+    contribution: 'Contribuição',
+    contributionMargin: 'Margem de contribuição',
+    calculation: 'Base de cálculo',
+    calculationBasis: 'Base',
+    sourceRecords: 'Registros de origem',
+    noCalculation: 'Não há valores calculados disponíveis.',
   },
   es: {
     accountingPack: 'Paquete Contable',
@@ -346,6 +391,21 @@ const labels: Record<ReportLocale, ReportLabels> = {
     expenseInvoice: 'Factura de Gastos',
     fixedMilestoneInvoice: 'Factura Fija / por Hito',
     creditAdjustment: 'Crédito / Ajuste',
+    actualHours: 'Horas reales',
+    approvedHours: 'Horas aprobadas',
+    billableHours: 'Horas facturables',
+    candidateSubtotal: 'Candidato de facturación calculado',
+    operationalCandidate: 'Valor operativo',
+    invoiced: 'Ya facturado',
+    paid: 'Cobrado',
+    receivable: 'Pendiente de cobro',
+    directCost: 'Coste directo',
+    contribution: 'Contribución',
+    contributionMargin: 'Margen de contribución',
+    calculation: 'Base de cálculo',
+    calculationBasis: 'Base',
+    sourceRecords: 'Registros de origen',
+    noCalculation: 'No hay valores calculados disponibles.',
   },
 };
 
@@ -639,6 +699,9 @@ export function periodReportPdf(
     periodEnd: string;
     audience?: string;
     locale?: ReportLocale | string;
+    commercialSummary?: Readonly<Record<string, unknown>>;
+    commercialCalculation?: readonly Readonly<Record<string, unknown>>[];
+    financialSummary?: Readonly<Record<string, unknown>>;
     dailyReports?: readonly Row[];
     technicalReports?: readonly Row[];
     technicalChanges?: readonly Row[];
@@ -647,20 +710,64 @@ export function periodReportPdf(
 ): Uint8Array {
   const locale = normalizeReportLocale(snapshot.locale);
   const copy = labels[locale];
+  const summary = snapshot.commercialSummary ?? {};
+  const finance = snapshot.financialSummary ?? {};
+  const currency = summary.currency ?? finance.currency ?? 'USD';
+  const hours = (minutes: unknown): string =>
+    (Number(minutes ?? 0) / 60).toLocaleString(localeTag(locale), {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+  const moneyMetric = (label: string, value: unknown): string =>
+    `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${htmlEscape(moneyText(currency, value, locale))}</strong></div>`;
+  const hoursMetric = (label: string, value: unknown): string =>
+    `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${htmlEscape(`${hours(value)} h`)}</strong></div>`;
+  const publicMetrics = [
+    hoursMetric(copy.actualHours, summary.actualMinutes),
+    hoursMetric(copy.approvedHours, summary.approvedMinutes),
+    hoursMetric(copy.billableHours, summary.billableMinutes),
+    moneyMetric(copy.candidateSubtotal, summary.candidateSubtotalMinor),
+    moneyMetric(copy.operationalCandidate, summary.operationalRevenueCandidateMinor),
+    moneyMetric(copy.invoiced, summary.invoicedNetMinor),
+    moneyMetric(copy.paid, summary.paidMinor),
+    moneyMetric(copy.receivable, summary.receivableMinor),
+  ].join('');
+  const internalMetrics =
+    snapshot.audience === 'internal'
+      ? [
+          moneyMetric(copy.directCost, finance.approvedCostMinor),
+          moneyMetric(copy.contribution, finance.contributionMarginMinor),
+          `<div class="metric"><span class="muted">${htmlEscape(copy.contributionMargin)}</span><strong>${htmlEscape(`${(Number(finance.contributionMarginBps ?? 0) / 100).toFixed(1)}%`)}</strong></div>`,
+        ].join('')
+      : '';
+  const calculationRows = (snapshot.commercialCalculation ?? [])
+    .map(
+      (line) =>
+        `<tr><td>${htmlEscape(line.type)}</td><td>${htmlEscape(line.basis)}</td><td>${line.minutes === null || line.minutes === undefined ? '—' : htmlEscape(`${hours(line.minutes)} h`)}</td><td class="amount">${htmlEscape(moneyText(currency, line.amountMinor, locale))}</td></tr>`,
+    )
+    .join('');
+  const sourceCounts = (summary.sourceCounts ?? {}) as Readonly<Record<string, unknown>>;
+  const sources = [
+    `daily ${sourceCounts.dailyReports ?? 0}`,
+    `technical ${sourceCounts.technicalReports ?? 0}`,
+    `changes ${sourceCounts.technicalChanges ?? 0}`,
+    `time ${sourceCounts.timeEntries ?? 0}`,
+    `expenses ${sourceCounts.expenses ?? 0}`,
+  ].join(' · ');
   const rows = [
     ...(snapshot.dailyReports ?? []).map((row) => ({
       type: copy.dailyReport,
-      date: row.work_date ?? row.workDate,
+      date: row.work_date ?? row.workDate ?? row.date,
       detail: row.summary,
     })),
     ...(snapshot.technicalReports ?? []).map((row) => ({
       type: copy.technicalReport,
-      date: row.created_at ?? row.createdAt,
+      date: row.created_at ?? row.createdAt ?? row.date,
       detail: row.change_summary ?? row.changeSummary,
     })),
     ...(snapshot.technicalChanges ?? []).map((row) => ({
       type: copy.technicalChange,
-      date: row.created_at ?? row.createdAt,
+      date: row.created_at ?? row.createdAt ?? row.date,
       detail: row.change_made ?? row.changeMade,
     })),
   ];
@@ -674,7 +781,7 @@ export function periodReportPdf(
     layout(
       copy.projectPeriodReport,
       `${snapshot.project?.number ?? ''} ${snapshot.project?.name ?? ''} · ${snapshot.periodStart} → ${snapshot.periodEnd} · ${snapshot.audience ?? ''}`,
-      `<div class="grid"><div class="metric"><span class="muted">${copy.dailyReports}</span><strong>${snapshot.dailyReports?.length ?? 0}</strong></div><div class="metric"><span class="muted">${copy.technicalRecords}</span><strong>${(snapshot.technicalReports?.length ?? 0) + (snapshot.technicalChanges?.length ?? 0)}</strong></div></div><h2>${copy.operationalRecord}</h2><table><thead><tr><th>${copy.type}</th><th>${copy.date}</th><th>${copy.detail}</th></tr></thead><tbody>${table || `<tr><td colspan="3" class="muted">${copy.noReportRecords}</td></tr>`}</tbody></table>`,
+      `<h2>${copy.calculation}</h2><div class="grid">${publicMetrics}${internalMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p><table><thead><tr><th>${copy.type}</th><th>${copy.calculationBasis}</th><th>${copy.billableHours}</th><th class="amount">${copy.amount}</th></tr></thead><tbody>${calculationRows || `<tr><td colspan="4" class="muted">${copy.noCalculation}</td></tr>`}</tbody></table><h2>${copy.operationalRecord}</h2><table><thead><tr><th>${copy.type}</th><th>${copy.date}</th><th>${copy.detail}</th></tr></thead><tbody>${table || `<tr><td colspan="3" class="muted">${copy.noReportRecords}</td></tr>`}</tbody></table>`,
       locale,
     ),
   );

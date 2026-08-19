@@ -8,9 +8,9 @@ The deployment does not run a seed, does not use `drizzle-kit push`, and does no
 invoice issue or send. The scheduled jobs may create drafts, PDFs, reports and Accounting Pack
 artifacts, but external delivery is handled only by the configured signed outbox adapter.
 
-The separate showcase procedure intentionally runs the reviewed synthetic seed and sets
-`JA_DEMO_MODE=true`. It is documented in [docs/SHOWCASE_ACCESS.md](../docs/SHOWCASE_ACCESS.md) and
-must not be used as a production/customer-data procedure.
+The supported deployment has one access model: invite-only Better Auth sessions. The first owner is
+provisioned once by the operator; no seed, shared account or passwordless role switch is enabled.
+See [docs/SHOWCASE_ACCESS.md](../docs/SHOWCASE_ACCESS.md) for the portal access runbook.
 
 ## Files and services
 
@@ -58,46 +58,38 @@ sudo bash deployment/scripts/verify-vps.sh https://example.invalid/j-aautomation
 The first real environment still needs accountant-approved legal entity, tax profile and invoice
 number policy rows before an invoice can be issued.
 
-## Showcase installation with mock data
+## First-owner provisioning
 
-Use this section only for the public walkthrough. It assumes the release has been extracted to
-`/opt/jaautomation/current` and that the host has been prepared by the installer. The commands below
-replace the showcase database on that host; take an online backup first if the volume contains data.
+After migrations have been applied to the intended database, build the tools target and provision
+the first owner. The command prompts for the password without echoing it; it requires 12–128
+characters and marks the account for MFA enrollment.
 
 ```bash
-sudo install -o root -g root -m 0600 deployment/jaautomation.showcase.env.example \
-  /etc/jaautomation/jaautomation.env
-sudo sed -i "s|^JA_AUTH_SECRET=.*|JA_AUTH_SECRET=$(openssl rand -hex 32)|" \
-  /etc/jaautomation/jaautomation.env
 sudo docker compose --env-file /etc/jaautomation/jaautomation.env \
-  -f deployment/compose.production.yml config --quiet
+  --profile tools -f deployment/compose.production.yml build portal bootstrap-owner
 sudo docker compose --env-file /etc/jaautomation/jaautomation.env \
-  -f deployment/compose.production.yml build site portal demo-seed
-OWNER_ID=$(sudo docker compose --env-file /etc/jaautomation/jaautomation.env \
-  --profile tools -f deployment/compose.production.yml run --rm --no-deps demo-seed \
-  | python3 -c 'import json,sys; print(json.load(sys.stdin)["demoUserIds"]["admin"])')
-test -n "$OWNER_ID" && test "$OWNER_ID" != "null"
-sudo sed -i "s|^JA_JOB_ACTOR_ID=.*|JA_JOB_ACTOR_ID=$OWNER_ID|" \
-  /etc/jaautomation/jaautomation.env
+  --profile tools -f deployment/compose.production.yml run --rm --no-deps \
+  -e JA_BOOTSTRAP_EMAIL=owner@example.com \
+  -e JA_BOOTSTRAP_NAME='J&A Owner' \
+  bootstrap-owner
 sudo systemctl daemon-reload
 sudo systemctl enable --now jaautomation.service
 sudo systemctl enable --now jaautomation-jobs.timer jaautomation-backup.timer
-sudo bash deployment/scripts/verify-vps.sh https://gex-dashboard.hopto.org/j-aautomation
+sudo bash deployment/scripts/verify-vps.sh https://example.invalid/j-aautomation
 ```
 
-The seed output also lists the owner email, every demo user ID, project IDs and invoice draft IDs.
-The owner ID is used only as the active finance-capable service actor for leased jobs. The public
-login still uses the role button, not that ID. Confirm `JA_DEMO_MODE=true` before the walkthrough;
-set it to `false`, rotate `JA_AUTH_SECRET`, and use invite-only Better Auth before any real use.
+The owner signs in through `/j-aautomation/app/login`, enrolls MFA, then invites the rest of the
+team from Projects → Team. Do not run the fixture seed against a production database, copy a local
+SQLite file, or expose ports 5100/5101 directly.
 
 Do not use `drizzle-kit push`, copy a local SQLite file, commit a database, or expose ports 5100/5101
 directly. Caddy remains the only Internet-facing proxy and the portal service worker remains scoped
 to `/j-aautomation/app/`.
 
 For a copy/paste operator message to the VPS coding agent, use
-[VPS_CODING_AGENT_HANDOFF.md](VPS_CODING_AGENT_HANDOFF.md). It includes the archive name, checksum
-verification, extraction boundary, showcase seed, owner service actor configuration, service start,
-health checks and the explicit instruction not to touch the authority specification.
+[VPS_CODING_AGENT_HANDOFF.md](VPS_CODING_AGENT_HANDOFF.md). It includes checksum verification,
+extraction boundaries, first-owner provisioning, service start, health checks and the explicit
+instruction not to touch the authority specification.
 
 ## Release and rollback
 
@@ -114,6 +106,14 @@ Before replacing an image, tag the active site and portal images as rollback ima
 checks fail, restore the previous tag with `up -d --no-build` and leave the database/files volume
 untouched. Do not use `docker compose down` during a routine release. Keep at least one tested
 rollback image and one recent verified backup.
+
+For the current operator handoff, the release ZIP is copied to `/home/kripta/` on the VPS before
+deployment. Verify its SHA-256 there, extract only into `/opt/jaautomation/releases/`, and point
+`/opt/jaautomation/current` at the extracted release directory. The archive contains the public
+`website/`, the private `apps/portal/`, reviewed packages/migrations and the disposable
+`packages/database/src/demo-seed.ts` source for isolated validation; it does not contain a SQLite
+database, private uploads, generated reports/build output or production secrets. Never run the demo
+seed against the production database.
 
 ## Jobs and outbox
 

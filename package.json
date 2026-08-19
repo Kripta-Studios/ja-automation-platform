@@ -31,7 +31,8 @@
     "ops:jobs": "pnpm run jobs:build && node deployment/jobs-build/jobs-run.mjs",
     "ops:backup:test": "node deployment/scripts/backup-test.mjs",
     "ops:restore-test": "node deployment/scripts/restore-test.mjs",
-    "ops:backup": "node deployment/scripts/backup.mjs"
+    "ops:backup": "node deployment/scripts/backup.mjs",
+    "portal:bootstrap-owner": "node --experimental-strip-types apps/portal/src/cli/bootstrap-owner.ts"
   },
   "devDependencies": {
     "@ja/billing-engine": "workspace:*",
@@ -43,6 +44,7 @@
     "@axe-core/playwright": "catalog:",
     "@eslint/js": "catalog:",
     "@playwright/test": "catalog:",
+    "better-auth": "catalog:",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "eslint-config-prettier": "catalog:",

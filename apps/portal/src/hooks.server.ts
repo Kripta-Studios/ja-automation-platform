@@ -1,7 +1,6 @@
 import { building } from '$app/environment';
 import { auth } from '$lib/server/auth';
 import { createDatabase } from '@ja/database';
-import { readDemoToken } from '$lib/server/demo-session';
 import { createHash, randomUUID } from 'node:crypto';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import type { Handle } from '@sveltejs/kit';
@@ -83,7 +82,6 @@ export const handle: Handle = async ({ event, resolve }) => {
   const path = event.url.pathname;
   const isPortal = path === portalBase || path.startsWith(`${portalBase}/`);
   const isAuth = path.startsWith(`${portalBase}/api/auth/`);
-  const isDemo = path === `${portalBase}/demo-login`;
   if (path.endsWith('/api/auth/sign-up/email'))
     return applySecurityHeaders(
       new Response(JSON.stringify({ error: 'A valid single-use invitation is required.' }), {
@@ -98,13 +96,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     const limited = authRateLimit(event);
     if (limited) return applySecurityHeaders(limited, isPortal, path, correlationId);
   }
-  if (
-    isPortal &&
-    event.request.method !== 'GET' &&
-    event.request.method !== 'HEAD' &&
-    !isAuth &&
-    !isDemo
-  ) {
+  if (isPortal && event.request.method !== 'GET' && event.request.method !== 'HEAD' && !isAuth) {
     const origin = event.request.headers.get('origin');
     const referer = event.request.headers.get('referer');
     if (
@@ -123,63 +115,41 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
   }
   if (!building && isPortal) {
-    const demoUserId = readDemoToken(event.cookies.get('ja_demo_session'));
-    if (demoUserId) {
+    const current = await auth.api.getSession({ headers: event.request.headers });
+    let currentUser: App.Locals['user'] = null;
+    if (current?.session && current.user) {
       const { sqlite } = createDatabase();
       try {
-        const demoUser = sqlite
-          .prepare(
-            "SELECT id,name,email,role,status,mfa_enrolled mfaEnrolled,mfa_required mfaRequired FROM user WHERE id=? AND status='active'",
-          )
-          .get(demoUserId) as unknown as App.Locals['user'];
-        event.locals.user = demoUser ?? null;
-        event.locals.session = demoUser
-          ? {
-              id: `demo-${demoUser.id}`,
-              userId: demoUser.id,
-              expiresAt: new Date(Date.now() + 3600000),
-            }
-          : null;
+        currentUser =
+          (sqlite
+            .prepare(
+              "SELECT id,name,email,role,status,mfa_enrolled mfaEnrolled,mfa_required mfaRequired FROM user WHERE id=? AND status='active'",
+            )
+            .get(current.session.userId) as App.Locals['user'] | undefined) ?? null;
       } finally {
         sqlite.close();
       }
-    } else {
-      const current = await auth.api.getSession({ headers: event.request.headers });
-      let currentUser: App.Locals['user'] = null;
-      if (current?.session && current.user) {
-        const { sqlite } = createDatabase();
-        try {
-          currentUser =
-            (sqlite
-              .prepare(
-                "SELECT id,name,email,role,status,mfa_enrolled mfaEnrolled,mfa_required mfaRequired FROM user WHERE id=? AND status='active'",
-              )
-              .get(current.session.userId) as App.Locals['user'] | undefined) ?? null;
-        } finally {
-          sqlite.close();
-        }
-      }
-      const active = currentUser !== null;
-      event.locals.session = active ? (current?.session ?? null) : null;
-      event.locals.user = currentUser;
-      if (
-        active &&
-        production &&
-        currentUser?.mfaRequired &&
-        !currentUser?.mfaEnrolled &&
-        !path.endsWith('/profile') &&
-        !path.startsWith(`${portalBase}/api/security/mfa`)
-      )
-        return applySecurityHeaders(
-          new Response('MFA enrollment is required for this account', {
-            status: 403,
-            headers: { 'cache-control': 'no-store' },
-          }),
-          true,
-          path,
-          correlationId,
-        );
     }
+    const active = currentUser !== null;
+    event.locals.session = active ? (current?.session ?? null) : null;
+    event.locals.user = currentUser;
+    if (
+      active &&
+      production &&
+      currentUser?.mfaRequired &&
+      !currentUser?.mfaEnrolled &&
+      !path.endsWith('/profile') &&
+      !path.startsWith(`${portalBase}/api/security/mfa`)
+    )
+      return applySecurityHeaders(
+        new Response('MFA enrollment is required for this account', {
+          status: 403,
+          headers: { 'cache-control': 'no-store' },
+        }),
+        true,
+        path,
+        correlationId,
+      );
   } else {
     event.locals.session = null;
     event.locals.user = null;

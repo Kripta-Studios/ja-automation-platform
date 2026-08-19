@@ -529,6 +529,47 @@ describe('V3 finance and privacy paths', () => {
         ).snapshot_json,
       ).locale,
     ).toBe('pt');
+    const refreshedReports = v3.refreshPeriodReports(finance, {
+      projectId: project.id,
+      periodStart: '2026-08-03',
+      periodEnd: '2026-08-16',
+    });
+    const internalReport = refreshedReports.find((report) => report.audience === 'internal');
+    expect(internalReport?.snapshot).toEqual(
+      expect.objectContaining({
+        commercialSummary: expect.objectContaining({
+          actualMinutes: 60,
+          approvedMinutes: 60,
+          billableMinutes: 60,
+          laborRevenueMinor: '10000',
+          expenseRevenueMinor: '2000',
+          candidateSubtotalMinor: '12000',
+        }),
+        financialSummary: expect.objectContaining({
+          directLaborCostMinor: '3000',
+          approvedCostMinor: '5000',
+          contributionMarginMinor: '7000',
+        }),
+      }),
+    );
+    expect(internalReport).toBeDefined();
+    if (!internalReport) throw new Error('Internal period report was not created');
+    v3.recordPeriodReportPdf(
+      finance,
+      internalReport.id,
+      'reports/period-before-refresh.pdf',
+      'a'.repeat(64),
+      4,
+    );
+    expect(v3.periodReportPdfMetadata(finance, internalReport.id).sha256).toBe('a'.repeat(64));
+    v3.refreshPeriodReports(finance, {
+      projectId: project.id,
+      periodStart: '2026-08-03',
+      periodEnd: '2026-08-16',
+    });
+    expect(() => v3.periodReportPdfMetadata(finance, internalReport.id)).toThrow(
+      /Period report PDF is not ready/,
+    );
     expect(
       (
         sqlite

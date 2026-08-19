@@ -20,7 +20,7 @@ Known deployment inputs are intentionally external: the production auth secret, 
 SMTP/CRM adapter, malware scanner and encrypted off-site backup credentials. Empty example values do
 not bypass the server checks.
 
-The showcase template is intentionally different: `JA_DEMO_MODE=true` exposes role buttons that
-create short-lived signed demo cookies for synthetic users. It is not password authentication and it
-must never be enabled for customer or production data. See [SHOWCASE_ACCESS.md](SHOWCASE_ACCESS.md)
-for the safe access sheet.
+There is no passwordless showcase exception in the portal. Fixture data is used only by isolated
+development and automated-test databases; those tests provision Better Auth credential hashes and
+use the normal sign-in endpoint. Production starts with a one-time operator-provisioned owner account
+(`pnpm portal:bootstrap-owner`), then uses single-use invitations for every additional user.

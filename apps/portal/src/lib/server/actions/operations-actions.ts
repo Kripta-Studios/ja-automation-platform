@@ -1,4 +1,5 @@
 import {
+  accountingPackPeriodSchema,
   availabilityInputSchema,
   dailyReportInputSchema,
   planningAssignmentInputSchema,
@@ -9,9 +10,11 @@ import {
   technicalReportInputSchema,
   versionedRecordSchema,
   workerSkillInputSchema,
+  uuidSchema,
 } from '@ja/schemas';
 import { fail } from '@sveltejs/kit';
 import { actionFailure, openPortalRepository } from '$lib/server/portal-repository';
+import { runArtifactJobs } from '$lib/server/artifact-jobs';
 import {
   formObject,
   normalizeLocalDateTime,
@@ -19,6 +22,33 @@ import {
 } from '$lib/server/action-utils';
 
 export const reportActions = {
+  generatePeriodReports: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'reports')
+      return fail(404, { success: false, message: 'Wrong section' });
+    const parsed = accountingPackPeriodSchema
+      .extend({ projectId: uuidSchema })
+      .safeParse(await formObject(request));
+    if (!parsed.success)
+      return fail(400, { success: false, message: 'Check project and reporting period' });
+    const context = openPortalRepository(locals);
+    try {
+      const reports = context.v3.refreshPeriodReports(context.principal, parsed.data);
+      context.v3.enqueueJob(
+        'period_close_report',
+        `period-report-refresh:${parsed.data.projectId}:${parsed.data.periodStart}:${parsed.data.periodEnd}:${parsed.data.reportLocale}`,
+        parsed.data,
+      );
+      const jobs = runArtifactJobs(context);
+      return {
+        success: true,
+        message: `${reports.length} period reports refreshed; ${jobs.processed} artifact job${jobs.processed === 1 ? '' : 's'} processed.`,
+      };
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
   createDailyReport: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'reports')
       return fail(404, { success: false, message: 'Wrong section' });

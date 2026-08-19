@@ -42,6 +42,6 @@ See `docs/CONTENT_GUIDE.md` for content management and `docs/DEPLOYMENT.md` for 
 release procedure.
 
 The public website is released with the private portal from the repository-level Compose deployment.
-The portal showcase entry point is `/j-aautomation/app/login`; its synthetic role access and owner
-identity are documented in `../docs/SHOWCASE_ACCESS.md`. The public site remains browser-safe and
-does not import the portal database or private authentication boundary.
+The Employee Portal entry point is `/j-aautomation/app/login`; it is invitation-only and delegates
+credential, passkey and MFA handling to the private Better Auth boundary. The public site remains
+browser-safe and does not import the portal database or private authentication boundary.

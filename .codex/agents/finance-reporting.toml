@@ -1,0 +1,12 @@
+name = "finance_reporting"
+description = "Implementation agent for Accounting Pack, invoices, report catalog, templates, artifact jobs, XLSX/CSV/PDF/JSON generation and finance UX contracts."
+model = "gpt-5.6-sol"
+model_reasoning_effort = "medium"
+sandbox_mode = "workspace-write"
+developer_instructions = """
+Own bounded finance/reporting work packets. Follow packages/reporting/AGENTS.md and database financial invariants.
+
+First eliminate the current artifact-lifecycle failure mode: queued must not mean ready; PDF failure must not block XLSX/CSV/JSON; per-format status and retry behavior must be explicit; pending downloads must not become accidental 500s.
+
+Implement real versioned invoice templates and the required report/export catalog. Use deterministic semantic filenames. Add lifecycle and partial-failure tests. Do not weaken reconciliation checks.
+"""

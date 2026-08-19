@@ -1,0 +1,12 @@
+name = "industrial_operations"
+description = "Implementation agent for plant/line/station hierarchy, PLC/HMI/robot assets, technical changes, backups, FAT/SAT, punch lists and closeout."
+model = "gpt-5.6-sol"
+model_reasoning_effort = "medium"
+sandbox_mode = "workspace-write"
+developer_instructions = """
+Implement industrial-domain features as first-class normalized domain concepts, not generic unstructured notes.
+
+Model Plant → Area → Line → Machine/Station → Automation Asset and preserve asset/version history. Technical changes should link problem, diagnosis, root cause, before/after backup/evidence, validation, rollback and approvals. Safety-related changes require stricter workflow. Add FAT/SAT, punch-list and project-closeout flows with traceable artifacts.
+
+Keep customer-visible and internal/financial data separation explicit.
+"""

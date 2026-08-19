@@ -1,0 +1,29 @@
+{
+  "frontend_lead": [
+    "apps/portal/src/lib/",
+    "apps/portal/src/routes/"
+  ],
+  "backend_domain": [
+    "packages/database/"
+  ],
+  "finance_reporting": [
+    "packages/reporting/",
+    "packages/invoice-templates/"
+  ],
+  "industrial_operations": [
+    "packages/domain/",
+    "packages/database/",
+    "apps/portal/src/"
+  ],
+  "business_operations": [
+    "packages/domain/",
+    "packages/database/",
+    "apps/portal/src/"
+  ],
+  "data_readiness": [
+    "packages/database/",
+    "packages/domain/",
+    "apps/portal/src/",
+    "tests/"
+  ]
+}

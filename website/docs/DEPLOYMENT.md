@@ -28,6 +28,12 @@ The repository build gate verifies the Next.js standalone output and the Dockerf
 and `.next/static` into the runtime image. A real Linux image smoke test remains a release-host
 operation; this Windows workspace session did not modify Docker or a production host.
 
+The full website-plus-portal showcase archive is assembled from the repository root, not from a
+site-only release. It includes the portal source, reviewed migrations, Docker Compose, Caddy/systemd
+definitions and the synthetic seed source, but never includes a database, private uploads, secrets or
+generated build output. See `../../docs/SHOWCASE_ACCESS.md` for the owner/admin credentials sheet and
+`../../deployment/README_VPS.md` for the exact VPS seed/start sequence.
+
 ## Site-only VPS deployment
 
 The deployment must preserve the portal, `/var/lib/jaautomation`, `/etc/jaautomation`, Caddy and

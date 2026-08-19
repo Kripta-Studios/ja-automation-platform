@@ -40,3 +40,8 @@ Run the commands from the repository root.
 
 See `docs/CONTENT_GUIDE.md` for content management and `docs/DEPLOYMENT.md` for the production
 release procedure.
+
+The public website is released with the private portal from the repository-level Compose deployment.
+The portal showcase entry point is `/j-aautomation/app/login`; its synthetic role access and owner
+identity are documented in `../docs/SHOWCASE_ACCESS.md`. The public site remains browser-safe and
+does not import the portal database or private authentication boundary.

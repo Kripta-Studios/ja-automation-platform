@@ -16,3 +16,8 @@ df -h /
 Do not run destructive database copies, live deletes, production seed, or `drizzle-kit push`. Use
 reviewed migrations, the online backup script and the staged restore procedure. Keep auto-issue and
 auto-send disabled unless the specification and an explicit reviewed business change permit them.
+
+For a synthetic walkthrough, the explicit exception is the showcase seed procedure in
+[SHOWCASE_ACCESS.md](SHOWCASE_ACCESS.md). It must run before the jobs timer is enabled, and its
+printed owner ID must be configured as `JA_JOB_ACTOR_ID`. The showcase database is disposable demo
+data; do not mix it with customer records.

@@ -19,3 +19,8 @@
 Known deployment inputs are intentionally external: the production auth secret, WebAuthn origin/RP,
 SMTP/CRM adapter, malware scanner and encrypted off-site backup credentials. Empty example values do
 not bypass the server checks.
+
+The showcase template is intentionally different: `JA_DEMO_MODE=true` exposes role buttons that
+create short-lived signed demo cookies for synthetic users. It is not password authentication and it
+must never be enabled for customer or production data. See [SHOWCASE_ACCESS.md](SHOWCASE_ACCESS.md)
+for the safe access sheet.

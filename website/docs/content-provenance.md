@@ -48,6 +48,17 @@ Downloaded on 2026-08-19. Wikimedia SVGs were rendered to PNG. The Grupo Boticá
 
 Role-capability counts are as published by J&A Automation. They are not summed into a single employee count because roles may overlap.
 
+## J&A Automation company mark
+
+The supplied official company mark is reused without modification by the public website, portal
+shell and server-side invoice/report PDF renderer. The reporting package ships the same bytes as a
+runtime asset so generated PDFs do not depend on a browser or a public URL.
+
+| Local asset                                       | SHA-256                                                            |
+| ------------------------------------------------- | ------------------------------------------------------------------ |
+| `public/brand/logo-jaautomation.png`              | `26ede6564559b55c08f3f24fc061e58f18179085460428c9ef0205243cf91b57` |
+| `packages/reporting/assets/logo-jaautomation.png` | `26ede6564559b55c08f3f24fc061e58f18179085460428c9ef0205243cf91b57` |
+
 ## Aquarex
 
 Aquarex content is positioned at a high level. No recovery percentage, chemistry, membrane/filtration technology, flow rate, temperature, pressure, ROI, chemical savings, waste reduction, or certification claims have been invented.

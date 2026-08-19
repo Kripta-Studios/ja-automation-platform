@@ -18,11 +18,11 @@ Use Node 24.19.0 and pnpm 11.22.0.
 
 ```powershell
 pnpm install --frozen-lockfile
-pnpm demo:seed
 $env:JA_DATABASE_PATH="$PWD\packages\database\data\demo.db"
 $env:JA_MIGRATIONS_PATH="$PWD\migrations"
 $env:JA_DOCUMENT_ROOT="$PWD\data\documents"
 $env:JA_DEMO_MODE="true"
+pnpm demo:seed
 pnpm dev:portal
 ```
 
@@ -38,11 +38,17 @@ pnpm dev:site
 
 Open `http://127.0.0.1:5173/j-aautomation/en`.
 
-## Demo data
+## Demo data and showcase access
 
 `pnpm demo:seed` deletes and recreates `packages/database/data/demo.db`. The seed marks synthetic
 clients, projects, users, time, expenses, and invoice previews as demo records. Planned time remains
 separate from actual time. Labor and expense billing use separate streams.
+
+The owner/admin showcase identity is Antonny Nascimento at `antonny.luty@j-aautomation.com`. When
+`JA_DEMO_MODE=true`, the portal login presents role buttons for the owner admin, finance admin,
+project manager and field worker; these buttons use an expiring signed demo cookie and do not store a
+password. See [docs/SHOWCASE_ACCESS.md](docs/SHOWCASE_ACCESS.md) for the full mock workspace and
+credentials sheet.
 
 ## Quality gates
 
@@ -65,6 +71,9 @@ pnpm ops:restore-test
 
 Follow [deployment/README_VPS.md](deployment/README_VPS.md). Caddy proxies the Next.js website to
 `127.0.0.1:5101` and the SvelteKit portal to `127.0.0.1:5100`.
+
+For the public walkthrough release, use the showcase environment template and seed procedure in
+[docs/SHOWCASE_ACCESS.md](docs/SHOWCASE_ACCESS.md). Do not use showcase demo mode for production.
 
 Public-site-only releases contain the `website/` source, exact workspace manifests, the site
 Dockerfile and a verified standalone build. The site Dockerfile prepares a production dependency

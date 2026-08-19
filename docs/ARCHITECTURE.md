@@ -27,3 +27,14 @@ exports are content-addressed artifacts recorded in the database.
 The service worker is scoped to `/j-aautomation/app/`, caches only safe portal shell assets, and
 never stores bearer tokens or finance/audit/other-worker compensation data offline. Offline mutations
 are submitted with a base version; the server returns explicit accepted/conflict/rejected outcomes.
+
+## Showcase topology
+
+The showcase uses the same two runtime boundaries and reviewed migrations as a real deployment. The
+only intentional difference is `JA_DEMO_MODE=true`: the portal exposes signed, expiring role buttons
+that select seeded users. `packages/database/src/demo-seed.ts` creates the synthetic workspace on the
+VPS after the image is built; no SQLite file or private upload is shipped in the release archive.
+
+Antonny Nascimento (`antonny.luty@j-aautomation.com`) is the seeded `owner_admin`. Finance, project
+manager and worker identities use synthetic `.local` addresses. Their role-scoped repository reads
+and writes still pass through the same authorization checks as production sessions.

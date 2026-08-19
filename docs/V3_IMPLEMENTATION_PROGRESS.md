@@ -12,7 +12,8 @@ Status: complete.
 - Branch: `codex/v3-completion-20260819`.
 - Recoverable preservation checkpoint: `e75c83a chore: checkpoint current V3 implementation`.
 - The complete pre-existing V3 diff and legitimate untracked migrations/tests/deployment work were
-  preserved. No reset, clean, discard, push, or production-host access was performed.
+  preserved. No reset, clean, discard, push, or production-host mutation was performed; later VPS
+  inspection was read-only until the release archive handoff.
 - Untracked presentation/contract/budget artifacts (`Presentacion_Proyecto_JA_Automation.html`,
   `J_A_Automation_Contrato_Proyecto_EVOCON_ES.html`, `J_A_Automation_Presupuesto_Proyecto_EVOCON_ES.html`,
   the EVOCON image and PDF) remain outside the implementation checkpoint and are excluded from
@@ -94,7 +95,7 @@ Status: complete.
 interactive and scheduled paths, and `packages/reporting/src/artifact-jobs.ts` is the shared job
 orchestrator used by both the portal Finance action and the durable production runner. The former
 handcrafted `simplePdf` path is retired. Versioned
-template `2026.08.19.2` output is generated from immutable snapshots, persisted under stable
+template `2026.08.19.3` output is generated from immutable snapshots, persisted under stable
 idempotent keys, SHA-256 hashed, byte-counted, and traceable to the source/template version.
 Labor detailed/summary, expense, fixed/milestone, credit/adjustment, daily/period, technical/PLC,
 customer/internal, closeout, and Accounting Pack artifacts use the shared service. Report snapshots
@@ -128,8 +129,11 @@ The frontend-design and stop-slop reviews were applied to the existing visual sy
 WCAG 2.2 AA checks pass on public and worker surfaces at phone and desktop. Playwright target
 viewport checks cover 360×800, 390×844, 430×932, 768×1024, 1024×768, 1280×800, 1440×900 and
 1920×1080; representative worker phone, admin desktop, invoice, and public screenshots were
-visually inspected. Responsive tables, focus restoration, keyboard controls, reduced motion and
-200% zoom styles remain in the portal CSS.
+visually inspected. The showcase pass based on `UI_PLAN.md` adds a system-font-first modern
+typography stack, midnight/teal industrial surfaces, inline SVG navigation icons with collapsed
+sidebar titles, a skip-to-content path, a textured operational grid, improved search controls,
+focus/active states, and a final reduced-motion override. Responsive tables, focus restoration,
+keyboard controls, reduced motion and 200% zoom styles remain in the portal CSS.
 
 ## Phase 6 — public website
 
@@ -224,6 +228,45 @@ The three E2E skips are intentional viewport/role scope guards (desktop-only off
 phone-only worker mutation flow, and desktop-only public viewport matrix); no required behavior is
 hidden behind a skip.
 
+## Showcase seed and handoff — 2026-08-19
+
+Status: showcase implementation complete; local validation complete; VPS service deployment remains
+an operator/coding-agent action. The authority specification was not modified.
+
+- `packages/database/src/demo-seed.ts` now creates Antonny Nascimento as the owner admin at
+  `antonny.luty@j-aautomation.com`, six active users, three workers, three clients, six contacts,
+  four projects, schedules, skills, availability and assignments.
+- The seed exercises actual/pending time, daily and technical reports, approved/submitted technical
+  changes, approved/submitted milestones, client/worker/internal rates, 11 approved expenses and 11
+  valid synthetic PDF receipts covering hotel, airfare/ticket, rental car, fuel, ground transport,
+  meals, per diem, tolls, tools and materials.
+- The seed creates separate labor, expense and milestone draft invoice streams, closes labor and
+  expense billing periods, creates period reports, an Accounting Pack draft and a project closeout
+  draft. Auto-issue and auto-send remain disabled.
+- `CI=true pnpm demo:seed` passed under Node `24.19.0` / pnpm `11.22.0`; the seed output reported
+  3 clients, 4 projects, 6 users, 3 workers, 11 expenses, 11 documents, 3 invoice drafts, 4
+  period reports and 1 Accounting Pack. `pdfinfo` validated the 11 one-page synthetic receipts.
+- The supplied logo is preserved byte-for-byte at `packages/reporting/assets/logo-jaautomation.png`
+  with SHA-256
+  `26ede6564559b55c08f3f24fc061e58f18179085460428c9ef0205243cf91b57`. The shared PDF renderer
+  embeds it in invoice, period-report and Accounting Pack headers. A rendered invoice PDF was
+  visually inspected after `pdftoppm`; header, logo, totals and pagination were legible.
+- UI/UX showcase polish was verified in the generated Playwright screenshots: desktop owner
+  dashboard, phone worker workspace, and branded invoice preview render without clipping or
+  horizontal overflow. The portal production build and full E2E suite passed after the owner
+  button assertion was updated to require `Owner admin · Antonny`.
+- `pnpm test:reporting`: pass; 1 file, 3 tests. `pnpm --filter @ja/database typecheck`: pass.
+  `pnpm format:check`: pass after formatting the previously non-conforming portal stylesheet and
+  document template whitespace; `.prettierignore` explicitly preserves the supplied UI plan and
+  non-source checksum/environment example artifacts.
+- An initial local seed attempt under host Node `25.8.1` failed the repository engine gate and
+  pnpm's non-interactive module-purge prompt. It was corrected by using the required portable Node
+  `24.19.0` runtime with `CI=true`; the correction and successful rerun are recorded here.
+- Read-only VPS checks passed: `ssh kripta hostname` returned `options-greek-plotting-vm1` and the
+  host was confirmed to have an existing legacy `/opt/j-aautomation` service path. The current
+  user has no passwordless sudo, so no VPS service, database or Caddy configuration was changed in
+  this session. The archive upload and checksum will be recorded below once completed.
+
 ## Schema, legacy, and external prerequisites
 
 - Declared Drizzle schema, repositories, documentation and reviewed SQL migrations agree through
@@ -232,13 +275,14 @@ hidden behind a skip.
   snapshots, so no schema migration is needed for this language-neutral structured-data extension.
 - `simplePdf` and the duplicate portal/job artifact implementation were retired/consolidated behind
   `packages/reporting/src/artifact-jobs.ts`; the shared handler contract has a focused unit test.
-- `docs/MVP_DEMO_STATUS.md` remains historical only. Obsolete .NET/PostgreSQL code was not
+- `docs/MVP_DEMO_STATUS.md` now documents the disposable showcase seed. Obsolete .NET/PostgreSQL code was not
   exhaustively traversed because the revised specification does not require it.
 - Software-verifiable requirements have no known implementation blocker. External configuration still
   required before a real release is customer-specific: production `JA_AUTH_SECRET`, WebAuthn/DNS,
   SMTP/outbox/alert/malware-scanner endpoints, encrypted off-site backup target, accountant-approved
   legal entity/tax/numbering/retention values, final recipients and explicit VPS authorization.
-  Synthetic/test configuration proves each mechanism; no real VPS or production data was touched.
+  Synthetic/test configuration proves each mechanism; no VPS service, database or Caddy
+  configuration was changed during this session.
 
 ## Definition-of-done evidence
 

@@ -567,8 +567,9 @@
   ><title>{translate(titles[data.section])} | J&A Portal</title><link
     rel="manifest"
     href={`${base}/app/manifest.webmanifest`}
-  /><meta name="theme-color" content="#17191b" /></svelte:head
+  /><meta name="theme-color" content="#10202f" /></svelte:head
 >
+<a class="skip-link" href="#portal-main">Skip to main content</a>
 <div class="portal-layout">
   <PortalChrome
     {base}
@@ -595,7 +596,7 @@
     onMenuToggle={() => (menuOpen = !menuOpen)}
     onCloseMenu={() => (menuOpen = false)}
   />
-  <main>
+  <main id="portal-main">
     <div class="portal-title">
       <div>
         <p class="portal-kicker">J&A / {data.section.toUpperCase()}</p>

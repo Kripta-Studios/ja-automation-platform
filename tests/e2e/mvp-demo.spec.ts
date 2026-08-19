@@ -79,7 +79,7 @@ test('critical portal surfaces render without runtime errors', async ({ page }, 
       await page.screenshot({ path: testInfo.outputPath(shot), fullPage: true });
     }
   } else {
-    await page.getByRole('button', { name: 'Admin view' }).click();
+    await page.getByRole('button', { name: /Owner admin · Antonny/ }).click();
     await expect(page).toHaveURL(portal(''));
     await page.waitForLoadState('networkidle');
     await expect(page.getByRole('heading', { name: 'Field operations overview' })).toBeVisible();

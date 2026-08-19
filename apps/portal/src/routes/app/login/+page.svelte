@@ -144,7 +144,7 @@
               value="admin"
               formaction={`${base}/app/demo-login`}
               formmethod="post"
-              formnovalidate>Admin view</button
+              formnovalidate>Owner admin · Antonny</button
             >
             <button
               type="submit"

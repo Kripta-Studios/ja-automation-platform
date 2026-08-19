@@ -34,7 +34,7 @@ describe('production reporting artifacts', () => {
     expect(Buffer.from(pdf).subarray(0, 5).toString()).toBe('%PDF-');
     expect(pageCount(pdf)).toBeGreaterThan(1);
     expect(sha256(pdf)).toMatch(/^[a-f0-9]{64}$/);
-    expect(REPORT_TEMPLATE_VERSION).toBe('2026.08.19.2');
+    expect(REPORT_TEMPLATE_VERSION).toBe('2026.08.19.3');
   });
 
   it('keeps period and Accounting Pack generation on the same renderer contract', () => {

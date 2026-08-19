@@ -1,8 +1,10 @@
 @import 'tailwindcss';
 @import '@ja/ui-tokens/tokens.css';
+
 * {
   box-sizing: border-box;
 }
+
 html,
 body {
   margin: 0;
@@ -11,18 +13,22 @@ body {
   color: var(--ja-ink);
   font-family: Arial, sans-serif;
 }
+
 .sveltekit-body {
   display: contents;
 }
+
 button,
 input,
 select {
   font: inherit;
 }
+
 :focus-visible {
   outline: 3px solid #ffbf00;
   outline-offset: 3px;
 }
+
 .portal-kicker {
   font:
     700 0.68rem Consolas,
@@ -30,11 +36,13 @@ select {
   letter-spacing: 0.12em;
   color: var(--ja-red);
 }
+
 .login-page {
   min-height: 100svh;
   display: grid;
   grid-template-columns: 1.2fr 0.8fr;
 }
+
 .login-page > section {
   display: flex;
   flex-direction: column;
@@ -47,11 +55,13 @@ select {
     linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   background-size: 5rem 5rem;
 }
+
 .login-page > section img {
   width: 12rem;
   filter: brightness(0) invert(1);
   margin-bottom: 5rem;
 }
+
 .login-page h1 {
   max-width: 10ch;
   margin: 0.8rem 0;
@@ -59,12 +69,14 @@ select {
   letter-spacing: -0.06em;
   line-height: 0.92;
 }
+
 .login-page > section > p:last-child {
   max-width: 35rem;
   color: #c7c8c9;
   font-size: 1.1rem;
   line-height: 1.6;
 }
+
 .login-page form {
   align-self: center;
   width: min(100% - 3rem, 30rem);
@@ -74,20 +86,24 @@ select {
   border: 1px solid var(--ja-line);
   background: #fff;
 }
+
 .login-page form h2 {
   margin: 0 0 1rem;
   font-size: 2rem;
 }
+
 .login-page label {
   display: grid;
   gap: 0.5rem;
   font-weight: 700;
 }
+
 .login-page input {
   min-height: 3.2rem;
   padding: 0.7rem;
   border: 1px solid #777;
 }
+
 .login-page button,
 .worker-form button,
 .portal-primary {
@@ -100,10 +116,12 @@ select {
   text-transform: uppercase;
   cursor: pointer;
 }
+
 .login-status {
   min-height: 1.5rem;
   color: var(--ja-danger);
 }
+
 .portal-layout {
   min-height: 100svh;
   display: grid;
@@ -111,6 +129,7 @@ select {
   grid-template-rows: 4.5rem 1fr;
   grid-template-areas: 'side head' 'side main';
 }
+
 .portal-layout > aside {
   grid-area: side;
   position: sticky;
@@ -122,6 +141,7 @@ select {
   color: #fff;
   background: var(--ja-ink);
 }
+
 .portal-brand {
   height: 4rem;
   display: flex;
@@ -129,15 +149,18 @@ select {
   padding: 0 0.5rem 1rem;
   border-bottom: 1px solid #45484a;
 }
+
 .portal-brand img {
   width: 9rem;
   filter: brightness(0) invert(1);
 }
+
 .portal-layout aside nav {
   display: grid;
   gap: 0.2rem;
   margin-top: 1.2rem;
 }
+
 .portal-layout aside nav a,
 .admin-nav a {
   min-height: 2.75rem;
@@ -149,11 +172,13 @@ select {
   font-size: 0.85rem;
   font-weight: 700;
 }
+
 .portal-layout aside a.active {
   color: #fff;
   border-color: var(--ja-red);
   background: #292c2e;
 }
+
 .admin-nav {
   display: grid;
   gap: 0.2rem;
@@ -161,6 +186,7 @@ select {
   padding-top: 1rem;
   border-top: 1px solid #45484a;
 }
+
 .admin-nav small {
   padding: 0.5rem 0.8rem;
   color: #8d9295;
@@ -168,6 +194,7 @@ select {
     0.65rem Consolas,
     monospace;
 }
+
 .signout {
   margin-top: auto;
   min-height: 2.75rem;
@@ -176,6 +203,7 @@ select {
   background: transparent;
   cursor: pointer;
 }
+
 .portal-layout > header {
   grid-area: head;
   position: sticky;
@@ -188,9 +216,11 @@ select {
   background: #fff;
   border-bottom: 1px solid var(--ja-line);
 }
+
 .menu-button {
   display: none;
 }
+
 .connection {
   display: inline-flex;
   align-items: center;
@@ -218,15 +248,18 @@ select {
   font-weight: 750;
   letter-spacing: 0.06em;
 }
+
 .connection i {
   width: 0.55rem;
   height: 0.55rem;
   border-radius: 50%;
   background: var(--ja-success);
 }
+
 .connection.offline i {
   background: var(--ja-warning);
 }
+
 .queue {
   margin-left: 1rem;
   padding: 0.25rem 0.5rem;
@@ -234,23 +267,28 @@ select {
   background: #fff1c9;
   font-size: 0.7rem;
 }
+
 .user {
   display: grid;
   text-align: right;
 }
+
 .user span {
   font-weight: 800;
 }
+
 .user small {
   text-transform: uppercase;
   color: var(--ja-steel);
 }
+
 .portal-layout > main {
   grid-area: main;
   min-width: 0;
   padding: clamp(1rem, 3vw, 3rem);
   overflow: hidden;
 }
+
 .portal-title {
   display: flex;
   align-items: end;
@@ -258,17 +296,20 @@ select {
   gap: 2rem;
   margin-bottom: 2.5rem;
 }
+
 .portal-title h1 {
   margin: 0.4rem 0 0;
   font-size: clamp(2.4rem, 4vw, 4.5rem);
   letter-spacing: -0.05em;
   line-height: 1;
 }
+
 .portal-grid {
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
   gap: 1.2rem;
 }
+
 .portal-grid > section,
 .record-list,
 .worker-form > section {
@@ -276,16 +317,19 @@ select {
   background: #fff;
   border: 1px solid var(--ja-line);
 }
+
 .assignment {
   min-height: 20rem;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
 }
+
 .assignment h2 {
   margin-top: 3rem;
   font-size: 2rem;
 }
+
 .assignment button,
 .record-list button {
   margin-top: auto;
@@ -304,6 +348,7 @@ select {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .status-chip {
   display: inline-flex;
   align-items: center;
@@ -312,11 +357,13 @@ select {
     700 0.65rem Consolas,
     monospace;
 }
+
 .status-chip b {
   width: 0.55rem;
   height: 0.55rem;
   background: var(--ja-success);
 }
+
 .panel-title {
   display: flex;
   align-items: center;
@@ -325,10 +372,12 @@ select {
   padding-bottom: 1rem;
   border-bottom: 2px solid var(--ja-ink);
 }
+
 .panel-title h2 {
   margin: 0;
   font-size: 1.3rem;
 }
+
 .record-list article {
   display: flex;
   justify-content: space-between;
@@ -336,45 +385,55 @@ select {
   padding: 1rem 0;
   border-bottom: 1px solid var(--ja-line);
 }
+
 .record-list article div {
   display: grid;
   gap: 0.25rem;
 }
+
 .record-list article small {
   color: var(--ja-steel);
 }
+
 .record-list article > span {
   padding: 0.25rem 0.4rem;
   border: 1px solid var(--ja-success);
   font-size: 0.7rem;
 }
+
 .sync-panel {
   grid-column: 1/-1;
   color: #fff !important;
   background: #2a2e30 !important;
 }
+
 .sync-panel strong {
   display: block;
   margin: 1rem 0;
   font-size: 1.4rem;
 }
+
 .metric strong {
   display: block;
   margin: 1rem 0;
   font-size: 2.4rem;
 }
+
 .worker-form {
   display: grid;
   grid-template-columns: minmax(19rem, 0.7fr) 1.3fr;
   gap: 1.2rem;
 }
+
 .worker-form section:first-child {
   display: grid;
   gap: 1rem;
 }
+
 .worker-form h2 {
   margin: 0;
 }
+
 .worker-form label {
   display: grid;
   gap: 0.4rem;
@@ -382,6 +441,7 @@ select {
   font-weight: 800;
   text-transform: uppercase;
 }
+
 .worker-form input,
 .worker-form select,
 .worker-form textarea,
@@ -402,14 +462,17 @@ select {
   background: #fff;
   color: var(--ja-ink);
 }
+
 .worker-form textarea {
   min-height: 7rem;
   resize: vertical;
 }
+
 .report-form textarea {
   min-height: 6rem;
   resize: vertical;
 }
+
 .action-message {
   margin: 0 0 1rem;
   padding: 0.8rem 1rem;
@@ -417,15 +480,18 @@ select {
   background: #f4e5e5;
   font-weight: 700;
 }
+
 .action-message.success {
   border-color: var(--ja-success);
   background: #e7f2ec;
 }
+
 .entry-panel,
 .admin-form-grid {
   display: grid;
   gap: 1rem;
 }
+
 .entry-panel label,
 .admin-form-grid label,
 .filter-form label {
@@ -435,13 +501,16 @@ select {
   font-weight: 800;
   text-transform: uppercase;
 }
+
 .check {
   grid-template-columns: auto 1fr !important;
   align-items: center;
 }
+
 .check input {
   min-height: auto;
 }
+
 .record-card form,
 .record-actions form,
 .compact-form,
@@ -450,6 +519,7 @@ select {
   align-items: center;
   gap: 0.45rem;
 }
+
 .record-card button,
 .record-actions button,
 .compact-form button,
@@ -464,30 +534,36 @@ select {
   color: #fff;
   font-weight: 800;
 }
+
 .management-stack {
   display: grid;
   gap: 1.2rem;
 }
+
 .admin-form-grid {
   grid-template-columns: repeat(4, minmax(9rem, 1fr));
   padding: 1.25rem;
   border: 1px solid var(--ja-line);
   background: #fff;
 }
+
 .admin-form-grid h2 {
   grid-column: 1 / -1;
   margin: 0;
 }
+
 .approval-row,
 .invoice-row {
   gap: 1rem;
 }
+
 .record-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.5rem;
 }
+
 .filter-form {
   display: flex;
   align-items: end;
@@ -497,16 +573,19 @@ select {
   border: 1px solid var(--ja-line);
   background: #fff;
 }
+
 .finance-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
 }
+
 .finance-grid .metric {
   padding: 1.25rem;
   border: 1px solid var(--ja-line);
   background: #fff;
 }
+
 .finance-note {
   padding: 1rem;
   border-left: 0.3rem solid var(--ja-red);
@@ -768,76 +847,96 @@ select {
   text-align: center;
   color: var(--ja-steel);
 }
+
 .full {
   min-height: 32rem;
 }
+
 .bottom-nav {
   display: none;
 }
+
 @media (max-width: 900px) {
   .portal-layout {
     grid-template-columns: 5rem 1fr;
   }
+
   .portal-layout > aside {
     padding: 0.6rem;
   }
+
   .portal-brand img {
     width: 3.5rem;
   }
+
   .portal-layout aside nav a span {
     font-size: 0;
   }
+
   .portal-layout aside nav a span::first-letter {
     font-size: 0.8rem;
   }
+
   .admin-nav,
   .signout {
     display: none;
   }
+
   .portal-grid,
   .worker-form,
   .finance-grid {
     grid-template-columns: 1fr;
   }
+
   .admin-form-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
 @media (max-width: 620px) {
   .login-page {
     grid-template-columns: 1fr;
   }
+
   .login-page > section {
     min-height: 42svh;
     padding: 2rem 1.2rem;
   }
+
   .login-page > section img {
     width: 9rem;
     margin-bottom: 2rem;
   }
+
   .login-page form {
     margin-block: 1.5rem;
     padding: 1.3rem;
   }
+
   .portal-layout {
     display: block;
     padding-bottom: 4rem;
   }
+
   .portal-layout > aside {
     display: none;
   }
+
   .portal-layout > header {
     height: 4rem;
     padding: 0 1rem;
   }
+
   .portal-layout > main {
     padding: 1.2rem 0.8rem;
   }
+
   .portal-title {
     align-items: flex-start;
     flex-direction: column;
     margin-bottom: 1.5rem;
   }
+
   .portal-title .portal-primary {
     position: fixed;
     z-index: 9;
@@ -845,14 +944,17 @@ select {
     bottom: 5rem;
     box-shadow: 0 4px 18px #0004;
   }
+
   .portal-grid > section,
   .record-list,
   .worker-form > section {
     padding: 1rem;
   }
+
   .admin-form-grid {
     grid-template-columns: 1fr;
   }
+
   .filter-form,
   .record-list article,
   .record-actions,
@@ -862,6 +964,7 @@ select {
     align-items: stretch;
     flex-direction: column;
   }
+
   .bottom-nav {
     position: fixed;
     z-index: 10;
@@ -872,6 +975,7 @@ select {
     background: #fff;
     border-top: 1px solid var(--ja-line);
   }
+
   .bottom-nav a {
     display: grid;
     place-content: center;
@@ -881,23 +985,28 @@ select {
     font-size: 0.63rem;
     font-weight: 800;
   }
+
   .bottom-nav a.active {
     color: var(--ja-ink);
     border-color: var(--ja-red);
   }
+
   .user span {
     max-width: 10rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
   .user small {
     display: none;
   }
+
   .metric strong {
     font-size: 2rem;
   }
 }
+
 .demo-access {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -906,10 +1015,12 @@ select {
   padding-top: 1.25rem;
   border-top: 2px solid var(--ja-ink);
 }
+
 .demo-access span,
 .demo-access p {
   grid-column: 1 / -1;
 }
+
 .demo-access span {
   font:
     700 0.65rem Consolas,
@@ -917,16 +1028,19 @@ select {
   letter-spacing: 0.12em;
   color: var(--ja-red);
 }
+
 .demo-access p {
   margin: 0 0 0.4rem;
   color: var(--ja-steel);
   font-size: 0.85rem;
 }
+
 .demo-access button.secondary {
   color: var(--ja-ink);
   border: 1px solid var(--ja-ink);
   background: #fff;
 }
+
 .dashboard-hero {
   display: flex;
   justify-content: space-between;
@@ -938,14 +1052,17 @@ select {
   background: var(--ja-ink);
   background-image: repeating-linear-gradient(135deg, #ffffff08 0 1px, transparent 1px 11px);
 }
+
 .dashboard-hero h2 {
   margin: 0.5rem 0;
   font-size: clamp(2.8rem, 5vw, 5.5rem);
   letter-spacing: -0.06em;
 }
+
 .dashboard-hero p {
   color: #c7c9ca;
 }
+
 .dashboard-hero > strong {
   display: grid;
   color: var(--ja-red);
@@ -953,6 +1070,7 @@ select {
   line-height: 0.8;
   text-align: right;
 }
+
 .dashboard-hero > strong small {
   margin-top: 1rem;
   color: #fff;
@@ -962,20 +1080,25 @@ select {
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
+
 .dashboard-metrics {
   grid-template-columns: repeat(4, 1fr);
   margin-bottom: 1rem;
 }
+
 .dashboard-metrics .attention {
   color: #fff;
   background: var(--ja-red);
 }
+
 .dashboard-metrics .attention span {
   color: #fff;
 }
+
 .dashboard-projects {
   padding: 1.5rem;
 }
+
 .project-board-row,
 .project-list-link {
   display: grid;
@@ -988,10 +1111,12 @@ select {
   border-bottom: 1px solid var(--ja-line);
   text-decoration: none;
 }
+
 .project-board-row span {
   display: grid;
   gap: 0.3rem;
 }
+
 .project-board-row b,
 .project-board-row i,
 .project-list-link span {
@@ -1002,12 +1127,14 @@ select {
   color: var(--ja-red);
   font-style: normal;
 }
+
 .quick-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: auto;
 }
+
 .quick-actions a,
 .preview-link {
   padding: 0.75rem 0.9rem;
@@ -1018,21 +1145,25 @@ select {
   text-decoration: none;
   text-transform: uppercase;
 }
+
 .report-workspace {
   display: grid;
   grid-template-columns: minmax(30rem, 1.15fr) minmax(22rem, 0.85fr);
   gap: 1rem;
   align-items: start;
 }
+
 .report-forms,
 .report-history {
   display: grid;
   gap: 0.8rem;
 }
+
 .report-forms details {
   border: 1px solid var(--ja-line);
   background: #fff;
 }
+
 .report-forms summary {
   display: flex;
   gap: 1rem;
@@ -1041,32 +1172,39 @@ select {
   cursor: pointer;
   list-style: none;
 }
+
 .report-forms summary > span {
   color: var(--ja-red);
   font:
     700 1.1rem Consolas,
     monospace;
 }
+
 .report-forms summary div {
   display: grid;
   gap: 0.2rem;
 }
+
 .report-forms summary small {
   color: var(--ja-steel);
 }
+
 .report-form {
   padding: 1.2rem;
   border-top: 2px solid var(--ja-ink);
 }
+
 .two-up,
 .three-up {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
 }
+
 .three-up {
   grid-template-columns: repeat(3, 1fr);
 }
+
 .report-type,
 .activity-code,
 .state-tag {
@@ -1078,21 +1216,25 @@ select {
     700 0.62rem Consolas,
     monospace;
 }
+
 .report-type.technical,
 .activity-code.plc {
   background: var(--ja-red);
 }
+
 .safety-check {
   padding: 0.8rem;
   border: 1px solid #a36c00;
   background: #fff4d6;
 }
+
 .project-page,
 .invoice-preview-page {
   min-height: 100svh;
   padding: clamp(1rem, 3vw, 3rem);
   background: #e7e8e8;
 }
+
 .detail-nav {
   max-width: 92rem;
   display: flex;
@@ -1100,6 +1242,7 @@ select {
   align-items: center;
   margin: 0 auto 1rem;
 }
+
 .detail-nav a,
 .detail-nav button {
   color: var(--ja-ink);
@@ -1110,6 +1253,7 @@ select {
   text-decoration: none;
   text-transform: uppercase;
 }
+
 .project-header,
 .project-contract,
 .project-finance,
@@ -1118,6 +1262,7 @@ select {
   max-width: 92rem;
   margin-inline: auto;
 }
+
 .project-header {
   display: flex;
   justify-content: space-between;
@@ -1130,6 +1275,7 @@ select {
     linear-gradient(90deg, transparent 75%, #ffffff08 75%),
     repeating-linear-gradient(0deg, transparent 0 39px, #ffffff08 40px);
 }
+
 .project-header h1 {
   max-width: 18ch;
   margin: 0.6rem 0 1rem;
@@ -1137,9 +1283,11 @@ select {
   letter-spacing: -0.065em;
   line-height: 0.9;
 }
+
 .project-header > div > p:last-child {
   color: #c4c6c7;
 }
+
 .project-state {
   padding: 0.5rem;
   border: 1px solid var(--ja-red);
@@ -1148,18 +1296,21 @@ select {
     monospace;
   text-transform: uppercase;
 }
+
 .project-contract {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   background: #fff;
   border: 1px solid var(--ja-line);
 }
+
 .project-contract div {
   display: grid;
   gap: 0.45rem;
   padding: 1rem;
   border-right: 1px solid var(--ja-line);
 }
+
 .project-contract span,
 .project-kpis span,
 .invoice-paper span {
@@ -1169,12 +1320,14 @@ select {
   letter-spacing: 0.08em;
   color: var(--ja-steel);
 }
+
 .project-finance {
   margin-top: 1rem;
   padding: clamp(1.2rem, 3vw, 2.5rem);
   background: #fff;
   border: 1px solid var(--ja-line);
 }
+
 .finance-heading {
   display: flex;
   justify-content: space-between;
@@ -1182,11 +1335,13 @@ select {
   padding-bottom: 1.5rem;
   border-bottom: 2px solid var(--ja-ink);
 }
+
 .finance-heading h2 {
   margin: 0.4rem 0 0;
   font-size: clamp(2.2rem, 4vw, 4.4rem);
   letter-spacing: -0.05em;
 }
+
 .budget-ring {
   width: 8rem;
   aspect-ratio: 1;
@@ -1196,6 +1351,7 @@ select {
   border-radius: 50%;
   background: #e4edf0;
 }
+
 .budget-ring svg {
   position: absolute;
   inset: 0;
@@ -1203,17 +1359,21 @@ select {
   height: 100%;
   transform: rotate(-90deg);
 }
+
 .budget-ring circle {
   fill: none;
   stroke-width: 4;
 }
+
 .budget-ring-track {
   stroke: #e4edf0;
 }
+
 .budget-ring-value {
   stroke: var(--ja-red);
   stroke-linecap: round;
 }
+
 .budget-ring span {
   z-index: 1;
   grid-area: 1/1;
@@ -1222,14 +1382,17 @@ select {
   font-size: 1.25rem;
   font-weight: 900;
 }
+
 .budget-ring small {
   font-size: 0.55rem;
   text-transform: uppercase;
 }
+
 .project-kpis {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
 }
+
 .project-kpis article {
   min-height: 8rem;
   display: flex;
@@ -1239,28 +1402,34 @@ select {
   border-right: 1px solid var(--ja-line);
   border-bottom: 1px solid var(--ja-line);
 }
+
 .project-kpis strong {
   font-size: clamp(1.4rem, 2vw, 2.2rem);
 }
+
 .project-kpis .accent {
   color: #fff;
   background: var(--ja-red);
 }
+
 .project-kpis .accent span,
 .project-kpis .accent small {
   color: #fff;
 }
+
 .project-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
   margin-top: 1rem;
 }
+
 .detail-panel {
   padding: 1.3rem;
   background: #fff;
   border: 1px solid var(--ja-line);
 }
+
 .detail-panel article {
   min-height: 4.7rem;
   display: flex;
@@ -1268,14 +1437,17 @@ select {
   gap: 0.8rem;
   border-bottom: 1px solid var(--ja-line);
 }
+
 .detail-panel article > div:not(.worker-mark) {
   display: grid;
   gap: 0.25rem;
   flex: 1;
 }
+
 .detail-panel article small {
   color: var(--ja-steel);
 }
+
 .worker-mark {
   width: 2.5rem;
   height: 2.5rem;
@@ -1287,27 +1459,34 @@ select {
     700 0.7rem Consolas,
     monospace;
 }
+
 .activity-code {
   min-width: 3.5rem;
   text-align: center;
 }
+
 .activity-code.all-in {
   color: var(--ja-ink);
   background: #ffbf00;
 }
+
 .safety-flag {
   color: #9a1a1a;
 }
+
 .schedule-panel {
   margin-top: 1rem;
 }
+
 .invoice-preview-page {
   background: #2c3032;
 }
+
 .invoice-preview-page .detail-nav a,
 .invoice-preview-page .detail-nav button {
   color: #fff;
 }
+
 .invoice-paper {
   position: relative;
   max-width: 70rem;
@@ -1318,6 +1497,7 @@ select {
   background: #fff;
   box-shadow: 0 1rem 4rem #0007;
 }
+
 .demo-watermark {
   margin: -5rem -5rem 3rem;
   padding: 0.55rem;
@@ -1329,15 +1509,18 @@ select {
   letter-spacing: 0.18em;
   text-align: center;
 }
+
 .invoice-paper > header {
   display: flex;
   justify-content: space-between;
   padding-bottom: 2rem;
   border-bottom: 3px solid var(--ja-ink);
 }
+
 .invoice-paper header img {
   width: 10rem;
 }
+
 .invoice-paper header small {
   display: block;
   margin-top: 0.8rem;
@@ -1345,14 +1528,17 @@ select {
     700 0.6rem Consolas,
     monospace;
 }
+
 .invoice-identity {
   display: grid;
   gap: 0.5rem;
   text-align: right;
 }
+
 .invoice-identity strong {
   font-size: 1.6rem;
 }
+
 .invoice-parties,
 .invoice-meta {
   display: grid;
@@ -1360,73 +1546,87 @@ select {
   gap: 3rem;
   padding: 2rem 0;
 }
+
 .invoice-parties div,
 .invoice-meta div {
   display: grid;
   gap: 0.55rem;
 }
+
 .invoice-parties p {
   margin: 0;
   line-height: 1.5;
 }
+
 .invoice-meta {
   grid-template-columns: repeat(3, 1fr);
   border-block: 1px solid var(--ja-line);
 }
+
 .invoice-paper table {
   width: 100%;
   margin-top: 2rem;
   border-collapse: collapse;
   font-variant-numeric: tabular-nums;
 }
+
 .invoice-paper th,
 .invoice-paper td {
   padding: 1rem 0.6rem;
   border-bottom: 1px solid var(--ja-line);
   text-align: right;
 }
+
 .invoice-paper th:first-child,
 .invoice-paper td:first-child,
 .invoice-paper th:nth-child(2),
 .invoice-paper td:nth-child(2) {
   text-align: left;
 }
+
 .invoice-paper th {
   color: var(--ja-steel);
   font:
     700 0.62rem Consolas,
     monospace;
 }
+
 .invoice-total {
   display: grid;
   grid-template-columns: 1fr 20rem;
   gap: 3rem;
   margin-top: 2rem;
 }
+
 .invoice-total > div {
   padding: 1rem;
   background: #f1f2f2;
 }
+
 .invoice-total > div p {
   color: var(--ja-steel);
   line-height: 1.55;
 }
+
 .invoice-total dl {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 0.8rem;
   margin: 0;
 }
+
 .invoice-total dd {
   margin: 0;
   text-align: right;
 }
+
 .invoice-total .grand {
   padding-top: 0.9rem;
   border-top: 2px solid var(--ja-ink);
   font-size: 1.25rem;
   font-weight: 900;
 }
+
 .invoice-paper footer {
   position: absolute;
   inset: auto 5rem 3rem;
@@ -1438,15 +1638,18 @@ select {
     700 0.6rem Consolas,
     monospace;
 }
+
 @media (max-width: 1000px) {
   .dashboard-metrics,
   .project-kpis {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .report-workspace {
     grid-template-columns: 1fr;
   }
 }
+
 @media (max-width: 700px) {
   .demo-access,
   .two-up,
@@ -1458,6 +1661,7 @@ select {
   .invoice-total {
     grid-template-columns: 1fr;
   }
+
   .dashboard-hero,
   .project-header,
   .finance-heading {
@@ -1465,77 +1669,98 @@ select {
     flex-direction: column;
     gap: 1.5rem;
   }
+
   .dashboard-hero > strong {
     text-align: left;
   }
+
   .dashboard-metrics,
   .project-kpis {
     grid-template-columns: 1fr 1fr;
   }
+
   .project-board-row,
   .project-list-link {
     grid-template-columns: 1fr auto;
   }
+
   .project-board-row small {
     grid-column: 1 / -1;
   }
+
   .project-page {
     padding: 0;
   }
+
   .detail-nav {
     padding: 1rem;
   }
+
   .project-header {
     min-height: 24rem;
   }
+
   .budget-ring {
     width: 6.5rem;
   }
+
   .project-kpis article {
     min-height: 7rem;
     padding: 0.8rem;
   }
+
   .detail-panel,
   .project-finance {
     border-inline: 0;
   }
+
   .invoice-preview-page {
     padding: 0;
   }
+
   .invoice-paper {
     min-height: 100svh;
     padding: 1.2rem;
   }
+
   .demo-watermark {
     margin: -1.2rem -1.2rem 2rem;
   }
+
   .invoice-paper > header {
     gap: 1rem;
   }
+
   .invoice-paper table {
     font-size: 0.68rem;
   }
+
   .invoice-paper th,
   .invoice-paper td {
     padding: 0.65rem 0.25rem;
   }
+
   .invoice-paper footer {
     position: static;
     margin-top: 3rem;
   }
 }
+
 @media print {
   .no-print {
     display: none;
   }
+
   .invoice-preview-page {
     padding: 0;
     background: #fff;
   }
+
   .invoice-paper {
     box-shadow: none;
   }
 }
+
 @media (prefers-reduced-motion: reduce) {
   * {
     scroll-behavior: auto !important;
@@ -3395,5 +3620,180 @@ button:disabled {
   .bottom-nav a.active {
     color: #277e78;
     border-color: #55cfc0;
+  }
+}
+
+/* Showcase polish ---------------------------------------------------------
+   A compact industrial control-room language: precise line work, cool
+   midnight surfaces, and teal status cues keep dense operational screens
+   readable without making the portal feel like a generic admin template. */
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 0.8rem;
+  left: 1rem;
+  padding: 0.65rem 0.85rem;
+  color: #fff;
+  border-radius: 0.65rem;
+  background: #10202f;
+  box-shadow: 0 0.6rem 1.5rem rgb(16 32 47 / 0.22);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-decoration: none;
+  transform: translateY(-180%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.portal-layout > aside {
+  border-right: 1px solid rgb(211 236 241 / 0.1);
+  background:
+    radial-gradient(circle at 0% 0%, rgb(82 180 183 / 0.16), transparent 16rem),
+    linear-gradient(180deg, #102536 0%, #0d1d2b 100%);
+}
+
+.portal-layout aside nav a,
+.admin-nav a {
+  position: relative;
+  overflow: hidden;
+}
+
+.portal-layout aside nav a::after,
+.admin-nav a::after {
+  width: 0.2rem;
+  position: absolute;
+  inset: 0 auto 0 0;
+  content: '';
+  background: #8de1d7;
+  opacity: 0;
+  transform: scaleY(0.35);
+  transition:
+    opacity 160ms var(--ja-ease),
+    transform 160ms var(--ja-ease);
+}
+
+.portal-layout aside nav a:hover::after,
+.portal-layout aside nav a.active::after,
+.admin-nav a:hover::after,
+.admin-nav a.active::after {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.nav-icon {
+  width: 1.95rem;
+  height: 1.95rem;
+  flex: 0 0 1.95rem;
+  border: 1px solid rgb(196 229 234 / 0.1);
+  border-radius: 0.58rem;
+  background: rgb(255 255 255 / 0.035);
+  color: #82a5b6;
+  font-size: 0;
+  transition:
+    color 160ms var(--ja-ease),
+    background-color 160ms var(--ja-ease),
+    border-color 160ms var(--ja-ease),
+    transform 160ms var(--ja-ease);
+}
+
+.nav-icon svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.portal-layout aside nav a:hover .nav-icon,
+.admin-nav a:hover .nav-icon {
+  border-color: rgb(141 225 215 / 0.38);
+  background: rgb(141 225 215 / 0.12);
+  color: #b9f1eb;
+  transform: translateY(-1px);
+}
+
+.portal-layout aside a.active .nav-icon {
+  border-color: rgb(141 225 215 / 0.44);
+  background: rgb(141 225 215 / 0.16);
+  color: #a8eee6;
+}
+
+.portal-layout aside nav a:focus-visible,
+.admin-nav a:focus-visible,
+.signout:focus-visible {
+  outline: 2px solid #9de8df;
+  outline-offset: 2px;
+}
+
+.portal-layout > header {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  box-shadow: 0 0.55rem 1.5rem rgb(16 32 47 / 0.04);
+}
+
+.portal-layout > main {
+  min-width: 0;
+  background-color: var(--ja-paper);
+  background-image:
+    radial-gradient(circle at 88% 0%, rgb(92 195 188 / 0.1), transparent 25rem),
+    linear-gradient(rgb(16 32 47 / 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(16 32 47 / 0.025) 1px, transparent 1px);
+  background-attachment: fixed;
+  background-size:
+    auto,
+    4rem 4rem,
+    4rem 4rem;
+}
+
+.global-search {
+  padding: 0.25rem;
+  border: 1px solid #d8e3ea;
+  border-radius: 0.78rem;
+  background: rgb(255 255 255 / 0.88);
+  box-shadow: 0 0.45rem 1rem rgb(16 32 47 / 0.045);
+}
+
+.global-search input {
+  border-color: transparent;
+  background: transparent;
+}
+
+.global-search input:focus {
+  outline: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.global-search button {
+  border-radius: 0.6rem;
+}
+
+.finance-grid .metric:not(.attention):hover,
+.dashboard-projects:hover,
+.record-list:hover {
+  box-shadow: 0 0.8rem 2rem rgb(16 32 47 / 0.08);
+}
+
+button:not(:disabled):active,
+.portal-layout aside a:active,
+.quick-actions a:active,
+.project-board-row:active {
+  transform: translateY(1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }

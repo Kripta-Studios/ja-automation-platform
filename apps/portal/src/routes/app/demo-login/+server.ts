@@ -12,12 +12,12 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     ? ((await request.json().catch(() => ({}))) as { role?: string }).role
     : String((await request.formData()).get('role') ?? 'admin');
   const accounts: Record<string, string> = {
-    admin: 'owner@demo.jaautomation.local',
+    admin: 'antonny.luty@j-aautomation.com',
     finance: 'finance@demo.jaautomation.local',
     manager: 'pm@demo.jaautomation.local',
     worker: 'worker@demo.jaautomation.local',
   };
-  const email = accounts[role ?? 'admin'] ?? 'owner@demo.jaautomation.local';
+  const email = accounts[role ?? 'admin'] ?? 'antonny.luty@j-aautomation.com';
   const { sqlite } = createDatabase();
   try {
     const user = sqlite

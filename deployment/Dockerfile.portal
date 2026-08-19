@@ -22,6 +22,8 @@ WORKDIR /app
 COPY --from=build --chown=jaautomation:jaautomation /portal ./
 COPY --from=build --chown=jaautomation:jaautomation /workspace/migrations ./migrations
 COPY --from=build --chown=jaautomation:jaautomation /workspace/deployment/jobs-build/jobs-run.mjs ./deployment/jobs-run.mjs
+COPY --from=build --chown=jaautomation:jaautomation /workspace/packages/reporting/assets ./reporting-assets
+ENV JA_REPORTING_LOGO_PATH=/app/reporting-assets/logo-jaautomation.png
 USER jaautomation
 EXPOSE 5100
 CMD ["node","build"]

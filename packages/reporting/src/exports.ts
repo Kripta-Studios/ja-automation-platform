@@ -1,6 +1,8 @@
 import { deflateRawSync } from 'node:zlib';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 type Cell = string | number | bigint | boolean | null | undefined;
@@ -209,7 +211,7 @@ export function xlsxFromSheets(
   ]);
 }
 
-export const REPORT_TEMPLATE_VERSION = '2026.08.19.2';
+export const REPORT_TEMPLATE_VERSION = '2026.08.19.3';
 export const REPORT_LOCALES = ['en', 'pt', 'es'] as const;
 export type ReportLocale = (typeof REPORT_LOCALES)[number];
 
@@ -355,6 +357,25 @@ const htmlEscape = (value: unknown): string =>
       character,
   );
 
+const companyLogoCandidates = [
+  process.env.JA_REPORTING_LOGO_PATH,
+  resolve(process.cwd(), 'reporting-assets/logo-jaautomation.png'),
+  resolve(process.cwd(), 'packages/reporting/assets/logo-jaautomation.png'),
+  resolve(process.cwd(), 'assets/logo-jaautomation.png'),
+].filter((value): value is string => Boolean(value));
+
+let companyLogoDataUri: string | undefined;
+const companyLogo = (): string => {
+  if (companyLogoDataUri) return companyLogoDataUri;
+  const path = companyLogoCandidates.find((candidate) => existsSync(candidate));
+  if (!path)
+    throw new Error(
+      'J&A Automation report logo is missing; set JA_REPORTING_LOGO_PATH or ship reporting-assets/logo-jaautomation.png',
+    );
+  companyLogoDataUri = `data:image/png;base64,${readFileSync(path).toString('base64')}`;
+  return companyLogoDataUri;
+};
+
 const playwrightModule = (() => {
   try {
     return pathToFileURL(createRequire(import.meta.url).resolve('playwright')).href;
@@ -405,7 +426,10 @@ const pageCss = `
 body { margin: 0; color: #17212b; font: 10pt Arial, sans-serif; line-height: 1.4; }
 h1 { margin: 0 0 5mm; color: #0f2d3d; font-size: 24pt; letter-spacing: -.02em; }
 h2 { margin: 7mm 0 2mm; color: #0f2d3d; font-size: 13pt; border-bottom: 1px solid #d9e1e7; padding-bottom: 1.5mm; }
-.masthead { display:flex; justify-content:space-between; gap:12mm; border-bottom: 4px solid #e23d2d; padding-bottom: 5mm; margin-bottom: 7mm; }
+.masthead { display:flex; align-items:flex-start; justify-content:space-between; gap:12mm; border-bottom: 4px solid #e23d2d; padding-bottom: 5mm; margin-bottom: 7mm; }
+.brand-lockup { display:flex; align-items:flex-start; gap:5mm; min-width:0; }
+.brand-logo { width:28mm; height:22mm; object-fit:contain; object-position:left center; flex:0 0 auto; }
+.masthead-copy { min-width:0; }
 .eyebrow { color:#e23d2d; font-weight:700; text-transform:uppercase; letter-spacing:.12em; font-size:8pt; }
 .muted { color:#64748b; }
 .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4mm 10mm; }
@@ -424,7 +448,7 @@ td.amount, th.amount { text-align:right; white-space:nowrap; }
 `;
 
 function layout(title: string, subtitle: string, body: string, locale: ReportLocale): string {
-  return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="template-version" content="${REPORT_TEMPLATE_VERSION}"><meta name="report-locale" content="${locale}"><style>${pageCss}</style></head><body><header class="masthead"><div><div class="eyebrow">J&amp;A Automation</div><h1>${htmlEscape(title)}</h1><div class="muted">${htmlEscape(subtitle)}</div></div><div class="muted">Template ${REPORT_TEMPLATE_VERSION}</div></header>${body}</body></html>`;
+  return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="template-version" content="${REPORT_TEMPLATE_VERSION}"><meta name="report-locale" content="${locale}"><style>${pageCss}</style></head><body><header class="masthead"><div class="brand-lockup"><img class="brand-logo" src="${companyLogo()}" alt="J&amp;A Automation logo"><div class="masthead-copy"><div class="eyebrow">J&amp;A Automation</div><h1>${htmlEscape(title)}</h1><div class="muted">${htmlEscape(subtitle)}</div></div></div><div class="muted">Template ${REPORT_TEMPLATE_VERSION}</div></header>${body}</body></html>`;
 }
 
 function moneyText(currency: unknown, minor: unknown, locale: ReportLocale = 'en'): string {

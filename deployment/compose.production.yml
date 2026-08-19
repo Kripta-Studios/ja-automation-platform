@@ -87,6 +87,8 @@ services:
       COREPACK_HOME: /tmp/corepack
       JA_DATABASE_PATH: /var/lib/jaautomation/data/jaautomation.sqlite
       JA_MIGRATIONS_PATH: /workspace/migrations
+      JA_DOCUMENT_ROOT: /var/lib/jaautomation/files
+      JA_DEMO_MODE: ${JA_DEMO_MODE:-true}
     volumes:
       - /var/lib/jaautomation:/var/lib/jaautomation
     command: [node, --experimental-strip-types, src/demo-seed.ts]

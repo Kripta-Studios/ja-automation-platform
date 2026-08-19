@@ -265,7 +265,11 @@ an operator/coding-agent action. The authority specification was not modified.
 - Read-only VPS checks passed: `ssh kripta hostname` returned `options-greek-plotting-vm1` and the
   host was confirmed to have an existing legacy `/opt/j-aautomation` service path. The current
   user has no passwordless sudo, so no VPS service, database or Caddy configuration was changed in
-  this session. The archive upload and checksum will be recorded below once completed.
+  this session. Commit `85df390` was pushed to `origin/main`. `git archive` produced
+  `.tmp/ja-automation-v3-showcase-20260819.zip` (13,467,236 bytes), SHA-256
+  `6c418b9701e77702cc581d565422c54cac7cfcb4041d9bd92c6b4fb51872f833`; `scp` uploaded it to
+  `/home/kripta/ja-automation-v3-showcase-20260819.zip`, and `ssh kripta sha256sum` returned the
+  same hash. VPS service deployment remains pending the documented coding-agent run with sudo.
 
 ## Schema, legacy, and external prerequisites
 

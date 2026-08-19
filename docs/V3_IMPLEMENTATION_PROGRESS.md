@@ -421,3 +421,8 @@ Validation on the available host (Node `25.8.1`, pnpm `11.22.0`; repository requ
 - `pnpm build`: pass for the website and portal; `pnpm jobs:build`: pass.
 - Full Playwright E2E: 18 tests, 14 passed and 4 intentional viewport/role skips.
 - `git diff --check`: pass. The authority specification was not changed.
+- Release handoff: `git archive --format=zip` produced the website-plus-portal source archive;
+  `scp` transferred it to `kripta:/home/kripta/`, remote SHA-256 and byte length matched the
+  local artifact, and remote `unzip -tq` completed without errors. The final archive is regenerated
+  from the documentation commit below and the exact checksum is supplied to the VPS agent by the
+  release operator.

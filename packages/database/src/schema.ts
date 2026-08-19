@@ -23,6 +23,7 @@ export const users = sqliteTable('user', {
   twoFactorEnabled: integer('two_factor_enabled', { mode: 'boolean' }).notNull().default(false),
   offboardedAt: text('offboarded_at'),
   lastStepUpAt: text('last_step_up_at'),
+  version: integer('version').notNull().default(1),
   ...lifecycle,
 });
 
@@ -68,6 +69,7 @@ export const clients = sqliteTable('client', {
   billingEmail: text('billing_email'),
   paymentTermsDays: integer('payment_terms_days'),
   notes: text('notes'),
+  version: integer('version').notNull().default(1),
   ...lifecycle,
 });
 
@@ -110,6 +112,7 @@ export const projects = sqliteTable(
     notes: text('notes'),
     expectedScheduleId: text('expected_schedule_id'),
     fixedPriceMinor: integer('fixed_price_minor'),
+    version: integer('version').notNull().default(1),
     ...lifecycle,
   },
   (table) => [index('project_client_idx').on(table.clientId)],
@@ -138,6 +141,7 @@ export const projectMembers = sqliteTable(
     workerCompensationRuleId: text('worker_compensation_rule_id'),
     internalCostRuleId: text('internal_cost_rule_id'),
     clientBillRuleId: text('client_bill_rule_id'),
+    version: integer('version').notNull().default(1),
     ...lifecycle,
   },
   (table) => [
@@ -181,6 +185,7 @@ export const timeEntries = sqliteTable(
     lockedAt: text('locked_at'),
     lockedBy: text('locked_by'),
     billingLockId: text('billing_lock_id'),
+    version: integer('version').notNull().default(1),
     ...lifecycle,
   },
   (table) => [
@@ -229,6 +234,7 @@ export const expenses = sqliteTable(
     reimbursedAt: text('reimbursed_at'),
     reimbursementReference: text('reimbursement_reference'),
     fxRateBps: integer('fx_rate_bps'),
+    version: integer('version').notNull().default(1),
     ...lifecycle,
   },
   (table) => [index('expense_project_period_idx').on(table.projectId, table.spentOn)],
@@ -263,6 +269,7 @@ export const invoices = sqliteTable(
     sourceLockAt: text('source_lock_at'),
     voidedAt: text('voided_at'),
     pdfByteLength: integer('pdf_byte_length'),
+    version: integer('version').notNull().default(1),
     ...lifecycle,
   },
   (table) => [
@@ -299,6 +306,7 @@ export const billingRules = sqliteTable('billing_rule', {
   fixedAmountMinor: integer('fixed_amount_minor'),
   includedMinutes: integer('included_minutes'),
   monthlyCutoffDay: integer('monthly_cutoff_day'),
+  version: integer('version').notNull().default(1),
   ...lifecycle,
 });
 
@@ -329,6 +337,7 @@ export const documents = sqliteTable(
     scannedAt: text('scanned_at'),
     scanProvider: text('scan_provider'),
     artifactMetadataJson: text('artifact_metadata_json'),
+    version: integer('version').notNull().default(1),
     ...lifecycle,
   },
   (table) => [
@@ -362,6 +371,7 @@ export const jobs = sqliteTable('job', {
   leaseUntil: text('lease_until'),
   attempts: integer('attempts').notNull().default(0),
   payloadJson: text('payload_json').notNull(),
+  version: integer('version').notNull().default(1),
   ...lifecycle,
 });
 
@@ -482,6 +492,7 @@ export const planningAssignments = sqliteTable('planning_assignment', {
   requiredSkill: text('required_skill'),
   plannedCostMinor: integer('planned_cost_minor'),
   createdBy: text('created_by'),
+  version: integer('version').notNull().default(1),
   ...lifecycle,
 });
 export const dailyReports = sqliteTable('daily_report', {
@@ -492,6 +503,7 @@ export const dailyReports = sqliteTable('daily_report', {
   summary: text('summary').notNull(),
   safetyNotes: text('safety_notes'),
   approvalState: text('approval_state').notNull(),
+  version: integer('version').notNull().default(1),
   ...lifecycle,
   siteShift: text('site_shift'),
   tasksCompleted: text('tasks_completed'),
@@ -536,6 +548,7 @@ export const technicalReports = sqliteTable('technical_report', {
   openRisk: text('open_risk'),
   reviewedBy: text('reviewed_by'),
   reviewedAt: text('reviewed_at'),
+  version: integer('version').notNull().default(1),
 });
 export const technicalChanges = sqliteTable('technical_change', {
   id: text('id').primaryKey(),
@@ -554,6 +567,7 @@ export const technicalChanges = sqliteTable('technical_change', {
   openRisk: text('open_risk'),
   rollbackInformation: text('rollback_information'),
   approvalState: text('approval_state').notNull(),
+  version: integer('version').notNull().default(1),
   ...lifecycle,
 });
 export const clientContacts = sqliteTable('client_contact', {
@@ -565,6 +579,7 @@ export const clientContacts = sqliteTable('client_contact', {
   role: text('role'),
   isBillingContact: integer('is_billing_contact', { mode: 'boolean' }),
   isPrimary: integer('is_primary', { mode: 'boolean' }),
+  version: integer('version').notNull().default(1),
   ...lifecycle,
 });
 export const clientLaborRates = sqliteTable('client_labor_rate', {
@@ -583,6 +598,7 @@ export const clientLaborRates = sqliteTable('client_labor_rate', {
   overtimeRateMinor: integer('overtime_rate_minor'),
   eligibleForPercentage: integer('eligible_for_percentage', { mode: 'boolean' }),
   notes: text('notes'),
+  version: integer('version').notNull().default(1),
 });
 export const internalCostRules = sqliteTable('internal_cost_rule', {
   id: text('id').primaryKey(),
@@ -598,6 +614,7 @@ export const internalCostRules = sqliteTable('internal_cost_rule', {
   overtimeRateMinor: integer('overtime_rate_minor'),
   costMethod: text('cost_method'),
   notes: text('notes'),
+  version: integer('version').notNull().default(1),
 });
 export const compensationRules = sqliteTable('compensation_rule', {
   id: text('id').primaryKey(),
@@ -624,6 +641,7 @@ export const compensationRules = sqliteTable('compensation_rule', {
   fixedPeriodMinor: integer('fixed_period_minor'),
   fixedProjectMinor: integer('fixed_project_minor'),
   notes: text('notes'),
+  version: integer('version').notNull().default(1),
 });
 export const compensationSettlements = sqliteTable('compensation_settlement', {
   id: text('id').primaryKey(),
@@ -653,6 +671,7 @@ export const assignmentRateOverrides = sqliteTable('assignment_rate_override', {
   effectiveFrom: text('effective_from').notNull(),
   effectiveTo: text('effective_to'),
   priority: integer('priority').notNull(),
+  version: integer('version').notNull().default(1),
   ...lifecycle,
 });
 export const legalEntities = sqliteTable('legal_entity', {
@@ -662,6 +681,7 @@ export const legalEntities = sqliteTable('legal_entity', {
   currency: text('currency').notNull(),
   billingAddress: text('billing_address').notNull(),
   companyIdentifiers: text('company_identifiers').notNull(),
+  version: integer('version').notNull().default(1),
   ...lifecycle,
 });
 export const invoiceNumberPolicies = sqliteTable('invoice_number_policy', {
@@ -672,6 +692,7 @@ export const invoiceNumberPolicies = sqliteTable('invoice_number_policy', {
   effectiveFrom: text('effective_from').notNull(),
   effectiveTo: text('effective_to'),
   accountantApprovedAt: text('accountant_approved_at'),
+  version: integer('version').notNull().default(1),
   ...lifecycle,
 });
 export const taxProfiles = sqliteTable('tax_profile', {
@@ -779,6 +800,7 @@ export const projectMilestones = sqliteTable('project_milestone', {
   approvedBy: text('approved_by'),
   approvedAt: text('approved_at'),
   invoiceId: text('invoice_id'),
+  version: integer('version').notNull().default(1),
   ...lifecycle,
 });
 export const financeSnapshots = sqliteTable('finance_snapshot', {
@@ -938,5 +960,6 @@ export const workerAvailability = sqliteTable('worker_availability', {
   endsAt: text('ends_at').notNull(),
   availability: text('availability').notNull(),
   note: text('note'),
+  version: integer('version').notNull().default(1),
   ...lifecycle,
 });

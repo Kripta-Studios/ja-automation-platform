@@ -103,7 +103,10 @@ Status: complete for behavior and acceptance; incremental maintainability extrac
 
 `apps/portal/src/lib/portal-navigation.ts` owns primary/secondary/admin/security navigation and
 `portal-i18n.ts` owns EN/PT-BR/ES dictionary/DOM translation. Existing behavior in
-`PortalShell.svelte` and the server action module was preserved while navigation, offline, security,
+`PortalShell.svelte` was preserved while the chrome moved to `PortalChrome.svelte`. Server actions
+are now split by domain: `action-utils.ts`, `actions/operations-actions.ts`, and
+`actions/billing-actions.ts`; the route action module retains the operational/project/time/expense
+and finance-economics surface without a parallel implementation. Navigation, offline, security,
 artifact and localization concerns were extracted incrementally; no portal rewrite or duplicate
 domain data model was introduced. Worker navigation is Today/Time/Reports/Expenses/Projects with
 Documents secondary. Admin exposes the specified dashboard, project/client/team/planning/time/report/

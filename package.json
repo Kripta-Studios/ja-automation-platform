@@ -9,7 +9,7 @@
     "pnpm": "11.22.0"
   },
   "scripts": {
-    "dev:site": "pnpm --filter @ja/site dev",
+    "dev:site": "pnpm --filter @ja/site dev --port 5173",
     "dev:portal": "pnpm --filter @ja/portal dev",
     "build": "pnpm -r --if-present build",
     "format": "prettier --write .",
@@ -26,14 +26,18 @@
     "db:migrate:fresh": "pnpm --filter @ja/database db:migrate:fresh",
     "db:integrity": "pnpm --filter @ja/database db:integrity",
     "demo:seed": "pnpm --filter @ja/database demo:seed",
+    "jobs:build": "vite build --config deployment/vite.jobs.config.ts",
+    "ops:jobs": "pnpm run jobs:build && node deployment/jobs-build/jobs-run.mjs",
     "ops:backup:test": "node deployment/scripts/backup-test.mjs",
-    "ops:restore-test": "node deployment/scripts/restore-test.mjs"
+    "ops:restore-test": "node deployment/scripts/restore-test.mjs",
+    "ops:backup": "node deployment/scripts/backup.mjs"
   },
   "devDependencies": {
     "@ja/billing-engine": "workspace:*",
     "@ja/database": "workspace:*",
     "@ja/domain": "workspace:*",
     "@ja/money": "workspace:*",
+    "@ja/reporting": "workspace:*",
     "@ja/schemas": "workspace:*",
     "@axe-core/playwright": "catalog:",
     "@eslint/js": "catalog:",
@@ -48,6 +52,7 @@
     "svelte": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
+    "vite": "catalog:",
     "vitest": "catalog:"
   }
 }

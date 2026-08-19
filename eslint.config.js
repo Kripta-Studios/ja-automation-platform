@@ -4,7 +4,16 @@ import svelte from 'eslint-plugin-svelte';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['**/build/**', '**/.svelte-kit/**', '**/node_modules/**', 'website/**'] },
+  {
+    ignores: [
+      '**/.next/**',
+      '**/.svelte-kit/**',
+      '**/.tmp/**',
+      '**/build/**',
+      '**/deployment/jobs-build/**',
+      '**/node_modules/**',
+    ],
+  },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   ...svelte.configs['flat/recommended'],

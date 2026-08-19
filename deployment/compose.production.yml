@@ -6,13 +6,20 @@ services:
     image: ja-automation-site:${JA_RELEASE_TAG:-local}
     restart: unless-stopped
     ports:
-      - 127.0.0.1:5101:5101
+      - 127.0.0.1:5101:3000
     read_only: true
-    tmpfs: [/tmp]
+    tmpfs:
+      - /tmp
+      - /app/website/.next/cache:uid=10002,gid=10002,mode=0750
     security_opt: [no-new-privileges:true]
     healthcheck:
       test:
-        [CMD, node, -e, "fetch('http://127.0.0.1:5101/en/').then(r=>{if(!r.ok)process.exit(1)})"]
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3000/j-aautomation/en').then(r=>{if(!r.ok)process.exit(1)})",
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -23,20 +30,20 @@ services:
     image: ja-automation-portal:${JA_RELEASE_TAG:-local}
     restart: unless-stopped
     env_file:
-      - path: /etc/j-aautomation/portal.env
+      - path: /etc/jaautomation/jaautomation.env
         required: false
     environment:
       HOST: 0.0.0.0
       PORT: 5100
-      JA_DATABASE_PATH: /var/lib/j-aautomation/app.db
+      JA_DATABASE_PATH: /var/lib/jaautomation/data/jaautomation.sqlite
       JA_MIGRATIONS_PATH: /app/migrations
-      JA_DOCUMENT_ROOT: /var/lib/j-aautomation/documents
+      JA_DOCUMENT_ROOT: /var/lib/jaautomation/files
       JA_PUBLIC_BASE_PATH: /j-aautomation
       JA_PORTAL_BASE_PATH: /j-aautomation/app
     ports:
       - 127.0.0.1:5100:5100
     volumes:
-      - /var/lib/j-aautomation:/var/lib/j-aautomation
+      - /var/lib/jaautomation:/var/lib/jaautomation
     read_only: true
     tmpfs: [/tmp]
     security_opt: [no-new-privileges:true]
@@ -49,6 +56,23 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+  jobs:
+    profiles: [jobs]
+    image: ja-automation-portal:${JA_RELEASE_TAG:-local}
+    env_file:
+      - path: /etc/jaautomation/jaautomation.env
+        required: false
+    environment:
+      JA_DATABASE_PATH: /var/lib/jaautomation/data/jaautomation.sqlite
+      JA_MIGRATIONS_PATH: /app/migrations
+      JA_DOCUMENT_ROOT: /var/lib/jaautomation/files
+      JA_JOB_ACTOR_ID: ${JA_JOB_ACTOR_ID:-}
+    volumes:
+      - /var/lib/jaautomation:/var/lib/jaautomation
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    command: [node, /app/deployment/jobs-run.mjs]
   demo-seed:
     profiles: [tools]
     build:
@@ -58,8 +82,9 @@ services:
     working_dir: /workspace/packages/database
     user: 10001:10001
     environment:
-      JA_DATABASE_PATH: /var/lib/j-aautomation/app.db
+      COREPACK_HOME: /tmp/corepack
+      JA_DATABASE_PATH: /var/lib/jaautomation/data/jaautomation.sqlite
       JA_MIGRATIONS_PATH: /workspace/migrations
     volumes:
-      - /var/lib/j-aautomation:/var/lib/j-aautomation
-    command: [pnpm, demo:seed]
+      - /var/lib/jaautomation:/var/lib/jaautomation
+    command: [node, --experimental-strip-types, src/demo-seed.ts]

@@ -1,0 +1,10 @@
+[Unit]
+Description=Run J&A Automation backup daily
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+Unit=jaautomation-backup.service
+
+[Install]
+WantedBy=timers.target

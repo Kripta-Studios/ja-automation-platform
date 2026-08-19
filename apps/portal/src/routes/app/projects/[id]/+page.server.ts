@@ -6,9 +6,16 @@ export const load: PageServerLoad = ({ locals, params }) => {
   if (!locals.user) redirect(303, '/j-aautomation/app/login');
   const context = openPortalRepository(locals);
   try {
+    const overview = context.repository.projectOverview(context.principal, params.id);
+    const financeVisible =
+      context.principal.role === 'owner_admin' ||
+      context.principal.role === 'finance_admin' ||
+      context.principal.role === 'auditor_read_only';
     return {
       user: locals.user,
-      overview: context.repository.projectOverview(context.principal, params.id),
+      overview: financeVisible
+        ? { ...overview, financial: context.v3.projectFinance(context.principal, params.id) }
+        : overview,
     };
   } catch {
     error(404, 'Project not found or unavailable');

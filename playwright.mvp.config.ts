@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Archived compatibility runner for the original demo screenshots. The active production gate is
+// `playwright.config.ts`; this file is retained only for historical reproducibility.
+
 export default defineConfig({
   testDir: 'tests/e2e',
   testMatch: 'mvp-demo.spec.ts',

@@ -19,7 +19,6 @@
     >
   </nav>
   <article class="invoice-paper">
-    <div class="demo-watermark">DEMONSTRATION · NOT FOR PAYMENT</div>
     <header>
       <div>
         <img src={`${base}/app/logo.png`} alt="J&A Automation" /><small
@@ -91,7 +90,7 @@
       </dl>
     </section>
     <footer>
-      <span>J&A AUTOMATION · MVP DEMONSTRATION</span><span
+      <span>J&A AUTOMATION · INVOICE PREVIEW</span><span
         >{invoice.project_number} / {invoice.stream_type}</span
       >
     </footer>

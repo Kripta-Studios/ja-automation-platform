@@ -1,0 +1,27 @@
+FROM node:24.19.0-bookworm-slim AS build
+WORKDIR /workspace
+RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
+COPY packages/billing-engine/package.json ./packages/billing-engine/package.json
+COPY packages/database/package.json ./packages/database/package.json
+COPY packages/domain/package.json ./packages/domain/package.json
+COPY packages/money/package.json ./packages/money/package.json
+COPY packages/schemas/package.json ./packages/schemas/package.json
+COPY website ./website
+RUN pnpm install --frozen-lockfile --filter @ja/site...
+ENV JA_PUBLIC_BASE_PATH=/j-aautomation
+RUN pnpm --filter @ja/site build
+RUN pnpm --filter @ja/site deploy --prod --legacy /tmp/site-runtime
+
+FROM node:24.19.0-bookworm-slim
+ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3000
+RUN useradd --system --uid 10002 --create-home jasite
+WORKDIR /app
+COPY --from=build --chown=jasite:jasite /workspace/website/public ./website/public
+COPY --from=build --chown=jasite:jasite /workspace/website/.next/standalone/website ./website
+COPY --from=build --chown=jasite:jasite /workspace/website/.next/static ./website/.next/static
+COPY --from=build --chown=jasite:jasite /tmp/site-runtime/node_modules ./website/node_modules
+RUN mkdir -p ./website/.next/cache && chown -R jasite:jasite ./website/.next/cache
+USER jasite
+EXPOSE 3000
+CMD ["node", "website/server.js"]

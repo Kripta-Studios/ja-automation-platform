@@ -1,7 +1,8 @@
 # J&A Automation — Unified Website, Field Operations, Project Finance & Billing Specification V3
 
-**Status:** build-ready product, UX, data, security and deployment specification  
+**Status:** build-ready product, UX, data, security and deployment specification — revised after OSS/GitHub evaluation and business-rule clarification
 **Prepared:** 2026-08-18  
+**Revision:** V3.1 content retained under the requested V3 filename; incorporates 2026-08-18 build-vs-adopt research and clarified compensation/accounting requirements
 **Replaces:** the previous website V2, private portal V1 and VPS/.NET/PostgreSQL deployment assumptions where they conflict with this document  
 **Primary design goal:** a modern, portable, low-operations TypeScript application that can be developed entirely on Windows, used comfortably on phone/iPad/desktop, and deployed to the existing Ubuntu VPS without PostgreSQL, .NET, Azure, Redis, Kubernetes or microservices.
 
@@ -15,7 +16,8 @@
 
 Use a TypeScript-first monorepo:
 
-- **Svelte 5 / SvelteKit** for both public website and private portal;
+- **Next.js 16 / React 19** for the public website in `website/`;
+- **Svelte 5 / SvelteKit** for the private portal in `apps/portal/`;
 - **TypeScript strict mode** everywhere;
 - **Node.js 24 LTS** for server runtime;
 - **pnpm workspaces** for the monorepo;
@@ -69,7 +71,7 @@ Languages:
 /es
 ```
 
-The public site is **pre-rendered/static** and served directly by Caddy. It does not need a permanent Node process.
+The public site runs as a **Next.js standalone Node service** on `127.0.0.1:5101`. Caddy preserves the `/j-aautomation` base path and proxies public website routes to that service. Public browser code must remain independent from SQLite, authentication secrets, financial repositories, private files and server templates.
 
 ## 0.3 Private portal
 
@@ -154,11 +156,15 @@ No file is directly public.
 Every project must support independently configurable:
 
 - worker assignments;
-- expected schedule;
-- actual time;
+- optional/secondary expected schedule;
+- actual time as the authoritative operational record;
 - worker compensation;
+- internal loaded worker cost;
 - client bill rates;
+- per-worker, per-assignment and per-time-category rate overrides;
 - minimum-day / standby rules;
+- overtime/weekend/travel compensation and billing rules;
+- worker compensation derived from a percentage of eligible client labor where configured;
 - travel/expense rules;
 - project budget / PO cap;
 - billing cadence;
@@ -168,7 +174,22 @@ Every project must support independently configurable:
 - technical/PLC reporting;
 - approval workflow;
 - automatic period close;
-- project profitability.
+- invoice/payment ledger;
+- monthly Accounting Pack;
+- project contribution result/profitability.
+
+The application must keep these monetary concepts separate even when they are mathematically related:
+
+```text
+Worker Compensation
+Internal Loaded Cost
+Client Bill Amount / Revenue
+Direct Project Cost
+Contribution Margin
+Collected Cash
+```
+
+A worker may be paid a fixed/hourly/daily amount or, when configured, a percentage of eligible client labor revenue. That percentage calculation must not expose the client rate or company margin to the worker.
 
 ## 0.7 10-hour Monday–Saturday rule
 
@@ -266,6 +287,53 @@ AUTO-SEND INVOICE = no
 
 A future per-project auto-issue option may exist, but it is disabled globally by default.
 
+## 0.11 Build-vs-adopt decision after GitHub OSS review
+
+On 2026-08-18 the project was compared against mature public repositories including:
+
+- **ERPNext** (`frappe/erpnext`) — broad ERP/accounting/projects/timesheets; Python/Frappe; GPL-3.0;
+- **Odoo Community** (`odoo/odoo`) — broad ERP platform; Python; core repository LGPL-3.0;
+- **Dolibarr** (`Dolibarr/dolibarr`) — ERP/CRM/invoicing/accounting; PHP; GPL-3.0;
+- **Kimai** (`kimai/kimai`) — mature timesheets, reports, invoicing, user/customer/project-specific rates and budgets; PHP/Symfony; AGPL-3.0;
+- **Invoice Ninja** (`invoiceninja/invoiceninja`) — source-available invoicing, projects, time tracking, expenses and payments; Laravel/PHP; Elastic License;
+- **Midday** (`midday-ai/midday`) — TypeScript/Next.js financial workspace with invoicing, time tracking, file reconciliation and financial overview; AGPL-3.0;
+- **solidtime** (`solidtime-io/solidtime`) — modern open-source time tracking; Laravel/Vue; AGPL-3.0.
+
+Decision:
+
+> **Continue the existing J&A application. Do not replace it by cloning a third-party ERP/time-tracker/invoicing repository.**
+
+Reasons:
+
+1. the current J&A repository already has the public Next.js site, SvelteKit portal, SQLite repositories/migrations, exact-money package, billing engine, demo seed, deployment artifacts and automated quality gates;
+2. no evaluated repository directly models J&A's distinctive business rules:
+   - 10-hour availability/standby separated from actual hours;
+   - independent client minimum billing and worker guarantee;
+   - all-in vs reimbursable hotel/rental/flight rules;
+   - worker compensation as a configurable percentage of eligible client labor;
+   - different worker/internal/client rates inside one project and by work category;
+   - PLC/technical reporting and engineering backup register;
+   - separate labor and expense billing streams with different tax profiles;
+   - worker-private compensation with admin-only client rate/margin;
+   - J&A-specific monthly Accounting Pack;
+3. adopting ERPNext/Odoo/Dolibarr would introduce a larger general-purpose ERP domain and a different operational stack;
+4. adopting Kimai/solidtime would still require building the finance, expense, PLC and J&A commercial engines;
+5. adopting Invoice Ninja would still require building the field/worker/PLC domain and introduces source-available licensing considerations;
+6. Midday is architecturally closer to the modern TypeScript design but targets freelancer finance rather than multi-worker industrial field operations;
+7. a wholesale fork would create upgrade/merge/licensing obligations while discarding already-implemented J&A-specific work.
+
+Use those projects as **design and workflow references**, not as the source-code foundation.
+
+Permitted reuse policy:
+
+- study public UX/workflow patterns;
+- reuse generic concepts and non-copyrightable ideas;
+- use third-party libraries only after license/dependency review;
+- do not copy application code, templates or branded assets into J&A merely because a repository is public;
+- any future code-level reuse must be reviewed for license compatibility first.
+
+This is a product/engineering decision, not legal advice on open-source licenses.
+
 ---
 
 # 1. Why this architecture
@@ -275,7 +343,7 @@ The previous portal architecture separated React, ASP.NET Core, PostgreSQL, a ba
 The new design optimizes for:
 
 1. **portability** — identical TypeScript code on Windows and Linux;
-2. **low operational overhead** — one application runtime and one database file;
+2. **low operational overhead** — two small Node application runtimes (public website + portal) and one SQLite database file;
 3. **simple backups** — database snapshot + private file tree;
 4. **fast iteration** — no local database server or .NET SDK required;
 5. **mobile usability** — responsive PWA instead of separate iOS/Android codebases;
@@ -300,12 +368,12 @@ The system remains a **modular monolith**. “Simple” must not mean “one gia
          │                  │                        │
          ▼                  ▼                        ▼
 existing NexIA       /j-aautomation/*       /j-aautomation/app/*
-applications          static Svelte site          reverse proxy
-                         from disk                   │
-                                                   ▼
-                                           127.0.0.1:5100
-                                           SvelteKit Node
-                                                   │
+applications          reverse proxy                reverse proxy
+                         │                           │
+                         ▼                           ▼
+                 127.0.0.1:5101              127.0.0.1:5100
+                    Next.js Node                SvelteKit Node
+                                                     │
                       ┌────────────────────────────┼────────────────────┐
                       ▼                            ▼                    ▼
                  SQLite file                private files        external adapters
@@ -337,17 +405,17 @@ Use one repository root:
 /home/NexIA/J-Aautomation
 ```
 
-Recommended monorepo:
+Recommended/current-direction monorepo:
 
 ```text
 J-Aautomation/
+├── website/
+│   ├── app/ or src/app/
+│   ├── public/
+│   ├── next.config.ts
+│   └── package.json
+│
 ├── apps/
-│   ├── site/
-│   │   ├── src/
-│   │   ├── static/
-│   │   ├── svelte.config.js
-│   │   └── vite.config.ts
-│   │
 │   └── portal/
 │       ├── src/
 │       │   ├── routes/
@@ -383,6 +451,7 @@ J-Aautomation/
 │
 ├── migrations/
 ├── deployment/
+│   ├── Dockerfile.website
 │   ├── Dockerfile.portal
 │   ├── compose.production.yml
 │   ├── caddy/
@@ -1067,13 +1136,33 @@ Never auto-create 600 worked minutes.
 
 Worker enters actual duration.
 
+**Actual, approved and billable time are more important than planned/expected hours.** Detailed planned hours are optional and must not be required merely to log work, approve actual time, calculate worker compensation or prepare billing.
+
+Expected schedule exists primarily for:
+
+- the configurable 10h Mon–Sat commercial/availability convention;
+- staffing context;
+- daily minimum/guarantee context;
+- optional budget/forecast assistance.
+
+A project may therefore operate with:
+
+```text
+Expected schedule: configured or minimal
+Detailed planned hours: absent
+Actual approved hours: fully operational
+Billing/compensation: fully operational
+```
+
 Under/over expected:
 
-- warn;
+- warn when an expectation exists;
 - show difference;
 - optionally require note;
 - allow legitimate exceptions;
-- route to approval.
+- route to approval when project policy requires it.
+
+Absence of detailed planned hours is not itself a billing blocker unless a project-specific policy explicitly requires planning data.
 
 ## 9.3 Time categories
 
@@ -1234,21 +1323,61 @@ Also show:
 
 It must **not copy time values by default**.
 
+## 11.1 Admin/Finance time economics review
+
+Authorized Admin/Finance users need a review table that reconciles each approved time record from operational time to cost and customer billing.
+
+Columns should support:
+
+```text
+Date
+Worker
+Project
+Category / activity
+Actual minutes
+Approved minutes
+Client billable minutes
+Client billing adjustment/minimum
+Worker compensation rule
+Worker compensation amount
+Internal cost amount
+Client bill rate / rule
+Client revenue candidate
+Contribution candidate
+Billing status
+Invoice / batch link
+```
+
+Project managers see only the subset permitted by their finance visibility.
+
+Workers never receive the client-rate, internal-cost, revenue or margin columns.
+
+The screen must make transformations auditable, especially:
+
+```text
+actual 4h
+→ client contractual minimum 10h
+→ worker compensation independently calculated
+```
+
 ---
 
 # 12. Worker compensation and “How much will I receive?”
 
 This is a first-class V3 feature.
 
+The system must support worker compensation independently from the amount charged to the customer, while also allowing an explicit percentage-of-client-labor model when J&A chooses to link them.
+
 ## 12.1 Worker compensation rule
 
-Supported:
+Supported rule types:
 
 ```text
 Hourly
 Daily
 Fixed per billing/pay period
 Fixed project amount
+Percentage of eligible client labor
 Custom approved adjustment
 ```
 
@@ -1259,7 +1388,10 @@ id
 worker_id
 currency
 rule_type
-rate_minor
+rate_minor optional
+percentage_bps optional
+percentage_basis optional
+settlement_trigger optional
 daily_guarantee_minutes optional
 overtime_rule optional
 weekend_rule optional
@@ -1270,7 +1402,127 @@ effective_to
 worker_visible
 ```
 
-## 12.2 Internal loaded cost
+`percentage_bps` uses exact basis points:
+
+```text
+5500 = 55.00%
+6250 = 62.50%
+```
+
+Do not store financial percentages as binary floating-point values.
+
+## 12.2 Percentage of eligible client labor
+
+When configured:
+
+```text
+rule_type = PercentageOfEligibleClientLabor
+```
+
+the worker's compensation is derived only from labor revenue attributable to that worker/assignment and explicitly eligible categories.
+
+Example:
+
+```text
+Client eligible labor:
+Regular 8h × €80/h   = €640
+Overtime 2h × €120/h = €240
+Eligible labor total = €880
+
+Worker percentage = 55%
+
+Estimated worker compensation = €484
+```
+
+The percentage basis must be explicit. Supported bases:
+
+```text
+CLIENT_LABOR_BEFORE_TAX
+CLIENT_LABOR_AFTER_APPROVED_DISCOUNT
+ISSUED_ELIGIBLE_LABOR
+COLLECTED_ELIGIBLE_LABOR
+```
+
+Excluded by default:
+
+```text
+tax
+hotel
+rental car
+airfare
+meals
+other expenses
+expense markup
+other workers' labor
+unrelated fixed fees
+credits unrelated to that worker
+```
+
+For all-in/fixed-price projects, do **not** infer an employee percentage from total project revenue by default. Use a fixed/hourly/daily worker rule unless Finance explicitly configures a documented revenue-allocation basis.
+
+## 12.3 Settlement trigger
+
+Percentage-based compensation must distinguish an estimate from the event that makes it final for the internal project statement.
+
+Allowed policy:
+
+```text
+ON_APPROVED_BILLABLE_LABOR
+ON_INVOICE_ISSUE
+ON_CLIENT_PAYMENT
+```
+
+Default should be chosen by J&A/Accounting, not hard-coded.
+
+The worker UI may show an estimate before final settlement, clearly labeled as estimated.
+
+## 12.4 Overtime proportionality
+
+Overtime must be independently configurable for:
+
+```text
+Worker compensation
+Internal loaded cost
+Client billing
+```
+
+Supported worker overtime methods:
+
+```text
+NONE
+FIXED_RATE
+BASE_RATE_MULTIPLIER
+FIXED_ADDITION_PER_HOUR
+PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME
+```
+
+Example base multiplier:
+
+```text
+Worker regular rate = €40/h
+Worker overtime multiplier = 1.50
+2h overtime = 2 × €60 = €120
+```
+
+Example percentage-linked overtime for a non-all-in/T&M project:
+
+```text
+Client overtime labor = €240
+Worker percentage = 55%
+Worker overtime compensation = €132
+```
+
+When the project is not all-in and the worker is percentage-based, overtime can therefore remain naturally proportional to the actual eligible client overtime amount.
+
+Never assume that:
+
+```text
+client overtime multiplier == worker overtime multiplier
+```
+
+unless the configured rule explicitly links them.
+
+## 12.5 Internal loaded cost
 
 Separate admin-only record:
 
@@ -1283,9 +1535,49 @@ cost_method
 notes
 ```
 
-This may represent a broader company cost and is not necessarily equal to worker pay.
+This may represent a broader company cost and is not necessarily equal to worker compensation.
 
-## 12.3 Worker “My Pay” page
+## 12.6 Per-assignment / per-work-category rate matrix
+
+A worker can have different economics in the same project depending on role, activity or time category.
+
+Add a rate-override layer:
+
+```text
+id
+project_assignment_id
+time_category optional
+activity_code optional
+worker_compensation_rule_id optional
+internal_cost_rule_id optional
+client_bill_rule_id optional
+effective_from
+effective_to
+priority
+```
+
+Examples within one project:
+
+```text
+Worker A / Regular:
+  worker compensation  €40/h
+  internal cost        €47/h
+  client bill          €82/h
+
+Worker A / Overtime:
+  worker compensation  1.5 × base
+  internal cost        €65/h
+  client bill          €120/h
+
+Worker B / Commissioning:
+  worker compensation  €52/h
+  internal cost        €61/h
+  client bill          €105/h
+```
+
+The most specific applicable rule wins according to a deterministic documented precedence order.
+
+## 12.7 Worker “My Pay” page
 
 Show:
 
@@ -1297,10 +1589,12 @@ Submitted/pending hours
 Guaranteed hours if applicable
 Estimated approved earnings
 Estimated pending earnings
+Percentage-based estimate if applicable
 Approved reimbursable expenses
 Pending reimbursements
-Planned remaining hours
+Optional remaining assignment budget/context
 Projected period total
+Settlement status
 ```
 
 Use label:
@@ -1314,22 +1608,36 @@ and explanatory copy:
 Never show:
 
 - client rate;
-- margin;
+- client invoice amount attributable to the worker as a raw commercial figure unless Finance explicitly authorizes a special admin-only view;
+- company margin;
 - internal loaded cost;
-- revenue attributed.
+- other workers' compensation.
 
-## 12.4 Worker budget
+A percentage-based worker can still see the resulting compensation estimate without seeing the hidden client rate used to derive it.
+
+## 12.8 Worker budget
 
 For each assignment optionally show:
 
 ```text
-Planned hours
 Hours completed
+Approved hours
+Pending hours
+Estimated approved compensation
+Estimated pending compensation
+Forecast/expected period compensation if calculable
+Reimbursable expenses
+```
+
+Optional planning fields may also show:
+
+```text
+Planned hours
 Hours remaining
 Planned compensation
-Approved compensation
-Forecast compensation
 ```
+
+but planned hours are secondary and should disappear gracefully when the project does not maintain a detailed plan.
 
 This gives the worker a clear answer to “what is my budget / what am I expected to receive?” without exposing company profitability.
 
@@ -1597,6 +1905,28 @@ One-tap:
 [Photo library]
 [Files]
 ```
+
+Receipt evidence must explicitly accept, subject to server validation and reasonable size limits:
+
+```text
+image/jpeg
+image/png
+image/webp
+image/heic / image/heif where the runtime can validate/process it
+application/pdf
+```
+
+Typical accepted evidence:
+
+```text
+flight_receipt.pdf
+hotel_invoice.pdf
+rental_car.png
+meal_receipt.jpg
+fuel_receipt.heic
+```
+
+The UI must show a preview/icon, filename, upload progress and validation failure clearly.
 
 Immediately after capture:
 
@@ -2274,6 +2604,14 @@ Contribution Margin
 - Direct Project Cost
 ```
 
+For business users the UI may additionally label this:
+
+```text
+Direct project result
+```
+
+provided the screen explains that it excludes company-wide overhead, corporate tax, financing and other indirect allocations. Do not call it statutory/accounting **Net Profit** unless a future accounting integration supplies all required inputs.
+
 Direct cost:
 
 ```text
@@ -2341,6 +2679,19 @@ margin %
 ```
 
 For fixed-price projects, worker revenue attribution must be explicitly configured or omitted.
+
+For percentage-based worker compensation, Finance must be able to review:
+
+```text
+eligible client labor basis
+percentage
+estimated worker compensation
+settlement trigger
+settled amount
+linked invoice/payment if applicable
+```
+
+without exposing those commercial inputs to the worker UI.
 
 ---
 
@@ -2529,7 +2880,7 @@ Do not turn skills into an opaque “performance score.”
 
 ---
 
-# 32. Invoice aging and payment tracking
+# 32. Invoice aging, payment tracking and Accounting Ledger
 
 Invoice payment states:
 
@@ -2567,6 +2918,105 @@ Current
 ```
 
 These are management buckets, not legal classifications.
+
+## 32.1 Master Invoice / Cost / Collection Ledger
+
+Finance must have one general table that answers, without opening spreadsheets:
+
+```text
+What did we invoice?
+When did we invoice it?
+When is it due?
+What did it cost us?
+How much has the customer paid?
+What remains outstanding?
+What was the direct project result?
+```
+
+Minimum columns:
+
+```text
+Invoice #
+Client #
+Client
+Project #
+Project
+Invoice stream: LABOR / EXPENSES / MILESTONE / OTHER
+Service period start
+Service period end
+Issue date
+Due date
+Invoice currency
+Net/subtotal
+Tax
+Gross/total invoiced
+Direct labor cost attributed
+Travel/expense cost attributed
+Other direct cost attributed
+Total direct cost
+Contribution amount
+Contribution margin %
+Amount collected
+Outstanding amount
+Last payment date
+Payment status
+Billing status
+PO / contract reference
+```
+
+Filters:
+
+```text
+Month / date range
+Client
+Project
+Worker
+Invoice stream
+Issued / unpaid / partial / paid / overdue
+Legal entity
+Currency
+```
+
+Every aggregate must drill down:
+
+```text
+ledger row
+→ invoice
+→ invoice lines
+→ source time / expense
+→ worker cost/compensation calculation
+→ receipt where relevant
+→ recorded payment(s)
+```
+
+For invoices with multiple workers, the finance detail view must reconcile by worker where the invoice's source data permits it.
+
+## 32.2 Invoice dates
+
+Invoices must persist and expose at least:
+
+```text
+service_period_start
+service_period_end
+issue_date
+due_date
+sent_at optional
+first_payment_date optional
+last_payment_date optional
+paid_at optional
+```
+
+Dates shown in the ledger must come from authoritative invoice/payment records, not inferred UI state.
+
+## 32.3 Direct result terminology
+
+The ledger may show a user-friendly label such as:
+
+```text
+Direct project result
+```
+
+but internally this remains **Contribution Margin**, not corporate Net Profit.
 
 ---
 
@@ -2918,6 +3368,8 @@ worker_skills
 worker_compensation_rules
 worker_internal_cost_rules
 client_bill_rate_rules
+assignment_rate_overrides
+compensation_settlements
 
 time_entries
 timesheet_submissions
@@ -2944,6 +3396,9 @@ invoice_source_links
 invoice_snapshots
 invoice_payments
 invoice_adjustments
+accounting_periods
+accounting_pack_runs
+accounting_pack_exports
 
 documents
 approvals
@@ -3357,9 +3812,6 @@ Do not reuse its authentication/session model.
 │   └── temp/
 └── runtime/
 
-/var/www/jaautomation/
-└── site/
-
 /var/backups/jaautomation/
 ├── sqlite/
 ├── files/
@@ -3372,15 +3824,16 @@ Permissions must prevent other unprivileged services from reading finance files.
 
 # 52. Production containers
 
-Simplify old Compose topology.
+Simplify old Compose topology while matching the implementation that now exists.
 
-V3 requires only:
+V3 production requires:
 
 ```text
+ja-website
 ja-portal
 ```
 
-Optional separate worker using same image only if needed later:
+Optional separate worker using the portal image only if needed later:
 
 ```text
 ja-worker
@@ -3388,19 +3841,28 @@ ja-worker
 
 No PostgreSQL container.
 
-No website container.
+Website:
 
-The public website is static files.
+```text
+127.0.0.1:5101 -> Next.js standalone container
+```
 
 Portal:
 
 ```text
-127.0.0.1:5100 -> container 3000
+127.0.0.1:5100 -> SvelteKit Node container
 ```
 
-Use non-root container user.
+Both containers:
 
-Bind mount only the required J&A data paths.
+- run as non-root;
+- are reachable from the Internet only through Caddy;
+- receive only the environment/configuration they require;
+- do not share portal finance/database secrets with public browser code.
+
+The website container does **not** mount the SQLite database or private document tree.
+
+Bind mount only the required J&A data paths into the portal/worker.
 
 Never mount Docker socket.
 
@@ -3414,16 +3876,20 @@ Routing precedence:
 
 1. J&A private portal;
 2. J&A public form API;
-3. J&A public static website;
+3. J&A public Next.js website;
 4. all existing GEX/NexIA routes unchanged.
 
 Conceptually:
 
 ```text
-/j-aautomation/app/*       -> 127.0.0.1:5100
-/j-aautomation/api/public/*-> 127.0.0.1:5100
-/j-aautomation/*           -> /var/www/jaautomation/site
+/j-aautomation/app/*        -> 127.0.0.1:5100
+/j-aautomation/api/public/* -> explicitly selected public API handler
+/j-aautomation/*            -> 127.0.0.1:5101
 ```
+
+The implementation must preserve the base path when proxying to Next.js and SvelteKit.
+
+Public inquiry/support endpoints may live in the website service or portal service, but the choice must be explicit and must not expose private portal routes.
 
 The implementation agent must inspect the real Caddyfile and use the least invasive valid snippet.
 
@@ -3579,7 +4045,7 @@ A timer can run due jobs and backup.
 
 Do not create a database service.
 
-Do not create a website Node service.
+Create/supervise the website Node service only for the Next.js standalone runtime; do not create any additional redundant website service.
 
 ---
 
@@ -3589,17 +4055,16 @@ From repository:
 
 1. validate Git state;
 2. run tests;
-3. build static site;
-4. build portal container;
-5. snapshot current DB/files;
-6. apply reviewed migrations;
-7. copy static build to versioned web directory;
-8. atomically switch site symlink/directory;
-9. restart/recreate portal;
-10. health check;
-11. smoke test public/portal;
-12. verify existing VPS apps;
-13. retain rollback release.
+3. build the Next.js standalone website;
+4. build the SvelteKit portal;
+5. build/version the website and portal container images;
+6. snapshot current DB/files before portal migrations;
+7. apply reviewed migrations;
+8. recreate/restart website and portal with the new version;
+9. health-check `127.0.0.1:5101` and `127.0.0.1:5100`;
+10. smoke-test public website, public forms and private portal through Caddy;
+11. verify existing VPS apps/routes still work;
+12. retain rollback images/configuration and the pre-migration data snapshot.
 
 Do not run global:
 
@@ -3881,18 +4346,33 @@ The product must generate:
 - adjustment/credit document;
 - internal invoice reconciliation.
 
+## Accounting
+
+- Master Invoice / Cost / Collection Ledger;
+- Monthly Accounting Pack;
+- monthly invoice register;
+- monthly collection/payment report;
+- monthly worker/direct-cost statement;
+- monthly expense register with receipt references;
+- monthly contribution summary;
+- outstanding accounts receivable;
+- source reconciliation report.
+
 Exports:
 
 ```text
 PDF
 CSV
-XLSX optional
+XLSX
 JSON accounting export optional
+ZIP package of selected issued invoices/receipts optional
 ```
 
 ---
 
-# 67. Internal financial report template
+# 67. Internal financial report and Monthly Accounting Pack
+
+## 67.1 Project/internal financial report
 
 Header:
 
@@ -3905,15 +4385,17 @@ Billing model
 Workers
 ```
 
-Operations:
+Operations — prioritize actual records:
 
 ```text
-Expected hours
 Actual hours
 Approved hours
+Billable hours
 Standby hours
 Travel hours
+Overtime hours
 Unapproved hours
+Expected/planned hours optional and secondary
 ```
 
 Revenue:
@@ -3924,15 +4406,20 @@ Expense billable candidate
 Milestone/fixed candidate
 Previously invoiced
 Approved unbilled WIP
+Collected amount
+Outstanding amount
 ```
 
 Cost:
 
 ```text
-Direct labor cost
+Worker compensation
+Internal/direct labor cost
 Hotel
 Rental vehicle
-Travel
+Airfare
+Meals/per diem
+Other travel
 Other direct expenses
 ```
 
@@ -3942,15 +4429,15 @@ Budget:
 PO/budget
 Consumed
 Remaining
-Forecast at completion
+Forecast at completion if planning data exists
 ```
 
 Result:
 
 ```text
-Contribution margin
+Contribution margin / Direct project result
 Contribution margin %
-Forecast final margin
+Forecast final margin if calculable
 ```
 
 Exceptions:
@@ -3960,9 +4447,174 @@ Missing reports
 Missing receipts
 Pending approvals
 Rate errors
+Percentage-compensation basis errors
 Budget warnings
 Technical safety flags
 ```
+
+## 67.2 Monthly Accounting Pack
+
+The system must be able to generate a complete month package for Accounting without rebuilding it manually in spreadsheets.
+
+Example:
+
+```text
+Accounting period: 2026-08-01 .. 2026-08-31
+Legal entity: configured
+Generated at: timestamp
+Status: Draft / Reviewed / Final
+```
+
+### Invoice register
+
+Columns:
+
+```text
+Invoice #
+Client
+Project
+Type/stream
+Service period
+Issue date
+Due date
+Currency
+Net
+Tax
+Gross
+Status
+```
+
+### Collections
+
+Columns:
+
+```text
+Invoice #
+Client
+Gross invoiced
+Amount collected in month
+Total collected to date
+Outstanding
+Payment date(s)
+Payment reference
+```
+
+### Worker/direct costs
+
+Columns:
+
+```text
+Worker
+Project
+Actual approved hours
+Regular hours
+Standby
+Overtime
+Travel
+Compensation rule type
+Approved/settled compensation
+Internal loaded labor cost
+Reimbursements
+```
+
+Percentage-based rules must show the calculation basis to Finance/Accounting, not to the worker-facing export.
+
+### Expense register
+
+Columns:
+
+```text
+Expense ID
+Date
+Worker
+Project
+Vendor
+Category
+Who paid
+Client treatment
+Currency
+Net/amount
+Tax if captured
+Gross
+Reimbursement status
+Billing status
+Receipt document reference
+```
+
+### Monthly totals
+
+```text
+Labor invoiced
+Expenses invoiced
+Milestone/other invoiced
+Total invoiced
+
+Cash collected
+Outstanding AR
+
+Worker compensation
+Internal/direct labor cost
+Travel cost
+Other direct project cost
+Total direct project cost
+
+Contribution / Direct project result
+Contribution margin %
+```
+
+### Attachments/exports
+
+At minimum:
+
+```text
+Accounting_Monthly_YYYY-MM.pdf
+Accounting_Monthly_YYYY-MM.xlsx
+Invoice_Register_YYYY-MM.csv
+Expense_Register_YYYY-MM.csv
+```
+
+Optional:
+
+```text
+Issued_Invoices_YYYY-MM.zip
+Receipt_Index_YYYY-MM.csv
+Accounting_Export_YYYY-MM.json
+```
+
+The pack must reference issued invoice PDFs rather than silently regenerating different versions.
+
+## 67.3 Monthly generation workflow
+
+Default:
+
+```text
+month closes
+→ Accounting Pack draft generated
+→ Finance reviews exceptions
+→ Finance marks Final
+→ download/export
+→ optional Send to Accounting action
+```
+
+Automatic generation is allowed.
+
+Automatic email sending is **off by default** unless J&A explicitly enables recipients and policy.
+
+Configured recipients must not be hard-coded in source.
+
+## 67.4 Reconciliation invariant
+
+For the selected month and currency/legal-entity scope:
+
+```text
+invoice register totals
+payment totals
+direct cost totals
+expense totals
+contribution totals
+```
+
+must reconcile exactly to underlying approved/issued/recorded source rows.
 
 ---
 
@@ -4271,7 +4923,7 @@ Production is not accepted until:
 - preserve public website factual content/assets;
 - create pnpm monorepo;
 - remove .NET/PostgreSQL assumptions from active implementation docs;
-- create SvelteKit site/portal;
+- register the Next.js public website in `website/` and the SvelteKit portal in `apps/portal/`;
 - define env/base-path abstraction;
 - design tokens;
 - threat model.
@@ -4296,9 +4948,9 @@ pnpm build
 - Aquarex;
 - contact;
 - Employee Portal link;
-- static build.
+- Next.js standalone production build.
 
-Gate: Lighthouse/mobile/a11y.
+Gate: Lighthouse/mobile/a11y + successful base-path runtime smoke test.
 
 ## Phase 2 — Identity and authorization
 
@@ -4317,7 +4969,8 @@ Gate: IDOR tests.
 - client records;
 - project records;
 - assignments;
-- schedule;
+- lightweight/optional planning schedule;
+- per-worker/per-category rate matrix;
 - rate/compensation models;
 - project budgets.
 
@@ -4329,12 +4982,16 @@ Gate: worker cannot see finance fields.
 - categories;
 - 10h rule;
 - standby;
+- overtime;
 - daily minimum billing;
 - worker guarantee;
+- percentage-of-eligible-client-labor compensation;
+- settlement triggers;
 - timesheets;
+- Finance time-economics review;
 - My Pay.
 
-Gate: client bill calculation and worker pay calculation proven independent.
+Gate: client bill calculation and worker pay calculation proven independent except where an explicit percentage rule links them, and that link remains privacy-safe/auditable.
 
 ## Phase 5 — Reports + PLC
 
@@ -4349,7 +5006,7 @@ Gate: technical artifacts private.
 ## Phase 6 — Expenses
 
 - mobile capture;
-- receipts;
+- photo/PDF receipts;
 - who-paid;
 - all-in/reimbursable;
 - reimbursement;
@@ -4393,15 +5050,18 @@ Gate: issued immutable, duplicate billing impossible.
 
 Gate: idempotency tests.
 
-## Phase 10 — Planning + dashboards
+## Phase 10 — Finance dashboard + Accounting + secondary planning
 
+- financial dashboard;
+- Master Invoice / Cost / Collection Ledger;
+- monthly Accounting Pack;
+- aging/collections;
+- rate and compensation reconciliation;
+- alerts;
 - staffing;
 - skills;
-- utilization;
-- financial dashboard;
-- EAC/ETC;
-- aging;
-- alerts.
+- optional utilization/planning;
+- EAC/ETC where planning data exists.
 
 ## Phase 11 — Offline PWA
 
@@ -4414,7 +5074,7 @@ Gate: offline/online E2E.
 
 ## Phase 12 — VPS production deployment
 
-- static public site;
+- standalone Next.js public-site container;
 - portal container;
 - Caddy;
 - systemd;
@@ -4430,58 +5090,303 @@ The product is done only when J&A can execute this end-to-end scenario without s
 
 1. Admin creates client `C-0042`.
 2. Admin creates project `C-0042-P-003`.
-3. Admin configures 10h Mon–Sat.
-4. Admin configures worker compensation.
-5. Admin configures client labor rate.
-6. Admin chooses reimbursable hotel/car.
-7. Admin configures Labor tax profile A.
-8. Admin configures Expense tax profile B.
-9. Labor cadence = Every 14 days.
-10. Expense cadence = Monthly.
-11. Worker opens phone.
-12. Worker logs regular + standby time.
-13. Worker sees own estimated compensation.
-14. Worker submits daily report.
-15. Worker submits PLC change/report.
-16. Worker photographs hotel receipt.
-17. PM approves operational records.
-18. Finance approves billability.
-19. Dashboard updates project cost, revenue candidate and margin.
-20. Period close creates customer report.
-21. Period close creates labor invoice draft.
-22. Month close creates expense invoice draft.
-23. Finance reviews and issues.
-24. PDFs are immutable and traceable.
-25. Payment is recorded.
-26. Project finance reconciles to the underlying approved records.
-27. Backup/restore can reproduce the issued documents and source snapshots.
+3. Admin can configure 10h Mon–Sat without being forced to enter a detailed hours forecast.
+4. Admin configures Worker A with a normal hourly compensation rule.
+5. Admin configures Worker B with `PercentageOfEligibleClientLabor`, e.g. 55%.
+6. Admin configures separate overtime behavior for worker compensation and client billing.
+7. Admin configures different rate economics for at least two workers/categories inside the same project.
+8. Admin configures client labor rate/rule.
+9. Admin chooses reimbursable hotel/car for one project.
+10. Admin can also configure another project as all-in.
+11. Admin configures Labor tax profile A.
+12. Admin configures Expense tax profile B.
+13. Labor cadence = Every 14 days or another supported cadence.
+14. Expense cadence = Monthly or another independently supported cadence.
+15. Worker opens phone.
+16. Worker selects project and logs actual regular + standby + overtime time.
+17. Worker sees own estimated compensation without seeing client rate/internal cost/margin.
+18. Percentage-based compensation produces the correct estimate from eligible labor only.
+19. Worker submits daily report.
+20. Worker submits PLC change/report.
+21. Worker uploads a hotel/flight/meal receipt as a photo or PDF.
+22. PM approves operational records.
+23. Finance reviews time economics: actual, billable, worker compensation, internal cost and client revenue.
+24. Finance approves billability.
+25. Dashboard updates project direct cost, revenue candidate and contribution margin.
+26. All-in expense affects cost/margin without entering the expense invoice.
+27. Reimbursable approved expense enters the expense billing stream.
+28. Period close creates customer report.
+29. Period close creates labor invoice draft.
+30. Month close creates expense invoice draft.
+31. Labor and expense tax profiles remain independent.
+32. Finance reviews and issues the invoices.
+33. Issued PDFs are immutable and traceable.
+34. Payment, including partial payment, can be recorded with received date.
+35. Master Invoice / Cost / Collection Ledger shows invoice dates, due dates, invoiced amount, direct cost, collected amount, outstanding amount and contribution.
+36. Project finance reconciles to underlying approved records.
+37. Monthly Accounting Pack is generated for a selected calendar month.
+38. Accounting Pack exports at least PDF and XLSX plus invoice/expense CSV registers.
+39. Accounting totals reconcile exactly to invoice, payment, compensation/cost and expense source records.
+40. Worker privacy tests prove client rate/internal cost/margin are not exposed.
+41. Duplicate billing is impossible under normal flow.
+42. Backup/restore can reproduce issued documents, source snapshots and Accounting Pack source records.
 
 ---
 
-# 78. Internet research basis for the V3 decisions
+# 78. Research basis for the V3 decisions
 
-The feature set was cross-checked against current official documentation for several modern categories of tools on 2026-08-18.
+The feature set and build-vs-adopt decision were cross-checked on 2026-08-18 against current framework documentation, operational-product patterns and public GitHub repositories.
 
-Architecture / framework:
+## 78.1 Architecture / framework
 
-- SvelteKit official Node adapter: https://svelte.dev/docs/kit/adapter-node
-- SvelteKit static adapter: https://svelte.dev/docs/kit/adapter-static
+- SvelteKit Node adapter: https://svelte.dev/docs/kit/adapter-node
+- Next.js: https://nextjs.org/docs
 - Drizzle + Node SQLite: https://orm.drizzle.team/docs/sqlite/connect-node-sqlite
 - SQLite documentation / backup API: https://sqlite.org/docs.html
-- Node.js 24 LTS releases/docs: https://nodejs.org/
+- Node.js releases/docs: https://nodejs.org/
 
-Project/time/expense patterns:
+## 78.2 Project/time/expense patterns
 
 - Clockify approvals: https://clockify.me/help/track-time-and-expenses/approval
-- Clockify expense/invoice workflow: https://clockify.me/help/track-time-and-expenses/expenses
+- Clockify expenses: https://clockify.me/help/track-time-and-expenses/expenses
 - Float budget utilization/profitability: https://support.float.com/en/articles/13742802-budget-utilization-and-profitability
 - Fieldwire mobile/photo/offline workflow: https://help.fieldwire.com/
 
-The objective is not to clone those products. Their patterns are used only to validate which workflows have become operationally important: approvals, locking, budget vs actual, profitability, mobile capture, offline field work, scheduled reporting and resource planning.
+## 78.3 Public GitHub applications evaluated
+
+### ERPNext
+
+Repository:
+
+```text
+https://github.com/frappe/erpnext
+```
+
+Observed fit:
+
+- accounting;
+- projects;
+- budgets/profitability;
+- tasks/timesheets/issues;
+- broad ERP capabilities.
+
+Stack/licensing snapshot:
+
+```text
+Python / Frappe
+Frappe UI / Vue ecosystem
+MariaDB-oriented standard setup
+GPL-3.0
+```
+
+Conclusion: strong ERP reference, but too broad and operationally different to replace the existing J&A TypeScript application.
+
+### Odoo Community
+
+Repository:
+
+```text
+https://github.com/odoo/odoo
+```
+
+Observed fit:
+
+- very broad ERP/business application framework;
+- large module ecosystem.
+
+Stack/licensing snapshot:
+
+```text
+Python
+Odoo framework
+core repository LGPL-3.0
+```
+
+Conclusion: powerful platform but a wholesale adoption would turn the project into an Odoo customization program rather than a lightweight J&A-specific field-operations product.
+
+### Dolibarr
+
+Repository:
+
+```text
+https://github.com/Dolibarr/dolibarr
+```
+
+Observed fit:
+
+- CRM/ERP;
+- invoices;
+- accounting;
+- customers/suppliers/orders;
+- broad SMB administration.
+
+Stack/licensing snapshot:
+
+```text
+PHP
+MySQL/PostgreSQL-oriented ERP
+GPL-3.0
+```
+
+Conclusion: useful accounting/invoice workflow reference, poor fit as the source foundation for the existing SvelteKit/SQLite domain.
+
+### Kimai
+
+Repository:
+
+```text
+https://github.com/kimai/kimai
+```
+
+Observed fit:
+
+- professional multi-user timesheets;
+- invoicing;
+- reports/exports;
+- user/customer/project-specific rates;
+- money/time budgets;
+- roles/permissions;
+- responsive UI.
+
+Stack/licensing snapshot:
+
+```text
+PHP / Symfony / Doctrine
+MariaDB or MySQL
+AGPL-3.0
+```
+
+Conclusion: excellent reference for time-entry, rate and reporting UX, but J&A would still need its PLC, expenses, all-in/reimbursable, percentage-compensation and project-finance engines.
+
+### Invoice Ninja
+
+Repository:
+
+```text
+https://github.com/invoiceninja/invoiceninja
+```
+
+Observed fit:
+
+- invoices;
+- quotes;
+- projects;
+- time tracking;
+- expenses;
+- payments;
+- self-hosted deployment.
+
+Stack/licensing snapshot:
+
+```text
+PHP / Laravel
+source-available
+Elastic License
+```
+
+Conclusion: strong invoicing reference. Not selected as a base because field operations/PLC/worker economics remain custom and its licensing/branding model requires separate consideration.
+
+### Midday
+
+Repository:
+
+```text
+https://github.com/midday-ai/midday
+```
+
+Observed fit:
+
+- invoicing;
+- time tracking;
+- file reconciliation/storage;
+- financial overview;
+- modern TypeScript UI.
+
+Stack/licensing snapshot:
+
+```text
+TypeScript
+Next.js
+Supabase
+Tailwind
+AGPL-3.0
+```
+
+Conclusion: closest modern web-stack/UI reference, but it is designed around freelancer finance rather than multi-worker industrial field operations. Use it as a design/reference source, not as the foundation.
+
+### solidtime
+
+Repository:
+
+```text
+https://github.com/solidtime-io/solidtime
+```
+
+Observed fit:
+
+- modern open-source time tracking.
+
+Stack/licensing snapshot:
+
+```text
+Laravel
+Vue
+AGPL-3.0
+```
+
+Conclusion: useful time-tracking UX reference, not a replacement for the complete J&A operational/financial domain.
+
+## 78.4 Build-vs-adopt conclusion
+
+No reviewed product removes enough J&A-specific work to justify abandoning the existing implementation.
+
+The highest-value strategy is:
+
+```text
+KEEP
+current Next.js website
+current SvelteKit portal
+current SQLite domain/repositories
+current exact-money/billing packages
+current demo/test/deployment work
+
+BORROW AS PATTERNS
+Kimai      -> time/rates/reports
+Invoice Ninja -> invoice/payment UX
+ERPNext    -> project/accounting reconciliation concepts
+Midday     -> modern finance/file UX
+Fieldwire  -> mobile field/report patterns
+
+BUILD FOR J&A
+standby/10h rules
+worker percentage-of-client-labor
+overtime linkage
+per-assignment rate matrix
+all-in/reimbursable travel
+PLC/technical reports
+two-tax-stream billing
+Accounting Pack
+J&A privacy/visibility model
+```
+
+The objective is not to clone these products. Their patterns validate mature workflows while J&A retains a smaller, domain-specific architecture.
 
 ---
 
 # 79. Final architecture statement
 
-Build J&A Automation as a **SvelteKit + TypeScript modular monolith with SQLite**, a static multilingual public website, and a PWA private field/finance portal. The portal must model projects, workers, actual time, 10-hour availability/standby rules, compensation, client rates, all-in vs reimbursable travel, PLC reports, receipts, budgets, forecasts, approvals and immutable billing. Labor and expenses are independent billing streams so each can have its own cadence, tax profile and invoice. Workers can see their own hours, assignment budget and estimated compensation; Finance sees cost, revenue and contribution margin. Automatic period-close jobs generate reports and invoice drafts but do not issue/send by default. Development requires only Node/pnpm on Windows; production requires one Node container, one SQLite file, private filesystem storage and the existing Ubuntu/Caddy VPS.
+Build J&A Automation as a **TypeScript monorepo** that continues the implementation already present: a multilingual Next.js public website in `website/` and a SvelteKit PWA field/finance portal in `apps/portal/`, backed by SQLite and private filesystem documents.
 
+The product must model clients, numbered projects, workers, assignments, actual time, configurable 10-hour availability/standby rules, worker compensation, internal cost, client rates, per-worker/per-category rate overrides, proportional overtime, optional percentage-of-eligible-client-labor compensation, all-in vs reimbursable travel, PLC reports, photo/PDF receipts, budgets, approvals, billing periods, invoice/payment tracking and immutable billing.
+
+Labor and expenses remain independent billing streams so each can have its own cadence, tax profile, template and invoice. Workers can see their own time, own expenses and estimated compensation without seeing client rates, internal cost or company margin. Finance/Admin can reconcile actual time → worker compensation → internal cost → client bill amount → invoice → payment → contribution result.
+
+Detailed planned hours are secondary. The system must remain fully useful with real approved time and commercial rules even when no detailed workforce forecast exists.
+
+Finance must have a Master Invoice / Cost / Collection Ledger and a generated Monthly Accounting Pack so month-end invoice, payment, direct-cost, expense and contribution reporting can be sent to Accounting without rebuilding spreadsheets.
+
+Automatic period-close jobs may generate reports and invoice drafts but do not issue/send invoices by default. Monthly Accounting Packs may be generated automatically but are reviewed/finalized before external sending by default.
+
+Development requires Node and pnpm on Windows. Production runs separate non-root Node containers for the public website and portal, one SQLite file, private filesystem storage and the existing Ubuntu/Caddy VPS.
+
+The 2026-08-18 GitHub review confirms that ERPNext, Odoo, Dolibarr, Kimai, Invoice Ninja, Midday and solidtime provide useful reference patterns but should **not** replace the current J&A codebase. Continue the existing application and selectively adopt ideas/libraries only after fit, security and license review.

@@ -1,10 +1,14 @@
 redir /j-aautomation /j-aautomation/en/ 308
+handle_path /j-aautomation/portal-assets/* {
+  rewrite * /j-aautomation{path}
+  reverse_proxy 127.0.0.1:5100
+}
 handle /j-aautomation/app* {
   reverse_proxy 127.0.0.1:5100
 }
 handle /j-aautomation/api/public/* {
   reverse_proxy 127.0.0.1:5100
 }
-handle_path /j-aautomation/* {
+handle /j-aautomation/* {
   reverse_proxy 127.0.0.1:5101
 }

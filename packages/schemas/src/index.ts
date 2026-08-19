@@ -88,6 +88,8 @@ export const clientInputSchema = z.object({
 export const projectInputSchema = z.object({
   clientId: uuidSchema,
   name: z.string().trim().min(2).max(200),
+  description: z.string().trim().max(5000).optional(),
+  projectAlias: z.string().trim().max(120).optional(),
   timezone: z.string().trim().min(1).max(100),
   currency: currencySchema,
   billingModel: z.enum([
@@ -107,6 +109,77 @@ export const projectInputSchema = z.object({
     .optional()
     .transform((value) => (value === '' ? undefined : value)),
   poNumber: z.string().trim().max(100).optional(),
+  contractNumber: z.string().trim().max(160).optional(),
+  startDate: z.union([z.literal(''), z.iso.date()]).optional(),
+  plannedEndDate: z.union([z.literal(''), z.iso.date()]).optional(),
+  budgetType: z
+    .enum(['none', 'revenue', 'purchase_order', 'labor', 'travel', 'combined'])
+    .default('none'),
+  revenueBudgetMinor: minorUnitsSchema
+    .optional()
+    .transform((value) => (value ? BigInt(value) : undefined)),
+  poCapMinor: minorUnitsSchema.optional().transform((value) => (value ? BigInt(value) : undefined)),
+  laborBudgetMinutes: z.coerce.number().int().nonnegative().optional(),
+  travelBudgetMinor: minorUnitsSchema
+    .optional()
+    .transform((value) => (value ? BigInt(value) : undefined)),
+  otherCostBudgetMinor: minorUnitsSchema
+    .optional()
+    .transform((value) => (value ? BigInt(value) : undefined)),
+  weeklyCloseEnabled: z.coerce.boolean().default(false),
+  dailyReportRequired: z.coerce.boolean().default(false),
+  technicalReportingRequired: z.coerce.boolean().default(false),
+  notes: z.string().trim().max(5000).optional(),
+});
+
+export const clientContactInputSchema = z.object({
+  clientId: uuidSchema,
+  name: z.string().trim().min(2).max(160),
+  email: z.union([z.literal(''), z.email().max(254)]).optional(),
+  phone: z.string().trim().max(60).optional(),
+  role: z.string().trim().max(120).optional(),
+  isBillingContact: z.coerce.boolean().default(false),
+  isPrimary: z.coerce.boolean().default(false),
+});
+
+export const milestoneInputSchema = z.object({
+  projectId: uuidSchema,
+  name: z.string().trim().min(2).max(200),
+  description: z.string().trim().max(5000).optional(),
+  amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
+  dueOn: z.union([z.literal(''), z.iso.date()]).optional(),
+});
+
+export const scheduleInputSchema = z.object({
+  projectId: uuidSchema,
+  timezone: z.string().trim().min(1).max(100),
+  mondayMinutes: z.coerce.number().int().min(0).max(1440).default(600),
+  tuesdayMinutes: z.coerce.number().int().min(0).max(1440).default(600),
+  wednesdayMinutes: z.coerce.number().int().min(0).max(1440).default(600),
+  thursdayMinutes: z.coerce.number().int().min(0).max(1440).default(600),
+  fridayMinutes: z.coerce.number().int().min(0).max(1440).default(600),
+  saturdayMinutes: z.coerce.number().int().min(0).max(1440).default(600),
+  sundayMinutes: z.coerce.number().int().min(0).max(1440).default(0),
+  effectiveFrom: z.iso.date(),
+});
+
+export const skillInputSchema = z.object({
+  code: z.string().trim().min(2).max(80),
+  name: z.string().trim().min(2).max(160),
+});
+
+export const workerSkillInputSchema = z.object({
+  workerId: uuidSchema,
+  skillId: uuidSchema,
+  proficiency: z.coerce.number().int().min(1).max(5),
+});
+
+export const availabilityInputSchema = z.object({
+  workerId: uuidSchema,
+  startsAt: z.iso.datetime(),
+  endsAt: z.iso.datetime(),
+  availability: z.enum(['available', 'unavailable', 'tentative']),
+  note: z.string().trim().max(1000).optional(),
 });
 
 export const assignmentInputSchema = z.object({
@@ -134,6 +207,7 @@ export const timeInputSchema = z.object({
     'training',
     'internal',
   ]),
+  activityCode: z.string().trim().max(100).optional(),
   minutes: z.coerce.number().int().min(0).max(1440),
   summary: z.string().trim().min(3).max(5000),
 });
@@ -167,8 +241,28 @@ export const expenseInputSchema = z.object({
   description: z.string().trim().min(3).max(5000),
   currency: currencySchema,
   amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
+  projectCurrencyAmountMinor: minorUnitsSchema
+    .optional()
+    .transform((value) => (value ? BigInt(value) : undefined)),
+  fxRateBps: z.coerce.number().int().positive().optional(),
+  taxAmountMinor: minorUnitsSchema
+    .optional()
+    .transform((value) => (value ? BigInt(value) : undefined)),
   whoPaid: z.enum(['worker', 'company_card', 'company_direct', 'client', 'third_party']),
   clientTreatment: z.enum(['all_in', 'reimbursable', 'non_billable']),
+  billingTreatment: z
+    .enum([
+      'reimbursable_at_cost',
+      'reimbursable_plus_markup',
+      'all_in',
+      'internal_non_billable',
+      'client_direct',
+      'allowance_per_diem',
+      'informational',
+    ])
+    .optional(),
+  markupBps: z.coerce.number().int().min(0).max(100_000).optional(),
+  paymentMethod: z.string().trim().max(80).optional(),
   receiptRequired: z.coerce.boolean().default(false),
   receiptDocumentId: z.union([z.literal(''), uuidSchema]).optional(),
 });
@@ -192,7 +286,216 @@ export const invoicePeriodSchema = z.object({
   periodEnd: z.iso.date(),
 });
 
+export const billingRuleInputSchema = z.object({
+  projectId: uuidSchema,
+  legalEntityId: uuidSchema,
+  streamType: z.enum(['labor', 'expense', 'milestone', 'other']),
+  cadenceType: z.enum([
+    'weekly',
+    'every_14_days',
+    'semi_monthly',
+    'monthly',
+    'custom',
+    'milestone',
+    'manual',
+  ]),
+  anchorDate: z.union([z.literal(''), isoDateSchema]).optional(),
+  taxProfileId: uuidSchema,
+  currency: currencySchema,
+  templateId: z.string().trim().min(1).max(100).default('default'),
+  recipientEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
+  billingContactId: z.union([z.literal(''), uuidSchema]).optional(),
+  paymentTermsDays: z.coerce.number().int().min(0).max(365).default(30),
+  poNumberOverride: z.string().trim().max(100).optional(),
+  semiMonthlyRule: z.string().trim().min(1).max(80).default('1_15_16_end'),
+  groupingMode: z
+    .enum(['detail', 'summary', 'by_worker', 'by_day', 'by_category'])
+    .default('summary'),
+  autoGenerateDraft: z.coerce.boolean().default(false),
+  effectiveFrom: isoDateSchema,
+});
+
 export const invoiceIdSchema = z.object({ invoiceId: uuidSchema });
+
+export const compensationSettlementInputSchema = z.object({
+  workerId: uuidSchema,
+  projectId: uuidSchema,
+  periodStart: z.iso.date(),
+  periodEnd: z.iso.date(),
+});
+
+export const reimbursementInputSchema = z.object({
+  expenseId: uuidSchema,
+  amountMinor: minorUnitsSchema.optional(),
+  reference: z.string().trim().min(1).max(200),
+});
+
+export const compensationRuleInputSchema = z.object({
+  workerId: uuidSchema,
+  projectId: z.union([z.literal(''), uuidSchema]).optional(),
+  currency: currencySchema,
+  ruleType: z.enum([
+    'Hourly',
+    'Daily',
+    'FixedPerBillingPeriod',
+    'FixedProjectAmount',
+    'PercentageOfEligibleClientLabor',
+    'CustomApprovedAdjustment',
+  ]),
+  rateMinor: minorUnitsSchema.optional().transform((value) => (value ? BigInt(value) : undefined)),
+  rateBasis: z.enum(['hourly', 'daily']).default('hourly'),
+  percentageBps: z.coerce.number().int().min(0).max(10000).optional(),
+  percentageBasis: z
+    .enum([
+      'CLIENT_LABOR_BEFORE_TAX',
+      'CLIENT_LABOR_AFTER_APPROVED_DISCOUNT',
+      'ISSUED_ELIGIBLE_LABOR',
+      'COLLECTED_ELIGIBLE_LABOR',
+    ])
+    .optional(),
+  settlementTrigger: z
+    .enum(['ON_APPROVED_BILLABLE_LABOR', 'ON_INVOICE_ISSUE', 'ON_CLIENT_PAYMENT'])
+    .default('ON_APPROVED_BILLABLE_LABOR'),
+  dailyGuaranteeMinutes: z.coerce.number().int().min(0).max(1440).optional(),
+  overtimeMethod: z
+    .enum([
+      'NONE',
+      'FIXED_RATE',
+      'BASE_RATE_MULTIPLIER',
+      'FIXED_ADDITION_PER_HOUR',
+      'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME',
+    ])
+    .default('NONE'),
+  overtimeMultiplierBps: z.coerce.number().int().min(0).optional(),
+  overtimeRateMinor: minorUnitsSchema
+    .optional()
+    .transform((value) => (value ? BigInt(value) : undefined)),
+  effectiveFrom: z.iso.date(),
+  effectiveTo: z.union([z.literal(''), z.iso.date()]).optional(),
+  notes: z.string().trim().max(2000).optional(),
+});
+
+export const clientLaborRateInputSchema = z.object({
+  projectId: uuidSchema,
+  workerId: z.union([z.literal(''), uuidSchema]).optional(),
+  category: z.string().trim().max(100).optional(),
+  currency: currencySchema,
+  hourlyRateMinor: minorUnitsSchema.transform((value) => BigInt(value)),
+  effectiveFrom: z.iso.date(),
+  effectiveTo: z.union([z.literal(''), z.iso.date()]).optional(),
+  overtimeMethod: z
+    .enum([
+      'NONE',
+      'FIXED_RATE',
+      'BASE_RATE_MULTIPLIER',
+      'FIXED_ADDITION_PER_HOUR',
+      'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME',
+    ])
+    .default('BASE_RATE_MULTIPLIER'),
+  overtimeMultiplierBps: z.coerce.number().int().min(0).optional(),
+  overtimeRateMinor: minorUnitsSchema
+    .optional()
+    .transform((value) => (value ? BigInt(value) : undefined)),
+  eligibleForPercentage: z.coerce.boolean().default(true),
+  notes: z.string().trim().max(2000).optional(),
+});
+
+export const internalCostRuleInputSchema = z.object({
+  workerId: uuidSchema,
+  projectId: z.union([z.literal(''), uuidSchema]).optional(),
+  currency: currencySchema,
+  hourlyRateMinor: minorUnitsSchema.transform((value) => BigInt(value)),
+  effectiveFrom: z.iso.date(),
+  effectiveTo: z.union([z.literal(''), z.iso.date()]).optional(),
+  overtimeMethod: z
+    .enum([
+      'NONE',
+      'FIXED_RATE',
+      'BASE_RATE_MULTIPLIER',
+      'FIXED_ADDITION_PER_HOUR',
+      'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME',
+    ])
+    .default('BASE_RATE_MULTIPLIER'),
+  overtimeMultiplierBps: z.coerce.number().int().min(0).optional(),
+  overtimeRateMinor: minorUnitsSchema
+    .optional()
+    .transform((value) => (value ? BigInt(value) : undefined)),
+  costMethod: z.string().trim().max(80).optional(),
+  notes: z.string().trim().max(2000).optional(),
+});
+
+export const assignmentRateOverrideInputSchema = z.object({
+  projectMemberId: uuidSchema,
+  timeCategory: z.string().trim().max(100).optional(),
+  activityCode: z.string().trim().max(100).optional(),
+  compensationRuleId: z.union([z.literal(''), uuidSchema]).optional(),
+  internalCostRuleId: z.union([z.literal(''), uuidSchema]).optional(),
+  clientLaborRateId: z.union([z.literal(''), uuidSchema]).optional(),
+  effectiveFrom: z.iso.date(),
+  effectiveTo: z.union([z.literal(''), z.iso.date()]).optional(),
+  priority: z.coerce.number().int().min(0).max(1000).default(0),
+});
+
+export const billingCloseSchema = invoicePeriodSchema;
+export const accountingPackPeriodSchema = z.object({
+  periodStart: z.iso.date(),
+  periodEnd: z.iso.date(),
+});
+export const voidInvoiceSchema = z.object({
+  invoiceId: uuidSchema,
+  reason: z.string().trim().min(5).max(2000),
+  idempotencyKey: z.string().trim().min(8).max(200),
+});
+export const invitationInputSchema = z.object({
+  email: z.email().max(254),
+  role: z.enum(['owner_admin', 'finance_admin', 'project_manager', 'worker', 'auditor_read_only']),
+  expiresInDays: z.coerce.number().int().min(1).max(14).default(7),
+});
+
+export const legalEntityInputSchema = z.object({
+  code: z.string().trim().min(2).max(40),
+  legalName: z.string().trim().min(2).max(300),
+  currency: currencySchema,
+  billingAddress: z.string().trim().min(5).max(2000),
+  companyIdentifiers: z.string().trim().min(2).max(1000),
+});
+
+export const invoiceNumberPolicyInputSchema = z.object({
+  legalEntityId: uuidSchema,
+  prefix: z.string().trim().min(1).max(30),
+  digits: z.coerce.number().int().min(4).max(10),
+  effectiveFrom: z.iso.date(),
+  accountantApprovedAt: z.iso.datetime(),
+});
+
+export const taxProfileInputSchema = z.object({
+  legalEntityId: z.union([z.literal(''), uuidSchema]).optional(),
+  name: z.string().trim().min(2).max(160),
+  currency: currencySchema,
+  effectiveFrom: z.iso.date(),
+  componentName: z.string().trim().min(1).max(160),
+  componentBasisPoints: z.coerce.number().int().min(0).max(100_000),
+  componentCompound: z.coerce.boolean().default(false),
+});
+export const invitationAcceptSchema = z.object({
+  token: z.string().trim().min(40).max(100),
+  name: z.string().trim().min(2).max(160),
+  password: z.string().min(12).max(200),
+});
+export const sendInvoiceSchema = z.object({
+  invoiceId: uuidSchema,
+  idempotencyKey: z.string().trim().min(8).max(200),
+});
+
+export const invoiceAdjustmentSchema = z.object({
+  originalInvoiceId: uuidSchema,
+  adjustmentType: z.enum(['credit', 'debit', 'correction']),
+  amountMinor: z
+    .string()
+    .regex(/^\d+$/)
+    .transform((value) => BigInt(value)),
+  reason: z.string().trim().min(5).max(2000),
+});
 
 export const paymentInputSchema = z.object({
   invoiceId: uuidSchema,
@@ -257,6 +560,43 @@ export const technicalReportInputSchema = z
         message: 'Safety-related changes require rollback detail',
       });
   });
+
+export const technicalChangeInputSchema = z
+  .object({
+    projectId: uuidSchema,
+    technicalReportId: z.union([z.literal(''), uuidSchema]).optional(),
+    component: requiredText(200),
+    originalBehavior: optionalText(5000),
+    rootCause: optionalText(5000),
+    changeMade: requiredText(5000),
+    reason: optionalText(5000),
+    safetyImpact: z.boolean().default(false),
+    productionImpact: optionalText(5000),
+    validation: optionalText(5000),
+    validationResult: optionalText(5000),
+    openRisk: optionalText(5000),
+    rollbackInformation: optionalText(5000),
+  })
+  .superRefine((value, context) => {
+    if (value.safetyImpact && !value.validation)
+      context.addIssue({
+        code: 'custom',
+        path: ['validation'],
+        message: 'Safety-impacting changes require validation detail',
+      });
+    if (value.safetyImpact && !value.rollbackInformation)
+      context.addIssue({
+        code: 'custom',
+        path: ['rollbackInformation'],
+        message: 'Safety-impacting changes require rollback detail',
+      });
+  });
+
+export const technicalChangeDecisionSchema = z.object({
+  id: uuidSchema,
+  decision: z.enum(['approved', 'needs_changes', 'rejected']),
+  reason: optionalText(2000),
+});
 
 export const planningAssignmentInputSchema = z.object({
   projectId: uuidSchema,

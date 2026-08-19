@@ -1,10 +1,24 @@
 <script lang="ts">
   import { base } from '$app/paths';
+  let { data } = $props<{ data: { demoEnabled: boolean } }>();
   let state = $state<'idle' | 'sending' | 'error'>('idle');
   let message = $state('');
   async function login(event: SubmitEvent) {
     const submitter = event.submitter as HTMLButtonElement | null;
-    if (submitter?.formAction.endsWith('/app/demo-login')) return;
+    if (submitter?.formAction.endsWith('/app/demo-login')) {
+      event.preventDefault();
+      const response = await fetch(submitter.formAction, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ role: submitter.value }),
+      });
+      if (response.ok) location.assign(`${base}/app/`);
+      else {
+        state = 'error';
+        message = 'The demo workspace is unavailable.';
+      }
+      return;
+    }
     event.preventDefault();
     state = 'sending';
     const form = new FormData(event.currentTarget as HTMLFormElement);
@@ -29,64 +43,103 @@
 
 <svelte:head><title>Sign in | J&A Employee Portal</title></svelte:head>
 <main class="login-page">
-  <section>
-    <img src={`${base}/app/logo.png`} alt="J&A Automation" />
-    <p class="portal-kicker">EMPLOYEE PORTAL / SECURE ACCESS</p>
-    <h1>Field work, reports and project records.</h1>
-    <p>Record field work, review controls activity and follow each project into billing.</p>
-  </section>
-  <form onsubmit={login}>
-    <h2>Sign in</h2>
-    <label>Email<input name="email" type="email" autocomplete="username" required /></label><label
-      >Password<input
-        name="password"
-        type="password"
-        autocomplete="current-password"
-        required
-      /></label
-    ><button disabled={state === 'sending'}
-      >{state === 'sending' ? 'Signing in…' : 'Continue'}</button
-    >
-    <p class="login-status" aria-live="polite">{message}</p>
-    <small>Production accounts require MFA. Passkeys require user verification.</small>
-    <div class="demo-access">
-      <span>COMPANY DEMONSTRATION</span>
-      <p>Enter a populated workspace without production credentials.</p>
-      <button
-        type="submit"
-        name="role"
-        value="admin"
-        formaction={`${base}/app/demo-login`}
-        formmethod="post"
-        formnovalidate>Open admin demo</button
-      >
-      <button
-        type="submit"
-        name="role"
-        value="manager"
-        formaction={`${base}/app/demo-login`}
-        formmethod="post"
-        formnovalidate
-        class="secondary">Open PM demo</button
-      >
-      <button
-        type="submit"
-        name="role"
-        value="finance"
-        formaction={`${base}/app/demo-login`}
-        formmethod="post"
-        formnovalidate
-        class="secondary">Open finance demo</button
-      >
-      <button
-        type="submit"
-        name="role"
-        value="worker"
-        formaction={`${base}/app/demo-login`}
-        formmethod="post"
-        formnovalidate
-        class="secondary">Open worker demo</button
-      >
+  <section class="login-showcase">
+    <div class="login-ambient ambient-one"></div>
+    <div class="login-ambient ambient-two"></div>
+    <div class="login-showcase-content">
+      <a class="login-brand" href={`${base}/app/login`} aria-label="J&A Automation portal">
+        <img src={`${base}/app/logo.png`} alt="J&A Automation" />
+      </a>
+      <div class="login-intro">
+        <p class="portal-kicker">OPERATIONS WORKSPACE</p>
+        <h1>Everything in the field, clearly in view.</h1>
+        <p>
+          Capture work, coordinate projects and keep billing-ready records together—wherever the job
+          takes you.
+        </p>
+      </div>
+      <div class="login-proof" aria-label="Portal capabilities">
+        <div><strong>01</strong><span>Record actual time<br />and field activity</span></div>
+        <div><strong>02</strong><span>Stay aligned with<br />your project team</span></div>
+        <div><strong>03</strong><span>Keep every detail<br />ready for review</span></div>
+      </div>
     </div>
-  </form>
+  </section>
+  <section class="login-panel">
+    <form class="login-card" onsubmit={login}>
+      <div class="login-card-heading">
+        <p class="portal-kicker">SECURE SIGN IN</p>
+        <h2>Welcome back</h2>
+        <p>Use your company account to open your workspace.</p>
+      </div>
+      <label class="login-field"
+        ><span>Work email</span><input
+          name="email"
+          type="email"
+          autocomplete="username"
+          placeholder="you@company.com"
+          required
+        /></label
+      ><label class="login-field"
+        ><span>Password</span><input
+          name="password"
+          type="password"
+          autocomplete="current-password"
+          placeholder="Enter your password"
+          required
+        /></label
+      ><button class="login-submit" disabled={state === 'sending'}
+        >{state === 'sending' ? 'Signing in…' : 'Continue to workspace'}
+        <span aria-hidden="true">→</span></button
+      >
+      <p class="login-status" aria-live="polite">{message}</p>
+      <p class="login-security">
+        <span aria-hidden="true">◆</span> Multi-factor authentication protects company accounts.
+      </p>
+      {#if data.demoEnabled}<div class="demo-access">
+          <div class="demo-heading">
+            <span>EXPLORE THE DEMO</span>
+            <p>Open a populated workspace with a role tailored to your visit.</p>
+          </div>
+          <div class="demo-buttons">
+            <button
+              type="submit"
+              name="role"
+              value="admin"
+              formaction={`${base}/app/demo-login`}
+              formmethod="post"
+              formnovalidate>Admin view</button
+            >
+            <button
+              type="submit"
+              name="role"
+              value="manager"
+              formaction={`${base}/app/demo-login`}
+              formmethod="post"
+              formnovalidate
+              class="secondary">Project manager</button
+            >
+            <button
+              type="submit"
+              name="role"
+              value="finance"
+              formaction={`${base}/app/demo-login`}
+              formmethod="post"
+              formnovalidate
+              class="secondary">Finance</button
+            >
+            <button
+              type="submit"
+              name="role"
+              value="worker"
+              formaction={`${base}/app/demo-login`}
+              formmethod="post"
+              formnovalidate
+              class="secondary">Field worker</button
+            >
+          </div>
+        </div>{/if}
+    </form>
+    <p class="login-footer">J&A Automation · Operational visibility, made practical.</p>
+  </section>
 </main>

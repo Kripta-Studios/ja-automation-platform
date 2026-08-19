@@ -1,0 +1,10 @@
+[Unit]
+Description=Backup J&A Automation SQLite and private documents
+After=local-fs.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/jaautomation/current
+EnvironmentFile=-/etc/jaautomation/jaautomation.env
+ExecStart=/usr/bin/node deployment/scripts/backup.mjs
+TimeoutStartSec=300

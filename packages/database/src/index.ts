@@ -1,10 +1,11 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 export function openDatabase(
   path = process.env.JA_DATABASE_PATH ?? resolve(process.cwd(), 'data/app.db'),
 ): DatabaseSync {
+  if (!path.startsWith(':')) mkdirSync(dirname(resolve(path)), { recursive: true });
   const sqlite = new DatabaseSync(path);
   sqlite.exec(
     'PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000; PRAGMA synchronous = NORMAL;',
@@ -57,3 +58,4 @@ export function integrityCheck(sqlite: DatabaseSync): string {
 }
 
 export * from './repository.ts';
+export * from './v3-repository.ts';

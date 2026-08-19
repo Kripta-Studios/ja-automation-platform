@@ -1,4 +1,4 @@
-# Official originals supplied in /Images on 2026-08-18.
+# Official originals supplied in /Images on 2026-08-18 and copied without modification to website/public/images.
 e2098773737ae895b1dfbb40a210447d4e261374e2434a994f02a14ef668101a  assembly_automotive.jpg
 ea1075af858fe02b8ca5a2783d25ecbd84bde4056289b18383ba1a6a4f2521db  assembly_bottles_light.jpg
 1841979d6b55548130fb5d1ffd5f909baa09b7ce5f67de343cce73de15162656  assembly_bottles.jpg
@@ -11,4 +11,16 @@ e5819bed794c86cc5716f103ec9164bfc0544ea7f3e61f3c99147bf7db961143  petrol_plant.j
 e626b170e04023926e22c1a01df79416599582f34f210469c6215084a85668ea  robotic_arm.jpg
 26ac9c69118bbddff9dde43bc802e9df10931232df11b2f28e460f3ad6236690  robotic_arms_2.jpg
 ad6c73fbc09588031bc136342122f9c55445070ec474bbe111bb6dd61f9e5e03  robotic_arms_3.jpg
-
+# Transparent client-logo PNG assets downloaded and normalized on 2026-08-19. Source URLs and processing notes are in website/docs/content-provenance.md.
+88d6576dc3aeef4cf573d412f93ee9f96f4cbe711b44cc88cd706f6a7f5287ec  brand/clients/ambev.png
+2d7ce3a37ef856036cb5469c611bde01c795c48b38d78ab53083e769b7d88361  brand/clients/avon.png
+ae083185ccd31e102d1eaa3f6b68fc3102d97cb8a3460bf26f8bc811c469ee6e  brand/clients/bmw.png
+228c4af0f3be7df5d80a9f48a6297ef3fa45858bf3b5db0a9a86dcfb43a36ca3  brand/clients/campari.png
+50b26f2e2892b25a0f056dadd3041c64b512d626f584fb843255fa3a88d0bbad  brand/clients/coca-cola.png
+23488b0fbe5692ea67d89a748229a0a1c6329f92b28372f7d37e558ad18e8fc5  brand/clients/ford.png
+7dcaf9c5edeac55b05672eebf3cb05470bd3f2d32b7e453939a8286ae380952c  brand/clients/grupo-boticario.png
+04833ce73f99988997ad1c36a57d8440fcebae8bd05dfa8d581ca29245e26dad  brand/clients/heineken.png
+8c1653a92a2c33f86d9a3fb81c5e779ae9d1b96e6efb4783425d7e1ab2385b7f  brand/clients/mercedes-benz.png
+1c9adbbebac0ee450a1bc5ec8790accacf3d2f78beaa6fa6c4efc15d274069f1  brand/clients/petrobras.png
+61839a51a214138457dcf102b2f137d1542597c84b72cf54560baf90e9f9c6f7  brand/clients/sc-johnson.png
+b1ee8fab9dfd7f530200283d15d4c41a98be099d5ad2cd473482c077394deb04  brand/clients/unilever.png

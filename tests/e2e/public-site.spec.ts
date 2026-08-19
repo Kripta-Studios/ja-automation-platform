@@ -7,7 +7,9 @@ test('localized public homepage has no horizontal overflow', async ({ page }) =>
       () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
     ),
   ).toBe(true);
-  await expect(page.getByRole('link', { name: /Employee Portal/ }).first()).toBeVisible();
+  const portalLogin = page.getByRole('link', { name: /Portal login/i }).first();
+  await expect(portalLogin).toBeVisible();
+  await expect(portalLogin).toHaveAttribute('href', '/j-aautomation/app/login');
 });
 
 test('target viewport matrix stays within the canvas', async ({ page }, testInfo) => {
@@ -24,7 +26,7 @@ test('target viewport matrix stays within the canvas', async ({ page }, testInfo
   ] as const;
   for (const [width, height] of viewports) {
     await page.setViewportSize({ width, height });
-    await page.goto('/j-aautomation/en/');
+    await page.goto('/j-aautomation/en/', { waitUntil: 'domcontentloaded' });
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);

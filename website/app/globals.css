@@ -1,0 +1,383 @@
+@import 'tailwindcss';
+
+/* ─── J&A Automation Design Tokens ─────────────────────────────────────── */
+@theme {
+  /* Brand Colors */
+  --color-ja-red-logo: #ff0000;
+  --color-ja-red: #e31b23;
+  --color-ja-red-hover: #c81018;
+  --color-ja-red-dark: #a80e15;
+
+  /* Neutrals */
+  --color-ja-ink: #0a0c0f;
+  --color-ja-graphite: #11151a;
+  --color-ja-charcoal: #1b2229;
+  --color-ja-steel-700: #46515c;
+  --color-ja-steel-500: #68737e;
+  --color-ja-steel-300: #b7c0c8;
+  --color-ja-line: #dce1e5;
+  --color-ja-surface: #f5f7f8;
+  --color-ja-surface-2: #eceff2;
+  --color-ja-white: #ffffff;
+
+  /* Semantic */
+  --color-ja-success: #18794e;
+  --color-ja-warning: #9a5b00;
+  --color-ja-error: #b42318;
+
+  /* Layout */
+  --container-max: 1360px;
+  --container-pad-desktop: 40px;
+  --container-pad-tablet: 28px;
+  --container-pad-mobile: 18px;
+
+  /* Radius */
+  --radius-default: 10px;
+  --radius-large: 14px;
+  --radius-small: 6px;
+  --radius-button: 8px;
+
+  /* Fonts — applied via next/font in layout */
+  --font-sans: 'Manrope', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', 'Menlo', monospace;
+}
+
+/* ─── Base Styles ──────────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-ja-ink);
+  background-color: var(--color-ja-white);
+  line-height: 1.6;
+}
+
+/* ─── Container ────────────────────────────────────────────────────────── */
+.container-ja {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-pad-mobile);
+}
+
+@media (min-width: 640px) {
+  .container-ja {
+    padding-inline: var(--container-pad-tablet);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-ja {
+    padding-inline: var(--container-pad-desktop);
+  }
+}
+
+/* ─── Section Spacing ──────────────────────────────────────────────────── */
+.section-padding {
+  padding-block: 64px;
+}
+
+@media (min-width: 640px) {
+  .section-padding {
+    padding-block: 88px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .section-padding {
+    padding-block: 120px;
+  }
+}
+
+.section-padding-lg {
+  padding-block: 80px;
+}
+
+@media (min-width: 640px) {
+  .section-padding-lg {
+    padding-block: 112px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .section-padding-lg {
+    padding-block: 148px;
+  }
+}
+
+/* ─── Typography ───────────────────────────────────────────────────────── */
+.heading-display {
+  font-weight: 680;
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+  font-size: clamp(2.75rem, 6vw, 6.5rem);
+}
+
+.heading-2 {
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  font-size: clamp(2rem, 4vw, 4rem);
+}
+
+.heading-3 {
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-size: clamp(1.35rem, 2.5vw, 1.85rem);
+}
+
+.text-lead {
+  font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+  line-height: 1.55;
+  color: var(--color-ja-steel-700);
+}
+
+.text-body {
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+@media (min-width: 1024px) {
+  .text-body {
+    font-size: 1.0625rem;
+  }
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ja-red);
+}
+
+.eyebrow-steel {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ja-steel-500);
+}
+
+/* ─── Buttons ──────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 24px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border-radius: var(--radius-button);
+  cursor: pointer;
+  transition: all 180ms ease;
+  text-decoration: none;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-ja-red);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background-color: var(--color-ja-red);
+  color: white;
+  border-color: var(--color-ja-red);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-ja-red-hover);
+  border-color: var(--color-ja-red-hover);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  background-color: var(--color-ja-red-dark);
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: currentColor;
+  border-color: currentColor;
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-ja-surface);
+}
+
+.btn-secondary-dark {
+  background-color: transparent;
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-secondary-dark:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Text CTA */
+.text-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--color-ja-red);
+  text-decoration: none;
+  transition: gap 180ms ease;
+}
+
+.text-cta:hover {
+  gap: 10px;
+}
+
+.text-cta:focus-visible {
+  outline: 2px solid var(--color-ja-red);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Chips / Tags ─────────────────────────────────────────────────────── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--color-ja-line);
+  color: var(--color-ja-steel-700);
+  background-color: var(--color-ja-surface);
+}
+
+.chip-dark {
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--color-ja-steel-300);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* ─── Cards ────────────────────────────────────────────────────────────── */
+.card {
+  border: 1px solid var(--color-ja-line);
+  border-radius: var(--radius-default);
+  padding: 28px;
+  background-color: var(--color-ja-white);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 0;
+  background-color: var(--color-ja-red);
+  transition: height 240ms ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  border-color: var(--color-ja-steel-300);
+}
+
+.card:hover::before {
+  height: 100%;
+}
+
+.card:focus-within {
+  border-color: var(--color-ja-red);
+}
+
+/* ─── Hero Media Overlay ───────────────────────────────────────────────── */
+.hero-media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(7, 9, 11, 0.86) 0%,
+      rgba(7, 9, 11, 0.58) 42%,
+      rgba(7, 9, 11, 0.18) 72%,
+      rgba(7, 9, 11, 0.3) 100%
+    ),
+    linear-gradient(0deg, rgba(7, 9, 11, 0.35), transparent 45%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ─── Lines Motif ──────────────────────────────────────────────────────── */
+.lines-motif {
+  display: block;
+  width: 80px;
+  height: 7px;
+  background-image: url('/j-aautomation/brand/lines.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+/* ─── Focus Styles ─────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-ja-red);
+  outline-offset: 2px;
+}
+
+/* ─── Skip to Content ──────────────────────────────────────────────────── */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  z-index: 9999;
+  padding: 12px 24px;
+  background-color: var(--color-ja-red);
+  color: white;
+  font-weight: 600;
+  border-radius: var(--radius-button);
+  text-decoration: none;
+  transition: top 200ms ease;
+}
+
+.skip-link:focus {
+  top: 16px;
+}
+
+/* ─── Reduced Motion ───────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .card:hover {
+    transform: none;
+  }
+  .card::before {
+    transition: none;
+  }
+  .btn:hover {
+    transform: none;
+  }
+  .text-cta:hover {
+    gap: 6px;
+  }
+}

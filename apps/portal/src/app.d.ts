@@ -9,6 +9,7 @@ declare global {
         role?: string;
         status?: string;
         mfaEnrolled?: boolean;
+        mfaRequired?: boolean;
       } | null;
     }
   }

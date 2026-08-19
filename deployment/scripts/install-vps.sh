@@ -7,6 +7,10 @@ if [[ ${EUID} -ne 0 ]]; then
 fi
 
 RELEASE_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+if [[ "$RELEASE_ROOT" != "/opt/jaautomation/current" ]]; then
+  echo "Install the reviewed release at /opt/jaautomation/current before running this script." >&2
+  exit 1
+fi
 AVAILABLE_KB=$(df --output=avail / | tail -1 | tr -d ' ')
 if (( AVAILABLE_KB < 10485760 )); then
   echo "At least 10 GiB free is required for a safe image build." >&2
@@ -14,16 +18,31 @@ if (( AVAILABLE_KB < 10485760 )); then
 fi
 command -v docker >/dev/null
 command -v caddy >/dev/null
+command -v node >/dev/null
+if [[ "$(node --version)" != "v24.19.0" ]]; then
+  echo "Node.js v24.19.0 is required for the host backup service." >&2
+  exit 1
+fi
 docker compose version >/dev/null
 
-install -d -o 10001 -g 10001 -m 0750 /var/lib/j-aautomation /var/lib/j-aautomation/documents
-install -d -o root -g root -m 0750 /etc/j-aautomation /opt/j-aautomation/releases
-if [[ ! -f /etc/j-aautomation/portal.env ]]; then
-  install -o root -g root -m 0600 "$RELEASE_ROOT/deployment/portal.env.example" /etc/j-aautomation/portal.env
-  echo "Created /etc/j-aautomation/portal.env. Replace JA_AUTH_SECRET before starting the service."
+install -d -o 10001 -g 10001 -m 0750 /var/lib/jaautomation/data /var/lib/jaautomation/files
+for directory in receipts reports invoices technical plc-backups exports temp; do
+  install -d -o 10001 -g 10001 -m 0750 "/var/lib/jaautomation/files/$directory"
+done
+install -d -o 10001 -g 10001 -m 0750 /var/backups/jaautomation
+install -d -o root -g root -m 0750 /etc/jaautomation /opt/jaautomation/releases
+if [[ ! -f /etc/jaautomation/jaautomation.env ]]; then
+  install -o root -g root -m 0600 "$RELEASE_ROOT/deployment/jaautomation.env.example" /etc/jaautomation/jaautomation.env
+  echo "Created /etc/jaautomation/jaautomation.env. Replace JA_AUTH_SECRET before starting the service."
 fi
 
 install -o root -g root -m 0644 "$RELEASE_ROOT/deployment/jaautomation.service" /etc/systemd/system/jaautomation.service
+install -o root -g root -m 0644 \
+  "$RELEASE_ROOT/deployment/jaautomation-jobs.service" \
+  "$RELEASE_ROOT/deployment/jaautomation-jobs.timer" \
+  "$RELEASE_ROOT/deployment/jaautomation-backup.service" \
+  "$RELEASE_ROOT/deployment/jaautomation-backup.timer" \
+  /etc/systemd/system/
 install -o root -g root -m 0644 "$RELEASE_ROOT/deployment/Caddyfile.snippet" /etc/caddy/jaautomation.caddy
 
 CADDYFILE=/etc/caddy/Caddyfile
@@ -51,6 +70,6 @@ if ! caddy validate --config "$CADDYFILE" --adapter caddyfile; then
 fi
 
 systemctl daemon-reload
-systemctl enable jaautomation.service
+systemctl enable jaautomation.service jaautomation-jobs.timer jaautomation-backup.timer
 systemctl reload caddy
-echo "VPS integration installed. Edit /etc/j-aautomation/portal.env, then seed and start the service."
+echo "VPS integration installed. Edit /etc/jaautomation/jaautomation.env, then validate and start the service and timers."

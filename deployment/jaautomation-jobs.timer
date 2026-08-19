@@ -1,0 +1,12 @@
+[Unit]
+Description=Run J&A Automation jobs every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Unit=jaautomation-jobs.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+

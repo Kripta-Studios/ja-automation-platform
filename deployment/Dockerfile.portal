@@ -1,12 +1,16 @@
 FROM node:24.19.0-bookworm-slim AS build
+ARG JA_PORTAL_ASSETS_URL=https://gex-dashboard.hopto.org/j-aautomation/portal-assets
+ENV JA_PORTAL_ASSETS_URL=$JA_PORTAL_ASSETS_URL
 WORKDIR /workspace
 RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
 COPY apps/portal ./apps/portal
 COPY packages ./packages
 COPY migrations ./migrations
+COPY deployment ./deployment
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @ja/portal build
+RUN pnpm jobs:build
 RUN pnpm --filter @ja/portal deploy --prod --legacy /portal
 
 FROM build AS tools
@@ -17,6 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 WORKDIR /app
 COPY --from=build --chown=jaautomation:jaautomation /portal ./
 COPY --from=build --chown=jaautomation:jaautomation /workspace/migrations ./migrations
+COPY --from=build --chown=jaautomation:jaautomation /workspace/deployment/jobs-build/jobs-run.mjs ./deployment/jobs-run.mjs
 USER jaautomation
 EXPOSE 5100
 CMD ["node","build"]

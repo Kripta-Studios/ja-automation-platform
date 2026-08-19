@@ -1,0 +1,11 @@
+[Unit]
+Description=J&A Automation durable jobs
+After=docker.service jaautomation.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/jaautomation/current
+EnvironmentFile=-/etc/jaautomation/jaautomation.env
+ExecStart=/usr/bin/docker compose --profile jobs -f deployment/compose.production.yml run --rm --no-deps jobs
+TimeoutStartSec=120

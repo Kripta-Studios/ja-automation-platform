@@ -4,15 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev --port 5174",
+    "dev": "vite dev",
     "build": "vite build",
     "preview": "node build",
-    "typecheck": "svelte-kit sync && tsc --noEmit -p tsconfig.json"
+    "typecheck": "svelte-kit sync && tsc --noEmit -p tsconfig.json",
+    "jobs:run-due": "pnpm --dir ../.. jobs:build && node ../../deployment/jobs-build/jobs-run.mjs"
   },
   "dependencies": {
     "@better-auth/passkey": "catalog:",
     "@ja/database": "workspace:*",
     "@ja/domain": "workspace:*",
+    "@ja/reporting": "workspace:*",
     "@ja/schemas": "workspace:*",
     "@ja/ui-tokens": "workspace:*",
     "better-auth": "catalog:",

@@ -1,102 +1,101 @@
-# Despliegue MVP en `kripta`
+# J&A Automation VPS deployment
 
-## Estado comprobado el 18-08-2026
+This directory describes the supported Ubuntu 24.04 + Caddy + Docker Compose deployment for the
+V3 product. The public Next.js site listens only on `127.0.0.1:5101`; the private SvelteKit portal
+and server APIs listen only on `127.0.0.1:5100`. Caddy is the only Internet-facing proxy.
 
-- Ubuntu 24.04, kernel 6.8.
-- Docker 29.1.3 y Compose 2.40.3 activos.
-- Caddy 2.11.4 activo en 80/443.
-- 29 GiB libres tras la limpieza del disco.
-- Los puertos 5100 y 5101 están libres.
-- El `jaautomation.service` antiguo figura activo aunque no mantiene contenedores. Este despliegue lo reemplaza.
-- Los ficheros `Servidor/jaautomation*.service` apuntan a una arquitectura PostgreSQL anterior. No se deben copiar.
+The deployment does not run a seed, does not use `drizzle-kit push`, and does not enable automatic
+invoice issue or send. The scheduled jobs may create drafts, PDFs, reports and Accounting Pack
+artifacts, but external delivery is handled only by the configured signed outbox adapter.
 
-## 1. Empaquetar y subir desde Windows
+## Files and services
 
-Después de confirmar el commit final:
+- `compose.production.yml` — site, portal, optional one-shot jobs and tools.
+- `Caddyfile.snippet` — `/j-aautomation` routing, including the portal login entry point.
+- `jaautomation.service` — builds and starts site and portal containers.
+- `jaautomation-jobs.service` / `.timer` — runs leased, idempotent jobs every five minutes.
+- `jaautomation-backup.service` / `.timer` — online SQLite backup plus private-file manifest.
+- `scripts/install-vps.sh` — explicit host integration; review it before running with `sudo`.
+- `scripts/verify-vps.sh` — local/HTTPS health checks.
 
-```powershell
-git archive --format=tar.gz -o jaautomation-mvp.tar.gz HEAD
-scp .\jaautomation-mvp.tar.gz kripta:/tmp/
+## Host layout
+
+```text
+/etc/jaautomation/jaautomation.env       mode 0600, root-owned
+/var/lib/jaautomation/data/              SQLite database and WAL
+/var/lib/jaautomation/files/             private receipts, reports, invoices and exports
+/var/backups/jaautomation/               online backups and manifests
+/opt/jaautomation/current/               checked-out release
 ```
 
-## 2. Crear el release en el VPS
+The portal container runs as UID `10001`, has a read-only root filesystem, and receives only the
+database/document volume and explicitly configured environment. The public site has no database,
+document, finance or auth-secret mount.
 
-Ejecuta:
+## First installation
+
+1. Copy the reviewed repository to `/opt/jaautomation/current` and inspect the deployment files.
+2. Confirm Docker Engine/Compose, Caddy, free disk space, DNS and TLS are ready.
+3. Run `sudo bash deployment/scripts/install-vps.sh` only after reviewing its Caddy and systemd
+   changes.
+4. Edit `/etc/jaautomation/jaautomation.env` and replace `JA_AUTH_SECRET` with a random secret.
+   Set the production origin, WebAuthn RP/origin, backup destination, job actor and outbox adapter.
+5. Apply reviewed SQL migrations with the repository migration command against the intended empty or
+   existing database. Never use `drizzle-kit push` in production.
+6. Start the service and timers:
 
 ```bash
-ssh kripta
-export JA_RELEASE="$(date +%Y%m%d-%H%M%S)"
-sudo mkdir -p "/opt/j-aautomation/releases/$JA_RELEASE"
-sudo tar -xzf /tmp/jaautomation-mvp.tar.gz -C "/opt/j-aautomation/releases/$JA_RELEASE"
-sudo ln -sfn "/opt/j-aautomation/releases/$JA_RELEASE" /opt/j-aautomation/current
-cd /opt/j-aautomation/current
-sudo bash deployment/scripts/install-vps.sh
+sudo systemctl daemon-reload
+sudo systemctl enable --now jaautomation.service
+sudo systemctl enable --now jaautomation-jobs.timer jaautomation-backup.timer
+sudo bash deployment/scripts/verify-vps.sh https://example.invalid/j-aautomation
 ```
 
-El instalador crea un backup del Caddyfile, añade un `import` antes del reverse proxy catch-all, valida Caddy y restaura el backup si falla.
+The first real environment still needs accountant-approved legal entity, tax profile and invoice
+number policy rows before an invoice can be issued.
 
-## 3. Configurar el entorno
+## Release and rollback
 
-Genera el secreto y sustituye el placeholder:
+Build from a reviewed commit, record the release tag and SHA-256, then run:
 
 ```bash
-SECRET="$(openssl rand -hex 32)"
-sudo sed -i "s/CHANGE_ME_WITH_OPENSSL_RAND_HEX_32/$SECRET/" /etc/j-aautomation/portal.env
-sudo chmod 600 /etc/j-aautomation/portal.env
-sudo grep -vE 'SECRET|SMTP|RECIPIENT' /etc/j-aautomation/portal.env
+sudo env JA_RELEASE_TAG=2026.08.19 docker compose \
+  --env-file /etc/jaautomation/jaautomation.env \
+  -f deployment/compose.production.yml up -d --build --remove-orphans
+sudo bash deployment/scripts/verify-vps.sh https://example.invalid/j-aautomation
 ```
 
-El MVP se publica en `https://gex-dashboard.hopto.org/j-aautomation/`. `JA_DEMO_MODE=true` mantiene visibles los cuatro accesos demo. Cámbialo a `false` antes de usar cuentas reales.
+Before replacing an image, tag the active site and portal images as rollback images. If the health
+checks fail, restore the previous tag with `up -d --no-build` and leave the database/files volume
+untouched. Do not use `docker compose down` during a routine release. Keep at least one tested
+rollback image and one recent verified backup.
 
-## 4. Construir, sembrar y arrancar
+## Jobs and outbox
 
-La primera instalación crea la base demo. El comando de seed borra `app.db`; no vuelvas a ejecutarlo después de empezar a introducir datos que quieras conservar.
+The jobs container claims each job/event with a lease and idempotency key. Failed deliveries retain
+attempts, last error and terminal-failure state. Configure both
+`JA_OUTBOX_WEBHOOK_URL` and `JA_OUTBOX_WEBHOOK_SECRET`; production URLs must be HTTPS. The adapter
+must deduplicate `x-ja-idempotency-key` and verify `x-ja-signature` (`sha256=<HMAC-SHA256>`). If the
+adapter is absent or rejects a request, the event is not marked delivered.
 
-```bash
-cd /opt/j-aautomation/current
-sudo chown -R 10001:10001 /var/lib/j-aautomation
-sudo -u '#10001' test -w /var/lib/j-aautomation
-sudo docker compose --env-file /etc/j-aautomation/portal.env -f deployment/compose.production.yml --profile tools run --rm demo-seed
-sudo systemctl restart jaautomation.service
-sudo systemctl status jaautomation.service --no-pager
-sudo docker compose --env-file /etc/j-aautomation/portal.env -f deployment/compose.production.yml ps
-```
-
-## 5. Verificar
+## Operations
 
 ```bash
-cd /opt/j-aautomation/current
-sudo bash deployment/scripts/verify-vps.sh
-curl -I https://gex-dashboard.hopto.org/j-aautomation/en/
-curl -I https://gex-dashboard.hopto.org/j-aautomation/app/login
-sudo journalctl -u jaautomation.service -n 100 --no-pager
-```
-
-Abre:
-
-- `https://gex-dashboard.hopto.org/j-aautomation/en/`
-- `https://gex-dashboard.hopto.org/j-aautomation/app/login`
-
-## Rollback
-
-Conserva el nombre del release anterior y cambia el symlink:
-
-```bash
-sudo systemctl stop jaautomation.service
-sudo ln -sfn /opt/j-aautomation/releases/RELEASE_ANTERIOR /opt/j-aautomation/current
-sudo systemctl start jaautomation.service
-sudo systemctl reload caddy
-```
-
-Las releases no contienen la base ni documentos. `/var/lib/j-aautomation` permanece intacto durante el rollback.
-
-## Operación posterior
-
-```bash
-cd /opt/j-aautomation/current
-sudo docker compose --env-file /etc/j-aautomation/portal.env -f deployment/compose.production.yml logs --tail=100 portal site
-sudo systemctl status caddy jaautomation.service --no-pager
+sudo docker compose --env-file /etc/jaautomation/jaautomation.env \
+  -f deployment/compose.production.yml ps
+sudo docker compose --env-file /etc/jaautomation/jaautomation.env \
+  -f deployment/compose.production.yml logs --tail=200 portal site
+sudo systemctl status jaautomation.service jaautomation-jobs.timer jaautomation-backup.timer --no-pager
 df -h /
 ```
 
-Antes de un uso real: desactiva demo mode, configura cuentas/invitaciones, SMTP, backups externos, tax/legal text y escaneo de archivos.
+Backups use Node's online SQLite backup API so WAL contents are included consistently. Restore is a
+staged operation that checks integrity, foreign keys, document hashes and safe manifest paths before
+renaming into the target. See `docs/BACKUP_RESTORE.md` for the runbook.
+
+## Production configuration still required
+
+The repository provides the mechanism but cannot supply the customer's real values: auth secret,
+SMTP/form recipient, signed outbox/CRM adapter, malware scanner, encrypted off-site backup target,
+accountant-approved tax/legal/numbering configuration, disk-alert destination, and final client
+recipient/currency data. These are deployment inputs, not code placeholders.

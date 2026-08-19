@@ -5,7 +5,7 @@ import { newId, type Principal, type Role } from '@ja/domain';
 import { createDatabase, PortalRepository } from './index.ts';
 
 const path = process.env.JA_DATABASE_PATH ?? resolve(process.cwd(), 'data/demo.db');
-if (existsSync(path)) rmSync(path);
+if (existsSync(path) && process.env.JA_DEMO_SEED_PRESERVE_DB !== 'true') rmSync(path);
 mkdirSync(dirname(path), { recursive: true });
 const { sqlite } = createDatabase(path);
 const repository = new PortalRepository(sqlite);
@@ -334,7 +334,7 @@ const receipt = (ownerId: string, projectId: string, filename: string) => {
       184320,
       `demo/${id}`,
       filename,
-      'Synthetic receipt metadata for the MVP demo',
+      'Synthetic receipt metadata for the test-only demo',
       0,
       'receipt',
       timestamp,
@@ -420,7 +420,7 @@ const entity = repository.createLegalEntity(owner, {
   legalName: 'J&A Automation · Demonstration Invoice',
   currency: 'USD',
   billingAddress: 'Demonstration record · not for payment',
-  companyIdentifiers: 'MVP DEMO',
+  companyIdentifiers: 'TEST DEMO',
 });
 repository.createInvoiceNumberPolicy(owner, {
   legalEntityId: entity.id,
@@ -462,14 +462,14 @@ const expenseRule = repository.createBillingRule(finance, {
 const laborInvoice = repository.createInvoiceDraft(
   finance,
   laborRule.id,
-  '2026-08-11',
-  '2026-08-17',
+  '2026-08-10',
+  '2026-08-16',
 );
 const expenseInvoice = repository.createInvoiceDraft(
   finance,
   expenseRule.id,
   '2026-08-01',
-  '2026-08-17',
+  '2026-08-31',
 );
 sqlite
   .prepare(

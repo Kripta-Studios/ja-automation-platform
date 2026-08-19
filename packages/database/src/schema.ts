@@ -228,5 +228,8 @@ export const outboxEvents = sqliteTable('outbox_event', {
   availableAt: text('available_at').notNull(),
   attempts: integer('attempts').notNull().default(0),
   deliveredAt: text('delivered_at'),
+  leaseUntil: text('lease_until'),
+  lastError: text('last_error'),
+  failedAt: text('failed_at'),
   createdAt: text('created_at').notNull(),
 });

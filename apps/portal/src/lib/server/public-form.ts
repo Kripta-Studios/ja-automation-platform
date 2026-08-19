@@ -6,7 +6,6 @@ import { newId } from '@ja/domain';
 import type { ZodType } from 'zod';
 import { json, type RequestEvent } from '@sveltejs/kit';
 
-const requests = new Map<string, number[]>();
 const allowedOrigins = () =>
   new Set(
     (
@@ -22,18 +21,19 @@ export async function acceptPublicForm(event: RequestEvent, kind: string, schema
   if (!origin || !allowedOrigins().has(origin))
     return json({ error: 'Origin denied' }, { status: 403 });
   const length = Number(event.request.headers.get('content-length') ?? 0);
-  if (length > 32_768) return json({ error: 'Payload too large' }, { status: 413 });
+  if (Number.isFinite(length) && length > 32_768)
+    return json({ error: 'Payload too large' }, { status: 413 });
   const client = event.getClientAddress();
-  const now = Date.now();
-  const recent = (requests.get(client) ?? []).filter((time) => now - time < 10 * 60_000);
-  if (recent.length >= 5)
-    return json(
-      { error: 'Rate limit exceeded' },
-      { status: 429, headers: { 'retry-after': '600' } },
-    );
-  recent.push(now);
-  requests.set(client, recent);
-  const result = schema.safeParse(await event.request.json().catch(() => null));
+  const rawBody = await event.request.text().catch(() => '');
+  if (new TextEncoder().encode(rawBody).byteLength > 32_768)
+    return json({ error: 'Payload too large' }, { status: 413 });
+  let body: unknown = null;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    body = null;
+  }
+  const result = schema.safeParse(body);
   if (!result.success)
     return json(
       {
@@ -49,12 +49,41 @@ export async function acceptPublicForm(event: RequestEvent, kind: string, schema
   const createdAt = new Date().toISOString();
   const secret = process.env.JA_AUTH_SECRET ?? 'development-source-hash';
   const sourceHash = createHmac('sha256', secret).update(client).digest('hex');
+  const bucketKey = createHmac('sha256', secret).update(`public:${kind}:${client}`).digest('hex');
   const payload = JSON.stringify(value);
   const path = process.env.JA_DATABASE_PATH ?? './data/app.db';
   mkdirSync(dirname(path), { recursive: true });
   const { sqlite } = createDatabase(path);
   sqlite.exec('BEGIN IMMEDIATE');
   try {
+    const nowMs = Date.now();
+    const bucket = sqlite
+      .prepare('SELECT window_started_at,request_count FROM rate_limit_bucket WHERE bucket_key=?')
+      .get(bucketKey) as { window_started_at: string; request_count: number } | undefined;
+    const windowStarted = bucket ? Date.parse(bucket.window_started_at) : Number.NaN;
+    if (
+      bucket &&
+      Number.isFinite(windowStarted) &&
+      nowMs - windowStarted < 10 * 60_000 &&
+      bucket.request_count >= 5
+    ) {
+      sqlite.exec('ROLLBACK');
+      sqlite.close();
+      return json(
+        { error: 'Rate limit exceeded' },
+        { status: 429, headers: { 'retry-after': '600' } },
+      );
+    }
+    if (!bucket || !Number.isFinite(windowStarted) || nowMs - windowStarted >= 10 * 60_000)
+      sqlite
+        .prepare(
+          'INSERT INTO rate_limit_bucket(bucket_key,window_started_at,request_count) VALUES(?,?,1) ON CONFLICT(bucket_key) DO UPDATE SET window_started_at=excluded.window_started_at,request_count=1',
+        )
+        .run(bucketKey, createdAt);
+    else
+      sqlite
+        .prepare('UPDATE rate_limit_bucket SET request_count=request_count+1 WHERE bucket_key=?')
+        .run(bucketKey);
     sqlite
       .prepare(
         'INSERT INTO public_inquiry(id,kind,payload_json,source_hash,created_at) VALUES(?,?,?,?,?)',

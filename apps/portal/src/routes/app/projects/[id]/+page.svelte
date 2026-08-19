@@ -10,6 +10,8 @@
       reports: Row[];
       expenses: Row[];
       planning: Row[];
+      milestones: Row[];
+      schedule: Row | null;
       actualMinutes: number;
       financial: {
         currency: string;
@@ -19,6 +21,15 @@
         invoicedMinor: string;
         paidMinor: string;
         receivableMinor: string;
+        budgetMinor: string | null;
+        plannedMinutes: number | null;
+        estimateToCompleteMinor: string | null;
+        estimateAtCompletionCostMinor: string | null;
+        expectedFinalMarginMinor: string | null;
+        hoursConsumedBps: string | null;
+        travelBudgetConsumedBps: string | null;
+        approvedUnbilledWipMinor: string;
+        unapprovedWipMinor: string;
       } | null;
     },
   );
@@ -29,14 +40,35 @@
       currency: String(project.currency),
     }).format(Number(minor ?? 0) / 100);
   const totalExpenses = $derived(
-    overview.expenses.reduce((sum, row) => sum + Number(row.amount_minor), 0),
+    overview.expenses
+      .filter(
+        (row) =>
+          ['approved', 'locked'].includes(String(row.approval_state)) &&
+          row.billing_treatment !== 'client_direct' &&
+          row.who_paid !== 'client',
+      )
+      .reduce((sum, row) => sum + Number(row.project_currency_amount_minor ?? row.amount_minor), 0),
   );
   const allInExpenses = $derived(
     overview.expenses
-      .filter((row) => row.client_treatment === 'all_in')
-      .reduce((sum, row) => sum + Number(row.amount_minor), 0),
+      .filter(
+        (row) =>
+          ['approved', 'locked'].includes(String(row.approval_state)) &&
+          row.client_treatment === 'all_in' &&
+          row.billing_treatment !== 'client_direct' &&
+          row.who_paid !== 'client',
+      )
+      .reduce((sum, row) => sum + Number(row.project_currency_amount_minor ?? row.amount_minor), 0),
   );
-  const budget = $derived(Number(project.budget_minor ?? 0));
+  const budget = $derived(
+    Number(
+      overview.financial?.budgetMinor ?? project.po_cap_minor ?? project.revenue_budget_minor ?? 0,
+    ),
+  );
+  const plannedMinutes = $derived(
+    overview.financial?.plannedMinutes ??
+      overview.workers.reduce((sum, worker) => sum + Number(worker.planned_minutes ?? 0), 0),
+  );
   const cost = $derived(Number(overview.financial?.approvedCostMinor ?? 0));
   const consumed = $derived(budget ? Math.min(100, (cost / budget) * 100) : 0);
   const margin = $derived(Number(overview.financial?.contributionMarginMinor ?? 0));
@@ -67,6 +99,11 @@
       <span>EXPECTED DAY</span><strong>{Number(project.expected_minutes_per_day) / 60} h</strong>
     </div>
     <div><span>TIMEZONE</span><strong>{project.timezone}</strong></div>
+    <div>
+      <span>START / TARGET</span><strong
+        >{project.start_date ?? '—'} → {project.planned_end_date ?? '—'}</strong
+      >
+    </div>
   </section>
 
   {#if overview.financial}<section class="project-finance">
@@ -83,7 +120,7 @@
         <article><span>PO / PROJECT BUDGET</span><strong>{money(budget)}</strong></article>
         <article>
           <span>PLANNED HOURS</span><strong
-            >{(Number(project.planned_minutes) / 60).toFixed(0)} h</strong
+            >{plannedMinutes ? (plannedMinutes / 60).toFixed(0) : '—'} h</strong
           >
         </article>
         <article>
@@ -105,6 +142,28 @@
         </article>
         <article>
           <span>INVOICED</span><strong>{money(overview.financial.invoicedMinor)}</strong>
+        </article>
+        <article>
+          <span>APPROVED UNBILLED WIP</span><strong
+            >{money(overview.financial.approvedUnbilledWipMinor)}</strong
+          >
+        </article>
+        <article>
+          <span>UNAPPROVED WIP</span><strong>{money(overview.financial.unapprovedWipMinor)}</strong>
+        </article>
+        <article>
+          <span>FORECAST ETC</span><strong
+            >{overview.financial.estimateToCompleteMinor === null
+              ? '—'
+              : money(overview.financial.estimateToCompleteMinor)}</strong
+          >
+        </article>
+        <article class="accent">
+          <span>EXPECTED FINAL MARGIN</span><strong
+            >{overview.financial.expectedFinalMarginMinor === null
+              ? '—'
+              : money(overview.financial.expectedFinalMarginMinor)}</strong
+          >
         </article>
       </div>
     </section>{/if}
@@ -170,18 +229,30 @@
           >
           <div>
             <strong>{expense.vendor}</strong><small
-              >{expense.category} · {expense.spent_on} · receipt linked</small
+              >{expense.category} · {expense.spent_on} · {expense.billing_treatment ??
+                expense.client_treatment} · {expense.who_paid ?? 'worker'}</small
             >
           </div>
-          <b>{money(expense.amount_minor)}</b>
+          <b>{money(expense.project_currency_amount_minor ?? expense.amount_minor)}</b>
         </article>{/each}
     </section>
   </div>
   <section class="detail-panel schedule-panel">
     <div class="panel-title">
       <h2>Published schedule</h2>
-      <span>10 h standard day</span>
+      <span
+        >{overview.schedule
+          ? `${Number(overview.schedule.monday_minutes) / 60} h Mon`
+          : 'Not configured'}</span
+      >
     </div>
+    {#if overview.schedule}<p class="form-help">
+        Expected minutes: Mon {overview.schedule.monday_minutes} · Tue {overview.schedule
+          .tuesday_minutes} · Wed {overview.schedule.wednesday_minutes} · Thu {overview.schedule
+          .thursday_minutes} · Fri {overview.schedule.friday_minutes} · Sat {overview.schedule
+          .saturday_minutes} · Sun {overview.schedule.sunday_minutes}. This is planning context;
+        actual time remains independently recorded.
+      </p>{/if}
     {#each overview.planning as plan}<article>
         <div>
           <strong>{plan.worker_name}</strong><small>{plan.site} · {plan.required_skill}</small>
@@ -193,5 +264,19 @@
           )}</b
         >
       </article>{/each}
+  </section>
+  <section class="detail-panel">
+    <div class="panel-title">
+      <h2>Commercial milestones</h2>
+      <span>{overview.milestones.length}</span>
+    </div>
+    {#each overview.milestones as milestone}<article>
+        <div>
+          <strong>{milestone.name}</strong><small
+            >{milestone.due_on ?? 'No due date'} · {milestone.approval_state}</small
+          >
+        </div>
+        <b>{money(milestone.amount_minor)}</b>
+      </article>{:else}<div class="empty">No milestones configured.</div>{/each}
   </section>
 </main>

@@ -14,8 +14,10 @@
     "demo:seed": "node --experimental-strip-types src/demo-seed.ts"
   },
   "dependencies": {
+    "@ja/billing-engine": "workspace:*",
     "@ja/domain": "workspace:*",
     "@ja/money": "workspace:*",
+    "@ja/schemas": "workspace:*",
     "drizzle-orm": "catalog:"
   },
   "devDependencies": {

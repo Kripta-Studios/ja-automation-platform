@@ -1,7 +1,10 @@
 node_modules/
 .pnpm-store/
 .svelte-kit/
+.next/
+website/next-env.d.ts
 build/
+deployment/jobs-build/
 dist/
 coverage/
 test-results/
@@ -18,8 +21,6 @@ playwright-report/
 *.sqlite-*
 documents/
 uploads/
+data/backups/
 .DS_Store
 Thumbs.db
-website/.next/
-website/node_modules/
-website/

@@ -1,4 +1,5 @@
 import { getRequestEvent } from '$app/server';
+import { building } from '$app/environment';
 import { passkey } from '@better-auth/passkey';
 import { createDatabase } from '@ja/database';
 import { betterAuth } from 'better-auth';
@@ -8,15 +9,16 @@ import { twoFactor } from 'better-auth/plugins';
 const publicBase = process.env.JA_PUBLIC_BASE_PATH ?? '/j-aautomation';
 const portalBase = process.env.JA_PORTAL_BASE_PATH ?? `${publicBase}/app`;
 const production = process.env.NODE_ENV === 'production';
+const authSecret =
+  process.env.JA_AUTH_SECRET ??
+  (production && !building ? undefined : 'build-only-secret-change-before-runtime');
 
 export const auth = betterAuth({
   appName: 'J&A Automation',
   database: createDatabase().sqlite,
   baseURL: process.env.JA_WEBAUTHN_ORIGIN ?? 'http://localhost:5174',
   basePath: `${portalBase}/api/auth`,
-  secret:
-    process.env.JA_AUTH_SECRET ??
-    (production ? undefined : 'development-only-secret-change-before-production'),
+  secret: authSecret,
   user: {
     modelName: 'user',
     fields: { emailVerified: 'email_verified', createdAt: 'created_at', updatedAt: 'updated_at' },
@@ -29,6 +31,13 @@ export const auth = betterAuth({
         defaultValue: false,
         input: false,
         fieldName: 'mfa_enrolled',
+      },
+      mfaRequired: {
+        type: 'boolean',
+        required: true,
+        defaultValue: false,
+        input: false,
+        fieldName: 'mfa_required',
       },
     },
   },

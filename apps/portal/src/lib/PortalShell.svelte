@@ -65,6 +65,28 @@
     selectedProjectId?: string;
     periodStart?: string;
     periodEnd?: string;
+    weekStart?: string;
+    weekEnd?: string;
+    timesheet?: {
+      weekStart: string;
+      weekEnd: string;
+      days: Array<{
+        date: string;
+        label: string;
+        expectedMinutes: number;
+        actualMinutes: number;
+        differenceMinutes: number;
+        status: string;
+        categories: Record<string, number>;
+      }>;
+    };
+    weeklyPay?: {
+      currency: string;
+      approvedMinutes: number;
+      pendingMinutes: number;
+      estimatedApprovedMinor: string;
+      estimatedPendingMinor: string;
+    };
     searchQuery?: string;
     searchResults?: Row[];
     pay?: {
@@ -191,6 +213,17 @@
     new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(
       Number(minor ?? 0) / 100,
     );
+  const hours = (minutes: number): string => `${(minutes / 60).toFixed(1)}h`;
+  const categorySummary = (categories: Record<string, number>): string =>
+    Object.entries(categories)
+      .filter(([, minutes]) => minutes > 0)
+      .map(([category, minutes]) => `${category.replaceAll('_', ' ')} ${hours(minutes)}`)
+      .join(' · ');
+  const shiftWeek = (value: string, days: number): string => {
+    return new Date(Date.parse(`${value}T00:00:00.000Z`) + days * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+  };
   const href = (section: string) =>
     section === 'today' ? `${base}/app/` : `${base}/app/${section}`;
   const itemHref = (item: NavItem) => item.href ?? href(item.section);
@@ -705,6 +738,101 @@
         </div>
       {/if}
     {:else if data.section === 'time'}
+      {#if data.timesheet}
+        <section class="timesheet-panel" aria-labelledby="weekly-timesheet-title">
+          <div class="timesheet-heading">
+            <div>
+              <span class="portal-kicker">WEEKLY TIMESHEET</span>
+              <h2 id="weekly-timesheet-title">Actual time, one week at a glance</h2>
+              <p>
+                {data.timesheet.weekStart} → {data.timesheet.weekEnd}. Expected availability is 10
+                hours Monday through Saturday; Sunday stays at zero.
+              </p>
+            </div>
+            <form class="timesheet-period" method="GET" action={`${base}/app/time`}>
+              <label>Week of<input name="week" type="date" value={data.weekStart} /></label>
+              <button type="submit">Open week</button>
+            </form>
+          </div>
+          <div class="timesheet-table-wrap">
+            <table class="timesheet-table">
+              <caption class="visually-hidden">Weekly actual time and approval status</caption>
+              <thead
+                ><tr
+                  ><th scope="col">Day</th><th scope="col">Actual</th><th scope="col">Expected</th
+                  ><th scope="col">Difference</th><th scope="col">Categories</th><th scope="col"
+                    >Status</th
+                  ></tr
+                ></thead
+              >
+              <tbody>
+                {#each data.timesheet.days as day}
+                  <tr
+                    class:timesheet-exception={day.status === 'Needs note' ||
+                      day.status === 'Needs changes'}
+                  >
+                    <th scope="row">{day.label}<small>{day.date}</small></th>
+                    <td>{hours(day.actualMinutes)}</td>
+                    <td>{hours(day.expectedMinutes)}</td>
+                    <td
+                      class:positive={day.differenceMinutes > 0}
+                      class:negative={day.differenceMinutes < 0}
+                      >{day.differenceMinutes > 0 ? '+' : ''}{hours(day.differenceMinutes)}</td
+                    >
+                    <td>{categorySummary(day.categories) || '—'}</td>
+                    <td><span class="timesheet-status">{day.status}</span></td>
+                  </tr>
+                {/each}
+              </tbody>
+              <tfoot>
+                <tr
+                  ><th scope="row">Actual</th><td
+                    >{hours(
+                      data.timesheet.days.reduce((sum, day) => sum + day.actualMinutes, 0),
+                    )}</td
+                  ><td
+                    >{hours(
+                      data.timesheet.days.reduce((sum, day) => sum + day.expectedMinutes, 0),
+                    )}</td
+                  ><td
+                    >{(() => {
+                      const difference = data.timesheet.days.reduce(
+                        (sum, day) => sum + day.differenceMinutes,
+                        0,
+                      );
+                      return `${difference > 0 ? '+' : ''}${hours(difference)}`;
+                    })()}</td
+                  ><td colspan="2"
+                    >{data.weeklyPay
+                      ? `${hours(data.weeklyPay.approvedMinutes)} approved · ${hours(data.weeklyPay.pendingMinutes)} pending · ${money(data.weeklyPay.estimatedApprovedMinor, data.weeklyPay.currency)} approved estimate`
+                      : 'Review access is limited to operational time.'}</td
+                  ></tr
+                >
+              </tfoot>
+            </table>
+          </div>
+          {#if !isAuditor}
+            <details class="timesheet-copy">
+              <summary>Copy previous week layout</summary>
+              <div class="timesheet-copy-body">
+                <p>
+                  Copies projects, categories and activity labels into zero-minute drafts. It never
+                  copies time values.
+                </p>
+                <form method="POST" action="?/copyTimeLayout">
+                  <input
+                    type="hidden"
+                    name="sourceWeekStart"
+                    value={shiftWeek(data.weekStart, -7)}
+                  />
+                  <input type="hidden" name="targetWeekStart" value={data.weekStart} />
+                  <button type="submit">Add this week’s layout</button>
+                </form>
+              </div>
+            </details>
+          {/if}
+        </section>
+      {/if}
       <div class="worker-form">
         {#if !isAuditor}<form
             method="POST"
@@ -727,8 +855,11 @@
                   >Commissioning</option
                 ><option value="overtime">Overtime</option><option value="standby"
                   >Standby / waiting</option
-                ><option value="travel">Travel</option><option value="training">Training</option
-                ></select
+                ><option value="weekend_holiday">Weekend / holiday</option><option value="travel"
+                  >Travel</option
+                ><option value="remote_support">Remote support</option><option value="training"
+                  >Training</option
+                ><option value="internal">Internal</option></select
               ></label
             ><label
               >Minutes<input
@@ -778,9 +909,11 @@
                             >Commissioning</option
                           ><option value="overtime">Overtime</option><option value="standby"
                             >Standby / waiting</option
-                          ><option value="travel">Travel</option><option value="training"
-                            >Training</option
-                          ></select
+                          ><option value="weekend_holiday">Weekend / holiday</option><option
+                            value="travel">Travel</option
+                          ><option value="remote_support">Remote support</option><option
+                            value="training">Training</option
+                          ><option value="internal">Internal</option></select
                         ></label
                       ><label
                         >Minutes<input

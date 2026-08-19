@@ -85,6 +85,13 @@ type TimeInput = Readonly<{
   summary: string;
 }>;
 
+const shiftIsoDate = (value: string, days: number): string => {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(date.valueOf())) throw new ValidationError('Invalid ISO date');
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+};
+
 type ExpenseInput = Readonly<{
   projectId: string;
   spentOn: string;
@@ -4243,9 +4250,127 @@ export class PortalRepository {
     this.assertReadable(principal);
     return this.sqlite
       .prepare(
-        'SELECT t.id,t.project_id,t.work_date,t.category,t.minutes,t.activity_summary,t.approval_state,t.billability_state,t.version,p.project_number,p.name project_name FROM time_entry t JOIN project p ON p.id=t.project_id WHERE t.worker_id=? ORDER BY t.work_date DESC,t.created_at DESC LIMIT 100',
+        'SELECT t.id,t.project_id,t.work_date,t.category,t.activity_code,t.minutes,t.activity_summary,t.approval_state,t.billability_state,t.version,p.project_number,p.name project_name FROM time_entry t JOIN project p ON p.id=t.project_id WHERE t.worker_id=? ORDER BY t.work_date DESC,t.created_at DESC LIMIT 400',
       )
       .all(principal.userId);
+  }
+
+  listOwnTimeWeek(principal: Principal, weekStart: string) {
+    this.assertReadable(principal);
+    assertDate(weekStart, 'Week start');
+    const weekEnd = shiftIsoDate(weekStart, 6);
+    return {
+      weekStart,
+      weekEnd,
+      rows: this.sqlite
+        .prepare(
+          'SELECT t.id,t.project_id,t.work_date,t.category,t.activity_code,t.minutes,t.activity_summary,t.approval_state,t.billability_state,t.version,p.project_number,p.name project_name FROM time_entry t JOIN project p ON p.id=t.project_id WHERE t.worker_id=? AND t.work_date BETWEEN ? AND ? ORDER BY t.work_date,t.created_at,t.id',
+        )
+        .all(principal.userId, weekStart, weekEnd),
+    };
+  }
+
+  copyOwnTimeLayout(
+    principal: Principal,
+    sourceWeekStart: string,
+    targetWeekStart: string,
+  ): { created: number; skipped: number; sourceWeekStart: string; targetWeekStart: string } {
+    this.assertActive(principal);
+    assertDate(sourceWeekStart, 'Source week start');
+    assertDate(targetWeekStart, 'Target week start');
+    if (sourceWeekStart === targetWeekStart)
+      throw new ValidationError('Source and target weeks must differ');
+    const sourceWeekEnd = shiftIsoDate(sourceWeekStart, 6);
+    const sourceRows = this.sqlite
+      .prepare(
+        "SELECT project_id,work_date,category,activity_code,activity_summary FROM time_entry WHERE worker_id=? AND work_date BETWEEN ? AND ? AND approval_state<>'rejected' ORDER BY work_date,id",
+      )
+      .all(principal.userId, sourceWeekStart, sourceWeekEnd) as Array<{
+      project_id: string;
+      work_date: string;
+      category: string;
+      activity_code: string | null;
+      activity_summary: string;
+    }>;
+    let created = 0;
+    let skipped = 0;
+    this.transaction(() => {
+      for (const row of sourceRows) {
+        const offset = Math.round(
+          (Date.parse(`${row.work_date}T00:00:00.000Z`) -
+            Date.parse(`${sourceWeekStart}T00:00:00.000Z`)) /
+            86_400_000,
+        );
+        if (offset < 0 || offset > 6) {
+          skipped += 1;
+          continue;
+        }
+        const targetDate = shiftIsoDate(targetWeekStart, offset);
+        const assignment = this.sqlite
+          .prepare(
+            "SELECT p.timezone FROM project_member pm JOIN project p ON p.id=pm.project_id WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active' AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)",
+          )
+          .get(row.project_id, principal.userId, targetDate, targetDate) as
+          | { timezone: string }
+          | undefined;
+        if (!assignment) {
+          skipped += 1;
+          continue;
+        }
+        const duplicate = this.sqlite
+          .prepare(
+            "SELECT 1 FROM time_entry WHERE worker_id=? AND project_id=? AND work_date=? AND category=? AND COALESCE(activity_code,'')=COALESCE(?,'') AND activity_summary=? LIMIT 1",
+          )
+          .get(
+            principal.userId,
+            row.project_id,
+            targetDate,
+            row.category,
+            row.activity_code,
+            row.activity_summary,
+          );
+        if (duplicate) {
+          skipped += 1;
+          continue;
+        }
+        const id = newId();
+        const nowValue = now();
+        this.sqlite
+          .prepare(
+            'INSERT INTO time_entry(id,project_id,worker_id,work_date,category,activity_code,minutes,project_timezone,activity_summary,approval_state,billability_state,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          )
+          .run(
+            id,
+            row.project_id,
+            principal.userId,
+            targetDate,
+            row.category,
+            row.activity_code,
+            0,
+            assignment.timezone,
+            row.activity_summary,
+            'draft',
+            'pending',
+            nowValue,
+            nowValue,
+          );
+        created += 1;
+      }
+      this.audit(
+        principal,
+        'time.copy_layout',
+        'time_entry',
+        `${sourceWeekStart}:${targetWeekStart}`,
+        {
+          sourceWeekStart,
+          targetWeekStart,
+          created,
+          skipped,
+          valuesCopied: false,
+        },
+      );
+    });
+    return { created, skipped, sourceWeekStart, targetWeekStart };
   }
 
   listOwnExpenses(principal: Principal) {

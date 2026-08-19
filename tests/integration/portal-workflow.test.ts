@@ -275,4 +275,81 @@ describe('V3 operational and billing workflow', () => {
     ).toBeGreaterThan(20);
     sqlite.close();
   });
+
+  it('shows a weekly time window and copies only the prior layout into zero-minute drafts', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'ja-timesheet-'));
+    directories.push(directory);
+    const { sqlite } = createDatabase(join(directory, 'app.db'));
+    const repository = new PortalRepository(sqlite);
+    seedUser(sqlite, 'owner', 'owner_admin');
+    seedUser(sqlite, 'worker', 'worker');
+    const owner: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
+    const client = repository.createClient(owner, {
+      legalName: 'Timesheet Client',
+      displayName: 'Timesheet Client',
+      currency: 'USD',
+      timezone: 'America/New_York',
+    });
+    const project = repository.createProject(owner, {
+      clientId: client.id,
+      name: 'Weekly layout project',
+      timezone: 'America/New_York',
+      currency: 'USD',
+      billingModel: 'tm',
+    });
+    repository.assignWorker(owner, {
+      projectId: project.id,
+      workerId: 'worker',
+      startsOn: '2026-08-01',
+    });
+    const worker = repository.principalFor('worker');
+    const sourceMonday = repository.createTimeEntry(worker, {
+      projectId: project.id,
+      workDate: '2026-08-03',
+      category: 'regular',
+      activityCode: 'LAYOUT',
+      minutes: 480,
+      summary: 'Panel checkout',
+    });
+    repository.createTimeEntry(worker, {
+      projectId: project.id,
+      workDate: '2026-08-04',
+      category: 'standby',
+      activityCode: 'WAIT',
+      minutes: 60,
+      summary: 'Production clearance',
+    });
+    const week = repository.listOwnTimeWeek(worker, '2026-08-03');
+    expect(week.rows).toHaveLength(2);
+    expect(week.weekEnd).toBe('2026-08-09');
+    const copied = repository.copyOwnTimeLayout(worker, '2026-08-03', '2026-08-10');
+    expect(copied).toMatchObject({ created: 2, skipped: 0, targetWeekStart: '2026-08-10' });
+    const target = repository.listOwnTimeWeek(worker, '2026-08-10').rows as Array<{
+      work_date: string;
+      category: string;
+      activity_code: string | null;
+      minutes: number;
+      activity_summary: string;
+      approval_state: string;
+    }>;
+    expect(
+      target.map((row) => [row.work_date, row.category, row.activity_code, row.minutes]),
+    ).toEqual([
+      ['2026-08-10', 'regular', 'LAYOUT', 0],
+      ['2026-08-11', 'standby', 'WAIT', 0],
+    ]);
+    expect(target.every((row) => row.approval_state === 'draft')).toBe(true);
+    expect(
+      (
+        sqlite.prepare('SELECT minutes FROM time_entry WHERE id=?').get(sourceMonday.id) as {
+          minutes: number;
+        }
+      ).minutes,
+    ).toBe(480);
+    expect(repository.copyOwnTimeLayout(worker, '2026-08-03', '2026-08-10')).toMatchObject({
+      created: 0,
+      skipped: 2,
+    });
+    sqlite.close();
+  });
 });

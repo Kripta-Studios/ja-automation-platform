@@ -2318,6 +2318,182 @@ button:disabled {
 }
 
 /* Shared portal surfaces -------------------------------------------------- */
+.timesheet-panel {
+  margin-bottom: 1.15rem;
+  padding: clamp(1.15rem, 2vw, 1.55rem);
+  border: 1px solid #dfe7ee;
+  border-radius: var(--ja-radius);
+  background: #fff;
+  box-shadow: var(--ja-shadow-soft);
+}
+
+.timesheet-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.15rem;
+}
+
+.timesheet-heading h2 {
+  margin: 0.3rem 0 0.35rem;
+  color: #183247;
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  letter-spacing: -0.035em;
+}
+
+.timesheet-heading p {
+  max-width: 48rem;
+  margin: 0;
+  color: #6d8290;
+  font-size: 0.78rem;
+}
+
+.timesheet-period,
+.timesheet-copy-body form {
+  display: flex;
+  align-items: end;
+  gap: 0.55rem;
+}
+
+.timesheet-period label {
+  display: grid;
+  gap: 0.3rem;
+  color: #587181;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.timesheet-period input {
+  min-height: 2.55rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #d7e2e8;
+  border-radius: 0.5rem;
+  color: #20394c;
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.timesheet-period button,
+.timesheet-copy button {
+  min-height: 2.55rem;
+  padding: 0.55rem 0.85rem;
+  color: #fff;
+  border: 1px solid #173b52;
+  border-radius: 0.5rem;
+  background: #173b52;
+  font-size: 0.72rem;
+  font-weight: 760;
+}
+
+.timesheet-period button:hover,
+.timesheet-copy button:hover {
+  background: #0d6070;
+}
+
+.timesheet-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e0e8ed;
+  border-radius: 0.6rem;
+}
+
+.timesheet-table {
+  width: 100%;
+  min-width: 46rem;
+  border-collapse: collapse;
+  color: #274253;
+  font-size: 0.76rem;
+}
+
+.timesheet-table th,
+.timesheet-table td {
+  padding: 0.7rem 0.75rem;
+  border-bottom: 1px solid #e6edf1;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.timesheet-table thead th {
+  color: #617887;
+  background: #f4f8fa;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.timesheet-table tbody th {
+  color: #183247;
+  font-weight: 760;
+}
+
+.timesheet-table tbody th small {
+  display: block;
+  margin-top: 0.15rem;
+  color: #7b8d99;
+  font-size: 0.66rem;
+  font-weight: 500;
+}
+
+.timesheet-table tbody tr:last-child th,
+.timesheet-table tbody tr:last-child td,
+.timesheet-table tfoot th,
+.timesheet-table tfoot td {
+  border-bottom: 0;
+}
+
+.timesheet-table tfoot {
+  background: #f7fafb;
+  font-weight: 760;
+}
+
+.timesheet-table .positive {
+  color: #0a756a;
+}
+
+.timesheet-table .negative,
+.timesheet-exception .timesheet-status {
+  color: #b34538;
+}
+
+.timesheet-status {
+  color: #476777;
+  font-size: 0.68rem;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.timesheet-copy {
+  margin-top: 0.95rem;
+  border-top: 1px solid #e4ebef;
+  padding-top: 0.85rem;
+}
+
+.timesheet-copy summary {
+  color: #0d6070;
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 760;
+}
+
+.timesheet-copy-body {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.75rem;
+}
+
+.timesheet-copy-body p {
+  max-width: 44rem;
+  margin: 0;
+  color: #6d8290;
+  font-size: 0.74rem;
+}
+
 .portal-grid,
 .worker-form,
 .report-workspace,
@@ -3029,6 +3205,16 @@ button:disabled {
 }
 
 @media (max-width: 760px) {
+  .timesheet-heading,
+  .timesheet-copy-body {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .timesheet-period {
+    align-items: end;
+  }
+
   .login-page {
     grid-template-columns: 1fr;
   }
@@ -3131,6 +3317,19 @@ button:disabled {
 }
 
 @media (max-width: 520px) {
+  .timesheet-panel {
+    padding: 1rem;
+  }
+
+  .timesheet-period {
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+
+  .timesheet-period label {
+    min-width: 0;
+  }
+
   .login-proof {
     grid-template-columns: 1fr;
     gap: 0.65rem;

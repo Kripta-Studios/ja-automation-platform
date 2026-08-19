@@ -1,5 +1,5 @@
 FROM node:24.19.0-bookworm-slim AS build
-ARG JA_PORTAL_ASSETS_URL=https://gex-dashboard.hopto.org/j-aautomation/portal-assets
+ARG JA_PORTAL_ASSETS_URL=
 ENV JA_PORTAL_ASSETS_URL=$JA_PORTAL_ASSETS_URL
 WORKDIR /workspace
 RUN corepack enable && corepack prepare pnpm@11.22.0 --activate

@@ -80,16 +80,20 @@ progress are privacy-filtered at the repository boundary.
 
 Worker responses contain no client rate, internal cost, margin, revenue, or another worker's pay;
 privacy tests assert this structurally and by serialized response inspection. Portal forms preserve
-copy-layout behavior without copying time values, support exceptions and approval states, and keep
-finance time-economics traceable from actual → approved → billable → contractual adjustment → worker
-compensation → internal cost → revenue candidate → invoice state.
+copy-layout behavior without copying time values, support exceptions and approval states, and now
+provide a weekly Mon–Sat timesheet with period navigation, category totals, difference flags and
+zero-minute prior-week layout drafts. The integration suite proves copied labels/categories never
+copy source minutes. Finance time-economics remains traceable from actual → approved → billable →
+contractual adjustment → worker compensation → internal cost → revenue candidate → invoice state.
 
 ## Phase 4 — reports, invoices, and Accounting Pack artifacts
 
 Status: complete.
 
 `packages/reporting/src/exports.ts` is the single Playwright/Chromium HTML/CSS renderer used by
-interactive and scheduled paths. The former handcrafted `simplePdf` path is retired. Versioned
+interactive and scheduled paths, and `packages/reporting/src/artifact-jobs.ts` is the shared job
+orchestrator used by both the portal Finance action and the durable production runner. The former
+handcrafted `simplePdf` path is retired. Versioned
 template `2026.08.19.2` output is generated from immutable snapshots, persisted under stable
 idempotent keys, SHA-256 hashed, byte-counted, and traceable to the source/template version.
 Labor detailed/summary, expense, fixed/milestone, credit/adjustment, daily/period, technical/PLC,
@@ -99,6 +103,10 @@ periods, issuing invoices, or creating an Accounting Pack, while structured doma
 language-neutral. Reporting tests verify long multipage invoices, overflow-safe descriptions,
 tax/currency rendering, locale selection, and repeat generation. Accounting exports include
 reconciled PDF/XLSX/CSV registers.
+
+The portal production package declares Playwright as an explicit runtime dependency so the
+`pnpm deploy --prod` image exposes the renderer to the bundled durable runner. A fresh UID-10001
+image rehearsal confirmed scheduled invoice and Accounting Pack Chromium generation.
 
 ## Phase 5 — portal architecture, responsive UX, localization
 
@@ -162,6 +170,9 @@ Validation evidence:
 
 - `docker compose -f deployment/compose.production.yml config --quiet`: pass.
 - Caddy snippet adapted and validated with the Caddy 2 container: `Valid configuration`.
+- The production portal image now defaults to same-origin assets (`JA_PORTAL_ASSETS_URL` unset),
+  and Caddy explicitly proxies `/j-aautomation/_app/*` to the portal. This keeps the strict
+  same-origin CSP compatible with the deployed bundle without a hard-coded GEX asset origin.
 - Site image rehearsal: `/j-aautomation/en` HTTP 200.
 - Portal image rehearsal after installer-equivalent UID 10001 directory provisioning: live 200,
   detailed API health 200, migration 17/17, writable directories true, write-ready true.
@@ -171,32 +182,43 @@ Validation evidence:
   and the test volume were removed afterward.
 - Seeded jobs image rehearsal with explicit finance actor and synthetic HTTPS outbox receiver:
   6 jobs completed, 6 deliveries processed, 0 final failures.
+- Corrected final-image artifact rehearsal (`ja-automation-portal:v3-final`): two invoice PDF jobs,
+  one Accounting Pack job and scheduled core jobs completed with 6 queued jobs and 0 artifact
+  failures; the subsequent synthetic HTTPS outbox receiver accepted all 8 pending deliveries with
+  0 failures. Both invoice PDF hashes and all five Accounting Pack export hashes/byte lengths
+  matched their SQLite metadata. The image contains a top-level Playwright runtime link supplied
+  by `apps/portal/package.json`.
+- Final-image read-only container smoke on a disposable SQLite volume passed after installer-style
+  private-directory provisioning: `/j-aautomation/health/ready` returned 200, detailed health showed
+  migration 17/17, WAL/integrity OK, writable directories and write readiness true, and the
+  same-origin portal CSS asset returned 200.
 - `pnpm ops:backup:test`: pass; `pnpm ops:restore-test`: pass.
 
 ## Acceptance command results
 
 All commands were run under Node 24.19.0/pnpm 11.22.0 unless noted.
 
-| Gate                                                               | Result                                                         |
-| ------------------------------------------------------------------ | -------------------------------------------------------------- |
-| `pnpm install --frozen-lockfile`                                   | Pass; Node 24.19.0/pnpm 11.22.0, lockfile policy verified      |
-| `pnpm typecheck`                                                   | Pass; 10 workspace projects checked                            |
-| `pnpm format:check`                                                | Pass                                                           |
-| `pnpm lint`                                                        | Pass; zero findings                                            |
-| `pnpm test:unit`                                                   | Pass; 9 files, 22 tests                                        |
-| `pnpm test:integration`                                            | Pass; 5 files, 9 tests                                         |
-| `pnpm test:invariants`                                             | Pass; 1 file, 1 test                                           |
-| `pnpm test:security`                                               | Pass; 4 files, 8 tests                                         |
-| `pnpm test:offline`                                                | Pass; 1 file, 2 tests                                          |
-| `pnpm test:reporting` with `JA_CHROMIUM_PATH=/usr/bin/chromium`    | Pass; 1 file, 3 tests (EN/PT-BR/ES locale coverage)            |
-| `pnpm build`                                                       | Pass; Next.js 219 generated routes and portal production build |
-| `pnpm jobs:build`                                                  | Pass; durable runner bundle                                    |
-| `pnpm db:migrate:fresh && pnpm db:integrity && pnpm db:check`      | Pass; WAL, FK, integrity and migration 17                      |
-| populated migration upgrade (`tests/integration/database.test.ts`) | Pass; business rows preserved through 17                       |
-| full Playwright E2E with Chromium                                  | Pass; 16 tests, 13 passed, 3 intentional scope skips           |
-| Axe accessibility E2E                                              | Pass; 4 tests (phone/desktop public + portal)                  |
-| backup/restore drills                                              | Pass                                                           |
-| staged deploy/rollback rehearsal                                   | Pass; final3 release and final2 rollback both healthy          |
+| Gate                                                               | Result                                                                      |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile`                                   | Pass; Node 24.19.0/pnpm 11.22.0, lockfile policy verified                   |
+| `pnpm typecheck`                                                   | Pass; 10 workspace projects checked                                         |
+| `pnpm format:check`                                                | Pass                                                                        |
+| `pnpm lint`                                                        | Pass; zero findings                                                         |
+| `pnpm test:unit`                                                   | Pass; 10 files, 23 tests                                                    |
+| `pnpm test:integration`                                            | Pass; 5 files, 10 tests                                                     |
+| `pnpm test:invariants`                                             | Pass; 1 file, 1 test                                                        |
+| `pnpm test:security`                                               | Pass; 4 files, 8 tests                                                      |
+| `pnpm test:offline`                                                | Pass; 1 file, 2 tests                                                       |
+| `pnpm test:reporting` with `JA_CHROMIUM_PATH=/usr/bin/chromium`    | Pass; 1 file, 3 tests (EN/PT-BR/ES locale coverage)                         |
+| `pnpm build`                                                       | Pass; Next.js 219 generated routes and portal production build              |
+| `pnpm jobs:build`                                                  | Pass; durable runner bundle                                                 |
+| `pnpm db:migrate:fresh && pnpm db:integrity && pnpm db:check`      | Pass; WAL, FK, integrity and migration 17                                   |
+| populated migration upgrade (`tests/integration/database.test.ts`) | Pass; business rows preserved through 17                                    |
+| full Playwright E2E with Chromium                                  | Pass; 16 tests, 13 passed, 3 intentional scope skips                        |
+| Axe accessibility E2E                                              | Pass; 4 tests (phone/desktop public + portal)                               |
+| final-image visual QA                                              | Pass; styled weekly timesheet at 390×844 and 1440×900; no document overflow |
+| backup/restore drills                                              | Pass                                                                        |
+| staged deploy/rollback rehearsal                                   | Pass; final3 release and final2 rollback both healthy                       |
 
 The three E2E skips are intentional viewport/role scope guards (desktop-only offline flow,
 phone-only worker mutation flow, and desktop-only public viewport matrix); no required behavior is
@@ -208,7 +230,8 @@ hidden behind a skip.
   migration 17. No migration was squashed or renumbered.
 - Report language selection is persisted in immutable invoice, period-report, and Accounting Pack
   snapshots, so no schema migration is needed for this language-neutral structured-data extension.
-- `simplePdf` and the duplicate portal/job artifact implementation were retired/consolidated.
+- `simplePdf` and the duplicate portal/job artifact implementation were retired/consolidated behind
+  `packages/reporting/src/artifact-jobs.ts`; the shared handler contract has a focused unit test.
 - `docs/MVP_DEMO_STATUS.md` remains historical only. Obsolete .NET/PostgreSQL code was not
   exhaustively traversed because the revised specification does not require it.
 - Software-verifiable requirements have no known implementation blocker. External configuration still

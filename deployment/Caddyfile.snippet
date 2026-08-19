@@ -3,6 +3,9 @@ handle_path /j-aautomation/portal-assets/* {
   rewrite * /j-aautomation{path}
   reverse_proxy 127.0.0.1:5100
 }
+handle /j-aautomation/_app/* {
+  reverse_proxy 127.0.0.1:5100
+}
 handle /j-aautomation/app* {
   reverse_proxy 127.0.0.1:5100
 }

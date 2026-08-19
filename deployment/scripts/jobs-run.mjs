@@ -1,13 +1,8 @@
-import { createHash, createHmac } from 'node:crypto';
-import { mkdirSync, readFileSync, statfsSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { createHmac } from 'node:crypto';
+import { statfsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { createDatabase, PortalRepository, V3Repository } from '@ja/database';
-import {
-  accountingPackArtifacts,
-  invoicePdf,
-  periodReportPdf,
-  REPORT_TEMPLATE_VERSION,
-} from '@ja/reporting';
+import { runArtifactJobs } from '@ja/reporting';
 import { sendOperationalAlert } from './alerts.mjs';
 
 const root = resolve(process.env.JA_DOCUMENT_ROOT ?? '/var/lib/jaautomation/files');
@@ -38,31 +33,6 @@ function assertDiskReady() {
     throw new Error('Private document volume is below free-space threshold');
 }
 
-function safeKey(key) {
-  if (!key || key.startsWith('/') || key.includes('\\') || key.split('/').includes('..'))
-    throw new Error('Unsafe artifact key');
-}
-
-function writeArtifact(key, bytes) {
-  safeKey(key);
-  const target = resolve(root, key);
-  const relative = target.slice(root.length).replaceAll('\\', '/');
-  if (!relative.startsWith('/') || relative.includes('/../'))
-    throw new Error('Artifact path escaped private root');
-  mkdirSync(dirname(target), { recursive: true });
-  let persisted = bytes;
-  try {
-    writeFileSync(target, bytes, { flag: 'wx' });
-  } catch (error) {
-    if (error?.code !== 'EEXIST') throw error;
-    persisted = readFileSync(target);
-  }
-  return {
-    sha256: createHash('sha256').update(persisted).digest('hex'),
-    byteLength: persisted.byteLength,
-  };
-}
-
 const database = createDatabase(databasePath);
 const sqlite = database.sqlite;
 try {
@@ -84,82 +54,7 @@ try {
   const repository = new PortalRepository(sqlite);
   const v3 = new V3Repository(sqlite);
   v3.scheduleCoreJobs();
-  const result = v3.runDueJobs(20, {
-    invoice_pdf: (payload) => {
-      const invoiceId = String(payload?.invoiceId ?? '');
-      if (!invoiceId) throw new Error('Invoice PDF job has no invoice id');
-      const snapshot = v3.invoiceSnapshot(principal, invoiceId);
-      const bytes = invoicePdf(snapshot);
-      const metadata = writeArtifact(`invoices/${invoiceId}/${REPORT_TEMPLATE_VERSION}.pdf`, bytes);
-      v3.recordInvoicePdf(
-        principal,
-        invoiceId,
-        `invoices/${invoiceId}/${REPORT_TEMPLATE_VERSION}.pdf`,
-        metadata.sha256,
-        metadata.byteLength,
-      );
-    },
-    period_close_report: (payload) => {
-      const projectId = String(payload?.projectId ?? '');
-      const periodStart = String(payload?.periodStart ?? '');
-      const periodEnd = String(payload?.periodEnd ?? '');
-      if (!projectId || !periodStart || !periodEnd)
-        throw new Error('Period report job has incomplete period data');
-      const reports = v3.refreshPeriodReports(principal, { projectId, periodStart, periodEnd });
-      for (const report of reports) {
-        const bytes = periodReportPdf(report.snapshot);
-        const key = `reports/${report.id}/${REPORT_TEMPLATE_VERSION}.pdf`;
-        const metadata = writeArtifact(key, bytes);
-        v3.recordPeriodReportPdf(principal, report.id, key, metadata.sha256, metadata.byteLength);
-      }
-    },
-    auto_draft: (payload) => {
-      const billingRuleId = String(payload?.billingRuleId ?? '');
-      const periodStart = String(payload?.periodStart ?? '');
-      const periodEnd = String(payload?.periodEnd ?? '');
-      if (!billingRuleId || !periodStart || !periodEnd)
-        throw new Error('Automatic draft job has incomplete period data');
-      repository.createInvoiceDraft(principal, billingRuleId, periodStart, periodEnd);
-    },
-    accounting_pack: (payload) => {
-      const packId = String(payload?.packId ?? '');
-      if (!packId) throw new Error('Accounting Pack job has no pack id');
-      const snapshot = v3.accountingPackSnapshot(principal, packId);
-      const artifacts = accountingPackArtifacts({
-        ...snapshot,
-        invoiceRegister: snapshot.invoiceRegister ?? [],
-        collections: snapshot.collections ?? [],
-        workerCosts: snapshot.workerCosts ?? [],
-        expenseRegister: snapshot.expenseRegister ?? [],
-        totals: snapshot.totals ?? {},
-      });
-      for (const { type, extension, bytes } of artifacts) {
-        const key = `accounting-packs/${packId}/${type}-${REPORT_TEMPLATE_VERSION}.${extension}`;
-        const metadata = writeArtifact(key, bytes);
-        v3.recordAccountingPackExport(
-          principal,
-          packId,
-          type,
-          key,
-          metadata.sha256,
-          metadata.byteLength,
-        );
-      }
-    },
-    document_scan: (payload) => {
-      const documentId = String(payload?.documentId ?? '');
-      if (!documentId) throw new Error('Document scan job has no document id');
-      const result = process.env.JA_MALWARE_SCANNER_RESULT;
-      if (result !== 'clean' && result !== 'rejected')
-        throw new Error('Malware scanner decision is unavailable');
-      v3.recordDocumentScan(
-        principal,
-        documentId,
-        result,
-        process.env.JA_MALWARE_SCANNER_PROVIDER ?? 'configured-scanner',
-      );
-    },
-  });
+  const result = runArtifactJobs({ repository, v3, principal, documentRoot: root });
   const webhookUrl = process.env.JA_OUTBOX_WEBHOOK_URL;
   const webhookSecret = process.env.JA_OUTBOX_WEBHOOK_SECRET;
   const outbox = await v3.runDueOutbox(20, async (event) => {

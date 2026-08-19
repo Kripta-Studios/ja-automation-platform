@@ -19,6 +19,7 @@
     "@ja/ui-tokens": "workspace:*",
     "better-auth": "catalog:",
     "idb": "catalog:",
+    "playwright": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

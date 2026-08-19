@@ -3,6 +3,9 @@ export type Readiness = {
   reasons: readonly { code: string; sourceId?: string }[];
 };
 
+export { runArtifactJobs } from './artifact-jobs.ts';
+export type { ArtifactJobContext, ArtifactJobRepository, ArtifactJobV3 } from './artifact-jobs.ts';
+
 export {
   accountingPackArtifacts,
   accountingPackCsv,

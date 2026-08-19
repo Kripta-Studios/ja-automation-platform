@@ -46,7 +46,17 @@ test('critical portal surfaces render without runtime errors', async ({ page }, 
   page.on('requestfailed', (request) =>
     browserErrors.push(`REQUEST ${request.url()} ${request.failure()?.errorText}`),
   );
-  await page.goto(portal('/login'), { waitUntil: 'networkidle' });
+  page.on('response', (response) => {
+    if (response.status() >= 400)
+      browserErrors.push(`RESPONSE ${response.status()} ${response.url()}`);
+  });
+  const loginResponse = await page.goto(portal('/login'), { waitUntil: 'networkidle' });
+  expect(loginResponse).not.toBeNull();
+  const csp = loginResponse?.headers()['content-security-policy'] ?? '';
+  expect(csp).toContain("default-src 'self'");
+  expect(csp).toContain("style-src 'self'");
+  expect(csp).not.toContain("'unsafe-inline'");
+  expect(loginResponse?.headers()['x-correlation-id']).toMatch(/^[A-Za-z0-9._:-]{8,96}$/);
   await expect(
     page.getByRole('heading', { name: 'Everything in the field, clearly in view.' }),
   ).toBeVisible();
@@ -73,6 +83,8 @@ test('critical portal surfaces render without runtime errors', async ({ page }, 
     await expect(page).toHaveURL(portal(''));
     await page.waitForLoadState('networkidle');
     await expect(page.getByRole('heading', { name: 'Field operations overview' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'PLC / Technical' })).toBeVisible();
     await page.screenshot({
       path: testInfo.outputPath(`admin-dashboard-${testInfo.project.name}.png`),
       fullPage: true,
@@ -102,6 +114,29 @@ test('critical portal surfaces render without runtime errors', async ({ page }, 
     await expectNoHorizontalOverflow(page);
   }
   expect(browserErrors).toEqual([]);
+});
+
+test('portal language switcher translates navigation without changing data routes', async ({
+  page,
+}) => {
+  await page.goto(portal('/login'));
+  await page.getByRole('button', { name: 'Field worker' }).click();
+  await expect(page).toHaveURL(portal(''));
+  await page.waitForLoadState('networkidle');
+  await page.goto(portal('/?lang=pt'));
+  const ptProjects =
+    page.viewportSize()?.width && page.viewportSize()!.width < 700
+      ? page.getByLabel('Mobile navigation').getByRole('link', { name: 'Projetos' })
+      : page.getByRole('link', { name: 'Projetos' });
+  await expect(ptProjects).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Idioma' })).toHaveValue('pt');
+  await page.getByRole('combobox', { name: 'Idioma' }).selectOption('es');
+  const esProjects =
+    page.viewportSize()?.width && page.viewportSize()!.width < 700
+      ? page.getByLabel('Mobile navigation').getByRole('link', { name: 'Proyectos' })
+      : page.getByRole('link', { name: 'Proyectos' });
+  await expect(esProjects).toBeVisible();
+  await expect(page).toHaveURL(/lang=es/);
 });
 
 test('worker can record time, a daily report and a receipt expense', async ({ page }, testInfo) => {
@@ -161,6 +196,13 @@ test('worker can create an offline time draft and sync it once online', async ({
   await page.getByRole('button', { name: 'Field worker' }).click();
   await expect(page).toHaveURL(portal(''));
   await page.goto(portal('/time'));
+  // Prime every worker-safe route before taking the browser offline. The
+  // service worker may serve these cached shells while all API calls remain
+  // intentionally uncached.
+  await page.goto(portal('/reports'));
+  await page.goto(portal('/expenses'));
+  await page.goto(portal('/time'));
+  await page.waitForLoadState('networkidle');
   await page.waitForFunction(() => 'serviceWorker' in navigator);
   await page.waitForFunction(
     async () => (await navigator.serviceWorker.getRegistrations()).length > 0,
@@ -187,4 +229,79 @@ test('worker can create an offline time draft and sync it once online', async ({
   await page.context().setOffline(false);
   await page.evaluate(() => dispatchEvent(new Event('online')));
   await expect(page.getByText(/1 synced/)).toBeVisible({ timeout: 15_000 });
+
+  await page.goto(portal('/reports'));
+  await page.waitForLoadState('networkidle');
+  await page.context().setOffline(true);
+  await page.evaluate(() => dispatchEvent(new Event('offline')));
+  await expect(page.getByText('Offline', { exact: true })).toBeVisible();
+
+  const daily = page.locator('form[action="?/createDailyReport"]');
+  await daily.locator('select[name="projectId"]').selectOption({ index: 1 });
+  await daily.locator('input[name="workDate"]').fill('2026-08-24');
+  await daily.locator('textarea[name="summary"]').fill('Offline daily report draft.');
+  await daily.locator('textarea[name="tasksCompleted"]').fill('Offline task record.');
+  await daily.getByRole('button', { name: 'Save daily report' }).click();
+  await expect(page.getByText('Offline — saved on this device')).toBeVisible();
+
+  const technical = page.locator('details').nth(1);
+  await technical.locator('summary').click();
+  const technicalForm = technical.locator('form[action="?/createTechnicalReport"]');
+  await technicalForm.locator('select[name="projectId"]').selectOption({ index: 1 });
+  await technicalForm.locator('input[name="systemName"]').fill('Offline PLC station');
+  await technicalForm
+    .locator('textarea[name="changeSummary"]')
+    .fill('Offline technical change draft.');
+  await technicalForm.getByRole('button', { name: 'Save PLC report' }).click();
+  await expect(page.getByText('Offline — saved on this device')).toBeVisible();
+
+  await page.context().setOffline(false);
+  await page.evaluate(() => dispatchEvent(new Event('online')));
+  await expect(page.getByText(/2 synced/)).toBeVisible({ timeout: 20_000 });
+
+  await page.goto(portal('/expenses'));
+  await page.waitForLoadState('networkidle');
+  await page.context().setOffline(true);
+  await page.evaluate(() => dispatchEvent(new Event('offline')));
+  await expect(page.getByText('Offline', { exact: true })).toBeVisible();
+  const offlineExpense = page.locator('form[action="?/createExpense"]');
+  await offlineExpense.locator('select[name="projectId"]').selectOption({ index: 1 });
+  await offlineExpense.locator('input[name="spentOn"]').fill('2026-08-24');
+  await offlineExpense.locator('input[name="vendor"]').fill('Offline hotel');
+  await offlineExpense.locator('input[name="amount"]').fill('18.75');
+  await offlineExpense.locator('textarea[name="description"]').fill('Offline receipt queue test.');
+  await offlineExpense.locator('select[name="clientTreatment"]').selectOption('reimbursable');
+  await offlineExpense.locator('input[name="receipt"]').setInputFiles({
+    name: 'offline-receipt.jpg',
+    mimeType: 'image/jpeg',
+    buffer: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+  });
+  await offlineExpense.getByRole('button', { name: 'Save draft' }).click();
+  await expect(page.getByText('Offline — saved on this device')).toBeVisible();
+  await expect(page.getByText(/1 queued/)).toBeVisible();
+
+  await page.context().setOffline(false);
+  await page.evaluate(() => dispatchEvent(new Event('online')));
+  await expect(page.getByText(/1 synced/)).toBeVisible({ timeout: 20_000 });
+  const offlineState = await page.evaluate(async () => {
+    const request = indexedDB.open('ja-portal-user-cache', 2);
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const transaction = database.transaction(['mutations', 'attachments'], 'readonly');
+    const mutations = await new Promise<number>((resolve, reject) => {
+      const count = transaction.objectStore('mutations').count();
+      count.onsuccess = () => resolve(count.result);
+      count.onerror = () => reject(count.error);
+    });
+    const attachments = await new Promise<number>((resolve, reject) => {
+      const count = transaction.objectStore('attachments').count();
+      count.onsuccess = () => resolve(count.result);
+      count.onerror = () => reject(count.error);
+    });
+    database.close();
+    return { mutations, attachments };
+  });
+  expect(offlineState).toEqual({ mutations: 0, attachments: 0 });
 });

@@ -119,6 +119,9 @@ export const projectInputSchema = z.object({
     .optional()
     .transform((value) => (value ? BigInt(value) : undefined)),
   poCapMinor: minorUnitsSchema.optional().transform((value) => (value ? BigInt(value) : undefined)),
+  fixedPriceMinor: minorUnitsSchema
+    .optional()
+    .transform((value) => (value ? BigInt(value) : undefined)),
   laborBudgetMinutes: z.coerce.number().int().nonnegative().optional(),
   travelBudgetMinor: minorUnitsSchema
     .optional()
@@ -306,6 +309,11 @@ export const billingRuleInputSchema = z.object({
   recipientEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
   billingContactId: z.union([z.literal(''), uuidSchema]).optional(),
   paymentTermsDays: z.coerce.number().int().min(0).max(365).default(30),
+  fixedAmountMinor: minorUnitsSchema
+    .optional()
+    .transform((value) => (value ? BigInt(value) : undefined)),
+  includedMinutes: z.coerce.number().int().nonnegative().optional(),
+  monthlyCutoffDay: z.coerce.number().int().min(1).max(28).optional(),
   poNumberOverride: z.string().trim().max(100).optional(),
   semiMonthlyRule: z.string().trim().min(1).max(80).default('1_15_16_end'),
   groupingMode: z
@@ -370,6 +378,15 @@ export const compensationRuleInputSchema = z.object({
   overtimeRateMinor: minorUnitsSchema
     .optional()
     .transform((value) => (value ? BigInt(value) : undefined)),
+  weekendMethod: z
+    .enum(['BASE', 'NONE', 'FIXED_RATE', 'BASE_RATE_MULTIPLIER', 'FIXED_ADDITION_PER_HOUR'])
+    .default('BASE'),
+  travelMethod: z
+    .enum(['BASE', 'NONE', 'FIXED_RATE', 'BASE_RATE_MULTIPLIER', 'FIXED_ADDITION_PER_HOUR'])
+    .default('BASE'),
+  standbyMethod: z
+    .enum(['BASE', 'NONE', 'FIXED_RATE', 'BASE_RATE_MULTIPLIER', 'FIXED_ADDITION_PER_HOUR'])
+    .default('BASE'),
   effectiveFrom: z.iso.date(),
   effectiveTo: z.union([z.literal(''), z.iso.date()]).optional(),
   notes: z.string().trim().max(2000).optional(),

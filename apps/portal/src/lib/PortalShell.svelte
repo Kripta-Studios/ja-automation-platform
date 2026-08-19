@@ -1,8 +1,27 @@
 <script lang="ts">
   import { base } from '$app/paths';
+  import { createAuthClient } from 'better-auth/client';
+  import { passkeyClient } from '@better-auth/passkey/client';
   import { onMount } from 'svelte';
   import {
+    normalizePortalLocale,
+    portalLocales,
+    portalText,
+    translatePortalDom,
+    type PortalLocale,
+  } from './portal-i18n';
+  import {
+    adminNavigation,
+    portalTitles,
+    primaryNavigation,
+    securityNavigation,
+    secondaryNavigation,
+    type NavItem,
+  } from './portal-navigation';
+  import {
     cacheAssignments,
+    conflictMutations,
+    discardMutation,
     getOfflineAssignments,
     purgeUserCache,
     queueMutation,
@@ -13,7 +32,15 @@
 
   type Row = Record<string, string | number | boolean | null>;
   type PortalData = {
-    user: { id?: string; name: string; email: string; role?: string };
+    user: {
+      id?: string;
+      name: string;
+      email: string;
+      role?: string;
+      status?: string;
+      mfaEnrolled?: boolean;
+      mfaRequired?: boolean;
+    };
     section: string;
     projects?: Row[];
     clients?: Row[];
@@ -111,11 +138,27 @@
   let online = $state(true);
   let queue = $state(0);
   let syncMessage = $state('');
+  let conflictItems = $state<Array<{ mutationId: string; entityType: string; createdAt: string }>>(
+    [],
+  );
   let stepUpMessage = $state('');
   let menuOpen = $state(false);
   let offlineProjects = $state<Row[]>([]);
   let expenseClientTreatment = $state('non_billable');
   let expenseBillingTreatment = $state('internal_non_billable');
+  let locale = $state<PortalLocale>('en');
+  let securityMessage = $state('');
+  let passkeyName = $state('');
+  let mfaPassword = $state('');
+  let mfaCode = $state('');
+  let mfaSetupUri = $state('');
+  let mfaBackupCodes = $state<string[]>([]);
+  let passkeys = $state<Array<{ id: string; name?: string | null; createdAt?: Date | string }>>([]);
+  const authClient = createAuthClient({
+    basePath: `${base}/app/api/auth`,
+    plugins: [passkeyClient()],
+  });
+  const translate = (value: string): string => portalText(locale, value);
 
   function syncExpenseTreatment(event: Event): void {
     const value = (event.currentTarget as HTMLSelectElement).value;
@@ -127,47 +170,10 @@
           ? 'all_in'
           : 'internal_non_billable';
   }
-  const navigation = [
-    ['today', 'Today', '⌂'],
-    ['time', 'Time', '◷'],
-    ['reports', 'Reports', '▤'],
-    ['expenses', 'Expenses', '◇'],
-    ['documents', 'Documents', '▧'],
-    ['projects', 'Projects', '▦'],
-    ['pay', 'My Pay', '$'],
-    ['notifications', 'Notifications', '◌'],
-  ];
-  const admin = [
-    ['planning', 'Planning', '⌘'],
-    ['approvals', 'Approvals', '✓'],
-    ['billing', 'Billing', '◫'],
-    ['finance', 'Finance', '↗'],
-  ];
-  const financeAdmin = [
-    ['billing', 'Billing', '◫'],
-    ['finance', 'Finance', '↗'],
-    ['ledger', 'Ledger', '▥'],
-    ['accounting', 'Accounting Pack', '▤'],
-  ];
-  const securityAdmin = [['audit', 'Audit log', '⌁']];
-  const titles: Record<string, string> = {
-    today: 'Today',
-    time: 'Time entries',
-    reports: 'Daily and technical reports',
-    expenses: 'Expenses and receipts',
-    projects: 'Projects',
-    pay: 'My Pay',
-    documents: 'Documents',
-    notifications: 'Notifications',
-    profile: 'Profile and security',
-    planning: 'Resource planning',
-    approvals: 'Approval queue',
-    billing: 'Billing streams',
-    finance: 'Project finance',
-    ledger: 'Invoice / cost ledger',
-    accounting: 'Monthly Accounting Pack',
-    audit: 'Audit log',
-  };
+  const navigation: NavItem[] = primaryNavigation;
+  const admin: NavItem[] = adminNavigation(base);
+  const securityAdmin: NavItem[] = securityNavigation;
+  const titles = portalTitles;
   const isAuditor = $derived(data.user.role === 'auditor_read_only');
   const isManager = $derived(Boolean(data.user.role && data.user.role !== 'worker' && !isAuditor));
   const isFinance = $derived(
@@ -176,6 +182,8 @@
       data.user.role === 'auditor_read_only',
   );
   const canAudit = $derived(data.user.role === 'owner_admin' || isAuditor);
+  const showAdmin = $derived(isManager || isFinance || canAudit);
+  const visibleAdmin = $derived(admin.filter((item) => !item.financeOnly || isFinance));
   const availableProjects = $derived(
     data.projects && data.projects.length > 0 ? data.projects : offlineProjects,
   );
@@ -185,6 +193,7 @@
     );
   const href = (section: string) =>
     section === 'today' ? `${base}/app/` : `${base}/app/${section}`;
+  const itemHref = (item: NavItem) => item.href ?? href(item.section);
   const searchHref = (row: Row) => {
     const id = String(row.id ?? '');
     if (row.type === 'project') return `${base}/app/projects/${id}`;
@@ -203,8 +212,13 @@
       .toUpperCase();
 
   onMount(() => {
+    const queryLocale = new URLSearchParams(location.search).get('lang');
+    const savedLocale = localStorage.getItem('ja-portal-locale');
+    locale = normalizePortalLocale(queryLocale ?? savedLocale ?? navigator.language);
+    localStorage.setItem('ja-portal-locale', locale);
     online = navigator.onLine;
     void queuedCount().then((value) => (queue = value));
+    void conflictMutations().then((items) => (conflictItems = items));
     void getOfflineAssignments().then((value) => {
       offlineProjects = value.map((project) => ({
         id: project.id,
@@ -220,6 +234,7 @@
       try {
         const result = await syncQueuedMutations();
         queue = await queuedCount();
+        conflictItems = await conflictMutations();
         if (result.failed)
           syncMessage = `Sync failed — retry (${result.failed} item${result.failed === 1 ? '' : 's'})`;
         else if (result.accepted || result.conflicts || result.rejected)
@@ -245,6 +260,12 @@
       void navigator.serviceWorker.register(`${base}/app/service-worker.js`, {
         scope: `${base}/app/`,
       });
+    // Demo sessions are intentionally separate from Better Auth sessions.
+    // Only ask the passkey endpoint for a real authenticated Better Auth
+    // session; otherwise its expected 401 would surface as a browser error.
+    void authClient.getSession().then((result) => {
+      if (result.data?.user) void refreshPasskeys();
+    });
     return () => {
       removeEventListener('online', update);
       removeEventListener('offline', update);
@@ -254,11 +275,33 @@
     const projects = data.projects;
     if (projects?.length) void cacheAssignments(projects);
   });
+  $effect(() => {
+    locale;
+    data.section;
+    queueMicrotask(() => {
+      if (typeof document !== 'undefined') translatePortalDom(document.body, locale);
+    });
+  });
   async function logout() {
     await fetch(`${base}/app/api/auth/sign-out`, { method: 'POST' });
     await fetch(`${base}/app/demo-login`, { method: 'DELETE' });
     await purgeUserCache();
     location.assign(`${base}/app/login`);
+  }
+
+  function changeLocale(event: Event): void {
+    const selected = normalizePortalLocale((event.currentTarget as HTMLSelectElement).value);
+    locale = selected;
+    localStorage.setItem('ja-portal-locale', selected);
+    const url = new URL(location.href);
+    url.searchParams.set('lang', selected);
+    history.replaceState({}, '', url);
+  }
+
+  async function discardConflict(mutationId: string) {
+    await discardMutation(mutationId);
+    conflictItems = await conflictMutations();
+    queue = await queuedCount();
   }
   async function stepUp(event: SubmitEvent) {
     event.preventDefault();
@@ -271,6 +314,76 @@
     stepUpMessage = response.ok
       ? 'Step-up authentication is active for the next 10 minutes.'
       : 'Password verification failed.';
+  }
+
+  async function refreshPasskeys(): Promise<void> {
+    const result = await authClient.passkey.listUserPasskeys();
+    if (result.data) passkeys = result.data;
+  }
+
+  async function registerPasskey(event: SubmitEvent): Promise<void> {
+    event.preventDefault();
+    securityMessage = '';
+    const result = await authClient.passkey.addPasskey({
+      name: passkeyName.trim() || 'J&A Portal device',
+    });
+    if (result.error) {
+      securityMessage = result.error.message ?? 'Passkey registration was not completed.';
+      return;
+    }
+    passkeyName = '';
+    securityMessage = 'Passkey registered for this account.';
+    await refreshPasskeys();
+  }
+
+  async function revokePasskey(id: string): Promise<void> {
+    const result = await authClient.passkey.deletePasskey({ id });
+    if (result.error) {
+      securityMessage = result.error.message ?? 'Passkey could not be revoked.';
+      return;
+    }
+    securityMessage = 'Passkey revoked.';
+    await refreshPasskeys();
+  }
+
+  async function toggleMfa(action: 'enable' | 'verify' | 'disable'): Promise<void> {
+    const response = await fetch(`${base}/app/api/security/mfa`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        action,
+        ...(action === 'verify' ? { code: mfaCode } : { password: mfaPassword }),
+      }),
+    });
+    const result = (await response.json().catch(() => ({}))) as {
+      message?: string;
+      error?: string;
+      totpURI?: string;
+      backupCodes?: string[];
+      requiresVerification?: boolean;
+    };
+    securityMessage = response.ok
+      ? `${result.message ?? (action === 'verify' ? 'MFA enabled.' : 'MFA setup started.')}${result.totpURI ? ` Save the TOTP URI in an approved authenticator, then verify a current code.` : ''}${result.backupCodes?.length ? ` Backup codes generated: ${result.backupCodes.join(', ')}` : ''}`
+      : (result.error ?? result.message ?? 'MFA could not be updated.');
+    if (response.ok) {
+      mfaPassword = '';
+      if (action === 'enable') {
+        mfaSetupUri = result.totpURI ?? '';
+        mfaBackupCodes = result.backupCodes ?? [];
+      } else if (action === 'verify') {
+        mfaCode = '';
+        mfaSetupUri = '';
+        mfaBackupCodes = [];
+        data.user.mfaEnrolled = true;
+      } else {
+        data.user.mfaEnrolled = false;
+      }
+    }
+  }
+
+  function verifyMfa(event: SubmitEvent): void {
+    event.preventDefault();
+    void toggleMfa('verify');
   }
 
   type OfflineEntity = 'time' | 'daily_report' | 'technical_report' | 'expense';
@@ -418,7 +531,7 @@
 </script>
 
 <svelte:head
-  ><title>{titles[data.section]} | J&A Portal</title><link
+  ><title>{translate(titles[data.section])} | J&A Portal</title><link
     rel="manifest"
     href={`${base}/app/manifest.webmanifest`}
   /><meta name="theme-color" content="#17191b" /></svelte:head
@@ -428,32 +541,35 @@
     <a class="portal-brand" href={`${base}/app/`}
       ><img src={`${base}/app/logo.png`} alt="J&A Automation" /></a
     >
-    <nav aria-label="Worker navigation">
+    <nav aria-label="Primary navigation">
       {#each navigation as item}<a
-          class:active={data.section === item[0]}
-          href={href(item[0])}
+          class:active={data.section === item.section}
+          href={itemHref(item)}
           onclick={() => (menuOpen = false)}
-          ><span class="nav-icon" aria-hidden="true">{item[2]}</span><span>{item[1]}</span></a
+          ><span class="nav-icon" aria-hidden="true">{item.icon}</span><span>{item.label}</span></a
+        >{/each}
+      <small>SECONDARY</small>
+      {#each secondaryNavigation as item}<a
+          class:active={data.section === item.section}
+          href={itemHref(item)}
+          onclick={() => (menuOpen = false)}
+          ><span class="nav-icon" aria-hidden="true">{item.icon}</span><span>{item.label}</span></a
         >{/each}
     </nav>
-    {#if isManager || isAuditor}<div class="admin-nav">
-        {#if isManager}<small>MANAGEMENT</small>{#each admin as item}<a
-              class:active={data.section === item[0]}
-              href={href(item[0])}
+    {#if showAdmin}<div class="admin-nav">
+        {#if isManager || isFinance}<small>ADMINISTRATION</small>{#each visibleAdmin as item}<a
+              class:active={data.section === item.section}
+              href={itemHref(item)}
               onclick={() => (menuOpen = false)}
-              ><span class="nav-icon" aria-hidden="true">{item[2]}</span><span>{item[1]}</span></a
-            >{/each}{/if}
-        {#if isFinance}<small>FINANCE CONTROL</small>{#each financeAdmin as item}<a
-              class:active={data.section === item[0]}
-              href={href(item[0])}
-              onclick={() => (menuOpen = false)}
-              ><span class="nav-icon" aria-hidden="true">{item[2]}</span><span>{item[1]}</span></a
+              ><span class="nav-icon" aria-hidden="true">{item.icon}</span><span>{item.label}</span
+              ></a
             >{/each}{/if}
         {#if canAudit}<small>SECURITY</small>{#each securityAdmin as item}<a
-              class:active={data.section === item[0]}
-              href={href(item[0])}
+              class:active={data.section === item.section}
+              href={itemHref(item)}
               onclick={() => (menuOpen = false)}
-              ><span class="nav-icon" aria-hidden="true">{item[2]}</span><span>{item[1]}</span></a
+              ><span class="nav-icon" aria-hidden="true">{item.icon}</span><span>{item.label}</span
+              ></a
             >{/each}{/if}
       </div>{/if}
     <button class="signout" onclick={logout}>Sign out</button>
@@ -470,6 +586,14 @@
       >{#if queue > 0}<span class="queue">{queue} queued</span>{/if}
       {#if syncMessage}<span class="sync-message" role="status">{syncMessage}</span>{/if}
     </div>
+    <label class="locale-switcher">
+      <span class="visually-hidden">{translate('Language')}</span>
+      <select aria-label={translate('Language')} value={locale} onchange={changeLocale}>
+        {#each portalLocales as supportedLocale}<option value={supportedLocale}
+            >{supportedLocale === 'pt' ? 'PT-BR' : supportedLocale.toUpperCase()}</option
+          >{/each}
+      </select>
+    </label>
     <a class="user" href={href('profile')}>
       <span class="user-avatar" aria-hidden="true">{initials(data.user.name)}</span>
       <span class="user-copy"
@@ -500,6 +624,36 @@
     {#if form?.message}<p class:success={form.success} class="action-message" role="status">
         {form.message}
       </p>{/if}
+    {#if conflictItems.length > 0}
+      <section class="conflict-panel" aria-labelledby="offline-conflicts-title">
+        <div>
+          <span class="portal-kicker">OFFLINE REVIEW</span>
+          <h2 id="offline-conflicts-title">Server changes need your review</h2>
+          <p>
+            Your offline draft stayed on this device. Compare it with the server record before
+            discarding it.
+          </p>
+        </div>
+        <div class="conflict-list">
+          {#each conflictItems as conflict}
+            <div class="conflict-item">
+              <span
+                >{conflict.entityType.replaceAll('_', ' ')} · {conflict.createdAt
+                  .slice(0, 16)
+                  .replace('T', ' ')}</span
+              >
+              <button
+                type="button"
+                class="text-button"
+                onclick={() => discardConflict(conflict.mutationId)}
+              >
+                Discard local draft
+              </button>
+            </div>
+          {/each}
+        </div>
+      </section>
+    {/if}
     {#if (data.searchQuery ?? '').length >= 2}
       <section class="record-list full search-results" aria-live="polite">
         <div class="panel-title">
@@ -1486,6 +1640,34 @@
                   >
                 </div>
               </article>{:else}<div class="empty">No client contacts recorded.</div>{/each}
+          </section>
+        {/if}
+        {#if data.workers && data.workers.length > 0}
+          <section class="record-list full">
+            <div class="panel-title">
+              <h2>Team access</h2>
+              <span>{data.workers.length} active</span>
+            </div>
+            {#each data.workers as worker}
+              <article class="record-card">
+                <div>
+                  <strong>{worker.name}</strong>
+                  <small>{worker.email} · {worker.role} · {worker.status}</small>
+                </div>
+                {#if data.user.role === 'owner_admin'}
+                  <form method="POST" action="?/updateUserStatus" class="compact-form">
+                    <input type="hidden" name="userId" value={worker.id} />
+                    <select name="status" aria-label={`Status for ${worker.name}`}>
+                      <option value="active">Active</option>
+                      <option value="suspended">Suspend</option>
+                      <option value="offboarded">Offboard</option>
+                      <option value="archived">Archive</option>
+                    </select>
+                    <button type="submit">Save access</button>
+                  </form>
+                {/if}
+              </article>
+            {/each}
           </section>
         {/if}
       </div>
@@ -2590,6 +2772,103 @@
             ><button>Verify for protected actions</button>
           </form>
           {#if stepUpMessage}<p class="action-message" role="status">{stepUpMessage}</p>{/if}
+          <div class="security-methods">
+            <div class="security-method-heading">
+              <div>
+                <span class="portal-kicker">PHISHING-RESISTANT ACCESS</span>
+                <h3>Passkeys</h3>
+              </div>
+              <span class="state-tag">{passkeys.length} registered</span>
+            </div>
+            <p class="form-help">
+              Register a device passkey for faster, phishing-resistant sign-in. A passkey never
+              leaves your device.
+            </p>
+            <form class="inline-form" onsubmit={registerPasskey}>
+              <label
+                >Device name<input
+                  name="passkeyName"
+                  bind:value={passkeyName}
+                  placeholder="Work laptop"
+                  maxlength="80"
+                /></label
+              ><button type="submit">Register passkey</button>
+            </form>
+            {#if passkeys.length}<ul class="security-list">
+                {#each passkeys as passkey}<li>
+                    <span
+                      ><strong>{passkey.name || 'Unnamed device'}</strong><small
+                        >{passkey.createdAt
+                          ? new Date(passkey.createdAt).toLocaleDateString()
+                          : 'Registered device'}</small
+                      ></span
+                    ><button
+                      type="button"
+                      class="text-button danger"
+                      onclick={() => revokePasskey(passkey.id)}>Revoke</button
+                    >
+                  </li>{/each}
+              </ul>{/if}
+          </div>
+          <div class="security-methods">
+            <div class="security-method-heading">
+              <div>
+                <span class="portal-kicker">ACCOUNT MFA</span>
+                <h3>Authenticator app</h3>
+              </div>
+              <span class="state-tag">{data.user.mfaEnrolled ? 'Enabled' : 'Not enabled'}</span>
+            </div>
+            <p class="form-help">
+              Production accounts require a second factor. Enabling MFA returns the setup URI and
+              one-time recovery codes; store them in an approved password manager.
+            </p>
+            <label
+              >Confirm with password<input
+                type="password"
+                bind:value={mfaPassword}
+                minlength="12"
+                autocomplete="current-password"
+                required
+              /></label
+            >
+            <div class="inline-actions">
+              <button type="button" onclick={() => toggleMfa('enable')}>Enable MFA</button>
+              {#if data.user.mfaEnrolled && !data.user.mfaRequired}<button
+                  type="button"
+                  class="secondary"
+                  onclick={() => toggleMfa('disable')}>Disable MFA</button
+                >{/if}
+            </div>
+            {#if mfaSetupUri}
+              <div class="security-setup" aria-live="polite">
+                <p><strong>Finish authenticator setup</strong></p>
+                <p class="form-help">
+                  Add this URI to your authenticator, then enter the current six-digit code to
+                  confirm the device. Recovery codes are shown once; store them securely.
+                </p>
+                <code class="security-uri">{mfaSetupUri}</code>
+                {#if mfaBackupCodes.length}
+                  <p class="security-codes" aria-label="One-time recovery codes">
+                    {mfaBackupCodes.join(' · ')}
+                  </p>
+                {/if}
+                <form class="inline-form" onsubmit={verifyMfa}>
+                  <label
+                    >Authenticator code<input
+                      bind:value={mfaCode}
+                      inputmode="numeric"
+                      autocomplete="one-time-code"
+                      pattern="[0-9]{6}"
+                      minlength="6"
+                      maxlength="6"
+                      required
+                    /></label
+                  ><button type="submit">Verify MFA</button>
+                </form>
+              </div>
+            {/if}
+          </div>
+          {#if securityMessage}<p class="action-message" role="status">{securityMessage}</p>{/if}
         </section>
       </div>
     {:else if data.section === 'notifications'}
@@ -2632,9 +2911,8 @@
     {/if}
   </main>
   <nav class="bottom-nav" aria-label="Mobile navigation">
-    {#each navigation.slice(0, 5) as item}<a
-        class:active={data.section === item[0]}
-        href={href(item[0])}>{item[1]}</a
+    {#each navigation as item}<a class:active={data.section === item.section} href={itemHref(item)}
+        >{item.label}</a
       >{/each}
   </nav>
 </div>

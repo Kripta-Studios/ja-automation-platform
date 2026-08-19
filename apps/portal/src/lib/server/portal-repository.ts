@@ -18,7 +18,11 @@ export function openPortalRepository(locals: App.Locals) {
   try {
     const repository = new PortalRepository(database.sqlite);
     const v3 = new V3Repository(database.sqlite);
-    const principal = repository.principalFor(locals.user.id);
+    const principal = repository.principalFor(
+      locals.user.id,
+      locals.session?.id,
+      locals.correlationId,
+    );
     return { ...database, repository, v3, principal };
   } catch (error) {
     database.sqlite.close();

@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { sendOperationalAlert } from './alerts.mjs';
 
 async function fileEntries(root, current = root) {
   const entries = [];
@@ -77,13 +78,33 @@ export async function createBackup({ databasePath, documentRoot, backupRoot }) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
-  const result = await createBackup({
-    databasePath:
-      process.env.JA_DATABASE_PATH ?? resolve('/var/lib/jaautomation/data/jaautomation.sqlite'),
-    documentRoot: process.env.JA_DOCUMENT_ROOT ?? resolve('/var/lib/jaautomation/files'),
-    backupRoot: process.env.JA_BACKUP_ROOT ?? '/var/backups/jaautomation',
-  });
-  console.log(
-    `backup=${result.path} documents=${result.manifest.documents.length} sha256=${result.manifest.database.sha256}`,
-  );
+  try {
+    const result = await createBackup({
+      databasePath:
+        process.env.JA_DATABASE_PATH ?? resolve('/var/lib/jaautomation/data/jaautomation.sqlite'),
+      documentRoot: process.env.JA_DOCUMENT_ROOT ?? resolve('/var/lib/jaautomation/files'),
+      backupRoot: process.env.JA_BACKUP_ROOT ?? '/var/backups/jaautomation',
+    });
+    console.log(
+      `backup=${result.path} documents=${result.manifest.documents.length} sha256=${result.manifest.database.sha256}`,
+    );
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        event: 'backup.failed',
+        error: error instanceof Error ? error.message : 'unknown error',
+      }),
+    );
+    await sendOperationalAlert('backup.failed', {
+      error: error instanceof Error ? error.message : 'unknown error',
+    }).catch((alertError) =>
+      console.error(
+        JSON.stringify({
+          event: 'alerts.delivery.failed',
+          error: alertError instanceof Error ? alertError.message : 'unknown error',
+        }),
+      ),
+    );
+    process.exitCode = 1;
+  }
 }

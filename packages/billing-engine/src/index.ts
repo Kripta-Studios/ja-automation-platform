@@ -54,6 +54,36 @@ export function monthlyPeriod(dateValue: string): DateRange {
   };
 }
 
+/**
+ * Returns a recurring monthly period whose closing day is configurable. A
+ * cutoff of 28 is the maximum accepted value so every month has a valid
+ * boundary, including February. For example, cutoff 25 yields 26–25 periods.
+ */
+export function monthlyPeriodWithCutoff(dateValue: string, cutoffDay: number): DateRange {
+  const date = utcDate(dateValue);
+  if (!Number.isInteger(cutoffDay) || cutoffDay < 1 || cutoffDay > 28)
+    throw new RangeError('Monthly cutoff day must be an integer from 1 to 28');
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const day = date.getUTCDate();
+  if (day <= cutoffDay) {
+    const previousMonth = new Date(Date.UTC(year, month - 1, 1));
+    return {
+      start: iso(
+        new Date(
+          Date.UTC(previousMonth.getUTCFullYear(), previousMonth.getUTCMonth(), cutoffDay + 1),
+        ),
+      ),
+      end: iso(new Date(Date.UTC(year, month, cutoffDay))),
+    };
+  }
+  const nextMonth = new Date(Date.UTC(year, month + 1, 1));
+  return {
+    start: iso(new Date(Date.UTC(year, month, cutoffDay + 1))),
+    end: iso(new Date(Date.UTC(nextMonth.getUTCFullYear(), nextMonth.getUTCMonth(), cutoffDay))),
+  };
+}
+
 export type BillingCadence =
   | 'weekly'
   | 'every_14_days'
@@ -74,7 +104,7 @@ export function weeklyPeriod(dateValue: string, weekStartsOn = 1): DateRange {
 export function periodForCadence(
   cadence: BillingCadence,
   dateValue: string,
-  options: Readonly<{ anchorDate?: string; weekStartsOn?: number }> = {},
+  options: Readonly<{ anchorDate?: string; weekStartsOn?: number; monthlyCutoffDay?: number }> = {},
 ): DateRange | null {
   switch (cadence) {
     case 'weekly':
@@ -85,7 +115,9 @@ export function periodForCadence(
     case 'semi_monthly':
       return semiMonthlyPeriod(dateValue);
     case 'monthly':
-      return monthlyPeriod(dateValue);
+      return options.monthlyCutoffDay === undefined
+        ? monthlyPeriod(dateValue)
+        : monthlyPeriodWithCutoff(dateValue, options.monthlyCutoffDay);
     case 'custom':
     case 'milestone':
     case 'manual':
@@ -158,6 +190,8 @@ export function overtimeRate(
     multiplierBps?: number;
     fixedRateMinor?: bigint;
     fixedAdditionMinor?: bigint;
+    eligibleClientOvertimeMinor?: bigint;
+    percentageBps?: number;
   }> = {},
 ): bigint {
   if (baseRateMinor < 0n) throw new RangeError('Base rate must be non-negative');
@@ -177,7 +211,20 @@ export function overtimeRate(
         throw new RangeError('Fixed overtime addition is required');
       return baseRateMinor + options.fixedAdditionMinor;
     case 'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME':
-      throw new RangeError('Percentage overtime requires a client-labor basis');
+      if (options.eligibleClientOvertimeMinor === undefined)
+        throw new RangeError('Eligible client overtime is required');
+      if (
+        !Number.isInteger(options.percentageBps) ||
+        (options.percentageBps ?? -1) < 0 ||
+        (options.percentageBps ?? 10_001) > 10_000
+      )
+        throw new RangeError('Percentage overtime basis points are required');
+      if (options.eligibleClientOvertimeMinor < 0n)
+        throw new RangeError('Eligible client overtime must be non-negative');
+      return divideRounded(
+        options.eligibleClientOvertimeMinor * BigInt(options.percentageBps ?? 0),
+        10_000n,
+      );
   }
 }
 

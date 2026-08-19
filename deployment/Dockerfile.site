@@ -6,6 +6,7 @@ COPY packages/billing-engine/package.json ./packages/billing-engine/package.json
 COPY packages/database/package.json ./packages/database/package.json
 COPY packages/domain/package.json ./packages/domain/package.json
 COPY packages/money/package.json ./packages/money/package.json
+COPY packages/reporting/package.json ./packages/reporting/package.json
 COPY packages/schemas/package.json ./packages/schemas/package.json
 COPY website ./website
 RUN pnpm install --frozen-lockfile --filter @ja/site...

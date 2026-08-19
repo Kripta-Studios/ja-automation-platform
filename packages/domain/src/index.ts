@@ -19,7 +19,14 @@ export const approvalStates = [
 export type ApprovalState = (typeof approvalStates)[number];
 export const syncOutcomes = ['accepted', 'conflict', 'rejected'] as const;
 
-export type Principal = Readonly<{ userId: string; role: Role; projectIds: ReadonlySet<string> }>;
+export type Principal = Readonly<{
+  userId: string;
+  role: Role;
+  projectIds: ReadonlySet<string>;
+  sessionId?: string;
+  isServiceActor?: boolean;
+  correlationId?: string;
+}>;
 export type OwnedRecord = Readonly<{ ownerId: string; projectId: string }>;
 
 export const newId = (): string => uuidv7();

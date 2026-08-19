@@ -1,8 +1,25 @@
 <script lang="ts">
   import { base } from '$app/paths';
+  import { passkeyClient } from '@better-auth/passkey/client';
+  import { createAuthClient } from 'better-auth/client';
   let { data } = $props<{ data: { demoEnabled: boolean } }>();
   let state = $state<'idle' | 'sending' | 'error'>('idle');
   let message = $state('');
+  const authClient = createAuthClient({
+    basePath: base + '/app/api/auth',
+    plugins: [passkeyClient()],
+  });
+  async function continueAfterSignIn(twoFactorRedirect = false): Promise<void> {
+    if (twoFactorRedirect) {
+      location.assign(`${base}/app/login/two-factor`);
+      return;
+    }
+    const current = await authClient.getSession();
+    const user = current.data?.user as { mfaRequired?: boolean; mfaEnrolled?: boolean } | undefined;
+    location.assign(
+      user?.mfaRequired && !user.mfaEnrolled ? `${base}/app/profile` : `${base}/app/`,
+    );
+  }
   async function login(event: SubmitEvent) {
     const submitter = event.submitter as HTMLButtonElement | null;
     if (submitter?.formAction.endsWith('/app/demo-login')) {
@@ -33,11 +50,22 @@
     });
     const result = await response.json().catch(() => ({}));
     if (response.ok) {
-      location.assign(result.twoFactorRedirect ? `${base}/app/login/two-factor` : `${base}/app/`);
+      await continueAfterSignIn(Boolean(result.twoFactorRedirect));
     } else {
       state = 'error';
       message = 'Sign-in failed. Check your credentials or contact an administrator.';
     }
+  }
+
+  async function passkeyLogin(): Promise<void> {
+    state = 'sending';
+    const result = await authClient.signIn.passkey();
+    if (result.data) {
+      await continueAfterSignIn();
+      return;
+    }
+    state = 'error';
+    message = result.error?.message ?? 'Passkey sign-in was cancelled or unavailable.';
   }
 </script>
 
@@ -92,6 +120,14 @@
         >{state === 'sending' ? 'Signing in…' : 'Continue to workspace'}
         <span aria-hidden="true">→</span></button
       >
+      <button
+        type="button"
+        class="login-passkey"
+        onclick={passkeyLogin}
+        disabled={state === 'sending'}
+      >
+        Use a passkey
+      </button>
       <p class="login-status" aria-live="polite">{message}</p>
       <p class="login-security">
         <span aria-hidden="true">◆</span> Multi-factor authentication protects company accounts.

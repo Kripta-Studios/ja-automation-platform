@@ -70,6 +70,24 @@ type CompensationInput = Readonly<{
   overtimeMethod?: OvertimeMethod;
   overtimeMultiplierBps?: number;
   overtimeRateMinor?: bigint;
+  weekendMethod?:
+    | 'BASE'
+    | 'NONE'
+    | 'FIXED_RATE'
+    | 'BASE_RATE_MULTIPLIER'
+    | 'FIXED_ADDITION_PER_HOUR';
+  travelMethod?:
+    | 'BASE'
+    | 'NONE'
+    | 'FIXED_RATE'
+    | 'BASE_RATE_MULTIPLIER'
+    | 'FIXED_ADDITION_PER_HOUR';
+  standbyMethod?:
+    | 'BASE'
+    | 'NONE'
+    | 'FIXED_RATE'
+    | 'BASE_RATE_MULTIPLIER'
+    | 'FIXED_ADDITION_PER_HOUR';
   effectiveFrom: string;
   effectiveTo?: string;
   notes?: string;
@@ -162,6 +180,9 @@ type CompensationRuleRow = {
   overtime_method: OvertimeMethod;
   overtime_multiplier_bps: number | null;
   overtime_rate_minor: number | null;
+  weekend_method: string;
+  travel_method: string;
+  standby_method: string;
   effective_from: string;
 };
 
@@ -221,6 +242,38 @@ function isPendingApproval(value: string): boolean {
   return value === 'draft' || value === 'submitted' || value === 'needs_changes';
 }
 
+function isBusyError(error: unknown): boolean {
+  return (
+    error instanceof Error && /SQLITE_BUSY|SQLITE_LOCKED|database is locked/i.test(error.message)
+  );
+}
+
+function logBusyRetry(attempt: number): void {
+  if (process.env.NODE_ENV === 'production' || process.env.JA_JSON_LOGS === 'true')
+    console.warn(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'warn',
+        event: 'database.busy_retry',
+        repository: 'v3',
+        attempt,
+      }),
+    );
+}
+
+const auditSecretKey = /password|token|secret|api[_-]?key|access[_-]?token|refresh[_-]?token/i;
+function redactAudit(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map((item) => redactAudit(item));
+  if (value && typeof value === 'object')
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [
+        key,
+        auditSecretKey.test(key) ? '[REDACTED]' : redactAudit(item),
+      ]),
+    );
+  return value;
+}
+
 export class V3Repository {
   private readonly sqlite: DatabaseSync;
 
@@ -229,15 +282,30 @@ export class V3Repository {
   }
 
   private transaction<T>(work: () => T): T {
-    this.sqlite.exec('BEGIN IMMEDIATE');
-    try {
-      const value = work();
-      this.sqlite.exec('COMMIT');
-      return value;
-    } catch (error) {
-      this.sqlite.exec('ROLLBACK');
-      throw error;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      let began = false;
+      try {
+        this.sqlite.exec('BEGIN IMMEDIATE');
+        began = true;
+        const value = work();
+        this.sqlite.exec('COMMIT');
+        return value;
+      } catch (error) {
+        if (began) {
+          try {
+            this.sqlite.exec('ROLLBACK');
+          } catch {
+            // Preserve the original transaction error.
+          }
+        }
+        if (isBusyError(error) && attempt < 3) {
+          logBusyRetry(attempt);
+          continue;
+        }
+        throw error;
+      }
     }
+    throw new Error('Transaction retry limit reached');
   }
 
   private assertActive(principal: Principal): void {
@@ -265,10 +333,15 @@ export class V3Repository {
 
   private assertStepUp(principal: Principal): void {
     if (process.env.NODE_ENV !== 'production') return;
-    const user = this.sqlite
-      .prepare('SELECT last_step_up_at FROM user WHERE id=?')
-      .get(principal.userId) as { last_step_up_at: string | null } | undefined;
-    if (!user?.last_step_up_at || Date.now() - Date.parse(user.last_step_up_at) > 10 * 60_000)
+    if (principal.isServiceActor) return;
+    if (!principal.sessionId)
+      throw new V3AccessDeniedError('Recent step-up authentication is required');
+    const session = this.sqlite
+      .prepare('SELECT step_up_at FROM session WHERE id=? AND user_id=? AND expires_at>?')
+      .get(principal.sessionId, principal.userId, timestamp()) as
+      | { step_up_at: string | null }
+      | undefined;
+    if (!session?.step_up_at || Date.now() - Date.parse(session.step_up_at) > 10 * 60_000)
       throw new V3AccessDeniedError('Recent step-up authentication is required');
   }
 
@@ -303,9 +376,19 @@ export class V3Repository {
     entityId: string,
     details: unknown,
   ): void {
+    const redacted = redactAudit(details) as Record<string, unknown>;
+    const projectId = typeof redacted.projectId === 'string' ? redacted.projectId : null;
+    const before = redacted.before === undefined ? null : JSON.stringify(redacted.before);
+    const after = redacted.after === undefined ? null : JSON.stringify(redacted.after);
+    const reason = typeof redacted.reason === 'string' ? redacted.reason : null;
+    const correlationId =
+      typeof redacted.correlationId === 'string'
+        ? redacted.correlationId
+        : (principal?.correlationId ?? newId());
+    const metadata = JSON.stringify(redacted);
     this.sqlite
       .prepare(
-        'INSERT INTO audit_event(id,actor_id,action,entity_type,entity_id,occurred_at,details_json) VALUES(?,?,?,?,?,?,?)',
+        'INSERT INTO audit_event(id,actor_id,action,entity_type,entity_id,occurred_at,details_json,project_id,before_json,after_json,reason,correlation_id,metadata_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
       )
       .run(
         newId(),
@@ -314,7 +397,13 @@ export class V3Repository {
         entityType,
         entityId,
         timestamp(),
-        JSON.stringify(details),
+        metadata,
+        projectId,
+        before,
+        after,
+        reason,
+        correlationId,
+        metadata,
       );
   }
 
@@ -399,8 +488,9 @@ export class V3Repository {
           id,worker_id,project_id,currency,rate_minor,rate_basis,daily_guarantee_minutes,
           worker_visible,effective_from,effective_to,created_at,updated_at,rule_type,
           percentage_bps,percentage_basis,settlement_trigger,overtime_method,
-          overtime_multiplier_bps,overtime_rate_minor,notes
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          overtime_multiplier_bps,overtime_rate_minor,weekend_method,travel_method,standby_method,
+          fixed_period_minor,fixed_project_minor,notes
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       )
       .run(
         id,
@@ -424,6 +514,15 @@ export class V3Repository {
         input.overtimeRateMinor === undefined
           ? null
           : sqliteInteger(input.overtimeRateMinor, 'Overtime rate'),
+        input.weekendMethod ?? 'BASE',
+        input.travelMethod ?? 'BASE',
+        input.standbyMethod ?? 'BASE',
+        input.ruleType === 'FixedPerBillingPeriod'
+          ? sqliteInteger(input.rateMinor ?? 0n, 'Fixed period amount')
+          : null,
+        input.ruleType === 'FixedProjectAmount'
+          ? sqliteInteger(input.rateMinor ?? 0n, 'Fixed project amount')
+          : null,
         input.notes ?? null,
       );
     this.audit(principal, 'compensation_rule.create', 'compensation_rule', id, {
@@ -976,10 +1075,11 @@ export class V3Repository {
 
   /**
    * Resolve the effective client rule for a single authoritative time row.
-   * The result intentionally exposes only to trusted server callers. Worker
-   * responses must use workerPay(), which strips commercial fields.
+   * Finance authorization and project scope are enforced before returning
+   * commercial data. Worker responses must use workerPay(), which strips it.
    */
   resolveClientLaborRate(
+    principal: Principal,
     projectId: string,
     workerId: string,
     category: string,
@@ -992,6 +1092,8 @@ export class V3Repository {
     effectiveRateMinor: string;
     eligibleForPercentage: boolean;
   }> | null {
+    this.assertFinanceReadable(principal);
+    this.assertProjectAccess(principal, projectId, true);
     const rule = this.clientRateFor(projectId, workerId, category, workDate, activityCode);
     if (!rule) return null;
     return {
@@ -1004,6 +1106,7 @@ export class V3Repository {
   }
 
   resolveInternalCostRate(
+    principal: Principal,
     projectId: string,
     workerId: string,
     category: string,
@@ -1015,6 +1118,8 @@ export class V3Repository {
     hourlyRateMinor: string;
     effectiveRateMinor: string;
   }> | null {
+    this.assertFinanceReadable(principal);
+    this.assertProjectAccess(principal, projectId, true);
     const rule = this.internalCostFor(projectId, workerId, category, workDate, activityCode);
     if (!rule) return null;
     return {
@@ -1152,6 +1257,30 @@ export class V3Repository {
             : undefined,
       });
     }
+    const weekend =
+      row.category === 'weekend_holiday' ||
+      [0, 6].includes(new Date(`${row.work_date}T00:00:00.000Z`).getUTCDay());
+    const modifier =
+      row.category === 'travel'
+        ? rule.travel_method
+        : row.category === 'standby'
+          ? rule.standby_method
+          : weekend
+            ? rule.weekend_method
+            : 'BASE';
+    if (modifier === 'NONE') return 0n;
+    if (modifier && modifier !== 'BASE')
+      rate = overtimeRate(rate, modifier as OvertimeMethod, {
+        multiplierBps: rule.overtime_multiplier_bps ?? undefined,
+        fixedRateMinor:
+          modifier === 'FIXED_RATE' && rule.overtime_rate_minor !== null
+            ? BigInt(rule.overtime_rate_minor)
+            : undefined,
+        fixedAdditionMinor:
+          modifier === 'FIXED_ADDITION_PER_HOUR' && rule.overtime_rate_minor !== null
+            ? BigInt(rule.overtime_rate_minor)
+            : undefined,
+      });
     if (rule.rate_basis === 'daily' || rule.rule_type === 'Daily') return 0n;
     if (
       rule.rule_type === 'FixedPerBillingPeriod' ||
@@ -1226,6 +1355,15 @@ export class V3Repository {
       if (!rule) throw new V3ValidationError(`Missing compensation rule for ${row.id}`);
       if (rule.currency !== row.project_currency)
         throw new V3ValidationError(`Compensation currency mismatch for ${row.id}`);
+      if (
+        rule.rule_type === 'FixedProjectAmount' &&
+        this.sqlite
+          .prepare(
+            "SELECT 1 FROM compensation_settlement WHERE worker_id=? AND project_id=? AND compensation_rule_id=? AND state='settled' LIMIT 1",
+          )
+          .get(input.workerId, input.projectId, rule.id)
+      )
+        continue;
       if (
         rule.rule_type === 'PercentageOfEligibleClientLabor' &&
         !this.settlementTriggerReady(row, rule.settlement_trigger)
@@ -4589,7 +4727,7 @@ export class V3Repository {
     this.assertActive(principal);
     const document = this.sqlite
       .prepare(
-        'SELECT id,project_id,owner_id,storage_key,media_type,original_filename,safe_filename,sensitivity,sensitive,sha256,byte_length,state FROM document WHERE id=?',
+        'SELECT id,project_id,owner_id,storage_key,media_type,original_filename,safe_filename,sensitivity,sensitive,sha256,byte_length,state,scan_status FROM document WHERE id=?',
       )
       .get(documentId) as
       | {
@@ -4605,9 +4743,20 @@ export class V3Repository {
           sha256: string;
           byte_length: number;
           state: string;
+          scan_status: string;
         }
       | undefined;
-    if (!document || document.state !== 'committed')
+    const scannerRequired =
+      process.env.NODE_ENV === 'production' &&
+      (process.env.JA_MALWARE_SCANNER_REQUIRED === 'true' ||
+        Boolean(process.env.JA_MALWARE_SCANNER_URL));
+    if (
+      !document ||
+      document.state !== 'committed' ||
+      document.scan_status === 'pending' ||
+      document.scan_status === 'rejected' ||
+      (scannerRequired && document.scan_status !== 'clean')
+    )
       throw new V3ValidationError('Document not found');
     this.assertStorageKey(document.storage_key);
     const record = { ownerId: document.owner_id, projectId: document.project_id ?? '' };
@@ -4633,6 +4782,38 @@ export class V3Repository {
       sha256: document.sha256,
       byteLength: document.byte_length,
     };
+  }
+
+  recordDocumentScan(
+    principal: Principal,
+    documentId: string,
+    result: 'clean' | 'rejected',
+    provider: string,
+  ): void {
+    this.assertActive(principal);
+    if (
+      !principal.isServiceActor &&
+      principal.role !== 'owner_admin' &&
+      principal.role !== 'finance_admin'
+    )
+      throw new V3AccessDeniedError('Document scanning requires a service actor');
+    this.assertStepUp(principal);
+    if (!provider.trim() || provider.length > 120)
+      throw new V3ValidationError('Scan provider is invalid');
+    const state = result === 'clean' ? 'committed' : 'rejected';
+    const updated = this.sqlite
+      .prepare(
+        "UPDATE document SET scan_status=?,scanned_at=?,scan_provider=?,state=?,updated_at=?,version=version+1 WHERE id=? AND scan_status IN ('pending','not_scanned')",
+      )
+      .run(result, timestamp(), provider.trim(), state, timestamp(), documentId);
+    if (updated.changes !== 1) {
+      const current = this.sqlite
+        .prepare('SELECT scan_status FROM document WHERE id=?')
+        .get(documentId) as { scan_status: string } | undefined;
+      if (current?.scan_status !== result)
+        throw new V3ConflictError('Document scan is already finalized');
+    }
+    this.audit(principal, 'document.scan', 'document', documentId, { result, provider });
   }
 
   private createOfflineDraft(
@@ -5180,6 +5361,18 @@ export class V3Repository {
       } catch (error) {
         failed += 1;
         const message = error instanceof Error ? error.message : 'Job failed';
+        if (process.env.NODE_ENV === 'production' || process.env.JA_JSON_LOGS === 'true')
+          console.error(
+            JSON.stringify({
+              timestamp: new Date().toISOString(),
+              level: 'error',
+              event: 'job.failure',
+              jobId: result.id,
+              kind: result.kind,
+              attempts: result.attempts + 1,
+              error: message,
+            }),
+          );
         this.sqlite
           .prepare(
             "UPDATE job SET state=CASE WHEN attempts>=5 THEN 'failed' ELSE 'pending' END,lease_until=NULL,run_after=?,updated_at=?,version=version+1 WHERE id=?",
@@ -5258,6 +5451,18 @@ export class V3Repository {
       } catch (error) {
         failed += 1;
         const message = error instanceof Error ? error.message : 'Outbox delivery failed';
+        if (process.env.NODE_ENV === 'production' || process.env.JA_JSON_LOGS === 'true')
+          console.error(
+            JSON.stringify({
+              timestamp: new Date().toISOString(),
+              level: 'error',
+              event: 'outbox.failure',
+              eventId: claimed.id,
+              topic: claimed.topic,
+              attempts: claimed.attempts,
+              error: message,
+            }),
+          );
         const nextAttempts = claimed.attempts;
         const permanentlyFailedNow = nextAttempts >= maximumAttempts;
         const delayMs = Math.min(3_600_000, 30_000 * 2 ** Math.min(nextAttempts - 1, 6));

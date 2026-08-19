@@ -4,9 +4,10 @@
 @theme {
   /* Brand Colors */
   --color-ja-red-logo: #ff0000;
-  --color-ja-red: #e31b23;
-  --color-ja-red-hover: #c81018;
-  --color-ja-red-dark: #a80e15;
+  /* Accessible brand red for text and white-on-red controls. */
+  --color-ja-red: #b42318;
+  --color-ja-red-hover: #9f1f16;
+  --color-ja-red-dark: #861b13;
 
   /* Neutrals */
   --color-ja-ink: #0a0c0f;
@@ -148,6 +149,23 @@ body {
   line-height: 1.65;
 }
 
+.field-control {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--color-ja-line);
+  border-radius: var(--radius-small);
+  background: var(--color-ja-white);
+  padding: 0 12px;
+  color: var(--color-ja-ink);
+  font: inherit;
+}
+
+.field-control:focus-visible {
+  outline: 2px solid var(--color-ja-red);
+  outline-offset: 2px;
+}
+
 @media (min-width: 1024px) {
   .text-body {
     font-size: 1.0625rem;
@@ -253,6 +271,26 @@ body {
   outline: 2px solid var(--color-ja-red);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* Dark sections use a light accent so the same brand language remains
+   readable against graphite backgrounds. */
+.bg-ja-graphite .eyebrow,
+.bg-ja-graphite .text-ja-red,
+.bg-ja-graphite .text-cta {
+  color: #ff8278;
+}
+
+.bg-ja-graphite .text-cta.text-white {
+  color: #fff;
+}
+
+.bg-ja-graphite .text-lead {
+  color: var(--color-ja-steel-300);
+}
+
+.bg-ja-graphite .text-ja-steel-500 {
+  color: var(--color-ja-steel-300);
 }
 
 /* ─── Chips / Tags ─────────────────────────────────────────────────────── */

@@ -1,15 +1,28 @@
-import { openDatabase, integrityCheck } from '@ja/database';
+import { openDatabase, readinessCheck } from '@ja/database';
 import { json } from '@sveltejs/kit';
 export const GET = () => {
   const db = openDatabase();
-  let database = 'unavailable';
+  let readiness;
   try {
-    database = integrityCheck(db);
+    readiness = readinessCheck(db);
   } finally {
     db.close();
   }
   return json(
-    { status: database === 'ok' ? 'ok' : 'degraded', database, time: new Date().toISOString() },
-    { status: database === 'ok' ? 200 : 503 },
+    {
+      status: readiness?.ok ? 'ok' : 'degraded',
+      database: readiness?.integrity ?? 'unavailable',
+      migration: readiness
+        ? { current: readiness.migrationVersion, expected: readiness.expectedMigrationVersion }
+        : undefined,
+      writableDirectories: readiness?.writableDirectories ?? false,
+      writeReady: readiness?.writeReady ?? false,
+      disk: {
+        freeBytes: readiness?.diskFreeBytes ?? null,
+        minimumBytes: readiness?.diskFreeThresholdBytes ?? null,
+      },
+      time: new Date().toISOString(),
+    },
+    { status: readiness?.ok ? 200 : 503, headers: { 'cache-control': 'no-store' } },
   );
 };

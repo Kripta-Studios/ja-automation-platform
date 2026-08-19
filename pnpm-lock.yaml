@@ -318,6 +318,10 @@ importers:
         version: 6.0.3
 
   packages/reporting:
+    dependencies:
+      playwright:
+        specifier: 'catalog:'
+        version: 1.62.1
     devDependencies:
       typescript:
         specifier: 'catalog:'

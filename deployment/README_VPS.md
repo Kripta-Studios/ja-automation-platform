@@ -80,6 +80,11 @@ adapter is absent or rejects a request, the event is not marked delivered.
 
 ## Operations
 
+The jobs and backup timers emit structured JSON. Set `JA_ALERT_WEBHOOK_URL` and
+`JA_ALERT_WEBHOOK_SECRET` to receive signed (`sha256=<HMAC-SHA256>`) failure alerts. Production
+alert URLs must use HTTPS. Missing alert configuration is visible in logs and remains a valid
+local/test configuration.
+
 ```bash
 sudo docker compose --env-file /etc/jaautomation/jaautomation.env \
   -f deployment/compose.production.yml ps

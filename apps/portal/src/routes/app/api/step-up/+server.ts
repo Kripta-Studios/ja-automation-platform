@@ -15,11 +15,14 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     if (!result.status) return json({ error: 'Password verification failed' }, { status: 401 });
     const database = createDatabase();
     try {
-      database.sqlite
+      const steppedAt = new Date().toISOString();
+      const updated = database.sqlite
         .prepare(
-          "UPDATE user SET last_step_up_at=?,updated_at=?,version=version+1 WHERE id=? AND status='active'",
+          'UPDATE session SET step_up_at=?,updated_at=? WHERE id=? AND user_id=? AND expires_at>?',
         )
-        .run(new Date().toISOString(), new Date().toISOString(), locals.user.id);
+        .run(steppedAt, steppedAt, locals.session.id, locals.user.id, steppedAt);
+      if (updated.changes !== 1)
+        return json({ error: 'Session is no longer active' }, { status: 401 });
     } finally {
       database.sqlite.close();
     }

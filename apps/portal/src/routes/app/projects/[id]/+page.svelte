@@ -112,7 +112,19 @@
           <p class="portal-kicker">PROJECT FINANCIAL POSITION</p>
           <h2>{money(cost)} committed</h2>
         </div>
-        <div class="budget-ring" style={`--progress:${consumed * 3.6}deg`}>
+        <div class="budget-ring" role="img" aria-label={`${consumed.toFixed(0)}% budget used`}>
+          <svg viewBox="0 0 36 36" aria-hidden="true">
+            <circle class="budget-ring-track" cx="18" cy="18" r="15.5" pathLength="100" />
+            <circle
+              class="budget-ring-value"
+              cx="18"
+              cy="18"
+              r="15.5"
+              pathLength="100"
+              stroke-dasharray="100"
+              stroke-dashoffset={100 - consumed}
+            />
+          </svg>
           <span>{consumed.toFixed(0)}%<small>budget used</small></span>
         </div>
       </div>

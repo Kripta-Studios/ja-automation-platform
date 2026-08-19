@@ -18,7 +18,8 @@ import { ClientExperience } from '@/components/home/ClientExperience';
 import { IndustryShowcase } from '@/components/home/IndustryShowcase';
 import { services } from '@/content/services';
 import { featuredProjects } from '@/content/projects';
-import { contact } from '@/content/company';
+import { contact, teamRoles } from '@/content/company';
+import { technologies, technologyGroups } from '@/content/technologies';
 
 const iconMap: Record<string, React.ReactNode> = {
   Cpu: <Cpu size={24} />,
@@ -49,6 +50,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const intro = await getTranslations('intro');
   const cap = await getTranslations('capabilities');
   const proj = await getTranslations('projectExperience');
+  const tech = await getTranslations('techEcosystem');
+  const delivery = await getTranslations('delivery');
+  const remote = await getTranslations('remoteSupport');
+  const team = await getTranslations('team');
+  const aquarex = await getTranslations('aquarexTeaser');
+  const careers = await getTranslations('careersTeaser');
   const final = await getTranslations('finalCta');
 
   return (
@@ -184,6 +191,143 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       </section>
 
       <ClientExperience />
+
+      <section id="technology" className="section-padding bg-ja-graphite text-white">
+        <div className="container-ja">
+          <p className="eyebrow text-ja-red mb-4">{tech('eyebrow')}</p>
+          <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+            <div>
+              <h2 className="heading-2 mb-5">{tech('h2')}</h2>
+              <p className="text-lead text-ja-steel-300 max-w-xl">{tech('lead')}</p>
+            </div>
+            <div className="grid gap-px border border-white/15 bg-white/15 sm:grid-cols-2">
+              {technologyGroups.map((group) => (
+                <div key={group.labelKey} className="bg-ja-charcoal p-6 sm:p-7">
+                  <h3 className="font-[family-name:var(--font-ibm-plex-mono)] text-xs uppercase tracking-[0.14em] text-ja-steel-300">
+                    {tech(group.labelKey.replace(/^tech\./, ''))}
+                  </h3>
+                  <ul className="mt-5 space-y-2 text-sm text-white/85">
+                    {group.ids.map((id) => {
+                      const item = technologies.find((technology) => technology.id === id);
+                      return item ? <li key={id}>{item.name}</li> : null;
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="delivery" className="section-padding bg-ja-surface">
+        <div className="container-ja">
+          <p className="eyebrow mb-4">{delivery('eyebrow')}</p>
+          <h2 className="heading-2 mb-12 max-w-3xl">{delivery('h2')}</h2>
+          <ol className="grid gap-5 md:grid-cols-2 lg:grid-cols-5">
+            {(['step1', 'step2', 'step3', 'step4', 'step5'] as const).map((step, index) => (
+              <li key={step} className="border-t-2 border-ja-red pt-5">
+                <span className="font-[family-name:var(--font-ibm-plex-mono)] text-xs text-ja-red">
+                  0{index + 1}
+                </span>
+                <h3 className="heading-3 mt-3 text-xl">{delivery(step)}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-ja-steel-700">
+                  {delivery(`${step}Desc`)}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section id="support" className="section-padding bg-white">
+        <div className="container-ja">
+          <div className="grid gap-10 lg:grid-cols-[1fr_0.85fr] lg:items-center">
+            <div>
+              <p className="eyebrow mb-4">{remote('eyebrow')}</p>
+              <h2 className="heading-2 mb-5 max-w-3xl">{remote('h2')}</h2>
+              <p className="text-lead max-w-2xl">{remote('body')}</p>
+              <p className="mt-5 max-w-2xl text-sm text-ja-steel-700">{remote('helper')}</p>
+              <Link href="/contact?intent=support" className="btn btn-primary mt-8">
+                {remote('cta')} <ArrowRight size={16} />
+              </Link>
+            </div>
+            <div className="border border-ja-line bg-ja-surface p-7 sm:p-9">
+              <p className="eyebrow-steel mb-5">Field + remote coverage</p>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                {['PLC / HMI', 'Robotics', 'Drives + motion', 'Production startup'].map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-center gap-3 border-b border-ja-line pb-3 text-sm font-semibold"
+                  >
+                    <span className="h-2 w-2 bg-ja-red" aria-hidden="true" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="team" className="section-padding bg-ja-surface">
+        <div className="container-ja">
+          <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
+            <div>
+              <p className="eyebrow mb-4">{team('eyebrow')}</p>
+              <h2 className="heading-2 mb-5">{team('h2')}</h2>
+              <p className="text-lead">{team('body')}</p>
+              <Link href="/about" className="text-cta mt-7 inline-flex">
+                {team('cta')} <ArrowRight size={16} />
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-px border border-ja-line bg-ja-line sm:grid-cols-3">
+              {teamRoles.map((role) => (
+                <div key={role.labelKey} className="bg-white p-5 sm:p-6">
+                  <strong className="block text-3xl font-semibold text-ja-red">{role.count}</strong>
+                  <span className="mt-2 block text-sm text-ja-steel-700">
+                    {team(role.labelKey.replace(/^team\./, ''))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="aquarex" className="section-padding bg-ja-graphite text-white">
+        <div className="container-ja">
+          <div className="grid gap-10 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div className="max-w-3xl">
+              <p className="eyebrow text-ja-red mb-4">{aquarex('eyebrow')}</p>
+              <h2 className="heading-2 mb-5">{aquarex('h2')}</h2>
+              <p className="text-lead text-ja-steel-300">{aquarex('body')}</p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
+              <Link href="/solutions/aquarex" className="btn btn-primary">
+                {aquarex('cta')}
+              </Link>
+              <Link href="/contact?intent=aquarex" className="btn btn-secondary-dark">
+                {aquarex('ctaSecondary')}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="careers" className="section-padding bg-ja-surface">
+        <div className="container-ja">
+          <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div className="max-w-3xl">
+              <p className="eyebrow mb-4">{careers('eyebrow')}</p>
+              <h2 className="heading-2 mb-5">{careers('h2')}</h2>
+              <p className="text-lead">{careers('body')}</p>
+            </div>
+            <Link href="/careers" className="btn btn-secondary">
+              {careers('cta')} <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* ═══ SELECTED PROJECT EXPERIENCE ═══ */}
       <section id="works" className="section-padding bg-white">

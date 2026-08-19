@@ -1,37 +1,13 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import type { Principal } from '@ja/domain';
 import {
-  accountingPackCsv,
-  accountingPackPdf,
-  accountingPackXlsx,
+  accountingPackArtifacts,
   invoicePdf,
   periodReportPdf,
-  toCsv,
+  REPORT_TEMPLATE_VERSION,
 } from '@ja/reporting';
-
-type ExportCell = string | number | bigint | boolean | null | undefined;
-type ExportRow = Readonly<Record<string, ExportCell>>;
-
-function exportCell(value: unknown): ExportCell {
-  if (
-    value === null ||
-    value === undefined ||
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    typeof value === 'bigint' ||
-    typeof value === 'boolean'
-  )
-    return value;
-  return JSON.stringify(value);
-}
-
-function exportRows(rows: readonly Record<string, unknown>[]): readonly ExportRow[] {
-  return rows.map((row) =>
-    Object.fromEntries(Object.entries(row).map(([key, value]) => [key, exportCell(value)])),
-  );
-}
 
 function safeKey(key: string): void {
   if (!key || key.startsWith('/') || key.includes('\\') || key.split('/').includes('..'))
@@ -49,12 +25,18 @@ function writeArtifact(
   if (rel.split(/[\\/]/).includes('..') || rel.startsWith('\\'))
     throw new Error('Artifact path escaped private root');
   mkdirSync(resolve(target, '..'), { recursive: true });
+  let existing: Uint8Array | undefined;
   try {
     writeFileSync(target, bytes, { flag: 'wx' });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+    existing = readFileSync(target);
   }
-  return { sha256: createHash('sha256').update(bytes).digest('hex'), byteLength: bytes.byteLength };
+  const persisted = existing ?? bytes;
+  return {
+    sha256: createHash('sha256').update(persisted).digest('hex'),
+    byteLength: persisted.byteLength,
+  };
 }
 
 export function runArtifactJobs(context: {
@@ -106,6 +88,12 @@ export function runArtifactJobs(context: {
       sha256: string,
       byteLength: number,
     ) => { id: string; created: boolean };
+    recordDocumentScan: (
+      principal: Principal,
+      documentId: string,
+      result: 'clean' | 'rejected',
+      provider: string,
+    ) => void;
   };
   principal: Principal;
 }): { processed: number; failed: number; overdueMarked: number } {
@@ -119,7 +107,7 @@ export function runArtifactJobs(context: {
       if (!invoiceId) throw new Error('Invoice PDF job has no invoice id');
       const snapshot = context.v3.invoiceSnapshot(context.principal, invoiceId);
       const bytes = invoicePdf(snapshot as Parameters<typeof invoicePdf>[0]);
-      const key = `invoices/${invoiceId}/${createHash('sha256').update(bytes).digest('hex')}.pdf`;
+      const key = `invoices/${invoiceId}/${REPORT_TEMPLATE_VERSION}.pdf`;
       const metadata = writeArtifact(root, key, bytes);
       context.v3.recordInvoicePdf(
         context.principal,
@@ -144,8 +132,7 @@ export function runArtifactJobs(context: {
       });
       for (const report of reports) {
         const bytes = periodReportPdf(report.snapshot as Parameters<typeof periodReportPdf>[0]);
-        const hash = createHash('sha256').update(bytes).digest('hex');
-        const key = `reports/${report.id}/${hash}.pdf`;
+        const key = `reports/${report.id}/${REPORT_TEMPLATE_VERSION}.pdf`;
         const metadata = writeArtifact(root, key, bytes);
         context.v3.recordPeriodReportPdf(
           context.principal,
@@ -187,49 +174,9 @@ export function runArtifactJobs(context: {
         totals: Record<string, unknown>;
         totalsByCurrency?: readonly Record<string, unknown>[];
       };
-      const invoiceRegister = exportRows(snapshot.invoiceRegister);
-      const collections = exportRows(snapshot.collections);
-      const workerCosts = exportRows(snapshot.workerCosts);
-      const expenseRegister = exportRows(snapshot.expenseRegister);
-      const totalsByCurrency = snapshot.totalsByCurrency
-        ? exportRows(snapshot.totalsByCurrency)
-        : undefined;
-      const totals = snapshot.totals
-        ? Object.fromEntries(
-            Object.entries(snapshot.totals).map(([key, value]) => [key, exportCell(value)]),
-          )
-        : null;
-      const exportSnapshot = {
-        ...snapshot,
-        invoiceRegister,
-        collections,
-        workerCosts,
-        expenseRegister,
-        totals,
-        totalsByCurrency: totalsByCurrency ?? [],
-      };
-      const artifacts: readonly {
-        type: 'pdf' | 'xlsx' | 'invoice_csv' | 'expense_csv' | 'json';
-        extension: string;
-        bytes: Uint8Array;
-      }[] = [
-        { type: 'pdf', extension: 'pdf', bytes: accountingPackPdf(exportSnapshot) },
-        { type: 'xlsx', extension: 'xlsx', bytes: accountingPackXlsx(exportSnapshot) },
-        { type: 'invoice_csv', extension: 'csv', bytes: accountingPackCsv(exportSnapshot) },
-        {
-          type: 'expense_csv',
-          extension: 'csv',
-          bytes: new TextEncoder().encode(toCsv(expenseRegister)),
-        },
-        {
-          type: 'json',
-          extension: 'json',
-          bytes: new TextEncoder().encode(JSON.stringify(exportSnapshot)),
-        },
-      ];
+      const artifacts = accountingPackArtifacts(snapshot);
       for (const artifact of artifacts) {
-        const hash = createHash('sha256').update(artifact.bytes).digest('hex');
-        const key = `accounting-packs/${packId}/${artifact.type}-${hash}.${artifact.extension}`;
+        const key = `accounting-packs/${packId}/${artifact.type}-${REPORT_TEMPLATE_VERSION}.${artifact.extension}`;
         const metadata = writeArtifact(root, key, artifact.bytes);
         context.v3.recordAccountingPackExport(
           context.principal,
@@ -240,6 +187,22 @@ export function runArtifactJobs(context: {
           metadata.byteLength,
         );
       }
+    },
+    document_scan: (payload) => {
+      const documentId =
+        typeof payload === 'object' && payload !== null && 'documentId' in payload
+          ? String(payload.documentId)
+          : '';
+      if (!documentId) throw new Error('Document scan job has no document id');
+      const result = process.env.JA_MALWARE_SCANNER_RESULT;
+      if (result !== 'clean' && result !== 'rejected')
+        throw new Error('Malware scanner decision is unavailable');
+      context.v3.recordDocumentScan(
+        context.principal,
+        documentId,
+        result,
+        process.env.JA_MALWARE_SCANNER_PROVIDER ?? 'configured-scanner',
+      );
     },
   });
 }

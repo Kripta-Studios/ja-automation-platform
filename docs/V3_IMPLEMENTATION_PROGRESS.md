@@ -1,180 +1,210 @@
 # V3 implementation progress
 
-Last updated: 2026-08-19 (Europe/Madrid)
+Last verified: 2026-08-19 (Europe/Madrid). The revised
+`J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md` is authoritative. All commands below
+were run from the repository root in `node:24.19.0-bookworm-slim` with pnpm `11.22.0`; host Node
+version was not used for the acceptance gates.
 
-The revised specification, `J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md`, is the
-authority for this implementation. The repository now contains the production application path:
-browser-safe public Next.js site, private SvelteKit portal, reviewed SQLite migrations, exact-money
-domain/repository logic, durable jobs, private artifacts, PWA worker workflows, deployment
-artifacts, and the verification evidence recorded below.
+## Phase 0 — preservation and baseline
 
-## Runtime and safety baseline
+Status: complete.
 
-- Required runtime: Node 24.19.0 and pnpm 11.22.0. The host used for this run has Node 25.8.1 and
-  pnpm 11.22.0; the repository engine, `.nvmrc`, container images, and deployment documentation
-  remain pinned to Node 24.19.0.
-- Public site source is isolated in `website/`; it imports no SQLite, server repositories, private
-  files, authentication secrets, or finance code.
-- Money uses bigint minor units in domain/repository code and decimal strings at JSON boundaries;
-  time uses integer minutes and percentages use basis points.
-- Production migrations are reviewed SQL files and the runtime uses foreign keys, WAL,
-  `busy_timeout`, explicit transactions, constraints, and indexes. No `drizzle-kit push` path is
-  used.
-- Demo seed records and uploaded test receipts are test fixtures only. They are not production
-  records and are ignored by Git.
-- No VPS, production database, service, credential, or remote deployment was changed in this run.
+- Branch: `codex/v3-completion-20260819`.
+- Recoverable preservation checkpoint: `e75c83a chore: checkpoint current V3 implementation`.
+- The complete pre-existing V3 diff and legitimate untracked migrations/tests/deployment work were
+  preserved. No reset, clean, discard, push, or production-host access was performed.
+- Untracked presentation/contract/budget artifacts (`Presentacion_Proyecto_JA_Automation.html`,
+  `J_A_Automation_Contrato_Proyecto_EVOCON_ES.html`, `J_A_Automation_Presupuesto_Proyecto_EVOCON_ES.html`,
+  the EVOCON image and PDF) remain outside the implementation checkpoint and are excluded from
+  staging. No database, upload, build output, `.env` credential, or secret is staged.
+- Baseline and final gates use the required Docker Node runtime. `git diff --check` reports only
+  Git's CRLF conversion warnings and no whitespace errors.
 
-## Delivered implementation by phase
+## Phase 1 — financial invariants and migration safety
 
-### Public website and content
+Status: complete.
 
-- EN/PT/ES public routes, localized metadata, canonicals, hreflang, sitemap, robots, structured
-  organization data, legal pages, careers, contact/support/Aquarex inquiries, responsive navigation,
-  keyboard focus, reduced motion, and accessible form states.
-- The public header, mobile menu, footer, and CTA surfaces include the portal entry link. The
-  visible label is localized (`Employee Portal login`, `Entrar no portal da equipe`, or
-  `Entrar al portal del equipo`) and points to `/j-aautomation/app/login` by default.
-- Official imagery and client marks are preserved with SHA-256 provenance in
-  `docs/ASSET_MANIFEST.sha256` and `website/docs/content-provenance.md`; no unverified customer,
-  certification, performance, address, vacancy, or testimonial claim was added.
+Reused and extended `packages/billing-engine`, `packages/database/src/repository.ts`,
+`packages/database/src/v3-repository.ts`, and the existing source-lock/invoice engine. Capped T&M,
+fixed-price/all-in allocation, hybrid included-minute/overage billing, custom cutoffs, daily
+minimum top-ups, separate labor/expense taxes, percentage compensation, overtime, settlements,
+partial payments, negative adjustments, immutable snapshots, source locks, and transaction-scoped
+numbering are implemented.
 
-### Identity, authorization, and privacy
+Reviewed migrations remain contiguous and unsquashed: `0001`–`0011` plus `0012_session_step_up`,
+`0013_audit_detail_fields`, `0014_commercial_billing_controls`,
+`0015_user_lifecycle_mfa_policy`, `0016_better_auth_two_factor_fields`, and
+`0017_better_auth_account_issuer`. `packages/database/src/schema.ts` declares the migrated
+Better Auth, commercial, reporting, finance, document, job, and offline tables and columns.
 
-- Better Auth password sessions, invite-only activation, secure cookies, TOTP/2FA, passkeys,
-  MFA-enrollment enforcement, step-up authentication, session revocation, origin checks, rate
-  limiting, security headers, and private no-store responses.
-- Protected server reads and writes re-check active status, role, project membership, ownership,
-  and finance visibility. Route hiding is supplementary only.
-- Workers receive only their own pay, time, reimbursement, budget/progress, and settlement data;
-  client rates, internal costs, margin, and other workers' compensation are excluded at the
-  repository/API boundary.
-- The portal has a server-filtered global search/command surface for projects, clients, workers,
-  invoices, PO references, reports, expenses and receipt IDs; auditors and workers receive only
-  results in their authorization scope.
-- Owner Admin and read-only auditors have a real append-only Audit Log view; auditors do not see
-  mutation navigation or finance actions that would be rejected by the server.
+Evidence: `tests/billing-engine.test.ts`, `tests/billing.test.ts`,
+`tests/integration/commercial-billing.test.ts`, `tests/integration/invoice-lifecycle.test.ts`,
+`tests/integration/v3-finance.test.ts`,
+`tests/integration/database.test.ts`, and `tests/invariants/invoice.test.ts`. The integration suite
+includes concurrent period close and concurrent issue attempts, plus declared-schema to migrated-
+SQLite column parity; populated upgrade starts with a
+pre-V3 business dataset and verifies its rows survive through migration 17.
 
-### Commercial setup and operations
+## Phase 2 — identity, authorization, documents, and audit
 
-- Client/project numbering, contacts, assignments, schedules, skills, planning, budgets, purchase
-  orders, commercial rules, effective dates, per-worker/per-project/per-category rate overrides,
-  and deterministic rate precedence.
-- Actual time remains independent from expected, planned, minimum, or guaranteed time. Categories
-  include regular, commissioning, overtime, weekend/holiday, travel, standby, remote support,
-  training, and internal work.
-- Worker compensation, internal loaded cost, and client bill rate are separate streams. Overtime
-  behavior is independently configurable for each stream. `PercentageOfEligibleClientLabor` uses
-  explicit eligible/excluded components and settlement triggers.
+Status: complete.
 
-### Time, reports, PLC, and expenses
+`apps/portal/src/lib/server/auth.ts`, `apps/portal/src/hooks.server.ts`, the security routes,
+`packages/database/src/repository.ts`, and `packages/database/src/v3-repository.ts` provide
+invite-only Better Auth sessions, active/suspended/offboarded/archived lifecycle checks, TOTP
+enrollment/verification/recovery codes, passkey registration/revocation, session-bound step-up,
+origin/rate-limit checks, role/project/ownership authorization, redacted audit detail, correlation
+IDs, and explicit service actors. User-wide `last_step_up_at` is no longer consulted for protected
+operations; the authoritative state is `session.step_up_at`.
 
-- Time lifecycle: draft, submitted, approved, needs changes, locked, and billed, with optimistic
-  versions, approval history, billing locks, and source traceability.
-- Daily project reports, period/consolidated reports, PLC/technical reports, technical changes,
-  safety/production impact, validation, open issues, artifact registers, hashes, private storage,
-  and separate internal/customer-facing report outputs.
-- Safety-impacting technical changes require validation/rollback detail and human review; no AI
-  path can approve them automatically.
-- Mobile/desktop expenses cover configured travel, meals, tolls, parking, materials, and other
-  categories; worker-paid, company card/direct, client-paid, and third-party sources; reimbursable,
-  marked-up, all-in, internal, direct, allowance/per-diem, and informational treatments. Private
-  receipt photos/PDFs are size-, MIME-, signature-, hash-, ownership-, and path-validated.
-- All-in expense affects direct cost/margin without entering the expense billing stream. Approved
-  reimbursable expenses become independent billing candidates.
+Private document upload/download/scan routes validate MIME, filename, size, SHA-256, safe storage
+keys, sensitivity, quota and scan state. Receipts, reports, PLC artifacts, invoice PDFs and
+Accounting Pack exports are authorization-checked and emit download audit events. The actual
+response CSP is nonce/hash based and contains no `unsafe-inline` or `unsafe-eval`; response header
+checks were run against the production-like portal image.
 
-### Billing, invoices, finance, and accounting
+Evidence: `tests/security/session-step-up.test.ts`, `tests/security/repository-privacy.test.ts`,
+`tests/security/audit-redaction.test.ts`, the authorization branches in both repositories, and the
+Docker Better Auth rehearsal (invitation acceptance → sign-in → TOTP setup → generated-code verify,
+with migration version 17 and `two_factor.verified=1`).
 
-- Independent labor/expense billing streams with their own cadence, tax profile, template,
-  grouping, recipient, terms, currency, PO reference, and draft behavior.
-- Weekly, every 14 days, semi-monthly, monthly, custom, milestone, and manual cadences are kept
-  distinct. Auto-issue and auto-send remain disabled by default.
-- Period-close readiness, automatic draft generation, invoice review/approval/issue/send, immutable
-  issued snapshots, transaction-scoped numbering, source locks, PDF idempotency, payments,
-  partial payments, overdue, void, credit, debit, and correction workflows are implemented.
-- Project finance and portfolio views reconcile direct worker cost, travel/expense cost, revenue,
-  approved/unapproved WIP, invoiced, collected, outstanding AR, budgets, ETC/EAC, and contribution
-  margin with source drill-down. Labels use Contribution Margin / Direct Project Result rather than
-  statutory Net Profit.
-- Finance time-economics review and the Master Invoice / Cost / Collection Ledger connect actual
-  time → approval → billability → compensation → internal cost → client revenue → billing status.
-- Monthly Accounting Pack produces the invoice register, collections, worker/direct costs, expense
-  register, AR, contribution, source reconciliation, and PDF/XLSX/CSV exports.
+## Phase 3 — worker operations and economics
 
-### Documents, jobs, and offline behavior
+Status: complete.
 
-- UUID document metadata, sensitivity, safe filenames, MIME/size validation, SHA-256, private
-  storage, and authorization/audit on every download for receipts, reports, invoices, PLC artifacts,
-  and Accounting Pack exports.
-- Leased scheduled jobs, job runs, outbox delivery leases, idempotency keys, retries/backoff,
-  terminal failures, period close, reminders, report/PDF work, automatic drafts, and Accounting
-  Pack generation are durable and duplicate-safe. The production runner schedules core jobs on
-  each timer pass, creates missing-time notifications with privacy-safe email outbox payloads,
-  and fails unknown job kinds for retry rather than marking them successful.
-- Service-worker scope is exactly `/j-aautomation/app/`. It caches only static assets and the
-  worker-safe shell routes for assigned project/time/report/expense work; API, finance, audit,
-  payment, export, and other-worker compensation data are excluded. IndexedDB stores permitted
-  worker mutations, assigned-project metadata, and receipt bytes only until successful sync.
-- Offline time, daily-report, technical-report, and expense drafts are validated and created on the
-  server with ownership/membership checks. Version conflicts never overwrite silently and show the
-  required server-change message. Receipt upload is private, hash-addressed, and retried before
-  mutation sync.
+Actual minutes remain independent from planned/expected/minimum/guaranteed minutes. Regular,
+commissioning, standby, travel, overtime, training and other configured categories are kept in the
+time stream. Assignment-specific compensation, internal loaded cost and client bill rate resolve
+through worker/category/activity overrides. Worker Pay, settlement triggers/bases and project
+progress are privacy-filtered at the repository boundary.
 
-### Database, backup, and deployment
+Worker responses contain no client rate, internal cost, margin, revenue, or another worker's pay;
+privacy tests assert this structurally and by serialized response inspection. Portal forms preserve
+copy-layout behavior without copying time values, support exceptions and approval states, and keep
+finance time-economics traceable from actual → approved → billable → contractual adjustment → worker
+compensation → internal cost → revenue candidate → invoice state.
 
-- Online SQLite backup uses Node's SQLite backup API so WAL contents are included. Restore stages
-  database/files, validates integrity, foreign keys, manifest paths, and SHA-256s, then swaps into
-  place.
-- Ubuntu 24.04 + Caddy + Docker Compose + systemd service/timers, non-root/read-only containers,
-  loopback-only app ports, health checks, disk/backup operations, job runner, rollback guidance, and
-  environment templates are in `deployment/` and `docs/`. The installer targets
-  `/opt/jaautomation/current`, installs/enables the jobs and backup timers, and requires host Node
-  24.19.0 for the online backup service.
-- The public image has no database, private-file, finance, or auth-secret mount. The portal/jobs
-  images receive only the configured private volumes and environment.
+## Phase 4 — reports, invoices, and Accounting Pack artifacts
 
-## Verification log
+Status: complete.
 
-Commands are run from the repository root. Host engine warnings are expected because the available
-host is Node 25.8.1 rather than the required 24.19.0.
+`packages/reporting/src/exports.ts` is the single Playwright/Chromium HTML/CSS renderer used by
+interactive and scheduled paths. The former handcrafted `simplePdf` path is retired. Versioned
+template `2026.08.19.1` output is generated from immutable snapshots, persisted under stable
+idempotent keys, SHA-256 hashed, byte-counted, and traceable to the source/template version.
+Labor detailed/summary, expense, fixed/milestone, credit/adjustment, daily/period, technical/PLC,
+customer/internal, closeout, and Accounting Pack artifacts use the shared service. Reporting tests
+verify long multipage invoices, overflow-safe descriptions, tax/currency rendering and repeat
+generation. Accounting exports include reconciled PDF/XLSX/CSV registers.
 
-| Command                 | Result                                                                                                                          |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm typecheck`        | Pass across 10 checked workspace projects                                                                                       |
-| `pnpm format:check`     | Pass                                                                                                                            |
-| `pnpm lint`             | Pass, zero findings                                                                                                             |
-| `pnpm test:unit`        | Pass: 6 files, 12 tests                                                                                                         |
-| `pnpm test:integration` | Pass: 3 files, 5 tests                                                                                                          |
-| `pnpm test:invariants`  | Pass: 1 file, 1 test                                                                                                            |
-| `pnpm test:security`    | Pass: 2 files, 4 tests                                                                                                          |
-| `pnpm test:offline`     | Pass: 1 file, 2 tests                                                                                                           |
-| `pnpm build`            | Pass: Next.js 219 generated routes and portal Vite production build                                                             |
-| `pnpm jobs:build`       | Pass: bundled `deployment/jobs-build/jobs-run.mjs`                                                                              |
-| `pnpm db:migrate:fresh` | Pass: fresh SQLite, WAL, foreign keys, integrity ok                                                                             |
-| `pnpm db:integrity`     | Pass: integrity ok                                                                                                              |
-| `pnpm db:check`         | Pass: WAL, foreign keys, and integrity ok                                                                                       |
-| `pnpm ops:backup:test`  | Pass: online backup and restore test                                                                                            |
-| `pnpm ops:restore-test` | Pass: safe SQLite restore verification                                                                                          |
-| configured jobs smoke   | Pass: 3 durable jobs and 6 outbox deliveries, 0 failures                                                                        |
-| compose config          | Pass: production Compose configuration validates                                                                                |
-| `pnpm test:e2e`         | Pass: 7, skipped by design: 3 (offline desktop-only, normal worker phone-only, viewport desktop-only); public and portal checks |
+## Phase 5 — portal architecture, responsive UX, localization
 
-The production-style Playwright server builds the site and portal before launch. The portal test
-environment pins `ORIGIN=http://127.0.0.1:4174` so the same-origin CSRF/origin check is exercised
-against the actual local origin. The site runner still emits Next's informational warning that
-`next start` is not the standalone launcher; the production Dockerfile uses the standalone server
-layout and copies `public`/`.next/static` explicitly.
+Status: complete for behavior and acceptance; incremental maintainability extraction recorded.
 
-## Current blockers and external inputs
+`apps/portal/src/lib/portal-navigation.ts` owns primary/secondary/admin/security navigation and
+`portal-i18n.ts` owns EN/PT-BR/ES dictionary/DOM translation. Existing behavior in
+`PortalShell.svelte` and the server action module was preserved while navigation, offline, security,
+artifact and localization concerns were extracted incrementally; no portal rewrite or duplicate
+domain data model was introduced. Worker navigation is Today/Time/Reports/Expenses/Projects with
+Documents secondary. Admin exposes the specified dashboard, project/client/team/planning/time/report/
+PLC/expense/approval/billing/invoice/finance/document/notification/settings/audit surfaces without
+duplicate Billing/Finance groups.
 
-The implementation is not blocked by these inputs, because each is configurable and documented:
+The frontend-design and stop-slop reviews were applied to the existing visual system. Automated Axe
+WCAG 2.2 AA checks pass on public and worker surfaces at phone and desktop. Playwright target
+viewport checks cover 360×800, 390×844, 430×932, 768×1024, 1024×768, 1280×800, 1440×900 and
+1920×1080; representative worker phone, admin desktop, invoice, and public screenshots were
+visually inspected. Responsive tables, focus restoration, keyboard controls, reduced motion and
+200% zoom styles remain in the portal CSS.
 
-- Production `JA_AUTH_SECRET`, WebAuthn origin/RP ID, SMTP/form recipient, signed outbox/CRM
-  adapter and secret, malware-scanner integration, encrypted off-site backup target, alert
-  destination, and customer recipient values.
-- Accountant-approved legal entity, tax profiles, invoice numbering policy, and final currency/PO
-  configuration.
-- An authorized operator must apply the reviewed migrations and perform the VPS release/rollback
-  procedure. This session intentionally did not access or modify a real VPS.
+## Phase 6 — public website
 
-`docs/MVP_DEMO_STATUS.md` is retained as an archived historical note only. It is not an active
-scope or completion checklist.
+Status: complete.
+
+The existing Next.js site retains its approved design/assets and now includes technology ecosystem,
+delivery process, remote support, team capability, Aquarex, Careers, URL-shareable project filters,
+localized EN/PT/ES routes, legal pages, structured metadata, sitemap/robots, accessible forms and
+the employee portal entry. No unverified client, certification, metric or company claim was added.
+The standalone image has no database/private/auth mount.
+
+## Phase 7 — offline and automation
+
+Status: complete.
+
+The service worker scope is exactly `/j-aautomation/app/`; only worker-safe shell routes and static
+assets are cacheable. IndexedDB stores time, daily report, technical report and expense mutations,
+assigned-project metadata and receipt bytes. Sync is idempotent, attachment uploads are hash/private,
+conflicts never overwrite server changes, and logout purges the user cache. The browser E2E now
+proves time, daily, technical and expense/receipt offline drafts, reconnect sync, and zero remaining
+mutation/attachment records.
+
+Leased jobs/outbox use bounded retries, idempotency, failure visibility, explicit finance service
+actor selection, stable artifact keys, reminders, period close, draft generation, PDF work and
+Accounting Pack work. Auto-issue and auto-send remain disabled.
+
+## Phase 8 — observability, deployment, and acceptance
+
+Status: complete in local/test topology; real VPS deliberately untouched.
+
+Structured JSON request/job logs include correlation and actor context. Health checks cover migration
+version, SQLite integrity/WAL/foreign keys, write readiness, required private directories and disk
+free space. Upload quotas, backup/restore validation, job/PDF/email failure logging and signed alert
+hooks are implemented. `deployment/` contains Caddy, Compose, non-root read-only site/portal images,
+systemd service/timers, installer, verification and rollback runbooks.
+
+Validation evidence:
+
+- `docker compose -f deployment/compose.production.yml config --quiet`: pass.
+- Caddy snippet adapted and validated with the Caddy 2 container: `Valid configuration`.
+- Site image rehearsal: `/j-aautomation/en` HTTP 200.
+- Portal image rehearsal after installer-equivalent UID 10001 directory provisioning: live 200,
+  detailed API health 200, migration 17/17, writable directories true, write-ready true.
+- Seeded jobs image rehearsal with explicit finance actor and synthetic HTTPS outbox receiver:
+  6 jobs completed, 6 deliveries processed, 0 final failures.
+- `pnpm ops:backup:test`: pass; `pnpm ops:restore-test`: pass.
+
+## Acceptance command results
+
+All commands were run under Node 24.19.0/pnpm 11.22.0 unless noted.
+
+| Gate                                                               | Result                                                         |
+| ------------------------------------------------------------------ | -------------------------------------------------------------- |
+| `pnpm typecheck`                                                   | Pass; 10 workspace projects checked                            |
+| `pnpm format:check`                                                | Pass                                                           |
+| `pnpm lint`                                                        | Pass; zero findings                                            |
+| `pnpm test:unit`                                                   | Pass; 9 files, 22 tests                                        |
+| `pnpm test:integration`                                            | Pass; 5 files, 9 tests                                         |
+| `pnpm test:invariants`                                             | Pass; 1 file, 1 test                                           |
+| `pnpm test:security`                                               | Pass; 4 files, 8 tests                                         |
+| `pnpm test:offline`                                                | Pass; 1 file, 2 tests                                          |
+| `pnpm test:reporting` with `JA_CHROMIUM_PATH=/usr/bin/chromium`    | Pass; 1 file, 2 tests                                          |
+| `pnpm build`                                                       | Pass; Next.js 219 generated routes and portal production build |
+| `pnpm jobs:build`                                                  | Pass; durable runner bundle                                    |
+| `pnpm db:migrate:fresh && pnpm db:integrity && pnpm db:check`      | Pass; WAL, FK, integrity and migration 17                      |
+| populated migration upgrade (`tests/integration/database.test.ts`) | Pass; business rows preserved through 17                       |
+| full Playwright E2E with Chromium                                  | Pass; 16 tests, 13 passed, 3 intentional scope skips           |
+| Axe accessibility E2E                                              | Pass; 4 tests (phone/desktop public + portal)                  |
+| backup/restore drills                                              | Pass                                                           |
+
+The three E2E skips are intentional viewport/role scope guards (desktop-only offline flow,
+phone-only worker mutation flow, and desktop-only public viewport matrix); no required behavior is
+hidden behind a skip.
+
+## Schema, legacy, and external prerequisites
+
+- Declared Drizzle schema, repositories, documentation and reviewed SQL migrations agree through
+  migration 17. No migration was squashed or renumbered.
+- `simplePdf` and the duplicate portal/job artifact implementation were retired/consolidated.
+- `docs/MVP_DEMO_STATUS.md` remains historical only. Obsolete .NET/PostgreSQL code was not
+  exhaustively traversed because the revised specification does not require it.
+- Software-verifiable requirements have no known implementation blocker. External configuration still
+  required before a real release is customer-specific: production `JA_AUTH_SECRET`, WebAuthn/DNS,
+  SMTP/outbox/alert/malware-scanner endpoints, encrypted off-site backup target, accountant-approved
+  legal entity/tax/numbering/retention values, final recipients and explicit VPS authorization.
+  Synthetic/test configuration proves each mechanism; no real VPS or production data was touched.
+
+## Definition-of-done evidence
+
+The 42-step normative scenario is mapped in `docs/V3_DOD_EVIDENCE.md`; repository integration,
+security, artifact, offline and E2E tests provide the executable evidence. Remaining external items
+are configuration approvals only, not code-implementable TODOs.

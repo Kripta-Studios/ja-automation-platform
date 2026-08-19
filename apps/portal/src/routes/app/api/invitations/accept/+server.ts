@@ -43,9 +43,9 @@ export const POST: RequestHandler = async ({ request }) => {
       const userId = result.user.id;
       const updated = database.sqlite
         .prepare(
-          "UPDATE user SET status='active',role=?,email_verified=1,updated_at=?,version=version+1 WHERE id=? AND status='invited'",
+          "UPDATE user SET status='active',role=?,email_verified=1,mfa_required=CASE WHEN ? IN ('owner_admin','finance_admin','project_manager','worker') THEN 1 ELSE 0 END,updated_at=?,version=version+1 WHERE id=? AND status='invited'",
         )
-        .run(invitation.role, new Date().toISOString(), userId);
+        .run(invitation.role, invitation.role, new Date().toISOString(), userId);
       if (updated.changes !== 1) throw new Error('New account could not be activated');
       database.sqlite
         .prepare('UPDATE invitation SET used_at=? WHERE id=? AND used_at=?')
@@ -54,7 +54,14 @@ export const POST: RequestHandler = async ({ request }) => {
       database.sqlite.close();
     }
     return json({ accepted: true, email: invitation.email });
-  } catch {
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        event: 'invitation.accept.failed',
+        invitationId: invitation.id,
+        error: error instanceof Error ? error.message : 'unknown error',
+      }),
+    );
     const rollback = createDatabase();
     try {
       rollback.sqlite

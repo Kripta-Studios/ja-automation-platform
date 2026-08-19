@@ -41,6 +41,7 @@ describe('repository authorization and privacy', () => {
     seedUser(sqlite, 'owner', 'owner_admin');
     seedUser(sqlite, 'auditor', 'auditor_read_only');
     seedUser(sqlite, 'worker', 'worker');
+    seedUser(sqlite, 'pm', 'project_manager');
     const owner: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
     const auditor: Principal = {
       userId: 'auditor',
@@ -48,6 +49,11 @@ describe('repository authorization and privacy', () => {
       projectIds: new Set(),
     };
     const worker: Principal = { userId: 'worker', role: 'worker', projectIds: new Set() };
+    const unassignedPm: Principal = {
+      userId: 'pm',
+      role: 'project_manager',
+      projectIds: new Set(),
+    };
     const client = repository.createClient(owner, {
       legalName: 'Security Client',
       displayName: 'Security Client',
@@ -123,6 +129,13 @@ describe('repository authorization and privacy', () => {
       }),
     ).toThrow(V3AccessDeniedError);
     expect(() => v3.projectFinance(worker, project.id)).toThrow(V3AccessDeniedError);
+    expect(() => v3.projectFinance(unassignedPm, project.id)).toThrow(V3AccessDeniedError);
+    expect(() =>
+      v3.resolveClientLaborRate(worker, project.id, 'worker', 'regular', '2026-08-18'),
+    ).toThrow(V3AccessDeniedError);
+    expect(() =>
+      v3.resolveInternalCostRate(worker, project.id, 'worker', 'regular', '2026-08-18'),
+    ).toThrow(V3AccessDeniedError);
     sqlite.close();
   });
 });

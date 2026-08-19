@@ -1,4 +1,7 @@
 import { deflateRawSync } from 'node:zlib';
+import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 
 type Cell = string | number | bigint | boolean | null | undefined;
 type Row = Readonly<Record<string, Cell>>;
@@ -206,44 +209,135 @@ export function xlsxFromSheets(
   ]);
 }
 
-type PdfInput = Readonly<{ title: string; lines: readonly string[] }>;
+export const REPORT_TEMPLATE_VERSION = '2026.08.19.1';
 
-const pdfEscape = (value: string): string =>
-  value
-    .replace(/\\/g, '\\\\')
-    .replace(/\(/g, '\\(')
-    .replace(/\)/g, '\\)')
-    .replace(/[\r\n]/g, ' ');
-
-export function simplePdf(input: PdfInput): Uint8Array {
-  const lines = [input.title, ...input.lines].slice(0, 46);
-  const commands = ['BT', '/F1 16 Tf', '50 780 Td', `(${pdfEscape(input.title)}) Tj`, '/F1 9 Tf'];
-  for (const line of lines.slice(1)) {
-    commands.push('0 -16 Td', `(${pdfEscape(line).slice(0, 150)}) Tj`);
-  }
-  commands.push('ET');
-  const stream = commands.join('\n');
-  const objects = [
-    '<< /Type /Catalog /Pages 2 0 R >>',
-    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
-    `<< /Length ${Buffer.byteLength(stream, 'latin1')} >>\nstream\n${stream}\nendstream`,
-    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-  ];
-  const chunks: string[] = ['%PDF-1.4\n'];
-  const offsets: number[] = [0];
-  for (let index = 0; index < objects.length; index += 1) {
-    offsets.push(Buffer.byteLength(chunks.join(''), 'latin1'));
-    chunks.push(`${index + 1} 0 obj\n${objects[index]}\nendobj\n`);
-  }
-  const xrefOffset = Buffer.byteLength(chunks.join(''), 'latin1');
-  chunks.push(`xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`);
-  for (let index = 1; index < offsets.length; index += 1)
-    chunks.push(`${String(offsets[index]).padStart(10, '0')} 00000 n \n`);
-  chunks.push(
-    `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`,
+const htmlEscape = (value: unknown): string =>
+  String(value ?? '').replace(
+    /[&<>"']/g,
+    (character) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] ??
+      character,
   );
-  return new Uint8Array(Buffer.from(chunks.join(''), 'latin1'));
+
+const playwrightModule = (() => {
+  try {
+    return pathToFileURL(createRequire(import.meta.url).resolve('playwright')).href;
+  } catch {
+    return 'playwright';
+  }
+})();
+
+const renderScript = `
+import playwright from ${JSON.stringify(playwrightModule)};
+const { chromium } = playwright;
+let html = '';
+for await (const chunk of process.stdin) html += chunk;
+const browser = await chromium.launch({ headless: true, ...(process.env.JA_CHROMIUM_PATH ? { executablePath: process.env.JA_CHROMIUM_PATH } : {}) });
+try {
+  const page = await browser.newPage({ viewport: { width: 1240, height: 1754 }, deviceScaleFactor: 1 });
+  await page.setContent(html, { waitUntil: 'load' });
+  await page.evaluate(() => document.fonts?.ready);
+  const pdf = await page.pdf({
+    format: 'A4',
+    printBackground: true,
+    preferCSSPageSize: true,
+    displayHeaderFooter: true,
+    headerTemplate: '<span></span>',
+    footerTemplate: '<div style="width:100%;font:9px Arial;color:#64748b;text-align:right;padding:0 18mm"><span class="pageNumber"></span> / <span class="totalPages"></span></div>',
+    margin: { top: '14mm', right: '14mm', bottom: '18mm', left: '14mm' }
+  });
+  process.stdout.write(Buffer.from(pdf).toString('base64'));
+} finally { await browser.close(); }
+`;
+
+/** Render the same immutable HTML snapshot in interactive and scheduled jobs. */
+export function renderHtmlToPdf(html: string): Uint8Array {
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', renderScript], {
+    input: html,
+    encoding: 'utf8',
+    maxBuffer: 40 * 1024 * 1024,
+    env: { ...process.env, PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1' },
+  });
+  if (result.status !== 0 || !result.stdout.trim())
+    throw new Error(`Chromium PDF rendering failed: ${result.stderr?.trim() || 'no output'}`);
+  return new Uint8Array(Buffer.from(result.stdout.trim(), 'base64'));
+}
+
+const pageCss = `
+@page { size: A4; margin: 14mm 14mm 18mm; }
+* { box-sizing: border-box; }
+body { margin: 0; color: #17212b; font: 10pt Arial, sans-serif; line-height: 1.4; }
+h1 { margin: 0 0 5mm; color: #0f2d3d; font-size: 24pt; letter-spacing: -.02em; }
+h2 { margin: 7mm 0 2mm; color: #0f2d3d; font-size: 13pt; border-bottom: 1px solid #d9e1e7; padding-bottom: 1.5mm; }
+.masthead { display:flex; justify-content:space-between; gap:12mm; border-bottom: 4px solid #e23d2d; padding-bottom: 5mm; margin-bottom: 7mm; }
+.eyebrow { color:#e23d2d; font-weight:700; text-transform:uppercase; letter-spacing:.12em; font-size:8pt; }
+.muted { color:#64748b; }
+.grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4mm 10mm; }
+.metric { background:#f1f5f7; border-left:3px solid #e23d2d; padding:3mm; break-inside:avoid; }
+.metric strong { display:block; color:#0f2d3d; font-size:15pt; margin-top:1mm; }
+table { width:100%; border-collapse:collapse; margin-top:3mm; break-inside:auto; }
+thead { display:table-header-group; }
+tr { break-inside:avoid; }
+th { background:#0f2d3d; color:#fff; text-align:left; font-size:8pt; text-transform:uppercase; letter-spacing:.06em; padding:2.4mm; }
+td { border-bottom:1px solid #d9e1e7; padding:2.4mm; vertical-align:top; }
+td.amount, th.amount { text-align:right; white-space:nowrap; }
+.total { margin:6mm 0 0 auto; width:70mm; border-top:3px solid #e23d2d; padding-top:3mm; }
+.total div { display:flex; justify-content:space-between; gap:4mm; padding:1mm 0; }
+.total strong { color:#0f2d3d; font-size:15pt; }
+.page-break { break-before: page; }
+`;
+
+function layout(title: string, subtitle: string, body: string): string {
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="template-version" content="${REPORT_TEMPLATE_VERSION}"><style>${pageCss}</style></head><body><header class="masthead"><div><div class="eyebrow">J&amp;A Automation</div><h1>${htmlEscape(title)}</h1><div class="muted">${htmlEscape(subtitle)}</div></div><div class="muted">Template ${REPORT_TEMPLATE_VERSION}</div></header>${body}</body></html>`;
+}
+
+function moneyText(currency: unknown, minor: unknown): string {
+  const code =
+    typeof currency === 'string' && /^[A-Za-z]{3}$/.test(currency) ? currency.toUpperCase() : 'USD';
+  let amount: bigint;
+  try {
+    amount = BigInt(String(minor ?? 0));
+  } catch {
+    amount = 0n;
+  }
+  let fractionDigits = 2;
+  try {
+    fractionDigits =
+      new Intl.NumberFormat('en-US', { style: 'currency', currency: code }).resolvedOptions()
+        .maximumFractionDigits ?? 2;
+  } catch {
+    // Keep the standard two-decimal fallback for an unrecognised currency code.
+  }
+  const negative = amount < 0n;
+  const absolute = negative ? -amount : amount;
+  const scale = 10n ** BigInt(fractionDigits);
+  const integer = (absolute / scale).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const fraction =
+    fractionDigits > 0 ? `.${(absolute % scale).toString().padStart(fractionDigits, '0')}` : '';
+  let prefix = '';
+  let suffix = '';
+  try {
+    const parts = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: code,
+    }).formatToParts(0);
+    const firstNumeric = parts.findIndex((part) => part.type === 'integer');
+    const lastNumeric = [...parts]
+      .reverse()
+      .findIndex((part) => ['integer', 'group', 'decimal', 'fraction'].includes(part.type));
+    const end = parts.length - lastNumeric;
+    prefix = parts
+      .slice(0, firstNumeric)
+      .map((part) => part.value)
+      .join('');
+    suffix = parts
+      .slice(end)
+      .map((part) => part.value)
+      .join('');
+  } catch {
+    prefix = `${code} `;
+  }
+  return htmlEscape(`${negative ? '-' : ''}${prefix}${integer}${fraction}${suffix}`);
 }
 
 export function accountingPackCsv(
@@ -268,6 +362,70 @@ export function accountingPackXlsx(
   ]);
 }
 
+type AccountingPackSourceSnapshot = Readonly<{
+  periodStart: string;
+  periodEnd: string;
+  invoiceRegister: readonly Record<string, unknown>[];
+  collections: readonly Record<string, unknown>[];
+  workerCosts: readonly Record<string, unknown>[];
+  expenseRegister: readonly Record<string, unknown>[];
+  totals: Record<string, unknown>;
+  totalsByCurrency?: readonly Record<string, unknown>[];
+}>;
+
+function exportCell(value: unknown): Cell {
+  if (
+    value === null ||
+    value === undefined ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'bigint' ||
+    typeof value === 'boolean'
+  )
+    return value;
+  return JSON.stringify(value);
+}
+
+function exportRows(rows: readonly Record<string, unknown>[]): readonly Row[] {
+  return rows.map((row) =>
+    Object.fromEntries(Object.entries(row).map(([key, value]) => [key, exportCell(value)])),
+  );
+}
+
+/** One canonical artifact set for interactive and scheduled Accounting Pack generation. */
+export function accountingPackArtifacts(snapshot: AccountingPackSourceSnapshot): readonly {
+  type: 'pdf' | 'xlsx' | 'invoice_csv' | 'expense_csv' | 'json';
+  extension: string;
+  bytes: Uint8Array;
+}[] {
+  const normalized = {
+    ...snapshot,
+    invoiceRegister: exportRows(snapshot.invoiceRegister),
+    collections: exportRows(snapshot.collections),
+    workerCosts: exportRows(snapshot.workerCosts),
+    expenseRegister: exportRows(snapshot.expenseRegister),
+    totals: Object.fromEntries(
+      Object.entries(snapshot.totals).map(([key, value]) => [key, exportCell(value)]),
+    ),
+    totalsByCurrency: exportRows(snapshot.totalsByCurrency ?? []),
+  };
+  return [
+    { type: 'pdf', extension: 'pdf', bytes: accountingPackPdf(normalized) },
+    { type: 'xlsx', extension: 'xlsx', bytes: accountingPackXlsx(normalized) },
+    { type: 'invoice_csv', extension: 'csv', bytes: accountingPackCsv(normalized) },
+    {
+      type: 'expense_csv',
+      extension: 'csv',
+      bytes: new TextEncoder().encode(toCsv(normalized.expenseRegister)),
+    },
+    {
+      type: 'json',
+      extension: 'json',
+      bytes: new TextEncoder().encode(JSON.stringify(normalized)),
+    },
+  ];
+}
+
 export function accountingPackPdf(
   snapshot: Readonly<{
     periodStart: string;
@@ -276,15 +434,27 @@ export function accountingPackPdf(
     totalsByCurrency?: readonly Row[];
   }>,
 ): Uint8Array {
-  return simplePdf({
-    title: `J&A Automation Accounting Pack ${snapshot.periodStart} to ${snapshot.periodEnd}`,
-    lines: [
-      ...Object.entries(snapshot.totals ?? {}).map(([key, value]) => `${key}: ${cellText(value)}`),
-      ...(snapshot.totalsByCurrency ?? []).flatMap((currency) =>
-        Object.entries(currency).map(([key, value]) => `currency.${key}: ${cellText(value)}`),
-      ),
-    ],
-  });
+  const totals = Object.entries(snapshot.totals ?? {})
+    .map(
+      ([key, value]) =>
+        `<div class="metric"><span class="muted">${htmlEscape(key)}</span><strong>${htmlEscape(value)}</strong></div>`,
+    )
+    .join('');
+  const byCurrency = (snapshot.totalsByCurrency ?? [])
+    .map(
+      (row) =>
+        `<tr>${Object.values(row)
+          .map((value) => `<td>${htmlEscape(value)}</td>`)
+          .join('')}</tr>`,
+    )
+    .join('');
+  return renderHtmlToPdf(
+    layout(
+      'Accounting Pack',
+      `${snapshot.periodStart} → ${snapshot.periodEnd}`,
+      `<section class="grid">${totals || '<div class="muted">No totals recorded.</div>'}</section><h2>Totals by currency</h2><table><tbody>${byCurrency || '<tr><td class="muted">No currency breakdown.</td></tr>'}</tbody></table>`,
+    ),
+  );
 }
 
 export function periodReportPdf(
@@ -299,46 +469,79 @@ export function periodReportPdf(
     backupArtifacts?: readonly Row[];
   }>,
 ): Uint8Array {
-  const lines = [
-    `Project: ${snapshot.project?.number ?? ''} ${snapshot.project?.name ?? ''}`,
-    `Client: ${snapshot.project?.clientName ?? ''}`,
-    `Audience: ${snapshot.audience ?? ''}`,
-    `Period: ${snapshot.periodStart} to ${snapshot.periodEnd}`,
-    `Daily reports: ${snapshot.dailyReports?.length ?? 0}`,
-    `Technical reports: ${snapshot.technicalReports?.length ?? 0}`,
-    `Technical changes: ${snapshot.technicalChanges?.length ?? 0}`,
-    `Registered artifacts: ${snapshot.backupArtifacts?.length ?? 0}`,
-    ...(snapshot.technicalChanges ?? [])
-      .slice(0, 12)
-      .map(
-        (change) =>
-          `${cellText(change.component)}: ${cellText(change.changeMade ?? change.change_made)}`,
-      ),
+  const rows = [
+    ...(snapshot.dailyReports ?? []).map((row) => ({
+      type: 'Daily report',
+      date: row.work_date ?? row.workDate,
+      detail: row.summary,
+    })),
+    ...(snapshot.technicalReports ?? []).map((row) => ({
+      type: 'Technical report',
+      date: row.created_at ?? row.createdAt,
+      detail: row.change_summary ?? row.changeSummary,
+    })),
+    ...(snapshot.technicalChanges ?? []).map((row) => ({
+      type: 'Technical change',
+      date: row.created_at ?? row.createdAt,
+      detail: row.change_made ?? row.changeMade,
+    })),
   ];
-  return simplePdf({
-    title: `J&A Automation Project Period Report`,
-    lines,
-  });
+  const table = rows
+    .map(
+      (row) =>
+        `<tr><td>${htmlEscape(row.type)}</td><td>${htmlEscape(row.date)}</td><td>${htmlEscape(row.detail)}</td></tr>`,
+    )
+    .join('');
+  return renderHtmlToPdf(
+    layout(
+      'Project Period Report',
+      `${snapshot.project?.number ?? ''} ${snapshot.project?.name ?? ''} · ${snapshot.periodStart} → ${snapshot.periodEnd} · ${snapshot.audience ?? ''}`,
+      `<div class="grid"><div class="metric"><span class="muted">Daily reports</span><strong>${snapshot.dailyReports?.length ?? 0}</strong></div><div class="metric"><span class="muted">Technical records</span><strong>${(snapshot.technicalReports?.length ?? 0) + (snapshot.technicalChanges?.length ?? 0)}</strong></div></div><h2>Operational record</h2><table><thead><tr><th>Type</th><th>Date</th><th>Detail</th></tr></thead><tbody>${table || '<tr><td colspan="3" class="muted">No report records.</td></tr>'}</tbody></table>`,
+    ),
+  );
 }
 
 export function invoicePdf(
   snapshot: Readonly<{
     number: string;
+    template?: { id?: string; version?: number };
+    commercial?: { streamType?: string; groupingMode?: string };
     legalEntity?: { legal_name?: string };
     client?: { legalName?: string };
-    calculation?: { currency?: string; totalMinor?: string };
+    calculation?: {
+      currency?: string;
+      subtotalMinor?: string;
+      taxMinor?: string;
+      totalMinor?: string;
+    };
     lines?: readonly Row[];
   }>,
 ): Uint8Array {
-  return simplePdf({
-    title: `Invoice ${snapshot.number}`,
-    lines: [
-      `From: ${snapshot.legalEntity?.legal_name ?? ''}`,
-      `Bill to: ${snapshot.client?.legalName ?? ''}`,
-      ...(snapshot.lines ?? []).map(
-        (line) => `${cellText(line.description)} | ${cellText(line.subtotal_minor)}`,
-      ),
-      `Total: ${snapshot.calculation?.currency ?? ''} ${snapshot.calculation?.totalMinor ?? ''}`,
-    ],
-  });
+  const rows = (snapshot.lines ?? [])
+    .map(
+      (line) =>
+        `<tr><td>${htmlEscape(line.description)}</td><td class="amount">${moneyText(snapshot.calculation?.currency, line.subtotal_minor)}</td></tr>`,
+    )
+    .join('');
+  const legalEntity = snapshot.legalEntity as Record<string, unknown> | undefined;
+  const client = snapshot.client as Record<string, unknown> | undefined;
+  const calculation = snapshot.calculation;
+  const templateId = snapshot.template?.id ?? '';
+  const title =
+    templateId.includes('credit') || templateId.includes('adjustment')
+      ? 'Credit / Adjustment'
+      : templateId.includes('fixed') || templateId.includes('milestone')
+        ? 'Fixed / Milestone Invoice'
+        : templateId.includes('expense')
+          ? 'Expense Invoice'
+          : templateId.includes('summary') || snapshot.commercial?.groupingMode === 'summary'
+            ? 'Labor Summary Invoice'
+            : 'Labor Detailed Invoice';
+  return renderHtmlToPdf(
+    layout(
+      `${title} ${snapshot.number}`,
+      `${String(legalEntity?.legal_name ?? legalEntity?.legalName ?? '')} → ${String(client?.legalName ?? '')}`,
+      `<div class="grid"><div><h2>From</h2><p>${htmlEscape(legalEntity?.legal_name ?? legalEntity?.legalName)}<br>${htmlEscape(legalEntity?.billingAddress ?? legalEntity?.billing_address)}</p></div><div><h2>Bill to</h2><p>${htmlEscape(client?.legalName)}<br>${htmlEscape(client?.billingEmail ?? client?.billing_email)}</p></div></div><h2>Invoice detail</h2><table><thead><tr><th>Description</th><th class="amount">Amount</th></tr></thead><tbody>${rows || '<tr><td colspan="2" class="muted">No invoice lines.</td></tr>'}</tbody></table><div class="total"><div><span>Subtotal</span><span>${moneyText(calculation?.currency, calculation?.subtotalMinor)}</span></div><div><span>Tax</span><span>${moneyText(calculation?.currency, calculation?.taxMinor)}</span></div><div><strong>Total</strong><strong>${moneyText(calculation?.currency, calculation?.totalMinor)}</strong></div></div>`,
+    ),
+  );
 }

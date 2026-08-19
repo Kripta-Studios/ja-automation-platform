@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import {
+  accessSync,
+  constants,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  statfsSync,
+} from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -44,6 +52,110 @@ export function migrate(sqlite: DatabaseSync): void {
     const version = Number(file.slice(0, 4));
     if (!applied.has(version)) sqlite.exec(readFileSync(resolve(migrationDirectory, file), 'utf8'));
   }
+}
+
+function migrationFiles(): readonly string[] {
+  const configured = process.env.JA_MIGRATIONS_PATH;
+  const candidates = [
+    configured ? resolve(configured) : undefined,
+    resolve(process.cwd(), 'migrations'),
+    resolve(process.cwd(), '../../migrations'),
+  ].filter((value): value is string => Boolean(value));
+  const directory = candidates.find((value) => existsSync(value));
+  if (!directory) return [];
+  return readdirSync(directory)
+    .filter((file) => /^\d{4}_.+\.sql$/.test(file))
+    .sort();
+}
+
+export function expectedMigrationVersion(): number {
+  const versions = migrationFiles().map((file) => Number(file.slice(0, 4)));
+  return versions.length ? Math.max(...versions) : 0;
+}
+
+export type DatabaseReadiness = Readonly<{
+  ok: boolean;
+  integrity: string;
+  migrationVersion: number;
+  expectedMigrationVersion: number;
+  writableDirectories: boolean;
+  writeReady: boolean;
+  diskFreeBytes: number | null;
+  diskFreeThresholdBytes: number;
+}>;
+
+export function readinessCheck(
+  sqlite: DatabaseSync,
+  documentRoot = process.env.JA_DOCUMENT_ROOT ?? process.env.JA_FILES_ROOT ?? 'data/documents',
+): DatabaseReadiness {
+  const integrity = integrityCheck(sqlite);
+  const hasMigrationTable = Boolean(
+    sqlite
+      .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='schema_migration'")
+      .get(),
+  );
+  const migrationRow = hasMigrationTable
+    ? (sqlite.prepare('SELECT COALESCE(MAX(version), 0) AS version FROM schema_migration').get() as
+        | { version: number }
+        | undefined)
+    : undefined;
+  const migrationVersion = Number(migrationRow?.version ?? 0);
+  const expected = expectedMigrationVersion();
+  const directories = [
+    'receipts',
+    'reports',
+    'invoices',
+    'technical',
+    'plc-backups',
+    'exports',
+    'temp',
+  ];
+  const writableDirectories = [
+    documentRoot,
+    ...directories.map((name) => resolve(documentRoot, name)),
+  ].every((directory) => {
+    try {
+      accessSync(directory, constants.W_OK);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  let writeReady = false;
+  try {
+    sqlite.exec('BEGIN IMMEDIATE; ROLLBACK;');
+    writeReady = true;
+  } catch {
+    try {
+      sqlite.exec('ROLLBACK;');
+    } catch {
+      // Keep readiness failure contained; the original write error is reflected by writeReady.
+    }
+  }
+  const diskFreeThresholdBytes = Number.parseInt(process.env.JA_MIN_FREE_BYTES ?? '1073741824', 10);
+  let diskFreeBytes: number | null = null;
+  try {
+    const stats = statfsSync(resolve(documentRoot));
+    diskFreeBytes = Number(stats.bavail) * Number(stats.bsize);
+  } catch {
+    diskFreeBytes = null;
+  }
+  const diskReady = diskFreeBytes === null || diskFreeBytes >= diskFreeThresholdBytes;
+  return {
+    ok:
+      integrity === 'ok' &&
+      migrationVersion === expected &&
+      writableDirectories &&
+      writeReady &&
+      diskReady,
+    integrity,
+    migrationVersion,
+    expectedMigrationVersion: expected,
+    writableDirectories,
+    writeReady,
+    diskFreeBytes,
+    diskFreeThresholdBytes,
+  };
 }
 
 export function createDatabase(path?: string) {

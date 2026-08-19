@@ -1,11 +1,12 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { relative, resolve } from 'node:path';
+import { base } from '$app/paths';
 import { error, redirect, type RequestHandler } from '@sveltejs/kit';
 import { openPortalRepository } from '$lib/server/portal-repository';
 
 export const GET: RequestHandler = async ({ locals, params }) => {
-  if (!locals.user) redirect(303, '/j-aautomation/app/login');
+  if (!locals.user) redirect(303, `${base}/app/login`);
   if (!params.id) error(400, 'Report id is required');
   const context = openPortalRepository(locals);
   try {

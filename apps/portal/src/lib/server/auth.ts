@@ -16,7 +16,7 @@ const authSecret =
 export const auth = betterAuth({
   appName: 'J&A Automation',
   database: createDatabase().sqlite,
-  baseURL: process.env.JA_WEBAUTHN_ORIGIN ?? 'http://localhost:5174',
+  baseURL: process.env.ORIGIN ?? process.env.JA_WEBAUTHN_ORIGIN ?? 'http://localhost:5174',
   basePath: `${portalBase}/api/auth`,
   secret: authSecret,
   user: {
@@ -55,11 +55,16 @@ export const auth = betterAuth({
   account: {
     modelName: 'account',
     fields: {
+      issuer: 'issuer',
       accountId: 'account_id',
       providerId: 'provider_id',
       userId: 'user_id',
       accessToken: 'access_token',
       refreshToken: 'refresh_token',
+      idToken: 'id_token',
+      accessTokenExpiresAt: 'access_token_expires_at',
+      refreshTokenExpiresAt: 'refresh_token_expires_at',
+      scope: 'scope',
       createdAt: 'created_at',
       updatedAt: 'updated_at',
     },
@@ -71,11 +76,28 @@ export const auth = betterAuth({
   emailAndPassword: { enabled: true, requireEmailVerification: production },
   advanced: { useSecureCookies: production, cookiePrefix: 'ja_portal' },
   plugins: [
-    twoFactor({ issuer: 'J&A Automation' }),
+    twoFactor({
+      issuer: 'J&A Automation',
+      twoFactorTable: 'two_factor',
+      // Keep Better Auth's camelCase model keys aligned with the reviewed
+      // snake_case SQLite schema. Without these mappings the adapter attempts
+      // to write columns such as `twoFactorEnabled` on a production database.
+      schema: {
+        user: { fields: { twoFactorEnabled: 'two_factor_enabled' } },
+        twoFactor: {
+          fields: {
+            backupCodes: 'backup_codes',
+            userId: 'user_id',
+            failedVerificationCount: 'failed_verification_count',
+            lockedUntil: 'locked_until',
+          },
+        },
+      },
+    }),
     passkey({
       rpID: process.env.JA_WEBAUTHN_RP_ID ?? 'localhost',
       rpName: 'J&A Automation',
-      origin: process.env.JA_WEBAUTHN_ORIGIN ?? 'http://localhost:5174',
+      origin: process.env.ORIGIN ?? process.env.JA_WEBAUTHN_ORIGIN ?? 'http://localhost:5174',
     }),
     sveltekitCookies(getRequestEvent),
   ],

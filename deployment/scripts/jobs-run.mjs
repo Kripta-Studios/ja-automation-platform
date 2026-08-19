@@ -1,19 +1,42 @@
 import { createHash, createHmac } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, statfsSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { createDatabase, PortalRepository, V3Repository } from '@ja/database';
 import {
-  accountingPackCsv,
-  accountingPackPdf,
-  accountingPackXlsx,
+  accountingPackArtifacts,
   invoicePdf,
   periodReportPdf,
-  toCsv,
+  REPORT_TEMPLATE_VERSION,
 } from '@ja/reporting';
+import { sendOperationalAlert } from './alerts.mjs';
 
 const root = resolve(process.env.JA_DOCUMENT_ROOT ?? '/var/lib/jaautomation/files');
 const databasePath =
   process.env.JA_DATABASE_PATH ?? '/var/lib/jaautomation/data/jaautomation.sqlite';
+
+function log(level, event, fields = {}) {
+  process.stdout.write(
+    `${JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level,
+      event,
+      service: 'jaautomation-jobs',
+      ...fields,
+    })}\n`,
+  );
+}
+
+function assertDiskReady() {
+  const threshold = Number.parseInt(process.env.JA_MIN_FREE_BYTES ?? '1073741824', 10);
+  const stats = statfsSync(root);
+  const freeBytes = Number(stats.bavail) * Number(stats.bsize);
+  log(freeBytes < threshold ? 'error' : 'info', 'disk.readiness', {
+    freeBytes,
+    minimumBytes: threshold,
+  });
+  if (freeBytes < threshold)
+    throw new Error('Private document volume is below free-space threshold');
+}
 
 function safeKey(key) {
   if (!key || key.startsWith('/') || key.includes('\\') || key.split('/').includes('..'))
@@ -27,50 +50,37 @@ function writeArtifact(key, bytes) {
   if (!relative.startsWith('/') || relative.includes('/../'))
     throw new Error('Artifact path escaped private root');
   mkdirSync(dirname(target), { recursive: true });
+  let persisted = bytes;
   try {
     writeFileSync(target, bytes, { flag: 'wx' });
   } catch (error) {
     if (error?.code !== 'EEXIST') throw error;
+    persisted = readFileSync(target);
   }
   return {
-    sha256: createHash('sha256').update(bytes).digest('hex'),
-    byteLength: bytes.byteLength,
+    sha256: createHash('sha256').update(persisted).digest('hex'),
+    byteLength: persisted.byteLength,
   };
-}
-
-function exportCell(value) {
-  if (
-    value === null ||
-    value === undefined ||
-    ['string', 'number', 'bigint', 'boolean'].includes(typeof value)
-  )
-    return value;
-  return JSON.stringify(value);
-}
-
-function exportRows(rows) {
-  return rows.map((row) =>
-    Object.fromEntries(Object.entries(row).map(([key, value]) => [key, exportCell(value)])),
-  );
 }
 
 const database = createDatabase(databasePath);
 const sqlite = database.sqlite;
 try {
+  assertDiskReady();
   const actorId = process.env.JA_JOB_ACTOR_ID;
-  const actor = actorId
-    ? sqlite
-        .prepare(
-          "SELECT id,role FROM user WHERE id=? AND status='active' AND role IN ('owner_admin','finance_admin')",
-        )
-        .get(actorId)
-    : sqlite
-        .prepare(
-          "SELECT id,role FROM user WHERE status='active' AND role IN ('owner_admin','finance_admin') ORDER BY role='owner_admin' DESC,id LIMIT 1",
-        )
-        .get();
-  if (!actor) throw new Error('No active finance job actor is configured');
-  const principal = { userId: actor.id, role: actor.role, projectIds: new Set() };
+  if (!actorId) throw new Error('JA_JOB_ACTOR_ID must name an active finance service actor');
+  const actor = sqlite
+    .prepare(
+      "SELECT id,role FROM user WHERE id=? AND status='active' AND role IN ('owner_admin','finance_admin')",
+    )
+    .get(actorId);
+  if (!actor) throw new Error('Configured JA_JOB_ACTOR_ID is not an active finance actor');
+  const principal = {
+    userId: actor.id,
+    role: actor.role,
+    projectIds: new Set(),
+    isServiceActor: true,
+  };
   const repository = new PortalRepository(sqlite);
   const v3 = new V3Repository(sqlite);
   v3.scheduleCoreJobs();
@@ -80,12 +90,11 @@ try {
       if (!invoiceId) throw new Error('Invoice PDF job has no invoice id');
       const snapshot = v3.invoiceSnapshot(principal, invoiceId);
       const bytes = invoicePdf(snapshot);
-      const hash = createHash('sha256').update(bytes).digest('hex');
-      const metadata = writeArtifact(`invoices/${invoiceId}/${hash}.pdf`, bytes);
+      const metadata = writeArtifact(`invoices/${invoiceId}/${REPORT_TEMPLATE_VERSION}.pdf`, bytes);
       v3.recordInvoicePdf(
         principal,
         invoiceId,
-        `invoices/${invoiceId}/${hash}.pdf`,
+        `invoices/${invoiceId}/${REPORT_TEMPLATE_VERSION}.pdf`,
         metadata.sha256,
         metadata.byteLength,
       );
@@ -99,8 +108,7 @@ try {
       const reports = v3.refreshPeriodReports(principal, { projectId, periodStart, periodEnd });
       for (const report of reports) {
         const bytes = periodReportPdf(report.snapshot);
-        const hash = createHash('sha256').update(bytes).digest('hex');
-        const key = `reports/${report.id}/${hash}.pdf`;
+        const key = `reports/${report.id}/${REPORT_TEMPLATE_VERSION}.pdf`;
         const metadata = writeArtifact(key, bytes);
         v3.recordPeriodReportPdf(principal, report.id, key, metadata.sha256, metadata.byteLength);
       }
@@ -117,27 +125,16 @@ try {
       const packId = String(payload?.packId ?? '');
       if (!packId) throw new Error('Accounting Pack job has no pack id');
       const snapshot = v3.accountingPackSnapshot(principal, packId);
-      const invoiceRegister = exportRows(snapshot.invoiceRegister ?? []);
-      const collections = exportRows(snapshot.collections ?? []);
-      const workerCosts = exportRows(snapshot.workerCosts ?? []);
-      const expenseRegister = exportRows(snapshot.expenseRegister ?? []);
-      const exportSnapshot = {
+      const artifacts = accountingPackArtifacts({
         ...snapshot,
-        invoiceRegister,
-        collections,
-        workerCosts,
-        expenseRegister,
-      };
-      const artifacts = [
-        ['pdf', 'pdf', accountingPackPdf(exportSnapshot)],
-        ['xlsx', 'xlsx', accountingPackXlsx(exportSnapshot)],
-        ['invoice_csv', 'csv', accountingPackCsv(exportSnapshot)],
-        ['expense_csv', 'csv', new TextEncoder().encode(toCsv(expenseRegister))],
-        ['json', 'json', new TextEncoder().encode(JSON.stringify(exportSnapshot))],
-      ];
-      for (const [type, extension, bytes] of artifacts) {
-        const hash = createHash('sha256').update(bytes).digest('hex');
-        const key = `accounting-packs/${packId}/${type}-${hash}.${extension}`;
+        invoiceRegister: snapshot.invoiceRegister ?? [],
+        collections: snapshot.collections ?? [],
+        workerCosts: snapshot.workerCosts ?? [],
+        expenseRegister: snapshot.expenseRegister ?? [],
+        totals: snapshot.totals ?? {},
+      });
+      for (const { type, extension, bytes } of artifacts) {
+        const key = `accounting-packs/${packId}/${type}-${REPORT_TEMPLATE_VERSION}.${extension}`;
         const metadata = writeArtifact(key, bytes);
         v3.recordAccountingPackExport(
           principal,
@@ -148,6 +145,19 @@ try {
           metadata.byteLength,
         );
       }
+    },
+    document_scan: (payload) => {
+      const documentId = String(payload?.documentId ?? '');
+      if (!documentId) throw new Error('Document scan job has no document id');
+      const result = process.env.JA_MALWARE_SCANNER_RESULT;
+      if (result !== 'clean' && result !== 'rejected')
+        throw new Error('Malware scanner decision is unavailable');
+      v3.recordDocumentScan(
+        principal,
+        documentId,
+        result,
+        process.env.JA_MALWARE_SCANNER_PROVIDER ?? 'configured-scanner',
+      );
     },
   });
   const webhookUrl = process.env.JA_OUTBOX_WEBHOOK_URL;
@@ -199,8 +209,39 @@ try {
     if (!response.ok) throw new Error(`Outbox webhook returned HTTP ${response.status}`);
   });
   const combined = { ...result, outbox };
-  process.stdout.write(`${JSON.stringify(combined)}\n`);
-  if (result.failed > 0 || outbox.failed > 0 || outbox.permanentlyFailed > 0) process.exitCode = 1;
+  log(
+    result.failed > 0 || outbox.failed > 0 || outbox.permanentlyFailed > 0 ? 'error' : 'info',
+    'jobs.cycle',
+    {
+      ...combined,
+      actorId,
+    },
+  );
+  if (result.failed > 0 || outbox.failed > 0 || outbox.permanentlyFailed > 0) {
+    process.exitCode = 1;
+    await sendOperationalAlert('jobs.cycle.failed', {
+      actorId,
+      failedJobs: result.failed,
+      failedOutbox: outbox.failed,
+      permanentlyFailedOutbox: outbox.permanentlyFailed,
+    }).catch((alertError) =>
+      log('error', 'alerts.delivery.failed', {
+        error: alertError instanceof Error ? alertError.message : 'unknown error',
+      }),
+    );
+  }
+} catch (error) {
+  log('error', 'jobs.runner.error', {
+    error: error instanceof Error ? error.message : 'unknown error',
+  });
+  await sendOperationalAlert('jobs.runner.error', {
+    error: error instanceof Error ? error.message : 'unknown error',
+  }).catch((alertError) =>
+    log('error', 'alerts.delivery.failed', {
+      error: alertError instanceof Error ? alertError.message : 'unknown error',
+    }),
+  );
+  process.exitCode = 1;
 } finally {
   sqlite.close();
 }

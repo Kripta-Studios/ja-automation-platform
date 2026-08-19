@@ -57,6 +57,22 @@ export async function queuedCount() {
   return (await db()).count('mutations');
 }
 
+export async function conflictMutations(): Promise<OfflineMutation[]> {
+  const mutations = (await db()).getAll('mutations') as Promise<OfflineMutation[]>;
+  return (await mutations).filter((mutation) => mutation.state === 'conflict');
+}
+
+export async function discardMutation(mutationId: string): Promise<void> {
+  const database = await db();
+  const mutation = (await database.get('mutations', mutationId)) as OfflineMutation | undefined;
+  if (!mutation) return;
+  const transaction = database.transaction(['mutations', 'attachments'], 'readwrite');
+  await transaction.objectStore('mutations').delete(mutationId);
+  for (const attachmentId of mutation.attachments ?? [])
+    await transaction.objectStore('attachments').delete(attachmentId);
+  await transaction.done;
+}
+
 export async function cacheAssignments(rows: readonly Record<string, unknown>[]) {
   const database = await db();
   const transaction = database.transaction('assignments', 'readwrite');

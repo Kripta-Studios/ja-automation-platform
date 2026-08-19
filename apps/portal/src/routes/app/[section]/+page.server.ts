@@ -38,6 +38,7 @@ import {
   versionedRecordSchema,
   voidInvoiceSchema,
   workerSkillInputSchema,
+  uuidSchema,
 } from '@ja/schemas';
 import { createHash } from 'node:crypto';
 import { mkdir, unlink, writeFile } from 'node:fs/promises';
@@ -703,6 +704,29 @@ export const actions: Actions = {
       const result = context.v3.createInvitation(context.principal, parsed.data);
       const publicBase = process.env.JA_PUBLIC_BASE_PATH ?? '/j-aautomation';
       return { success: true, message: `Invite created: ${publicBase}/app/invite/${result.token}` };
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  updateUserStatus: async ({ locals, request, params }) => {
+    if (params.section !== 'projects')
+      return fail(404, { success: false, message: 'Wrong section' });
+    const object = await formObject(request);
+    const userId = typeof object.userId === 'string' ? object.userId : '';
+    const status = typeof object.status === 'string' ? object.status : '';
+    const parsedId = uuidSchema.safeParse(userId);
+    if (!parsedId.success || !['active', 'suspended', 'offboarded', 'archived'].includes(status))
+      return fail(400, { success: false, message: 'Invalid account status change' });
+    const context = openPortalRepository(locals);
+    try {
+      context.repository.updateUserStatus(
+        context.principal,
+        userId,
+        status as 'active' | 'suspended' | 'offboarded' | 'archived',
+      );
+      return { success: true, message: `Account marked ${status}` };
     } catch (error) {
       return actionFailure(error);
     } finally {

@@ -40,6 +40,7 @@ services:
       JA_DOCUMENT_ROOT: /var/lib/jaautomation/files
       JA_PUBLIC_BASE_PATH: /j-aautomation
       JA_PORTAL_BASE_PATH: /j-aautomation/app
+      JA_CHROMIUM_PATH: /usr/bin/chromium
     ports:
       - 127.0.0.1:5100:5100
     volumes:
@@ -51,7 +52,7 @@ services:
       test:
         [
           CMD-SHELL,
-          'node -e "fetch(''http://127.0.0.1:5100/j-aautomation/app/api/health'').then(r=>{if(!r.ok)process.exit(1)})"',
+          'node -e "fetch(''http://127.0.0.1:5100/j-aautomation/health/ready'').then(r=>{if(!r.ok)process.exit(1)})"',
         ]
       interval: 30s
       timeout: 5s
@@ -67,6 +68,7 @@ services:
       JA_MIGRATIONS_PATH: /app/migrations
       JA_DOCUMENT_ROOT: /var/lib/jaautomation/files
       JA_JOB_ACTOR_ID: ${JA_JOB_ACTOR_ID:-}
+      JA_CHROMIUM_PATH: /usr/bin/chromium
     volumes:
       - /var/lib/jaautomation:/var/lib/jaautomation
     read_only: true

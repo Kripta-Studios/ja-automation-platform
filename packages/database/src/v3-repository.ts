@@ -35,6 +35,7 @@ export class V3ValidationError extends Error {}
 type DbValue = string | number | bigint | null;
 type OutputValue = DbValue | boolean;
 type V3Currency = Currency;
+type ReportLocale = 'en' | 'pt' | 'es';
 type DueJobHandler = (payload: unknown) => void;
 type OutboxEvent = Readonly<{
   id: string;
@@ -45,6 +46,9 @@ type OutboxEvent = Readonly<{
   attempts: number;
 }>;
 type DueOutboxHandler = (event: OutboxEvent) => void | Promise<void>;
+
+const normalizeReportLocale = (value: unknown): ReportLocale =>
+  value === 'pt' || value === 'es' ? value : 'en';
 
 type CompensationInput = Readonly<{
   workerId: string;
@@ -3330,6 +3334,7 @@ export class V3Repository {
     billingRuleId: string,
     periodStart: string,
     periodEnd: string,
+    reportLocale: ReportLocale = 'en',
   ) {
     this.assertFinance(principal);
     this.assertStepUp(principal);
@@ -3432,6 +3437,7 @@ export class V3Repository {
         periodStart,
         periodEnd,
         streamType: rule.stream_type,
+        locale: normalizeReportLocale(reportLocale),
         generatedAt: now,
       });
       for (const audience of ['customer', 'internal'] as const)
@@ -3455,7 +3461,13 @@ export class V3Repository {
       this.enqueueJob(
         'period_close_report',
         `billing-close:${billingRuleId}:${periodStart}:${periodEnd}:${rule.policy_version}`,
-        { billingRuleId, periodStart, periodEnd, projectId: rule.project_id },
+        {
+          billingRuleId,
+          periodStart,
+          periodEnd,
+          projectId: rule.project_id,
+          reportLocale: normalizeReportLocale(reportLocale),
+        },
       );
       this.audit(principal, 'billing_period.close', 'billing_period', effectiveBillingPeriodId, {
         billingRuleId,
@@ -3468,7 +3480,12 @@ export class V3Repository {
 
   refreshPeriodReports(
     principal: Principal,
-    input: Readonly<{ projectId: string; periodStart: string; periodEnd: string }>,
+    input: Readonly<{
+      projectId: string;
+      periodStart: string;
+      periodEnd: string;
+      reportLocale?: ReportLocale;
+    }>,
   ): Array<{
     id: string;
     audience: 'customer' | 'internal';
@@ -3571,12 +3588,13 @@ export class V3Repository {
         .all(input.projectId) as Array<Record<string, unknown>>;
       const reports = this.sqlite
         .prepare(
-          'SELECT id,audience,state FROM period_report WHERE project_id=? AND period_start=? AND period_end=? ORDER BY audience',
+          'SELECT id,audience,state,snapshot_json FROM period_report WHERE project_id=? AND period_start=? AND period_end=? ORDER BY audience',
         )
         .all(input.projectId, input.periodStart, input.periodEnd) as Array<{
         id: string;
         audience: 'customer' | 'internal';
         state: string;
+        snapshot_json: string;
       }>;
       const reportSources: Array<{ reportId: string; sourceType: string; sourceId: string }> = [];
       const now = timestamp();
@@ -3586,6 +3604,14 @@ export class V3Repository {
         snapshot: Readonly<Record<string, unknown>>;
       }> = [];
       for (const report of reports) {
+        let previousLocale: ReportLocale = 'en';
+        try {
+          const previous = JSON.parse(report.snapshot_json) as { locale?: unknown };
+          previousLocale = normalizeReportLocale(previous.locale);
+        } catch {
+          previousLocale = 'en';
+        }
+        const reportLocale = normalizeReportLocale(input.reportLocale ?? previousLocale);
         const customer = report.audience === 'customer';
         const visibleDailyReports = customer
           ? dailyReports.filter((daily) => ['approved', 'locked'].includes(daily.approval_state))
@@ -3674,6 +3700,7 @@ export class V3Repository {
           periodStart: input.periodStart,
           periodEnd: input.periodEnd,
           audience: report.audience,
+          locale: reportLocale,
           dailyReports: reportDaily,
           timeSummary: visibleTime.map((row) => ({
             date: row.work_date,
@@ -3833,7 +3860,12 @@ export class V3Repository {
     };
   }
 
-  createAccountingPack(principal: Principal, periodStart: string, periodEnd: string) {
+  createAccountingPack(
+    principal: Principal,
+    periodStart: string,
+    periodEnd: string,
+    reportLocale: ReportLocale = 'en',
+  ) {
     this.assertFinance(principal);
     requireDate(periodStart, 'Period start');
     requireDate(periodEnd, 'Period end');
@@ -4429,6 +4461,7 @@ export class V3Repository {
     const snapshot = {
       periodStart,
       periodEnd,
+      locale: normalizeReportLocale(reportLocale),
       generatedAt: timestamp(),
       invoiceRegister,
       collections,

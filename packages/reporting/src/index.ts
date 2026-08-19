@@ -10,8 +10,10 @@ export {
   accountingPackXlsx,
   invoicePdf,
   periodReportPdf,
+  REPORT_LOCALES,
   REPORT_TEMPLATE_VERSION,
   toCsv,
+  type ReportLocale,
 } from './exports.ts';
 export function periodReadiness(input: {
   closed: boolean;

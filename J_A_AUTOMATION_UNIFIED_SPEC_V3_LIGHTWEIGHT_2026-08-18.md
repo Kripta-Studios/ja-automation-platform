@@ -4771,6 +4771,8 @@ ES
 
 Portal UI should also support those languages, with English as canonical source.
 
+REPORTS CAN BE CHOSEN TO BE GENERATED IN SPANISH, ENGLISH OR PORTUGESE
+
 Do not translate:
 
 - project/client codes;

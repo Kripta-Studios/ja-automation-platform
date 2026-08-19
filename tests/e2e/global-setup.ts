@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   e2eDatabasePath as databasePath,
   e2eDocumentRoot as documentRoot,
@@ -19,11 +20,11 @@ function removeDatabaseArtifacts(): void {
 
 export default async function globalSetup() {
   if (existsSync(documentRoot)) rmSync(documentRoot, { recursive: true, force: true });
-  mkdirSync(`${root}\\data`, { recursive: true });
+  mkdirSync(join(root, 'data'), { recursive: true });
   const env = {
     ...process.env,
     JA_DATABASE_PATH: databasePath,
-    JA_MIGRATIONS_PATH: `${root}\\migrations`,
+    JA_MIGRATIONS_PATH: join(root, 'migrations'),
     JA_DOCUMENT_ROOT: documentRoot,
     JA_DEMO_MODE: 'true',
     JA_DEMO_SEED_PRESERVE_DB: 'true',

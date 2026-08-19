@@ -7,6 +7,7 @@ import {
   invoicePdf,
   periodReportPdf,
   REPORT_TEMPLATE_VERSION,
+  type ReportLocale,
 } from '@ja/reporting';
 
 function safeKey(key: string): void {
@@ -63,7 +64,12 @@ export function runArtifactJobs(context: {
     ) => void;
     refreshPeriodReports: (
       principal: Principal,
-      input: Readonly<{ projectId: string; periodStart: string; periodEnd: string }>,
+      input: Readonly<{
+        projectId: string;
+        periodStart: string;
+        periodEnd: string;
+        reportLocale?: ReportLocale;
+      }>,
     ) => readonly {
       id: string;
       audience: 'customer' | 'internal';
@@ -123,12 +129,15 @@ export function runArtifactJobs(context: {
       const projectId = String(values.projectId ?? '');
       const periodStart = String(values.periodStart ?? '');
       const periodEnd = String(values.periodEnd ?? '');
+      const reportLocale: ReportLocale =
+        values.reportLocale === 'pt' || values.reportLocale === 'es' ? values.reportLocale : 'en';
       if (!projectId || !periodStart || !periodEnd)
         throw new Error('Period report job has incomplete period data');
       const reports = context.v3.refreshPeriodReports(context.principal, {
         projectId,
         periodStart,
         periodEnd,
+        reportLocale,
       });
       for (const report of reports) {
         const bytes = periodReportPdf(report.snapshot as Parameters<typeof periodReportPdf>[0]);
@@ -173,6 +182,7 @@ export function runArtifactJobs(context: {
         expenseRegister: readonly Record<string, unknown>[];
         totals: Record<string, unknown>;
         totalsByCurrency?: readonly Record<string, unknown>[];
+        locale?: ReportLocale | string;
       };
       const artifacts = accountingPackArtifacts(snapshot);
       for (const artifact of artifacts) {

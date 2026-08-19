@@ -90,9 +90,18 @@ describe('invoice lifecycle coverage', () => {
       '2026-08-31',
     );
     repository.approveInvoiceDraft(finance, original.id);
-    const issued = repository.issueInvoice(finance, original.id);
+    const issued = repository.issueInvoice(finance, original.id, 'es');
     expect(issued.issued).toBe(true);
     expect(issued.invoiceNumber).toMatch(/^LIFE-/);
+    expect(
+      JSON.parse(
+        (
+          sqlite.prepare('SELECT snapshot_json FROM invoice WHERE id=?').get(original.id) as {
+            snapshot_json: string;
+          }
+        ).snapshot_json,
+      ).locale,
+    ).toBe('es');
 
     const milestone = repository.createProjectMilestone(owner, {
       projectId: project.id,

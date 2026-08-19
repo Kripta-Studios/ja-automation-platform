@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   REPORT_TEMPLATE_VERSION,
+  REPORT_LOCALES,
   accountingPackArtifacts,
   invoicePdf,
   periodReportPdf,
@@ -15,6 +16,7 @@ describe('production reporting artifacts', () => {
   it('renders long immutable invoice snapshots as multipage PDFs with traceable template output', () => {
     const pdf = invoicePdf({
       number: 'JA-INV-000001',
+      locale: 'es',
       legalEntity: { legal_name: 'J&A Automation', billing_address: 'Configured address' },
       client: { legalName: 'Northline Mobility', billingEmail: 'ap@example.com' },
       calculation: {
@@ -32,7 +34,7 @@ describe('production reporting artifacts', () => {
     expect(Buffer.from(pdf).subarray(0, 5).toString()).toBe('%PDF-');
     expect(pageCount(pdf)).toBeGreaterThan(1);
     expect(sha256(pdf)).toMatch(/^[a-f0-9]{64}$/);
-    expect(REPORT_TEMPLATE_VERSION).toBe('2026.08.19.1');
+    expect(REPORT_TEMPLATE_VERSION).toBe('2026.08.19.2');
   });
 
   it('keeps period and Accounting Pack generation on the same renderer contract', () => {
@@ -41,6 +43,7 @@ describe('production reporting artifacts', () => {
       periodStart: '2026-08-01',
       periodEnd: '2026-08-31',
       audience: 'internal',
+      locale: 'pt',
       dailyReports: Array.from({ length: 24 }, (_, index) => ({
         work_date: `2026-08-${String(index + 1).padStart(2, '0')}`,
         summary: 'Validated sequence, safety interlocks and rollback evidence.'.repeat(4),
@@ -68,6 +71,25 @@ describe('production reporting artifacts', () => {
     for (const artifact of artifacts) {
       expect(artifact.bytes.byteLength).toBeGreaterThan(0);
       expect(sha256(artifact.bytes)).toMatch(/^[a-f0-9]{64}$/);
+    }
+  });
+
+  it('supports the selectable English, Brazilian Portuguese and Spanish report locales', () => {
+    expect(REPORT_LOCALES).toEqual(['en', 'pt', 'es']);
+    for (const locale of REPORT_LOCALES) {
+      const pdf = invoicePdf({
+        number: `JA-${locale}`,
+        locale,
+        calculation: {
+          currency: 'BRL',
+          subtotalMinor: '12345',
+          taxMinor: '0',
+          totalMinor: '12345',
+        },
+        lines: [{ description: 'Commissioning', subtotal_minor: '12345' }],
+      });
+      expect(Buffer.from(pdf).subarray(0, 5).toString()).toBe('%PDF-');
+      expect(pdf.byteLength).toBeGreaterThan(0);
     }
   });
 });

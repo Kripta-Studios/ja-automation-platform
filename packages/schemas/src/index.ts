@@ -62,6 +62,7 @@ export const offlineMutationSchema = z.object({
 });
 
 export const currencySchema = z.enum(['USD', 'BRL', 'EUR']);
+export const reportLocaleSchema = z.enum(['en', 'pt', 'es']);
 export const uuidSchema = z.uuid();
 export const minorUnitsSchema = z.string().regex(/^\d+$/, 'Use non-negative integer minor units');
 const isoDateSchema = z.iso.date();
@@ -323,7 +324,10 @@ export const billingRuleInputSchema = z.object({
   effectiveFrom: isoDateSchema,
 });
 
-export const invoiceIdSchema = z.object({ invoiceId: uuidSchema });
+export const invoiceIdSchema = z.object({
+  invoiceId: uuidSchema,
+  reportLocale: reportLocaleSchema.default('en'),
+});
 
 export const compensationSettlementInputSchema = z.object({
   workerId: uuidSchema,
@@ -453,10 +457,13 @@ export const assignmentRateOverrideInputSchema = z.object({
   priority: z.coerce.number().int().min(0).max(1000).default(0),
 });
 
-export const billingCloseSchema = invoicePeriodSchema;
+export const billingCloseSchema = invoicePeriodSchema.extend({
+  reportLocale: reportLocaleSchema.default('en'),
+});
 export const accountingPackPeriodSchema = z.object({
   periodStart: z.iso.date(),
   periodEnd: z.iso.date(),
+  reportLocale: reportLocaleSchema.default('en'),
 });
 export const voidInvoiceSchema = z.object({
   invoiceId: uuidSchema,

@@ -498,9 +498,9 @@ describe('V3 finance and privacy paths', () => {
         .prepare('UPDATE time_entry SET activity_summary=? WHERE id=?')
         .run('Direct SQL mutation must be rejected', time.id),
     ).toThrow(/draft invoice time source is immutable/);
-    expect(v3.closeBillingPeriod(finance, laborRule.id, '2026-08-03', '2026-08-16').closed).toBe(
-      true,
-    );
+    expect(
+      v3.closeBillingPeriod(finance, laborRule.id, '2026-08-03', '2026-08-16', 'pt').closed,
+    ).toBe(true);
     expect(v3.closeBillingPeriod(finance, expenseRule.id, '2026-08-03', '2026-08-16').closed).toBe(
       true,
     );
@@ -518,6 +518,17 @@ describe('V3 finance and privacy paths', () => {
         }
       ).billing_state,
     ).toBe('locked');
+    expect(
+      JSON.parse(
+        (
+          sqlite
+            .prepare(
+              'SELECT snapshot_json FROM period_report WHERE project_id=? AND period_start=? ORDER BY audience LIMIT 1',
+            )
+            .get(project.id, '2026-08-03') as { snapshot_json: string }
+        ).snapshot_json,
+      ).locale,
+    ).toBe('pt');
     expect(
       (
         sqlite
@@ -614,8 +625,9 @@ describe('V3 finance and privacy paths', () => {
     expect(ledger.find((row) => row.invoiceId === laborDraft.id)?.paymentStatus).toBe('paid');
     expect(ledger.find((row) => row.invoiceId === expenseDraft.id)?.directCostMinor).toBe('2000');
 
-    const pack = v3.createAccountingPack(finance, '2000-01-01', '2999-12-31');
+    const pack = v3.createAccountingPack(finance, '2000-01-01', '2999-12-31', 'es');
     expect(pack.reconciliation).toMatchObject({ reconciles: true, paymentCount: 2 });
+    expect((pack.snapshot as { locale?: string }).locale).toBe('es');
     expect(v3.createAccountingPack(finance, '2000-01-01', '2999-12-31').id).toBe(pack.id);
     const jobRun = v3.runDueJobs(10, {
       accounting_pack: () => undefined,

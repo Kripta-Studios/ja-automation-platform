@@ -27,6 +27,10 @@ export class ReadinessError extends Error {
 
 export type ReadinessReason = Readonly<{ code: string; sourceId?: string }>;
 
+type ReportLocale = 'en' | 'pt' | 'es';
+const normalizeReportLocale = (value: unknown): ReportLocale =>
+  value === 'pt' || value === 'es' ? value : 'en';
+
 type ClientInput = Readonly<{
   legalName: string;
   displayName: string;
@@ -3079,7 +3083,7 @@ export class PortalRepository {
     this.audit(principal, 'invoice.approve', 'invoice', invoiceId, {});
   }
 
-  issueInvoice(principal: Principal, invoiceId: string) {
+  issueInvoice(principal: Principal, invoiceId: string, reportLocale: ReportLocale = 'en') {
     this.assertActive(principal);
     if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
     this.assertStepUp(principal);
@@ -3214,6 +3218,7 @@ export class PortalRepository {
           poNumber: context.po_number_override ?? context.po_number,
         },
         number: invoiceNumber,
+        locale: normalizeReportLocale(reportLocale),
         invoiceNumber,
         commercial: {
           streamType: invoice.stream_type,

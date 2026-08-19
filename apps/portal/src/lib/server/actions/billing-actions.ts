@@ -182,7 +182,11 @@ export const billingActions = {
     if (!parsed.success) return fail(400, { success: false, message: 'Invalid invoice' });
     const context = openPortalRepository(locals);
     try {
-      const result = context.repository.issueInvoice(context.principal, parsed.data.invoiceId);
+      const result = context.repository.issueInvoice(
+        context.principal,
+        parsed.data.invoiceId,
+        parsed.data.reportLocale,
+      );
       return { success: true, message: `Issued ${result.invoiceNumber}` };
     } catch (error) {
       return actionFailure(error);
@@ -226,6 +230,7 @@ export const billingActions = {
         parsed.data.billingRuleId,
         parsed.data.periodStart,
         parsed.data.periodEnd,
+        parsed.data.reportLocale,
       );
       if (!result.closed)
         return fail(409, {
@@ -293,6 +298,7 @@ export const billingActions = {
         context.principal,
         parsed.data.periodStart,
         parsed.data.periodEnd,
+        parsed.data.reportLocale,
       );
       return { success: true, message: `Accounting Pack ${pack.id.slice(0, 8)} is ready` };
     } catch (error) {

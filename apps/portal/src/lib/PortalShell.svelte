@@ -1995,7 +1995,12 @@
                       type="date"
                       aria-label="Close period end"
                       required
-                    /><button>Close sources</button>
+                    /><label
+                      >Report language<select name="reportLocale" aria-label="Report language">
+                        <option value="en">English</option><option value="pt">Português (BR)</option
+                        ><option value="es">Español</option>
+                      </select></label
+                    ><button>Close sources</button>
                   </form>
                 </div>{/if}
             </article>{/each}
@@ -2030,9 +2035,16 @@
                       method="POST"
                       action="?/issueInvoice"
                     >
-                      <input type="hidden" name="invoiceId" value={invoice.id} /><button
-                        >Issue</button
-                      >
+                      <input type="hidden" name="invoiceId" value={invoice.id} /><label
+                        >Report language<select
+                          name="reportLocale"
+                          aria-label="Invoice report language"
+                        >
+                          <option value="en">EN</option><option value="pt">PT-BR</option><option
+                            value="es">ES</option
+                          >
+                        </select></label
+                      ><button>Issue</button>
                     </form>{:else if ['issued', 'sent', 'partially_paid', 'overdue'].includes(String(invoice.state))}<form
                       method="POST"
                       action="?/recordPayment"
@@ -2621,6 +2633,15 @@
             </p>
             <label>Period start<input name="periodStart" type="date" required /></label><label
               >Period end<input name="periodEnd" type="date" required /></label
+            ><label
+              >Report language<select
+                name="reportLocale"
+                aria-label="Accounting Pack report language"
+              >
+                <option value="en">English</option><option value="pt">Português (BR)</option><option
+                  value="es">Español</option
+                >
+              </select></label
             ><button>Generate pack</button>
           </form>
           <form method="POST" action="?/runJobs" class="entry-panel">

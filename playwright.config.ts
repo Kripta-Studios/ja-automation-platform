@@ -1,4 +1,5 @@
 import { defineConfig } from '@playwright/test';
+import { join } from 'node:path';
 import { e2eDatabasePath, e2eDocumentRoot, e2eRoot as root } from './tests/e2e/environment';
 
 export default defineConfig({
@@ -45,7 +46,7 @@ export default defineConfig({
         NODE_ENV: 'development',
         ORIGIN: 'http://127.0.0.1:4174',
         JA_DATABASE_PATH: e2eDatabasePath,
-        JA_MIGRATIONS_PATH: `${root}\\migrations`,
+        JA_MIGRATIONS_PATH: join(root, 'migrations'),
         JA_DOCUMENT_ROOT: e2eDocumentRoot,
         JA_DEMO_MODE: 'true',
         JA_AUTH_SECRET: 'e2e-only-secret-do-not-use-in-production',

@@ -1,0 +1,64 @@
+import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { clients } from './clients.ts';
+import { lifecycle } from './shared.ts';
+
+export const projects = sqliteTable(
+  'project',
+  {
+    id: text('id').primaryKey(),
+    projectNumber: text('project_number').notNull().unique(),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => clients.id),
+    name: text('name').notNull(),
+    timezone: text('timezone').notNull(),
+    currency: text('currency').notNull(),
+    status: text('status').notNull(),
+    billingModel: text('billing_model').notNull(),
+    description: text('description'),
+    siteName: text('site_name'),
+    country: text('country'),
+    projectManagerId: text('project_manager_id'),
+    expectedMinutesPerDay: integer('expected_minutes_per_day'),
+    clientDailyMinimumMinutes: integer('client_daily_minimum_minutes'),
+    revenueBudgetMinor: integer('revenue_budget_minor'),
+    poCapMinor: integer('po_cap_minor'),
+    laborBudgetMinutes: integer('labor_budget_minutes'),
+    travelBudgetMinor: integer('travel_budget_minor'),
+    poNumber: text('po_number'),
+    dailyReportRequired: integer('daily_report_required', { mode: 'boolean' }),
+    technicalReportingRequired: integer('technical_reporting_required', { mode: 'boolean' }),
+    budgetMinor: integer('budget_minor'),
+    plannedMinutes: integer('planned_minutes'),
+    projectAlias: text('project_alias'),
+    startDate: text('start_date'),
+    plannedEndDate: text('planned_end_date'),
+    actualEndDate: text('actual_end_date'),
+    contractNumber: text('contract_number'),
+    budgetType: text('budget_type'),
+    otherCostBudgetMinor: integer('other_cost_budget_minor'),
+    weeklyCloseEnabled: integer('weekly_close_enabled', { mode: 'boolean' }),
+    notes: text('notes'),
+    expectedScheduleId: text('expected_schedule_id'),
+    fixedPriceMinor: integer('fixed_price_minor'),
+    version: integer('version').notNull().default(1),
+    ...lifecycle,
+  },
+  (table) => [index('project_client_idx').on(table.clientId)],
+);
+
+export const projectMilestones = sqliteTable('project_milestone', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  amountMinor: integer('amount_minor').notNull(),
+  currency: text('currency').notNull(),
+  dueOn: text('due_on'),
+  approvalState: text('approval_state').notNull(),
+  approvedBy: text('approved_by'),
+  approvedAt: text('approved_at'),
+  invoiceId: text('invoice_id'),
+  version: integer('version').notNull().default(1),
+  ...lifecycle,
+});

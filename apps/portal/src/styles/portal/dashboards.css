@@ -1,0 +1,127 @@
+/* Dashboards -------------------------------------------------------------- */
+.dashboard-hero {
+  min-height: 16rem;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1.15rem;
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(circle at 90% 15%, rgb(86 213 197 / 0.28), transparent 18rem),
+    linear-gradient(130deg, #102b3f, #1b4960) !important;
+  box-shadow: 0 1.25rem 2.8rem rgb(19 58 80 / 0.18);
+}
+
+.dashboard-hero::before {
+  width: 14rem;
+  height: 14rem;
+  position: absolute;
+  right: 22%;
+  bottom: -9rem;
+  content: '';
+  border: 1px solid rgb(255 255 255 / 0.17);
+  border-radius: 50%;
+}
+
+.dashboard-hero h2 {
+  font-weight: 760;
+}
+
+.dashboard-hero p {
+  max-width: 38rem;
+}
+
+.dashboard-hero > strong {
+  color: #9ce6dc;
+  font-weight: 760;
+}
+
+.dashboard-hero > strong small {
+  color: #e8f8f8;
+}
+
+.finance-grid.dashboard-metrics {
+  gap: 1rem;
+}
+
+.finance-grid .metric {
+  min-height: 11.5rem;
+  padding: 1.25rem;
+  overflow: hidden;
+  border: 1px solid #dfe7ee;
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+}
+
+.finance-grid .metric:focus-visible,
+.finance-grid .metric:hover {
+  border-color: #80c9c1;
+  transform: translateY(-2px);
+}
+
+.metric span,
+.finance-grid .metric span {
+  color: #718394;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.61rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.metric strong {
+  margin: 1.1rem 0 0.65rem;
+  color: #183247;
+  font-size: clamp(1.8rem, 2.6vw, 2.5rem);
+  font-weight: 750;
+  letter-spacing: -0.045em;
+}
+
+.metric p {
+  margin: 0;
+  color: #728394;
+  font-size: 0.73rem;
+  line-height: 1.45;
+}
+
+.dashboard-metrics .attention {
+  color: #fff;
+  border-color: var(--ja-red);
+  background: linear-gradient(145deg, #f35a49, #d94335);
+  box-shadow: 0 0.9rem 1.8rem rgb(232 77 61 / 0.2);
+}
+
+.dashboard-metrics .attention strong,
+.dashboard-metrics .attention span,
+.dashboard-metrics .attention p {
+  color: #fff;
+}
+
+.dashboard-projects {
+  padding: clamp(1.15rem, 2vw, 1.55rem);
+}
+
+.project-board-row,
+.project-list-link {
+  min-height: 5.55rem;
+  color: #1d374b;
+  border-color: #e4ebf1;
+  text-decoration: none;
+}
+
+.project-board-row:hover,
+.project-list-link:hover {
+  margin-inline: -0.5rem;
+  padding-inline: 0.5rem;
+  border-radius: 0.65rem;
+  background: #f5fafb;
+}
+
+.project-board-row b,
+.project-board-row i,
+.project-list-link span {
+  color: #27887e;
+}
+
+.project-board-row strong {
+  font-size: 0.9rem;
+}

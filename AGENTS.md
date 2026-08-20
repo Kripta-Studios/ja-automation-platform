@@ -44,11 +44,13 @@ Rules:
 4. Every work packet defines: objective, owned paths, forbidden paths, dependencies, tests, acceptance criteria, and handoff format.
 5. Implementers do not self-certify completion. A read-only reviewer/QA agent must verify material changes.
 6. If a reviewer returns a concrete failure, route it back to the responsible implementation worker before final integration.
-7. Sol/high handles architecture, cross-domain decisions, risky migrations, conflict resolution and final sign-off.
-8. Sol/medium handles the majority of production implementation.
-9. Luna/max performs independent exhaustive audits, browser QA, security/integrity checks, and requirements reconciliation.
+7. Sol/high handles architecture, cross-domain decisions, conflict resolution, genuinely risky migration semantics, and final sign-off.
+8. **Luna/max is the preferred implementation tier for bounded work with stable contracts.** Use it aggressively for leaf implementation, complete low-risk vertical slices, CRUD/UI, responsive work, repetitive refactors, API wiring, fixtures, test implementation, documentation, import/export adapters, admin surfaces, and mechanical/additive migrations whose semantics were defined by a Sol lead. Do not route a task to Sol merely because it is production code or touches the backend.
+9. Sol/medium owns work whose correctness depends on several non-local invariants or ambiguous domain semantics: finance/accounting/billing truth, cross-domain lifecycle design, RBAC policy, complex durable-job semantics, destructive or reinterpretive migrations, offline conflict semantics, and point-in-time/ML-history semantics. Sol leads should define stable contracts and then delegate implementation leaves back to Luna/max whenever possible.
+10. Luna/max also performs independent exhaustive audits, browser QA, security/integrity checks, and requirements reconciliation. Reviewer instances must remain independent from the Luna instance that implemented the work.
+11. Classify every implementation packet before delegation: **A → Luna Max by default; B → Sol Medium; C → Sol High.** If uncertain between A and B, first try to narrow the contract so the implementation can safely become A.
 
-Use `$ja-v3-completion-orchestrator`, `$subagent-work-packet`, `$spec-compliance`, and `$release-gate` whenever their scope applies.
+Use `$ja-v3-completion-orchestrator`, `$luna-first-routing`, `$subagent-work-packet`, `$spec-compliance`, and `$release-gate` whenever their scope applies.
 
 ## Product behavior rules
 

@@ -1,0 +1,76 @@
+/* --------------------------------------------------------------------------
+   Portal refresh: a quieter, product-focused visual layer for V3.
+   The functional forms and role-aware routes deliberately remain unchanged.
+   -------------------------------------------------------------------------- */
+:root {
+  --ja-red: #b42318;
+  --ja-red-dark: #8f1d14;
+  --ja-ink: #10202f;
+  --ja-paper: #f4f7fb;
+  --ja-white: #ffffff;
+  --ja-steel: #637486;
+  --ja-line: #dce4ed;
+  --ja-success: #169c76;
+  --ja-warning: #c78516;
+  --ja-danger: #c43e36;
+  --ja-radius: 1rem;
+  --ja-shadow: 0 1.25rem 3.5rem rgb(16 32 47 / 0.08);
+  --ja-shadow-soft: 0 0.5rem 1.5rem rgb(16 32 47 / 0.05);
+}
+
+html,
+body {
+  background: var(--ja-paper);
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  line-height: 1.45;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea,
+summary {
+  transition:
+    border-color 160ms var(--ja-ease),
+    background-color 160ms var(--ja-ease),
+    color 160ms var(--ja-ease),
+    box-shadow 160ms var(--ja-ease),
+    transform 160ms var(--ja-ease);
+}
+
+a {
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+:focus-visible {
+  outline: 3px solid #ffcf71;
+  outline-offset: 3px;
+}
+
+.portal-kicker {
+  color: var(--ja-red);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}

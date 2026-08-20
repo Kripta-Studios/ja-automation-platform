@@ -1,0 +1,324 @@
+/* Login ------------------------------------------------------------------- */
+.login-page {
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: minmax(32rem, 1.12fr) minmax(30rem, 0.88fr);
+  background: var(--ja-paper);
+}
+
+.login-page > .login-showcase {
+  position: relative;
+  display: grid;
+  min-height: 100svh;
+  padding: clamp(2rem, 6vw, 6.5rem);
+  overflow: hidden;
+  color: #f8fcff;
+  background:
+    radial-gradient(circle at 25% 15%, rgb(81 159 180 / 0.25), transparent 26rem),
+    linear-gradient(145deg, #092033 0%, #102f46 58%, #124354 100%);
+}
+
+.login-showcase::before {
+  position: absolute;
+  inset: 0;
+  content: '';
+  opacity: 0.34;
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.08) 1px, transparent 1px);
+  background-size: 4.5rem 4.5rem;
+  mask-image: linear-gradient(to bottom, #000, transparent 92%);
+}
+
+.login-showcase-content {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 47rem);
+  display: flex;
+  flex-direction: column;
+}
+
+.login-brand {
+  width: max-content;
+  display: block;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.7rem;
+  background: #fff;
+  box-shadow: 0 0.55rem 1.2rem rgb(3 19 29 / 0.14);
+}
+
+.login-page .login-brand img {
+  width: clamp(9rem, 13vw, 12.5rem);
+  display: block;
+  margin-bottom: 0;
+}
+
+.login-intro {
+  margin-top: auto;
+  padding-top: clamp(5rem, 16vh, 11rem);
+}
+
+.login-intro .portal-kicker {
+  color: #92d9d3;
+}
+
+.login-intro h1 {
+  max-width: 11ch;
+  margin: 1rem 0 1.35rem;
+  color: #fff;
+  font-size: clamp(3.2rem, 5.6vw, 6.6rem);
+  font-weight: 750;
+  letter-spacing: -0.065em;
+  line-height: 1.03;
+}
+
+.login-intro > p:last-child {
+  max-width: 34rem;
+  margin: 0;
+  color: #bbced9;
+  font-size: clamp(1rem, 1.4vw, 1.16rem);
+  line-height: 1.68;
+}
+
+.login-proof {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.8rem;
+  margin-top: clamp(2.5rem, 6vh, 5rem);
+}
+
+.login-proof > div {
+  display: grid;
+  gap: 0.55rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgb(220 243 246 / 0.26);
+}
+
+.login-proof strong {
+  color: #89d7cd;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.75rem;
+}
+
+.login-proof span {
+  color: #eaf5f9;
+  font-size: 0.79rem;
+  line-height: 1.7;
+}
+
+.login-ambient {
+  position: absolute;
+  z-index: 0;
+  border: 1px solid rgb(146 217 211 / 0.32);
+  border-radius: 999px;
+}
+
+.ambient-one {
+  width: 35rem;
+  height: 35rem;
+  right: -16rem;
+  bottom: -18rem;
+}
+
+.login-page > .login-panel {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(1.5rem, 7vw, 6rem);
+  color: var(--ja-ink);
+  background: #fbfcfe;
+}
+
+.login-page .login-card {
+  width: min(100%, 29rem);
+  display: grid;
+  gap: 1.05rem;
+  margin-inline: auto;
+  padding: clamp(1.6rem, 3vw, 2.6rem);
+  border: 1px solid #e6ebf1;
+  border-radius: 1.3rem;
+  background: #fff;
+  box-shadow: var(--ja-shadow);
+}
+
+.login-card-heading {
+  margin-bottom: 0.65rem;
+}
+
+.login-page .login-card-heading h2 {
+  margin: 0.45rem 0;
+  color: var(--ja-ink);
+  font-size: clamp(2rem, 3vw, 2.5rem);
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.login-card-heading > p:last-child {
+  margin: 0;
+  color: var(--ja-steel);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.login-field {
+  display: grid;
+  gap: 0.46rem;
+  color: #304153;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.login-field input {
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.75rem 0.9rem;
+  color: var(--ja-ink);
+  border: 1px solid #d7e0e8;
+  border-radius: 0.7rem;
+  background: #f9fbfc;
+  outline: none;
+}
+
+.login-field input::placeholder {
+  color: #9aa8b6;
+}
+
+.login-field input:hover {
+  border-color: #aebdca;
+}
+
+.login-field input:focus {
+  border-color: #47a89f;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgb(71 168 159 / 0.13);
+}
+
+.login-page .login-submit,
+.portal-primary,
+.worker-form button,
+.entry-panel button,
+.admin-form-grid button,
+.filter-form button,
+.record-card button,
+.record-actions button,
+.compact-form button,
+.payment-form button {
+  min-height: 2.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  padding: 0.7rem 1rem;
+  color: #fff;
+  border: 1px solid var(--ja-ink);
+  border-radius: 0.65rem;
+  background: var(--ja-ink);
+  box-shadow: 0 0.35rem 0.9rem rgb(16 32 47 / 0.15);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.login-page .login-submit {
+  min-height: 3.35rem;
+  margin-top: 0.2rem;
+  border-color: var(--ja-red);
+  background: var(--ja-red);
+  box-shadow: 0 0.55rem 1.15rem rgb(232 77 61 / 0.22);
+  font-size: 0.9rem;
+}
+
+.login-page .login-submit span {
+  font-size: 1.25rem;
+  line-height: 0;
+}
+
+.login-page .login-submit:hover:not(:disabled),
+.portal-primary:hover,
+.worker-form button:hover,
+.entry-panel button:hover,
+.admin-form-grid button:hover,
+.filter-form button:hover,
+.record-card button:hover,
+.record-actions button:hover,
+.compact-form button:hover,
+.payment-form button:hover {
+  border-color: #0a1824;
+  background: #0a1824;
+  box-shadow: 0 0.65rem 1.3rem rgb(16 32 47 / 0.22);
+  transform: translateY(-1px);
+}
+
+.login-page .login-submit:hover:not(:disabled) {
+  border-color: var(--ja-red-dark);
+  background: var(--ja-red-dark);
+}
+
+button:disabled {
+  opacity: 0.62;
+  cursor: wait;
+}
+
+.login-status {
+  min-height: 0;
+  margin: -0.15rem 0 0;
+  color: var(--ja-danger);
+  font-size: 0.8rem;
+}
+
+.login-status:empty {
+  display: none;
+}
+
+.login-security {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0.2rem 0 0;
+  color: var(--ja-steel);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.login-security span {
+  color: #34aa9c;
+  font-size: 0.6rem;
+}
+
+.login-access-note {
+  margin: 0.15rem 0 0;
+  padding-top: 0.9rem;
+  color: #536575;
+  border-top: 1px solid #e4eaf0;
+  font-size: 0.74rem;
+  line-height: 1.55;
+}
+
+.login-status.notice {
+  color: #8a5a00;
+}
+
+.login-page > .login-panel > .login-footer {
+  width: min(100%, 29rem);
+  margin: 1.5rem auto 0;
+  color: #536575;
+  font-size: 0.71rem;
+  text-align: center;
+}
+
+/* The legacy form rule above intentionally covers generic actions. Keep the
+   passkey action a secondary, teal control in the final refresh layer. */
+.login-page .login-passkey {
+  border-color: #a9c8cf;
+  background: #f1f8f9;
+  color: #0f5965;
+}
+
+.login-page .login-passkey:hover {
+  border-color: #83b5bd;
+  background: #e6f3f5;
+  color: #0a4a55;
+}

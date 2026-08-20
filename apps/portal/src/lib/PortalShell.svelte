@@ -18,144 +18,26 @@
     type NavItem,
   } from './portal-navigation';
   import PortalChrome from './PortalChrome.svelte';
+  import TodaySection from './portal/sections/TodaySection.svelte';
+  import { createOfflineController } from './portal/offline-controller';
+  import type {
+    PortalActionResult as ActionResult,
+    PortalData,
+    PortalRow as Row,
+  } from './portal/portal-data';
   import {
-    cacheAssignments,
-    conflictMutations,
-    discardMutation,
-    getOfflineAssignments,
-    purgeUserCache,
-    queueMutation,
-    queuedCount,
-    syncQueuedMutations,
-    type OfflineAttachment,
-  } from './offline';
-
-  type Row = Record<string, string | number | boolean | string[] | null>;
-  type PortalData = {
-    user: {
-      id?: string;
-      name: string;
-      email: string;
-      role?: string;
-      status?: string;
-      mfaEnrolled?: boolean;
-      mfaRequired?: boolean;
-    };
-    section: string;
-    projects?: Row[];
-    clients?: Row[];
-    contacts?: Row[];
-    workers?: Row[];
-    skills?: Row[];
-    availability?: Row[];
-    records?: Row[];
-    milestones?: Row[];
-    documents?: Row[];
-    technicalChanges?: Row[];
-    periodReports?: Row[];
-    billingRules?: Row[];
-    invoices?: Row[];
-    settlements?: Row[];
-    reimbursements?: Row[];
-    ledger?: Array<Record<string, unknown>>;
-    packs?: Array<Record<string, unknown>>;
-    audit?: Row[];
-    legalEntities?: Row[];
-    taxProfiles?: Row[];
-    selectedProjectId?: string;
-    periodStart?: string;
-    periodEnd?: string;
-    weekStart?: string;
-    weekEnd?: string;
-    timesheet?: {
-      weekStart: string;
-      weekEnd: string;
-      days: Array<{
-        date: string;
-        label: string;
-        expectedMinutes: number;
-        actualMinutes: number;
-        differenceMinutes: number;
-        status: string;
-        categories: Record<string, number>;
-      }>;
-    };
-    weeklyPay?: {
-      currency: string;
-      approvedMinutes: number;
-      pendingMinutes: number;
-      estimatedApprovedMinor: string;
-      estimatedPendingMinor: string;
-    };
-    searchQuery?: string;
-    searchSuggestions?: Row[];
-    searchResults?: Row[];
-    pay?: {
-      currency: string;
-      projectIds?: string[];
-      approvedMinutes: number;
-      pendingMinutes: number;
-      estimatedApprovedMinor: string;
-      estimatedPendingMinor: string;
-      approvedReimbursementMinor: string;
-      pendingReimbursementMinor: string;
-      guaranteedMinutes?: number;
-      percentageBased?: boolean;
-      settlementTriggers?: string[];
-      missingCompensationRules?: number;
-      label?: string;
-      projectProgress?: Array<Record<string, unknown>>;
-    };
-    finance?: {
-      currency: string;
-      approvedCostMinor: string;
-      revenueCandidateMinor: string;
-      contributionMarginMinor: string;
-      invoicedMinor: string;
-      paidMinor: string;
-      receivableMinor: string;
-      laborRevenueMinor?: string;
-      expenseRevenueMinor?: string;
-      directLaborCostMinor?: string;
-      travelCostMinor?: string;
-      otherDirectCostMinor?: string;
-      approvedUnbilledWipMinor?: string;
-      unapprovedWipMinor?: string;
-      milestoneRevenueMinor?: string;
-      budgetMinor?: string | null;
-      plannedMinutes?: number | null;
-      plannedRemainingMinutes?: number | null;
-      estimateToCompleteMinor?: string | null;
-      estimateAtCompletionCostMinor?: string | null;
-      expectedFinalMarginMinor?: string | null;
-      hoursConsumedBps?: string | null;
-      travelBudgetConsumedBps?: string | null;
-      travelBudgetMinor?: string | null;
-      forecastAvailable?: boolean;
-      alerts?: string[];
-      contributionMarginBps?: string;
-      timeEconomics?: Array<Record<string, unknown>>;
-      expenseEconomics?: Array<Record<string, unknown>>;
-    } | null;
-    portfolio?: {
-      projects?: Array<Record<string, unknown>>;
-      byClient?: Array<Record<string, unknown>>;
-      byWorker?: Array<Record<string, unknown>>;
-      byMonth?: Array<Record<string, unknown>>;
-      byWeek?: Array<Record<string, unknown>>;
-    };
-    workers?: Row[];
-    dashboard?: {
-      activeProjects: number;
-      actualMinutes: number;
-      pendingReports: number;
-      expenseMinor: string;
-      upcomingInvoices: number;
-      upcomingInvoiceMinor: string;
-      currency: string;
-    };
-  };
-  type ActionResult = { success?: boolean; message?: string } | null;
+    categorySummary,
+    compact,
+    decimalToMinor,
+    formBoolean,
+    formNumber,
+    formValue,
+    hours,
+    initials,
+    money,
+    shiftWeek,
+  } from './portal/portal-format';
+  import { queueMutation, type OfflineAttachment } from './offline';
 
   let { data, form }: { data: PortalData; form?: ActionResult } = $props();
   let online = $state(true);
@@ -212,21 +94,6 @@
   const availableProjects = $derived(
     data.projects && data.projects.length > 0 ? data.projects : offlineProjects,
   );
-  const money = (minor: string | number | null | undefined, currency = 'USD') =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(
-      Number(minor ?? 0) / 100,
-    );
-  const hours = (minutes: number): string => `${(minutes / 60).toFixed(1)}h`;
-  const categorySummary = (categories: Record<string, number>): string =>
-    Object.entries(categories)
-      .filter(([, minutes]) => minutes > 0)
-      .map(([category, minutes]) => `${category.replaceAll('_', ' ')} ${hours(minutes)}`)
-      .join(' · ');
-  const shiftWeek = (value: string, days: number): string => {
-    return new Date(Date.parse(`${value}T00:00:00.000Z`) + days * 86_400_000)
-      .toISOString()
-      .slice(0, 10);
-  };
   const href = (section: string) =>
     section === 'today' ? `${base}/app/` : `${base}/app/${section}`;
   const itemHref = (item: NavItem) => item.href ?? href(item.section);
@@ -259,77 +126,30 @@
     if (row.type === 'daily' || row.type === 'technical') return `${base}/app/reports/${id}`;
     return `${base}/app/approvals`;
   };
-  const initials = (name: string) =>
-    name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase();
+  const offlineController = createOfflineController(base, {
+    setOnline: (value) => (online = value),
+    setQueue: (value) => (queue = value),
+    setSyncMessage: (value) => (syncMessage = value),
+    setConflictItems: (value) => (conflictItems = value),
+    setOfflineProjects: (value) => (offlineProjects = value),
+  });
 
   onMount(() => {
     const queryLocale = new URLSearchParams(location.search).get('lang');
     const savedLocale = localStorage.getItem('ja-portal-locale');
     locale = normalizePortalLocale(queryLocale ?? savedLocale ?? navigator.language);
     localStorage.setItem('ja-portal-locale', locale);
-    online = navigator.onLine;
-    void queuedCount().then((value) => (queue = value));
-    void conflictMutations().then((items) => (conflictItems = items));
-    void getOfflineAssignments().then((value) => {
-      offlineProjects = value.map((project) => ({
-        id: project.id,
-        project_number: project.projectNumber,
-        name: project.name,
-        status: project.status,
-        currency: project.currency,
-        timezone: project.timezone,
-      }));
-    });
-    const sync = async () => {
-      if (!navigator.onLine) return;
-      try {
-        const result = await syncQueuedMutations();
-        queue = await queuedCount();
-        conflictItems = await conflictMutations();
-        if (result.failed)
-          syncMessage = `Sync failed — retry (${result.failed} item${result.failed === 1 ? '' : 's'})`;
-        else if (result.accepted || result.conflicts || result.rejected)
-          syncMessage = result.conflicts
-            ? `${result.accepted} synced · server changed since your offline edit · ${result.conflicts} conflict${result.conflicts === 1 ? '' : 's'}`
-            : `${result.accepted} synced · ${result.rejected} rejected`;
-        else syncMessage = 'Synced';
-      } catch {
-        syncMessage = 'Sync failed — retry when the connection is stable.';
-      }
-    };
-    void sync();
-    const update = () => {
-      online = navigator.onLine;
-      if (online) void sync();
-    };
-    addEventListener('online', update);
-    addEventListener('offline', update);
-    navigator.serviceWorker?.addEventListener('message', (event) => {
-      if (event.data?.type === 'sync-request') void sync();
-    });
-    if ('serviceWorker' in navigator)
-      void navigator.serviceWorker.register(`${base}/app/service-worker.js`, {
-        scope: `${base}/app/`,
-      });
+    const stopOfflineController = offlineController.start();
     // Only ask the passkey endpoint for a real authenticated Better Auth
     // session; otherwise its expected 401 would surface as a browser error.
     void authClient.getSession().then((result) => {
       if (result.data?.user) void refreshPasskeys();
     });
-    return () => {
-      removeEventListener('online', update);
-      removeEventListener('offline', update);
-    };
+    return stopOfflineController;
   });
   $effect(() => {
     const projects = data.projects;
-    if (projects?.length) void cacheAssignments(projects);
+    if (projects?.length) void offlineController.cacheAssignments(projects);
   });
   $effect(() => {
     locale;
@@ -340,7 +160,7 @@
   });
   async function logout() {
     await fetch(`${base}/app/api/auth/sign-out`, { method: 'POST' });
-    await purgeUserCache();
+    await offlineController.purgeUserCache();
     location.assign(`${base}/app/login`);
   }
 
@@ -354,9 +174,7 @@
   }
 
   async function discardConflict(mutationId: string) {
-    await discardMutation(mutationId);
-    conflictItems = await conflictMutations();
-    queue = await queuedCount();
+    await offlineController.discardConflict(mutationId);
   }
   async function stepUp(event: SubmitEvent) {
     event.preventDefault();
@@ -442,31 +260,6 @@
   }
 
   type OfflineEntity = 'time' | 'daily_report' | 'technical_report' | 'expense';
-
-  const formValue = (formData: FormData, name: string): string => {
-    const value = formData.get(name);
-    return typeof value === 'string' ? value.trim() : '';
-  };
-
-  const formNumber = (formData: FormData, name: string): number | undefined => {
-    const value = formValue(formData, name);
-    if (!value) return undefined;
-    const number = Number(value);
-    return Number.isFinite(number) ? number : undefined;
-  };
-
-  const formBoolean = (formData: FormData, name: string): boolean => formData.get(name) === 'on';
-
-  const decimalToMinor = (value: string): string | undefined => {
-    const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(value);
-    if (!match) return undefined;
-    return `${match[1]}${(match[2] ?? '').padEnd(2, '0')}`.replace(/^0+(?=\d)/, '');
-  };
-
-  const compact = (payload: Record<string, unknown>): Record<string, unknown> =>
-    Object.fromEntries(
-      Object.entries(payload).filter(([, value]) => value !== undefined && value !== ''),
-    );
 
   async function saveOfflineDraft(event: SubmitEvent, entityType: OfflineEntity): Promise<void> {
     if (online) return;
@@ -576,7 +369,7 @@
         },
         attachmentFiles,
       );
-      queue = await queuedCount();
+      await offlineController.refreshQueue();
       syncMessage = 'Offline — saved on this device';
       formElement.reset();
     } catch {
@@ -728,77 +521,7 @@
     {/if}
 
     {#if data.section === 'today'}
-      {#if data.dashboard}
-        <div class="dashboard-hero">
-          <div>
-            <span class="portal-kicker">OPERATIONS CONTROL</span>
-            <h2>Field operations overview</h2>
-            <p>Current projects, field records, and billing readiness in one view.</p>
-          </div>
-          <strong>{data.dashboard.activeProjects}<small>active projects</small></strong>
-        </div>
-        <div class="finance-grid dashboard-metrics">
-          <a class="metric" href={`${base}/app/time`}>
-            <span>RECORDED HOURS</span><strong
-              >{(data.dashboard.actualMinutes / 60).toFixed(1)}</strong
-            >
-            <p>Approved and submitted field time</p>
-          </a>
-          <a class="metric attention" href={`${base}/app/approvals`}>
-            <span>PENDING REPORTS</span><strong>{data.dashboard.pendingReports}</strong>
-            <p>Daily and PLC records awaiting review</p>
-          </a>
-          <a class="metric" href={`${base}/app/expenses`}>
-            <span>PROJECT EXPENSES</span><strong
-              >{money(data.dashboard.expenseMinor, data.dashboard.currency)}</strong
-            >
-            <p>All-in and reimbursable combined</p>
-          </a>
-          <a class="metric" href={`${base}/app/billing`}>
-            <span>UPCOMING BILLING</span><strong
-              >{money(data.dashboard.upcomingInvoiceMinor, data.dashboard.currency)}</strong
-            >
-            <p>{data.dashboard.upcomingInvoices} draft invoice streams</p>
-          </a>
-        </div>
-        <section class="record-list dashboard-projects">
-          <div class="panel-title">
-            <h2>Active project board</h2>
-            <span>{availableProjects.length} records</span>
-          </div>
-          {#each availableProjects as project}<a
-              class="project-board-row"
-              href={`${base}/app/projects/${project.id}`}
-              ><span><b>{project.project_number}</b><strong>{project.name}</strong></span><small
-                >{project.status} · {project.timezone}</small
-              ><i>Open project</i></a
-            >{/each}
-        </section>
-      {:else}
-        <div class="portal-grid">
-          <section class="assignment">
-            <span class="status-chip"><b></b>TODAY / 10 H EXPECTED</span>
-            <div class="quick-actions">
-              <a href={`${base}/app/time`}>Log actual time</a><a href={`${base}/app/reports`}
-                >Write field report</a
-              ><a href={`${base}/app/expenses`}>Add expense</a>
-            </div>
-            <h2>{data.records?.[0]?.project_name ?? 'Field workspace'}</h2>
-            <p>
-              {data.records?.[0]
-                ? `${data.records[0].site} · ${String(data.records[0].starts_at).slice(11, 16)}–${String(data.records[0].ends_at).slice(11, 16)}`
-                : 'No published assignment for today.'}
-            </p>
-          </section>
-          <section class="sync-panel">
-            <span class="portal-kicker">DEVICE STATUS</span><strong
-              >{online ? 'Connected to J&A' : 'Working offline'}</strong
-            >
-            <p>{queue} local mutation{queue === 1 ? '' : 's'} waiting to synchronize.</p>
-            {#if syncMessage}<small>{syncMessage}</small>{/if}
-          </section>
-        </div>
-      {/if}
+      <TodaySection {base} {data} {availableProjects} {online} {queue} {syncMessage} {money} />
     {:else if data.section === 'time'}
       {#if data.timesheet}
         <section class="timesheet-panel" aria-labelledby="weekly-timesheet-title">

@@ -1,6 +1,18 @@
 import { defineConfig } from '@playwright/test';
 import { join } from 'node:path';
-import { e2eDatabasePath, e2eDocumentRoot, e2eRoot as root } from './tests/e2e/environment';
+import {
+  e2eDatabasePath,
+  e2eDocumentRoot,
+  e2eFixtureToken,
+  e2eRoot as root,
+} from './tests/e2e/environment.js';
+
+// Hand off this invocation's unique fixture identity to web servers and any workers that inherit
+// the runner environment. The stable pointer/lock remains the fallback discovery channel when a
+// worker does not inherit these mutations.
+process.env.JA_E2E_FIXTURE_TOKEN = e2eFixtureToken;
+process.env.JA_E2E_DATABASE_PATH = e2eDatabasePath;
+process.env.JA_E2E_DOCUMENT_ROOT = e2eDocumentRoot;
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -20,14 +32,38 @@ export default defineConfig({
   },
   globalSetup: './tests/e2e/global-setup.ts',
   projects: [
-    // Use a deterministic 390px viewport instead of WebKit-style device
-    // emulation. This keeps the Chromium CI rehearsal stable while still
-    // exercising the real mobile breakpoint and touch-sized layout.
+    // Keep the required evidence widths explicit. Chromium is used with a
+    // deterministic viewport instead of device emulation so CSS breakpoints
+    // and touch-sized controls are exercised consistently in CI.
+    {
+      name: 'phone-360',
+      use: { viewport: { width: 360, height: 800 }, isMobile: false, deviceScaleFactor: 1 },
+    },
     {
       name: 'phone-390',
       use: { viewport: { width: 390, height: 844 }, isMobile: false, deviceScaleFactor: 1 },
     },
+    {
+      name: 'phone-430',
+      use: { viewport: { width: 430, height: 932 }, isMobile: false, deviceScaleFactor: 1 },
+    },
+    {
+      name: 'tablet-768',
+      use: { viewport: { width: 768, height: 1024 }, isMobile: false, deviceScaleFactor: 1 },
+    },
+    {
+      name: 'tablet-1024',
+      use: { viewport: { width: 1024, height: 768 }, isMobile: false, deviceScaleFactor: 1 },
+    },
+    {
+      name: 'laptop-1280',
+      use: { viewport: { width: 1280, height: 800 }, isMobile: false, deviceScaleFactor: 1 },
+    },
     { name: 'desktop', use: { viewport: { width: 1440, height: 900 } } },
+    {
+      name: 'wide-1920',
+      use: { viewport: { width: 1920, height: 1080 }, isMobile: false, deviceScaleFactor: 1 },
+    },
   ],
   webServer: [
     {
@@ -48,12 +84,14 @@ export default defineConfig({
         JA_DATABASE_PATH: e2eDatabasePath,
         JA_MIGRATIONS_PATH: join(root, 'migrations'),
         JA_DOCUMENT_ROOT: e2eDocumentRoot,
+        JA_REPORTING_LOGO_PATH: join(root, 'packages/reporting/assets/logo-jaautomation.png'),
         JA_FIXTURE_RESET_DOCUMENTS: 'false',
         JA_AUTH_SECRET: 'e2e-only-secret-do-not-use-in-production',
         JA_PUBLIC_BASE_PATH: '/j-aautomation',
         JA_PORTAL_BASE_PATH: '/j-aautomation/app',
         HOST: '127.0.0.1',
         PORT: '4174',
+        ...(process.env.JA_CHROMIUM_PATH ? { JA_CHROMIUM_PATH: process.env.JA_CHROMIUM_PATH } : {}),
       },
     },
   ],

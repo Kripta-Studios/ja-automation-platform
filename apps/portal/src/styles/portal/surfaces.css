@@ -1,0 +1,458 @@
+/* Shared portal surfaces -------------------------------------------------- */
+.timesheet-panel {
+  margin-bottom: 1.15rem;
+  padding: clamp(1.15rem, 2vw, 1.55rem);
+  border: 1px solid #dfe7ee;
+  border-radius: var(--ja-radius);
+  background: #fff;
+  box-shadow: var(--ja-shadow-soft);
+}
+
+.timesheet-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.15rem;
+}
+
+.timesheet-heading h2 {
+  margin: 0.3rem 0 0.35rem;
+  color: #183247;
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  letter-spacing: -0.035em;
+}
+
+.timesheet-heading p {
+  max-width: 48rem;
+  margin: 0;
+  color: #6d8290;
+  font-size: 0.78rem;
+}
+
+.timesheet-guide {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.timesheet-guide div {
+  min-width: 0;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid #e1eaee;
+  border-radius: 0.6rem;
+  background: #f8fbfc;
+}
+
+.timesheet-guide strong {
+  color: #1c4053;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.timesheet-guide span {
+  color: #6d8290;
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.timesheet-period,
+.timesheet-copy-body form {
+  display: flex;
+  align-items: end;
+  gap: 0.55rem;
+}
+
+.timesheet-period label {
+  display: grid;
+  gap: 0.3rem;
+  color: #587181;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.timesheet-period input {
+  min-height: 2.55rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #d7e2e8;
+  border-radius: 0.5rem;
+  color: #20394c;
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.timesheet-period button,
+.timesheet-copy button {
+  min-height: 2.55rem;
+  padding: 0.55rem 0.85rem;
+  color: #fff;
+  border: 1px solid #173b52;
+  border-radius: 0.5rem;
+  background: #173b52;
+  font-size: 0.72rem;
+  font-weight: 760;
+}
+
+.timesheet-period button:hover,
+.timesheet-copy button:hover {
+  background: #0d6070;
+}
+
+.timesheet-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e0e8ed;
+  border-radius: 0.6rem;
+}
+
+.timesheet-table {
+  width: 100%;
+  min-width: 46rem;
+  border-collapse: collapse;
+  color: #274253;
+  font-size: 0.76rem;
+}
+
+.timesheet-table th,
+.timesheet-table td {
+  padding: 0.7rem 0.75rem;
+  border-bottom: 1px solid #e6edf1;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.timesheet-table thead th {
+  color: #617887;
+  background: #f4f8fa;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.timesheet-table tbody th {
+  color: #183247;
+  font-weight: 760;
+}
+
+.timesheet-table tbody th small {
+  display: block;
+  margin-top: 0.15rem;
+  color: #7b8d99;
+  font-size: 0.66rem;
+  font-weight: 500;
+}
+
+.timesheet-table tbody tr:last-child th,
+.timesheet-table tbody tr:last-child td,
+.timesheet-table tfoot th,
+.timesheet-table tfoot td {
+  border-bottom: 0;
+}
+
+.timesheet-table tfoot {
+  background: #f7fafb;
+  font-weight: 760;
+}
+
+.timesheet-table .positive {
+  color: #0a756a;
+}
+
+.timesheet-table .negative,
+.timesheet-exception .timesheet-status {
+  color: #b34538;
+}
+
+.timesheet-status {
+  color: #476777;
+  font-size: 0.68rem;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.timesheet-copy {
+  margin-top: 0.95rem;
+  border-top: 1px solid #e4ebef;
+  padding-top: 0.85rem;
+}
+
+.timesheet-copy summary {
+  color: #0d6070;
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 760;
+}
+
+.timesheet-copy-body {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.75rem;
+}
+
+.timesheet-copy-body p {
+  max-width: 44rem;
+  margin: 0;
+  color: #6d8290;
+  font-size: 0.74rem;
+}
+
+.portal-grid,
+.worker-form,
+.report-workspace,
+.project-columns {
+  gap: 1.15rem;
+}
+
+.portal-grid > section,
+.record-list,
+.worker-form > section,
+.entry-panel,
+.admin-form-grid,
+.filter-form,
+.finance-grid .metric,
+.detail-panel,
+.project-finance,
+.project-contract,
+.report-forms details {
+  border-color: #dfe7ee;
+  border-radius: var(--ja-radius);
+  box-shadow: var(--ja-shadow-soft);
+}
+
+.portal-grid > section,
+.record-list,
+.worker-form > section,
+.entry-panel,
+.detail-panel,
+.project-finance,
+.report-forms details {
+  background: #fff;
+}
+
+.portal-grid > section,
+.record-list,
+.worker-form > section {
+  padding: clamp(1.15rem, 2vw, 1.55rem);
+}
+
+.panel-title {
+  padding-bottom: 0.95rem;
+  border-bottom: 1px solid #e4eaf0;
+}
+
+.panel-title h2,
+.entry-panel h2,
+.admin-form-grid h2 {
+  color: #183247;
+  font-size: 1.1rem;
+  font-weight: 760;
+  letter-spacing: -0.025em;
+}
+
+.panel-title > span {
+  min-width: 1.65rem;
+  padding: 0.22rem 0.45rem;
+  color: #557082;
+  border-radius: 999px;
+  background: #edf4f7;
+  font-size: 0.68rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+.assignment {
+  min-height: 20rem;
+  position: relative;
+  overflow: hidden;
+  color: #f6fbfd;
+  border: 0 !important;
+  background: linear-gradient(140deg, #173d55, #0f2738) !important;
+  box-shadow: 0 1.2rem 2.4rem rgb(16 47 70 / 0.19) !important;
+}
+
+.assignment::after {
+  width: 15rem;
+  height: 15rem;
+  position: absolute;
+  right: -5rem;
+  bottom: -8rem;
+  content: '';
+  border: 1px solid rgb(160 231 225 / 0.35);
+  border-radius: 50%;
+}
+
+.assignment > * {
+  position: relative;
+  z-index: 1;
+}
+
+.assignment h2 {
+  max-width: 15ch;
+  margin: 1.8rem 0 0.75rem;
+  color: #fff;
+  font-size: clamp(1.75rem, 3vw, 2.45rem);
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.assignment p {
+  max-width: 34rem;
+  color: #c3d5de;
+}
+
+.status-chip {
+  color: #a6e5dc;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+}
+
+.status-chip b {
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgb(22 156 118 / 0.24);
+}
+
+.quick-actions {
+  position: relative;
+  z-index: 1;
+  margin-top: 1.25rem;
+}
+
+.quick-actions a,
+.preview-link {
+  padding: 0.65rem 0.8rem;
+  color: #103044;
+  border-radius: 0.55rem;
+  background: #d7f1ed;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: none;
+}
+
+.quick-actions a:hover,
+.preview-link:hover {
+  color: #092132;
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+.sync-panel {
+  color: #dbe9ef !important;
+  border: 0 !important;
+  border-radius: var(--ja-radius) !important;
+  background: linear-gradient(145deg, #39566a, #274354) !important;
+  box-shadow: 0 1rem 2.2rem rgb(28 59 78 / 0.14) !important;
+}
+
+.sync-panel .portal-kicker {
+  color: #8eddd4;
+}
+
+.sync-panel strong {
+  color: #fff;
+}
+
+.sync-panel p {
+  color: #c4d7e0;
+}
+
+.record-list article {
+  min-height: 4.6rem;
+  gap: 1rem;
+  padding: 0.9rem 0;
+  border-color: #e6edf2;
+}
+
+.record-list article:first-of-type {
+  padding-top: 1.1rem;
+}
+
+.record-list article strong {
+  color: #21394b;
+  font-size: 0.84rem;
+}
+
+.record-card-link {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: grid;
+  gap: 0.25rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.record-card-link:hover strong,
+.record-card-link:focus-visible strong {
+  color: #0d6070;
+}
+
+.record-card-link::after {
+  content: 'Open record →';
+  color: #277e78;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.record-card.is-modified {
+  border-left: 0.25rem solid #d97706;
+  padding-left: 0.7rem;
+  background: #fffaf0;
+}
+
+.notification-row.unread {
+  border-left: 0.25rem solid #d71920;
+  padding-left: 0.7rem;
+  background: #fffaf8;
+}
+
+.change-summary {
+  color: #9a5b00;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.record-list article small,
+.entry-panel > p {
+  color: #718293;
+  font-size: 0.73rem;
+}
+
+.record-list article > span {
+  color: #168462;
+  border: 1px solid #bae4d5;
+  border-radius: 999px;
+  background: #f0fbf6;
+  font-size: 0.61rem;
+  font-weight: 750;
+}
+
+.record-list button,
+.assignment button {
+  margin-top: 0;
+  min-height: 2.35rem;
+  padding: 0.45rem 0.7rem;
+  color: #264053;
+  border: 1px solid #d3dfe7;
+  border-radius: 0.5rem;
+  background: #fff;
+  box-shadow: none;
+  font-size: 0.7rem;
+}
+
+.record-list button:hover,
+.assignment button:hover {
+  color: #fff;
+  border-color: #277e78;
+  background: #277e78;
+}

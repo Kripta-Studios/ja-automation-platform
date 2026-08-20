@@ -11,3 +11,6 @@ After the plan is concrete, switch to implementation and execute `CODEX_MASTER_I
 The authoritative product baseline is `J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md`, extended by the remediation plan and P0/P1 product backlog in this pack. Preserve a modular monolith, SQLite, financial/audit history and existing good security/reconciliation foundations. Do not fake success, do not use placeholders as finished features, do not hard-delete finalized finance history, and do not represent unvalidated ML models as production intelligence.
 
 At the end, require the Sol/high `integration_reviewer`, generate `artifacts/V3_COMPLETION_REPORT.md`, and only return `READY` if mandatory traceability and quality gates pass.
+
+
+Luna-first implementation policy: classify work A/B/C. A defaults to Luna Max and may include substantial production code/complete low-risk vertical slices. B uses Sol Medium only where the implementation itself must resolve non-local invariants, then delegates stable leaves back to Luna. C uses Sol High.

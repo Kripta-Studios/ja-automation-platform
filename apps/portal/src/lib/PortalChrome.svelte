@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount, tick } from 'svelte';
   import { portalLocales, type PortalLocale } from './portal-i18n';
   import type { NavItem } from './portal-navigation';
 
@@ -58,6 +59,13 @@
   } = $props();
 
   let accountOpen = $state(false);
+  let drawer: HTMLElement | null = null;
+  let menuToggle: HTMLButtonElement | null = null;
+  let mobileDrawer = $state(false);
+  let drawerWasOpen = false;
+  let previousFocus: HTMLElement | null = null;
+  let previousRootOverflow = '';
+  let previousBodyOverflow = '';
 
   const navIconPaths: Record<string, string> = {
     Today: 'M3 10.75 12 3l9 7.75V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.25Z',
@@ -85,68 +93,247 @@
   };
 
   const iconPath = (item: NavItem): string => navIconPaths[item.label] ?? 'M5 12h14M12 5l7 7-7 7';
+
+  const focusableSelector =
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+  function drawerFocusableElements(): HTMLElement[] {
+    return drawer
+      ? Array.from(drawer.querySelectorAll<HTMLElement>(focusableSelector)).filter(
+          (element) =>
+            element.getAttribute('aria-hidden') !== 'true' &&
+            getComputedStyle(element).display !== 'none' &&
+            getComputedStyle(element).visibility !== 'hidden',
+        )
+      : [];
+  }
+
+  function restoreMenuFocus(attempt = 0): void {
+    if (typeof document === 'undefined') return;
+
+    document
+      .querySelector<HTMLButtonElement>('.menu-button[aria-label="Toggle navigation"]')
+      ?.focus();
+
+    if (attempt < 20 && typeof window !== 'undefined') {
+      window.setTimeout(() => restoreMenuFocus(attempt + 1), 25);
+    }
+  }
+
+  function closeDrawer(): void {
+    const shouldRestoreFocus = mobileDrawer;
+    onCloseMenu();
+    if (shouldRestoreFocus && typeof window !== 'undefined') {
+      window.setTimeout(() => restoreMenuFocus(), 0);
+    }
+  }
+
+  function handleSkipLinkClick(event: MouseEvent): void {
+    const link = event.currentTarget as HTMLAnchorElement;
+    const targetSelector = link.getAttribute('href');
+    if (!targetSelector?.startsWith('#')) return;
+
+    const target = document.querySelector<HTMLElement>(targetSelector);
+    if (!target) return;
+
+    event.preventDefault();
+    if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+    target.focus();
+  }
+
+  function handleDrawerKeydown(event: KeyboardEvent): void {
+    if (!menuOpen || !mobileDrawer) return;
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeDrawer();
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+    const focusable = drawerFocusableElements();
+    if (focusable.length === 0) {
+      event.preventDefault();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+    if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function itemIsCurrent(item: NavItem): boolean {
+    const allItems = [...navigation, ...secondaryNavigation, ...visibleAdmin, ...securityAdmin];
+    const itemTarget = itemHref(item);
+
+    if (typeof window !== 'undefined') {
+      const current = new URL(window.location.href);
+      const target = new URL(itemTarget, current.origin);
+      const routeSignature = (url: URL): string => {
+        const params = new URLSearchParams(url.search);
+        params.delete('lang');
+        params.delete('q');
+        const search = params.toString();
+        return `${url.pathname}${search ? `?${search}` : ''}`;
+      };
+      const targetSignature = routeSignature(target);
+      const currentSignature = routeSignature(current);
+      const exact = allItems.find(
+        (candidate) =>
+          routeSignature(new URL(itemHref(candidate), current.origin)) === currentSignature,
+      );
+      if (exact) return exact === item;
+      if (targetSignature !== currentSignature && item.section !== data.section) return false;
+    }
+
+    return (
+      item.section === data.section &&
+      allItems.find((candidate) => candidate.section === data.section) === item
+    );
+  }
+
+  onMount(() => {
+    const media = window.matchMedia('(max-width: 767px)');
+    const updateMobileDrawer = (): void => {
+      mobileDrawer = media.matches;
+    };
+    updateMobileDrawer();
+    media.addEventListener('change', updateMobileDrawer);
+    document.addEventListener('keydown', handleDrawerKeydown);
+    const skipLink = document.querySelector<HTMLAnchorElement>('a.skip-link[href^="#"]');
+    skipLink?.addEventListener('click', handleSkipLinkClick);
+
+    return () => {
+      media.removeEventListener('change', updateMobileDrawer);
+      document.removeEventListener('keydown', handleDrawerKeydown);
+      skipLink?.removeEventListener('click', handleSkipLinkClick);
+      if (drawerWasOpen) {
+        document.documentElement.style.overflow = previousRootOverflow;
+        document.body.style.overflow = previousBodyOverflow;
+      }
+    };
+  });
+
+  $effect(() => {
+    const open = menuOpen && mobileDrawer;
+    if (typeof document === 'undefined') return;
+
+    if (open && !drawerWasOpen) {
+      previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      previousRootOverflow = document.documentElement.style.overflow;
+      previousBodyOverflow = document.body.style.overflow;
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      drawerWasOpen = true;
+      void tick().then(() => {
+        if (!drawerWasOpen) return;
+        drawerFocusableElements()[0]?.focus();
+      });
+      return;
+    }
+
+    if (!open && drawerWasOpen) {
+      drawerWasOpen = false;
+      document.documentElement.style.overflow = previousRootOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+      const focusTarget = previousFocus;
+      previousFocus = null;
+      if (focusTarget && document.contains(focusTarget)) focusTarget.focus();
+      else menuToggle?.focus();
+    }
+  });
 </script>
 
-<aside class:open={menuOpen}>
-  <a class="portal-brand" href={`${base}/app/`}
+<button
+  type="button"
+  class:visible={menuOpen && mobileDrawer}
+  class="nav-backdrop"
+  aria-label="Close navigation"
+  aria-hidden={menuOpen && mobileDrawer ? undefined : 'true'}
+  tabindex="-1"
+  onclick={closeDrawer}
+></button>
+
+<aside
+  id="portal-navigation"
+  class:open={menuOpen}
+  bind:this={drawer}
+  aria-label="Portal navigation"
+  role={mobileDrawer ? 'dialog' : undefined}
+  aria-modal={mobileDrawer ? 'true' : undefined}
+  aria-hidden={mobileDrawer && !menuOpen ? 'true' : undefined}
+  inert={mobileDrawer && !menuOpen ? true : undefined}
+>
+  <a class="portal-brand" href={`${base}/app/`} onclick={closeDrawer}
     ><img src={`${base}/app/logo.png`} alt="J&A Automation" /></a
   >
   <nav aria-label="Primary navigation">
     {#each navigation as item}
       <a
-        class:active={data.section === item.section}
+        class:active={itemIsCurrent(item)}
         href={itemHref(item)}
         title={item.label}
-        onclick={onCloseMenu}
+        aria-current={itemIsCurrent(item) ? 'page' : undefined}
+        onclick={closeDrawer}
       >
         <span class="nav-icon" aria-hidden="true"
           ><svg viewBox="0 0 24 24" focusable="false"><path d={iconPath(item)} /></svg></span
-        ><span>{item.label}</span>
+        ><span class="nav-label">{item.label}</span>
       </a>
     {/each}
-    <small>SECONDARY</small>
+    <small class="nav-heading">SECONDARY</small>
     {#each secondaryNavigation as item}
       <a
-        class:active={data.section === item.section}
+        class:active={itemIsCurrent(item)}
         href={itemHref(item)}
         title={item.label}
-        onclick={onCloseMenu}
+        aria-current={itemIsCurrent(item) ? 'page' : undefined}
+        onclick={closeDrawer}
       >
         <span class="nav-icon" aria-hidden="true"
           ><svg viewBox="0 0 24 24" focusable="false"><path d={iconPath(item)} /></svg></span
-        ><span>{item.label}</span>
+        ><span class="nav-label">{item.label}</span>
       </a>
     {/each}
   </nav>
-  {#if showAdmin}
+  {#if showAdmin && (visibleAdmin.length > 0 || (canAudit && securityAdmin.length > 0))}
     <div class="admin-nav">
       {#if isManager || isFinance}
-        <small>ADMINISTRATION</small>
+        {#if visibleAdmin.length > 0}<small class="nav-heading">ADMINISTRATION</small>{/if}
         {#each visibleAdmin as item}
           <a
-            class:active={data.section === item.section}
+            class:active={itemIsCurrent(item)}
             href={itemHref(item)}
             title={item.label}
-            onclick={onCloseMenu}
+            aria-current={itemIsCurrent(item) ? 'page' : undefined}
+            onclick={closeDrawer}
           >
             <span class="nav-icon" aria-hidden="true"
               ><svg viewBox="0 0 24 24" focusable="false"><path d={iconPath(item)} /></svg></span
-            ><span>{item.label}</span>
+            ><span class="nav-label">{item.label}</span>
           </a>
         {/each}
       {/if}
-      {#if canAudit}
-        <small>SECURITY</small>
+      {#if canAudit && securityAdmin.length > 0}
+        <small class="nav-heading">SECURITY</small>
         {#each securityAdmin as item}
           <a
-            class:active={data.section === item.section}
+            class:active={itemIsCurrent(item)}
             href={itemHref(item)}
             title={item.label}
-            onclick={onCloseMenu}
+            aria-current={itemIsCurrent(item) ? 'page' : undefined}
+            onclick={closeDrawer}
           >
             <span class="nav-icon" aria-hidden="true"
               ><svg viewBox="0 0 24 24" focusable="false"><path d={iconPath(item)} /></svg></span
-            ><span>{item.label}</span>
+            ><span class="nav-label">{item.label}</span>
           </a>
         {/each}
       {/if}
@@ -158,10 +345,18 @@
 <header>
   <div class="header-status">
     <button
+      bind:this={menuToggle}
       class="menu-button"
       aria-label="Toggle navigation"
+      aria-controls="portal-navigation"
       aria-expanded={menuOpen}
       onclick={onMenuToggle}
+      onkeydown={(event) => {
+        if (event.key === 'Tab' && !event.shiftKey && !mobileDrawer) {
+          event.preventDefault();
+          drawer?.querySelector<HTMLElement>('nav a')?.focus();
+        }
+      }}
     >
       <span></span><span></span>
     </button>

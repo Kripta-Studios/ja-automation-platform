@@ -1,0 +1,349 @@
+/* Shared portal primitives -------------------------------------------------
+   The data-ui hooks are intentionally domain-neutral. Route surfaces can
+   compose these primitives without creating a second card or form system.
+*/
+
+:root {
+  --ja-target-min: 2.75rem;
+  --ja-card-padding: clamp(1rem, 2vw, 1.5rem);
+  --ja-card-border: var(--ja-line, #dce4ed);
+  --ja-control-border: #9eabb7;
+  --ja-focus-ring: #805b00;
+}
+
+[data-ui='section-card'],
+[data-ui='form-card'] {
+  min-width: 0;
+  padding: var(--ja-card-padding);
+  border: 1px solid var(--ja-card-border);
+  border-radius: var(--ja-radius, 1rem);
+  background: var(--ja-white, #fff);
+  box-shadow: var(--ja-shadow-soft, 0 0.5rem 1.5rem rgb(16 32 47 / 5%));
+}
+
+[data-ui='section-card'] > .ui-card-heading,
+[data-ui='form-card'] > .ui-card-heading,
+[data-ui='form-section'] > .ui-section-heading {
+  margin: 0;
+  color: var(--ja-ink, #10202f);
+  font-size: clamp(1.05rem, 1.4vw, 1.35rem);
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+[data-ui='section-card'] > .ui-card-heading,
+[data-ui='form-card'] > .ui-card-heading {
+  margin-bottom: 1rem;
+}
+
+[data-ui='form-section'] {
+  min-width: 0;
+  display: grid;
+  gap: 0.8rem;
+}
+
+[data-ui='form-section'] > .ui-section-description {
+  margin: -0.35rem 0 0;
+  color: var(--ja-steel, #637486);
+  font-size: 0.92rem;
+}
+
+[data-ui='field'] {
+  min-width: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+[data-ui='field'] > label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  color: var(--ja-ink, #10202f);
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+[data-ui='field']:has(.ui-field-control input[type='checkbox']) > label,
+[data-ui='field']:has(.ui-field-control input[type='radio']) > label {
+  box-sizing: border-box;
+  min-height: var(--ja-target-min);
+  min-width: var(--ja-target-min);
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+[data-ui='field'] .ui-field-required {
+  color: var(--ja-danger, #c43e36);
+}
+
+[data-ui='field'] .ui-field-control {
+  min-width: 0;
+  display: grid;
+}
+
+[data-ui='field'] input:not([type='checkbox']):not([type='radio']),
+[data-ui='field'] select,
+[data-ui='field'] textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--ja-target-min);
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--ja-control-border);
+  border-radius: 0.45rem;
+  color: var(--ja-ink, #10202f);
+  background: var(--ja-white, #fff);
+}
+
+[data-ui='field'] textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+[data-ui='field'] input:not([type='checkbox']):not([type='radio']):focus-visible,
+[data-ui='field'] select:focus-visible,
+[data-ui='field'] textarea:focus-visible,
+[data-ui='field-group'] :focus-visible,
+[data-ui='action-bar'] :focus-visible,
+[data-ui='table-region']:focus-visible {
+  outline: 3px solid var(--ja-focus-ring);
+  outline-offset: 2px;
+}
+
+[data-ui='field'] [aria-invalid='true'] {
+  border-color: var(--ja-danger, #c43e36);
+}
+
+[data-ui='field'] .ui-field-help,
+[data-ui='field'] [data-field-error-for] {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+[data-ui='field'] .ui-field-help {
+  color: var(--ja-steel, #637486);
+}
+
+[data-ui='field'] [data-field-error-for] {
+  color: var(--ja-danger, #a40f18);
+  font-weight: 700;
+}
+
+[data-ui='field-group'] {
+  min-width: 0;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+[data-ui='field-group'][data-columns='2'],
+[data-ui='field-group'][data-columns='3'] {
+  grid-template-columns: repeat(2, minmax(18rem, 1fr));
+}
+
+[data-ui='field-group'][data-columns='3'] {
+  grid-template-columns: repeat(3, minmax(18rem, 1fr));
+}
+
+[data-ui='field-group'][data-columns='auto'] {
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+}
+
+[data-ui='field-group'] > * {
+  min-width: 0;
+}
+
+[data-ui='action-bar'] {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+}
+
+[data-ui='action-bar'] > button,
+[data-ui='action-bar'] > a,
+[data-ui='action-bar'] > input[type='submit'],
+[data-ui='action-bar'] > input[type='button'] {
+  box-sizing: border-box;
+  min-height: var(--ja-target-min);
+  min-width: var(--ja-target-min);
+  padding: 0.65rem 1rem;
+  border-radius: 0.45rem;
+}
+
+[data-ui='status-badge'] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+[data-ui='status-badge']::before {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+}
+
+[data-ui='status-badge'][data-variant='success'] {
+  color: var(--ja-success, #17663a);
+  background: color-mix(in srgb, var(--ja-success, #17663a) 10%, transparent);
+}
+
+[data-ui='status-badge'][data-variant='warning'] {
+  color: var(--ja-warning, #9a5b00);
+  background: color-mix(in srgb, var(--ja-warning, #9a5b00) 10%, transparent);
+}
+
+[data-ui='status-badge'][data-variant='danger'] {
+  color: var(--ja-danger, #a40f18);
+  background: color-mix(in srgb, var(--ja-danger, #a40f18) 10%, transparent);
+}
+
+[data-ui='status-badge'][data-variant='info'],
+[data-ui='status-badge'][data-variant='neutral'] {
+  color: var(--ja-steel, #637486);
+  background: color-mix(in srgb, var(--ja-steel, #637486) 10%, transparent);
+}
+
+[data-ui='table-region'] {
+  min-width: 0;
+}
+
+[data-ui='table-region'][data-mobile-representation='scroll'] {
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  background:
+    linear-gradient(90deg, var(--ja-white, #fff) 1.25rem, transparent 3rem) 0 0 / 3rem 100%
+      no-repeat,
+    linear-gradient(270deg, var(--ja-white, #fff) 1.25rem, transparent 3rem) 100% 0 / 3rem 100%
+      no-repeat;
+  box-shadow: inset 0 0 0 1px var(--ja-card-border, #dce4ed);
+}
+
+[data-ui='table-region'][data-mobile-representation='scroll'] > table {
+  min-width: 42rem;
+}
+
+[data-ui='table-region'][data-mobile-representation='scroll'] .ui-table-region-instruction {
+  margin: 0 0 0.65rem;
+  color: var(--ja-steel, #637486);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+[data-ui='table-region'][data-mobile-representation='cards'] {
+  display: grid;
+  gap: 0.75rem;
+}
+
+[data-ui='table-region'][data-mobile-representation='cards'] > [data-table-region-desktop] {
+  display: none;
+}
+
+[data-ui='table-region'][data-mobile-representation='cards'] > [data-table-region-cards] {
+  display: grid;
+  gap: 0.75rem;
+}
+
+[data-ui='table-region'][data-mobile-representation='cards'] [data-row] {
+  min-width: 0;
+  padding: 0.85rem;
+  border: 1px solid var(--ja-card-border, #dce4ed);
+  border-radius: 0.65rem;
+  background: var(--ja-white, #fff);
+}
+
+[data-ui='table-region'][data-mobile-representation='cards'] [data-label] {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.5fr) minmax(0, 1fr);
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.35rem 0;
+}
+
+[data-ui='table-region'][data-mobile-representation='cards'] [data-label]::before {
+  color: var(--ja-steel, #637486);
+  content: attr(data-label);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+[data-ui='table-region'][data-mobile-representation='cards'] [data-card-semantic-label] {
+  color: var(--ja-steel, #637486);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+[data-ui='table-region'][data-mobile-representation='cards']
+  [data-label]:has(> [data-card-semantic-label])::before {
+  content: none;
+}
+
+[data-ui='validation-summary'] {
+  margin: 0 0 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--ja-danger, #a40f18);
+  border-radius: 0.45rem;
+  color: var(--ja-danger, #a40f18);
+  background: color-mix(in srgb, var(--ja-danger, #a40f18) 8%, transparent);
+}
+
+@media (max-width: 47.99rem) {
+  [data-ui='field-group'][data-columns='2'],
+  [data-ui='field-group'][data-columns='3'],
+  [data-ui='field-group'][data-columns='auto'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  [data-ui='action-bar'] {
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  [data-ui='action-bar'] > button,
+  [data-ui='action-bar'] > a,
+  [data-ui='action-bar'] > input[type='submit'],
+  [data-ui='action-bar'] > input[type='button'] {
+    flex: 1 1 12rem;
+  }
+
+  [data-ui='table-region'][data-mobile-representation='cards'] [data-label] {
+    grid-template-columns: minmax(6rem, 0.6fr) minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 48rem) {
+  [data-ui='table-region'][data-mobile-representation='cards'] > [data-table-region-desktop] {
+    display: block;
+  }
+
+  [data-ui='table-region'][data-mobile-representation='cards'] > [data-table-region-cards] {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-ui='section-card'],
+  [data-ui='form-card'],
+  [data-ui='field'],
+  [data-ui='action-bar'],
+  [data-ui='status-badge'],
+  [data-ui='table-region'] {
+    transition: none;
+  }
+}

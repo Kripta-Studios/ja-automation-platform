@@ -59,19 +59,35 @@
         >
       </div>
     </section>
-    <table>
-      <thead
-        ><tr><th>DESCRIPTION</th><th>SOURCE</th><th>QTY</th><th>RATE</th><th>AMOUNT</th></tr></thead
-      ><tbody
-        >{#each preview.lines as line}<tr
-            ><td>{line.description}</td><td>{String(line.source_type).toUpperCase()}</td><td
-              >{(Number(line.quantity_numerator) / Number(line.quantity_denominator)).toFixed(
-                2,
-              )}</td
-            ><td>{money(line.unit_price_minor)}</td><td>{money(line.subtotal_minor)}</td></tr
-          >{/each}</tbody
-      >
-    </table>
+    <section
+      class="invoice-line-items"
+      data-mobile-representation="cards"
+      aria-labelledby="invoice-line-items-heading"
+    >
+      <h2 class="visually-hidden" id="invoice-line-items-heading">Invoice line items</h2>
+      <table>
+        <caption class="visually-hidden">Invoice line items and amounts</caption>
+        <thead
+          ><tr
+            ><th scope="col">DESCRIPTION</th><th scope="col">SOURCE</th><th scope="col">QTY</th><th
+              scope="col">RATE</th
+            ><th scope="col">AMOUNT</th></tr
+          ></thead
+        ><tbody
+          >{#each preview.lines as line}<tr
+              ><td data-label="Description">{line.description}</td><td data-label="Source"
+                >{String(line.source_type).toUpperCase()}</td
+              ><td data-label="Quantity"
+                >{(Number(line.quantity_numerator) / Number(line.quantity_denominator)).toFixed(
+                  2,
+                )}</td
+              ><td data-label="Rate">{money(line.unit_price_minor)}</td><td data-label="Amount"
+                >{money(line.subtotal_minor)}</td
+              ></tr
+            >{/each}</tbody
+        >
+      </table>
+    </section>
     <section class="invoice-total">
       <div>
         <span>Separate billing treatment</span>

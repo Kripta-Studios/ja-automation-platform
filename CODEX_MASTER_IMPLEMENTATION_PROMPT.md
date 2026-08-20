@@ -22,21 +22,28 @@ Inspect the actual branch and do not assume the audit is exhaustive: if the code
 
 Do not merely produce a plan. **Implement the plan.** Continue phase by phase, integrating and validating work. Use multi-agent delegation where it is safe and useful.
 
-### Model routing
+### Model routing — Luna-first implementation
 
-- Architecture, cross-domain design, conflict resolution and final review: `architect` / `integration_reviewer` → GPT-5.6 Sol high.
-- Production implementation: `frontend_lead`, `backend_domain`, `finance_reporting`, `industrial_operations`, `business_operations`, `data_readiness` → GPT-5.6 Sol medium.
-- Independent reviews and QA: `spec_auditor`, `mobile_qa`, `desktop_qa`, `finance_integrity_reviewer`, `security_reviewer`, `data_leakage_reviewer` → GPT-5.6 Luna max.
+Use **Luna Max aggressively for implementation**, not only for QA. The default question is: “Can this work packet be bounded behind a stable contract so Luna can own it?” If yes, route it to Luna. Do not choose Sol merely because code is production-facing, large, or backend-related.
+
+- **Complexity C:** architecture, cross-domain contracts, conflict resolution, irreducibly risky migration strategy and final integration → `architect` / `integration_reviewer` → GPT-5.6 Sol high.
+- **Complexity B:** work whose implementation must define or preserve several non-local invariants → domain leads `frontend_lead`, `backend_domain`, `finance_reporting`, `industrial_operations`, `business_operations`, `data_readiness` → GPT-5.6 Sol medium.
+- **Complexity A (preferred implementation tier):** bounded implementation with stable contracts → `frontend_leaf`, `backend_leaf`, `crud_ui_worker`, `responsive_worker`, `report_ui_worker`, `industrial_ui_worker`, `business_ui_worker`, `data_tooling_worker`, `fixture_data_worker`, `migration_worker`, `test_worker`, `docs_worker` → GPT-5.6 Luna max.
+- **Independent reviews and QA:** `spec_auditor`, `mobile_qa`, `desktop_qa`, `finance_integrity_reviewer`, `security_reviewer`, `data_leakage_reviewer` → separate GPT-5.6 Luna max instances.
+
+Sol-medium leads are expected to **delegate downward**: define the hard invariant/API/schema contract, implement only the irreducibly complex core, then create Luna-max child packets for the remaining vertical/UI/test/fixture/adapter work. A Luna implementer must never review its own work; use a separate reviewer instance/profile.
 
 Before long delegation, confirm the runtime is honoring these profiles. If not, report the mismatch and use the closest explicitly selectable model/effort while preserving the role separation.
 
 ### Delegation protocol
 
-Use `$ja-v3-completion-orchestrator` and `$subagent-work-packet`.
+Use `$ja-v3-completion-orchestrator`, `$luna-first-routing`, and `$subagent-work-packet`.
 
 - Never let multiple write agents race on the same hot files.
 - Use worktrees or sequential ownership for overlapping domains.
 - Give each worker explicit owned and forbidden paths.
+- Every work packet must declare `Complexity: A | B | C` and the reason. Complexity A defaults to Luna Max.
+- Before assigning B to Sol Medium, attempt to split stable A-level leaves that Luna Max can implement in parallel/sequenced ownership.
 - Require tests and handoff evidence from each worker.
 - Do not let implementers certify their own release readiness.
 - Route reviewer failures back to the responsible worker and re-test.

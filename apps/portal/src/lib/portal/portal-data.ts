@@ -1,0 +1,127 @@
+export type PortalRow = Record<string, string | number | boolean | string[] | null>;
+
+export type PortalData = {
+  user: {
+    id?: string;
+    name: string;
+    email: string;
+    role?: string;
+    status?: string;
+    mfaEnrolled?: boolean;
+    mfaRequired?: boolean;
+  };
+  section: string;
+  projects?: PortalRow[];
+  clients?: PortalRow[];
+  contacts?: PortalRow[];
+  workers?: PortalRow[];
+  skills?: PortalRow[];
+  availability?: PortalRow[];
+  records?: PortalRow[];
+  milestones?: PortalRow[];
+  documents?: PortalRow[];
+  technicalChanges?: PortalRow[];
+  periodReports?: PortalRow[];
+  billingRules?: PortalRow[];
+  invoices?: PortalRow[];
+  settlements?: PortalRow[];
+  reimbursements?: PortalRow[];
+  ledger?: Array<Record<string, unknown>>;
+  packs?: Array<Record<string, unknown>>;
+  audit?: PortalRow[];
+  legalEntities?: PortalRow[];
+  taxProfiles?: PortalRow[];
+  selectedProjectId?: string;
+  periodStart?: string;
+  periodEnd?: string;
+  weekStart?: string;
+  weekEnd?: string;
+  timesheet?: {
+    weekStart: string;
+    weekEnd: string;
+    days: Array<{
+      date: string;
+      label: string;
+      expectedMinutes: number;
+      actualMinutes: number;
+      differenceMinutes: number;
+      status: string;
+      categories: Record<string, number>;
+    }>;
+  };
+  weeklyPay?: {
+    currency: string;
+    approvedMinutes: number;
+    pendingMinutes: number;
+    estimatedApprovedMinor: string;
+    estimatedPendingMinor: string;
+  };
+  searchQuery?: string;
+  searchSuggestions?: PortalRow[];
+  searchResults?: PortalRow[];
+  pay?: {
+    currency: string;
+    projectIds?: string[];
+    approvedMinutes: number;
+    pendingMinutes: number;
+    estimatedApprovedMinor: string;
+    estimatedPendingMinor: string;
+    approvedReimbursementMinor: string;
+    pendingReimbursementMinor: string;
+    guaranteedMinutes?: number;
+    percentageBased?: boolean;
+    settlementTriggers?: string[];
+    missingCompensationRules?: number;
+    label?: string;
+    projectProgress?: Array<Record<string, unknown>>;
+  };
+  finance?: {
+    currency: string;
+    approvedCostMinor: string;
+    revenueCandidateMinor: string;
+    contributionMarginMinor: string;
+    invoicedMinor: string;
+    paidMinor: string;
+    receivableMinor: string;
+    laborRevenueMinor?: string;
+    expenseRevenueMinor?: string;
+    directLaborCostMinor?: string;
+    travelCostMinor?: string;
+    otherDirectCostMinor?: string;
+    approvedUnbilledWipMinor?: string;
+    unapprovedWipMinor?: string;
+    milestoneRevenueMinor?: string;
+    budgetMinor?: string | null;
+    plannedMinutes?: number | null;
+    plannedRemainingMinutes?: number | null;
+    estimateToCompleteMinor?: string | null;
+    estimateAtCompletionCostMinor?: string | null;
+    expectedFinalMarginMinor?: string | null;
+    hoursConsumedBps?: string | null;
+    travelBudgetConsumedBps?: string | null;
+    travelBudgetMinor?: string | null;
+    forecastAvailable?: boolean;
+    alerts?: string[];
+    contributionMarginBps?: string;
+    timeEconomics?: Array<Record<string, unknown>>;
+    expenseEconomics?: Array<Record<string, unknown>>;
+  } | null;
+  portfolio?: {
+    projects?: Array<Record<string, unknown>>;
+    byClient?: Array<Record<string, unknown>>;
+    byWorker?: Array<Record<string, unknown>>;
+    byMonth?: Array<Record<string, unknown>>;
+    byWeek?: Array<Record<string, unknown>>;
+  };
+  dashboard?: {
+    activeProjects: number;
+    actualMinutes: number;
+    pendingReports: number;
+    expenseMinor: string;
+    upcomingInvoices: number;
+    upcomingInvoiceMinor: string;
+    currency: string;
+  };
+};
+
+export type PortalActionResult = { success?: boolean; message?: string } | null;

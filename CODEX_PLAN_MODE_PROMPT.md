@@ -27,3 +27,5 @@ The plan must include a dependency DAG/work-packet order, assigned agent type/mo
 Do not ask me to reduce scope. Do not propose a demo. Do not say “future work” for P0/P1 just to shorten the task. P3 ML model training can remain experimental when real data is absent, but its data-readiness infrastructure must be implemented.
 
 At the end, update `CODEX_EXECUTION_PLAN.md`, `work-packets/INITIAL_WORK_PACKETS.md` and `REQUIREMENTS_TRACEABILITY_MATRIX.md` if the repository inspection reveals more accurate dependencies/evidence. Then stop Plan mode with a clear statement of the first executable work packets. Do not modify application code while still in Plan mode.
+
+Classify every implementation packet A/B/C. Prefer Luna Max for bounded stable-contract implementation and require Sol leads to split/delegate Luna-sized leaves.

@@ -11,6 +11,15 @@ import {
 } from '@ja/domain';
 import { calculateTaxComponents, periodForCadence } from '@ja/billing-engine';
 import { add, applyBasisPoints, hourlyRateForMinutes, money, type Currency } from '@ja/money';
+import { recordAuditEvent } from './core/audit.ts';
+import { assertActiveAccount, assertRecentStepUp } from './core/authorization.ts';
+import { nextNumberSequence } from './core/sequence.ts';
+import { assertSafeStorageKey } from './core/storage-key.ts';
+import { runImmediateTransaction } from './core/transaction.ts';
+import { ClientRepository, type ClientInput } from './domains/clients/client-repository.ts';
+import { PlanningRepository } from './domains/planning/planning-repository.ts';
+import { TimeEntryRepository } from './domains/time/time-entry-repository.ts';
+import { WorkforceRepository } from './domains/workforce/workforce-repository.ts';
 import { V3Repository } from './v3-repository.ts';
 
 export class AccessDeniedError extends Error {}
@@ -30,15 +39,6 @@ export type ReadinessReason = Readonly<{ code: string; sourceId?: string }>;
 type ReportLocale = 'en' | 'pt' | 'es';
 const normalizeReportLocale = (value: unknown): ReportLocale =>
   value === 'pt' || value === 'es' ? value : 'en';
-
-type ClientInput = Readonly<{
-  legalName: string;
-  displayName: string;
-  currency: Currency;
-  timezone: string;
-  billingEmail?: string;
-  paymentTermsDays?: number;
-}>;
 
 type ProjectInput = Readonly<{
   clientId: string;
@@ -181,47 +181,16 @@ type Row = Record<string, string | number | null>;
 const now = (): string => new Date().toISOString();
 const today = (): string => new Date().toISOString().slice(0, 10);
 
-const auditSecretKey = /password|token|secret|api[_-]?key|access[_-]?token|refresh[_-]?token/i;
 const malwareScanRequired = (): boolean =>
   process.env.NODE_ENV === 'production' &&
   (process.env.JA_MALWARE_SCANNER_REQUIRED === 'true' ||
     Boolean(process.env.JA_MALWARE_SCANNER_URL));
-function redactAudit(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map((item) => redactAudit(item));
-  if (value && typeof value === 'object')
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [
-        key,
-        auditSecretKey.test(key) ? '[REDACTED]' : redactAudit(item),
-      ]),
-    );
-  return value;
-}
 
 function safeInteger(value: bigint): number {
   const result = Number(value);
   if (!Number.isSafeInteger(result))
     throw new ValidationError('Money exceeds safe SQLite integer range');
   return result;
-}
-
-function isBusyError(error: unknown): boolean {
-  return (
-    error instanceof Error && /SQLITE_BUSY|SQLITE_LOCKED|database is locked/i.test(error.message)
-  );
-}
-
-function logBusyRetry(repository: string, attempt: number): void {
-  if (process.env.NODE_ENV === 'production' || process.env.JA_JSON_LOGS === 'true')
-    console.warn(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'warn',
-        event: 'database.busy_retry',
-        repository,
-        attempt,
-      }),
-    );
 }
 
 function assertDate(value: string, field: string): void {
@@ -237,65 +206,111 @@ function assertText(value: string, field: string, max = 5000): string {
 
 export class PortalRepository {
   private readonly sqlite: DatabaseSync;
+  private readonly clients: ClientRepository;
+  private readonly planning: PlanningRepository;
+  private readonly time: TimeEntryRepository;
+  private readonly workforce: WorkforceRepository;
 
   constructor(sqlite: DatabaseSync) {
     this.sqlite = sqlite;
+    this.clients = new ClientRepository({
+      sqlite,
+      transaction: (work) => this.transaction(work),
+      assertActive: (principal) => this.assertActive(principal),
+      assertReadable: (principal) => this.assertReadable(principal),
+      audit: (principal, action, entityType, entityId, details) =>
+        this.audit(principal, action, entityType, entityId, details),
+      nextSequence: (scope, scopeId) => this.nextSequence(scope, scopeId),
+      now,
+      assertText,
+      accessDenied: (message) => {
+        throw new AccessDeniedError(message);
+      },
+      validation: (message) => {
+        throw new ValidationError(message);
+      },
+    });
+    this.workforce = new WorkforceRepository({
+      sqlite,
+      assertActive: (principal) => this.assertActive(principal),
+      assertReadable: (principal) => this.assertReadable(principal),
+      audit: (principal, action, entityType, entityId, details) =>
+        this.audit(principal, action, entityType, entityId, details),
+      now,
+      assertText,
+      errors: {
+        accessDenied: (message) => {
+          throw new AccessDeniedError(message);
+        },
+        conflict: (message) => {
+          throw new ConflictError(message);
+        },
+        validation: (message) => {
+          throw new ValidationError(message);
+        },
+      },
+    });
+    this.planning = new PlanningRepository({
+      sqlite,
+      assertActive: (principal) => this.assertActive(principal),
+      assertReadable: (principal) => this.assertReadable(principal),
+      assertDate,
+      audit: (principal, action, entityType, entityId, details) =>
+        this.audit(principal, action, entityType, entityId, details),
+      now,
+      assertText,
+      errors: {
+        accessDenied: (message) => {
+          throw new AccessDeniedError(message);
+        },
+        conflict: (message) => {
+          throw new ConflictError(message);
+        },
+        validation: (message) => {
+          throw new ValidationError(message);
+        },
+      },
+    });
+    this.time = new TimeEntryRepository({
+      sqlite,
+      transaction: (work) => this.transaction(work),
+      assertActive: (principal) => this.assertActive(principal),
+      assertReadable: (principal) => this.assertReadable(principal),
+      audit: (principal, action, entityType, entityId, details) =>
+        this.audit(principal, action, entityType, entityId, details),
+      assertDate,
+      assertText,
+      shiftIsoDate,
+      now,
+      errors: {
+        accessDenied: (message) => {
+          throw new AccessDeniedError(message);
+        },
+        conflict: (message) => {
+          throw new ConflictError(message);
+        },
+        validation: (message) => {
+          throw new ValidationError(message);
+        },
+      },
+    });
   }
 
   private transaction<T>(work: () => T): T {
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
-      let began = false;
-      try {
-        this.sqlite.exec('BEGIN IMMEDIATE');
-        began = true;
-        const result = work();
-        this.sqlite.exec('COMMIT');
-        return result;
-      } catch (error) {
-        if (began) {
-          try {
-            this.sqlite.exec('ROLLBACK');
-          } catch {
-            // Preserve the original transaction error.
-          }
-        }
-        if (isBusyError(error) && attempt < 3) {
-          logBusyRetry('portal', attempt);
-          continue;
-        }
-        throw error;
-      }
-    }
-    throw new Error('Transaction retry limit reached');
+    return runImmediateTransaction(this.sqlite, 'portal', work);
   }
 
   private assertActive(principal: Principal): void {
-    const user = this.sqlite.prepare('SELECT status FROM user WHERE id=?').get(principal.userId) as
-      | { status: string }
-      | undefined;
-    if (!user || user.status !== 'active') throw new AccessDeniedError('Active account required');
+    assertActiveAccount(this.sqlite, principal, AccessDeniedError);
     if (principal.role === 'auditor_read_only') throw new AccessDeniedError('Read-only role');
   }
 
   private assertReadable(principal: Principal): void {
-    const user = this.sqlite.prepare('SELECT status FROM user WHERE id=?').get(principal.userId) as
-      | { status: string }
-      | undefined;
-    if (!user || user.status !== 'active') throw new AccessDeniedError('Active account required');
+    assertActiveAccount(this.sqlite, principal, AccessDeniedError);
   }
 
   private assertStepUp(principal: Principal): void {
-    if (process.env.NODE_ENV !== 'production') return;
-    if (principal.isServiceActor) return;
-    if (!principal.sessionId)
-      throw new AccessDeniedError('Recent step-up authentication is required');
-    const user = this.sqlite
-      .prepare('SELECT step_up_at FROM session WHERE id=? AND user_id=? AND expires_at>?')
-      .get(principal.sessionId, principal.userId, now()) as
-      | { step_up_at: string | null }
-      | undefined;
-    if (!user?.step_up_at || Date.now() - Date.parse(user.step_up_at) > 10 * 60_000)
-      throw new AccessDeniedError('Recent step-up authentication is required');
+    assertRecentStepUp(this.sqlite, principal, AccessDeniedError);
   }
 
   private audit(
@@ -305,53 +320,11 @@ export class PortalRepository {
     entityId: string,
     details: unknown,
   ): void {
-    const redacted = redactAudit(details) as Record<string, unknown>;
-    const projectId = typeof redacted.projectId === 'string' ? redacted.projectId : null;
-    const before = redacted.before === undefined ? null : JSON.stringify(redacted.before);
-    const after = redacted.after === undefined ? null : JSON.stringify(redacted.after);
-    const reason = typeof redacted.reason === 'string' ? redacted.reason : null;
-    const correlationId =
-      typeof redacted.correlationId === 'string'
-        ? redacted.correlationId
-        : (principal.correlationId ?? newId());
-    const metadata = JSON.stringify(redacted);
-    this.sqlite
-      .prepare(
-        'INSERT INTO audit_event(id,actor_id,action,entity_type,entity_id,occurred_at,details_json,project_id,before_json,after_json,reason,correlation_id,metadata_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
-      )
-      .run(
-        newId(),
-        principal.userId,
-        action,
-        entityType,
-        entityId,
-        now(),
-        metadata,
-        projectId,
-        before,
-        after,
-        reason,
-        correlationId,
-        metadata,
-      );
+    recordAuditEvent(this.sqlite, principal, action, entityType, entityId, details);
   }
 
   private nextSequence(scope: string, scopeId: string): number {
-    const row = this.sqlite
-      .prepare('SELECT next_value FROM number_sequence WHERE scope=? AND scope_id=?')
-      .get(scope, scopeId) as { next_value: number } | undefined;
-    if (!row) {
-      this.sqlite
-        .prepare('INSERT INTO number_sequence(scope,scope_id,next_value,version) VALUES(?,?,2,1)')
-        .run(scope, scopeId);
-      return 1;
-    }
-    this.sqlite
-      .prepare(
-        'UPDATE number_sequence SET next_value=?,version=version+1 WHERE scope=? AND scope_id=?',
-      )
-      .run(row.next_value + 1, scope, scopeId);
-    return row.next_value;
+    return nextNumberSequence(this.sqlite, scope, scopeId);
   }
 
   principalFor(userId: string, sessionId?: string, correlationId?: string): Principal {
@@ -372,33 +345,7 @@ export class PortalRepository {
   }
 
   createClient(principal: Principal, input: ClientInput) {
-    this.assertActive(principal);
-    if (!canManageClients(principal)) throw new AccessDeniedError('Client administration required');
-    return this.transaction(() => {
-      const sequence = this.nextSequence('client', 'global');
-      const id = newId();
-      const clientNumber = `C-${String(sequence).padStart(4, '0')}`;
-      const timestamp = now();
-      this.sqlite
-        .prepare(
-          'INSERT INTO client(id,client_number,legal_name,display_name,status,currency,timezone,billing_email,payment_terms_days,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
-        )
-        .run(
-          id,
-          clientNumber,
-          assertText(input.legalName, 'Legal name', 300),
-          assertText(input.displayName, 'Display name', 160),
-          'active',
-          input.currency,
-          assertText(input.timezone, 'Timezone', 100),
-          input.billingEmail ?? null,
-          input.paymentTermsDays ?? 30,
-          timestamp,
-          timestamp,
-        );
-      this.audit(principal, 'client.create', 'client', id, { clientNumber });
-      return { id, clientNumber };
-    });
+    return this.clients.createClient(principal, input);
   }
 
   createClientContact(
@@ -413,92 +360,15 @@ export class PortalRepository {
       isPrimary?: boolean;
     }>,
   ) {
-    this.assertActive(principal);
-    if (!canManageClients(principal)) throw new AccessDeniedError('Client administration required');
-    if (!this.sqlite.prepare('SELECT 1 FROM client WHERE id=?').get(input.clientId))
-      throw new ValidationError('Client not found');
-    const id = newId();
-    const timestamp = now();
-    return this.transaction(() => {
-      if (input.isPrimary)
-        this.sqlite
-          .prepare('UPDATE client_contact SET is_primary=0 WHERE client_id=?')
-          .run(input.clientId);
-      this.sqlite
-        .prepare(
-          'INSERT INTO client_contact(id,client_id,name,email,phone,role,is_billing_contact,is_primary,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)',
-        )
-        .run(
-          id,
-          input.clientId,
-          assertText(input.name, 'Contact name', 160),
-          input.email?.trim().toLowerCase() || null,
-          input.phone?.trim() || null,
-          input.role?.trim() || null,
-          input.isBillingContact ? 1 : 0,
-          input.isPrimary ? 1 : 0,
-          timestamp,
-          timestamp,
-        );
-      this.audit(principal, 'client_contact.create', 'client_contact', id, {
-        clientId: input.clientId,
-        isBillingContact: Boolean(input.isBillingContact),
-      });
-      return { id };
-    });
+    return this.clients.createClientContact(principal, input);
   }
 
   listClientContacts(principal: Principal, clientId: string) {
-    this.assertReadable(principal);
-    if (
-      !canManageClients(principal) &&
-      principal.role !== 'auditor_read_only' &&
-      principal.role !== 'project_manager'
-    )
-      throw new AccessDeniedError('Client administration required');
-    if (!this.sqlite.prepare('SELECT 1 FROM client WHERE id=?').get(clientId))
-      throw new ValidationError('Client not found');
-    if (principal.role === 'project_manager') {
-      const ids = [...principal.projectIds];
-      if (
-        ids.length === 0 ||
-        !this.sqlite
-          .prepare(
-            `SELECT 1 FROM project WHERE client_id=? AND id IN (${ids.map(() => '?').join(',')}) LIMIT 1`,
-          )
-          .get(clientId, ...ids)
-      )
-        throw new AccessDeniedError('Client contact is outside the project scope');
-    }
-    return this.sqlite
-      .prepare(
-        'SELECT id,client_id,name,email,phone,role,is_billing_contact,is_primary,created_at,updated_at FROM client_contact WHERE client_id=? ORDER BY is_primary DESC,name',
-      )
-      .all(clientId);
+    return this.clients.listClientContacts(principal, clientId);
   }
 
   listAllClientContacts(principal: Principal) {
-    this.assertReadable(principal);
-    if (
-      principal.role !== 'owner_admin' &&
-      principal.role !== 'finance_admin' &&
-      principal.role !== 'auditor_read_only' &&
-      principal.role !== 'project_manager'
-    )
-      throw new AccessDeniedError('Client contacts are restricted to management roles');
-    const projectIds = principal.role === 'project_manager' ? [...principal.projectIds] : [];
-    if (principal.role === 'project_manager' && projectIds.length === 0) return [];
-    const restriction = projectIds.length
-      ? ` AND EXISTS (SELECT 1 FROM project p WHERE p.client_id=cc.client_id AND p.id IN (${projectIds.map(() => '?').join(',')}))`
-      : '';
-    return this.sqlite
-      .prepare(
-        `SELECT cc.id,cc.client_id,cc.name,cc.email,cc.phone,cc.role,cc.is_billing_contact,cc.is_primary,
-                c.client_number,c.display_name
-         FROM client_contact cc JOIN client c ON c.id=cc.client_id
-         WHERE 1=1${restriction} ORDER BY c.client_number,cc.is_primary DESC,cc.name`,
-      )
-      .all(...projectIds);
+    return this.clients.listAllClientContacts(principal);
   }
 
   createProject(principal: Principal, input: ProjectInput) {
@@ -633,18 +503,7 @@ export class PortalRepository {
   }
 
   listProjectSchedule(principal: Principal, projectId: string) {
-    this.assertReadable(principal);
-    const permitted =
-      principal.role === 'owner_admin' ||
-      principal.role === 'finance_admin' ||
-      principal.role === 'auditor_read_only' ||
-      principal.projectIds.has(projectId);
-    if (!permitted) throw new AccessDeniedError('Project access required');
-    return this.sqlite
-      .prepare(
-        'SELECT id,project_id,timezone,monday_minutes,tuesday_minutes,wednesday_minutes,thursday_minutes,friday_minutes,saturday_minutes,sunday_minutes,effective_from,effective_to,version FROM schedule WHERE project_id=? ORDER BY effective_from DESC,id DESC LIMIT 1',
-      )
-      .get(projectId);
+    return this.planning.listProjectSchedule(principal, projectId);
   }
 
   updateProjectSchedule(
@@ -662,142 +521,26 @@ export class PortalRepository {
       effectiveFrom: string;
     }>,
   ) {
-    this.assertActive(principal);
-    if (!canManageAssignments(principal, input.projectId))
-      throw new AccessDeniedError('Schedule administration required');
-    assertDate(input.effectiveFrom, 'Schedule effective date');
-    const minutes = [
-      input.mondayMinutes,
-      input.tuesdayMinutes,
-      input.wednesdayMinutes,
-      input.thursdayMinutes,
-      input.fridayMinutes,
-      input.saturdayMinutes,
-      input.sundayMinutes,
-    ];
-    if (minutes.some((value) => !Number.isInteger(value) || value < 0 || value > 1440))
-      throw new ValidationError('Schedule minutes must be between 0 and 1440');
-    const project = this.sqlite.prepare('SELECT id FROM project WHERE id=?').get(input.projectId);
-    if (!project) throw new ValidationError('Project not found');
-    const id = newId();
-    const timestamp = now();
-    this.sqlite
-      .prepare(
-        'INSERT INTO schedule(id,project_id,timezone,monday_minutes,tuesday_minutes,wednesday_minutes,thursday_minutes,friday_minutes,saturday_minutes,sunday_minutes,effective_from) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
-      )
-      .run(
-        id,
-        input.projectId,
-        assertText(input.timezone, 'Schedule timezone', 100),
-        ...minutes,
-        input.effectiveFrom,
-      );
-    this.sqlite
-      .prepare('UPDATE project SET expected_schedule_id=?,timezone=?,updated_at=? WHERE id=?')
-      .run(id, input.timezone, timestamp, input.projectId);
-    this.audit(principal, 'schedule.create', 'schedule', id, { projectId: input.projectId });
-    return { id, version: 1 };
+    return this.planning.updateProjectSchedule(principal, input);
   }
 
   listSkills(principal: Principal) {
-    this.assertReadable(principal);
-    return this.sqlite
-      .prepare('SELECT id,code,name,created_at FROM skill ORDER BY name,code')
-      .all();
+    return this.workforce.listSkills(principal);
   }
 
   createSkill(principal: Principal, input: Readonly<{ code: string; name: string }>) {
-    this.assertActive(principal);
-    if (principal.role !== 'owner_admin' && principal.role !== 'finance_admin')
-      throw new AccessDeniedError('Skill administration required');
-    const code = assertText(input.code, 'Skill code', 80).toUpperCase();
-    const name = assertText(input.name, 'Skill name', 160);
-    const id = newId();
-    try {
-      this.sqlite
-        .prepare('INSERT INTO skill(id,code,name,created_at) VALUES(?,?,?,?)')
-        .run(id, code, name, now());
-    } catch (error) {
-      if (error instanceof Error && /UNIQUE/i.test(error.message))
-        throw new ConflictError('Skill code already exists');
-      throw error;
-    }
-    this.audit(principal, 'skill.create', 'skill', id, { code });
-    return { id };
+    return this.workforce.createSkill(principal, input);
   }
 
   setWorkerSkill(
     principal: Principal,
     input: Readonly<{ workerId: string; skillId: string; proficiency: number }>,
   ): void {
-    this.assertActive(principal);
-    const canManage = principal.role === 'owner_admin' || principal.role === 'finance_admin';
-    if (!canManage) {
-      if (principal.role === 'worker' && principal.userId !== input.workerId)
-        throw new AccessDeniedError('Worker skill ownership required');
-      if (principal.role !== 'project_manager')
-        throw new AccessDeniedError('Skill administration required');
-      const assigned = [...principal.projectIds].some((projectId) =>
-        Boolean(
-          this.sqlite
-            .prepare(
-              "SELECT 1 FROM project_member WHERE project_id=? AND user_id=? AND status='active'",
-            )
-            .get(projectId, input.workerId),
-        ),
-      );
-      if (!assigned) throw new AccessDeniedError('Worker is outside the project scope');
-    }
-    if (!Number.isInteger(input.proficiency) || input.proficiency < 1 || input.proficiency > 5)
-      throw new ValidationError('Skill proficiency must be from 1 to 5');
-    if (
-      !this.sqlite
-        .prepare(
-          "SELECT 1 FROM user WHERE id=? AND role IN ('worker','project_manager') AND status='active'",
-        )
-        .get(input.workerId)
-    )
-      throw new ValidationError('Active worker not found');
-    if (!this.sqlite.prepare('SELECT 1 FROM skill WHERE id=?').get(input.skillId))
-      throw new ValidationError('Skill not found');
-    this.sqlite
-      .prepare(
-        'INSERT INTO worker_skill(worker_id,skill_id,proficiency,verified_at) VALUES(?,?,?,?) ON CONFLICT(worker_id,skill_id) DO UPDATE SET proficiency=excluded.proficiency,verified_at=excluded.verified_at',
-      )
-      .run(input.workerId, input.skillId, input.proficiency, canManage ? now() : null);
-    this.audit(
-      principal,
-      'worker_skill.set',
-      'worker_skill',
-      `${input.workerId}:${input.skillId}`,
-      {
-        proficiency: input.proficiency,
-      },
-    );
+    return this.workforce.setWorkerSkill(principal, input);
   }
 
   listWorkerSkills(principal: Principal, workerId?: string) {
-    this.assertReadable(principal);
-    const target = workerId ?? principal.userId;
-    if (principal.role === 'worker' && target !== principal.userId)
-      throw new AccessDeniedError('Worker skill privacy required');
-    if (principal.role === 'project_manager') {
-      const ids = [...principal.projectIds];
-      if (
-        ids.length === 0 ||
-        !this.sqlite
-          .prepare(
-            `SELECT 1 FROM project_member WHERE user_id=? AND status='active' AND project_id IN (${ids.map(() => '?').join(',')}) LIMIT 1`,
-          )
-          .get(target, ...ids)
-      )
-        throw new AccessDeniedError('Worker skill is outside the project scope');
-    }
-    return this.sqlite
-      .prepare(
-        'SELECT ws.worker_id,ws.skill_id,ws.proficiency,ws.verified_at,s.code,s.name FROM worker_skill ws JOIN skill s ON s.id=ws.skill_id WHERE ws.worker_id=? ORDER BY s.name',
-      )
-      .all(target);
+    return this.workforce.listWorkerSkills(principal, workerId);
   }
 
   setWorkerAvailability(
@@ -810,68 +553,11 @@ export class PortalRepository {
       note?: string;
     }>,
   ) {
-    this.assertActive(principal);
-    if (principal.role === 'worker' && principal.userId !== input.workerId)
-      throw new AccessDeniedError('Worker availability ownership required');
-    if (principal.role === 'project_manager') {
-      const ids = [...principal.projectIds];
-      if (
-        ids.length === 0 ||
-        !this.sqlite
-          .prepare(
-            `SELECT 1 FROM project_member WHERE user_id=? AND status='active' AND project_id IN (${ids.map(() => '?').join(',')}) LIMIT 1`,
-          )
-          .get(input.workerId, ...ids)
-      )
-        throw new AccessDeniedError('Worker availability is outside the project scope');
-    }
-    if (Date.parse(input.endsAt) <= Date.parse(input.startsAt))
-      throw new ValidationError('Availability end must follow start');
-    const id = newId();
-    const timestamp = now();
-    this.sqlite
-      .prepare(
-        'INSERT INTO worker_availability(id,worker_id,starts_at,ends_at,availability,note,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
-      )
-      .run(
-        id,
-        input.workerId,
-        input.startsAt,
-        input.endsAt,
-        input.availability,
-        input.note?.trim() || null,
-        timestamp,
-        timestamp,
-      );
-    this.audit(principal, 'worker_availability.create', 'worker_availability', id, {
-      workerId: input.workerId,
-      availability: input.availability,
-    });
-    return { id, version: 1 };
+    return this.workforce.setWorkerAvailability(principal, input);
   }
 
   listWorkerAvailability(principal: Principal, workerId?: string) {
-    this.assertReadable(principal);
-    const target = workerId ?? principal.userId;
-    if (principal.role === 'worker' && target !== principal.userId)
-      throw new AccessDeniedError('Worker availability privacy required');
-    if (principal.role === 'project_manager') {
-      const ids = [...principal.projectIds];
-      if (
-        ids.length === 0 ||
-        !this.sqlite
-          .prepare(
-            `SELECT 1 FROM project_member WHERE user_id=? AND status='active' AND project_id IN (${ids.map(() => '?').join(',')}) LIMIT 1`,
-          )
-          .get(target, ...ids)
-      )
-        throw new AccessDeniedError('Worker availability is outside the project scope');
-    }
-    return this.sqlite
-      .prepare(
-        'SELECT id,worker_id,starts_at,ends_at,availability,note,version FROM worker_availability WHERE worker_id=? ORDER BY starts_at DESC LIMIT 200',
-      )
-      .all(target);
+    return this.workforce.listWorkerAvailability(principal, workerId);
   }
 
   createProjectMilestone(
@@ -1017,94 +703,15 @@ export class PortalRepository {
       canReview?: boolean;
     },
   ) {
-    this.assertActive(principal);
-    if (!canManageAssignments(principal, input.projectId))
-      throw new AccessDeniedError('Assignment administration required');
-    assertDate(input.startsOn, 'Start date');
-    if (input.endsOn) assertDate(input.endsOn, 'End date');
-    if (input.endsOn && input.endsOn < input.startsOn)
-      throw new ValidationError('Assignment end date must follow the start date');
-    const worker = this.sqlite
-      .prepare(
-        "SELECT 1 ok FROM user WHERE id=? AND role IN ('worker','project_manager') AND status='active'",
-      )
-      .get(input.workerId);
-    if (!worker) throw new ValidationError('Active workforce member not found');
-    const id = newId();
-    const timestamp = now();
-    this.sqlite
-      .prepare(
-        'INSERT INTO project_member(id,project_id,user_id,assignment_role,starts_on,ends_on,planned_minutes,can_review,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
-      )
-      .run(
-        id,
-        input.projectId,
-        input.workerId,
-        'worker',
-        input.startsOn,
-        input.endsOn ?? null,
-        input.plannedMinutes ?? null,
-        input.canReview ? 1 : 0,
-        'active',
-        timestamp,
-        timestamp,
-      );
-    this.audit(principal, 'assignment.create', 'project_member', id, input);
-    return { id };
+    return this.workforce.assignWorker(principal, input);
   }
 
   createTimeEntry(principal: Principal, input: TimeInput) {
-    this.assertActive(principal);
-    assertDate(input.workDate, 'Work date');
-    if (!Number.isInteger(input.minutes) || input.minutes < 0 || input.minutes > 1440)
-      throw new ValidationError('Minutes must be an integer from 0 to 1440');
-    const assignment = this.sqlite
-      .prepare(
-        "SELECT p.timezone FROM project_member pm JOIN project p ON p.id=pm.project_id WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active' AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)",
-      )
-      .get(input.projectId, principal.userId, input.workDate, input.workDate) as
-      | { timezone: string }
-      | undefined;
-    if (!assignment) throw new AccessDeniedError('Active project assignment required');
-    const id = newId();
-    const timestamp = now();
-    this.sqlite
-      .prepare(
-        'INSERT INTO time_entry(id,project_id,worker_id,work_date,category,activity_code,minutes,project_timezone,activity_summary,approval_state,billability_state,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
-      )
-      .run(
-        id,
-        input.projectId,
-        principal.userId,
-        input.workDate,
-        assertText(input.category, 'Category', 100),
-        input.activityCode?.trim() || null,
-        input.minutes,
-        assignment.timezone,
-        assertText(input.summary, 'Activity summary'),
-        'draft',
-        'pending',
-        timestamp,
-        timestamp,
-      );
-    this.audit(principal, 'time.create', 'time_entry', id, {
-      projectId: input.projectId,
-      minutes: input.minutes,
-    });
-    return { id, version: 1 };
+    return this.time.createTimeEntry(principal, input);
   }
 
   submitTime(principal: Principal, id: string, baseVersion: number) {
-    this.assertActive(principal);
-    const timestamp = now();
-    const result = this.sqlite
-      .prepare(
-        "UPDATE time_entry SET approval_state='submitted',submitted_at=?,updated_at=?,version=version+1 WHERE id=? AND worker_id=? AND approval_state IN ('draft','needs_changes') AND version=? AND invoice_id IS NULL",
-      )
-      .run(timestamp, timestamp, id, principal.userId, baseVersion);
-    if (result.changes !== 1) throw new ConflictError('Time entry changed or cannot be submitted');
-    this.audit(principal, 'time.submit', 'time_entry', id, { baseVersion });
-    return { id, version: baseVersion + 1 };
+    return this.time.submitTime(principal, id, baseVersion);
   }
 
   updateTimeEntry(
@@ -1123,66 +730,7 @@ export class PortalRepository {
       breakMinutes?: number;
     }>,
   ) {
-    this.assertActive(principal);
-    const current = this.sqlite
-      .prepare(
-        'SELECT project_id,worker_id,approval_state,invoice_id,billing_status FROM time_entry WHERE id=?',
-      )
-      .get(input.id) as
-      | {
-          project_id: string;
-          worker_id: string;
-          approval_state: string;
-          invoice_id: string | null;
-          billing_status: string;
-        }
-      | undefined;
-    if (!current) throw new ValidationError('Time entry not found');
-    if (current.worker_id !== principal.userId)
-      throw new AccessDeniedError('Time entry ownership required');
-    if (
-      current.invoice_id ||
-      current.billing_status !== 'unlocked' ||
-      !['draft', 'needs_changes'].includes(current.approval_state)
-    )
-      throw new ConflictError('Only an unlocked editable time draft can change');
-    if (input.workDate) assertDate(input.workDate, 'Work date');
-    if (
-      input.minutes !== undefined &&
-      (!Number.isInteger(input.minutes) || input.minutes < 0 || input.minutes > 1440)
-    )
-      throw new ValidationError('Minutes must be an integer from 0 to 1440');
-    if (input.breakMinutes !== undefined && (input.breakMinutes < 0 || input.breakMinutes > 1440))
-      throw new ValidationError('Break minutes are invalid');
-    const timestamp = now();
-    const result = this.sqlite
-      .prepare(
-        `UPDATE time_entry SET work_date=COALESCE(?,work_date),category=COALESCE(?,category),
-          activity_code=COALESCE(?,activity_code),minutes=COALESCE(?,minutes),
-          activity_summary=COALESCE(?,activity_summary),site=COALESCE(?,site),
-          start_time=COALESCE(?,start_time),end_time=COALESCE(?,end_time),
-          break_minutes=COALESCE(?,break_minutes),updated_at=?,version=version+1
-         WHERE id=? AND worker_id=? AND version=? AND invoice_id IS NULL AND billing_status='unlocked'
-           AND approval_state IN ('draft','needs_changes')`,
-      )
-      .run(
-        input.workDate ?? null,
-        input.category?.trim() || null,
-        input.activityCode?.trim() || null,
-        input.minutes ?? null,
-        input.summary?.trim() || null,
-        input.site?.trim() || null,
-        input.startTime ?? null,
-        input.endTime ?? null,
-        input.breakMinutes ?? null,
-        timestamp,
-        input.id,
-        principal.userId,
-        input.version,
-      );
-    if (result.changes !== 1) throw new ConflictError('Time entry changed or cannot be edited');
-    this.audit(principal, 'time.update', 'time_entry', input.id, { version: input.version });
-    return { id: input.id, version: input.version + 1 };
+    return this.time.updateTimeEntry(principal, input);
   }
 
   operationalApproveTime(
@@ -1191,43 +739,7 @@ export class PortalRepository {
     decision: 'approved' | 'needs_changes' | 'rejected',
     reason?: string,
   ) {
-    this.assertActive(principal);
-    const row = this.sqlite
-      .prepare('SELECT project_id,approval_state FROM time_entry WHERE id=?')
-      .get(id) as { project_id: string; approval_state: string } | undefined;
-    if (!row) throw new ValidationError('Time entry not found');
-    if (!canReviewProject(principal, row.project_id))
-      throw new AccessDeniedError('Project review required');
-    if (row.approval_state !== 'submitted') throw new ConflictError('Time entry is not submitted');
-    const timestamp = now();
-    this.transaction(() => {
-      this.sqlite
-        .prepare(
-          'UPDATE time_entry SET approval_state=?,approved_by=?,approved_at=?,updated_at=?,version=version+1 WHERE id=?',
-        )
-        .run(
-          decision,
-          decision === 'approved' ? principal.userId : null,
-          decision === 'approved' ? timestamp : null,
-          timestamp,
-          id,
-        );
-      this.sqlite
-        .prepare(
-          'INSERT INTO approval_event(id,entity_type,entity_id,from_state,to_state,actor_id,reason,occurred_at) VALUES(?,?,?,?,?,?,?,?)',
-        )
-        .run(
-          newId(),
-          'time',
-          id,
-          row.approval_state,
-          decision,
-          principal.userId,
-          reason ?? null,
-          timestamp,
-        );
-      this.audit(principal, `time.${decision}`, 'time_entry', id, { reason: reason ?? null });
-    });
+    return this.time.operationalApproveTime(principal, id, decision, reason);
   }
 
   financeApproveTime(principal: Principal, id: string, billable: boolean) {
@@ -1719,51 +1231,7 @@ export class PortalRepository {
       requiredSkill?: string;
     },
   ) {
-    this.assertActive(principal);
-    if (!canManageAssignments(principal, input.projectId))
-      throw new AccessDeniedError('Planning administration required');
-    if (Date.parse(input.endsAt) <= Date.parse(input.startsAt))
-      throw new ValidationError('Planning end must follow start');
-    const member = this.sqlite
-      .prepare(
-        "SELECT 1 ok FROM project_member WHERE project_id=? AND user_id=? AND status='active'",
-      )
-      .get(input.projectId, input.workerId);
-    if (!member) throw new ValidationError('Worker must have an active project assignment');
-    const overlap = this.sqlite
-      .prepare(
-        "SELECT 1 ok FROM planning_assignment WHERE worker_id=? AND status<>'cancelled' AND starts_at<? AND ends_at>? LIMIT 1",
-      )
-      .get(input.workerId, input.endsAt, input.startsAt);
-    if (overlap) throw new ConflictError('Worker already has an overlapping planning assignment');
-    const unavailable = this.sqlite
-      .prepare(
-        "SELECT 1 ok FROM worker_availability WHERE worker_id=? AND availability='unavailable' AND starts_at<? AND ends_at>? LIMIT 1",
-      )
-      .get(input.workerId, input.endsAt, input.startsAt);
-    if (unavailable) throw new ConflictError('Worker is unavailable for this planning window');
-    const id = newId();
-    const timestamp = now();
-    this.sqlite
-      .prepare(
-        'INSERT INTO planning_assignment(id,project_id,worker_id,starts_at,ends_at,planned_minutes,status,site,required_skill,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
-      )
-      .run(
-        id,
-        input.projectId,
-        input.workerId,
-        input.startsAt,
-        input.endsAt,
-        input.plannedMinutes,
-        'published',
-        input.site ?? null,
-        input.requiredSkill ?? null,
-        principal.userId,
-        timestamp,
-        timestamp,
-      );
-    this.audit(principal, 'planning.create', 'planning_assignment', id, input);
-    return { id };
+    return this.planning.createPlanningAssignment(principal, input);
   }
 
   createExpense(principal: Principal, input: ExpenseInput) {
@@ -1897,13 +1365,7 @@ export class PortalRepository {
     this.assertActive(principal);
     this.assertProjectMembership(principal, input.projectId);
     if (!/^[a-f0-9]{64}$/.test(input.sha256)) throw new ValidationError('Invalid receipt hash');
-    if (
-      !input.storageKey ||
-      input.storageKey.startsWith('/') ||
-      input.storageKey.includes('\\') ||
-      input.storageKey.split('/').includes('..')
-    )
-      throw new ValidationError('Unsafe receipt storage key');
+    assertSafeStorageKey(input.storageKey, () => new ValidationError('Unsafe receipt storage key'));
     if (
       ![
         'application/pdf',
@@ -2025,13 +1487,10 @@ export class PortalRepository {
       input.byteLength > 50_000_000
     )
       throw new ValidationError('Document size is invalid');
-    if (
-      !input.storageKey ||
-      input.storageKey.startsWith('/') ||
-      input.storageKey.includes('\\') ||
-      input.storageKey.split('/').includes('..')
-    )
-      throw new ValidationError('Unsafe document storage key');
+    assertSafeStorageKey(
+      input.storageKey,
+      () => new ValidationError('Unsafe document storage key'),
+    );
     const allowedMediaTypes = new Set([
       'application/pdf',
       'application/zip',
@@ -4375,21 +3834,7 @@ export class PortalRepository {
   }
 
   listPlanning(principal: Principal) {
-    this.assertReadable(principal);
-    if (principal.role === 'worker')
-      return this.sqlite
-        .prepare(
-          "SELECT pa.*,p.project_number,p.name project_name,u.name worker_name FROM planning_assignment pa JOIN project p ON p.id=pa.project_id JOIN user u ON u.id=pa.worker_id WHERE pa.worker_id=? AND pa.status<>'cancelled' ORDER BY pa.starts_at",
-        )
-        .all(principal.userId);
-    const ids = principal.role === 'project_manager' ? [...principal.projectIds] : [];
-    if (principal.role === 'project_manager' && ids.length === 0) return [];
-    const restriction = ids.length ? ` AND pa.project_id IN (${ids.map(() => '?').join(',')})` : '';
-    return this.sqlite
-      .prepare(
-        `SELECT pa.*,p.project_number,p.name project_name,u.name worker_name FROM planning_assignment pa JOIN project p ON p.id=pa.project_id JOIN user u ON u.id=pa.worker_id WHERE pa.status<>'cancelled'${restriction} ORDER BY pa.starts_at`,
-      )
-      .all(...ids);
+    return this.planning.listPlanning(principal);
   }
 
   listNotifications(principal: Principal) {
@@ -4618,12 +4063,7 @@ export class PortalRepository {
   }
 
   listOwnTime(principal: Principal) {
-    this.assertReadable(principal);
-    return this.sqlite
-      .prepare(
-        'SELECT t.id,t.project_id,t.work_date,t.category,t.activity_code,t.minutes,t.activity_summary,t.approval_state,t.billability_state,t.version,p.project_number,p.name project_name FROM time_entry t JOIN project p ON p.id=t.project_id WHERE t.worker_id=? ORDER BY t.work_date DESC,t.created_at DESC LIMIT 400',
-      )
-      .all(principal.userId);
+    return this.time.listOwnTime(principal);
   }
 
   timeDetail(principal: Principal, id: string) {
@@ -4650,18 +4090,7 @@ export class PortalRepository {
   }
 
   listOwnTimeWeek(principal: Principal, weekStart: string) {
-    this.assertReadable(principal);
-    assertDate(weekStart, 'Week start');
-    const weekEnd = shiftIsoDate(weekStart, 6);
-    return {
-      weekStart,
-      weekEnd,
-      rows: this.sqlite
-        .prepare(
-          'SELECT t.id,t.project_id,t.work_date,t.category,t.activity_code,t.minutes,t.activity_summary,t.approval_state,t.billability_state,t.version,p.project_number,p.name project_name FROM time_entry t JOIN project p ON p.id=t.project_id WHERE t.worker_id=? AND t.work_date BETWEEN ? AND ? ORDER BY t.work_date,t.created_at,t.id',
-        )
-        .all(principal.userId, weekStart, weekEnd),
-    };
+    return this.time.listOwnTimeWeek(principal, weekStart);
   }
 
   copyOwnTimeLayout(
@@ -4669,102 +4098,7 @@ export class PortalRepository {
     sourceWeekStart: string,
     targetWeekStart: string,
   ): { created: number; skipped: number; sourceWeekStart: string; targetWeekStart: string } {
-    this.assertActive(principal);
-    assertDate(sourceWeekStart, 'Source week start');
-    assertDate(targetWeekStart, 'Target week start');
-    if (sourceWeekStart === targetWeekStart)
-      throw new ValidationError('Source and target weeks must differ');
-    const sourceWeekEnd = shiftIsoDate(sourceWeekStart, 6);
-    const sourceRows = this.sqlite
-      .prepare(
-        "SELECT project_id,work_date,category,activity_code,activity_summary FROM time_entry WHERE worker_id=? AND work_date BETWEEN ? AND ? AND approval_state<>'rejected' ORDER BY work_date,id",
-      )
-      .all(principal.userId, sourceWeekStart, sourceWeekEnd) as Array<{
-      project_id: string;
-      work_date: string;
-      category: string;
-      activity_code: string | null;
-      activity_summary: string;
-    }>;
-    let created = 0;
-    let skipped = 0;
-    this.transaction(() => {
-      for (const row of sourceRows) {
-        const offset = Math.round(
-          (Date.parse(`${row.work_date}T00:00:00.000Z`) -
-            Date.parse(`${sourceWeekStart}T00:00:00.000Z`)) /
-            86_400_000,
-        );
-        if (offset < 0 || offset > 6) {
-          skipped += 1;
-          continue;
-        }
-        const targetDate = shiftIsoDate(targetWeekStart, offset);
-        const assignment = this.sqlite
-          .prepare(
-            "SELECT p.timezone FROM project_member pm JOIN project p ON p.id=pm.project_id WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active' AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)",
-          )
-          .get(row.project_id, principal.userId, targetDate, targetDate) as
-          | { timezone: string }
-          | undefined;
-        if (!assignment) {
-          skipped += 1;
-          continue;
-        }
-        const duplicate = this.sqlite
-          .prepare(
-            "SELECT 1 FROM time_entry WHERE worker_id=? AND project_id=? AND work_date=? AND category=? AND COALESCE(activity_code,'')=COALESCE(?,'') AND activity_summary=? LIMIT 1",
-          )
-          .get(
-            principal.userId,
-            row.project_id,
-            targetDate,
-            row.category,
-            row.activity_code,
-            row.activity_summary,
-          );
-        if (duplicate) {
-          skipped += 1;
-          continue;
-        }
-        const id = newId();
-        const nowValue = now();
-        this.sqlite
-          .prepare(
-            'INSERT INTO time_entry(id,project_id,worker_id,work_date,category,activity_code,minutes,project_timezone,activity_summary,approval_state,billability_state,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          )
-          .run(
-            id,
-            row.project_id,
-            principal.userId,
-            targetDate,
-            row.category,
-            row.activity_code,
-            0,
-            assignment.timezone,
-            row.activity_summary,
-            'draft',
-            'pending',
-            nowValue,
-            nowValue,
-          );
-        created += 1;
-      }
-      this.audit(
-        principal,
-        'time.copy_layout',
-        'time_entry',
-        `${sourceWeekStart}:${targetWeekStart}`,
-        {
-          sourceWeekStart,
-          targetWeekStart,
-          created,
-          skipped,
-          valuesCopied: false,
-        },
-      );
-    });
-    return { created, skipped, sourceWeekStart, targetWeekStart };
+    return this.time.copyOwnTimeLayout(principal, sourceWeekStart, targetWeekStart);
   }
 
   listOwnExpenses(principal: Principal) {
@@ -4793,33 +4127,11 @@ export class PortalRepository {
   }
 
   listAssignedProjects(principal: Principal) {
-    this.assertReadable(principal);
-    if (
-      principal.role === 'owner_admin' ||
-      principal.role === 'finance_admin' ||
-      principal.role === 'auditor_read_only'
-    )
-      return this.sqlite
-        .prepare(
-          'SELECT id,project_number,name,status,currency,timezone,start_date,planned_end_date,actual_end_date FROM project ORDER BY project_number',
-        )
-        .all();
-    return this.sqlite
-      .prepare(
-        "SELECT p.id,p.project_number,p.name,p.status,p.currency,p.timezone,p.start_date,p.planned_end_date,p.actual_end_date FROM project p JOIN project_member pm ON pm.project_id=p.id WHERE pm.user_id=? AND pm.status='active' ORDER BY p.project_number",
-      )
-      .all(principal.userId);
+    return this.planning.listAssignedProjects(principal);
   }
 
   listClients(principal: Principal) {
-    this.assertReadable(principal);
-    if (!canManageClients(principal) && principal.role !== 'auditor_read_only')
-      throw new AccessDeniedError('Client administration required');
-    return this.sqlite
-      .prepare(
-        'SELECT id,client_number,display_name,status,currency,timezone FROM client ORDER BY client_number',
-      )
-      .all();
+    return this.clients.listClients(principal);
   }
 
   listApprovalQueue(principal: Principal) {
@@ -4859,19 +4171,7 @@ export class PortalRepository {
   }
 
   listActiveWorkers(principal: Principal) {
-    this.assertReadable(principal);
-    if (
-      principal.role !== 'owner_admin' &&
-      principal.role !== 'project_manager' &&
-      principal.role !== 'finance_admin' &&
-      principal.role !== 'auditor_read_only'
-    )
-      throw new AccessDeniedError('Worker administration required');
-    return this.sqlite
-      .prepare(
-        "SELECT id,name,email,role,status,created_at,offboarded_at FROM user WHERE status='active' ORDER BY name,email",
-      )
-      .all();
+    return this.workforce.listActiveWorkers(principal);
   }
 
   updateUserStatus(

@@ -41,3 +41,24 @@ The parent session may have many MCPs configured globally. Do **not** make every
 ## Important rule
 
 MCP output is evidence, not authority over local code. The authoritative product behavior is determined by the V3 spec, this repository, tests, and approved product extensions.
+
+## Luna Max implementation workers
+
+These agents are **first-class production implementers**, not assistants of last resort. Prefer them for Complexity-A packets.
+
+| Agent | Model | Typical MCPs | Typical skills | Write? |
+|---|---|---|---|---|
+| `frontend_leaf` | Luna max | Context7, Playwright/Chrome DevTools as needed | frontend-design, responsive-regression | Yes |
+| `backend_leaf` | Luna max | Context7 | subagent-work-packet | Yes |
+| `crud_ui_worker` | Luna max | Context7, Playwright | frontend-design, playwright-qa | Yes |
+| `responsive_worker` | Luna max | Playwright, Chrome DevTools | responsive-regression, playwright-qa | Yes |
+| `report_ui_worker` | Luna max | Context7, Playwright | frontend-design, finance-integrity as read guidance | Yes |
+| `industrial_ui_worker` | Luna max | Context7, Playwright | frontend-design | Yes |
+| `business_ui_worker` | Luna max | Context7, Playwright | frontend-design | Yes |
+| `data_tooling_worker` | Luna max | Context7 | ml-data-readiness | Yes |
+| `fixture_data_worker` | Luna max | none/Context7 as needed | subagent-work-packet | Yes |
+| `migration_worker` | Luna max | Context7 | subagent-work-packet | Yes, only under Sol-defined migration contract |
+| `test_worker` | Luna max | Playwright/Chrome DevTools when browser tests | playwright-qa, spec-compliance | Yes |
+| `docs_worker` | Luna max | GitHub/read tools as needed | spec-compliance | Yes |
+
+A Luna write agent can own a large bounded packet or complete low-risk vertical slice. Do not fragment work into meaningless microtasks merely to use Luna. The limiting factors are semantic ambiguity and invariant risk, not line count.

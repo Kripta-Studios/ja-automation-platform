@@ -27,6 +27,14 @@ import {
   technicalReportInputSchema,
   timeInputSchema,
 } from '@ja/schemas';
+import { recordAuditEvent } from './core/audit.ts';
+import { assertActiveAccount, assertRecentStepUp } from './core/authorization.ts';
+import { assertSafeStorageKey } from './core/storage-key.ts';
+import { runImmediateTransaction } from './core/transaction.ts';
+import {
+  TechnicalChangeRepository,
+  type TechnicalChangeInput,
+} from './domains/technical-changes/technical-change-repository.ts';
 
 export class V3AccessDeniedError extends Error {}
 export class V3ConflictError extends Error {}
@@ -138,22 +146,6 @@ type OverrideInput = Readonly<{
   priority?: number;
 }>;
 
-type TechnicalChangeInput = Readonly<{
-  projectId: string;
-  technicalReportId?: string;
-  component: string;
-  originalBehavior?: string;
-  rootCause?: string;
-  changeMade: string;
-  reason?: string;
-  safetyImpact?: boolean;
-  productionImpact?: string;
-  validation?: string;
-  validationResult?: string;
-  openRisk?: string;
-  rollbackInformation?: string;
-}>;
-
 type TimeRow = {
   id: string;
   project_id: string;
@@ -246,77 +238,38 @@ function isPendingApproval(value: string): boolean {
   return value === 'draft' || value === 'submitted' || value === 'needs_changes';
 }
 
-function isBusyError(error: unknown): boolean {
-  return (
-    error instanceof Error && /SQLITE_BUSY|SQLITE_LOCKED|database is locked/i.test(error.message)
-  );
-}
-
-function logBusyRetry(attempt: number): void {
-  if (process.env.NODE_ENV === 'production' || process.env.JA_JSON_LOGS === 'true')
-    console.warn(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'warn',
-        event: 'database.busy_retry',
-        repository: 'v3',
-        attempt,
-      }),
-    );
-}
-
-const auditSecretKey = /password|token|secret|api[_-]?key|access[_-]?token|refresh[_-]?token/i;
-function redactAudit(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map((item) => redactAudit(item));
-  if (value && typeof value === 'object')
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [
-        key,
-        auditSecretKey.test(key) ? '[REDACTED]' : redactAudit(item),
-      ]),
-    );
-  return value;
-}
-
 export class V3Repository {
   private readonly sqlite: DatabaseSync;
+  private readonly technicalChanges: TechnicalChangeRepository;
 
   constructor(sqlite: DatabaseSync) {
     this.sqlite = sqlite;
+    this.technicalChanges = new TechnicalChangeRepository({
+      sqlite: this.sqlite,
+      transaction: <T>(work: () => T): T => this.transaction(work),
+      audit: (principal, action, entityType, entityId, details) =>
+        this.audit(principal, action, entityType, entityId, details),
+      assertActive: (principal) => this.assertActive(principal),
+      assertWritable: (principal) => this.assertWritable(principal),
+      assertProjectAccess: (principal, projectId) => this.assertProjectAccess(principal, projectId),
+      canReviewProject,
+      newId,
+      timestamp,
+      requireText: (value, field, max) => requireText(value, field, max),
+      errors: {
+        accessDenied: (message) => new V3AccessDeniedError(message),
+        conflict: (message) => new V3ConflictError(message),
+        validation: (message) => new V3ValidationError(message),
+      },
+    });
   }
 
   private transaction<T>(work: () => T): T {
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
-      let began = false;
-      try {
-        this.sqlite.exec('BEGIN IMMEDIATE');
-        began = true;
-        const value = work();
-        this.sqlite.exec('COMMIT');
-        return value;
-      } catch (error) {
-        if (began) {
-          try {
-            this.sqlite.exec('ROLLBACK');
-          } catch {
-            // Preserve the original transaction error.
-          }
-        }
-        if (isBusyError(error) && attempt < 3) {
-          logBusyRetry(attempt);
-          continue;
-        }
-        throw error;
-      }
-    }
-    throw new Error('Transaction retry limit reached');
+    return runImmediateTransaction(this.sqlite, 'v3', work);
   }
 
   private assertActive(principal: Principal): void {
-    const user = this.sqlite.prepare('SELECT status FROM user WHERE id=?').get(principal.userId) as
-      | { status: string }
-      | undefined;
-    if (!user || user.status !== 'active') throw new V3AccessDeniedError('Active account required');
+    assertActiveAccount(this.sqlite, principal, V3AccessDeniedError);
   }
 
   private assertWritable(principal: Principal): void {
@@ -336,17 +289,7 @@ export class V3Repository {
   }
 
   private assertStepUp(principal: Principal): void {
-    if (process.env.NODE_ENV !== 'production') return;
-    if (principal.isServiceActor) return;
-    if (!principal.sessionId)
-      throw new V3AccessDeniedError('Recent step-up authentication is required');
-    const session = this.sqlite
-      .prepare('SELECT step_up_at FROM session WHERE id=? AND user_id=? AND expires_at>?')
-      .get(principal.sessionId, principal.userId, timestamp()) as
-      | { step_up_at: string | null }
-      | undefined;
-    if (!session?.step_up_at || Date.now() - Date.parse(session.step_up_at) > 10 * 60_000)
-      throw new V3AccessDeniedError('Recent step-up authentication is required');
+    assertRecentStepUp(this.sqlite, principal, V3AccessDeniedError);
   }
 
   private assertProjectAccess(principal: Principal, projectId: string, allowAuditor = false): void {
@@ -380,35 +323,7 @@ export class V3Repository {
     entityId: string,
     details: unknown,
   ): void {
-    const redacted = redactAudit(details) as Record<string, unknown>;
-    const projectId = typeof redacted.projectId === 'string' ? redacted.projectId : null;
-    const before = redacted.before === undefined ? null : JSON.stringify(redacted.before);
-    const after = redacted.after === undefined ? null : JSON.stringify(redacted.after);
-    const reason = typeof redacted.reason === 'string' ? redacted.reason : null;
-    const correlationId =
-      typeof redacted.correlationId === 'string'
-        ? redacted.correlationId
-        : (principal?.correlationId ?? newId());
-    const metadata = JSON.stringify(redacted);
-    this.sqlite
-      .prepare(
-        'INSERT INTO audit_event(id,actor_id,action,entity_type,entity_id,occurred_at,details_json,project_id,before_json,after_json,reason,correlation_id,metadata_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
-      )
-      .run(
-        newId(),
-        principal?.userId ?? null,
-        action,
-        entityType,
-        entityId,
-        timestamp(),
-        metadata,
-        projectId,
-        before,
-        after,
-        reason,
-        correlationId,
-        metadata,
-      );
+    recordAuditEvent(this.sqlite, principal, action, entityType, entityId, details);
   }
 
   createCompensationRule(principal: Principal, input: CompensationInput): { id: string } {
@@ -802,69 +717,11 @@ export class V3Repository {
     principal: Principal,
     input: TechnicalChangeInput,
   ): { id: string; version: number } {
-    this.assertWritable(principal);
-    this.assertProjectAccess(principal, input.projectId);
-    const component = requireText(input.component, 'Component', 200);
-    const changeMade = requireText(input.changeMade, 'Change made');
-    if (input.safetyImpact && (!input.validation?.trim() || !input.rollbackInformation?.trim()))
-      throw new V3ValidationError(
-        'Safety-impacting changes require validation and rollback information',
-      );
-    if (input.technicalReportId) {
-      const report = this.sqlite
-        .prepare('SELECT project_id FROM technical_report WHERE id=?')
-        .get(input.technicalReportId) as { project_id: string } | undefined;
-      if (!report || report.project_id !== input.projectId)
-        throw new V3ValidationError('Technical report does not belong to the project');
-    }
-    const id = newId();
-    const now = timestamp();
-    this.sqlite
-      .prepare(
-        `INSERT INTO technical_change(
-          id,project_id,technical_report_id,author_id,component,original_behavior,root_cause,
-          change_made,reason,safety_impact,production_impact,validation,validation_result,
-          open_risk,rollback_information,approval_state,created_at,updated_at,version
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      )
-      .run(
-        id,
-        input.projectId,
-        input.technicalReportId || null,
-        principal.userId,
-        component,
-        input.originalBehavior ?? null,
-        input.rootCause ?? null,
-        changeMade,
-        input.reason ?? null,
-        input.safetyImpact ? 1 : 0,
-        input.productionImpact ?? null,
-        input.validation ?? null,
-        input.validationResult ?? null,
-        input.openRisk ?? null,
-        input.rollbackInformation ?? null,
-        'draft',
-        now,
-        now,
-        1,
-      );
-    this.audit(principal, 'technical_change.create', 'technical_change', id, {
-      projectId: input.projectId,
-      safetyImpact: Boolean(input.safetyImpact),
-    });
-    return { id, version: 1 };
+    return this.technicalChanges.createTechnicalChange(principal, input);
   }
 
   submitTechnicalChange(principal: Principal, id: string, version: number): void {
-    this.assertWritable(principal);
-    const result = this.sqlite
-      .prepare(
-        "UPDATE technical_change SET approval_state='submitted',updated_at=?,version=version+1 WHERE id=? AND author_id=? AND approval_state IN ('draft','needs_changes') AND version=?",
-      )
-      .run(timestamp(), id, principal.userId, version);
-    if (result.changes !== 1)
-      throw new V3ConflictError('Technical change changed or cannot be submitted');
-    this.audit(principal, 'technical_change.submit', 'technical_change', id, { version });
+    return this.technicalChanges.submitTechnicalChange(principal, id, version);
   }
 
   reviewTechnicalChange(
@@ -873,99 +730,11 @@ export class V3Repository {
     decision: 'approved' | 'needs_changes' | 'rejected',
     reason?: string,
   ): void {
-    this.assertActive(principal);
-    const row = this.sqlite
-      .prepare(
-        'SELECT project_id,author_id,approval_state,safety_impact,validation,rollback_information FROM technical_change WHERE id=?',
-      )
-      .get(id) as
-      | {
-          project_id: string;
-          author_id: string;
-          approval_state: string;
-          safety_impact: number;
-          validation: string | null;
-          rollback_information: string | null;
-        }
-      | undefined;
-    if (!row) throw new V3ValidationError('Technical change not found');
-    if (!canReviewProject(principal, row.project_id))
-      throw new V3AccessDeniedError('Technical change review required');
-    if (row.approval_state !== 'submitted')
-      throw new V3ConflictError('Technical change is not submitted');
-    if (decision !== 'approved' && !reason?.trim())
-      throw new V3ValidationError('A review reason is required');
-    if (
-      decision === 'approved' &&
-      row.safety_impact === 1 &&
-      (!row.validation?.trim() || !row.rollback_information?.trim())
-    )
-      throw new V3ValidationError(
-        'Safety-impacting changes cannot be approved without validation and rollback information',
-      );
-    const now = timestamp();
-    this.transaction(() => {
-      this.sqlite
-        .prepare(
-          "UPDATE technical_change SET approval_state=?,updated_at=?,version=version+1 WHERE id=? AND approval_state='submitted'",
-        )
-        .run(decision, now, id);
-      this.sqlite
-        .prepare(
-          'INSERT INTO approval_event(id,entity_type,entity_id,from_state,to_state,actor_id,reason,occurred_at) VALUES(?,?,?,?,?,?,?,?)',
-        )
-        .run(
-          newId(),
-          'technical_change',
-          id,
-          row.approval_state,
-          decision,
-          principal.userId,
-          reason ?? null,
-          now,
-        );
-      this.sqlite
-        .prepare(
-          'INSERT OR IGNORE INTO notification(id,user_id,kind,subject_id,created_at) VALUES(?,?,?,?,?)',
-        )
-        .run(newId(), row.author_id, `technical_change_${decision}`, id, now);
-      this.audit(principal, `technical_change.${decision}`, 'technical_change', id, {
-        reason: reason ?? null,
-        safetyImpact: Boolean(row.safety_impact),
-      });
-    });
+    return this.technicalChanges.reviewTechnicalChange(principal, id, decision, reason);
   }
 
   listTechnicalChanges(principal: Principal, queue = false) {
-    this.assertActive(principal);
-    if (queue && principal.role !== 'owner_admin' && principal.role !== 'project_manager')
-      throw new V3AccessDeniedError('Technical change review required');
-    const conditions = queue ? ["tc.approval_state='submitted'"] : [];
-    const values: string[] = [];
-    if (principal.role === 'project_manager') {
-      const projectIds = [...principal.projectIds];
-      if (projectIds.length === 0) return [];
-      conditions.push(`tc.project_id IN (${projectIds.map(() => '?').join(',')})`);
-      values.push(...projectIds);
-    } else if (principal.role === 'worker') {
-      conditions.push('tc.author_id=?');
-      values.push(principal.userId);
-    }
-    const rows = this.sqlite
-      .prepare(
-        `SELECT tc.id,tc.project_id,tc.technical_report_id,tc.author_id,tc.component,
-                tc.change_made,tc.safety_impact,tc.production_impact,tc.validation,
-                tc.validation_result,tc.open_risk,tc.rollback_information,tc.approval_state,
-                tc.created_at,tc.updated_at,tc.version,p.project_number,p.name project_name,u.name author_name
-         FROM technical_change tc JOIN project p ON p.id=tc.project_id JOIN user u ON u.id=tc.author_id
-         WHERE ${conditions.length ? conditions.join(' AND ') : '1=1'} ORDER BY tc.created_at DESC LIMIT 200`,
-      )
-      .all(...values) as Array<{
-      project_id: string;
-      author_id: string;
-      [key: string]: unknown;
-    }>;
-    return rows;
+    return this.technicalChanges.listTechnicalChanges(principal, queue);
   }
 
   private assignmentId(projectId: string, workerId: string, workDate: string): string | null {
@@ -4849,13 +4618,7 @@ export class V3Repository {
   }
 
   private assertStorageKey(storageKey: string): void {
-    if (
-      !storageKey ||
-      storageKey.startsWith('/') ||
-      storageKey.includes('\\') ||
-      storageKey.split('/').includes('..')
-    )
-      throw new V3ValidationError('Unsafe storage key');
+    assertSafeStorageKey(storageKey, () => new V3ValidationError('Unsafe storage key'));
   }
 
   authorizeDocument(

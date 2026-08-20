@@ -1,0 +1,275 @@
+/* Portal polish -----------------------------------------------------------
+   A compact industrial control-room language: precise line work, cool
+   midnight surfaces, and teal status cues keep dense operational screens
+   readable without making the portal feel like a generic admin template. */
+.portal-layout,
+.portal-layout > header,
+.portal-layout > main {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.timesheet-panel,
+.timesheet-table-wrap {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 0.8rem;
+  left: 1rem;
+  padding: 0.65rem 0.85rem;
+  color: #fff;
+  border-radius: 0.65rem;
+  background: #10202f;
+  box-shadow: 0 0.6rem 1.5rem rgb(16 32 47 / 0.22);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-decoration: none;
+  transform: translateY(-180%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.portal-layout > aside {
+  border-right: 1px solid rgb(211 236 241 / 0.1);
+  background:
+    radial-gradient(circle at 0% 0%, rgb(82 180 183 / 0.16), transparent 16rem),
+    linear-gradient(180deg, #102536 0%, #0d1d2b 100%);
+}
+
+.portal-layout aside nav a,
+.admin-nav a {
+  position: relative;
+  overflow: hidden;
+}
+
+.portal-layout aside nav a::after,
+.admin-nav a::after {
+  width: 0.2rem;
+  position: absolute;
+  inset: 0 auto 0 0;
+  content: '';
+  background: #8de1d7;
+  opacity: 0;
+  transform: scaleY(0.35);
+  transition:
+    opacity 160ms var(--ja-ease),
+    transform 160ms var(--ja-ease);
+}
+
+.portal-layout aside nav a:hover::after,
+.portal-layout aside nav a.active::after,
+.admin-nav a:hover::after,
+.admin-nav a.active::after {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.nav-icon {
+  width: 1.95rem;
+  height: 1.95rem;
+  flex: 0 0 1.95rem;
+  border: 1px solid rgb(196 229 234 / 0.1);
+  border-radius: 0.58rem;
+  background: rgb(255 255 255 / 0.035);
+  color: #82a5b6;
+  font-size: 0;
+  transition:
+    color 160ms var(--ja-ease),
+    background-color 160ms var(--ja-ease),
+    border-color 160ms var(--ja-ease),
+    transform 160ms var(--ja-ease);
+}
+
+.nav-icon svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.portal-layout aside nav a:hover .nav-icon,
+.admin-nav a:hover .nav-icon {
+  border-color: rgb(141 225 215 / 0.38);
+  background: rgb(141 225 215 / 0.12);
+  color: #b9f1eb;
+  transform: translateY(-1px);
+}
+
+.portal-layout aside a.active .nav-icon {
+  border-color: rgb(141 225 215 / 0.44);
+  background: rgb(141 225 215 / 0.16);
+  color: #a8eee6;
+}
+
+.portal-layout aside nav a:focus-visible,
+.admin-nav a:focus-visible,
+.signout:focus-visible {
+  outline: 2px solid #9de8df;
+  outline-offset: 2px;
+}
+
+.portal-layout > header {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  box-shadow: 0 0.55rem 1.5rem rgb(16 32 47 / 0.04);
+}
+
+.portal-layout > main {
+  min-width: 0;
+  background-color: var(--ja-paper);
+  background-image:
+    radial-gradient(circle at 88% 0%, rgb(92 195 188 / 0.1), transparent 25rem),
+    linear-gradient(rgb(16 32 47 / 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(16 32 47 / 0.025) 1px, transparent 1px);
+  background-attachment: fixed;
+  background-size:
+    auto,
+    4rem 4rem,
+    4rem 4rem;
+}
+
+.global-search {
+  position: relative;
+  padding: 0.25rem;
+  border: 1px solid #d8e3ea;
+  border-radius: 0.78rem;
+  background: rgb(255 255 255 / 0.88);
+  box-shadow: 0 0.45rem 1rem rgb(16 32 47 / 0.045);
+}
+
+.global-search input {
+  border-color: transparent;
+  background: transparent;
+}
+
+.global-search input:focus {
+  outline: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.global-search button {
+  border-radius: 0.6rem;
+}
+
+.search-popover {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 0.55rem);
+  right: 0;
+  left: 0;
+  overflow: hidden;
+  padding: 0.45rem;
+  border: 1px solid #d8e3ea;
+  border-radius: 0.85rem;
+  background: #fff;
+  box-shadow: 0 1.1rem 2.4rem rgb(16 32 47 / 0.16);
+}
+
+.search-popover-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.55rem 0.65rem 0.45rem;
+  color: #6d8190;
+  font-size: 0.63rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.search-popover-heading small {
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.search-popover-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem;
+  color: #20394c;
+  border-radius: 0.6rem;
+  text-decoration: none;
+}
+
+.search-popover-item:hover,
+.search-popover-item:focus-visible {
+  background: #f0f8f8;
+}
+
+.search-popover-item span {
+  min-width: 0;
+  display: grid;
+  gap: 0.18rem;
+}
+
+.search-popover-item strong,
+.search-popover-item small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-popover-item strong {
+  font-size: 0.78rem;
+}
+
+.search-popover-item small {
+  color: #7b8d9a;
+  font-size: 0.65rem;
+}
+
+.search-popover-item i {
+  flex: 0 0 auto;
+  color: #277e78;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.search-popover-empty {
+  margin: 0;
+  padding: 0.85rem 0.65rem;
+  color: #6d8190;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.finance-grid .metric:not(.attention):hover,
+.dashboard-projects:hover,
+.record-list:hover {
+  box-shadow: 0 0.8rem 2rem rgb(16 32 47 / 0.08);
+}
+
+button:not(:disabled):active,
+.portal-layout aside a:active,
+.quick-actions a:active,
+.project-board-row:active {
+  transform: translateY(1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,256 @@
+/* Forms, reporting and management ---------------------------------------- */
+.worker-form > .entry-panel,
+.report-form {
+  padding: clamp(1.1rem, 2vw, 1.5rem);
+}
+
+.entry-panel,
+.admin-form-grid {
+  gap: 1rem;
+}
+
+.entry-panel > *,
+.admin-form-grid > *,
+.worker-form > *,
+.two-up > *,
+.three-up > * {
+  min-width: 0;
+}
+
+.entry-panel label,
+.admin-form-grid label,
+.filter-form label,
+.worker-form label {
+  gap: 0.42rem;
+  color: #485d6e;
+  font-size: 0.67rem;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+}
+
+.worker-form input,
+.worker-form select,
+.worker-form textarea,
+.report-form input,
+.report-form select,
+.report-form textarea,
+.admin-form-grid input,
+.admin-form-grid select,
+.compact-form input,
+.payment-form input,
+.filter-form input,
+.filter-form select,
+.record-actions input,
+.record-actions select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 2.8rem;
+  padding: 0.62rem 0.7rem;
+  color: #213c50;
+  border: 1px solid #d7e1e9;
+  border-radius: 0.52rem;
+  background: #fbfcfe;
+  outline: none;
+  font-size: 0.82rem;
+}
+
+.worker-form textarea,
+.report-form textarea {
+  min-height: 6.5rem;
+}
+
+.worker-form input,
+.worker-form select,
+.worker-form textarea,
+.report-form input,
+.report-form select,
+.report-form textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.worker-form select,
+.report-form select,
+.admin-form-grid select,
+.filter-form select,
+.record-actions select,
+.locale-switcher select {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.worker-form input:focus,
+.worker-form select:focus,
+.worker-form textarea:focus,
+.report-form input:focus,
+.report-form select:focus,
+.report-form textarea:focus,
+.admin-form-grid input:focus,
+.admin-form-grid select:focus,
+.compact-form input:focus,
+.payment-form input:focus,
+.filter-form input:focus,
+.filter-form select:focus,
+.record-actions input:focus,
+.record-actions select:focus {
+  border-color: #4ea89f;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgb(78 168 159 / 0.12);
+}
+
+.entry-panel button,
+.admin-form-grid button {
+  width: max-content;
+  margin-top: 0.15rem;
+}
+
+.action-message {
+  margin: -0.7rem 0 1.4rem;
+  padding: 0.85rem 1rem;
+  color: #9f332d;
+  border: 1px solid #f0c5c0;
+  border-left: 0.35rem solid var(--ja-red);
+  border-radius: 0.65rem;
+  background: #fff7f6;
+  font-size: 0.83rem;
+}
+
+.action-message.success {
+  color: #18674f;
+  border-color: #bde5d5;
+  border-left-color: #1ba37a;
+  background: #f1fbf6;
+}
+
+.conflict-panel {
+  display: grid;
+  gap: 1rem;
+  margin: 0 0 1.4rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid #e8b76a;
+  border-left: 0.35rem solid #b26a00;
+  border-radius: 0.65rem;
+  background: #fff9ed;
+}
+
+.conflict-panel h2 {
+  margin: 0.2rem 0 0.25rem;
+  font-size: 1rem;
+}
+
+.conflict-panel p {
+  margin: 0;
+  color: #5f4b2b;
+  font-size: 0.85rem;
+}
+
+.conflict-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.conflict-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #efd7ae;
+  background: #fff;
+  font-size: 0.8rem;
+}
+
+.text-button {
+  min-height: 2.25rem;
+  border: 1px solid #b26a00;
+  background: #fff;
+  color: #7b4600;
+  padding: 0.3rem 0.6rem;
+  font-weight: 700;
+}
+
+.text-button:focus-visible {
+  outline: 2px solid #b26a00;
+  outline-offset: 2px;
+}
+
+.admin-form-grid,
+.filter-form {
+  padding: 1.15rem;
+  border: 1px solid #dfe7ee;
+  background: #fff;
+}
+
+.filter-form {
+  align-items: end;
+  border-radius: var(--ja-radius);
+  box-shadow: var(--ja-shadow-soft);
+}
+
+.report-forms details {
+  overflow: hidden;
+}
+
+.report-forms summary {
+  padding: 1.15rem 1.2rem;
+  background: #fff;
+}
+
+.report-forms summary:hover {
+  background: #f7fafc;
+}
+
+.report-forms summary > span {
+  color: #27887e;
+}
+
+.report-form {
+  border-top: 1px solid #e1e8ef;
+  background: #fbfcfe;
+}
+
+.check {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #dfe8ed;
+  border-radius: 0.55rem;
+  background: #f8fbfc;
+}
+
+.check input {
+  accent-color: #27887e;
+}
+
+.safety-check {
+  border-color: #f0d08f;
+  background: #fff9e9;
+}
+
+.report-type,
+.activity-code,
+.state-tag {
+  border-radius: 999px;
+}
+
+.report-type.technical,
+.activity-code.plc {
+  background: #277e78;
+}
+
+.activity-code.all-in {
+  background: #ffd37a;
+}
+
+.finance-note {
+  border-left: 0.28rem solid #48aa9f;
+  border-radius: 0 0.7rem 0.7rem 0;
+  box-shadow: var(--ja-shadow-soft);
+}
+
+.empty {
+  min-height: 14rem;
+  color: #8192a0;
+  font-size: 0.84rem;
+}

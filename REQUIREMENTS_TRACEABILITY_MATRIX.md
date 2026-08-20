@@ -1,45 +1,270 @@
 # Requirements Traceability Matrix
 
-Update this file continuously. Evidence must point to concrete code/tests/browser flows. `OPEN` is the initial state, not a valid release state for mandatory requirements.
+Verified: 2026-08-20 against branch `codex/v3-production-completion-orchestrated-20260819`, commit `ecd4f97a84190a36c63473126f55a79a3710d3c9`, including the pre-existing dirty worktree. Statuses reflect direct code/test inspection, not completion claims in older evidence documents.
 
-| ID | Requirement | Priority | Initial status | Evidence / tests to update |
-|---|---|---:|---|---|
-| SPEC-ARCH-001 | Modular monolith; decompose catch-all megafiles | P0 | PARTIAL | Portal/database refactor + architecture tests |
-| SPEC-RESP-001 | Responsive usable at 360/390/430/768/desktop | P0 | FAIL | Playwright viewport suite |
-| SPEC-REPORT-001 | Required report catalog | P0 | PARTIAL | report routes/services/export tests |
-| SPEC-INVOICE-001 | Five real versioned invoice templates | P0 | FAIL | registry/template snapshot tests |
-| SPEC-FIN-001 | Accounting Pack exports/reconciliation | P0 | PARTIAL | lifecycle + forced-failure tests |
-| SPEC-HISTORY-001 | No destructive finalized financial history | P0 | PARTIAL | lifecycle/invariant/security tests |
-| AUDIT-ART-001 | Per-format artifact independence | P0 | FAIL | PDF-fail/CSV-XLSX-success integration test |
-| AUDIT-ART-002 | Truthful job/export status | P0 | FAIL | create→queued→ready E2E |
-| AUDIT-ART-003 | Pending download not HTTP 500 | P0 | FAIL | endpoint negative lifecycle test |
-| AUDIT-ART-004 | Normal operation auto-processes jobs | P0 | PARTIAL | deployment/job runner test |
-| AUDIT-ART-005 | Accounting Pack refresh/version semantics | P0 | FAIL | snapshot/version test |
-| AUDIT-ART-006 | Semantic filenames | P0 | FAIL | content-disposition tests |
-| AUDIT-UI-001 | Mobile drawer full labels | P0 | FAIL | 360/390/430 E2E |
-| AUDIT-UI-002 | Finance config stacks safely on phone | P0 | FAIL | finance mobile E2E |
-| AUDIT-UI-003 | Form/card/Modify Report hierarchy | P0 | PARTIAL | browser + accessibility tests |
-| AUDIT-LIFE-001 | Client/project edit/archive/restore | P0 | FAIL | lifecycle integration/E2E |
-| AUDIT-LIFE-002 | Time/expense/report coherent draft lifecycle | P0 | PARTIAL | domain + E2E tests |
-| AUDIT-TEST-001 | E2E covers owner/finance mobile and artifact failure | P0 | FAIL | updated Playwright config/specs |
-| V32-IND-001 | Plant/Area/Line/Station hierarchy | P1 | OPEN | domain/migration/UI tests |
-| V32-IND-002 | Automation Asset Registry | P1 | OPEN | asset CRUD/version/RBAC tests |
-| V32-IND-003 | Versioned automation backups | P1 | OPEN | artifact/version tests |
-| V32-IND-004 | Technical Change Management | P1 | OPEN | workflow/audit tests |
-| V32-IND-005 | FAT/SAT + Punch List + Closeout | P1 | OPEN | workflow/E2E tests |
-| V33-BIZ-001 | Presets/templates/report builder | P1 | OPEN | registry/version tests |
-| V33-BIZ-002 | Change orders + budget baseline/forecast | P1 | OPEN | finance/domain tests |
-| V33-BIZ-003 | Travel/assignments/timesheet calendar/planning | P1 | OPEN | domain + responsive E2E |
-| V33-BIZ-004 | Skills/certifications/approval center | P1 | OPEN | workflow tests |
-| V33-OPS-001 | Job Center + Artifact Center + Integrity Center | P1 | OPEN | E2E/forced failure tests |
-| V33-OPS-002 | Import/export/data portability | P1 | OPEN | preview/validation/round-trip tests |
-| V33-OPS-003 | Health/backup/restore/admin settings | P1 | OPEN | ops tests/runbooks |
-| V34-DATA-001 | Point-in-time project snapshots | P1 | OPEN | leakage invariants |
-| V34-DATA-002 | Immutable business event history | P1 | OPEN | append-only/invariant tests |
-| V34-DATA-003 | Feature/training export versioning | P1 | OPEN | reproducibility tests |
-| V34-DATA-004 | Model/prediction registry and shadow mode | P1 | OPEN | lifecycle tests |
-| V34-DATA-005 | No future leakage in as-of datasets | P1 | OPEN | dedicated leakage tests |
+`PASS` requires concrete implementation plus relevant automated and/or browser evidence. `PARTIAL`, `FAIL`, `OPEN`, and unresolved control gates are release blockers for mandatory scope.
 
-## Release rule
+## Orchestration and architecture
 
-All P0 rows and all P1 rows in the agreed production scope must be `PASS`, or a narrowly justified `BLOCKED` caused by a real external prerequisite. `PARTIAL`, `FAIL`, and `OPEN` are release blockers for their mandatory scope.
+| ID            | Requirement                                                                 | Priority | Status  | Verified evidence / missing proof                                                                                                                                                                        |
+| ------------- | --------------------------------------------------------------------------- | -------: | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CTRL-R0-001   | Parent/child model, effort, and reviewer read-only enforcement are attested |       P0 | FAIL    | Profile routing worked, but child runtime did not expose exact model/effort and read-only profiles reported unrestricted filesystem access; resolve before implementation                                |
+| SPEC-ARCH-001 | Preserve modular monolith and decompose catch-all megafiles                 |       P0 | PARTIAL | `PortalChrome.svelte`, `billing-actions.ts`, and `operations-actions.ts` are extracted; `PortalShell.svelte` 3,189 lines, `portal.css` 4,377, `repository.ts` 4,928, `v3-repository.ts` 5,694 remain hot |
+| SPEC-MIG-001  | Safe additive migrations preserve realistic existing data                   |       P0 | PARTIAL | Migrations 0001–0018 plus fresh/populated/schema-parity tests exist; new domain/revision/backfill migrations and representative production-copy evidence do not                                          |
+| SPEC-TOOL-001 | Release evidence uses the pinned toolchain                                  |       P0 | FAIL    | current Node is 25.8.1; repository requires 24.19.0; pnpm 11.22.0 matches                                                                                                                                |
+
+## Current P0 product correctness
+
+| ID               | Requirement                                                               | Priority | Status  | Verified evidence / missing proof                                                                                                                                                    |
+| ---------------- | ------------------------------------------------------------------------- | -------: | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| SPEC-RESP-001    | Portal is usable at 360/390/430/768/desktop                               |       P0 | FAIL    | E2E projects cover phone-390 and desktop only; public-page loop is not authenticated portal proof; no owner/finance mobile suite                                                     |
+| SPEC-REPORT-001  | Required report catalog exists with correct exports                       |       P0 | PARTIAL | reporting package and tests exist; required catalog and complete per-format/openability coverage are missing                                                                         |
+| SPEC-INVOICE-001 | Five real versioned invoice templates and registry                        |       P0 | FAIL    | `packages/invoice-templates` exposes one generic renderer; portal accepts free-text `templateId`; no five-template version/history proof                                             |
+| SPEC-FIN-001     | Accounting Pack exports and reconciliation are production-safe            |       P0 | PARTIAL | pack generation/export exists; source-cut, legal-entity/currency binding, immutable revisions, reconciliation preconditions, issued-PDF linkage, and independent formats are missing |
+| SPEC-HISTORY-001 | Issued/finalized financial history is not destructively mutated           |       P0 | PARTIAL | issued-invoice immutability triggers/source locks exist; period reports can refresh finalized data/PDFs and Accounting Packs lack immutable supersession/deletion protection         |
+| AUDIT-ART-001    | Artifact formats have independent lifecycle/failure isolation             |       P0 | FAIL    | `accountingPackArtifacts()` renders PDF before other formats and one `accounting_pack` job owns all outputs; forced PDF-failure isolation test absent                                |
+| AUDIT-ART-002    | UI/API state truthfully reflects queued/running/ready/failed              |       P0 | FAIL    | creation queues a job, while billing action reports the Accounting Pack “is ready”; export rows lack per-format status/error                                                         |
+| AUDIT-ART-003    | Pending/failed/missing downloads return explicit non-500 semantics        |       P0 | FAIL    | missing pack export throws `V3ValidationError`; API route does not translate lifecycle state, so missing output becomes 500                                                          |
+| AUDIT-ART-004    | Normal operation automatically processes durable jobs                     |       P0 | PARTIAL | production job runner and five-minute systemd timer exist; no end-to-end deployment proof that ordinary flows progress reliably or surface retry/failure                             |
+| AUDIT-ART-005    | Accounting Pack refresh uses immutable revisions/snapshots                |       P0 | FAIL    | uniqueness by period/legal entity and “return existing” behavior prevent explicit revisions; no as-of source cut/version lifecycle                                                   |
+| AUDIT-ART-006    | Business artifacts use semantic filenames                                 |       P0 | FAIL    | pack download filename is `accounting-pack-{packId}.{ext}`, not legal entity/period/revision based                                                                                   |
+| AUDIT-ART-007    | Artifact writes are atomic, hashed, and safe to retry                     |       P0 | FAIL    | direct exclusive writes can trust a partial pre-existing file; no temp/fsync/atomic-rename lifecycle proof                                                                           |
+| AUDIT-UI-001     | Mobile drawer shows full permitted labels and items                       |       P0 | FAIL    | `portal.css` uses `font-size: 0` and first-letter labels; admin/security navigation is hidden at narrow widths                                                                       |
+| AUDIT-UI-002     | Finance configuration stacks safely on phones                             |       P0 | PARTIAL | stacking rules exist, but no authenticated finance/owner evidence at 360/390/430 and contradictory CSS remains                                                                       |
+| AUDIT-UI-003     | Forms/cards/Modify Report have clear hierarchy, labels, errors, and focus |       P0 | PARTIAL | server errors exist, but field-level presentation and shared primitives are incomplete; touch targets below 44px found                                                               |
+| AUDIT-UI-004     | Dense tables/previews have deliberate mobile representation               |       P0 | FAIL    | worker time/pay tables use wide scrolling and invoice preview columns clip/compress; required mobile assertions absent                                                               |
+| AUDIT-LIFE-001   | Client/project edit, archive, and restore are complete                    |       P0 | FAIL    | complete reversible lifecycle and role-based E2E evidence absent                                                                                                                     |
+| AUDIT-LIFE-002   | Time/expense/report drafts have coherent edit/delete eligibility          |       P0 | PARTIAL | partial action/domain support exists; cross-domain lifecycle matrix, audit proof, and complete E2E are absent                                                                        |
+| AUDIT-TEST-001   | E2E covers required roles/viewports/artifact failures                     |       P0 | FAIL    | 14 passed/4 skipped baseline; no owner/finance mobile projects, forced renderer failure, or full artifact state/download lifecycle                                                   |
+
+## Security, authorization, and offline behavior
+
+| ID              | Requirement                                                            | Priority | Status  | Verified evidence / missing proof                                                                                                               |
+| --------------- | ---------------------------------------------------------------------- | -------: | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| SEC-OFFLINE-001 | Private offline cache/queue state is isolated by user/tenant           |       P0 | FAIL    | service-worker private SSR caching and global IndexedDB can survive account switches; cross-user leakage/sync-attribution test absent           |
+| SEC-RBAC-001    | Assignment-scoped access respects start/end dates                      |       P0 | FAIL    | assignment scope checks membership but not effective dates                                                                                      |
+| SEC-RBAC-002    | Project-manager payloads exclude finance/compensation secrets          |       P0 | FAIL    | time-detail serialization includes client rate, compensation, and internal-cost data; PM roster/report metadata is broader than least privilege |
+| SEC-STEPUP-001  | Sensitive finance configuration/export actions require step-up         |       P0 | PARTIAL | step-up infrastructure exists; tax profile, invoice numbering, and Accounting Pack export coverage is incomplete                                |
+| SEC-UPLOAD-001  | Uploads authorize before disk write and fail closed on scanning        |       P0 | FAIL    | scanner can fail open/no real production adapter; authorization/quota ordering and storage-abuse coverage are incomplete                        |
+| SEC-AUDIT-001   | Audit data redacts embedded secrets and attributes service actors      |       P0 | PARTIAL | audit exists; key-name-only redaction misses secrets in free text and finance job activity can use a human service account identity             |
+| SEC-WEB-001     | CSRF, auth throttling, cookie scope, and health endpoints are hardened |       P0 | PARTIAL | protections exist; prefix comparison, rate-limit TOCTOU, explicit cookie path, and anonymous health-detail findings remain                      |
+| SEC-ART-001     | Private artifact paths and downloads are authorization/step-up safe    |       P0 | PARTIAL | storage-key normalization/RBAC foundations exist; pack export step-up and authorize-before-write evidence are incomplete                        |
+
+## V3.2 Industrial Operations
+
+| ID          | Requirement                                     | Priority | Status  | Verified evidence / missing proof                                                                                                    |
+| ----------- | ----------------------------------------------- | -------: | ------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| V32-IND-001 | Plant → Area → Line → Machine/Station hierarchy |       P1 | FAIL    | normalized hierarchy schema/service/UI not found                                                                                     |
+| V32-IND-002 | PLC/HMI/SCADA/robot/drive/safety asset registry |       P1 | FAIL    | full typed asset registry/lifecycle/RBAC not found                                                                                   |
+| V32-IND-003 | Immutable versioned automation backups          |       P1 | PARTIAL | generic artifact/backup foundations exist; linked asset versions/current-production semantics and non-overwrite tests are incomplete |
+| V32-IND-004 | Technical Change Management                     |       P1 | PARTIAL | technical-change foundation exists; diagnosis/root cause/before-after backup/validation/rollback/approval lifecycle is incomplete    |
+| V32-IND-005 | FAT/SAT/commissioning, punch list, and closeout |       P1 | PARTIAL | closeout foundation exists; complete checklist templates/executions, punch workflows, package evidence, and field E2E are incomplete |
+
+## V3.3 Business Operations
+
+| ID          | Requirement                                                     | Priority | Status  | Verified evidence / missing proof                                                                                                                                      |
+| ----------- | --------------------------------------------------------------- | -------: | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| V33-BIZ-001 | Versioned presets/templates and bounded report builder          |       P1 | FAIL    | required reusable project/work/report/expense/schedule presets and safe block registry not found                                                                       |
+| V33-BIZ-002 | Change orders plus immutable budget baseline/versioned forecast |       P1 | PARTIAL | budget/EAC foundations exist; full scope/change-order lifecycle, immutable baseline, forecast history, approvals, and reconciliation are incomplete                    |
+| V33-BIZ-003 | Travel/assignments/timesheet calendar/planning conflicts        |       P1 | PARTIAL | assignment/planning foundations exist; travel cost treatment, calendar/copy/repeat, overlap/missing-time workflows, and responsive evidence are incomplete             |
+| V33-BIZ-004 | Skills/certifications and unified approvals                     |       P1 | PARTIAL | approvals exist; complete skills matrix, certification expiry, safe bulk operations, and unified role workflows are incomplete                                         |
+| V33-OPS-001 | Job, Artifact, and Integrity/Anomaly Centers                    |       P1 | FAIL    | durable job primitives exist, but complete user-facing centers/status/retry/integrity workflows are absent                                                             |
+| V33-OPS-002 | Import preview/validate/commit and export portability           |       P1 | PARTIAL | export primitives exist; complete safe import center, round-trip/version/error evidence, and data portability are incomplete                                           |
+| V33-OPS-003 | Operations health, backup/restore visibility, settings/flags    |       P1 | PARTIAL | backup/restore operational tests pass and health/settings foundations exist; role-safe UI, drill evidence, and business settings/feature-flag completeness are missing |
+
+## V3.4 Data Readiness / Project Intelligence
+
+| ID           | Requirement                                                     | Priority | Status  | Verified evidence / missing proof                                                                                                                |
+| ------------ | --------------------------------------------------------------- | -------: | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| V34-DATA-001 | Immutable point-in-time project snapshots                       |       P1 | PARTIAL | legacy `finance_snapshot` aggregate/hash exists; no complete `as_of`, source-cut, provenance, schema-version, reconstruction, or writer contract |
+| V34-DATA-002 | Unified immutable business-event history                        |       P1 | PARTIAL | audit/approval/invoice events exist in separate forms; no unified event-time/known-at/provenance/hash schema                                     |
+| V34-DATA-003 | Versioned feature definitions and reproducible training exports |       P1 | FAIL    | no availability-aware feature registry, separate labels, dataset manifest, content hash, or project/time-safe export pipeline found              |
+| V34-DATA-004 | Model registry, prediction history, and shadow lifecycle        |       P1 | FAIL    | no model/prediction tables or activate/rollback/disable/shadow contracts found                                                                   |
+| V34-DATA-005 | Point-in-time queries prevent future leakage                    |       P1 | FAIL    | historical finance can filter past work/spend dates while using current approval/configuration state; dedicated leakage tests absent             |
+| V34-DATA-006 | Reconstructed legacy records are flagged/excluded by default    |       P1 | FAIL    | no trusted-vs-reconstructed provenance/exclusion contract found                                                                                  |
+| V34-DATA-007 | Dataset evaluation uses project-disjoint/time-forward splits    |       P1 | FAIL    | no split manifest/overlap invariants or reproducibility tests found                                                                              |
+
+## Quality and release evidence
+
+| ID             | Requirement                                                     | Priority | Status | Verified evidence / missing proof                                                                                                                                 |
+| -------------- | --------------------------------------------------------------- | -------: | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QA-BASE-001    | Current narrow/core automated baseline is known                 |       P0 | PASS   | lint, typecheck, unit 23, reporting 3, integration 10, invariant 1, security 8, offline 2, DB checks, build, E2E 14, backup/restore passed on inspected worktree  |
+| QA-FMT-001     | Repository formatting gate is green                             |       P0 | FAIL   | `pnpm format:check` reports 20 existing files; new work must not hide the baseline or broaden it                                                                  |
+| QA-TRACE-001   | Strict traceability audit is exhaustive and Windows-safe        |       P0 | FAIL   | fresh UTF-8 strict run parses only 62 of 207 indexed rows and exits 1; default Windows cp1252 also crashes on a Unicode arrow; WP-A6 must validate all unique IDs |
+| QA-RELEASE-001 | Full pinned-toolchain release gate and independent reviews pass |       P0 | FAIL   | current evidence is exploratory baseline only; required finance/security/responsive/leakage/integration reviews remain release gates                              |
+
+## Original V3 core-surface coverage
+
+| ID              | Requirement                                                                                                                  | Priority | Status  | Planned packet | Verified evidence / missing proof                                                                                                                                                                        |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------: | ------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SPEC-WEB-001    | Multilingual Next.js public site, factual content/assets, isolated public forms/API, and base-path routing                   |       P0 | PARTIAL | WP-A7          | Next.js site, en/es/pt locale content, public form routes, standalone container, and public E2E exist; complete factual/content/form/Caddy production acceptance is not established                      |
+| SPEC-AUTH-001   | Invitation-only authentication, MFA, session security, step-up, recovery, and role lifecycle                                 |       P0 | PARTIAL | WP-B10         | auth/session/MFA/step-up foundations and tests exist; the audited step-up, throttling, cookie, assignment, and least-privilege gaps remain                                                               |
+| SPEC-I18N-001   | Public website and portal localization with stable locale behavior                                                           |       P0 | PARTIAL | WP-A7          | website en/es/pt content and portal i18n helper exist; complete route/content/error/export/browser parity is not proven                                                                                  |
+| SPEC-A11Y-001   | Keyboard, focus, semantics, contrast, and accessible responsive operation                                                    |       P0 | PARTIAL | WP-A7          | accessibility E2E exists; narrow labels, hidden items, small targets, forms, tables, and full viewport/role evidence remain incomplete                                                                   |
+| SPEC-PWA-001    | Installable/offline field workflow has truthful, isolated synchronization state                                              |       P0 | PARTIAL | WP-B10         | PWA/offline contracts exist; cross-user partitioning, conflict/state UX, and full field lifecycle evidence remain incomplete                                                                             |
+| SPEC-DEPLOY-001 | Two non-root Node services, SQLite/private storage, Caddy/base path, jobs, health, backup/restore, and safe release/rollback |       P0 | PARTIAL | WP-B11         | pinned Dockerfiles, compose, job/backup timers, health endpoints, scripts, and operational tests exist; current release was not tested on pinned local Node or through a real Caddy/VPS upgrade/rollback |
+| SPEC-DOC-001    | Runbooks, env/config, evidence, and traceability match implemented behavior                                                  |       P0 | PARTIAL | WP-A6          | extensive deployment/planning docs exist; older completion claims are stale and strict traceability/UTF-8 output is failing                                                                              |
+| DOD-77-00       | Entire 42-step Definition-of-Done scenario runs end to end without spreadsheet intervention                                  |       P0 | FAIL    | WP-T1 / WP-C1  | no single uninterrupted multi-role test proves all 42 steps and exact reconciliation/restore                                                                                                             |
+
+## Complete backlog index (V3.1–V3.4)
+
+Every backlog ID is indexed individually. A range/group row elsewhere cannot become PASS unless each item below has concrete code, migration where applicable, automated/browser evidence, and independent review. P0/P1/P2 are mandatory under the backlog scope policy; P3 requires production-safe enabling infrastructure and honest experimental gating, not fabricated model quality.
+
+| Backlog ID | Priority | Status  | Planned packet | Requirement                                                                                                                                                     |
+| ---------- | -------: | ------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| V31-001    |       P0 | FAIL    | WP-B3          | Independent PDF/XLSX/CSV/JSON artifact jobs/status/retry.                                                                                                       |
+| V31-002    |       P0 | PARTIAL | WP-B3          | Automatic durable job execution; admin manual processing only as diagnostics.                                                                                   |
+| V31-003    |       P0 | FAIL    | WP-B3          | Intentional pending/failed download semantics rather than 500.                                                                                                  |
+| V31-004    |       P0 | FAIL    | WP-B3          | Accounting Pack regeneration/versioning to avoid stale snapshots.                                                                                               |
+| V31-005    |       P0 | FAIL    | WP-B3          | Semantic export filenames.                                                                                                                                      |
+| V31-006    |       P0 | FAIL    | WP-B4          | Five real versioned invoice template families and template registry selector.                                                                                   |
+| V31-007    |       P0 | PARTIAL | WP-B4          | Complete required report catalog and exports.                                                                                                                   |
+| V31-008    |       P0 | FAIL    | WP-B5          | Client edit/archive/restore/close lifecycle.                                                                                                                    |
+| V31-009    |       P0 | FAIL    | WP-B5          | Project edit/archive/restore/close lifecycle.                                                                                                                   |
+| V31-010    |       P0 | PARTIAL | WP-B5          | Coherent draft edit/delete/correction lifecycle for time, expenses and reports.                                                                                 |
+| V31-011    |       P0 | FAIL    | WP-A5          | Mobile drawer with full text labels.                                                                                                                            |
+| V31-012    |       P0 | PARTIAL | WP-A5          | Finance configuration responsive one-column phone layouts.                                                                                                      |
+| V31-013    |       P0 | PARTIAL | WP-A5          | Shared FormCard/SectionCard/Field design system and visual hierarchy.                                                                                           |
+| V31-014    |       P0 | PARTIAL | WP-A5          | Clear Modify Report sections/labels/actions; apply to comparable forms.                                                                                         |
+| V31-015    |       P0 | PARTIAL | WP-A1 / WP-B1  | Decompose PortalShell/CSS/database megafiles into domain modules.                                                                                               |
+| V31-016    |       P0 | FAIL    | WP-T0          | Full responsive E2E matrix at 360/390/430/768/desktop.                                                                                                          |
+| V31-017    |       P0 | FAIL    | WP-T0          | Forced partial artifact-failure tests and lifecycle integration tests.                                                                                          |
+| V31-018    |       P1 | FAIL    | WP-B3          | Job Center showing queued/running/ready/failed/retry/error metadata.                                                                                            |
+| V31-019    |       P1 | FAIL    | WP-B3          | Artifact Center showing type/version/hash/size/state/download/regenerate/superseded.                                                                            |
+| V31-020    |       P1 | PARTIAL | WP-B5          | Unified safe destructive-action UX: Archive/Restore/Delete Draft/Void/Offboard.                                                                                 |
+| V31-021    |       P1 | FAIL    | WP-B5          | Unsaved-changes warnings for important forms.                                                                                                                   |
+| V31-022    |       P1 | FAIL    | WP-B5          | Autosave and draft recovery for long reports.                                                                                                                   |
+| V31-023    |       P1 | PARTIAL | WP-B7          | Role-specific dashboards for Worker, PM, Finance and Owner.                                                                                                     |
+| V31-024    |       P1 | FAIL    | WP-B7          | Global search across project/client/worker/report/invoice/asset/document identifiers.                                                                           |
+| V31-025    |       P2 | FAIL    | WP-B9          | Command palette for frequent desktop actions.                                                                                                                   |
+| V32-001    |       P1 | PARTIAL | WP-B6          | Rich client metadata: billing/plant contacts, addresses, PO/payment settings, currency/language, notes/documents.                                               |
+| V32-002    |       P1 | PARTIAL | WP-B6          | Rich project state machine: Draft/Planned/Active/On Hold/Completed/Closed/Archived.                                                                             |
+| V32-003    |       P1 | FAIL    | WP-B6          | Industrial hierarchy: Plant → Area → Line → Machine/Station.                                                                                                    |
+| V32-004    |       P1 | FAIL    | WP-B6          | Automation Asset Registry: PLC/HMI/SCADA/Robot/Drive/Safety device.                                                                                             |
+| V32-005    |       P1 | PARTIAL | WP-B6          | Asset technical metadata: manufacturer/model/firmware/software/network/version fields with permission-sensitive handling.                                       |
+| V32-006    |       P1 | PARTIAL | WP-B6          | Current-known-production-version semantics.                                                                                                                     |
+| V32-007    |       P1 | PARTIAL | WP-B6          | Versioned PLC/HMI/robot backups with hash, author, timestamp, comments and supersession timeline.                                                               |
+| V32-008    |       P1 | PARTIAL | WP-B6          | Technical Change Management: problem/diagnosis/root-cause/proposed change.                                                                                      |
+| V32-009    |       P1 | PARTIAL | WP-B6          | Change evidence: backup before/after, screenshots/photos, validation and rollback.                                                                              |
+| V32-010    |       P1 | PARTIAL | WP-B6          | Safety-related technical changes with stricter approval workflow.                                                                                               |
+| V32-011    |       P1 | PARTIAL | WP-B6          | FAT/SAT/Commissioning checklist templates and executions.                                                                                                       |
+| V32-012    |       P1 | PARTIAL | WP-B6          | Checklist item evidence/status/owner/date/customer sign-off fields.                                                                                             |
+| V32-013    |       P1 | PARTIAL | WP-B6          | Punch List/Open Issues with severity, station/asset, owner, due date, root cause, resolution and evidence.                                                      |
+| V32-014    |       P1 | PARTIAL | WP-B6          | Project Closeout checklist and generated closeout package/index.                                                                                                |
+| V32-015    |       P2 | PARTIAL | WP-B9          | Report/issue attachments with project/asset relationship.                                                                                                       |
+| V32-016    |       P2 | PARTIAL | WP-B9          | Photo annotation / before-after evidence model and UI.                                                                                                          |
+| V32-017    |       P3 | FAIL    | WP-B6          | QR identifiers/links for assets/stations to open the correct mobile record.                                                                                     |
+| V32-018    |       P1 | PARTIAL | WP-B6          | Customer-facing vs internal technical/report visibility controls.                                                                                               |
+| V32-019    |       P1 | FAIL    | WP-B6          | Lessons Learned at project closeout.                                                                                                                            |
+| V32-020    |       P2 | FAIL    | WP-B9          | Client/plant knowledge base for standards, naming conventions, procedures and non-secret operational notes.                                                     |
+| V33-001    |       P1 | FAIL    | WP-B7          | Reusable project presets (commissioning 10h Mon-Sat, all-in, hourly, etc.) with versioning.                                                                     |
+| V33-002    |       P1 | PARTIAL | WP-B7          | Versioned Daily/PLC/period report templates/presets.                                                                                                            |
+| V33-003    |       P1 | FAIL    | WP-B7          | Bounded Report Builder: configurable approved blocks/order/visibility/language/branding; not arbitrary executable HTML.                                         |
+| V33-004    |       P2 | FAIL    | WP-B9          | Report scheduler/recurring generation through durable jobs.                                                                                                     |
+| V33-005    |       P1 | FAIL    | WP-B7          | Scope/Change Orders tied to client requests, estimates, schedule impact, approvals and PO/billing treatment.                                                    |
+| V33-006    |       P1 | PARTIAL | WP-B7          | Preserve original project budget baseline.                                                                                                                      |
+| V33-007    |       P1 | PARTIAL | WP-B7          | Versioned current forecast with Actual/Committed/Remaining/EAC.                                                                                                 |
+| V33-008    |       P1 | PARTIAL | WP-B7          | Project health view for schedule, budget, technical risk and billing.                                                                                           |
+| V33-009    |       P1 | PARTIAL | WP-B7          | Travel/Assignment records: hotel/rental/flight/per-diem and payer/treatment semantics.                                                                          |
+| V33-010    |       P2 | FAIL    | WP-B9          | Mileage claims with rate, route, vehicle type, project and evidence.                                                                                            |
+| V33-011    |       P1 | PARTIAL | WP-B7          | Expense mobile UX, receipt attachment and duplicate heuristics.                                                                                                 |
+| V33-012    |       P3 | FAIL    | WP-B9          | Pluggable/local OCR for receipt field suggestions; user confirmation required.                                                                                  |
+| V33-013    |       P1 | FAIL    | WP-B7          | Timesheet copy previous day/repeat week/templates and fast weekly entry.                                                                                        |
+| V33-014    |       P1 | PARTIAL | WP-B7          | Timesheet calendar with Draft/Submitted/Approved/Missing/Holiday/Travel/Standby states.                                                                         |
+| V33-015    |       P1 | PARTIAL | WP-B7          | Time overlap/impossible-duration/incomplete-day validation and deviation notes.                                                                                 |
+| V33-016    |       P1 | PARTIAL | WP-B7          | Planning calendar/timeline and worker assignment conflict detection.                                                                                            |
+| V33-017    |       P1 | FAIL    | WP-B7          | Skill Matrix with levels, experience and availability.                                                                                                          |
+| V33-018    |       P1 | FAIL    | WP-B7          | Certifications with expiry and warnings.                                                                                                                        |
+| V33-019    |       P1 | PARTIAL | WP-B7          | Unified Approval Center for time, expense, reports, technical changes and milestones.                                                                           |
+| V33-020    |       P1 | PARTIAL | WP-B7          | Safe bulk operations with eligibility checks and audit.                                                                                                         |
+| V33-021    |       P2 | PARTIAL | WP-B9          | Configurable in-app/email notifications with noise control.                                                                                                     |
+| V33-022    |       P1 | FAIL    | WP-B7          | Integrity Center: missing rates/receipts/reports, overlaps, invalid invoice/artifact states, reconciliation alerts.                                             |
+| V33-023    |       P1 | FAIL    | WP-B7          | Import Center: CSV/XLSX preview → validation → error report → commit.                                                                                           |
+| V33-024    |       P1 | PARTIAL | WP-B7          | Data portability/export for important entities and operational backups.                                                                                         |
+| V33-025    |       P2 | FAIL    | WP-B9          | Document preview, tags, project/asset links and search.                                                                                                         |
+| V33-026    |       P2 | FAIL    | WP-B9          | Retention policy / legal-hold-capable metadata without accidental financial-history deletion.                                                                   |
+| V33-027    |       P1 | PARTIAL | WP-B7          | Human-readable activity/audit timeline with before/after values where safe.                                                                                     |
+| V33-028    |       P2 | FAIL    | WP-B9          | Undo for safe reversible non-final operations.                                                                                                                  |
+| V33-029    |       P1 | PARTIAL | WP-B7          | Offline/PWA draft queue and understandable synchronization state for field workers.                                                                             |
+| V33-030    |       P1 | PARTIAL | WP-B7          | Operations health page: DB/jobs/storage/email/scanner/PDF renderer/backup health.                                                                               |
+| V33-031    |       P1 | PARTIAL | WP-B7          | Backup/restore status and documented restore drill/runbook.                                                                                                     |
+| V33-032    |       P1 | PARTIAL | WP-B7          | Admin business settings: branding, default currency/timezone, numbering, expense/approval rules.                                                                |
+| V33-033    |       P2 | FAIL    | WP-B9          | Feature flags for staged rollout.                                                                                                                               |
+| V33-034    |       P2 | FAIL    | WP-B9          | Multicurrency ledger semantics: transaction/project/legal-entity currencies and historical FX rate metadata.                                                    |
+| V33-035    |       P2 | PARTIAL | WP-B9          | Tax profiles/config validation by jurisdiction without pretending to replace professional accounting advice.                                                    |
+| V33-036    |       P2 | PARTIAL | WP-B9          | Payment/bank import and deterministic/suggested invoice matching.                                                                                               |
+| V33-037    |       P2 | FAIL    | WP-B9          | Accounting export adapters/profiles (provider interfaces first; live connectors when credentials/contracts exist).                                              |
+| V33-038    |       P2 | FAIL    | WP-B9          | Stable integration API and webhooks for selected business events.                                                                                               |
+| V33-039    |       P2 | FAIL    | WP-B9          | Client portal with strict isolation of internal cost/margin/salary data.                                                                                        |
+| V33-040    |       P2 | FAIL    | WP-B9          | Customer acknowledgment/sign-off with version/time/actor traceability.                                                                                          |
+| V33-041    |       P2 | FAIL    | WP-B9          | Email send history, templates, message IDs, retry/error state.                                                                                                  |
+| V33-042    |       P2 | PARTIAL | WP-B9          | Operational KPIs: utilization, billable ratio, approval latency, days-to-invoice, DSO, WIP, contribution margin, budget/schedule variance, rework.              |
+| V34-001    |       P1 | PARTIAL | WP-B8          | Daily/weekly point-in-time project state snapshots with schema version.                                                                                         |
+| V34-002    |       P1 | PARTIAL | WP-B8          | Immutable business events for meaningful project/finance/technical actions.                                                                                     |
+| V34-003    |       P1 | FAIL    | WP-B8          | Explicit action-event records (`ADD_WORKER`, `APPROVE_CHANGE_ORDER`, etc.) where useful for future temporal modeling.                                           |
+| V34-004    |       P1 | FAIL    | WP-B8          | Feature definition/version registry.                                                                                                                            |
+| V34-005    |       P1 | FAIL    | WP-B8          | Reproducible training dataset export and manifest/hashes.                                                                                                       |
+| V34-006    |       P1 | FAIL    | WP-B8          | Model registry: version/artifact hash/training window/features/metrics/status.                                                                                  |
+| V34-007    |       P1 | FAIL    | WP-B8          | Historical prediction registry with `prediction_at` and `as_of` semantics.                                                                                      |
+| V34-008    |       P1 | FAIL    | WP-B8          | Shadow-mode evaluation, activation, rollback and disable.                                                                                                       |
+| V34-009    |       P1 | FAIL    | WP-B8          | Leakage/invariant tests for point-in-time correctness.                                                                                                          |
+| V34-010    |       P1 | PARTIAL | WP-B8          | Deterministic rules/statistical project health baseline.                                                                                                        |
+| V34-011    |       P2 | FAIL    | WP-B9          | CPU inference adapter boundary (e.g. CatBoost/ONNX) with versioned model artifacts.                                                                             |
+| V34-012    |       P3 | FAIL    | WP-B8          | First real GBT experiments for final cost/hours/delay/margin risk only after sufficient real historical data and proper held-out evaluation.                    |
+| V34-013    |       P3 | FAIL    | WP-B8          | Explainability for GBT predictions (feature contributions/SHAP where operationally appropriate).                                                                |
+| V34-014    |       P3 | FAIL    | WP-B8          | Temporal anomaly models only if they outperform robust rules/baselines.                                                                                         |
+| V34-015    |       P3 | FAIL    | WP-B8          | Experimental Project-JEPA / action-conditioned latent dynamics research behind a feature flag and separate scientific validation.                               |
+| V34-016    |       P3 | FAIL    | WP-B8          | Counterfactual/scenario UI only after causal limitations are explicitly addressed; observational action correlations must never be presented as causal effects. |
+
+## Definition of Done section 77 — item-level index
+
+Each step must pass both independently and as part of the uninterrupted DOD-77-00 scenario. The packet column identifies the implementation dependency; WP-T1 owns the executable evidence for every row, and read-only WP-C1 verifies the integrated result.
+
+| DoD ID    | Status  | Planned packet(s) | Acceptance step                                                                                                                                                |
+| --------- | ------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DOD-77-01 | PARTIAL | WP-B5             | Admin creates client `C-0042`.                                                                                                                                 |
+| DOD-77-02 | PARTIAL | WP-B5             | Admin creates project `C-0042-P-003`.                                                                                                                          |
+| DOD-77-03 | PARTIAL | WP-B5             | Admin can configure 10h Mon–Sat without being forced to enter a detailed hours forecast.                                                                       |
+| DOD-77-04 | PARTIAL | WP-B2             | Admin configures Worker A with a normal hourly compensation rule.                                                                                              |
+| DOD-77-05 | PARTIAL | WP-B2             | Admin configures Worker B with `PercentageOfEligibleClientLabor`, e.g. 55%.                                                                                    |
+| DOD-77-06 | PARTIAL | WP-B2             | Admin configures separate overtime behavior for worker compensation and client billing.                                                                        |
+| DOD-77-07 | PARTIAL | WP-B2             | Admin configures different rate economics for at least two workers/categories inside the same project.                                                         |
+| DOD-77-08 | PARTIAL | WP-B2             | Admin configures client labor rate/rule.                                                                                                                       |
+| DOD-77-09 | PARTIAL | WP-B2             | Admin chooses reimbursable hotel/car for one project.                                                                                                          |
+| DOD-77-10 | PARTIAL | WP-B2             | Admin can also configure another project as all-in.                                                                                                            |
+| DOD-77-11 | PARTIAL | WP-B2             | Admin configures Labor tax profile A.                                                                                                                          |
+| DOD-77-12 | PARTIAL | WP-B2             | Admin configures Expense tax profile B.                                                                                                                        |
+| DOD-77-13 | PARTIAL | WP-B2             | Labor cadence = Every 14 days or another supported cadence.                                                                                                    |
+| DOD-77-14 | PARTIAL | WP-B2             | Expense cadence = Monthly or another independently supported cadence.                                                                                          |
+| DOD-77-15 | PARTIAL | WP-A5 / WP-B5     | Worker opens phone.                                                                                                                                            |
+| DOD-77-16 | PARTIAL | WP-A5 / WP-B5     | Worker selects project and logs actual regular + standby + overtime time.                                                                                      |
+| DOD-77-17 | PARTIAL | WP-A5 / WP-B5     | Worker sees own estimated compensation without seeing client rate/internal cost/margin.                                                                        |
+| DOD-77-18 | PARTIAL | WP-A5 / WP-B5     | Percentage-based compensation produces the correct estimate from eligible labor only.                                                                          |
+| DOD-77-19 | PARTIAL | WP-A5 / WP-B5     | Worker submits daily report.                                                                                                                                   |
+| DOD-77-20 | PARTIAL | WP-B6             | Worker submits PLC change/report.                                                                                                                              |
+| DOD-77-21 | PARTIAL | WP-A5 / WP-B5     | Worker uploads a hotel/flight/meal receipt as a photo or PDF.                                                                                                  |
+| DOD-77-22 | PARTIAL | WP-B5             | PM approves operational records.                                                                                                                               |
+| DOD-77-23 | PARTIAL | WP-B2 / WP-B5     | Finance reviews time economics: actual, billable, worker compensation, internal cost and client revenue.                                                       |
+| DOD-77-24 | PARTIAL | WP-B2 / WP-B5     | Finance approves billability.                                                                                                                                  |
+| DOD-77-25 | PARTIAL | WP-B2 / WP-B5     | Dashboard updates project direct cost, revenue candidate and contribution margin.                                                                              |
+| DOD-77-26 | PARTIAL | WP-B2 / WP-B5     | All-in expense affects cost/margin without entering the expense invoice.                                                                                       |
+| DOD-77-27 | PARTIAL | WP-B2 / WP-B5     | Reimbursable approved expense enters the expense billing stream.                                                                                               |
+| DOD-77-28 | PARTIAL | WP-B4             | Period close creates customer report.                                                                                                                          |
+| DOD-77-29 | PARTIAL | WP-B4             | Period close creates labor invoice draft.                                                                                                                      |
+| DOD-77-30 | PARTIAL | WP-B4             | Month close creates expense invoice draft.                                                                                                                     |
+| DOD-77-31 | PARTIAL | WP-B4             | Labor and expense tax profiles remain independent.                                                                                                             |
+| DOD-77-32 | PARTIAL | WP-B4             | Finance reviews and issues the invoices.                                                                                                                       |
+| DOD-77-33 | PARTIAL | WP-B4             | Issued PDFs are immutable and traceable.                                                                                                                       |
+| DOD-77-34 | PARTIAL | WP-B2             | Payment, including partial payment, can be recorded with received date.                                                                                        |
+| DOD-77-35 | PARTIAL | WP-B2             | Master Invoice / Cost / Collection Ledger shows invoice dates, due dates, invoiced amount, direct cost, collected amount, outstanding amount and contribution. |
+| DOD-77-36 | PARTIAL | WP-B2             | Project finance reconciles to underlying approved records.                                                                                                     |
+| DOD-77-37 | PARTIAL | WP-B3             | Monthly Accounting Pack is generated for a selected calendar month.                                                                                            |
+| DOD-77-38 | PARTIAL | WP-B3             | Accounting Pack exports at least PDF and XLSX plus invoice/expense CSV registers.                                                                              |
+| DOD-77-39 | PARTIAL | WP-B3             | Accounting totals reconcile exactly to invoice, payment, compensation/cost and expense source records.                                                         |
+| DOD-77-40 | PARTIAL | WP-B5 / WP-B2     | Worker privacy tests prove client rate/internal cost/margin are not exposed.                                                                                   |
+| DOD-77-41 | PARTIAL | WP-B5 / WP-B2     | Duplicate billing is impossible under normal flow.                                                                                                             |
+| DOD-77-42 | PARTIAL | WP-C1             | Backup/restore can reproduce issued documents, source snapshots and Accounting Pack source records.                                                            |
+
++## Release rule
+
+`READY` requires every original-spec/core-surface row, every individually indexed P0/P1/P2 backlog row, `DOD-77-00`, and all 42 item-level DoD rows to be `PASS`; all required commands to pass under Node `24.19.0`; no mandatory E2E skip; successful fresh and realistic-upgrade migrations; verified backup/restore; and independent security, finance, responsive, data-leakage, spec, and Sol/high integration approval. P3 training/research does not require fabricated results, but its enabling infrastructure and experimental gating must pass their mandatory rows. A real unavailable external credential may justify a narrowly scoped `BLOCKED` live integration, but it cannot justify placeholders, unmapped scope, or untruthful product state.

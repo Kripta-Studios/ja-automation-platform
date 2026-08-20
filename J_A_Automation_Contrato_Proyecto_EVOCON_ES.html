@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="es-ES">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contrato de Desarrollo, Implantación y Soporte - J&A Automation</title>
+<style>
+  :root {
+    --ink: #17191d; --muted: #626872; --paper: #fff; --white: #fff;
+    --red: #c8272c; --redDark: #8f171b; --line: #d9dadd; --soft: #efede8;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: #d5d6d8; color: var(--ink);
+    font-family: Arial, "Helvetica Neue", sans-serif;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  @page { size: A4; margin: 0; }
+  .page {
+    width: 210mm; height: 297mm; margin: 0 auto; background: var(--paper);
+    position: relative; overflow: hidden; padding: 25mm 25mm 25mm 25mm;
+    page-break-after: always;
+  }
+  .page:last-child { page-break-after: auto; }
+  .header { border-bottom: 2px solid var(--redDark); padding-bottom: 3mm; margin-bottom: 4mm; }
+  .header img { height: 10mm; width: auto; object-fit: contain; display: block; margin-bottom: 1.5mm; }
+  .header .title { font-size: 10pt; font-weight: bold; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .footer { position: absolute; left: 25mm; right: 25mm; bottom: 12mm; display: flex; justify-content: space-between; font-size: 8.5pt; color: var(--muted); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+  
+  h1 { font-size: 16pt; line-height: 1.2; color: var(--redDark); margin: 0 0 6mm 0; text-align: center; text-transform: uppercase; }
+  h2 { font-size: 13pt; line-height: 1.2; color: var(--ink); margin: 5mm 0 2mm 0; border-bottom: 1px solid var(--line); padding-bottom: 1.5mm; }
+  h3 { font-size: 11pt; line-height: 1.2; color: var(--ink); margin: 4mm 0 1.5mm 0; }
+  
+  p, li { font-size: 10pt; line-height: 1.4; margin: 0 0 2.5mm 0; color: #2e3238; text-align: justify; }
+  ul { margin: 0 0 3mm 0; padding-left: 5mm; }
+  li { margin-bottom: 1mm; }
+  
+  .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 15mm; margin-top: 15mm; }
+  .sig-box { border-top: 1px solid var(--ink); padding-top: 2mm; height: 30mm; display:flex; flex-direction:column; justify-content:flex-end;}
+  .sig-box p { margin: 0; font-size: 9pt; }
+  
+  .clause-num { font-weight: bold; color: var(--redDark); margin-right: 2mm; }
+  .highlight { background: #fff3f3; padding: 0.5mm 1mm; font-weight: bold; color: var(--redDark); }
+  body { counter-reset: page; }
+  .page { counter-increment: page; }
+  .page-number::after { content: "Página " counter(page) " / 18"; }
+</style>
+</head>
+<body>
+
+<!-- PAGE 1 -->
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Contrato de Desarrollo e Implantación</div>
+  </div>
+
+  <h1>CONTRATO DE DESARROLLO, IMPLANTACIÓN Y SOPORTE</h1>
+  <p style="text-align:center; font-weight:bold; margin-bottom:10mm;">J&A AUTOMATION × EVOCON SOLUTIONS</p>
+
+  <h2><span class="clause-num">1.</span> Partes</h2>
+  <p>De una parte, <strong>EVOCON Solutions GmbH</strong>, con domicilio legal en [DIRECCIÓN EXACTA A COMPLETAR], número de identificación fiscal (VAT ID) [A COMPLETAR], debidamente representada por su responsable, Álvaro Schwiedop Souto (en adelante, "EVOCON").</p>
+  <p>De otra parte, <strong>[RAZÓN SOCIAL EXACTA DE J&A]</strong>, con domicilio en [DIRECCIÓN EXACTA A COMPLETAR], número de identificación fiscal/registro mercantil [A COMPLETAR], debidamente representada por Antonny Nascimento (en adelante, "J&A").</p>
+
+  <h2><span class="clause-num">2.</span> Objeto</h2>
+  <p>El objeto del presente contrato es la prestación por parte de EVOCON de los servicios de desarrollo e implantación de una solución digital integral para J&A, compuesta por una web corporativa, un sistema de gestión empresarial adaptado a su operativa y la migración de su infraestructura de correo corporativo.</p>
+
+  <h2><span class="clause-num">3.</span> Documentos y orden de prevalencia</h2>
+  <p>Los documentos que componen este acuerdo se interpretarán según el siguiente orden de prevalencia en caso de discrepancia: (1) Modificaciones firmadas posteriormente por ambas partes; (2) El presente Contrato Principal; (3) Anexo A (Alcance Funcional); (4) Anexo B; (5) Anexo C; (6) Anexo D; (7) Anexo E (DPA, si firmado); (8) Propuesta Comercial. Documentación técnica interna, repositorios de código, prototipos y especificaciones de ingeniería (ej. Especificación V3) no modifican el alcance contractual salvo incorporación expresa.</p>
+
+  <h2><span class="clause-num">4.</span> Alcance del proyecto</h2>
+  <p>El detalle vinculante de los trabajos a realizar se recoge en los Anexos. A modo de resumen:</p>
+  <ul>
+    <li><strong>A. Web corporativa:</strong> La Web Corporativa incluirá Home, Capabilities/Servicios, Industrias, Proyectos, Aquarex, About, Careers, Contacto, acceso al Employee Portal y páginas legales; contenidos sobre capacidades técnicas, tecnologías, proceso de entrega, soporte remoto y experiencia del equipo; llamadas a contacto comercial y soporte técnico; listado y filtrado de proyectos; SEO básico; y disponibilidad completa en EN/ES/PT.</li>
+    <li><strong>B. Sistema de gestión:</strong> Centralización operativa según el <strong>Anexo A</strong>.</li>
+    <li><strong>C. Migración de correo:</strong> Migración planificada según <strong>Anexo B</strong>.</li>
+  </ul>
+
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<!-- PAGE 2 -->
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Contrato de Desarrollo e Implantación</div>
+  </div>
+
+  <h2><span class="clause-num">5.</span> Exclusiones</h2>
+  <p>Quedan excluidos expresamente: la programación de módulos no definidos en el Anexo A, integraciones imprevistas requeridas a posteriori, licencias de terceros, o consultoría jurídica y fiscal ajena al software. Asimismo quedan expresamente excluidos: cálculo de nóminas, retenciones o cotizaciones; presentación de impuestos o declaraciones fiscales; ejecución de pagos bancarios; contabilidad general completa (general ledger); CRM completo; gestión de inventario o almacén; portal de autoservicio para clientes finales; aplicaciones nativas iOS/Android; aprobaciones autónomas por inteligencia artificial sin intervención humana; y vigilancia de productividad por capturas de pantalla o GPS.</p>
+
+  <h2><span class="clause-num">6.</span> Calendario estimado</h2>
+  <p>El plazo estimado para la finalización de la implantación será de aproximadamente <strong>3 a 4 semanas</strong> desde la fecha de firma y recepción de accesos:</p>
+  <ul>
+    <li><strong>≈ Semana 1:</strong> Versión funcional de la plataforma lista para revisión.</li>
+    <li><strong>≈ Día 15:</strong> Entrega prevista de la web corporativa finalizada.</li>
+    <li><strong>≈ Día 30:</strong> Objetivo para contar con el sistema completo operativo y el correo migrado.</li>
+  </ul>
+
+  <h2><span class="clause-num">7.</span> Obligaciones de J&A</h2>
+  <p>El cumplimiento ágil del calendario dependerá de la colaboración de J&A, comprometiéndose a entregar a tiempo: accesos DNS/hosting, listado de buzones, credenciales necesarias, contenidos, fotografías y vídeos para la web, ejemplos de invoices y plantillas de reports, reglas de tarifas (rates) y compensación, perfiles fiscales validados por su Accounting, formatos de PO/referencia, información de configuración y feedback durante las revisiones. Los retrasos imputables a la falta de accesos, información, materiales o feedback por parte de J&A desplazarán razonablemente los plazos previstos en la Cláusula 6.</p>
+
+  
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Contrato de Desarrollo e Implantación</div>
+  </div>
+
+<h2><span class="clause-num">8.</span> Condiciones económicas y fiscalidad</h2>
+  <p>El precio contractual total correspondiente al desarrollo, implantación y migración asciende a <strong>USD 5.000 netos</strong>. J&A contrata los servicios en calidad de empresa establecida en Austin, Texas (Estados Unidos). De acuerdo con las reglas de localización aplicables a servicios B2B, EVOCON no repercutirá IVA alemán cuando el lugar de prestación se encuentre fuera de Alemania.</p>
+  <p>Cualquier impuesto sobre ventas, uso o tributo indirecto equivalente exigible en la jurisdicción de J&A será soportado por J&A, salvo cuando la legislación aplicable obligue expresamente a EVOCON a recaudarlo y remitirlo. Cada parte será responsable de sus propios impuestos sobre renta, sociedades o beneficios.</p>
+
+  <h2><span class="clause-num">9.</span> Forma y plazos de pago (Hitos)</h2>
+  <p>El importe será abonado en tres fases vinculadas al progreso:</p>
+  <ul>
+    <li><strong>Hito 1 (Inicio): USD 2.000</strong>. Abonable en los 15 días posteriores a la firma.</li>
+    <li><strong>Hito 2 (Puesta en marcha): USD 2.000</strong>. Abonable en los 15 días posteriores al inicio de uso operativo del Sistema por parte de J&A. Se entenderá por "inicio de uso operativo" la fecha en la que J&A reciba acceso a una versión funcional destinada a ser utilizada con proyectos, trabajadores o datos reales de la empresa.</li>
+    <li><strong>Hito 3 (Entrega final): USD 1.000</strong>. Abonable en los 15 días posteriores a la superación de los criterios de aceptación (Anexo D).</li>
+  </ul>
+
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<!-- PAGE 3 -->
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Contrato de Desarrollo e Implantación</div>
+  </div>
+
+  <h2><span class="clause-num">10.</span> Gestión de cambios (Change Request)</h2>
+  <p>Cualquier nueva funcionalidad solicitada por J&A que no esté incluida en el Anexo A y que afecte materialmente al alcance, tiempo o coste, requerirá acuerdo por escrito antes de su desarrollo. EVOCON estimará el coste y plazo de implementación de dicho cambio para su aprobación previa por J&A.</p>
+
+  <h2><span class="clause-num">11.</span> Entrega y Aceptación</h2>
+  <p>La validación se realizará comprobando la superación conjunta de los tres bloques (Web corporativa, Sistema de gestión y Migración de correo) definidos en el <strong>Anexo D (Criterios de Aceptación)</strong>. Una vez EVOCON notifique la superación interna de dichos criterios, J&A dispondrá de 10 días naturales para su revisión. Transcurrido el plazo sin reportar disconformidades sustanciales que impidan completar los flujos del Anexo D, el proyecto se considerará aceptado tácitamente.</p>
+
+  
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Contrato de Desarrollo e Implantación</div>
+  </div>
+
+<h2><span class="clause-num">12.</span> Mantenimiento e Infraestructura (Servicio recurrente)</h2>
+  <p>Tras la Aprobación Final y una vez abonado íntegramente el precio contractual de USD 5.000 correspondiente al desarrollo, implantación y migración, entrará en vigor el servicio de Mantenimiento por un importe de <strong>USD 100 mensuales netos</strong> (desglosado en USD 50 para Infraestructura Cloud y USD 50 para Soporte/Mantenimiento).</p>
+  <p>El detalle del servicio se regula en el <strong>Anexo C</strong>. El mantenimiento ordinario no constituye una bolsa de horas de desarrollo ni genera horas acumulables de un mes a otro. La cuota mensual se facturará por meses vencidos y será pagadera dentro de los 15 días naturales siguientes a la emisión de la factura correspondiente. Los derechos legales en materia de intereses de demora se regirán por la legislación aplicable.</p>
+
+  <h2><span class="clause-num">13.</span> Duración del servicio recurrente</h2>
+  <p>El servicio recurrente se contrata por un periodo inicial firme de 24 meses desde su fecha de activación, durante el cual la cuota de USD 100/mes permanecerá fija. La terminación ordinaria mediante preaviso de 60 días podrá producir efectos a partir de la finalización de dicho periodo inicial. Durante los 24 meses iniciales, la terminación anticipada procederá únicamente en los supuestos previstos en la Cláusula 18 o por acuerdo escrito de ambas partes. En caso de cancelación, EVOCON facilitará la exportación de datos según lo previsto en la Cláusula 14.</p>
+  <p>Finalizado el periodo inicial de 24 meses, el servicio continuará vigente de forma indefinida y EVOCON podrá proponer una actualización de la cuota con al menos 90 días de antelación. La nueva cuota requerirá aceptación escrita de J&A. Si las partes no alcanzan un acuerdo, cualquiera podrá terminar el servicio conforme al preaviso de 60 días previsto en esta cláusula.</p>
+
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<!-- PAGE 4 -->
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Contrato de Desarrollo e Implantación</div>
+  </div>
+
+  <h2><span class="clause-num">14.</span> Propiedad Intelectual, Licencia y Código Fuente</h2>
+  <p><strong>Titularidad del Software:</strong> EVOCON conserva la titularidad y todos los derechos de propiedad intelectual e industrial sobre la plataforma, su código fuente, módulos, bibliotecas, algoritmos, metodologías y cualesquiera adaptaciones o desarrollos realizados en ejecución del presente contrato. La entrega del código fuente o de los repositorios de desarrollo no forma parte del alcance.</p>
+  <p><strong>Derecho de Uso:</strong> EVOCON concede a J&A un derecho de uso no exclusivo, no sublicenciable e intransferible de la solución para su operativa empresarial durante la vigencia del servicio alojado.</p>
+  <p><strong>Datos y Contenido:</strong> Todos los datos introducidos, bases de datos de clientes, facturas, reportes, documentos cargados y materiales gráficos aportados por J&A son y seguirán siendo propiedad exclusiva de J&A.</p>
+  <p><strong>Exportación y salida:</strong> En caso de cancelación del servicio, EVOCON pondrá a disposición de J&A, durante un plazo de 60 días naturales tras la fecha efectiva de cancelación: (a) los datos estructurados en formato CSV o JSON; (b) los documentos originales generados por el Sistema (invoices PDF, reports, receipts, artifacts PLC). Transcurrido ese plazo, EVOCON procederá a la eliminación definitiva de los datos de J&A de sus sistemas, salvo las copias que deba conservar por obligación legal o contractual.</p>
+
+  <h2><span class="clause-num">15.</span> Confidencialidad</h2>
+  <p><strong>Información Confidencial:</strong> Se considerará información confidencial toda información técnica, comercial, financiera, operativa o estratégica revelada por una parte a la otra en el marco de este contrato, ya sea de forma oral, escrita o electrónica, incluyendo sin limitación: programas PLC, backups técnicos, datos de OEMs, tarifas, invoices, datos de trabajadores, documentación de plantas y cualquier información marcada como confidencial o que razonablemente deba considerarse como tal.</p>
+  <p><strong>Excepciones:</strong> No se considerará confidencial la información que: (a) sea o pase a ser de dominio público sin culpa de la parte receptora; (b) fuese conocida por la parte receptora antes de su revelación; (c) sea comunicada legítimamente por un tercero sin restricción; o (d) sea desarrollada independientemente por la parte receptora sin utilizar información confidencial.</p>
+  <p><strong>Obligaciones:</strong> Cada parte se compromete a: (i) no utilizar la información confidencial para fines distintos a la ejecución del contrato; (ii) limitar el acceso a las personas que necesiten conocerla; (iii) protegerla con medidas de seguridad razonables y no inferiores a las que aplica a su propia información confidencial.</p>
+  <p><strong>Duración:</strong> Las obligaciones de confidencialidad permanecerán vigentes durante la vigencia del contrato y durante los 3 años siguientes a su terminación. Para secretos comerciales e información técnica de clientes finales (incluyendo programas PLC y datos industriales), la obligación se mantendrá mientras la información conserve su carácter confidencial.</p>
+
+  
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Contrato de Desarrollo e Implantación</div>
+  </div>
+
+<h2><span class="clause-num">15 bis.</span> Protección de Datos</h2>
+  <p>En la medida en que EVOCON trate datos personales por cuenta de J&A en el marco de la prestación de los servicios, EVOCON actuará como Encargado del Tratamiento conforme al artículo 28 del Reglamento General de Protección de Datos (RGPD). Las obligaciones específicas en materia de protección de datos —objeto, duración, finalidad del tratamiento, categorías de datos, instrucciones, medidas de seguridad, subencargados y derechos de los interesados— se regularán mediante el Anexo E (Acuerdo de Procesamiento de Datos / DPA), que deberá firmarse antes de la introducción de datos personales reales en el entorno de producción. Para los datos que EVOCON trate como responsable en el ejercicio de su propia relación contractual (facturación, contactos, gestión contable propia), EVOCON cumplirá con la normativa aplicable de forma independiente.</p>
+
+  <h2><span class="clause-num">16.</span> Responsabilidad y Garantía</h2>
+  <p>EVOCON garantiza que el software funcionará sustancialmente de acuerdo con lo especificado en el Anexo A durante la vigencia del servicio de Mantenimiento.</p>
+  <p>En ningún caso EVOCON será responsable de daños indirectos, lucro cesante, pérdida de datos (salvo negligencia probada en la política de copias de seguridad estipulada) o interrupciones derivadas de proveedores cloud de terceros.</p>
+  <p>La responsabilidad total acumulada de EVOCON bajo este contrato estará limitada, en cualquier caso, al importe abonado por J&A durante los 12 meses anteriores al hecho causante. Las limitaciones anteriores no se aplicarán en los supuestos de responsabilidad que no puedan excluirse o limitarse conforme a la legislación aplicable, incluyendo la responsabilidad por dolo (Vorsatz), culpa grave (grobe Fahrlässigkeit) y daños a la vida, integridad física o salud (Leben, Körper, Gesundheit).</p>
+
+  <h2><span class="clause-num">17.</span> Independencia de las partes</h2>
+  <p>Este contrato no crea ninguna relación de sociedad, joint venture o relación laboral entre EVOCON y J&A. EVOCON actúa como contratista independiente.</p>
+
+  <h2><span class="clause-num">18.</span> Terminación anticipada</h2>
+  <p>El presente contrato podrá ser resuelto por cualquiera de las partes en caso de incumplimiento sustancial, siempre que dicho incumplimiento no sea subsanado en 30 días naturales tras su notificación por escrito.</p>
+
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Contrato de Desarrollo e Implantación</div>
+  </div>
+
+<h2><span class="clause-num">19.</span> Referencia comercial</h2>
+  <p>J&A autoriza a EVOCON a mencionar a J&A como cliente en su portfolio y materiales comerciales. La publicación de capturas de pantalla, casos de estudio o material relacionado con operaciones, proyectos o clientes finales de J&A requerirá aprobación previa por escrito de J&A.</p>
+
+  <h2><span class="clause-num">20.</span> Fuerza Mayor</h2>
+  <p>Ninguna de las partes será responsable del retraso o incumplimiento de sus obligaciones (excepto las obligaciones de pago) debido a causas que escapen a su control razonable (ej. desastres naturales, fallos masivos de conectividad).</p>
+
+  <h2><span class="clause-num">21.</span> Comunicaciones y notificaciones</h2>
+  <p>Las comunicaciones formales —incluyendo Change Requests, notificaciones de aceptación, incidencias, terminación y modificaciones contractuales— deberán realizarse por escrito (correo electrónico incluido) a las direcciones oficiales designadas por cada parte: para EVOCON, [EMAIL A COMPLETAR]; para J&A, [EMAIL A COMPLETAR]. Las comunicaciones se considerarán recibidas el día hábil siguiente a su envío electrónico verificable.</p>
+
+  <h2><span class="clause-num">22.</span> Ley aplicable y jurisdicción</h2>
+  <p>Este contrato se regirá e interpretará de acuerdo con las leyes de Alemania. Cualquier disputa que surja se someterá a la jurisdicción exclusiva de los tribunales de Hamburgo (Alemania).</p>
+
+  <h2><span class="clause-num">23.</span> Integridad contractual y divisibilidad</h2>
+  <p><strong>Integridad:</strong> Este contrato y sus Anexos (A, B, C, D y, en su caso, E) constituyen el acuerdo completo entre las partes en relación con su objeto, sustituyendo cualquier acuerdo, negociación o comunicación anterior.</p>
+  <p><strong>Divisibilidad:</strong> Si alguna cláusula resultase nula o inaplicable, el resto del contrato mantendrá su plena vigencia y eficacia. Las partes sustituirán la disposición afectada por otra que se aproxime lo más posible a su finalidad económica.</p>
+
+  <p style="margin-top:10mm; font-style:italic;">El presente contrato podrá formalizarse en contrapartes y mediante firma electrónica. Las partes acuerdan reconocer como válidas para este contrato las firmas electrónicas utilizadas por sus representantes autorizados, en la medida permitida por la legislación aplicable. Una firma electrónica cualificada tendrá el efecto jurídico equivalente a una firma manuscrita conforme al Reglamento eIDAS.</p>
+
+  
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title"></div>
+  </div>
+
+<div class="signatures">
+    <div class="sig-box">
+      <p><strong>Por EVOCON Solutions GmbH</strong></p>
+      <p>Nombre: Álvaro Schwiedop Souto</p>
+      <p>Cargo: Industrial AI & Predictive Quality Lead</p>
+      <p>Fecha:</p>
+      <p>Lugar: Santiago de Compostela, España</p>
+    </div>
+    <div class="sig-box">
+      <p><strong>Por [RAZÓN SOCIAL EXACTA DE J&A]</strong></p>
+      <p>Nombre: Antonny Nascimento</p>
+      <p>Cargo: Director de Operaciones</p>
+      <p>Fecha:</p>
+      <p>Lugar:</p>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<!-- PAGE 6: ANEXO A (1/4) -->
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Anexo A: Alcance Funcional</div>
+  </div>
+
+  <h2>ANEXO A. Alcance Funcional del Sistema de Gestión J&A</h2>
+  <p>La Aplicación Web multiplataforma (Sistema de gestión J&A) incluirá exclusivamente las siguientes funcionalidades vinculantes:</p>
+
+  <h3>1. Clientes y proyectos</h3>
+  <ul>
+    <li>Alta y gestión de clientes corporativos; numeración unificada de cliente y proyecto.</li>
+    <li>Creación de proyectos asociados a clientes con fechas de inicio/fin y moneda base.</li>
+    <li>Asignación específica de trabajadores elegibles para operar en el proyecto.</li>
+    <li>Gestión de presupuesto (Budgets/PO), referencia de PO/contrato del cliente y modalidad comercial del proyecto.</li>
+    <li>Gestión de estados del proyecto (activo, en pausa, cerrado, archivado).</li>
+    <li>Configuración de la periodicidad de facturación preferente.</li>
+  </ul>
+
+  <h3>2. Trabajadores y acceso</h3>
+  <ul>
+    <li>Gestión de usuarios con permisos diferenciados (Administrador, Finance, Project Manager, Worker) según configuración.</li>
+    <li>Segregación de información: cada trabajador accede exclusivamente a sus proyectos asignados, sus horas registradas, sus propios reportes, sus gastos y su propia compensación.</li>
+  </ul>
+
+  <h3>3. Horas y jornadas</h3>
+  <ul>
+    <li>Registro manual de horas reales reportadas por trabajador y proyecto.</li>
+    <li>Tipificación configurable del tiempo: Regular, Commissioning, Standby, Overtime, Weekend, Travel, etc.</li>
+    <li>Proceso de revisión y aprobación/rechazo de horas por parte de los responsables.</li>
+  </ul>
+
+  <h3>4. Regla 10 h (Referencia comercial)</h3>
+  <ul>
+    <li>El sistema permitirá configurar una referencia comercial y operativa de 10 horas diarias de lunes a sábado, sin generar automáticamente horas trabajadas artificiales.</li>
+    <li>El trabajador registrará siempre el tiempo real efectivamente prestado.</li>
+    <li>El cálculo del mínimo facturable al cliente y la garantía de compensación al trabajador actuarán como reglas de negocio independientes y configurables por proyecto.</li>
+  </ul>
+
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<!-- PAGE 7: ANEXO A (2/4) -->
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Anexo A: Alcance Funcional (Cont.)</div>
+  </div>
+
+  <h3>5. Compensación y tarifas</h3>
+  <ul>
+    <li>La compensación a abonar al trabajador, el coste interno registrado por J&A y el precio de venta a facturar al cliente funcionarán como tres valores financieramente independientes en el sistema.</li>
+    <li>Capacidad para configurar tarifas diferentes por trabajador, tipo de actividad (Regular, Overtime, Commissioning) y proyecto.</li>
+    <li>Modelos de tarifa aplicables: hourly, daily, fixed o percentage.</li>
+  </ul>
+
+  <h3>6. Compensación porcentual del cliente</h3>
+  <ul>
+    <li>J&A podrá configurar que la compensación de un trabajador equivalga a un porcentaje predefinido de la labor elegible facturable al cliente por dicho trabajador en un proyecto.</li>
+    <li>El cálculo porcentual podrá coexistir con reglas diferenciadas de overtime.</li>
+    <li>Gastos reembolsables, impuestos y otros conceptos no laborales quedarán excluidos del cálculo de este porcentaje salvo configuración expresa en contrario.</li>
+  </ul>
+
+  <h3>7. Visibilidad financiera (My Pay)</h3>
+  <ul>
+    <li>Cuando exista un presupuesto o asignación, el trabajador dispondrá de una vista privada con el progreso de sus horas (aprobadas/pendientes) y su compensación estimada.</li>
+    <li>El trabajador no visualizará las tarifas cobradas al cliente, el coste interno de J&A, el margen de la empresa ni la compensación de otros trabajadores.</li>
+  </ul>
+
+  <h3>8. Revisión económica de horas (Finance)</h3>
+  <ul>
+    <li>Los usuarios autorizados de Administración/Finanzas podrán revisar, por trabajador, proyecto y periodo, la transformación comercial: horas reales → horas aprobadas → horas facturables al cliente → compensación del trabajador → coste interno J&A → importe facturable al cliente y estado de facturación.</li>
+  </ul>
+
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<!-- PAGE 8: ANEXO A (3/4) -->
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Anexo A: Alcance Funcional (Cont.)</div>
+  </div>
+
+  <h3>9. Reportes (Daily, Project y PLC)</h3>
+  <ul>
+    <li>Generación de Daily Reports estructurados, revisables y exportables a documento.</li>
+    <li>Reportes técnicos estructurados (PLC) vinculados a proyecto, equipo o estación (registro de problemas, cambios realizados, pruebas/resultados, impacto, pendientes y adjuntos). Identificación de cambios con impacto en seguridad (safety flag) que requieran revisión técnica obligatoria.</li>
+    <li><strong>Registro de backups técnicos:</strong> posibilidad de asociar al proyecto archivos y referencias de backup de PLC/HMI/robot u otros artefactos técnicos, conservando fecha, descripción, versión/referencia y relación con el reporte técnico correspondiente.</li>
+    <li>Informes consolidados de proyecto y generación de resúmenes técnicos exportables por periodo para uso interno o del cliente.</li>
+  </ul>
+
+  <h3>10. Expenses (Gastos)</h3>
+  <ul>
+    <li>Categorización de gastos de viaje y representación (Hotel, coche, vuelo, comida, taxis, etc.).</li>
+    <li><strong>Quién pagó:</strong> Registro explícito de quién adelantó el pago (trabajador, J&A, cliente o tercero).</li>
+    <li><strong>Tratamiento:</strong> Configurable como reembolsable al cliente, reembolsable con markup, all-in (asumido por J&A, afecta al margen pero no entra en la factura), no facturable/interno, allowance/per diem, informacional (solo registro), o pagado directamente por el cliente.</li>
+    <li><strong>Estado de reembolso:</strong> Trazabilidad del reembolso al trabajador (pendiente, aprobado, pagado).</li>
+  </ul>
+
+  <h3>11. Carga de recibos</h3>
+  <ul>
+    <li>Carga de evidencias fotográficas o archivos PDF desde dispositivo móvil o escritorio.</li>
+    <li>Soporte mínimo para formatos JPEG, PNG y PDF, vinculando obligatoriamente el recibo al gasto reportado y al proyecto.</li>
+  </ul>
+
+  <h3>12. Modelos comerciales y de facturación</h3>
+  <ul>
+    <li><strong>Modelos comerciales:</strong> Hourly/T&M, T&M con mínimo diario, Capped T&M sujeto a límite de PO/contrato, Fixed/All-in, Fixed/Milestone, Hybrid —combinación configurable de importes fijos, horas y gastos— e Internal/Non-billable.</li>
+    <li>Soporte de frecuencias de facturación: Semanal, cada 14 días, dos veces al mes (semi-monthly: 1–15 / 16–fin), mensual, periodo personalizado o hito (milestone). Cada stream de facturación (Labor o Expenses) puede tener su propia periodicidad independiente.</li>
+  </ul>
+
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<!-- PAGE 9: ANEXO A (4/4) -->
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Anexo A: Alcance Funcional (Cont.)</div>
+  </div>
+
+  <h3>13. Generación de facturación e Invoices</h3>
+  <ul>
+    <li>El sistema generará automáticamente borradores de invoices a partir de horas y gastos aprobados. Los flujos Labor y Expenses podrán producir invoices independientes.</li>
+    <li><strong>Plantillas de Invoice:</strong> Inclusión de plantillas profesionales adaptables a los modelos de J&A (identidad, nº invoice, cliente, PO, periodo, fechas de emisión y vencimiento, conceptos, subtotal, impuestos, total e info de pago).</li>
+    <li><strong>Ciclo de vida de Invoice:</strong> gestión de estados desde borrador hasta emisión, envío, pago parcial, pago, vencimiento, anulación y ajuste/crédito. Una Invoice emitida quedará fijada como documento histórico y sus correcciones se realizarán mediante los mecanismos de ajuste, crédito, anulación o sustitución habilitados por el Sistema.</li>
+    <li><strong>Control de pagos:</strong> Registro de estado de invoice, pagos parciales o totales, fechas de cobro y saldo pendiente.</li>
+    <li><strong>Revisión obligatoria:</strong> El sistema no emitirá ni enviará facturas sin revisión manual previa.</li>
+  </ul>
+
+  <h3>14. Perfiles fiscales configurables</h3>
+  <ul>
+    <li>Los flujos Labor y Expenses podrán utilizar perfiles fiscales diferentes, configurados según la información validada por J&A.</li>
+    <li>EVOCON implementa el mecanismo de cálculo, pero no presta asesoramiento fiscal ni determina automatizadamente la tributación aplicable.</li>
+  </ul>
+
+  <h3>15. Ledger General y Accounting</h3>
+  <ul>
+    <li><strong>Ledger General:</strong> Registro y vista consolidada de invoices, costes y cobros, con fechas de emisión/vencimiento, importe facturado, coste directo, cobrado, pendiente y resultado.</li>
+    <li><strong>Accounting Pack Mensual:</strong> Cierre consolidado exportable a PDF y XLSX, junto con registros CSV de invoices y expenses.</li>
+    <li><strong>Resultado directo (Margen de contribución):</strong> Ingresos reconocidos menos costes directos. No constituye el beneficio neto fiscal.</li>
+  </ul>
+
+  <h3>16. Multidioma y Dispositivos</h3>
+  <ul>
+    <li>Aplicación web responsive. Interfaz en Inglés (English), Español y Portugués. Reportes exportables generados en el idioma seleccionable (EN/ES/PT).</li>
+  </ul>
+
+  
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Anexo A: Alcance Funcional (Cont.)</div>
+  </div>
+
+<h3>17. Automatización y aprobaciones</h3>
+  <ul>
+    <li>Los registros operativos y financieros podrán pasar por flujos de Draft/Submitted/Approved/Needs Changes según el tipo de registro. El Sistema comprobará, antes del cierre de un periodo, elementos pendientes como horas sin aprobar, reportes requeridos, gastos pendientes, receipts faltantes o configuración económica incompleta. Los periodos válidos podrán generar automáticamente reportes consolidados y borradores de invoices para revisión por usuarios autorizados.</li>
+  </ul>
+
+  <h3>18. Notificaciones</h3>
+  <ul>
+    <li>El Sistema enviará avisos internos y por correo electrónico de eventos operativos relevantes, como aprobaciones pendientes, periodos listos para cierre, facturas vencidas, receipts faltantes y alertas de presupuesto.</li>
+  </ul>
+
+  <h3>19. Trabajo móvil y modo sin conexión</h3>
+  <ul>
+    <li>El Sistema permitirá preparar y conservar temporalmente sin conexión registros de horas, reportes y gastos/recibos compatibles con el flujo móvil, sincronizándolos con el servidor cuando vuelva a existir conectividad. La sincronización evitará la creación accidental de registros duplicados.</li>
+  </ul>
+
+  <h3>20. Seguridad, acceso y trazabilidad</h3>
+  <ul>
+    <li>Acceso al Sistema restringido a usuarios invitados por un Administrador. No existirá registro público.</li>
+    <li>Autenticación multifactor (MFA) requerida para entornos de producción; soporte de passkeys donde los dispositivos lo permitan.</li>
+    <li>Documentos privados (receipts, PLC artifacts, invoices) accesibles únicamente a usuarios autorizados según su rol y asignación de proyecto.</li>
+    <li>Historial de auditoría de cambios relevantes sobre: permisos/roles, horas, rates, costes, impuestos, gastos, invoices (emisión/anulación/ajuste), pagos, exportaciones de datos y descargas de documentos sensibles.</li>
+    <li>Las líneas facturadas mantendrán trazabilidad interna hasta sus registros de origen (horas y gastos aprobados). El Sistema evitará la inclusión accidental de una misma fuente aprobada en dos facturas.</li>
+  </ul>
+
+  <h3>21. Reporting financiero y cierre de proyecto</h3>
+  <ul>
+    <li>Generación de informes de gestión que podrán incluir: trabajo aprobado no facturado (WIP), antigüedad de cuentas por cobrar (aging/collections), presupuesto vs. real (budget vs. actual) y previsión a terminación (forecast at completion) cuando existan los datos de planificación necesarios.</li>
+    <li>Cierre de proyecto: generación de un paquete de cierre consolidado que incluya resumen del proyecto, informes finales, resumen técnico/PLC, registro de backups, resumen de gastos, registro de invoices, estado de pagos y un manifiesto de documentos.</li>
+  </ul>
+
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<!-- PAGE 10: ANEXOS B y C -->
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Anexos Adicionales</div>
+  </div>
+
+  <h2>ANEXO B. Migración de Correo Electrónico</h2>
+  <p>La transición de la infraestructura actual incluirá las siguientes acciones ejecutadas por EVOCON:</p>
+  <ul>
+    <li>La migración comprenderá las cuentas y alias acordados, histórico de mensajes técnicamente migrable, configuración del dominio y autenticación de correo, validación de envío y recepción, y configuración/documentación de acceso de los usuarios desde los dispositivos y clientes de correo compatibles acordados.</li>
+    <li>El nuevo servicio quedará preparado para integrarse con el Sistema de Gestión para el envío desde direcciones corporativas de notificaciones, reportes, invoices y demás comunicaciones automatizadas autorizadas.</li>
+    <li>EVOCON podrá emplear servicios especializados de entrega transaccional —incluidos servicios de AWS cuando corresponda— para mejorar la fiabilidad y entregabilidad del correo enviado automáticamente por el Sistema.</li>
+    <li>Los costes ordinarios de infraestructura de correo (dominio, hosting de buzones, envío transaccional) quedan cubiertos por la cuota mensual de mantenimiento. Aumentos extraordinarios derivados de almacenamiento adicional, volumen de envío masivo, licencias de terceros o servicios externos que excedan el uso razonablemente previsto requerirán aprobación previa de J&A. Backup del correo: EVOCON mantendrá mecanismos de copia de seguridad y recuperación razonables para los buzones corporativos alojados dentro del servicio, de acuerdo con las capacidades del proveedor y el volumen contratado. La política concreta de retención podrá ajustarse tras la auditoría inicial del volumen de correo. Servicios extraordinarios de archivado histórico o retención de larga duración podrán presupuestarse aparte.</li>
+  </ul>
+
+  <h2>ANEXO C. Detalle del Soporte y Mantenimiento</h2>
+  <p>El servicio recurrente de <strong>USD 100/mes</strong> se divide en:</p>
+  <ul>
+    <li><strong>Infraestructura Cloud (USD 50/mes):</strong> Alojamiento en servidor privado virtual (VPS) de alto rendimiento con capacidad suficiente y dimensionada para la carga operativa razonablemente prevista, bases de datos y transferencia mensual.</li>
+    <li><strong>Soporte Técnico y Mantenimiento (USD 50/mes):</strong> Monitorización automatizada continua 24/7 de los servicios críticos. Canal permanente para comunicar incidencias, con tiempo de primera respuesta humana objetivo de 24 horas laborables. Las incidencias críticas que provoquen una indisponibilidad general del servicio serán atendidas con prioridad razonable según disponibilidad. Parches de seguridad.</li>
+    <li><strong>Backups:</strong> Copias de seguridad automatizadas de la base de datos y de los archivos privados críticos (documentos, invoices, reports, PLC backups y receipts). Retención mínima de 30 días para snapshots locales y copia de continuidad separada de la infraestructura principal. La política de retención detallada podrá ser ajustada por EVOCON en función de los requisitos operativos, manteniendo como mínimo el nivel aquí estipulado.</li>
+    <li><strong>Pequeñas Mejoras Evolutivas:</strong> Modificaciones incrementales de funcionalidades existentes que no creen nuevos módulos, no requieran nueva integración y encajen razonablemente en el mantenimiento. No constituye una bolsa de horas de desarrollo ni genera horas acumulables.</li>
+  </ul>
+
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<!-- PAGE 11: ANEXO D (1/3) -->
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Anexos Adicionales</div>
+  </div>
+
+  <h2>ANEXO D. Criterios de Aceptación del Sistema (UAT)</h2>
+  <p>Para la aprobación de la entrega final estipulada en la Cláusula 11, se validará empíricamente el correcto funcionamiento de la solución verificando los tres bloques operativos del proyecto:</p>
+  
+  <h3>D.1 Web Corporativa</h3>
+  <p>Se comprobará que la web carga correctamente, es responsive en dispositivos móviles y escritorio, despliega los idiomas acordados (EN/ES/PT), contiene las secciones estipuladas en la Cláusula 4 y el formulario de contacto enlaza correctamente. El contenido deberá reflejar los textos e imágenes aprobados por J&A.</p>
+
+  <h3>D.2 Sistema de Gestión (Flujo Principal)</h3>
+  <p>Constituirá evidencia objetiva de la correcta ejecución del flujo principal que el software permita ejecutar con éxito, de principio a fin, el siguiente escenario operativo básico:</p>
+  <ol>
+    <li>Crear un nuevo Cliente corporativo y un Proyecto asociado (con fecha y presupuesto).</li>
+    <li>Asignar un Trabajador al proyecto, configurando una tarifa Normal y otra Overtime.</li>
+    <li>El Trabajador accede con su sesión y registra horas reales de trabajo.</li>
+    <li>El Trabajador sube un Gasto (Expense), adjuntando evidencia (foto/PDF) y categorizándolo.</li>
+    <li>El Trabajador genera un reporte técnico (PLC) y un Daily Report asociado a su jornada.</li>
+    <li>Un rol Administrador/PM aprueba las horas reportadas y el gasto subido.</li>
+    <li>Finanzas revisa el coste interno asociado al trabajador y la correcta aplicación de <em>rates</em>.</li>
+    <li>El sistema genera automáticamente el borrador de una Invoice (factura) de Labor y otra Invoice independiente de Expenses (con perfil fiscal distinto si aplica).</li>
+    <li>Se revisan y aprueban (emiten) las Invoices generadas.</li>
+    <li>Se registra un pago parcial o total sobre una de las Invoices.</li>
+    <li>Se visualiza en el Ledger el saldo pendiente (Outstanding) y el margen de contribución.</li>
+    <li>Se genera y exporta el paquete contable de cierre (Accounting Pack) del periodo en PDF/XLSX.</li>
+  </ol>
+
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<!-- PAGE 12: ANEXO D (2/3) -->
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Anexos Adicionales</div>
+  </div>
+
+  <h3>D.2 Sistema de Gestión (Casos de Validación Específicos)</h3>
+  <p>Sin perjuicio de la superación del flujo principal, se comprobará obligatoriamente que el sistema gestiona correctamente los siguientes casos (edge cases) del alcance contratado:</p>
+  <ul>
+    <li><strong>A. Regla 10h:</strong> Si un trabajador registra 4h reales, el sistema conserva las 4h, pero permite aplicar un mínimo de facturación al cliente de 10h, calculando la compensación del trabajador de forma independiente a la facturación del cliente.</li>
+    <li><strong>B. Compensación Porcentual y Overtime:</strong> Si un trabajador está configurado al 55% de la labor elegible y realiza horas Regular y Overtime, el sistema calcula su compensación proporcional a lo facturado, excluyendo del cálculo los gastos e impuestos.</li>
+    <li><strong>C. Gastos All-in:</strong> Un gasto de hotel configurado como "All-in" aumenta el coste directo del proyecto (reduciendo margen), pero no se transfiere automáticamente a una Expense Invoice cobrable al cliente.</li>
+    <li><strong>D. Gastos Reembolsables:</strong> Un gasto aprobado como "Reembolsable" con su recibo adjunto entra correctamente en el flujo de facturación de Expense.</li>
+    <li><strong>E. Diferenciación de Tarifas (Rates):</strong> El sistema aplica un coste distinto para la tarifa "Regular" frente a la "Overtime" del mismo trabajador, y soporta costes distintos para el Trabajador A frente al Trabajador B en el mismo proyecto.</li>
+    <li><strong>F. Privacidad de Datos:</strong> Un trabajador que accede a su panel privado "My Pay" NO puede visualizar la tarifa de venta al cliente, NO visualiza su propio coste interno empresarial y NO visualiza el margen de la empresa.</li>
+    <li><strong>G. Multidioma:</strong> Un mismo documento (ej. Invoice o Reporte) puede exportarse en idioma EN, ES o PT según la preferencia seleccionada.</li>
+    <li><strong>H. Capped T&M / Hybrid:</strong> Un proyecto configurado con PO/cap de USD X, tras registrar horas que consuman el 100% del cap, no permite facturar labor adicional automáticamente y muestra una alerta de presupuesto al administrador.</li>
+    <li><strong>I. Modo Offline y Sincronización:</strong> Un trabajador registra horas y un gasto con recibo en modo sin conexión. Al reconectarse, los registros se sincronizan correctamente al servidor sin crear duplicados.</li>
+    <li><strong>J. Corrección de Invoice (Credit/Adjustment):</strong> Una Invoice emitida NO puede editarse. Su corrección se realiza mediante la emisión de un documento de crédito o ajuste vinculado al original.</li>
+    <li><strong>K. Backup PLC:</strong> Un trabajador sube una referencia de backup PLC vinculada a un reporte técnico y a un proyecto, y un usuario autorizado puede recuperarla posteriormente.</li>
+    <li><strong>L. No Doble Facturación:</strong> Horas o gastos ya incluidos en una Invoice emitida no pueden ser incluidos normalmente en una segunda Invoice de otro periodo o batch.</li>
+  </ul>
+
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<!-- PAGE 13: ANEXO D (3/3) -->
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Anexos Adicionales</div>
+  </div>
+
+  <h3>D.3 Migración de Correo</h3>
+  <p>Se comprobará que las cuentas y alias acordados han sido creados en la nueva infraestructura, que el histórico ha sido migrado (dentro de las limitaciones pactadas), que la configuración DNS (SPF/DKIM/DMARC) está activa y que se han validado satisfactoriamente los tests base de envío y recepción externa, así como la integración de notificaciones con la aplicación web.</p>
+  
+  <p style="margin-top:5mm;"><em>La ejecución técnica exitosa de los bloques D.1, D.2 y D.3 constituirá evidencia objetiva de que el alcance funcional ha sido entregado, sin perjuicio de que el resto de funcionalidades descritas en el Anexo A deban igualmente ajustarse al alcance contratado.</em></p>
+
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+</body>
+</html>

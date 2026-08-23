@@ -12,6 +12,8 @@ playwright-report/
 .tmp/
 *.tsbuildinfo
 *.log
+jaautomation-release-*.zip
+jaautomation-release-*.zip.sha256
 .env
 .env.*
 !.env.example

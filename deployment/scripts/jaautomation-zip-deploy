@@ -1,0 +1,440 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 027
+
+WATCH_DIR=/home/kripta
+STATE_DIR=/var/lib/jaautomation-zip-deploy
+RELEASES_DIR=/opt/jaautomation/releases
+CURRENT_LINK=/opt/jaautomation/current
+ENV_FILE=/etc/jaautomation/jaautomation.env
+CADDYFILE=/etc/caddy/Caddyfile
+CADDY_SNIPPET=/etc/caddy/jaautomation.caddy
+DB_PATH=/var/lib/jaautomation/data/jaautomation.sqlite
+DOCUMENT_ROOT=/var/lib/jaautomation/files
+BACKUP_ROOT=/var/backups/jaautomation
+NODE=/opt/jaautomation/runtime/node-v24.19.0/bin/node
+COMPOSE_PROJECT=deployment
+PUBLIC_SITE_URL=https://gex-dashboard.hopto.org/j-aautomation/en
+PUBLIC_PORTAL_URL=https://gex-dashboard.hopto.org/j-aautomation/app/login
+EXPLICIT_ARCHIVE=''
+INITIALIZE_ONLY=0
+
+log() {
+  printf '[%s] %s\n' "$(date --iso-8601=seconds)" "$*"
+}
+
+die() {
+  log "ERROR: $*"
+  exit 1
+}
+
+usage() {
+  printf 'Uso: %s [--initialize | --archive /home/kripta/release.zip]\n' "$0"
+}
+
+while (($#)); do
+  case "$1" in
+    --initialize)
+      INITIALIZE_ONLY=1
+      shift
+      ;;
+    --archive)
+      [[ $# -ge 2 ]] || { usage >&2; exit 2; }
+      EXPLICIT_ARCHIVE=$2
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+[[ -z "$EXPLICIT_ARCHIVE" || "$INITIALIZE_ONLY" -eq 0 ]] || die 'No combines --initialize y --archive'
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || die "No se encuentra el comando requerido: $1"
+}
+
+[[ ${EUID} -eq 0 ]] || die 'Este desplegador debe ejecutarse como root'
+for command_name in docker unzip zipinfo sha256sum curl caddy systemctl flock; do
+  require_command "$command_name"
+done
+[[ -x "$NODE" ]] || die "No se encuentra Node 24 en $NODE"
+[[ -f "$ENV_FILE" ]] || die "No se encuentra $ENV_FILE"
+[[ -f "$CADDYFILE" ]] || die "No se encuentra $CADDYFILE"
+[[ -f "$CADDY_SNIPPET" ]] || die "No se encuentra $CADDY_SNIPPET"
+docker compose version >/dev/null
+
+install -d -o root -g root -m 0750 "$STATE_DIR" "$RELEASES_DIR"
+exec 9>"$STATE_DIR/deploy.lock"
+if ! flock -n 9; then
+  log 'Ya hay otro escaneo o despliegue en curso; se omite esta ejecución'
+  exit 0
+fi
+
+BASELINE_FILE="$STATE_DIR/baseline.sha256"
+BASELINE_READY="$STATE_DIR/baseline.ready"
+PROCESSED_FILE="$STATE_DIR/processed.sha256"
+REJECTED_FILE="$STATE_DIR/rejected.sha256"
+
+baseline() {
+  local temporary
+  temporary=$(mktemp "$STATE_DIR/baseline.XXXXXX")
+  : >"$temporary"
+  while IFS= read -r -d '' archive; do
+    sha256sum -- "$archive" | awk '{print $1}' >>"$temporary"
+  done < <(find "$WATCH_DIR" -maxdepth 1 -type f -iname '*.zip' -print0)
+  sort -u "$temporary" -o "$temporary"
+  mv -f -- "$temporary" "$BASELINE_FILE"
+  touch "$BASELINE_READY"
+  chmod 0640 "$BASELINE_FILE" "$BASELINE_READY"
+  log 'Estado inicial creado; el escaneo automático ignorará los ZIP que ya existían'
+}
+
+if [[ ! -e "$BASELINE_READY" ]]; then
+  baseline
+fi
+if [[ "$INITIALIZE_ONLY" -eq 1 ]]; then
+  exit 0
+fi
+
+state_contains() {
+  local state_file=$1
+  local sha=$2
+  [[ -f "$state_file" ]] && grep -Fqx -- "$sha" "$state_file"
+}
+
+is_seen() {
+  local sha=$1
+  state_contains "$BASELINE_FILE" "$sha" || state_contains "$PROCESSED_FILE" "$sha" || state_contains "$REJECTED_FILE" "$sha"
+}
+
+mark_state() {
+  local state_file=$1
+  local sha=$2
+  if ! state_contains "$state_file" "$sha"; then
+    printf '%s\n' "$sha" >>"$state_file"
+  fi
+  chmod 0640 "$state_file"
+}
+
+release_shape_is_valid() {
+  local root=$1
+  [[ -f "$root/package.json" ]] || return 1
+  [[ -f "$root/pnpm-lock.yaml" ]] || return 1
+  [[ -f "$root/pnpm-workspace.yaml" ]] || return 1
+  [[ -d "$root/website" ]] || return 1
+  [[ -d "$root/apps/portal" ]] || return 1
+  [[ -d "$root/packages" ]] || return 1
+  [[ -d "$root/migrations" ]] || return 1
+  [[ -f "$root/deployment/compose.production.yml" ]] || return 1
+  [[ -f "$root/deployment/Dockerfile.site" ]] || return 1
+  [[ -f "$root/deployment/Dockerfile.portal" ]] || return 1
+  [[ -f "$root/deployment/Caddyfile.snippet" ]] || return 1
+  [[ -f "$root/deployment/scripts/backup.mjs" ]] || return 1
+}
+
+compose() {
+  local release_root=$1
+  local release_tag=$2
+  shift 2
+  (
+    cd "$release_root"
+    JA_RELEASE_TAG="$release_tag" docker compose \
+      --project-name "$COMPOSE_PROJECT" \
+      --env-file "$ENV_FILE" \
+      -f deployment/compose.production.yml \
+      "$@"
+  )
+}
+
+atomic_current_link() {
+  local target=$1
+  local temporary="$CURRENT_LINK.tmp.$$"
+  rm -f -- "$temporary"
+  ln -s -- "$target" "$temporary"
+  mv -Tf -- "$temporary" "$CURRENT_LINK"
+}
+
+read_release_tag() {
+  sed -n 's/^JA_RELEASE_TAG=//p' "$ENV_FILE" | head -n 1
+}
+
+update_release_tag() {
+  local release_tag=$1
+  local temporary
+  temporary=$(mktemp /etc/jaautomation/jaautomation.env.tmp.XXXXXX)
+  if grep -q '^JA_RELEASE_TAG=' "$ENV_FILE"; then
+    sed "s/^JA_RELEASE_TAG=.*/JA_RELEASE_TAG=$release_tag/" "$ENV_FILE" >"$temporary"
+  else
+    {
+      printf 'JA_RELEASE_TAG=%s\n' "$release_tag"
+      cat "$ENV_FILE"
+    } >"$temporary"
+  fi
+  chown root:root "$temporary"
+  chmod 0600 "$temporary"
+  mv -f -- "$temporary" "$ENV_FILE"
+}
+
+wait_for_local_health() {
+  local attempt
+  for attempt in $(seq 1 60); do
+    if curl --fail --silent --show-error --max-time 10 \
+      http://127.0.0.1:5101/j-aautomation/en >/dev/null 2>&1 \
+      && curl --fail --silent --show-error --max-time 10 \
+      http://127.0.0.1:5100/j-aautomation/health/ready >/dev/null 2>&1 \
+      && curl --fail --silent --show-error --max-time 10 \
+      http://127.0.0.1:5100/j-aautomation/app/api/health >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 5
+  done
+  return 1
+}
+
+verify_public_urls() {
+  curl --fail --silent --show-error --max-time 20 "$PUBLIC_SITE_URL" >/dev/null
+  curl --fail --silent --show-error --max-time 20 "$PUBLIC_PORTAL_URL" >/dev/null
+}
+
+rollback_deployment() {
+  log 'Ejecutando rollback al release anterior'
+  if [[ -n "${old_release:-}" && -d "$old_release" ]]; then
+    atomic_current_link "$old_release" || log 'No se pudo restaurar el enlace current'
+  fi
+  if [[ -n "${old_tag:-}" ]]; then
+    update_release_tag "$old_tag" || log 'No se pudo restaurar JA_RELEASE_TAG'
+  fi
+  if [[ "${caddy_switched:-0}" -eq 1 && -f "${caddy_backup:-}" ]]; then
+    install -o root -g root -m 0644 "$caddy_backup" "$CADDY_SNIPPET" || log 'No se pudo restaurar el snippet de Caddy'
+  fi
+  if [[ -n "${old_release:-}" && -d "$old_release" && -n "${old_tag:-}" ]]; then
+    compose "$old_release" "$old_tag" up -d --no-build --remove-orphans || log 'No se pudieron restaurar los contenedores anteriores'
+  fi
+  systemctl reload caddy || log 'No se pudo recargar Caddy durante el rollback'
+  if wait_for_local_health; then
+    log 'Rollback local verificado'
+  else
+    log 'ATENCIÓN: el rollback local no superó la comprobación de salud'
+  fi
+}
+
+process_archive() (
+  set -Eeuo pipefail
+  local archive=$1
+  local explicit=${2:-0}
+  local snapshot=''
+  local staging=''
+  local sha=''
+  local release_dir=''
+  local old_release=''
+  local old_tag=''
+  local new_tag=''
+  local timestamp=''
+  local caddy_backup=''
+  local caddy_switched=0
+  local rollback_needed=0
+
+  on_exit() {
+    local status=$?
+    trap - EXIT
+    if [[ "$rollback_needed" -eq 1 ]]; then
+      rollback_needed=0
+      set +e
+      rollback_deployment
+    fi
+    if [[ -n "$staging" && -d "$staging" ]]; then
+      rm -rf -- "$staging"
+    fi
+    if [[ -n "$snapshot" && -f "$snapshot" ]]; then
+      rm -f -- "$snapshot"
+    fi
+    exit "$status"
+  }
+  trap on_exit EXIT
+
+  [[ -f "$archive" ]] || exit 2
+  local before after
+  before=$(stat -c '%s:%Y:%i' -- "$archive") || exit 2
+  sleep 10
+  after=$(stat -c '%s:%Y:%i' -- "$archive") || exit 2
+  if [[ "$before" != "$after" ]]; then
+    log "El ZIP aún está cambiando; se reintentará en el siguiente ciclo: $archive"
+    exit 2
+  fi
+
+  snapshot=$(mktemp "$STATE_DIR/incoming.XXXXXX.zip")
+  cp -- "$archive" "$snapshot"
+  sha=$(sha256sum -- "$snapshot" | awk '{print $1}')
+  if [[ "$explicit" -eq 1 ]]; then
+    if state_contains "$PROCESSED_FILE" "$sha"; then
+      die "El ZIP ya fue desplegado: $sha"
+    fi
+    if state_contains "$REJECTED_FILE" "$sha"; then
+      die "El ZIP fue rechazado antes: $sha"
+    fi
+  elif is_seen "$sha"; then
+    exit 2
+  fi
+
+  log "Nuevo ZIP detectado: $archive (SHA-256 $sha)"
+  if ! unzip -tqq "$snapshot"; then
+    log 'El ZIP no supera la prueba de integridad; se reintentará'
+    exit 2
+  fi
+
+  local unsafe_entry=''
+  while IFS= read -r entry; do
+    case "$entry" in
+      /*|..|../*|*/../*|*/..|*\\*)
+        unsafe_entry=$entry
+        break
+        ;;
+    esac
+  done < <(zipinfo -1 -q "$snapshot")
+  if [[ -n "$unsafe_entry" ]]; then
+    log "ZIP rechazado por ruta insegura: $unsafe_entry"
+    mark_state "$REJECTED_FILE" "$sha"
+    exit 2
+  fi
+
+  release_dir="$RELEASES_DIR/ja-automation-$sha"
+  if [[ -d "$release_dir" ]] && release_shape_is_valid "$release_dir"; then
+    log "Se reutiliza la extracción validada $release_dir"
+  else
+    if [[ -e "$release_dir" || -L "$release_dir" ]]; then
+      [[ "$release_dir" == "$RELEASES_DIR"/ja-automation-* ]] || die 'Ruta de release no válida'
+      rm -rf -- "$release_dir"
+    fi
+    local available_kb
+    available_kb=$(df --output=avail "$RELEASES_DIR" | tail -n 1 | tr -d ' ')
+    if [[ -z "$available_kb" || "$available_kb" -lt 5242880 ]]; then
+      die 'Quedan menos de 5 GiB libres para extraer y construir el release'
+    fi
+    staging=$(mktemp -d "$RELEASES_DIR/.incoming.XXXXXX")
+    if ! unzip -q -o "$snapshot" -d "$staging"; then
+      log 'No se pudo extraer el ZIP; se reintentará'
+      exit 2
+    fi
+    local special_entry
+    special_entry=$(find "$staging" -mindepth 1 \( -type l -o \! -type f -a \! -type d \) -print -quit)
+    if [[ -n "$special_entry" ]]; then
+      log "ZIP rechazado por contener un tipo de archivo no permitido: $special_entry"
+      mark_state "$REJECTED_FILE" "$sha"
+      exit 2
+    fi
+    local extracted_root="$staging"
+    if ! release_shape_is_valid "$extracted_root"; then
+      mapfile -t top_directories < <(find "$staging" -mindepth 1 -maxdepth 1 -type d -print)
+      if [[ "${#top_directories[@]}" -eq 1 ]] && release_shape_is_valid "${top_directories[0]}"; then
+        extracted_root=${top_directories[0]}
+      else
+        log 'ZIP rechazado: no contiene un release completo con website y apps/portal'
+        mark_state "$REJECTED_FILE" "$sha"
+        exit 2
+      fi
+    fi
+    mv -- "$extracted_root" "$release_dir"
+    if [[ "$extracted_root" != "$staging" ]]; then
+      rm -rf -- "$staging"
+    fi
+    staging=''
+    chown -R root:root "$release_dir"
+    find "$release_dir" -type d -exec chmod go-w {} +
+    find "$release_dir" -type f -exec chmod go-w {} +
+    log "Release extraído en $release_dir"
+  fi
+
+  old_release=$(readlink -f "$CURRENT_LINK" || true)
+  [[ -d "$old_release" ]] || die "El release actual no existe: $old_release"
+  old_tag=$(read_release_tag)
+  [[ "$old_tag" =~ ^[A-Za-z0-9_.-]+$ ]] || die 'JA_RELEASE_TAG actual inválido o ausente'
+  timestamp=$(date -u +%Y%m%d%H%M%S)
+  new_tag="zip-${sha:0:32}"
+
+  if [[ -f "$DB_PATH" && -f "$old_release/deployment/scripts/backup.mjs" ]]; then
+    log 'Creando backup online antes del reemplazo'
+    env \
+      JA_DATABASE_PATH="$DB_PATH" \
+      JA_DOCUMENT_ROOT="$DOCUMENT_ROOT" \
+      JA_BACKUP_ROOT="$BACKUP_ROOT" \
+      JA_BACKUP_RETENTION_DAYS=30 \
+      "$NODE" "$old_release/deployment/scripts/backup.mjs"
+  fi
+
+  log "Validando Compose del nuevo release ($new_tag)"
+  compose "$release_dir" "$new_tag" config --quiet
+  log 'Construyendo imágenes site y portal; los contenedores actuales siguen atendiendo'
+  compose "$release_dir" "$new_tag" build site portal
+
+  local old_site_container old_portal_container old_site_image old_portal_image rollback_tag
+  old_site_container=$(compose "$old_release" "$old_tag" ps -q site)
+  old_portal_container=$(compose "$old_release" "$old_tag" ps -q portal)
+  [[ -n "$old_site_container" && -n "$old_portal_container" ]] || die 'No se encontraron los contenedores actuales para rollback'
+  old_site_image=$(docker inspect -f '{{.Image}}' "$old_site_container")
+  old_portal_image=$(docker inspect -f '{{.Image}}' "$old_portal_container")
+  rollback_tag="rollback-$timestamp-${sha:0:12}"
+  docker tag "$old_site_image" "ja-automation-site:$rollback_tag"
+  docker tag "$old_portal_image" "ja-automation-portal:$rollback_tag"
+  log "Imágenes anteriores conservadas con etiqueta $rollback_tag"
+
+  rollback_needed=1
+  caddy_backup="$CADDY_SNIPPET.before-zip.$timestamp"
+  cp -a "$CADDY_SNIPPET" "$caddy_backup"
+  install -o root -g root -m 0644 "$release_dir/deployment/Caddyfile.snippet" "$CADDY_SNIPPET"
+  caddy_switched=1
+  caddy validate --config "$CADDYFILE" --adapter caddyfile >/dev/null
+
+  atomic_current_link "$release_dir"
+  update_release_tag "$new_tag"
+  log 'Activando el release con Docker Compose'
+  compose "$release_dir" "$new_tag" up -d --no-build --remove-orphans
+
+  log 'Esperando salud local de site y portal'
+  wait_for_local_health || die 'El nuevo site o portal no alcanzó un estado saludable'
+  systemctl reload caddy
+  log 'Comprobando las dos URLs públicas'
+  verify_public_urls
+
+  rollback_needed=0
+  mark_state "$PROCESSED_FILE" "$sha"
+  log "DESPLIEGUE COMPLETADO: $archive -> $release_dir"
+  log "Web: $PUBLIC_SITE_URL"
+  log "Portal: $PUBLIC_PORTAL_URL"
+  exit 0
+)
+
+if [[ -n "$EXPLICIT_ARCHIVE" ]]; then
+  [[ "$EXPLICIT_ARCHIVE" == "$WATCH_DIR"/*.zip ]] || die "El ZIP explícito debe estar en $WATCH_DIR"
+  [[ -f "$EXPLICIT_ARCHIVE" ]] || die "No existe $EXPLICIT_ARCHIVE"
+  process_archive "$EXPLICIT_ARCHIVE" 1
+  exit $?
+fi
+
+log "Escaneando $WATCH_DIR en busca de un ZIP nuevo"
+archive_found=0
+while IFS= read -r -d '' archive; do
+  archive_found=1
+  if process_archive "$archive" 0; then
+    exit 0
+  else
+    status=$?
+    case "$status" in
+      2) continue ;;
+      *) exit "$status" ;;
+    esac
+  fi
+done < <(find "$WATCH_DIR" -maxdepth 1 -type f -iname '*.zip' -print0 | sort -z)
+
+if [[ "$archive_found" -eq 0 ]]; then
+  log 'No hay archivos .zip nuevos'
+else
+  log 'No hay ZIP listo para desplegar en este ciclo'
+fi
+exit 0

@@ -12,6 +12,25 @@ test('localized public homepage has no horizontal overflow', async ({ page }) =>
   await expect(portalLogin).toHaveAttribute('href', '/j-aautomation/app/login');
 });
 
+test('desktop portal login CTA keeps a white surface and hover motion', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/j-aautomation/en/');
+
+  const portalLogin = page.locator(
+    'nav[aria-label="Main navigation"] a[aria-label="Employee Portal login"]',
+  );
+  await expect(portalLogin).toBeVisible();
+  await expect(portalLogin).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(portalLogin).toHaveCSS('color', 'rgb(10, 12, 15)');
+
+  await portalLogin.hover();
+  await expect(portalLogin).toHaveCSS('background-color', 'rgb(245, 247, 248)');
+  await expect
+    .poll(() => portalLogin.evaluate((element) => getComputedStyle(element).transform))
+    .not.toBe('none');
+});
+
 test('target viewport matrix stays within the canvas', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop');
   const viewports = [

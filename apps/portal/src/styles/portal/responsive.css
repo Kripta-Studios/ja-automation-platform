@@ -566,6 +566,10 @@
   }
 }
 
+.print-only-header {
+  display: none !important;
+}
+
 @media print {
   .skip-link {
     display: none !important;
@@ -614,7 +618,10 @@
     margin-bottom: 2rem;
   }
   .print-only-header img {
+    width: 40px;
+    max-width: 40px;
     height: 40px;
+    object-fit: contain;
     display: block;
     margin-bottom: 0.5rem;
   }

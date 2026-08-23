@@ -9,8 +9,22 @@ COPY packages ./packages
 COPY migrations ./migrations
 COPY deployment ./deployment
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @ja/portal build
-RUN pnpm jobs:build
+RUN env \
+    JA_DATABASE_PATH=/tmp/jaautomation-release-build.sqlite \
+    JA_MIGRATIONS_PATH=/workspace/migrations \
+    JA_TENANT_ID=release-build-tenant \
+    JA_DEPLOYMENT_ID=release-build-deployment \
+    JA_DEPLOYMENT_BINDING_SECRET=release-build-binding-secret-2026-08-client-essential \
+    pnpm --filter @ja/portal build \
+ && rm -f /tmp/jaautomation-release-build.sqlite /tmp/jaautomation-release-build.sqlite-shm /tmp/jaautomation-release-build.sqlite-wal
+RUN env \
+    JA_DATABASE_PATH=/tmp/jaautomation-release-build.sqlite \
+    JA_MIGRATIONS_PATH=/workspace/migrations \
+    JA_TENANT_ID=release-build-tenant \
+    JA_DEPLOYMENT_ID=release-build-deployment \
+    JA_DEPLOYMENT_BINDING_SECRET=release-build-binding-secret-2026-08-client-essential \
+    pnpm jobs:build \
+ && rm -f /tmp/jaautomation-release-build.sqlite /tmp/jaautomation-release-build.sqlite-shm /tmp/jaautomation-release-build.sqlite-wal
 RUN pnpm --filter @ja/portal deploy --prod --legacy /portal
 
 FROM build AS tools

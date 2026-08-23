@@ -198,8 +198,8 @@ try {
     $remoteZipPart = "$zipName.part"
     $checksumName = "$zipName.sha256"
     $remoteChecksumPart = "$checksumName.part"
-    $deployerSource = Join-Path $repositoryRoot 'deployment/scripts/jaautomation-zip-deploy'
-    $installerSource = Join-Path $repositoryRoot 'deployment/scripts/install-jaautomation-zip-deploy.sh'
+    $deployerSource = Join-Path $releaseRoot 'deployment/scripts/jaautomation-zip-deploy'
+    $installerSource = Join-Path $releaseRoot 'deployment/scripts/install-jaautomation-zip-deploy.sh'
     Invoke-Checked -Command scp -Arguments @($deployerSource, "${RemoteHost}:${RemoteDirectory}/jaautomation-zip-deploy")
     Invoke-Checked -Command scp -Arguments @($installerSource, "${RemoteHost}:${RemoteDirectory}/install-jaautomation-zip-deploy.sh")
     Invoke-Checked -Command scp -Arguments @($zipPath, "${RemoteHost}:${RemoteDirectory}/$remoteZipPart")

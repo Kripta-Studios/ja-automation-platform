@@ -1,11 +1,17 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { AccessDeniedError, PortalRepository, createDatabase } from '@ja/database';
 import type { Principal, Role } from '@ja/domain';
+import { installB5TestDeploymentIdentity } from '../fixtures/b5-test-environment.js';
 
 const directories: string[] = [];
+let restoreDeploymentIdentity: (() => void) | undefined;
+beforeAll(() => {
+  restoreDeploymentIdentity = installB5TestDeploymentIdentity();
+});
+afterAll(() => restoreDeploymentIdentity?.());
 afterEach(() =>
   directories.splice(0).forEach((directory) => rmSync(directory, { recursive: true, force: true })),
 );
@@ -44,6 +50,7 @@ describe('V3 operational and billing workflow', () => {
       currency: 'USD',
       timezone: 'America/New_York',
       billingEmail: 'ap@example.com',
+      billingAddress: 'Example Manufacturing billing address',
       paymentTermsDays: 30,
     });
     expect(client.clientNumber).toBe('C-0001');
@@ -212,6 +219,18 @@ describe('V3 operational and billing workflow', () => {
       currency: 'USD',
       effectiveFrom: '2026-08-01',
     });
+    expect(() =>
+      repository.createBillingRule(finance, {
+        projectId: project.id,
+        legalEntityId: entity.id,
+        streamType: 'labor',
+        cadenceType: 'monthly',
+        taxProfileId: laborTax.id,
+        currency: 'USD',
+        effectiveFrom: '2026-08-01',
+        templateId: 'free-text-template',
+      }),
+    ).toThrow(/unsupported invoice template/i);
 
     expect(
       repository.billingReadiness(finance, laborRule.id, '2026-08-03', '2026-08-16').state,
@@ -225,6 +244,15 @@ describe('V3 operational and billing workflow', () => {
     repository.approveInvoiceDraft(finance, laborDraft.id);
     const issuedLabor = repository.issueInvoice(finance, laborDraft.id);
     expect(issuedLabor.invoiceNumber).toBe('JA-US-2026-000001');
+    expect(
+      JSON.parse(
+        (
+          sqlite.prepare('SELECT snapshot_json FROM invoice WHERE id=?').get(laborDraft.id) as {
+            snapshot_json: string;
+          }
+        ).snapshot_json,
+      ).template,
+    ).toMatchObject({ id: 'labor-detailed', version: 1 });
     expect(repository.issueInvoice(finance, laborDraft.id)).toEqual({
       invoiceNumber: issuedLabor.invoiceNumber,
       issued: false,
@@ -239,6 +267,15 @@ describe('V3 operational and billing workflow', () => {
     repository.approveInvoiceDraft(finance, expenseDraft.id);
     const issuedExpense = repository.issueInvoice(finance, expenseDraft.id);
     expect(issuedExpense.invoiceNumber).toBe('JA-US-2026-000002');
+    expect(
+      JSON.parse(
+        (
+          sqlite.prepare('SELECT snapshot_json FROM invoice WHERE id=?').get(expenseDraft.id) as {
+            snapshot_json: string;
+          }
+        ).snapshot_json,
+      ).template,
+    ).toMatchObject({ id: 'expenses-detailed', version: 1 });
     const expenseSources = sqlite
       .prepare("SELECT source_id FROM invoice_source WHERE invoice_id=? AND source_type='expense'")
       .all(expenseDraft.id) as Array<{ source_id: string }>;
@@ -289,6 +326,8 @@ describe('V3 operational and billing workflow', () => {
       displayName: 'Timesheet Client',
       currency: 'USD',
       timezone: 'America/New_York',
+      billingEmail: 'billing-timesheet@example.com',
+      billingAddress: 'Timesheet Client billing address',
     });
     const project = repository.createProject(owner, {
       clientId: client.id,

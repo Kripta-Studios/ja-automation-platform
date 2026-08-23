@@ -7,13 +7,7 @@ import {
   percentageOfEligibleClientLabor,
   type OvertimeMethod,
 } from '@ja/billing-engine';
-import {
-  canManageBilling,
-  canReadRecord,
-  canReviewProject,
-  newId,
-  type Principal,
-} from '@ja/domain';
+import { canManageBilling, canReviewProject, newId, type Principal } from '@ja/domain';
 import {
   applyBasisPoints,
   divideRounded,
@@ -31,20 +25,72 @@ import { recordAuditEvent } from './core/audit.ts';
 import { assertActiveAccount, assertRecentStepUp } from './core/authorization.ts';
 import { assertSafeStorageKey } from './core/storage-key.ts';
 import { runImmediateTransaction } from './core/transaction.ts';
+import { runDueConfiguredDurableJobsSync, type DurableJobExecutionContext } from './runner.ts';
 import {
   TechnicalChangeRepository,
   type TechnicalChangeInput,
 } from './domains/technical-changes/technical-change-repository.ts';
+import {
+  AccountingPackRevisionService,
+  type AccountingPackRevisionResult,
+  type AccountingPackSnapshotInput,
+} from './domains/accounting-pack/index.ts';
 
 export class V3AccessDeniedError extends Error {}
 export class V3ConflictError extends Error {}
 export class V3ValidationError extends Error {}
+export class V3NotFoundError extends Error {}
 
 type DbValue = string | number | bigint | null;
 type OutputValue = DbValue | boolean;
+type SafeStorageKey = string;
 type V3Currency = Currency;
 type ReportLocale = 'en' | 'pt' | 'es';
-type DueJobHandler = (payload: unknown) => void;
+
+export type ReportAttachmentType = 'daily' | 'technical';
+export type ReportAttachmentKind =
+  | 'daily_attachment'
+  | 'technical_attachment'
+  | 'plc_backup_before'
+  | 'plc_backup_after';
+
+export type ReportAttachmentReservationInput = Readonly<{
+  reportType: ReportAttachmentType;
+  reportId: string;
+  attachmentKind: ReportAttachmentKind;
+  originalFilename: string;
+  description?: string;
+  sensitivity?: 'internal' | 'sensitive' | 'customer_private';
+  supersedesDocumentId?: string;
+}>;
+
+export type ReportAttachmentFinalizeInput = Readonly<{
+  sha256: string;
+  mediaType: string;
+  byteLength: number;
+}>;
+
+type ReportAttachmentContext = Readonly<{
+  reportType: ReportAttachmentType;
+  reportId: string;
+  projectId: string;
+  ownerId: string;
+  objectDate: string;
+  approvalState: string;
+  systemReferenceSnapshot: string | null;
+}>;
+type DueJobHandler = (
+  payload: unknown,
+  context: DurableJobExecutionContext,
+) => void | Promise<void> | (() => void);
+export type DocumentScanExecutionProof = Readonly<{
+  jobId: string;
+  runId: string;
+  tenantId: string;
+  deploymentId: string;
+  requiredCapability: string;
+  fenceVersion: number;
+}>;
 type OutboxEvent = Readonly<{
   id: string;
   topic: string;
@@ -57,6 +103,65 @@ type DueOutboxHandler = (event: OutboxEvent) => void | Promise<void>;
 
 const normalizeReportLocale = (value: unknown): ReportLocale =>
   value === 'pt' || value === 'es' ? value : 'en';
+
+type ArtifactClassification =
+  | 'standard'
+  | 'receipt'
+  | 'finance'
+  | 'identity'
+  | 'hr'
+  | 'security'
+  | 'confidential';
+const ARTIFACT_CLASSIFICATIONS: readonly ArtifactClassification[] = [
+  'standard',
+  'receipt',
+  'finance',
+  'identity',
+  'hr',
+  'security',
+  'confidential',
+];
+
+function resolveArtifactClassification(
+  artifactType: string,
+  requested: ArtifactClassification | undefined,
+): ArtifactClassification {
+  const classification = requested ?? (artifactType === 'receipt' ? 'receipt' : 'standard');
+  if (!ARTIFACT_CLASSIFICATIONS.includes(classification))
+    throw new V3ValidationError('Document classification is invalid');
+  return classification;
+}
+
+const B5_JOB_CAPABILITIES: Readonly<Record<string, string>> = Object.freeze({
+  invoice_pdf: 'artifact.invoice.render',
+  period_close_report: 'artifact.report.render',
+  auto_draft: 'billing.draft.generate',
+  accounting_pack_artifact_render: 'artifact.accounting_pack.render',
+  temporary_upload_cleanup: 'storage.temporary.cleanup',
+  localized_pdf_variant_render: 'artifact.localized_pdf.render',
+  document_scan: 'document.scan',
+  outbox_deliver: 'outbox.deliver',
+  alert_dispatch: 'alert.dispatch',
+  email_send: 'email.send',
+  backup_verify: 'backup.verify',
+});
+
+function canonicalJobJson(value: unknown): string {
+  if (value === null || typeof value === 'boolean' || typeof value === 'string')
+    return JSON.stringify(value);
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value))
+      throw new V3ValidationError('Job payload contains a non-finite number');
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) return `[${value.map(canonicalJobJson).join(',')}]`;
+  if (typeof value === 'object')
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJobJson(entry)}`)
+      .join(',')}}`;
+  throw new V3ValidationError('Job payload is not JSON serializable');
+}
 
 type CompensationInput = Readonly<{
   workerId: string;
@@ -158,6 +263,7 @@ type TimeRow = {
   billability_state: string;
   billing_status?: string;
   invoice_id?: string | null;
+  version?: number;
   project_currency: V3Currency;
 };
 
@@ -214,12 +320,47 @@ type SettlementBasis =
   | 'ISSUED_ELIGIBLE_LABOR'
   | 'COLLECTED_ELIGIBLE_LABOR';
 
+const accountingPackExportTypes = ['pdf', 'xlsx', 'invoice_csv', 'expense_csv', 'json'] as const;
+type AccountingPackExportType = (typeof accountingPackExportTypes)[number];
+const requiredAccountingPackExportTypes = [
+  'xlsx',
+  'invoice_csv',
+  'expense_csv',
+] as const satisfies readonly AccountingPackExportType[];
+
 const timestamp = (): string => new Date().toISOString();
 const isoDate = (value: string): boolean =>
   /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`));
 
+/**
+ * A scanner is a release gate only when the application is running in
+ * production and a scanner is actually configured.  Keep this predicate in
+ * one place so reservation finalization and every authorization path cannot
+ * drift into different interpretations of the deployment contract.
+ */
+function malwareScannerRequired(): boolean {
+  return (
+    process.env.NODE_ENV === 'production' &&
+    (process.env.JA_MALWARE_SCANNER_REQUIRED === 'true' ||
+      Boolean(process.env.JA_MALWARE_SCANNER_URL?.trim()))
+  );
+}
+
 function requireDate(value: string, field: string): void {
   if (!isoDate(value)) throw new V3ValidationError(`${field} must be an ISO date`);
+}
+
+function requireDateTime(value: string, field: string): void {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value))
+    throw new V3ValidationError(`${field} must be an RFC3339 UTC timestamp`);
+  if (Number.isNaN(Date.parse(value))) throw new V3ValidationError(`${field} is invalid`);
+}
+
+function shiftIsoDate(value: string, days: number): string {
+  requireDate(value, 'Date');
+  const date = new Date(`${value}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 function requireText(value: string, field: string, max = 5000): string {
@@ -234,6 +375,17 @@ function sqliteInteger(value: bigint, field: string): number {
   return numberValue;
 }
 
+function parseJsonRecord(value: string): Record<string, unknown> {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
 function isPendingApproval(value: string): boolean {
   return value === 'draft' || value === 'submitted' || value === 'needs_changes';
 }
@@ -241,9 +393,11 @@ function isPendingApproval(value: string): boolean {
 export class V3Repository {
   private readonly sqlite: DatabaseSync;
   private readonly technicalChanges: TechnicalChangeRepository;
+  private readonly accountingPackRevisions: AccountingPackRevisionService;
 
   constructor(sqlite: DatabaseSync) {
     this.sqlite = sqlite;
+    this.accountingPackRevisions = new AccountingPackRevisionService(this.sqlite);
     this.technicalChanges = new TechnicalChangeRepository({
       sqlite: this.sqlite,
       transaction: <T>(work: () => T): T => this.transaction(work),
@@ -264,8 +418,257 @@ export class V3Repository {
     });
   }
 
+  /**
+   * Creates the immutable B6 Accounting Pack revision used by localized PDF
+   * variants.  The legacy `createAccountingPack` method remains available for
+   * the compatibility UI; new callers should use this canonical projection.
+   */
+  createCanonicalAccountingPackRevision(
+    principal: Principal,
+    input: AccountingPackSnapshotInput,
+  ): AccountingPackRevisionResult {
+    return this.accountingPackRevisions.createCanonicalRevision(principal, input);
+  }
+
+  /**
+   * Compatibility spelling for callers that use the domain operation name.
+   * Both entry points delegate to the same immutable revision service.
+   */
+  createAccountingPackRevision(
+    principal: Principal,
+    input: AccountingPackSnapshotInput,
+  ): AccountingPackRevisionResult {
+    return this.accountingPackRevisions.createCanonicalRevision(principal, input);
+  }
+
   private transaction<T>(work: () => T): T {
     return runImmediateTransaction(this.sqlite, 'v3', work);
+  }
+
+  private ensureFinanceEvidence(
+    evidenceType: 'finance_request' | 'finance_command' | 'payment_reversal',
+    contractVersion: string,
+    semanticId: string,
+    value: unknown,
+    createdAt: string,
+  ): { id: string; hash: string } {
+    const canonical = canonicalJobJson(value);
+    const blob = Buffer.from(canonical);
+    const hash = createHash('sha256').update(blob).digest('hex');
+    const id = `finance-evidence-${hash.slice(0, 48)}`;
+    const semanticOwner = this.sqlite
+      .prepare(
+        `SELECT evidence_id,evidence_hash,canonical_blob FROM finance_hash_evidence
+         WHERE evidence_type=? AND contract_version=? AND semantic_id=?`,
+      )
+      .get(evidenceType, contractVersion, semanticId) as
+      | { evidence_id: string; evidence_hash: string; canonical_blob: Uint8Array }
+      | undefined;
+    if (semanticOwner) {
+      if (
+        semanticOwner.evidence_hash !== hash ||
+        !Buffer.from(semanticOwner.canonical_blob).equals(blob)
+      )
+        throw new V3ConflictError('Finance evidence semantic identity conflict');
+      return { id: semanticOwner.evidence_id, hash };
+    }
+    const existing = this.sqlite
+      .prepare(
+        `SELECT evidence_type,contract_version,semantic_id,canonical_blob,evidence_hash
+         FROM finance_hash_evidence WHERE evidence_id=?`,
+      )
+      .get(id) as
+      | {
+          evidence_type: string;
+          contract_version: string;
+          semantic_id: string;
+          canonical_blob: Uint8Array;
+          evidence_hash: string;
+        }
+      | undefined;
+    if (existing) {
+      if (
+        existing.evidence_type !== evidenceType ||
+        existing.contract_version !== contractVersion ||
+        existing.semantic_id !== semanticId ||
+        existing.evidence_hash !== hash ||
+        !Buffer.from(existing.canonical_blob).equals(blob)
+      )
+        throw new V3ConflictError('Finance evidence identity conflict');
+      return { id, hash };
+    }
+    this.sqlite
+      .prepare(
+        `INSERT INTO finance_hash_evidence(
+           evidence_id,evidence_type,contract_version,semantic_id,canonical_blob,evidence_hash,created_at
+         ) VALUES(?,?,?,?,?,?,?)`,
+      )
+      .run(id, evidenceType, contractVersion, semanticId, blob, hash, createdAt);
+    return { id, hash };
+  }
+
+  private ensurePaymentReversalCommand(
+    principal: Principal,
+    descriptor: Readonly<{
+      paymentId: string;
+      invoiceId: string;
+      currency: V3Currency;
+      amountMinor: bigint;
+      effectiveAt: string;
+      reasonCode: string;
+      reasonText: string;
+      idempotencyKey: string;
+      createdAt: string;
+    }>,
+  ): { commandId: string; created: boolean } {
+    const identity = this.sqlite
+      .prepare('SELECT tenant_id,deployment_id FROM deployment_identity WHERE singleton=1')
+      .get() as { tenant_id: string; deployment_id: string } | undefined;
+    if (!identity) throw new V3ValidationError('Deployment identity is not configured');
+    const payload = {
+      schema_version: 'invoice-payment-reversal-v1',
+      original_payment_id: descriptor.paymentId,
+      invoice_id: descriptor.invoiceId,
+      currency: descriptor.currency,
+      amount_minor: descriptor.amountMinor.toString(),
+      effective_at: descriptor.effectiveAt,
+      reason_code: descriptor.reasonCode,
+      reason_text: descriptor.reasonText,
+    };
+    const payloadHash = createHash('sha256').update(canonicalJobJson(payload)).digest('hex');
+    const sessionHash = createHash('sha256')
+      .update(principal.sessionId ?? `interactive:${principal.userId}`)
+      .digest('hex');
+    const targetSemanticId = `payment-reversal:${descriptor.paymentId}:${createHash('sha256')
+      .update(descriptor.idempotencyKey)
+      .digest('hex')}`;
+    const requestValue = {
+      schema_version: 'finance-command-request-v1',
+      tenant_id: identity.tenant_id,
+      deployment_id: identity.deployment_id,
+      operation: 'payment.reverse',
+      idempotency_key: descriptor.idempotencyKey,
+      principal_id: principal.userId,
+      effective_at: descriptor.effectiveAt,
+      target_kind: 'invoice_payment_reversal',
+      target_semantic_id: targetSemanticId,
+      amount_minor: descriptor.amountMinor.toString(),
+      currency: descriptor.currency,
+      payload_hash: payloadHash,
+      session_id_hash: sessionHash,
+    };
+    const request = this.ensureFinanceEvidence(
+      'finance_request',
+      'finance-command-request-v1',
+      `payment-reversal-request:${identity.tenant_id}:${identity.deployment_id}:${descriptor.idempotencyKey}`,
+      requestValue,
+      descriptor.createdAt,
+    );
+    const commandValue = {
+      schema_version: 'finance-command-v1',
+      request_hash: request.hash,
+      operation: 'payment.reverse',
+      target_kind: 'invoice_payment_reversal',
+      target_semantic_id: targetSemanticId,
+      target_contract_version: 'invoice-payment-reversal-v1',
+      payload_hash: payloadHash,
+    };
+    const commandEvidence = this.ensureFinanceEvidence(
+      'finance_command',
+      'finance-command-v1',
+      `payment-reversal-command:${identity.tenant_id}:${identity.deployment_id}:${descriptor.idempotencyKey}`,
+      commandValue,
+      descriptor.createdAt,
+    );
+    const commandId = `finance-command-${commandEvidence.hash.slice(0, 48)}`;
+    const existing = this.sqlite
+      .prepare(
+        `SELECT command_id,request_hash,command_hash,principal_id,effective_at,target_semantic_id,
+                amount_minor,currency,payload_hash,session_id_hash,state
+         FROM finance_command
+         WHERE tenant_id=? AND deployment_id=? AND operation='payment.reverse' AND idempotency_key=?`,
+      )
+      .get(identity.tenant_id, identity.deployment_id, descriptor.idempotencyKey) as
+      | {
+          command_id: string;
+          request_hash: string;
+          command_hash: string;
+          principal_id: string;
+          effective_at: string;
+          target_semantic_id: string;
+          amount_minor: number;
+          currency: string;
+          payload_hash: string;
+          session_id_hash: string;
+          state: string;
+        }
+      | undefined;
+    if (existing) {
+      if (
+        existing.request_hash !== request.hash ||
+        existing.command_hash !== commandEvidence.hash ||
+        existing.principal_id !== principal.userId ||
+        existing.effective_at !== descriptor.effectiveAt ||
+        existing.target_semantic_id !== targetSemanticId ||
+        existing.amount_minor !== sqliteInteger(descriptor.amountMinor, 'Payment reversal') ||
+        existing.currency !== descriptor.currency ||
+        existing.payload_hash !== payloadHash ||
+        existing.session_id_hash !== sessionHash ||
+        existing.state !== 'completed'
+      )
+        throw new V3ConflictError(
+          'Payment reversal idempotency key was already used for another command',
+        );
+      return { commandId: existing.command_id, created: false };
+    }
+    const session = principal.sessionId
+      ? (this.sqlite
+          .prepare('SELECT step_up_at FROM session WHERE id=? AND user_id=?')
+          .get(principal.sessionId, principal.userId) as { step_up_at: string | null } | undefined)
+      : undefined;
+    const stepUpAt = session?.step_up_at ?? null;
+    const stepUpExpiresAt = stepUpAt
+      ? new Date(Date.parse(stepUpAt) + 10 * 60_000).toISOString()
+      : null;
+    this.sqlite
+      .prepare(
+        `INSERT INTO finance_command(
+           command_id,request_hash,command_hash,tenant_id,deployment_id,operation,idempotency_key,
+           principal_id,effective_at,target_kind,target_semantic_id,amount_minor,currency,payload_hash,
+           session_id_hash,step_up_verified_at,step_up_expires_at,policy_revision_id,policy_hash,
+           state,completed_at,created_at
+         ) VALUES(?,?,?,?,?,'payment.reverse',?,?,?,?,?,?,?,?,?,?,?,?,?,'completed',?,?)`,
+      )
+      .run(
+        commandId,
+        request.hash,
+        commandEvidence.hash,
+        identity.tenant_id,
+        identity.deployment_id,
+        descriptor.idempotencyKey,
+        principal.userId,
+        descriptor.effectiveAt,
+        'invoice_payment_reversal',
+        targetSemanticId,
+        sqliteInteger(descriptor.amountMinor, 'Payment reversal'),
+        descriptor.currency,
+        payloadHash,
+        sessionHash,
+        stepUpAt,
+        stepUpExpiresAt,
+        null,
+        null,
+        descriptor.createdAt,
+        descriptor.createdAt,
+      );
+    this.sqlite
+      .prepare(
+        `INSERT INTO finance_command_target(
+           command_id,target_kind,target_semantic_id,target_contract_version
+         ) VALUES(?,?,?,'invoice-payment-reversal-v1')`,
+      )
+      .run(commandId, 'invoice_payment_reversal', targetSemanticId);
+    return { commandId, created: true };
   }
 
   private assertActive(principal: Principal): void {
@@ -298,6 +701,46 @@ export class V3Repository {
     if (allowAuditor && principal.role === 'auditor_read_only') return;
     if (!principal.projectIds.has(projectId))
       throw new V3AccessDeniedError('Project access required');
+    const current = new Date().toISOString().slice(0, 10);
+    const assignment = this.sqlite
+      .prepare(
+        "SELECT 1 FROM project_member WHERE project_id=? AND user_id=? AND status='active' AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?) LIMIT 1",
+      )
+      .get(projectId, principal.userId, current, current);
+    if (!assignment) throw new V3AccessDeniedError('Project access required');
+  }
+
+  private assertActiveLaborWorker(workerId: string): void {
+    const worker = this.sqlite.prepare('SELECT role,status FROM user WHERE id=?').get(workerId) as
+      | { role: string; status: string }
+      | undefined;
+    if (
+      !worker ||
+      worker.status !== 'active' ||
+      (worker.role !== 'worker' && worker.role !== 'project_manager')
+    )
+      throw new V3ValidationError('Active worker or project manager account required');
+  }
+
+  private assertWorkerProjectMembership(
+    workerId: string,
+    projectId: string,
+    startsOn: string,
+    endsOn: string = startsOn,
+  ): void {
+    const assignment = this.sqlite
+      .prepare(
+        `SELECT 1
+         FROM project_member pm
+         JOIN user u ON u.id=pm.user_id
+         WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active'
+           AND u.status='active' AND u.role IN ('worker','project_manager')
+           AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
+         LIMIT 1`,
+      )
+      .get(projectId, workerId, startsOn, endsOn);
+    if (!assignment)
+      throw new V3ValidationError('Worker is not assigned to the project for the effective period');
   }
 
   private assertOfflineAssignment(
@@ -335,6 +778,7 @@ export class V3Repository {
       if (input.effectiveTo < input.effectiveFrom)
         throw new V3ValidationError('End date must follow the effective date');
     }
+    this.assertActiveLaborWorker(input.workerId);
     if (input.ruleType === 'PercentageOfEligibleClientLabor') {
       if (
         !Number.isInteger(input.percentageBps) ||
@@ -386,12 +830,14 @@ export class V3Repository {
       input.percentageBps === undefined
     )
       throw new V3ValidationError('Overtime percentage basis points are required');
-    const worker = this.sqlite
-      .prepare("SELECT 1 FROM user WHERE id=? AND status IN ('active','invited')")
-      .get(input.workerId);
-    if (!worker) throw new V3ValidationError('Worker not found');
     if (input.projectId) {
       this.assertProjectAccess(principal, input.projectId);
+      this.assertWorkerProjectMembership(
+        input.workerId,
+        input.projectId,
+        input.effectiveFrom,
+        input.effectiveTo ?? input.effectiveFrom,
+      );
       const project = this.sqlite
         .prepare('SELECT currency FROM project WHERE id=?')
         .get(input.projectId) as { currency: V3Currency } | undefined;
@@ -573,6 +1019,7 @@ export class V3Repository {
   createInternalCostRule(principal: Principal, input: InternalCostInput): { id: string } {
     this.assertFinance(principal);
     this.assertStepUp(principal);
+    this.assertActiveLaborWorker(input.workerId);
     if (input.projectId) this.assertProjectAccess(principal, input.projectId);
     requireDate(input.effectiveFrom, 'Effective date');
     if (input.effectiveTo) {
@@ -590,6 +1037,12 @@ export class V3Repository {
     if (input.overtimeMethod === 'FIXED_ADDITION_PER_HOUR' && input.overtimeRateMinor === undefined)
       throw new V3ValidationError('An internal overtime addition is required');
     if (input.projectId) {
+      this.assertWorkerProjectMembership(
+        input.workerId,
+        input.projectId,
+        input.effectiveFrom,
+        input.effectiveTo ?? input.effectiveFrom,
+      );
       const project = this.sqlite
         .prepare('SELECT currency FROM project WHERE id=?')
         .get(input.projectId) as { currency: V3Currency } | undefined;
@@ -630,6 +1083,276 @@ export class V3Repository {
       projectId: input.projectId ?? null,
     });
     return { id };
+  }
+
+  listCompensationRules(principal: Principal, projectId?: string) {
+    this.assertFinanceReadable(principal);
+    if (projectId) this.assertProjectAccess(principal, projectId, true);
+    const rows = this.sqlite
+      .prepare(
+        `SELECT cr.*,u.name worker_name,p.project_number,p.name project_name
+         FROM compensation_rule cr
+         JOIN user u ON u.id=cr.worker_id
+         LEFT JOIN project p ON p.id=cr.project_id
+         ${projectId ? 'WHERE cr.project_id=?' : ''}
+         ORDER BY cr.effective_from DESC,cr.id`,
+      )
+      .all(...(projectId ? [projectId] : []));
+    return rows;
+  }
+
+  listClientLaborRates(principal: Principal, projectId?: string) {
+    this.assertFinanceReadable(principal);
+    if (projectId) this.assertProjectAccess(principal, projectId, true);
+    return this.sqlite
+      .prepare(
+        `SELECT clr.*,p.project_number,p.name project_name,u.name worker_name
+         FROM client_labor_rate clr
+         JOIN project p ON p.id=clr.project_id
+         LEFT JOIN user u ON u.id=clr.worker_id
+         ${projectId ? 'WHERE clr.project_id=?' : ''}
+         ORDER BY clr.effective_from DESC,clr.id`,
+      )
+      .all(...(projectId ? [projectId] : []));
+  }
+
+  listInternalCostRules(principal: Principal, projectId?: string) {
+    this.assertFinanceReadable(principal);
+    if (projectId) this.assertProjectAccess(principal, projectId, true);
+    return this.sqlite
+      .prepare(
+        `SELECT ic.*,u.name worker_name,p.project_number,p.name project_name
+         FROM internal_cost_rule ic
+         JOIN user u ON u.id=ic.worker_id
+         LEFT JOIN project p ON p.id=ic.project_id
+         ${projectId ? 'WHERE ic.project_id=?' : ''}
+         ORDER BY ic.effective_from DESC,ic.id`,
+      )
+      .all(...(projectId ? [projectId] : []));
+  }
+
+  /**
+   * Create a successor rule while closing the old effective-dated interval.
+   * The old row and any settlements that reference it remain untouched.
+   */
+  supersedeCompensationRule(
+    principal: Principal,
+    ruleId: string,
+    input: CompensationInput,
+  ): { id: string; previousId: string } {
+    this.assertFinance(principal);
+    this.assertStepUp(principal);
+    const existing = this.sqlite
+      .prepare(
+        'SELECT worker_id,project_id,effective_from,effective_to FROM compensation_rule WHERE id=?',
+      )
+      .get(ruleId) as
+      | {
+          worker_id: string;
+          project_id: string | null;
+          effective_from: string;
+          effective_to: string | null;
+        }
+      | undefined;
+    if (!existing) throw new V3ValidationError('Compensation rule not found');
+    if (input.workerId !== existing.worker_id)
+      throw new V3ValidationError('A successor must keep the same worker');
+    const successorProject = input.projectId ?? existing.project_id ?? undefined;
+    if ((successorProject ?? null) !== existing.project_id)
+      throw new V3ValidationError('A successor must keep the same project scope');
+    requireDate(input.effectiveFrom, 'Effective date');
+    if (input.effectiveFrom <= existing.effective_from)
+      throw new V3ValidationError('Successor effective date must follow the existing rule');
+    if (existing.effective_to && existing.effective_to < input.effectiveFrom)
+      throw new V3ConflictError('Compensation rule is already closed for that date');
+    const closeDate = shiftIsoDate(input.effectiveFrom, -1);
+    return this.transaction(() => {
+      const closed = this.sqlite
+        .prepare(
+          'UPDATE compensation_rule SET effective_to=?,updated_at=?,version=version+1 WHERE id=? AND (effective_to IS NULL OR effective_to>=?)',
+        )
+        .run(closeDate, timestamp(), ruleId, closeDate);
+      if (closed.changes !== 1)
+        throw new V3ConflictError('Compensation rule changed while superseding');
+      const created = this.createCompensationRule(principal, {
+        ...input,
+        projectId: successorProject,
+      });
+      this.audit(principal, 'compensation_rule.supersede', 'compensation_rule', created.id, {
+        previousId: ruleId,
+      });
+      return { id: created.id, previousId: ruleId };
+    });
+  }
+
+  deactivateCompensationRule(
+    principal: Principal,
+    ruleId: string,
+    effectiveTo = new Date().toISOString().slice(0, 10),
+  ): void {
+    this.assertFinance(principal);
+    this.assertStepUp(principal);
+    requireDate(effectiveTo, 'End date');
+    this.transaction(() => {
+      const existing = this.sqlite
+        .prepare('SELECT project_id,effective_from FROM compensation_rule WHERE id=?')
+        .get(ruleId) as { project_id: string | null; effective_from: string } | undefined;
+      if (!existing) throw new V3ValidationError('Compensation rule not found');
+      if (existing.project_id) this.assertProjectAccess(principal, existing.project_id);
+      if (effectiveTo < existing.effective_from)
+        throw new V3ValidationError('End date must follow the effective date');
+      const result = this.sqlite
+        .prepare(
+          'UPDATE compensation_rule SET effective_to=?,updated_at=?,version=version+1 WHERE id=? AND (effective_to IS NULL OR effective_to>?)',
+        )
+        .run(effectiveTo, timestamp(), ruleId, effectiveTo);
+      if (result.changes !== 1) throw new V3ConflictError('Compensation rule is already inactive');
+      this.audit(principal, 'compensation_rule.deactivate', 'compensation_rule', ruleId, {
+        effectiveTo,
+      });
+    });
+  }
+
+  supersedeClientLaborRate(
+    principal: Principal,
+    ruleId: string,
+    input: LaborRateInput,
+  ): { id: string; previousId: string } {
+    this.assertFinance(principal);
+    this.assertStepUp(principal);
+    const existing = this.sqlite
+      .prepare(
+        'SELECT project_id,worker_id,effective_from,effective_to FROM client_labor_rate WHERE id=?',
+      )
+      .get(ruleId) as
+      | {
+          project_id: string;
+          worker_id: string | null;
+          effective_from: string;
+          effective_to: string | null;
+        }
+      | undefined;
+    if (!existing) throw new V3ValidationError('Client labor rate not found');
+    if (input.projectId !== existing.project_id || (input.workerId ?? null) !== existing.worker_id)
+      throw new V3ValidationError('A successor must keep the same client-rate scope');
+    requireDate(input.effectiveFrom, 'Effective date');
+    if (input.effectiveFrom <= existing.effective_from)
+      throw new V3ValidationError('Successor effective date must follow the existing rate');
+    if (existing.effective_to && existing.effective_to < input.effectiveFrom)
+      throw new V3ConflictError('Client labor rate is already closed for that date');
+    const closeDate = shiftIsoDate(input.effectiveFrom, -1);
+    return this.transaction(() => {
+      const closed = this.sqlite
+        .prepare(
+          'UPDATE client_labor_rate SET effective_to=?,updated_at=?,version=version+1 WHERE id=? AND (effective_to IS NULL OR effective_to>=?)',
+        )
+        .run(closeDate, timestamp(), ruleId, closeDate);
+      if (closed.changes !== 1)
+        throw new V3ConflictError('Client labor rate changed while superseding');
+      const created = this.createClientLaborRate(principal, input);
+      this.audit(principal, 'client_rate.supersede', 'client_labor_rate', created.id, {
+        previousId: ruleId,
+      });
+      return { id: created.id, previousId: ruleId };
+    });
+  }
+
+  deactivateClientLaborRate(
+    principal: Principal,
+    ruleId: string,
+    effectiveTo = new Date().toISOString().slice(0, 10),
+  ): void {
+    this.assertFinance(principal);
+    this.assertStepUp(principal);
+    requireDate(effectiveTo, 'End date');
+    this.transaction(() => {
+      const existing = this.sqlite
+        .prepare('SELECT project_id,effective_from FROM client_labor_rate WHERE id=?')
+        .get(ruleId) as { project_id: string; effective_from: string } | undefined;
+      if (!existing) throw new V3ValidationError('Client labor rate not found');
+      this.assertProjectAccess(principal, existing.project_id);
+      if (effectiveTo < existing.effective_from)
+        throw new V3ValidationError('End date must follow the effective date');
+      const result = this.sqlite
+        .prepare(
+          'UPDATE client_labor_rate SET effective_to=?,updated_at=?,version=version+1 WHERE id=? AND (effective_to IS NULL OR effective_to>?)',
+        )
+        .run(effectiveTo, timestamp(), ruleId, effectiveTo);
+      if (result.changes !== 1) throw new V3ConflictError('Client labor rate is already inactive');
+      this.audit(principal, 'client_rate.deactivate', 'client_labor_rate', ruleId, { effectiveTo });
+    });
+  }
+
+  supersedeInternalCostRule(
+    principal: Principal,
+    ruleId: string,
+    input: InternalCostInput,
+  ): { id: string; previousId: string } {
+    this.assertFinance(principal);
+    this.assertStepUp(principal);
+    const existing = this.sqlite
+      .prepare(
+        'SELECT worker_id,project_id,effective_from,effective_to FROM internal_cost_rule WHERE id=?',
+      )
+      .get(ruleId) as
+      | {
+          worker_id: string;
+          project_id: string | null;
+          effective_from: string;
+          effective_to: string | null;
+        }
+      | undefined;
+    if (!existing) throw new V3ValidationError('Internal cost rule not found');
+    if (input.workerId !== existing.worker_id || (input.projectId ?? null) !== existing.project_id)
+      throw new V3ValidationError('A successor must keep the same internal-cost scope');
+    requireDate(input.effectiveFrom, 'Effective date');
+    if (input.effectiveFrom <= existing.effective_from)
+      throw new V3ValidationError('Successor effective date must follow the existing rule');
+    if (existing.effective_to && existing.effective_to < input.effectiveFrom)
+      throw new V3ConflictError('Internal cost rule is already closed for that date');
+    const closeDate = shiftIsoDate(input.effectiveFrom, -1);
+    return this.transaction(() => {
+      const closed = this.sqlite
+        .prepare(
+          'UPDATE internal_cost_rule SET effective_to=?,updated_at=?,version=version+1 WHERE id=? AND (effective_to IS NULL OR effective_to>=?)',
+        )
+        .run(closeDate, timestamp(), ruleId, closeDate);
+      if (closed.changes !== 1)
+        throw new V3ConflictError('Internal cost rule changed while superseding');
+      const created = this.createInternalCostRule(principal, input);
+      this.audit(principal, 'internal_cost.supersede', 'internal_cost_rule', created.id, {
+        previousId: ruleId,
+      });
+      return { id: created.id, previousId: ruleId };
+    });
+  }
+
+  deactivateInternalCostRule(
+    principal: Principal,
+    ruleId: string,
+    effectiveTo = new Date().toISOString().slice(0, 10),
+  ): void {
+    this.assertFinance(principal);
+    this.assertStepUp(principal);
+    requireDate(effectiveTo, 'End date');
+    this.transaction(() => {
+      const existing = this.sqlite
+        .prepare('SELECT project_id,effective_from FROM internal_cost_rule WHERE id=?')
+        .get(ruleId) as { project_id: string | null; effective_from: string } | undefined;
+      if (!existing) throw new V3ValidationError('Internal cost rule not found');
+      if (existing.project_id) this.assertProjectAccess(principal, existing.project_id);
+      if (effectiveTo < existing.effective_from)
+        throw new V3ValidationError('End date must follow the effective date');
+      const result = this.sqlite
+        .prepare(
+          'UPDATE internal_cost_rule SET effective_to=?,updated_at=?,version=version+1 WHERE id=? AND (effective_to IS NULL OR effective_to>?)',
+        )
+        .run(effectiveTo, timestamp(), ruleId, effectiveTo);
+      if (result.changes !== 1) throw new V3ConflictError('Internal cost rule is already inactive');
+      this.audit(principal, 'internal_cost.deactivate', 'internal_cost_rule', ruleId, {
+        effectiveTo,
+      });
+    });
   }
 
   createAssignmentRateOverride(principal: Principal, input: OverrideInput): { id: string } {
@@ -1085,18 +1808,13 @@ export class V3Repository {
     requireDate(input.periodEnd, 'Period end');
     if (input.periodEnd < input.periodStart)
       throw new V3ValidationError('Period end must follow start');
-    const worker = this.sqlite
-      .prepare("SELECT 1 FROM user WHERE id=? AND status='active'")
-      .get(input.workerId);
-    if (!worker) throw new V3ValidationError('Active worker not found');
-    if (
-      !this.sqlite
-        .prepare(
-          "SELECT 1 FROM project_member WHERE project_id=? AND user_id=? AND status='active' AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?)",
-        )
-        .get(input.projectId, input.workerId, input.periodEnd, input.periodStart)
-    )
-      throw new V3ValidationError('Worker is not assigned to the project for this period');
+    this.assertActiveLaborWorker(input.workerId);
+    this.assertWorkerProjectMembership(
+      input.workerId,
+      input.projectId,
+      input.periodStart,
+      input.periodEnd,
+    );
     const rows = this.sqlite
       .prepare(
         `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
@@ -1269,11 +1987,46 @@ export class V3Repository {
       for (const [ruleId, value] of consolidated) {
         const existing = this.sqlite
           .prepare(
-            'SELECT id FROM compensation_settlement WHERE worker_id=? AND project_id=? AND compensation_rule_id=? AND period_start=? AND period_end=?',
+            `SELECT id,source_basis,source_amount_minor,percentage_bps,amount_minor,currency,state
+             FROM compensation_settlement
+             WHERE worker_id=? AND project_id=? AND compensation_rule_id=? AND period_start=? AND period_end=?`,
           )
           .get(input.workerId, input.projectId, ruleId, input.periodStart, input.periodEnd) as
-          | { id: string }
+          | {
+              id: string;
+              source_basis: string;
+              source_amount_minor: number;
+              percentage_bps: number | null;
+              amount_minor: number;
+              currency: V3Currency;
+              state: string;
+            }
           | undefined;
+        const sourceBasis = value.rule.percentage_basis ?? 'APPROVED_TIME';
+        const percentageBps = value.rule.percentage_bps ?? null;
+        if (existing?.state === 'settled') {
+          const semanticallyIdentical =
+            existing.source_basis === sourceBasis &&
+            String(existing.source_amount_minor) === value.sourceAmount.toString() &&
+            existing.percentage_bps === percentageBps &&
+            String(existing.amount_minor) === value.amount.toString() &&
+            existing.currency === value.currency;
+          if (!semanticallyIdentical)
+            throw new V3ConflictError(
+              `Settlement ${existing.id} is already settled with different final truth`,
+            );
+          // A retry with the same semantic payload is idempotent. Preserve the
+          // original settled row, including its settled_at and audit history.
+          settlements.push({
+            id: existing.id,
+            ruleId,
+            amountMinor: String(existing.amount_minor),
+            sourceAmountMinor: String(existing.source_amount_minor),
+            currency: existing.currency,
+            state: existing.state,
+          });
+          continue;
+        }
         const id = existing?.id ?? newId();
         this.sqlite
           .prepare(
@@ -1295,9 +2048,9 @@ export class V3Repository {
             ruleId,
             input.periodStart,
             input.periodEnd,
-            value.rule.percentage_basis ?? 'APPROVED_TIME',
+            sourceBasis,
             sqliteInteger(value.sourceAmount, 'Settlement source'),
-            value.rule.percentage_bps ?? null,
+            percentageBps,
             sqliteInteger(value.amount, 'Settlement amount'),
             value.currency,
             'settled',
@@ -1339,9 +2092,7 @@ export class V3Repository {
     if (basis === 'ISSUED_ELIGIBLE_LABOR' || basis === 'COLLECTED_ELIGIBLE_LABOR') {
       const invoiceRows = this.sqlite
         .prepare(
-          `SELECT i.id,i.subtotal_minor,i.total_minor,
-                  COALESCE((SELECT sum(amount_minor) FROM payment WHERE invoice_id=i.id),0) paid,
-                  il.subtotal_minor line_subtotal
+          `SELECT i.id,i.total_minor,il.subtotal_minor line_subtotal
            FROM invoice_source s
            JOIN invoice i ON i.id=s.invoice_id
            JOIN invoice_line il ON il.invoice_id=i.id AND il.source_type='time' AND il.source_id=s.source_id
@@ -1349,20 +2100,23 @@ export class V3Repository {
              AND i.state IN ('issued','sent','partially_paid','paid','overdue')`,
         )
         .all(row.id) as Array<{
-        subtotal_minor: number;
+        id: string;
         total_minor: number;
-        paid: number;
         line_subtotal: number;
       }>;
       const issued = invoiceRows.reduce((sum, invoice) => sum + BigInt(invoice.line_subtotal), 0n);
       if (basis === 'ISSUED_ELIGIBLE_LABOR') return issued;
       return invoiceRows.reduce((sum, invoice) => {
-        if (invoice.subtotal_minor <= 0) return sum;
+        if (invoice.total_minor <= 0) return sum;
+        const netCollected = this.invoiceCollectionTotals(invoice.id).netCollected;
+        if (netCollected <= 0n) return sum;
+        const collectionBasis =
+          netCollected > BigInt(invoice.total_minor) ? BigInt(invoice.total_minor) : netCollected;
         return (
           sum +
           divideRounded(
-            BigInt(invoice.line_subtotal) * BigInt(invoice.paid),
-            BigInt(invoice.subtotal_minor),
+            BigInt(invoice.line_subtotal) * collectionBasis,
+            BigInt(invoice.total_minor),
           )
         );
       }, 0n);
@@ -1522,12 +2276,13 @@ export class V3Repository {
     const rows = this.sqlite
       .prepare(
         `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,t.approval_state,
-                t.billability_state,p.currency project_currency
-         FROM time_entry t JOIN project p ON p.id=t.project_id
-         JOIN project_member pm ON pm.project_id=t.project_id AND pm.user_id=t.worker_id
-         WHERE t.worker_id=? AND t.work_date BETWEEN ? AND ? AND pm.status='active'
-           AND t.approval_state NOT IN ('rejected')
-         ORDER BY t.work_date,t.id`,
+                 t.billability_state,p.currency project_currency
+          FROM time_entry t JOIN project p ON p.id=t.project_id
+          JOIN project_member pm ON pm.project_id=t.project_id AND pm.user_id=t.worker_id
+          WHERE t.worker_id=? AND t.work_date BETWEEN ? AND ? AND pm.status='active'
+            AND pm.starts_on<=t.work_date AND (pm.ends_on IS NULL OR pm.ends_on>=t.work_date)
+            AND t.approval_state NOT IN ('rejected','void')
+          ORDER BY t.work_date,t.id`,
       )
       .all(principal.userId, periodStart, periodEnd) as TimeRow[];
     const currency = rows[0]?.project_currency ?? 'USD';
@@ -1545,17 +2300,26 @@ export class V3Repository {
     const pendingByProject = new Map<string, bigint>();
     const dailyRules = new Map<
       string,
-      { rule: CompensationRuleRow; approved: boolean; pending: boolean }
+      { rule: CompensationRuleRow; projectId: string; approved: boolean; pending: boolean }
     >();
     const fixedRules = new Map<
       string,
-      { rule: CompensationRuleRow; approved: boolean; pending: boolean }
+      { rule: CompensationRuleRow; projectId: string; approved: boolean; pending: boolean }
     >();
     const dailyGuarantees = new Map<
       string,
-      { rule: CompensationRuleRow; approvedMinutes: number; pendingMinutes: number }
+      {
+        rule: CompensationRuleRow;
+        projectId: string;
+        approvedMinutes: number;
+        pendingMinutes: number;
+      }
     >();
     const projectIds = new Set<string>();
+    const addProjectAmount = (target: Map<string, bigint>, projectId: string, amount: bigint) => {
+      if (amount === 0n) return;
+      target.set(projectId, (target.get(projectId) ?? 0n) + amount);
+    };
     for (const row of rows) {
       projectIds.add(row.project_id);
       const rule = this.compensationRuleFor(
@@ -1584,7 +2348,12 @@ export class V3Repository {
       const amount = this.compensationAmount(row, rule, usableClientRate);
       if (rule?.rule_type === 'Daily' || rule?.rate_basis === 'daily') {
         const key = `${row.project_id}:${row.work_date}:${rule.id}`;
-        const existing = dailyRules.get(key) ?? { rule, approved: false, pending: false };
+        const existing = dailyRules.get(key) ?? {
+          rule,
+          projectId: row.project_id,
+          approved: false,
+          pending: false,
+        };
         if (row.approval_state === 'approved' || row.approval_state === 'locked')
           existing.approved = true;
         else if (isPendingApproval(row.approval_state)) existing.pending = true;
@@ -1595,7 +2364,12 @@ export class V3Repository {
         rule?.rule_type === 'CustomApprovedAdjustment'
       ) {
         const key = `${row.project_id}:${rule.id}`;
-        const existing = fixedRules.get(key) ?? { rule, approved: false, pending: false };
+        const existing = fixedRules.get(key) ?? {
+          rule,
+          projectId: row.project_id,
+          approved: false,
+          pending: false,
+        };
         if (row.approval_state === 'approved' || row.approval_state === 'locked')
           existing.approved = true;
         else if (isPendingApproval(row.approval_state)) existing.pending = true;
@@ -1609,6 +2383,7 @@ export class V3Repository {
         const key = `${row.project_id}:${row.work_date}:${rule.id}`;
         const existing = dailyGuarantees.get(key) ?? {
           rule,
+          projectId: row.project_id,
           approvedMinutes: 0,
           pendingMinutes: 0,
         };
@@ -1630,15 +2405,35 @@ export class V3Repository {
         pendingByProject.set(row.project_id, (pendingByProject.get(row.project_id) ?? 0n) + amount);
       }
     }
-    for (const { rule, approved: hasApproved, pending: hasPending } of dailyRules.values()) {
+    for (const {
+      rule,
+      projectId,
+      approved: hasApproved,
+      pending: hasPending,
+    } of dailyRules.values()) {
       const amount = BigInt(rule.rate_minor);
-      if (hasPending) pending += amount;
-      else if (hasApproved) approved += amount;
+      if (hasPending) {
+        pending += amount;
+        addProjectAmount(pendingByProject, projectId, amount);
+      } else if (hasApproved) {
+        approved += amount;
+        addProjectAmount(approvedByProject, projectId, amount);
+      }
     }
-    for (const { rule, approved: hasApproved, pending: hasPending } of fixedRules.values()) {
+    for (const {
+      rule,
+      projectId,
+      approved: hasApproved,
+      pending: hasPending,
+    } of fixedRules.values()) {
       const amount = BigInt(rule.rate_minor);
-      if (hasPending) pending += amount;
-      else if (hasApproved) approved += amount;
+      if (hasPending) {
+        pending += amount;
+        addProjectAmount(pendingByProject, projectId, amount);
+      } else if (hasApproved) {
+        approved += amount;
+        addProjectAmount(approvedByProject, projectId, amount);
+      }
     }
     for (const day of dailyGuarantees.values()) {
       const actual = day.approvedMinutes + day.pendingMinutes;
@@ -1654,15 +2449,19 @@ export class V3Repository {
           money(day.rule.currency, BigInt(day.rule.rate_minor)),
           topUp,
         ).minorUnits;
-        if (day.pendingMinutes > 0) pending += amount;
-        else approved += amount;
+        if (day.pendingMinutes > 0) {
+          pending += amount;
+          addProjectAmount(pendingByProject, day.projectId, amount);
+        } else {
+          approved += amount;
+          addProjectAmount(approvedByProject, day.projectId, amount);
+        }
       }
     }
     const reimbursementRows = this.sqlite
       .prepare(
-        `SELECT approval_state,COALESCE(sum(COALESCE(reimbursement_amount_minor,amount_minor)),0) amount
-         FROM expense WHERE worker_id=? AND spent_on BETWEEN ? AND ? AND who_paid='worker'
-         GROUP BY approval_state`,
+        `SELECT approval_state,COALESCE(reimbursement_amount_minor,amount_minor) amount
+         FROM expense WHERE worker_id=? AND spent_on BETWEEN ? AND ? AND who_paid='worker'`,
       )
       .all(principal.userId, periodStart, periodEnd) as Array<{
       approval_state: string;
@@ -1782,12 +2581,12 @@ export class V3Repository {
     const time = this.sqlite
       .prepare(
         `SELECT t.id,t.project_id,t.worker_id,u.name worker_name,t.work_date,t.category,t.activity_code,
-                t.minutes,t.approval_state,t.billability_state,t.billing_status,t.invoice_id,
+                t.minutes,t.approval_state,t.billability_state,t.billing_status,t.invoice_id,t.version,
                 p.currency project_currency
          FROM time_entry t JOIN project p ON p.id=t.project_id
          JOIN user u ON u.id=t.worker_id
          WHERE t.project_id=? AND t.work_date BETWEEN ? AND ?
-           AND t.approval_state NOT IN ('rejected')
+           AND t.approval_state NOT IN ('rejected','void')
          ORDER BY t.work_date,t.id`,
       )
       .all(projectId, start, end) as Array<TimeRow & { worker_name: string }>;
@@ -1803,15 +2602,17 @@ export class V3Repository {
     let missingRates = 0;
     let unapprovedWip = 0n;
     const economics: Array<Record<string, OutputValue>> = [];
+    const approvedUnbilledSources: Array<Record<string, unknown>> = [];
     const dailyBillable = new Map<string, { minutes: number; rate: bigint }>();
     const dailyMinimumAdjustments: Array<Record<string, unknown>> = [];
     for (const row of time) {
       const approved = row.approval_state === 'approved' || row.approval_state === 'locked';
-      if (approved) approvedMinutes += row.minutes;
-      else if (isPendingApproval(row.approval_state)) unapprovedMinutes += row.minutes;
-      if (row.category === 'overtime') overtimeMinutes += row.minutes;
-      if (row.category === 'standby') standbyMinutes += row.minutes;
-      if (row.category === 'travel') travelMinutes += row.minutes;
+      if (approved) {
+        approvedMinutes += row.minutes;
+        if (row.category === 'overtime') overtimeMinutes += row.minutes;
+        if (row.category === 'standby') standbyMinutes += row.minutes;
+        if (row.category === 'travel') travelMinutes += row.minutes;
+      } else if (isPendingApproval(row.approval_state)) unapprovedMinutes += row.minutes;
       const clientRate = this.clientRateFor(
         projectId,
         row.worker_id,
@@ -1840,7 +2641,7 @@ export class V3Repository {
         ? this.clientRateAmount(row, usableClientRate)
         : null;
       const pendingRevenue =
-        row.billability_state === 'billable' && clientRateMinor !== null
+        row.billability_state !== 'non_billable' && clientRateMinor !== null
           ? hourlyRateForMinutes(money(project.currency, clientRateMinor), row.minutes).minorUnits
           : 0n;
       if (!approved) {
@@ -1893,6 +2694,19 @@ export class V3Repository {
       laborRevenue += revenue;
       laborCost += cost;
       workerCompensation += compensation;
+      if (
+        row.billability_state === 'billable' &&
+        row.invoice_id === null &&
+        (row.billing_status == null || row.billing_status === 'unlocked')
+      )
+        approvedUnbilledSources.push({
+          sourceType: 'time',
+          sourceId: row.id,
+          sourceVersion: row.version ?? 1,
+          amountMinor: revenue.toString(),
+          workDate: row.work_date,
+          workerId: row.worker_id,
+        });
       economics.push({
         id: row.id,
         workerId: row.worker_id,
@@ -1932,13 +2746,40 @@ export class V3Repository {
           dailyMinimumAdjustments.push({
             workDate,
             sourceTimeIds: time
-              .filter((row) => row.work_date === workDate && row.billability_state === 'billable')
+              .filter(
+                (row) =>
+                  row.work_date === workDate &&
+                  (row.approval_state === 'approved' || row.approval_state === 'locked') &&
+                  row.billability_state === 'billable',
+              )
               .map((row) => row.id),
             adjustmentMinutes: topUp,
             rateMinor: daily.rate.toString(),
             revenueMinor: topUpMinor.toString(),
             sourceType: 'derived_daily_minimum',
           });
+          const allSourceTimeRows = time.filter(
+            (row) =>
+              row.work_date === workDate &&
+              (row.approval_state === 'approved' || row.approval_state === 'locked') &&
+              row.billability_state === 'billable',
+          );
+          const sourceTimeIds = allSourceTimeRows
+            .filter(
+              (row) =>
+                row.invoice_id === null &&
+                (row.billing_status == null || row.billing_status === 'unlocked'),
+            )
+            .map((row) => row.id);
+          if (sourceTimeIds.length > 0 && sourceTimeIds.length === allSourceTimeRows.length)
+            approvedUnbilledSources.push({
+              sourceType: 'minimum_top_up',
+              sourceId: `daily-minimum:${projectId}:${workDate}`,
+              sourceVersion: 1,
+              amountMinor: topUpMinor.toString(),
+              workDate,
+              sourceTimeIds,
+            });
           billableMinutes += topUp;
         }
       }
@@ -1947,8 +2788,9 @@ export class V3Repository {
     const expenses = this.sqlite
       .prepare(
         `SELECT id,spent_on,worker_id,category,amount_minor,project_currency_amount_minor,who_paid,
-                client_treatment,billing_treatment,billing_amount_minor,approval_state
-         FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND approval_state NOT IN ('rejected')`,
+                client_treatment,billing_treatment,billing_amount_minor,approval_state,
+                finance_approved_at,invoice_id,version
+         FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND approval_state NOT IN ('rejected','void')`,
       )
       .all(projectId, start, end) as Array<{
       id: string;
@@ -1962,6 +2804,9 @@ export class V3Repository {
       billing_treatment: string;
       billing_amount_minor: number | null;
       approval_state: string;
+      finance_approved_at: string | null;
+      invoice_id: string | null;
+      version: number;
     }>;
     let expenseCost = 0n;
     let expenseRevenue = 0n;
@@ -1980,8 +2825,9 @@ export class V3Repository {
         (treatment.startsWith('reimbursable') || treatment === 'allowance_per_diem')
           ? BigInt(expense.billing_amount_minor ?? expense.amount_minor)
           : 0n;
-      const approvedExpense = ['approved', 'locked'].includes(expense.approval_state);
-      if (!approvedExpense) {
+      const operationallyApproved = ['approved', 'locked'].includes(expense.approval_state);
+      const financeApproved = operationallyApproved && expense.finance_approved_at !== null;
+      if (!operationallyApproved) {
         if (isPendingApproval(expense.approval_state)) unapprovedExpenseWip += revenue;
         expenseEconomics.push({
           id: expense.id,
@@ -1989,16 +2835,28 @@ export class V3Repository {
           spentOn: expense.spent_on,
           category: expense.category,
           approvalState: expense.approval_state,
+          financeApprovalState: 'not_ready',
           costMinor: '0',
           actualCostMinor: actualCost.toString(),
-          revenueMinor: revenue.toString(),
+          revenueMinor: '0',
+          pendingApprovalRevenueMinor: revenue.toString(),
           treatment,
           paidBy: expense.who_paid,
         });
         continue;
       }
       expenseCost += directCost;
-      expenseRevenue += revenue;
+      if (financeApproved) expenseRevenue += revenue;
+      else unapprovedExpenseWip += revenue;
+      if (financeApproved && expense.invoice_id === null && revenue > 0n)
+        approvedUnbilledSources.push({
+          sourceType: 'expense',
+          sourceId: expense.id,
+          sourceVersion: expense.version,
+          amountMinor: revenue.toString(),
+          spentOn: expense.spent_on,
+          workerId: expense.worker_id,
+        });
       if (
         [
           'hotel',
@@ -2020,9 +2878,11 @@ export class V3Repository {
         spentOn: expense.spent_on,
         category: expense.category,
         approvalState: expense.approval_state,
+        financeApprovalState: financeApproved ? 'approved' : 'pending',
         costMinor: directCost.toString(),
         actualCostMinor: actualCost.toString(),
-        revenueMinor: revenue.toString(),
+        revenueMinor: financeApproved ? revenue.toString() : '0',
+        pendingFinanceRevenueMinor: financeApproved ? '0' : revenue.toString(),
         treatment,
         paidBy: expense.who_paid,
       });
@@ -2045,24 +2905,39 @@ export class V3Repository {
     const milestoneRevenue = milestoneRows
       .filter((row) => row.currency === project.currency && row.invoice_id === null)
       .reduce((sum, row) => sum + BigInt(row.amount_minor), 0n);
+    for (const milestone of milestoneRows) {
+      if (milestone.currency !== project.currency || milestone.invoice_id !== null) continue;
+      approvedUnbilledSources.push({
+        sourceType: 'milestone',
+        sourceId: milestone.id,
+        sourceVersion: 1,
+        amountMinor: String(milestone.amount_minor),
+        dueOn: milestone.due_on,
+      });
+    }
     const invoicePeriodFilter =
       periodStart && periodEnd ? ' AND i.period_end>=? AND i.period_start<=?' : '';
     const invoiceValues: DbValue[] = [projectId];
     if (periodStart && periodEnd) invoiceValues.push(periodStart, periodEnd);
-    const invoices = this.sqlite
+    const activeInvoiceRows = this.sqlite
       .prepare(
-        `SELECT COALESCE(sum(i.subtotal_minor),0) subtotal,COALESCE(sum(i.total_minor),0) total
+        `SELECT i.id,CAST(i.subtotal_minor AS TEXT) subtotal,CAST(i.total_minor AS TEXT) total
          FROM invoice i
          WHERE i.project_id=? AND i.state IN ('issued','sent','partially_paid','paid','overdue')${invoicePeriodFilter}`,
       )
-      .get(...invoiceValues) as { subtotal: number; total: number };
-    const collected = this.sqlite
-      .prepare(
-        `SELECT COALESCE(sum(pa.amount_minor),0) total
-         FROM payment pa JOIN invoice i ON i.id=pa.invoice_id
-         WHERE i.project_id=? AND i.state<>'void'${invoicePeriodFilter}`,
-      )
-      .get(...invoiceValues) as { total: number };
+      .all(...invoiceValues) as Array<{ id: string; subtotal: string; total: string }>;
+    const invoicedSubtotal = activeInvoiceRows.reduce(
+      (sum, invoice) => sum + BigInt(invoice.subtotal),
+      0n,
+    );
+    const invoicedGross = activeInvoiceRows.reduce(
+      (sum, invoice) => sum + BigInt(invoice.total),
+      0n,
+    );
+    const collected = activeInvoiceRows.reduce(
+      (sum, invoice) => sum + this.invoiceCollectionTotals(invoice.id).netCollected,
+      0n,
+    );
     const operationalRevenue = laborRevenue + expenseRevenue + milestoneRevenue;
     // The operational value is useful for management even when the commercial
     // model bills a fixed amount or is explicitly internal. The customer-facing
@@ -2077,7 +2952,31 @@ export class V3Repository {
     const directCost = laborCost + expenseCost;
     const contribution = revenue - directCost;
     const budget = project.po_cap_minor ?? project.revenue_budget_minor;
-    const actualMinutes = time.reduce((sum, row) => sum + row.minutes, 0);
+    const actualMinutes = approvedMinutes;
+    const returnedApprovedUnbilledSources =
+      project.billing_model === 'internal' ? [] : approvedUnbilledSources;
+    const approvedUnbilledWip = returnedApprovedUnbilledSources.reduce(
+      (sum, source) => sum + BigInt(String(source.amountMinor ?? 0)),
+      0n,
+    );
+    const approvedUnbilledSourceKeys = returnedApprovedUnbilledSources.map(
+      (source) => `${String(source.sourceType)}:${String(source.sourceId)}`,
+    );
+    const approvedUnbilledWipReconciles =
+      new Set(approvedUnbilledSourceKeys).size === approvedUnbilledSourceKeys.length &&
+      returnedApprovedUnbilledSources.every(
+        (source) => typeof source.amountMinor === 'string' && /^-?\d+$/.test(source.amountMinor),
+      ) &&
+      returnedApprovedUnbilledSources.reduce(
+        (sum, source) => sum + BigInt(String(source.amountMinor)),
+        0n,
+      ) === approvedUnbilledWip;
+    const approvedUnbilledWipStatus =
+      project.billing_model === 'internal'
+        ? 'not_billable'
+        : ['all_in', 'capped_tm', 'hybrid'].includes(project.billing_model)
+          ? 'requires_commercial_allocation'
+          : 'source_backed';
     const planning = this.sqlite
       .prepare(
         `SELECT COALESCE(SUM(planned_minutes),0) minutes
@@ -2231,20 +3130,20 @@ export class V3Repository {
       contributionMarginMinor: contribution.toString(),
       contributionMarginBps:
         revenue === 0n ? '0' : divideRounded(contribution * 10_000n, revenue).toString(),
-      invoicedMinor: String(invoices.subtotal),
-      invoicedGrossMinor: String(invoices.total),
-      paidMinor: String(collected.total),
-      receivableMinor: String(invoices.total - collected.total),
-      approvedUnbilledWipMinor: (revenue > BigInt(invoices.subtotal)
-        ? revenue - BigInt(invoices.subtotal)
-        : 0n
-      ).toString(),
+      invoicedMinor: invoicedSubtotal.toString(),
+      invoicedGrossMinor: invoicedGross.toString(),
+      paidMinor: collected.toString(),
+      receivableMinor: (invoicedGross - collected).toString(),
+      approvedUnbilledWipMinor:
+        project.billing_model === 'internal' ? '0' : approvedUnbilledWip.toString(),
+      approvedUnbilledWipStatus,
+      approvedUnbilledWipReconciles,
+      approvedUnbilledSources: returnedApprovedUnbilledSources,
       unapprovedWipMinor: (unapprovedWip + unapprovedExpenseWip).toString(),
       unapprovedLaborWipMinor: unapprovedWip.toString(),
       unapprovedExpenseWipMinor: unapprovedExpenseWip.toString(),
       budgetMinor: budget === null ? null : String(budget),
-      remainingCapMinor:
-        budget === null ? null : (BigInt(budget) - BigInt(invoices.subtotal)).toString(),
+      remainingCapMinor: budget === null ? null : (BigInt(budget) - invoicedSubtotal).toString(),
       budgetConsumedBps: budgetConsumedBps === null ? null : budgetConsumedBps.toString(),
       costBudgetConsumedBps:
         costBudgetConsumedBps === null ? null : costBudgetConsumedBps.toString(),
@@ -2634,33 +3533,115 @@ export class V3Repository {
         received_at: string;
         reference: string | null;
       }>;
-      const payments = paymentRows.map((payment) => ({
-        ...payment,
-        amount_minor: String(payment.amount_minor),
-      }));
+      const reversalRows = this.sqlite
+        .prepare(
+          `SELECT id,original_payment_id,amount_minor,currency,effective_at,reason_code,reason_text,
+                  command_id,reversal_hash
+           FROM invoice_payment_reversal_event WHERE invoice_id=? ORDER BY effective_at,id`,
+        )
+        .all(invoice.id) as Array<{
+        id: string;
+        original_payment_id: string;
+        amount_minor: number;
+        currency: V3Currency;
+        effective_at: string;
+        reason_code: string;
+        reason_text: string | null;
+        command_id: string;
+        reversal_hash: string;
+      }>;
+      const reversedByPayment = new Map<string, bigint>();
+      for (const reversal of reversalRows)
+        reversedByPayment.set(
+          reversal.original_payment_id,
+          (reversedByPayment.get(reversal.original_payment_id) ?? 0n) +
+            BigInt(reversal.amount_minor),
+        );
+      const payments = paymentRows.map((payment) => {
+        const reversed = reversedByPayment.get(payment.id) ?? 0n;
+        return {
+          id: payment.id,
+          amount_minor: String(payment.amount_minor),
+          grossAmountMinor: String(payment.amount_minor),
+          reversedMinor: reversed.toString(),
+          netAmountMinor: (BigInt(payment.amount_minor) - reversed).toString(),
+          currency: payment.currency,
+          received_at: payment.received_at,
+          reference: payment.reference,
+        };
+      });
       const firstPaymentDate = paymentRows[0]?.received_at ?? null;
       const lastPaymentDate = paymentRows[paymentRows.length - 1]?.received_at ?? null;
       const paidAt =
         BigInt(invoice.total_minor) > 0n &&
-        paymentRows.reduce((sum, payment) => sum + BigInt(payment.amount_minor), 0n) >=
+        payments.reduce((sum, payment) => sum + BigInt(payment.netAmountMinor), 0n) >=
           BigInt(invoice.total_minor)
           ? lastPaymentDate
           : null;
       const sources = this.sqlite
         .prepare(
-          'SELECT source_type,source_id,source_version,locked_at FROM invoice_source WHERE invoice_id=? ORDER BY source_type,source_id',
+          `SELECT source_type,source_id,source_version,locked_at,source_hash,
+                  allocated_net_minor,allocated_tax_minor,allocated_gross_minor
+           FROM invoice_source WHERE invoice_id=? ORDER BY source_type,source_id`,
         )
         .all(invoice.id) as Array<{
         source_type: string;
         source_id: string;
         source_version: number;
         locked_at: string | null;
+        source_hash: string | null;
+        allocated_net_minor: number | null;
+        allocated_tax_minor: number | null;
+        allocated_gross_minor: number | null;
       }>;
       let directLabor = 0n;
       let travel = 0n;
       let other = 0n;
+      const directCostMissingSourceIds: string[] = [];
       const workers = new Set<string>();
       for (const source of sources) {
+        const frozenEventRows = this.sqlite
+          .prepare(
+            `SELECT event_type,CAST(amount_minor AS TEXT) amount
+             FROM direct_cost_event
+             WHERE source_kind=? AND source_id=? AND source_version=? AND currency=?
+             ORDER BY effective_at,id`,
+          )
+          .all(
+            source.source_type,
+            source.source_id,
+            source.source_version,
+            invoice.currency,
+          ) as Array<{
+          event_type: string;
+          amount: string;
+        }>;
+        const frozenSnapshot = this.sqlite
+          .prepare(
+            `SELECT amount_minor FROM finance_internal_cost_snapshot
+             WHERE source_kind=? AND source_id=? AND source_version=? AND currency=?
+               AND (? IS NULL OR source_hash=?)
+             ORDER BY created_at DESC LIMIT 1`,
+          )
+          .get(
+            source.source_type,
+            source.source_id,
+            source.source_version,
+            invoice.currency,
+            source.source_hash,
+            source.source_hash,
+          ) as { amount_minor: number } | undefined;
+        const frozenDirectCost =
+          frozenEventRows.length > 0
+            ? frozenEventRows.reduce(
+                (sum, event) =>
+                  sum +
+                  (event.event_type === 'recognize' ? BigInt(event.amount) : -BigInt(event.amount)),
+                0n,
+              )
+            : frozenSnapshot
+              ? BigInt(frozenSnapshot.amount_minor)
+              : null;
         if (source.source_type === 'time') {
           const row = this.sqlite
             .prepare(
@@ -2678,20 +3659,10 @@ export class V3Repository {
           if (row) {
             workers.add(row.worker_id);
             if (!filters.workerId || filters.workerId === row.worker_id) {
-              const rate = this.internalCostFor(
-                invoice.project_id,
-                row.worker_id,
-                row.category,
-                row.work_date,
-                row.activity_code,
-              );
-              if (rate)
-                directLabor += hourlyRateForMinutes(
-                  money(invoice.currency, this.internalCostAmount(row, rate)),
-                  row.minutes,
-                ).minorUnits;
+              if (frozenDirectCost === null) directCostMissingSourceIds.push(source.source_id);
+              else directLabor += frozenDirectCost;
             }
-          }
+          } else directCostMissingSourceIds.push(source.source_id);
         } else if (source.source_type === 'expense') {
           const row = this.sqlite
             .prepare(
@@ -2707,8 +3678,14 @@ export class V3Repository {
                 billing_treatment: string;
               }
             | undefined;
-          if (row && (!filters.workerId || filters.workerId === row.worker_id)) {
-            const amount = BigInt(row.project_currency_amount_minor ?? row.amount_minor);
+          if (!row) {
+            directCostMissingSourceIds.push(source.source_id);
+          } else if (!filters.workerId || filters.workerId === row.worker_id) {
+            // Issued invoice source triggers freeze these expense fields.  V2
+            // direct-cost evidence takes precedence when present; this legacy
+            // fallback is therefore historical source truth, never a live rate.
+            const amount =
+              frozenDirectCost ?? BigInt(row.project_currency_amount_minor ?? row.amount_minor);
             if (
               row.who_paid !== 'client' &&
               row.billing_treatment !== 'client_direct' &&
@@ -2727,12 +3704,32 @@ export class V3Repository {
               travel += amount;
             else other += amount;
           }
+        } else if (source.source_type === 'milestone') {
+          const exists = this.sqlite
+            .prepare('SELECT 1 present FROM project_milestone WHERE id=?')
+            .get(source.source_id);
+          if (!exists) directCostMissingSourceIds.push(source.source_id);
+        } else if (source.source_type === 'adjustment') {
+          const exists = this.sqlite
+            .prepare('SELECT 1 present FROM invoice_adjustment WHERE id=?')
+            .get(source.source_id);
+          if (!exists) directCostMissingSourceIds.push(source.source_id);
         }
       }
       const directCost = directLabor + travel + other;
-      const collected = payments.reduce((sum, payment) => sum + BigInt(payment.amount_minor), 0n);
-      const outstanding = BigInt(invoice.total_minor) - collected;
+      const grossPayments = paymentRows.reduce(
+        (sum, payment) => sum + BigInt(payment.amount_minor),
+        0n,
+      );
+      const reversed = reversalRows.reduce(
+        (sum, reversal) => sum + BigInt(reversal.amount_minor),
+        0n,
+      );
+      const netCollected = grossPayments - reversed;
+      const collected = invoice.state === 'void' ? 0n : netCollected;
+      const outstanding = invoice.state === 'void' ? 0n : BigInt(invoice.total_minor) - collected;
       const contribution = BigInt(invoice.subtotal_minor) - directCost;
+      const directCostComplete = directCostMissingSourceIds.length === 0;
       return {
         invoiceId: invoice.id,
         invoiceNumber: invoice.invoice_number,
@@ -2752,32 +3749,94 @@ export class V3Repository {
         directLaborCostMinor: directLabor.toString(),
         travelCostMinor: travel.toString(),
         otherDirectCostMinor: other.toString(),
-        directCostMinor: directCost.toString(),
-        contributionMinor: contribution.toString(),
-        contributionMarginBps:
-          invoice.subtotal_minor === 0
+        directCostMinor: directCostComplete ? directCost.toString() : null,
+        directCostKnownMinor: directCost.toString(),
+        directCostComplete,
+        directCostMissingSourceIds,
+        contributionMinor: directCostComplete ? contribution.toString() : null,
+        contributionMarginBps: !directCostComplete
+          ? null
+          : invoice.subtotal_minor === 0
             ? '0'
             : divideRounded(contribution * 10_000n, BigInt(invoice.subtotal_minor)).toString(),
+        grossPaymentsMinor: grossPayments.toString(),
+        paymentReversalsMinor: reversed.toString(),
+        netCollectedMinor: netCollected.toString(),
         collectedMinor: collected.toString(),
         outstandingMinor: outstanding.toString(),
         firstPaymentDate,
         lastPaymentDate,
         paidAt,
         paymentStatus:
-          outstanding <= 0n
-            ? 'paid'
-            : collected > 0n
-              ? 'partially_paid'
-              : invoice.state === 'overdue'
-                ? 'overdue'
-                : 'unpaid',
+          invoice.state === 'void'
+            ? 'void'
+            : outstanding <= 0n
+              ? 'paid'
+              : collected > 0n
+                ? 'partially_paid'
+                : invoice.state === 'overdue'
+                  ? 'overdue'
+                  : 'unpaid',
         billingStatus: invoice.state,
         poNumber: invoice.po_number,
         workerIds: [...workers],
         payments,
+        paymentReversals: reversalRows.map((reversal) => ({
+          id: reversal.id,
+          originalPaymentId: reversal.original_payment_id,
+          amountMinor: String(reversal.amount_minor),
+          currency: reversal.currency,
+          effectiveAt: reversal.effective_at,
+          reasonCode: reversal.reason_code,
+          reason: reversal.reason_text,
+          commandId: reversal.command_id,
+          reversalHash: reversal.reversal_hash,
+        })),
         sources,
       };
     });
+  }
+
+  private invoiceCollectionTotals(
+    invoiceId: string,
+    effectiveAt = timestamp(),
+  ): { netCollected: bigint; outstanding: bigint; state: string } {
+    const invoice = this.sqlite
+      .prepare('SELECT total_minor,due_at,state FROM invoice WHERE id=?')
+      .get(invoiceId) as { total_minor: number; due_at: string | null; state: string } | undefined;
+    if (!invoice) throw new V3ValidationError('Invoice not found');
+    if (invoice.state === 'void') return { netCollected: 0n, outstanding: 0n, state: 'void' };
+    const paymentRows = this.sqlite
+      .prepare(
+        'SELECT CAST(amount_minor AS TEXT) amount FROM payment WHERE invoice_id=? ORDER BY id',
+      )
+      .all(invoiceId) as Array<{ amount: string }>;
+    const reversalRows = this.sqlite
+      .prepare(
+        'SELECT CAST(amount_minor AS TEXT) amount FROM invoice_payment_reversal_event WHERE invoice_id=? ORDER BY id',
+      )
+      .all(invoiceId) as Array<{ amount: string }>;
+    const grossCollected = paymentRows.reduce((sum, row) => sum + BigInt(row.amount), 0n);
+    const reversed = reversalRows.reduce((sum, row) => sum + BigInt(row.amount), 0n);
+    const netCollected = grossCollected - reversed;
+    if (netCollected < 0n)
+      throw new V3ConflictError('Payment reversal history exceeds recorded payments');
+    const outstanding = BigInt(invoice.total_minor) - netCollected;
+    if (outstanding < 0n) throw new V3ConflictError('Invoice collection exceeds invoice total');
+    if (outstanding === 0n) return { netCollected, outstanding, state: 'paid' };
+    if (netCollected === 0n) {
+      const sent = this.sqlite
+        .prepare(
+          "SELECT 1 present FROM invoice_event WHERE invoice_id=? AND event_type='sent' LIMIT 1",
+        )
+        .get(invoiceId) as { present: number } | undefined;
+      const overdue =
+        invoice.due_at !== null && invoice.due_at.slice(0, 10) < effectiveAt.slice(0, 10);
+      return { netCollected, outstanding, state: overdue ? 'overdue' : sent ? 'sent' : 'issued' };
+    }
+    const overdue =
+      invoice.due_at !== null && invoice.due_at.slice(0, 10) < effectiveAt.slice(0, 10);
+    return { netCollected, outstanding, state: overdue ? 'overdue' : 'partially_paid' };
   }
 
   recordPayment(
@@ -2794,23 +3853,36 @@ export class V3Repository {
     this.assertFinance(principal);
     this.assertStepUp(principal);
     if (input.amountMinor <= 0n) throw new V3ValidationError('Payment must be positive');
-    if (!Number.isSafeInteger(Number(input.amountMinor)))
-      throw new V3ValidationError('Payment is out of range');
-    if (Number.isNaN(Date.parse(input.receivedAt)))
-      throw new V3ValidationError('Payment date is invalid');
-    if (input.idempotencyKey.trim().length < 8)
+    sqliteInteger(input.amountMinor, 'Payment');
+    requireDateTime(input.receivedAt, 'Payment received date');
+    const reference = input.reference?.trim() || null;
+    if (reference !== null && reference.length > 200)
+      throw new V3ValidationError('Payment reference is too long');
+    const idempotencyKey = input.idempotencyKey.trim();
+    if (idempotencyKey.length < 8 || idempotencyKey.length > 200)
       throw new V3ValidationError('Payment idempotency key is required');
     return this.transaction(() => {
       const duplicate = this.sqlite
-        .prepare('SELECT id,invoice_id,amount_minor,currency FROM payment WHERE idempotency_key=?')
-        .get(input.idempotencyKey) as
-        | { id: string; invoice_id: string; amount_minor: number; currency: V3Currency }
+        .prepare(
+          'SELECT id,invoice_id,amount_minor,currency,received_at,reference FROM payment WHERE idempotency_key=?',
+        )
+        .get(idempotencyKey) as
+        | {
+            id: string;
+            invoice_id: string;
+            amount_minor: number;
+            currency: V3Currency;
+            received_at: string;
+            reference: string | null;
+          }
         | undefined;
       if (duplicate) {
         if (
           duplicate.invoice_id !== input.invoiceId ||
           duplicate.amount_minor !== sqliteInteger(input.amountMinor, 'Payment') ||
-          duplicate.currency !== input.currency
+          duplicate.currency !== input.currency ||
+          duplicate.received_at !== input.receivedAt ||
+          duplicate.reference !== reference
         )
           throw new V3ConflictError('Payment idempotency key was already used for another payment');
         return { id: duplicate.id, created: false };
@@ -2824,10 +3896,11 @@ export class V3Repository {
         | undefined;
       if (!invoice || invoice.currency !== input.currency)
         throw new V3ValidationError('Issued invoice in matching currency required');
-      const paid = this.sqlite
-        .prepare('SELECT COALESCE(sum(amount_minor),0) amount FROM payment WHERE invoice_id=?')
-        .get(input.invoiceId) as { amount: number };
-      if (BigInt(paid.amount) + input.amountMinor > BigInt(invoice.total_minor))
+      const netPaidBefore = this.invoiceCollectionTotals(
+        input.invoiceId,
+        input.receivedAt,
+      ).netCollected;
+      if (netPaidBefore + input.amountMinor > BigInt(invoice.total_minor))
         throw new V3ValidationError('Payment exceeds invoice balance');
       const id = newId();
       const now = timestamp();
@@ -2841,11 +3914,11 @@ export class V3Repository {
           sqliteInteger(input.amountMinor, 'Payment'),
           input.currency,
           input.receivedAt,
-          input.reference ?? null,
+          reference,
           now,
-          input.idempotencyKey,
+          idempotencyKey,
         );
-      const totalPaid = BigInt(paid.amount) + input.amountMinor;
+      const totalPaid = netPaidBefore + input.amountMinor;
       const state = totalPaid === BigInt(invoice.total_minor) ? 'paid' : 'partially_paid';
       this.sqlite
         .prepare('UPDATE invoice SET state=?,updated_at=? WHERE id=?')
@@ -2859,10 +3932,10 @@ export class V3Repository {
           input.invoiceId,
           'payment',
           sqliteInteger(input.amountMinor, 'Payment'),
-          input.reference ?? 'Payment received',
+          reference ?? 'Payment received',
           principal.userId,
           now,
-          `payment-event:${input.idempotencyKey}`,
+          `payment-event:${idempotencyKey}`,
         );
       this.audit(principal, 'payment.record', 'payment', id, {
         invoiceId: input.invoiceId,
@@ -2870,6 +3943,209 @@ export class V3Repository {
         state,
       });
       return { id, created: true, state };
+    });
+  }
+
+  reversePayment(
+    principal: Principal,
+    input: Readonly<{
+      paymentId: string;
+      amountMinor: bigint;
+      effectiveAt: string;
+      reasonCode: string;
+      reason: string;
+      idempotencyKey: string;
+    }>,
+  ): Readonly<{
+    id: string;
+    commandId: string;
+    created: boolean;
+    invoiceId: string;
+    reversedMinor: string;
+    netCollectedMinor: string;
+    outstandingMinor: string;
+    state: string;
+  }> {
+    this.assertFinance(principal);
+    this.assertStepUp(principal);
+    if (input.amountMinor <= 0n) throw new V3ValidationError('Payment reversal must be positive');
+    sqliteInteger(input.amountMinor, 'Payment reversal');
+    requireDateTime(input.effectiveAt, 'Payment reversal effective date');
+    const reasonCode = requireText(input.reasonCode, 'Payment reversal reason code', 80);
+    if (!/^[a-z][a-z0-9_]*$/.test(reasonCode))
+      throw new V3ValidationError('Payment reversal reason code is invalid');
+    const reason = requireText(input.reason, 'Payment reversal reason', 2000);
+    const idempotencyKey = requireText(
+      input.idempotencyKey,
+      'Payment reversal idempotency key',
+      200,
+    );
+    if (idempotencyKey.length < 8)
+      throw new V3ValidationError('Payment reversal idempotency key is required');
+    return this.transaction(() => {
+      const payment = this.sqlite
+        .prepare(
+          `SELECT pa.id,pa.invoice_id,pa.amount_minor,pa.currency,pa.received_at,
+                  i.total_minor,i.state,i.due_at
+           FROM payment pa JOIN invoice i ON i.id=pa.invoice_id
+           WHERE pa.id=?`,
+        )
+        .get(input.paymentId) as
+        | {
+            id: string;
+            invoice_id: string;
+            amount_minor: number;
+            currency: V3Currency;
+            received_at: string;
+            total_minor: number;
+            state: string;
+            due_at: string | null;
+          }
+        | undefined;
+      if (!payment) throw new V3ValidationError('Invoice payment is required');
+      const now = timestamp();
+      const command = this.ensurePaymentReversalCommand(principal, {
+        paymentId: payment.id,
+        invoiceId: payment.invoice_id,
+        currency: payment.currency,
+        amountMinor: input.amountMinor,
+        effectiveAt: input.effectiveAt,
+        reasonCode,
+        reasonText: reason,
+        idempotencyKey,
+        createdAt: now,
+      });
+      if (!command.created) {
+        const existing = this.sqlite
+          .prepare(
+            'SELECT id,invoice_id,amount_minor FROM invoice_payment_reversal_event WHERE command_id=?',
+          )
+          .get(command.commandId) as
+          | { id: string; invoice_id: string; amount_minor: number }
+          | undefined;
+        if (!existing)
+          throw new V3ConflictError('Completed payment reversal command has no reversal event');
+        const totals = this.invoiceCollectionTotals(existing.invoice_id);
+        return {
+          id: existing.id,
+          commandId: command.commandId,
+          created: false,
+          invoiceId: existing.invoice_id,
+          reversedMinor: String(existing.amount_minor),
+          netCollectedMinor: totals.netCollected.toString(),
+          outstandingMinor: totals.outstanding.toString(),
+          state: totals.state,
+        };
+      }
+      const receivedAtMs = Date.parse(payment.received_at);
+      if (Number.isNaN(receivedAtMs) || Date.parse(input.effectiveAt) < receivedAtMs)
+        throw new V3ValidationError('Payment reversal cannot predate the original payment');
+      if (!['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(payment.state))
+        throw new V3ValidationError('Active issued invoice payment is required');
+      const prior = this.sqlite
+        .prepare(
+          `SELECT reversal_hash FROM invoice_payment_reversal_event
+           WHERE original_payment_id=? ORDER BY created_at DESC,id DESC LIMIT 1`,
+        )
+        .get(payment.id) as { reversal_hash: string } | undefined;
+      const priorReversalRows = this.sqlite
+        .prepare(
+          'SELECT CAST(amount_minor AS TEXT) amount FROM invoice_payment_reversal_event WHERE original_payment_id=? ORDER BY id',
+        )
+        .all(payment.id) as Array<{ amount: string }>;
+      const reversedBefore = priorReversalRows.reduce((sum, row) => sum + BigInt(row.amount), 0n);
+      const remaining = BigInt(payment.amount_minor) - reversedBefore;
+      if (input.amountMinor > remaining)
+        throw new V3ValidationError('Payment reversal exceeds the remaining unreversed amount');
+      const reversalId = newId();
+      const reversalPayload = {
+        schema_version: 'invoice-payment-reversal-v1',
+        reversal_id: reversalId,
+        original_payment_id: payment.id,
+        invoice_id: payment.invoice_id,
+        currency: payment.currency,
+        amount_minor: input.amountMinor.toString(),
+        effective_at: input.effectiveAt,
+        reason_code: reasonCode,
+        reason_text: reason,
+        prior_reversal_hash: prior?.reversal_hash ?? null,
+        actor_id: principal.userId,
+        command_id: command.commandId,
+        idempotency_key: idempotencyKey,
+      };
+      const reversalEvidence = this.ensureFinanceEvidence(
+        'payment_reversal',
+        'invoice-payment-reversal-v1',
+        `payment-reversal:${reversalId}`,
+        reversalPayload,
+        now,
+      );
+      const reversalHash = createHash('sha256')
+        .update(
+          canonicalJobJson({
+            schema_version: 'invoice-payment-reversal-chain-v1',
+            payload_hash: reversalEvidence.hash,
+            prior_reversal_hash: prior?.reversal_hash ?? null,
+          }),
+        )
+        .digest('hex');
+      this.sqlite
+        .prepare(
+          `INSERT INTO invoice_payment_reversal_event(
+             id,original_payment_id,invoice_id,currency,amount_minor,effective_at,reason_code,
+             reason_text,prior_reversal_hash,reversal_payload_hash,actor_id,command_id,created_at,reversal_hash
+           ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          reversalId,
+          payment.id,
+          payment.invoice_id,
+          payment.currency,
+          sqliteInteger(input.amountMinor, 'Payment reversal'),
+          input.effectiveAt,
+          reasonCode,
+          reason,
+          prior?.reversal_hash ?? null,
+          reversalEvidence.hash,
+          principal.userId,
+          command.commandId,
+          now,
+          reversalHash,
+        );
+      this.sqlite
+        .prepare(
+          `INSERT INTO finance_change_event(
+             change_id,tenant_id,deployment_id,entity_kind,entity_id,change_kind,effective_at,
+             evidence_type,evidence_id,evidence_hash,command_id,created_at
+           )
+           SELECT ?,tenant_id,deployment_id,'invoice_payment_reversal',?,'append',?,
+                  'payment_reversal',?,?,?,?
+           FROM finance_command WHERE command_id=?`,
+        )
+        .run(
+          newId(),
+          reversalId,
+          input.effectiveAt,
+          reversalEvidence.id,
+          reversalEvidence.hash,
+          command.commandId,
+          now,
+          command.commandId,
+        );
+      const totals = this.invoiceCollectionTotals(payment.invoice_id, input.effectiveAt);
+      this.sqlite
+        .prepare('UPDATE invoice SET state=?,updated_at=? WHERE id=?')
+        .run(totals.state, now, payment.invoice_id);
+      return {
+        id: reversalId,
+        commandId: command.commandId,
+        created: true,
+        invoiceId: payment.invoice_id,
+        reversedMinor: input.amountMinor.toString(),
+        netCollectedMinor: totals.netCollected.toString(),
+        outstandingMinor: totals.outstanding.toString(),
+        state: totals.state,
+      };
     });
   }
 
@@ -2887,27 +4163,35 @@ export class V3Repository {
     return this.transaction(() => {
       const expense = this.sqlite
         .prepare(
-          "SELECT id,worker_id,amount_minor,reimbursement_amount_minor,reimbursement_state FROM expense WHERE id=? AND approval_state IN ('approved','locked') AND who_paid='worker'",
+          "SELECT id,worker_id,CAST(amount_minor AS TEXT) amount_minor,CAST(reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,reimbursement_state,reimbursement_reference FROM expense WHERE id=? AND approval_state IN ('approved','locked') AND who_paid='worker'",
         )
         .get(input.expenseId) as
         | {
             id: string;
             worker_id: string;
-            amount_minor: number;
-            reimbursement_amount_minor: number | null;
+            amount_minor: string;
+            reimbursement_amount_minor: string | null;
             reimbursement_state: string;
+            reimbursement_reference: string | null;
           }
         | undefined;
       if (!expense) throw new V3ValidationError('Approved worker-paid expense required');
-      if (expense.reimbursement_state === 'reimbursed')
+      const expenseAmount = BigInt(expense.amount_minor);
+      const amount = input.amountMinor ?? expenseAmount;
+      if (amount <= 0n || amount > expenseAmount)
+        throw new V3ValidationError('Reimbursement amount is outside the expense balance');
+      if (expense.reimbursement_state === 'reimbursed') {
+        const recordedAmount = BigInt(expense.reimbursement_amount_minor ?? expense.amount_minor);
+        if (recordedAmount !== amount || expense.reimbursement_reference !== reference)
+          throw new V3ConflictError(
+            'Reimbursement is already finalized with different final truth',
+          );
         return {
           expenseId: expense.id,
-          amountMinor: String(expense.reimbursement_amount_minor ?? expense.amount_minor),
+          amountMinor: recordedAmount.toString(),
           state: 'reimbursed',
         };
-      const amount = input.amountMinor ?? BigInt(expense.amount_minor);
-      if (amount <= 0n || amount > BigInt(expense.amount_minor))
-        throw new V3ValidationError('Reimbursement amount is outside the expense balance');
+      }
       const now = timestamp();
       this.sqlite
         .prepare(
@@ -2932,34 +4216,45 @@ export class V3Repository {
     this.assertActive(principal);
     if (principal.role !== 'owner_admin') throw new V3AccessDeniedError('Owner role required');
     this.assertStepUp(principal);
-    const invoice = this.sqlite
-      .prepare(
-        "SELECT id,state FROM invoice WHERE id=? AND state IN ('issued','sent','partially_paid','overdue')",
-      )
-      .get(invoiceId) as { id: string; state: string } | undefined;
-    if (!invoice) throw new V3ValidationError('Issued invoice required');
-    requireText(reason, 'Void reason', 2000);
-    if (idempotencyKey.trim().length < 8)
+    const normalizedReason = requireText(reason, 'Void reason', 2000);
+    const normalizedKey = idempotencyKey.trim();
+    if (normalizedKey.length < 8 || normalizedKey.length > 200)
       throw new V3ValidationError('Void idempotency key is required');
     this.transaction(() => {
       const existing = this.sqlite
-        .prepare('SELECT id,invoice_id,event_type FROM invoice_event WHERE idempotency_key=?')
-        .get(idempotencyKey) as { id: string; invoice_id: string; event_type: string } | undefined;
+        .prepare(
+          'SELECT id,invoice_id,event_type,reason FROM invoice_event WHERE idempotency_key=?',
+        )
+        .get(normalizedKey) as
+        | { id: string; invoice_id: string; event_type: string; reason: string }
+        | undefined;
       if (existing) {
-        if (existing.invoice_id !== invoiceId || existing.event_type !== 'void')
+        if (
+          existing.invoice_id !== invoiceId ||
+          existing.event_type !== 'void' ||
+          existing.reason !== normalizedReason
+        )
           throw new V3ConflictError('Void idempotency key was already used');
         return;
       }
+      const invoice = this.sqlite
+        .prepare(
+          "SELECT id,state FROM invoice WHERE id=? AND state IN ('issued','sent','partially_paid','overdue')",
+        )
+        .get(invoiceId) as { id: string; state: string } | undefined;
+      if (!invoice) throw new V3ValidationError('Issued invoice required');
       const now = timestamp();
       this.sqlite
         .prepare(
           "INSERT INTO invoice_event(id,invoice_id,event_type,reason,actor_id,occurred_at,idempotency_key) VALUES(?,?,'void',?,?,?,?)",
         )
-        .run(newId(), invoiceId, reason, principal.userId, now, idempotencyKey);
+        .run(newId(), invoiceId, normalizedReason, principal.userId, now, normalizedKey);
       this.sqlite
         .prepare("UPDATE invoice SET state='void',voided_at=?,updated_at=? WHERE id=?")
         .run(now, now, invoiceId);
-      this.audit(principal, 'invoice.void', 'invoice', invoiceId, { reason });
+      this.audit(principal, 'invoice.void', 'invoice', invoiceId, {
+        reason: normalizedReason,
+      });
     });
   }
 
@@ -2997,7 +4292,10 @@ export class V3Repository {
     if (rule.stream_type === 'labor') {
       const rows = this.sqlite
         .prepare(
-          'SELECT id,worker_id,category,activity_code,work_date,approval_state,billability_state FROM time_entry WHERE project_id=? AND work_date BETWEEN ? AND ? AND invoice_id IS NULL',
+          `SELECT id,worker_id,category,activity_code,work_date,approval_state,billability_state
+           FROM time_entry
+           WHERE project_id=? AND work_date BETWEEN ? AND ? AND invoice_id IS NULL
+             AND approval_state NOT IN ('rejected','void')`,
         )
         .all(rule.project_id, periodStart, periodEnd) as Array<{
         id: string;
@@ -3053,6 +4351,7 @@ export class V3Repository {
             `SELECT DISTINCT t.work_date
              FROM time_entry t
              WHERE t.project_id=? AND t.work_date BETWEEN ? AND ?
+               AND t.approval_state NOT IN ('rejected','void')
                AND NOT EXISTS (
                  SELECT 1 FROM daily_report d
                  WHERE d.project_id=t.project_id AND d.work_date=t.work_date
@@ -3071,7 +4370,15 @@ export class V3Repository {
       if (rule.technical_reporting_required === 1) {
         const missing = this.sqlite
           .prepare(
-            "SELECT ? id WHERE NOT EXISTS (SELECT 1 FROM technical_report t WHERE t.project_id=? AND substr(t.created_at,1,10) BETWEEN ? AND ? AND t.approval_state IN ('approved','locked'))",
+            `SELECT ? id WHERE NOT EXISTS (
+               SELECT 1 FROM technical_report t
+               WHERE t.project_id=?
+                 AND length(t.report_date)=10
+                 AND t.report_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+                 AND date(t.report_date)=t.report_date
+                 AND t.report_date BETWEEN ? AND ?
+                 AND t.approval_state IN ('approved','locked')
+             )`,
           )
           .get(
             `technical-report:${rule.project_id}:${periodStart}:${periodEnd}`,
@@ -3086,7 +4393,7 @@ export class V3Repository {
     if (rule.stream_type === 'expense') {
       const rows = this.sqlite
         .prepare(
-          "SELECT id,approval_state,finance_approved_at,receipt_required,receipt_document_id FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND invoice_id IS NULL AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem'))",
+          "SELECT id,approval_state,finance_approved_at,receipt_required,receipt_document_id FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND invoice_id IS NULL AND approval_state NOT IN ('rejected','void') AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem'))",
         )
         .all(rule.project_id, periodStart, periodEnd) as Array<{
         id: string;
@@ -3318,9 +4625,14 @@ export class V3Repository {
       const technicalReports = this.sqlite
         .prepare(
           `SELECT id,system_name,plant_site,area_line,station_machine,change_summary,safety_related,
-                  validation,validation_result,open_risk,approval_state,created_at
+                  validation,validation_result,open_risk,approval_state,report_date,created_at
            FROM technical_report
-           WHERE project_id=? AND substr(created_at,1,10) BETWEEN ? AND ? ORDER BY created_at,id`,
+           WHERE project_id=?
+             AND length(report_date)=10
+             AND report_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+             AND date(report_date)=report_date
+             AND report_date BETWEEN ? AND ?
+           ORDER BY report_date,id`,
         )
         .all(input.projectId, input.periodStart, input.periodEnd) as Array<{
         id: string;
@@ -3334,14 +4646,23 @@ export class V3Repository {
         validation_result: string | null;
         open_risk: string | null;
         approval_state: string;
+        report_date: string;
         created_at: string;
       }>;
       const technicalChanges = this.sqlite
         .prepare(
-          `SELECT id,technical_report_id,component,change_made,reason,safety_impact,production_impact,
-                  validation,validation_result,open_risk,rollback_information,approval_state,created_at
-           FROM technical_change
-           WHERE project_id=? AND substr(created_at,1,10) BETWEEN ? AND ? ORDER BY created_at,id`,
+          `SELECT tc.id,tc.technical_report_id,tc.component,tc.change_made,tc.reason,
+                  tc.safety_impact,tc.production_impact,tc.validation,tc.validation_result,
+                  tc.open_risk,tc.rollback_information,tc.approval_state,tc.created_at,
+                  tr.report_date technical_report_date
+           FROM technical_change tc
+           JOIN technical_report tr ON tr.id=tc.technical_report_id
+           WHERE tc.project_id=?
+             AND length(tr.report_date)=10
+             AND tr.report_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+             AND date(tr.report_date)=tr.report_date
+             AND tr.report_date BETWEEN ? AND ?
+           ORDER BY tr.report_date,tc.id`,
         )
         .all(input.projectId, input.periodStart, input.periodEnd) as Array<Record<string, unknown>>;
       const time = this.sqlite
@@ -3650,7 +4971,7 @@ export class V3Repository {
       values.push(...projectIds);
     }
     if (principal.role === 'worker') clauses.push("r.audience='customer'");
-    return this.sqlite
+    const rows = this.sqlite
       .prepare(
         `SELECT r.id,r.project_id,r.period_start,r.period_end,r.audience,r.report_type,r.state,
                 r.pdf_storage_key,r.pdf_sha256,r.created_at,r.updated_at,p.project_number,p.name project_name
@@ -3659,6 +4980,15 @@ export class V3Repository {
          ORDER BY r.period_start DESC,r.audience,r.id LIMIT 200`,
       )
       .all(...values);
+    if (principal.role !== 'project_manager' && principal.role !== 'worker') return rows;
+    return rows.filter((row) => {
+      try {
+        this.assertProjectAccess(principal, String((row as { project_id: string }).project_id));
+        return true;
+      } catch {
+        return false;
+      }
+    });
   }
 
   periodReportSnapshot(principal: Principal, reportId: string): Readonly<Record<string, unknown>> {
@@ -3680,7 +5010,7 @@ export class V3Repository {
   recordPeriodReportPdf(
     principal: Principal,
     reportId: string,
-    storageKey: string,
+    storageKey: SafeStorageKey,
     sha256: string,
     byteLength: number,
   ): void {
@@ -3710,7 +5040,7 @@ export class V3Repository {
   periodReportPdfMetadata(
     principal: Principal,
     reportId: string,
-  ): { storageKey: string; sha256: string; byteLength: number; filename: string } {
+  ): { storageKey: SafeStorageKey; sha256: string; byteLength: number; filename: string } {
     this.assertActive(principal);
     const row = this.sqlite
       .prepare(
@@ -3741,6 +5071,168 @@ export class V3Repository {
     };
   }
 
+  private createCanonicalAccountingPackMetadata(
+    principal: Principal,
+    snapshot: Readonly<Record<string, unknown>>,
+    reconciliation: Readonly<Record<string, unknown>>,
+    periodStart: string,
+    periodEnd: string,
+    createdAt: string,
+  ): Readonly<Record<string, unknown>> {
+    if (reconciliation.reconciles !== true)
+      return { status: 'blocked', reason: 'source_reconciliation_failed', revisions: [] };
+    const totalsRows = Array.isArray(snapshot.totalsByCurrency)
+      ? (snapshot.totalsByCurrency as Array<Record<string, unknown>>)
+      : [];
+    const entities = this.sqlite
+      .prepare("SELECT id,currency FROM legal_entity WHERE status='active' ORDER BY code,id")
+      .all() as Array<{ id: string; currency: string }>;
+    if (entities.length === 0)
+      return { status: 'unconfigured', reason: 'active_legal_entity_required', revisions: [] };
+    const scopedTotals =
+      totalsRows.length > 0
+        ? totalsRows
+        : [
+            {
+              currency: entities[0]!.currency,
+              totalInvoicedMinor: '0',
+              taxInvoicedMinor: '0',
+              grossInvoicedMinor: '0',
+              collectedMinor: '0',
+              outstandingMinor: '0',
+              internalLaborCostMinor: '0',
+              directCostMinor: '0',
+              contributionMinor: '0',
+            },
+          ];
+    const invoiceRegister = Array.isArray(snapshot.invoiceRegister)
+      ? (snapshot.invoiceRegister as Array<Record<string, unknown>>)
+      : [];
+    const collections = Array.isArray(snapshot.collections)
+      ? (snapshot.collections as Array<Record<string, unknown>>)
+      : [];
+    const workerCosts = Array.isArray(snapshot.workerCosts)
+      ? (snapshot.workerCosts as Array<Record<string, unknown>>)
+      : [];
+    const expenseRegister = Array.isArray(snapshot.expenseRegister)
+      ? (snapshot.expenseRegister as Array<Record<string, unknown>>)
+      : [];
+    const revisions: AccountingPackRevisionResult[] = [];
+    const missingCurrencies: string[] = [];
+    for (const totals of scopedTotals) {
+      const currency = String(totals.currency ?? '');
+      const entity = entities.find((candidate) => candidate.currency === currency);
+      if (!entity) {
+        missingCurrencies.push(currency);
+        continue;
+      }
+      const scopedInvoices = invoiceRegister.filter((row) => row.currency === currency);
+      const scopedCollections = collections.filter((row) => row.currency === currency);
+      const scopedWorkerCosts = workerCosts.filter((row) => row.currency === currency);
+      const scopedExpenses = expenseRegister.filter(
+        (row) => row.projectCurrency === currency || row.currency === currency,
+      );
+      const sourceItems = scopedInvoices.map((row, index) => ({
+        id: `invoice-${String(row.invoiceId ?? index + 1)}`,
+        itemKind: 'invoice',
+        sourceId: String(row.invoiceId ?? `invoice-${index + 1}`),
+        itemVersion: 1,
+        effectiveAt: (() => {
+          const value = String(row.issueDate ?? periodStart);
+          return /^\d{4}-\d{2}-\d{2}$/u.test(value)
+            ? `${value}T00:00:00.000Z`
+            : new Date(value).toISOString();
+        })(),
+        evidenceType: 'invoice_source',
+        amountMinor: String(row.netMinor ?? '0'),
+        currency,
+        payload: row,
+      }));
+      const stableSnapshot = { ...snapshot };
+      delete stableSnapshot.generatedAt;
+      const sourceHash = createHash('sha256')
+        .update(canonicalJobJson({ currency, snapshot: stableSnapshot, reconciliation }))
+        .digest('hex');
+      const directCost = BigInt(String(totals.directCostMinor ?? '0'));
+      const workerCost = BigInt(String(totals.internalLaborCostMinor ?? '0'));
+      const result = this.accountingPackRevisions.createCanonicalRevision(principal, {
+        periodStart,
+        periodEnd,
+        currency,
+        timezone: 'UTC',
+        legacyLegalEntityId: entity.id,
+        sourceItems,
+        invoiceRegister: scopedInvoices,
+        collections: scopedCollections,
+        workerCosts: scopedWorkerCosts,
+        expenseRegister: scopedExpenses,
+        totalsByCurrency: [totals],
+        invoiceCount: scopedInvoices.length,
+        paymentCount: scopedCollections.length,
+        workerCostCount: scopedWorkerCosts.length,
+        expenseCount: scopedExpenses.length,
+        sourceItemCount: sourceItems.length,
+        invoiceSourceCount: sourceItems.length,
+        sourceMismatchCount: 0,
+        approvedTimeEntryCount: 0,
+        approvedExpenseCount: 0,
+        netMinor: String(totals.totalInvoicedMinor ?? '0'),
+        taxMinor: String(totals.taxInvoicedMinor ?? '0'),
+        grossMinor: String(totals.grossInvoicedMinor ?? '0'),
+        collectedMinor: String(totals.collectedMinor ?? '0'),
+        outstandingMinor: String(totals.outstandingMinor ?? '0'),
+        workerCostMinor: workerCost,
+        expenseCostMinor: directCost - workerCost,
+        directCostMinor: directCost,
+        contributionMinor: String(totals.contributionMinor ?? '0'),
+        reconciliationStatus: reconciliation.reconciles === true ? 'CLEAN' : 'BLOCKED',
+        blockerCount: reconciliation.reconciles === true ? 0 : 1,
+        idempotencyKey: `accounting-pack:${entity.id}:${periodStart}:${periodEnd}:${sourceHash}`,
+        createdAt,
+        effectiveAt: createdAt,
+      });
+      revisions.push(result);
+    }
+    return {
+      status: missingCurrencies.length === 0 ? 'current' : 'partial',
+      revisions,
+      missingCurrencies,
+    };
+  }
+
+  private accountingPackSourcesChangedSince(
+    periodStart: string,
+    periodEnd: string,
+    createdAt: string,
+  ): boolean {
+    const row = this.sqlite
+      .prepare(
+        `SELECT MAX(changed_at) changed_at FROM (
+           SELECT MAX(updated_at) changed_at FROM time_entry WHERE work_date BETWEEN ? AND ?
+           UNION ALL SELECT MAX(updated_at) FROM expense WHERE spent_on BETWEEN ? AND ?
+           UNION ALL SELECT MAX(updated_at) FROM invoice
+             WHERE (period_start IS NULL OR period_start<=?) AND (period_end IS NULL OR period_end>=?)
+           UNION ALL SELECT MAX(created_at) FROM payment WHERE substr(received_at,1,10)<=?
+           UNION ALL SELECT MAX(created_at) FROM invoice_payment_reversal_event
+             WHERE substr(effective_at,1,10)<=?
+           UNION ALL SELECT MAX(created_at) FROM finance_change_event WHERE effective_at<=?
+           UNION ALL SELECT MAX(updated_at) FROM legal_entity WHERE status='active'
+         )`,
+      )
+      .get(
+        periodStart,
+        periodEnd,
+        periodStart,
+        periodEnd,
+        periodEnd,
+        periodStart,
+        periodEnd,
+        periodEnd,
+        `${periodEnd}T23:59:59.999Z`,
+      ) as { changed_at: string | null };
+    return Boolean(row.changed_at && row.changed_at > createdAt);
+  }
+
   createAccountingPack(
     principal: Principal,
     periodStart: string,
@@ -3753,18 +5245,49 @@ export class V3Repository {
     if (periodEnd < periodStart) throw new V3ValidationError('Period end must follow start');
     const existing = this.sqlite
       .prepare(
-        'SELECT id,snapshot_json,reconciliation_json,state FROM accounting_pack_run WHERE period_start=? AND period_end=? AND legal_entity_id IS NULL',
+        'SELECT id,snapshot_json,reconciliation_json,state,created_at FROM accounting_pack_run WHERE period_start=? AND period_end=? AND legal_entity_id IS NULL',
       )
       .get(periodStart, periodEnd) as
-      | { id: string; snapshot_json: string; reconciliation_json: string; state: string }
+      | {
+          id: string;
+          snapshot_json: string;
+          reconciliation_json: string;
+          state: string;
+          created_at: string;
+        }
       | undefined;
-    if (existing)
+    if (existing) {
+      const job = this.latestAccountingPackJob(existing.id);
+      const exportCount = this.sqlite
+        .prepare(
+          "SELECT COUNT(DISTINCT export_type) AS count FROM accounting_pack_export WHERE pack_run_id=? AND export_type IN ('xlsx','invoice_csv','expense_csv') AND byte_length>0 AND length(sha256)=64",
+        )
+        .get(existing.id) as { count: number };
+      const state =
+        existing.state === 'final'
+          ? 'final'
+          : job?.state === 'claimed' || job?.state === 'running'
+            ? 'running'
+            : job?.state === 'queued'
+              ? 'queued'
+              : job?.state === 'dead_letter'
+                ? 'failed'
+                : exportCount.count >= requiredAccountingPackExportTypes.length
+                  ? 'ready'
+                  : existing.state;
+      const sourceStale = this.accountingPackSourcesChangedSince(
+        periodStart,
+        periodEnd,
+        existing.created_at,
+      );
       return {
         id: existing.id,
-        state: existing.state,
+        state: sourceStale && existing.state !== 'final' ? 'stale' : state,
+        sourceStale,
         snapshot: JSON.parse(existing.snapshot_json) as unknown,
         reconciliation: JSON.parse(existing.reconciliation_json) as unknown,
       };
+    }
     const ledger = this.masterLedger(principal, { start: periodStart, end: periodEnd });
     const addAmount = (
       map: Map<V3Currency, bigint>,
@@ -3792,7 +5315,16 @@ export class V3Repository {
       grossMinor: row.totalMinor,
       status: row.paymentStatus,
     }));
-    const paymentRows = this.sqlite
+    const eventDateInRange = (value: string, label: string, includeBefore = false): boolean => {
+      try {
+        requireDateTime(value, label);
+      } catch {
+        throw new V3ConflictError(`${label} must be a canonical RFC3339 UTC timestamp`);
+      }
+      const date = value.slice(0, 10);
+      return includeBefore ? date <= periodEnd : date >= periodStart && date <= periodEnd;
+    };
+    const allPaymentEventRows = this.sqlite
       .prepare(
         `SELECT pa.id payment_id,pa.invoice_id,pa.amount_minor,pa.currency,pa.received_at,pa.reference,
                 i.invoice_number,i.total_minor,i.currency invoice_currency,
@@ -3801,10 +5333,10 @@ export class V3Repository {
          JOIN invoice i ON i.id=pa.invoice_id
          JOIN project p ON p.id=i.project_id
          JOIN client c ON c.id=p.client_id
-         WHERE substr(pa.received_at,1,10) BETWEEN ? AND ?
+         WHERE i.state<>'void'
          ORDER BY pa.received_at,pa.id`,
       )
-      .all(periodStart, periodEnd) as Array<{
+      .all() as Array<{
       payment_id: string;
       invoice_id: string;
       amount_minor: number;
@@ -3816,30 +5348,99 @@ export class V3Repository {
       invoice_currency: V3Currency;
       client_name: string;
     }>;
+    const paymentRows = allPaymentEventRows.filter((payment) =>
+      eventDateInRange(payment.received_at, 'Payment received date'),
+    );
+    const allPaymentReversalRows = this.sqlite
+      .prepare(
+        `SELECT r.id reversal_id,r.original_payment_id payment_id,r.invoice_id,r.amount_minor,
+                r.currency,r.effective_at,r.reason_text reference,i.invoice_number,i.total_minor,
+                i.currency invoice_currency,c.display_name client_name
+         FROM invoice_payment_reversal_event r
+         JOIN invoice i ON i.id=r.invoice_id
+         JOIN project p ON p.id=i.project_id
+         JOIN client c ON c.id=p.client_id
+         WHERE i.state<>'void'
+         ORDER BY r.effective_at,r.id`,
+      )
+      .all() as Array<{
+      reversal_id: string;
+      payment_id: string;
+      invoice_id: string;
+      amount_minor: number;
+      currency: V3Currency;
+      effective_at: string;
+      reference: string | null;
+      invoice_number: string | null;
+      total_minor: number;
+      invoice_currency: V3Currency;
+      client_name: string;
+    }>;
+    const paymentReversalRows = allPaymentReversalRows.filter((reversal) =>
+      eventDateInRange(reversal.effective_at, 'Payment reversal effective date'),
+    );
     const totalCollectedByInvoice = new Map<string, bigint>();
-    const allPaymentRows = this.sqlite
-      .prepare('SELECT invoice_id,amount_minor FROM payment')
-      .all() as Array<{ invoice_id: string; amount_minor: number }>;
-    for (const payment of allPaymentRows)
+    for (const payment of allPaymentEventRows) {
+      if (!eventDateInRange(payment.received_at, 'Payment received date', true)) continue;
       totalCollectedByInvoice.set(
         payment.invoice_id,
         (totalCollectedByInvoice.get(payment.invoice_id) ?? 0n) + BigInt(payment.amount_minor),
       );
-    const collections = paymentRows.map((payment) => ({
-      paymentId: payment.payment_id,
-      invoiceId: payment.invoice_id,
-      invoiceNumber: payment.invoice_number,
-      client: payment.client_name,
-      grossInvoicedMinor: String(payment.total_minor),
-      amountCollectedInMonthMinor: String(payment.amount_minor),
-      totalCollectedToDateMinor: (totalCollectedByInvoice.get(payment.invoice_id) ?? 0n).toString(),
-      outstandingMinor: (
-        BigInt(payment.total_minor) - (totalCollectedByInvoice.get(payment.invoice_id) ?? 0n)
-      ).toString(),
-      paymentDate: payment.received_at,
-      paymentReference: payment.reference,
-      currency: payment.currency,
-    }));
+    }
+    for (const reversal of allPaymentReversalRows) {
+      if (!eventDateInRange(reversal.effective_at, 'Payment reversal effective date', true))
+        continue;
+      totalCollectedByInvoice.set(
+        reversal.invoice_id,
+        (totalCollectedByInvoice.get(reversal.invoice_id) ?? 0n) - BigInt(reversal.amount_minor),
+      );
+    }
+    const collections = [
+      ...paymentRows.map((payment) => ({
+        collectionType: 'payment' as const,
+        paymentId: payment.payment_id,
+        reversalId: null,
+        invoiceId: payment.invoice_id,
+        invoiceNumber: payment.invoice_number,
+        client: payment.client_name,
+        grossInvoicedMinor: String(payment.total_minor),
+        amountCollectedInMonthMinor: String(payment.amount_minor),
+        totalCollectedToDateMinor: (
+          totalCollectedByInvoice.get(payment.invoice_id) ?? 0n
+        ).toString(),
+        outstandingMinor: (
+          BigInt(payment.total_minor) - (totalCollectedByInvoice.get(payment.invoice_id) ?? 0n)
+        ).toString(),
+        paymentDate: payment.received_at,
+        paymentReference: payment.reference,
+        currency: payment.currency,
+      })),
+      ...paymentReversalRows.map((reversal) => ({
+        collectionType: 'payment_reversal' as const,
+        paymentId: reversal.payment_id,
+        reversalId: reversal.reversal_id,
+        invoiceId: reversal.invoice_id,
+        invoiceNumber: reversal.invoice_number,
+        client: reversal.client_name,
+        grossInvoicedMinor: String(reversal.total_minor),
+        amountCollectedInMonthMinor: (-BigInt(reversal.amount_minor)).toString(),
+        totalCollectedToDateMinor: (
+          totalCollectedByInvoice.get(reversal.invoice_id) ?? 0n
+        ).toString(),
+        outstandingMinor: (
+          BigInt(reversal.total_minor) - (totalCollectedByInvoice.get(reversal.invoice_id) ?? 0n)
+        ).toString(),
+        paymentDate: reversal.effective_at,
+        paymentReference: reversal.reference,
+        currency: reversal.currency,
+      })),
+    ].sort(
+      (left, right) =>
+        left.paymentDate.localeCompare(right.paymentDate) ||
+        String(left.reversalId ?? left.paymentId).localeCompare(
+          String(right.reversalId ?? right.paymentId),
+        ),
+    );
     const expenseRows = this.sqlite
       .prepare(
         `SELECT e.id,e.spent_on,e.worker_id,e.project_id,e.vendor,e.category,e.who_paid,
@@ -4097,34 +5698,41 @@ export class V3Repository {
       }
     const reimbursementRows = this.sqlite
       .prepare(
-        `SELECT worker_id,project_id,COALESCE(SUM(COALESCE(project_currency_amount_minor,amount_minor)),0) amount
+        `SELECT worker_id,project_id,COALESCE(project_currency_amount_minor,amount_minor) amount
          FROM expense
          WHERE spent_on BETWEEN ? AND ? AND approval_state IN ('approved','locked') AND who_paid='worker'
-         GROUP BY worker_id,project_id`,
+         ORDER BY worker_id,project_id,id`,
       )
       .all(periodStart, periodEnd) as Array<{
       worker_id: string;
       project_id: string;
       amount: number;
     }>;
-    const reimbursementByWorkerProject = new Map(
-      reimbursementRows.map((row) => [`${row.worker_id}:${row.project_id}`, BigInt(row.amount)]),
-    );
+    const reimbursementByWorkerProject = new Map<string, bigint>();
+    for (const row of reimbursementRows) {
+      const key = `${row.worker_id}:${row.project_id}`;
+      reimbursementByWorkerProject.set(
+        key,
+        (reimbursementByWorkerProject.get(key) ?? 0n) + BigInt(row.amount),
+      );
+    }
     const settledRows = this.sqlite
       .prepare(
-        `SELECT worker_id,project_id,COALESCE(SUM(amount_minor),0) amount
+        `SELECT worker_id,project_id,amount_minor amount
          FROM compensation_settlement
          WHERE period_start=? AND period_end=? AND state IN ('approved','settled')
-         GROUP BY worker_id,project_id`,
+         ORDER BY worker_id,project_id,id`,
       )
       .all(periodStart, periodEnd) as Array<{
       worker_id: string;
       project_id: string;
       amount: number;
     }>;
-    const settledByWorkerProject = new Map(
-      settledRows.map((row) => [`${row.worker_id}:${row.project_id}`, BigInt(row.amount)]),
-    );
+    const settledByWorkerProject = new Map<string, bigint>();
+    for (const row of settledRows) {
+      const key = `${row.worker_id}:${row.project_id}`;
+      settledByWorkerProject.set(key, (settledByWorkerProject.get(key) ?? 0n) + BigInt(row.amount));
+    }
     const workerCosts = [...timeByWorkerProject.values()].map((row) => ({
       workerId: row.workerId,
       worker: row.worker,
@@ -4159,6 +5767,7 @@ export class V3Repository {
     const invoiceTaxByCurrency = new Map<V3Currency, bigint>();
     const invoiceGrossByCurrency = new Map<V3Currency, bigint>();
     for (const row of ledger) {
+      if (row.billingStatus === 'void') continue;
       addAmount(invoiceNetByCurrency, row.currency, BigInt(row.subtotalMinor));
       addAmount(invoiceTaxByCurrency, row.currency, BigInt(row.taxMinor));
       addAmount(invoiceGrossByCurrency, row.currency, BigInt(row.totalMinor));
@@ -4183,16 +5792,29 @@ export class V3Repository {
       return {
         currency,
         laborInvoicedMinor: ledger
-          .filter((row) => row.currency === currency && row.streamType === 'labor')
+          .filter(
+            (row) =>
+              row.billingStatus !== 'void' &&
+              row.currency === currency &&
+              row.streamType === 'labor',
+          )
           .reduce((sum, row) => sum + BigInt(row.subtotalMinor), 0n)
           .toString(),
         expenseInvoicedMinor: ledger
-          .filter((row) => row.currency === currency && row.streamType === 'expense')
+          .filter(
+            (row) =>
+              row.billingStatus !== 'void' &&
+              row.currency === currency &&
+              row.streamType === 'expense',
+          )
           .reduce((sum, row) => sum + BigInt(row.subtotalMinor), 0n)
           .toString(),
         milestoneOtherInvoicedMinor: ledger
           .filter(
-            (row) => row.currency === currency && !['labor', 'expense'].includes(row.streamType),
+            (row) =>
+              row.billingStatus !== 'void' &&
+              row.currency === currency &&
+              !['labor', 'expense'].includes(row.streamType),
           )
           .reduce((sum, row) => sum + BigInt(row.subtotalMinor), 0n)
           .toString(),
@@ -4306,8 +5928,10 @@ export class V3Repository {
       );
     }
     const paymentSourceByCurrency = new Map<V3Currency, bigint>();
-    for (const row of collections)
-      addAmount(paymentSourceByCurrency, row.currency, BigInt(row.amountCollectedInMonthMinor));
+    for (const payment of paymentRows)
+      addAmount(paymentSourceByCurrency, payment.currency, BigInt(payment.amount_minor));
+    for (const reversal of paymentReversalRows)
+      addAmount(paymentSourceByCurrency, reversal.currency, -BigInt(reversal.amount_minor));
     const mapEquals = (
       left: ReadonlyMap<V3Currency, bigint>,
       right: ReadonlyMap<V3Currency, bigint>,
@@ -4374,7 +5998,7 @@ export class V3Repository {
       sourceMismatchCount: sourceMismatches.length,
       approvedTimeEntryCount,
       approvedExpenseCount,
-      paymentCount: paymentRows.length,
+      paymentCount: paymentRows.length + paymentReversalRows.length,
       collectedInMonthByCurrency: amountMap(collectedByCurrency),
       workerCostSourceByCurrency: amountMap(workerCostSourceByCurrency),
       expenseCostSourceByCurrency: amountMap(expenseSourceCostByCurrency),
@@ -4399,49 +6023,322 @@ export class V3Repository {
     };
     const id = newId();
     const now = timestamp();
-    this.sqlite
-      .prepare(
-        'INSERT INTO accounting_pack_run(id,period_start,period_end,legal_entity_id,state,snapshot_json,reconciliation_json,generated_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)',
-      )
-      .run(
-        id,
+    let storedReconciliation: Readonly<Record<string, unknown>> = reconciliation;
+    this.transaction(() => {
+      const canonicalRevision = this.createCanonicalAccountingPackMetadata(
+        principal,
+        snapshot,
+        reconciliation,
         periodStart,
         periodEnd,
-        null,
-        'draft',
-        JSON.stringify(snapshot),
-        JSON.stringify(reconciliation),
-        principal.userId,
-        now,
         now,
       );
-    this.enqueueJob('accounting_pack', `accounting-pack:${id}`, { packId: id }, now);
-    this.audit(principal, 'accounting_pack.create', 'accounting_pack_run', id, {
-      periodStart,
-      periodEnd,
+      storedReconciliation = { ...reconciliation, canonicalRevision };
+      this.sqlite
+        .prepare(
+          'INSERT INTO accounting_pack_run(id,period_start,period_end,legal_entity_id,state,snapshot_json,reconciliation_json,generated_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)',
+        )
+        .run(
+          id,
+          periodStart,
+          periodEnd,
+          null,
+          'draft',
+          JSON.stringify(snapshot),
+          JSON.stringify(storedReconciliation),
+          principal.userId,
+          now,
+          now,
+        );
+      const queued = this.enqueueJob(
+        'accounting_pack_artifact_render',
+        `accounting-pack:${id}`,
+        { packId: id },
+        now,
+      );
+      const job = this.sqlite.prepare('SELECT state FROM job WHERE id=?').get(queued.id) as
+        | { state: string }
+        | undefined;
+      if (job?.state !== 'queued')
+        throw new V3ConflictError('Accounting Pack artifact job was not queued');
+      this.audit(principal, 'accounting_pack.create', 'accounting_pack_run', id, {
+        periodStart,
+        periodEnd,
+        jobId: queued.id,
+      });
     });
-    return { id, state: 'draft', snapshot, reconciliation };
+    return { id, state: 'queued', snapshot, reconciliation: storedReconciliation };
   }
 
   markAccountingPackFinal(principal: Principal, packId: string): void {
     this.assertFinance(principal);
     this.assertStepUp(principal);
-    const result = this.sqlite
-      .prepare(
-        "UPDATE accounting_pack_run SET state='final',updated_at=? WHERE id=? AND state IN ('draft','review')",
+    this.transaction(() => {
+      const pack = this.sqlite
+        .prepare(
+          'SELECT state,reconciliation_json,period_start,period_end,created_at FROM accounting_pack_run WHERE id=?',
+        )
+        .get(packId) as
+        | {
+            state: string;
+            reconciliation_json: string;
+            period_start: string;
+            period_end: string;
+            created_at: string;
+          }
+        | undefined;
+      if (!pack) throw new V3ValidationError('Accounting Pack not found');
+      if (
+        this.accountingPackSourcesChangedSince(pack.period_start, pack.period_end, pack.created_at)
       )
-      .run(timestamp(), packId);
-    if (result.changes !== 1) throw new V3ConflictError('Accounting Pack is not reviewable');
-    this.audit(principal, 'accounting_pack.finalize', 'accounting_pack_run', packId, {});
+        throw new V3ConflictError(
+          'Accounting Pack source changed; create a current revision before finalization',
+        );
+      const reconciliation = parseJsonRecord(pack.reconciliation_json);
+      if (reconciliation.reconciles !== true)
+        throw new V3ConflictError('Accounting Pack reconciliation is blocked');
+      const canonical =
+        reconciliation.canonicalRevision && typeof reconciliation.canonicalRevision === 'object'
+          ? (reconciliation.canonicalRevision as Record<string, unknown>)
+          : undefined;
+      const revisions = Array.isArray(canonical?.revisions)
+        ? (canonical.revisions as Array<Record<string, unknown>>)
+        : [];
+      if (canonical?.status !== 'current' || revisions.length === 0)
+        throw new V3ConflictError('Accounting Pack requires a successful current canonical revision');
+      for (const revision of revisions) {
+        const revisionId = typeof revision.revisionId === 'string' ? revision.revisionId : '';
+        const current = this.sqlite
+          .prepare(
+            `SELECT r.status,r.reconciliation_status,r.blocker_count,s.tail_revision_id,
+                    EXISTS(SELECT 1 FROM accounting_pack_revision_snapshot snap
+                           WHERE snap.revision_id=r.revision_id) has_snapshot
+             FROM accounting_pack_revision r
+             JOIN accounting_pack_series s ON s.series_id=r.series_id
+             WHERE r.revision_id=?`,
+          )
+          .get(revisionId) as
+          | {
+              status: string;
+              reconciliation_status: string;
+              blocker_count: number;
+              tail_revision_id: string | null;
+              has_snapshot: number;
+            }
+          | undefined;
+        if (
+          !current ||
+          current.status !== 'candidate' ||
+          current.reconciliation_status !== 'CLEAN' ||
+          current.blocker_count !== 0 ||
+          current.tail_revision_id !== revisionId ||
+          current.has_snapshot !== 1
+        )
+          throw new V3ConflictError(
+            'Accounting Pack requires a successful current canonical revision',
+          );
+      }
+      const job = this.latestAccountingPackJob(packId);
+      if (job?.state === 'queued' || job?.state === 'claimed' || job?.state === 'running')
+        throw new V3ConflictError('Accounting Pack artifacts are still processing');
+      const readyRows = this.sqlite
+        .prepare(
+          `SELECT DISTINCT export_type
+           FROM accounting_pack_export
+           WHERE pack_run_id=? AND byte_length>0 AND length(sha256)=64`,
+        )
+        .all(packId) as Array<{ export_type: AccountingPackExportType }>;
+      const ready = new Set(readyRows.map((row) => row.export_type));
+      const required = [
+        ...requiredAccountingPackExportTypes,
+        ...(process.env.JA_ACCOUNTING_PACK_REQUIRE_PDF === 'true' ? (['pdf'] as const) : []),
+        ...(process.env.JA_ACCOUNTING_PACK_REQUIRE_JSON === 'true' ? (['json'] as const) : []),
+      ];
+      const missing = required.filter((format) => !ready.has(format));
+      if (missing.length > 0)
+        throw new V3ConflictError(
+          `Accounting Pack required exports are not ready: ${missing.join(', ')}`,
+        );
+      const result = this.sqlite
+        .prepare(
+          "UPDATE accounting_pack_run SET state='final',updated_at=? WHERE id=? AND state IN ('draft','review','failed')",
+        )
+        .run(timestamp(), packId);
+      if (result.changes !== 1) throw new V3ConflictError('Accounting Pack is not reviewable');
+      this.audit(principal, 'accounting_pack.finalize', 'accounting_pack_run', packId, {});
+    });
+  }
+
+  private latestAccountingPackJob(packId: string): { id: string; state: string } | undefined {
+    return this.sqlite
+      .prepare(
+        `SELECT id,state
+         FROM job
+         WHERE kind='accounting_pack_artifact_render'
+           AND json_valid(payload_json)
+           AND json_extract(payload_json,'$.packId')=?
+         ORDER BY created_at DESC,id DESC
+         LIMIT 1`,
+      )
+      .get(packId) as { id: string; state: string } | undefined;
+  }
+
+  /**
+   * Queue one controlled retry for a terminal failed Accounting Pack format.
+   * Ready sibling formats are deliberately outside the retry payload and remain immutable.
+   */
+  retryAccountingPackExport(
+    principal: Principal,
+    packId: string,
+    exportType: AccountingPackExportType,
+    idempotencyKey: string,
+  ): { jobId: string; created: boolean; state: string } {
+    this.assertFinance(principal);
+    if (!accountingPackExportTypes.includes(exportType))
+      throw new V3ValidationError('Accounting Pack export type is invalid');
+    const cleanKey = requireText(idempotencyKey, 'Retry idempotency key');
+    if (cleanKey.length > 200) throw new V3ValidationError('Retry idempotency key is too long');
+    const durableKey = `accounting-pack-retry:${packId}:${exportType}:${createHash('sha256')
+      .update(cleanKey)
+      .digest('hex')}`;
+    const existingRetry = this.sqlite
+      .prepare('SELECT id,state FROM job WHERE idempotency_key=?')
+      .get(durableKey) as { id: string; state: string } | undefined;
+    if (existingRetry)
+      return { jobId: existingRetry.id, created: false, state: existingRetry.state };
+
+    return this.transaction(() => {
+      const pack = this.sqlite
+        .prepare('SELECT state,reconciliation_json FROM accounting_pack_run WHERE id=?')
+        .get(packId) as { state: string; reconciliation_json: string } | undefined;
+      if (!pack) throw new V3ValidationError('Accounting Pack not found');
+      if (pack.state === 'final') throw new V3ConflictError('Final Accounting Pack is immutable');
+      const ready = this.sqlite
+        .prepare(
+          'SELECT 1 FROM accounting_pack_export WHERE pack_run_id=? AND export_type=? AND byte_length>0 AND length(sha256)=64',
+        )
+        .get(packId, exportType);
+      if (ready) throw new V3ConflictError('Accounting Pack export is already ready');
+      const reconciliation = parseJsonRecord(pack.reconciliation_json);
+      const failures =
+        reconciliation._artifactFailures && typeof reconciliation._artifactFailures === 'object'
+          ? (reconciliation._artifactFailures as Record<string, unknown>)
+          : {};
+      const latest = this.latestAccountingPackJob(packId);
+      if (!failures[exportType] || !latest || !['dead_letter', 'succeeded'].includes(latest.state))
+        throw new V3ConflictError('Accounting Pack export is not terminal and retryable');
+      const priorRetries = this.sqlite
+        .prepare(
+          `SELECT COUNT(*) count FROM job
+           WHERE kind='accounting_pack_artifact_render'
+             AND json_valid(payload_json)
+             AND json_extract(payload_json,'$.packId')=?
+             AND EXISTS(SELECT 1 FROM json_each(payload_json,'$.formats') f WHERE f.value=?)`,
+        )
+        .get(packId, exportType) as { count: number };
+      if (priorRetries.count >= 5)
+        throw new V3ConflictError('Accounting Pack export retry limit reached');
+      const queued = this.enqueueJob(
+        'accounting_pack_artifact_render',
+        durableKey,
+        { packId, formats: [exportType] },
+        timestamp(),
+      );
+      this.audit(principal, 'accounting_pack.export_retry', 'accounting_pack_run', packId, {
+        exportType,
+        retryJobId: queued.id,
+        retryRequested: true,
+      });
+      return { jobId: queued.id, created: queued.created, state: 'queued' };
+    });
   }
 
   listAccountingPacks(principal: Principal) {
     this.assertFinanceReadable(principal);
-    return this.sqlite
+    const rows = this.sqlite
       .prepare(
-        'SELECT id,period_start,period_end,state,reconciliation_json,created_at,updated_at FROM accounting_pack_run ORDER BY period_start DESC LIMIT 24',
+        `SELECT apr.id,apr.period_start,apr.period_end,
+                apr.state raw_state,
+                (SELECT aj.state FROM job aj WHERE aj.kind='accounting_pack_artifact_render'
+                   AND json_valid(aj.payload_json)
+                   AND json_extract(aj.payload_json,'$.packId')=apr.id
+                   ORDER BY aj.created_at DESC,aj.id DESC LIMIT 1) job_state,
+                apr.reconciliation_json,apr.created_at,apr.updated_at,
+                COALESCE(GROUP_CONCAT(ape.export_type), '') export_types,
+                COALESCE(SUM(CASE WHEN ape.export_type IN ('xlsx','invoice_csv','expense_csv')
+                                      AND ape.byte_length>0 AND length(ape.sha256)=64
+                                 THEN 1 ELSE 0 END),0) ready_required_count
+         FROM accounting_pack_run apr
+         LEFT JOIN accounting_pack_export ape ON ape.pack_run_id=apr.id
+         GROUP BY apr.id
+         ORDER BY apr.period_start DESC LIMIT 24`,
       )
-      .all();
+      .all() as Array<{
+      id: string;
+      period_start: string;
+      period_end: string;
+      raw_state: string;
+      job_state: string | null;
+      reconciliation_json: string;
+      created_at: string;
+      updated_at: string;
+      export_types: string;
+      ready_required_count: number;
+    }>;
+    return rows.map((row) => {
+      const ready = new Set(row.export_types.split(',').filter(Boolean));
+      const reconciliation = parseJsonRecord(row.reconciliation_json);
+      const failures =
+        reconciliation._artifactFailures && typeof reconciliation._artifactFailures === 'object'
+          ? (reconciliation._artifactFailures as Record<string, unknown>)
+          : {};
+      const statuses = Object.fromEntries(
+        accountingPackExportTypes.map((type) => [
+          type,
+          ready.has(type)
+            ? 'ready'
+            : failures[type]
+              ? 'failed'
+              : row.job_state === 'dead_letter'
+                ? 'failed'
+                : row.job_state === 'claimed' || row.job_state === 'running'
+                  ? 'running'
+                  : row.job_state === 'queued'
+                    ? 'queued'
+                    : 'pending',
+        ]),
+      );
+      const lifecycleState =
+        row.raw_state === 'final'
+          ? 'final'
+          : row.job_state === 'claimed' || row.job_state === 'running'
+            ? 'running'
+            : row.job_state === 'queued'
+              ? 'queued'
+              : row.job_state === 'dead_letter'
+                ? 'failed'
+                : row.ready_required_count === requiredAccountingPackExportTypes.length
+                  ? 'ready'
+                  : row.raw_state;
+      const sourceStale = this.accountingPackSourcesChangedSince(
+        row.period_start,
+        row.period_end,
+        row.created_at,
+      );
+      return {
+        id: row.id,
+        period_start: row.period_start,
+        period_end: row.period_end,
+        state: sourceStale && row.raw_state !== 'final' ? 'stale' : lifecycleState,
+        sourceStale,
+        reconciliation_json: row.reconciliation_json,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        export_types: row.export_types,
+        export_statuses: JSON.stringify(statuses),
+        exportStatuses: statuses,
+      };
+    });
   }
 
   invoiceSnapshot(principal: Principal, invoiceId: string): Readonly<Record<string, unknown>> {
@@ -4472,7 +6369,7 @@ export class V3Repository {
   recordInvoicePdf(
     principal: Principal,
     invoiceId: string,
-    storageKey: string,
+    storageKey: SafeStorageKey,
     sha256: string,
     byteLength: number,
   ): void {
@@ -4503,7 +6400,7 @@ export class V3Repository {
     principal: Principal,
     packId: string,
     exportType: 'pdf' | 'xlsx' | 'invoice_csv' | 'expense_csv' | 'json',
-    storageKey: string,
+    storageKey: SafeStorageKey,
     sha256: string,
     byteLength: number,
   ): { id: string; created: boolean } {
@@ -4517,16 +6414,21 @@ export class V3Repository {
     if (existing) {
       if (existing.sha256 !== sha256)
         throw new V3ConflictError('Accounting Pack export already exists');
+      this.clearAccountingPackExportFailure(packId, exportType);
       return { id: existing.id, created: false };
     }
-    const pack = this.sqlite.prepare('SELECT id FROM accounting_pack_run WHERE id=?').get(packId);
+    const pack = this.sqlite
+      .prepare('SELECT id,state FROM accounting_pack_run WHERE id=?')
+      .get(packId) as { id: string; state: string } | undefined;
     if (!pack) throw new V3ValidationError('Accounting Pack not found');
+    if (pack.state === 'final') throw new V3ConflictError('Final Accounting Pack is immutable');
     const id = newId();
     this.sqlite
       .prepare(
         'INSERT INTO accounting_pack_export(id,pack_run_id,export_type,storage_key,sha256,byte_length,created_at) VALUES(?,?,?,?,?,?,?)',
       )
       .run(id, packId, exportType, storageKey, sha256, byteLength, timestamp());
+    this.clearAccountingPackExportFailure(packId, exportType);
     this.audit(principal, 'accounting_pack.export', 'accounting_pack_run', packId, {
       exportType,
       storageKey,
@@ -4536,26 +6438,150 @@ export class V3Repository {
     return { id, created: true };
   }
 
+  /** Persist a failed format without fabricating a downloadable artifact. */
+  recordAccountingPackExportFailure(
+    principal: Principal,
+    packId: string,
+    exportType: AccountingPackExportType,
+    error: string,
+  ): void {
+    this.assertFinance(principal);
+    const pack = this.sqlite
+      .prepare('SELECT state,reconciliation_json FROM accounting_pack_run WHERE id=?')
+      .get(packId) as { state: string; reconciliation_json: string } | undefined;
+    if (!pack) throw new V3ValidationError('Accounting Pack not found');
+    if (pack.state === 'final') throw new V3ConflictError('Final Accounting Pack is immutable');
+    const reconciliation = parseJsonRecord(pack.reconciliation_json);
+    const failures =
+      reconciliation._artifactFailures && typeof reconciliation._artifactFailures === 'object'
+        ? { ...(reconciliation._artifactFailures as Record<string, unknown>) }
+        : {};
+    failures[exportType] = {
+      state: 'failed',
+      error: error.trim().slice(0, 500) || 'Artifact generation failed',
+      recordedAt: timestamp(),
+    };
+    reconciliation._artifactFailures = failures;
+    this.sqlite
+      .prepare(
+        "UPDATE accounting_pack_run SET reconciliation_json=?,state=CASE WHEN state='final' THEN state ELSE 'failed' END,updated_at=? WHERE id=?",
+      )
+      .run(JSON.stringify(reconciliation), timestamp(), packId);
+    this.audit(principal, 'accounting_pack.export_failed', 'accounting_pack_run', packId, {
+      exportType,
+      error: failures[exportType],
+    });
+  }
+
+  private clearAccountingPackExportFailure(
+    packId: string,
+    exportType: AccountingPackExportType,
+  ): void {
+    const pack = this.sqlite
+      .prepare('SELECT reconciliation_json,state FROM accounting_pack_run WHERE id=?')
+      .get(packId) as { reconciliation_json: string; state: string } | undefined;
+    if (!pack) return;
+    const reconciliation = parseJsonRecord(pack.reconciliation_json);
+    const failures =
+      reconciliation._artifactFailures && typeof reconciliation._artifactFailures === 'object'
+        ? { ...(reconciliation._artifactFailures as Record<string, unknown>) }
+        : {};
+    if (!(exportType in failures)) return;
+    delete failures[exportType];
+    if (Object.keys(failures).length > 0) reconciliation._artifactFailures = failures;
+    else delete reconciliation._artifactFailures;
+    this.sqlite
+      .prepare(
+        "UPDATE accounting_pack_run SET reconciliation_json=?,state=CASE WHEN state='failed' THEN 'draft' ELSE state END,updated_at=? WHERE id=?",
+      )
+      .run(JSON.stringify(reconciliation), timestamp(), packId);
+  }
+
   accountingPackExport(
     principal: Principal,
     packId: string,
     exportType: 'pdf' | 'xlsx' | 'invoice_csv' | 'expense_csv' | 'json',
   ): {
-    storageKey: string;
+    storageKey: SafeStorageKey;
     sha256: string;
     byteLength: number;
     mediaType: string;
     filename: string;
   } {
     this.assertFinance(principal);
+    const packStatus = this.sqlite
+      .prepare(
+        `SELECT apr.state,apr.reconciliation_json,apr.period_start,apr.period_end,apr.created_at,
+                (SELECT j.state FROM job j WHERE j.kind='accounting_pack_artifact_render'
+                  AND json_valid(j.payload_json)
+                  AND json_extract(j.payload_json,'$.packId')=apr.id
+                  ORDER BY j.created_at DESC,j.id DESC LIMIT 1) job_state
+         FROM accounting_pack_run apr WHERE apr.id=?`,
+      )
+      .get(packId) as
+      | {
+          state: string;
+          reconciliation_json: string;
+          period_start: string;
+          period_end: string;
+          created_at: string;
+          job_state: string | null;
+        }
+      | undefined;
+    if (!packStatus) throw new V3ValidationError('Accounting Pack not found');
+    if (
+      packStatus.state !== 'final' &&
+      this.accountingPackSourcesChangedSince(
+        packStatus.period_start,
+        packStatus.period_end,
+        packStatus.created_at,
+      )
+    )
+      throw new V3ConflictError(
+        'Accounting Pack source changed; create a new revision before download',
+      );
+    const reconciliation = parseJsonRecord(packStatus.reconciliation_json);
+    const failures =
+      reconciliation._artifactFailures && typeof reconciliation._artifactFailures === 'object'
+        ? (reconciliation._artifactFailures as Record<string, unknown>)
+        : {};
+    if (failures[exportType])
+      throw new V3ConflictError(`Accounting Pack ${exportType} export failed; retry required`);
     const row = this.sqlite
       .prepare(
-        'SELECT storage_key,sha256,byte_length FROM accounting_pack_export WHERE pack_run_id=? AND export_type=?',
+        `SELECT ape.storage_key,ape.sha256,ape.byte_length,apr.period_start,apr.period_end
+         FROM accounting_pack_export ape JOIN accounting_pack_run apr ON apr.id=ape.pack_run_id
+         WHERE ape.pack_run_id=? AND ape.export_type=?`,
       )
       .get(packId, exportType) as
-      | { storage_key: string; sha256: string; byte_length: number }
+      | {
+          storage_key: string;
+          sha256: string;
+          byte_length: number;
+          period_start: string;
+          period_end: string;
+        }
       | undefined;
-    if (!row) throw new V3ValidationError('Accounting Pack export not found');
+    if (!row) {
+      if (
+        packStatus.job_state === 'queued' ||
+        packStatus.job_state === 'claimed' ||
+        packStatus.job_state === 'running'
+      )
+        throw new V3ConflictError(`Accounting Pack ${exportType} export is not ready`);
+      if (packStatus.job_state === 'dead_letter')
+        throw new V3ConflictError(`Accounting Pack ${exportType} export failed; retry required`);
+      throw new V3ValidationError('Accounting Pack export not found');
+    }
+    // The aggregate job state describes the pack as a whole. A renderer may
+    // fail for one format after other formats have been committed, so only the
+    // requested row's artifact metadata can authorize its download.
+    if (
+      !Number.isSafeInteger(row.byte_length) ||
+      row.byte_length <= 0 ||
+      !/^[a-f0-9]{64}$/.test(row.sha256)
+    )
+      throw new V3ConflictError(`Accounting Pack ${exportType} export is not ready`);
     this.assertStorageKey(row.storage_key);
     const extension =
       exportType === 'pdf'
@@ -4578,7 +6604,7 @@ export class V3Repository {
       sha256: row.sha256,
       byteLength: row.byte_length,
       mediaType,
-      filename: `accounting-pack-${packId}.${extension}`,
+      filename: `accounting-pack-${row.period_start}-${row.period_end}-${exportType}.${extension}`,
     };
   }
 
@@ -4586,7 +6612,7 @@ export class V3Repository {
     principal: Principal,
     invoiceId: string,
   ): {
-    storageKey: string;
+    storageKey: SafeStorageKey;
     sha256: string;
     byteLength?: number;
     mediaType: string;
@@ -4617,15 +6643,93 @@ export class V3Repository {
     };
   }
 
-  private assertStorageKey(storageKey: string): void {
+  private assertStorageKey(storageKey: SafeStorageKey): void {
     assertSafeStorageKey(storageKey, () => new V3ValidationError('Unsafe storage key'));
+  }
+
+  deleteDocument(principal: Principal, documentId: string): { storageKey: SafeStorageKey } {
+    this.assertActive(principal);
+    const document = this.sqlite
+      .prepare(
+        'SELECT id, project_id, owner_id, state, scan_status, storage_key FROM document WHERE id=?',
+      )
+      .get(documentId) as
+      | {
+          id: string;
+          project_id: string | null;
+          owner_id: string;
+          state: string;
+          scan_status: string | null;
+          storage_key: string;
+        }
+      | undefined;
+    if (!document) throw new V3NotFoundError('Document not found');
+
+    if (principal.role !== 'owner_admin' && principal.role !== 'finance_admin') {
+      if (!document.project_id) {
+        if (document.owner_id !== principal.userId) throw new V3AccessDeniedError('Access denied');
+      } else {
+        this.assertProjectAccess(principal, document.project_id);
+        if (principal.role !== 'project_manager' && document.owner_id !== principal.userId)
+          throw new V3AccessDeniedError('Access denied');
+      }
+    }
+
+    this.assertStorageKey(document.storage_key);
+    const deletable =
+      document.state === 'temporary' ||
+      (document.state === 'rejected' && document.scan_status === 'rejected');
+    if (!deletable)
+      throw new V3ConflictError(
+        'Committed or traceable documents are immutable; archive or supersede the document instead',
+      );
+
+    const references = this.sqlite
+      .prepare(
+        `SELECT
+           EXISTS(SELECT 1 FROM expense WHERE receipt_document_id=?) AS expense_reference,
+           EXISTS(SELECT 1 FROM document child WHERE child.supersedes_id=?) AS successor_reference,
+           EXISTS(SELECT 1 FROM document_access_event WHERE document_id=?) AS access_reference,
+           EXISTS(
+             SELECT 1 FROM project_closeout
+             WHERE document_manifest_json LIKE '%' || ? || '%'
+           ) AS closeout_reference`,
+      )
+      .get(documentId, documentId, documentId, documentId) as {
+      expense_reference: number;
+      successor_reference: number;
+      access_reference: number;
+      closeout_reference: number;
+    };
+    if (
+      references.expense_reference ||
+      references.successor_reference ||
+      references.access_reference ||
+      references.closeout_reference
+    )
+      throw new V3ConflictError(
+        'Document is referenced by traceable history and cannot be deleted',
+      );
+
+    return this.transaction(() => {
+      const result = this.sqlite
+        .prepare("DELETE FROM document WHERE id=? AND state IN ('temporary','rejected')")
+        .run(documentId);
+      if (result.changes !== 1)
+        throw new V3ConflictError('Document changed before the deletion could be completed');
+      this.audit(principal, 'document.delete', 'document', documentId, {
+        previousState: document.state,
+        storageKey: document.storage_key,
+      });
+      return { storageKey: document.storage_key };
+    });
   }
 
   authorizeDocument(
     principal: Principal,
     documentId: string,
   ): {
-    storageKey: string;
+    storageKey: SafeStorageKey;
     filename: string;
     mediaType: string;
     sensitive: boolean;
@@ -4654,10 +6758,7 @@ export class V3Repository {
           scan_status: string;
         }
       | undefined;
-    const scannerRequired =
-      process.env.NODE_ENV === 'production' &&
-      (process.env.JA_MALWARE_SCANNER_REQUIRED === 'true' ||
-        Boolean(process.env.JA_MALWARE_SCANNER_URL));
+    const scannerRequired = malwareScannerRequired();
     if (
       !document ||
       document.state !== 'committed' ||
@@ -4667,13 +6768,21 @@ export class V3Repository {
     )
       throw new V3ValidationError('Document not found');
     this.assertStorageKey(document.storage_key);
-    const record = { ownerId: document.owner_id, projectId: document.project_id ?? '' };
-    const allowed =
+    let allowed =
       principal.role === 'owner_admin' ||
       principal.role === 'finance_admin' ||
-      principal.role === 'auditor_read_only' ||
-      document.owner_id === principal.userId ||
-      (document.project_id !== null && canReadRecord(principal, record));
+      principal.role === 'auditor_read_only';
+    if (!allowed && document.project_id === null) allowed = document.owner_id === principal.userId;
+    if (!allowed && document.project_id !== null) {
+      try {
+        this.assertProjectAccess(principal, document.project_id, true);
+        allowed =
+          principal.role === 'project_manager' ||
+          (principal.role === 'worker' && document.owner_id === principal.userId);
+      } catch {
+        allowed = false;
+      }
+    }
     if (!allowed) throw new V3AccessDeniedError('Document access denied');
     const sensitive = document.sensitive === 1 || document.sensitivity !== 'public';
     this.sqlite
@@ -4697,31 +6806,192 @@ export class V3Repository {
     documentId: string,
     result: 'clean' | 'rejected',
     provider: string,
+    execution: DocumentScanExecutionProof,
   ): void {
     this.assertActive(principal);
-    if (
-      !principal.isServiceActor &&
-      principal.role !== 'owner_admin' &&
-      principal.role !== 'finance_admin'
-    )
+    if (!principal.isServiceActor)
       throw new V3AccessDeniedError('Document scanning requires a service actor');
-    this.assertStepUp(principal);
+    if (result !== 'clean' && result !== 'rejected')
+      throw new V3ValidationError('Document scan result is invalid');
     if (!provider.trim() || provider.length > 120)
       throw new V3ValidationError('Scan provider is invalid');
-    const state = result === 'clean' ? 'committed' : 'rejected';
-    const updated = this.sqlite
-      .prepare(
-        "UPDATE document SET scan_status=?,scanned_at=?,scan_provider=?,state=?,updated_at=?,version=version+1 WHERE id=? AND scan_status IN ('pending','not_scanned')",
+    const configuredProvider = process.env.JA_MALWARE_SCANNER_PROVIDER?.trim();
+    const providerIsConfigured = configuredProvider
+      ? provider.trim() === configuredProvider
+      : provider.trim() === 'test-scanner' &&
+        (process.env.VITEST === 'true' || Boolean(process.env.VITEST_WORKER_ID));
+    if (!providerIsConfigured)
+      throw new V3AccessDeniedError('Scan provider is not an authorized configured service');
+    if (
+      !execution ||
+      !execution.jobId ||
+      !execution.runId ||
+      !execution.tenantId ||
+      !execution.deploymentId ||
+      execution.requiredCapability !== 'document.scan' ||
+      !Number.isSafeInteger(execution.fenceVersion) ||
+      execution.fenceVersion < 1
+    )
+      throw new V3AccessDeniedError('Document scan execution proof is required');
+
+    this.transaction(() => {
+      const durable = this.sqlite
+        .prepare(
+          `SELECT j.kind,j.contract_version job_contract,j.payload_json,j.payload_sha256,
+                  j.tenant_id,j.deployment_id,j.required_capability,j.state job_state,
+                  j.active_job_run_id,j.fence_version,j.lease_until job_lease_until,
+                  r.id run_id,r.contract_version run_contract,r.kind run_kind,r.state run_state,
+                  r.tenant_id run_tenant_id,r.deployment_id run_deployment_id,
+                  r.required_capability run_capability,r.payload_sha256 run_payload_sha256,
+                  r.service_actor_id,r.service_actor_version,
+                  r.service_actor_capabilities_json,r.configured_binding_version,
+                  r.fence_version run_fence,r.lease_until run_lease_until,
+                  s.status actor_status,s.version actor_version,
+                  s.capabilities_json actor_capabilities,
+                  b.service_actor_id binding_actor_id,b.tenant_id binding_tenant_id,
+                  b.deployment_id binding_deployment_id,b.version binding_version
+           FROM job j
+           JOIN job_run r ON r.id=j.active_job_run_id AND r.id=? AND r.job_id=j.id
+           JOIN deployment_identity d
+             ON d.singleton=1 AND d.tenant_id=j.tenant_id AND d.deployment_id=j.deployment_id
+           JOIN service_actor s ON s.id=r.service_actor_id
+           JOIN deployment_service_actor_binding b
+             ON b.singleton=1 AND b.service_actor_id=s.id
+           WHERE j.id=?`,
+        )
+        .get(execution.runId, execution.jobId) as
+        | {
+            kind: string;
+            job_contract: string;
+            payload_json: string;
+            payload_sha256: string | null;
+            tenant_id: string | null;
+            deployment_id: string | null;
+            required_capability: string | null;
+            job_state: string;
+            active_job_run_id: string | null;
+            fence_version: number;
+            job_lease_until: string | null;
+            run_id: string;
+            run_contract: string | null;
+            run_kind: string | null;
+            run_state: string | null;
+            run_tenant_id: string | null;
+            run_deployment_id: string | null;
+            run_capability: string | null;
+            run_payload_sha256: string | null;
+            service_actor_id: string | null;
+            service_actor_version: number | null;
+            service_actor_capabilities_json: string | null;
+            configured_binding_version: number | null;
+            run_fence: number | null;
+            run_lease_until: string | null;
+            actor_status: string;
+            actor_version: number;
+            actor_capabilities: string;
+            binding_actor_id: string;
+            binding_tenant_id: string;
+            binding_deployment_id: string;
+            binding_version: number;
+          }
+        | undefined;
+      const now = timestamp();
+      if (
+        !durable ||
+        durable.job_contract !== 'b5-v1' ||
+        durable.run_contract !== 'b5-v1' ||
+        durable.kind !== 'document_scan' ||
+        durable.run_kind !== 'document_scan' ||
+        durable.required_capability !== 'document.scan' ||
+        durable.run_capability !== 'document.scan' ||
+        durable.job_state !== 'claimed' ||
+        durable.run_state !== 'running' ||
+        durable.active_job_run_id !== execution.runId ||
+        durable.tenant_id !== execution.tenantId ||
+        durable.deployment_id !== execution.deploymentId ||
+        durable.run_tenant_id !== execution.tenantId ||
+        durable.run_deployment_id !== execution.deploymentId ||
+        durable.binding_tenant_id !== execution.tenantId ||
+        durable.binding_deployment_id !== execution.deploymentId ||
+        durable.required_capability !== execution.requiredCapability ||
+        durable.service_actor_id !== durable.binding_actor_id ||
+        durable.actor_status !== 'active' ||
+        durable.service_actor_version !== durable.actor_version ||
+        durable.configured_binding_version !== durable.binding_version ||
+        durable.actor_capabilities !== durable.service_actor_capabilities_json ||
+        durable.payload_sha256 === null ||
+        durable.payload_sha256 !== durable.run_payload_sha256 ||
+        durable.fence_version !== execution.fenceVersion ||
+        durable.run_fence !== execution.fenceVersion ||
+        durable.job_lease_until === null ||
+        durable.run_lease_until !== durable.job_lease_until ||
+        durable.job_lease_until <= now
       )
-      .run(result, timestamp(), provider.trim(), state, timestamp(), documentId);
-    if (updated.changes !== 1) {
+        throw new V3AccessDeniedError('Document scan execution is stale or forged');
+
+      let capabilities: unknown;
+      let payload: unknown;
+      try {
+        capabilities = JSON.parse(durable.actor_capabilities);
+        payload = JSON.parse(durable.payload_json);
+      } catch {
+        throw new V3AccessDeniedError('Document scan execution is stale or forged');
+      }
+      if (
+        !Array.isArray(capabilities) ||
+        !capabilities.includes('document.scan') ||
+        createHash('sha256').update(canonicalJobJson(payload)).digest('hex') !==
+          durable.payload_sha256 ||
+        !payload ||
+        typeof payload !== 'object' ||
+        Array.isArray(payload) ||
+        (payload as Record<string, unknown>).documentId !== documentId
+      )
+        throw new V3AccessDeniedError('Document scan execution is stale or forged');
+
       const current = this.sqlite
         .prepare('SELECT scan_status FROM document WHERE id=?')
         .get(documentId) as { scan_status: string } | undefined;
-      if (current?.scan_status !== result)
+      if (!current) throw new V3ValidationError('Document not found');
+      if (current.scan_status === result) {
+        const sameExecution = this.sqlite
+          .prepare(
+            `SELECT 1 FROM audit_event
+             WHERE action='document.scan' AND entity_type='document' AND entity_id=?
+               AND json_extract(metadata_json,'$.jobId')=?
+               AND json_extract(metadata_json,'$.jobRunId')=?
+               AND json_extract(metadata_json,'$.fenceVersion')=?
+               AND json_extract(metadata_json,'$.result')=?
+             LIMIT 1`,
+          )
+          .get(documentId, execution.jobId, execution.runId, execution.fenceVersion, result);
+        if (sameExecution) return;
         throw new V3ConflictError('Document scan is already finalized');
-    }
-    this.audit(principal, 'document.scan', 'document', documentId, { result, provider });
+      }
+      if (current.scan_status !== 'pending' && current.scan_status !== 'not_scanned')
+        throw new V3ConflictError('Document scan is already finalized');
+
+      const state = result === 'clean' ? 'committed' : 'rejected';
+      const changedAt = timestamp();
+      const updated = this.sqlite
+        .prepare(
+          "UPDATE document SET scan_status=?,scanned_at=?,scan_provider=?,state=?,updated_at=?,version=version+1 WHERE id=? AND scan_status IN ('pending','not_scanned')",
+        )
+        .run(result, changedAt, provider.trim(), state, changedAt, documentId);
+      if (updated.changes !== 1)
+        throw new V3ConflictError('Document scan changed while finalizing');
+      this.audit(principal, 'document.scan', 'document', documentId, {
+        result,
+        provider: provider.trim(),
+        jobId: execution.jobId,
+        jobRunId: execution.runId,
+        tenantId: execution.tenantId,
+        deploymentId: execution.deploymentId,
+        serviceActorId: durable.service_actor_id,
+        serviceCapability: execution.requiredCapability,
+        fenceVersion: execution.fenceVersion,
+      });
+    });
   }
 
   private createOfflineDraft(
@@ -4800,10 +7070,10 @@ export class V3Repository {
       const parsed = technicalReportInputSchema.safeParse(mutation.payload);
       if (!parsed.success) throw new V3ValidationError('Invalid offline technical report draft');
       const input = parsed.data;
-      this.assertOfflineAssignment(principal, input.projectId);
+      this.assertOfflineAssignment(principal, input.projectId, input.reportDate);
       this.sqlite
         .prepare(
-          'INSERT INTO technical_report(id,project_id,author_id,system_name,plant_site,area_line,station_machine,system_type,plc_platform,controller,hmi_scada,network_protocol,software_version,program_reference,change_summary,safety_related,production_impact,validation,validation_result,open_risk,rollback_plan,approval_state,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          'INSERT INTO technical_report(id,project_id,author_id,system_name,plant_site,area_line,station_machine,system_type,plc_platform,controller,hmi_scada,network_protocol,software_version,program_reference,change_summary,safety_related,production_impact,validation,validation_result,open_risk,rollback_plan,report_date,report_date_provenance,approval_state,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
         )
         .run(
           mutation.entityId,
@@ -4827,6 +7097,8 @@ export class V3Repository {
           input.validationResult ?? null,
           input.openRisk ?? null,
           input.rollbackPlan ?? null,
+          input.reportDate,
+          'native',
           'draft',
           timestampValue,
           timestampValue,
@@ -4859,9 +7131,13 @@ export class V3Repository {
         throw new V3ValidationError('A committed receipt is required');
       if (input.receiptDocumentId) {
         const receipt = this.sqlite
-          .prepare("SELECT 1 FROM document WHERE id=? AND owner_id=? AND state='committed'")
+          .prepare(
+            "SELECT project_id FROM document WHERE id=? AND owner_id=? AND state='committed'",
+          )
           .get(input.receiptDocumentId, principal.userId);
         if (!receipt) throw new V3AccessDeniedError('Committed owned receipt required');
+        if (String((receipt as { project_id: string | null }).project_id ?? '') !== input.projectId)
+          throw new V3AccessDeniedError('Receipt must belong to the expense project');
       }
       const billingTreatment =
         input.billingTreatment ??
@@ -4973,15 +7249,22 @@ export class V3Repository {
             ? 'expense'
             : mutation.entityType;
       const ownerColumn = mutation.entityType === 'technical_report' ? 'author_id' : 'worker_id';
+      const objectDateColumn =
+        mutation.entityType === 'technical_report'
+          ? 'report_date'
+          : mutation.entityType === 'expense'
+            ? 'spent_on'
+            : 'work_date';
       const row = this.sqlite
         .prepare(
-          `SELECT id,${ownerColumn} owner_id,project_id,version,approval_state FROM ${table} WHERE id=?`,
+          `SELECT id,${ownerColumn} owner_id,project_id,${objectDateColumn} object_date,version,approval_state FROM ${table} WHERE id=?`,
         )
         .get(mutation.entityId) as
         | {
             id: string;
             owner_id: string;
             project_id: string;
+            object_date: string;
             version: number;
             approval_state: string;
           }
@@ -5001,7 +7284,7 @@ export class V3Repository {
           outcome: 'rejected',
           reason: 'Record ownership required',
         });
-      this.assertProjectAccess(principal, row.project_id);
+      this.assertOfflineAssignment(principal, row.project_id, row.object_date);
       if (row.version !== mutation.baseVersion)
         return this.persistMutationResult(principal, mutation, {
           outcome: 'conflict',
@@ -5123,17 +7406,65 @@ export class V3Repository {
     payload: unknown,
     runAfter = timestamp(),
   ): { id: string; created: boolean } {
+    const canonicalKind = kind;
+    const capability = B5_JOB_CAPABILITIES[canonicalKind];
+    if (!capability) throw new V3ValidationError(`Unregistered durable job kind: ${kind}`);
+    const identity = this.sqlite
+      .prepare('SELECT tenant_id,deployment_id FROM deployment_identity WHERE singleton=1')
+      .get() as { tenant_id: string; deployment_id: string } | undefined;
+    if (!identity) throw new V3ValidationError('Deployment identity is not configured');
+    if (!idempotencyKey.trim()) throw new V3ValidationError('Job idempotency key is required');
+    requireDateTime(runAfter, 'Job run-after timestamp');
+    const payloadJson = canonicalJobJson(payload);
+    const payloadSha256 = createHash('sha256').update(payloadJson).digest('hex');
     const existing = this.sqlite
-      .prepare('SELECT id FROM job WHERE idempotency_key=?')
-      .get(idempotencyKey) as { id: string } | undefined;
-    if (existing) return { id: existing.id, created: false };
+      .prepare(
+        "SELECT id,payload_sha256,kind FROM job WHERE tenant_id=? AND deployment_id=? AND idempotency_key=? AND contract_version='b5-v1'",
+      )
+      .get(identity.tenant_id, identity.deployment_id, idempotencyKey) as
+      | { id: string; payload_sha256: string; kind: string }
+      | undefined;
+    if (existing) {
+      if (existing.kind !== canonicalKind || existing.payload_sha256 !== payloadSha256)
+        throw new V3ConflictError('IDEMPOTENCY_CONFLICT');
+      return { id: existing.id, created: false };
+    }
     const id = newId();
     const now = timestamp();
+    const correlationId = createHash('sha256')
+      .update(`${identity.tenant_id}:${identity.deployment_id}:${idempotencyKey}`)
+      .digest('hex');
     this.sqlite
       .prepare(
-        'INSERT INTO job(id,kind,idempotency_key,state,run_after,payload_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
+        `INSERT INTO job(
+           id,kind,idempotency_key,state,run_after,lease_until,attempts,payload_json,created_at,
+           updated_at,version,tenant_id,deployment_id,contract_version,payload_sha256,correlation_id,
+           required_capability,active_job_run_id,fence_version,max_attempts,last_error_code
+         ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       )
-      .run(id, kind, idempotencyKey, 'pending', runAfter, JSON.stringify(payload), now, now);
+      .run(
+        id,
+        canonicalKind,
+        idempotencyKey,
+        'queued',
+        runAfter,
+        null,
+        0,
+        payloadJson,
+        now,
+        now,
+        1,
+        identity.tenant_id,
+        identity.deployment_id,
+        'b5-v1',
+        payloadSha256,
+        correlationId,
+        capability,
+        null,
+        0,
+        5,
+        null,
+      );
     return { id, created: true };
   }
 
@@ -5190,106 +7521,77 @@ export class V3Repository {
     limit = 20,
     handlers: Readonly<Record<string, DueJobHandler>> = {},
   ): { processed: number; failed: number; overdueMarked: number } {
+    let overdueMarked = 0;
+    const syncHandlers: Record<
+      string,
+      (payload: unknown, execution: DurableJobExecutionContext) => void | (() => void)
+    > = {};
+    const aliases: Readonly<Record<string, string>> = {
+      accounting_pack: 'accounting_pack_artifact_render',
+      missing_time_reminder: 'alert_dispatch',
+      overdue: 'alert_dispatch',
+      period_readiness: 'backup_verify',
+    };
+    for (const [kind, handler] of Object.entries(handlers)) {
+      const canonicalKind = aliases[kind] ?? kind;
+      syncHandlers[canonicalKind] = (payload, execution) => {
+        const result = handler(payload, execution);
+        if (result && typeof (result as PromiseLike<void>).then === 'function')
+          throw new Error('Synchronous durable job handler returned a Promise');
+        return typeof result === 'function' ? result : undefined;
+      };
+    }
+
+    if (!syncHandlers.alert_dispatch)
+      syncHandlers.alert_dispatch = (payload) => {
+        const reminder = payload as { alertType?: unknown; workDate?: unknown };
+        if (
+          reminder.alertType === 'missing_time' &&
+          typeof reminder.workDate === 'string' &&
+          reminder.workDate
+        ) {
+          this.createMissingTimeReminders(reminder.workDate);
+          return;
+        }
+        if (reminder.alertType !== 'overdue') throw new Error('PAYLOAD_INVALID');
+        const now = timestamp();
+        const changed = this.sqlite
+          .prepare(
+            "UPDATE invoice SET state='overdue',updated_at=? WHERE due_at<? AND state IN ('issued','sent','partially_paid')",
+          )
+          .run(now, now);
+        overdueMarked += Number(changed.changes);
+      };
+    if (!syncHandlers.period_close_report)
+      syncHandlers.period_close_report = (payload) => {
+        const report = payload as {
+          projectId?: unknown;
+          periodStart?: unknown;
+          periodEnd?: unknown;
+        };
+        if (
+          typeof report.projectId === 'string' &&
+          typeof report.periodStart === 'string' &&
+          typeof report.periodEnd === 'string'
+        )
+          this.sqlite
+            .prepare(
+              "UPDATE period_report SET state='review',updated_at=? WHERE project_id=? AND period_start=? AND period_end=? AND state='draft'",
+            )
+            .run(timestamp(), report.projectId, report.periodStart, report.periodEnd);
+      };
+    if (!syncHandlers.backup_verify)
+      syncHandlers.backup_verify = () => {
+        // Readiness remains an explicit finance action; this durable run only
+        // records a truthful successful scheduler execution.
+      };
+
+    const outcomes = runDueConfiguredDurableJobsSync(this.sqlite, limit, syncHandlers);
     let processed = 0;
     let failed = 0;
-    let overdueMarked = 0;
-    for (let index = 0; index < limit; index += 1) {
-      const result = this.transaction(() => {
-        const now = timestamp();
-        const job = this.sqlite
-          .prepare(
-            "SELECT id,kind,payload_json,attempts FROM job WHERE state='pending' AND run_after<=? AND (lease_until IS NULL OR lease_until<?) ORDER BY run_after,id LIMIT 1",
-          )
-          .get(now, now) as
-          | { id: string; kind: string; payload_json: string; attempts: number }
-          | undefined;
-        if (!job) return null;
-        const lease = new Date(Date.now() + 60_000).toISOString();
-        this.sqlite
-          .prepare(
-            "UPDATE job SET state='running',lease_until=?,attempts=attempts+1,updated_at=?,version=version+1 WHERE id=? AND state='pending'",
-          )
-          .run(lease, now, job.id);
-        const runId = newId();
-        this.sqlite
-          .prepare('INSERT INTO job_run(id,job_id,started_at) VALUES(?,?,?)')
-          .run(runId, job.id, now);
-        return { ...job, runId };
-      });
-      if (!result) break;
-      try {
-        const payload = JSON.parse(result.payload_json) as unknown;
-        const handler = handlers[result.kind];
-        if (handler) {
-          handler(payload);
-        } else if (result.kind === 'overdue') {
-          const changed = this.sqlite
-            .prepare(
-              "UPDATE invoice SET state='overdue',updated_at=? WHERE due_at<? AND state IN ('issued','sent','partially_paid')",
-            )
-            .run(timestamp(), timestamp());
-          overdueMarked += Number(changed.changes);
-        } else if (result.kind === 'period_close_report') {
-          const report = payload as {
-            projectId?: string;
-            periodStart?: string;
-            periodEnd?: string;
-          };
-          if (report.projectId && report.periodStart && report.periodEnd)
-            this.sqlite
-              .prepare(
-                "UPDATE period_report SET state='review',updated_at=? WHERE project_id=? AND period_start=? AND period_end=? AND state='draft'",
-              )
-              .run(timestamp(), report.projectId, report.periodStart, report.periodEnd);
-        } else if (result.kind === 'period_readiness') {
-          // Readiness remains an explicit finance action; this durable run keeps the scheduler
-          // alive without closing or issuing anything automatically.
-        } else if (result.kind === 'missing_time_reminder') {
-          const reminder = payload as { workDate?: string };
-          if (!reminder.workDate) throw new Error('Missing-time reminder has no work date');
-          this.createMissingTimeReminders(reminder.workDate);
-        } else if (
-          result.kind === 'invoice_pdf' ||
-          result.kind === 'accounting_pack' ||
-          result.kind === 'auto_draft'
-        ) {
-          throw new Error(`${result.kind} requires an artifact handler`);
-        } else {
-          throw new Error(`No handler registered for job kind: ${result.kind}`);
-        }
-        this.sqlite
-          .prepare(
-            "UPDATE job SET state='complete',lease_until=NULL,updated_at=?,version=version+1 WHERE id=?",
-          )
-          .run(timestamp(), result.id);
-        this.sqlite
-          .prepare("UPDATE job_run SET finished_at=?,outcome='success' WHERE id=?")
-          .run(timestamp(), result.runId);
-        processed += 1;
-      } catch (error) {
-        failed += 1;
-        const message = error instanceof Error ? error.message : 'Job failed';
-        if (process.env.NODE_ENV === 'production' || process.env.JA_JSON_LOGS === 'true')
-          console.error(
-            JSON.stringify({
-              timestamp: new Date().toISOString(),
-              level: 'error',
-              event: 'job.failure',
-              jobId: result.id,
-              kind: result.kind,
-              attempts: result.attempts + 1,
-              error: message,
-            }),
-          );
-        this.sqlite
-          .prepare(
-            "UPDATE job SET state=CASE WHEN attempts>=5 THEN 'failed' ELSE 'pending' END,lease_until=NULL,run_after=?,updated_at=?,version=version+1 WHERE id=?",
-          )
-          .run(new Date(Date.now() + 300_000).toISOString(), timestamp(), result.id);
-        this.sqlite
-          .prepare("UPDATE job_run SET finished_at=?,outcome='failure',error_code=? WHERE id=?")
-          .run(timestamp(), message.slice(0, 160), result.runId);
-      }
+    for (const outcome of outcomes) {
+      if (outcome.outcome === 'succeeded') processed += 1;
+      else failed += 1;
     }
     return { processed, failed, overdueMarked };
   }
@@ -5397,11 +7699,11 @@ export class V3Repository {
   scheduleCoreJobs(): void {
     const now = timestamp();
     const jobs = [
-      ['overdue', '*/5 * * * *'],
-      ['period_readiness', '*/5 * * * *'],
-      ['missing_time_reminder', '0 9 * * 1-6'],
-      ['accounting_pack', '0 2 1 * *'],
+      ['alert_dispatch', '*/5 * * * *'],
+      ['backup_verify', '*/5 * * * *'],
+      ['accounting_pack_artifact_render', '0 2 1 * *'],
       ['auto_draft', '*/10 * * * *'],
+      ['temporary_upload_cleanup', '15 * * * *'],
     ] as const;
     for (const [kind, cron] of jobs)
       this.sqlite
@@ -5410,14 +7712,28 @@ export class V3Repository {
         )
         .run(newId(), kind, cron, '{}', now);
     const minute = now.slice(0, 16);
-    this.enqueueJob('overdue', `overdue:${minute}`, {}, now);
-    this.enqueueJob('period_readiness', `period-readiness:${minute}`, {}, now);
+    const cleanupHour = now.slice(0, 13);
+    const cleanupBoundary = new Date(`${cleanupHour}:00:00.000Z`);
+    cleanupBoundary.setUTCDate(cleanupBoundary.getUTCDate() - 1);
+    this.enqueueJob(
+      'temporary_upload_cleanup',
+      `temporary-upload-cleanup:${cleanupHour}`,
+      { olderThan: cleanupBoundary.toISOString() },
+      now,
+    );
+    this.enqueueJob('alert_dispatch', `overdue:${minute}`, { alertType: 'overdue' }, now);
+    this.enqueueJob(
+      'backup_verify',
+      `period-readiness:${minute}`,
+      { purpose: 'period_readiness' },
+      now,
+    );
     const reminderDate = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
     if (new Date(`${reminderDate}T00:00:00.000Z`).getUTCDay() !== 0)
       this.enqueueJob(
-        'missing_time_reminder',
+        'alert_dispatch',
         `missing-time-reminder:${reminderDate}`,
-        { workDate: reminderDate },
+        { alertType: 'missing_time', workDate: reminderDate },
         now,
       );
     const closedPeriods = this.sqlite
@@ -5447,6 +7763,875 @@ export class V3Repository {
         },
         now,
       );
+  }
+
+  private reportAttachmentContext(
+    reportType: ReportAttachmentType,
+    reportId: string,
+  ): ReportAttachmentContext {
+    if (reportType === 'daily') {
+      const report = this.sqlite
+        .prepare(
+          'SELECT id,project_id,worker_id owner_id,COALESCE(work_date,substr(created_at,1,10)) object_date,approval_state FROM daily_report WHERE id=?',
+        )
+        .get(reportId) as
+        | {
+            id: string;
+            project_id: string;
+            owner_id: string;
+            object_date: string;
+            approval_state: string;
+          }
+        | undefined;
+      if (!report) throw new V3NotFoundError('Daily report not found');
+      return {
+        reportType,
+        reportId: report.id,
+        projectId: report.project_id,
+        ownerId: report.owner_id,
+        objectDate: report.object_date,
+        approvalState: report.approval_state,
+        systemReferenceSnapshot: null,
+      };
+    }
+    const report = this.sqlite
+      .prepare(
+        'SELECT id,project_id,author_id owner_id,COALESCE(report_date,substr(created_at,1,10)) object_date,system_name,approval_state FROM technical_report WHERE id=?',
+      )
+      .get(reportId) as
+      | {
+          id: string;
+          project_id: string;
+          owner_id: string;
+          object_date: string;
+          system_name: string;
+          approval_state: string;
+        }
+      | undefined;
+    if (!report) throw new V3NotFoundError('Technical report not found');
+    return {
+      reportType,
+      reportId: report.id,
+      projectId: report.project_id,
+      ownerId: report.owner_id,
+      objectDate: report.object_date,
+      approvalState: report.approval_state,
+      systemReferenceSnapshot: report.system_name.trim(),
+    };
+  }
+
+  private assertReportAttachmentReadable(
+    principal: Principal,
+    context: ReportAttachmentContext,
+  ): void {
+    this.assertActive(principal);
+    if (
+      principal.role === 'owner_admin' ||
+      principal.role === 'finance_admin' ||
+      principal.role === 'auditor_read_only'
+    )
+      return;
+    if (!principal.projectIds.has(context.projectId))
+      throw new V3AccessDeniedError('Report access required');
+    const current = new Date().toISOString().slice(0, 10);
+    const assignment = this.sqlite
+      .prepare(
+        `SELECT 1
+         FROM project_member pm JOIN project p ON p.id=pm.project_id
+         WHERE p.status IN ('active','planned','paused')
+           AND pm.project_id=? AND pm.user_id=? AND pm.status='active'
+           AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
+           AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
+         LIMIT 1`,
+      )
+      .get(
+        context.projectId,
+        principal.userId,
+        current,
+        current,
+        context.objectDate,
+        context.objectDate,
+      );
+    if (!assignment) throw new V3AccessDeniedError('Report access required');
+    if (principal.role === 'project_manager') return;
+    if (principal.role === 'worker' && principal.userId === context.ownerId) return;
+    throw new V3AccessDeniedError('Report access required');
+  }
+
+  private assertReportAttachmentWritable(
+    principal: Principal,
+    context: ReportAttachmentContext,
+  ): void {
+    this.assertActive(principal);
+    if (principal.role === 'finance_admin' || principal.role === 'auditor_read_only')
+      throw new V3AccessDeniedError('Report attachment write access denied');
+    if (principal.role === 'owner_admin') return;
+    this.assertReportAttachmentReadable(principal, context);
+  }
+
+  private validateReportAttachmentKind(
+    reportType: ReportAttachmentType,
+    attachmentKind: ReportAttachmentKind,
+  ): void {
+    if (reportType === 'daily' && attachmentKind !== 'daily_attachment')
+      throw new V3ValidationError('Daily reports accept daily attachments only');
+    if (
+      reportType === 'technical' &&
+      attachmentKind !== 'technical_attachment' &&
+      attachmentKind !== 'plc_backup_before' &&
+      attachmentKind !== 'plc_backup_after'
+    )
+      throw new V3ValidationError('Technical attachment kind is invalid');
+  }
+
+  private assertReportAttachmentPredecessor(
+    context: ReportAttachmentContext,
+    attachmentKind: ReportAttachmentKind,
+    supersedesDocumentId: string,
+  ): void {
+    const predecessor = this.sqlite
+      .prepare(
+        `SELECT d.id,d.state
+         FROM report_document_link l JOIN document d ON d.id=l.document_id
+         WHERE l.report_type=? AND l.report_id=? AND l.project_id=?
+           AND l.attachment_kind=? AND d.id=?`,
+      )
+      .get(
+        context.reportType,
+        context.reportId,
+        context.projectId,
+        attachmentKind,
+        supersedesDocumentId,
+      ) as { id: string; state: string } | undefined;
+    if (!predecessor || predecessor.state !== 'committed')
+      throw new V3ConflictError('A committed same-report attachment is required for supersession');
+    const successor = this.sqlite
+      .prepare(
+        `SELECT 1
+         FROM report_document_link l JOIN document d ON d.id=l.document_id
+         WHERE l.report_type=? AND l.report_id=? AND l.project_id=?
+           AND l.attachment_kind=? AND d.supersedes_id=?
+         LIMIT 1`,
+      )
+      .get(
+        context.reportType,
+        context.reportId,
+        context.projectId,
+        attachmentKind,
+        supersedesDocumentId,
+      );
+    if (successor) throw new V3ConflictError('Attachment predecessor already has a successor');
+  }
+
+  reserveReportAttachment(
+    principal: Principal,
+    input: ReportAttachmentReservationInput,
+  ): {
+    reservationId: string;
+    storageKey: SafeStorageKey;
+    reportType: ReportAttachmentType;
+    reportId: string;
+    projectId: string;
+    attachmentKind: ReportAttachmentKind;
+    systemReferenceSnapshot: string | null;
+    supersedesDocumentId: string | null;
+  } {
+    this.assertActive(principal);
+    this.validateReportAttachmentKind(input.reportType, input.attachmentKind);
+    const initialContext = this.reportAttachmentContext(input.reportType, input.reportId);
+    this.assertReportAttachmentWritable(principal, initialContext);
+    if (!['draft', 'needs_changes'].includes(initialContext.approvalState))
+      throw new V3ConflictError(
+        'Approved or finalized reports require an audited correction draft before attachments change',
+      );
+
+    const reservationId = newId();
+    const nowStr = timestamp();
+    const safeFilename =
+      input.originalFilename
+        .replace(/[^A-Za-z0-9._ -]/g, '_')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 180) || 'attachment';
+    if (safeFilename === '.' || safeFilename === '..')
+      throw new V3ValidationError('Attachment filename is invalid');
+    const datePath = nowStr.slice(0, 10).replace(/-/g, '/');
+    const storageKey = `report-attachments/${datePath}/${reservationId}/${safeFilename}`;
+    this.assertStorageKey(storageKey);
+    const artifactType =
+      input.attachmentKind === 'plc_backup_before' || input.attachmentKind === 'plc_backup_after'
+        ? 'plc_backup'
+        : 'report_attachment';
+    const supersedesDocumentId = input.supersedesDocumentId ?? null;
+
+    return this.transaction(() => {
+      const context = this.reportAttachmentContext(input.reportType, input.reportId);
+      this.assertReportAttachmentWritable(principal, context);
+      if (!['draft', 'needs_changes'].includes(context.approvalState))
+        throw new V3ConflictError(
+          'Approved or finalized reports require an audited correction draft before attachments change',
+        );
+      if (supersedesDocumentId)
+        this.assertReportAttachmentPredecessor(context, input.attachmentKind, supersedesDocumentId);
+
+      this.sqlite
+        .prepare(
+          `INSERT INTO document(
+             id,project_id,owner_id,sha256,media_type,byte_length,state,storage_key,
+             original_filename,description,artifact_type,supersedes_id,sensitivity,safe_filename,
+             scan_status,created_at,updated_at,artifact_classification,classification_provenance
+           ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          reservationId,
+          context.projectId,
+          principal.userId,
+          createHash('sha256')
+            .update(`report-attachment-reservation:${reservationId}`)
+            .digest('hex'),
+          'application/octet-stream',
+          0,
+          'temporary',
+          storageKey,
+          input.originalFilename.slice(0, 200),
+          input.description?.trim().slice(0, 5000) || null,
+          artifactType,
+          supersedesDocumentId,
+          input.sensitivity ?? 'internal',
+          safeFilename,
+          'not_scanned',
+          nowStr,
+          nowStr,
+          'confidential',
+          'native',
+        );
+      this.sqlite
+        .prepare(
+          `INSERT INTO report_document_link(
+             id,report_type,report_id,document_id,project_id,attachment_kind,
+             system_reference_snapshot,created_by,created_at
+           ) VALUES(?,?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          newId(),
+          context.reportType,
+          context.reportId,
+          reservationId,
+          context.projectId,
+          input.attachmentKind,
+          context.systemReferenceSnapshot,
+          principal.userId,
+          nowStr,
+        );
+      const auditDetails = {
+        reportType: context.reportType,
+        reportId: context.reportId,
+        projectId: context.projectId,
+        attachmentKind: input.attachmentKind,
+        systemReferenceSnapshot: context.systemReferenceSnapshot,
+        supersedesDocumentId,
+      };
+      this.audit(principal, 'report.attachment_link', 'document', reservationId, auditDetails);
+      if (supersedesDocumentId)
+        this.audit(
+          principal,
+          'report.attachment_supersede',
+          'document',
+          reservationId,
+          auditDetails,
+        );
+      return {
+        reservationId,
+        storageKey,
+        reportType: context.reportType,
+        reportId: context.reportId,
+        projectId: context.projectId,
+        attachmentKind: input.attachmentKind,
+        systemReferenceSnapshot: context.systemReferenceSnapshot,
+        supersedesDocumentId,
+      };
+    });
+  }
+
+  finalizeReportAttachment(
+    principal: Principal,
+    documentId: string,
+    input: ReportAttachmentFinalizeInput,
+  ): {
+    documentId: string;
+    state: 'committed' | 'quarantined';
+    scanStatus: 'not_scanned' | 'pending';
+  } {
+    this.assertActive(principal);
+    if (!/^[a-f0-9]{64}$/.test(input.sha256)) throw new V3ValidationError('Invalid document hash');
+    if (
+      !Number.isSafeInteger(input.byteLength) ||
+      input.byteLength < 1 ||
+      input.byteLength > 50_000_000
+    )
+      throw new V3ValidationError('Document size is invalid');
+    const allowedMediaTypes = new Set([
+      'application/pdf',
+      'application/zip',
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/heic',
+      'image/heif',
+      'text/plain',
+    ]);
+    if (!allowedMediaTypes.has(input.mediaType))
+      throw new V3ValidationError('Unsupported private document media type');
+
+    return this.transaction(() => {
+      const row = this.sqlite
+        .prepare(
+          `SELECT l.report_type,l.report_id,l.project_id,l.attachment_kind,
+                  d.owner_id,d.state,d.storage_key
+           FROM report_document_link l JOIN document d ON d.id=l.document_id
+           WHERE d.id=?`,
+        )
+        .get(documentId) as
+        | {
+            report_type: ReportAttachmentType;
+            report_id: string;
+            project_id: string;
+            attachment_kind: ReportAttachmentKind;
+            owner_id: string;
+            state: string;
+            storage_key: string;
+          }
+        | undefined;
+      if (!row) throw new V3NotFoundError('Report attachment reservation not found');
+      const context = this.reportAttachmentContext(row.report_type, row.report_id);
+      this.assertReportAttachmentWritable(principal, context);
+      if (!['draft', 'needs_changes'].includes(context.approvalState))
+        throw new V3ConflictError('Approved or finalized reports cannot receive attachments');
+      if (row.owner_id !== principal.userId && principal.role !== 'owner_admin')
+        throw new V3AccessDeniedError('Attachment reservation ownership required');
+      if (row.state !== 'temporary') throw new V3ConflictError('Attachment upload is not pending');
+      this.assertStorageKey(row.storage_key);
+
+      const scannerRequired = malwareScannerRequired();
+      const state = scannerRequired ? 'quarantined' : 'committed';
+      const scanStatus = scannerRequired ? 'pending' : 'not_scanned';
+      const nowStr = timestamp();
+      this.sqlite
+        .prepare(
+          "UPDATE document SET sha256=?,media_type=?,byte_length=?,state=?,scan_status=?,updated_at=?,version=version+1 WHERE id=? AND state='temporary'",
+        )
+        .run(
+          input.sha256,
+          input.mediaType,
+          input.byteLength,
+          state,
+          scanStatus,
+          nowStr,
+          documentId,
+        );
+      if (scannerRequired)
+        this.enqueueJob('document_scan', `document-scan:${documentId}`, { documentId }, nowStr);
+      this.audit(principal, 'document.upload_finalized', 'document', documentId, {
+        byteLength: input.byteLength,
+        reportType: row.report_type,
+        reportId: row.report_id,
+        projectId: row.project_id,
+        attachmentKind: row.attachment_kind,
+      });
+      return { documentId, state, scanStatus };
+    });
+  }
+
+  cancelReportAttachment(
+    principal: Principal,
+    documentId: string,
+  ): { documentId: string; storageKey: SafeStorageKey; cancelled: true } {
+    this.assertActive(principal);
+    return this.transaction(() => {
+      const row = this.sqlite
+        .prepare(
+          `SELECT l.report_type,l.report_id,l.project_id,l.attachment_kind,
+                  d.owner_id,d.state,d.storage_key
+           FROM report_document_link l JOIN document d ON d.id=l.document_id
+           WHERE d.id=?`,
+        )
+        .get(documentId) as
+        | {
+            report_type: ReportAttachmentType;
+            report_id: string;
+            project_id: string;
+            attachment_kind: ReportAttachmentKind;
+            owner_id: string;
+            state: string;
+            storage_key: string;
+          }
+        | undefined;
+      if (!row) throw new V3NotFoundError('Report attachment not found');
+      const context = this.reportAttachmentContext(row.report_type, row.report_id);
+      this.assertReportAttachmentWritable(principal, context);
+      if (!['draft', 'needs_changes'].includes(context.approvalState))
+        throw new V3ConflictError('Approved or finalized reports cannot detach attachments');
+      if (row.owner_id !== principal.userId && principal.role !== 'owner_admin')
+        throw new V3AccessDeniedError('Attachment reservation ownership required');
+      if (!['temporary', 'quarantined', 'rejected'].includes(row.state))
+        throw new V3ConflictError('Committed report attachments are immutable');
+      this.assertStorageKey(row.storage_key);
+      const detached = this.sqlite
+        .prepare('DELETE FROM report_document_link WHERE document_id=?')
+        .run(documentId);
+      if (detached.changes !== 1)
+        throw new V3ConflictError('Attachment changed before cancellation');
+      const deleted = this.sqlite
+        .prepare(
+          "DELETE FROM document WHERE id=? AND state IN('temporary','quarantined','rejected')",
+        )
+        .run(documentId);
+      if (deleted.changes !== 1)
+        throw new V3ConflictError('Attachment changed before cancellation');
+      this.audit(principal, 'document.upload_cancelled', 'document', documentId, {
+        reportType: row.report_type,
+        reportId: row.report_id,
+        projectId: row.project_id,
+        attachmentKind: row.attachment_kind,
+        previousState: row.state,
+      });
+      return { documentId, storageKey: row.storage_key, cancelled: true };
+    });
+  }
+
+  listReportAttachments(principal: Principal, reportType: ReportAttachmentType, reportId: string) {
+    const context = this.reportAttachmentContext(reportType, reportId);
+    this.assertReportAttachmentReadable(principal, context);
+    return this.sqlite
+      .prepare(
+        `SELECT l.id,l.report_type,l.report_id,l.project_id,l.attachment_kind,
+                l.system_reference_snapshot,l.created_by,l.created_at,
+                d.id document_id,d.owner_id,d.original_filename,d.safe_filename,d.media_type,
+                d.byte_length,d.artifact_type,d.supersedes_id,d.state,d.scan_status
+         FROM report_document_link l JOIN document d ON d.id=l.document_id
+         WHERE l.report_type=? AND l.report_id=? AND l.project_id=?
+         ORDER BY l.created_at,l.id`,
+      )
+      .all(reportType, reportId, context.projectId) as Array<{
+      id: string;
+      report_type: ReportAttachmentType;
+      report_id: string;
+      project_id: string;
+      attachment_kind: ReportAttachmentKind;
+      system_reference_snapshot: string | null;
+      created_by: string;
+      created_at: string;
+      document_id: string;
+      owner_id: string;
+      original_filename: string | null;
+      safe_filename: string | null;
+      media_type: string;
+      byte_length: number;
+      artifact_type: string | null;
+      supersedes_id: string | null;
+      state: string;
+      scan_status: string | null;
+    }>;
+  }
+
+  authorizeReportAttachment(
+    principal: Principal,
+    reportType: ReportAttachmentType,
+    reportId: string,
+    documentId: string,
+  ): {
+    storageKey: SafeStorageKey;
+    filename: string;
+    mediaType: string;
+    sensitive: boolean;
+    sha256: string;
+    byteLength: number;
+    attachmentKind: ReportAttachmentKind;
+  } {
+    const context = this.reportAttachmentContext(reportType, reportId);
+    this.assertReportAttachmentReadable(principal, context);
+    const document = this.sqlite
+      .prepare(
+        `SELECT l.attachment_kind,d.storage_key,d.original_filename,d.safe_filename,d.media_type,
+                d.sensitivity,d.sensitive,d.sha256,d.byte_length,d.state,d.scan_status
+         FROM report_document_link l JOIN document d ON d.id=l.document_id
+         WHERE l.report_type=? AND l.report_id=? AND l.project_id=? AND d.id=?`,
+      )
+      .get(reportType, reportId, context.projectId, documentId) as
+      | {
+          attachment_kind: ReportAttachmentKind;
+          storage_key: string;
+          original_filename: string | null;
+          safe_filename: string | null;
+          media_type: string;
+          sensitivity: string | null;
+          sensitive: number | null;
+          sha256: string;
+          byte_length: number;
+          state: string;
+          scan_status: string | null;
+        }
+      | undefined;
+    const scannerRequired = malwareScannerRequired();
+    if (
+      !document ||
+      document.state !== 'committed' ||
+      document.scan_status === 'pending' ||
+      document.scan_status === 'rejected' ||
+      (scannerRequired && document.scan_status !== 'clean')
+    )
+      throw new V3ValidationError('Report attachment is not ready');
+    if (
+      !Number.isSafeInteger(document.byte_length) ||
+      document.byte_length <= 0 ||
+      !/^[a-f0-9]{64}$/.test(document.sha256)
+    )
+      throw new V3ConflictError('Report attachment integrity metadata is invalid');
+    this.assertStorageKey(document.storage_key);
+    const sensitive = document.sensitive === 1 || document.sensitivity !== 'public';
+    this.sqlite
+      .prepare(
+        'INSERT INTO document_access_event(id,document_id,user_id,action,occurred_at) VALUES(?,?,?,?,?)',
+      )
+      .run(newId(), documentId, principal.userId, 'download', timestamp());
+    this.audit(principal, 'document.download', 'document', documentId, {
+      reportType,
+      reportId,
+      attachmentKind: document.attachment_kind,
+      sensitive,
+    });
+    return {
+      storageKey: document.storage_key,
+      filename: document.safe_filename ?? document.original_filename ?? 'attachment',
+      mediaType: document.media_type,
+      sensitive,
+      sha256: document.sha256,
+      byteLength: document.byte_length,
+      attachmentKind: document.attachment_kind,
+    };
+  }
+
+  reserveUpload(
+    principal: Principal,
+    input: Readonly<{
+      projectId?: string;
+      originalFilename: string;
+      artifactType: string;
+      description?: string;
+      sensitivity?: 'internal' | 'sensitive' | 'customer_private';
+      artifactClassification?: ArtifactClassification;
+    }>,
+  ): { reservationId: string; storageKey: SafeStorageKey } {
+    this.assertActive(principal);
+    if (input.projectId && principal.role !== 'owner_admin' && principal.role !== 'finance_admin')
+      this.assertProjectAccess(principal, input.projectId);
+
+    if (!input.artifactType) throw new V3ValidationError('Artifact type is required');
+    const artifactClassification = resolveArtifactClassification(
+      input.artifactType,
+      input.artifactClassification,
+    );
+
+    const reservationId = newId();
+    const nowStr = timestamp();
+    const safeFilename =
+      input.originalFilename
+        .replace(/[^A-Za-z0-9._ -]/g, '_')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 180) || 'artifact';
+    const datePath = nowStr.slice(0, 10).replace(/-/g, '/');
+    const storageKey = `uploads/${datePath}/${reservationId}/${safeFilename}`;
+
+    this.sqlite
+      .prepare(
+        `
+      INSERT INTO document(
+        id,project_id,owner_id,sha256,media_type,byte_length,state,storage_key,
+        original_filename,description,artifact_type,sensitivity,safe_filename,
+        scan_status,created_at,updated_at,artifact_classification,classification_provenance
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    `,
+      )
+      .run(
+        reservationId,
+        input.projectId ?? null,
+        principal.userId,
+        // Reservations do not have content yet. A unique, deterministic
+        // placeholder keeps the document deduplication constraint from
+        // collapsing concurrent uploads; finalizeUpload replaces it with the
+        // real content hash in the same record.
+        createHash('sha256').update(`upload-reservation:${reservationId}`).digest('hex'),
+        'application/octet-stream',
+        0,
+        'temporary',
+        storageKey,
+        input.originalFilename.slice(0, 200),
+        input.description ?? null,
+        input.artifactType,
+        input.sensitivity ?? 'internal',
+        safeFilename,
+        'not_scanned',
+        nowStr,
+        nowStr,
+        artifactClassification,
+        'native',
+      );
+
+    return { reservationId, storageKey };
+  }
+
+  /** Cancel one still-temporary reservation owned by the caller. */
+  cancelUploadReservation(principal: Principal, reservationId: string): void {
+    this.assertActive(principal);
+    const reservation = this.sqlite
+      .prepare('SELECT owner_id,state,storage_key FROM document WHERE id=?')
+      .get(reservationId) as { owner_id: string; state: string; storage_key: string } | undefined;
+    if (!reservation) return;
+    if (reservation.owner_id !== principal.userId && !canManageBilling(principal))
+      throw new V3AccessDeniedError('Upload ownership mismatch');
+    if (reservation.state !== 'temporary') return;
+    this.assertStorageKey(reservation.storage_key);
+    this.transaction(() => {
+      const result = this.sqlite
+        .prepare("DELETE FROM document WHERE id=? AND state='temporary'")
+        .run(reservationId);
+      if (result.changes === 1)
+        this.audit(principal, 'document.upload_cancelled', 'document', reservationId, {
+          storageKey: reservation.storage_key,
+        });
+    });
+  }
+
+  /**
+   * Remove abandoned temporary reservations older than an explicit boundary.
+   * Bulk cleanup is restricted to finance/owner operators; ordinary callers
+   * use cancelUploadReservation for their own failed upload.
+   */
+  cleanupTemporaryUploadReservations(
+    principal: Principal,
+    olderThan: string = new Date(Date.now() - 24 * 60 * 60_000).toISOString(),
+  ): number {
+    this.assertActive(principal);
+    if (!canManageBilling(principal))
+      throw new V3AccessDeniedError('Upload cleanup requires finance access');
+    if (Number.isNaN(Date.parse(olderThan)))
+      throw new V3ValidationError('Cleanup boundary is invalid');
+    return this.transaction(() => {
+      const result = this.sqlite
+        .prepare("DELETE FROM document WHERE state='temporary' AND updated_at<?")
+        .run(olderThan);
+      if (result.changes > 0)
+        this.audit(principal, 'document.upload_cleanup', 'document', 'temporary', {
+          olderThan,
+          removed: Number(result.changes),
+        });
+      return Number(result.changes);
+    });
+  }
+
+  /** Execute the bounded reservation cleanup only from the current fenced cleanup job. */
+  cleanupTemporaryUploadReservationsFromJob(
+    execution: DocumentScanExecutionProof,
+    olderThan: string,
+    removeFile: (storageKey: SafeStorageKey) => void,
+  ): number {
+    if (
+      !execution ||
+      execution.requiredCapability !== 'storage.temporary.cleanup' ||
+      !execution.jobId ||
+      !execution.runId ||
+      !Number.isSafeInteger(execution.fenceVersion) ||
+      execution.fenceVersion < 1 ||
+      Number.isNaN(Date.parse(olderThan))
+    )
+      throw new V3AccessDeniedError('Temporary upload cleanup execution proof is required');
+    return this.transaction(() => {
+      const durable = this.sqlite
+        .prepare(
+          `SELECT j.kind,j.state job_state,j.active_job_run_id,j.fence_version,j.payload_json,
+                  j.payload_sha256,j.tenant_id,j.deployment_id,j.required_capability,
+                  r.state run_state,r.fence_version run_fence,r.payload_sha256 run_payload_sha256,
+                  r.tenant_id run_tenant_id,r.deployment_id run_deployment_id,
+                  r.required_capability run_capability,r.service_actor_id,
+                  r.service_actor_version,r.service_actor_capabilities_json,
+                  r.configured_binding_version,s.status actor_status,s.version actor_version,
+                  s.capabilities_json actor_capabilities,b.service_actor_id binding_actor_id,
+                  b.version binding_version,b.tenant_id binding_tenant_id,
+                  b.deployment_id binding_deployment_id
+           FROM job j
+           JOIN job_run r ON r.id=j.active_job_run_id AND r.id=? AND r.job_id=j.id
+           JOIN service_actor s ON s.id=r.service_actor_id
+           JOIN deployment_service_actor_binding b ON b.singleton=1 AND b.service_actor_id=s.id
+           WHERE j.id=? AND j.contract_version='b5-v1' AND r.contract_version='b5-v1'`,
+        )
+        .get(execution.runId, execution.jobId) as
+        | {
+            kind: string;
+            job_state: string;
+            active_job_run_id: string | null;
+            fence_version: number;
+            payload_json: string;
+            payload_sha256: string;
+            tenant_id: string;
+            deployment_id: string;
+            required_capability: string;
+            run_state: string;
+            run_fence: number;
+            run_payload_sha256: string;
+            run_tenant_id: string;
+            run_deployment_id: string;
+            run_capability: string;
+            service_actor_id: string;
+            service_actor_version: number;
+            service_actor_capabilities_json: string;
+            configured_binding_version: number;
+            actor_status: string;
+            actor_version: number;
+            actor_capabilities: string;
+            binding_actor_id: string;
+            binding_version: number;
+            binding_tenant_id: string;
+            binding_deployment_id: string;
+          }
+        | undefined;
+      let payload: unknown;
+      let capabilities: unknown;
+      try {
+        payload = durable ? JSON.parse(durable.payload_json) : null;
+        capabilities = durable ? JSON.parse(durable.actor_capabilities) : null;
+      } catch {
+        throw new V3AccessDeniedError('Temporary upload cleanup execution is stale or forged');
+      }
+      if (
+        !durable ||
+        durable.kind !== 'temporary_upload_cleanup' ||
+        durable.job_state !== 'claimed' ||
+        durable.run_state !== 'running' ||
+        durable.active_job_run_id !== execution.runId ||
+        durable.fence_version !== execution.fenceVersion ||
+        durable.run_fence !== execution.fenceVersion ||
+        durable.required_capability !== execution.requiredCapability ||
+        durable.run_capability !== execution.requiredCapability ||
+        durable.tenant_id !== execution.tenantId ||
+        durable.deployment_id !== execution.deploymentId ||
+        durable.run_tenant_id !== execution.tenantId ||
+        durable.run_deployment_id !== execution.deploymentId ||
+        durable.binding_tenant_id !== execution.tenantId ||
+        durable.binding_deployment_id !== execution.deploymentId ||
+        durable.payload_sha256 !== durable.run_payload_sha256 ||
+        createHash('sha256').update(canonicalJobJson(payload)).digest('hex') !==
+          durable.payload_sha256 ||
+        durable.service_actor_id !== durable.binding_actor_id ||
+        durable.service_actor_version !== durable.actor_version ||
+        durable.configured_binding_version !== durable.binding_version ||
+        durable.actor_status !== 'active' ||
+        durable.service_actor_capabilities_json !== durable.actor_capabilities ||
+        !Array.isArray(capabilities) ||
+        !capabilities.includes('storage.temporary.cleanup') ||
+        !payload ||
+        typeof payload !== 'object' ||
+        Array.isArray(payload) ||
+        (payload as Record<string, unknown>).olderThan !== olderThan
+      )
+        throw new V3AccessDeniedError('Temporary upload cleanup execution is stale or forged');
+
+      const reservations = this.sqlite
+        .prepare(
+          "SELECT id,storage_key FROM document WHERE state='temporary' AND updated_at<? ORDER BY id",
+        )
+        .all(olderThan) as Array<{ id: string; storage_key: SafeStorageKey }>;
+      for (const reservation of reservations) {
+        this.assertStorageKey(reservation.storage_key);
+        removeFile(reservation.storage_key);
+        const deleted = this.sqlite
+          .prepare("DELETE FROM document WHERE id=? AND state='temporary' AND updated_at<?")
+          .run(reservation.id, olderThan);
+        if (deleted.changes !== 1)
+          throw new V3ConflictError('Temporary upload reservation changed during cleanup');
+      }
+      return reservations.length;
+    });
+  }
+
+  finalizeUpload(
+    principal: Principal,
+    reservationId: string,
+    input: Readonly<{
+      sha256: string;
+      mediaType: string;
+      byteLength: number;
+    }>,
+  ): { created: boolean } {
+    this.assertActive(principal);
+
+    if (!/^[a-f0-9]{64}$/.test(input.sha256)) throw new V3ValidationError('Invalid document hash');
+    if (
+      !Number.isSafeInteger(input.byteLength) ||
+      input.byteLength < 1 ||
+      input.byteLength > 50_000_000
+    )
+      throw new V3ValidationError('Document size is invalid');
+
+    const allowedMediaTypes = new Set([
+      'application/pdf',
+      'application/zip',
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/heic',
+      'image/heif',
+      'text/plain',
+    ]);
+    if (!allowedMediaTypes.has(input.mediaType))
+      throw new V3ValidationError('Unsupported private document media type');
+
+    return this.transaction(() => {
+      const reservation = this.sqlite
+        .prepare('SELECT owner_id, state FROM document WHERE id=?')
+        .get(reservationId) as { owner_id: string; state: string } | undefined;
+
+      if (!reservation) throw new V3ValidationError('Reservation not found');
+      if (reservation.owner_id !== principal.userId)
+        throw new V3AccessDeniedError('Upload ownership mismatch');
+      if (reservation.state !== 'temporary') throw new V3ConflictError('Upload already finalized');
+
+      const malwareScanRequired = malwareScannerRequired();
+
+      this.sqlite
+        .prepare(
+          `
+        UPDATE document SET
+          sha256=?, media_type=?, byte_length=?, state=?, scan_status=?, updated_at=?
+        WHERE id=?
+      `,
+        )
+        .run(
+          input.sha256,
+          input.mediaType,
+          input.byteLength,
+          malwareScanRequired ? 'quarantined' : 'committed',
+          malwareScanRequired ? 'pending' : 'not_scanned',
+          timestamp(),
+          reservationId,
+        );
+
+      if (malwareScanRequired) {
+        const scanAt = timestamp();
+        this.enqueueJob(
+          'document_scan',
+          `document-scan:${reservationId}`,
+          { documentId: reservationId },
+          scanAt,
+        );
+      }
+
+      this.audit(principal, 'document.upload_finalized', 'document', reservationId, {
+        byteLength: input.byteLength,
+      });
+
+      return { created: true };
+    });
   }
 
   hashSnapshot(value: unknown): string {

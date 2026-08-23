@@ -1,12 +1,14 @@
 # WP-B2 / WP-B3 Finance, Billing, and Accounting Pack Semantic Contract
 
+> **Client Essential routing notice (2026-08-23):** Reuse this finance contract only for CORE-03/05/09–13 gaps after reconciling it to the Client Essential specification. Broader historical V3 report/catalog/JSON/expansion clauses are not independently release-mandatory. Exact money, reconciliation, immutable issued/final history, duplicate-billing prevention, privacy, transactions and idempotency remain binding.
+
 Status: **BLOCKED — R6.3 drafted; fresh Finance + Migration reviews required**
 
 Revision precedence: `wp-b2-r6-architectural-addendum.md` R6.3 fully replaces R6.2 and every
 conflicting R5/R6.0/R6.1/B5-r4 finance, migration, durable-job, descriptor and shared-schema
 statement. Those older revisions remain historical evidence only. No implementation lease opens
 until fresh Finance Integrity and Migration Safety reviewers approve identical recorded R6.3 bytes.
-The V3 spec, remediation plan, mandatory backlog and repository `AGENTS.md` remain authoritative.
+The Client Essential specification/checklist and repository `AGENTS.md` are authoritative. The original V3 spec and remediation plan are non-conflicting reference; the backlog is deferred post-core.
 
 Date: 2026-08-20
 

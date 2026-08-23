@@ -34,7 +34,7 @@ function method(target: object, name: string): unknown {
   return (target as Record<string, unknown>)[name];
 }
 
-describe('B5 upload reservation and storage boundary (RED characterization)', () => {
+describe('B5 upload reservation and storage boundary', () => {
   it.each([
     ['expense action', 'apps/portal/src/lib/server/actions/expense-actions.ts'],
     ['private-document action', 'apps/portal/src/lib/server/actions/document-actions.ts'],
@@ -92,6 +92,8 @@ describe('B5 upload reservation and storage boundary (RED characterization)', ()
       storageKey: 'reports/b5-scan.pdf',
       originalFilename: 'b5-scan.pdf',
       artifactType: 'report',
+      artifactClassification: 'standard',
+      sensitivity: 'customer_private',
     });
     const row = value.sqlite
       .prepare('SELECT state,scan_status FROM document WHERE id=?')
@@ -110,13 +112,16 @@ describe('B5 upload reservation and storage boundary (RED characterization)', ()
       storageKey: 'reports/b5-human-scan.pdf',
       originalFilename: 'b5-human-scan.pdf',
       artifactType: 'report',
+      artifactClassification: 'standard',
+      sensitivity: 'customer_private',
     });
     expect(() =>
       value.v3.recordDocumentScan(
         { ...value.owner, isServiceActor: true },
         document.id,
         'clean',
-        'human-claimed-scanner',
+        'test-scanner',
+        undefined as never,
       ),
     ).toThrow();
   });

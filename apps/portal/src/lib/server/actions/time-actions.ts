@@ -1,23 +1,26 @@
 import { timeInputSchema, versionedRecordSchema } from '@ja/schemas';
-import { fail } from '@sveltejs/kit';
-import { actionFailure, openPortalRepository } from '$lib/server/portal-repository';
+import { openPortalRepository } from '$lib/server/portal-repository';
+import { actionFail, actionFailure, actionSuccess } from './action-message';
 import { formObject, type PortalActionEvent } from '$lib/server/action-utils';
 import { mondayOf } from '$lib/server/portal-week';
 
 export const timeActions = {
   createTime: async ({ locals, request, params }: PortalActionEvent) => {
-    if (params.section !== 'time') return fail(404, { success: false, message: 'Wrong section' });
+    if (params.section !== 'time')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = timeInputSchema.safeParse(await formObject(request));
     if (!parsed.success)
-      return fail(400, {
-        success: false,
-        message: 'Check time fields',
-        fields: parsed.error.flatten().fieldErrors,
-      });
+      return actionFail(
+        400,
+        'action.validation.timeFields',
+        {},
+        'Check time fields',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
     const context = openPortalRepository(locals);
     try {
       context.repository.createTimeEntry(context.principal, parsed.data);
-      return { success: true, message: 'Time draft saved' };
+      return actionSuccess('action.time.draftSaved', {}, 'Time draft saved');
     } catch (error) {
       return actionFailure(error);
     } finally {
@@ -25,7 +28,8 @@ export const timeActions = {
     }
   },
   copyTimeLayout: async ({ locals, request, params }: PortalActionEvent) => {
-    if (params.section !== 'time') return fail(404, { success: false, message: 'Wrong section' });
+    if (params.section !== 'time')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
     const targetWeekStart = mondayOf(
       typeof object.targetWeekStart === 'string' ? object.targetWeekStart : null,
@@ -34,7 +38,12 @@ export const timeActions = {
       typeof object.sourceWeekStart === 'string' ? object.sourceWeekStart : null,
     );
     if (sourceWeekStart === targetWeekStart)
-      return fail(400, { success: false, message: 'Choose a different source week' });
+      return actionFail(
+        400,
+        'action.validation.timeSourceWeekDifferent',
+        {},
+        'Choose a different source week',
+      );
     const context = openPortalRepository(locals);
     try {
       const result = context.repository.copyOwnTimeLayout(
@@ -42,10 +51,11 @@ export const timeActions = {
         sourceWeekStart,
         targetWeekStart,
       );
-      return {
-        success: true,
-        message: `${result.created} layout draft${result.created === 1 ? '' : 's'} added for ${targetWeekStart}; minutes remain 0.`,
-      };
+      return actionSuccess(
+        'action.time.layoutCopied',
+        { created: result.created, targetWeekStart },
+        `${result.created} layout draft${result.created === 1 ? '' : 's'} added for ${targetWeekStart}; minutes remain 0.`,
+      );
     } catch (error) {
       return actionFailure(error);
     } finally {
@@ -53,14 +63,17 @@ export const timeActions = {
     }
   },
   updateTime: async ({ locals, request, params }: PortalActionEvent) => {
-    if (params.section !== 'time') return fail(404, { success: false, message: 'Wrong section' });
+    if (params.section !== 'time')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = timeInputSchema.and(versionedRecordSchema).safeParse(await formObject(request));
     if (!parsed.success)
-      return fail(400, {
-        success: false,
-        message: 'Check time fields',
-        fields: parsed.error.flatten().fieldErrors,
-      });
+      return actionFail(
+        400,
+        'action.validation.timeFields',
+        {},
+        'Check time fields',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
     const context = openPortalRepository(locals);
     try {
       context.repository.updateTimeEntry(context.principal, {
@@ -72,7 +85,7 @@ export const timeActions = {
         minutes: parsed.data.minutes,
         summary: parsed.data.summary,
       });
-      return { success: true, message: 'Time draft updated' };
+      return actionSuccess('action.time.draftUpdated', {}, 'Time draft updated');
     } catch (error) {
       return actionFailure(error);
     } finally {
@@ -80,13 +93,31 @@ export const timeActions = {
     }
   },
   submitTime: async ({ locals, request, params }: PortalActionEvent) => {
-    if (params.section !== 'time') return fail(404, { success: false, message: 'Wrong section' });
+    if (params.section !== 'time')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = versionedRecordSchema.safeParse(await formObject(request));
-    if (!parsed.success) return fail(400, { success: false, message: 'Invalid time record' });
+    if (!parsed.success)
+      return actionFail(400, 'action.validation.timeRecord', {}, 'Invalid time record');
     const context = openPortalRepository(locals);
     try {
       context.repository.submitTime(context.principal, parsed.data.id, parsed.data.version);
-      return { success: true, message: 'Time submitted' };
+      return actionSuccess('action.time.submitted', {}, 'Time submitted');
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  deleteTime: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'time' && params.section !== 'approvals')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const parsed = versionedRecordSchema.safeParse(await formObject(request));
+    if (!parsed.success)
+      return actionFail(400, 'action.validation.timeRecord', {}, 'Invalid time record');
+    const context = openPortalRepository(locals);
+    try {
+      context.repository.deleteTime(context.principal, parsed.data.id, parsed.data.version);
+      return actionSuccess('action.time.removedOrVoided', {}, 'Time entry removed/voided');
     } catch (error) {
       return actionFailure(error);
     } finally {

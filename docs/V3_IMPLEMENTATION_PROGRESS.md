@@ -1,5 +1,7 @@
 # V3 implementation progress
 
+> **Historical evidence notice (2026-08-23):** Preserve this document as evidence of earlier work. Current client-release status is tracked only by the Client Essential specification/checklist. The old 42-step V3 scenario and deferred V3.1–V3.4 expansion do not determine `CLIENT READY`.
+
 Last verified: 2026-08-19 (Europe/Madrid). The revised
 `J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md` is authoritative. All commands below
 were run from the repository root in `node:24.19.0-bookworm-slim` with pnpm `11.22.0`; host Node
@@ -291,7 +293,7 @@ an operator/coding-agent action. The authority specification was not modified.
 
 ## Definition-of-done evidence
 
-The 42-step normative scenario is mapped in `docs/V3_DOD_EVIDENCE.md`; repository integration,
+The historical 42-step scenario is mapped in `docs/V3_DOD_EVIDENCE.md`; it is no longer the Client Essential release verdict. Repository integration,
 security, artifact, offline and E2E tests provide the executable evidence. Remaining external items
 are configuration approvals only, not code-implementable TODOs.
 

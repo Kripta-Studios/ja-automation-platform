@@ -73,3 +73,21 @@ export const portalTitles: Record<string, string> = {
   accounting: 'Monthly Accounting Pack',
   audit: 'Audit log',
 };
+
+/** Titles for navigation items that share a route but expose a query view. */
+export const portalViewTitles: Record<string, Record<string, string>> = {
+  projects: {
+    clients: 'Client contacts',
+    team: 'Team access',
+  },
+  reports: {
+    technical: 'PLC / technical reports',
+  },
+  billing: {
+    invoices: 'Invoices',
+  },
+};
+
+export function portalTitleFor(section: string, view?: string | null): string {
+  return (view && portalViewTitles[section]?.[view]) || portalTitles[section] || '';
+}

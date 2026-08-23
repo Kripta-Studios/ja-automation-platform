@@ -20,7 +20,7 @@ See [docs/SHOWCASE_ACCESS.md](../docs/SHOWCASE_ACCESS.md) for the portal access 
 - `jaautomation-jobs.service` / `.timer` — runs leased, idempotent jobs every five minutes.
 - `jaautomation-backup.service` / `.timer` — online SQLite backup plus private-file manifest.
 - `scripts/install-vps.sh` — explicit host integration; review it before running with `sudo`.
-- `scripts/verify-vps.sh` — local/HTTPS health checks.
+- `scripts/verify-vps.sh` — local/HTTPS liveness, readiness and routing checks.
 
 ## Host layout
 
@@ -45,7 +45,10 @@ document, finance or auth-secret mount.
 4. Edit `/etc/jaautomation/jaautomation.env` and replace `JA_AUTH_SECRET` with a random secret.
    Set the production origin, WebAuthn RP/origin, backup destination, job actor and outbox adapter.
 5. Apply reviewed SQL migrations with the repository migration command against the intended empty or
-   existing database. Never use `drizzle-kit push` in production.
+   existing database. Never use `drizzle-kit push` in production. Migrations 0019–0024 are additive;
+   migration 0024 creates the Accounting Pack snapshot/legacy bridge but deliberately does not infer
+   or globally backfill links for historical runs. A legacy run needs an explicit, scoped,
+   command- and audit-anchored bridge before it can reference a canonical snapshot.
 6. Start the service and timers:
 
 ```bash
@@ -54,6 +57,13 @@ sudo systemctl enable --now jaautomation.service
 sudo systemctl enable --now jaautomation-jobs.timer jaautomation-backup.timer
 sudo bash deployment/scripts/verify-vps.sh https://example.invalid/j-aautomation
 ```
+
+The portal container healthcheck and local VPS verifier use `/j-aautomation/health/ready` directly
+on the loopback portal listener. Caddy accepts `/j-aautomation/health/*` only from loopback and
+returns 404 to external clients. Readiness fails closed when
+SQLite cannot be opened or queried, migrations are stale, required private artifact directories are
+not writable, or the document volume is below `JA_MIN_FREE_BYTES`. That setting is a validated
+non-negative integer byte count and defaults to 1 GiB in the production environment examples.
 
 The first real environment still needs accountant-approved legal entity, tax profile and invoice
 number policy rows before an invoice can be issued.
@@ -93,6 +103,11 @@ instruction not to touch the authority specification.
 
 ## Release and rollback
 
+For the reviewed ZIP build, upload, watcher installation and one-command deployment workflow, see
+[`docs/RELEASE_ZIP_DEPLOY.md`](../docs/RELEASE_ZIP_DEPLOY.md). The repository provides
+`scripts/build-release-and-upload.ps1`, `deployment/scripts/jaautomation-zip-deploy` and
+`deployment/scripts/install-jaautomation-zip-deploy.sh` for this VPS layout.
+
 Build from a reviewed commit, record the release tag and SHA-256, then run:
 
 ```bash
@@ -123,6 +138,26 @@ attempts, last error and terminal-failure state. Configure both
 must deduplicate `x-ja-idempotency-key` and verify `x-ja-signature` (`sha256=<HMAC-SHA256>`). If the
 adapter is absent or rejects a request, the event is not marked delivered.
 
+The same worker renders localized PDFs through the `localized_pdf_variant_render` job and
+`artifact.localized_pdf.render` capability. It supports `en-US`, `es-ES` and `pt-BR` variants for
+invoice, period-report, Accounting Pack, Daily Field Report and PLC / Technical Report sources. Each
+locale has an independent `queued`, `running`, `ready` or `failed` lifecycle, fenced attempts and
+retry metadata. Only a verified ready artifact is downloadable. `JA_JOB_ACTOR_ID` is mandatory for
+the jobs container and must identify an active `owner_admin` or `finance_admin` service actor; the
+worker also verifies private-root containment, no-symlink parents, PDF magic bytes, byte length and
+SHA-256 before publication.
+
+For a local worker build and run:
+
+```bash
+pnpm jobs:build
+node deployment/jobs-build/jobs-run.mjs
+```
+
+The systemd timer invokes the equivalent container command every five minutes. A queued request is
+not a ready artifact: the portal reports `202` with `Location`/`Retry-After` until the worker actually
+publishes the PDF, and pending/missing/integrity-failed downloads use explicit non-500 responses.
+
 ## Operations
 
 The jobs and backup timers emit structured JSON. Set `JA_ALERT_WEBHOOK_URL` and
@@ -140,8 +175,9 @@ df -h /
 ```
 
 Backups use Node's online SQLite backup API so WAL contents are included consistently. Restore is a
-staged operation that checks integrity, foreign keys, document hashes and safe manifest paths before
-renaming into the target. See `docs/BACKUP_RESTORE.md` for the runbook.
+staged operation that rejects symlink roots/entries, checks integrity, foreign keys, document hashes
+and safe manifest paths before an atomic database/document swap. An overwrite failure rolls back to
+the original roots. See `docs/BACKUP_RESTORE.md` for the runbook.
 
 ## Production configuration still required
 

@@ -29,6 +29,8 @@ export const technicalReports = sqliteTable('technical_report', {
   openRisk: text('open_risk'),
   reviewedBy: text('reviewed_by'),
   reviewedAt: text('reviewed_at'),
+  reportDate: text('report_date'),
+  reportDateProvenance: text('report_date_provenance'),
   version: integer('version').notNull().default(1),
 });
 

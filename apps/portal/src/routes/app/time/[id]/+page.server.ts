@@ -11,7 +11,7 @@ export const load: PageServerLoad = ({ locals, params }) => {
       record: context.repository.timeDetail(context.principal, params.id),
     };
   } catch {
-    error(404, 'Time entry not found or unavailable');
+    error(404, 'detail.timeEntry.notFound');
   } finally {
     context.sqlite.close();
   }

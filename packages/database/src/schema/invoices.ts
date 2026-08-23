@@ -31,6 +31,12 @@ export const invoices = sqliteTable(
     sourceLockAt: text('source_lock_at'),
     voidedAt: text('voided_at'),
     pdfByteLength: integer('pdf_byte_length'),
+    tenantId: text('tenant_id'),
+    deploymentId: text('deployment_id'),
+    legalEntityRevisionId: text('legal_entity_revision_id'),
+    configurationRevisionId: text('configuration_revision_id'),
+    predecessorSubjectHash: text('predecessor_subject_hash'),
+    invoiceSubjectHash: text('invoice_subject_hash'),
     version: integer('version').notNull().default(1),
     ...lifecycle,
   },
@@ -53,13 +59,30 @@ export const invoiceLines = sqliteTable('invoice_line', {
   snapshotJson: text('snapshot_json').notNull(),
   taxMinor: integer('tax_minor'),
   groupingKey: text('grouping_key'),
+  lineNumber: integer('line_number'),
+  lineKind: text('line_kind'),
+  unitAmountMinor: integer('unit_amount_minor'),
+  netAmountMinor: integer('net_amount_minor'),
+  taxBps: integer('tax_bps'),
+  taxAmountMinor: integer('tax_amount_minor'),
+  grossAmountMinor: integer('gross_amount_minor'),
+  sourceBucketKey: text('source_bucket_key'),
+  roundingRank: integer('rounding_rank'),
+  createdAt: text('created_at'),
 });
 
 export const invoiceSources = sqliteTable('invoice_source', {
+  sourceLinkId: text('source_link_id').primaryKey(),
   invoiceId: text('invoice_id').notNull(),
+  invoiceLineId: text('invoice_line_id'),
   sourceType: text('source_type').notNull(),
   sourceId: text('source_id').notNull(),
   sourceVersion: integer('source_version').notNull(),
+  sourceHash: text('source_hash').notNull(),
+  allocatedNetMinor: integer('allocated_net_minor').notNull(),
+  allocatedTaxMinor: integer('allocated_tax_minor').notNull(),
+  allocatedGrossMinor: integer('allocated_gross_minor').notNull(),
+  createdAt: text('created_at').notNull(),
   lockedAt: text('locked_at'),
 });
 
@@ -72,6 +95,16 @@ export const payments = sqliteTable('payment', {
   reference: text('reference'),
   createdAt: text('created_at').notNull(),
   idempotencyKey: text('idempotency_key'),
+  tenantId: text('tenant_id'),
+  deploymentId: text('deployment_id'),
+  legalEntityRevisionId: text('legal_entity_revision_id'),
+  method: text('method'),
+  externalReference: text('external_reference'),
+  priorPaymentHash: text('prior_payment_hash'),
+  paymentPayloadHash: text('payment_payload_hash'),
+  paymentHash: text('payment_hash'),
+  actorId: text('actor_id'),
+  commandId: text('command_id'),
 });
 
 export const invoiceEvents = sqliteTable('invoice_event', {
@@ -83,6 +116,14 @@ export const invoiceEvents = sqliteTable('invoice_event', {
   actorId: text('actor_id').notNull(),
   occurredAt: text('occurred_at').notNull(),
   idempotencyKey: text('idempotency_key').notNull().unique(),
+  eventSequence: integer('event_sequence'),
+  effectiveAt: text('effective_at'),
+  reasonCode: text('reason_code'),
+  reasonText: text('reason_text'),
+  priorEventHash: text('prior_event_hash'),
+  eventPayloadHash: text('event_payload_hash'),
+  commandId: text('command_id'),
+  createdAt: text('created_at'),
 });
 
 export const invoiceAdjustments = sqliteTable('invoice_adjustment', {
@@ -93,4 +134,11 @@ export const invoiceAdjustments = sqliteTable('invoice_adjustment', {
   reason: text('reason').notNull(),
   createdBy: text('created_by').notNull(),
   createdAt: text('created_at').notNull(),
+  tenantId: text('tenant_id'),
+  deploymentId: text('deployment_id'),
+  currency: text('currency'),
+  amountMinor: integer('amount_minor'),
+  effectiveAt: text('effective_at'),
+  priorAdjustmentHash: text('prior_adjustment_hash'),
+  adjustmentHash: text('adjustment_hash'),
 });

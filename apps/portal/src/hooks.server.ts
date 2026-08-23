@@ -4,12 +4,49 @@ import { createDatabase } from '@ja/database';
 import { createHash, randomUUID } from 'node:crypto';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import type { Handle } from '@sveltejs/kit';
+import { documentLanguage, normalizePortalLocale, type PortalLocale } from '$lib/portal-i18n';
 
 const publicBase = process.env.JA_PUBLIC_BASE_PATH ?? '/j-aautomation';
 const portalBase = process.env.JA_PORTAL_BASE_PATH ?? `${publicBase}/app`;
 const production = process.env.NODE_ENV === 'production';
 const portalCsp =
   "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo='; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'";
+
+function preferredLanguage(header: string | null): string | undefined {
+  return header
+    ?.split(',')
+    .map((entry) => entry.split(';', 1)[0]?.trim())
+    .find(Boolean);
+}
+
+function requestLocale(event: Parameters<Handle>[0]['event']): PortalLocale {
+  const requested =
+    event.url.searchParams.get('lang') ??
+    event.cookies.get('ja.portal.locale') ??
+    event.cookies.get('ja-portal-locale') ??
+    preferredLanguage(event.request.headers.get('accept-language'));
+  return normalizePortalLocale(requested);
+}
+
+async function applyServerDocumentLocale(
+  response: Response,
+  locale: PortalLocale,
+): Promise<Response> {
+  if (!response.headers.get('content-type')?.includes('text/html')) return response;
+  const body = await response.text();
+  const language = documentLanguage(locale);
+  const html = body.replace(/<html\b([^>]*)>/i, (_match, attributes: string) => {
+    const withoutLanguage = attributes.replace(/\s+lang\s*=\s*(['"])[^'\"]*\1/i, '');
+    return `<html lang="${language}"${withoutLanguage}>`;
+  });
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+  return new Response(html, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
 
 function applySecurityHeaders(
   response: Response,
@@ -41,6 +78,7 @@ function authRateLimit(event: Parameters<Handle>[0]['event']): Response | null {
   try {
     const now = Date.now();
     const windowMs = 15 * 60_000;
+    sqlite.exec('BEGIN IMMEDIATE');
     const row = sqlite
       .prepare('SELECT window_started_at,request_count FROM rate_limit_bucket WHERE bucket_key=?')
       .get(bucketKey) as { window_started_at: string; request_count: number } | undefined;
@@ -50,9 +88,11 @@ function authRateLimit(event: Parameters<Handle>[0]['event']): Response | null {
           'INSERT INTO rate_limit_bucket(bucket_key,window_started_at,request_count) VALUES(?,?,1) ON CONFLICT(bucket_key) DO UPDATE SET window_started_at=excluded.window_started_at,request_count=1',
         )
         .run(bucketKey, new Date(now).toISOString());
+      sqlite.exec('COMMIT');
       return null;
     }
-    if (row.request_count >= 10)
+    if (row.request_count >= 10) {
+      sqlite.exec('COMMIT');
       return new Response(JSON.stringify({ error: 'Too many authentication attempts' }), {
         status: 429,
         headers: {
@@ -63,10 +103,19 @@ function authRateLimit(event: Parameters<Handle>[0]['event']): Response | null {
           ),
         },
       });
+    }
     sqlite
       .prepare('UPDATE rate_limit_bucket SET request_count=request_count+1 WHERE bucket_key=?')
       .run(bucketKey);
+    sqlite.exec('COMMIT');
     return null;
+  } catch (error) {
+    try {
+      sqlite.exec('ROLLBACK');
+    } catch {
+      // Preserve the original rate-limit failure.
+    }
+    throw error;
   } finally {
     sqlite.close();
   }
@@ -82,6 +131,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   const path = event.url.pathname;
   const isPortal = path === portalBase || path.startsWith(`${portalBase}/`);
   const isAuth = path.startsWith(`${portalBase}/api/auth/`);
+  const isInvitationAccept = path === `${portalBase}/api/invitations/accept`;
   if (path.endsWith('/api/auth/sign-up/email'))
     return applySecurityHeaders(
       new Response(JSON.stringify({ error: 'A valid single-use invitation is required.' }), {
@@ -92,16 +142,20 @@ export const handle: Handle = async ({ event, resolve }) => {
       path,
       correlationId,
     );
-  if (isAuth && event.request.method !== 'GET' && event.request.method !== 'HEAD') {
-    const limited = authRateLimit(event);
-    if (limited) return applySecurityHeaders(limited, isPortal, path, correlationId);
-  }
   if (isPortal && event.request.method !== 'GET' && event.request.method !== 'HEAD' && !isAuth) {
     const origin = event.request.headers.get('origin');
     const referer = event.request.headers.get('referer');
+    let refererOrigin: string | null = null;
+    if (referer) {
+      try {
+        refererOrigin = new URL(referer).origin;
+      } catch {
+        refererOrigin = null;
+      }
+    }
     if (
       (origin && origin !== event.url.origin) ||
-      (!origin && (!referer || !referer.startsWith(event.url.origin)))
+      (!origin && (!refererOrigin || refererOrigin !== event.url.origin))
     ) {
       return applySecurityHeaders(
         new Response('Origin check failed', {
@@ -113,6 +167,14 @@ export const handle: Handle = async ({ event, resolve }) => {
         correlationId,
       );
     }
+  }
+  if (
+    (isAuth || isInvitationAccept) &&
+    event.request.method !== 'GET' &&
+    event.request.method !== 'HEAD'
+  ) {
+    const limited = authRateLimit(event);
+    if (limited) return applySecurityHeaders(limited, isPortal, path, correlationId);
   }
   if (!building && isPortal) {
     const current = await auth.api.getSession({ headers: event.request.headers });
@@ -173,6 +235,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       );
     throw caught;
   }
+  if (isPortal) response = await applyServerDocumentLocale(response, requestLocale(event));
   applySecurityHeaders(response, isPortal, path, correlationId);
   if (production || process.env.JA_JSON_LOGS === 'true')
     console.log(

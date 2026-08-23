@@ -1,6 +1,7 @@
 import { uuidSchema } from '@ja/schemas';
-import { error, fail, redirect } from '@sveltejs/kit';
-import { actionFailure, openPortalRepository } from '$lib/server/portal-repository';
+import { error, redirect } from '@sveltejs/kit';
+import { actionFail, actionFailure, actionSuccess } from '$lib/server/actions/action-message';
+import { openPortalRepository } from '$lib/server/portal-repository';
 import { formObject } from '$lib/server/action-utils';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -11,7 +12,7 @@ export const load: PageServerLoad = ({ locals, params }) => {
     const notification = context.repository
       .listNotifications(context.principal)
       .find((row) => row.id === params.id);
-    if (!notification) error(404, 'Notification not found');
+    if (!notification) error(404, 'detail.notification.notFound');
     return { user: locals.user, notification };
   } finally {
     context.sqlite.close();
@@ -23,11 +24,16 @@ export const actions: Actions = {
     const object = await formObject(request);
     const parsed = uuidSchema.safeParse(object.notificationId);
     if (!parsed.success || parsed.data !== params.id)
-      return fail(400, { success: false, message: 'Invalid notification' });
+      return actionFail(
+        400,
+        'action.validation.notificationIdRequired',
+        {},
+        'Invalid notification',
+      );
     const context = openPortalRepository(locals);
     try {
       context.repository.markNotificationRead(context.principal, parsed.data);
-      return { success: true, message: 'Notification marked as read' };
+      return actionSuccess('action.notifications.markedRead', {}, 'Notification marked as read');
     } catch (error) {
       return actionFailure(error);
     } finally {

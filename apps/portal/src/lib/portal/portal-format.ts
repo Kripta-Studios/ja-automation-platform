@@ -1,7 +1,7 @@
-export const money = (minor: string | number | null | undefined, currency = 'USD'): string =>
+export const money = (minor: unknown, currency = 'USD'): string =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(minor ?? 0) / 100);
 
-export const hours = (minutes: number): string => `${(minutes / 60).toFixed(1)}h`;
+export const hours = (minutes: unknown): string => `${(Number(minutes ?? 0) / 60).toFixed(1)}h`;
 
 export const categorySummary = (categories: Record<string, number>): string =>
   Object.entries(categories)

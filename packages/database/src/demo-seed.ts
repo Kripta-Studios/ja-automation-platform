@@ -108,6 +108,7 @@ const automotive = repository.createClient(owner, {
   currency: 'USD',
   timezone: 'America/Detroit',
   billingEmail: 'ap@northline.demo',
+  billingAddress: 'Northline Mobility, Demo billing address',
 });
 const packaging = repository.createClient(owner, {
   legalName: 'Harbor Packaging Group (Demo)',
@@ -115,6 +116,7 @@ const packaging = repository.createClient(owner, {
   currency: 'USD',
   timezone: 'America/New_York',
   billingEmail: 'billing@harbor.demo',
+  billingAddress: 'Harbor Packaging Group, Demo billing address',
 });
 const processClient = repository.createClient(owner, {
   legalName: 'BlueRiver Process Systems (Demo)',
@@ -122,6 +124,7 @@ const processClient = repository.createClient(owner, {
   currency: 'USD',
   timezone: 'America/Chicago',
   billingEmail: 'finance@blueriver.demo',
+  billingAddress: 'BlueRiver Process Systems, Demo billing address',
 });
 repository.createClientContact(owner, {
   clientId: automotive.id,
@@ -222,6 +225,58 @@ for (const [id, budget, minutes] of [
   sqlite
     .prepare('UPDATE project SET budget_minor=?,planned_minutes=? WHERE id=?')
     .run(budget, minutes, id);
+
+// Keep the assignment-budget view representative of the distinct commercial
+// contexts supported by the repository. Values are integer USD cents/minutes;
+// they are deliberately set through the project workflow so the demo exercises
+// the same validation and audit path as an administrator edit.
+for (const input of [
+  {
+    projectId: line.id,
+    revenueBudgetMinor: 18500000n,
+    poCapMinor: 19000000n,
+    laborBudgetMinutes: 72000,
+    travelBudgetMinor: 1800000n,
+    otherCostBudgetMinor: 650000n,
+    budgetType: 'revenue_cap',
+    plannedMinutes: 72000,
+    plannedEndDate: '2026-12-31',
+  },
+  {
+    projectId: palletizer.id,
+    revenueBudgetMinor: 9200000n,
+    fixedPriceMinor: 7600000n,
+    laborBudgetMinutes: 36000,
+    travelBudgetMinor: 1250000n,
+    otherCostBudgetMinor: 300000n,
+    budgetType: 'fixed_price',
+    plannedMinutes: 36000,
+    plannedEndDate: '2026-11-30',
+  },
+  {
+    projectId: recovery.id,
+    revenueBudgetMinor: 14200000n,
+    poCapMinor: 15000000n,
+    laborBudgetMinutes: 48000,
+    travelBudgetMinor: 2200000n,
+    otherCostBudgetMinor: 900000n,
+    budgetType: 'purchase_order_cap',
+    plannedMinutes: 48000,
+    plannedEndDate: '2027-01-31',
+  },
+  {
+    projectId: support.id,
+    revenueBudgetMinor: 4800000n,
+    poCapMinor: 5000000n,
+    laborBudgetMinutes: 18000,
+    travelBudgetMinor: 600000n,
+    otherCostBudgetMinor: 150000n,
+    budgetType: 'retainer_cap',
+    plannedMinutes: 18000,
+    plannedEndDate: '2026-12-31',
+  },
+] as const)
+  repository.updateProject(owner, input);
 for (const [projectId, timezone] of [
   [line.id, 'America/Detroit'],
   [palletizer.id, 'America/New_York'],
@@ -274,6 +329,19 @@ const skills = [
   ['ROBOT-SAFE', 'Robotics safety'],
   ['HMI-SCADA', 'HMI and SCADA'],
   ['ELEC-DESIGN', 'Electrical controls design'],
+  ['CONTROLLOGIX', 'ControlLogix programming'],
+  ['SAFETY-PLC', 'Safety PLC validation'],
+  ['SERVO-MOTION', 'Servo and motion control'],
+  ['VFD-DRIVES', 'Variable-frequency drives'],
+  ['VISION-SYSTEMS', 'Machine vision systems'],
+  ['INSTRUMENTATION', 'Industrial instrumentation'],
+  ['PROCESS-CONTROLS', 'Process controls'],
+  ['ETHERNET-IP', 'EtherNet/IP diagnostics'],
+  ['PROFINET', 'PROFINET commissioning'],
+  ['SCADA-HIST', 'SCADA historian integration'],
+  ['FAT-SAT', 'FAT/SAT test execution'],
+  ['STARTUP-HANDOVER', 'Startup and customer handover'],
+  ['TECH-DOCS', 'Technical documentation'],
 ] as const;
 const skillIds = new Map<string, string>();
 for (const [code, name] of skills)
@@ -281,10 +349,21 @@ for (const [code, name] of skills)
 for (const [workerKey, skillCode, proficiency] of [
   ['worker', 'PLC-COMM', 5],
   ['worker', 'IND-NET', 4],
+  ['worker', 'CONTROLLOGIX', 5],
+  ['worker', 'SAFETY-PLC', 4],
+  ['worker', 'STARTUP-HANDOVER', 5],
+  ['worker', 'TECH-DOCS', 4],
   ['worker2', 'IND-NET', 5],
   ['worker2', 'ELEC-DESIGN', 4],
+  ['worker2', 'SERVO-MOTION', 5],
+  ['worker2', 'VFD-DRIVES', 4],
+  ['worker2', 'FAT-SAT', 4],
   ['worker3', 'ROBOT-SAFE', 5],
   ['worker3', 'HMI-SCADA', 4],
+  ['worker3', 'VISION-SYSTEMS', 5],
+  ['worker3', 'INSTRUMENTATION', 4],
+  ['worker3', 'PROCESS-CONTROLS', 4],
+  ['worker3', 'SCADA-HIST', 3],
 ] as const)
   repository.setWorkerSkill(owner, {
     workerId: userIds.get(workerKey)!,
@@ -311,6 +390,27 @@ repository.setWorkerAvailability(owner, {
   endsAt: '2026-08-23T23:59:00.000Z',
   availability: 'unavailable',
   note: 'Planned personal leave; synthetic showcase record.',
+});
+repository.setWorkerAvailability(owner, {
+  workerId: worker.userId,
+  startsAt: '2026-08-10T00:00:00.000Z',
+  endsAt: '2026-08-11T23:59:00.000Z',
+  availability: 'tentative',
+  note: 'Customer release window was being confirmed.',
+});
+repository.setWorkerAvailability(owner, {
+  workerId: worker2.userId,
+  startsAt: '2026-08-24T00:00:00.000Z',
+  endsAt: '2026-08-31T23:59:00.000Z',
+  availability: 'available',
+  note: 'Available for the next palletizer maintenance window.',
+});
+repository.setWorkerAvailability(owner, {
+  workerId: worker3.userId,
+  startsAt: '2026-08-24T00:00:00.000Z',
+  endsAt: '2026-08-31T23:59:00.000Z',
+  availability: 'tentative',
+  note: 'Tentative pending process-plant shutdown planning.',
 });
 
 for (const [key, rate] of [
@@ -341,6 +441,48 @@ for (const [key, rate] of [
     notes: 'Synthetic loaded internal cost rule.',
   });
 }
+for (const [key, rate] of [['manager', 5200n]] as const) {
+  v3.createCompensationRule(finance, {
+    workerId: userIds.get(key)!,
+    currency: 'USD',
+    rateMinor: rate,
+    rateBasis: 'hourly',
+    ruleType: 'Hourly',
+    overtimeMethod: 'BASE_RATE_MULTIPLIER',
+    overtimeMultiplierBps: 15000,
+    travelMethod: 'BASE',
+    standbyMethod: 'BASE',
+    effectiveFrom: '2026-01-01',
+    notes: 'Synthetic showcase management compensation rule.',
+  });
+  v3.createInternalCostRule(finance, {
+    workerId: userIds.get(key)!,
+    currency: 'USD',
+    hourlyRateMinor: rate + 1800n,
+    effectiveFrom: '2026-01-01',
+    overtimeMethod: 'BASE_RATE_MULTIPLIER',
+    overtimeMultiplierBps: 12500,
+    notes: 'Synthetic loaded management cost rule.',
+  });
+}
+for (const [workerId, projectId, rateMinor] of [
+  [worker.userId, line.id, 4600n],
+  [worker2.userId, palletizer.id, 4900n],
+] as const)
+  v3.createCompensationRule(finance, {
+    workerId,
+    projectId,
+    currency: 'USD',
+    rateMinor,
+    rateBasis: 'hourly',
+    ruleType: 'Hourly',
+    overtimeMethod: 'BASE_RATE_MULTIPLIER',
+    overtimeMultiplierBps: 15000,
+    travelMethod: 'BASE',
+    standbyMethod: 'BASE',
+    effectiveFrom: '2026-07-01',
+    notes: 'Synthetic project-specific compensation rule.',
+  });
 for (const projectId of [line.id, palletizer.id, recovery.id, support.id])
   v3.createClientLaborRate(finance, {
     projectId,
@@ -527,6 +669,57 @@ addApprovedTime(
   'Held for the production restart confirmation.',
 );
 
+// Keep the operational screens useful for every seeded identity. These rows
+// are deliberately deterministic and already approved so the demo can show
+// the complete review/pay/reporting lifecycle without a manual setup step.
+const scopedDemoUsers = [
+  ['manager', palletizer.id, 'America/New_York', 480],
+  ['worker', recovery.id, 'America/Chicago', 420],
+  ['worker2', palletizer.id, 'America/New_York', 390],
+  ['worker3', recovery.id, 'America/Chicago', 450],
+] as const;
+const scopedDemoDates = [
+  '2026-08-03',
+  '2026-08-06',
+  '2026-08-10',
+  '2026-08-14',
+  '2026-08-18',
+  '2026-08-21',
+];
+for (const [userKey, projectId, projectTimezone, baseMinutes] of scopedDemoUsers) {
+  for (const [index, workDate] of scopedDemoDates.entries()) {
+    const id = newId();
+    const createdAt = `${workDate}T18:00:00.000Z`;
+    sqlite
+      .prepare(
+        `INSERT INTO time_entry(
+          id,project_id,worker_id,work_date,category,minutes,project_timezone,activity_summary,
+          approval_state,billability_state,created_at,updated_at,submitted_at,approved_by,approved_at,
+          finance_approved_by,finance_approved_at
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      )
+      .run(
+        id,
+        projectId,
+        userIds.get(userKey)!,
+        workDate,
+        index % 3 === 0 ? 'commissioning' : index % 3 === 1 ? 'regular' : 'travel',
+        baseMinutes + index * 15,
+        projectTimezone,
+        `Synthetic period-close entry for ${userKey} · ${workDate}.`,
+        'approved',
+        'billable',
+        createdAt,
+        createdAt,
+        createdAt,
+        owner.userId,
+        createdAt,
+        finance.userId,
+        createdAt,
+      );
+  }
+}
+
 const daily = repository.createDailyReport(worker, {
   projectId: line.id,
   workDate: '2026-08-11',
@@ -547,7 +740,7 @@ const daily = repository.createDailyReport(worker, {
 repository.submitReport(worker, 'daily', daily.id, daily.version);
 repository.reviewReport(manager, 'daily', daily.id, 'approved');
 const pendingDaily = repository.createDailyReport(worker, {
-  projectId: line.id,
+  projectId: support.id,
   workDate: '2026-08-18',
   siteShift: 'Body shop · first shift',
   summary: 'Startup support and sensor timing investigation.',
@@ -561,9 +754,8 @@ const pendingDaily = repository.createDailyReport(worker, {
   nextDayPlan: 'Close issue after trend review.',
   safetyRelated: false,
 });
-repository.submitReport(worker, 'daily', pendingDaily.id, pendingDaily.version);
-repository.updateDailyReport(worker, {
-  projectId: line.id,
+const updatedPendingDaily = repository.updateDailyReport(worker, {
+  projectId: support.id,
   workDate: '2026-08-18',
   siteShift: 'Body shop · first shift',
   summary: 'Startup support, sensor timing investigation and customer handover notes.',
@@ -579,8 +771,9 @@ repository.updateDailyReport(worker, {
   safetyRelated: false,
   customerContact: '',
   id: pendingDaily.id,
-  version: pendingDaily.version + 1,
+  version: pendingDaily.version,
 });
+repository.submitReport(worker, 'daily', updatedPendingDaily.id, updatedPendingDaily.version);
 const submittedDaily = repository.createDailyReport(worker2, {
   projectId: palletizer.id,
   workDate: '2026-08-19',
@@ -599,6 +792,7 @@ const submittedDaily = repository.createDailyReport(worker2, {
 repository.submitReport(worker2, 'daily', submittedDaily.id, submittedDaily.version);
 const plc = repository.createTechnicalReport(worker, {
   projectId: line.id,
+  reportDate: '2026-08-11',
   systemName: 'Line 4 Main Conveyor',
   plantSite: 'Detroit Assembly Campus · Demo',
   areaLine: 'Body Shop / Line 4',
@@ -655,6 +849,90 @@ const submittedTechnicalChange = v3.createTechnicalChange(worker2, {
 });
 v3.submitTechnicalChange(worker2, submittedTechnicalChange.id, submittedTechnicalChange.version);
 
+for (const [projectId, workDate, siteShift, summary] of [
+  [
+    recovery.id,
+    '2026-08-15',
+    'Process plant · day shift',
+    'Skid integration checks and permissive verification completed.',
+  ],
+  [
+    recovery.id,
+    '2026-08-20',
+    'Process plant · afternoon shift',
+    'Alarm propagation and pump rotation evidence captured for handover.',
+  ],
+  [
+    support.id,
+    '2026-08-16',
+    'Remote support · morning window',
+    'Remote diagnostic review completed with the customer controls lead.',
+  ],
+  [
+    support.id,
+    '2026-08-21',
+    'Remote support · evening window',
+    'Resolved a sequence observation and documented the release recommendation.',
+  ],
+] as const) {
+  const report = repository.createDailyReport(worker, {
+    projectId,
+    workDate,
+    siteShift,
+    summary,
+    tasksCompleted:
+      'Reviewed source records, validated the operating sequence and updated the handover notes.',
+    problemsFound: 'No blocking issue remains in the synthetic showcase record.',
+    correctiveActions: 'Recorded the validation result and next observation window.',
+    clientDecisions: 'Customer engineering contact accepted the next validation step.',
+    downtimeMinutes: 0,
+    blockers: '',
+    openItems: 'Retain the record for the next period close.',
+    nextDayPlan: 'Review the evidence during the next operational checkpoint.',
+    safetyRelated: false,
+    customerContact: 'Demo plant controls lead',
+  });
+  repository.submitReport(worker, 'daily', report.id, report.version);
+  repository.reviewReport(
+    projectId === recovery.id ? manager : owner,
+    'daily',
+    report.id,
+    'approved',
+  );
+}
+
+for (const [projectId, systemName, controller] of [
+  [recovery.id, 'Caustic recovery skid controls', 'ControlLogix 5570'],
+  [support.id, 'Remote support diagnostic package', 'CompactLogix 5380'],
+] as const) {
+  const report = repository.createTechnicalReport(worker, {
+    projectId,
+    reportDate: projectId === recovery.id ? '2026-08-15' : '2026-08-16',
+    systemName,
+    plantSite: projectId === recovery.id ? recovery.id : support.id,
+    systemType: 'Process automation controls',
+    plcPlatform: 'Rockwell Automation',
+    controller,
+    networkProtocol: 'EtherNet/IP',
+    softwareVersion: 'Studio 5000 v35',
+    programReference: `DEMO-${systemName.replaceAll(' ', '-').toUpperCase()}`,
+    changeSummary: 'Documented a controlled configuration adjustment and its validation evidence.',
+    safetyRelated: false,
+    productionImpact: 'No production bypasses introduced; validation remains traceable.',
+    validation: 'Dry-cycle validation and operator confirmation completed.',
+    validationResult: 'Passed for the synthetic showcase period.',
+    openRisk: 'Retain the next observation window in the project register.',
+    rollbackPlan: 'Restore the registered pre-change backup if the observation regresses.',
+  });
+  repository.submitReport(worker, 'technical', report.id, report.version);
+  repository.reviewReport(
+    projectId === recovery.id ? manager : owner,
+    'technical',
+    report.id,
+    'approved',
+  );
+}
+
 const approvedMilestone = repository.createProjectMilestone(owner, {
   projectId: line.id,
   name: 'Controls validation package',
@@ -672,6 +950,21 @@ const submittedMilestone = repository.createProjectMilestone(owner, {
   dueOn: '2026-08-20',
 });
 repository.submitProjectMilestone(owner, submittedMilestone.id, submittedMilestone.version);
+for (const [projectId, name, amountMinor, dueOn] of [
+  [recovery.id, 'Skid integration acceptance', 275000n, '2026-08-22'],
+  [support.id, 'Remote support monthly close', 185000n, '2026-08-28'],
+] as const) {
+  const milestone = repository.createProjectMilestone(owner, {
+    projectId,
+    name,
+    description:
+      'Synthetic commercial milestone included to exercise project close and billing views.',
+    amountMinor,
+    dueOn,
+  });
+  repository.submitProjectMilestone(owner, milestone.id, milestone.version);
+  repository.reviewProjectMilestone(finance, milestone.id, 'approved');
+}
 
 const receipt = (
   actor: Principal,
@@ -697,6 +990,35 @@ const receipt = (
       "UPDATE document SET description=?,scan_status='clean',scanned_at=?,scan_provider=? WHERE id=?",
     )
     .run(`Synthetic showcase document: ${title}`, timestamp, 'demo-seed', registered.id);
+  return registered.id;
+};
+
+const syntheticPrivateDocument = (
+  actor: Principal,
+  projectId: string,
+  filename: string,
+  title: string,
+  type: string,
+  lines: readonly string[],
+) => {
+  const bytes = syntheticPdf(title, lines);
+  const id = newId();
+  const storageKey = `plc-backups/${id}.pdf`;
+  writeFileSync(resolve(demoDocumentRoot, storageKey), bytes, { flag: 'wx' });
+  const registered = repository.registerPrivateDocument(actor, {
+    projectId,
+    sha256: createHash('sha256').update(bytes).digest('hex'),
+    mediaType: 'application/pdf',
+    byteLength: bytes.byteLength,
+    storageKey,
+    originalFilename: filename,
+    description: `Synthetic showcase document: ${title}`,
+    artifactType: type,
+    sensitivity: 'customer_private',
+  });
+  sqlite
+    .prepare("UPDATE document SET scan_status='clean',scanned_at=?,scan_provider=? WHERE id=?")
+    .run(timestamp, 'demo-seed', registered.id);
   return registered.id;
 };
 const addExpense = (
@@ -857,6 +1179,84 @@ addExpense(worker, recovery.id, {
   treatment: 'reimbursable',
   description: 'Site access tolls and parking charge.',
 });
+const scopedDemoExpenses = [
+  ['admin', line.id],
+  ['finance', line.id],
+  ['manager', palletizer.id],
+  ['worker', recovery.id],
+  ['worker2', palletizer.id],
+  ['worker3', recovery.id],
+] as const;
+const expenseDates = ['2026-08-02', '2026-08-07', '2026-08-11', '2026-08-16', '2026-08-20'];
+for (const [userIndex, [userKey, projectId]] of scopedDemoExpenses.entries()) {
+  for (const [dateIndex, spentOn] of expenseDates.entries()) {
+    const amountMinor = 4200 + userIndex * 700 + dateIndex * 550;
+    const createdAt = `${spentOn}T19:00:00.000Z`;
+    sqlite
+      .prepare(
+        `INSERT INTO expense(
+          id,project_id,worker_id,spent_on,category,currency,amount_minor,client_treatment,
+          vendor,description,who_paid,receipt_required,approval_state,reimbursement_state,
+          submitted_at,approved_by,approved_at,finance_approved_by,finance_approved_at,
+          tax_amount_minor,payment_method,project_currency_amount_minor,fx_rate_bps,
+          billing_treatment,billing_state,billing_amount_minor,reimbursement_amount_minor,
+          created_at,updated_at
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      )
+      .run(
+        newId(),
+        projectId,
+        userIds.get(userKey)!,
+        spentOn,
+        dateIndex % 2 === 0 ? 'ground_transport' : 'meals',
+        'USD',
+        amountMinor,
+        'reimbursable',
+        `Demo ${userKey} travel desk`,
+        `Synthetic reimbursable expense for ${userKey} · ${spentOn}.`,
+        'worker',
+        0,
+        'approved',
+        'approved',
+        createdAt,
+        owner.userId,
+        createdAt,
+        finance.userId,
+        createdAt,
+        0,
+        'Demo corporate card',
+        amountMinor,
+        10000,
+        'reimbursable_at_cost',
+        'unlocked',
+        amountMinor,
+        amountMinor,
+        createdAt,
+        createdAt,
+      );
+  }
+}
+
+// Settlement status is produced by the Finance workflow from approved,
+// billable time and the compensation rules above. Keeping this as a real
+// domain call makes the fixture useful for both the worker statement and the
+// finance settlement register; it also remains safe to rerun because the
+// repository upserts the same worker/project/period key.
+const demoSettlements = [
+  ...v3.settleCompensation(finance, {
+    workerId: worker.userId,
+    projectId: line.id,
+    periodStart: '2026-08-10',
+    periodEnd: '2026-08-16',
+  }),
+  ...v3.settleCompensation(finance, {
+    workerId: worker2.userId,
+    projectId: palletizer.id,
+    periodStart: '2026-08-10',
+    periodEnd: '2026-08-16',
+  }),
+];
+
 repository.createPlanningAssignment(owner, {
   projectId: line.id,
   workerId: worker.userId,
@@ -864,7 +1264,7 @@ repository.createPlanningAssignment(owner, {
   endsAt: '2026-08-18T22:00:00.000Z',
   plannedMinutes: 600,
   site: 'Detroit Assembly Campus · Demo',
-  requiredSkill: 'ControlLogix commissioning',
+  requiredSkill: 'ControlLogix programming',
 });
 repository.createPlanningAssignment(owner, {
   projectId: line.id,
@@ -874,6 +1274,24 @@ repository.createPlanningAssignment(owner, {
   plannedMinutes: 600,
   site: 'Detroit Assembly Campus · Demo',
   requiredSkill: 'Industrial networks',
+});
+repository.createPlanningAssignment(owner, {
+  projectId: recovery.id,
+  workerId: worker3.userId,
+  startsAt: '2026-08-20T13:00:00.000Z',
+  endsAt: '2026-08-20T21:00:00.000Z',
+  plannedMinutes: 480,
+  site: 'Lake County Process Plant · Demo',
+  requiredSkill: 'HMI and SCADA',
+});
+repository.createPlanningAssignment(owner, {
+  projectId: support.id,
+  workerId: worker.userId,
+  startsAt: '2026-08-21T14:00:00.000Z',
+  endsAt: '2026-08-21T20:00:00.000Z',
+  plannedMinutes: 360,
+  site: 'Remote / Detroit · Demo',
+  requiredSkill: 'PLC commissioning',
 });
 
 const entity = repository.createLegalEntity(owner, {
@@ -885,7 +1303,7 @@ const entity = repository.createLegalEntity(owner, {
 });
 repository.createInvoiceNumberPolicy(owner, {
   legalEntityId: entity.id,
-  prefix: 'DEMO-',
+  prefix: 'DEMO',
   digits: 5,
   effectiveFrom: '2026-01-01',
   accountantApprovedAt: timestamp,
@@ -949,6 +1367,85 @@ const milestoneInvoice = repository.createInvoiceDraft(
   '2026-08-01',
   '2026-08-31',
 );
+const additionalBillingRules = new Map<
+  string,
+  { labor: string; expense: string; milestone: string }
+>();
+for (const [projectId, recipientEmail] of [
+  [palletizer.id, 'billing@harbor.demo'],
+  [recovery.id, 'finance@blueriver.demo'],
+  [support.id, 'ap@northline.demo'],
+] as const) {
+  const labor = repository.createBillingRule(finance, {
+    projectId,
+    legalEntityId: entity.id,
+    streamType: 'labor',
+    cadenceType: 'weekly',
+    taxProfileId: laborTax.id,
+    currency: 'USD',
+    effectiveFrom: '2026-01-01',
+    recipientEmail,
+  });
+  const expense = repository.createBillingRule(finance, {
+    projectId,
+    legalEntityId: entity.id,
+    streamType: 'expense',
+    cadenceType: 'monthly',
+    taxProfileId: expenseTax.id,
+    currency: 'USD',
+    effectiveFrom: '2026-01-01',
+    recipientEmail,
+  });
+  const milestone = repository.createBillingRule(finance, {
+    projectId,
+    legalEntityId: entity.id,
+    streamType: 'milestone',
+    cadenceType: 'milestone',
+    taxProfileId: laborTax.id,
+    currency: 'USD',
+    effectiveFrom: '2026-01-01',
+    recipientEmail,
+  });
+  additionalBillingRules.set(projectId, {
+    labor: labor.id,
+    expense: expense.id,
+    milestone: milestone.id,
+  });
+}
+const billingRulesFor = (projectId: string) => {
+  const rules = additionalBillingRules.get(projectId);
+  if (!rules) throw new Error(`Missing seeded billing rules for project ${projectId}`);
+  return rules;
+};
+
+// Give the invoice register useful breadth across projects and lifecycle
+// states. Drafts remain editable previews, while one labor invoice completes
+// the approved -> issued workflow and therefore exposes a real immutable
+// invoice state in the showcase.
+const additionalInvoiceDrafts = [
+  repository.createInvoiceDraft(
+    finance,
+    billingRulesFor(palletizer.id).labor,
+    '2026-08-10',
+    '2026-08-16',
+  ),
+  repository.createInvoiceDraft(
+    finance,
+    billingRulesFor(recovery.id).expense,
+    '2026-08-01',
+    '2026-08-31',
+  ),
+  repository.createInvoiceDraft(
+    finance,
+    billingRulesFor(support.id).milestone,
+    '2026-08-01',
+    '2026-08-31',
+  ),
+];
+const [palletizerInvoiceDraft] = additionalInvoiceDrafts;
+if (!palletizerInvoiceDraft) throw new Error('Missing seeded palletizer invoice draft');
+repository.approveInvoiceDraft(finance, palletizerInvoiceDraft.id);
+const issuedPalletizerInvoice = repository.issueInvoice(finance, palletizerInvoiceDraft.id, 'en');
 
 const closedLaborPeriod = v3.closeBillingPeriod(
   finance,
@@ -971,6 +1468,113 @@ const periodReports = v3.refreshPeriodReports(finance, {
   reportLocale: 'en',
 });
 const accountingPack = v3.createAccountingPack(finance, '2026-08-01', '2026-08-31', 'en');
+const legacyAccountingSnapshot = accountingPack.snapshot as Record<string, unknown>;
+const legacyAccountingReconciliation = accountingPack.reconciliation as Record<string, unknown>;
+const legacyAccountingTotals = (legacyAccountingSnapshot.totals ?? {}) as Record<string, unknown>;
+const legacyNetMinor = BigInt(String(legacyAccountingTotals.totalInvoicedMinor ?? 0));
+const legacyTaxMinor = BigInt(String(legacyAccountingTotals.taxInvoicedMinor ?? 0));
+const legacyGrossMinor = BigInt(String(legacyAccountingTotals.grossInvoicedMinor ?? 0));
+const legacyCollectedMinor = BigInt(String(legacyAccountingTotals.collectedMinor ?? 0));
+const legacyOutstandingMinor = BigInt(String(legacyAccountingTotals.outstandingMinor ?? 0));
+const legacyWorkerCostMinor = BigInt(String(legacyAccountingTotals.internalLaborCostMinor ?? 0));
+const legacyDirectCostMinor = BigInt(String(legacyAccountingTotals.directCostMinor ?? 0));
+const legacyExpenseCostMinor = legacyDirectCostMinor - legacyWorkerCostMinor;
+const canonicalSourceItems = (
+  sqlite
+    .prepare(
+      `SELECT source_link_id,invoice_id,source_type,source_id,source_version,locked_at,
+              allocated_net_minor,allocated_gross_minor
+       FROM invoice_source
+       JOIN invoice ON invoice.id=invoice_source.invoice_id
+       WHERE invoice.period_start IS NOT NULL AND invoice.period_end IS NOT NULL
+         AND invoice.period_start<=? AND invoice.period_end>=?
+       ORDER BY invoice_source.source_link_id`,
+    )
+    .all('2026-08-31', '2026-08-01') as Array<{
+    source_link_id: string;
+    invoice_id: string;
+    source_type: string;
+    source_id: string;
+    source_version: number;
+    locked_at: string | null;
+    allocated_net_minor: number | null;
+    allocated_gross_minor: number | null;
+  }>
+).map((source, index) => ({
+  id: `demo-pack-source-${index + 1}`,
+  itemKind: source.source_type,
+  sourceId: source.source_id,
+  itemVersion: source.source_version,
+  effectiveAt: timestamp,
+  evidenceType: 'invoice_source',
+  evidenceId: `demo-pack-source-evidence-${index + 1}`,
+  amountMinor: source.allocated_net_minor ?? 0,
+  currency: 'USD',
+  payload: {
+    source_link_id: source.source_link_id,
+    invoice_id: source.invoice_id,
+    allocated_gross_minor: source.allocated_gross_minor,
+    locked_at: source.locked_at,
+  },
+}));
+const canonicalAccountingPack = v3.createCanonicalAccountingPackRevision(finance, {
+  periodStart: '2026-08-01',
+  periodEnd: '2026-08-31',
+  currency: 'USD',
+  // The normal Accounting Pack flow owns the canonical legal-entity snapshot and uses UTC.
+  // Explicit follow-up revisions must retain that immutable entity identity.
+  timezone: 'UTC',
+  legacyLegalEntityId: entity.id,
+  sourceItems: canonicalSourceItems,
+  snapshot: legacyAccountingSnapshot,
+  reconciliation: legacyAccountingReconciliation,
+  invoiceCount: Array.isArray(legacyAccountingSnapshot.invoiceRegister)
+    ? legacyAccountingSnapshot.invoiceRegister.length
+    : 0,
+  paymentCount: Array.isArray(legacyAccountingSnapshot.collections)
+    ? legacyAccountingSnapshot.collections.length
+    : 0,
+  workerCostCount: Array.isArray(legacyAccountingSnapshot.workerCosts)
+    ? legacyAccountingSnapshot.workerCosts.length
+    : 0,
+  expenseCount: Array.isArray(legacyAccountingSnapshot.expenseRegister)
+    ? legacyAccountingSnapshot.expenseRegister.length
+    : 0,
+  sourceItemCount: canonicalSourceItems.length,
+  invoiceSourceCount: Number(
+    (legacyAccountingSnapshot.sourceReconciliation as Record<string, unknown> | undefined)
+      ?.invoiceSourceCount ?? 0,
+  ),
+  sourceMismatchCount: Array.isArray(
+    (legacyAccountingSnapshot.sourceReconciliation as Record<string, unknown> | undefined)
+      ?.sourceMismatches,
+  )
+    ? (
+        (legacyAccountingSnapshot.sourceReconciliation as Record<string, unknown>)
+          .sourceMismatches as readonly unknown[]
+      ).length
+    : 0,
+  approvedTimeEntryCount: Number(
+    (legacyAccountingSnapshot.sourceReconciliation as Record<string, unknown> | undefined)
+      ?.approvedTimeEntryCount ?? 0,
+  ),
+  approvedExpenseCount: Number(
+    (legacyAccountingSnapshot.sourceReconciliation as Record<string, unknown> | undefined)
+      ?.approvedExpenseCount ?? 0,
+  ),
+  netMinor: legacyNetMinor,
+  taxMinor: legacyTaxMinor,
+  grossMinor: legacyGrossMinor,
+  collectedMinor: legacyCollectedMinor,
+  outstandingMinor: legacyOutstandingMinor,
+  workerCostMinor: legacyWorkerCostMinor,
+  expenseCostMinor: legacyExpenseCostMinor,
+  directCostMinor: legacyDirectCostMinor,
+  contributionMinor: legacyNetMinor - legacyDirectCostMinor,
+  idempotencyKey: 'demo:accounting-pack:2026-08-01:2026-08-31',
+  createdAt: timestamp,
+  effectiveAt: timestamp,
+});
 const closeout = repository.createProjectCloseout(owner, line.id);
 sqlite
   .prepare(
@@ -982,6 +1586,24 @@ sqlite
     'INSERT OR IGNORE INTO notification(id,user_id,kind,subject_id,created_at) VALUES(?,?,?,?,?)',
   )
   .run(newId(), owner.userId, 'report_submitted', pendingDaily.id, timestamp);
+
+// Add private project documents
+syntheticPrivateDocument(owner, line.id, 'PLC_Backup_V1.pdf', 'PLC Backup Archive', 'PLC backup', [
+  'Date: 2026-08-15',
+  'Project: P-0042',
+  'System: Main Conveyor',
+  'Status: Verified',
+  'This is a synthetic backup file generated for showcase.',
+]);
+
+syntheticPrivateDocument(
+  owner,
+  line.id,
+  'Safety_Manual.pdf',
+  'Safety Protocols & Guidelines',
+  'engineering report',
+  ['Date: 2026-08-01', 'Project: P-0042', 'Confidential safety guidelines.', 'Do not distribute.'],
+);
 console.log(
   JSON.stringify(
     {
@@ -1032,6 +1654,35 @@ console.log(
             count: number;
           }
         ).count,
+        invoices: (sqlite.prepare('SELECT count(*) count FROM invoice').get() as { count: number })
+          .count,
+        issuedInvoices: (
+          sqlite
+            .prepare(
+              "SELECT count(*) count FROM invoice WHERE state IN ('issued','sent','paid','partially_paid','overdue')",
+            )
+            .get() as { count: number }
+        ).count,
+        billingRules: (
+          sqlite.prepare('SELECT count(*) count FROM billing_rule WHERE enabled=1').get() as {
+            count: number;
+          }
+        ).count,
+        skills: (sqlite.prepare('SELECT count(*) count FROM skill').get() as { count: number })
+          .count,
+        workerSkills: (
+          sqlite.prepare('SELECT count(*) count FROM worker_skill').get() as { count: number }
+        ).count,
+        availabilities: (
+          sqlite.prepare('SELECT count(*) count FROM worker_availability').get() as {
+            count: number;
+          }
+        ).count,
+        settlements: (
+          sqlite.prepare('SELECT count(*) count FROM compensation_settlement').get() as {
+            count: number;
+          }
+        ).count,
         periodReports: (
           sqlite.prepare('SELECT count(*) count FROM period_report').get() as { count: number }
         ).count,
@@ -1043,9 +1694,16 @@ console.log(
       },
       projects: [line.id, palletizer.id, recovery.id, support.id],
       invoiceDrafts: [laborInvoice.id, expenseInvoice.id, milestoneInvoice.id],
+      additionalInvoiceDrafts: additionalInvoiceDrafts.map((invoice) => invoice.id),
+      issuedPalletizerInvoice: {
+        id: palletizerInvoiceDraft.id,
+        invoiceNumber: issuedPalletizerInvoice.invoiceNumber,
+      },
+      settlementIds: demoSettlements.map((settlement) => settlement.id),
       closedPeriods: [closedLaborPeriod, closedExpensePeriod],
       periodReportIds: periodReports.map((report) => report.id),
       accountingPackId: accountingPack.id,
+      canonicalAccountingPackRevisionId: canonicalAccountingPack.revisionId,
       closeoutId: closeout.id,
     },
     null,

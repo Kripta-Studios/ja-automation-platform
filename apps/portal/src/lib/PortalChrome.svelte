@@ -1,7 +1,10 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
+  import { page } from '$app/stores';
   import { portalLocales, type PortalLocale } from './portal-i18n';
+  import { translateControlledValue } from './i18n/controlled-values';
   import type { NavItem } from './portal-navigation';
+  import PortalNavIcon from './PortalNavIcon.svelte';
 
   type ChromeData = {
     section: string;
@@ -93,6 +96,19 @@
   };
 
   const iconPath = (item: NavItem): string => navIconPaths[item.label] ?? 'M5 12h14M12 5l7 7-7 7';
+  const roleLabel = (value: string | undefined): string => {
+    const normalized =
+      value === 'owner_admin'
+        ? 'owner'
+        : value === 'finance_admin'
+          ? 'finance'
+          : value === 'project_manager'
+            ? 'manager'
+            : value === 'auditor_read_only'
+              ? 'admin'
+              : value ?? 'worker';
+    return translateControlledValue(locale, 'role', normalized);
+  };
 
   const focusableSelector =
     'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -112,7 +128,7 @@
     if (typeof document === 'undefined') return;
 
     document
-      .querySelector<HTMLButtonElement>('.menu-button[aria-label="Toggle navigation"]')
+      .querySelector<HTMLButtonElement>(`.menu-button[aria-label="${translate('Toggle navigation')}"]`)
       ?.focus();
 
     if (attempt < 20 && typeof window !== 'undefined') {
@@ -126,6 +142,11 @@
     if (shouldRestoreFocus && typeof window !== 'undefined') {
       window.setTimeout(() => restoreMenuFocus(), 0);
     }
+  }
+
+  function toggleNavigation(event?: MouseEvent): void {
+    event?.preventDefault();
+    onMenuToggle();
   }
 
   function handleSkipLinkClick(event: MouseEvent): void {
@@ -159,6 +180,7 @@
 
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
+    if (!first || !last) return;
     const active = document.activeElement;
     if (event.shiftKey && active === first) {
       event.preventDefault();
@@ -173,25 +195,23 @@
     const allItems = [...navigation, ...secondaryNavigation, ...visibleAdmin, ...securityAdmin];
     const itemTarget = itemHref(item);
 
-    if (typeof window !== 'undefined') {
-      const current = new URL(window.location.href);
-      const target = new URL(itemTarget, current.origin);
-      const routeSignature = (url: URL): string => {
-        const params = new URLSearchParams(url.search);
-        params.delete('lang');
-        params.delete('q');
-        const search = params.toString();
-        return `${url.pathname}${search ? `?${search}` : ''}`;
-      };
-      const targetSignature = routeSignature(target);
-      const currentSignature = routeSignature(current);
-      const exact = allItems.find(
-        (candidate) =>
-          routeSignature(new URL(itemHref(candidate), current.origin)) === currentSignature,
-      );
-      if (exact) return exact === item;
-      if (targetSignature !== currentSignature && item.section !== data.section) return false;
-    }
+    const current = $page.url;
+    const target = new URL(itemTarget, current.origin);
+    const routeSignature = (url: URL): string => {
+      const params = new URLSearchParams(url.search);
+      params.delete('lang');
+      params.delete('q');
+      const search = params.toString();
+      return `${url.pathname}${search ? `?${search}` : ''}`;
+    };
+    const targetSignature = routeSignature(target);
+    const currentSignature = routeSignature(current);
+    const exact = allItems.find(
+      (candidate) =>
+        routeSignature(new URL(itemHref(candidate), current.origin)) === currentSignature,
+    );
+    if (exact) return exact === item;
+    if (targetSignature !== currentSignature && item.section !== data.section) return false;
 
     return (
       item.section === data.section &&
@@ -255,7 +275,7 @@
   type="button"
   class:visible={menuOpen && mobileDrawer}
   class="nav-backdrop"
-  aria-label="Close navigation"
+  aria-label={translate('Close navigation')}
   aria-hidden={menuOpen && mobileDrawer ? undefined : 'true'}
   tabindex="-1"
   onclick={closeDrawer}
@@ -265,7 +285,7 @@
   id="portal-navigation"
   class:open={menuOpen}
   bind:this={drawer}
-  aria-label="Portal navigation"
+  aria-label={translate('Portal navigation')}
   role={mobileDrawer ? 'dialog' : undefined}
   aria-modal={mobileDrawer ? 'true' : undefined}
   aria-hidden={mobileDrawer && !menuOpen ? 'true' : undefined}
@@ -274,83 +294,84 @@
   <a class="portal-brand" href={`${base}/app/`} onclick={closeDrawer}
     ><img src={`${base}/app/logo.png`} alt="J&A Automation" /></a
   >
-  <nav aria-label="Primary navigation">
+  <nav aria-label={translate('Primary navigation')}>
     {#each navigation as item}
       <a
         class:active={itemIsCurrent(item)}
         href={itemHref(item)}
-        title={item.label}
+        title={translate(item.label)}
         aria-current={itemIsCurrent(item) ? 'page' : undefined}
         onclick={closeDrawer}
       >
         <span class="nav-icon" aria-hidden="true"
-          ><svg viewBox="0 0 24 24" focusable="false"><path d={iconPath(item)} /></svg></span
-        ><span class="nav-label">{item.label}</span>
+          ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
+        ><span class="nav-label">{translate(item.label)}</span>
       </a>
     {/each}
-    <small class="nav-heading">SECONDARY</small>
+    <small class="nav-heading">{translate('SECONDARY')}</small>
     {#each secondaryNavigation as item}
       <a
         class:active={itemIsCurrent(item)}
         href={itemHref(item)}
-        title={item.label}
+        title={translate(item.label)}
         aria-current={itemIsCurrent(item) ? 'page' : undefined}
         onclick={closeDrawer}
       >
         <span class="nav-icon" aria-hidden="true"
-          ><svg viewBox="0 0 24 24" focusable="false"><path d={iconPath(item)} /></svg></span
-        ><span class="nav-label">{item.label}</span>
+          ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
+        ><span class="nav-label">{translate(item.label)}</span>
       </a>
     {/each}
   </nav>
   {#if showAdmin && (visibleAdmin.length > 0 || (canAudit && securityAdmin.length > 0))}
     <div class="admin-nav">
       {#if isManager || isFinance}
-        {#if visibleAdmin.length > 0}<small class="nav-heading">ADMINISTRATION</small>{/if}
+        {#if visibleAdmin.length > 0}<small class="nav-heading">{translate('ADMINISTRATION')}</small>{/if}
         {#each visibleAdmin as item}
           <a
             class:active={itemIsCurrent(item)}
             href={itemHref(item)}
-            title={item.label}
+            title={translate(item.label)}
             aria-current={itemIsCurrent(item) ? 'page' : undefined}
             onclick={closeDrawer}
           >
             <span class="nav-icon" aria-hidden="true"
-              ><svg viewBox="0 0 24 24" focusable="false"><path d={iconPath(item)} /></svg></span
-            ><span class="nav-label">{item.label}</span>
+              ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
+            ><span class="nav-label">{translate(item.label)}</span>
           </a>
         {/each}
       {/if}
       {#if canAudit && securityAdmin.length > 0}
-        <small class="nav-heading">SECURITY</small>
+        <small class="nav-heading">{translate('SECURITY')}</small>
         {#each securityAdmin as item}
           <a
             class:active={itemIsCurrent(item)}
             href={itemHref(item)}
-            title={item.label}
+            title={translate(item.label)}
             aria-current={itemIsCurrent(item) ? 'page' : undefined}
             onclick={closeDrawer}
           >
             <span class="nav-icon" aria-hidden="true"
-              ><svg viewBox="0 0 24 24" focusable="false"><path d={iconPath(item)} /></svg></span
-            ><span class="nav-label">{item.label}</span>
+              ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
+            ><span class="nav-label">{translate(item.label)}</span>
           </a>
         {/each}
       {/if}
     </div>
   {/if}
-  <button class="signout" onclick={logout}>Sign out</button>
+  <button class="signout" onclick={logout}>{translate('Sign out')}</button>
 </aside>
 
 <header>
   <div class="header-status">
     <button
       bind:this={menuToggle}
+      type="button"
       class="menu-button"
-      aria-label="Toggle navigation"
+      aria-label={translate('Toggle navigation')}
       aria-controls="portal-navigation"
       aria-expanded={menuOpen}
-      onclick={onMenuToggle}
+      onclick={toggleNavigation}
       onkeydown={(event) => {
         if (event.key === 'Tab' && !event.shiftKey && !mobileDrawer) {
           event.preventDefault();
@@ -360,9 +381,9 @@
     >
       <span></span><span></span>
     </button>
-    <span class:offline={!online} class="connection"><i></i>{online ? 'Online' : 'Offline'}</span>
-    {#if queue > 0}<span class="queue">{queue} queued</span>{/if}
-    {#if syncMessage}<span class="sync-message" role="status">{syncMessage}</span>{/if}
+    <span class:offline={!online} class="connection"><i></i>{online ? translate('Online') : translate('Offline')}</span>
+    {#if queue > 0}<span class="queue">{queue} {translate('queued')}</span>{/if}
+    {#if syncMessage}<span class="sync-message" role="status">{translate(syncMessage)}</span>{/if}
   </div>
   <label class="locale-switcher">
     <span class="visually-hidden">{translate('Language')}</span>
@@ -387,38 +408,42 @@
     >
       <span class="user-avatar" aria-hidden="true">{initials(data.user.name)}</span>
       <span class="user-copy"
-        ><b>{data.user.name}</b><small>{data.user.role ?? 'worker'}</small></span
+        ><b>{data.user.name}</b><small>{roleLabel(data.user.role)}</small></span
       >
-      <span class="account-chevron" aria-hidden="true">{accountOpen ? '⌃' : '⌄'}</span>
+      <span class="account-chevron" aria-hidden="true">
+        <svg viewBox="0 0 16 16" focusable="false">
+          <path d={accountOpen ? 'm3.5 9.5 4.5-4 4.5 4' : 'm3.5 6.5 4.5 4 4.5-4'} />
+        </svg>
+      </span>
     </button>
     {#if accountOpen}
-      <div class="account-menu" role="menu" aria-label="Account options">
+      <div class="account-menu" role="menu" aria-label={translate('Account options')}>
         <div class="account-menu-summary" role="presentation">
-          <span class="portal-kicker">SIGNED IN</span>
+          <span class="portal-kicker">{translate('SIGNED IN')}</span>
           <strong>{data.user.name}</strong>
-          <small>{data.user.role ?? 'worker'} workspace access</small>
+          <small>{roleLabel(data.user.role)} {translate('workspace access')}</small>
         </div>
         <a role="menuitem" href={href('profile')} onclick={() => (accountOpen = false)}>
           <span class="account-menu-icon" aria-hidden="true">◎</span>
-          <span><b>Profile & security</b><small>Personal details, MFA and availability</small></span
+          <span><b>{translate('Profile & security')}</b><small>{translate('Personal details, MFA and availability')}</small></span
           >
         </a>
         <a role="menuitem" href={href('notifications')} onclick={() => (accountOpen = false)}>
           <span class="account-menu-icon" aria-hidden="true">◌</span>
-          <span><b>Notifications</b><small>Review changes and approval activity</small></span>
+          <span><b>{translate('Notifications')}</b><small>{translate('Review changes and approval activity')}</small></span>
         </a>
         <a role="menuitem" href={href('pay')} onclick={() => (accountOpen = false)}>
           <span class="account-menu-icon" aria-hidden="true">€</span>
-          <span><b>My pay</b><small>Compensation, expenses and pay history</small></span>
+          <span><b>{translate('My pay')}</b><small>{translate('Compensation, expenses and pay history')}</small></span>
         </a>
         <a role="menuitem" href={href('documents')} onclick={() => (accountOpen = false)}>
           <span class="account-menu-icon" aria-hidden="true">□</span>
-          <span><b>My documents</b><small>Private files shared with your workspace</small></span>
+          <span><b>{translate('My documents')}</b><small>{translate('Private files shared with your workspace')}</small></span>
         </a>
         <div class="account-menu-divider" role="separator"></div>
         <button type="button" class="account-signout" role="menuitem" onclick={logout}>
           <span class="account-menu-icon" aria-hidden="true">↪</span>
-          <span><b>Log out</b><small>End this session on this device</small></span>
+          <span><b>{translate('Log out')}</b><small>{translate('End this session on this device')}</small></span>
         </button>
       </div>
     {/if}

@@ -1,6 +1,7 @@
 import { accountingPackPeriodSchema, uuidSchema } from '@ja/schemas';
-import { error, fail, redirect } from '@sveltejs/kit';
-import { actionFailure, openPortalRepository } from '$lib/server/portal-repository';
+import { error, redirect } from '@sveltejs/kit';
+import { actionFail, actionFailure, actionSuccess } from '$lib/server/actions/action-message';
+import { openPortalRepository } from '$lib/server/portal-repository';
 import { runArtifactJobs } from '$lib/server/artifact-jobs';
 import { formObject } from '$lib/server/action-utils';
 import type { Actions, PageServerLoad } from './$types';
@@ -30,7 +31,7 @@ export const load: PageServerLoad = ({ locals, params }) => {
       },
     };
   } catch {
-    error(404, 'Period report not found or unavailable');
+    error(404, 'detail.periodReport.notFound');
   } finally {
     context.sqlite.close();
   }
@@ -42,7 +43,12 @@ export const actions: Actions = {
       .extend({ projectId: uuidSchema })
       .safeParse(await formObject(request));
     if (!parsed.success)
-      return fail(400, { success: false, message: 'Project and reporting period are required' });
+      return actionFail(
+        400,
+        'action.validation.projectReportingPeriod',
+        {},
+        'Project and reporting period are required',
+      );
     const context = openPortalRepository(locals);
     try {
       const reports = context.v3.refreshPeriodReports(context.principal, {
@@ -54,10 +60,11 @@ export const actions: Actions = {
         parsed.data,
       );
       const jobs = runArtifactJobs(context);
-      return {
-        success: true,
-        message: `${reports.length} report snapshots recalculated from the current source data; ${jobs.processed} artifact jobs processed`,
-      };
+      return actionSuccess(
+        'action.reports.periodReportsRefreshed',
+        { reports: reports.length, jobs: jobs.processed },
+        `${reports.length} report snapshots recalculated from the current source data; ${jobs.processed} artifact jobs processed`,
+      );
     } catch (error) {
       return actionFailure(error);
     } finally {

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { Link } from '@/lib/i18n/navigation';
 
 export default function ErrorPage({
   error,
@@ -32,9 +33,9 @@ export default function ErrorPage({
           >
             <RotateCcw size={16} /> Try Again
           </button>
-          <a href="/" className="btn btn-secondary text-center">
+          <Link href="/" className="btn btn-secondary text-center">
             Return to Home
-          </a>
+          </Link>
         </div>
       </div>
     </div>

@@ -38,6 +38,7 @@ services:
       JA_DATABASE_PATH: /var/lib/jaautomation/data/jaautomation.sqlite
       JA_MIGRATIONS_PATH: /app/migrations
       JA_DOCUMENT_ROOT: /var/lib/jaautomation/files
+      JA_MIN_FREE_BYTES: ${JA_MIN_FREE_BYTES:-1073741824}
       JA_PUBLIC_BASE_PATH: /j-aautomation
       JA_PORTAL_BASE_PATH: /j-aautomation/app
       JA_CHROMIUM_PATH: /usr/bin/chromium

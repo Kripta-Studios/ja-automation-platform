@@ -11,6 +11,10 @@ export const B5_DURABLE_JOB_REGISTRY = Object.freeze([
   Object.freeze({ kind: 'alert_dispatch', capability: 'alert.dispatch' }),
   Object.freeze({ kind: 'email_send', capability: 'email.send' }),
   Object.freeze({ kind: 'backup_verify', capability: 'backup.verify' }),
+  Object.freeze({
+    kind: 'localized_pdf_variant_render',
+    capability: 'artifact.localized_pdf.render',
+  }),
 ] as const);
 
 export type B5DurableJobKind = (typeof B5_DURABLE_JOB_REGISTRY)[number]['kind'];
@@ -103,4 +107,3 @@ export function makeB5DurableJobFixture(
 export function durableRegistryMap(): ReadonlyMap<string, string> {
   return new Map(B5_DURABLE_JOB_REGISTRY.map((entry) => [entry.kind, entry.capability]));
 }
-

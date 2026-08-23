@@ -11,7 +11,7 @@ export const load: PageServerLoad = ({ locals, params }) => {
       record: context.repository.expenseDetail(context.principal, params.id),
     };
   } catch {
-    error(404, 'Expense not found or unavailable');
+    error(404, 'detail.expense.notFound');
   } finally {
     context.sqlite.close();
   }

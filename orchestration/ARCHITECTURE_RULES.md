@@ -9,4 +9,4 @@
 7. Shared UI contains primitives/tokens, not domain business rules.
 8. Shared DB infrastructure contains connection/migration/transaction helpers, not every domain query.
 9. Prefer explicit state machines/lifecycle functions over scattered status string assignments.
-10. Point-in-time data-readiness is append/version oriented and must not mutate past known-state semantics.
+10. ML/data-readiness infrastructure is deferred post-core unless explicitly commissioned. Existing point-in-time records must still preserve historical known-state semantics and must not be corrupted by Essential work.

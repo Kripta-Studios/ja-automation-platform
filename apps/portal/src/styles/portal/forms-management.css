@@ -1,3 +1,40 @@
+.management-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.admin-details {
+  background: var(--ja-surface);
+  border: 1px solid var(--ja-border);
+  border-radius: var(--ja-radius);
+  padding: 1rem;
+}
+
+.admin-details summary {
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  color: var(--ja-marine);
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+  display: inline-block;
+}
+
+.admin-details summary:hover {
+  background: var(--ja-border);
+}
+
+.admin-details[open] summary {
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--ja-border);
+  padding-bottom: 1rem;
+  border-radius: 4px 4px 0 0;
+  display: block;
+}
+
 /* Forms, reporting and management ---------------------------------------- */
 .worker-form > .entry-panel,
 .report-form {

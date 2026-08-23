@@ -63,7 +63,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
                 Request Technical Datasheet
               </a>
               <Link href="/contact?intent=project" className="btn btn-secondary-dark">
-                Schedule a Demo
+                Talk to an Engineer
               </Link>
             </div>
           </div>

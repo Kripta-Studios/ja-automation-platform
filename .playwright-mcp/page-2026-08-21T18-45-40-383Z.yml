@@ -1,0 +1,337 @@
+- generic [ref=f14e2]:
+  - link "Skip to main content":
+    - /url: "#portal-main"
+  - generic [ref=f14e3]:
+    - button
+    - complementary "Portal navigation" [ref=f14e4]:
+      - link [ref=f14e5] [cursor=pointer]:
+        - /url: /j-aautomation/app/
+        - img "J&A Automation" [ref=f14e6]
+      - navigation "Primary navigation" [ref=f14e7]:
+        - link "Today" [ref=f14e8] [cursor=pointer]:
+          - /url: /j-aautomation/app/
+        - link "Time" [ref=f14e13] [cursor=pointer]:
+          - /url: /j-aautomation/app/time
+        - link "Reports" [ref=f14e18] [cursor=pointer]:
+          - /url: /j-aautomation/app/reports
+        - link "Expenses" [ref=f14e23] [cursor=pointer]:
+          - /url: /j-aautomation/app/expenses
+        - link "Projects" [ref=f14e28] [cursor=pointer]:
+          - /url: /j-aautomation/app/projects
+        - generic [ref=f14e33]: SECONDARY
+        - link "My Pay" [ref=f14e34] [cursor=pointer]:
+          - /url: /j-aautomation/app/pay
+        - link "Documents" [ref=f14e39] [cursor=pointer]:
+          - /url: /j-aautomation/app/documents
+        - link "Notifications" [ref=f14e44] [cursor=pointer]:
+          - /url: /j-aautomation/app/notifications
+        - link "Profile" [ref=f14e49] [cursor=pointer]:
+          - /url: /j-aautomation/app/profile
+      - generic [ref=f14e54]:
+        - generic [ref=f14e55]: ADMINISTRATION
+        - link "Dashboard" [ref=f14e56] [cursor=pointer]:
+          - /url: /j-aautomation/app/
+        - link "Projects" [ref=f14e61] [cursor=pointer]:
+          - /url: /j-aautomation/app/projects
+        - link "Clients" [ref=f14e66] [cursor=pointer]:
+          - /url: /j-aautomation/app/projects?view=clients
+        - link "Team" [ref=f14e71] [cursor=pointer]:
+          - /url: /j-aautomation/app/projects?view=team
+        - link "Planning" [ref=f14e76] [cursor=pointer]:
+          - /url: /j-aautomation/app/planning
+        - link "Time" [ref=f14e81] [cursor=pointer]:
+          - /url: /j-aautomation/app/time
+        - link "Reports" [ref=f14e86] [cursor=pointer]:
+          - /url: /j-aautomation/app/reports
+        - link "PLC / Technical" [ref=f14e91] [cursor=pointer]:
+          - /url: /j-aautomation/app/reports?view=technical
+        - link "Expenses" [ref=f14e96] [cursor=pointer]:
+          - /url: /j-aautomation/app/expenses
+        - link "Approvals" [ref=f14e101] [cursor=pointer]:
+          - /url: /j-aautomation/app/approvals
+        - link "Billing" [ref=f14e106] [cursor=pointer]:
+          - /url: /j-aautomation/app/billing
+        - link "Invoices" [ref=f14e111] [cursor=pointer]:
+          - /url: /j-aautomation/app/billing?view=invoices
+        - link "Finance" [ref=f14e116] [cursor=pointer]:
+          - /url: /j-aautomation/app/finance
+        - link "Documents" [ref=f14e121] [cursor=pointer]:
+          - /url: /j-aautomation/app/documents
+        - link "Notifications" [ref=f14e126] [cursor=pointer]:
+          - /url: /j-aautomation/app/notifications
+        - link "Settings" [ref=f14e131] [cursor=pointer]:
+          - /url: /j-aautomation/app/profile
+        - generic [ref=f14e136]: SECURITY
+        - link "Audit" [ref=f14e137] [cursor=pointer]:
+          - /url: /j-aautomation/app/audit
+      - button "Sign out" [ref=f14e142]
+    - banner [ref=f14e143]:
+      - generic [ref=f14e144]:
+        - button "Toggle navigation" [ref=f14e145]
+        - generic [ref=f14e148]: Online
+      - generic [ref=f14e150]:
+        - generic [ref=f14e151]: Language
+        - combobox "Language" [ref=f14e152]:
+          - option "EN" [selected]
+          - option "PT-BR"
+          - option "ES"
+      - button [ref=f14e154] [cursor=pointer]:
+        - generic [ref=f14e155]: AN
+        - generic [ref=f14e156]: ⌄
+    - main [ref=f14e157]:
+      - generic [ref=f14e158]:
+        - generic [ref=f14e159]:
+          - paragraph [ref=f14e160]: J&A / PROJECTS
+          - heading "Projects" [level=1] [ref=f14e161]
+        - generic [ref=f14e162]:
+          - button "Print report" [ref=f14e163]:
+            - generic [ref=f14e164]: ⎙
+            - text: Print report
+          - search [ref=f14e165]:
+            - generic [ref=f14e166]: Search workspace
+            - textbox "Search workspace" [ref=f14e167]:
+              - /placeholder: Search projects, people, invoices…
+            - button "Search" [ref=f14e168]
+      - generic [ref=f14e169]:
+        - group [ref=f14e170]:
+          - generic "New Client ⌄" [ref=f14e171] [cursor=pointer]
+          - option "USD" [selected]
+          - option "BRL"
+          - option "EUR"
+        - group [ref=f14e172]:
+          - generic "Update Client ⌄" [ref=f14e173] [cursor=pointer]
+          - option "C-0001 — Northline Mobility · Demo" [selected]
+          - option "C-0002 — Harbor Packaging · Demo"
+          - option "C-0003 — BlueRiver Process · Demo"
+          - option "Keep current" [selected]
+          - option "USD"
+          - option "BRL"
+          - option "EUR"
+        - group [ref=f14e174]:
+          - generic "Archive Client ⌄" [ref=f14e175] [cursor=pointer]
+          - option "C-0001 — Northline Mobility · Demo" [selected]
+          - option "C-0002 — Harbor Packaging · Demo"
+          - option "C-0003 — BlueRiver Process · Demo"
+        - group [ref=f14e176]:
+          - generic "New Project ⌄" [ref=f14e177] [cursor=pointer]
+          - option "C-0001 — Northline Mobility · Demo" [selected]
+          - option "C-0002 — Harbor Packaging · Demo"
+          - option "C-0003 — BlueRiver Process · Demo"
+          - option "USD" [selected]
+          - option "BRL"
+          - option "EUR"
+          - option "Time & materials" [selected]
+          - option "T&M · daily minimum"
+          - option "All-in"
+          - option "Capped T&M"
+          - option "No budget" [selected]
+          - option "Revenue"
+          - option "Purchase order"
+          - option "Labor"
+          - option "Travel"
+          - option "Combined"
+        - group [ref=f14e178]:
+          - generic "Assign Worker ⌄" [ref=f14e179] [cursor=pointer]
+          - option "C-0001-P-001" [selected]
+          - option "C-0001-P-002"
+          - option "C-0002-P-001"
+          - option "C-0003-P-001"
+          - option "Alex Rivera — worker" [selected]
+          - option "Antonny Nascimento — owner_admin"
+          - option "Daniel Brooks — project_manager"
+          - option "Elena Costa — finance_admin"
+          - option "Maya Chen — worker"
+          - option "Rafael Santos — worker"
+        - group [ref=f14e180]:
+          - generic "Update Assignment ⌄" [ref=f14e181] [cursor=pointer]
+        - group [ref=f14e182]:
+          - generic "Remove Assignment ⌄" [ref=f14e183] [cursor=pointer]
+        - group [ref=f14e184]:
+          - generic "Invite/Create Worker ⌄" [ref=f14e185] [cursor=pointer]
+          - option "Worker" [selected]
+          - option "Project Manager"
+          - option "Finance Admin"
+          - option "Auditor (Read Only)"
+          - option "Owner Admin"
+        - group [ref=f14e186]:
+          - generic "Add Client Contact ⌄" [ref=f14e187] [cursor=pointer]
+          - option "C-0001 — Northline Mobility · Demo" [selected]
+          - option "C-0002 — Harbor Packaging · Demo"
+          - option "C-0003 — BlueRiver Process · Demo"
+        - group [ref=f14e188]:
+          - generic "Update Client Contact ⌄" [ref=f14e189] [cursor=pointer]
+        - group [ref=f14e190]:
+          - generic "Delete Client Contact ⌄" [ref=f14e191] [cursor=pointer]
+        - group [ref=f14e192]:
+          - generic "Create Milestone ⌄" [ref=f14e193] [cursor=pointer]
+          - option "C-0001-P-001 — Body Shop Line 4 Controls Upgrade · Demo" [selected]
+          - option "C-0001-P-002 — Remote Controls Support Retainer · Demo"
+          - option "C-0002-P-001 — High-Speed Palletizer Commissioning · Demo"
+          - option "C-0003-P-001 — Caustic Recovery Skid Integration · Demo"
+        - group [ref=f14e194]:
+          - generic "Expected Working Schedule ⌄" [ref=f14e195] [cursor=pointer]
+          - option "C-0001-P-001 — Body Shop Line 4 Controls Upgrade · Demo" [selected]
+          - option "C-0001-P-002 — Remote Controls Support Retainer · Demo"
+          - option "C-0002-P-001 — High-Speed Palletizer Commissioning · Demo"
+          - option "C-0003-P-001 — Caustic Recovery Skid Integration · Demo"
+        - generic [ref=f14e196]:
+          - generic [ref=f14e197]:
+            - heading "Authorized projects" [level=2] [ref=f14e198]
+            - generic [ref=f14e199]: "4"
+          - link "C-0001-P-001 · Body Shop Line 4 Controls Upgrade · Demoactive · USD · America/Detroit · 2026-08-21 → Open target OPEN PROJECT →" [ref=f14e200] [cursor=pointer]:
+            - /url: /j-aautomation/app/projects/01a025a3-c25e-70ed-b24e-eabbc9d4781a
+            - generic [ref=f14e201]:
+              - strong [ref=f14e202]: C-0001-P-001 · Body Shop Line 4 Controls Upgrade · Demo
+              - text: active · USD · America/Detroit · 2026-08-21 → Open target
+            - generic [ref=f14e203]: OPEN PROJECT →
+          - link "C-0001-P-002 · Remote Controls Support Retainer · Demoactive · USD · America/Detroit · 2026-08-21 → Open target OPEN PROJECT →" [ref=f14e204] [cursor=pointer]:
+            - /url: /j-aautomation/app/projects/01a025a3-c25f-7276-a50c-ec95751d636e
+            - generic [ref=f14e205]:
+              - strong [ref=f14e206]: C-0001-P-002 · Remote Controls Support Retainer · Demo
+              - text: active · USD · America/Detroit · 2026-08-21 → Open target
+            - generic [ref=f14e207]: OPEN PROJECT →
+          - link "C-0002-P-001 · High-Speed Palletizer Commissioning · Demoactive · USD · America/New_York · 2026-08-21 → Open target OPEN PROJECT →" [ref=f14e208] [cursor=pointer]:
+            - /url: /j-aautomation/app/projects/01a025a3-c25e-70ed-b24e-f8d3efa1d999
+            - generic [ref=f14e209]:
+              - strong [ref=f14e210]: C-0002-P-001 · High-Speed Palletizer Commissioning · Demo
+              - text: active · USD · America/New_York · 2026-08-21 → Open target
+            - generic [ref=f14e211]: OPEN PROJECT →
+          - link "C-0003-P-001 · Caustic Recovery Skid Integration · Demoactive · USD · America/Chicago · 2026-08-21 → Open target OPEN PROJECT →" [ref=f14e212] [cursor=pointer]:
+            - /url: /j-aautomation/app/projects/01a025a3-c25e-70ed-b24f-09523d45763e
+            - generic [ref=f14e213]:
+              - strong [ref=f14e214]: C-0003-P-001 · Caustic Recovery Skid Integration · Demo
+              - text: active · USD · America/Chicago · 2026-08-21 → Open target
+            - generic [ref=f14e215]: OPEN PROJECT →
+        - generic [ref=f14e216]:
+          - generic [ref=f14e217]:
+            - heading "Client contacts" [level=2] [ref=f14e218]
+            - generic [ref=f14e219]: "6"
+          - article [ref=f14e220]:
+            - generic [ref=f14e221]:
+              - strong [ref=f14e222]: C-0001 · Morgan Lee
+              - generic [ref=f14e223]: morgan.lee@northline.demo · Controls Program Lead · primary
+          - article [ref=f14e224]:
+            - generic [ref=f14e225]:
+              - strong [ref=f14e226]: C-0001 · Taylor Brooks
+              - generic [ref=f14e227]: ap@northline.demo · Accounts Payable · billing
+          - article [ref=f14e228]:
+            - generic [ref=f14e229]:
+              - strong [ref=f14e230]: C-0002 · Priya Shah
+              - generic [ref=f14e231]: priya.shah@harbor.demo · Plant Engineering Manager · primary
+          - article [ref=f14e232]:
+            - generic [ref=f14e233]:
+              - strong [ref=f14e234]: C-0002 · Sam Wilson
+              - generic [ref=f14e235]: billing@harbor.demo · Billing Contact · billing
+          - article [ref=f14e236]:
+            - generic [ref=f14e237]:
+              - strong [ref=f14e238]: C-0003 · Camila Ferreira
+              - generic [ref=f14e239]: camila.ferreira@blueriver.demo · Process Automation Lead · primary
+          - article [ref=f14e240]:
+            - generic [ref=f14e241]:
+              - strong [ref=f14e242]: C-0003 · Jordan Kim
+              - generic [ref=f14e243]: finance@blueriver.demo · Finance Contact · billing
+        - generic [ref=f14e244]:
+          - generic [ref=f14e245]:
+            - heading "Team access" [level=2] [ref=f14e246]
+            - generic [ref=f14e247]: 6 workers
+          - article [ref=f14e248]:
+            - generic [ref=f14e249]:
+              - strong [ref=f14e250]: Alex Rivera
+              - generic [ref=f14e251]: worker@demo.jaautomation.local · worker · joined 2026-08-18 → open
+            - group [ref=f14e253]:
+              - generic "Manage worker ⌄" [ref=f14e254] [cursor=pointer]
+              - option "Worker" [selected]
+              - option "Project Manager"
+              - option "Finance Admin"
+              - option "Auditor (Read Only)"
+              - option "Owner / Admin"
+              - option "Active" [selected]
+              - option "Suspend"
+              - option "Offboard"
+              - option "Archive"
+          - article [ref=f14e255]:
+            - generic [ref=f14e256]:
+              - strong [ref=f14e257]: Antonny Nascimento
+              - generic [ref=f14e258]: antonny.luty@j-aautomation.com · owner_admin · joined 2026-08-18 → open
+            - group [ref=f14e260]:
+              - generic "Manage worker ⌄" [ref=f14e261] [cursor=pointer]
+              - option "Worker"
+              - option "Project Manager"
+              - option "Finance Admin"
+              - option "Auditor (Read Only)"
+              - option "Owner / Admin" [selected]
+              - option "Active" [selected]
+              - option "Suspend"
+              - option "Offboard"
+              - option "Archive"
+          - article [ref=f14e262]:
+            - generic [ref=f14e263]:
+              - strong [ref=f14e264]: Daniel Brooks
+              - generic [ref=f14e265]: pm@demo.jaautomation.local · project_manager · joined 2026-08-18 → open
+            - group [ref=f14e267]:
+              - generic "Manage worker ⌄" [ref=f14e268] [cursor=pointer]
+              - option "Worker"
+              - option "Project Manager" [selected]
+              - option "Finance Admin"
+              - option "Auditor (Read Only)"
+              - option "Owner / Admin"
+              - option "Active" [selected]
+              - option "Suspend"
+              - option "Offboard"
+              - option "Archive"
+          - article [ref=f14e269]:
+            - generic [ref=f14e270]:
+              - strong [ref=f14e271]: Elena Costa
+              - generic [ref=f14e272]: finance@demo.jaautomation.local · finance_admin · joined 2026-08-18 → open
+            - group [ref=f14e274]:
+              - generic "Manage worker ⌄" [ref=f14e275] [cursor=pointer]
+              - option "Worker"
+              - option "Project Manager"
+              - option "Finance Admin" [selected]
+              - option "Auditor (Read Only)"
+              - option "Owner / Admin"
+              - option "Active" [selected]
+              - option "Suspend"
+              - option "Offboard"
+              - option "Archive"
+          - article [ref=f14e276]:
+            - generic [ref=f14e277]:
+              - strong [ref=f14e278]: Maya Chen
+              - generic [ref=f14e279]: maya@demo.jaautomation.local · worker · joined 2026-08-18 → open
+            - group [ref=f14e281]:
+              - generic "Manage worker ⌄" [ref=f14e282] [cursor=pointer]
+              - option "Worker" [selected]
+              - option "Project Manager"
+              - option "Finance Admin"
+              - option "Auditor (Read Only)"
+              - option "Owner / Admin"
+              - option "Active" [selected]
+              - option "Suspend"
+              - option "Offboard"
+              - option "Archive"
+          - article [ref=f14e283]:
+            - generic [ref=f14e284]:
+              - strong [ref=f14e285]: Rafael Santos
+              - generic [ref=f14e286]: rafael@demo.jaautomation.local · worker · joined 2026-08-18 → open
+            - group [ref=f14e288]:
+              - generic "Manage worker ⌄" [ref=f14e289] [cursor=pointer]
+              - option "Worker" [selected]
+              - option "Project Manager"
+              - option "Finance Admin"
+              - option "Auditor (Read Only)"
+              - option "Owner / Admin"
+              - option "Active" [selected]
+              - option "Suspend"
+              - option "Offboard"
+              - option "Archive"
+    - navigation "Mobile navigation" [ref=f14e290]:
+      - link "Today" [ref=f14e291] [cursor=pointer]:
+        - /url: /j-aautomation/app/
+      - link "Time" [ref=f14e292] [cursor=pointer]:
+        - /url: /j-aautomation/app/time
+      - link "Reports" [ref=f14e293] [cursor=pointer]:
+        - /url: /j-aautomation/app/reports
+      - link "Expenses" [ref=f14e294] [cursor=pointer]:
+        - /url: /j-aautomation/app/expenses
+      - link "Projects" [ref=f14e295] [cursor=pointer]:
+        - /url: /j-aautomation/app/projects

@@ -1,0 +1,197 @@
+{
+  "contractVersion": "ja-migration-contract-v1",
+  "manifestVersion": 1,
+  "contractDescriptor": "J&A B5 migration contract v1; SQL hashes cover exact shipped bytes",
+  "legacyFixture": {
+    "file": "../../tests/fixtures/b5-migration-legacy-fixture.sql",
+    "sha256": "2c34f6360fa86df895fcf52596defdf481a2883d6502742691a33fdaa1ec69cc",
+    "projectionEncoder": "CANON-V1",
+    "tables": {
+      "client": {
+        "rowCount": 1,
+        "sha256": "685f4b74dfa1f99892fcbd36f7effbdedd70c55ea0810dc106c38c88e808ac43"
+      },
+      "project": {
+        "rowCount": 1,
+        "sha256": "ba3eb35afd6ffda5852839f1c83b67d6ac2142b8974a3f95becc1122d64eb1fc"
+      },
+      "time_entry": {
+        "rowCount": 1,
+        "sha256": "cd7787460066a4c1d19405ece54c8c2feb4429fd786d439063b34c0ede0abc48"
+      },
+      "expense": {
+        "rowCount": 1,
+        "sha256": "f61d3b391b9320f113fbc8139ced116760c409ea6481913d00219f07e4f1ca56"
+      },
+      "daily_report": {
+        "rowCount": 1,
+        "sha256": "dd4ffad1cd1dc371627ede6f841f1a5caff2723b880ccffdf24f5c6101113665"
+      },
+      "technical_report": {
+        "rowCount": 1,
+        "sha256": "be8d20e6925b9ce9381507467827dd7e4738fc8343147cd93361e6a3dcc63723"
+      },
+      "document": {
+        "rowCount": 1,
+        "sha256": "463a08eed97a436ce2e0436e42b33569782639aa40fb2c803eb9146dbac86fac"
+      },
+      "invoice": {
+        "rowCount": 1,
+        "sha256": "eb9b9bb30c67e51c54978a4690e38a620f58838a8df335e2f444b045b747fb27"
+      },
+      "payment": {
+        "rowCount": 1,
+        "sha256": "8542b9451154abfb19ede5d3d3a9849b3c0dc21f59e5e3368439bc0f8a588914"
+      },
+      "audit_event": {
+        "rowCount": 1,
+        "sha256": "c9f75ea0a6137593a993d5c6c63f06d8c7953cba9da7ed92a852d344fa62d75d"
+      },
+      "job": {
+        "rowCount": 1,
+        "sha256": "44f9ed38ce1e9a76b8c40523c548279c8fd51347727debe60f9e3d2cad47dc20"
+      },
+      "job_run": {
+        "rowCount": 1,
+        "sha256": "1b4d05f536d30146c62eaeb83cd3a3f4d698c829fa11675f0c80aeeb0600a0e2"
+      }
+    }
+  },
+  "migrations": [
+    {
+      "version": 19,
+      "canonicalName": "lifecycle_security",
+      "file": "0019_lifecycle_security.sql",
+      "sha256": "0bec4962955d8b6f8b41f5c083098e871b3e255682caf7d5d79cce6810cee96d",
+      "descriptor": "J&A B5 migration 19 lifecycle_security",
+      "descriptorSha256": "2297f7dd980bae8e598c4acc79b3460ae7adba3daf007f43c5229f980f98d640",
+      "projectionSha256": "7288913f2f6e2caad047f7b30a2dc9bdd3d98cf7f1e3e6c7c79047710c17ca8e",
+      "vectorSha256": "d2613ff363878cba6e40d9bc883da51c7005b00cc8e526341f2a30b257767979",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "23008516a300264030e31fe9477a5ef549481b58c6af7ae3452711a43d19a748",
+      "postProjectionSha256": "605271fe92ecc56b3b3f65aeef9d3b7633166b1e17821d8866ee4239156462dd"
+    },
+    {
+      "version": 20,
+      "canonicalName": "finance_v2",
+      "file": "0020_finance_v2.sql",
+      "sha256": "21c8e230e98c71d96dbf790284ed56fa6d417638443d17e0ccd9b580655824db",
+      "descriptor": "J&A B5 migration 20 finance_v2",
+      "descriptorSha256": "5f7f946467f74315e85b22eb1a541136f830c497254e9ce4971a431dcf81a8dc",
+      "projectionSha256": "1d2afc84096d18499798694b91ad91b7cc39704df67d7db0a72705956182a9ff",
+      "vectorSha256": "36d6e3bd2f566f1f8a5bc9950b1efed0cc0c387dc35cda232afd869129c581c5",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "9a5251ffb356eff3f74aff649ffeac7395821cc8000f77c2fbbb45eed8b0c066",
+      "postProjectionSha256": "f49c81d9324827e1facc8befd38a08b1b1c853e829b2dd0ec46a57021dab3b1b"
+    },
+    {
+      "version": 21,
+      "canonicalName": "accounting_pack_artifacts",
+      "file": "0021_accounting_pack_artifacts.sql",
+      "sha256": "3217b609b94fa0aa7e9da4e1b24bc12fc43fae0a9269b2b8426ee64e940d8d76",
+      "descriptor": "J&A B5 migration 21 accounting_pack_artifacts",
+      "descriptorSha256": "6964b7b04e25869a10bef1c0ecf2b354d9d725117b22b51d5e634834d2ec3ada",
+      "projectionSha256": "62e3a924ee268e1e27abeecb174241c466d097be0e43876fce962446243df438",
+      "vectorSha256": "1b07f70a32514141266f390ff9d7f210adb9bb25625a5c0e332e45e47a095156",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "da2c281cd91fc83c4ea8c1e12cf94ecc1e69bc6e801afeb9172012ce3919c343",
+      "postProjectionSha256": "cec34637b391a548b86ac7c30cc99a7b07d49680714f47247d891c40c9663931"
+    },
+    {
+      "version": 22,
+      "canonicalName": "report_registry",
+      "file": "0022_report_registry.sql",
+      "sha256": "70822a3aed026f3ba7723a195ff26459f7d8403c7fde48e90e5a25aa850c18a8",
+      "descriptor": "J&A B5 migration 22 report_registry",
+      "descriptorSha256": "a0ce9aa2628a0bedd1ef44b5ca9929064e65a526d973b0846773100bda36848e",
+      "projectionSha256": "950395a62dcb6a291cc15e7b45ea346979c99eee5b206d69f1978913e0b28c0b",
+      "vectorSha256": "67c60fa7de4dab7c14eedbed01549a1d7bc69197d95ecd9fc92565ae69f9da7e",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "d4e6f77a033132554cf73eca87029b3d3c4bfc6d33105a4ce68909806ee0a59e",
+      "postProjectionSha256": "ee77eefbdc8f6fa313fedd0c2d851459957d94fa4bb203e91e4834eee33790a5"
+    },
+    {
+      "version": 23,
+      "canonicalName": "localized_pdf_variants",
+      "file": "0023_localized_pdf_variants.sql",
+      "sha256": "7e688361d3b3a0055f7243af2982892608be2e67ea17754214ba0a2eb70001ca",
+      "descriptor": "J&A B5 migration 23 localized_pdf_variants",
+      "descriptorSha256": "9dab2be075216e87ea4ed4e6e661e40e3e384a630435e90abf7997b3094f33d7",
+      "projectionSha256": "688840c676e6e0f8cb75b00c1a2fba5f442ac4c8c8151f6ceb113bba71a40096",
+      "vectorSha256": "057bf5387cf5007f35c8469b413c0213d548a035884dd223455904c99d1aaf41",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "c47d2f5ab57fd81d0ca719fba33f74edbe52ba8a81f5a9c9d12db272783ff2ed",
+      "postProjectionSha256": "d88f8a89c1ebdac91ea9adf04bd4c66f9bfa3277fa5d7c8dfa6a85867b0f4dca"
+    },
+    {
+      "version": 24,
+      "canonicalName": "accounting_pack_snapshot_bridge",
+      "file": "0024_accounting_pack_snapshot_bridge.sql",
+      "sha256": "486dd15160811fa4a7e61839eec037553b5d78c72b387289405dbeb18322180f",
+      "descriptor": "J&A B5 migration 24 accounting_pack_snapshot_bridge",
+      "descriptorSha256": "f2faa477f64d3625137ebf389d0eba4f60b1a77aa304c18615f325e8489ae611",
+      "projectionSha256": "6e838c39f4f1cb833e06eceed6f2c20a9c4f21d69874bad84a635e1d725009dc",
+      "vectorSha256": "c1f0628c31fc8ed0bb432e2df63742b57167fb36f1a0c8c3a6d5562eaa16cff4",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "6d2e4bf2870e5a98f06c9a7b74c5911f3d9566f1f3a59d6233ad8d734382864c",
+      "postProjectionSha256": "61258294c632c576e06ba42046e65d3b50cd083d7cc0e571be5b77a6e2c710e8"
+    },
+    {
+      "version": 25,
+      "canonicalName": "client_essential_client_fields",
+      "file": "0025_client_essential_client_fields.sql",
+      "sha256": "9fde5787ae6d9b30f6d522f912481034a22d0d1eedbf088b5fe5ffb25e228af9",
+      "descriptor": "J&A B5 migration 25 client_essential_client_fields",
+      "descriptorSha256": "0e6730179be5464543a26da90a1bf976de08047f4f6846ea85e028bfaa61b64c",
+      "projectionSha256": "788d62b7d56e745d2a198297f74c2a48a97d56165d7690d39d6b0427af7f9d27",
+      "vectorSha256": "221b0f7f8e60750e1209d5a0287dac34cf7e94d0a8a93ef07317158745cab008",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "0e64398ca9b6b9053965ec8c88970c2285965450e254d2e8c5997a7224f092d1",
+      "postProjectionSha256": "98c477b7b6ff5983d82362c4e91ceb8d92c2bbbfdad5ad40caca393bb087009a"
+    },
+    {
+      "version": 26,
+      "canonicalName": "client_essential_report_attachments",
+      "file": "0026_client_essential_report_attachments.sql",
+      "sha256": "730189c6df8e44cbd99ce564481ad4d48d55a30c6fc2c0dc6fe06f4861361195",
+      "descriptor": "J&A B5 migration 26 client_essential_report_attachments",
+      "descriptorSha256": "d1a41916e7198ed348888b1cf1c4d9e9084984b2577d58ec0eb2d1319f9f80a4",
+      "projectionSha256": "ad7c17b1ba7f9902de6871c8dc49e688b3857a472d9f22313857e16cb0de35c9",
+      "vectorSha256": "10824c52fefda0865091fcad5a9fe170c136df47368f166b652a0de4f0eff81e",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "9e2946378c0832c534860b84599648a34a415f2d06159203294ec53b3dd2b4f5",
+      "postProjectionSha256": "cced449e96760b170852d36fb2f15bb0d6da85b4bd3ba029c9a8705002857b85"
+    },
+    {
+      "version": 27,
+      "canonicalName": "client_essential_temporary_upload_cleanup",
+      "file": "0027_client_essential_temporary_upload_cleanup.sql",
+      "sha256": "462bc9a9040b5197a874c0f3a17cf265ead19747c41d40df7dd67ac52a3c9536",
+      "descriptor": "J&A B5 migration 27 client_essential_temporary_upload_cleanup",
+      "descriptorSha256": "7ded5e9d05d932c569db00a17a2c28354a47b04e70b0a5569fa77d72fcf4af4b",
+      "projectionSha256": "ad7c17b1ba7f9902de6871c8dc49e688b3857a472d9f22313857e16cb0de35c9",
+      "vectorSha256": "10824c52fefda0865091fcad5a9fe170c136df47368f166b652a0de4f0eff81e",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "9e2946378c0832c534860b84599648a34a415f2d06159203294ec53b3dd2b4f5",
+      "postProjectionSha256": "cced449e96760b170852d36fb2f15bb0d6da85b4bd3ba029c9a8705002857b85"
+    }
+  ]
+}

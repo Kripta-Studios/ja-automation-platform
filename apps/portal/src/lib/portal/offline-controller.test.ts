@@ -45,6 +45,7 @@ const dependencies = (
   discardMutation: vi.fn(async () => undefined),
   cacheAssignments: vi.fn(async () => undefined),
   purgeUserCache: vi.fn(async () => undefined),
+  forgetIdentity: vi.fn(async () => undefined),
   ...overrides,
 });
 
@@ -132,5 +133,41 @@ describe('offline controller', () => {
       currency: 'USD',
       timezone: 'America/Detroit',
     });
+  });
+
+  it('revokes the browser identity before purging the current user partition', async () => {
+    const { sink } = createState();
+    const forgetIdentity = vi.fn(async () => undefined);
+    const purgeUserCache = vi.fn(async () => undefined);
+    const controller = createOfflineController(
+      '/ja',
+      sink,
+      dependencies({ forgetIdentity, purgeUserCache }),
+    );
+
+    await controller.forgetIdentity('user-a');
+
+    expect(forgetIdentity).toHaveBeenCalledWith('user-a');
+    expect(purgeUserCache).toHaveBeenCalledTimes(1);
+    const forgetCall = forgetIdentity.mock.invocationCallOrder[0];
+    const purgeCall = purgeUserCache.mock.invocationCallOrder[0];
+    expect(forgetCall).toBeDefined();
+    expect(purgeCall).toBeDefined();
+    expect(forgetCall!).toBeLessThan(purgeCall!);
+  });
+
+  it('keeps logout fail-closed when IndexedDB cleanup is blocked', async () => {
+    const { sink } = createState();
+    const controller = createOfflineController(
+      '/ja',
+      sink,
+      dependencies({
+        purgeUserCache: vi.fn(async () => {
+          throw new Error('database is blocked');
+        }),
+      }),
+    );
+
+    await expect(controller.forgetIdentity('user-a')).resolves.toBeUndefined();
   });
 });

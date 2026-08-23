@@ -1,11 +1,13 @@
 ---
 name: ml-data-readiness
-description: Design or audit J&A Project Intelligence data infrastructure: point-in-time snapshots, events, features, training exports, model registry, prediction history and leakage prevention. Use for future GBT/JEPA readiness; do not claim model quality without real validation data.
+description: Design or audit explicitly commissioned post-core J&A Project Intelligence data infrastructure. This scope is deferred from Client Essential delivery; do not use it merely because historical V3 documents mention ML/data readiness.
 ---
 
 # ML / Data Readiness
 
-## Build now
+## Post-core only
+
+Do not build or audit this roadmap during Client Essential delivery unless the user explicitly commissions it or Essential work touches existing point-in-time records. When activated, apply the safeguards below.
 
 - point-in-time project-day/project-week snapshots;
 - immutable material business events with event time and actor/source;

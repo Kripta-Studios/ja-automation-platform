@@ -1,15 +1,22 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PortalRepository, createDatabase } from '@ja/database';
 import type { Principal } from '@ja/domain';
+import { installB5TestDeploymentIdentity } from '../fixtures/b5-test-environment.js';
 
 const directories: string[] = [];
+const restoreDeploymentIdentities: (() => void)[] = [];
+
+beforeEach(() => {
+  restoreDeploymentIdentities.push(installB5TestDeploymentIdentity());
+});
 
 afterEach(() => {
   for (const directory of directories.splice(0))
     rmSync(directory, { recursive: true, force: true });
+  for (const restore of restoreDeploymentIdentities.splice(0).reverse()) restore();
 });
 
 function seedUser(
@@ -45,6 +52,8 @@ describe('invoice lifecycle coverage', () => {
       displayName: 'Lifecycle Client',
       currency: 'USD',
       timezone: 'UTC',
+      billingEmail: 'billing-lifecycle@example.test',
+      billingAddress: 'Lifecycle Client billing address',
     });
     const project = repository.createProject(owner, {
       clientId: client.id,
@@ -160,6 +169,42 @@ describe('invoice lifecycle coverage', () => {
     repository.approveInvoiceDraft(finance, credit.id);
     const issuedCredit = repository.issueInvoice(finance, credit.id);
     expect(issuedCredit.issued).toBe(true);
+    expect(
+      JSON.parse(
+        (
+          sqlite.prepare('SELECT snapshot_json FROM invoice WHERE id=?').get(credit.id) as {
+            snapshot_json: string;
+          }
+        ).snapshot_json,
+      ).template,
+    ).toMatchObject({ id: 'credit-adjustment', version: 1 });
+    const lockedSource = sqlite
+      .prepare(
+        'SELECT source_link_id,source_version,locked_at FROM invoice_source WHERE invoice_id=?',
+      )
+      .get(credit.id) as { source_link_id: string; source_version: number; locked_at: string };
+    expect(lockedSource.locked_at).toBeTruthy();
+    expect(
+      (
+        sqlite.prepare('SELECT source_lock_at FROM invoice WHERE id=?').get(credit.id) as {
+          source_lock_at: string;
+        }
+      ).source_lock_at,
+    ).toBe(lockedSource.locked_at);
+    expect(() =>
+      sqlite
+        .prepare('UPDATE invoice_source SET source_version=? WHERE source_link_id=?')
+        .run(lockedSource.source_version + 1, lockedSource.source_link_id),
+    ).toThrow(/issued invoice sources are immutable/i);
+    expect(repository.issueInvoice(finance, credit.id)).toEqual({
+      invoiceNumber: issuedCredit.invoiceNumber,
+      issued: false,
+    });
+    expect(
+      sqlite
+        .prepare('SELECT source_version,locked_at FROM invoice_source WHERE source_link_id=?')
+        .get(lockedSource.source_link_id),
+    ).toEqual({ source_version: lockedSource.source_version, locked_at: lockedSource.locked_at });
     expect(
       sqlite
         .prepare('SELECT adjustment_invoice_id FROM invoice_adjustment WHERE original_invoice_id=?')

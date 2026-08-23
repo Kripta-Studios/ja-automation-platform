@@ -1,0 +1,429 @@
+- main [ref=f6e3]:
+  - navigation [ref=f6e4]:
+    - link "← Projects" [ref=f6e5] [cursor=pointer]:
+      - /url: /j-aautomation/app/projects
+    - generic [ref=f6e6]:
+      - button "Print report" [ref=f6e7]:
+        - generic [ref=f6e8]: ⎙
+        - text: Print report
+      - link "Operations dashboard" [ref=f6e9] [cursor=pointer]:
+        - /url: /j-aautomation/app/
+  - generic [ref=f6e10]:
+    - generic [ref=f6e11]:
+      - paragraph [ref=f6e12]: C-0001 / C-0001-P-001
+      - heading "Body Shop Line 4 Controls Upgrade · Demo" [level=1] [ref=f6e13]
+      - paragraph [ref=f6e14]: Northline Mobility · Demo · Detroit Assembly Campus · Demo · US
+    - generic [ref=f6e15]: active
+  - generic [ref=f6e16]:
+    - generic [ref=f6e17]:
+      - generic [ref=f6e18]:
+        - paragraph [ref=f6e19]: OWNER WORKSPACE
+        - heading "Project Administration" [level=2] [ref=f6e20]
+      - generic [ref=f6e21]: Owner access
+    - group [ref=f6e22]:
+      - generic "Edit all project settings ⌃" [ref=f6e23] [cursor=pointer]
+      - generic [ref=f6e24]:
+        - generic [ref=f6e25]:
+          - text: Project number
+          - textbox "Project number" [ref=f6e26]: C-0001-P-001
+        - generic [ref=f6e27]:
+          - text: Client
+          - textbox "Client" [ref=f6e28]: Northline Mobility · Demo
+        - generic [ref=f6e29]:
+          - text: Currency
+          - textbox "Currency" [ref=f6e30]: USD
+        - generic [ref=f6e31]:
+          - text: Project manager
+          - combobox "Project manager" [ref=f6e32]:
+            - option "Unassigned" [selected]
+            - option "Daniel Brooks"
+        - generic [ref=f6e33]:
+          - text: Name
+          - textbox "Name" [ref=f6e34]: Body Shop Line 4 Controls Upgrade · Demo
+        - generic [ref=f6e35]:
+          - text: Project alias
+          - textbox "Project alias" [ref=f6e36]
+        - generic [ref=f6e37]:
+          - text: PO / reference
+          - textbox "PO / reference" [ref=f6e38]: DEMO-PO-24017
+        - generic [ref=f6e39]:
+          - text: Contract number
+          - textbox "Contract number" [ref=f6e40]
+        - generic [ref=f6e41]:
+          - text: Status
+          - combobox "Status" [ref=f6e42]:
+            - option "draft"
+            - option "planned"
+            - option "active" [selected]
+            - option "paused"
+            - option "closing"
+            - option "closed"
+            - option "archived"
+        - generic [ref=f6e43]:
+          - text: Commercial model
+          - combobox "Commercial model" [ref=f6e44]:
+            - option "tm"
+            - option "tm daily minimum" [selected]
+            - option "all in"
+            - option "capped tm"
+            - option "milestone"
+            - option "hybrid"
+            - option "internal"
+        - generic [ref=f6e45]:
+          - text: Timezone
+          - textbox "Timezone" [ref=f6e46]: America/Detroit
+        - generic [ref=f6e47]:
+          - text: Site / plant
+          - textbox "Site / plant" [ref=f6e48]: Detroit Assembly Campus · Demo
+        - generic [ref=f6e49]:
+          - text: Country
+          - textbox "Country" [ref=f6e50]: US
+        - generic [ref=f6e51]:
+          - text: Budget type
+          - textbox "Budget type" [ref=f6e52]: none
+        - generic [ref=f6e53]:
+          - text: Start date
+          - textbox "Start date" [ref=f6e54]: 2026-08-21
+        - generic [ref=f6e55]:
+          - text: Planned end
+          - textbox "Planned end" [ref=f6e56]
+        - generic [ref=f6e57]:
+          - text: Actual end
+          - textbox "Actual end" [ref=f6e58]
+        - generic [ref=f6e59]:
+          - text: Expected minutes / day
+          - spinbutton "Expected minutes / day" [ref=f6e60]: "600"
+        - generic [ref=f6e61]:
+          - text: Client minimum minutes
+          - spinbutton "Client minimum minutes" [ref=f6e62]: "600"
+        - generic [ref=f6e63]:
+          - text: Planned minutes
+          - spinbutton "Planned minutes" [ref=f6e64]: "72000"
+        - generic [ref=f6e65]:
+          - text: Legacy budget · minor units
+          - spinbutton "Legacy budget · minor units" [ref=f6e66]: "18500000"
+        - generic [ref=f6e67]:
+          - text: Revenue budget · minor units
+          - spinbutton "Revenue budget · minor units" [ref=f6e68]
+        - generic [ref=f6e69]:
+          - text: PO cap · minor units
+          - spinbutton "PO cap · minor units" [ref=f6e70]
+        - generic [ref=f6e71]:
+          - text: Fixed price · minor units
+          - spinbutton "Fixed price · minor units" [ref=f6e72]
+        - generic [ref=f6e73]:
+          - text: Labor budget minutes
+          - spinbutton "Labor budget minutes" [ref=f6e74]
+        - generic [ref=f6e75]:
+          - text: Travel budget · minor units
+          - spinbutton "Travel budget · minor units" [ref=f6e76]
+        - generic [ref=f6e77]:
+          - text: Other cost budget · minor units
+          - spinbutton "Other cost budget · minor units" [ref=f6e78]
+        - generic [ref=f6e79]:
+          - checkbox "Weekly close enabled" [ref=f6e80]
+          - text: Weekly close enabled
+        - generic [ref=f6e81]:
+          - checkbox "Daily report required" [ref=f6e82]
+          - text: Daily report required
+        - generic [ref=f6e83]:
+          - checkbox "PLC report required" [ref=f6e84]
+          - text: PLC report required
+        - generic [ref=f6e85]:
+          - text: Description
+          - textbox "Description" [ref=f6e86]
+        - generic [ref=f6e87]:
+          - text: Administration notes
+          - textbox "Administration notes" [ref=f6e88]
+        - paragraph [ref=f6e89]: Project number, client, currency, created history and version remain read-only to protect financial references. Monetary fields use exact database minor units (for USD, cents).
+        - button "Save all project settings" [ref=f6e91] [cursor=pointer]
+    - paragraph [ref=f6e92]: Projects cannot be hard-deleted to preserve financial history and audit logs. Use Archived to remove a project from active operational views.
+  - generic [ref=f6e93]:
+    - generic [ref=f6e94]:
+      - generic [ref=f6e95]: PO / REFERENCE
+      - strong [ref=f6e96]: DEMO-PO-24017
+    - generic [ref=f6e97]:
+      - generic [ref=f6e98]: COMMERCIAL MODEL
+      - strong [ref=f6e99]: tm daily minimum
+    - generic [ref=f6e100]:
+      - generic [ref=f6e101]: EXPECTED DAY
+      - strong [ref=f6e102]: 10 h
+    - generic [ref=f6e103]:
+      - generic [ref=f6e104]: TIMEZONE
+      - strong [ref=f6e105]: America/Detroit
+    - generic [ref=f6e106]:
+      - generic [ref=f6e107]: START / TARGET
+      - strong [ref=f6e108]: 2026-08-21 → —
+    - generic [ref=f6e109]:
+      - generic [ref=f6e110]: ACTUAL END
+      - strong [ref=f6e111]: Open / not closed
+  - generic [ref=f6e112]:
+    - generic [ref=f6e114]:
+      - paragraph [ref=f6e115]: PROJECT FINANCIAL POSITION
+      - heading "$13,665.00 committed" [level=2] [ref=f6e116]
+    - generic [ref=f6e117]:
+      - article [ref=f6e118]:
+        - generic [ref=f6e119]: PO / PROJECT BUDGET
+        - strong [ref=f6e120]: $0.00
+      - article [ref=f6e121]:
+        - generic [ref=f6e122]: PLANNED HOURS
+        - strong [ref=f6e123]: 1200 h
+      - article [ref=f6e124]:
+        - generic [ref=f6e125]: ACTUAL HOURS
+        - strong [ref=f6e126]: 184.5 h
+      - article [ref=f6e127]:
+        - generic [ref=f6e128]: DIRECT LABOR COST
+        - strong [ref=f6e129]: $12,465.00
+      - article [ref=f6e130]:
+        - generic [ref=f6e131]: TRAVEL / EXPENSE
+        - strong [ref=f6e132]: $1,200.00
+        - generic [ref=f6e133]: $350.00 stays all-in
+      - article [ref=f6e134]:
+        - generic [ref=f6e135]: BILLABLE VALUE
+        - strong [ref=f6e136]: $33,925.00
+      - article [ref=f6e137]:
+        - generic [ref=f6e138]: CONTRIBUTION MARGIN
+        - strong [ref=f6e139]: $20,260.00
+        - generic [ref=f6e140]: 59.7%
+      - article [ref=f6e141]:
+        - generic [ref=f6e142]: INVOICED
+        - strong [ref=f6e143]: $0.00
+      - article [ref=f6e144]:
+        - generic [ref=f6e145]: APPROVED UNBILLED WIP
+        - strong [ref=f6e146]: $33,925.00
+      - article [ref=f6e147]:
+        - generic [ref=f6e148]: UNAPPROVED WIP
+        - strong [ref=f6e149]: $0.00
+      - article [ref=f6e150]:
+        - generic [ref=f6e151]: FORECAST ETC
+        - strong [ref=f6e152]: $72,130.97
+      - article [ref=f6e153]:
+        - generic [ref=f6e154]: EXPECTED FINAL MARGIN
+        - strong [ref=f6e155]: $104,607.43
+  - generic [ref=f6e156]:
+    - generic [ref=f6e157]:
+      - generic [ref=f6e158]:
+        - heading "Assigned workforce" [level=2] [ref=f6e159]
+        - generic [ref=f6e160]: "3"
+      - link "AR Alex Rivera worker · 2026-07-01 → open assignment 400 h plan" [ref=f6e161] [cursor=pointer]:
+        - /url: /j-aautomation/app/projects?view=team
+        - generic [ref=f6e162]: AR
+        - generic [ref=f6e163]:
+          - strong [ref=f6e164]: Alex Rivera
+          - generic [ref=f6e165]: worker · 2026-07-01 → open assignment
+        - generic [ref=f6e166]: 400 h plan
+      - link "DB Daniel Brooks worker · 2026-07-01 → open assignment 400 h plan" [ref=f6e167] [cursor=pointer]:
+        - /url: /j-aautomation/app/projects?view=team
+        - generic [ref=f6e168]: DB
+        - generic [ref=f6e169]:
+          - strong [ref=f6e170]: Daniel Brooks
+          - generic [ref=f6e171]: worker · 2026-07-01 → open assignment
+        - generic [ref=f6e172]: 400 h plan
+      - link "RS Rafael Santos worker · 2026-07-01 → open assignment 400 h plan" [ref=f6e173] [cursor=pointer]:
+        - /url: /j-aautomation/app/projects?view=team
+        - generic [ref=f6e174]: RS
+        - generic [ref=f6e175]:
+          - strong [ref=f6e176]: Rafael Santos
+          - generic [ref=f6e177]: worker · 2026-07-01 → open assignment
+        - generic [ref=f6e178]: 400 h plan
+    - generic [ref=f6e179]:
+      - generic [ref=f6e180]:
+        - heading "Time by category" [level=2] [ref=f6e181]
+        - generic [ref=f6e182]: 184.5 h
+      - link "commissioning Recorded actual time 59.5 h" [ref=f6e183] [cursor=pointer]:
+        - /url: /j-aautomation/app/time?project=01a025a0-2151-7759-9e72-7eaa19051c15&category=commissioning
+        - generic [ref=f6e184]:
+          - strong [ref=f6e185]: commissioning
+          - generic [ref=f6e186]: Recorded actual time
+        - generic [ref=f6e187]: 59.5 h
+      - link "overtime Recorded actual time 2.0 h" [ref=f6e188] [cursor=pointer]:
+        - /url: /j-aautomation/app/time?project=01a025a0-2151-7759-9e72-7eaa19051c15&category=overtime
+        - generic [ref=f6e189]:
+          - strong [ref=f6e190]: overtime
+          - generic [ref=f6e191]: Recorded actual time
+        - generic [ref=f6e192]: 2.0 h
+      - link "regular Recorded actual time 77.5 h" [ref=f6e193] [cursor=pointer]:
+        - /url: /j-aautomation/app/time?project=01a025a0-2151-7759-9e72-7eaa19051c15&category=regular
+        - generic [ref=f6e194]:
+          - strong [ref=f6e195]: regular
+          - generic [ref=f6e196]: Recorded actual time
+        - generic [ref=f6e197]: 77.5 h
+      - link "remote support Recorded actual time 2.0 h" [ref=f6e198] [cursor=pointer]:
+        - /url: /j-aautomation/app/time?project=01a025a0-2151-7759-9e72-7eaa19051c15&category=remote_support
+        - generic [ref=f6e199]:
+          - strong [ref=f6e200]: remote support
+          - generic [ref=f6e201]: Recorded actual time
+        - generic [ref=f6e202]: 2.0 h
+      - link "standby Recorded actual time 6.0 h" [ref=f6e203] [cursor=pointer]:
+        - /url: /j-aautomation/app/time?project=01a025a0-2151-7759-9e72-7eaa19051c15&category=standby
+        - generic [ref=f6e204]:
+          - strong [ref=f6e205]: standby
+          - generic [ref=f6e206]: Recorded actual time
+        - generic [ref=f6e207]: 6.0 h
+      - link "travel Recorded actual time 37.5 h" [ref=f6e208] [cursor=pointer]:
+        - /url: /j-aautomation/app/time?project=01a025a0-2151-7759-9e72-7eaa19051c15&category=travel
+        - generic [ref=f6e209]:
+          - strong [ref=f6e210]: travel
+          - generic [ref=f6e211]: Recorded actual time
+        - generic [ref=f6e212]: 37.5 h
+  - generic [ref=f6e213]:
+    - generic [ref=f6e214]:
+      - generic [ref=f6e215]:
+        - heading "Field & PLC reports" [level=2] [ref=f6e216]
+        - generic [ref=f6e217]: "3"
+      - link "PLC Line 4 Main Conveyor 2026-08-21 · approved OPEN →" [ref=f6e218] [cursor=pointer]:
+        - /url: /j-aautomation/app/reports/01a025a0-217c-70cc-9237-59cc768581b8
+        - generic [ref=f6e219]: PLC
+        - generic [ref=f6e220]:
+          - strong [ref=f6e221]: Line 4 Main Conveyor
+          - generic [ref=f6e222]: 2026-08-21 · approved
+        - text: OPEN →
+      - link "Daily Startup support, sensor timing investigation and customer handover notes. 2026-08-18 · needs_changes OPEN →" [ref=f6e223] [cursor=pointer]:
+        - /url: /j-aautomation/app/reports/01a025a0-217b-70b8-bbf9-8520e35e94fb
+        - generic [ref=f6e224]: Daily
+        - generic [ref=f6e225]:
+          - strong [ref=f6e226]: Startup support, sensor timing investigation and customer handover notes.
+          - generic [ref=f6e227]: 2026-08-18 · needs_changes
+        - text: OPEN →
+      - link "Daily Line 4 controls validation continued through automatic cycle. 2026-08-11 · approved OPEN →" [ref=f6e228] [cursor=pointer]:
+        - /url: /j-aautomation/app/reports/01a025a0-217a-74de-b08b-9fe8b95f0371
+        - generic [ref=f6e229]: Daily
+        - generic [ref=f6e230]:
+          - strong [ref=f6e231]: Line 4 controls validation continued through automatic cycle.
+          - generic [ref=f6e232]: 2026-08-11 · approved
+        - text: OPEN →
+    - generic [ref=f6e233]:
+      - generic [ref=f6e234]:
+        - heading "Expense treatment" [level=2] [ref=f6e235]
+        - generic [ref=f6e236]: $1,200.00
+      - link "REIMB. Demo finance travel desk ground_transport · 2026-08-20 · reimbursable_at_cost · worker $71.00 OPEN →" [ref=f6e237] [cursor=pointer]:
+        - /url: /j-aautomation/app/expenses/01a025a0-219f-743d-bb5e-0f467de91040
+        - generic [ref=f6e238]: REIMB.
+        - generic [ref=f6e239]:
+          - strong [ref=f6e240]: Demo finance travel desk
+          - generic [ref=f6e241]: ground_transport · 2026-08-20 · reimbursable_at_cost · worker
+        - generic [ref=f6e242]: $71.00
+        - text: OPEN →
+      - link "REIMB. Demo admin travel desk ground_transport · 2026-08-20 · reimbursable_at_cost · worker $64.00 OPEN →" [ref=f6e243] [cursor=pointer]:
+        - /url: /j-aautomation/app/expenses/01a025a0-219e-7266-bf50-f46db3ec1371
+        - generic [ref=f6e244]: REIMB.
+        - generic [ref=f6e245]:
+          - strong [ref=f6e246]: Demo admin travel desk
+          - generic [ref=f6e247]: ground_transport · 2026-08-20 · reimbursable_at_cost · worker
+        - generic [ref=f6e248]: $64.00
+        - text: OPEN →
+      - link "REIMB. Demo finance travel desk meals · 2026-08-16 · reimbursable_at_cost · worker $65.50 OPEN →" [ref=f6e249] [cursor=pointer]:
+        - /url: /j-aautomation/app/expenses/01a025a0-219f-743d-bb5e-0bf5c6a1748e
+        - generic [ref=f6e250]: REIMB.
+        - generic [ref=f6e251]:
+          - strong [ref=f6e252]: Demo finance travel desk
+          - generic [ref=f6e253]: meals · 2026-08-16 · reimbursable_at_cost · worker
+        - generic [ref=f6e254]: $65.50
+        - text: OPEN →
+      - link "REIMB. Demo admin travel desk meals · 2026-08-16 · reimbursable_at_cost · worker $58.50 OPEN →" [ref=f6e255] [cursor=pointer]:
+        - /url: /j-aautomation/app/expenses/01a025a0-219e-7266-bf50-f26353447afe
+        - generic [ref=f6e256]: REIMB.
+        - generic [ref=f6e257]:
+          - strong [ref=f6e258]: Demo admin travel desk
+          - generic [ref=f6e259]: meals · 2026-08-16 · reimbursable_at_cost · worker
+        - generic [ref=f6e260]: $58.50
+        - text: OPEN →
+      - link "ALL-IN Demo Calibration Supplies materials · 2026-08-12 · all_in · worker $350.00 OPEN →" [ref=f6e261] [cursor=pointer]:
+        - /url: /j-aautomation/app/expenses/01a025a0-219a-76ef-b481-4889a2cfd423
+        - generic [ref=f6e262]: ALL-IN
+        - generic [ref=f6e263]:
+          - strong [ref=f6e264]: Demo Calibration Supplies
+          - generic [ref=f6e265]: materials · 2026-08-12 · all_in · worker
+        - generic [ref=f6e266]: $350.00
+        - text: OPEN →
+      - link "REIMB. Demo finance travel desk ground_transport · 2026-08-11 · reimbursable_at_cost · worker $60.00 OPEN →" [ref=f6e267] [cursor=pointer]:
+        - /url: /j-aautomation/app/expenses/01a025a0-219e-7266-bf51-019a02fa011f
+        - generic [ref=f6e268]: REIMB.
+        - generic [ref=f6e269]:
+          - strong [ref=f6e270]: Demo finance travel desk
+          - generic [ref=f6e271]: ground_transport · 2026-08-11 · reimbursable_at_cost · worker
+        - generic [ref=f6e272]: $60.00
+        - text: OPEN →
+      - link "REIMB. Demo admin travel desk ground_transport · 2026-08-11 · reimbursable_at_cost · worker $53.00 OPEN →" [ref=f6e273] [cursor=pointer]:
+        - /url: /j-aautomation/app/expenses/01a025a0-219e-7266-bf50-ed3aa90935e4
+        - generic [ref=f6e274]: REIMB.
+        - generic [ref=f6e275]:
+          - strong [ref=f6e276]: Demo admin travel desk
+          - generic [ref=f6e277]: ground_transport · 2026-08-11 · reimbursable_at_cost · worker
+        - generic [ref=f6e278]: $53.00
+        - text: OPEN →
+      - link "REIMB. Demo Mobility Rentals rental_car · 2026-08-11 · reimbursable_at_cost · worker $96.00 OPEN →" [ref=f6e279] [cursor=pointer]:
+        - /url: /j-aautomation/app/expenses/01a025a0-2190-701b-9c6c-69eeb1e9eeb5
+        - generic [ref=f6e280]: REIMB.
+        - generic [ref=f6e281]:
+          - strong [ref=f6e282]: Demo Mobility Rentals
+          - generic [ref=f6e283]: rental_car · 2026-08-11 · reimbursable_at_cost · worker
+        - generic [ref=f6e284]: $96.00
+        - text: OPEN →
+      - link "REIMB. Demo Airport Hotel hotel · 2026-08-11 · reimbursable_at_cost · worker $189.00 OPEN →" [ref=f6e285] [cursor=pointer]:
+        - /url: /j-aautomation/app/expenses/01a025a0-218e-71ce-9690-b36312889417
+        - generic [ref=f6e286]: REIMB.
+        - generic [ref=f6e287]:
+          - strong [ref=f6e288]: Demo Airport Hotel
+          - generic [ref=f6e289]: hotel · 2026-08-11 · reimbursable_at_cost · worker
+        - generic [ref=f6e290]: $189.00
+        - text: OPEN →
+      - link "REIMB. Demo finance travel desk meals · 2026-08-07 · reimbursable_at_cost · worker $54.50 OPEN →" [ref=f6e291] [cursor=pointer]:
+        - /url: /j-aautomation/app/expenses/01a025a0-219e-7266-bf50-fc5e7046a5e3
+        - generic [ref=f6e292]: REIMB.
+        - generic [ref=f6e293]:
+          - strong [ref=f6e294]: Demo finance travel desk
+          - generic [ref=f6e295]: meals · 2026-08-07 · reimbursable_at_cost · worker
+        - generic [ref=f6e296]: $54.50
+        - text: OPEN →
+      - link "REIMB. Demo admin travel desk meals · 2026-08-07 · reimbursable_at_cost · worker $47.50 OPEN →" [ref=f6e297] [cursor=pointer]:
+        - /url: /j-aautomation/app/expenses/01a025a0-219e-7266-bf50-e9f4391503ea
+        - generic [ref=f6e298]: REIMB.
+        - generic [ref=f6e299]:
+          - strong [ref=f6e300]: Demo admin travel desk
+          - generic [ref=f6e301]: meals · 2026-08-07 · reimbursable_at_cost · worker
+        - generic [ref=f6e302]: $47.50
+        - text: OPEN →
+      - link "REIMB. Demo finance travel desk ground_transport · 2026-08-02 · reimbursable_at_cost · worker $49.00 OPEN →" [ref=f6e303] [cursor=pointer]:
+        - /url: /j-aautomation/app/expenses/01a025a0-219e-7266-bf50-fb7d0768c771
+        - generic [ref=f6e304]: REIMB.
+        - generic [ref=f6e305]:
+          - strong [ref=f6e306]: Demo finance travel desk
+          - generic [ref=f6e307]: ground_transport · 2026-08-02 · reimbursable_at_cost · worker
+        - generic [ref=f6e308]: $49.00
+        - text: OPEN →
+      - link "REIMB. Demo admin travel desk ground_transport · 2026-08-02 · reimbursable_at_cost · worker $42.00 OPEN →" [ref=f6e309] [cursor=pointer]:
+        - /url: /j-aautomation/app/expenses/01a025a0-219e-7266-bf50-e4c5d8b68f97
+        - generic [ref=f6e310]: REIMB.
+        - generic [ref=f6e311]:
+          - strong [ref=f6e312]: Demo admin travel desk
+          - generic [ref=f6e313]: ground_transport · 2026-08-02 · reimbursable_at_cost · worker
+        - generic [ref=f6e314]: $42.00
+        - text: OPEN →
+  - generic [ref=f6e315]:
+    - generic [ref=f6e316]:
+      - heading "Published schedule" [level=2] [ref=f6e317]
+      - generic [ref=f6e318]: 10 h Mon
+    - paragraph [ref=f6e319]: "Expected minutes: Mon 600 · Tue 600 · Wed 600 · Thu 600 · Fri 600 · Sat 600 · Sun 0. This is planning context; actual time remains independently recorded."
+    - link "Alex Rivera Detroit Assembly Campus · Demo · ControlLogix commissioning 2026-08-18 12:00 → 22:00" [ref=f6e320] [cursor=pointer]:
+      - /url: /j-aautomation/app/projects?view=team
+      - generic [ref=f6e321]:
+        - strong [ref=f6e322]: Alex Rivera
+        - generic [ref=f6e323]: Detroit Assembly Campus · Demo · ControlLogix commissioning
+      - generic [ref=f6e324]: 2026-08-18 12:00 → 22:00
+    - link "Rafael Santos Detroit Assembly Campus · Demo · Industrial networks 2026-08-19 12:00 → 22:00" [ref=f6e325] [cursor=pointer]:
+      - /url: /j-aautomation/app/projects?view=team
+      - generic [ref=f6e326]:
+        - strong [ref=f6e327]: Rafael Santos
+        - generic [ref=f6e328]: Detroit Assembly Campus · Demo · Industrial networks
+      - generic [ref=f6e329]: 2026-08-19 12:00 → 22:00
+  - generic [ref=f6e330]:
+    - generic [ref=f6e331]:
+      - heading "Commercial milestones" [level=2] [ref=f6e332]
+      - generic [ref=f6e333]: "1"
+    - link "Controls validation package 2026-08-15 · approved $4,800.00" [ref=f6e334] [cursor=pointer]:
+      - /url: /j-aautomation/app/approvals
+      - generic [ref=f6e335]:
+        - strong [ref=f6e336]: Controls validation package
+        - generic [ref=f6e337]: 2026-08-15 · approved
+      - generic [ref=f6e338]: $4,800.00

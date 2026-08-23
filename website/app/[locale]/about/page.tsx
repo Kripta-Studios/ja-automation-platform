@@ -112,7 +112,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
             <div className="card">
               <h3 className="text-lg font-semibold mb-3">Lifecycle Support</h3>
               <p className="text-sm text-ja-steel-700 leading-relaxed">
-                Commissioning isn't the end. We provide comprehensive documentation, operator
+                Commissioning isn&apos;t the end. We provide comprehensive documentation, operator
                 training, and secure remote support infrastructure to ensure your line runs at peak
                 OEE for decades.
               </p>

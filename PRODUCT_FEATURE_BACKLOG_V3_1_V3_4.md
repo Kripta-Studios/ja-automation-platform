@@ -1,5 +1,7 @@
 # J&A Automation — Product Feature Backlog V3.1 → V3.4
 
+> **Release-scope notice (2026-08-23):** This document is the **DEFERRED POST-CORE ROADMAP**. Priority labels preserve roadmap sequencing but do not determine Client Essential release readiness. A backlog item blocks client delivery only when `J_A_AUTOMATION_CLIENT_ESSENTIAL_SPEC_2026-08-22.md` directly requires it as part of CORE-01..17 or the 32-step acceptance journey.
+
 This backlog captures the additional capabilities proposed after the V3 audit. It is intentionally broader than the original spec. Priority is staged so Codex fixes correctness before expanding scope.
 
 Legend: **P0** release blocker/current defect, **P1** core production extension, **P2** valuable next capability, **P3** optional/later/experimental.

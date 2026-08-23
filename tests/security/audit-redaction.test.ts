@@ -1,20 +1,38 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PortalRepository, V3Repository, createDatabase } from '@ja/database';
 import type { Principal } from '@ja/domain';
+import {
+  installB5TestDeploymentIdentity,
+  seedB5ServiceActorBinding,
+} from '../fixtures/b5-test-environment.js';
 
 const directories: string[] = [];
+const databases: ReturnType<typeof createDatabase>['sqlite'][] = [];
+const restoreDeploymentIdentities: (() => void)[] = [];
 const originalScannerEnv = {
   node: process.env.NODE_ENV,
   required: process.env.JA_MALWARE_SCANNER_REQUIRED,
   url: process.env.JA_MALWARE_SCANNER_URL,
 };
 
+beforeEach(() => {
+  restoreDeploymentIdentities.push(installB5TestDeploymentIdentity());
+});
+
 afterEach(() => {
+  for (const sqlite of databases.splice(0)) {
+    try {
+      sqlite.close();
+    } catch {
+      // Keep cleanup idempotent if a test closed the handle before failing.
+    }
+  }
   for (const directory of directories.splice(0))
     rmSync(directory, { recursive: true, force: true });
+  for (const restore of restoreDeploymentIdentities.splice(0).reverse()) restore();
   if (originalScannerEnv.node === undefined) delete process.env.NODE_ENV;
   else process.env.NODE_ENV = originalScannerEnv.node;
   if (originalScannerEnv.required === undefined) delete process.env.JA_MALWARE_SCANNER_REQUIRED;
@@ -28,6 +46,7 @@ describe('controlled audit detail', () => {
     const directory = mkdtempSync(join(tmpdir(), 'ja-audit-'));
     directories.push(directory);
     const { sqlite } = createDatabase(join(directory, 'app.db'));
+    databases.push(sqlite);
     const v3 = new V3Repository(sqlite);
     const now = new Date().toISOString();
     sqlite
@@ -52,7 +71,6 @@ describe('controlled audit detail', () => {
     expect(row.after_json).toBeNull();
     expect(row.reason).toBeNull();
     expect(row.metadata_json).not.toContain('token');
-    sqlite.close();
   });
 
   it('quarantines required-scan documents until an explicit clean decision', () => {
@@ -62,6 +80,7 @@ describe('controlled audit detail', () => {
     const directory = mkdtempSync(join(tmpdir(), 'ja-scan-'));
     directories.push(directory);
     const { sqlite } = createDatabase(join(directory, 'app.db'));
+    databases.push(sqlite);
     const repository = new PortalRepository(sqlite);
     const v3 = new V3Repository(sqlite);
     const now = new Date().toISOString();
@@ -70,6 +89,7 @@ describe('controlled audit detail', () => {
         "INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at) VALUES('owner','Owner','owner-scan@example.com','owner_admin','active',1,?,?)",
       )
       .run(now, now);
+    seedB5ServiceActorBinding(sqlite, 'owner');
     const owner: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
     const document = repository.registerPrivateDocument(owner, {
       sha256: 'a'.repeat(64),
@@ -78,13 +98,21 @@ describe('controlled audit detail', () => {
       storageKey: 'reports/scan-test.pdf',
       originalFilename: 'scan-test.pdf',
       artifactType: 'report',
+      artifactClassification: 'standard',
+      sensitivity: 'customer_private',
     });
     expect(() => v3.authorizeDocument(owner, document.id)).toThrow(/Document not found/);
     const service: Principal = { ...owner, isServiceActor: true };
-    v3.recordDocumentScan(service, document.id, 'clean', 'test-scanner');
+    expect(
+      v3.runDueJobs(1, {
+        document_scan: (payload, execution) => {
+          const documentId = (payload as { documentId: string }).documentId;
+          v3.recordDocumentScan(service, documentId, 'clean', 'test-scanner', execution);
+        },
+      }),
+    ).toEqual({ processed: 1, failed: 0, overdueMarked: 0 });
     expect(v3.authorizeDocument(owner, document.id)).toEqual(
       expect.objectContaining({ sha256: 'a'.repeat(64), byteLength: 3 }),
     );
-    sqlite.close();
   });
 });

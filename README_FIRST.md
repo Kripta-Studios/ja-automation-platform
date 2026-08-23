@@ -1,8 +1,10 @@
 # J&A Automation — Codex Multi-Agent Completion Pack
 
+> **Current authority (2026-08-23):** Use `J_A_AUTOMATION_CLIENT_ESSENTIAL_SPEC_2026-08-22.md` and its checklist for client delivery. This older V3 completion pack is historical orchestration evidence; industrial/ERP/integration/ML expansion, all P0/P1/P2 items, 207-row completion and the old 42-step gate are deferred roadmap, not release blockers.
+
 **Target repository:** `Kripta-Studios/ja-automation-platform`  
 **Target baseline branch:** `codex/v3-completion-20260819`  
-**Primary product spec:** `J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md`  
+**Primary product spec:** `J_A_AUTOMATION_CLIENT_ESSENTIAL_SPEC_2026-08-22.md`  
 **Pack date:** 2026-08-19
 
 This package turns the current J&A V3 codebase into a controlled multi-agent engineering program for Codex. It is intentionally designed for a **final production application**, not an MVP, demo, mock, prototype, or one-pass cosmetic patch.

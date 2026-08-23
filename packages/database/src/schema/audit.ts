@@ -15,4 +15,13 @@ export const auditEvents = sqliteTable('audit_event', {
   reason: text('reason'),
   correlationId: text('correlation_id'),
   metadataJson: text('metadata_json'),
+  tenantId: text('tenant_id'),
+  deploymentId: text('deployment_id'),
+  auditContractVersion: text('audit_contract_version'),
+  actorKind: text('actor_kind'),
+  provenance: text('provenance'),
+  serviceActorId: text('service_actor_id'),
+  serviceCapability: text('service_capability'),
+  jobId: text('job_id'),
+  jobRunId: text('job_run_id'),
 });

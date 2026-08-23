@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ja/invoice-templates": "workspace:*",
     "playwright": "catalog:"
   },
   "devDependencies": {

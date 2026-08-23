@@ -1,13 +1,13 @@
 ---
 name: ja-v3-completion-orchestrator
-description: Orchestrate large J&A V3 production-completion work across subagents. Use for dependency planning, work-packet delegation, ownership, review loops, integration gates, or any task spanning multiple J&A domains. Do not use for a trivial single-file fix.
+description: Orchestrate J&A Client Essential production-completion work across subagents. Use for dependency planning, work-packet delegation, ownership, review loops, integration gates, or any task spanning multiple J&A domains. Do not use for a trivial single-file fix.
 ---
 
-# J&A V3 Completion Orchestrator
+# J&A Client Essential Completion Orchestrator
 
 ## Inputs
 
-Read the authoritative V3 spec, root `AGENTS.md`, remediation plan, execution plan, traceability matrix and feature backlog.
+Read the Client Essential specification and checklist first, then root `AGENTS.md`. Use the original V3 spec only as non-conflicting domain reference, the remediation plan only for Essential defects, and the feature backlog only as deferred post-core roadmap.
 
 ## Procedure
 
@@ -18,10 +18,10 @@ Read the authoritative V3 spec, root `AGENTS.md`, remediation plan, execution pl
 5. **Prefer Luna/max for implementation whenever the contract can be bounded.** Sol leads should spend their budget defining invariants/interfaces and reviewing hard semantics, then delegate stable leaves back to Luna.
 6. **Use worktrees when parallel writes would otherwise share a tree.** Keep hot-file ownership exclusive.
 7. **Require implementer evidence.** Changed paths, tests, migrations, assumptions and remaining risks.
-8. **Require independent verification.** Route frontend changes to browser QA, financial changes to finance-integrity review, sensitive changes to security review, ML/data changes to leakage review, and all material changes to spec audit. A Luna implementer may never be its own Luna reviewer.
+8. **Require independent verification.** Route frontend changes to browser QA, financial changes to finance-integrity review, sensitive changes to security review, and material Essential changes to spec audit. Use ML/data leakage review only for explicitly commissioned post-core ML work. A Luna implementer may never be its own Luna reviewer.
 9. **Loop failures back.** A reviewer failure reopens the work packet. Do not paper over it in the matrix.
 10. **Integrate in dependency order.** Re-run cross-domain gates after merges/refactors.
-11. **Final gate.** Use `$release-gate`; no mandatory FAIL/PARTIAL/OPEN may remain.
+11. **Final gate.** Use `$release-gate`; no non-conditional Client Essential FAIL/PARTIAL/OPEN may remain.
 
 ## Luna-first A/B/C routing policy
 
@@ -65,9 +65,10 @@ Keep at most 4–6 implementation/review streams active. More concurrency is har
 
 Maintain/update:
 
-- `REQUIREMENTS_TRACEABILITY_MATRIX.md`
+- `J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md`
+- `REQUIREMENTS_TRACEABILITY_MATRIX.md` as historical/roadmap traceability
 - a work-packet ledger or equivalent progress section in `CODEX_EXECUTION_PLAN.md`
 - test evidence under `artifacts/quality-gates/` when scripts are used
-- final completion report
+- final Client Essential completion report
 
-Never declare “V3 complete” from implementer self-report alone.
+Never declare `CLIENT READY` from implementer self-report alone. Deferred V3.1–V3.4 rows do not block the Client Essential verdict.

@@ -1,15 +1,25 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PortalRepository, V3AccessDeniedError, V3Repository, createDatabase } from '@ja/database';
 import type { Principal, Role } from '@ja/domain';
+import {
+  installB5TestDeploymentIdentity,
+  seedB5ServiceActorBinding,
+} from '../fixtures/b5-test-environment.js';
 
 const directories: string[] = [];
+const restoreDeploymentIdentities: Array<() => void> = [];
+
+beforeEach(() => {
+  restoreDeploymentIdentities.push(installB5TestDeploymentIdentity());
+});
 
 afterEach(() => {
   for (const directory of directories.splice(0))
     rmSync(directory, { recursive: true, force: true });
+  for (const restore of restoreDeploymentIdentities.splice(0).reverse()) restore();
 });
 
 function seedUser(
@@ -38,6 +48,7 @@ describe('V3 finance and privacy paths', () => {
     seedUser(sqlite, 'worker-a', 'worker');
     seedUser(sqlite, 'worker-b', 'worker');
     seedUser(sqlite, 'outsider', 'worker');
+    seedB5ServiceActorBinding(sqlite, 'owner');
 
     const owner: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
     const finance: Principal = { userId: 'finance', role: 'finance_admin', projectIds: new Set() };
@@ -46,6 +57,7 @@ describe('V3 finance and privacy paths', () => {
       displayName: 'V3 Client',
       currency: 'USD',
       timezone: 'UTC',
+      billingAddress: '100 V3 Client Way',
       billingEmail: 'ap@example.com',
       paymentTermsDays: 30,
     });
@@ -322,6 +334,7 @@ describe('V3 finance and privacy paths', () => {
     seedUser(sqlite, 'finance', 'finance_admin');
     seedUser(sqlite, 'manager', 'project_manager');
     seedUser(sqlite, 'worker', 'worker');
+    seedB5ServiceActorBinding(sqlite, 'owner');
     const owner: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
     const finance: Principal = { userId: 'finance', role: 'finance_admin', projectIds: new Set() };
     const client = repository.createClient(owner, {
@@ -329,6 +342,8 @@ describe('V3 finance and privacy paths', () => {
       displayName: 'Billing Client',
       currency: 'USD',
       timezone: 'UTC',
+      billingAddress: '200 Billing Client Way',
+      billingEmail: 'billing-client@example.com',
       paymentTermsDays: 30,
     });
     const project = repository.createProject(owner, {
@@ -529,6 +544,38 @@ describe('V3 finance and privacy paths', () => {
         ).snapshot_json,
       ).locale,
     ).toBe('pt');
+    const inPeriodTechnical = repository.createTechnicalReport(worker, {
+      projectId: project.id,
+      reportDate: '2026-08-10',
+      systemName: 'PLC-A',
+      changeSummary: 'In-period report',
+    });
+    const includedChange = v3.createTechnicalChange(worker, {
+      projectId: project.id,
+      technicalReportId: inPeriodTechnical.id,
+      component: 'PLC-A',
+      changeMade: 'In-period change',
+    });
+    const outsideTechnical = repository.createTechnicalReport(worker, {
+      projectId: project.id,
+      reportDate: '2026-08-20',
+      systemName: 'PLC-B',
+      changeSummary: 'Outside-period report',
+    });
+    const excludedChange = v3.createTechnicalChange(worker, {
+      projectId: project.id,
+      technicalReportId: outsideTechnical.id,
+      component: 'PLC-B',
+      changeMade: 'Outside-period change',
+    });
+    // Deliberately invert wall-clock creation dates. Period membership belongs
+    // to the immutable parent report date, never technical_change.created_at.
+    sqlite
+      .prepare('UPDATE technical_change SET created_at=? WHERE id=?')
+      .run('2099-01-01T00:00:00.000Z', includedChange.id);
+    sqlite
+      .prepare('UPDATE technical_change SET created_at=? WHERE id=?')
+      .run('2026-08-10T00:00:00.000Z', excludedChange.id);
     const refreshedReports = v3.refreshPeriodReports(finance, {
       projectId: project.id,
       periodStart: '2026-08-03',
@@ -552,6 +599,9 @@ describe('V3 finance and privacy paths', () => {
         }),
       }),
     );
+    expect(
+      (internalReport?.snapshot.technicalChanges as Array<{ id: string }>).map((row) => row.id),
+    ).toEqual([includedChange.id]);
     expect(internalReport).toBeDefined();
     if (!internalReport) throw new Error('Internal period report was not created');
     v3.recordPeriodReportPdf(
@@ -692,31 +742,10 @@ describe('V3 finance and privacy paths', () => {
       payload: { minutes: 45, category: 'regular', summary: 'Offline edit' },
       attachments: [] as string[],
     };
-    expect(v3.syncMutation(worker, mutation)).toEqual({ outcome: 'accepted', version: 2 });
-    expect(v3.syncMutation(worker, mutation)).toEqual({ outcome: 'accepted', version: 2 });
+    expect(() => v3.syncMutation(worker, mutation)).toThrow(/legacy offline read only/);
     expect(
-      v3.syncMutation(worker, { ...mutation, mutationId: '0198be45-cd9c-7ab4-9a5a-a6c4966f9d32' }),
-    ).toMatchObject({ outcome: 'conflict', authoritativeVersion: 2 });
-    const offlineCreated = v3.syncMutation(worker, {
-      mutationId: '0198be45-cd9c-7ab4-9a5a-a6c4966f9d33',
-      entityType: 'time',
-      entityId: '0198be45-cd9c-7ab4-9a5a-a6c4966f9d34',
-      baseVersion: 0,
-      payload: {
-        projectId: project.id,
-        workDate: '2026-08-23',
-        category: 'regular',
-        minutes: 90,
-        summary: 'Created while offline',
-      },
-      attachments: [],
-    });
-    expect(offlineCreated).toEqual({ outcome: 'accepted', version: 1 });
-    expect(
-      sqlite
-        .prepare('SELECT worker_id,approval_state,minutes FROM time_entry WHERE id=?')
-        .get('0198be45-cd9c-7ab4-9a5a-a6c4966f9d34'),
-    ).toEqual({ worker_id: 'worker', approval_state: 'draft', minutes: 90 });
+      sqlite.prepare('SELECT version,minutes FROM time_entry WHERE id=?').get(draft.id),
+    ).toEqual({ version: draft.version, minutes: 30 });
     sqlite.close();
   });
 

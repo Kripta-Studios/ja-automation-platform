@@ -1,10 +1,10 @@
 name = "data_readiness"
-description = "Implementation agent for point-in-time snapshots, business event history, training exports, model registry, prediction history and non-LLM Project Intelligence foundations."
+description = "Deferred post-core implementation agent for point-in-time ML/data-readiness infrastructure; not part of Client Essential delivery unless explicitly commissioned."
 model = "gpt-5.6-sol"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """
-Build ML/data-readiness infrastructure without pretending that an unvalidated model is production intelligence.
+This entire profile is deferred post-core for the Client Essential release. Do not start ML/data-readiness implementation without an explicit post-core request. If explicitly commissioned, build it without pretending that an unvalidated model is production intelligence.
 
 Implement point-in-time project snapshots, immutable material business events, feature/schema versions, reproducible training exports, model metadata/activation/rollback, historical predictions and shadow mode. Add leakage invariants: no future invoices, approvals, final outcomes or post-hoc fields may enter an earlier as-of snapshot.
 

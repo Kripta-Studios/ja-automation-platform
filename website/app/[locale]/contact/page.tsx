@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { CheckCircle2, ExternalLink, Mail, Phone } from 'lucide-react';
@@ -12,16 +12,14 @@ type Intent = 'project' | 'support' | 'career';
 function ContactFormContent() {
   const searchParams = useSearchParams();
   const t = useTranslations('contact');
-  const [intent, setIntent] = useState<Intent>('project');
+  const [intent, setIntent] = useState<Intent>(() => {
+    const intentParam = searchParams.get('intent');
+    return intentParam === 'support' || intentParam === 'project' || intentParam === 'career'
+      ? intentParam
+      : 'project';
+  });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-
-  useEffect(() => {
-    const intentParam = searchParams.get('intent');
-    if (intentParam === 'support' || intentParam === 'project' || intentParam === 'career') {
-      setIntent(intentParam as Intent);
-    }
-  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

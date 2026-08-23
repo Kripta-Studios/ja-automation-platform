@@ -2,7 +2,7 @@ export type PortalRow = Record<string, string | number | boolean | string[] | nu
 
 export type PortalData = {
   user: {
-    id?: string;
+    id: string;
     name: string;
     email: string;
     role?: string;
@@ -13,16 +13,23 @@ export type PortalData = {
   section: string;
   projects?: PortalRow[];
   clients?: PortalRow[];
+  assignments?: PortalRow[];
   contacts?: PortalRow[];
   workers?: PortalRow[];
   skills?: PortalRow[];
+  workerSkills?: PortalRow[];
+  allSkills?: PortalRow[];
   availability?: PortalRow[];
+  selectedWorkerId?: string;
   records?: PortalRow[];
   milestones?: PortalRow[];
   documents?: PortalRow[];
   technicalChanges?: PortalRow[];
   periodReports?: PortalRow[];
   billingRules?: PortalRow[];
+  compensationRules?: PortalRow[];
+  clientLaborRates?: PortalRow[];
+  internalCostRules?: PortalRow[];
   invoices?: PortalRow[];
   settlements?: PortalRow[];
   reimbursements?: PortalRow[];
@@ -36,6 +43,7 @@ export type PortalData = {
   periodEnd?: string;
   weekStart?: string;
   weekEnd?: string;
+  timeFilter?: { category: string; projectId: string };
   timesheet?: {
     weekStart: string;
     weekEnd: string;

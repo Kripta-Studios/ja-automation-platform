@@ -3,7 +3,24 @@ import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { renderInvoiceTemplate, type InvoiceTemplateSnapshot } from '@ja/invoice-templates';
+import {
+  formatReportDate,
+  formatReportInteger,
+  normalizeReportLocale as normalizeLocale,
+  reportCopy as localizedCopy,
+  reportLocaleTag,
+  translateCalculationBasis,
+  translateCalculationType,
+  translateReportBoolean,
+  translateReportMetric,
+  translateReportStatus,
+  type ReportLocale,
+} from './report-i18n.ts';
+
+export { REPORT_LOCALES } from './report-i18n.ts';
+export type { ReportLocale } from './report-i18n.ts';
 
 type Cell = string | number | bigint | boolean | null | undefined;
 type Row = Readonly<Record<string, Cell>>;
@@ -26,7 +43,11 @@ const cellText = (value: Cell): string =>
 export function toCsv(rows: readonly Row[], columns?: readonly string[]): string {
   const headers = columns ? [...columns] : [...new Set(rows.flatMap((row) => Object.keys(row)))];
   const encode = (value: Cell): string => {
-    const text = cellText(value);
+    const raw = cellText(value);
+    // CSV is commonly opened directly in a spreadsheet. Preserve signed numeric
+    // minor-unit strings, but neutralize values that could otherwise be treated
+    // as formulas or DDE commands.
+    const text = /^(?:[=+@]|-(?!\d)|[\t\r])/u.test(raw) ? `'${raw}` : raw;
     return /[\",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
   };
   return (
@@ -35,6 +56,17 @@ export function toCsv(rows: readonly Row[], columns?: readonly string[]): string
       ...rows.map((row) => headers.map((header) => encode(row[header])).join(',')),
     ].join('\r\n') + '\r\n'
   );
+}
+
+function excelColumnName(index: number): string {
+  let current = index + 1;
+  let name = '';
+  while (current > 0) {
+    const remainder = (current - 1) % 26;
+    name = String.fromCharCode(65 + remainder) + name;
+    current = Math.floor((current - 1) / 26);
+  }
+  return name;
 }
 
 function crc32(input: Uint8Array): number {
@@ -138,7 +170,7 @@ function worksheet(rows: readonly Row[], columns?: readonly string[]): string {
     .map((row, rowIndex) => {
       const values = headers
         .map((header, columnIndex) => {
-          const reference = `${String.fromCharCode(65 + (columnIndex % 26))}${rowIndex + 1}`;
+          const reference = `${excelColumnName(columnIndex)}${rowIndex + 1}`;
           const value = xmlEscape(cellText(row[header]));
           return `<c r="${reference}" t="inlineStr"><is><t>${value}</t></is></c>`;
         })
@@ -211,203 +243,11 @@ export function xlsxFromSheets(
   ]);
 }
 
-export const REPORT_TEMPLATE_VERSION = '2026.08.19.4';
-export const REPORT_LOCALES = ['en', 'pt', 'es'] as const;
-export type ReportLocale = (typeof REPORT_LOCALES)[number];
+export const REPORT_TEMPLATE_VERSION = '2026.08.23.1';
 
-const normalizeReportLocale = (value: unknown): ReportLocale =>
-  value === 'pt' || value === 'es' ? value : 'en';
+const normalizeReportLocale = (value: unknown): ReportLocale => normalizeLocale(value);
 
-const localeTag = (locale: ReportLocale): string =>
-  locale === 'pt' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US';
-
-type ReportLabels = Readonly<{
-  accountingPack: string;
-  totalsByCurrency: string;
-  noTotals: string;
-  projectPeriodReport: string;
-  dailyReports: string;
-  technicalRecords: string;
-  operationalRecord: string;
-  type: string;
-  date: string;
-  detail: string;
-  noReportRecords: string;
-  from: string;
-  billTo: string;
-  invoiceDetail: string;
-  description: string;
-  amount: string;
-  noInvoiceLines: string;
-  subtotal: string;
-  tax: string;
-  total: string;
-  noCurrencyBreakdown: string;
-  dailyReport: string;
-  technicalReport: string;
-  technicalChange: string;
-  laborDetailedInvoice: string;
-  laborSummaryInvoice: string;
-  expenseInvoice: string;
-  fixedMilestoneInvoice: string;
-  creditAdjustment: string;
-  actualHours: string;
-  approvedHours: string;
-  billableHours: string;
-  candidateSubtotal: string;
-  operationalCandidate: string;
-  invoiced: string;
-  paid: string;
-  receivable: string;
-  directCost: string;
-  contribution: string;
-  contributionMargin: string;
-  calculation: string;
-  calculationBasis: string;
-  sourceRecords: string;
-  noCalculation: string;
-}>;
-
-const labels: Record<ReportLocale, ReportLabels> = {
-  en: {
-    accountingPack: 'Accounting Pack',
-    totalsByCurrency: 'Totals by currency',
-    noTotals: 'No totals recorded.',
-    projectPeriodReport: 'Project Period Report',
-    dailyReports: 'Daily reports',
-    technicalRecords: 'Technical records',
-    operationalRecord: 'Operational record',
-    type: 'Type',
-    date: 'Date',
-    detail: 'Detail',
-    noReportRecords: 'No report records.',
-    from: 'From',
-    billTo: 'Bill to',
-    invoiceDetail: 'Invoice detail',
-    description: 'Description',
-    amount: 'Amount',
-    noInvoiceLines: 'No invoice lines.',
-    subtotal: 'Subtotal',
-    tax: 'Tax',
-    total: 'Total',
-    noCurrencyBreakdown: 'No currency breakdown.',
-    dailyReport: 'Daily report',
-    technicalReport: 'Technical report',
-    technicalChange: 'Technical change',
-    laborDetailedInvoice: 'Labor Detailed Invoice',
-    laborSummaryInvoice: 'Labor Summary Invoice',
-    expenseInvoice: 'Expense Invoice',
-    fixedMilestoneInvoice: 'Fixed / Milestone Invoice',
-    creditAdjustment: 'Credit / Adjustment',
-    actualHours: 'Actual hours',
-    approvedHours: 'Approved hours',
-    billableHours: 'Billable hours',
-    candidateSubtotal: 'Calculated bill candidate',
-    operationalCandidate: 'Operational value',
-    invoiced: 'Already invoiced',
-    paid: 'Paid',
-    receivable: 'Receivable',
-    directCost: 'Direct cost',
-    contribution: 'Contribution',
-    contributionMargin: 'Contribution margin',
-    calculation: 'Calculation basis',
-    calculationBasis: 'Basis',
-    sourceRecords: 'Source records',
-    noCalculation: 'No calculated values are available.',
-  },
-  pt: {
-    accountingPack: 'Pacote Contábil',
-    totalsByCurrency: 'Totais por moeda',
-    noTotals: 'Nenhum total registrado.',
-    projectPeriodReport: 'Relatório Periódico do Projeto',
-    dailyReports: 'Relatórios diários',
-    technicalRecords: 'Registros técnicos',
-    operationalRecord: 'Registro operacional',
-    type: 'Tipo',
-    date: 'Data',
-    detail: 'Detalhe',
-    noReportRecords: 'Nenhum registro de relatório.',
-    from: 'De',
-    billTo: 'Faturar para',
-    invoiceDetail: 'Detalhes da fatura',
-    description: 'Descrição',
-    amount: 'Valor',
-    noInvoiceLines: 'Nenhuma linha de fatura.',
-    subtotal: 'Subtotal',
-    tax: 'Imposto',
-    total: 'Total',
-    noCurrencyBreakdown: 'Nenhum detalhamento por moeda.',
-    dailyReport: 'Relatório diário',
-    technicalReport: 'Relatório técnico',
-    technicalChange: 'Alteração técnica',
-    laborDetailedInvoice: 'Fatura Detalhada de Mão de Obra',
-    laborSummaryInvoice: 'Fatura Resumida de Mão de Obra',
-    expenseInvoice: 'Fatura de Despesas',
-    fixedMilestoneInvoice: 'Fatura Fixa / por Marco',
-    creditAdjustment: 'Crédito / Ajuste',
-    actualHours: 'Horas reais',
-    approvedHours: 'Horas aprovadas',
-    billableHours: 'Horas faturáveis',
-    candidateSubtotal: 'Candidato de faturação calculado',
-    operationalCandidate: 'Valor operacional',
-    invoiced: 'Já faturado',
-    paid: 'Recebido',
-    receivable: 'A receber',
-    directCost: 'Custo direto',
-    contribution: 'Contribuição',
-    contributionMargin: 'Margem de contribuição',
-    calculation: 'Base de cálculo',
-    calculationBasis: 'Base',
-    sourceRecords: 'Registros de origem',
-    noCalculation: 'Não há valores calculados disponíveis.',
-  },
-  es: {
-    accountingPack: 'Paquete Contable',
-    totalsByCurrency: 'Totales por moneda',
-    noTotals: 'No hay totales registrados.',
-    projectPeriodReport: 'Informe Periódico del Proyecto',
-    dailyReports: 'Informes diarios',
-    technicalRecords: 'Registros técnicos',
-    operationalRecord: 'Registro operativo',
-    type: 'Tipo',
-    date: 'Fecha',
-    detail: 'Detalle',
-    noReportRecords: 'No hay registros de informes.',
-    from: 'De',
-    billTo: 'Facturar a',
-    invoiceDetail: 'Detalle de factura',
-    description: 'Descripción',
-    amount: 'Importe',
-    noInvoiceLines: 'No hay líneas de factura.',
-    subtotal: 'Subtotal',
-    tax: 'Impuesto',
-    total: 'Total',
-    noCurrencyBreakdown: 'No hay desglose por moneda.',
-    dailyReport: 'Informe diario',
-    technicalReport: 'Informe técnico',
-    technicalChange: 'Cambio técnico',
-    laborDetailedInvoice: 'Factura Detallada de Mano de Obra',
-    laborSummaryInvoice: 'Factura Resumida de Mano de Obra',
-    expenseInvoice: 'Factura de Gastos',
-    fixedMilestoneInvoice: 'Factura Fija / por Hito',
-    creditAdjustment: 'Crédito / Ajuste',
-    actualHours: 'Horas reales',
-    approvedHours: 'Horas aprobadas',
-    billableHours: 'Horas facturables',
-    candidateSubtotal: 'Candidato de facturación calculado',
-    operationalCandidate: 'Valor operativo',
-    invoiced: 'Ya facturado',
-    paid: 'Cobrado',
-    receivable: 'Pendiente de cobro',
-    directCost: 'Coste directo',
-    contribution: 'Contribución',
-    contributionMargin: 'Margen de contribución',
-    calculation: 'Base de cálculo',
-    calculationBasis: 'Base',
-    sourceRecords: 'Registros de origen',
-    noCalculation: 'No hay valores calculados disponibles.',
-  },
-};
+const localeTag = (locale: ReportLocale): string => reportLocaleTag(locale);
 
 const htmlEscape = (value: unknown): string =>
   String(value ?? '').replace(
@@ -422,6 +262,8 @@ const companyLogoCandidates = [
   resolve(process.cwd(), 'reporting-assets/logo-jaautomation.png'),
   resolve(process.cwd(), 'packages/reporting/assets/logo-jaautomation.png'),
   resolve(process.cwd(), 'assets/logo-jaautomation.png'),
+  fileURLToPath(new URL('../assets/logo-jaautomation.png', import.meta.url)),
+  fileURLToPath(new URL('../../../Images/logo_jaautomation.png', import.meta.url)),
 ].filter((value): value is string => Boolean(value));
 
 let companyLogoDataUri: string | undefined;
@@ -467,6 +309,23 @@ try {
 } finally { await browser.close(); }
 `;
 
+/**
+ * Chromium writes the current clock into the PDF Info dictionary.  Report
+ * artifacts are content-addressed downstream, so equivalent immutable
+ * snapshots must produce byte-identical documents.  Keep the metadata fields
+ * present for reader compatibility, but pin them to a stable value.  The
+ * replacement has the same byte length, so xref offsets remain valid and no
+ * second PDF writer (with its own nondeterminism) is needed.
+ */
+function stabilizePdfMetadata(bytes: Uint8Array): Uint8Array {
+  const fixedDate = "D:20000101000000+00'00'";
+  const source = Buffer.from(bytes).toString('latin1');
+  const stabilized = source
+    .replace(/\/CreationDate \(D:\d{14}[+-]\d{2}'\d{2}'\)/g, `/CreationDate (${fixedDate})`)
+    .replace(/\/ModDate \(D:\d{14}[+-]\d{2}'\d{2}'\)/g, `/ModDate (${fixedDate})`);
+  return new Uint8Array(Buffer.from(stabilized, 'latin1'));
+}
+
 /** Render the same immutable HTML snapshot in interactive and scheduled jobs. */
 export function renderHtmlToPdf(html: string): Uint8Array {
   const result = spawnSync(process.execPath, ['--input-type=module', '-e', renderScript], {
@@ -477,7 +336,7 @@ export function renderHtmlToPdf(html: string): Uint8Array {
   });
   if (result.status !== 0 || !result.stdout.trim())
     throw new Error(`Chromium PDF rendering failed: ${result.stderr?.trim() || 'no output'}`);
-  return new Uint8Array(Buffer.from(result.stdout.trim(), 'base64'));
+  return stabilizePdfMetadata(new Uint8Array(Buffer.from(result.stdout.trim(), 'base64')));
 }
 
 const pageCss = `
@@ -485,7 +344,7 @@ const pageCss = `
 * { box-sizing: border-box; }
 body { margin: 0; color: #17212b; font: 10pt Arial, sans-serif; line-height: 1.4; }
 h1 { margin: 0 0 5mm; color: #0f2d3d; font-size: 24pt; letter-spacing: -.02em; }
-h2 { margin: 7mm 0 2mm; color: #0f2d3d; font-size: 13pt; border-bottom: 1px solid #d9e1e7; padding-bottom: 1.5mm; }
+h2 { margin: 7mm 0 2mm; color: #0f2d3d; font-size: 13pt; border-bottom: 1px solid #d9e1e7; padding-bottom: 1.5mm; break-after:avoid; page-break-after:avoid; }
 .masthead { display:flex; align-items:flex-start; justify-content:space-between; gap:12mm; border-bottom: 4px solid #e23d2d; padding-bottom: 5mm; margin-bottom: 7mm; }
 .brand-lockup { display:flex; align-items:flex-start; gap:5mm; min-width:0; }
 .brand-logo { width:28mm; height:22mm; object-fit:contain; object-position:left center; flex:0 0 auto; }
@@ -501,14 +360,17 @@ tr { break-inside:avoid; }
 th { background:#0f2d3d; color:#fff; text-align:left; font-size:8pt; text-transform:uppercase; letter-spacing:.06em; padding:2.4mm; }
 td { border-bottom:1px solid #d9e1e7; padding:2.4mm; vertical-align:top; }
 td.amount, th.amount { text-align:right; white-space:nowrap; }
-.total { margin:6mm 0 0 auto; width:70mm; border-top:3px solid #e23d2d; padding-top:3mm; }
-.total div { display:flex; justify-content:space-between; gap:4mm; padding:1mm 0; }
-.total strong { color:#0f2d3d; font-size:15pt; }
+.total { margin:6mm 0 0 auto; width:min(92mm, 100%); max-width:100%; border-top:3px solid #e23d2d; padding-top:3mm; }
+.total div { display:grid; grid-template-columns:minmax(0,1fr) minmax(30mm,1fr); align-items:start; gap:4mm; padding:1mm 0; }
+.total div > :last-child { min-width:0; max-width:100%; text-align:right; overflow-wrap:anywhere; word-break:break-all; }
+.total strong { color:#0f2d3d; font-size:15pt; overflow-wrap:anywhere; word-break:break-all; }
+.report-section { break-inside:auto; page-break-inside:auto; }
 .page-break { break-before: page; }
 `;
 
 function layout(title: string, subtitle: string, body: string, locale: ReportLocale): string {
-  return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="template-version" content="${REPORT_TEMPLATE_VERSION}"><meta name="report-locale" content="${locale}"><style>${pageCss}</style></head><body><header class="masthead"><div class="brand-lockup"><img class="brand-logo" src="${companyLogo()}" alt="J&amp;A Automation logo"><div class="masthead-copy"><div class="eyebrow">J&amp;A Automation</div><h1>${htmlEscape(title)}</h1><div class="muted">${htmlEscape(subtitle)}</div></div></div><div class="muted">Template ${REPORT_TEMPLATE_VERSION}</div></header>${body}</body></html>`;
+  const copy = localizedCopy[locale];
+  return `<!doctype html><html lang="${localeTag(locale)}"><head><meta charset="utf-8"><meta name="template-version" content="${REPORT_TEMPLATE_VERSION}"><meta name="report-locale" content="${localeTag(locale)}"><style>${pageCss}</style></head><body><header class="masthead"><div class="brand-lockup"><img class="brand-logo" src="${companyLogo()}" alt="J&amp;A Automation logo"><div class="masthead-copy"><div class="eyebrow">J&amp;A Automation</div><h1>${htmlEscape(title)}</h1><div class="muted">${htmlEscape(subtitle)}</div></div></div><div class="muted">${htmlEscape(copy.template)} ${REPORT_TEMPLATE_VERSION}</div></header>${body}</body></html>`;
 }
 
 function moneyText(currency: unknown, minor: unknown, locale: ReportLocale = 'en'): string {
@@ -532,10 +394,14 @@ function moneyText(currency: unknown, minor: unknown, locale: ReportLocale = 'en
   const absolute = negative ? -amount : amount;
   const scale = 10n ** BigInt(fractionDigits);
   const formatterLocale = localeTag(locale);
+  // A four-digit probe is not grouped in es-ES, so it can incorrectly look
+  // like the locale has no grouping separator. Use a value with two grouping
+  // boundaries and an explicit decimal part instead.
   const decimalParts = new Intl.NumberFormat(formatterLocale, {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  }).formatToParts(1000.5);
+    useGrouping: true,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).formatToParts(1234567.89);
   const groupSeparator = decimalParts.find((part) => part.type === 'group')?.value ?? ',';
   const decimalSeparator = decimalParts.find((part) => part.type === 'decimal')?.value ?? '.';
   const integer = (absolute / scale).toString().replace(/\B(?=(\d{3})+(?!\d))/g, groupSeparator);
@@ -569,6 +435,20 @@ function moneyText(currency: unknown, minor: unknown, locale: ReportLocale = 'en
   return htmlEscape(`${negative ? '-' : ''}${prefix}${integer}${fraction}${suffix}`);
 }
 
+function metricValue(key: string, value: unknown, currency: unknown, locale: ReportLocale): string {
+  const normalized = key.toLowerCase();
+  if (normalized.includes('minor')) return moneyText(currency, value, locale);
+  if (normalized.includes('minutes')) return htmlEscape(formatReportInteger(value, locale));
+  if (normalized.includes('bps')) {
+    const bps = Number(value ?? 0);
+    if (Number.isFinite(bps))
+      return htmlEscape(
+        `${new Intl.NumberFormat(localeTag(locale), { minimumFractionDigits: 1, maximumFractionDigits: 2 }).format(bps / 100)}%`,
+      );
+  }
+  return htmlEscape(value);
+}
+
 export function accountingPackCsv(
   snapshot: Readonly<{ invoiceRegister: readonly Row[] }>,
 ): Uint8Array {
@@ -591,16 +471,301 @@ export function accountingPackXlsx(
   ]);
 }
 
-type AccountingPackSourceSnapshot = Readonly<{
+/**
+ * Build the synchronous, current-snapshot workbook used by the project finance screen.
+ * The database already returns money as exact minor-unit strings; this exporter deliberately
+ * keeps those values as text so the workbook cannot introduce binary floating-point rounding.
+ */
+export function projectFinanceXlsx(
+  snapshot: Readonly<{
+    project: Readonly<Record<string, Cell>>;
+    financial: Readonly<Record<string, unknown>>;
+    timeEconomics: readonly Record<string, unknown>[];
+    expenseEconomics: readonly Record<string, unknown>[];
+  }>,
+): Uint8Array {
+  const summaryRows = Object.entries(snapshot.financial)
+    .filter(([, value]) => !Array.isArray(value) && (typeof value !== 'object' || value === null))
+    .map(([metric, value]) => ({ metric, value: exportCell(value) }));
+  const alerts = snapshot.financial.alerts;
+  if (Array.isArray(alerts))
+    summaryRows.push({ metric: 'alerts', value: alerts.map(String).join('; ') });
+  return xlsxFromSheets([
+    { name: 'Project overview', rows: [snapshot.project] },
+    { name: 'Finance metrics', rows: summaryRows },
+    { name: 'Employee cost detail', rows: exportRows(snapshot.timeEconomics) },
+    { name: 'Expense detail', rows: exportRows(snapshot.expenseEconomics) },
+  ]);
+}
+
+export type WorkerStatementSnapshot = Readonly<{
+  worker: Readonly<{ id: string; name: string }>;
+  periodStart: string;
+  periodEnd: string;
+  currency: string;
+  approvedMinutes: number;
+  pendingMinutes: number;
+  estimatedApprovedMinor: string;
+  estimatedPendingMinor: string;
+  approvedReimbursementMinor: string;
+  pendingReimbursementMinor: string;
+  missingCompensationRules: number;
+  settlements: readonly Readonly<{
+    id: string;
+    projectNumber: string;
+    projectName: string;
+    periodStart: string;
+    periodEnd: string;
+    amountMinor: string;
+    currency: string;
+    state: string;
+    settledAt?: string | null;
+  }>[];
+  expenses: readonly Readonly<{
+    id: string;
+    projectNumber: string;
+    spentOn: string;
+    vendor: string;
+    category: string;
+    reimbursementAmountMinor: string;
+    currency: string;
+    approvalState: string;
+    reimbursementState: string;
+  }>[];
+}>;
+
+const workerStatementColumns = [
+  'recordType',
+  'recordId',
+  'workerId',
+  'workerName',
+  'periodStart',
+  'periodEnd',
+  'projectNumber',
+  'projectName',
+  'date',
+  'vendor',
+  'category',
+  'currency',
+  'amountMinor',
+  'approvedMinutes',
+  'pendingMinutes',
+  'approvalState',
+  'paymentStatus',
+  'settledAt',
+] as const;
+
+function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] {
+  return [
+    {
+      recordType: 'compensation_summary',
+      recordId: `${snapshot.worker.id}:${snapshot.periodStart}:${snapshot.periodEnd}`,
+      workerId: snapshot.worker.id,
+      workerName: snapshot.worker.name,
+      periodStart: snapshot.periodStart,
+      periodEnd: snapshot.periodEnd,
+      currency: snapshot.currency,
+      amountMinor: snapshot.estimatedApprovedMinor,
+      approvedMinutes: snapshot.approvedMinutes,
+      pendingMinutes: snapshot.pendingMinutes,
+      approvalState: snapshot.missingCompensationRules === 0 ? 'complete' : 'incomplete',
+      paymentStatus: 'estimated_approved',
+    },
+    {
+      recordType: 'pending_compensation',
+      recordId: `${snapshot.worker.id}:${snapshot.periodStart}:${snapshot.periodEnd}:pending`,
+      workerId: snapshot.worker.id,
+      workerName: snapshot.worker.name,
+      periodStart: snapshot.periodStart,
+      periodEnd: snapshot.periodEnd,
+      currency: snapshot.currency,
+      amountMinor: snapshot.estimatedPendingMinor,
+      approvedMinutes: snapshot.approvedMinutes,
+      pendingMinutes: snapshot.pendingMinutes,
+      approvalState: 'pending',
+      paymentStatus: 'estimated_pending',
+    },
+    ...snapshot.settlements.map((settlement) => ({
+      recordType: 'compensation_settlement',
+      recordId: settlement.id,
+      workerId: snapshot.worker.id,
+      workerName: snapshot.worker.name,
+      periodStart: settlement.periodStart,
+      periodEnd: settlement.periodEnd,
+      projectNumber: settlement.projectNumber,
+      projectName: settlement.projectName,
+      currency: settlement.currency,
+      amountMinor: settlement.amountMinor,
+      paymentStatus: settlement.state,
+      settledAt: settlement.settledAt ?? '',
+    })),
+    ...snapshot.expenses.map((expense) => ({
+      recordType: 'reimbursable_expense',
+      recordId: expense.id,
+      workerId: snapshot.worker.id,
+      workerName: snapshot.worker.name,
+      periodStart: snapshot.periodStart,
+      periodEnd: snapshot.periodEnd,
+      projectNumber: expense.projectNumber,
+      date: expense.spentOn,
+      vendor: expense.vendor,
+      category: expense.category,
+      currency: expense.currency,
+      amountMinor: expense.reimbursementAmountMinor,
+      approvalState: expense.approvalState,
+      paymentStatus: expense.reimbursementState,
+    })),
+  ];
+}
+
+export function workerStatementCsv(snapshot: WorkerStatementSnapshot): Uint8Array {
+  return new TextEncoder().encode(toCsv(workerStatementRows(snapshot), workerStatementColumns));
+}
+
+export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Array {
+  const summary = [
+    ['Approved compensation', snapshot.estimatedApprovedMinor],
+    ['Pending compensation', snapshot.estimatedPendingMinor],
+    ['Approved reimbursements', snapshot.approvedReimbursementMinor],
+    ['Pending reimbursements', snapshot.pendingReimbursementMinor],
+  ]
+    .map(
+      ([label, amount]) =>
+        `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${moneyText(snapshot.currency, amount, 'en')}</strong></div>`,
+    )
+    .join('');
+  const settlements = snapshot.settlements
+    .map(
+      (row) =>
+        `<tr><td>${htmlEscape(row.projectNumber)} ${htmlEscape(row.projectName)}</td><td>${htmlEscape(row.periodStart)} → ${htmlEscape(row.periodEnd)}</td><td>${htmlEscape(row.state)}</td><td class="amount">${moneyText(row.currency, row.amountMinor, 'en')}</td></tr>`,
+    )
+    .join('');
+  const expenses = snapshot.expenses
+    .map(
+      (row) =>
+        `<tr><td>${htmlEscape(row.spentOn)}</td><td>${htmlEscape(row.projectNumber)}</td><td>${htmlEscape(row.vendor)}</td><td>${htmlEscape(row.reimbursementState)}</td><td class="amount">${moneyText(row.currency, row.reimbursementAmountMinor, 'en')}</td></tr>`,
+    )
+    .join('');
+  return renderHtmlToPdf(
+    layout(
+      'Worker compensation statement',
+      `${snapshot.worker.name} · ${snapshot.periodStart} → ${snapshot.periodEnd}`,
+      `<section class="grid">${summary}</section><p class="muted">Approved minutes: ${htmlEscape(snapshot.approvedMinutes)} · Pending minutes: ${htmlEscape(snapshot.pendingMinutes)} · Missing compensation rules: ${htmlEscape(snapshot.missingCompensationRules)}</p><h2>Settlements</h2><table><thead><tr><th>Project</th><th>Period</th><th>Status</th><th class="amount">Amount</th></tr></thead><tbody>${settlements || '<tr><td colspan="4" class="muted">No settlements in this period.</td></tr>'}</tbody></table><h2>Own reimbursable expenses</h2><table><thead><tr><th>Date</th><th>Project</th><th>Vendor</th><th>Payment status</th><th class="amount">Amount</th></tr></thead><tbody>${expenses || '<tr><td colspan="5" class="muted">No reimbursable expenses in this period.</td></tr>'}</tbody></table>`,
+      'en',
+    ),
+  );
+}
+
+export type InvoiceCollectionLedgerRow = Readonly<{
+  invoiceId: string;
+  invoiceNumber?: string | null;
+  clientNumber: string;
+  clientName: string;
+  projectNumber: string;
+  projectName: string;
+  issueDate?: string | null;
+  dueDate?: string | null;
+  currency: string;
+  subtotalMinor: string;
+  taxMinor: string;
+  totalMinor: string;
+  grossPaymentsMinor: string;
+  paymentReversalsMinor: string;
+  netCollectedMinor: string;
+  collectedMinor: string;
+  outstandingMinor: string;
+  directCostKnownMinor: string;
+  directCostMinor?: string | null;
+  directCostComplete: boolean;
+  directCostMissingSourceIds: readonly string[];
+  contributionMinor?: string | null;
+  contributionMarginBps?: string | null;
+  paymentStatus: string;
+  billingStatus: string;
+  payments: readonly Readonly<Record<string, unknown>>[];
+  paymentReversals: readonly Readonly<Record<string, unknown>>[];
+}>;
+
+const invoiceCollectionRows = (rows: readonly InvoiceCollectionLedgerRow[]): readonly Row[] =>
+  rows.map((row) => ({
+    invoiceId: row.invoiceId,
+    invoiceNumber: row.invoiceNumber ?? '',
+    clientNumber: row.clientNumber,
+    clientName: row.clientName,
+    projectNumber: row.projectNumber,
+    projectName: row.projectName,
+    issueDate: row.issueDate ?? '',
+    dueDate: row.dueDate ?? '',
+    currency: row.currency,
+    subtotalMinor: row.subtotalMinor,
+    taxMinor: row.taxMinor,
+    totalMinor: row.totalMinor,
+    grossPaymentsMinor: row.grossPaymentsMinor,
+    paymentReversalsMinor: row.paymentReversalsMinor,
+    netCollectedMinor: row.netCollectedMinor,
+    collectedMinor: row.collectedMinor,
+    outstandingMinor: row.outstandingMinor,
+    directCostKnownMinor: row.directCostKnownMinor,
+    directCostMinor: row.directCostMinor ?? '',
+    directCostComplete: row.directCostComplete,
+    directCostMissingSourceIds: row.directCostMissingSourceIds.join(';'),
+    contributionMinor: row.contributionMinor ?? '',
+    contributionMarginBps: row.contributionMarginBps ?? '',
+    paymentStatus: row.paymentStatus,
+    billingStatus: row.billingStatus,
+    payments: JSON.stringify(row.payments),
+    paymentReversals: JSON.stringify(row.paymentReversals),
+  }));
+
+export function invoiceCollectionLedgerCsv(
+  rows: readonly InvoiceCollectionLedgerRow[],
+): Uint8Array {
+  return new TextEncoder().encode(toCsv(invoiceCollectionRows(rows)));
+}
+
+export function invoiceCollectionLedgerXlsx(
+  rows: readonly InvoiceCollectionLedgerRow[],
+): Uint8Array {
+  const payments = rows.flatMap((row) =>
+    row.payments.map((payment) => ({ invoiceId: row.invoiceId, ...payment })),
+  );
+  const reversals = rows.flatMap((row) =>
+    row.paymentReversals.map((reversal) => ({ invoiceId: row.invoiceId, ...reversal })),
+  );
+  return xlsxFromSheets([
+    { name: 'Invoice collection ledger', rows: invoiceCollectionRows(rows) },
+    { name: 'Payments', rows: exportRows(payments) },
+    { name: 'Reversals', rows: exportRows(reversals) },
+  ]);
+}
+
+export type AccountingPackExportType = 'pdf' | 'xlsx' | 'invoice_csv' | 'expense_csv' | 'json';
+
+export type AccountingPackSourceSnapshot = Readonly<{
   periodStart: string;
   periodEnd: string;
   locale?: ReportLocale | string;
+  currency?: string;
   invoiceRegister: readonly Record<string, unknown>[];
   collections: readonly Record<string, unknown>[];
   workerCosts: readonly Record<string, unknown>[];
   expenseRegister: readonly Record<string, unknown>[];
   totals: Record<string, unknown>;
   totalsByCurrency?: readonly Record<string, unknown>[];
+}>;
+
+export type AccountingPackArtifactBuilder = Readonly<{
+  type: AccountingPackExportType;
+  extension: string;
+  build: () => Uint8Array;
+}>;
+
+export type AccountingPackArtifactBuildResult = Readonly<{
+  type: AccountingPackExportType;
+  extension: string;
+  status: 'ready' | 'failed';
+  bytes?: Uint8Array;
+  error?: string;
 }>;
 
 function exportCell(value: unknown): Cell {
@@ -622,12 +787,7 @@ function exportRows(rows: readonly Record<string, unknown>[]): readonly Row[] {
   );
 }
 
-/** One canonical artifact set for interactive and scheduled Accounting Pack generation. */
-export function accountingPackArtifacts(snapshot: AccountingPackSourceSnapshot): readonly {
-  type: 'pdf' | 'xlsx' | 'invoice_csv' | 'expense_csv' | 'json';
-  extension: string;
-  bytes: Uint8Array;
-}[] {
+function normalizeAccountingPackSnapshot(snapshot: AccountingPackSourceSnapshot) {
   const normalized = {
     ...snapshot,
     locale: normalizeReportLocale(snapshot.locale),
@@ -640,21 +800,91 @@ export function accountingPackArtifacts(snapshot: AccountingPackSourceSnapshot):
     ),
     totalsByCurrency: exportRows(snapshot.totalsByCurrency ?? []),
   };
+  return normalized;
+}
+
+/**
+ * Return lazy format builders for one immutable Accounting Pack snapshot.  Keeping renderers
+ * lazy is important: a missing Chromium executable must not prevent CSV, XLSX, or JSON builders
+ * from being attempted and recorded independently.
+ */
+export function accountingPackArtifactBuilders(
+  snapshot: AccountingPackSourceSnapshot,
+): readonly AccountingPackArtifactBuilder[] {
+  const normalized = normalizeAccountingPackSnapshot(snapshot);
   return [
-    { type: 'pdf', extension: 'pdf', bytes: accountingPackPdf(normalized) },
-    { type: 'xlsx', extension: 'xlsx', bytes: accountingPackXlsx(normalized) },
-    { type: 'invoice_csv', extension: 'csv', bytes: accountingPackCsv(normalized) },
+    {
+      type: 'pdf',
+      extension: 'pdf',
+      build: () => accountingPackPdf(normalized),
+    },
+    {
+      type: 'xlsx',
+      extension: 'xlsx',
+      build: () => accountingPackXlsx(normalized),
+    },
+    {
+      type: 'invoice_csv',
+      extension: 'csv',
+      build: () => accountingPackCsv(normalized),
+    },
     {
       type: 'expense_csv',
       extension: 'csv',
-      bytes: new TextEncoder().encode(toCsv(normalized.expenseRegister)),
+      build: () => new TextEncoder().encode(toCsv(normalized.expenseRegister)),
     },
     {
       type: 'json',
       extension: 'json',
-      bytes: new TextEncoder().encode(JSON.stringify(normalized)),
+      build: () => new TextEncoder().encode(JSON.stringify(normalized)),
     },
   ];
+}
+
+/**
+ * Attempt every Accounting Pack format and retain scoped failure evidence.  Callers that need
+ * the historical all-or-nothing convenience API can use accountingPackArtifacts below; durable
+ * jobs should use this result shape or the lazy builders directly.
+ */
+export function renderAccountingPackArtifacts(
+  snapshot: AccountingPackSourceSnapshot,
+): readonly AccountingPackArtifactBuildResult[] {
+  return accountingPackArtifactBuilders(snapshot).map((builder) => {
+    try {
+      return {
+        type: builder.type,
+        extension: builder.extension,
+        status: 'ready' as const,
+        bytes: builder.build(),
+      };
+    } catch (error) {
+      return {
+        type: builder.type,
+        extension: builder.extension,
+        status: 'failed' as const,
+        error: error instanceof Error ? error.message : 'artifact generation failed',
+      };
+    }
+  });
+}
+
+/** One canonical artifact set for interactive and scheduled Accounting Pack generation. */
+export function accountingPackArtifacts(snapshot: AccountingPackSourceSnapshot): readonly {
+  type: AccountingPackExportType;
+  extension: string;
+  bytes: Uint8Array;
+}[] {
+  const results = renderAccountingPackArtifacts(snapshot);
+  const failures = results
+    .filter((result) => result.status === 'failed')
+    .map((result) => `${result.type}: ${result.error ?? 'artifact generation failed'}`);
+  if (failures.length > 0)
+    throw new Error(`Accounting Pack artifact generation failed: ${failures.join('; ')}`);
+  return results.map((result) => ({
+    type: result.type,
+    extension: result.extension,
+    bytes: result.bytes as Uint8Array,
+  }));
 }
 
 export function accountingPackPdf(
@@ -662,30 +892,35 @@ export function accountingPackPdf(
     periodStart: string;
     periodEnd: string;
     locale?: ReportLocale | string;
+    currency?: string;
     totals: Row | null;
     totalsByCurrency?: readonly Row[];
   }>,
 ): Uint8Array {
   const locale = normalizeReportLocale(snapshot.locale);
-  const copy = labels[locale];
+  const copy = localizedCopy[locale];
+  const snapshotCurrency = snapshot.currency ?? snapshot.totals?.currency ?? 'USD';
   const totals = Object.entries(snapshot.totals ?? {})
     .map(
       ([key, value]) =>
-        `<div class="metric"><span class="muted">${htmlEscape(key)}</span><strong>${htmlEscape(value)}</strong></div>`,
+        `<div class="metric"><span class="muted">${htmlEscape(translateReportMetric(key, locale))}</span><strong>${metricValue(key, value, snapshotCurrency, locale)}</strong></div>`,
     )
     .join('');
   const byCurrency = (snapshot.totalsByCurrency ?? [])
     .map(
       (row) =>
-        `<tr>${Object.values(row)
-          .map((value) => `<td>${htmlEscape(value)}</td>`)
+        `<tr>${Object.entries(row)
+          .map(
+            ([key, value]) =>
+              `<td><span class="muted">${htmlEscape(translateReportMetric(key, locale))}</span>: ${metricValue(key, value, row.currency ?? snapshotCurrency, locale)}</td>`,
+          )
           .join('')}</tr>`,
     )
     .join('');
   return renderHtmlToPdf(
     layout(
       copy.accountingPack,
-      `${snapshot.periodStart} → ${snapshot.periodEnd}`,
+      `${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
       `<section class="grid">${totals || `<div class="muted">${copy.noTotals}</div>`}</section><h2>${copy.totalsByCurrency}</h2><table><tbody>${byCurrency || `<tr><td class="muted">${copy.noCurrencyBreakdown}</td></tr>`}</tbody></table>`,
       locale,
     ),
@@ -709,7 +944,7 @@ export function periodReportPdf(
   }>,
 ): Uint8Array {
   const locale = normalizeReportLocale(snapshot.locale);
-  const copy = labels[locale];
+  const copy = localizedCopy[locale];
   const summary = snapshot.commercialSummary ?? {};
   const finance = snapshot.financialSummary ?? {};
   const currency = summary.currency ?? finance.currency ?? 'USD';
@@ -743,94 +978,257 @@ export function periodReportPdf(
   const calculationRows = (snapshot.commercialCalculation ?? [])
     .map(
       (line) =>
-        `<tr><td>${htmlEscape(line.type)}</td><td>${htmlEscape(line.basis)}</td><td>${line.minutes === null || line.minutes === undefined ? '—' : htmlEscape(`${hours(line.minutes)} h`)}</td><td class="amount">${htmlEscape(moneyText(currency, line.amountMinor, locale))}</td></tr>`,
+        `<tr><td>${htmlEscape(translateCalculationType(line.type, locale))}</td><td>${htmlEscape(translateCalculationBasis(line.basis, locale))}</td><td>${line.minutes === null || line.minutes === undefined ? '—' : htmlEscape(`${hours(line.minutes)} h`)}</td><td class="amount">${htmlEscape(moneyText(currency, line.amountMinor, locale))}</td></tr>`,
     )
     .join('');
   const sourceCounts = (summary.sourceCounts ?? {}) as Readonly<Record<string, unknown>>;
   const sources = [
-    `daily ${sourceCounts.dailyReports ?? 0}`,
-    `technical ${sourceCounts.technicalReports ?? 0}`,
-    `changes ${sourceCounts.technicalChanges ?? 0}`,
-    `time ${sourceCounts.timeEntries ?? 0}`,
-    `expenses ${sourceCounts.expenses ?? 0}`,
+    `${localizedCopy[locale].sourceDaily} ${formatReportInteger(sourceCounts.dailyReports ?? 0, locale)}`,
+    `${localizedCopy[locale].sourceTechnical} ${formatReportInteger(sourceCounts.technicalReports ?? 0, locale)}`,
+    `${localizedCopy[locale].sourceChanges} ${formatReportInteger(sourceCounts.technicalChanges ?? 0, locale)}`,
+    `${localizedCopy[locale].sourceTime} ${formatReportInteger(sourceCounts.timeEntries ?? 0, locale)}`,
+    `${localizedCopy[locale].sourceExpenses} ${formatReportInteger(sourceCounts.expenses ?? 0, locale)}`,
   ].join(' · ');
   const rows = [
     ...(snapshot.dailyReports ?? []).map((row) => ({
       type: copy.dailyReport,
-      date: row.work_date ?? row.workDate ?? row.date,
+      date: formatReportDate(row.work_date ?? row.workDate ?? row.date, locale),
       detail: row.summary,
+      status: row.approval_state ?? row.approvalState,
     })),
     ...(snapshot.technicalReports ?? []).map((row) => ({
       type: copy.technicalReport,
-      date: row.created_at ?? row.createdAt ?? row.date,
+      date: formatReportDate(
+        row.report_date ?? row.reportDate ?? row.date ?? row.created_at ?? row.createdAt,
+        locale,
+      ),
       detail: row.change_summary ?? row.changeSummary,
+      status: row.approval_state ?? row.approvalState,
     })),
     ...(snapshot.technicalChanges ?? []).map((row) => ({
       type: copy.technicalChange,
-      date: row.created_at ?? row.createdAt ?? row.date,
+      date: formatReportDate(row.created_at ?? row.createdAt ?? row.date, locale),
       detail: row.change_made ?? row.changeMade,
+      status: row.approval_state ?? row.approvalState,
     })),
   ];
   const table = rows
     .map(
       (row) =>
-        `<tr><td>${htmlEscape(row.type)}</td><td>${htmlEscape(row.date)}</td><td>${htmlEscape(row.detail)}</td></tr>`,
+        `<tr><td>${htmlEscape(row.type)}</td><td>${htmlEscape(row.date)}</td><td>${htmlEscape(row.detail)}</td><td>${htmlEscape(translateReportStatus(row.status, locale))}</td></tr>`,
     )
     .join('');
   return renderHtmlToPdf(
     layout(
       copy.projectPeriodReport,
-      `${snapshot.project?.number ?? ''} ${snapshot.project?.name ?? ''} · ${snapshot.periodStart} → ${snapshot.periodEnd} · ${snapshot.audience ?? ''}`,
-      `<h2>${copy.calculation}</h2><div class="grid">${publicMetrics}${internalMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p><table><thead><tr><th>${copy.type}</th><th>${copy.calculationBasis}</th><th>${copy.billableHours}</th><th class="amount">${copy.amount}</th></tr></thead><tbody>${calculationRows || `<tr><td colspan="4" class="muted">${copy.noCalculation}</td></tr>`}</tbody></table><h2>${copy.operationalRecord}</h2><table><thead><tr><th>${copy.type}</th><th>${copy.date}</th><th>${copy.detail}</th></tr></thead><tbody>${table || `<tr><td colspan="3" class="muted">${copy.noReportRecords}</td></tr>`}</tbody></table>`,
+      `${snapshot.project?.number ?? ''} ${snapshot.project?.name ?? ''} · ${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
+      `<h2>${copy.calculation}</h2><div class="grid">${publicMetrics}${internalMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p><table><thead><tr><th>${copy.type}</th><th>${copy.calculationBasis}</th><th>${copy.billableHours}</th><th class="amount">${copy.amount}</th></tr></thead><tbody>${calculationRows || `<tr><td colspan="4" class="muted">${copy.noCalculation}</td></tr>`}</tbody></table><h2>${copy.operationalRecord}</h2><table><thead><tr><th>${copy.type}</th><th>${copy.date}</th><th>${copy.detail}</th><th>${localizedCopy[locale].status}</th></tr></thead><tbody>${table || `<tr><td colspan="4" class="muted">${copy.noReportRecords}</td></tr>`}</tbody></table>`,
       locale,
     ),
   );
 }
 
-export function invoicePdf(
-  snapshot: Readonly<{
-    number: string;
-    locale?: ReportLocale | string;
-    template?: { id?: string; version?: number };
-    commercial?: { streamType?: string; groupingMode?: string };
-    legalEntity?: { legal_name?: string };
-    client?: { legalName?: string };
-    calculation?: {
-      currency?: string;
-      subtotalMinor?: string;
-      taxMinor?: string;
-      totalMinor?: string;
-    };
-    lines?: readonly Row[];
-  }>,
-): Uint8Array {
+export function invoicePdf(snapshot: InvoiceTemplateSnapshot): Uint8Array {
   const locale = normalizeReportLocale(snapshot.locale);
-  const copy = labels[locale];
-  const rows = (snapshot.lines ?? [])
-    .map(
-      (line) =>
-        `<tr><td>${htmlEscape(line.description)}</td><td class="amount">${moneyText(snapshot.calculation?.currency, line.subtotal_minor, locale)}</td></tr>`,
-    )
-    .join('');
-  const legalEntity = snapshot.legalEntity as Record<string, unknown> | undefined;
-  const client = snapshot.client as Record<string, unknown> | undefined;
-  const calculation = snapshot.calculation;
-  const templateId = snapshot.template?.id ?? '';
-  const title =
-    templateId.includes('credit') || templateId.includes('adjustment')
-      ? copy.creditAdjustment
-      : templateId.includes('fixed') || templateId.includes('milestone')
-        ? copy.fixedMilestoneInvoice
-        : templateId.includes('expense')
-          ? copy.expenseInvoice
-          : templateId.includes('summary') || snapshot.commercial?.groupingMode === 'summary'
-            ? copy.laborSummaryInvoice
-            : copy.laborDetailedInvoice;
+  const rendered = renderInvoiceTemplate(snapshot);
+  const number = String(snapshot.number ?? snapshot.invoiceNumber ?? '');
+  return renderHtmlToPdf(
+    layout(`${rendered.title} ${htmlEscape(number)}`, rendered.subtitle, rendered.body, locale),
+  );
+}
+
+type ReportProject = Readonly<{
+  number?: unknown;
+  projectNumber?: unknown;
+  name?: unknown;
+  clientName?: unknown;
+}>;
+
+type DailyReportSnapshot = Readonly<{
+  id?: unknown;
+  project?: ReportProject;
+  projectNumber?: unknown;
+  projectName?: unknown;
+  date?: unknown;
+  workDate?: unknown;
+  work_date?: unknown;
+  worker?: unknown;
+  workerName?: unknown;
+  worker_name?: unknown;
+  summary?: unknown;
+  safetyRelated?: unknown;
+  safety_related?: unknown;
+  approvalState?: unknown;
+  approval_state?: unknown;
+  [key: string]: unknown;
+}>;
+
+type TechnicalReportSnapshot = Readonly<{
+  id?: unknown;
+  project?: ReportProject;
+  projectNumber?: unknown;
+  projectName?: unknown;
+  date?: unknown;
+  reportDate?: unknown;
+  report_date?: unknown;
+  createdAt?: unknown;
+  created_at?: unknown;
+  system?: unknown;
+  systemName?: unknown;
+  system_name?: unknown;
+  site?: unknown;
+  plantSite?: unknown;
+  plant_site?: unknown;
+  area?: unknown;
+  areaLine?: unknown;
+  area_line?: unknown;
+  station?: unknown;
+  stationMachine?: unknown;
+  station_machine?: unknown;
+  systemType?: unknown;
+  system_type?: unknown;
+  plcPlatform?: unknown;
+  plc_platform?: unknown;
+  controller?: unknown;
+  hmiScada?: unknown;
+  hmi_scada?: unknown;
+  networkProtocol?: unknown;
+  network_protocol?: unknown;
+  softwareVersion?: unknown;
+  software_version?: unknown;
+  programReference?: unknown;
+  program_reference?: unknown;
+  changes?: unknown;
+  changeSummary?: unknown;
+  change_summary?: unknown;
+  safetyRelated?: unknown;
+  safety_related?: unknown;
+  productionImpact?: unknown;
+  production_impact?: unknown;
+  validation?: unknown;
+  validationResult?: unknown;
+  validation_result?: unknown;
+  openRisk?: unknown;
+  open_risk?: unknown;
+  rollbackPlan?: unknown;
+  rollback_plan?: unknown;
+  rollbackInformation?: unknown;
+  rollback_information?: unknown;
+  approvalState?: unknown;
+  approval_state?: unknown;
+  technicalChanges?: readonly Readonly<Record<string, unknown>>[];
+  [key: string]: unknown;
+}>;
+
+function reportProjectTitle(
+  project: ReportProject | undefined,
+  fallbackNumber: unknown,
+  fallbackName: unknown,
+): string {
+  const number = project?.number ?? project?.projectNumber ?? fallbackNumber ?? '';
+  const name = project?.name ?? fallbackName ?? '';
+  return [number, name]
+    .filter((value) => String(value).length > 0)
+    .map(String)
+    .join(' · ');
+}
+
+function reportField(label: string, value: unknown): string {
+  return `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${htmlEscape(value)}</strong></div>`;
+}
+
+/** Render one immutable Daily Field Report source record in the requested locale. */
+export function dailyReportPdf(snapshot: DailyReportSnapshot): Uint8Array {
+  const locale = normalizeReportLocale(snapshot.locale);
+  const copy = localizedCopy[locale];
+  const projectTitle = reportProjectTitle(
+    snapshot.project,
+    snapshot.projectNumber,
+    snapshot.projectName,
+  );
+  const date = snapshot.date ?? snapshot.workDate ?? snapshot.work_date;
+  const status = snapshot.approvalState ?? snapshot.approval_state;
+  const safety = snapshot.safetyRelated ?? snapshot.safety_related;
+  const worker = snapshot.worker ?? snapshot.workerName ?? snapshot.worker_name;
+  const fields = [
+    reportField(copy.project, projectTitle),
+    reportField(copy.date, formatReportDate(date, locale)),
+    ...(worker === undefined || worker === null || worker === ''
+      ? []
+      : [reportField(copy.worker, worker)]),
+    reportField(copy.status, translateReportStatus(status, locale)),
+    reportField(copy.safetyRelated, translateReportBoolean(safety, locale)),
+  ].join('');
   return renderHtmlToPdf(
     layout(
-      `${title} ${snapshot.number}`,
-      `${String(legalEntity?.legal_name ?? legalEntity?.legalName ?? '')} → ${String(client?.legalName ?? '')}`,
-      `<div class="grid"><div><h2>${copy.from}</h2><p>${htmlEscape(legalEntity?.legal_name ?? legalEntity?.legalName)}<br>${htmlEscape(legalEntity?.billingAddress ?? legalEntity?.billing_address)}</p></div><div><h2>${copy.billTo}</h2><p>${htmlEscape(client?.legalName)}<br>${htmlEscape(client?.billingEmail ?? client?.billing_email)}</p></div></div><h2>${copy.invoiceDetail}</h2><table><thead><tr><th>${copy.description}</th><th class="amount">${copy.amount}</th></tr></thead><tbody>${rows || `<tr><td colspan="2" class="muted">${copy.noInvoiceLines}</td></tr>`}</tbody></table><div class="total"><div><span>${copy.subtotal}</span><span>${moneyText(calculation?.currency, calculation?.subtotalMinor, locale)}</span></div><div><span>${copy.tax}</span><span>${moneyText(calculation?.currency, calculation?.taxMinor, locale)}</span></div><div><strong>${copy.total}</strong><strong>${moneyText(calculation?.currency, calculation?.totalMinor, locale)}</strong></div></div>`,
+      copy.dailyReport,
+      `${projectTitle}${projectTitle && date ? ' · ' : ''}${formatReportDate(date, locale)}`,
+      `<h2>${copy.operationalRecord}</h2><div class="grid">${fields}</div><h2>${copy.summary}</h2><p>${htmlEscape(snapshot.summary)}</p>`,
+      locale,
+    ),
+  );
+}
+
+/** Render one immutable PLC / Technical Report source record in the requested locale. */
+export function technicalReportPdf(snapshot: TechnicalReportSnapshot): Uint8Array {
+  const locale = normalizeReportLocale(snapshot.locale);
+  const copy = localizedCopy[locale];
+  const projectTitle = reportProjectTitle(
+    snapshot.project,
+    snapshot.projectNumber,
+    snapshot.projectName,
+  );
+  const date =
+    snapshot.reportDate ??
+    snapshot.report_date ??
+    snapshot.date ??
+    snapshot.createdAt ??
+    snapshot.created_at;
+  const status = snapshot.approvalState ?? snapshot.approval_state;
+  const safety = snapshot.safetyRelated ?? snapshot.safety_related;
+  const fields = [
+    reportField(copy.project, projectTitle),
+    reportField(copy.date, formatReportDate(date, locale)),
+    reportField(copy.system, snapshot.system ?? snapshot.systemName ?? snapshot.system_name),
+    reportField(copy.site, snapshot.site ?? snapshot.plantSite ?? snapshot.plant_site),
+    reportField(copy.area, snapshot.area ?? snapshot.areaLine ?? snapshot.area_line),
+    reportField(
+      copy.station,
+      snapshot.station ?? snapshot.stationMachine ?? snapshot.station_machine,
+    ),
+    reportField(copy.status, translateReportStatus(status, locale)),
+    reportField(copy.safetyRelated, translateReportBoolean(safety, locale)),
+  ].join('');
+  const technicalDetails = [
+    [copy.systemType, snapshot.systemType ?? snapshot.system_type],
+    [copy.plcPlatform, snapshot.plcPlatform ?? snapshot.plc_platform],
+    [copy.controller, snapshot.controller],
+    [copy.hmiScada, snapshot.hmiScada ?? snapshot.hmi_scada],
+    [copy.networkProtocol, snapshot.networkProtocol ?? snapshot.network_protocol],
+    [copy.softwareVersion, snapshot.softwareVersion ?? snapshot.software_version],
+    [copy.programReference, snapshot.programReference ?? snapshot.program_reference],
+  ]
+    .filter(([, value]) => value !== undefined && value !== null && value !== '')
+    .map(([label, value]) => reportField(String(label), value))
+    .join('');
+  const changes = snapshot.technicalChanges ?? [];
+  const changeRows = changes
+    .map((change) => {
+      const dateValue = change.created_at ?? change.createdAt ?? change.date;
+      const detail = change.change_made ?? change.changeMade ?? change.detail;
+      const changeStatus = change.approval_state ?? change.approvalState;
+      return `<tr><td>${htmlEscape(formatReportDate(dateValue, locale))}</td><td>${htmlEscape(change.component)}</td><td>${htmlEscape(detail)}</td><td>${htmlEscape(translateReportStatus(changeStatus, locale))}</td></tr>`;
+    })
+    .join('');
+  const changesSection =
+    changes.length > 0
+      ? `<h2>${copy.technicalChanges}</h2><table><thead><tr><th>${copy.date}</th><th>${copy.detail}</th><th>${copy.changeSummary}</th><th>${copy.status}</th></tr></thead><tbody>${changeRows}</tbody></table>`
+      : '';
+  return renderHtmlToPdf(
+    layout(
+      copy.technicalReport,
+      `${projectTitle}${projectTitle && date ? ' · ' : ''}${formatReportDate(date, locale)}`,
+      `<section class="report-section"><h2>${copy.operationalRecord}</h2><div class="grid">${fields}</div></section>${technicalDetails ? `<section class="report-section"><h2>${copy.technicalRecords}</h2><div class="grid">${technicalDetails}</div></section>` : ''}<section class="report-section"><h2>${copy.changeSummary}</h2><p>${htmlEscape(snapshot.changeSummary ?? snapshot.change_summary ?? snapshot.changes)}</p><div class="grid">${reportField(copy.productionImpact, snapshot.productionImpact ?? snapshot.production_impact)}${reportField(copy.validation, snapshot.validation)}${reportField(copy.validationResult, snapshot.validationResult ?? snapshot.validation_result)}${reportField(copy.openRisk, snapshot.openRisk ?? snapshot.open_risk)}${reportField(copy.rollbackPlan, snapshot.rollbackPlan ?? snapshot.rollbackInformation ?? snapshot.rollback_information)}</div></section>${changesSection}`,
       locale,
     ),
   );

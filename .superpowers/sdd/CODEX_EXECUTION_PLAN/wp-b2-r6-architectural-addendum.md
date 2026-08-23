@@ -220,10 +220,14 @@ CREATE TABLE finance_command(
  FOREIGN KEY(command_hash) REFERENCES finance_hash_evidence(evidence_hash) ON UPDATE RESTRICT ON DELETE RESTRICT
 ) STRICT;
 CREATE TABLE finance_command_target(
- command_id TEXT PRIMARY KEY REFERENCES finance_command(command_id) ON UPDATE RESTRICT ON DELETE RESTRICT,
- target_kind TEXT NOT NULL, target_semantic_id TEXT NOT NULL, target_contract_version TEXT NOT NULL,
- UNIQUE(target_kind,target_semantic_id,target_contract_version)
-) STRICT;
+  command_id TEXT PRIMARY KEY REFERENCES finance_command(command_id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+  target_kind TEXT NOT NULL, target_semantic_id TEXT NOT NULL, target_contract_version TEXT NOT NULL,
+  UNIQUE(target_kind,target_semantic_id,target_contract_version)
+ ) STRICT;
+CREATE TRIGGER finance_command_target_no_update BEFORE UPDATE ON finance_command_target
+BEGIN SELECT RAISE(ABORT,'finance command target immutable'); END;
+CREATE TRIGGER finance_command_target_no_delete BEFORE DELETE ON finance_command_target
+BEGIN SELECT RAISE(ABORT,'finance command target immutable'); END;
 CREATE TRIGGER finance_command_no_delete BEFORE DELETE ON finance_command
 BEGIN SELECT RAISE(ABORT,'finance command immutable'); END;
 CREATE TRIGGER finance_command_guard_update BEFORE UPDATE ON finance_command
@@ -233,7 +237,13 @@ WHEN NOT(OLD.state='pending' AND NEW.state='completed' AND OLD.command_id=NEW.co
  AND OLD.operation=NEW.operation AND OLD.idempotency_key=NEW.idempotency_key
  AND OLD.principal_id=NEW.principal_id AND OLD.effective_at=NEW.effective_at
  AND OLD.target_kind=NEW.target_kind AND OLD.target_semantic_id=NEW.target_semantic_id
- AND OLD.payload_hash=NEW.payload_hash AND NEW.completed_at IS NOT NULL)
+ AND OLD.amount_minor IS NEW.amount_minor AND OLD.currency IS NEW.currency
+ AND OLD.payload_hash=NEW.payload_hash AND OLD.session_id_hash=NEW.session_id_hash
+ AND OLD.step_up_verified_at IS NEW.step_up_verified_at
+ AND OLD.step_up_expires_at IS NEW.step_up_expires_at
+ AND OLD.policy_revision_id IS NEW.policy_revision_id
+ AND OLD.policy_hash IS NEW.policy_hash
+ AND OLD.created_at=NEW.created_at AND NEW.completed_at IS NOT NULL)
 BEGIN SELECT RAISE(ABORT,'invalid finance command transition'); END;
 
 CREATE TABLE legal_entity_revision(

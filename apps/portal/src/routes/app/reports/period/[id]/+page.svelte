@@ -1,12 +1,43 @@
 <script lang="ts">
   import { base } from '$app/paths';
+  import { page } from '$app/stores';
+  import { onMount } from 'svelte';
+  import {
+    applyStandaloneDocumentLocale,
+    persistStandaloneLocale,
+    resolveStandaloneLocale,
+    standaloneActionMessage,
+    standaloneText,
+  } from '../../../standalone-locale';
+  import type { PortalLocale } from '$lib/portal-i18n';
+  import {
+    translateControlledValue,
+    type ControlledValueDomain,
+  } from '$lib/i18n/controlled-values';
+  import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
 
   type Row = Record<string, unknown>;
-  let { data } = $props();
+  let { data, form } = $props();
+  let localeOverride = $state<PortalLocale | null>(null);
+  const locale = $derived(
+    localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
+  );
+  const t = (key: string): string => standaloneText(locale, key);
+  const controlled = (domain: ControlledValueDomain, value: unknown): string =>
+    translateControlledValue(
+      locale,
+      domain,
+      value === null || value === undefined ? null : String(value),
+    );
   const report = $derived(data.report as Row);
   const project = $derived((report.project ?? {}) as Row);
   const summary = $derived((report.commercialSummary ?? {}) as Row);
-  const finance = $derived((report.financialSummary ?? {}) as Row);
+  const finance = $derived(
+    (report.financialSummary ?? {}) as Row & {
+      timeEconomics?: Row[];
+      expenseEconomics?: Row[];
+    },
+  );
   const calculation = $derived((report.commercialCalculation ?? []) as Row[]);
   const dailyReports = $derived((report.dailyReports ?? []) as Row[]);
   const technicalReports = $derived((report.technicalReports ?? []) as Row[]);
@@ -22,70 +53,102 @@
     minor: unknown,
     currency = String(summary.currency ?? project.currency ?? 'USD'),
   ) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(
-      Number(minor ?? 0) / 100,
-    );
+    new Intl.NumberFormat(locale === 'pt' ? 'pt-BR' : locale, {
+      style: 'currency',
+      currency,
+    }).format(Number(minor ?? 0) / 100);
   const reportLink = (id: unknown) => `${base}/app/reports/${String(id)}`;
+  const printReport = (): void => {
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement)
+      document.activeElement.blur();
+    window.print();
+  };
+  onMount(() => {
+    localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
+    persistStandaloneLocale(locale);
+    applyStandaloneDocumentLocale(locale);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === 'ja.portal.locale' || event.key === 'ja-portal-locale')
+        localeOverride = resolveStandaloneLocale(event.newValue);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  });
+  $effect(() => applyStandaloneDocumentLocale(locale));
 </script>
 
-<svelte:head><title>Period report · {display(project.number)}</title></svelte:head>
+<svelte:head><title>{t('Period report')} · {display(project.number)}</title></svelte:head>
 
 <main class="record-detail-page">
   <nav class="detail-nav">
-    <a href={`${base}/app/reports`}>← Reports</a><a
-      href={`${base}/app/projects/${String(project.id)}`}>Open project</a
+    <a href={`${base}/app/reports`}>← {t('Reports')}</a><a
+      href={`${base}/app/projects/${String(project.id)}`}>{t('Open project')}</a
+    ><button type="button" class="no-print print-trigger" onclick={printReport}
+      ><span aria-hidden="true">⎙</span> {t('Print Report')}</button
     >
   </nav>
 
+  {#if standaloneActionMessage(locale, form)}
+    <p class="action-message no-print" role="status" aria-live="polite">
+      {standaloneActionMessage(locale, form)}
+    </p>
+  {/if}
+
   <header class="record-detail-header">
     <div>
-      <p class="portal-kicker">{display(project.number)} / {display(report.reportType)}</p>
-      <h1>{display(project.name, 'Project period report')}</h1>
+      <p class="portal-kicker">
+        {display(project.number)} / {controlled('recordType', report.reportType)}
+      </p>
+      <h1>{display(project.name, t('Project period report'))}</h1>
       <p>
         {display(project.clientName)} · {display(report.periodStart)} → {display(report.periodEnd)}
       </p>
     </div>
     <div class="record-detail-actions">
       <span class="project-state"
-        >{String(report.audience).toUpperCase()} · {display(report.state)}</span
+        >{controlled('status', report.audience)} · {controlled('status', report.state)}</span
       >
       {#if report.pdfReady}<a
           class="preview-link"
           href={`${base}/app/api/reports/${String(report.id)}/pdf`}
           target="_blank"
-          rel="noreferrer">Open PDF</a
+          rel="noreferrer">{t('Open PDF')}</a
         >{/if}
     </div>
   </header>
 
   <section class="record-detail-grid report-calculation-grid">
     <article class="record-fact">
-      <span>Actual hours</span><strong>{hours(summary.actualMinutes)}</strong>
+      <span>{t('Actual hours')}</span><strong>{hours(summary.actualMinutes)}</strong>
     </article>
     <article class="record-fact">
-      <span>Approved hours</span><strong>{hours(summary.approvedMinutes)}</strong>
+      <span>{t('Approved hours')}</span><strong>{hours(summary.approvedMinutes)}</strong>
     </article>
     <article class="record-fact">
-      <span>Billable hours</span><strong>{hours(summary.billableMinutes)}</strong>
+      <span>{t('Billable hours')}</span><strong>{hours(summary.billableMinutes)}</strong>
     </article>
     <article class="record-fact">
-      <span>Calculated bill candidate</span><strong>{money(summary.candidateSubtotalMinor)}</strong>
+      <span>{t('Calculated bill candidate')}</span><strong
+        >{money(summary.candidateSubtotalMinor)}</strong
+      >
     </article>
     <article class="record-fact">
-      <span>Already invoiced</span><strong>{money(summary.invoicedNetMinor)}</strong>
+      <span>{t('Already invoiced')}</span><strong>{money(summary.invoicedNetMinor)}</strong>
     </article>
     <article class="record-fact">
-      <span>Approved unbilled WIP</span><strong>{money(summary.approvedUnbilledWipMinor)}</strong>
+      <span>{t('Approved unbilled WIP')}</span><strong
+        >{money(summary.approvedUnbilledWipMinor)}</strong
+      >
     </article>
     {#if internal}
       <article class="record-fact">
-        <span>Direct cost</span><strong>{money(finance.approvedCostMinor)}</strong>
+        <span>{t('Direct cost')}</span><strong>{money(finance.approvedCostMinor)}</strong>
       </article>
       <article class="record-fact">
-        <span>Contribution</span><strong>{money(finance.contributionMarginMinor)}</strong>
+        <span>{t('Contribution')}</span><strong>{money(finance.contributionMarginMinor)}</strong>
       </article>
       <article class="record-fact">
-        <span>Contribution margin</span><strong
+        <span>{t('Contribution margin')}</span><strong
           >{(Number(finance.contributionMarginBps ?? 0) / 100).toFixed(1)}%</strong
         >
       </article>
@@ -95,24 +158,28 @@
   <section class="detail-panel report-breakdown">
     <div class="panel-title">
       <div>
-        <h2>How this report was calculated</h2>
+        <h2>{t('How this report was calculated')}</h2>
         <p class="form-help">
-          Values are recalculated from approved source records, effective client rates, internal
-          cost rules, compensation rules, daily minimums, milestones and expense treatments. Refresh
-          after changing source data.
+          {t(
+            'Values are recalculated from approved source records, effective client rates, internal cost rules, compensation rules, daily minimums, milestones and expense treatments. Refresh after changing source data.',
+          )}
         </p>
       </div>
-      <span>{display(summary.billingModel)}</span>
+      <span>{controlled('billingStream', summary.billingModel)}</span>
     </div>
     <div class="table-wrap">
       <table>
         <thead
-          ><tr><th>Stream</th><th>Calculation basis</th><th>Minutes</th><th>Amount</th></tr></thead
+          ><tr
+            ><th>{t('Stream')}</th><th>{t('Calculation basis')}</th><th>{t('Minutes')}</th><th
+              >{t('Amount')}</th
+            ></tr
+          ></thead
         >
         <tbody>
           {#each calculation as line}
             <tr>
-              <td>{display(line.type)}</td>
+              <td>{controlled('billingStream', line.type)}</td>
               <td>{display(line.basis)}</td>
               <td
                 >{line.minutes === null || line.minutes === undefined
@@ -121,14 +188,14 @@
               >
               <td>{money(line.amountMinor)}</td>
             </tr>
-          {:else}<tr><td colspan="4">No calculated commercial lines.</td></tr>{/each}
+          {:else}<tr><td colspan="4">{t('No calculated commercial lines.')}</td></tr>{/each}
         </tbody>
       </table>
     </div>
     <p class="form-help">
-      Operational value: {money(summary.operationalRevenueCandidateMinor)} · Paid: {money(
+      {t('Operational value')}: {money(summary.operationalRevenueCandidateMinor)} · {t('Paid')}: {money(
         summary.paidMinor,
-      )} · Receivable: {money(summary.receivableMinor)}
+      )} · {t('Receivable')}: {money(summary.receivableMinor)}
     </p>
   </section>
 
@@ -136,49 +203,56 @@
     <section class="detail-panel report-breakdown">
       <div class="panel-title">
         <div>
-          <h2>Internal financial detail</h2>
+          <h2>{t('Internal financial detail')}</h2>
           <p class="form-help">
-            Internal loaded cost, worker compensation and margin remain restricted to Finance, Owner
-            and Auditor roles.
+            {t(
+              'Internal loaded cost, worker compensation and margin remain restricted to Finance, Owner and Auditor roles.',
+            )}
           </p>
         </div>
       </div>
       <div class="record-detail-grid">
         <article class="record-fact">
-          <span>Labor cost</span><strong>{money(finance.directLaborCostMinor)}</strong>
+          <span>{t('Labor cost')}</span><strong>{money(finance.directLaborCostMinor)}</strong>
         </article>
         <article class="record-fact">
-          <span>Worker compensation</span><strong>{money(finance.workerCompensationMinor)}</strong>
+          <span>{t('Worker compensation')}</span><strong
+            >{money(finance.workerCompensationMinor)}</strong
+          >
         </article>
         <article class="record-fact">
-          <span>Travel cost</span><strong>{money(finance.travelCostMinor)}</strong>
+          <span>{t('Travel cost')}</span><strong>{money(finance.travelCostMinor)}</strong>
         </article>
         <article class="record-fact">
-          <span>Other direct cost</span><strong>{money(finance.otherDirectCostMinor)}</strong>
+          <span>{t('Other direct cost')}</span><strong>{money(finance.otherDirectCostMinor)}</strong
+          >
         </article>
         <article class="record-fact">
-          <span>Missing rate rules</span><strong>{display(finance.missingRateCount, '0')}</strong>
+          <span>{t('Missing rate rules')}</span><strong
+            >{display(finance.missingRateCount, '0')}</strong
+          >
         </article>
       </div>
       <div class="table-wrap">
         <table>
           <thead
             ><tr
-              ><th>Date</th><th>Worker</th><th>Category</th><th>Hours</th><th>Client value</th><th
-                >Loaded cost</th
-              ><th>Compensation</th></tr
+              ><th>{t('Date')}</th><th>{t('Worker')}</th><th>{t('Category')}</th><th
+                >{t('Hours')}</th
+              ><th>{t('Client value')}</th><th>{t('Loaded cost')}</th><th>{t('Compensation')}</th
+              ></tr
             ></thead
           >
           <tbody>
             {#each finance.timeEconomics ?? [] as line}
               <tr
                 ><td>{display(line.workDate)}</td><td>{display(line.workerName)}</td><td
-                  >{display(line.category)}</td
+                  >{controlled('timeCategory', line.category)}</td
                 ><td>{hours(line.actualMinutes)}</td><td>{money(line.clientRevenueMinor)}</td><td
                   >{money(line.internalCostMinor)}</td
                 ><td>{money(line.workerCompensationMinor)}</td></tr
               >
-            {:else}<tr><td colspan="7">No time economics in this period.</td></tr>{/each}
+            {:else}<tr><td colspan="7">{t('No time economics in this period.')}</td></tr>{/each}
           </tbody>
         </table>
       </div>
@@ -188,7 +262,7 @@
   <div class="project-columns">
     <section class="detail-panel">
       <div class="panel-title">
-        <h2>Daily reports</h2>
+        <h2>{t('Daily reports')}</h2>
         <span>{dailyReports.length}</span>
       </div>
       {#each dailyReports as item}
@@ -197,28 +271,27 @@
             >{display(item.worker)} · {display(item.summary)}</small
           ></a
         >
-      {:else}<div class="empty">No daily reports in this period.</div>{/each}
+      {:else}<div class="empty">{t('No daily reports in this period.')}</div>{/each}
     </section>
     <section class="detail-panel">
       <div class="panel-title">
-        <h2>Time entries</h2>
+        <h2>{t('Time entries')}</h2>
         <span>{timeSummary.length}</span>
       </div>
       {#each timeSummary as item}<article>
           <div>
-            <strong>{display(item.date)} · {display(item.category)}</strong><small
-              >{display(item.worker)} · {display(item.approvalState)}</small
-            >
+            <strong>{display(item.date)} · {controlled('timeCategory', item.category)}</strong
+            ><small>{display(item.worker)} · {controlled('status', item.approvalState)}</small>
           </div>
           <b>{hours(item.minutes)}</b>
-        </article>{:else}<div class="empty">No time entries in this period.</div>{/each}
+        </article>{:else}<div class="empty">{t('No time entries in this period.')}</div>{/each}
     </section>
   </div>
 
   <div class="project-columns">
     <section class="detail-panel">
       <div class="panel-title">
-        <h2>Technical / PLC records</h2>
+        <h2>{t('Technical / PLC records')}</h2>
         <span>{technicalReports.length + technicalChanges.length}</span>
       </div>
       {#each technicalReports as item}<a
@@ -231,23 +304,26 @@
       {#each technicalChanges as item}<article>
           <div>
             <strong>{display(item.component)}</strong><small
-              >{display(item.changeMade)} · {display(item.approvalState)}</small
+              >{display(item.changeMade)} · {controlled('status', item.approvalState)}</small
             >
           </div>
         </article>{/each}
       {#if technicalReports.length === 0 && technicalChanges.length === 0}<div class="empty">
-          No technical records in this period.
+          {t('No technical records in this period.')}
         </div>{/if}
     </section>
     <section class="detail-panel">
       <div class="panel-title">
-        <h2>Expenses included</h2>
+        <h2>{t('Expenses included')}</h2>
         <span>{expenses.length}</span>
       </div>
       {#each expenses as item}<article>
           <div>
             <strong>{display(item.date)} · {display(item.vendor)}</strong><small
-              >{display(item.category)} · {display(item.treatment)}</small
+              >{controlled('expenseCategory', item.category)} · {controlled(
+                'billingStream',
+                item.treatment,
+              )}</small
             >
           </div>
           <b
@@ -255,7 +331,7 @@
               ? '—'
               : money(item.amount, String(item.currency ?? summary.currency))}</b
           >
-        </article>{:else}<div class="empty">No expenses in this period.</div>{/each}
+        </article>{:else}<div class="empty">{t('No expenses in this period.')}</div>{/each}
     </section>
   </div>
 
@@ -263,10 +339,11 @@
     <section class="detail-panel report-refresh-panel">
       <div class="panel-title">
         <div>
-          <h2>Recalculate snapshot</h2>
+          <h2>{t('Recalculate snapshot')}</h2>
           <p class="form-help">
-            This updates the report from the current database inputs and regenerates the PDF through
-            the normal report action.
+            {t(
+              'This updates the report from the current database inputs and regenerates the PDF through the normal report action.',
+            )}
           </p>
         </div>
       </div>
@@ -275,14 +352,22 @@
         <input type="hidden" name="periodStart" value={report.periodStart} />
         <input type="hidden" name="periodEnd" value={report.periodEnd} />
         <label
-          >Language<select name="reportLocale"
-            ><option value="en">English</option><option value="es">Español</option><option
-              value="pt">Português</option
-            ></select
+          >{t('Language')}<select name="reportLocale" value={locale}
+            ><option value="en">{t('English')}</option><option value="es">{t('Español')}</option
+            ><option value="pt">{t('Português')}</option></select
           ></label
         >
-        <button>Recalculate report</button>
+        <button>{t('Recalculate report')}</button>
       </form>
     </section>
   {/if}
+
+  <div class="no-print report-localized-pdf-slot">
+    <LocalizedPdfPanel
+      ownerType="period_report_revision"
+      ownerId={String(report.id)}
+      {locale}
+      title={t('PDF')}
+    />
+  </div>
 </main>

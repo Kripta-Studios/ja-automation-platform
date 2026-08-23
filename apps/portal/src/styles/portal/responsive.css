@@ -3,20 +3,76 @@
   display: none;
 }
 
-a.skip-link {
-  transform: translateY(0);
+.skip-link {
+  pointer-events: none;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
   pointer-events: auto;
 }
 
-a.skip-link:focus,
-a.skip-link:focus-visible {
-  transform: translateY(0);
-  pointer-events: auto;
+/* The management forms intentionally carry an inline flex layout while open.
+   Native <details> should still remove that panel from intrinsic sizing when
+   closed; otherwise the hidden form can widen a tablet page. */
+.worker-actions details:not([open]) > .worker-manage-panel {
+  display: none !important;
+}
+
+.worker-manage-panel {
+  box-sizing: border-box;
+  max-width: min(17.5rem, calc(100vw - 2rem));
 }
 
 @media (max-width: 1000px) {
+  .portal-layout > header {
+    min-width: 0;
+    gap: 0.75rem;
+    padding-inline: 1rem;
+  }
+
+  .header-status,
+  .account-menu-wrap,
+  .account-trigger {
+    min-width: 0;
+  }
+
+  .header-status {
+    flex: 1 1 auto;
+  }
+
+  .account-menu-wrap {
+    flex: 0 1 auto;
+  }
+
+  .user-copy {
+    min-width: 0;
+    max-width: 9rem;
+  }
+
+  .user-copy b,
+  .user-copy small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .contact-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .contact-actions {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .contact-actions details {
+    width: min(100%, 19rem);
+  }
+
   .login-page {
-    grid-template-columns: minmax(26rem, 1fr) minmax(25rem, 0.9fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
   }
 
   .login-page > .login-showcase,
@@ -36,6 +92,16 @@ a.skip-link:focus-visible {
   .report-workspace {
     grid-template-columns: 1fr;
   }
+
+  /* The report detail lives beside the persistent navigation on tablet
+     widths.  Its content width is therefore much smaller than the viewport;
+     collapse the fixed-width field groups before their tracks can force page
+     overflow. */
+  .report-detail-form [data-ui='field-group'][data-columns='2'],
+  .report-detail-form [data-ui='field-group'][data-columns='3'],
+  .report-detail-form [data-ui='field-group'][data-columns='auto'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 900px) {
@@ -50,7 +116,7 @@ a.skip-link:focus-visible {
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 767px) {
   .timesheet-heading,
   .timesheet-copy-body {
     align-items: stretch;
@@ -206,6 +272,10 @@ a.skip-link:focus-visible {
 }
 
 @media (max-width: 620px) {
+  .user-copy {
+    display: none;
+  }
+
   .bottom-nav {
     position: fixed;
     z-index: 10;
@@ -274,6 +344,45 @@ a.skip-link:focus-visible {
 
   .metric strong {
     font-size: 2rem;
+  }
+}
+
+@media (max-width: 800px) {
+  .login-page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .login-page > .login-showcase,
+  .login-page > .login-panel {
+    min-height: auto;
+  }
+
+  .login-page > .login-showcase {
+    padding: 2rem 1.5rem;
+  }
+
+  .login-page > .login-panel {
+    padding: 1.5rem 1rem 2.2rem;
+  }
+
+  .portal-title {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .portal-heading-tools,
+  .global-search {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .project-board-row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .project-board-row small {
+    grid-column: 1 / -1;
   }
 }
 
@@ -384,7 +493,8 @@ a.skip-link:focus-visible {
     gap: 1.5rem;
   }
 
-  .dashboard-hero > strong {
+  .dashboard-hero > strong,
+  .dashboard-hero > .dashboard-project-count {
     text-align: left;
   }
 
@@ -442,7 +552,7 @@ a.skip-link:focus-visible {
   }
 
   .invoice-paper table {
-    font-size: 0.68rem;
+    font-size: 0.75rem;
   }
 
   .invoice-paper th,
@@ -457,8 +567,78 @@ a.skip-link:focus-visible {
 }
 
 @media print {
+  .skip-link {
+    display: none !important;
+  }
+
   .no-print {
-    display: none;
+    display: none !important;
+  }
+
+  .record-detail-page {
+    min-height: auto !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .record-detail-page > .detail-nav {
+    display: none !important;
+  }
+
+  .portal-layout > aside,
+  .portal-layout > header,
+  .portal-chrome > nav,
+  .nav-backdrop,
+  .search-popover,
+  .menu-button {
+    display: none !important;
+  }
+
+  .portal-layout {
+    display: block !important;
+    min-height: auto;
+  }
+
+  .portal-layout > main {
+    padding: 0 !important;
+    background: #fff !important;
+    width: 100% !important;
+  }
+
+  .print-only-header {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid #000;
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+  }
+  .print-only-header img {
+    height: 40px;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  .print-only-header .print-identity small {
+    font-size: 0.7rem;
+    color: #555;
+    font-weight: 600;
+  }
+  .print-only-header .print-meta {
+    text-align: right;
+  }
+  .print-only-header .print-meta span {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #555;
+  }
+  .print-only-header .print-meta strong {
+    font-size: 1.2rem;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
   }
 
   .invoice-preview-page {

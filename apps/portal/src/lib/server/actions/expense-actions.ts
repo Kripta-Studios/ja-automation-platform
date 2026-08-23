@@ -1,9 +1,13 @@
 import { createHash } from 'node:crypto';
-import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import { relative, resolve } from 'node:path';
-import { expenseInputSchema, versionedRecordSchema } from '@ja/schemas';
-import { fail } from '@sveltejs/kit';
-import { actionFailure, openPortalRepository } from '$lib/server/portal-repository';
+import { expenseInputSchema, minorUnitsSchema, versionedRecordSchema } from '@ja/schemas';
+import { z } from 'zod';
+import { openPortalRepository } from '$lib/server/portal-repository';
+import {
+  removePrivateFileIfPresent,
+  writePrivateFileExclusive,
+} from '$lib/server/private-artifact-access';
+import { actionFail, actionFailure, actionSuccess } from './action-message';
 import {
   decimalToMinor,
   formObject,
@@ -11,14 +15,76 @@ import {
   type PortalActionEvent,
 } from '$lib/server/action-utils';
 
+const expenseCategorySchema = z.enum([
+  'hotel',
+  'rental_car',
+  'fuel',
+  'tolls',
+  'parking',
+  'airfare',
+  'ground_transport',
+  'meals',
+  'per_diem',
+  'materials',
+  'tools',
+  'shipping',
+  'phone_data',
+  'visa_permit',
+  'other',
+]);
+
+/**
+ * The update contract deliberately exposes only fields supported by
+ * PortalRepository.updateExpense. Receipt replacement is intentionally not
+ * accepted by this browser action; the portal does not pretend to support
+ * uploading/replacing a receipt from an edit form.
+ */
+const expenseUpdateSchema = versionedRecordSchema.extend({
+  spentOn: z.iso.date().optional(),
+  vendor: z.string().trim().min(1).max(200).optional(),
+  category: expenseCategorySchema.optional(),
+  description: z.string().trim().max(5000).optional(),
+  amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
+  projectCurrencyAmountMinor: minorUnitsSchema
+    .optional()
+    .transform((value) => (value ? BigInt(value) : undefined)),
+  fxRateBps: z.coerce.number().int().positive().optional(),
+  paymentMethod: z.string().trim().max(80).optional(),
+});
+
+/** Normalize the browser's decimal controls into the exact minor-unit update contract. */
+export function parseExpenseUpdateForm(object: Record<string, unknown>) {
+  const payload = { ...object };
+  const amountMinor = decimalToMinor(payload.amount);
+  payload.amountMinor = amountMinor ?? payload.amount;
+  delete payload.amount;
+
+  const projectCurrencyAmount = payload.projectCurrencyAmount;
+  if (projectCurrencyAmount === '' || projectCurrencyAmount === undefined) {
+    delete payload.projectCurrencyAmount;
+  } else {
+    payload.projectCurrencyAmountMinor =
+      decimalToMinor(projectCurrencyAmount) ?? projectCurrencyAmount;
+    delete payload.projectCurrencyAmount;
+  }
+
+  // Empty optional controls should be omitted rather than coerced to zero.
+  for (const key of ['fxRateBps', 'paymentMethod']) {
+    if (payload[key] === '') delete payload[key];
+  }
+  if (payload.description === '') delete payload.description;
+  return expenseUpdateSchema.safeParse(payload);
+}
+
 export const expenseActions = {
   createExpense: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'expenses')
-      return fail(404, { success: false, message: 'Wrong section' });
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
     const receipt = object.receipt;
+    const receiptFile = receipt instanceof File ? receipt : undefined;
     object.receiptRequired =
-      object.receiptRequired === 'on' || (receipt instanceof File && receipt.size > 0);
+      object.receiptRequired === 'on' || (receiptFile !== undefined && receiptFile.size > 0);
     object.amountMinor = decimalToMinor(object.amount);
     for (const key of [
       'projectCurrencyAmountMinor',
@@ -32,18 +98,24 @@ export const expenseActions = {
     }
     const preflight = expenseInputSchema.safeParse(object);
     if (!preflight.success)
-      return fail(400, {
-        success: false,
-        message: 'Check expense fields',
-        fields: preflight.error.flatten().fieldErrors,
-      });
+      return actionFail(
+        400,
+        'action.validation.expenseFields',
+        {},
+        'Check expense fields',
+        { fields: preflight.error.flatten().fieldErrors },
+      );
     const context = openPortalRepository(locals);
     let createdReceiptId: string | undefined;
     let createdReceiptStorageKey: string | undefined;
     let createdReceiptStoragePath: string | undefined;
     let receiptFileCreated = false;
+    let reservationId: string | undefined;
     try {
-      if (receipt instanceof File && receipt.size > 0) {
+      if (receiptFile && receiptFile.size > 0) {
+        const receiptType = receiptFile.type;
+        const receiptSize = receiptFile.size;
+        const receiptName = receiptFile.name;
         if (
           ![
             'image/jpeg',
@@ -52,33 +124,35 @@ export const expenseActions = {
             'image/heic',
             'image/heif',
             'application/pdf',
-          ].includes(receipt.type) ||
-          receipt.size > 10_000_000
+          ].includes(receiptType) ||
+          receiptSize > 10_000_000
         )
-          return fail(400, {
-            success: false,
-            message: 'Receipt must be JPG, PNG or PDF under 10 MB',
-          });
-        const bytes = new Uint8Array(await receipt.arrayBuffer());
-        if (!receiptSignature(receipt.type, bytes))
-          return fail(400, {
-            success: false,
-            message: 'Receipt content does not match its declared file type',
-          });
+          return actionFail(
+            400,
+            'action.validation.receiptTypeOrSize',
+            {},
+            'Receipt must be JPG, PNG or PDF under 10 MB',
+          );
+        const bytes = new Uint8Array(await receiptFile.arrayBuffer());
+        if (!receiptSignature(receiptType, bytes))
+          return actionFail(
+            400,
+            'action.validation.receiptContent',
+            {},
+            'Receipt content does not match its declared file type',
+          );
+
+        const reservation = context.v3.reserveUpload(context.principal, {
+          projectId: String(object.projectId),
+          originalFilename: receiptName.slice(0, 200),
+          artifactType: 'receipt',
+          description: 'Expense receipt',
+          sensitivity: 'internal',
+        });
+        reservationId = reservation.reservationId;
+
         const sha256 = createHash('sha256').update(bytes).digest('hex');
-        const extension =
-          receipt.type === 'application/pdf'
-            ? 'pdf'
-            : receipt.type === 'image/png'
-              ? 'png'
-              : receipt.type === 'image/webp'
-                ? 'webp'
-                : receipt.type === 'image/heic'
-                  ? 'heic'
-                  : receipt.type === 'image/heif'
-                    ? 'heif'
-                    : 'jpg';
-        const storageKey = `${sha256.slice(0, 2)}/${sha256}.${extension}`;
+        const storageKey = reservation.storageKey;
         const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
         const target = resolve(root, storageKey);
         const targetRelativePath = relative(root, target);
@@ -87,43 +161,56 @@ export const expenseActions = {
           targetRelativePath.split(/[\\/]/).includes('..') ||
           targetRelativePath.startsWith('\\') ||
           targetRelativePath.startsWith('/')
-        )
-          return fail(400, { success: false, message: 'Invalid receipt path' });
+        ) {
+          context.v3.cancelUploadReservation(context.principal, reservation.reservationId);
+          reservationId = undefined;
+          return actionFail(400, 'action.validation.receiptPath', {}, 'Invalid receipt path');
+        }
+
         createdReceiptStoragePath = target;
-        await mkdir(resolve(root, sha256.slice(0, 2)), { recursive: true });
         try {
-          await writeFile(target, bytes, { flag: 'wx' });
+          await writePrivateFileExclusive(root, storageKey, bytes);
           receiptFileCreated = true;
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
         }
-        const document = context.repository.registerReceipt(context.principal, {
-          projectId: String(object.projectId),
+
+        const document = context.v3.finalizeUpload(context.principal, reservation.reservationId, {
           sha256,
-          mediaType: receipt.type,
-          byteLength: receipt.size,
-          storageKey,
-          originalFilename: receipt.name.slice(0, 200),
+          mediaType: receiptType,
+          byteLength: receiptSize,
         });
-        object.receiptDocumentId = document.id;
+        reservationId = undefined;
+
+        object.receiptDocumentId = reservation.reservationId;
         if (document.created) {
-          createdReceiptId = document.id;
+          createdReceiptId = reservation.reservationId;
           createdReceiptStorageKey = storageKey;
         } else if (receiptFileCreated) {
-          await unlink(target);
+          await removePrivateFileIfPresent(root, storageKey);
           receiptFileCreated = false;
         }
       }
       const parsed = expenseInputSchema.safeParse(object);
       if (!parsed.success)
-        return fail(400, {
-          success: false,
-          message: 'Check expense fields',
-          fields: parsed.error.flatten().fieldErrors,
-        });
+        return actionFail(
+          400,
+          'action.validation.expenseFields',
+          {},
+          'Check expense fields',
+          { fields: parsed.error.flatten().fieldErrors },
+        );
       context.repository.createExpense(context.principal, parsed.data);
-      return { success: true, message: 'Expense draft saved' };
+      return actionSuccess('action.expense.draftSaved', {}, 'Expense draft saved');
     } catch (error) {
+      if (reservationId) {
+        try {
+          context.v3.cancelUploadReservation(context.principal, reservationId);
+        } catch {
+          // Preserve the original expense error; stale cleanup handles a
+          // reservation that could not be cancelled synchronously.
+        }
+      }
       if (createdReceiptId && createdReceiptStorageKey) {
         const removedKey = context.repository.removeUnreferencedReceipt(
           context.principal,
@@ -139,10 +226,10 @@ export const expenseActions = {
             !relativePath.startsWith('\\') &&
             !relativePath.startsWith('/')
           )
-            await unlink(target).catch(() => undefined);
+            await removePrivateFileIfPresent(root, removedKey).catch(() => undefined);
         }
       }
-      if (receiptFileCreated && createdReceiptStoragePath) {
+      if (receiptFileCreated && createdReceiptStorageKey && createdReceiptStoragePath) {
         const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
         const relativePath = relative(root, createdReceiptStoragePath);
         if (
@@ -151,8 +238,30 @@ export const expenseActions = {
           !relativePath.startsWith('\\') &&
           !relativePath.startsWith('/')
         )
-          await unlink(createdReceiptStoragePath).catch(() => undefined);
+          await removePrivateFileIfPresent(root, createdReceiptStorageKey).catch(() => undefined);
       }
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  updateExpense: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'expenses')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const parsed = parseExpenseUpdateForm(await formObject(request));
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.validation.expenseFields',
+        {},
+        'Check expense fields',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      context.repository.updateExpense(context.principal, parsed.data);
+      return actionSuccess('action.expense.draftSaved', {}, 'Expense changes saved');
+    } catch (error) {
       return actionFailure(error);
     } finally {
       context.sqlite.close();
@@ -160,13 +269,30 @@ export const expenseActions = {
   },
   submitExpense: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'expenses')
-      return fail(404, { success: false, message: 'Wrong section' });
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = versionedRecordSchema.safeParse(await formObject(request));
-    if (!parsed.success) return fail(400, { success: false, message: 'Invalid expense record' });
+    if (!parsed.success)
+      return actionFail(400, 'action.validation.expenseRecord', {}, 'Invalid expense record');
     const context = openPortalRepository(locals);
     try {
       context.repository.submitExpense(context.principal, parsed.data.id, parsed.data.version);
-      return { success: true, message: 'Expense submitted' };
+      return actionSuccess('action.expense.submitted', {}, 'Expense submitted');
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  deleteExpense: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'expenses' && params.section !== 'approvals')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const parsed = versionedRecordSchema.safeParse(await formObject(request));
+    if (!parsed.success)
+      return actionFail(400, 'action.validation.expenseRecord', {}, 'Invalid expense record');
+    const context = openPortalRepository(locals);
+    try {
+      context.repository.deleteExpense(context.principal, parsed.data.id, parsed.data.version);
+      return actionSuccess('action.expense.removedOrVoided', {}, 'Expense entry removed/voided');
     } catch (error) {
       return actionFailure(error);
     } finally {

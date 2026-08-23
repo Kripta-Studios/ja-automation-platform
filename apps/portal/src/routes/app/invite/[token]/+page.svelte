@@ -1,6 +1,20 @@
 <script lang="ts">
   import { base } from '$app/paths';
-  let { data }: { data: { token: string } } = $props();
+  import { page } from '$app/stores';
+  import { onMount } from 'svelte';
+  import {
+    applyStandaloneDocumentLocale,
+    persistStandaloneLocale,
+    resolveStandaloneLocale,
+    standaloneText,
+  } from '../../standalone-locale';
+  import type { PortalLocale } from '$lib/portal-i18n';
+  let { data }: { data: { token: string; locale?: PortalLocale } } = $props();
+  let localeOverride = $state<PortalLocale | null>(null);
+  const locale = $derived(
+    localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
+  );
+  const t = (key: string): string => standaloneText(locale, key);
   let name = $state('');
   let password = $state('');
   let message = $state('');
@@ -19,25 +33,38 @@
     };
     busy = false;
     message = result.accepted
-      ? 'Account activated. You can sign in now.'
-      : (result.error ?? 'Invitation could not be activated.');
+      ? t('Account activated. You can sign in now.')
+      : t('Invitation could not be activated.');
   }
+
+  onMount(() => {
+    localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
+    persistStandaloneLocale(locale);
+    applyStandaloneDocumentLocale(locale);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === 'ja.portal.locale' || event.key === 'ja-portal-locale')
+        localeOverride = resolveStandaloneLocale(event.newValue);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  });
+  $effect(() => applyStandaloneDocumentLocale(locale));
 </script>
 
-<svelte:head><title>Activate J&A account</title></svelte:head>
+<svelte:head><title>{t('Activate J&A account')}</title></svelte:head>
 <main class="invite-page">
-  <p class="portal-kicker">J&A / INVITATION</p>
-  <h1>Activate your account</h1>
-  <p>Use a password of at least 12 characters. This invitation can be used once.</p>
+  <p class="portal-kicker">{t('J&A / INVITATION')}</p>
+  <h1>{t('Activate your account')}</h1>
+  <p>{t('Use a password of at least 12 characters. This invitation can be used once.')}</p>
   <form
     onsubmit={(event) => {
       event.preventDefault();
       void accept();
     }}
   >
-    <label>Full name<input bind:value={name} autocomplete="name" required /></label>
+    <label>{t('Full name')}<input bind:value={name} autocomplete="name" required /></label>
     <label
-      >Password<input
+      >{t('Password')}<input
         bind:value={password}
         type="password"
         minlength="12"
@@ -45,8 +72,8 @@
         required
       /></label
     >
-    <button disabled={busy}>{busy ? 'Activating…' : 'Activate account'}</button>
+    <button disabled={busy}>{busy ? t('Activating…') : t('Activate account')}</button>
   </form>
   {#if message}<p role="status">{message}</p>{/if}
-  <a href={`${base}/app/login`}>Return to sign in</a>
+  <a href={`${base}/app/login`}>{t('Return to sign in')}</a>
 </main>

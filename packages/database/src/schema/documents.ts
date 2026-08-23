@@ -30,6 +30,8 @@ export const documents = sqliteTable(
     scannedAt: text('scanned_at'),
     scanProvider: text('scan_provider'),
     artifactMetadataJson: text('artifact_metadata_json'),
+    artifactClassification: text('artifact_classification'),
+    classificationProvenance: text('classification_provenance'),
     version: integer('version').notNull().default(1),
     ...lifecycle,
   },

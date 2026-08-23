@@ -1,13 +1,28 @@
-import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
+import { createHash, randomUUID } from 'node:crypto';
 import {
-  accountingPackArtifacts,
+  closeSync,
+  fsyncSync,
+  linkSync,
+  lstatSync,
+  openSync,
+  readFileSync,
+  statSync,
+  unlinkSync,
+  writeSync,
+} from 'node:fs';
+import { basename, dirname, relative, resolve } from 'node:path';
+import {
+  accountingPackArtifactBuilders,
   invoicePdf,
   periodReportPdf,
   REPORT_TEMPLATE_VERSION,
+  type AccountingPackExportType,
   type ReportLocale,
 } from './exports.ts';
+import { runLocalizedPdfVariantJob, type LocalizedPdfJobRepository } from './localized-pdf-jobs.ts';
+import { ensureNoSymlinkComponents } from './private-storage.ts';
+
+export type { AccountingPackExportType } from './exports.ts';
 
 export type ArtifactJobRepository<TPrincipal> = Readonly<{
   createInvoiceDraft: (
@@ -21,7 +36,22 @@ export type ArtifactJobRepository<TPrincipal> = Readonly<{
 export type ArtifactJobV3<TPrincipal> = Readonly<{
   runDueJobs: (
     limit: number,
-    handlers: Readonly<Record<string, (payload: unknown) => void>>,
+    handlers: Readonly<
+      Record<
+        string,
+        (
+          payload: unknown,
+          execution: Readonly<{
+            jobId: string;
+            runId: string;
+            tenantId: string;
+            deploymentId: string;
+            requiredCapability: string;
+            fenceVersion: number;
+          }>,
+        ) => void | (() => void)
+      >
+    >,
   ) => { processed: number; failed: number; overdueMarked: number };
   invoiceSnapshot: (principal: TPrincipal, invoiceId: string) => Readonly<Record<string, unknown>>;
   recordInvoicePdf: (
@@ -63,11 +93,42 @@ export type ArtifactJobV3<TPrincipal> = Readonly<{
     sha256: string,
     byteLength: number,
   ) => { id: string; created: boolean };
+  /**
+   * Persist a failed format attempt when the database supports independent Accounting Pack
+   * format statuses.  Kept optional so older adapters can still process the ready formats while
+   * they roll forward to the status-aware contract.
+   */
+  recordAccountingPackExportFailure?: (
+    principal: TPrincipal,
+    packId: string,
+    exportType: AccountingPackExportType,
+    error: string,
+  ) => void;
+  cleanupTemporaryUploadReservationsFromJob?: (
+    execution: Readonly<{
+      jobId: string;
+      runId: string;
+      tenantId: string;
+      deploymentId: string;
+      requiredCapability: string;
+      fenceVersion: number;
+    }>,
+    olderThan: string,
+    removeFile: (storageKey: string) => void,
+  ) => number;
   recordDocumentScan: (
     principal: TPrincipal,
     documentId: string,
     result: 'clean' | 'rejected',
     provider: string,
+    execution: Readonly<{
+      jobId: string;
+      runId: string;
+      tenantId: string;
+      deploymentId: string;
+      requiredCapability: string;
+      fenceVersion: number;
+    }>,
   ) => void;
 }>;
 
@@ -76,36 +137,194 @@ export type ArtifactJobContext<TPrincipal> = Readonly<{
   v3: ArtifactJobV3<TPrincipal>;
   principal: TPrincipal;
   documentRoot?: string;
+  /** Optional 0023 adapter supplied by the database/application composition root. */
+  localizedPdf?: LocalizedPdfJobRepository;
+}>;
+
+export type AccountingPackArtifactResult = Readonly<{
+  packId: string;
+  exportType: AccountingPackExportType;
+  status: 'ready' | 'failed';
+  storageKey?: string;
+  sha256?: string;
+  byteLength?: number;
+  error?: string;
 }>;
 
 function safeKey(key: string): void {
-  if (!key || key.startsWith('/') || key.includes('\\') || key.split('/').includes('..'))
+  if (
+    !key ||
+    key.startsWith('/') ||
+    key.includes('\\') ||
+    key.includes('\0') ||
+    key.split('/').some((segment) => !segment || segment === '.' || segment === '..')
+  )
     throw new Error('Unsafe artifact key');
 }
 
-function writeArtifact(
+function metadataForBytes(bytes: Uint8Array): { sha256: string; byteLength: number } {
+  return {
+    sha256: createHash('sha256').update(bytes).digest('hex'),
+    byteLength: bytes.byteLength,
+  };
+}
+
+function metadataForFile(path: string): { sha256: string; byteLength: number } {
+  const stat = statSync(path);
+  if (!stat.isFile()) throw new Error('Artifact destination is not a regular file');
+  return metadataForBytes(readFileSync(path));
+}
+
+function isMissingFile(error: unknown): boolean {
+  return (error as NodeJS.ErrnoException | undefined)?.code === 'ENOENT';
+}
+
+function removeTemporaryFile(path: string): void {
+  try {
+    unlinkSync(path);
+  } catch (error) {
+    if (!isMissingFile(error)) throw error;
+  }
+}
+
+function removePrivateFile(root: string, storageKey: string): void {
+  safeKey(storageKey);
+  const rootPath = resolve(root);
+  const target = resolve(rootPath, storageKey);
+  const rel = relative(rootPath, target);
+  if (rel === '' || rel.split(/[\\/]/).includes('..') || rel.startsWith('\\'))
+    throw new Error('Temporary upload path escaped private root');
+  const directory = dirname(target);
+  ensureNoSymlinkComponents(rootPath, directory, 'Temporary upload cleanup');
+  try {
+    const stats = lstatSync(target);
+    if (stats.isSymbolicLink() || !stats.isFile())
+      throw new Error('Temporary upload destination is not a regular file');
+    unlinkSync(target);
+    fsyncDirectory(directory);
+  } catch (error) {
+    if (!isMissingFile(error)) throw error;
+  }
+}
+
+function fsyncDirectory(path: string): void {
+  let descriptor: number | undefined;
+  try {
+    descriptor = openSync(path, 'r');
+    fsyncSync(descriptor);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException | undefined)?.code;
+    // Directory fsync is not available on every supported filesystem/OS.  The file itself is
+    // still fsynced before publication, so only the unsupported directory operation is ignored.
+    if (!['EINVAL', 'EISDIR', 'ENOTSUP', 'EPERM'].includes(code ?? '')) throw error;
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
+}
+
+function artifactCollision(
+  target: string,
+  expected: { sha256: string; byteLength: number },
+): Error {
+  return new Error(
+    `Artifact destination collision at ${target}; existing content does not match the generated sha256 ${expected.sha256}`,
+  );
+}
+
+export function writeArtifact(
   root: string,
   storageKey: string,
   bytes: Uint8Array,
 ): { sha256: string; byteLength: number } {
   safeKey(storageKey);
-  const target = resolve(root, storageKey);
-  const rel = relative(root, target);
-  if (rel.split(/[\\/]/).includes('..') || rel.startsWith('\\'))
+  const rootPath = resolve(root);
+  const target = resolve(rootPath, storageKey);
+  const rel = relative(rootPath, target);
+  if (rel === '' || rel.split(/[\\/]/).includes('..') || rel.startsWith('\\'))
     throw new Error('Artifact path escaped private root');
-  mkdirSync(resolve(target, '..'), { recursive: true });
-  let existing: Uint8Array | undefined;
+  const directory = dirname(target);
+  ensureNoSymlinkComponents(rootPath, directory, 'Artifact');
+  ensureNoSymlinkComponents(rootPath, directory, 'Artifact');
+  const expected = metadataForBytes(bytes);
+
+  // Idempotent retries may reuse an already-published artifact only when its complete content
+  // matches the deterministic output.  Existence alone is never a successful write.
   try {
-    writeFileSync(target, bytes, { flag: 'wx' });
+    if (lstatSync(target).isSymbolicLink())
+      throw new Error('Artifact destination may not be a symbolic link');
+    const existing = metadataForFile(target);
+    if (existing.sha256 === expected.sha256 && existing.byteLength === expected.byteLength)
+      return existing;
+    throw artifactCollision(target, expected);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
-    existing = readFileSync(target);
+    if (!isMissingFile(error)) throw error;
   }
-  const persisted = existing ?? bytes;
-  return {
-    sha256: createHash('sha256').update(persisted).digest('hex'),
-    byteLength: persisted.byteLength,
-  };
+
+  // Build in the destination directory so publication is atomic on the same filesystem.  A
+  // hard-link publish is used instead of rename because rename can overwrite a file created by a
+  // concurrent retry on POSIX.  link(2) is an atomic no-replace publication and fails with EEXIST.
+  const temporary = resolve(directory, `.${basename(target)}.${randomUUID()}.tmp`);
+  let temporaryOpen = false;
+  try {
+    const descriptor = openSync(temporary, 'wx');
+    temporaryOpen = true;
+    try {
+      let offset = 0;
+      while (offset < bytes.byteLength) {
+        const written = writeSync(descriptor, bytes, offset, bytes.byteLength - offset);
+        if (written <= 0) throw new Error('Artifact write made no progress');
+        offset += written;
+      }
+      fsyncSync(descriptor);
+    } finally {
+      closeSync(descriptor);
+    }
+
+    // Re-check immediately before publication so a concurrent producer can only win if it wrote
+    // the exact same deterministic bytes.
+    try {
+      if (lstatSync(target).isSymbolicLink())
+        throw new Error('Artifact destination may not be a symbolic link');
+      const existing = metadataForFile(target);
+      if (existing.sha256 === expected.sha256 && existing.byteLength === expected.byteLength) {
+        removeTemporaryFile(temporary);
+        temporaryOpen = false;
+        return existing;
+      }
+      throw artifactCollision(target, expected);
+    } catch (error) {
+      if (!isMissingFile(error)) throw error;
+    }
+
+    try {
+      linkSync(temporary, target);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException | undefined)?.code !== 'EEXIST') throw error;
+      if (lstatSync(target).isSymbolicLink())
+        throw new Error('Artifact destination may not be a symbolic link');
+      const existing = metadataForFile(target);
+      if (existing.sha256 !== expected.sha256 || existing.byteLength !== expected.byteLength)
+        throw artifactCollision(target, expected);
+      removeTemporaryFile(temporary);
+      temporaryOpen = false;
+      return existing;
+    }
+    removeTemporaryFile(temporary);
+    temporaryOpen = false;
+    ensureNoSymlinkComponents(rootPath, directory, 'Artifact');
+    fsyncDirectory(directory);
+
+    // Verify the published file, not merely the bytes that were written to the temporary file.
+    const publishedStats = lstatSync(target);
+    if (publishedStats.isSymbolicLink() || !publishedStats.isFile())
+      throw new Error('Artifact destination is not a regular file');
+    const persisted = metadataForFile(target);
+    if (persisted.sha256 !== expected.sha256 || persisted.byteLength !== expected.byteLength)
+      throw new Error(`Published artifact verification failed at ${target}`);
+    return persisted;
+  } finally {
+    if (temporaryOpen) removeTemporaryFile(temporary);
+  }
 }
 
 /**
@@ -117,9 +336,24 @@ export function runArtifactJobs<TPrincipal>(context: ArtifactJobContext<TPrincip
   processed: number;
   failed: number;
   overdueMarked: number;
+  accountingPackResults?: readonly AccountingPackArtifactResult[];
 } {
   const root = resolve(context.documentRoot ?? process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
-  return context.v3.runDueJobs(20, {
+  const accountingPackResults: AccountingPackArtifactResult[] = [];
+  const handlers: Record<
+    string,
+    (
+      payload: unknown,
+      execution: Readonly<{
+        jobId: string;
+        runId: string;
+        tenantId: string;
+        deploymentId: string;
+        requiredCapability: string;
+        fenceVersion: number;
+      }>,
+    ) => void | (() => void)
+  > = {
     invoice_pdf: (payload) => {
       const invoiceId =
         typeof payload === 'object' && payload !== null && 'invoiceId' in payload
@@ -182,11 +416,10 @@ export function runArtifactJobs<TPrincipal>(context: ArtifactJobContext<TPrincip
         periodEnd,
       );
     },
-    accounting_pack: (payload) => {
-      const packId =
-        typeof payload === 'object' && payload !== null && 'packId' in payload
-          ? String(payload.packId)
-          : '';
+    accounting_pack_artifact_render: (payload) => {
+      const values =
+        typeof payload === 'object' && payload !== null ? (payload as Record<string, unknown>) : {};
+      const packId = String(values.packId ?? '');
       if (!packId) throw new Error('Accounting Pack job has no pack id');
       const snapshot = context.v3.accountingPackSnapshot(context.principal, packId) as {
         periodStart: string;
@@ -199,21 +432,93 @@ export function runArtifactJobs<TPrincipal>(context: ArtifactJobContext<TPrincip
         totalsByCurrency?: readonly Record<string, unknown>[];
         locale?: ReportLocale | string;
       };
-      const artifacts = accountingPackArtifacts(snapshot);
-      for (const artifact of artifacts) {
-        const key = `accounting-packs/${packId}/${artifact.type}-${REPORT_TEMPLATE_VERSION}.${artifact.extension}`;
-        const metadata = writeArtifact(root, key, artifact.bytes);
-        context.v3.recordAccountingPackExport(
-          context.principal,
-          packId,
-          artifact.type,
-          key,
-          metadata.sha256,
-          metadata.byteLength,
-        );
+      const requestedFormats = Array.isArray(values.formats)
+        ? new Set(values.formats.map(String))
+        : null;
+      if (
+        requestedFormats &&
+        ([...requestedFormats].length === 0 ||
+          [...requestedFormats].some(
+            (format) => !['pdf', 'xlsx', 'invoice_csv', 'expense_csv', 'json'].includes(format),
+          ))
+      )
+        throw new Error('Accounting Pack job has invalid requested formats');
+      const builders = accountingPackArtifactBuilders(snapshot).filter(
+        (builder) => !requestedFormats || requestedFormats.has(builder.type),
+      );
+      const failures: Array<{ type: AccountingPackExportType; message: string }> = [];
+      for (const artifact of builders) {
+        try {
+          const bytes = artifact.build();
+          const key = `accounting-packs/${packId}/${artifact.type}-${REPORT_TEMPLATE_VERSION}.${artifact.extension}`;
+          const metadata = writeArtifact(root, key, bytes);
+          context.v3.recordAccountingPackExport(
+            context.principal,
+            packId,
+            artifact.type,
+            key,
+            metadata.sha256,
+            metadata.byteLength,
+          );
+          accountingPackResults.push({
+            packId,
+            exportType: artifact.type,
+            status: 'ready',
+            storageKey: key,
+            sha256: metadata.sha256,
+            byteLength: metadata.byteLength,
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'artifact generation failed';
+          failures.push({ type: artifact.type, message });
+          const failure: AccountingPackArtifactResult = {
+            packId,
+            exportType: artifact.type,
+            status: 'failed',
+            error: message,
+          };
+          accountingPackResults.push(failure);
+          try {
+            context.v3.recordAccountingPackExportFailure?.(
+              context.principal,
+              packId,
+              artifact.type,
+              message,
+            );
+          } catch (recordingError) {
+            failures.push({
+              type: artifact.type,
+              message: `failure status: ${recordingError instanceof Error ? recordingError.message : 'status recording failed'}`,
+            });
+          }
+        }
       }
+      const required = new Set<AccountingPackExportType>([
+        'xlsx',
+        'invoice_csv',
+        'expense_csv',
+        ...(process.env.JA_ACCOUNTING_PACK_REQUIRE_PDF === 'true' ? (['pdf'] as const) : []),
+        ...(process.env.JA_ACCOUNTING_PACK_REQUIRE_JSON === 'true' ? (['json'] as const) : []),
+      ]);
+      const requiredFailures = failures.filter((failure) => required.has(failure.type));
+      if (requiredFailures.length > 0)
+        throw new Error(
+          requiredFailures.map((failure) => `${failure.type}: ${failure.message}`).join('; '),
+        );
     },
-    document_scan: (payload) => {
+    temporary_upload_cleanup: (payload, execution) => {
+      const values =
+        typeof payload === 'object' && payload !== null ? (payload as Record<string, unknown>) : {};
+      const olderThan = String(values.olderThan ?? '');
+      if (!olderThan || Number.isNaN(Date.parse(olderThan)))
+        throw new Error('Temporary upload cleanup job has an invalid boundary');
+      if (!context.v3.cleanupTemporaryUploadReservationsFromJob)
+        throw new Error('Temporary upload cleanup handler is unavailable');
+      context.v3.cleanupTemporaryUploadReservationsFromJob(execution, olderThan, (storageKey) =>
+        removePrivateFile(root, storageKey),
+      );
+    },
+    document_scan: (payload, execution) => {
       const documentId =
         typeof payload === 'object' && payload !== null && 'documentId' in payload
           ? String(payload.documentId)
@@ -227,7 +532,33 @@ export function runArtifactJobs<TPrincipal>(context: ArtifactJobContext<TPrincip
         documentId,
         result,
         process.env.JA_MALWARE_SCANNER_PROVIDER ?? 'configured-scanner',
+        execution,
       );
     },
-  });
+  };
+  if (context.localizedPdf)
+    handlers.localized_pdf_variant_render = (payload, execution) => {
+      const values =
+        typeof payload === 'object' && payload !== null ? (payload as Record<string, unknown>) : {};
+      const variantId = typeof values.variantId === 'string' ? values.variantId.trim() : '';
+      if (!variantId) throw new Error('PAYLOAD_INVALID');
+      if (!execution) throw new Error('LEASE_LOST');
+      const result = runLocalizedPdfVariantJob({
+        repository: context.localizedPdf!,
+        payload,
+        execution: {
+          jobId: execution.jobId,
+          jobRunId: execution.runId,
+          leaseFence: execution.fenceVersion,
+        },
+        documentRoot: root,
+        deferCompletion: true,
+      });
+      return result.finalize;
+    };
+  const result = context.v3.runDueJobs(20, handlers);
+  // The B5 runner first expires/requeues terminal leases. Reconcile the associated localized
+  // manifest after that transaction so a stale worker cannot remain in `running` indefinitely.
+  context.localizedPdf?.recoverAbandonedRunning?.();
+  return accountingPackResults.length ? { ...result, accountingPackResults } : result;
 }

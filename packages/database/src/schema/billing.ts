@@ -41,6 +41,7 @@ export const legalEntities = sqliteTable('legal_entity', {
   currency: text('currency').notNull(),
   billingAddress: text('billing_address').notNull(),
   companyIdentifiers: text('company_identifiers').notNull(),
+  status: text('status').notNull().default('active'),
   version: integer('version').notNull().default(1),
   ...lifecycle,
 });

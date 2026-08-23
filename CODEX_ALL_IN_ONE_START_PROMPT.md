@@ -1,16 +1,11 @@
-# All-in-one start prompt (when you do not want to paste Goal + Plan + Implementation separately)
+# All-in-one Client Essential start prompt
 
-Work from the repository root on the branch created for the J&A V3 production-completion effort.
+Work in the current repository, branch, and worktree. Preserve existing work. My goal is `CODEX_MASTER_GOAL.md`.
 
-My Goal is exactly `CODEX_MASTER_GOAL.md`.
+Read `AGENTS.md`, the Client Essential specification and checklist completely, then inspect actual code/tests/runtime evidence. Use `CODEX_PLAN_MODE_PROMPT.md` to build a dependency-aware Essential audit and queue, then immediately execute `CODEX_MASTER_IMPLEMENTATION_PROMPT.md`; do not stop after planning.
 
-First, in Plan mode, execute `CODEX_PLAN_MODE_PROMPT.md`: inspect the actual code and authoritative V3 spec, spawn the read-only architect/spec-auditor profiles, verify routing, reconcile dependencies, ownership and acceptance gates, and update the plan/traceability documents. Do not reduce the scope into an MVP.
+The release authority is `J_A_AUTOMATION_CLIENT_ESSENTIAL_SPEC_2026-08-22.md` and `J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md`. The original V3 spec is domain reference, the remediation plan applies only to Essential defects, and `PRODUCT_FEATURE_BACKLOG_V3_1_V3_4.md` is **DEFERRED POST-CORE ROADMAP**.
 
-After the plan is concrete, switch to implementation and execute `CODEX_MASTER_IMPLEMENTATION_PROMPT.md` in full. Do not stop at planning. Implement phase-by-phase, use the custom Sol/high, Sol/medium and Luna/max subagents defined in `.codex/agents/`, use project skills in `.agents/skills/`, enforce independent reviewers, run the real test/browser/security/finance/data-leakage gates, and keep docs/traceability synchronized.
+Use Sol-led/Luna-worker bounded packets, exclusive write ownership, independent finance/security/spec/QA review, and evidence-backed checklist updates. Preserve exact money, issued-invoice immutability, duplicate-billing prevention, RBAC/IDOR/privacy, file authorization, audit, transactions, idempotent jobs, safe migrations when persistent data exists, and backup/restore.
 
-The authoritative product baseline is `J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md`, extended by the remediation plan and P0/P1 product backlog in this pack. Preserve a modular monolith, SQLite, financial/audit history and existing good security/reconciliation foundations. Do not fake success, do not use placeholders as finished features, do not hard-delete finalized finance history, and do not represent unvalidated ML models as production intelligence.
-
-At the end, require the Sol/high `integration_reviewer`, generate `artifacts/V3_COMPLETION_REPORT.md`, and only return `READY` if mandatory traceability and quality gates pass.
-
-
-Luna-first implementation policy: classify work A/B/C. A defaults to Luna Max and may include substantial production code/complete low-risk vertical slices. B uses Sol Medium only where the implementation itself must resolve non-local invariants, then delegates stable leaves back to Luna. C uses Sol High.
+Return `CLIENT READY` only when all non-conditional Essential requirements and applicable DoD steps pass. The historical 207-row RTM, all P0/P1/P2 items, and old 42-step scenario are not the client-release verdict.

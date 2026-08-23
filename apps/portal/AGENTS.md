@@ -47,4 +47,4 @@ Never show a download action as ready unless the corresponding artifact is ready
 
 ## Browser verification
 
-Use the `$playwright-qa` and `$responsive-regression` skills for material UI work. Verify the affected role, not only a worker/demo role. Finance and owner/admin screens must be tested on phone too.
+Use the `$playwright-qa` and `$responsive-regression` skills for material UI work. Verify the affected role, not only a worker/demo role. Client Essential evidence uses representative 360/390 phone, 768 tablet, and 1440 desktop coverage; add widths when a real defect/risk warrants it. Finance and owner/admin screens must be tested on phone too.

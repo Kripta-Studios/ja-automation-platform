@@ -1,5 +1,50 @@
-export const portalLocales = ['en', 'pt', 'es'] as const;
+import {
+  assertPortalCatalogParity as assertCanonicalCatalogParity,
+  createTranslator as createCanonicalTranslator,
+  INVARIANT_TRANSLATION_KEYS as canonicalInvariantTranslationKeys,
+  isCoverageInvariantKey as canonicalIsCoverageInvariantKey,
+  isExplicitCoverageTranslation as canonicalIsExplicitCoverageTranslation,
+  normalizePortalLocale as normalizeCanonicalLocale,
+  portalCatalog as canonicalPortalCatalog,
+  portalCatalogKeys as canonicalPortalCatalogKeys,
+  portalLocales as canonicalPortalLocales,
+  renderPortalMessage as renderCanonicalPortalMessage,
+  translate as translateCanonical,
+} from './i18n/catalog';
+export type {
+  DocumentLanguage,
+  PortalLocaleInput,
+  PortalTranslationKey,
+  TranslationParams,
+} from './i18n/catalog';
+import {
+  createPortalLocaleController,
+  documentLanguage,
+  setDocumentLanguage,
+} from './i18n/context';
+export {
+  isReportHistoryAction,
+  translateReportHistoryAction,
+  type ReportHistoryAction,
+  type ReportHistoryRecord,
+} from './i18n/report-history';
+
+export const portalLocales = canonicalPortalLocales;
 export type PortalLocale = (typeof portalLocales)[number];
+export {
+  assertCanonicalCatalogParity as assertPortalCatalogParity,
+  canonicalPortalCatalog as portalCatalog,
+  canonicalPortalCatalogKeys as portalCatalogKeys,
+  createCanonicalTranslator as createTranslator,
+  documentLanguage,
+  createPortalLocaleController,
+  canonicalInvariantTranslationKeys as INVARIANT_TRANSLATION_KEYS,
+  canonicalIsCoverageInvariantKey as isCoverageInvariantKey,
+  canonicalIsExplicitCoverageTranslation as isExplicitCoverageTranslation,
+  renderCanonicalPortalMessage as renderPortalMessage,
+  setDocumentLanguage,
+  translateCanonical as translate,
+};
 
 // English is the canonical source. Static copy is translated at the DOM boundary so domain
 // values (codes, tags, invoice numbers and structured records) remain language-neutral.
@@ -68,6 +113,8 @@ const en: Record<string, string> = {
   'Time & materials': 'Time & materials',
   'Billing contact': 'Billing contact',
   'Client contacts': 'Client contacts',
+  'Team access': 'Team access',
+  'PLC / technical reports': 'PLC / technical reports',
   'No email': 'No email',
   'No due date': 'No due date',
   'No tax profile': 'No tax profile',
@@ -176,6 +223,8 @@ const copy: Record<PortalLocale, Record<string, string>> = {
     'Time & materials': 'Tempo e materiais',
     'Billing contact': 'Contato de faturamento',
     'Client contacts': 'Contatos do cliente',
+    'Team access': 'Acesso da equipe',
+    'PLC / technical reports': 'Relatórios PLC / técnicos',
     'No email': 'Sem e-mail',
     'No due date': 'Sem data de vencimento',
     'No tax profile': 'Sem perfil fiscal',
@@ -281,6 +330,8 @@ const copy: Record<PortalLocale, Record<string, string>> = {
     'Time & materials': 'Tiempo y materiales',
     'Billing contact': 'Contacto de facturación',
     'Client contacts': 'Contactos del cliente',
+    'Team access': 'Acceso del equipo',
+    'PLC / technical reports': 'Informes PLC / técnicos',
     'No email': 'Sin correo electrónico',
     'No due date': 'Sin fecha de vencimiento',
     'No tax profile': 'Sin perfil fiscal',
@@ -326,6 +377,11 @@ const copy: Record<PortalLocale, Record<string, string>> = {
 const originalText = new WeakMap<Text, string>();
 const originalAttributes = new WeakMap<Element, Record<string, string>>();
 
+/** Dynamic Svelte text must remain owned by Svelte instead of the DOM translator. */
+export function isPortalLiveText(node: Node): boolean {
+  return Boolean(node.parentElement?.closest('[data-portal-live-text]'));
+}
+
 /** Translate static portal copy while leaving codes, tags, invoice numbers and records untouched. */
 export function translatePortalDom(root: ParentNode, locale: PortalLocale): void {
   const nodes: Text[] = [];
@@ -336,11 +392,15 @@ export function translatePortalDom(root: ParentNode, locale: PortalLocale): void
     const parent = node.parentElement;
     if (!parent || ['SCRIPT', 'STYLE', 'NOSCRIPT', 'CODE', 'PRE'].includes(parent.tagName))
       continue;
+    if (isPortalLiveText(node)) continue;
     const source = originalText.get(node) ?? node.nodeValue ?? '';
     originalText.set(node, source);
     const key = source.trim();
     if (!key) continue;
-    const translated = copy[locale][key] ?? en[key];
+    const translated =
+      canonicalPortalCatalog[locale][key as keyof (typeof canonicalPortalCatalog)[typeof locale]] ??
+      copy[locale][key] ??
+      en[key];
     if (!translated) continue;
     const leading = source.match(/^\s*/)?.[0] ?? '';
     const trailing = source.match(/\s*$/)?.[0] ?? '';
@@ -357,7 +417,12 @@ export function translatePortalDom(root: ParentNode, locale: PortalLocale): void
       saved[attribute] ??= value;
       element.setAttribute(
         attribute,
-        copy[locale][saved[attribute]] ?? en[saved[attribute]] ?? saved[attribute],
+        canonicalPortalCatalog[locale][
+          saved[attribute] as keyof (typeof canonicalPortalCatalog)[typeof locale]
+        ] ??
+          copy[locale][saved[attribute]] ??
+          en[saved[attribute]] ??
+          saved[attribute],
       );
     }
     originalAttributes.set(element, saved);
@@ -365,10 +430,20 @@ export function translatePortalDom(root: ParentNode, locale: PortalLocale): void
 }
 
 export function normalizePortalLocale(value: string | null | undefined): PortalLocale {
-  const normalized = value?.toLowerCase().slice(0, 2);
-  return normalized === 'pt' || normalized === 'es' ? normalized : 'en';
+  return normalizeCanonicalLocale(value);
 }
 
-export function portalText(locale: PortalLocale, key: string): string {
+export function portalText(
+  locale: PortalLocale,
+  key: string,
+  params?: Readonly<Record<string, string | number>>,
+): string {
+  const canonical = translateCanonical(locale, key, params);
+  if (
+    canonical !== key ||
+    canonicalPortalCatalog[locale][key as keyof (typeof canonicalPortalCatalog)[typeof locale]]
+  ) {
+    return canonical;
+  }
   return copy[locale][key] ?? en[key] ?? key;
 }

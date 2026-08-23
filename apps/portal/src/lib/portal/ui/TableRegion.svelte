@@ -159,7 +159,7 @@
   role="region"
   aria-label={accessibleName}
   aria-describedby={mobileMode === 'scroll' ? instructionId : undefined}
-  tabindex={mobileMode === 'scroll' ? '0' : undefined}
+  tabindex={mobileMode === 'scroll' ? 0 : undefined}
   onkeydown={handleKeydown}
 >
   {#if mobileMode === 'scroll'}

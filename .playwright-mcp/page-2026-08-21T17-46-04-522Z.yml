@@ -1,0 +1,156 @@
+- generic [ref=f1e2]:
+  - link "Skip to main content":
+    - /url: "#portal-main"
+  - generic [ref=f1e3]:
+    - complementary "Portal navigation" [ref=f1e4]:
+      - link [ref=f1e5] [cursor=pointer]:
+        - /url: /j-aautomation/app/
+        - img "J&A Automation" [ref=f1e6]
+      - navigation "Primary navigation" [ref=f1e7]:
+        - link "Hoy" [ref=f1e8] [cursor=pointer]:
+          - /url: /j-aautomation/app/
+        - link "Tiempo" [ref=f1e13] [cursor=pointer]:
+          - /url: /j-aautomation/app/time
+        - link "Informes" [ref=f1e18] [cursor=pointer]:
+          - /url: /j-aautomation/app/reports
+        - link "Gastos" [ref=f1e23] [cursor=pointer]:
+          - /url: /j-aautomation/app/expenses
+        - link "Proyectos" [ref=f1e28] [cursor=pointer]:
+          - /url: /j-aautomation/app/projects
+        - generic [ref=f1e33]: SECONDARY
+        - link "Mi pago" [ref=f1e34] [cursor=pointer]:
+          - /url: /j-aautomation/app/pay
+        - link "Documentos" [ref=f1e39] [cursor=pointer]:
+          - /url: /j-aautomation/app/documents
+        - link "Notificaciones" [ref=f1e44] [cursor=pointer]:
+          - /url: /j-aautomation/app/notifications
+        - link "Perfil" [ref=f1e49] [cursor=pointer]:
+          - /url: /j-aautomation/app/profile
+      - generic [ref=f1e54]:
+        - generic [ref=f1e55]: ADMINISTRATION
+        - link "Panel" [ref=f1e56] [cursor=pointer]:
+          - /url: /j-aautomation/app/
+        - link "Proyectos" [ref=f1e61] [cursor=pointer]:
+          - /url: /j-aautomation/app/projects
+        - link "Clientes" [ref=f1e66] [cursor=pointer]:
+          - /url: /j-aautomation/app/projects?view=clients
+        - link "Equipo" [ref=f1e71] [cursor=pointer]:
+          - /url: /j-aautomation/app/projects?view=team
+        - link "Planificación" [ref=f1e76] [cursor=pointer]:
+          - /url: /j-aautomation/app/planning
+        - link "Tiempo" [ref=f1e81] [cursor=pointer]:
+          - /url: /j-aautomation/app/time
+        - link "Informes" [ref=f1e86] [cursor=pointer]:
+          - /url: /j-aautomation/app/reports
+        - link "PLC / Técnico" [ref=f1e91] [cursor=pointer]:
+          - /url: /j-aautomation/app/reports?view=technical
+        - link "Gastos" [ref=f1e96] [cursor=pointer]:
+          - /url: /j-aautomation/app/expenses
+        - link "Aprobaciones" [ref=f1e101] [cursor=pointer]:
+          - /url: /j-aautomation/app/approvals
+        - link "Facturación" [ref=f1e106] [cursor=pointer]:
+          - /url: /j-aautomation/app/billing
+        - link "Facturas" [ref=f1e111] [cursor=pointer]:
+          - /url: /j-aautomation/app/billing?view=invoices
+        - link "Finanzas" [ref=f1e116] [cursor=pointer]:
+          - /url: /j-aautomation/app/finance
+        - link "Documentos" [ref=f1e121] [cursor=pointer]:
+          - /url: /j-aautomation/app/documents
+        - link "Notificaciones" [ref=f1e126] [cursor=pointer]:
+          - /url: /j-aautomation/app/notifications
+        - link "Configuración" [ref=f1e131] [cursor=pointer]:
+          - /url: /j-aautomation/app/profile
+        - generic [ref=f1e136]: SECURITY
+        - link "Auditoría" [ref=f1e137] [cursor=pointer]:
+          - /url: /j-aautomation/app/audit
+      - button "Sign out" [ref=f1e142]
+    - banner [ref=f1e143]:
+      - generic [ref=f1e144]:
+        - button "Toggle navigation" [ref=f1e145]
+        - generic [ref=f1e148]: Online
+        - status [ref=f1e149]: Synced
+      - generic [ref=f1e150]:
+        - generic [ref=f1e151]: Idioma
+        - combobox "Idioma" [ref=f1e152]:
+          - option "EN"
+          - option "PT-BR"
+          - option "ES" [selected]
+      - button "Antonny Nascimento owner_admin" [ref=f1e154] [cursor=pointer]:
+        - generic [ref=f1e155]: AN
+        - generic [ref=f1e156]:
+          - generic [ref=f1e157]: Antonny Nascimento
+          - generic [ref=f1e158]: owner_admin
+        - generic [ref=f1e159]: ⌄
+    - main [ref=f1e160]:
+      - generic [ref=f1e161]:
+        - generic [ref=f1e162]:
+          - paragraph [ref=f1e163]: J&A / TODAY
+          - heading "Hoy" [level=1] [ref=f1e164]
+        - generic [ref=f1e165]:
+          - button "Print report" [ref=f1e166] [cursor=pointer]
+          - search [ref=f1e167]:
+            - generic [ref=f1e168]: Search workspace
+            - textbox "Search workspace" [ref=f1e169]:
+              - /placeholder: Search projects, people, invoices…
+            - button "Search" [ref=f1e170]
+      - generic [ref=f1e171]:
+        - generic [ref=f1e172]:
+          - text: OPERATIONS CONTROL
+          - heading "Field operations overview" [level=2] [ref=f1e173]
+          - paragraph [ref=f1e174]: Current projects, field records, and billing readiness in one view.
+        - strong [ref=f1e175]:
+          - text: "4"
+          - generic [ref=f1e176]: active projects
+      - generic [ref=f1e177]:
+        - link [ref=f1e178] [cursor=pointer]:
+          - /url: /j-aautomation/app/time
+          - text: RECORDED HOURS
+          - strong [ref=f1e179]: "111.5"
+          - paragraph [ref=f1e180]: Approved and submitted field time
+        - link [ref=f1e181] [cursor=pointer]:
+          - /url: /j-aautomation/app/approvals
+          - text: PENDING REPORTS
+          - strong [ref=f1e182]: "1"
+          - paragraph [ref=f1e183]: Daily and PLC records awaiting review
+        - link [ref=f1e184] [cursor=pointer]:
+          - /url: /j-aautomation/app/expenses
+          - text: PROJECT EXPENSES
+          - strong [ref=f1e185]: $2,015.00
+          - paragraph [ref=f1e186]: All-in and reimbursable combined
+        - link [ref=f1e187] [cursor=pointer]:
+          - /url: /j-aautomation/app/billing
+          - text: UPCOMING BILLING
+          - strong [ref=f1e188]: $10,860.30
+          - paragraph [ref=f1e189]: 3 draft invoice streams
+      - generic [ref=f1e190]:
+        - generic [ref=f1e191]:
+          - heading "Active project board" [level=2] [ref=f1e192]
+          - generic [ref=f1e193]: 4 records
+        - link "C-0001-P-001 Body Shop Line 4 Controls Upgrade · Demo active · America/Detroit Open project" [ref=f1e194] [cursor=pointer]:
+          - /url: /j-aautomation/app/projects/01a02481-efd1-739f-9b8c-93e21c4d2bad
+          - generic [ref=f1e195]:
+            - generic [ref=f1e196]: C-0001-P-001
+            - strong [ref=f1e197]: Body Shop Line 4 Controls Upgrade · Demo
+          - generic [ref=f1e198]: active · America/Detroit
+          - generic [ref=f1e199]: Open project
+        - link "C-0001-P-002 Remote Controls Support Retainer · Demo active · America/Detroit Open project" [ref=f1e200] [cursor=pointer]:
+          - /url: /j-aautomation/app/projects/01a02481-efd2-767f-b100-80d25c1f7d39
+          - generic [ref=f1e201]:
+            - generic [ref=f1e202]: C-0001-P-002
+            - strong [ref=f1e203]: Remote Controls Support Retainer · Demo
+          - generic [ref=f1e204]: active · America/Detroit
+          - generic [ref=f1e205]: Open project
+        - link "C-0002-P-001 High-Speed Palletizer Commissioning · Demo active · America/New_York Open project" [ref=f1e206] [cursor=pointer]:
+          - /url: /j-aautomation/app/projects/01a02481-efd2-767f-b100-634736bb2836
+          - generic [ref=f1e207]:
+            - generic [ref=f1e208]: C-0002-P-001
+            - strong [ref=f1e209]: High-Speed Palletizer Commissioning · Demo
+          - generic [ref=f1e210]: active · America/New_York
+          - generic [ref=f1e211]: Open project
+        - link "C-0003-P-001 Caustic Recovery Skid Integration · Demo active · America/Chicago Open project" [ref=f1e212] [cursor=pointer]:
+          - /url: /j-aautomation/app/projects/01a02481-efd2-767f-b100-7360c06dea2c
+          - generic [ref=f1e213]:
+            - generic [ref=f1e214]: C-0003-P-001
+            - strong [ref=f1e215]: Caustic Recovery Skid Integration · Demo
+          - generic [ref=f1e216]: active · America/Chicago
+          - generic [ref=f1e217]: Open project

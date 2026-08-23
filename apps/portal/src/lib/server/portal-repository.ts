@@ -11,6 +11,7 @@ import {
   V3ValidationError,
 } from '@ja/database';
 import { fail } from '@sveltejs/kit';
+import { localizedPdfRepository } from './localized-pdf-api';
 
 export function openPortalRepository(locals: App.Locals) {
   if (!locals.user) throw new AccessDeniedError('Sign in required');
@@ -18,12 +19,13 @@ export function openPortalRepository(locals: App.Locals) {
   try {
     const repository = new PortalRepository(database.sqlite);
     const v3 = new V3Repository(database.sqlite);
+    const localizedPdf = localizedPdfRepository(database.sqlite);
     const principal = repository.principalFor(
       locals.user.id,
       locals.session?.id,
       locals.correlationId,
     );
-    return { ...database, repository, v3, principal };
+    return { ...database, repository, v3, localizedPdf, principal };
   } catch (error) {
     database.sqlite.close();
     throw error;

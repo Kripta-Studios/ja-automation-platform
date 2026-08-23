@@ -1,11 +1,13 @@
 import { createHash } from 'node:crypto';
-import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import { relative, resolve } from 'node:path';
-import { fail } from '@sveltejs/kit';
-import { actionFailure, openPortalRepository } from '$lib/server/portal-repository';
+import { openPortalRepository } from '$lib/server/portal-repository';
+import {
+  removePrivateFileIfPresent,
+  writePrivateFileExclusive,
+} from '$lib/server/private-artifact-access';
+import { actionFail, actionFailure, actionSuccess } from './action-message';
 import {
   formObject,
-  privateDocumentExtension,
   privateDocumentSignature,
   type PortalActionEvent,
 } from '$lib/server/action-utils';
@@ -13,7 +15,7 @@ import {
 export const documentActions = {
   uploadPrivateDocument: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'documents')
-      return fail(404, { success: false, message: 'Wrong section' });
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
     const file = object.file;
     const projectId = String(object.projectId ?? '').trim();
@@ -21,18 +23,29 @@ export const documentActions = {
     const description = String(object.description ?? '').trim();
     const sensitivity = String(object.sensitivity ?? 'internal');
     if (!(file instanceof File) || file.size < 1)
-      return fail(400, { success: false, message: 'Choose a private document to upload' });
+      return actionFail(
+        400,
+        'action.validation.documentRequired',
+        {},
+        'Choose a private document to upload',
+      );
     if (!projectId || !artifactType || !description)
-      return fail(400, {
-        success: false,
-        message: 'Project, artifact type and description are required',
-      });
+      return actionFail(
+        400,
+        'action.validation.documentMetadata',
+        {},
+        'Project, artifact type and description are required',
+      );
     if (!['internal', 'sensitive', 'customer_private'].includes(sensitivity))
-      return fail(400, { success: false, message: 'Document sensitivity is invalid' });
+      return actionFail(
+        400,
+        'action.validation.documentSensitivity',
+        {},
+        'Document sensitivity is invalid',
+      );
     const allowed = [
       'application/pdf',
       'application/zip',
-      'application/x-zip-compressed',
       'image/jpeg',
       'image/png',
       'image/webp',
@@ -41,26 +54,38 @@ export const documentActions = {
       'text/plain',
     ];
     if (!allowed.includes(file.type) || file.size > 50_000_000)
-      return fail(400, { success: false, message: 'Unsupported document type or size over 50 MB' });
+      return actionFail(
+        400,
+        'action.validation.documentTypeOrSize',
+        {},
+        'Unsupported document type or size over 50 MB',
+      );
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (!privateDocumentSignature(file.type, bytes))
-      return fail(400, {
-        success: false,
-        message: 'Document content does not match its declared type',
-      });
+      return actionFail(
+        400,
+        'action.validation.documentContent',
+        {},
+        'Document content does not match its declared type',
+      );
     const context = openPortalRepository(locals);
     let createdStorageKey: string | null = null;
     let createdStoragePath: string | null = null;
     let storageFileCreated = false;
+    let reservationId: string | null = null;
     try {
       const sha256 = createHash('sha256').update(bytes).digest('hex');
-      const lowerType = artifactType.toLowerCase();
-      const folder = lowerType.includes('backup')
-        ? 'plc-backups'
-        : lowerType.includes('report')
-          ? 'reports'
-          : 'technical';
-      const storageKey = `${folder}/${sha256.slice(0, 2)}/${sha256}.${privateDocumentExtension(file.type)}`;
+
+      const reservation = context.v3.reserveUpload(context.principal, {
+        projectId,
+        originalFilename: file.name,
+        artifactType,
+        description,
+        sensitivity: sensitivity as 'internal' | 'sensitive' | 'customer_private',
+      });
+      reservationId = reservation.reservationId;
+
+      const storageKey = reservation.storageKey;
       const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
       const target = resolve(root, storageKey);
       const relativePath = relative(root, target);
@@ -69,34 +94,46 @@ export const documentActions = {
         relativePath.split(/[\\/]/).includes('..') ||
         relativePath.startsWith('\\') ||
         relativePath.startsWith('/')
-      )
-        return fail(400, { success: false, message: 'Invalid private document path' });
+      ) {
+        context.v3.cancelUploadReservation(context.principal, reservation.reservationId);
+        return actionFail(
+          400,
+          'action.validation.documentPath',
+          {},
+          'Invalid private document path',
+        );
+      }
+
       createdStorageKey = storageKey;
       createdStoragePath = target;
-      await mkdir(resolve(target, '..'), { recursive: true });
       try {
-        await writeFile(target, bytes, { flag: 'wx' });
+        await writePrivateFileExclusive(root, storageKey, bytes);
         storageFileCreated = true;
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
       }
-      const document = context.repository.registerPrivateDocument(context.principal, {
-        projectId,
+
+      context.v3.finalizeUpload(context.principal, reservation.reservationId, {
         sha256,
         mediaType: file.type,
         byteLength: file.size,
-        storageKey,
-        originalFilename: file.name.slice(0, 200),
-        description,
-        artifactType,
-        sensitivity: sensitivity as 'internal' | 'sensitive' | 'customer_private',
       });
-      if (!document.created && storageFileCreated) {
-        await unlink(target);
-        storageFileCreated = false;
-      }
-      return { success: true, message: 'Private document uploaded and hash-registered' };
+      reservationId = null;
+
+      return actionSuccess(
+        'action.documents.uploaded',
+        {},
+        'Private document uploaded and hash-registered',
+      );
     } catch (error) {
+      if (reservationId) {
+        try {
+          context.v3.cancelUploadReservation(context.principal, reservationId);
+        } catch {
+          // Preserve the upload error; the scheduled stale-reservation cleanup
+          // remains responsible for a reservation that could not be cancelled.
+        }
+      }
       if (storageFileCreated && createdStorageKey && createdStoragePath) {
         const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
         const relativePath = relative(root, createdStoragePath);
@@ -106,8 +143,41 @@ export const documentActions = {
           !relativePath.startsWith('\\') &&
           !relativePath.startsWith('/')
         )
-          await unlink(createdStoragePath).catch(() => undefined);
+          await removePrivateFileIfPresent(root, createdStorageKey).catch(() => undefined);
       }
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  deleteDocument: async ({ locals, request, params }: PortalActionEvent) => {
+    if (
+      params.section !== 'documents' &&
+      params.section !== 'expenses' &&
+      params.section !== 'projects'
+    )
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const documentId = String(object.documentId ?? '').trim();
+    if (!documentId)
+      return actionFail(400, 'action.validation.documentIdRequired', {}, 'Document ID required');
+
+    const context = openPortalRepository(locals);
+    try {
+      const deleted = context.v3.deleteDocument(context.principal, documentId);
+      const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
+      const target = resolve(root, deleted.storageKey);
+      const relativePath = relative(root, target);
+      if (
+        !relativePath ||
+        relativePath.split(/[\\/]/).includes('..') ||
+        relativePath.startsWith('\\') ||
+        relativePath.startsWith('/')
+      )
+        throw new Error('Invalid private document path');
+      await removePrivateFileIfPresent(root, deleted.storageKey);
+      return actionSuccess('action.documents.deleted', {}, 'Document deleted');
+    } catch (error) {
       return actionFailure(error);
     } finally {
       context.sqlite.close();

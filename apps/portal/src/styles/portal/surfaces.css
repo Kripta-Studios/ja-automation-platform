@@ -49,13 +49,13 @@
 
 .timesheet-guide strong {
   color: #1c4053;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
 }
 
 .timesheet-guide span {
   color: #6d8290;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   line-height: 1.4;
 }
 
@@ -70,7 +70,7 @@
   display: grid;
   gap: 0.3rem;
   color: #587181;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 750;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -129,7 +129,7 @@
 .timesheet-table thead th {
   color: #617887;
   background: #f4f8fa;
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -144,7 +144,7 @@
   display: block;
   margin-top: 0.15rem;
   color: #7b8d99;
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 
@@ -171,7 +171,7 @@
 
 .timesheet-status {
   color: #476777;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 760;
   white-space: nowrap;
 }
@@ -222,7 +222,7 @@
 .project-finance,
 .project-contract,
 .report-forms details {
-  border-color: #dfe7ee;
+  border: 1px solid #dfe7ee;
   border-radius: var(--ja-radius);
   box-shadow: var(--ja-shadow-soft);
 }
@@ -239,7 +239,8 @@
 
 .portal-grid > section,
 .record-list,
-.worker-form > section {
+.worker-form > section,
+.entry-panel {
   padding: clamp(1.15rem, 2vw, 1.55rem);
 }
 
@@ -328,6 +329,8 @@
 
 .quick-actions a,
 .preview-link {
+  display: inline-block;
+  margin-top: 0.65rem;
   padding: 0.65rem 0.8rem;
   color: #103044;
   border-radius: 0.55rem;
@@ -395,7 +398,15 @@
 }
 
 .record-card-link::after {
-  content: 'Open record →';
+  content: none;
+  color: #277e78;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.record-card-open {
   color: #277e78;
   font-size: 0.65rem;
   font-weight: 800;
@@ -406,12 +417,14 @@
 .record-card.is-modified {
   border-left: 0.25rem solid #d97706;
   padding-left: 0.7rem;
+  padding-right: 1.2rem;
   background: #fffaf0;
 }
 
 .notification-row.unread {
   border-left: 0.25rem solid #d71920;
   padding-left: 0.7rem;
+  padding-right: 1.2rem;
   background: #fffaf8;
 }
 
@@ -420,6 +433,18 @@
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.02em;
+}
+
+.record-list article code {
+  min-width: 0;
+  flex: 1 1 auto;
+  max-width: 50%;
+  word-break: break-all;
+  white-space: pre-wrap;
+  text-align: right;
+  font-size: 0.68rem;
+  color: #556c80;
+  line-height: 1.4;
 }
 
 .record-list article small,

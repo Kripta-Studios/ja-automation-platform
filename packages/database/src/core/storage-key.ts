@@ -3,7 +3,10 @@ export function isSafeStorageKey(storageKey: string): boolean {
     storageKey &&
     !storageKey.startsWith('/') &&
     !storageKey.includes('\\') &&
-    !storageKey.split('/').includes('..'),
+    !storageKey.split('/').includes('..') &&
+    !storageKey.includes(':/') &&
+    !storageKey.includes('://') &&
+    !storageKey.toLowerCase().includes('%2e'),
   );
 }
 

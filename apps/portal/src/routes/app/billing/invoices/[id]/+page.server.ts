@@ -11,7 +11,7 @@ export const load: PageServerLoad = ({ locals, params }) => {
       preview: context.repository.invoicePreview(context.principal, params.id),
     };
   } catch {
-    error(404, 'Invoice preview not found');
+    error(404, 'detail.invoice.notFound');
   } finally {
     context.sqlite.close();
   }

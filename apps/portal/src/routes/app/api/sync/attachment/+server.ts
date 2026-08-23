@@ -28,35 +28,26 @@ const receiptSignature = (mediaType: string, bytes: Uint8Array): boolean => {
   return false;
 };
 
-const extensionFor = (mediaType: string): string =>
-  mediaType === 'application/pdf'
-    ? 'pdf'
-    : mediaType === 'image/png'
-      ? 'png'
-      : mediaType === 'image/webp'
-        ? 'webp'
-        : mediaType === 'image/heic'
-          ? 'heic'
-          : mediaType === 'image/heif'
-            ? 'heif'
-            : 'jpg';
-
 export const POST: RequestHandler = async ({ locals, request }) => {
   if (!locals.user || !locals.session) return json({ error: 'Unauthorized' }, { status: 401 });
   const form = await request.formData();
   const projectId = form.get('projectId');
   const attachmentId = form.get('attachmentId');
   const file = form.get('file');
+  const uploadedFile = file instanceof File ? file : null;
   if (
     typeof projectId !== 'string' ||
     !uuidSchema.safeParse(projectId).success ||
     typeof attachmentId !== 'string' ||
     !uuidSchema.safeParse(attachmentId).success ||
-    !(file instanceof File)
+    !uploadedFile
   )
     return json({ error: 'Invalid offline attachment' }, { status: 400 });
-  if (file.size < 1 || file.size > 10_000_000)
+  if (uploadedFile.size < 1 || uploadedFile.size > 10_000_000)
     return json({ error: 'Receipt must be between 1 byte and 10 MB' }, { status: 400 });
+  const uploadedMediaType = uploadedFile.type;
+  const uploadedSize = uploadedFile.size;
+  const uploadedName = uploadedFile.name;
   const allowed = new Set([
     'application/pdf',
     'image/jpeg',
@@ -65,43 +56,80 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     'image/heic',
     'image/heif',
   ]);
-  if (!allowed.has(file.type)) return json({ error: 'Unsupported receipt type' }, { status: 400 });
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  if (!receiptSignature(file.type, bytes))
+  if (!allowed.has(uploadedMediaType))
+    return json({ error: 'Unsupported receipt type' }, { status: 400 });
+  const bytes = new Uint8Array(await uploadedFile.arrayBuffer());
+  if (!receiptSignature(uploadedMediaType, bytes))
     return json({ error: 'Receipt content does not match its media type' }, { status: 400 });
-  const sha256 = createHash('sha256').update(bytes).digest('hex');
-  const storageKey = `${sha256.slice(0, 2)}/${sha256}.${extensionFor(file.type)}`;
-  const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
-  const target = resolve(root, storageKey);
-  const targetRelativePath = relative(root, target);
-  if (
-    !targetRelativePath ||
-    targetRelativePath.split(/[\\/]/).includes('..') ||
-    targetRelativePath.startsWith('\\') ||
-    targetRelativePath.startsWith('/')
-  )
-    return json({ error: 'Invalid receipt storage path' }, { status: 400 });
-  let fileCreated = false;
+
   const context = openPortalRepository(locals);
+  let createdStoragePath: string | null = null;
+  let fileCreated = false;
+  let reservationId: string | null = null;
   try {
-    await mkdir(resolve(root, sha256.slice(0, 2)), { recursive: true });
+    const sha256 = createHash('sha256').update(bytes).digest('hex');
+
+    const reservation = context.v3.reserveUpload(context.principal, {
+      projectId,
+      originalFilename: uploadedName.slice(0, 200),
+      artifactType: 'receipt',
+      description: 'Expense receipt',
+      sensitivity: 'internal',
+    });
+    reservationId = reservation.reservationId;
+
+    const storageKey = reservation.storageKey;
+    const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
+    const target = resolve(root, storageKey);
+    const targetRelativePath = relative(root, target);
+    if (
+      !targetRelativePath ||
+      targetRelativePath.split(/[\\/]/).includes('..') ||
+      targetRelativePath.startsWith('\\') ||
+      targetRelativePath.startsWith('/')
+    ) {
+      context.v3.cancelUploadReservation(context.principal, reservation.reservationId);
+      reservationId = null;
+      return json({ error: 'Invalid receipt storage path' }, { status: 400 });
+    }
+
+    createdStoragePath = target;
+
+    await mkdir(resolve(target, '..'), { recursive: true });
     try {
       await writeFile(target, bytes, { flag: 'wx' });
       fileCreated = true;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
     }
-    const document = context.repository.registerReceipt(context.principal, {
-      projectId,
+
+    context.v3.finalizeUpload(context.principal, reservation.reservationId, {
       sha256,
-      mediaType: file.type,
-      byteLength: file.size,
-      storageKey,
-      originalFilename: file.name.slice(0, 200),
+      mediaType: uploadedMediaType,
+      byteLength: uploadedSize,
     });
-    return json({ attachmentId, documentId: document.id });
+    reservationId = null;
+
+    return json({ attachmentId, documentId: reservation.reservationId });
   } catch (error) {
-    if (fileCreated) await unlink(target).catch(() => undefined);
+    if (reservationId) {
+      try {
+        context.v3.cancelUploadReservation(context.principal, reservationId);
+      } catch {
+        // Preserve the original upload error; stale cleanup remains available.
+      }
+    }
+    if (fileCreated && createdStoragePath) {
+      const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
+      const relativePath = relative(root, createdStoragePath);
+      if (
+        relativePath &&
+        !relativePath.split(/[\\/]/).includes('..') &&
+        !relativePath.startsWith('\\') &&
+        !relativePath.startsWith('/')
+      )
+        await unlink(createdStoragePath).catch(() => undefined);
+    }
     const failure = actionFailure(error);
     return json(
       { error: failure?.data?.message ?? 'Receipt upload failed' },

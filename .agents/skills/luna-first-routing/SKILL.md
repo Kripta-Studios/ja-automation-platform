@@ -18,7 +18,7 @@ Route to a Luna write profile when:
 - failures can be caught by deterministic tests/browser evidence/reviewer;
 - the agent is implementing rather than inventing ambiguous cross-domain truth.
 
-Examples: frontend/components/forms, CRUD, stable API/server wiring, responsive migrations, report/industrial/business UI, deterministic adapters, tests, fixtures, docs, mechanical refactors, additive/mechanical migrations under an explicit migration contract, dataset/model-registry tooling under an explicit point-in-time contract.
+Examples: frontend/components/forms, CRUD, stable API/server wiring, responsive remediation, Essential reports, deterministic adapters, tests, fixtures, docs, mechanical refactors that unblock Essential work, and additive/mechanical migrations under an explicit migration contract. Industrial/ERP expansion and dataset/model-registry tooling are deferred unless explicitly commissioned.
 
 ## B → Sol Medium
 

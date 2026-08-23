@@ -6,7 +6,7 @@ These instructions apply to `packages/database/**`.
 
 Do not continue expanding monolithic repository files. Move behavior into cohesive domain modules while preserving the modular monolith, transactions, API contracts and tests.
 
-Recommended boundaries include clients, projects, workers, planning, time, expenses, reports, industrial assets, technical changes, billing, invoices, accounting, documents, audit, jobs and data-readiness.
+Recommended Client Essential boundaries include identity, clients, projects, assignments, time, expenses, daily/technical reports, compensation/project finance, billing, invoices/payments, accounting exports, documents, audit and jobs. Preserve existing post-core modules, but do not create industrial-platform or data-readiness boundaries merely to satisfy deferred roadmap scope.
 
 ## Lifecycle rules
 
@@ -23,18 +23,9 @@ Recommended boundaries include clients, projects, workers, planning, time, expen
 - Preserve reconciliation invariants.
 - Idempotency is required for retryable jobs and externally triggered writes.
 
-## Data-readiness
+## Deferred data-readiness
 
-Build point-in-time-safe infrastructure:
-
-- `project_state_snapshot` with `as_of`/snapshot timestamp and schema version;
-- immutable business-event history for material state transitions;
-- feature-definition/version metadata;
-- training export metadata and reproducibility hashes;
-- model registry and historical predictions;
-- no future-derived values in historical snapshots.
-
-Never backfill historical snapshots using facts that were not known at the historical timestamp unless they are explicitly marked as reconstructed/non-point-in-time and excluded from leakage-sensitive training.
+ML/data-readiness infrastructure is post-core roadmap and must not be started unless explicitly commissioned. If Essential work touches existing point-in-time records, preserve their `as_of` meaning and never introduce future-derived facts into historical snapshots.
 
 ## Migrations
 

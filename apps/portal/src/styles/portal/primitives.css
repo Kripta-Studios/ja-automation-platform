@@ -91,7 +91,7 @@
   min-width: 0;
   min-height: var(--ja-target-min);
   padding: 0.65rem 0.75rem;
-  border: 1px solid var(--ja-control-border);
+  border: 1px solid var(--ja-steel, #637486);
   border-radius: 0.45rem;
   color: var(--ja-ink, #10202f);
   background: var(--ja-white, #fff);
@@ -240,7 +240,7 @@
 }
 
 [data-ui='table-region'][data-mobile-representation='scroll'] .ui-table-region-instruction {
-  margin: 0 0 0.65rem;
+  margin: 1rem 0 0.65rem 1rem;
   color: var(--ja-steel, #637486);
   font-size: 0.82rem;
   font-weight: 700;

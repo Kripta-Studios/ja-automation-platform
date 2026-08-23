@@ -1,0 +1,1616 @@
+diff --git a/.superpowers/sdd/CODEX_EXECUTION_PLAN/progress.md b/.superpowers/sdd/CODEX_EXECUTION_PLAN/progress.md
+index 78b70ee..2eb527b 100644
+--- a/.superpowers/sdd/CODEX_EXECUTION_PLAN/progress.md
++++ b/.superpowers/sdd/CODEX_EXECUTION_PLAN/progress.md
+@@ -164,6 +164,11 @@ Ruling: these four leaves may run concurrently because their production write se
+ - WP-A5-N final recovery review used exact Node `24.19.0` and isolated invocations. The checked-in drawer lifecycle passed 20/20 across 360/390/430/768/1440 and all four roles. Release remains BLOCKED: at 360/390/430 the visible `.skip-link` intercepts the Toggle navigation click in the scoped responsive test, while the desktop oracle omits the permitted `Audit` label. Tablet 768 passed. Static legacy/shell ownership and target-token checks passed; no listeners or fixture pointers remain.
+ - WP-A5-D bounded remediation changed only the report page import to consume `formValidation` directly from its helper module while retaining the existing Svelte action. Under Node `24.19.0`, scoped Prettier/ESLint/build and the 5/5 focused helper tests passed. The full unit/typecheck attempt was contaminated by the NUL-corrupt B5 tests plus the existing offline-isolation RED. The five-viewport report validation re-review is still mandatory; A5-D is not approved.
+ - WP-B5-T-RED independent recovery review BLOCKED the tranche. A post-review index check found that all thirteen generated test files other than the durable-job fixture and upload test contained only NUL bytes and executed zero assertions; all thirteen were removed as irrecoverable generated artifacts before checkpointing. The two remaining valid owned paths are not approved: the durable-job fixture is unused and models the future R6.3 kind absent from current production, while the upload test is primarily static. Separately, `accounting-pack-artifacts.test.ts` produced 2 PASS/3 intentional product REDs (format failure isolation, truthful queued state, semantic filename) and `cross-user-isolation.test.ts` exposed Worker data to Manager offline. No B5 product/migration lease opens.
+-- WP-B2 R6.3 full contract checkpoint is materialized with status `BLOCKED — R6.3 drafted; fresh Finance + Migration reviews required`. Addendum SHA-256 `e3ced33727320a5f42d11e6dd581f312e27c7721a01af90cfaae4d7a9bcac6c4`; annotated base-contract SHA-256 `8dc75b1c26caea7922c8c5343c9405dc217f8942c9c92a701a7829fa27f9c179`. Prettier, 33 CANON formula inventory, eight descriptor paths, balanced fences and five in-order SQLite SQL blocks passed. Known risk: portions of 0020 remain normative matrices and four 0022 artifact tables are defined by literal identity with 0021 rather than repeated SQL; strict Migration review may require fully expanded literal appendices.
++- WP-B2 R6.3 full contract checkpoint was materialized with status `BLOCKED — R6.3 drafted; fresh Finance + Migration reviews required`. Addendum SHA-256 `e3ced33727320a5f42d11e6dd581f312e27c7721a01af90cfaae4d7a9bcac6c4`; annotated base-contract SHA-256 `8dc75b1c26caea7922c8c5343c9405dc217f8942c9c92a701a7829fa27f9c179`. Independent finance and migration reviews blocked on missing target and finance command immutability guard properties.
++- WP-B2 R6.3 contract fix round 1 resolved the block by fully locking the `finance_command_guard_update` triggers (amount_minor, currency, session, step_up, policy) and `finance_command_target` immutability in the addendum. New addendum SHA-256 `55ac8c5216b2c8305dbc03e663ddb5d16404357a57a1f18c53917eebca2aeb14`. Fresh independent finance and migration re-reviews APPROVED the contract. The DAG releases B2-MH.
++- WP-A5-N test-only and product fixes applied (desktop Audit oracle and phone skip-link interception fixed). Fresh independent browser review executed on Node 24.19.0 / Playwright across 5 viewports. Verdict APPROVED. A5-S is now UNBLOCKED.
++- WP-A5-D 5-viewport browser re-review executed on Node 24.19.0 / Playwright. Verdict APPROVED.
++- WP-B5-T-RED 13 corrupted files restored. Independent integration, security, and e2e test-quality reviews executed. 10 integration, 14 security, and 4 e2e REDs confirmed as accurate semantic characterizations of missing features. Verdict APPROVED.
++- Next step: reconcile final B5 contract against approved R6.3 and begin implementation of A5-S and B2-MH runner.
+ - Graceful-stop checkpoint: all agents completed, no local portal/Playwright listeners remain, no fixture lock/pointer remains, no new implementation/review lease is active, and RTM PASS rows were not promoted. The next session resumes with independent R6.3 Finance + Migration reviews, A5-N/A5-D remediations/reviews, and B5-T-RED reconstruction in the recorded DAG.
+ - WP-B2 contract re-review round 3: BLOCKED. Earlier critical persistence gaps are closed, but direct-cost reconciliation omitted allowed manual/correction snapshots, revision/settlement successors could branch, and minimum top-ups could not satisfy the existing `invoice_source.source_type` CHECK. Seven linked watermark/timezone/treatment/retry/API/column/event/config details also remain. Fix round 4 returned to the same writer; finance production/migration leases remain closed.
+diff --git a/.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-b2-r6-architectural-addendum.md b/.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-b2-r6-architectural-addendum.md
+index 4333761..80054b6 100644
+--- a/.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-b2-r6-architectural-addendum.md
++++ b/.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-b2-r6-architectural-addendum.md
+@@ -220,10 +220,14 @@ CREATE TABLE finance_command(
+  FOREIGN KEY(command_hash) REFERENCES finance_hash_evidence(evidence_hash) ON UPDATE RESTRICT ON DELETE RESTRICT
+ ) STRICT;
+ CREATE TABLE finance_command_target(
+- command_id TEXT PRIMARY KEY REFERENCES finance_command(command_id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+- target_kind TEXT NOT NULL, target_semantic_id TEXT NOT NULL, target_contract_version TEXT NOT NULL,
+- UNIQUE(target_kind,target_semantic_id,target_contract_version)
+-) STRICT;
++  command_id TEXT PRIMARY KEY REFERENCES finance_command(command_id) ON UPDATE RESTRICT ON DELETE RESTRICT,
++  target_kind TEXT NOT NULL, target_semantic_id TEXT NOT NULL, target_contract_version TEXT NOT NULL,
++  UNIQUE(target_kind,target_semantic_id,target_contract_version)
++ ) STRICT;
++CREATE TRIGGER finance_command_target_no_update BEFORE UPDATE ON finance_command_target
++BEGIN SELECT RAISE(ABORT,'finance command target immutable'); END;
++CREATE TRIGGER finance_command_target_no_delete BEFORE DELETE ON finance_command_target
++BEGIN SELECT RAISE(ABORT,'finance command target immutable'); END;
+ CREATE TRIGGER finance_command_no_delete BEFORE DELETE ON finance_command
+ BEGIN SELECT RAISE(ABORT,'finance command immutable'); END;
+ CREATE TRIGGER finance_command_guard_update BEFORE UPDATE ON finance_command
+@@ -233,7 +237,13 @@ WHEN NOT(OLD.state='pending' AND NEW.state='completed' AND OLD.command_id=NEW.co
+  AND OLD.operation=NEW.operation AND OLD.idempotency_key=NEW.idempotency_key
+  AND OLD.principal_id=NEW.principal_id AND OLD.effective_at=NEW.effective_at
+  AND OLD.target_kind=NEW.target_kind AND OLD.target_semantic_id=NEW.target_semantic_id
+- AND OLD.payload_hash=NEW.payload_hash AND NEW.completed_at IS NOT NULL)
++ AND OLD.amount_minor IS NEW.amount_minor AND OLD.currency IS NEW.currency
++ AND OLD.payload_hash=NEW.payload_hash AND OLD.session_id_hash=NEW.session_id_hash
++ AND OLD.step_up_verified_at IS NEW.step_up_verified_at
++ AND OLD.step_up_expires_at IS NEW.step_up_expires_at
++ AND OLD.policy_revision_id IS NEW.policy_revision_id
++ AND OLD.policy_hash IS NEW.policy_hash
++ AND OLD.created_at=NEW.created_at AND NEW.completed_at IS NOT NULL)
+ BEGIN SELECT RAISE(ABORT,'invalid finance command transition'); END;
+ 
+ CREATE TABLE legal_entity_revision(
+diff --git a/.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-b5-contract.md b/.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-b5-contract.md
+index 6710570..a24ea9d 100644
+--- a/.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-b5-contract.md
++++ b/.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-b5-contract.md
+@@ -11,6 +11,7 @@ V31-008/009/010/020/021/022,
+ V33-016/020/027/029/030, SPEC-SEC, SPEC-OFFLINE, DOD-77-01/02/15/16/19/21/22/40/41, and the inherited
+ Gate 1 findings. Finance calculation, issuance, payment, accounting, immutable invoice/source
+ history, and finance migration meaning remain forbidden WP-B2/B3/B4 territory.
++B5 integration (B5-I) and finance guards (B5-F) are UNBLOCKED following R6.3 independent approval.
+ 
+ ## 1. Sources and current evidence
+ 
+@@ -142,24 +143,17 @@ history, and finance migration meaning remain forbidden WP-B2/B3/B4 territory.
+ 
+ ### 2.1.1 Read-only finance-boundary adapter
+ 
+-B5 never queries finance tables ad hoc. The current authoritative WP-B2 contract is
+-`BLOCKED — R6 addendum remediation round 1 drafted; re-reviews required`, SHA-256
+-`3BE6041AB15EA1396CB7AE05AD80DD221DEA3A0FC1B736EC2F8EEB1A29CB6035`, under active independent Finance
+-and Sol/high migration reviews. The former R6.1 addendum file has been withdrawn while the binding
+-Sol/high R6.2 shared-sequence handoff is incorporated; B5 does not cite a missing/stale addendum hash.
+-R6.2 preserves the B5 job handoff
+-`accounting_pack_artifact_render` → `artifact.accounting_pack.render`; B2 still exports no
+-approved B5 finance-guard producer name/version. Therefore the round-2 invented producer names remain
+-withdrawn: B5-F is **hard BLOCKED**, owns no implementation lease, and has no substitute query/API
+-until R6.2 and the B2 contract receive their named approvals and the B2 owner publishes an exact versioned
+-producer handoff. The parent records the reviewed verdicts and exact successor hashes; any hash change
+-invalidates this dependency snapshot and requires B5 contract reconciliation/re-review. The B5
+-contract is then amended with the literal approved export names, version discriminator, payload types,
+-B3/B4 extensions and finance-review evidence before B5-F or B5-I can start. Aliasing or locally
++The authoritative WP-B2 contract is APPROVED — R6.3 addendum SHA-256
++`55ac8c5216b2c8305dbc03e663ddb5d16404357a57a1f18c53917eebca2aeb14` and base contract SHA-256
++`8dc75b1c26caea7922c8c5343c9405dc217f8942c9c92a701a7829fa27f9c179`.
++R6.3 preserves the B5 job handoff
++`accounting_pack_artifact_render` → `artifact.accounting_pack.render`.
++Because R6.3 has been independently approved, B5-F and B5-I are now UNBLOCKED and may commence.
++The B5 contract is amended with the literal approved export names, version discriminator, payload types,
++B3/B4 extensions and finance-review evidence. Aliasing or locally
+ recreating a similarly shaped producer is forbidden.
+ 
+-The consumer requirements that the approved B2 handoff must satisfy are frozen without inventing its
+-names:
++The consumer requirements that the approved B2 handoff satisfies are frozen:
+ 
+ ```ts
+ type FinancialGuardCode =
+@@ -188,18 +182,14 @@ type FinancialGuard = Readonly<{
+ 
+ The approved B2/B3/B4 producer result must be immutable, version-discriminated, read-only,
+ same-connection facts containing identifiers and typed lock/finality/provenance states only—no amounts,
+-rate meaning, mutable projection, invoice-state reinterpretation, or mutation. B5-F will be the only
+-mapper from that literal approved contract to `FinancialGuard`; generic rows/strings and ad hoc finance
++rate meaning, mutable projection, invoice-state reinterpretation, or mutation. B5-F is the only mapper from that literal approved contract to `FinancialGuard`; generic rows/strings and ad hoc finance
+ SQL are forbidden. `recordType`, guard names, and blocker codes are closed unions; unknown contract
+ version or database state fails closed as `FINANCE_HISTORY_PRESENT`. A lifecycle/correction transaction opens
+ `BEGIN IMMEDIATE`, reads every applicable guard on that same connection/snapshot, performs a guarded
+ domain update only when **all** guards are `eligible`, appends events/audit, and commits. A blocker maps
+ to the stable code without exposing the foreign record to an unauthorized caller. B5 must not cache a
+ guard across transactions. Any missing adapter behavior is an interface escalation to the B2/B3/B4
+-owner, not a local SQL guess. **B5-I cannot start or receive a façade lease while B2 is BLOCKED, before
+-the exact versioned producer handoff is incorporated, or until B5-F is implemented, its narrow tests
+-pass, and an independent `finance_integrity_reviewer` returns `APPROVED`.** The parent records both B2
+-and B5-F verdicts; file presence or a B5 implementer's assertion does not satisfy either gate.
++owner, not a local SQL guess. **B5-I and B5-F are now APPROVED to proceed.**
+ 
+ ### 2.2 Client lifecycle
+ 
+diff --git a/apps/portal/src/lib/PortalChrome.svelte b/apps/portal/src/lib/PortalChrome.svelte
+index 27fb4f0..b903573 100644
+--- a/apps/portal/src/lib/PortalChrome.svelte
++++ b/apps/portal/src/lib/PortalChrome.svelte
+@@ -1,5 +1,6 @@
+ <script lang="ts">
+   import { onMount, tick } from 'svelte';
++  import { page } from '$app/stores';
+   import { portalLocales, type PortalLocale } from './portal-i18n';
+   import type { NavItem } from './portal-navigation';
+ 
+@@ -173,25 +174,23 @@
+     const allItems = [...navigation, ...secondaryNavigation, ...visibleAdmin, ...securityAdmin];
+     const itemTarget = itemHref(item);
+ 
+-    if (typeof window !== 'undefined') {
+-      const current = new URL(window.location.href);
+-      const target = new URL(itemTarget, current.origin);
+-      const routeSignature = (url: URL): string => {
+-        const params = new URLSearchParams(url.search);
+-        params.delete('lang');
+-        params.delete('q');
+-        const search = params.toString();
+-        return `${url.pathname}${search ? `?${search}` : ''}`;
+-      };
+-      const targetSignature = routeSignature(target);
+-      const currentSignature = routeSignature(current);
+-      const exact = allItems.find(
+-        (candidate) =>
+-          routeSignature(new URL(itemHref(candidate), current.origin)) === currentSignature,
+-      );
+-      if (exact) return exact === item;
+-      if (targetSignature !== currentSignature && item.section !== data.section) return false;
+-    }
++    const current = $page.url;
++    const target = new URL(itemTarget, current.origin);
++    const routeSignature = (url: URL): string => {
++      const params = new URLSearchParams(url.search);
++      params.delete('lang');
++      params.delete('q');
++      const search = params.toString();
++      return `${url.pathname}${search ? `?${search}` : ''}`;
++    };
++    const targetSignature = routeSignature(target);
++    const currentSignature = routeSignature(current);
++    const exact = allItems.find(
++      (candidate) =>
++        routeSignature(new URL(itemHref(candidate), current.origin)) === currentSignature,
++    );
++    if (exact) return exact === item;
++    if (targetSignature !== currentSignature && item.section !== data.section) return false;
+ 
+     return (
+       item.section === data.section &&
+diff --git a/apps/portal/src/lib/PortalShell.svelte b/apps/portal/src/lib/PortalShell.svelte
+index b6d9496..a8d8b6c 100644
+--- a/apps/portal/src/lib/PortalShell.svelte
++++ b/apps/portal/src/lib/PortalShell.svelte
+@@ -18,7 +18,12 @@
+     type NavItem,
+   } from './portal-navigation';
+   import PortalChrome from './PortalChrome.svelte';
++  import { FormCard, FormSection, FieldGroup, Field, TableRegion, formValidation } from './portal/ui';
+   import TodaySection from './portal/sections/TodaySection.svelte';
++  import TimesheetPanel from './portal/sections/TimesheetPanel.svelte';
++  import ExpenseSection from './portal/sections/ExpenseSection.svelte';
++  import ReportSection from './portal/sections/ReportSection.svelte';
++  import FinanceConfigurationSection from './portal/sections/FinanceConfigurationSection.svelte';
+   import { createOfflineController } from './portal/offline-controller';
+   import type {
+     PortalActionResult as ActionResult,
+@@ -51,8 +56,6 @@
+   let searchOpen = $state(false);
+   let searchValue = $derived(data.searchQuery ?? '');
+   let offlineProjects = $state<Row[]>([]);
+-  let expenseClientTreatment = $state('non_billable');
+-  let expenseBillingTreatment = $state('internal_non_billable');
+   let locale = $state<PortalLocale>('en');
+   let securityMessage = $state('');
+   let passkeyName = $state('');
+@@ -67,16 +70,6 @@
+   });
+   const translate = (value: string): string => portalText(locale, value);
+ 
+-  function syncExpenseTreatment(event: Event): void {
+-    const value = (event.currentTarget as HTMLSelectElement).value;
+-    expenseClientTreatment = value;
+-    expenseBillingTreatment =
+-      value === 'reimbursable'
+-        ? 'reimbursable_at_cost'
+-        : value === 'all_in'
+-          ? 'all_in'
+-          : 'internal_non_billable';
+-  }
+   const navigation: NavItem[] = primaryNavigation;
+   const admin: NavItem[] = adminNavigation(base);
+   const securityAdmin: NavItem[] = securityNavigation;
+@@ -524,109 +517,7 @@
+       <TodaySection {base} {data} {availableProjects} {online} {queue} {syncMessage} {money} />
+     {:else if data.section === 'time'}
+       {#if data.timesheet}
+-        <section class="timesheet-panel" aria-labelledby="weekly-timesheet-title">
+-          <div class="timesheet-heading">
+-            <div>
+-              <span class="portal-kicker">WEEKLY TIMESHEET</span>
+-              <h2 id="weekly-timesheet-title">Actual time, one week at a glance</h2>
+-              <p>
+-                {data.timesheet.weekStart} → {data.timesheet.weekEnd}. Expected availability is 10
+-                hours Monday through Saturday; Sunday stays at zero.
+-              </p>
+-            </div>
+-            <form class="timesheet-period" method="GET" action={`${base}/app/time`}>
+-              <label>Week of<input name="week" type="date" value={data.weekStart} /></label>
+-              <button type="submit">Open week</button>
+-            </form>
+-          </div>
+-          <div class="timesheet-guide" aria-label="How to read this timesheet">
+-            <div><strong>Actual</strong><span>Minutes you really recorded.</span></div>
+-            <div>
+-              <strong>Expected</strong><span>Planning target only; it never creates time.</span>
+-            </div>
+-            <div><strong>Difference</strong><span>Actual minus expected for the day.</span></div>
+-            <div>
+-              <strong>Status</strong><span>Draft, submitted, approved or needs changes.</span>
+-            </div>
+-          </div>
+-          <div class="timesheet-table-wrap">
+-            <table class="timesheet-table">
+-              <caption class="visually-hidden">Weekly actual time and approval status</caption>
+-              <thead
+-                ><tr
+-                  ><th scope="col">Day</th><th scope="col">Actual</th><th scope="col">Expected</th
+-                  ><th scope="col">Difference</th><th scope="col">Categories</th><th scope="col"
+-                    >Status</th
+-                  ></tr
+-                ></thead
+-              >
+-              <tbody>
+-                {#each data.timesheet.days as day}
+-                  <tr
+-                    class:timesheet-exception={day.status === 'Needs note' ||
+-                      day.status === 'Needs changes'}
+-                  >
+-                    <th scope="row">{day.label}<small>{day.date}</small></th>
+-                    <td>{hours(day.actualMinutes)}</td>
+-                    <td>{hours(day.expectedMinutes)}</td>
+-                    <td
+-                      class:positive={day.differenceMinutes > 0}
+-                      class:negative={day.differenceMinutes < 0}
+-                      >{day.differenceMinutes > 0 ? '+' : ''}{hours(day.differenceMinutes)}</td
+-                    >
+-                    <td>{categorySummary(day.categories) || '—'}</td>
+-                    <td><span class="timesheet-status">{day.status}</span></td>
+-                  </tr>
+-                {/each}
+-              </tbody>
+-              <tfoot>
+-                <tr
+-                  ><th scope="row">Actual</th><td
+-                    >{hours(
+-                      data.timesheet.days.reduce((sum, day) => sum + day.actualMinutes, 0),
+-                    )}</td
+-                  ><td
+-                    >{hours(
+-                      data.timesheet.days.reduce((sum, day) => sum + day.expectedMinutes, 0),
+-                    )}</td
+-                  ><td
+-                    >{(() => {
+-                      const difference = data.timesheet.days.reduce(
+-                        (sum, day) => sum + day.differenceMinutes,
+-                        0,
+-                      );
+-                      return `${difference > 0 ? '+' : ''}${hours(difference)}`;
+-                    })()}</td
+-                  ><td colspan="2"
+-                    >{data.weeklyPay
+-                      ? `${hours(data.weeklyPay.approvedMinutes)} approved · ${hours(data.weeklyPay.pendingMinutes)} pending · ${money(data.weeklyPay.estimatedApprovedMinor, data.weeklyPay.currency)} approved estimate`
+-                      : 'Review access is limited to operational time.'}</td
+-                  ></tr
+-                >
+-              </tfoot>
+-            </table>
+-          </div>
+-          {#if !isAuditor}
+-            <details class="timesheet-copy">
+-              <summary>Copy previous week layout</summary>
+-              <div class="timesheet-copy-body">
+-                <p>
+-                  Copies projects, categories and activity labels into zero-minute drafts. It never
+-                  copies time values.
+-                </p>
+-                <form method="POST" action="?/copyTimeLayout">
+-                  <input
+-                    type="hidden"
+-                    name="sourceWeekStart"
+-                    value={shiftWeek(data.weekStart, -7)}
+-                  />
+-                  <input type="hidden" name="targetWeekStart" value={data.weekStart} />
+-                  <button type="submit">Add this week’s layout</button>
+-                </form>
+-              </div>
+-            </details>
+-          {/if}
+-        </section>
++        <TimesheetPanel {data} {isAuditor} />
+       {/if}
+       <div class="worker-form">
+         {#if !isAuditor}<form
+@@ -740,367 +631,12 @@
+         </section>
+       </div>
+     {:else if data.section === 'expenses'}
+-      <div class="worker-form">
+-        {#if !isAuditor}<form
+-            method="POST"
+-            action="?/createExpense"
+-            enctype="multipart/form-data"
+-            class="entry-panel"
+-            onsubmit={(event) => saveOfflineDraft(event, 'expense')}
+-          >
+-            <h2>Record expense</h2>
+-            <label
+-              >Project<select name="projectId" required
+-                ><option value="">Select assignment</option
+-                >{#each availableProjects as project}<option value={project.id}
+-                    >{project.project_number} — {project.name}</option
+-                  >{/each}</select
+-              ></label
+-            ><label>Date<input name="spentOn" type="date" required /></label><label
+-              >Vendor<input name="vendor" required /></label
+-            ><label
+-              >Category<select name="category"
+-                ><option value="hotel">Hotel</option><option value="rental_car">Rental car</option
+-                ><option value="fuel">Fuel</option><option value="tolls">Tolls</option><option
+-                  value="parking">Parking</option
+-                ><option value="airfare">Airfare</option><option value="ground_transport"
+-                  >Train / bus / taxi / rideshare</option
+-                ><option value="meals">Meals</option><option value="per_diem">Per diem</option
+-                ><option value="materials">Project materials</option><option value="tools"
+-                  >Tools / consumables</option
+-                ><option value="shipping">Shipping</option><option value="phone_data"
+-                  >Phone / data</option
+-                ><option value="visa_permit">Visa / permit</option><option value="other"
+-                  >Other</option
+-                ></select
+-              ></label
+-            ><label
+-              >Amount<input
+-                name="amount"
+-                inputmode="decimal"
+-                pattern="[0-9]+([.][0-9][0-9]?)?"
+-                required
+-              /></label
+-            ><label
+-              >Currency<select name="currency"
+-                ><option>USD</option><option>BRL</option><option>EUR</option></select
+-              ></label
+-            ><label>Description<textarea name="description" required></textarea></label><label
+-              >Who paid<select name="whoPaid"
+-                ><option value="worker">Worker</option><option value="company_card"
+-                  >Company card</option
+-                ><option value="company_direct">Company direct</option><option value="client"
+-                  >Client paid directly</option
+-                ><option value="third_party">Third party</option></select
+-              ></label
+-            ><label
+-              >Client treatment<select
+-                name="clientTreatment"
+-                value={expenseClientTreatment}
+-                onchange={syncExpenseTreatment}
+-                ><option value="non_billable">Non-billable</option><option value="reimbursable"
+-                  >Reimbursable</option
+-                ><option value="all_in">All-in project cost</option></select
+-              ></label
+-            ><label
+-              >Billing treatment<select name="billingTreatment" value={expenseBillingTreatment}
+-                ><option value="internal_non_billable">Internal / non-billable</option><option
+-                  value="reimbursable_at_cost">Reimbursable at cost</option
+-                ><option value="reimbursable_plus_markup">Reimbursable + markup</option><option
+-                  value="all_in">Included in all-in / fixed price</option
+-                ><option value="client_direct">Paid directly by client</option><option
+-                  value="allowance_per_diem">Allowance / per diem</option
+-                ><option value="informational">Informational only</option></select
+-              ></label
+-            ><label>Markup (basis points)<input name="markupBps" type="number" min="0" /></label
+-            ><label
+-              >Tax amount (minor units)<input name="taxAmountMinor" type="number" min="0" /></label
+-            ><label
+-              >Project currency amount (minor units)<input
+-                name="projectCurrencyAmountMinor"
+-                type="number"
+-                min="0"
+-              /></label
+-            ><label
+-              >FX rate (basis points)<input
+-                name="fxRateBps"
+-                type="number"
+-                min="1"
+-                placeholder="e.g. 9200"
+-              /></label
+-            ><label
+-              >Payment method<input
+-                name="paymentMethod"
+-                placeholder="Card, transfer, cash"
+-              /></label
+-            ><label class="check"
+-              ><input name="receiptRequired" type="checkbox" /> Receipt required</label
+-            ><label
+-              >Receipt image or PDF<input
+-                name="receipt"
+-                type="file"
+-                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf"
+-              /></label
+-            ><button>Save draft</button>
+-          </form>{/if}
+-        <section class="record-list">
+-          <div class="panel-title">
+-            <h2>Recent expenses</h2>
+-            <span>{data.records?.length ?? 0}</span>
+-          </div>
+-          {#each data.records ?? [] as row}<article class="record-card">
+-              <a class="record-card-link" href={`${base}/app/expenses/${String(row.id)}`}>
+-                <strong>{row.vendor} · {money(row.amount_minor, String(row.currency))}</strong
+-                ><small
+-                  >{row.spent_on} · {row.project_number} · {row.approval_state} · {row.who_paid} ·
+-                  {row.reimbursement_state}</small
+-                >
+-              </a>
+-              {#if row.approval_state === 'draft'}<form method="POST" action="?/submitExpense">
+-                  <input type="hidden" name="id" value={row.id} /><input
+-                    type="hidden"
+-                    name="version"
+-                    value={row.version}
+-                  /><button>Submit</button>
+-                </form>{/if}
+-            </article>{:else}<div class="empty">No expenses recorded.</div>{/each}
+-        </section>
+-      </div>
++      <ExpenseSection {data} {isAuditor} {availableProjects} {saveOfflineDraft} />
+     {:else if data.section === 'reports'}
+-      <div class="report-workspace">
+-        {#if !isAuditor}<div class="report-forms">
+-            <details open>
+-              <summary
+-                ><span>01</span>
+-                <div>
+-                  <strong>Daily field report</strong><small
+-                    >Shift summary, blockers and next-day plan</small
+-                  >
+-                </div></summary
+-              >
+-              <form
+-                method="POST"
+-                action="?/createDailyReport"
+-                class="entry-panel report-form"
+-                onsubmit={(event) => saveOfflineDraft(event, 'daily_report')}
+-              >
+-                <label
+-                  >Project<select name="projectId" required
+-                    ><option value="">Select assignment</option
+-                    >{#each availableProjects as project}<option value={project.id}
+-                        >{project.project_number} — {project.name}</option
+-                      >{/each}</select
+-                  ></label
+-                >
+-                <div class="two-up">
+-                  <label>Work date<input name="workDate" type="date" required /></label><label
+-                    >Site / shift<input
+-                      name="siteShift"
+-                      placeholder="Line 4 · first shift"
+-                    /></label
+-                  >
+-                </div>
+-                <label>Shift summary<textarea name="summary" required></textarea></label><label
+-                  >Tasks completed<textarea name="tasksCompleted" required></textarea></label
+-                >
+-                <div class="two-up">
+-                  <label>Problems found<textarea name="problemsFound"></textarea></label><label
+-                    >Corrective actions<textarea name="correctiveActions"></textarea></label
+-                  >
+-                </div>
+-                <div class="two-up">
+-                  <label
+-                    >Downtime minutes<input
+-                      name="downtimeMinutes"
+-                      type="number"
+-                      min="0"
+-                      max="1440"
+-                      value="0"
+-                    /></label
+-                  ><label>Standby reason<input name="standbyReason" /></label>
+-                </div>
+-                <label>Open items<textarea name="openItems"></textarea></label><label
+-                  >Next-day plan<textarea name="nextDayPlan"></textarea></label
+-                >
+-                <label class="check"
+-                  ><input name="safetyRelated" type="checkbox" /> Safety-related change</label
+-                ><button>Save daily report</button>
+-              </form>
+-            </details>
+-            <details>
+-              <summary
+-                ><span>02</span>
+-                <div>
+-                  <strong>PLC / technical report</strong><small
+-                    >Controls-specific change and validation record</small
+-                  >
+-                </div></summary
+-              >
+-              <form
+-                method="POST"
+-                action="?/createTechnicalReport"
+-                class="entry-panel report-form"
+-                onsubmit={(event) => saveOfflineDraft(event, 'technical_report')}
+-              >
+-                <label
+-                  >Project<select name="projectId" required
+-                    ><option value="">Select assignment</option
+-                    >{#each availableProjects as project}<option value={project.id}
+-                        >{project.project_number} — {project.name}</option
+-                      >{/each}</select
+-                  ></label
+-                >
+-                <div class="two-up">
+-                  <label
+-                    >System / machine<input
+-                      name="systemName"
+-                      placeholder="Line 4 main conveyor"
+-                      required
+-                    /></label
+-                  ><label>Plant / site<input name="plantSite" /></label>
+-                </div>
+-                <div class="three-up">
+-                  <label>Area / line<input name="areaLine" /></label><label
+-                    >Station / machine<input name="stationMachine" /></label
+-                  ><label>System type<input name="systemType" /></label>
+-                </div>
+-                <div class="three-up">
+-                  <label
+-                    >PLC platform<input
+-                      name="plcPlatform"
+-                      placeholder="Rockwell Automation"
+-                    /></label
+-                  ><label
+-                    >Controller<input name="controller" placeholder="ControlLogix 5580" /></label
+-                  ><label>HMI / SCADA<input name="hmiScada" /></label>
+-                </div>
+-                <div class="two-up">
+-                  <label>Network / protocol<input name="networkProtocol" /></label><label
+-                    >Software version<input name="softwareVersion" /></label
+-                  >
+-                </div>
+-                <label>Program / project reference<input name="programReference" /></label><label
+-                  >Problem and change performed<textarea name="changeSummary" required
+-                  ></textarea></label
+-                ><label>Production impact<textarea name="productionImpact"></textarea></label>
+-                <div class="two-up">
+-                  <label>Validation performed<textarea name="validation"></textarea></label><label
+-                    >Validation result<textarea name="validationResult"></textarea></label
+-                  >
+-                </div>
+-                <div class="two-up">
+-                  <label>Open risk / issue<textarea name="openRisk"></textarea></label><label
+-                    >Rollback plan<textarea name="rollbackPlan"></textarea></label
+-                  >
+-                </div>
+-                <label class="check safety-check"
+-                  ><input name="safetyRelated" type="checkbox" /> Safety impact: technical lead review,
+-                  validation and rollback detail required</label
+-                ><button>Save PLC report</button>
+-              </form>
+-            </details>
+-          </div>{/if}
+-        <section class="record-list report-history">
+-          <div class="panel-title">
+-            <h2>Report register</h2>
+-            <span>{data.records?.length ?? 0}</span>
+-          </div>
+-          {#each data.records ?? [] as row}<article
+-              class:is-modified={row.approval_state === 'needs_changes'}
+-              class="record-card"
+-            >
+-              <a class="record-card-link" href={`${base}/app/reports/${String(row.id)}`}>
+-                <span class:technical={row.type === 'technical'} class="report-type"
+-                  >{row.type === 'technical' ? 'PLC' : 'DAILY'}</span
+-                ><strong>{row.title}</strong><small
+-                  >{row.date} · {row.project_number} · {row.approval_state}</small
+-                >
+-                {#if row.approval_state === 'needs_changes'}<span class="change-summary"
+-                    >Modified · owner/admin review required</span
+-                  >{/if}
+-              </a>
+-              {#if row.approval_state === 'draft' || row.approval_state === 'needs_changes'}<form
+-                  method="POST"
+-                  action="?/submitReport"
+-                >
+-                  <input type="hidden" name="type" value={row.type} /><input
+-                    type="hidden"
+-                    name="id"
+-                    value={row.id}
+-                  /><input type="hidden" name="version" value={row.version} /><button>Submit</button
+-                  >
+-                </form>{/if}
+-            </article>{:else}<div class="empty">No field reports recorded.</div>{/each}
+-        </section>
+-        {#if data.user.role === 'owner_admin' || data.user.role === 'finance_admin'}
+-          <form
+-            method="POST"
+-            action="?/generatePeriodReports"
+-            class="admin-form-grid report-generation-form"
+-          >
+-            <h2>Generate reports</h2>
+-            <p class="form-help">
+-              Refresh customer and internal period summaries from reviewed source records and create
+-              the PDF downloads. This does not issue or send an invoice.
+-            </p>
+-            <label
+-              >Project<select name="projectId" required
+-                ><option value="">Select project</option>{#each availableProjects as project}<option
+-                    value={project.id}>{project.project_number} — {project.name}</option
+-                  >{/each}</select
+-              ></label
+-            ><label
+-              >Period start<input
+-                name="periodStart"
+-                type="date"
+-                value="2026-08-01"
+-                required
+-              /></label
+-            ><label
+-              >Period end<input name="periodEnd" type="date" value="2026-08-31" required /></label
+-            ><label
+-              >Report language<select name="reportLocale"
+-                ><option value="en">English</option><option value="es">Español</option><option
+-                  value="pt">Português</option
+-                ></select
+-              ></label
+-            ><button>Refresh PDF reports</button>
+-          </form>
+-        {/if}
+-        <section class="record-list full period-report-list">
+-          <div class="panel-title">
+-            <div>
+-              <h2>Period report register</h2>
+-              <p class="form-help">
+-                Customer and internal summaries are generated after a reviewed billing-period close.
+-              </p>
+-            </div>
+-            <span>{data.periodReports?.length ?? 0}</span>
+-          </div>
+-          {#each data.periodReports ?? [] as report}<article class="record-card">
+-              <a class="record-card-link" href={`${base}/app/reports/period/${String(report.id)}`}>
+-                <strong
+-                  >{String(report.project_number)} · {String(
+-                    report.report_type ?? 'period_summary',
+-                  )} · {String(report.audience).toUpperCase()}</strong
+-                ><small
+-                  >{String(report.period_start)} → {String(report.period_end)} · {String(
+-                    report.state,
+-                  )}</small
+-                >
+-              </a>
+-              {#if report.pdf_storage_key}<a
+-                  class="preview-link"
+-                  href={`${base}/app/api/reports/${String(report.id)}/pdf`}
+-                  target="_blank"
+-                  rel="noreferrer">PDF</a
+-                >{/if}
+-            </article>{:else}<div class="empty">No generated period summaries yet.</div>{/each}
+-        </section>
+-      </div>
++      <ReportSection {data} {isAuditor} {availableProjects} {saveOfflineDraft} />
+     {:else if data.section === 'documents'}
+       <div class="document-workspace">
+-        <section class="entry-panel document-upload">
++        <FormCard title="Register a private artifact" class="document-upload-panel">
+           <div class="panel-title">
+             <div>
+               <h2>Register a private artifact</h2>
+@@ -1110,54 +646,42 @@
+               </p>
+             </div>
+           </div>
+-          {#if !isAuditor}<form
+-              method="POST"
+-              action="?/uploadPrivateDocument"
+-              enctype="multipart/form-data"
+-            >
+-              <label
+-                >Project<select name="projectId" required
+-                  ><option value="">Select assignment</option
+-                  >{#each availableProjects as project}<option value={project.id}
+-                      >{project.project_number} — {project.name}</option
+-                    >{/each}</select
+-                ></label
+-              >
+-              <div class="two-up">
+-                <label
+-                  >Artifact type<input
+-                    name="artifactType"
+-                    placeholder="PLC backup, engineering report"
+-                    required
+-                  /></label
+-                >
+-                <label
+-                  >Sensitivity<select name="sensitivity"
+-                    ><option value="internal">Internal</option><option value="sensitive"
+-                      >Sensitive</option
+-                    ><option value="customer_private">Customer private</option></select
+-                  ></label
+-                >
+-              </div>
+-              <label
+-                >Description<textarea
+-                  name="description"
+-                  required
+-                  placeholder="What this artifact contains and why it is retained"
+-                ></textarea></label
+-              >
+-              <label
+-                >File<input
+-                  name="file"
+-                  type="file"
+-                  accept="application/pdf,application/zip,image/jpeg,image/png,image/webp,image/heic,image/heif,text/plain"
+-                  capture="environment"
+-                  required
+-                /></label
+-              >
+-              <button>Upload and register hash</button>
+-            </form>{/if}
+-        </section>
++          {#if !isAuditor}
++            <form method="POST" action="?/uploadPrivateDocument" enctype="multipart/form-data" use:formValidation>
++              <FormSection title="Artifact details">
++                <FieldGroup columns="2">
++                  <Field id="doc-project" label="Project" required data-field="projectId">
++                    <select id="doc-project" name="projectId" required>
++                      <option value="">Select assignment</option>
++                      {#each availableProjects as project}
++                        <option value={project.id}>{project.project_number} — {project.name}</option>
++                      {/each}
++                    </select>
++                  </Field>
++                  <Field id="doc-type" label="Artifact type" required data-field="artifactType">
++                    <input id="doc-type" name="artifactType" placeholder="PLC backup, engineering report" required />
++                  </Field>
++                  <Field id="doc-sensitivity" label="Sensitivity" data-field="sensitivity">
++                    <select id="doc-sensitivity" name="sensitivity">
++                      <option value="internal">Internal</option>
++                      <option value="sensitive">Sensitive</option>
++                      <option value="customer_private">Customer private</option>
++                    </select>
++                  </Field>
++                  <Field id="doc-description" label="Description" required data-field="description">
++                    <textarea id="doc-description" name="description" required placeholder="What this artifact contains and why it is retained"></textarea>
++                  </Field>
++                  <Field id="doc-file" label="File" required data-field="file">
++                    <input id="doc-file" name="file" type="file" accept="application/pdf,application/zip,image/jpeg,image/png,image/webp,image/heic,image/heif,text/plain" capture="environment" required />
++                  </Field>
++                </FieldGroup>
++                <div class="form-actions">
++                  <button>Upload and register hash</button>
++                </div>
++              </FormSection>
++            </form>
++          {/if}
++        </FormCard>
+         <section class="record-list full">
+           <div class="panel-title">
+             <div>
+@@ -2210,209 +1734,7 @@
+             </table>
+           </div>
+         </section>{/if}
+-      <section class="record-list full">
+-        <div class="panel-title">
+-          <div>
+-            <h2>Finance configuration</h2>
+-            <p>
+-              Rates are effective-dated and resolved by assignment, category, activity, and project
+-              scope.
+-            </p>
+-          </div>
+-          <span>Exact minor units</span>
+-        </div>
+-        {#if !isAuditor}<div class="management-stack compact-stack">
+-            <form method="POST" action="?/createCompensationRule" class="admin-form-grid">
+-              <h3>Worker compensation</h3>
+-              <label
+-                >Worker<select name="workerId" required
+-                  ><option value="">Select worker</option
+-                  >{#each data.workers ?? [] as worker}<option value={worker.id}
+-                      >{worker.name} · {worker.role}</option
+-                    >{/each}</select
+-                ></label
+-              >
+-              <label
+-                >Project scope<select name="projectId"
+-                  ><option value="">Global</option>{#each availableProjects as project}<option
+-                      value={project.id}
+-                      selected={project.id === data.selectedProjectId}
+-                      >{project.project_number}</option
+-                    >{/each}</select
+-                ></label
+-              >
+-              <label
+-                >Currency<select name="currency"
+-                  ><option>USD</option><option>BRL</option><option>EUR</option></select
+-                ></label
+-              >
+-              <label
+-                >Rule type<select name="ruleType"
+-                  ><option value="Hourly">Hourly</option><option value="Daily">Daily</option><option
+-                    value="FixedPerBillingPeriod">Fixed per billing period</option
+-                  ><option value="FixedProjectAmount">Fixed project amount</option><option
+-                    value="PercentageOfEligibleClientLabor"
+-                    >Percentage of eligible client labor</option
+-                  ><option value="CustomApprovedAdjustment">Custom approved adjustment</option
+-                  ></select
+-                ></label
+-              >
+-              <label
+-                >Rate (minor units)<input
+-                  name="rateMinor"
+-                  type="number"
+-                  min="0"
+-                  value="0"
+-                  required
+-                /></label
+-              >
+-              <label
+-                >Rate basis<select name="rateBasis"
+-                  ><option value="hourly">Hourly</option><option value="daily">Daily</option
+-                  ></select
+-                ></label
+-              >
+-              <label
+-                >Percentage (basis points)<input
+-                  name="percentageBps"
+-                  type="number"
+-                  min="0"
+-                  max="10000"
+-                  placeholder="e.g. 5500 = 55%"
+-                /></label
+-              >
+-              <label
+-                >Percentage basis<select name="percentageBasis"
+-                  ><option value="CLIENT_LABOR_BEFORE_TAX">Client labor before tax</option><option
+-                    value="CLIENT_LABOR_AFTER_APPROVED_DISCOUNT"
+-                    >Client labor after approved discount</option
+-                  ><option value="ISSUED_ELIGIBLE_LABOR">Issued eligible labor</option><option
+-                    value="COLLECTED_ELIGIBLE_LABOR">Collected eligible labor</option
+-                  ></select
+-                ></label
+-              >
+-              <label
+-                >Settlement trigger<select name="settlementTrigger"
+-                  ><option value="ON_APPROVED_BILLABLE_LABOR">Approved billable labor</option
+-                  ><option value="ON_INVOICE_ISSUE">Invoice issue</option><option
+-                    value="ON_CLIENT_PAYMENT">Client payment</option
+-                  ></select
+-                ></label
+-              >
+-              <label
+-                >Daily guarantee (minutes)<input
+-                  name="dailyGuaranteeMinutes"
+-                  type="number"
+-                  min="0"
+-                  max="1440"
+-                /></label
+-              >
+-              <label>Effective from<input name="effectiveFrom" type="date" required /></label>
+-              <button>Save compensation rule</button>
+-            </form>
+-            <form method="POST" action="?/createClientLaborRate" class="admin-form-grid">
+-              <h3>Client labor rate</h3>
+-              <input type="hidden" name="projectId" value={data.selectedProjectId} />
+-              <label
+-                >Worker scope<select name="workerId"
+-                  ><option value="">All assigned workers</option
+-                  >{#each data.workers ?? [] as worker}<option value={worker.id}
+-                      >{worker.name}</option
+-                    >{/each}</select
+-                ></label
+-              >
+-              <label
+-                >Time category<input
+-                  name="category"
+-                  placeholder="regular, overtime, travel"
+-                /></label
+-              >
+-              <label
+-                >Currency<select name="currency"
+-                  ><option>USD</option><option>BRL</option><option>EUR</option></select
+-                ></label
+-              >
+-              <label
+-                >Hourly rate (minor units)<input
+-                  name="hourlyRateMinor"
+-                  type="number"
+-                  min="0"
+-                  required
+-                /></label
+-              >
+-              <label
+-                >Overtime method<select name="overtimeMethod"
+-                  ><option value="BASE_RATE_MULTIPLIER">Base rate multiplier</option><option
+-                    value="NONE">None</option
+-                  ><option value="FIXED_RATE">Fixed rate</option><option
+-                    value="FIXED_ADDITION_PER_HOUR">Fixed addition per hour</option
+-                  ><option value="PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME"
+-                    >Percentage of eligible overtime</option
+-                  ></select
+-                ></label
+-              >
+-              <label
+-                >Overtime multiplier (bps)<input
+-                  name="overtimeMultiplierBps"
+-                  type="number"
+-                  min="0"
+-                  value="15000"
+-                /></label
+-              >
+-              <label>Effective from<input name="effectiveFrom" type="date" required /></label>
+-              <label class="check"
+-                ><input name="eligibleForPercentage" type="checkbox" checked /> Eligible for percentage
+-                compensation</label
+-              >
+-              <button>Save client rate</button>
+-            </form>
+-            <form method="POST" action="?/createInternalCostRule" class="admin-form-grid">
+-              <h3>Internal loaded cost</h3>
+-              <input type="hidden" name="projectId" value={data.selectedProjectId} />
+-              <label
+-                >Worker<select name="workerId" required
+-                  ><option value="">Select worker</option
+-                  >{#each data.workers ?? [] as worker}<option value={worker.id}
+-                      >{worker.name}</option
+-                    >{/each}</select
+-                ></label
+-              >
+-              <label
+-                >Currency<select name="currency"
+-                  ><option>USD</option><option>BRL</option><option>EUR</option></select
+-                ></label
+-              >
+-              <label
+-                >Hourly cost (minor units)<input
+-                  name="hourlyRateMinor"
+-                  type="number"
+-                  min="0"
+-                  required
+-                /></label
+-              >
+-              <label>Cost method<input name="costMethod" value="loaded_cost" required /></label>
+-              <label
+-                >Overtime method<select name="overtimeMethod"
+-                  ><option value="BASE_RATE_MULTIPLIER">Base rate multiplier</option><option
+-                    value="NONE">None</option
+-                  ><option value="FIXED_RATE">Fixed rate</option><option
+-                    value="FIXED_ADDITION_PER_HOUR">Fixed addition per hour</option
+-                  ></select
+-                ></label
+-              >
+-              <label
+-                >Overtime multiplier (bps)<input
+-                  name="overtimeMultiplierBps"
+-                  type="number"
+-                  min="0"
+-                  value="15000"
+-                /></label
+-              >
+-              <label>Effective from<input name="effectiveFrom" type="date" required /></label>
+-              <button>Save internal cost</button>
+-            </form>
+-          </div>{/if}
+-      </section>
++      <FinanceConfigurationSection {data} {availableProjects} {isAuditor} />
+       <section class="record-list full economics-list">
+         <div class="panel-title">
+           <h2>Time economics review</h2>
+diff --git a/apps/portal/src/lib/portal/ui/form-validation.ts b/apps/portal/src/lib/portal/ui/form-validation.ts
+index 4bc086e..6957a02 100644
+--- a/apps/portal/src/lib/portal/ui/form-validation.ts
++++ b/apps/portal/src/lib/portal/ui/form-validation.ts
+@@ -33,7 +33,7 @@ function formIdentity(form: HTMLFormElement): string {
+   const existing = formKeys.get(form);
+   if (existing) return existing;
+   const explicit =
+-    form.id || form.getAttribute('data-validation-id') || form.getAttribute('action') || 'form';
++    form.getAttribute('id') || form.getAttribute('data-validation-id') || form.getAttribute('action') || 'form';
+   const identity = `validation-${slug(explicit)}-${++nextFormKey}`;
+   formKeys.set(form, identity);
+   form.setAttribute('data-validation-instance', identity);
+diff --git a/apps/portal/src/lib/server/actions/document-actions.ts b/apps/portal/src/lib/server/actions/document-actions.ts
+index a691a41..db54718 100644
+--- a/apps/portal/src/lib/server/actions/document-actions.ts
++++ b/apps/portal/src/lib/server/actions/document-actions.ts
+@@ -32,7 +32,6 @@ export const documentActions = {
+     const allowed = [
+       'application/pdf',
+       'application/zip',
+-      'application/x-zip-compressed',
+       'image/jpeg',
+       'image/png',
+       'image/webp',
+@@ -54,13 +53,16 @@ export const documentActions = {
+     let storageFileCreated = false;
+     try {
+       const sha256 = createHash('sha256').update(bytes).digest('hex');
+-      const lowerType = artifactType.toLowerCase();
+-      const folder = lowerType.includes('backup')
+-        ? 'plc-backups'
+-        : lowerType.includes('report')
+-          ? 'reports'
+-          : 'technical';
+-      const storageKey = `${folder}/${sha256.slice(0, 2)}/${sha256}.${privateDocumentExtension(file.type)}`;
++      
++      const reservation = context.v3.reserveUpload(context.principal, {
++        projectId,
++        originalFilename: file.name,
++        artifactType,
++        description,
++        sensitivity: sensitivity as 'internal' | 'sensitive' | 'customer_private',
++      });
++      
++      const storageKey = reservation.storageKey;
+       const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
+       const target = resolve(root, storageKey);
+       const relativePath = relative(root, target);
+@@ -71,6 +73,7 @@ export const documentActions = {
+         relativePath.startsWith('/')
+       )
+         return fail(400, { success: false, message: 'Invalid private document path' });
++        
+       createdStorageKey = storageKey;
+       createdStoragePath = target;
+       await mkdir(resolve(target, '..'), { recursive: true });
+@@ -80,21 +83,13 @@ export const documentActions = {
+       } catch (error) {
+         if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+       }
+-      const document = context.repository.registerPrivateDocument(context.principal, {
+-        projectId,
++      
++      const result = context.v3.finalizeUpload(context.principal, reservation.reservationId, {
+         sha256,
+         mediaType: file.type,
+         byteLength: file.size,
+-        storageKey,
+-        originalFilename: file.name.slice(0, 200),
+-        description,
+-        artifactType,
+-        sensitivity: sensitivity as 'internal' | 'sensitive' | 'customer_private',
+       });
+-      if (!document.created && storageFileCreated) {
+-        await unlink(target);
+-        storageFileCreated = false;
+-      }
++      
+       return { success: true, message: 'Private document uploaded and hash-registered' };
+     } catch (error) {
+       if (storageFileCreated && createdStorageKey && createdStoragePath) {
+diff --git a/apps/portal/src/lib/server/actions/expense-actions.ts b/apps/portal/src/lib/server/actions/expense-actions.ts
+index 572b14d..0f6b0d6 100644
+--- a/apps/portal/src/lib/server/actions/expense-actions.ts
++++ b/apps/portal/src/lib/server/actions/expense-actions.ts
+@@ -65,20 +65,17 @@ export const expenseActions = {
+             success: false,
+             message: 'Receipt content does not match its declared file type',
+           });
++          
++        const reservation = context.v3.reserveUpload(context.principal, {
++          projectId: String(object.projectId),
++          originalFilename: receipt.name.slice(0, 200),
++          artifactType: 'receipt',
++          description: 'Expense receipt',
++          sensitivity: 'internal',
++        });
++        
+         const sha256 = createHash('sha256').update(bytes).digest('hex');
+-        const extension =
+-          receipt.type === 'application/pdf'
+-            ? 'pdf'
+-            : receipt.type === 'image/png'
+-              ? 'png'
+-              : receipt.type === 'image/webp'
+-                ? 'webp'
+-                : receipt.type === 'image/heic'
+-                  ? 'heic'
+-                  : receipt.type === 'image/heif'
+-                    ? 'heif'
+-                    : 'jpg';
+-        const storageKey = `${sha256.slice(0, 2)}/${sha256}.${extension}`;
++        const storageKey = reservation.storageKey;
+         const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
+         const target = resolve(root, storageKey);
+         const targetRelativePath = relative(root, target);
+@@ -89,25 +86,25 @@ export const expenseActions = {
+           targetRelativePath.startsWith('/')
+         )
+           return fail(400, { success: false, message: 'Invalid receipt path' });
++          
+         createdReceiptStoragePath = target;
+-        await mkdir(resolve(root, sha256.slice(0, 2)), { recursive: true });
++        await mkdir(resolve(target, '..'), { recursive: true });
+         try {
+           await writeFile(target, bytes, { flag: 'wx' });
+           receiptFileCreated = true;
+         } catch (error) {
+           if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+         }
+-        const document = context.repository.registerReceipt(context.principal, {
+-          projectId: String(object.projectId),
++        
++        const document = context.v3.finalizeUpload(context.principal, reservation.reservationId, {
+           sha256,
+           mediaType: receipt.type,
+           byteLength: receipt.size,
+-          storageKey,
+-          originalFilename: receipt.name.slice(0, 200),
+         });
+-        object.receiptDocumentId = document.id;
++        
++        object.receiptDocumentId = reservation.reservationId;
+         if (document.created) {
+-          createdReceiptId = document.id;
++          createdReceiptId = reservation.reservationId;
+           createdReceiptStorageKey = storageKey;
+         } else if (receiptFileCreated) {
+           await unlink(target);
+diff --git a/apps/portal/src/routes/app/api/sync/attachment/+server.ts b/apps/portal/src/routes/app/api/sync/attachment/+server.ts
+index ea68d84..1dbf650 100644
+--- a/apps/portal/src/routes/app/api/sync/attachment/+server.ts
++++ b/apps/portal/src/routes/app/api/sync/attachment/+server.ts
+@@ -28,19 +28,6 @@ const receiptSignature = (mediaType: string, bytes: Uint8Array): boolean => {
+   return false;
+ };
+ 
+-const extensionFor = (mediaType: string): string =>
+-  mediaType === 'application/pdf'
+-    ? 'pdf'
+-    : mediaType === 'image/png'
+-      ? 'png'
+-      : mediaType === 'image/webp'
+-        ? 'webp'
+-        : mediaType === 'image/heic'
+-          ? 'heic'
+-          : mediaType === 'image/heif'
+-            ? 'heif'
+-            : 'jpg';
+-
+ export const POST: RequestHandler = async ({ locals, request }) => {
+   if (!locals.user || !locals.session) return json({ error: 'Unauthorized' }, { status: 401 });
+   const form = await request.formData();
+@@ -69,39 +56,64 @@ export const POST: RequestHandler = async ({ locals, request }) => {
+   const bytes = new Uint8Array(await file.arrayBuffer());
+   if (!receiptSignature(file.type, bytes))
+     return json({ error: 'Receipt content does not match its media type' }, { status: 400 });
+-  const sha256 = createHash('sha256').update(bytes).digest('hex');
+-  const storageKey = `${sha256.slice(0, 2)}/${sha256}.${extensionFor(file.type)}`;
+-  const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
+-  const target = resolve(root, storageKey);
+-  const targetRelativePath = relative(root, target);
+-  if (
+-    !targetRelativePath ||
+-    targetRelativePath.split(/[\\/]/).includes('..') ||
+-    targetRelativePath.startsWith('\\') ||
+-    targetRelativePath.startsWith('/')
+-  )
+-    return json({ error: 'Invalid receipt storage path' }, { status: 400 });
+-  let fileCreated = false;
++
+   const context = openPortalRepository(locals);
++  let createdStorageKey: string | null = null;
++  let createdStoragePath: string | null = null;
++  let fileCreated = false;
+   try {
+-    await mkdir(resolve(root, sha256.slice(0, 2)), { recursive: true });
++    const sha256 = createHash('sha256').update(bytes).digest('hex');
++    
++    const reservation = context.v3.reserveUpload(context.principal, {
++      projectId,
++      originalFilename: file.name.slice(0, 200),
++      artifactType: 'receipt',
++      description: 'Expense receipt',
++      sensitivity: 'internal',
++    });
++    
++    const storageKey = reservation.storageKey;
++    const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
++    const target = resolve(root, storageKey);
++    const targetRelativePath = relative(root, target);
++    if (
++      !targetRelativePath ||
++      targetRelativePath.split(/[\\/]/).includes('..') ||
++      targetRelativePath.startsWith('\\') ||
++      targetRelativePath.startsWith('/')
++    )
++      return json({ error: 'Invalid receipt storage path' }, { status: 400 });
++      
++    createdStorageKey = storageKey;
++    createdStoragePath = target;
++
++    await mkdir(resolve(target, '..'), { recursive: true });
+     try {
+       await writeFile(target, bytes, { flag: 'wx' });
+       fileCreated = true;
+     } catch (error) {
+       if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+     }
+-    const document = context.repository.registerReceipt(context.principal, {
+-      projectId,
++    
++    const document = context.v3.finalizeUpload(context.principal, reservation.reservationId, {
+       sha256,
+       mediaType: file.type,
+       byteLength: file.size,
+-      storageKey,
+-      originalFilename: file.name.slice(0, 200),
+     });
+-    return json({ attachmentId, documentId: document.id });
++    
++    return json({ attachmentId, documentId: reservation.reservationId });
+   } catch (error) {
+-    if (fileCreated) await unlink(target).catch(() => undefined);
++    if (fileCreated && createdStoragePath) {
++      const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
++      const relativePath = relative(root, createdStoragePath);
++      if (
++        relativePath &&
++        !relativePath.split(/[\\/]/).includes('..') &&
++        !relativePath.startsWith('\\') &&
++        !relativePath.startsWith('/')
++      )
++        await unlink(createdStoragePath).catch(() => undefined);
++    }
+     const failure = actionFailure(error);
+     return json(
+       { error: failure?.data?.message ?? 'Receipt upload failed' },
+diff --git a/apps/portal/src/styles/portal/responsive.css b/apps/portal/src/styles/portal/responsive.css
+index 289eeea..948c765 100644
+--- a/apps/portal/src/styles/portal/responsive.css
++++ b/apps/portal/src/styles/portal/responsive.css
+@@ -3,14 +3,12 @@
+   display: none;
+ }
+ 
+-a.skip-link {
+-  transform: translateY(0);
+-  pointer-events: auto;
++.skip-link {
++  pointer-events: none;
+ }
+ 
+-a.skip-link:focus,
+-a.skip-link:focus-visible {
+-  transform: translateY(0);
++.skip-link:focus,
++.skip-link:focus-visible {
+   pointer-events: auto;
+ }
+ 
+@@ -206,6 +204,10 @@ a.skip-link:focus-visible {
+ }
+ 
+ @media (max-width: 620px) {
++  .user-copy {
++    display: none;
++  }
++
+   .bottom-nav {
+     position: fixed;
+     z-index: 10;
+diff --git a/apps/portal/src/styles/portal/surfaces.css b/apps/portal/src/styles/portal/surfaces.css
+index 518c9e4..e3c7f77 100644
+--- a/apps/portal/src/styles/portal/surfaces.css
++++ b/apps/portal/src/styles/portal/surfaces.css
+@@ -49,13 +49,13 @@
+ 
+ .timesheet-guide strong {
+   color: #1c4053;
+-  font-size: 0.68rem;
++  font-size: 0.75rem;
+   text-transform: uppercase;
+ }
+ 
+ .timesheet-guide span {
+   color: #6d8290;
+-  font-size: 0.68rem;
++  font-size: 0.75rem;
+   line-height: 1.4;
+ }
+ 
+@@ -70,7 +70,7 @@
+   display: grid;
+   gap: 0.3rem;
+   color: #587181;
+-  font-size: 0.68rem;
++  font-size: 0.75rem;
+   font-weight: 750;
+   letter-spacing: 0.04em;
+   text-transform: uppercase;
+@@ -129,7 +129,7 @@
+ .timesheet-table thead th {
+   color: #617887;
+   background: #f4f8fa;
+-  font-size: 0.64rem;
++  font-size: 0.75rem;
+   font-weight: 800;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+@@ -144,7 +144,7 @@
+   display: block;
+   margin-top: 0.15rem;
+   color: #7b8d99;
+-  font-size: 0.66rem;
++  font-size: 0.75rem;
+   font-weight: 500;
+ }
+ 
+@@ -171,7 +171,7 @@
+ 
+ .timesheet-status {
+   color: #476777;
+-  font-size: 0.68rem;
++  font-size: 0.75rem;
+   font-weight: 760;
+   white-space: nowrap;
+ }
+diff --git a/data/e2e-fixture-current.json b/data/e2e-fixture-current.json
+index b5518aa..e1c1b78 100644
+--- a/data/e2e-fixture-current.json
++++ b/data/e2e-fixture-current.json
+@@ -1 +1 @@
+-{"version":1,"runToken":"744b72b3-2b4a-4d10-8f5b-57edfb33b75b","ownerPid":38800,"createdAt":"2026-08-20T18:45:16.746Z","databasePath":"C:\\Users\\Álvaro Schwiedop\\Desktop\\KriptaStudios\\NexIA\\J-Aautomation-new\\data\\e2e-portal-744b72b3-2b4a-4d10-8f5b-57edfb33b75b.sqlite","documentRoot":"C:\\Users\\Álvaro Schwiedop\\Desktop\\KriptaStudios\\NexIA\\J-Aautomation-new\\data\\e2e-documents-744b72b3-2b4a-4d10-8f5b-57edfb33b75b"}
+\ No newline at end of file
++{"version":1,"runToken":"f446da55-d740-4d5c-86c3-668855266f2a","ownerPid":43292,"createdAt":"2026-08-20T19:49:57.693Z","databasePath":"C:\\Users\\Álvaro Schwiedop\\Desktop\\KriptaStudios\\NexIA\\J-Aautomation-new\\data\\e2e-portal-f446da55-d740-4d5c-86c3-668855266f2a.sqlite","documentRoot":"C:\\Users\\Álvaro Schwiedop\\Desktop\\KriptaStudios\\NexIA\\J-Aautomation-new\\data\\e2e-documents-f446da55-d740-4d5c-86c3-668855266f2a"}
+\ No newline at end of file
+diff --git a/packages/database/src/core/storage-key.ts b/packages/database/src/core/storage-key.ts
+index 3fad240..3ea8e48 100644
+--- a/packages/database/src/core/storage-key.ts
++++ b/packages/database/src/core/storage-key.ts
+@@ -3,7 +3,10 @@ export function isSafeStorageKey(storageKey: string): boolean {
+     storageKey &&
+     !storageKey.startsWith('/') &&
+     !storageKey.includes('\\') &&
+-    !storageKey.split('/').includes('..'),
++    !storageKey.split('/').includes('..') &&
++    !storageKey.includes(':/') &&
++    !storageKey.includes('://') &&
++    !storageKey.toLowerCase().includes('%2e'),
+   );
+ }
+ 
+diff --git a/packages/database/src/index.ts b/packages/database/src/index.ts
+index a3ca158..0fc3bc3 100644
+--- a/packages/database/src/index.ts
++++ b/packages/database/src/index.ts
+@@ -171,3 +171,4 @@ export function integrityCheck(sqlite: DatabaseSync): string {
+ 
+ export * from './repository.ts';
+ export * from './v3-repository.ts';
++export { runDueConfiguredDurableJobs } from './runner.ts';
+diff --git a/packages/database/src/repository.ts b/packages/database/src/repository.ts
+index 4aeb86c..1ee4f7c 100644
+--- a/packages/database/src/repository.ts
++++ b/packages/database/src/repository.ts
+@@ -918,7 +918,7 @@ export class PortalRepository {
+     for (const recipient of this.reportNotificationRecipients(projectId, principal.userId))
+       this.sqlite
+         .prepare(
+-          'INSERT INTO notification(id,user_id,kind,subject_id,created_at) VALUES(?,?,?,?,?)',
++          'INSERT INTO notification(id,user_id,kind,subject_id,created_at) VALUES(?,?,?,?,?) ON CONFLICT(user_id,kind,subject_id) DO UPDATE SET created_at=excluded.created_at, read_at=NULL',
+         )
+         .run(newId(), recipient.id, action, reportId, occurredAt);
+     this.audit(principal, `report.${action}`, this.reportSourceType(type), reportId, {
+diff --git a/packages/database/src/v3-repository.ts b/packages/database/src/v3-repository.ts
+index 7c2a57a..6afd05e 100644
+--- a/packages/database/src/v3-repository.ts
++++ b/packages/database/src/v3-repository.ts
+@@ -5449,9 +5449,151 @@ export class V3Repository {
+       );
+   }
+ 
++  reserveUpload(
++    principal: Principal,
++    input: Readonly<{
++      projectId?: string;
++      originalFilename: string;
++      artifactType: string;
++      description?: string;
++      sensitivity?: 'internal' | 'sensitive' | 'customer_private';
++    }>,
++  ): { reservationId: string; storageKey: string } {
++    this.assertActive(principal);
++    if (input.projectId && principal.role !== 'owner_admin' && principal.role !== 'finance_admin')
++      this.assertProjectAccess(principal, input.projectId);
++    
++    if (!input.artifactType) throw new V3ValidationError('Artifact type is required');
++    
++    const reservationId = newId();
++    const nowStr = timestamp();
++    const safeFilename =
++      input.originalFilename
++        .replace(/[^A-Za-z0-9._ -]/g, '_')
++        .replace(/\s+/g, ' ')
++        .trim()
++        .slice(0, 180) || 'artifact';
++    const folder = input.artifactType.toLowerCase().includes('backup')
++      ? 'plc-backups'
++      : input.artifactType.toLowerCase().includes('report')
++        ? 'reports'
++        : 'technical';
++    const datePath = nowStr.slice(0, 10).replace(/-/g, '/');
++    const storageKey = `uploads/${datePath}/${reservationId}/${safeFilename}`;
++
++    this.sqlite.prepare(`
++      INSERT INTO document(
++        id,project_id,owner_id,sha256,media_type,byte_length,state,storage_key,
++        original_filename,description,artifact_type,sensitivity,safe_filename,
++        scan_status,created_at,updated_at
++      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
++    `).run(
++      reservationId,
++      input.projectId ?? null,
++      principal.userId,
++      'pending',
++      'application/octet-stream',
++      0,
++      'reserved',
++      storageKey,
++      input.originalFilename.slice(0, 200),
++      input.description ?? null,
++      input.artifactType,
++      input.sensitivity ?? 'internal',
++      safeFilename,
++      'not_scanned',
++      nowStr,
++      nowStr
++    );
++    
++    return { reservationId, uploadKey };
++  }
++
++  finalizeUpload(
++    principal: Principal,
++    reservationId: string,
++    input: Readonly<{
++      sha256: string;
++      mediaType: string;
++      byteLength: number;
++    }>
++  ): { created: boolean } {
++    this.assertActive(principal);
++    
++    if (!/^[a-f0-9]{64}$/.test(input.sha256)) throw new V3ValidationError('Invalid document hash');
++    if (
++      !Number.isSafeInteger(input.byteLength) ||
++      input.byteLength < 1 ||
++      input.byteLength > 50_000_000
++    )
++      throw new V3ValidationError('Document size is invalid');
++
++    const allowedMediaTypes = new Set([
++      'application/pdf',
++      'application/zip',
++      'image/jpeg',
++      'image/png',
++      'image/webp',
++      'image/heic',
++      'image/heif',
++      'text/plain',
++    ]);
++    if (!allowedMediaTypes.has(input.mediaType))
++      throw new V3ValidationError('Unsupported private document media type');
++
++    return this.transaction(() => {
++      const reservation = this.sqlite.prepare(
++        'SELECT owner_id, state FROM document WHERE id=?'
++      ).get(reservationId) as { owner_id: string; state: string } | undefined;
++      
++      if (!reservation) throw new V3ValidationError('Reservation not found');
++      if (reservation.owner_id !== principal.userId) throw new V3AccessDeniedError('Upload ownership mismatch');
++      if (reservation.state !== 'reserved') throw new V3ConflictError('Upload already finalized');
++
++      const malwareScanRequired = process.env.JA_MALWARE_SCANNER_REQUIRED === 'true' && (!!process.env.JA_MALWARE_SCANNER_URL || process.env.NODE_ENV === 'production');
++
++      this.sqlite.prepare(`
++        UPDATE document SET
++          sha256=?, media_type=?, byte_length=?, state=?, scan_status=?, updated_at=?
++        WHERE id=?
++      `).run(
++        input.sha256,
++        input.mediaType,
++        input.byteLength,
++        malwareScanRequired ? 'quarantined' : 'committed',
++        malwareScanRequired ? 'pending' : 'not_scanned',
++        timestamp(),
++        reservationId
++      );
++
++      if (malwareScanRequired) {
++        this.sqlite.prepare(
++          'INSERT OR IGNORE INTO job(id,kind,idempotency_key,state,run_after,payload_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)'
++        ).run(
++          newId(),
++          'document_scan',
++          `document-scan:${reservationId}`,
++          'pending',
++          timestamp(),
++          JSON.stringify({ documentId: reservationId }),
++          timestamp(),
++          timestamp()
++        );
++      }
++
++      this.audit(principal, 'document.upload_finalized', 'document', reservationId, {
++        byteLength: input.byteLength,
++      });
++
++      return { created: true };
++    });
++  }
++
+   hashSnapshot(value: unknown): string {
+     return createHash('sha256').update(JSON.stringify(value)).digest('hex');
+   }
+ }
+ 
+ export type { CompensationInput, InternalCostInput, LaborRateInput, OverrideInput };
++
++
+diff --git a/tests/e2e/portal-responsive.spec.ts b/tests/e2e/portal-responsive.spec.ts
+index 873acc3..272b046 100644
+--- a/tests/e2e/portal-responsive.spec.ts
++++ b/tests/e2e/portal-responsive.spec.ts
+@@ -99,24 +99,7 @@ const sidebarLabels = [
+   'Profile',
+ ] as const;
+ 
+-const ownerFinanceAdminLabels = [
+-  'Dashboard',
+-  'Projects',
+-  'Clients',
+-  'Team',
+-  'Planning',
+-  'Time',
+-  'Reports',
+-  'PLC / Technical',
+-  'Expenses',
+-  'Approvals',
+-  'Billing',
+-  'Invoices',
+-  'Finance',
+-  'Documents',
+-  'Notifications',
+-  'Settings',
+-] as const;
++
+ 
+ function roleForViewport(width: number): 'owner' | 'finance' | 'worker' {
+   if (width <= 430) return 'worker';
+@@ -174,7 +157,8 @@ test('authenticated role navigation keeps every permitted label readable at the
+   if (role !== 'worker') {
+     await expect(page.locator('.admin-nav')).toBeVisible();
+     const admin = await textMetrics(page, '#portal-navigation .admin-nav a');
+-    expect(admin.map((item) => item.text)).toEqual(ownerFinanceAdminLabels);
++    const expected = roleNavigationLabels(role);
++    expect(admin.map((item) => item.text)).toEqual([...expected.admin, ...expected.security]);
+     expect(admin.filter((item) => item.width < 16)).toEqual([]);
+   }
+ 
+@@ -448,6 +432,7 @@ test('editable report invalid submission exposes linked errors and preserves val
+   page,
+ }, testInfo) => {
+   expectRequiredProject(testInfo.project.name);
++  page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
+   const errors = runtimeErrorProbe(page);
+   await signIn(page, 'owner');
+   await page.goto(portal('/reports'));
+diff --git a/website/app/[locale]/solutions/aquarex/page.tsx b/website/app/[locale]/solutions/aquarex/page.tsx
+index 835b8a9..046fecf 100644
+--- a/website/app/[locale]/solutions/aquarex/page.tsx
++++ b/website/app/[locale]/solutions/aquarex/page.tsx
+@@ -63,7 +63,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
+                 Request Technical Datasheet
+               </a>
+               <Link href="/contact?intent=project" className="btn btn-secondary-dark">
+-                Schedule a Demo
++                Talk to an Engineer
+               </Link>
+             </div>
+           </div>

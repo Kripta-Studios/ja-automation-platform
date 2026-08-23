@@ -1,10 +1,14 @@
-# Initial Multi-Agent Work Packets — Verified 2026-08-20
+# Initial Multi-Agent Work Packets — Historical Ledger and Client Essential Routing
+
+> **Authority notice (2026-08-23):** The Client Essential specification/checklist supersede the historical V3 expansion queue for client delivery. Reuse a packet below only after mapping it to CORE-01..17, narrowing it to an audited Essential gap, and assigning current exclusive ownership. Expanded industrial/business/ML/P2 packets, the old 42-step harness, and 207-row completion work are **DEFERRED POST-CORE ROADMAP** except where an explicit Essential dependency is documented.
+
+The active dependency order is: migration/test baseline → security/domain foundations → operational truth → financial truth → six Essential report families/artifacts → representative responsive/accessibility and production operations → Client Essential 32-step acceptance.
 
 These are orchestration contracts, not implementation authorization. The parent must copy each selected packet into a concrete assignment with exact owned/forbidden paths, branch/worktree, dependencies, acceptance checks, and handoff evidence.
 
 ## Global controls
 
-- **R0 is blocking:** attest the parent model/effort and child runtime routing, enforce reviewer read-only permissions or obtain explicit user acceptance of procedural read-only behavior, snapshot the dirty worktree, and open the ownership ledger.
+- **R0 records controls but does not block on unavailable model introspection:** use the closest available agent mechanism, enforce procedural read-only reviewer ownership when necessary, snapshot the dirty worktree, and open the ownership ledger.
 - Classify every packet: **A → Luna Max**, **B → Sol Medium**, **C → Sol High**. B leads must delegate stable non-overlapping A leaves back to Luna Max.
 - No two write agents may own the same hot file. Reviewers never write and never review their own implementation.
 - One parent-assigned migration writer controls migration numbering at a time.
@@ -173,7 +177,7 @@ The path sets are disjoint. WP-A2/A3/A4 and all functional packets remain unopen
 
 **Acceptance:** security/invariant/integration/offline/browser tests cover IDOR, cross-user cache reuse, expired/future assignments, sensitive payload absence, storage failure, scanner outage, immutable finalized history, unsaved-change interception, crash/navigation draft recovery, and user-partitioned recovery after account switching.
 
-## WP-B6 — Industrial operations
+## WP-B6 — DEFERRED POST-CORE: expanded industrial operations
 
 **Complexity:** B contracts; A CRUD/UI/migration/test leaves
 **Owner:** `industrial_operations`; leaves to `industrial_ui_worker`, `backend_leaf`, `migration_worker`, `fixture_data_worker`, `test_worker`
@@ -184,7 +188,7 @@ The path sets are disjoint. WP-A2/A3/A4 and all functional packets remain unopen
 
 **Acceptance:** normalized links, rich metadata validation, every project transition/guard, customer/internal visibility isolation, Lessons Learned retention, current-production-version rules, safe private artifacts, audit, representative upgrade data, and responsive field flows pass.
 
-## WP-B7 — Business operations
+## WP-B7 — DEFERRED POST-CORE: generic business operations
 
 **Complexity:** B for budget/change-order/approval semantics; A for stable CRUD/UI/import/admin leaves
 **Owner:** `business_operations`; leaves to `business_ui_worker`, `backend_leaf`, `crud_ui_worker`, `migration_worker`, `fixture_data_worker`, `test_worker`
@@ -195,7 +199,7 @@ The path sets are disjoint. WP-A2/A3/A4 and all functional packets remain unopen
 
 **Acceptance:** role-based end-to-end scenarios preserve finance/audit/RBAC invariants, imports use preview/validate/commit, and ordinary users do not depend on admin job processing.
 
-## WP-B8 — Point-in-time data readiness
+## WP-B8 — DEFERRED POST-CORE: point-in-time ML/data readiness
 
 **Complexity:** B temporal/provenance contracts; A exporters/admin UI/fixtures/tests
 **Owner:** `data_readiness`; leaves to `data_tooling_worker`, `backend_leaf`, `migration_worker`, `fixture_data_worker`, `test_worker`
@@ -206,13 +210,13 @@ The path sets are disjoint. WP-A2/A3/A4 and all functional packets remain unopen
 
 **Acceptance:** tests reject future facts, current-state joins, target-derived inputs, overlapping splits, mutable definitions/predictions, and `as_of` violations. Reconstructed history is flagged and excluded by default. The deterministic baseline is versioned, reproducible, explainable, and benchmarked without a model-quality claim.
 
-## WP-B9 — P2 expansion and provider boundaries
+## WP-B9 — DEFERRED POST-CORE: P2 expansion and provider boundaries
 
 **Complexity:** B for multicurrency/tax/payment/API/client-isolation contracts; A for stable UI, adapters, documents, notifications, schedulers, and tests
 **Owner:** the relevant Sol-medium domain lead; bounded leaves to `business_ui_worker`, `backend_leaf`, `report_ui_worker`, `data_tooling_worker`, and `test_worker`
 **Owned paths:** split into non-overlapping concrete child packets after WP-B6/B7/B8 contracts stabilize; no catch-all assignment is permitted
 **Forbidden:** live third-party writes without credentials/contracts; P3 model-quality claims; any hot path still owned by decomposition packets
-**Dependencies:** all P0/P1 architecture and domain gates; security/finance/data contracts for the selected item
+**Dependencies:** none for Client Essential because this packet is deferred; post-core execution requires explicit scope and stable security/finance/data contracts
 **Reviewers:** `security_reviewer`, `finance_integrity_reviewer`, `data_leakage_reviewer`, or `spec_auditor` as applicable
 
 **Objective:** complete every P2 backlog item: command palette; industrial attachments/photo evidence/knowledge base; recurring reports; mileage; configurable notifications; document preview/retention; safe undo; feature flags; multicurrency/tax/payment/accounting adapters/API/webhooks/client portal/sign-off/email/KPIs; CPU inference boundary.
@@ -227,7 +231,7 @@ The path sets are disjoint. WP-A2/A3/A4 and all functional packets remain unopen
 **Dependencies:** corresponding implementation and reviewer evidence
 **Reviewer:** `spec_auditor`
 
-**Acceptance:** no stale “complete” claims; each PASS row links concrete code/tests/browser evidence; the strict audit is Windows UTF-8 safe and parses exactly 207 unique requirement rows (62 core/group rows, 103 backlog rows, and 42 item-level DoD rows), rejecting duplicates, malformed tables, missing authoritative IDs, and every mandatory non-PASS status; operational job, backup/restore, artifact, security, and migration runbooks match reality.
+**Acceptance:** no stale completion claims; each Client Essential PASS links concrete code/test/runtime/browser evidence; the checklist audit is UTF-8 safe and fails on every non-conditional unresolved Essential item; historical 207-row and 42-step evidence remains visible but deferred; operational job, backup/restore, artifact, security, and migration runbooks match reality.
 
 ## WP-A7 — Public website, localization, and accessibility completion
 
@@ -238,9 +242,9 @@ The path sets are disjoint. WP-A2/A3/A4 and all functional packets remain unopen
 **Dependencies:** WP-A1, WP-B10 public-form/auth boundary, dirty-file reconciliation
 **Reviewers:** `desktop_qa`, `mobile_qa`, `security_reviewer`, `spec_auditor`
 
-**Objective:** complete factual public content/assets, isolated public inquiry/contact/career flows, `/j-aautomation` routing, en/es/pt website and portal locale parity, localized errors/exports where required, keyboard/focus/semantic/contrast compliance, and every authoritative viewport.
+**Objective:** keep the existing public site working under `/j-aautomation`, preserve public/private isolation and Employee Portal entry, and close Client Essential accessibility/base-path defects. New marketing expansion is deferred.
 
-**Acceptance:** public forms cannot access private repositories/secrets; locale route/content/error parity passes; Caddy-equivalent base-path browser tests pass; accessibility scan plus keyboard/manual evidence passes at all eight viewports; the dirty Aquarex file is preserved or explicitly integrated by its owner.
+**Acceptance:** public forms cannot access private repositories/secrets; required locale routes and Employee Portal entry work; Caddy-equivalent base-path tests pass; accessibility/keyboard evidence uses representative 360/390, 768 and 1440 widths; the dirty Aquarex file is preserved or explicitly integrated by its owner.
 
 ## WP-B10 — Identity, authentication, privacy, and PWA completion
 
@@ -251,9 +255,9 @@ The path sets are disjoint. WP-A2/A3/A4 and all functional packets remain unopen
 **Dependencies:** WP-B1, WP-B5, WP-A1
 **Reviewers:** `security_reviewer`, `mobile_qa`, `spec_auditor`
 
-**Objective:** invitation-only identity lifecycle, MFA enrollment/recovery, secure sessions/cookies/step-up, throttling and CSRF, role/offboarding behavior, privacy-safe payloads, installable PWA behavior, user/tenant-partitioned offline cache/queue, conflict/retry state, and truthful synchronization UX.
+**Objective:** invitation-only identity lifecycle, secure sessions/cookies/step-up, throttling and CSRF, role/offboarding behavior, and privacy-safe payloads. MFA may be preserved/hardened where present but is not an independent Essential product expansion. Offline/PWA implementation is conditional on confirmed go-live connectivity need.
 
-**Acceptance:** end-to-end invitation→MFA→session→step-up→recovery/offboarding flows; fixation/replay/rate-limit/CSRF/cookie tests; no worker/PM finance leakage; account-switch offline isolation; install/update/offline/reconnect/conflict browser evidence at field viewports.
+**Acceptance:** end-to-end invitation→session→step-up→suspend/offboard flow; fixation/replay/rate-limit/CSRF/cookie tests; no worker/PM finance leakage. Offline isolation/conflict browser evidence is required only if the conditional requirement is activated.
 
 ## WP-B11 — Deployment and operations acceptance
 
@@ -268,24 +272,24 @@ The path sets are disjoint. WP-A2/A3/A4 and all functional packets remain unopen
 
 **Acceptance:** compose/config/build health passes on Node 24.19.0; Caddy-equivalent public/portal/public-form smoke tests pass; realistic-data upgrade and restore reproduce issued documents/snapshots/Accounting Pack sources; job/artifact failure injection is observable; rollback is rehearsed; no production system is touched during testing without explicit authorization.
 
-## WP-T1 — Uninterrupted 42-step Definition-of-Done harness
+## WP-T1 — DEFERRED HISTORICAL: old 42-step Definition-of-Done harness
 
 **Complexity:** A test implementation against stabilized contracts; any newly exposed finance/security ambiguity routes back to its B owner
 **Owner:** `test_worker`
 **Exclusive owned paths:** new `tests/e2e/definition-of-done.spec.ts`, `tests/e2e/dod-fixtures.ts`, `tests/integration/definition-of-done-reconciliation.test.ts`, and `tests/ops/definition-of-done-restore.test.ts`
 **Forbidden:** application implementation, migrations, shared Playwright/auth fixtures without a separately assigned non-overlapping packet
-**Dependencies:** WP-B2/B3/B4/B5/B6/B7/B8/B9/B10/B11 and WP-A5/A7 complete; deterministic representative fixtures available
+**Dependencies:** all non-conditional Client Essential packets integrated; deterministic representative fixtures available
 **Reviewers:** `finance_integrity_reviewer`, `security_reviewer`, `desktop_qa`, `mobile_qa`, `spec_auditor`
 
-**Objective:** implement one uninterrupted multi-role executable scenario for all 42 steps in spec section 77, plus narrow reconciliation and restore assertions. It must exercise ordinary product flows without spreadsheet intervention or manual admin job processing.
+**Objective:** historical only. Replace with a Client Essential 32-step multi-role executable scenario plus reconciliation and restore assertions. It must exercise ordinary product flows without spreadsheet intervention or manual admin job processing.
 
-**Acceptance:** steps 1–42 are individually labeled and evidenced in the test; Worker/PM/Finance/Owner privacy and authorization are asserted; hourly/percentage/overtime/all-in/reimbursable/tax/cadence/partial-payment values reconcile exactly; issued artifacts and Accounting Pack sources survive backup/restore; forced duplicate billing is rejected; the scenario passes at required role viewports without skipped steps.
+**Acceptance:** Client Essential steps 1–32 are individually labeled/evidenced; Worker/PM/Finance/Owner privacy and authorization are asserted; hourly/percentage/overtime/all-in/reimbursable/tax/cadence/partial-payment values reconcile exactly; issued/private artifacts survive backup/restore; forced duplicate billing is rejected; representative 360/390, 768 and 1440 role journeys pass without skipped Essential steps.
 
 ## WP-C1 — Final release integration
 
 **Complexity:** C
 **Owner:** parent orchestrator; final read-only `integration_reviewer`
 **Writes:** none during final review
-**Dependencies:** every mandatory packet, including WP-T1, integrated and independently reviewed; pinned-toolchain gates green
+**Dependencies:** every non-conditional Client Essential packet and the CE 32-step harness integrated and independently reviewed; pinned-toolchain gates green
 
-**Acceptance:** full release command set plus migrations, backup/restore, artifact failure/openability, performance, responsive, security, finance, data-leakage, and strict traceability gates pass. Verdict is `READY` only when every mandatory in-scope row is `PASS`; otherwise `NOT READY` with exact blockers.
+**Acceptance:** applicable release commands plus migrations, realistic backup/restore, artifact failure/openability, responsive, security, finance and Essential checklist gates pass. Data-leakage review is conditional on post-core ML changes. Verdict is `CLIENT READY` only when every non-conditional Essential item is PASS; otherwise `NOT READY` with exact blockers.

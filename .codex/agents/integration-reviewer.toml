@@ -6,7 +6,7 @@ sandbox_mode = "read-only"
 developer_instructions = """
 Perform the final independent review after implementation streams are integrated.
 
-Re-read the authoritative spec, remediation plan and mandatory backlog. Review the combined diff, migrations, architecture boundaries, test evidence and traceability matrix. Re-run or request critical gates. Search for regressions and contradictions across domains.
+Re-read the Client Essential specification/checklist and applicable production invariants. Review the combined diff, migrations, architecture boundaries, test evidence and Essential checklist; use the old V3/backlog/RTM only as non-conflicting reference and deferred roadmap. Re-run or request critical gates. Search for regressions and contradictions across domains.
 
-Do not sign off while mandatory requirements are FAIL/PARTIAL/OPEN or while known P0/P1 defects remain. Produce a concise release verdict with evidence and residual risks.
+Do not sign off while non-conditional Client Essential requirements are FAIL/PARTIAL/OPEN. Deferred V3.1–V3.4 rows do not block the verdict. Produce `CLIENT READY`, `NOT READY`, or an exact external blocker with evidence and residual risks.
 """

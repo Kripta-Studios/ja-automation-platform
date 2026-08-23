@@ -1,0 +1,301 @@
+- generic [ref=f70e2]:
+  - link "Skip to main content":
+    - /url: "#portal-main"
+  - generic [ref=f70e3]:
+    - button
+    - complementary "Portal navigation" [ref=f70e4]:
+      - link [ref=f70e5] [cursor=pointer]:
+        - /url: /j-aautomation/app/
+        - img "J&A Automation" [ref=f70e6]
+      - navigation "Primary navigation" [ref=f70e7]:
+        - link "Today" [ref=f70e8] [cursor=pointer]:
+          - /url: /j-aautomation/app/
+        - link "Time" [ref=f70e13] [cursor=pointer]:
+          - /url: /j-aautomation/app/time
+        - link "Reports" [ref=f70e18] [cursor=pointer]:
+          - /url: /j-aautomation/app/reports
+        - link "Expenses" [ref=f70e23] [cursor=pointer]:
+          - /url: /j-aautomation/app/expenses
+        - link "Projects" [ref=f70e28] [cursor=pointer]:
+          - /url: /j-aautomation/app/projects
+        - generic [ref=f70e33]: SECONDARY
+        - link "My Pay" [ref=f70e34] [cursor=pointer]:
+          - /url: /j-aautomation/app/pay
+        - link "Documents" [ref=f70e39] [cursor=pointer]:
+          - /url: /j-aautomation/app/documents
+        - link "Notifications" [ref=f70e44] [cursor=pointer]:
+          - /url: /j-aautomation/app/notifications
+        - link "Profile" [ref=f70e49] [cursor=pointer]:
+          - /url: /j-aautomation/app/profile
+      - generic [ref=f70e54]:
+        - generic [ref=f70e55]: ADMINISTRATION
+        - link "Dashboard" [ref=f70e56] [cursor=pointer]:
+          - /url: /j-aautomation/app/
+        - link "Projects" [ref=f70e61] [cursor=pointer]:
+          - /url: /j-aautomation/app/projects
+        - link "Clients" [ref=f70e66] [cursor=pointer]:
+          - /url: /j-aautomation/app/projects?view=clients
+        - link "Team" [ref=f70e71] [cursor=pointer]:
+          - /url: /j-aautomation/app/projects?view=team
+        - link "Planning" [ref=f70e76] [cursor=pointer]:
+          - /url: /j-aautomation/app/planning
+        - link "Time" [ref=f70e81] [cursor=pointer]:
+          - /url: /j-aautomation/app/time
+        - link "Reports" [ref=f70e86] [cursor=pointer]:
+          - /url: /j-aautomation/app/reports
+        - link "PLC / Technical" [ref=f70e91] [cursor=pointer]:
+          - /url: /j-aautomation/app/reports?view=technical
+        - link "Expenses" [ref=f70e96] [cursor=pointer]:
+          - /url: /j-aautomation/app/expenses
+        - link "Approvals" [ref=f70e101] [cursor=pointer]:
+          - /url: /j-aautomation/app/approvals
+        - link "Billing" [ref=f70e106] [cursor=pointer]:
+          - /url: /j-aautomation/app/billing
+        - link "Invoices" [ref=f70e111] [cursor=pointer]:
+          - /url: /j-aautomation/app/billing?view=invoices
+        - link "Finance" [ref=f70e116] [cursor=pointer]:
+          - /url: /j-aautomation/app/finance
+        - link "Documents" [ref=f70e121] [cursor=pointer]:
+          - /url: /j-aautomation/app/documents
+        - link "Notifications" [ref=f70e126] [cursor=pointer]:
+          - /url: /j-aautomation/app/notifications
+        - link "Settings" [ref=f70e131] [cursor=pointer]:
+          - /url: /j-aautomation/app/profile
+        - generic [ref=f70e136]: SECURITY
+        - link "Audit" [ref=f70e137] [cursor=pointer]:
+          - /url: /j-aautomation/app/audit
+      - button "Sign out" [ref=f70e142]
+    - banner [ref=f70e143]:
+      - generic [ref=f70e144]:
+        - button "Toggle navigation" [ref=f70e145]
+        - generic [ref=f70e148]: Online
+      - generic [ref=f70e150]:
+        - generic [ref=f70e151]: Language
+        - combobox "Language" [ref=f70e152]:
+          - option "EN" [selected]
+          - option "PT-BR"
+          - option "ES"
+      - button [ref=f70e154] [cursor=pointer]:
+        - generic [ref=f70e155]: AN
+    - main [ref=f70e159]:
+      - generic [ref=f70e160]:
+        - generic [ref=f70e161]:
+          - paragraph [ref=f70e162]: J&A / REPORTS
+          - heading "Daily and technical reports" [level=1] [ref=f70e163]
+        - generic [ref=f70e164]:
+          - button "Print report" [ref=f70e165]:
+            - generic [ref=f70e166]: ⎙
+            - text: Print report
+          - search [ref=f70e167]:
+            - generic [ref=f70e168]: Search workspace
+            - textbox "Search workspace" [ref=f70e169]:
+              - /placeholder: Search projects, people, invoices…
+            - button "Search" [ref=f70e170]
+      - generic [ref=f70e171]:
+        - generic [ref=f70e172]:
+          - generic [ref=f70e173]:
+            - group [ref=f70e174]:
+              - generic "01 Daily field report Shift summary, blockers and next-day plan" [ref=f70e175] [cursor=pointer]:
+                - generic [ref=f70e176]: "01"
+                - generic [ref=f70e177]:
+                  - strong [ref=f70e178]: Daily field report
+                  - generic [ref=f70e179]: Shift summary, blockers and next-day plan
+              - generic [ref=f70e180]:
+                - generic [ref=f70e181]:
+                  - text: Project
+                  - combobox "Project" [ref=f70e182]:
+                    - option "Select assignment" [selected]
+                    - option "C-0001-P-001 — Body Shop Line 4 Controls Upgrade · Demo"
+                    - option "C-0001-P-002 — Remote Controls Support Retainer · Demo"
+                    - option "C-0002-P-001 — High-Speed Palletizer Commissioning · Demo"
+                    - option "C-0003-P-001 — Caustic Recovery Skid Integration · Demo"
+                - generic [ref=f70e183]:
+                  - generic [ref=f70e184]:
+                    - text: Work date
+                    - textbox "Work date" [ref=f70e185]
+                  - generic [ref=f70e186]:
+                    - text: Site / shift
+                    - textbox "Site / shift" [ref=f70e187]:
+                      - /placeholder: Line 4 · first shift
+                - generic [ref=f70e188]:
+                  - text: Shift summary
+                  - textbox "Shift summary" [ref=f70e189]
+                - generic [ref=f70e190]:
+                  - text: Tasks completed
+                  - textbox "Tasks completed" [ref=f70e191]
+                - generic [ref=f70e192]:
+                  - generic [ref=f70e193]:
+                    - text: Problems found
+                    - textbox "Problems found" [ref=f70e194]
+                  - generic [ref=f70e195]:
+                    - text: Corrective actions
+                    - textbox "Corrective actions" [ref=f70e196]
+                - generic [ref=f70e197]:
+                  - generic [ref=f70e198]:
+                    - text: Downtime minutes
+                    - spinbutton "Downtime minutes" [ref=f70e199]: "0"
+                  - generic [ref=f70e200]:
+                    - text: Standby reason
+                    - textbox "Standby reason" [ref=f70e201]
+                - generic [ref=f70e202]:
+                  - text: Open items
+                  - textbox "Open items" [ref=f70e203]
+                - generic [ref=f70e204]:
+                  - text: Next-day plan
+                  - textbox "Next-day plan" [ref=f70e205]
+                - generic [ref=f70e206]:
+                  - checkbox "Safety-related change" [ref=f70e207]
+                  - text: Safety-related change
+                - button "Save daily report" [ref=f70e208] [cursor=pointer]
+            - group [ref=f70e209]:
+              - generic "02 PLC / technical report Controls-specific change and validation record" [ref=f70e210] [cursor=pointer]:
+                - generic [ref=f70e211]: "02"
+                - generic [ref=f70e212]:
+                  - strong [ref=f70e213]: PLC / technical report
+                  - generic [ref=f70e214]: Controls-specific change and validation record
+              - option "Select assignment" [selected]
+              - option "C-0001-P-001 — Body Shop Line 4 Controls Upgrade · Demo"
+              - option "C-0001-P-002 — Remote Controls Support Retainer · Demo"
+              - option "C-0002-P-001 — High-Speed Palletizer Commissioning · Demo"
+              - option "C-0003-P-001 — Caustic Recovery Skid Integration · Demo"
+          - generic [ref=f70e215]:
+            - heading "Generate reports" [level=2] [ref=f70e216]
+            - paragraph [ref=f70e217]: Refresh customer and internal period summaries from reviewed source records and create the PDF downloads. This does not issue or send an invoice.
+            - generic [ref=f70e218]:
+              - text: Project
+              - combobox "Project" [ref=f70e219]:
+                - option "Select project" [selected]
+                - option "C-0001-P-001 — Body Shop Line 4 Controls Upgrade · Demo"
+                - option "C-0001-P-002 — Remote Controls Support Retainer · Demo"
+                - option "C-0002-P-001 — High-Speed Palletizer Commissioning · Demo"
+                - option "C-0003-P-001 — Caustic Recovery Skid Integration · Demo"
+            - generic [ref=f70e220]:
+              - text: Period start
+              - textbox "Period start" [ref=f70e221]: 2026-08-01
+            - generic [ref=f70e222]:
+              - text: Period end
+              - textbox "Period end" [ref=f70e223]: 2026-08-31
+            - generic [ref=f70e224]:
+              - text: Report language
+              - combobox "Report language" [ref=f70e225]:
+                - option "English" [selected]
+                - option "Español"
+                - option "Português"
+            - button "Refresh PDF reports" [ref=f70e226] [cursor=pointer]
+          - generic [ref=f70e227]:
+            - generic [ref=f70e228]:
+              - generic [ref=f70e229]:
+                - heading "Period report register" [level=2] [ref=f70e230]
+                - paragraph [ref=f70e231]: Customer and internal summaries are generated after a reviewed billing-period close.
+              - generic [ref=f70e232]: "4"
+            - article [ref=f70e233]:
+              - link "C-0001-P-001 · period_summary · CUSTOMER 2026-08-10 → 2026-08-16 · draft Open record →" [ref=f70e234] [cursor=pointer]:
+                - /url: /j-aautomation/app/reports/period/01a02b15-2ac4-70d6-9b02-52e4434a3d10
+                - strong [ref=f70e235]: C-0001-P-001 · period_summary · CUSTOMER
+                - generic [ref=f70e236]: 2026-08-10 → 2026-08-16 · draft
+                - text: Open record →
+            - article [ref=f70e237]:
+              - link "C-0001-P-001 · period_summary · INTERNAL 2026-08-10 → 2026-08-16 · draft Open record →" [ref=f70e238] [cursor=pointer]:
+                - /url: /j-aautomation/app/reports/period/01a02b15-2ac4-70d6-9b02-55d6dc37fdf1
+                - strong [ref=f70e239]: C-0001-P-001 · period_summary · INTERNAL
+                - generic [ref=f70e240]: 2026-08-10 → 2026-08-16 · draft
+                - text: Open record →
+            - article [ref=f70e241]:
+              - link "C-0001-P-001 · period_summary · CUSTOMER 2026-08-01 → 2026-08-31 · review Open record →" [ref=f70e242] [cursor=pointer]:
+                - /url: /j-aautomation/app/reports/period/01a02b15-2ac5-7152-908e-744a6a589571
+                - strong [ref=f70e243]: C-0001-P-001 · period_summary · CUSTOMER
+                - generic [ref=f70e244]: 2026-08-01 → 2026-08-31 · review
+                - text: Open record →
+            - article [ref=f70e245]:
+              - link "C-0001-P-001 · period_summary · INTERNAL 2026-08-01 → 2026-08-31 · review Open record →" [ref=f70e246] [cursor=pointer]:
+                - /url: /j-aautomation/app/reports/period/01a02b15-2ac5-7152-908e-7a5570f53330
+                - strong [ref=f70e247]: C-0001-P-001 · period_summary · INTERNAL
+                - generic [ref=f70e248]: 2026-08-01 → 2026-08-31 · review
+                - text: Open record →
+        - generic [ref=f70e249]:
+          - generic [ref=f70e250]:
+            - heading "Report register" [level=2] [ref=f70e251]
+            - generic [ref=f70e252]: "10"
+          - article [ref=f70e253]:
+            - link "PLC Remote support diagnostic package 2026-08-22 · C-0001-P-002 · approved Open record →" [ref=f70e254] [cursor=pointer]:
+              - /url: /j-aautomation/app/reports/01a02b15-2a9a-7493-9927-67be20fb6608
+              - generic [ref=f70e255]: PLC
+              - strong [ref=f70e256]: Remote support diagnostic package
+              - generic [ref=f70e257]: 2026-08-22 · C-0001-P-002 · approved
+              - text: Open record →
+          - article [ref=f70e258]:
+            - link "PLC Caustic recovery skid controls 2026-08-22 · C-0003-P-001 · approved Open record →" [ref=f70e259] [cursor=pointer]:
+              - /url: /j-aautomation/app/reports/01a02b15-2a99-734e-b405-018c28077ae5
+              - generic [ref=f70e260]: PLC
+              - strong [ref=f70e261]: Caustic recovery skid controls
+              - generic [ref=f70e262]: 2026-08-22 · C-0003-P-001 · approved
+              - text: Open record →
+          - article [ref=f70e263]:
+            - link "PLC Line 4 Main Conveyor 2026-08-22 · C-0001-P-001 · approved Open record →" [ref=f70e264] [cursor=pointer]:
+              - /url: /j-aautomation/app/reports/01a02b15-2a90-71ae-9e78-5538011528e7
+              - generic [ref=f70e265]: PLC
+              - strong [ref=f70e266]: Line 4 Main Conveyor
+              - generic [ref=f70e267]: 2026-08-22 · C-0001-P-001 · approved
+              - text: Open record →
+          - article [ref=f70e268]:
+            - link "DAILY Resolved a sequence observation and documented the release recommendation. 2026-08-21 · C-0001-P-002 · approved Open record →" [ref=f70e269] [cursor=pointer]:
+              - /url: /j-aautomation/app/reports/01a02b15-2a98-75e9-bcc2-9786562302f8
+              - generic [ref=f70e270]: DAILY
+              - strong [ref=f70e271]: Resolved a sequence observation and documented the release recommendation.
+              - generic [ref=f70e272]: 2026-08-21 · C-0001-P-002 · approved
+              - text: Open record →
+          - article [ref=f70e273]:
+            - link "DAILY Alarm propagation and pump rotation evidence captured for handover. 2026-08-20 · C-0003-P-001 · approved Open record →" [ref=f70e274] [cursor=pointer]:
+              - /url: /j-aautomation/app/reports/01a02b15-2a97-73e3-aaf2-55772a2909ca
+              - generic [ref=f70e275]: DAILY
+              - strong [ref=f70e276]: Alarm propagation and pump rotation evidence captured for handover.
+              - generic [ref=f70e277]: 2026-08-20 · C-0003-P-001 · approved
+              - text: Open record →
+          - article [ref=f70e278]:
+            - link "DAILY Palletizer layer transition review submitted for project approval. 2026-08-19 · C-0002-P-001 · submitted Open record →" [ref=f70e279] [cursor=pointer]:
+              - /url: /j-aautomation/app/reports/01a02b15-2a90-71ae-9e78-41a0a7c92a38
+              - generic [ref=f70e280]: DAILY
+              - strong [ref=f70e281]: Palletizer layer transition review submitted for project approval.
+              - generic [ref=f70e282]: 2026-08-19 · C-0002-P-001 · submitted
+              - text: Open record →
+          - article [ref=f70e283]:
+            - link "DAILY Startup support, sensor timing investigation and customer handover notes. 2026-08-18 · C-0001-P-002 · needs_changes Modified · owner/admin review required Open record →" [ref=f70e284] [cursor=pointer]:
+              - /url: /j-aautomation/app/reports/01a02b15-2a8e-75f2-9395-e9523188b473
+              - generic [ref=f70e285]: DAILY
+              - strong [ref=f70e286]: Startup support, sensor timing investigation and customer handover notes.
+              - generic [ref=f70e287]: 2026-08-18 · C-0001-P-002 · needs_changes
+              - generic [ref=f70e288]: Modified · owner/admin review required
+              - text: Open record →
+            - button "Submit" [ref=f70e290] [cursor=pointer]
+          - article [ref=f70e291]:
+            - link "DAILY Remote diagnostic review completed with the customer controls lead. 2026-08-16 · C-0001-P-002 · approved Open record →" [ref=f70e292] [cursor=pointer]:
+              - /url: /j-aautomation/app/reports/01a02b15-2a98-75e9-bcc2-714145acd068
+              - generic [ref=f70e293]: DAILY
+              - strong [ref=f70e294]: Remote diagnostic review completed with the customer controls lead.
+              - generic [ref=f70e295]: 2026-08-16 · C-0001-P-002 · approved
+              - text: Open record →
+          - article [ref=f70e296]:
+            - link "DAILY Skid integration checks and permissive verification completed. 2026-08-15 · C-0003-P-001 · approved Open record →" [ref=f70e297] [cursor=pointer]:
+              - /url: /j-aautomation/app/reports/01a02b15-2a96-75e2-8821-90e92ab37392
+              - generic [ref=f70e298]: DAILY
+              - strong [ref=f70e299]: Skid integration checks and permissive verification completed.
+              - generic [ref=f70e300]: 2026-08-15 · C-0003-P-001 · approved
+              - text: Open record →
+          - article [ref=f70e301]:
+            - link "DAILY Line 4 controls validation continued through automatic cycle. 2026-08-11 · C-0001-P-001 · approved Open record →" [ref=f70e302] [cursor=pointer]:
+              - /url: /j-aautomation/app/reports/01a02b15-2a8e-75f2-9395-c769127e1256
+              - generic [ref=f70e303]: DAILY
+              - strong [ref=f70e304]: Line 4 controls validation continued through automatic cycle.
+              - generic [ref=f70e305]: 2026-08-11 · C-0001-P-001 · approved
+              - text: Open record →
+    - navigation "Mobile navigation" [ref=f70e306]:
+      - link "Today" [ref=f70e307] [cursor=pointer]:
+        - /url: /j-aautomation/app/
+      - link "Time" [ref=f70e308] [cursor=pointer]:
+        - /url: /j-aautomation/app/time
+      - link "Reports" [ref=f70e309] [cursor=pointer]:
+        - /url: /j-aautomation/app/reports
+      - link "Expenses" [ref=f70e310] [cursor=pointer]:
+        - /url: /j-aautomation/app/expenses
+      - link "Projects" [ref=f70e311] [cursor=pointer]:
+        - /url: /j-aautomation/app/projects

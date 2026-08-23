@@ -5,13 +5,14 @@ description: Audit and validate J&A responsive layouts across required phone, ta
 
 # Responsive Regression
 
-Required viewports:
+Client Essential representative viewports:
 
 - 360×800
 - 390×844
-- 430×932
 - 768×1024
 - 1440×900
+
+Smoke-check 430px or other widths when a reproduced defect or layout risk warrants it; do not create an exhaustive viewport release product.
 
 For every affected flow inspect:
 

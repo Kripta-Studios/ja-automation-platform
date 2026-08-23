@@ -3,10 +3,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createDatabase } from '@ja/database';
+import { installB5TestDeploymentIdentity } from '../fixtures/b5-test-environment.js';
 describe('financial invariants', () => {
   it('blocks issued invoice mutation and all-in leakage', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ja-inv-'));
+    const restoreIdentity = installB5TestDeploymentIdentity();
     const { sqlite } = createDatabase(join(dir, 'app.db'));
+    try {
     const now = new Date().toISOString();
     sqlite
       .prepare(
@@ -39,7 +42,10 @@ describe('financial invariants', () => {
     expect(() => sqlite.prepare("UPDATE expense SET invoice_id='i' WHERE id='e'").run()).toThrow(
       /all-in/,
     );
-    sqlite.close();
-    rmSync(dir, { recursive: true, force: true });
+    } finally {
+      sqlite.close();
+      restoreIdentity();
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

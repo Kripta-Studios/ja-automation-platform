@@ -7,10 +7,10 @@ import type { Page } from '@playwright/test';
 // the same Better Auth credential flow used by a real invited account; they are
 // never shown in the portal and are not valid production credentials.
 export const e2eCredentials = {
-  owner: { email: 'antonny.luty@j-aautomation.com', password: 'E2E-Owner-Access-2026!' },
-  finance: { email: 'finance@demo.jaautomation.local', password: 'E2E-Finance-Access-2026!' },
-  manager: { email: 'pm@demo.jaautomation.local', password: 'E2E-Manager-Access-2026!' },
-  worker: { email: 'worker@demo.jaautomation.local', password: 'E2E-Worker-Access-2026!' },
+  owner: { email: 'antonny.luty@j-aautomation.com', password: 'antonny.luty' },
+  finance: { email: 'finance@demo.jaautomation.local', password: 'finance' },
+  manager: { email: 'pm@demo.jaautomation.local', password: 'pm' },
+  worker: { email: 'worker@demo.jaautomation.local', password: 'worker' },
 } as const;
 
 export const e2eArchiveTarget = {

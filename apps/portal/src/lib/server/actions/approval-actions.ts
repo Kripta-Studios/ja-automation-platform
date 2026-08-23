@@ -1,14 +1,15 @@
 import { approvalDecisionSchema, financeDecisionSchema } from '@ja/schemas';
-import { fail } from '@sveltejs/kit';
-import { actionFailure, openPortalRepository } from '$lib/server/portal-repository';
+import { openPortalRepository } from '$lib/server/portal-repository';
+import { actionFail, actionFailure, actionSuccess } from './action-message';
 import { formObject, type PortalActionEvent } from '$lib/server/action-utils';
 
 export const approvalActions = {
   approveRecord: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'approvals')
-      return fail(404, { success: false, message: 'Wrong section' });
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = approvalDecisionSchema.safeParse(await formObject(request));
-    if (!parsed.success) return fail(400, { success: false, message: 'Invalid approval decision' });
+    if (!parsed.success)
+      return actionFail(400, 'action.validation.approvalDecision', {}, 'Invalid approval decision');
     const context = openPortalRepository(locals);
     try {
       if (parsed.data.type === 'time')
@@ -25,7 +26,7 @@ export const approvalActions = {
           parsed.data.decision,
           parsed.data.reason,
         );
-      return { success: true, message: 'Decision recorded' };
+      return actionSuccess('action.approval.decisionRecorded', {}, 'Decision recorded');
     } catch (error) {
       return actionFailure(error);
     } finally {
@@ -34,9 +35,10 @@ export const approvalActions = {
   },
   financeApprove: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'approvals')
-      return fail(404, { success: false, message: 'Wrong section' });
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = financeDecisionSchema.safeParse(await formObject(request));
-    if (!parsed.success) return fail(400, { success: false, message: 'Invalid finance decision' });
+    if (!parsed.success)
+      return actionFail(400, 'action.validation.financeDecision', {}, 'Invalid finance decision');
     const context = openPortalRepository(locals);
     try {
       if (parsed.data.type === 'time')
@@ -46,7 +48,7 @@ export const approvalActions = {
           parsed.data.billable === 'yes',
         );
       else context.repository.financeApproveExpense(context.principal, parsed.data.id);
-      return { success: true, message: 'Finance review recorded' };
+      return actionSuccess('action.approval.financeReviewRecorded', {}, 'Finance review recorded');
     } catch (error) {
       return actionFailure(error);
     } finally {

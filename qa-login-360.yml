@@ -1,0 +1,40 @@
+- main [ref=f1e3] [box=0,0,345,1526]:
+  - generic [ref=f1e6] [box=24,24,297,685]:
+    - link "J&A Automation portal" [ref=f1e7] [cursor=pointer] [box=24,24,160,155]:
+      - /url: /j-aautomation/app/login
+      - img "J&A Automation" [ref=f1e8] [box=32,30,144,144]
+    - generic [ref=f1e9] [box=24,179,297,355]:
+      - paragraph [ref=f1e10] [box=24,243,297,12]: PRIVATE OPERATIONS PLATFORM
+      - heading "Run every project with confidence." [level=1] [ref=f1e11] [box=24,271,297,133]
+      - paragraph [ref=f1e12] [box=24,427,297,108]: One secure workspace for field operations, project delivery, technical records and finance. Built around the way J&A Automation works.
+    - generic "Workspace capabilities" [ref=f1e13] [box=24,574,297,135]:
+      - generic [ref=f1e14] [box=24,574,297,38]:
+        - strong [ref=f1e15] [box=24,594,32,17]: "01"
+        - generic [ref=f1e16] [box=65,591,256,21]: Field work, time and expenses
+      - generic [ref=f1e17] [box=24,622,297,38]:
+        - strong [ref=f1e18] [box=24,643,32,17]: "02"
+        - generic [ref=f1e19] [box=65,639,256,21]: Projects, reports and approvals
+      - generic [ref=f1e20] [box=24,671,297,38]:
+        - strong [ref=f1e21] [box=24,691,32,17]: "03"
+        - generic [ref=f1e22] [box=65,687,256,21]: Billing-ready financial control
+  - generic [ref=f1e23] [box=0,733,345,794]:
+    - generic [ref=f1e24] [box=16,777,313,630]:
+      - generic [ref=f1e25] [box=42,803,261,104]:
+        - paragraph [ref=f1e26] [box=42,803,261,12]: EMPLOYEE PORTAL
+        - heading "Sign in securely" [level=2] [ref=f1e27] [box=42,822,261,32]
+        - paragraph [ref=f1e28] [box=42,862,261,46]: Use the company credentials issued for your J&A workspace.
+      - generic [ref=f1e29] [box=42,934,261,78]:
+        - generic [ref=f1e30] [box=42,934,261,18]: Work email
+        - textbox "Work email" [ref=f1e31] [box=42,960,261,52]:
+          - /placeholder: you@company.com
+      - generic [ref=f1e32] [box=42,1029,261,78]:
+        - generic [ref=f1e33] [box=42,1029,261,18]: Password
+        - textbox "Password" [ref=f1e34] [box=42,1055,261,52]:
+          - /placeholder: Enter your password
+      - button "Continue to workspace" [ref=f1e35] [cursor=pointer] [box=42,1127,261,54]
+      - button "Sign in with a passkey" [ref=f1e36] [cursor=pointer] [box=42,1207,261,48]
+      - paragraph [ref=f1e37] [box=42,1275,261,35]:
+        - generic [ref=f1e38] [box=42,1275,8,14]: ◆
+        - text: Protected by secure sessions, rate limits and multi-factor authentication.
+      - paragraph [ref=f1e39] [box=42,1329,261,52]: Access is invitation-only. If you need access, contact your J&A workspace administrator.
+    - paragraph [ref=f1e40] [box=16,1455,313,36]: J&A Automation · Secure operational visibility for every project.

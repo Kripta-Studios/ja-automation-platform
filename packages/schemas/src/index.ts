@@ -83,7 +83,39 @@ export const clientInputSchema = z.object({
   currency: currencySchema,
   timezone: z.string().trim().min(1).max(100),
   billingEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
+  billingContactName: z.string().trim().min(2).max(160).optional(),
+  billingAddress: z.string().trim().min(5).max(2000),
   paymentTermsDays: z.coerce.number().int().min(0).max(365).default(30),
+  poReference: z.string().trim().max(200).optional(),
+  notes: z.string().trim().max(5000).optional(),
+}).superRefine((value, context) => {
+  if (!value.billingEmail && !value.billingContactName) {
+    context.addIssue({
+      code: 'custom',
+      path: ['billingEmail'],
+      message: 'A billing contact name or billing email is required',
+    });
+  }
+});
+
+/**
+ * The client editor is deliberately an allowlisted partial update.  Identity
+ * and optimistic-concurrency fields remain mandatory so a browser cannot
+ * submit an unversioned or over-posted client mutation.
+ */
+export const clientUpdateInputSchema = z.object({
+  clientId: uuidSchema,
+  version: z.coerce.number().int().positive(),
+  legalName: z.string().trim().min(2).max(300).optional(),
+  displayName: z.string().trim().min(2).max(160).optional(),
+  currency: currencySchema.optional(),
+  timezone: z.string().trim().min(1).max(100).optional(),
+  billingEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
+  billingContactName: z.union([z.literal(''), z.string().trim().min(2).max(160)]).optional(),
+  billingAddress: z.string().trim().min(5).max(2000).optional(),
+  paymentTermsDays: z.coerce.number().int().min(0).max(365).optional(),
+  poReference: z.string().trim().max(200).optional(),
+  notes: z.string().trim().max(5000).optional(),
 });
 
 export const projectInputSchema = z.object({
@@ -111,6 +143,7 @@ export const projectInputSchema = z.object({
     .transform((value) => (value === '' ? undefined : value)),
   poNumber: z.string().trim().max(100).optional(),
   contractNumber: z.string().trim().max(160).optional(),
+  projectManagerId: z.union([z.literal(''), uuidSchema]).optional(),
   startDate: z.union([z.literal(''), z.iso.date()]).optional(),
   plannedEndDate: z.union([z.literal(''), z.iso.date()]).optional(),
   budgetType: z
@@ -271,12 +304,21 @@ export const expenseInputSchema = z.object({
   receiptDocumentId: z.union([z.literal(''), uuidSchema]).optional(),
 });
 
-export const approvalDecisionSchema = z.object({
-  id: uuidSchema,
-  type: z.enum(['time', 'expense']),
-  decision: z.enum(['approved', 'needs_changes', 'rejected']),
-  reason: z.string().trim().max(1000).optional(),
-});
+export const approvalDecisionSchema = z
+  .object({
+    id: uuidSchema,
+    type: z.enum(['time', 'expense']),
+    decision: z.enum(['approved', 'needs_changes', 'rejected']),
+    reason: z.string().trim().max(1000).optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.decision !== 'approved' && !value.reason)
+      context.addIssue({
+        code: 'custom',
+        path: ['reason'],
+        message: 'A reason is required',
+      });
+  });
 
 export const financeDecisionSchema = z.object({
   id: uuidSchema,
@@ -526,7 +568,19 @@ export const paymentInputSchema = z.object({
   amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
   currency: currencySchema,
   receivedAt: z.iso.datetime(),
-  reference: z.string().trim().max(200).optional(),
+  // A payment must remain traceable in the ledger.  The v3 repository accepts
+  // this as its immutable payment reference, so do not allow an empty note to
+  // cross the action boundary.
+  reference: z.string().trim().min(1).max(200),
+  idempotencyKey: z.string().trim().min(8).max(200),
+});
+
+export const paymentReversalInputSchema = z.object({
+  paymentId: uuidSchema,
+  amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
+  effectiveOn: isoDateSchema,
+  reasonCode: z.enum(['bank_return', 'duplicate', 'entry_correction', 'other']),
+  reason: z.string().trim().min(1).max(2000),
   idempotencyKey: z.string().trim().min(8).max(200),
 });
 
@@ -551,6 +605,7 @@ export const dailyReportInputSchema = z.object({
 export const technicalReportInputSchema = z
   .object({
     projectId: uuidSchema,
+    reportDate: isoDateSchema,
     systemName: requiredText(200),
     plantSite: optionalText(200),
     areaLine: optionalText(200),
@@ -638,9 +693,18 @@ export const planningAssignmentInputSchema = z.object({
   requiredSkill: optionalText(160),
 });
 
-export const reportDecisionSchema = z.object({
-  type: z.enum(['daily', 'technical']),
-  id: uuidSchema,
-  decision: z.enum(['approved', 'needs_changes']),
-  reason: optionalText(2000),
-});
+export const reportDecisionSchema = z
+  .object({
+    type: z.enum(['daily', 'technical']),
+    id: uuidSchema,
+    decision: z.enum(['approved', 'needs_changes']),
+    reason: optionalText(2000),
+  })
+  .superRefine((value, context) => {
+    if (value.decision === 'needs_changes' && !value.reason)
+      context.addIssue({
+        code: 'custom',
+        path: ['reason'],
+        message: 'A reason is required',
+      });
+  });

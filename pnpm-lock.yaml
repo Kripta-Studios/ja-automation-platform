@@ -325,6 +325,9 @@ importers:
 
   packages/reporting:
     dependencies:
+      '@ja/invoice-templates':
+        specifier: workspace:*
+        version: link:../invoice-templates
       playwright:
         specifier: 'catalog:'
         version: 1.62.1

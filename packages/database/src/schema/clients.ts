@@ -10,6 +10,8 @@ export const clients = sqliteTable('client', {
   currency: text('currency').notNull(),
   timezone: text('timezone').notNull(),
   billingEmail: text('billing_email'),
+  billingAddress: text('billing_address'),
+  poReference: text('po_reference'),
   paymentTermsDays: integer('payment_terms_days'),
   notes: text('notes'),
   version: integer('version').notNull().default(1),

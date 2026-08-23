@@ -12,6 +12,16 @@ handle /j-aautomation/app* {
 handle /j-aautomation/api/public/* {
   reverse_proxy 127.0.0.1:5100
 }
+@jaautomation_health_local {
+  path /j-aautomation/health/*
+  remote_ip 127.0.0.1 ::1
+}
+handle @jaautomation_health_local {
+  reverse_proxy 127.0.0.1:5100
+}
+handle /j-aautomation/health/* {
+  respond "Not Found" 404
+}
 handle /j-aautomation/* {
   reverse_proxy 127.0.0.1:5101
 }

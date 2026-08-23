@@ -93,6 +93,8 @@ async function startPortal(): Promise<string> {
         JA_FIXTURE_RESET_DOCUMENTS: 'false',
         JA_DEMO_SEED_PRESERVE_DB: 'true',
         JA_AUTH_SECRET: 'offline-isolation-test-secret',
+        JA_TENANT_ID: 'offline-isolation-tenant',
+        JA_DEPLOYMENT_ID: 'offline-isolation-deployment',
         JA_PUBLIC_BASE_PATH: '/j-aautomation',
         JA_PORTAL_BASE_PATH: '/j-aautomation/app',
       },
@@ -115,6 +117,8 @@ async function startPortal(): Promise<string> {
         JA_DOCUMENT_ROOT: documentRoot,
         JA_FIXTURE_RESET_DOCUMENTS: 'false',
         JA_AUTH_SECRET: 'offline-isolation-test-secret',
+        JA_TENANT_ID: 'offline-isolation-tenant',
+        JA_DEPLOYMENT_ID: 'offline-isolation-deployment',
         JA_PUBLIC_BASE_PATH: '/j-aautomation',
         JA_PORTAL_BASE_PATH: '/j-aautomation/app',
         HOST: '127.0.0.1',
@@ -169,6 +173,35 @@ async function assignmentOptionTexts(page: Page): Promise<string[]> {
 }
 
 describe('offline authenticated-user partitioning', () => {
+  it('revokes user A offline state before an offline navigation after logout', async () => {
+    const baseUrl = await startPortal();
+    const browser = await chromium.launch({ headless: true });
+    browsers.push(browser);
+    const context = await browser.newContext();
+    contexts.push(context);
+    const page = await context.newPage();
+
+    await signInAt(page, baseUrl, 'manager');
+    await page.goto(`${baseUrl}/time`);
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('.user-copy b')).toHaveText('Daniel Brooks');
+    await waitForServiceWorkerCache(page);
+
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await page.waitForURL((url) => url.toString() === `${baseUrl}/login`);
+    expect((await context.cookies()).some((cookie) => cookie.name === 'ja_offline_identity')).toBe(
+      false,
+    );
+
+    // The private route was cached while A was signed in. Once A has logged
+    // out, the service worker must not fall back to A's identity when the
+    // browser is offline; a 200 response here would be a private-data leak.
+    await context.setOffline(true);
+    const response = await page.goto(`${baseUrl}/time`).catch(() => null);
+    expect(response?.status() ?? null).not.toBe(200);
+    await expect(page.locator('.user-copy b')).toHaveCount(0);
+  }, 120_000);
+
   it('does not expose one user’s queued draft after a session changes on the same device', async () => {
     const baseUrl = await startPortal();
     const browser = await chromium.launch({ headless: true });

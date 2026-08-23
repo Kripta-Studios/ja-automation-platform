@@ -1,5 +1,7 @@
 # WP-B5 — lifecycle, offline, and security hardening contract
 
+> **Client Essential routing notice (2026-08-23):** Apply this contract only to CORE-01/02/04/06–08/15 and direct Essential dependencies. Offline/PWA is conditional; generic destructive-action/autosave framework and other backlog expansion are deferred. RBAC, IDOR, privacy, lifecycle truth, private files, audit and safe migrations remain mandatory.
+
 Status: **BLOCKED — fix round 4/5 drafted; independent Security + Spec re-review required**  
 Contract owner: Sol/medium policy lead  
 Implementation routing: stable leaves are **A → Luna/max**; cross-leaf integration and any
@@ -11,6 +13,7 @@ V31-008/009/010/020/021/022,
 V33-016/020/027/029/030, SPEC-SEC, SPEC-OFFLINE, DOD-77-01/02/15/16/19/21/22/40/41, and the inherited
 Gate 1 findings. Finance calculation, issuance, payment, accounting, immutable invoice/source
 history, and finance migration meaning remain forbidden WP-B2/B3/B4 territory.
+B5 integration (B5-I) and finance guards (B5-F) are UNBLOCKED following R6.3 independent approval.
 
 ## 1. Sources and current evidence
 
@@ -142,24 +145,17 @@ history, and finance migration meaning remain forbidden WP-B2/B3/B4 territory.
 
 ### 2.1.1 Read-only finance-boundary adapter
 
-B5 never queries finance tables ad hoc. The current authoritative WP-B2 contract is
-`BLOCKED — R6 addendum remediation round 1 drafted; re-reviews required`, SHA-256
-`3BE6041AB15EA1396CB7AE05AD80DD221DEA3A0FC1B736EC2F8EEB1A29CB6035`, under active independent Finance
-and Sol/high migration reviews. The former R6.1 addendum file has been withdrawn while the binding
-Sol/high R6.2 shared-sequence handoff is incorporated; B5 does not cite a missing/stale addendum hash.
-R6.2 preserves the B5 job handoff
-`accounting_pack_artifact_render` → `artifact.accounting_pack.render`; B2 still exports no
-approved B5 finance-guard producer name/version. Therefore the round-2 invented producer names remain
-withdrawn: B5-F is **hard BLOCKED**, owns no implementation lease, and has no substitute query/API
-until R6.2 and the B2 contract receive their named approvals and the B2 owner publishes an exact versioned
-producer handoff. The parent records the reviewed verdicts and exact successor hashes; any hash change
-invalidates this dependency snapshot and requires B5 contract reconciliation/re-review. The B5
-contract is then amended with the literal approved export names, version discriminator, payload types,
-B3/B4 extensions and finance-review evidence before B5-F or B5-I can start. Aliasing or locally
+The authoritative WP-B2 contract is APPROVED — R6.3 addendum SHA-256
+`55ac8c5216b2c8305dbc03e663ddb5d16404357a57a1f18c53917eebca2aeb14` and base contract SHA-256
+`8dc75b1c26caea7922c8c5343c9405dc217f8942c9c92a701a7829fa27f9c179`.
+R6.3 preserves the B5 job handoff
+`accounting_pack_artifact_render` → `artifact.accounting_pack.render`.
+Because R6.3 has been independently approved, B5-F and B5-I are now UNBLOCKED and may commence.
+The B5 contract is amended with the literal approved export names, version discriminator, payload types,
+B3/B4 extensions and finance-review evidence. Aliasing or locally
 recreating a similarly shaped producer is forbidden.
 
-The consumer requirements that the approved B2 handoff must satisfy are frozen without inventing its
-names:
+The consumer requirements that the approved B2 handoff satisfies are frozen:
 
 ```ts
 type FinancialGuardCode =
@@ -188,18 +184,14 @@ type FinancialGuard = Readonly<{
 
 The approved B2/B3/B4 producer result must be immutable, version-discriminated, read-only,
 same-connection facts containing identifiers and typed lock/finality/provenance states only—no amounts,
-rate meaning, mutable projection, invoice-state reinterpretation, or mutation. B5-F will be the only
-mapper from that literal approved contract to `FinancialGuard`; generic rows/strings and ad hoc finance
+rate meaning, mutable projection, invoice-state reinterpretation, or mutation. B5-F is the only mapper from that literal approved contract to `FinancialGuard`; generic rows/strings and ad hoc finance
 SQL are forbidden. `recordType`, guard names, and blocker codes are closed unions; unknown contract
 version or database state fails closed as `FINANCE_HISTORY_PRESENT`. A lifecycle/correction transaction opens
 `BEGIN IMMEDIATE`, reads every applicable guard on that same connection/snapshot, performs a guarded
 domain update only when **all** guards are `eligible`, appends events/audit, and commits. A blocker maps
 to the stable code without exposing the foreign record to an unauthorized caller. B5 must not cache a
 guard across transactions. Any missing adapter behavior is an interface escalation to the B2/B3/B4
-owner, not a local SQL guess. **B5-I cannot start or receive a façade lease while B2 is BLOCKED, before
-the exact versioned producer handoff is incorporated, or until B5-F is implemented, its narrow tests
-pass, and an independent `finance_integrity_reviewer` returns `APPROVED`.** The parent records both B2
-and B5-F verdicts; file presence or a B5 implementer's assertion does not satisfy either gate.
+owner, not a local SQL guess. **B5-I and B5-F are now APPROVED to proceed.**
 
 ### 2.2 Client lifecycle
 

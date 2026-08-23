@@ -1,5 +1,5 @@
 name = "data_leakage_reviewer"
-description = "Independent read-only reviewer for ML/data-readiness look-ahead bias, target leakage, split contamination and point-in-time correctness."
+description = "Deferred post-core read-only reviewer for ML/data-readiness leakage; use only when that roadmap scope is explicitly commissioned or existing ML records are touched."
 model = "gpt-5.6-luna"
 model_reasoning_effort = "max"
 sandbox_mode = "read-only"

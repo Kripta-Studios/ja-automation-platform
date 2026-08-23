@@ -5,26 +5,104 @@ import {
   compensationSettlementInputSchema,
   internalCostRuleInputSchema,
   reimbursementInputSchema,
+  uuidSchema,
 } from '@ja/schemas';
-import { fail } from '@sveltejs/kit';
-import { actionFailure, openPortalRepository } from '$lib/server/portal-repository';
+import { openPortalRepository } from '$lib/server/portal-repository';
+import { actionFail, actionFailure, actionSuccess } from './action-message';
 import { formObject, type PortalActionEvent } from '$lib/server/action-utils';
+
+function parseRuleId(value: FormDataEntryValue | null): string | undefined {
+  const parsed = uuidSchema.safeParse(value?.toString() ?? '');
+  return parsed.success ? parsed.data : undefined;
+}
 
 export const financeActions = {
   createCompensationRule: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'finance')
-      return fail(404, { success: false, message: 'Wrong section' });
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = compensationRuleInputSchema.safeParse(await formObject(request));
     if (!parsed.success)
-      return fail(400, {
-        success: false,
-        message: 'Invalid compensation rule',
-        fields: parsed.error.flatten().fieldErrors,
-      });
+      return actionFail(
+        400,
+        'action.validation.compensationRule',
+        {},
+        'Invalid compensation rule',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
     const context = openPortalRepository(locals);
     try {
       context.v3.createCompensationRule(context.principal, parsed.data);
-      return { success: true, message: 'Worker compensation rule saved' };
+      return actionSuccess(
+        'action.finance.compensationRuleSaved',
+        {},
+        'Worker compensation rule saved',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  supersedeCompensationRule: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const supersedesId = parseRuleId(object.supersedesId as FormDataEntryValue | null);
+    if (!supersedesId)
+      return actionFail(
+        400,
+        'action.validation.compensationRuleId',
+        {},
+        'Compensation rule ID is invalid',
+      );
+    delete object.supersedesId;
+    const parsed = compensationRuleInputSchema.safeParse(object);
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.validation.replacementCompensationRule',
+        {},
+        'Invalid replacement compensation rule',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      context.v3.supersedeCompensationRule(context.principal, supersedesId, {
+        ...parsed.data,
+        projectId: parsed.data.projectId || undefined,
+        effectiveTo: parsed.data.effectiveTo || undefined,
+      });
+      return actionSuccess(
+        'action.finance.compensationRuleSuperseded',
+        {},
+        'Compensation rule superseded',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  deactivateCompensationRule: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const formData = await request.formData();
+    const ruleId = parseRuleId(formData.get('ruleId'));
+    if (!ruleId)
+      return actionFail(
+        400,
+        'action.validation.compensationRuleId',
+        {},
+        'Compensation rule ID is invalid',
+      );
+    const context = openPortalRepository(locals);
+    try {
+      context.v3.deactivateCompensationRule(context.principal, ruleId);
+      return actionSuccess(
+        'action.finance.compensationRuleDeactivated',
+        {},
+        'Compensation rule deactivated',
+      );
     } catch (error) {
       return actionFailure(error);
     } finally {
@@ -33,13 +111,18 @@ export const financeActions = {
   },
   settleCompensation: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'finance')
-      return fail(404, { success: false, message: 'Wrong section' });
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = compensationSettlementInputSchema.safeParse(await formObject(request));
-    if (!parsed.success) return fail(400, { success: false, message: 'Invalid settlement period' });
+    if (!parsed.success)
+      return actionFail(400, 'action.validation.settlementPeriod', {}, 'Invalid settlement period');
     const context = openPortalRepository(locals);
     try {
       const result = context.v3.settleCompensation(context.principal, parsed.data);
-      return { success: true, message: `Settled ${result.length} compensation rule(s)` };
+      return actionSuccess(
+        'action.finance.compensationSettled',
+        { count: result.length },
+        `Settled ${result.length} compensation rule(s)`,
+      );
     } catch (error) {
       return actionFailure(error);
     } finally {
@@ -48,11 +131,12 @@ export const financeActions = {
   },
   recordReimbursement: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'finance')
-      return fail(404, { success: false, message: 'Wrong section' });
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
     object.amountMinor = object.amountMinor ? String(object.amountMinor) : undefined;
     const parsed = reimbursementInputSchema.safeParse(object);
-    if (!parsed.success) return fail(400, { success: false, message: 'Invalid reimbursement' });
+    if (!parsed.success)
+      return actionFail(400, 'action.validation.reimbursement', {}, 'Invalid reimbursement');
     const context = openPortalRepository(locals);
     try {
       const result = context.v3.recordReimbursement(context.principal, {
@@ -60,7 +144,11 @@ export const financeActions = {
         amountMinor: parsed.data.amountMinor ? BigInt(parsed.data.amountMinor) : undefined,
         reference: parsed.data.reference,
       });
-      return { success: true, message: `Reimbursement recorded: ${result.amountMinor}` };
+      return actionSuccess(
+        'action.finance.reimbursementRecorded',
+        { amountMinor: String(result.amountMinor) },
+        `Reimbursement recorded: ${result.amountMinor}`,
+      );
     } catch (error) {
       return actionFailure(error);
     } finally {
@@ -69,20 +157,93 @@ export const financeActions = {
   },
   createClientLaborRate: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'finance')
-      return fail(404, { success: false, message: 'Wrong section' });
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
     object.eligibleForPercentage = object.eligibleForPercentage === 'on';
     const parsed = clientLaborRateInputSchema.safeParse(object);
     if (!parsed.success)
-      return fail(400, {
-        success: false,
-        message: 'Invalid client rate',
-        fields: parsed.error.flatten().fieldErrors,
-      });
+      return actionFail(
+        400,
+        'action.validation.clientLaborRate',
+        {},
+        'Invalid client rate',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
     const context = openPortalRepository(locals);
     try {
       context.v3.createClientLaborRate(context.principal, parsed.data);
-      return { success: true, message: 'Client labor rate saved' };
+      return actionSuccess('action.finance.clientLaborRateSaved', {}, 'Client labor rate saved');
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  supersedeClientLaborRate: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const supersedesId = parseRuleId(object.supersedesId as FormDataEntryValue | null);
+    if (!supersedesId)
+      return actionFail(
+        400,
+        'action.validation.clientLaborRateId',
+        {},
+        'Client labor rate ID is invalid',
+      );
+    delete object.supersedesId;
+    if (Object.prototype.hasOwnProperty.call(object, 'eligibleForPercentage'))
+      object.eligibleForPercentage = ['on', 'true', '1'].includes(
+        String(object.eligibleForPercentage).toLowerCase(),
+      );
+    const parsed = clientLaborRateInputSchema.safeParse(object);
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.validation.replacementClientLaborRate',
+        {},
+        'Invalid replacement client rate',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      context.v3.supersedeClientLaborRate(context.principal, supersedesId, {
+        ...parsed.data,
+        workerId: parsed.data.workerId || undefined,
+        category: parsed.data.category || undefined,
+        effectiveTo: parsed.data.effectiveTo || undefined,
+      });
+      return actionSuccess(
+        'action.finance.clientLaborRateSuperseded',
+        {},
+        'Client labor rate superseded',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  deactivateClientLaborRate: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const formData = await request.formData();
+    const ruleId = parseRuleId(formData.get('ruleId'));
+    if (!ruleId)
+      return actionFail(
+        400,
+        'action.validation.clientLaborRateId',
+        {},
+        'Client labor rate ID is invalid',
+      );
+    const context = openPortalRepository(locals);
+    try {
+      context.v3.deactivateClientLaborRate(context.principal, ruleId);
+      return actionSuccess(
+        'action.finance.clientLaborRateDeactivated',
+        {},
+        'Client labor rate deactivated',
+      );
     } catch (error) {
       return actionFailure(error);
     } finally {
@@ -91,18 +252,86 @@ export const financeActions = {
   },
   createInternalCostRule: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'finance')
-      return fail(404, { success: false, message: 'Wrong section' });
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = internalCostRuleInputSchema.safeParse(await formObject(request));
     if (!parsed.success)
-      return fail(400, {
-        success: false,
-        message: 'Invalid internal cost rule',
-        fields: parsed.error.flatten().fieldErrors,
-      });
+      return actionFail(
+        400,
+        'action.validation.internalCostRule',
+        {},
+        'Invalid internal cost rule',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
     const context = openPortalRepository(locals);
     try {
       context.v3.createInternalCostRule(context.principal, parsed.data);
-      return { success: true, message: 'Internal cost rule saved' };
+      return actionSuccess('action.finance.internalCostRuleSaved', {}, 'Internal cost rule saved');
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  supersedeInternalCostRule: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const supersedesId = parseRuleId(object.supersedesId as FormDataEntryValue | null);
+    if (!supersedesId)
+      return actionFail(
+        400,
+        'action.validation.internalCostRuleId',
+        {},
+        'Internal cost rule ID is invalid',
+      );
+    delete object.supersedesId;
+    const parsed = internalCostRuleInputSchema.safeParse(object);
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.validation.replacementInternalCostRule',
+        {},
+        'Invalid replacement internal cost rule',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      context.v3.supersedeInternalCostRule(context.principal, supersedesId, {
+        ...parsed.data,
+        projectId: parsed.data.projectId || undefined,
+        effectiveTo: parsed.data.effectiveTo || undefined,
+      });
+      return actionSuccess(
+        'action.finance.internalCostRuleSuperseded',
+        {},
+        'Internal cost rule superseded',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  deactivateInternalCostRule: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const formData = await request.formData();
+    const ruleId = parseRuleId(formData.get('ruleId'));
+    if (!ruleId)
+      return actionFail(
+        400,
+        'action.validation.internalCostRuleId',
+        {},
+        'Internal cost rule ID is invalid',
+      );
+    const context = openPortalRepository(locals);
+    try {
+      context.v3.deactivateInternalCostRule(context.principal, ruleId);
+      return actionSuccess(
+        'action.finance.internalCostRuleDeactivated',
+        {},
+        'Internal cost rule deactivated',
+      );
     } catch (error) {
       return actionFailure(error);
     } finally {
@@ -111,18 +340,24 @@ export const financeActions = {
   },
   createAssignmentRateOverride: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'finance')
-      return fail(404, { success: false, message: 'Wrong section' });
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = assignmentRateOverrideInputSchema.safeParse(await formObject(request));
     if (!parsed.success)
-      return fail(400, {
-        success: false,
-        message: 'Invalid assignment override',
-        fields: parsed.error.flatten().fieldErrors,
-      });
+      return actionFail(
+        400,
+        'action.validation.assignmentOverride',
+        {},
+        'Invalid assignment override',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
     const context = openPortalRepository(locals);
     try {
       context.v3.createAssignmentRateOverride(context.principal, parsed.data);
-      return { success: true, message: 'Assignment rate override saved' };
+      return actionSuccess(
+        'action.finance.assignmentRateOverrideSaved',
+        {},
+        'Assignment rate override saved',
+      );
     } catch (error) {
       return actionFailure(error);
     } finally {

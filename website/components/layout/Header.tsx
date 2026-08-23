@@ -19,27 +19,16 @@ const navLinks = [
   { href: '/careers', key: 'careers' },
 ] as const;
 
-export function Header() {
-  const t = useTranslations('nav');
-  const pathname = usePathname();
-  const [scrolled, setScrolled] = useState(false);
+function MobileNavigation({
+  textColor,
+  openLabel,
+  closeLabel,
+}: {
+  textColor: string;
+  openLabel: string;
+  closeLabel: string;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const isHome = pathname === '/' || pathname === '';
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 56);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
 
   const handleEscape = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') setMobileOpen(false);
@@ -57,6 +46,37 @@ export function Header() {
       document.body.style.overflow = '';
     };
   }, [mobileOpen, handleEscape]);
+
+  return (
+    <>
+      <button
+        className={`lg:hidden relative z-10 p-2 -mr-2 ${textColor}`}
+        onClick={() => setMobileOpen((open) => !open)}
+        aria-expanded={mobileOpen}
+        aria-label={mobileOpen ? closeLabel : openLabel}
+      >
+        {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+      <MobileMenu isOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+    </>
+  );
+}
+
+export function Header() {
+  const t = useTranslations('nav');
+  const pathname = usePathname();
+  const [scrolled, setScrolled] = useState(false);
+
+  const isHome = pathname === '/' || pathname === '';
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 56);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const headerBg =
     scrolled || !isHome
@@ -124,19 +144,14 @@ export function Header() {
           </nav>
 
           {/* Mobile Menu Button */}
-          <button
-            className={`lg:hidden relative z-10 p-2 -mr-2 ${textColor}`}
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-expanded={mobileOpen}
-            aria-label={mobileOpen ? t('closeMenu') : t('openMenu')}
-          >
-            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          <MobileNavigation
+            key={pathname}
+            textColor={textColor}
+            openLabel={t('openMenu')}
+            closeLabel={t('closeMenu')}
+          />
         </div>
       </div>
-
-      {/* Mobile Menu */}
-      <MobileMenu isOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
     </header>
   );
 }

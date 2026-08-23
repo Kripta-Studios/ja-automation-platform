@@ -79,7 +79,7 @@ export const auth = betterAuth({
     // The public endpoint is denied in hooks.server.ts; invitations still use
     // Better Auth's own password hashing and account creation implementation.
     requireEmailVerification: production,
-    minPasswordLength: 12,
+    minPasswordLength: production ? 12 : 1,
     maxPasswordLength: 128,
     revokeSessionsOnPasswordReset: true,
   },

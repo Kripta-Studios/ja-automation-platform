@@ -1,5 +1,7 @@
 # J&A Automation V3 — Completion Audit & Remediation Plan
 
+> **Client Essential scope notice (2026-08-23):** This is a historical defect audit. Only defects that affect CORE-01..17, the Client Essential 32-step journey, or required production correctness/security remain release-blocking. Industrial-platform, generic business/ERP and ML/data-readiness expansion phases are **DEFERRED POST-CORE ROADMAP**.
+
 ## Verdict at the audited baseline
 
 The branch `codex/v3-completion-20260819` is a substantial functional base with meaningful RBAC/audit/finance/reconciliation work, but it must **not** be represented as fully developed to the V3 spec or production-complete yet.
@@ -131,9 +133,9 @@ Do not throw away:
 2. Mechanical architecture decomposition sufficient for safe ownership.
 3. Artifact pipeline, mobile/forms, reports/templates, lifecycle.
 4. Independent finance/mobile/security/spec review.
-5. Industrial operations.
-6. Business operations.
-7. Data-readiness.
+5. Client Essential operational/financial/reporting/security completion.
+6. Responsive/accessibility, automatic jobs, deployment and recovery.
+7. Industrial, generic business and data-readiness expansion: deferred post-core.
 8. Hardening/release.
 
 ## Release-blocking principles

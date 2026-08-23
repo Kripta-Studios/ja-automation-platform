@@ -19,7 +19,9 @@ Required examples include:
 - mobile drawer with full labels;
 - report edit visual/semantic structure;
 - accessibility and keyboard flow;
-- point-in-time data-readiness leakage invariants.
+- backup/restore of the database and issued/private artifacts.
+
+ML/data-readiness leakage suites remain useful post-core tests but are not Client Essential release blockers unless that roadmap scope is explicitly commissioned.
 
 ## Required viewports
 
@@ -27,9 +29,10 @@ Maintain E2E coverage for at least:
 
 - 360×800
 - 390×844
-- 430×932
 - 768×1024
 - desktop 1440×900 or equivalent
+
+Smoke-check additional widths such as 430px when risk or a reproduced defect warrants it; do not make a separate exhaustive viewport matrix the Client Essential verdict.
 
 Do not infer mobile quality from `scrollWidth <= innerWidth` alone. Assert visible labels, sensible stacking, tappable controls and absence of clipped/overlapped content.
 

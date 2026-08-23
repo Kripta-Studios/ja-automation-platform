@@ -1,5 +1,7 @@
 # V3 Definition-of-Done evidence
 
+> **Historical evidence notice (2026-08-23):** This indexes the old 42-step V3 scenario. Reuse evidence where it maps to the Client Essential 32-step journey, but do not use this document as the client-release verdict.
+
 Verified 2026-08-19 against
 `J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md`. The table is an evidence index, not a
 substitute for the specification.

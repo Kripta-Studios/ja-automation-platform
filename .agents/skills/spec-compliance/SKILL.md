@@ -1,6 +1,6 @@
 ---
 name: spec-compliance
-description: Audit J&A code and tests against the V3 spec, remediation plan, traceability matrix and mandatory feature backlog. Use for PASS/PARTIAL/FAIL reconciliation and completion claims; do not use as a substitute for implementation.
+description: Audit J&A code and tests against the Client Essential specification/checklist, with the original V3 material used only as non-conflicting reference and deferred roadmap. Use for PASS/PARTIAL/FAIL reconciliation and completion claims; do not use as a substitute for implementation.
 ---
 
 # Spec Compliance Audit
@@ -17,4 +17,4 @@ Do not mark PASS because a function, route, table or button merely exists.
 
 Check cross-cutting requirements: mobile, accessibility, security, audit, lifecycle, money exactness, background-job state, failure semantics, migration safety and documentation.
 
-Update `REQUIREMENTS_TRACEABILITY_MATRIX.md` with evidence paths/tests.
+Update `J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md` with evidence paths/tests. Keep `REQUIREMENTS_TRACEABILITY_MATRIX.md` as historical/roadmap traceability without letting deferred rows control the Client Essential verdict.

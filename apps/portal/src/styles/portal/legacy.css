@@ -733,10 +733,21 @@ select {
   padding: 1.5rem;
 }
 
-.project-board-row,
-.project-list-link {
+.project-board-row {
   display: grid;
   grid-template-columns: minmax(15rem, 1fr) minmax(12rem, 0.7fr) auto;
+  gap: 1rem;
+  align-items: center;
+  min-height: 5.2rem;
+  padding: 0.8rem 0;
+  color: var(--ja-ink);
+  border-bottom: 1px solid var(--ja-line);
+  text-decoration: none;
+}
+
+.project-list-link {
+  display: grid;
+  grid-template-columns: 1fr auto;
   gap: 1rem;
   align-items: center;
   min-height: 5.2rem;
@@ -771,6 +782,8 @@ select {
 
 .quick-actions a,
 .preview-link {
+  display: inline-block;
+  margin-top: 0.65rem;
   padding: 0.75rem 0.9rem;
   color: #fff;
   background: var(--ja-red);
@@ -1064,21 +1077,30 @@ select {
   border: 1px solid var(--ja-line);
 }
 
-.detail-panel article {
+.detail-panel article,
+.detail-panel a.detail-panel-article {
   min-height: 4.7rem;
   display: flex;
   align-items: center;
   gap: 0.8rem;
   border-bottom: 1px solid var(--ja-line);
+  text-decoration: none;
+  color: inherit;
 }
 
-.detail-panel article > div:not(.worker-mark) {
+.detail-panel a.detail-panel-article:hover {
+  background: #f8fafc;
+}
+
+.detail-panel article > div:not(.worker-mark),
+.detail-panel a.detail-panel-article > div:not(.worker-mark) {
   display: grid;
   gap: 0.25rem;
   flex: 1;
 }
 
-.detail-panel article small {
+.detail-panel article small,
+.detail-panel a.detail-panel-article small {
   color: var(--ja-steel);
 }
 

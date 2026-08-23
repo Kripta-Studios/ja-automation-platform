@@ -1,5 +1,7 @@
 # J&A V3 continuation handoff — 2026-08-20
 
+> **Superseded release-scope notice (2026-08-23):** Preserve this checkpoint as historical evidence, but continue from the Client Essential specification/checklist and current worktree. Do not resume deferred V3.1–V3.4 expansion merely because it appears below.
+
 Status: **CHECKPOINT ONLY — production completion is not approved**
 
 Branch: `codex/v3-production-completion-orchestrated-20260819`
@@ -11,11 +13,14 @@ pull. The pre-checkpoint HEAD was `85256a16dee1f5f6661f1fe7fda53605f50a19ae`.
 
 Read in the repository-mandated order, then use these local execution sources:
 
-1. `CODEX_MASTER_GOAL.md`
-2. `CODEX_EXECUTION_PLAN.md`
-3. `work-packets/INITIAL_WORK_PACKETS.md`
-4. `REQUIREMENTS_TRACEABILITY_MATRIX.md`
-5. `CODEX_MASTER_IMPLEMENTATION_PROMPT.md`
+1. `J_A_AUTOMATION_CLIENT_ESSENTIAL_SPEC_2026-08-22.md`
+2. `J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md`
+3. `AGENTS.md`
+4. `CODEX_MASTER_GOAL.md`
+5. `CODEX_EXECUTION_PLAN.md`
+6. `work-packets/INITIAL_WORK_PACKETS.md`
+7. `REQUIREMENTS_TRACEABILITY_MATRIX.md` (historical/roadmap traceability)
+8. `CODEX_MASTER_IMPLEMENTATION_PROMPT.md`
 6. `.superpowers/sdd/CODEX_EXECUTION_PLAN/progress.md`
 7. `.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-a5-contract.md`
 8. `.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-a5-t-report.md`

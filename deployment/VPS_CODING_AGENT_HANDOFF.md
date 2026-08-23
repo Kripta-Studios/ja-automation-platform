@@ -71,8 +71,10 @@ Final smoke test:
 - Complete MFA enrollment and verify the dashboard, Projects, Planning, Reports, Expenses,
   Documents, Billing, Finance and Audit authorization boundaries.
 - Invite a second account from Projects → Team and verify the single-use activation flow.
-- Verify the public `/j-aautomation/en`, `/pt`, and `/es` routes, public forms, `/health/live`,
-  `/health/ready`, and that existing NexIA/EVOCON routes still respond.
+- Verify the public `/j-aautomation/en`, `/pt`, and `/es` routes, public forms, and that existing
+  NexIA/EVOCON routes still respond. From the VPS itself, verify the loopback-only portal
+  `/j-aautomation/health/live` and `/j-aautomation/health/ready` checks; the public Caddy health
+  path is intentionally unavailable (404).
 - Verify both J&A containers bind only to localhost and that the jobs/backup timers are active.
 
 If sudo requests a password or any command fails, stop and report the exact command and output.

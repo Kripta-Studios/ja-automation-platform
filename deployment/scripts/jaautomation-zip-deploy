@@ -298,7 +298,7 @@ process_archive() (
         break
         ;;
     esac
-  done < <(zipinfo -1 -q "$snapshot")
+  done < <(zipinfo -1 "$snapshot")
   if [[ -n "$unsafe_entry" ]]; then
     log "ZIP rechazado por ruta insegura: $unsafe_entry"
     mark_state "$REJECTED_FILE" "$sha"

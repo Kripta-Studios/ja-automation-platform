@@ -129,7 +129,7 @@ export function Header() {
 
             <a
               href={portalLoginUrl}
-              className={`btn btn-secondary ml-2 !min-h-[40px] !px-4 text-sm font-medium transition-colors duration-200 ${textColor}`}
+              className="btn btn-portal-login ml-2 !min-h-[40px] !px-4 text-sm font-medium"
               aria-label={t('portalLogin')}
             >
               {t('portalLogin')}

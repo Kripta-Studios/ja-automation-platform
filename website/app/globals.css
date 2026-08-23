@@ -240,6 +240,24 @@ body {
   background-color: var(--color-ja-surface);
 }
 
+.btn-portal-login {
+  background-color: var(--color-ja-white);
+  color: var(--color-ja-ink);
+  border-color: var(--color-ja-white);
+}
+
+.btn-portal-login:hover {
+  background-color: var(--color-ja-surface);
+  border-color: var(--color-ja-surface);
+  transform: translateY(-1px);
+}
+
+.btn-portal-login:active {
+  background-color: var(--color-ja-surface-2);
+  border-color: var(--color-ja-surface-2);
+  transform: translateY(0);
+}
+
 .btn-secondary-dark {
   background-color: transparent;
   color: white;

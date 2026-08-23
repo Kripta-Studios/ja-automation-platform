@@ -358,9 +358,9 @@ const EXPECTED_PROJECTIONS: Record<string, { rowCount: number; sha256: string }>
     sha256: '1b4d05f536d30146c62eaeb83cd3a3f4d698c829fa11675f0c80aeeb0600a0e2',
   },
 };
-const EXPECTED_MANIFEST_SHA256 = 'f871e5401e63d4d7c4f7a43ab8f25970a32a4649188dafb4560dd0d38e5620bb';
+const EXPECTED_MANIFEST_SHA256 = '17672dd843c46f86ce6e4e09e672244a569b416fffd2f506870f61e4b250bded';
 const EXPECTED_MIGRATION_HASHES: Record<string, string> = {
-  '0019_lifecycle_security.sql': '0bec4962955d8b6f8b41f5c083098e871b3e255682caf7d5d79cce6810cee96d',
+  '0019_lifecycle_security.sql': '93a56b070237e6be436ff1b0b2ae3bf3a78767bdef58f03619f634520dac1b8c',
   '0020_finance_v2.sql': '21c8e230e98c71d96dbf790284ed56fa6d417638443d17e0ccd9b580655824db',
   '0021_accounting_pack_artifacts.sql':
     '3217b609b94fa0aa7e9da4e1b24bc12fc43fae0a9269b2b8426ee64e940d8d76',
@@ -639,6 +639,69 @@ describe('frozen B5 migration contract', () => {
     }
   });
 
+  it('preserves v18 legacy job-run outcomes and free-text errors during B5 upgrade', () => {
+    process.env.JA_TENANT_ID = 'test-tenant';
+    process.env.JA_DEPLOYMENT_ID = 'test-deployment';
+    const directory = mkdtempSync(join(tmpdir(), 'ja-b5-legacy-job-run-upgrade-'));
+    tempDirectories.push(directory);
+    const databasePath = join(directory, 'app.db');
+    buildLegacyDatabase(databasePath);
+
+    const legacy = new DatabaseSync(databasePath);
+    try {
+      legacy.exec(`
+        UPDATE job_run
+        SET outcome='success', error_code=NULL
+        WHERE id='legacy-job-run';
+
+        INSERT INTO job_run(id,job_id,started_at,finished_at,outcome,error_code)
+        VALUES(
+          'legacy-job-run-failure',
+          'legacy-job',
+          '2026-08-05T09:03:00.000Z',
+          '2026-08-05T09:04:00.000Z',
+          'failure',
+          'Chromium PDF rendering failed: legacy diagnostic'
+        );
+      `);
+    } finally {
+      legacy.close();
+    }
+
+    const { sqlite } = createDatabase(databasePath);
+    try {
+      expect(
+        sqlite
+          .prepare(
+            `SELECT id,outcome,error_code,contract_version
+             FROM job_run
+             WHERE id IN ('legacy-job-run','legacy-job-run-failure')
+             ORDER BY id`,
+          )
+          .all(),
+      ).toEqual([
+        {
+          id: 'legacy-job-run',
+          outcome: 'success',
+          error_code: null,
+          contract_version: 'legacy',
+        },
+        {
+          id: 'legacy-job-run-failure',
+          outcome: 'failure',
+          error_code: 'Chromium PDF rendering failed: legacy diagnostic',
+          contract_version: 'legacy',
+        },
+      ]);
+      expect(sqlite.prepare('SELECT MAX(version) AS version FROM schema_migration').get()).toEqual({
+        version: 27,
+      });
+      expect(sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
+      expect(integrityCheck(sqlite)).toBe('ok');
+    } finally {
+      sqlite.close();
+    }
+  });
   it('upgrades a populated schema-18 copy transactionally through migration 26', () => {
     process.env.JA_TENANT_ID = 'test-tenant';
     process.env.JA_DEPLOYMENT_ID = 'test-deployment';

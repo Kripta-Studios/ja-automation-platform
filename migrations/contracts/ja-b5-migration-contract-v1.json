@@ -62,7 +62,7 @@
       "version": 19,
       "canonicalName": "lifecycle_security",
       "file": "0019_lifecycle_security.sql",
-      "sha256": "0bec4962955d8b6f8b41f5c083098e871b3e255682caf7d5d79cce6810cee96d",
+      "sha256": "93a56b070237e6be436ff1b0b2ae3bf3a78767bdef58f03619f634520dac1b8c",
       "descriptor": "J&A B5 migration 19 lifecycle_security",
       "descriptorSha256": "2297f7dd980bae8e598c4acc79b3460ae7adba3daf007f43c5229f980f98d640",
       "projectionSha256": "7288913f2f6e2caad047f7b30a2dc9bdd3d98cf7f1e3e6c7c79047710c17ca8e",

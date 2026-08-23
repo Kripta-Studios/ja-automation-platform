@@ -425,8 +425,8 @@ CREATE TABLE job_run(
   job_id TEXT NOT NULL REFERENCES job(id) ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
   started_at TEXT NOT NULL CHECK(length(started_at)>0),
   finished_at TEXT NULL CHECK(finished_at IS NULL OR length(finished_at)>0),
-  outcome TEXT NULL CHECK(outcome IS NULL OR outcome IN ('succeeded','retry_scheduled','failed_terminal')),
-  error_code TEXT NULL CHECK(error_code IS NULL OR error_code IN ('HANDLER_UNAVAILABLE','DEPENDENCY_UNAVAILABLE','LEASE_LOST','PAYLOAD_INVALID','HANDLER_FAILED')),
+  outcome TEXT NULL,
+  error_code TEXT NULL,
   tenant_id TEXT NULL CHECK(tenant_id IS NULL OR length(tenant_id) BETWEEN 3 AND 64),
   deployment_id TEXT NULL CHECK(deployment_id IS NULL OR length(deployment_id) BETWEEN 3 AND 64),
   contract_version TEXT NOT NULL CHECK(contract_version IN ('legacy','b5-v1')),
@@ -443,6 +443,10 @@ CREATE TABLE job_run(
   fencing_token TEXT NULL CHECK(fencing_token IS NULL OR length(fencing_token)>0),
   lease_until TEXT NULL CHECK(lease_until IS NULL OR length(lease_until)>0),
   retry_run_after TEXT NULL CHECK(retry_run_after IS NULL OR length(retry_run_after)>0),
+  CHECK(contract_version='legacy' OR (
+    (outcome IS NULL OR outcome IN ('succeeded','retry_scheduled','failed_terminal')) AND
+    (error_code IS NULL OR error_code IN ('HANDLER_UNAVAILABLE','DEPENDENCY_UNAVAILABLE','LEASE_LOST','PAYLOAD_INVALID','HANDLER_FAILED'))
+  )),
   CHECK((contract_version='legacy' AND tenant_id IS NULL AND deployment_id IS NULL AND kind IS NULL AND required_capability IS NULL AND service_actor_id IS NULL AND service_actor_version IS NULL AND service_actor_capabilities_json IS NULL AND configured_binding_version IS NULL AND correlation_id IS NULL AND payload_sha256 IS NULL AND state IS NULL AND fence_version IS NULL AND fencing_token IS NULL AND lease_until IS NULL AND retry_run_after IS NULL) OR contract_version='b5-v1')
 ) STRICT;
 INSERT INTO job(id,kind,idempotency_key,state,run_after,lease_until,attempts,payload_json,created_at,updated_at,version,tenant_id,deployment_id,contract_version,payload_sha256,correlation_id,required_capability,active_job_run_id,fence_version,max_attempts,last_error_code)

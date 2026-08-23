@@ -86,7 +86,7 @@ try {
   if (-not $SkipQualityGates) {
     Invoke-PinnedPnpm @('format:check')
     Invoke-PinnedPnpm @('lint')
-    Invoke-PinnedPnpm @('typecheck')
+    Invoke-PinnedPnpm @('--recursive', '--if-present', 'typecheck')
   }
 
   Invoke-PinnedPnpm @('--filter', '@ja/site', 'build')

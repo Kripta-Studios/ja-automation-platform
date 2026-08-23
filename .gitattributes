@@ -1,0 +1,5 @@
+*.sh text eol=lf
+deployment/scripts/jaautomation-zip-deploy text eol=lf
+
+migrations/**/*.sql text eol=lf
+migrations/**/*.json text eol=lf

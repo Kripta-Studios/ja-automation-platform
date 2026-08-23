@@ -12,7 +12,7 @@ CADDY_SNIPPET=/etc/caddy/jaautomation.caddy
 DB_PATH=/var/lib/jaautomation/data/jaautomation.sqlite
 DOCUMENT_ROOT=/var/lib/jaautomation/files
 BACKUP_ROOT=/var/backups/jaautomation
-NODE=/usr/bin/node
+NODE=/opt/jaautomation/runtime/node-v24.19.0/bin/node
 COMPOSE_PROJECT=deployment
 PUBLIC_SITE_URL=https://gex-dashboard.hopto.org/j-aautomation/en
 PUBLIC_PORTAL_URL=https://gex-dashboard.hopto.org/j-aautomation/app/login
@@ -422,15 +422,17 @@ log "Escaneando $WATCH_DIR en busca de un ZIP nuevo"
 archive_found=0
 while IFS= read -r -d '' archive; do
   archive_found=1
-  if process_archive "$archive" 0; then
-    exit 0
-  else
-    status=$?
-    case "$status" in
-      2) continue ;;
-      *) exit "$status" ;;
-    esac
-  fi
+
+  set +e
+  process_archive "$archive" 0
+  status=$?
+  set -e
+
+  case "$status" in
+    0) exit 0 ;;
+    2) continue ;;
+    *) exit "$status" ;;
+  esac
 done < <(find "$WATCH_DIR" -maxdepth 1 -type f -iname '*.zip' -print0 | sort -z)
 
 if [[ "$archive_found" -eq 0 ]]; then

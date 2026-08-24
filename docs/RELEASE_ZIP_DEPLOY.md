@@ -133,6 +133,14 @@ integración, seguridad, build, backup/restore y el resto de suites configuradas
 resultados y cualquier evidencia de VPS por separado. Un ZIP creado correctamente no transforma un
 `PARTIAL`, `FAIL` o DoD abierto en `PASS`.
 
+Para inspeccionar el enlace activo y el manifiesto desde el equipo local, las rutas de release
+pueden ser legibles únicamente por root. Usa una TTY para `sudo`; `-S` es una opción de SSH para
+control sockets y no proporciona la contraseña de `sudo`:
+
+```powershell
+ssh -tt kripta 'sudo readlink -f /opt/jaautomation/current; sudo awk -F= "/^(release|commit|node|pnpm|source_snapshot)=/{print}" /opt/jaautomation/current/RELEASE-BUILD.txt'
+```
+
 ## Seguimiento
 
 ```bash

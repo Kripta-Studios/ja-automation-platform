@@ -43,16 +43,18 @@ export const localizedPdfVariants = sqliteTable(
     updatedAt: text('updated_at').notNull(),
   },
   (table) => [
-    uniqueIndex('localized_pdf_variant_active_identity_uq').on(
-      table.tenantId,
-      table.deploymentId,
-      table.ownerType,
-      table.ownerId,
-      table.locale,
-      table.templateVersion,
-      table.generationVersion,
-      table.snapshotHash,
-    ).where(sql`${table.status} IN ('queued','running','ready')`),
+    uniqueIndex('localized_pdf_variant_active_identity_uq')
+      .on(
+        table.tenantId,
+        table.deploymentId,
+        table.ownerType,
+        table.ownerId,
+        table.locale,
+        table.templateVersion,
+        table.generationVersion,
+        table.snapshotHash,
+      )
+      .where(sql`${table.status} IN ('queued','running','ready')`),
     index('localized_pdf_variant_owner_idx').on(
       table.tenantId,
       table.deploymentId,

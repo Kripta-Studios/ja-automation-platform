@@ -13,6 +13,7 @@
 - Can any B/C work be split into Luna-Max A-level child packets?:
 
 Routing default:
+
 - `A` → Luna Max implementation worker.
 - `B` → Sol Medium domain lead; delegate stable leaves to Luna Max.
 - `C` → Sol High architect/integration authority.

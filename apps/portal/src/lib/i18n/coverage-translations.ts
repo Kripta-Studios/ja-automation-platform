@@ -891,6 +891,9 @@ const invariantKeys = new Set([
   'CSV',
   'JSON',
   'MFA',
+  'min',
+  'No',
+  'SHA-256',
   'TOTP',
   'PLC',
   'HMI',
@@ -1164,9 +1167,37 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Borrador de informe eliminado.',
     'Rascunho de relatório excluído.',
   ],
+  'action.reports.periodReportAlreadyApproved': [
+    'El informe del período ya está aprobado.',
+    'O relatório do período já está aprovado.',
+  ],
+  'action.reports.periodReportApproved': [
+    'Informe del período aprobado.',
+    'Relatório do período aprovado.',
+  ],
   'action.reports.periodReportsRefreshed': [
     'Informes del período actualizados.',
     'Relatórios do período atualizados.',
+  ],
+  'action.reports.customerSignoffInvalidated': [
+    'Conformidad del cliente invalidada.',
+    'Conformidade do cliente invalidada.',
+  ],
+  'action.reports.customerSignoffRecorded': [
+    'Conformidad del cliente registrada.',
+    'Conformidade do cliente registrada.',
+  ],
+  'action.validation.periodReportApproval': [
+    'Se requiere una vinculación válida con la instantánea del informe del período.',
+    'É necessário um vínculo válido com o instantâneo do relatório do período.',
+  ],
+  'action.validation.customerSignoff': [
+    'Completa los datos de conformidad del cliente.',
+    'Preencha os dados de conformidade do cliente.',
+  ],
+  'action.validation.customerSignoffInvalidation': [
+    'Indica la conformidad y el motivo de invalidación.',
+    'Informe a conformidade e o motivo da invalidação.',
   ],
   'action.reports.submitted': ['Informe enviado para revisión.', 'Relatório enviado para revisão.'],
   'action.reports.technicalChangeDraftSaved': [
@@ -1370,6 +1401,17 @@ function actionMessage(locale: 'es' | 'pt', key: string): string {
 
 function englishActionMessage(key: string): string {
   const suffix = key.slice('action.'.length);
+  const exactEnglish: Record<string, string> = {
+    'action.reports.periodReportApproved': 'Period report approved.',
+    'action.reports.periodReportAlreadyApproved': 'Period report was already approved.',
+    'action.reports.customerSignoffRecorded': 'Customer conformity recorded.',
+    'action.reports.customerSignoffInvalidated': 'Customer conformity invalidated.',
+    'action.validation.periodReportApproval': 'A valid period report snapshot binding is required.',
+    'action.validation.customerSignoff': 'Customer conformity details are required.',
+    'action.validation.customerSignoffInvalidation':
+      'Conformity and invalidation reason are required.',
+  };
+  if (exactEnglish[key]) return exactEnglish[key];
   if (suffix === 'error.invalid') return 'The submitted values are invalid.';
   if (suffix === 'error.forbidden') return 'You do not have permission to perform this action.';
   if (suffix === 'error.conflict') return 'This action conflicts with the current record state.';

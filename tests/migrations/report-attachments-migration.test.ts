@@ -223,7 +223,7 @@ describe('CORE-07 report attachment migration', () => {
           version: number;
         }
       ).version,
-    ).toBe(27);
+    ).toBe(30);
     expect(
       (
         sqlite
@@ -590,7 +590,17 @@ describe('CORE-07 report attachment migration', () => {
            id,project_id,worker_id,work_date,summary,approval_state,created_at,updated_at,version
          ) VALUES(?,?,?,?,?,?,?,?,?)`,
       )
-      .run('daily-disabled', 'project', 'worker', '2026-08-24', 'Scanner disabled', 'draft', now, now, 1);
+      .run(
+        'daily-disabled',
+        'project',
+        'worker',
+        '2026-08-24',
+        'Scanner disabled',
+        'draft',
+        now,
+        now,
+        1,
+      );
     insertDocument(sqlite, 'disabled-daily', 'committed', 'project', null, 'not_scanned');
     link(sqlite, {
       id: 'disabled-daily-link',

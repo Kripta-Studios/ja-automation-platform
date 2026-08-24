@@ -6,12 +6,14 @@ import { useTranslations } from 'next-intl';
 import { CheckCircle2, ExternalLink, Mail, Phone } from 'lucide-react';
 import { contact } from '@/content/company';
 import { services } from '@/content/services';
+import { publicApiPath } from '@/lib/portal';
 
 type Intent = 'project' | 'support' | 'career';
 
 function ContactFormContent() {
   const searchParams = useSearchParams();
   const t = useTranslations('contact');
+  const serviceText = useTranslations('serviceOptions');
   const [intent, setIntent] = useState<Intent>(() => {
     const intentParam = searchParams.get('intent');
     return intentParam === 'support' || intentParam === 'project' || intentParam === 'career'
@@ -40,10 +42,10 @@ function ContactFormContent() {
 
     const endpoint =
       intent === 'project'
-        ? '/j-aautomation/api/public/inquiry'
+        ? publicApiPath('api/public/inquiry')
         : intent === 'support'
-          ? '/j-aautomation/api/public/support'
-          : '/j-aautomation/api/public/career-interest';
+          ? publicApiPath('api/public/support')
+          : publicApiPath('api/public/career-interest');
     const payload =
       intent === 'project'
         ? {
@@ -160,7 +162,7 @@ function ContactFormContent() {
 
             <form onSubmit={handleSubmit} className="space-y-6" noValidate={false}>
               <div className="sr-only" aria-hidden="true">
-                <label htmlFor="website">Website</label>
+                <label htmlFor="website">{t('website')}</label>
                 <input id="website" name="website" tabIndex={-1} autoComplete="off" />
               </div>
               <div className="grid sm:grid-cols-2 gap-6">
@@ -239,7 +241,7 @@ function ContactFormContent() {
                       htmlFor="company"
                       className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                     >
-                      Company *
+                      {t('company')} *
                     </label>
                     <input
                       type="text"
@@ -256,7 +258,7 @@ function ContactFormContent() {
                         htmlFor="site"
                         className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                       >
-                        Country / Site *
+                        {t('countrySite')} *
                       </label>
                       <input
                         type="text"
@@ -272,7 +274,7 @@ function ContactFormContent() {
                         htmlFor="industry"
                         className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                       >
-                        Industry *
+                        {t('industry')} *
                       </label>
                       <select
                         id="industry"
@@ -285,11 +287,13 @@ function ContactFormContent() {
                         <option value="" disabled>
                           {t('selectIndustry')}
                         </option>
-                        <option value="automotive">Automotive</option>
-                        <option value="food_beverage">Food and beverage</option>
-                        <option value="energy_process">Energy and process</option>
-                        <option value="general_manufacturing">General manufacturing</option>
-                        <option value="other">Other / not sure</option>
+                        <option value="automotive">{t('industryAutomotive')}</option>
+                        <option value="food_beverage">{t('industryFoodBeverage')}</option>
+                        <option value="energy_process">{t('industryEnergyProcess')}</option>
+                        <option value="general_manufacturing">
+                          {t('industryGeneralManufacturing')}
+                        </option>
+                        <option value="other">{t('industryOther')}</option>
                       </select>
                     </div>
                   </div>
@@ -298,7 +302,7 @@ function ContactFormContent() {
                       htmlFor="projectType"
                       className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                     >
-                      Primary Service of Interest
+                      {t('primaryService')}
                     </label>
                     <select
                       id="projectType"
@@ -313,11 +317,21 @@ function ContactFormContent() {
                       </option>
                       {services.map((s) => (
                         <option key={s.id} value={s.id}>
-                          {s.slug.replace(/-/g, ' ')}
+                          {serviceText(
+                            s.id === 'plc-hmi-scada'
+                              ? 'plcHmiScada'
+                              : s.id === 'electrical-controls'
+                                ? 'electrical'
+                                : s.id === 'motion-process'
+                                  ? 'motion'
+                                  : s.id === 'training-consulting'
+                                    ? 'trainingConsulting'
+                                    : s.id,
+                          )}
                         </option>
                       ))}
-                      <option value="aquarex">Aquarex Water Treatment</option>
-                      <option value="other">Other / Not Sure</option>
+                      <option value="aquarex">{t('aquarexWaterTreatment')}</option>
+                      <option value="other">{t('otherNotSure')}</option>
                     </select>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-6">
@@ -326,13 +340,13 @@ function ContactFormContent() {
                         htmlFor="platform"
                         className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                       >
-                        Technology / Platform
+                        {t('technologyPlatform')}
                       </label>
                       <input
                         type="text"
                         id="platform"
                         name="platform"
-                        placeholder="PLC, robot, SCADA, controls..."
+                        placeholder={t('plcRobotPlaceholder')}
                         className="w-full px-4 py-3 rounded-lg border border-ja-line bg-ja-surface focus:outline-none focus:ring-2 focus:ring-ja-red/20 focus:border-ja-red transition-all"
                         disabled={status === 'loading'}
                       />
@@ -352,8 +366,8 @@ function ContactFormContent() {
                         required
                         disabled={status === 'loading'}
                       >
-                        <option value="email">Email</option>
-                        <option value="phone">Phone</option>
+                        <option value="email">{t('emailOption')}</option>
+                        <option value="phone">{t('phoneOption')}</option>
                       </select>
                     </div>
                   </div>
@@ -368,7 +382,7 @@ function ContactFormContent() {
                         htmlFor="company"
                         className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                       >
-                        Company *
+                        {t('company')} *
                       </label>
                       <input
                         type="text"
@@ -384,13 +398,13 @@ function ContactFormContent() {
                         htmlFor="site"
                         className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                       >
-                        Site / Facility *
+                        {t('siteFacility')} *
                       </label>
                       <input
                         type="text"
                         id="site"
                         name="site"
-                        placeholder="Plant, site or system location"
+                        placeholder={t('plantLocationPlaceholder')}
                         className="w-full px-4 py-3 rounded-lg border border-ja-line bg-ja-surface focus:outline-none focus:ring-2 focus:ring-ja-red/20 focus:border-ja-red transition-all"
                         required
                         disabled={status === 'loading'}
@@ -403,13 +417,13 @@ function ContactFormContent() {
                         htmlFor="platform"
                         className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                       >
-                        Affected System / Platform *
+                        {t('affectedSystem')} *
                       </label>
                       <input
                         type="text"
                         id="platform"
                         name="platform"
-                        placeholder="PLC, robot, HMI, SCADA..."
+                        placeholder={t('plcHmiPlaceholder')}
                         className="w-full px-4 py-3 rounded-lg border border-ja-line bg-ja-surface focus:outline-none focus:ring-2 focus:ring-ja-red/20 focus:border-ja-red transition-all"
                         required
                         disabled={status === 'loading'}
@@ -420,7 +434,7 @@ function ContactFormContent() {
                         htmlFor="urgency"
                         className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                       >
-                        Urgency *
+                        {t('urgency')} *
                       </label>
                       <select
                         id="urgency"
@@ -430,9 +444,9 @@ function ContactFormContent() {
                         required
                         disabled={status === 'loading'}
                       >
-                        <option value="production_stopped">Production stopped</option>
-                        <option value="degraded">Degraded</option>
-                        <option value="planned">Planned support</option>
+                        <option value="production_stopped">{t('productionStopped')}</option>
+                        <option value="degraded">{t('degraded')}</option>
+                        <option value="planned">{t('plannedSupport')}</option>
                       </select>
                     </div>
                   </div>
@@ -447,7 +461,7 @@ function ContactFormContent() {
                         htmlFor="location"
                         className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                       >
-                        Location *
+                        {t('location')} *
                       </label>
                       <input
                         type="text"
@@ -463,13 +477,13 @@ function ContactFormContent() {
                         htmlFor="profile"
                         className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                       >
-                        Professional Profile *
+                        {t('professionalProfile')} *
                       </label>
                       <input
                         type="text"
                         id="profile"
                         name="profile"
-                        placeholder="Controls, robotics, electrical..."
+                        placeholder={t('controlsPlaceholder')}
                         className="w-full px-4 py-3 rounded-lg border border-ja-line bg-ja-surface focus:outline-none focus:ring-2 focus:ring-ja-red/20 focus:border-ja-red transition-all"
                         required
                         disabled={status === 'loading'}
@@ -482,13 +496,13 @@ function ContactFormContent() {
                         htmlFor="platforms"
                         className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                       >
-                        Platforms / Experience *
+                        {t('platformsExperience')} *
                       </label>
                       <input
                         type="text"
                         id="platforms"
                         name="platforms"
-                        placeholder="PLC, robot, HMI or other experience"
+                        placeholder={t('experiencePlaceholder')}
                         className="w-full px-4 py-3 rounded-lg border border-ja-line bg-ja-surface focus:outline-none focus:ring-2 focus:ring-ja-red/20 focus:border-ja-red transition-all"
                         required
                         disabled={status === 'loading'}
@@ -499,7 +513,7 @@ function ContactFormContent() {
                         htmlFor="travel"
                         className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                       >
-                        Travel Availability *
+                        {t('travelAvailability')} *
                       </label>
                       <select
                         id="travel"
@@ -509,9 +523,9 @@ function ContactFormContent() {
                         required
                         disabled={status === 'loading'}
                       >
-                        <option value="yes">Yes</option>
-                        <option value="limited">Limited</option>
-                        <option value="no">No</option>
+                        <option value="yes">{t('travelYes')}</option>
+                        <option value="limited">{t('travelLimited')}</option>
+                        <option value="no">{t('travelNo')}</option>
                       </select>
                     </div>
                   </div>
@@ -563,7 +577,7 @@ function ContactFormContent() {
                 {t('directContact')}
               </h3>
               <p className="font-semibold text-ja-ink">{contact.primaryName}</p>
-              <p className="mb-6 text-sm text-ja-steel-500">{contact.primaryTitle}</p>
+              <p className="mb-6 text-sm text-ja-steel-500">{t('primaryTitle')}</p>
               <a
                 href={`tel:${contact.usPhone.replace(/[^\d+]/g, '')}`}
                 className="flex items-center gap-2 text-sm text-ja-steel-700 hover:text-ja-red transition-colors"
@@ -600,11 +614,13 @@ function ContactFormContent() {
 }
 
 export default function ContactPage() {
+  const t = useTranslations('contact');
+
   return (
     <Suspense
       fallback={
         <div className="pt-20 min-h-screen bg-ja-surface flex items-center justify-center">
-          <p>Loading…</p>
+          <p>{t('loading')}</p>
         </div>
       }
     >

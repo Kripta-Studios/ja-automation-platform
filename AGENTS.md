@@ -4,15 +4,28 @@
 
 Deliver the production-complete **Client Essential** J&A Automation platform in the current repository, branch, and worktree. This is not an MVP, demo, prototype, or mock.
 
-Read product authority in this order before implementation:
+Read product authority in this order before implementation (validated against the repository and
+the user-authoritative local contract on **2026-08-24**):
 
 1. `J_A_AUTOMATION_CLIENT_ESSENTIAL_SPEC_2026-08-22.md`
 2. `J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md`
-3. this file and the closest nested `AGENTS.md` / `AGENTS.override.md`
-4. `J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md` as domain and architecture reference only where it does not conflict with Client Essential scope
-5. `V3_COMPLETION_AUDIT_AND_REMEDIATION_PLAN_2026-08-19.md` for defects relevant to Client Essential scope
-6. `PRODUCT_FEATURE_BACKLOG_V3_1_V3_4.md` as **DEFERRED POST-CORE ROADMAP**
-7. `CODEX_EXECUTION_PLAN.md`, `REQUIREMENTS_TRACEABILITY_MATRIX.md`, and `MCP_AGENT_MATRIX.md` as execution/evidence references subordinate to the authority above
+3. `J_A_Automation_Contrato_Proyecto_EVOCON_ES.html`, the user-authoritative local contract,
+   specifically its `ANEXO A` functional scope and `ANEXO D` UAT criteria. These sections provide
+   contractual scope and acceptance context after the SPEC/checklist and before UX-only guidance.
+4. `UI_PLAN.md` for UX/UI requirements across all sections. It cannot override product, financial,
+   security, authorization, or lifecycle semantics in the sources above.
+5. this file and the closest nested `AGENTS.md` / `AGENTS.override.md`
+6. `J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md` as domain and architecture reference
+   only where it does not conflict with Client Essential scope
+7. `V3_COMPLETION_AUDIT_AND_REMEDIATION_PLAN_2026-08-19.md` for defects relevant to Client Essential scope
+8. `PRODUCT_FEATURE_BACKLOG_V3_1_V3_4.md` as **DEFERRED POST-CORE ROADMAP**
+9. `CODEX_EXECUTION_PLAN.md`, `REQUIREMENTS_TRACEABILITY_MATRIX.md`, and `MCP_AGENT_MATRIX.md` as
+   execution/evidence references subordinate to the authority above
+
+The 2026-08-24 contractual validation confirms that reference hours do not fabricate actual time,
+minimum billable and worker-compensation rules are independent, issued invoices are historical
+snapshots, and Anexo D's flow/edge-case evidence is required. Documentation updates do not count as
+implementation or release evidence.
 
 The client-release verdict is determined only by the Client Essential specification, checklist, applicable production-correctness requirements, and demonstrated evidence. Historical requirements such as all V3.1–V3.4 features, every P0/P1/P2 backlog item, all 207 RTM rows, or the old 42-step V3 scenario do **not** block Client Essential delivery unless a Client Essential requirement directly depends on them.
 

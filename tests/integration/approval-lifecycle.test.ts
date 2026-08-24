@@ -93,6 +93,44 @@ function stepUpOwner(value: B5LifecycleSecurityFixture) {
 }
 
 describe('Client Essential approval lifecycle', () => {
+  it('requires current PM can_review membership for every operational review and queue', () => {
+    const value = fixture();
+    const timeId = submittedTime(value);
+    const expenseId = submittedExpense(value);
+    const dailyId = submittedDaily(value);
+    const technicalId = submittedTechnical(value);
+    const milestone = value.repository.createProjectMilestone(value.owner, {
+      projectId: value.project.id,
+      name: 'Review-gated milestone',
+      amountMinor: 10_000n,
+    });
+    value.repository.submitProjectMilestone(value.owner, milestone.id, milestone.version);
+
+    value.sqlite
+      .prepare(
+        "UPDATE project_member SET can_review=0 WHERE project_id=? AND user_id=? AND status='active'",
+      )
+      .run(value.project.id, value.manager.userId);
+
+    expect(value.repository.listApprovalQueue(value.manager)).toEqual([]);
+    expect(value.repository.listMilestonesForReview(value.manager)).toEqual([]);
+    expect(() =>
+      value.repository.operationalApproveTime(value.manager, timeId, 'approved'),
+    ).toThrow(AccessDeniedError);
+    expect(() =>
+      value.repository.operationalApproveExpense(value.manager, expenseId, 'approved'),
+    ).toThrow(AccessDeniedError);
+    expect(() =>
+      value.repository.reviewReport(value.manager, 'daily', dailyId, 'approved'),
+    ).toThrow(AccessDeniedError);
+    expect(() =>
+      value.repository.reviewReport(value.manager, 'technical', technicalId, 'approved'),
+    ).toThrow(AccessDeniedError);
+    expect(() =>
+      value.repository.reviewProjectMilestone(value.manager, milestone.id, 'approved'),
+    ).toThrow(AccessDeniedError);
+  });
+
   it('requires a trimmed nonblank reason in schemas and repository boundaries', () => {
     const value = fixture();
     const timeId = submittedTime(value);

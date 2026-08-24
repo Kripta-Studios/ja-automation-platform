@@ -399,7 +399,9 @@ export class WorkforceRepository {
         .get(input.projectId) as { status: string } | undefined;
       if (!project) throw this.deps.errors.validation('Project not found');
       if (!['active', 'planned', 'paused'].includes(project.status))
-        throw this.deps.errors.conflict('Assignments are only allowed on active, planned, or paused projects');
+        throw this.deps.errors.conflict(
+          'Assignments are only allowed on active, planned, or paused projects',
+        );
 
       assertDate(input.startsOn, 'Start date', this.deps.errors.validation);
       if (input.endsOn) assertDate(input.endsOn, 'End date', this.deps.errors.validation);
@@ -450,9 +452,9 @@ export class WorkforceRepository {
     if (!Number.isInteger(input.version) || input.version < 1)
       throw this.deps.errors.validation('Assignment version is required');
     return this.deps.transaction(() => {
-      const existing = this.deps.sqlite.prepare('SELECT * FROM project_member WHERE id=?').get(id) as
-        | AssignmentRow
-        | undefined;
+      const existing = this.deps.sqlite
+        .prepare('SELECT * FROM project_member WHERE id=?')
+        .get(id) as AssignmentRow | undefined;
       if (!existing) throw this.deps.errors.validation('Assignment not found');
 
       if (existing.status !== 'active')
@@ -467,7 +469,9 @@ export class WorkforceRepository {
       const startsOn = input.startsOn !== undefined ? input.startsOn : existing.starts_on;
       const endsOn = input.endsOn !== undefined ? input.endsOn || null : existing.ends_on;
       const plannedMinutes =
-        input.plannedMinutes !== undefined ? input.plannedMinutes || null : existing.planned_minutes;
+        input.plannedMinutes !== undefined
+          ? input.plannedMinutes || null
+          : existing.planned_minutes;
       const canReview =
         input.canReview !== undefined ? (input.canReview ? 1 : 0) : existing.can_review;
 
@@ -502,9 +506,9 @@ export class WorkforceRepository {
   removeAssignment(principal: Principal, id: string, input: AssignmentRemovalInput) {
     this.deps.assertActive(principal);
     return this.deps.transaction(() => {
-      const existing = this.deps.sqlite.prepare('SELECT * FROM project_member WHERE id=?').get(id) as
-        | AssignmentRow
-        | undefined;
+      const existing = this.deps.sqlite
+        .prepare('SELECT * FROM project_member WHERE id=?')
+        .get(id) as AssignmentRow | undefined;
       if (!existing) throw this.deps.errors.validation('Assignment not found');
       if (existing.status !== 'active')
         throw this.deps.errors.conflict('Assignment is already inactive');

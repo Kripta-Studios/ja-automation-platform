@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { runDueConfiguredDurableJobs } from '@ja/database';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
@@ -13,22 +12,19 @@ afterEach(() => {
 });
 
 describe('requested integrity implementation', () => {
-  it('fails a durable job with no registered handler instead of marking it complete', async () => {
+  it('rejects a durable job with no registered capability before it can be queued', () => {
     const fixture = createB5LifecycleSecurityFixture();
     fixtures.push(fixture);
-    const job = fixture.v3.enqueueJob('unregistered_kind', 'requested-integrity-job', {
-      test: true,
-    });
-
-    const outcomes = await runDueConfiguredDurableJobs(fixture.sqlite, 1);
-    expect(outcomes[0]).toMatchObject({
-      jobId: job.id,
-      outcome: 'failure',
-      errorCode: expect.stringMatching(/no handler/i),
-    });
-    expect(fixture.sqlite.prepare('SELECT state FROM job WHERE id=?').get(job.id)).toEqual({
-      state: 'pending',
-    });
+    expect(() =>
+      fixture.v3.enqueueJob('unregistered_kind', 'requested-integrity-job', {
+        test: true,
+      }),
+    ).toThrow(/unregistered durable job kind/i);
+    expect(
+      fixture.sqlite
+        .prepare('SELECT COUNT(*) AS count FROM job WHERE kind=?')
+        .get('unregistered_kind'),
+    ).toEqual({ count: 0 });
   });
 
   it('closes a financial rule interval before creating its successor', () => {

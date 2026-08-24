@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { services } from '@/content/services';
 import { projects } from '@/content/projects';
+import { projectIndustryKeys, translateProject, translateServiceTags } from '@/lib/i18n/content';
+import { localizedAlternates } from '@/lib/i18n/metadata';
 
 type CapabilityMessageKey =
   | 'plcHmiScada'
@@ -58,7 +60,11 @@ export async function generateMetadata({
   const service = services.find((s) => s.slug === slug);
 
   if (!service) {
-    return { title: 'Not Found' };
+    const common = await getTranslations({ locale, namespace: 'common' });
+    return {
+      title: common('notFound'),
+      alternates: localizedAlternates(locale, `/capabilities/${slug}`),
+    };
   }
 
   const t = await getTranslations({ locale, namespace: 'capabilities' });
@@ -67,6 +73,7 @@ export async function generateMetadata({
   return {
     title: `${t(key as CapabilityMessageKey)} | J&A Automation`,
     description: t(`${key}Desc` as `${CapabilityMessageKey}Desc`),
+    alternates: localizedAlternates(locale, `/capabilities/${slug}`),
   };
 }
 
@@ -85,6 +92,10 @@ export default async function CapabilityDetailPage({
 
   const t = await getTranslations('capabilities');
   const nav = await getTranslations('nav');
+  const common = await getTranslations('common');
+  const projectFilters = await getTranslations('projectFilters');
+  const serviceTags = await getTranslations('serviceTags');
+  const projectCatalog = await getTranslations('projectCatalog');
   const key = capabilityKeys[service.id] ?? service.id;
 
   // Find related projects
@@ -92,6 +103,9 @@ export default async function CapabilityDetailPage({
     .filter((p) => p.capabilities.includes(service.id))
     .sort((a, b) => (b.sortWeight ?? 0) - (a.sortWeight ?? 0))
     .slice(0, 3);
+  const localizedRelatedProjects = relatedProjects.map((project) =>
+    translateProject(project, projectCatalog),
+  );
 
   return (
     <div className="pt-20">
@@ -101,7 +115,7 @@ export default async function CapabilityDetailPage({
             href="/capabilities"
             className="inline-flex items-center gap-2 text-sm font-medium text-ja-steel-500 hover:text-ja-red transition-colors mb-10"
           >
-            <ArrowLeft size={16} /> Back to Capabilities
+            <ArrowLeft size={16} /> {common('backToCapabilities')}
           </Link>
 
           <div className="flex items-center gap-4 mb-6 text-ja-red">
@@ -118,7 +132,7 @@ export default async function CapabilityDetailPage({
           </p>
 
           <div className="flex flex-wrap gap-2">
-            {service.tags.map((tag) => (
+            {translateServiceTags(service.tags, serviceTags).map((tag) => (
               <span key={tag} className="chip bg-white">
                 {tag}
               </span>
@@ -130,14 +144,14 @@ export default async function CapabilityDetailPage({
       {relatedProjects.length > 0 && (
         <section className="section-padding bg-white border-t border-ja-line">
           <div className="container-ja">
-            <h2 className="heading-2 mb-10 text-3xl">Related Project Experience</h2>
+            <h2 className="heading-2 mb-10 text-3xl">{common('relatedProjectExperience')}</h2>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {relatedProjects.map((project) => (
+              {localizedRelatedProjects.map((project) => (
                 <div key={project.id} className="card">
                   <div className="flex justify-between items-start mb-3">
                     <span className="font-[family-name:var(--font-ibm-plex-mono)] text-xs tracking-wider text-ja-steel-500 uppercase">
-                      {project.industry.replace('-', ' / ')}
+                      {projectFilters(projectIndustryKeys[project.industry])}
                     </span>
                     <span className="font-[family-name:var(--font-ibm-plex-mono)] text-xs text-ja-steel-500">
                       {project.displayDate}
@@ -165,7 +179,7 @@ export default async function CapabilityDetailPage({
 
             <div className="mt-10">
               <Link href="/projects" className="text-cta">
-                View all projects <ArrowRight size={16} />
+                {common('viewAllProjects')} <ArrowRight size={16} />
               </Link>
             </div>
           </div>
@@ -176,14 +190,16 @@ export default async function CapabilityDetailPage({
       <section className="section-padding bg-ja-graphite text-white text-center">
         <div className="container-ja">
           <h2 className="heading-2 mb-6">
-            Need engineering support for {t(key as CapabilityMessageKey).toLowerCase()}?
+            {common('needEngineeringSupport', {
+              capability: t(key as CapabilityMessageKey).toLowerCase(),
+            })}
           </h2>
           <div className="flex flex-col sm:flex-row justify-center gap-3">
             <Link
               href={`/contact?intent=project&service=${service.id}`}
               className="btn btn-primary"
             >
-              Talk to an Engineer
+              {nav('talkToEngineer')}
             </Link>
           </div>
         </div>

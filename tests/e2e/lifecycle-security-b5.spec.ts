@@ -15,6 +15,8 @@ test('report detail exposes delete-draft rather than legacy hard delete', async 
   const reportLink = page.locator('a[href*="/app/reports/"]').first();
   await expect(reportLink).toBeVisible();
   await reportLink.click();
-  await expect(page.locator("[data-action='deleteDraft'][data-record-type][data-record-id]")).toBeVisible();
+  await expect(
+    page.locator("[data-action='deleteDraft'][data-record-type][data-record-id]"),
+  ).toBeVisible();
   await expect(page.locator('form[action*="deleteReport"]')).toHaveCount(0);
 });

@@ -40,7 +40,7 @@ describe('authenticated shell i18n coverage', () => {
       .join('\n');
 
     expect(css).not.toMatch(/content\s*:\s*['"][^'"]*(?:Open|OPEN)\b/);
-    expect(source('lib/portal/sections/ReportSection.svelte')).toContain('record-card-open');
+    expect(source('lib/portal/sections/ReportSection.svelte')).toContain('report-register-open');
     expect(source('lib/portal/sections/ExpenseSection.svelte')).toContain('record-card-open');
   });
 });

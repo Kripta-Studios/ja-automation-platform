@@ -1,8 +1,14 @@
 import { randomBytes } from 'node:crypto';
 import { error, redirect } from '@sveltejs/kit';
 import { openPortalRepository } from '$lib/server/portal-repository';
-import { mondayOf, weeklyView } from '$lib/server/portal-week';
+import { mondayOf, weeklyView, type WeeklyProjectSchedule } from '$lib/server/portal-week';
 import type { PageServerLoad } from './$types';
+import {
+  projectManagerApprovalQueueProjection,
+  projectManagerMilestoneProjection,
+  projectManagerSearchProjection,
+  projectManagerSearchSuggestionsProjection,
+} from './role-projections';
 
 const sections = [
   'time',
@@ -36,13 +42,24 @@ export const sectionLoad: PageServerLoad = ({ locals, params, url }) => {
   const context = openPortalRepository(locals);
   try {
     const searchQuery = url.searchParams.get('q')?.trim() ?? '';
+    const isProjectManager = context.principal.role === 'project_manager';
     const common = {
       user: locals.user,
       section,
       searchQuery,
-      searchSuggestions: context.repository.searchSuggestions(context.principal),
+      searchSuggestions: isProjectManager
+        ? projectManagerSearchSuggestionsProjection(
+            context.repository.searchSuggestions(context.principal),
+          )
+        : context.repository.searchSuggestions(context.principal),
       searchResults:
-        searchQuery.length >= 2 ? context.repository.search(context.principal, searchQuery) : [],
+        searchQuery.length >= 2
+          ? isProjectManager
+            ? projectManagerSearchProjection(
+                context.repository.search(context.principal, searchQuery),
+              )
+            : context.repository.search(context.principal, searchQuery)
+          : [],
     };
     switch (section) {
       case 'time': {
@@ -59,7 +76,42 @@ export const sectionLoad: PageServerLoad = ({ locals, params, url }) => {
                   to: weekEnd,
                 }),
               };
-        const timesheet = weeklyView(week.rows as Array<Record<string, unknown>>, weekStart);
+        const weeklySchedules: WeeklyProjectSchedule[] =
+          context.principal.role !== 'worker'
+            ? []
+            : (context.sqlite
+                .prepare(
+                  `SELECT pm.project_id,
+                          pm.starts_on AS assignment_starts_on,
+                          pm.ends_on AS assignment_ends_on,
+                          s.effective_from,s.effective_to,
+                          s.monday_minutes,s.tuesday_minutes,s.wednesday_minutes,
+                          s.thursday_minutes,s.friday_minutes,s.saturday_minutes,s.sunday_minutes
+                     FROM project_member pm
+                     JOIN project p ON p.id=pm.project_id
+                LEFT JOIN schedule s
+                       ON s.project_id=pm.project_id
+                      AND s.effective_from <= ?
+                      AND (s.effective_to IS NULL OR s.effective_to >= ?)
+                    WHERE pm.user_id=?
+                      AND pm.status='active'
+                      AND p.status IN ('active','planned','paused')
+                      AND pm.starts_on <= ?
+                      AND (pm.ends_on IS NULL OR pm.ends_on >= ?)
+                    ORDER BY pm.project_id,s.effective_from DESC`,
+                )
+                .all(
+                  week.weekEnd,
+                  weekStart,
+                  context.principal.userId,
+                  week.weekEnd,
+                  weekStart,
+                ) as WeeklyProjectSchedule[]);
+        const timesheet = weeklyView(
+          week.rows as Array<Record<string, unknown>>,
+          weekStart,
+          weeklySchedules,
+        );
         const weeklyPay =
           context.principal.role === 'worker'
             ? context.v3.workerPay(context.principal, weekStart, week.weekEnd)
@@ -103,6 +155,7 @@ export const sectionLoad: PageServerLoad = ({ locals, params, url }) => {
           documents: context.repository.listDocuments(context.principal),
         };
       case 'pay': {
+        if (context.principal.role !== 'worker') error(403, 'Worker role required');
         const periodStart =
           url.searchParams.get('start') ?? `${new Date().toISOString().slice(0, 7)}-01`;
         const periodEnd =
@@ -117,6 +170,43 @@ export const sectionLoad: PageServerLoad = ({ locals, params, url }) => {
           periodStart,
           periodEnd,
         );
+        const payActivities = context.repository
+          .listTimeForScope(context.principal, { from: periodStart, to: periodEnd })
+          .map((row) => ({
+            id: String(row.id),
+            projectNumber: String(row.project_number),
+            projectName: String(row.project_name),
+            date: String(row.work_date),
+            category: String(row.category),
+            activitySummary: String(row.activity_summary ?? ''),
+            actualMinutes: Number(row.minutes),
+            approvalState: String(row.approval_state),
+          }));
+        const payExpenses = context.repository
+          .listWorkerStatementExpenses(context.principal, periodStart, periodEnd)
+          .map((row) => {
+            const detail = context.repository.expenseDetail(context.principal, row.id);
+            return {
+              id: row.id,
+              projectNumber: row.projectNumber,
+              spentOn: row.spentOn,
+              vendor: row.vendor,
+              category: row.category,
+              reimbursementAmountMinor: row.reimbursementAmountMinor,
+              currency: row.currency,
+              approvalState: row.approvalState,
+              reimbursementState: row.reimbursementState,
+              expectedReimbursementOn:
+                detail.expected_reimbursement_on === null ||
+                detail.expected_reimbursement_on === undefined
+                  ? null
+                  : String(detail.expected_reimbursement_on),
+              reimbursedAt:
+                detail.reimbursed_at === null || detail.reimbursed_at === undefined
+                  ? null
+                  : String(detail.reimbursed_at),
+            };
+          });
 
         return {
           ...common,
@@ -124,6 +214,8 @@ export const sectionLoad: PageServerLoad = ({ locals, params, url }) => {
           periodEnd,
           pay,
           settlements,
+          payActivities,
+          payExpenses,
         };
       }
       case 'projects':
@@ -152,8 +244,16 @@ export const sectionLoad: PageServerLoad = ({ locals, params, url }) => {
       case 'approvals':
         return {
           ...common,
-          records: context.repository.listApprovalQueue(context.principal),
-          milestones: context.repository.listMilestonesForReview(context.principal),
+          records: isProjectManager
+            ? projectManagerApprovalQueueProjection(
+                context.repository.listApprovalQueue(context.principal),
+              )
+            : context.repository.listApprovalQueue(context.principal),
+          milestones: isProjectManager
+            ? projectManagerMilestoneProjection(
+                context.repository.listMilestonesForReview(context.principal),
+              )
+            : context.repository.listMilestonesForReview(context.principal),
           technicalChanges:
             context.principal.role === 'owner_admin' || context.principal.role === 'project_manager'
               ? context.v3.listTechnicalChanges(context.principal, true)
@@ -248,6 +348,20 @@ export const sectionLoad: PageServerLoad = ({ locals, params, url }) => {
               : [],
           selectedProjectId: selected,
           finance: selected ? context.v3.projectFinance(context.principal, selected) : null,
+          // Finance receives the complete, server-authorized expense source set for the
+          // selected project. Worker and PM loaders never expose this projection; the
+          // repository's role-aware list method is the authorization boundary.
+          financeExpenses: selected
+            ? context.repository
+                .listExpensesForScope(context.principal)
+                .filter(
+                  (expense) =>
+                    String(expense.project_id ?? expense.projectId ?? '') === String(selected),
+                )
+            : [],
+          commercialPolicies: selected
+            ? context.repository.listProjectCommercialPolicies(context.principal, selected)
+            : [],
           // Include global worker rules alongside project-specific rules. The selected project
           // still scopes the finance summary and create forms, while this register makes every
           // effective rule visible to an authorized finance administrator.

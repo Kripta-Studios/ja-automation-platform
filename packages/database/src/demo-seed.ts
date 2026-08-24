@@ -12,6 +12,21 @@ const repository = new PortalRepository(sqlite);
 const v3 = new V3Repository(sqlite);
 const timestamp = '2026-08-18T12:00:00.000Z';
 const ownerAdminEmail = 'antonny.luty@j-aautomation.com';
+const demoServiceActorId = 'demo-client-essential-service-actor';
+const demoServiceActorName = 'Client Essential demo service actor';
+const demoServiceActorCapabilities = [
+  'artifact.invoice.render',
+  'artifact.report.render',
+  'billing.draft.generate',
+  'artifact.accounting_pack.render',
+  'storage.temporary.cleanup',
+  'artifact.localized_pdf.render',
+  'document.scan',
+  'outbox.deliver',
+  'alert.dispatch',
+  'email.send',
+  'backup.verify',
+] as const;
 const configuredDocumentRoot = process.env.JA_DOCUMENT_ROOT;
 const demoDocumentRoot = resolve(
   configuredDocumentRoot ?? resolve(process.cwd(), 'data/documents'),
@@ -100,7 +115,102 @@ const principal = (key: string, role: Role, projectIds: string[] = []): Principa
   projectIds: new Set(projectIds),
 });
 const owner = principal('admin', 'owner_admin');
-const finance = principal('finance', 'finance_admin');
+
+// The demo database must exercise the same fail-closed service-actor contract
+// as a deployed instance.  Keep this fixture identity explicit and stable:
+// scheduled jobs may only run through this deployment-scoped actor, never a
+// human Finance session and never a production fallback.
+const deploymentIdentity = sqlite
+  .prepare('SELECT tenant_id,deployment_id FROM deployment_identity WHERE singleton=1')
+  .get() as { tenant_id: string; deployment_id: string } | undefined;
+if (!deploymentIdentity) throw new Error('Missing seeded deployment identity');
+sqlite
+  .prepare(
+    `INSERT OR IGNORE INTO service_actor(
+       id,tenant_id,deployment_id,name,status,capabilities_json,created_at,updated_at,version
+     ) VALUES(?,?,?,?,?,?,?,?,?)`,
+  )
+  .run(
+    demoServiceActorId,
+    deploymentIdentity.tenant_id,
+    deploymentIdentity.deployment_id,
+    demoServiceActorName,
+    'active',
+    JSON.stringify(demoServiceActorCapabilities),
+    timestamp,
+    timestamp,
+    1,
+  );
+sqlite
+  .prepare(
+    `INSERT OR IGNORE INTO deployment_service_actor_binding(
+       singleton,tenant_id,deployment_id,service_actor_id,bound_at,bound_by_user_id,version
+     ) VALUES(?,?,?,?,?,?,?)`,
+  )
+  .run(
+    1,
+    deploymentIdentity.tenant_id,
+    deploymentIdentity.deployment_id,
+    demoServiceActorId,
+    timestamp,
+    owner.userId,
+    1,
+  );
+const configuredDemoServiceActor = sqlite
+  .prepare(
+    `SELECT s.tenant_id,s.deployment_id,s.name,s.status,s.capabilities_json,
+            b.service_actor_id,b.bound_by_user_id
+       FROM service_actor s
+       JOIN deployment_service_actor_binding b
+         ON b.singleton=1 AND b.service_actor_id=s.id
+      WHERE s.id=?`,
+  )
+  .get(demoServiceActorId) as
+  | {
+      tenant_id: string;
+      deployment_id: string;
+      name: string;
+      status: string;
+      capabilities_json: string;
+      service_actor_id: string;
+      bound_by_user_id: string;
+    }
+  | undefined;
+if (
+  !configuredDemoServiceActor ||
+  configuredDemoServiceActor.tenant_id !== deploymentIdentity.tenant_id ||
+  configuredDemoServiceActor.deployment_id !== deploymentIdentity.deployment_id ||
+  configuredDemoServiceActor.name !== demoServiceActorName ||
+  configuredDemoServiceActor.status !== 'active' ||
+  configuredDemoServiceActor.service_actor_id !== demoServiceActorId ||
+  configuredDemoServiceActor.bound_by_user_id !== owner.userId ||
+  configuredDemoServiceActor.capabilities_json !== JSON.stringify(demoServiceActorCapabilities)
+)
+  throw new Error('Seeded service actor binding is not the configured Client Essential fixture');
+
+// Accounting Pack revisions are immutable Finance evidence and therefore use
+// the same bounded, human-session step-up contract as the live portal. The
+// opaque fixture token is never printed or exported as a demo credential.
+const financeSessionId = newId();
+const financeStepUpAt = new Date().toISOString();
+const financeSessionExpiresAt = new Date(Date.now() + 60 * 60_000).toISOString();
+sqlite
+  .prepare(
+    'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+  )
+  .run(
+    financeSessionId,
+    newId(),
+    userIds.get('finance')!,
+    financeSessionExpiresAt,
+    financeStepUpAt,
+    financeStepUpAt,
+    financeStepUpAt,
+  );
+const finance = {
+  ...principal('finance', 'finance_admin'),
+  sessionId: financeSessionId,
+} satisfies Principal;
 
 const automotive = repository.createClient(owner, {
   legalName: 'Northline Mobility (Demo)',

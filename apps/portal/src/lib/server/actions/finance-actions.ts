@@ -2,8 +2,12 @@ import {
   assignmentRateOverrideInputSchema,
   clientLaborRateInputSchema,
   compensationRuleInputSchema,
+  compensationSettlementPlanningInputSchema,
   compensationSettlementInputSchema,
+  expenseCommercialClassificationInputSchema,
+  expensePlanningDatesInputSchema,
   internalCostRuleInputSchema,
+  projectCommercialPolicyInputSchema,
   reimbursementInputSchema,
   uuidSchema,
 } from '@ja/schemas';
@@ -17,6 +21,117 @@ function parseRuleId(value: FormDataEntryValue | null): string | undefined {
 }
 
 export const financeActions = {
+  classifyExpenseCommercially: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const parsed = expenseCommercialClassificationInputSchema.safeParse(await formObject(request));
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.validation.expenseCommercialClassification',
+        {},
+        'Invalid expense commercial classification',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      const result = context.repository.classifyExpenseCommercially(context.principal, parsed.data);
+      return actionSuccess(
+        'action.finance.expenseClassified',
+        { version: result.version },
+        'Expense commercial classification saved',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  setExpensePlanningDates: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const parsed = expensePlanningDatesInputSchema.safeParse(await formObject(request));
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.validation.expensePlanningDates',
+        {},
+        'Invalid expense planning dates',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      const result = context.repository.setExpensePlanningDates(context.principal, parsed.data);
+      return actionSuccess(
+        'action.finance.expensePlanningDatesSaved',
+        { version: result.version },
+        'Expense planning dates saved',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  setCompensationSettlementExpectedPaymentOn: async ({
+    locals,
+    request,
+    params,
+  }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const parsed = compensationSettlementPlanningInputSchema.safeParse(await formObject(request));
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.validation.compensationSettlementPlanning',
+        {},
+        'Invalid compensation settlement planning date',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      context.v3.setCompensationSettlementExpectedPaymentOn(context.principal, parsed.data);
+      return actionSuccess(
+        'action.finance.compensationExpectedPaymentSaved',
+        {},
+        'Expected worker payment date saved',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  createProjectCommercialPolicy: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const parsed = projectCommercialPolicyInputSchema.safeParse(await formObject(request));
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.validation.projectCommercialPolicy',
+        {},
+        'Invalid project commercial policy',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      const policy = context.repository.createProjectCommercialPolicy(
+        context.principal,
+        parsed.data,
+      );
+      return actionSuccess(
+        'action.finance.projectCommercialPolicySaved',
+        { version: policy.version },
+        'Project commercial policy saved',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
   createCompensationRule: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'finance')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
@@ -162,13 +277,9 @@ export const financeActions = {
     object.eligibleForPercentage = object.eligibleForPercentage === 'on';
     const parsed = clientLaborRateInputSchema.safeParse(object);
     if (!parsed.success)
-      return actionFail(
-        400,
-        'action.validation.clientLaborRate',
-        {},
-        'Invalid client rate',
-        { fields: parsed.error.flatten().fieldErrors },
-      );
+      return actionFail(400, 'action.validation.clientLaborRate', {}, 'Invalid client rate', {
+        fields: parsed.error.flatten().fieldErrors,
+      });
     const context = openPortalRepository(locals);
     try {
       context.v3.createClientLaborRate(context.principal, parsed.data);

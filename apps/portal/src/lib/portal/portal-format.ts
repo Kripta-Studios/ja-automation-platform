@@ -1,5 +1,12 @@
-export const money = (minor: unknown, currency = 'USD'): string =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(minor ?? 0) / 100);
+import { paymentMoney } from './payment-money';
+
+/**
+ * Display canonical integer minor units without converting through a Number.
+ * The optional locale keeps existing callers on en-US while allowing
+ * standalone detail routes to preserve their selected document locale.
+ */
+export const money = (minor: unknown, currency = 'USD', locale = 'en-US'): string =>
+  paymentMoney(minor, currency, locale);
 
 export const hours = (minutes: unknown): string => `${(Number(minutes ?? 0) / 60).toFixed(1)}h`;
 

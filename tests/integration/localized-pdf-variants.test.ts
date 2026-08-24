@@ -301,7 +301,7 @@ describe('localized PDF variants', () => {
             version: number;
           }
         ).version,
-      ).toBe(24);
+      ).toBe(30);
     } finally {
       sqlite.close();
     }
@@ -426,6 +426,12 @@ describe('localized PDF variants', () => {
   it('coexists in en/es/pt, derives a canonical snapshot, and is idempotent per identity', () => {
     const { sqlite, repository, finance, worker } = fixture();
     try {
+      // Migration 0028 adds planning dates to invoice. They are operational
+      // projections, not part of the migration-0023 immutable invoice owner
+      // snapshot guarded by localized_pdf_canonical_snapshot_guard.
+      sqlite
+        .prepare('UPDATE invoice SET planned_issue_on=?,expected_collection_on=? WHERE id=?')
+        .run('2026-09-01', '2026-09-30', 'invoice');
       const variants = ['en', 'es', 'pt'].map((locale) =>
         repository.requestVariant(finance, {
           ownerType: 'invoice',
@@ -438,6 +444,9 @@ describe('localized PDF variants', () => {
       expect(variants.map((variant) => variant.locale)).toEqual(['en', 'es', 'pt']);
       expect(new Set(variants.map((variant) => variant.snapshotHash)).size).toBe(1);
       expect(variants.every((variant) => variant.snapshotHashKind === 'canonical')).toBe(true);
+      const invoiceSnapshot = JSON.parse(variants[0].snapshotJson) as Record<string, unknown>;
+      expect(invoiceSnapshot).not.toHaveProperty('planned_issue_on');
+      expect(invoiceSnapshot).not.toHaveProperty('expected_collection_on');
       expect(
         variants.every((variant) => variant.storageKey.includes('localized-pdf/invoice')),
       ).toBe(true);
@@ -862,7 +871,7 @@ describe('localized PDF variants', () => {
       expect(
         sqlite
           .prepare(
-            "SELECT action,entity_type,entity_id,details_json FROM audit_event WHERE action='artifact.access' ORDER BY occurred_at DESC LIMIT 1",
+            "SELECT action,entity_type,entity_id,details_json FROM audit_event WHERE action='artifact.access' ORDER BY rowid DESC LIMIT 1",
           )
           .get(),
       ).toMatchObject({
@@ -874,7 +883,7 @@ describe('localized PDF variants', () => {
         (
           sqlite
             .prepare(
-              "SELECT details_json FROM audit_event WHERE action='artifact.access' ORDER BY occurred_at DESC LIMIT 1",
+              "SELECT details_json FROM audit_event WHERE action='artifact.access' ORDER BY rowid DESC LIMIT 1",
             )
             .get() as { details_json: string }
         ).details_json,
@@ -895,7 +904,7 @@ describe('localized PDF variants', () => {
         (
           sqlite
             .prepare(
-              "SELECT details_json FROM audit_event WHERE action='artifact.access' ORDER BY occurred_at DESC LIMIT 1",
+              "SELECT details_json FROM audit_event WHERE action='artifact.access' ORDER BY rowid DESC LIMIT 1",
             )
             .get() as { details_json: string }
         ).details_json,

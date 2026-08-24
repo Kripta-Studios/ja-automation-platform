@@ -4,10 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 describe('B5 dirty-form guard (RED characterization)', () => {
   it('has one shared dirty-form implementation rather than page-local ad hoc prompts', () => {
-    const implementation = resolve(
-      process.cwd(),
-      'apps/portal/src/lib/portal/dirty-form-guard.ts',
-    );
+    const implementation = resolve(process.cwd(), 'apps/portal/src/lib/portal/dirty-form-guard.ts');
     expect(existsSync(implementation)).toBe(true);
     if (!existsSync(implementation)) return;
     const source = readFileSync(implementation, 'utf8');

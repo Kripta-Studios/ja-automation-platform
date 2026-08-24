@@ -4,6 +4,20 @@ Historical V3/roadmap traceability baseline: 2026-08-23 against branch `codex/v3
 
 `PASS` requires concrete implementation plus relevant automated and/or browser evidence. The authoritative client-release status is maintained in `J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md`. In this historical matrix, `PARTIAL`, `FAIL`, and `OPEN` block only when the row maps directly to a non-conditional Client Essential requirement; V3.1–V3.4 expansion rows are **DEFERRED POST-CORE ROADMAP** and do not control the Client Essential verdict.
 
+## Client Essential crosswalk/release marker — 2026-08-24
+
+- **Authority crosswalk:** Client Essential SPEC → checklist → validated local
+  `J_A_Automation_Contrato_Proyecto_EVOCON_ES.html` (`ANEXO A` scope and `ANEXO D` UAT) →
+  `UI_PLAN.md` for UX/UI → repository instructions → older V3 reference.
+- **Release scope:** CORE-01..17 and applicable Client Essential Definition-of-Done evidence map to
+  the checklist; Offline/PWA remains `CONDITIONAL` pending the go-live connectivity decision.
+- **Deferred evidence:** V3.1–V3.4, the historical 207-row matrix, and the old 42-step scenario are
+  preserved below as roadmap/history and do not control the Client Essential verdict.
+- **Current baseline:** branch `codex/v3-production-completion-orchestrated-20260819`, HEAD
+  `df31291e9c9ed111d20c8878ae0f68f3d41f8136`; active execution is WP-00→WP-10.
+- **Current marker:** **NOT READY**. This crosswalk update does not add implementation evidence or
+  promote any historical row to `PASS`.
+
 ## Scoped request evidence — 2026-08-22
 
 The following evidence is intentionally narrow and does not upgrade the broader requirement rows to
@@ -119,25 +133,25 @@ implementation is absent.
 
 ## Quality and release evidence
 
-| ID             | Requirement                                                     | Priority | Status  | Verified evidence / missing proof                                                                                                                                                    |
-| -------------- | --------------------------------------------------------------- | -------: | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| QA-BASE-001    | Current narrow/core automated baseline is known                 |       P0 | PARTIAL | Focused i18n, localized-PDF, Accounting Pack and migration suites are present and are being rerun after contract/fixture changes; a fresh complete pinned gate is still required.    |
-| QA-FMT-001     | Repository formatting gate is green                             |       P0 | FAIL    | `pnpm format:check` reports 20 existing files; new work must not hide the baseline or broaden it                                                                                     |
+| ID             | Requirement                                                     | Priority | Status   | Verified evidence / missing proof                                                                                                                                                    |
+| -------------- | --------------------------------------------------------------- | -------: | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| QA-BASE-001    | Current narrow/core automated baseline is known                 |       P0 | PARTIAL  | Focused i18n, localized-PDF, Accounting Pack and migration suites are present and are being rerun after contract/fixture changes; a fresh complete pinned gate is still required.    |
+| QA-FMT-001     | Repository formatting gate is green                             |       P0 | FAIL     | `pnpm format:check` reports 20 existing files; new work must not hide the baseline or broaden it                                                                                     |
 | QA-TRACE-001   | Historical 207-row audit remains usable as a roadmap diagnostic | DEFERRED | DEFERRED | The Client Essential checklist audit replaces this as the release gate; preserve/fix the old tool only when roadmap work resumes.                                                    |
-| QA-RELEASE-001 | Full pinned-toolchain release gate and independent reviews pass |       P0 | FAIL    | current evidence is checkpoint-only: R6.3 awaits Finance/Migration review, A5-N/A5-D remain unapproved, B5-T-RED is blocked, and the full pinned gate has not run after NUL cleanup. |
+| QA-RELEASE-001 | Full pinned-toolchain release gate and independent reviews pass |       P0 | FAIL     | current evidence is checkpoint-only: R6.3 awaits Finance/Migration review, A5-N/A5-D remain unapproved, B5-T-RED is blocked, and the full pinned gate has not run after NUL cleanup. |
 
 ## Original V3 core-surface coverage
 
-| ID              | Requirement                                                                                                                  | Priority | Status  | Planned packet | Verified evidence / missing proof                                                                                                                                                                                                                                          |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------: | ------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SPEC-WEB-001    | Multilingual Next.js public site, factual content/assets, isolated public forms/API, and base-path routing                   |       P0 | PARTIAL | WP-A7          | Next.js site, en/es/pt locale content, public form routes, standalone container, and public E2E exist; complete factual/content/form/Caddy production acceptance is not established                                                                                        |
-| SPEC-AUTH-001   | Invitation-only authentication, MFA, session security, step-up, recovery, and role lifecycle                                 |       P0 | PARTIAL | WP-B10         | auth/session/MFA/step-up foundations and tests exist; the audited step-up, throttling, cookie, assignment, and least-privilege gaps remain                                                                                                                                 |
-| SPEC-I18N-001   | Public website and portal localization with stable locale behavior                                                           |       P0 | PARTIAL | WP-A7          | Website and portal catalogs support EN/ES/PT-BR, SSR locale selection avoids a flash, standalone route/action copy is translated, and all five PDF renderer families accept the three locales. Complete route/error/browser/PDF text parity is not yet release-proven.     |
-| SPEC-A11Y-001   | Keyboard, focus, semantics, contrast, and accessible responsive operation                                                    |       P0 | PARTIAL | WP-A7          | accessibility E2E exists; narrow labels, hidden items, small targets, forms, tables, and full viewport/role evidence remain incomplete                                                                                                                                     |
-| SPEC-PWA-001    | Installable/offline field workflow has truthful, isolated synchronization state                                              |       P0 | PARTIAL | WP-B10         | PWA/offline contracts exist; cross-user partitioning, conflict/state UX, and full field lifecycle evidence remain incomplete                                                                                                                                               |
-| SPEC-DEPLOY-001 | Two non-root Node services, SQLite/private storage, Caddy/base path, jobs, health, backup/restore, and safe release/rollback |       P0 | PARTIAL | WP-B11         | Pinned Dockerfiles, compose, job/backup timers, health endpoints, private localized-PDF storage checks, environment identities and restore scripts are documented; a real pinned Caddy/VPS upgrade/rollback run remains open.                                              |
-| SPEC-DOC-001    | Runbooks, env/config, evidence, and traceability match implemented behavior                                                  |       P0 | PARTIAL | WP-A6          | README, showcase access, operations, backup/restore, deployment env examples and this matrix now document the EN/ES/PT-BR PDF lifecycle, job actor, migration-24 no-backfill rule and disposable rebuild path; strict UTF-8/link and final release review remain required. |
-| DOD-77-00       | Historical 42-step V3 scenario                                                                                               | DEFERRED | DEFERRED | WP-T1           | Superseded for client delivery by the Client Essential 32-step scenario; retain as roadmap evidence.                                                                                                                                                                       |
+| ID              | Requirement                                                                                                                  | Priority | Status   | Planned packet | Verified evidence / missing proof                                                                                                                                                                                                                                          |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------: | -------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SPEC-WEB-001    | Multilingual Next.js public site, factual content/assets, isolated public forms/API, and base-path routing                   |       P0 | PARTIAL  | WP-A7          | Next.js site, en/es/pt locale content, public form routes, standalone container, and public E2E exist; complete factual/content/form/Caddy production acceptance is not established                                                                                        |
+| SPEC-AUTH-001   | Invitation-only authentication, MFA, session security, step-up, recovery, and role lifecycle                                 |       P0 | PARTIAL  | WP-B10         | auth/session/MFA/step-up foundations and tests exist; the audited step-up, throttling, cookie, assignment, and least-privilege gaps remain                                                                                                                                 |
+| SPEC-I18N-001   | Public website and portal localization with stable locale behavior                                                           |       P0 | PARTIAL  | WP-A7          | Website and portal catalogs support EN/ES/PT-BR, SSR locale selection avoids a flash, standalone route/action copy is translated, and all five PDF renderer families accept the three locales. Complete route/error/browser/PDF text parity is not yet release-proven.     |
+| SPEC-A11Y-001   | Keyboard, focus, semantics, contrast, and accessible responsive operation                                                    |       P0 | PARTIAL  | WP-A7          | accessibility E2E exists; narrow labels, hidden items, small targets, forms, tables, and full viewport/role evidence remain incomplete                                                                                                                                     |
+| SPEC-PWA-001    | Installable/offline field workflow has truthful, isolated synchronization state                                              |       P0 | PARTIAL  | WP-B10         | PWA/offline contracts exist; cross-user partitioning, conflict/state UX, and full field lifecycle evidence remain incomplete                                                                                                                                               |
+| SPEC-DEPLOY-001 | Two non-root Node services, SQLite/private storage, Caddy/base path, jobs, health, backup/restore, and safe release/rollback |       P0 | PARTIAL  | WP-B11         | Pinned Dockerfiles, compose, job/backup timers, health endpoints, private localized-PDF storage checks, environment identities and restore scripts are documented; a real pinned Caddy/VPS upgrade/rollback run remains open.                                              |
+| SPEC-DOC-001    | Runbooks, env/config, evidence, and traceability match implemented behavior                                                  |       P0 | PARTIAL  | WP-A6          | README, showcase access, operations, backup/restore, deployment env examples and this matrix now document the EN/ES/PT-BR PDF lifecycle, job actor, migration-24 no-backfill rule and disposable rebuild path; strict UTF-8/link and final release review remain required. |
+| DOD-77-00       | Historical 42-step V3 scenario                                                                                               | DEFERRED | DEFERRED | WP-T1          | Superseded for client delivery by the Client Essential 32-step scenario; retain as roadmap evidence.                                                                                                                                                                       |
 
 ## Complete backlog index (V3.1–V3.4) — historical/deferred roadmap traceability
 
@@ -298,6 +312,19 @@ These rows preserve historical traceability. Reuse evidence where it maps to the
 | DOD-77-41 | PARTIAL | WP-B5 / WP-B2     | Duplicate billing is impossible under normal flow.                                                                                                             |
 | DOD-77-42 | PARTIAL | WP-C1             | Backup/restore can reproduce issued documents, source snapshots and Accounting Pack source records.                                                            |
 
-## Client Essential release rule
+## Client Essential release marker — 2026-08-24
 
-`CLIENT READY` requires every non-conditional requirement and applicable DoD item in `J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md` to be `PASS` with evidence; applicable quality/migration/integrity/backup/restore gates; and independent security, finance, responsive/spec and final integration approval. The old 207-row completeness rule, all P0/P1/P2 backlog items, and the 42-step V3 scenario remain roadmap traceability and do not block this verdict. A real unavailable external prerequisite may justify a narrowly scoped `BLOCKED`, but never placeholders, unmapped Essential scope, or untruthful product state.
+Implementation checkpoint: the projection firewall, additive Client Essential persistence,
+immutable customer conformity/billing gate, role-specific navigation, Worker operational surfaces,
+and PM server projection allowlists have focused automated evidence. This does not upgrade the
+remaining UI/browser rows: PM shell integration, Finance/Billing/Collections UX, localized-artifact
+regression remediation, complete role/viewport journeys, and final independent/release gates remain
+open.
+
+Current verdict: **NOT READY**. `CLIENT READY` requires every non-conditional requirement and
+applicable DoD item in `J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md` to be `PASS` with
+evidence; applicable quality/migration/integrity/backup/restore gates; and independent security,
+finance, responsive/spec and final integration approval. The old 207-row completeness rule, all
+P0/P1/P2 backlog items, and the 42-step V3 scenario remain roadmap traceability and do not block this
+verdict. A real unavailable external prerequisite may justify a narrowly scoped `BLOCKED`, but never
+placeholders, unmapped Essential scope, or untruthful product state.

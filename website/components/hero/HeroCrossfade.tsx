@@ -4,26 +4,26 @@ import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from '
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
-import roboticsImg from '@/public/images/hero/hero-robotics.jpg';
-import foodBevImg from '@/public/images/hero/hero-food-beverage.jpg';
-import energyImg from '@/public/images/hero/hero-energy-process.jpg';
+import roboticsImg from '@/public/images/hero/hero-robotics.webp';
+import foodBevImg from '@/public/images/hero/hero-food-beverage.webp';
+import energyImg from '@/public/images/hero/hero-energy-process.webp';
 
 const heroFrames = [
   {
     src: roboticsImg,
-    alt: 'Industrial robotic assembly line',
+    altKey: 'heroRobotics',
     objectPosition: '55% 52%',
     sectorKey: 'sectorAutomotive' as const,
   },
   {
     src: foodBevImg,
-    alt: 'Food and beverage production line',
+    altKey: 'heroFoodBeverage',
     objectPosition: '48% 50%',
     sectorKey: 'sectorFoodBev' as const,
   },
   {
     src: energyImg,
-    alt: 'Energy and process industrial plant',
+    altKey: 'heroEnergyProcess',
     objectPosition: '50% 55%',
     sectorKey: 'sectorEnergy' as const,
   },
@@ -51,6 +51,7 @@ function getServerReducedMotionSnapshot() {
 
 export function HeroCrossfade() {
   const t = useTranslations('hero');
+  const imageAlt = useTranslations('imageAlts');
   const [activeIndex, setActiveIndex] = useState(0);
   const [nextIndex, setNextIndex] = useState<number | null>(null);
   const [isFading, setIsFading] = useState(false);
@@ -100,11 +101,11 @@ export function HeroCrossfade() {
     nextIndex !== null ? heroFrames[nextIndex].sectorKey : heroFrames[activeIndex].sectorKey;
 
   return (
-    <div className="hero-media relative w-full" style={{ height: 'clamp(680px, 85svh, 920px)' }}>
+    <div className="hero-media relative w-full">
       {/* Active Frame */}
       <Image
         src={heroFrames[activeIndex].src}
-        alt={heroFrames[activeIndex].alt}
+        alt={imageAlt(heroFrames[activeIndex].altKey)}
         fill
         priority={activeIndex === 0}
         className="object-cover"
@@ -117,7 +118,7 @@ export function HeroCrossfade() {
       {nextIndex !== null && (
         <Image
           src={heroFrames[nextIndex].src}
-          alt={heroFrames[nextIndex].alt}
+          alt={imageAlt(heroFrames[nextIndex].altKey)}
           fill
           className="object-cover"
           style={{

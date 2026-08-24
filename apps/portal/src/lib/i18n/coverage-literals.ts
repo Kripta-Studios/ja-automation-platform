@@ -1,4 +1,7 @@
-import { explicitCoverageLiteralOverrides } from './coverage-literal-overrides';
+import {
+  explicitCoverageLiteralOverrides,
+  extractedSectionCoverageOverrides,
+} from './coverage-literal-overrides';
 
 /**
  * Explicit ES/PT-BR values for coverage literals outside the hand-curated
@@ -1587,4 +1590,5 @@ const generatedCoverageLiterals: Record<string, readonly [string, string]> = {
 export const explicitCoverageLiterals: Record<string, readonly [string, string]> = {
   ...generatedCoverageLiterals,
   ...explicitCoverageLiteralOverrides,
+  ...extractedSectionCoverageOverrides,
 };

@@ -43,7 +43,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
         `}
         role="dialog"
         aria-modal="true"
-        aria-label="Navigation menu"
+        aria-label={t('navigationMenu')}
       >
         <div className="flex flex-col h-full pt-20 pb-8 px-6 overflow-y-auto">
           {/* Navigation Links */}

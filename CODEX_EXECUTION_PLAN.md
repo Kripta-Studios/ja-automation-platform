@@ -1,9 +1,15 @@
 # J&A Client Essential Production Completion — Execution Plan
 
-Retargeted: 2026-08-23
-Historical planning baseline: `codex/v3-production-completion-orchestrated-20260819` at `ecd4f97a84190a36c63473126f55a79a3710d3c9`
+Retargeted: 2026-08-24
+Current planning baseline: branch `codex/v3-production-completion-orchestrated-20260819` at
+`df31291e9c9ed111d20c8878ae0f68f3d41f8136`.
 
-This plan preserves useful historical repository findings but is now subordinate to `J_A_AUTOMATION_CLIENT_ESSENTIAL_SPEC_2026-08-22.md` and its checklist. Historical V3.1–V3.4 expansion, all P0/P1/P2 backlog items, all 207 RTM rows, and the old 42-step scenario are deferred roadmap evidence, not the client-release verdict.
+This plan preserves useful historical repository findings but is subordinate to the Client
+Essential SPEC, checklist, the validated 2026-08-24 `J_A_Automation_Contrato_Proyecto_EVOCON_ES.html`
+(`ANEXO A` scope and `ANEXO D` UAT), and `UI_PLAN.md` for UX/UI only, followed by repository instructions and older V3 reference. Historical
+V3.1–V3.4 expansion, all P0/P1/P2 backlog items, all 207 RTM rows, and the old 42-step scenario are
+deferred roadmap evidence, not the client-release verdict. The current audit remains **NOT READY**;
+documentation changes do not create implementation evidence.
 
 ## Gate R0 — Orchestration and worktree attestation
 
@@ -35,23 +41,23 @@ Production importance, backend location, or code volume alone is not a reason to
 - Toolchain: Node `v25.8.1`, pnpm `11.22.0`; the repository requires Node `24.19.0` and pnpm `11.22.0`. Re-run release evidence on the pinned Node version.
 - Migrations `0001` through `0018` exist. Fresh-schema, populated pre-V3 upgrade, and schema-parity tests already provide a useful migration foundation.
 
-### Fresh diagnostic results
+### Current host diagnostic results — 2026-08-25
 
-| Gate                             | Result         | Verified evidence                                                                                                      |
-| -------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `pnpm format:check`              | FAIL           | 20 existing files need formatting, including planning/skill files; do not conflate with new implementation regressions |
-| lint / typecheck                 | PASS           | current worktree                                                                                                       |
-| unit                             | PASS           | 10 files, 23 tests                                                                                                     |
-| reporting                        | PASS           | 1 file, 3 tests                                                                                                        |
-| integration                      | PASS           | 5 files, 10 tests                                                                                                      |
-| invariants                       | PASS           | 1 test                                                                                                                 |
-| security                         | PASS           | 4 files, 8 tests; coverage is not sufficient for the newly identified findings                                         |
-| offline                          | PASS           | 1 file, 2 tests; cross-user isolation is not covered                                                                   |
-| database checks                  | PASS           | WAL, foreign keys, integrity                                                                                           |
-| build                            | PASS           | current Node version, with a Next standalone-start warning                                                             |
-| E2E                              | PASS with gaps | 14 passed, 4 skipped; only phone-390 and desktop projects; no owner/finance mobile or artifact-failure lifecycle       |
-| backup/restore operational tests | PASS           | current fixtures                                                                                                       |
-| strict spec audit                | FAIL           | all 35 mandatory rows incomplete; script also needs UTF-8-safe Windows output                                          |
+| Gate                             | Result  | Verified evidence                                                                                        |
+| -------------------------------- | ------- | -------------------------------------------------------------------------------------------------------- |
+| `pnpm format:check`              | PASS    | current worktree                                                                                         |
+| lint / typecheck                 | PASS    | current host; release still repeats typecheck under Node `24.19.0`                                       |
+| unit                             | PASS    | 91 files, 476 tests                                                                                      |
+| reporting                        | PASS    | 1 file, 4 tests                                                                                          |
+| integration                      | PASS    | 34 files, 217 tests                                                                                      |
+| invariants                       | PASS    | 1 file, 1 test                                                                                           |
+| security                         | PASS    | 17 files, 78 tests; independent current-tree approval remains open                                       |
+| offline                          | PASS    | 3 files, 8 tests; go-live offline decision remains conditional                                           |
+| database checks                  | PASS    | WAL, foreign keys, integrity with isolated release identity                                              |
+| build                            | PENDING | release script must repeat site, portal and jobs builds under Node `24.19.0`                             |
+| E2E                              | OPEN    | required phone-360/390, tablet-768 and desktop-1440 authenticated evidence is not complete               |
+| backup/restore operational tests | PASS    | `ops:backup:test` and `ops:restore-test` pass on the host; current-schema/pinned evidence remains open   |
+| strict spec audit                | FAIL    | Client Essential remains NOT READY until all mandatory browser, review and deployment dependencies close |
 
 ### Architecture evidence
 
@@ -104,30 +110,73 @@ Offline/PWA ── CONDITIONAL on confirmed go-live connectivity need
 V3.1–V3.4 industrial/ERP/integration/ML expansion ── DEFERRED POST-CORE ROADMAP
 ```
 
-### Active Client Essential execution queue — 2026-08-23
+### Active Client Essential execution queue — WP-00→WP-10 — 2026-08-24
 
-| Order | Packet | Complexity / owner | Scope and dependency | State |
-| ---: | --- | --- | --- | --- |
-| 0 | CE-W0-MIG | B / Sol lead | Freeze current 0019–0024 migration bytes, populated upgrade/rollback and adversarial contract evidence | PASS: 32 focused tests |
-| 1 | CE-W1-SEC-A1 | A / Luna backend leaf | Role-safe DTOs, effective-assignment object access, report-date authorization and same-project receipts; requires CE-W0-MIG | ACTIVE |
-| 2 | CE-W1-SEC-A2 | A / Luna backend leaf | Step-up throttling and Finance export header/date validation; independent HTTP paths | ACTIVE |
-| 3 | CE-W2-OPS-B1 | B / Sol domain lead with Luna leaves | Project-state write guards, required client metadata, non-destructive report correction, server-required reasons and Owner override; after SEC-A1 repository lease | PENDING |
-| 4 | CE-W2-OPS-A1 | A / Luna CRUD/UI leaf | Reachable client/project restore/close/archive, usable assignment end, expense draft edit and correction controls; after OPS-B1 contracts | PENDING |
-| 5 | CE-W2-REPORT-B1 | B / Sol domain lead with Luna leaves | Report supersession, authoritative `report_date`, report-linked private attachments and immutable PLC backup history | PENDING |
-| 6 | CE-W3-FIN-B1 | B / Sol finance lead | Approved-only project metrics, source-linked WIP, frozen historical direct costs, fixed/milestone attribution, void-payment exclusion | PENDING |
-| 7 | CE-W3-PAY-B1 | B / Sol finance lead | Payment reversal/correction, paid-invoice void guards, ledger/accounting reconciliation and concurrency | depends on FIN-B1 |
-| 8 | CE-W3-INV-A1 | A / Luna backend leaf | One versioned registry with five materially distinct invoice rendering variants | ACTIVE |
-| 9 | CE-W3-INV-A2 | A / Luna CRUD/UI/backend leaves | Enforce registry IDs in schemas/actions/repository and controlled selector; after INV-A1 and SEC-A1 repository lease | PENDING |
-| 10 | CE-W4-ART-B1 | B / Sol finance/report lead | Canonical Accounting Pack revision wiring, explicit stale/new-version behavior, worker statement and ledger exports | after FIN-B1/PAY-B1 |
-| 11 | CE-W4-JOB-A1 | A / Luna test leaf | Align stale artifact lifecycle tests to reviewed queued/claimed job contract and remove deterministic cleanup race | ACTIVE |
-| 12 | CE-W5-WEB-A1 | A / Luna frontend leaf | Bounded public-site lint gate; preserve current base-path/UI behavior | ACTIVE |
-| 13 | CE-W5-OPS-A1 | A/B split | Current source build, automatic timer flow, health/disk policy, realistic issued/private-artifact restore drill | after migrations/jobs/reports |
-| 14 | CE-W5-E2E | A / independent browser test worker | Worker/PM/Finance/Owner 32-step journey at 360/390, 768 and 1440 | after all preceding Essential contracts |
-| 15 | CE-RELEASE | C / Sol integration | Independent spec/security/finance/browser review and Client Essential gate | final |
+This is the only dispatchable queue for the current branch. States describe packet authorization,
+not product completion; no row below is a release `PASS` claim.
+
+| Order | Packet | Complexity / lane | Dependency and handoff                                                                 | State                               |
+| ----: | ------ | ----------------- | -------------------------------------------------------------------------------------- | ----------------------------------- |
+|     0 | WP-00  | A / Luna Max docs | Freeze authority, current baseline, and queue routing; independently reviewed          | COMPLETE                            |
+|     1 | WP-01  | C / Sol lead      | Projection privacy firewall: tests + production; WP-00 authority checkpoint            | COMPLETE                            |
+|     2 | WP-02  | C / Sol lead      | Additive domain contract after WP-01 boundary                                          | COMPLETE                            |
+|     3 | WP-03  | B / Sol Medium    | Canonical commercial authority, expense classification, Accounting Pack bridge/step-up | REVIEW                              |
+|     4 | WP-04  | C / Sol lead      | Immutable customer conformity, private PDF proof, and invoice issue blocker            | COMPLETE — SECURITY APPROVED        |
+|     5 | WP-05A | A / Luna Max      | Worker time and role-specific navigation                                               | COMPLETE — BROWSER EVIDENCE OPEN    |
+|     6 | WP-05B | A / Luna Max      | Worker expenses and My Pay                                                             | COMPLETE — BROWSER EVIDENCE OPEN    |
+|     7 | WP-06  | A / Luna Max      | Daily/Technical Reports and first-class Client Sign-off UI                             | COMPLETE — BROWSER EVIDENCE OPEN    |
+|     8 | WP-07  | A / Luna Max      | PM projection seal, project detail, projects and approvals                             | COMPLETE — BROWSER EVIDENCE OPEN    |
+|     9 | WP-08  | B / Sol Medium    | Finance, Billing, and Collections                                                      | IMPLEMENTED — BROWSER EVIDENCE OPEN |
+|    10 | WP-09  | A/C split         | Luna browser evidence plus independent security/finance/browser/spec reviews           | ACTIVE                              |
+|    11 | WP-10  | C / Sol High      | Client Essential release                                                               | PENDING                             |
+
+#### Pushed-checkpoint scope — 2026-08-24
+
+- Integrated and focused-green: WP-01 server projection privacy firewall; WP-02 additive migration
+  `0028`; WP-04 immutable, zero-money customer conformity and invoice issue blocker; role-specific
+  navigation; Worker Today/Time/Expenses/Reports/My Pay surfaces; PM closed-world loader projection;
+  PM Projects/Approvals and Finance/Billing/Collections shell sections.
+- Implemented and under final independent review: WP-03 exact expense commercial classification,
+  structured incomplete finance projections, billing fail-closed behavior, and Accounting Pack
+  step-up/error boundary.
+- PM Projects/Approvals and Finance/Billing/Collections are now mounted. Their focused UI and
+  server-projection tests are green; authenticated browser proof remains open. The role-safe Project
+  Detail keeps Commercial/Billing server and UI projections restricted to Finance/Owner/Auditor.
+- Active integration remediation: align legacy tests with Finance/Admin classification, repair the
+  localized-PDF canonical owner allowlist after migration `0028`, remove CSP-invalid inline styles,
+  and replace stale flat-navigation browser assertions with UI_PLAN role journeys.
+- Exact next dependency after this checkpoint: WP-09 multi-role browser/security/finance/spec review
+  and the pinned Node `24.19.0` WP-10 release gate. Verdict remains **NOT READY**.
+
+### Archived former CE-W\* queue — evidence only — 2026-08-23
+
+> **ARCHIVED — NOT DISPATCHABLE:** The table below is retained to preserve the prior queue and its
+> evidence. Use the WP-00→WP-10 queue above; do not treat `CE-W*` states as current authorization.
+
+| Order | Packet          | Complexity / owner                   | Scope and dependency                                                                                                                                               | State                                   |
+| ----: | --------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
+|     0 | CE-W0-MIG       | B / Sol lead                         | Freeze current 0019–0024 migration bytes, populated upgrade/rollback and adversarial contract evidence                                                             | PASS: 32 focused tests                  |
+|     1 | CE-W1-SEC-A1    | A / Luna backend leaf                | Role-safe DTOs, effective-assignment object access, report-date authorization and same-project receipts; requires CE-W0-MIG                                        | ACTIVE                                  |
+|     2 | CE-W1-SEC-A2    | A / Luna backend leaf                | Step-up throttling and Finance export header/date validation; independent HTTP paths                                                                               | ACTIVE                                  |
+|     3 | CE-W2-OPS-B1    | B / Sol domain lead with Luna leaves | Project-state write guards, required client metadata, non-destructive report correction, server-required reasons and Owner override; after SEC-A1 repository lease | PENDING                                 |
+|     4 | CE-W2-OPS-A1    | A / Luna CRUD/UI leaf                | Reachable client/project restore/close/archive, usable assignment end, expense draft edit and correction controls; after OPS-B1 contracts                          | PENDING                                 |
+|     5 | CE-W2-REPORT-B1 | B / Sol domain lead with Luna leaves | Report supersession, authoritative `report_date`, report-linked private attachments and immutable PLC backup history                                               | PENDING                                 |
+|     6 | CE-W3-FIN-B1    | B / Sol finance lead                 | Approved-only project metrics, source-linked WIP, frozen historical direct costs, fixed/milestone attribution, void-payment exclusion                              | PENDING                                 |
+|     7 | CE-W3-PAY-B1    | B / Sol finance lead                 | Payment reversal/correction, paid-invoice void guards, ledger/accounting reconciliation and concurrency                                                            | depends on FIN-B1                       |
+|     8 | CE-W3-INV-A1    | A / Luna backend leaf                | One versioned registry with five materially distinct invoice rendering variants                                                                                    | ACTIVE                                  |
+|     9 | CE-W3-INV-A2    | A / Luna CRUD/UI/backend leaves      | Enforce registry IDs in schemas/actions/repository and controlled selector; after INV-A1 and SEC-A1 repository lease                                               | PENDING                                 |
+|    10 | CE-W4-ART-B1    | B / Sol finance/report lead          | Canonical Accounting Pack revision wiring, explicit stale/new-version behavior, worker statement and ledger exports                                                | after FIN-B1/PAY-B1                     |
+|    11 | CE-W4-JOB-A1    | A / Luna test leaf                   | Align stale artifact lifecycle tests to reviewed queued/claimed job contract and remove deterministic cleanup race                                                 | ACTIVE                                  |
+|    12 | CE-W5-WEB-A1    | A / Luna frontend leaf               | Bounded public-site lint gate; preserve current base-path/UI behavior                                                                                              | ACTIVE                                  |
+|    13 | CE-W5-OPS-A1    | A/B split                            | Current source build, automatic timer flow, health/disk policy, realistic issued/private-artifact restore drill                                                    | after migrations/jobs/reports           |
+|    14 | CE-W5-E2E       | A / independent browser test worker  | Worker/PM/Finance/Owner 32-step journey at 360/390, 768 and 1440                                                                                                   | after all preceding Essential contracts |
+|    15 | CE-RELEASE      | C / Sol integration                  | Independent spec/security/finance/browser review and Client Essential gate                                                                                         | final                                   |
 
 Only one active writer may own `repository.ts`/`v3-repository.ts`; finance and operational packets using those hot files run sequentially. Invoice renderer, public-site HTTP/UI and test-only packets remain independent.
 
-Historical packets in `work-packets/INITIAL_WORK_PACKETS.md` are retained as evidence but must be reclassified against Client Essential scope before execution. The first safe wave is chosen from audited Essential gaps, not from old backlog ordering.
+Historical packets in `work-packets/INITIAL_WORK_PACKETS.md` and the prior worktree/SDD ledgers are
+retained as **ARCHIVED evidence**. They must not be dispatched as current work. The first safe wave is
+chosen from the WP-00→WP-10 DAG and audited Essential gaps, not from old backlog ordering.
 
 1. frontend mechanical decomposition with exclusive ownership of `PortalShell.svelte` and `portal.css`;
 2. database contract/decomposition work with exclusive ownership of both repository megafiles;

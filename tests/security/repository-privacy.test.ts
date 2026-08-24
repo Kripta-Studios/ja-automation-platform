@@ -69,16 +69,33 @@ function seedConfiguredAlertActor(
     .prepare(
       'INSERT INTO deployment_service_actor_binding(singleton,tenant_id,deployment_id,service_actor_id,bound_at,bound_by_user_id,version) VALUES(?,?,?,?,?,?,?)',
     )
-    .run(
-      1,
-      'test-tenant',
-      'test-deployment',
-      'security-alert-service',
-      now,
-      boundByUserId,
-      1,
-    );
+    .run(1, 'test-tenant', 'test-deployment', 'security-alert-service', now, boundByUserId, 1);
 }
+
+// These are finance/commercial or project-currency fields.  Worker and PM
+// projections must not expose them even when the source row is populated;
+// Finance receives the authorized source fields for reconciliation.
+const expenseFinanceOnlyKeys = [
+  'client_treatment',
+  'project_currency_amount_minor',
+  'tax_amount_minor',
+  'fx_rate_bps',
+  'billing_treatment',
+  'markup_bps',
+  'billing_amount_minor',
+  'billing_state',
+  'billing_lock_id',
+  'invoice_id',
+  'finance_approved_by',
+  'finance_approved_at',
+] as const;
+const pmExpensePrivateKeys = [
+  ...expenseFinanceOnlyKeys,
+  'reimbursement_state',
+  'reimbursement_amount_minor',
+  'reimbursed_at',
+  'reimbursement_reference',
+] as const;
 
 describe('repository authorization and privacy', () => {
   it('allows auditor reads while rejecting auditor mutations and worker finance reads', () => {
@@ -191,7 +208,7 @@ describe('repository authorization and privacy', () => {
     ).toThrow(V3AccessDeniedError);
   });
 
-  it('redacts finance fields from worker and PM projections while retaining them for finance', () => {
+  it('redacts client-treatment, FX, billing and reimbursement fields from Worker/PM projections while Finance retains them', () => {
     const directory = mkdtempSync(join(tmpdir(), 'ja-security-'));
     directories.push(directory);
     const { sqlite } = createDatabase(join(directory, 'app.db'));
@@ -220,6 +237,7 @@ describe('repository authorization and privacy', () => {
       revenueBudgetMinor: 100_000n,
       poCapMinor: 120_000n,
       fixedPriceMinor: 90_000n,
+      clientDailyMinimumMinutes: 600,
     });
     repository.assignWorker(owner, {
       projectId: project.id,
@@ -262,7 +280,7 @@ describe('repository authorization and privacy', () => {
     });
     sqlite
       .prepare(
-        "UPDATE expense SET billing_state='locked',billing_amount_minor=1150,finance_approved_by='finance',finance_approved_at=? WHERE id=?",
+        "UPDATE expense SET client_treatment='reimbursable',billing_treatment='reimbursable_plus_markup',markup_bps=1500,billing_state='locked',billing_amount_minor=1150,project_currency_amount_minor=1100,tax_amount_minor=100,fx_rate_bps=11000,reimbursement_amount_minor=1100,reimbursement_state='pending',finance_approved_by='finance',finance_approved_at=? WHERE id=?",
       )
       .run(new Date().toISOString(), expense.id);
     const milestone = repository.createProjectMilestone(owner, {
@@ -270,6 +288,34 @@ describe('repository authorization and privacy', () => {
       name: 'Commissioning gate',
       amountMinor: 25_000n,
     });
+    const receipt = repository.registerReceipt(worker, {
+      projectId: project.id,
+      sha256: 'a'.repeat(64),
+      mediaType: 'application/pdf',
+      byteLength: 42,
+      storageKey: `receipts/${project.id}/receipt.pdf`,
+      originalFilename: 'receipt.pdf',
+    });
+    const pmDocuments = repository.listDocuments(pm);
+    expect(pmDocuments).toEqual([
+      expect.objectContaining({
+        id: receipt.id,
+        project_id: project.id,
+        safe_filename: 'receipt.pdf',
+        artifact_type: 'receipt',
+        project_number: project.projectNumber,
+      }),
+    ]);
+    for (const key of [
+      'owner_id',
+      'original_filename',
+      'byte_length',
+      'software_version',
+      'sensitivity',
+      'scan_status',
+      'owner_name',
+    ])
+      expect(pmDocuments[0]).not.toHaveProperty(key);
 
     const workerTime = repository.timeDetail(worker, time.id);
     const pmTime = repository.timeDetail(pm, time.id);
@@ -293,16 +339,24 @@ describe('repository authorization and privacy', () => {
     const workerExpense = repository.expenseDetail(worker, expense.id);
     const pmExpense = repository.expenseDetail(pm, expense.id);
     const financeExpense = repository.expenseDetail(finance, expense.id);
-    for (const row of [workerExpense, pmExpense]) {
-      expect(row).not.toHaveProperty('markup_bps');
-      expect(row).not.toHaveProperty('billing_amount_minor');
-      expect(row).not.toHaveProperty('billing_state');
-      expect(row).not.toHaveProperty('invoice_id');
-      expect(row).not.toHaveProperty('finance_approved_by');
-      expect(row).not.toHaveProperty('finance_approved_at');
+    for (const key of expenseFinanceOnlyKeys) {
+      expect(workerExpense).not.toHaveProperty(key);
+      expect(pmExpense).not.toHaveProperty(key);
     }
+    for (const key of pmExpensePrivateKeys) expect(pmExpense).not.toHaveProperty(key);
+    expect(workerExpense).toEqual(
+      expect.objectContaining({
+        amount_minor: 1000,
+        reimbursement_state: 'pending',
+        reimbursement_amount_minor: 1100,
+      }),
+    );
     expect(financeExpense).toEqual(
       expect.objectContaining({
+        client_treatment: 'reimbursable',
+        project_currency_amount_minor: 1100,
+        tax_amount_minor: 100,
+        fx_rate_bps: 11000,
         markup_bps: 1500,
         billing_amount_minor: 1150,
         billing_state: 'locked',
@@ -310,14 +364,34 @@ describe('repository authorization and privacy', () => {
       }),
     );
 
-    expect(repository.listExpensesForScope(worker)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: expense.id,
-          description: 'Travel to site',
-          project_currency_amount_minor: 1000,
-        }),
-      ]),
+    const workerScopeExpenses = repository.listExpensesForScope(worker);
+    const pmScopeExpenses = repository.listExpensesForScope(pm);
+    const financeScopeExpenses = repository.listExpensesForScope(finance);
+    const workerScopeExpense = workerScopeExpenses.find((row) => row.id === expense.id);
+    const pmScopeExpense = pmScopeExpenses.find((row) => row.id === expense.id);
+    const financeScopeExpense = financeScopeExpenses.find((row) => row.id === expense.id);
+    expect(workerScopeExpense).toEqual(
+      expect.objectContaining({
+        id: expense.id,
+        description: 'Travel to site',
+        amount_minor: 1000,
+        reimbursement_state: 'pending',
+      }),
+    );
+    expect(pmScopeExpense).toBeDefined();
+    for (const key of expenseFinanceOnlyKeys) expect(workerScopeExpense).not.toHaveProperty(key);
+    for (const key of pmExpensePrivateKeys) expect(pmScopeExpense).not.toHaveProperty(key);
+    expect(financeScopeExpense).toEqual(
+      expect.objectContaining({
+        id: expense.id,
+        project_currency_amount_minor: 1100,
+        fx_rate_bps: 11000,
+        client_treatment: 'reimbursable',
+        billing_treatment: 'reimbursable_plus_markup',
+        billing_amount_minor: 1150,
+        billing_state: 'locked',
+        finance_approved_by: 'finance',
+      }),
     );
 
     const workerOverview = repository.projectOverview(worker, project.id);
@@ -325,19 +399,38 @@ describe('repository authorization and privacy', () => {
     const financeOverview = repository.projectOverview(finance, project.id);
     for (const overview of [workerOverview, pmOverview]) {
       expect(overview.project).not.toHaveProperty('billing_model');
+      expect(overview.project).not.toHaveProperty('client_daily_minimum_minutes');
       expect(overview.project).not.toHaveProperty('revenue_budget_minor');
       expect(overview.project).not.toHaveProperty('po_cap_minor');
       expect(overview.project).not.toHaveProperty('fixed_price_minor');
       expect(overview.milestones[0]).not.toHaveProperty('amount_minor');
       expect(overview.milestones[0]).not.toHaveProperty('invoice_id');
-      expect(overview.expenses[0]).not.toHaveProperty('billing_treatment');
-      expect(overview.expenses[0]).not.toHaveProperty('billing_amount_minor');
+      for (const key of expenseFinanceOnlyKeys)
+        expect(overview.expenses[0]).not.toHaveProperty(key);
     }
+    expect(workerOverview.expenses[0]).toEqual(
+      expect.objectContaining({ amount_minor: 1000, reimbursement_state: 'pending' }),
+    );
+    expect(pmOverview.expenses[0]).not.toHaveProperty('reimbursement_state');
+    expect(pmOverview.expenses[0]).not.toHaveProperty('reimbursement_amount_minor');
     expect(financeOverview.project).toEqual(
-      expect.objectContaining({ billing_model: 'tm', revenue_budget_minor: 100000 }),
+      expect.objectContaining({
+        billing_model: 'tm',
+        client_daily_minimum_minutes: 600,
+        revenue_budget_minor: 100000,
+      }),
     );
     expect(financeOverview.milestones).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: milestone.id, amount_minor: 25000 })]),
+    );
+    expect(financeOverview.expenses[0]).toEqual(
+      expect.objectContaining({
+        id: expense.id,
+        project_currency_amount_minor: 1100,
+        client_treatment: 'reimbursable',
+        billing_treatment: 'reimbursable_plus_markup',
+        billing_amount_minor: 1150,
+      }),
     );
   });
 });

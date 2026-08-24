@@ -29,21 +29,202 @@
     const value = rowValue(row, ...keys);
     return value ? `${value} ${rowValue(row, 'currency')}`.trim() : '—';
   };
+
+  const booleanValue = (row: Row, ...keys: string[]): boolean =>
+    ['true', '1', 'yes', 'on'].includes(rowValue(row, ...keys).toLowerCase());
+
+  const policyDecision = (row: Row, ...keys: string[]): string =>
+    booleanValue(row, ...keys) ? translate('Yes') : translate('No');
+
+  const policyWriteRoles = ['owner_admin', 'finance_admin'];
+  const canWritePolicy = $derived(!isAuditor && policyWriteRoles.includes(String(data.user.role)));
+  let overtimeEnabled = $state(true);
 </script>
 
 <FormCard title={translate('Finance configuration')} class="finance-config-panel">
   <div class="panel-title">
     <div>
       <h2>{translate('Finance configuration')}</h2>
-      <p>{translate('Rates are effective-dated and resolved by assignment, category, activity, and project scope.')}</p>
+      <p>
+        {translate(
+          'Rates are effective-dated and resolved by assignment, category, activity, and project scope.',
+        )}
+      </p>
     </div>
     <span>{translate('Exact minor units')}</span>
   </div>
+  <!-- project-commercial-policy-start -->
+  <FormSection
+    title={translate('Project commercial and time policy')}
+    description={translate(
+      'Configure effective-dated interpretation for eligible time and billing readiness. This is project configuration, not worker data entry.',
+    )}
+    data-project-commercial-policy
+  >
+    {#if canWritePolicy}
+      <form
+        method="POST"
+        action="?/createProjectCommercialPolicy"
+        class="admin-form-grid"
+        data-project-commercial-policy-form
+        use:formValidation
+      >
+        <Field
+          id="finance-policy-project"
+          label={translate('Project')}
+          help={translate(
+            'The policy applies to the selected project and supersedes its prior effective policy.',
+          )}
+          required
+        >
+          <select id="finance-policy-project" name="projectId" required>
+            <option value="">{translate('Select project')}</option>
+            {#each availableProjects as project}
+              <option
+                value={project.id}
+                selected={String(project.id) === String(data.selectedProjectId)}
+              >
+                {rowValue(project, 'projectNumber', 'project_number', 'name', 'id')}
+              </option>
+            {/each}
+          </select>
+        </Field>
+        <Field
+          id="finance-policy-effective"
+          label={translate('Effective from')}
+          help={translate(
+            'Future changes are recorded as successors; historical policy versions remain immutable.',
+          )}
+          required
+        >
+          <input id="finance-policy-effective" name="effectiveFrom" type="date" required />
+        </Field>
+        <Field
+          id="finance-policy-overtime"
+          label={translate('Overtime derivation')}
+          help={translate(
+            'Eligible Work and Commissioning minutes use this configured threshold; Travel and Standby keep their own rules.',
+          )}
+        >
+          <input type="hidden" name="overtimeEnabled" value="false" />
+          <div class="check">
+            <input
+              id="finance-policy-overtime"
+              name="overtimeEnabled"
+              type="checkbox"
+              value="true"
+              bind:checked={overtimeEnabled}
+            />
+            <span>{translate('Derive overtime after the threshold')}</span>
+          </div>
+        </Field>
+        {#if overtimeEnabled}
+          <Field
+            id="finance-policy-threshold"
+            label={translate('Overtime threshold (minutes)')}
+            help={translate(
+              'Use the effective project schedule and enter the threshold in actual minutes.',
+            )}
+            required
+          >
+            <input
+              id="finance-policy-threshold"
+              name="overtimeThresholdMinutes"
+              type="number"
+              min="1"
+              max="1440"
+              inputmode="numeric"
+              required
+            />
+          </Field>
+        {:else}
+          <input type="hidden" name="overtimeThresholdMinutes" value="" />
+        {/if}
+        <Field
+          id="finance-policy-travel"
+          label={translate('Travel client billability')}
+          help={translate(
+            'This project policy controls client treatment; workers only record operational Travel truth.',
+          )}
+          required
+        >
+          <select id="finance-policy-travel" name="travelClientBillable" required>
+            <option value="true">{translate('Client billable')}</option>
+            <option value="false">{translate('Not client billable')}</option>
+          </select>
+        </Field>
+        <Field
+          id="finance-policy-signoff"
+          label={translate('Customer sign-off before billing')}
+          help={translate(
+            'When enabled, invoice issue remains blocked until the exact report version is signed.',
+          )}
+          required
+        >
+          <select id="finance-policy-signoff" name="customerSignoffRequired" required>
+            <option value="true">{translate('Required')}</option>
+            <option value="false">{translate('Not required')}</option>
+          </select>
+        </Field>
+        <div class="form-actions">
+          <button type="submit">{translate('Save project policy')}</button>
+        </div>
+      </form>
+    {:else}
+      <p class="muted" data-project-commercial-policy-readonly>
+        {translate(
+          'Auditor view is read-only. Policy changes require an authorized Finance or Owner administrator.',
+        )}
+      </p>
+    {/if}
+
+    {#if data.commercialPolicies?.length}
+      <div
+        class="record-list"
+        aria-label={translate('Project commercial policy history')}
+        data-project-commercial-policy-history
+      >
+        {#each data.commercialPolicies as policy}
+          <article class="record-list-item" data-project-commercial-policy-row>
+            <div>
+              <strong>
+                {translate('Version')}
+                {rowValue(policy, 'version') || '—'} ·
+                {rowValue(policy, 'effectiveFrom', 'effective_from') || '—'}
+              </strong>
+              <small>
+                {rowValue(policy, 'effectiveTo', 'effective_to') || translate('open-ended')} ·
+                {translate('Overtime')}:
+                {#if booleanValue(policy, 'overtimeEnabled', 'overtime_enabled')}
+                  {translate('after')}
+                  {rowValue(policy, 'overtimeThresholdMinutes', 'overtime_threshold_minutes')}
+                  {translate('minutes')}
+                {:else}
+                  {translate('disabled')}
+                {/if}
+                · {translate('Travel client billable')}:
+                {policyDecision(policy, 'travelClientBillable', 'travel_client_billable')} ·
+                {translate('Customer sign-off')}:
+                {policyDecision(policy, 'customerSignoffRequired', 'customer_signoff_required')}
+              </small>
+            </div>
+          </article>
+        {/each}
+      </div>
+    {:else}
+      <p class="muted" data-project-commercial-policy-empty>
+        {translate('No project commercial policy is configured for the selected project.')}
+      </p>
+    {/if}
+  </FormSection>
+  <!-- project-commercial-policy-end -->
   {#if !isAuditor}
     <div class="management-stack compact-stack finance-rule-registers">
       <FormSection title={translate('Compensation statement rules')}>
         <p class="muted">
-          {translate('Existing rules are historical records. Edit by superseding the selected record; deactivate only ends its future applicability.')}
+          {translate(
+            'Existing rules are historical records. Edit by superseding the selected record; deactivate only ends its future applicability.',
+          )}
         </p>
         {#if data.compensationRules?.length}
           <div class="record-list" aria-label={translate('Compensation rules')}>
@@ -177,7 +358,9 @@
                             'CLIENT_LABOR_BEFORE_TAX'}
                         />
                       {/if}
-                      <div class="form-actions"><button>{translate('Save superseding rule')}</button></div>
+                      <div class="form-actions">
+                        <button>{translate('Save superseding rule')}</button>
+                      </div>
                     </form>
                   </details>
                   <form method="POST" action="?/deactivateCompensationRule">
@@ -194,7 +377,9 @@
       </FormSection>
 
       <FormSection title={translate('Client labor rates')}>
-        <p class="muted">{translate('Rates are resolved by project, worker, category, and effective date.')}</p>
+        <p class="muted">
+          {translate('Rates are resolved by project, worker, category, and effective date.')}
+        </p>
         {#if data.clientLaborRates?.length}
           <div class="record-list" aria-label={translate('Client labor rates')}>
             {#each data.clientLaborRates as rule}
@@ -209,8 +394,9 @@
                       'project_id',
                     )}</strong
                   >
-                    <small>
-                    {controlledValue('category', rowValue(rule, 'category')) || translate('All categories')} · {moneyLabel(
+                  <small>
+                    {controlledValue('category', rowValue(rule, 'category')) ||
+                      translate('All categories')} · {moneyLabel(
                       rule,
                       'hourlyRateMinor',
                       'hourly_rate_minor',
@@ -293,7 +479,9 @@
                         />
                       </Field>
                       <input type="hidden" name="category" value={rowValue(rule, 'category')} />
-                      <div class="form-actions"><button>{translate('Save superseding rate')}</button></div>
+                      <div class="form-actions">
+                        <button>{translate('Save superseding rate')}</button>
+                      </div>
                     </form>
                   </details>
                   <form method="POST" action="?/deactivateClientLaborRate">
@@ -397,7 +585,9 @@
                           required
                         />
                       </Field>
-                      <div class="form-actions"><button>{translate('Save superseding cost')}</button></div>
+                      <div class="form-actions">
+                        <button>{translate('Save superseding cost')}</button>
+                      </div>
                     </form>
                   </details>
                   <form method="POST" action="?/deactivateInternalCostRule">
@@ -409,13 +599,17 @@
             {/each}
           </div>
         {:else}
-          <p class="muted">{translate('No internal cost rules are configured for this project.')}</p>
+          <p class="muted">
+            {translate('No internal cost rules are configured for this project.')}
+          </p>
         {/if}
       </FormSection>
     </div>
     <FormSection title={translate('Settlement status')}>
       <p class="muted">
-        {translate('Settlements are immutable financial snapshots. Correct a period by creating a new effective rule or reconciliation record; finalized settlements are never deleted.')}
+        {translate(
+          'Settlements are immutable financial snapshots. Correct a period by creating a new effective rule or reconciliation record; finalized settlements are never deleted.',
+        )}
       </p>
       {#if data.settlements?.length}
         <div class="record-list" aria-label={translate('Compensation settlement status')}>
@@ -445,7 +639,8 @@
                 </small>
               </div>
               <span class="status-badge"
-                >{controlledValue('status', rowValue(settlement, 'state', 'status')) || translate('Pending')}</span
+                >{controlledValue('status', rowValue(settlement, 'state', 'status')) ||
+                  translate('Pending')}</span
               >
             </article>
           {/each}
@@ -455,7 +650,12 @@
       {/if}
       <form method="POST" action="?/settleCompensation" class="admin-form-grid" use:formValidation>
         <FieldGroup columns="2">
-          <Field id="finance-settle-worker" label={translate('Worker')} required data-field="workerId">
+          <Field
+            id="finance-settle-worker"
+            label={translate('Worker')}
+            required
+            data-field="workerId"
+          >
             <select id="finance-settle-worker" name="workerId" required>
               <option value="">{translate('Select worker')}</option>
               {#each data.workers ?? [] as worker}
@@ -463,7 +663,12 @@
               {/each}
             </select>
           </Field>
-          <Field id="finance-settle-project" label={translate('Project')} required data-field="projectId">
+          <Field
+            id="finance-settle-project"
+            label={translate('Project')}
+            required
+            data-field="projectId"
+          >
             <select id="finance-settle-project" name="projectId" required>
               <option value="">{translate('Select project')}</option>
               {#each availableProjects as project}
@@ -473,10 +678,20 @@
               {/each}
             </select>
           </Field>
-          <Field id="finance-settle-start" label={translate('Period start')} required data-field="periodStart">
+          <Field
+            id="finance-settle-start"
+            label={translate('Period start')}
+            required
+            data-field="periodStart"
+          >
             <input id="finance-settle-start" name="periodStart" type="date" required />
           </Field>
-          <Field id="finance-settle-end" label={translate('Period end')} required data-field="periodEnd">
+          <Field
+            id="finance-settle-end"
+            label={translate('Period end')}
+            required
+            data-field="periodEnd"
+          >
             <input id="finance-settle-end" name="periodEnd" type="date" required />
           </Field>
         </FieldGroup>
@@ -494,15 +709,26 @@
           use:formValidation
         >
           <FieldGroup columns="2">
-            <Field id="finance-comp-worker" label={translate('Worker')} required data-field="workerId">
+            <Field
+              id="finance-comp-worker"
+              label={translate('Worker')}
+              required
+              data-field="workerId"
+            >
               <select id="finance-comp-worker" name="workerId" required>
                 <option value="">{translate('Select worker')}</option>
                 {#each data.workers ?? [] as worker}
-                  <option value={worker.id}>{worker.name} · {controlledValue('role', worker.role)}</option>
+                  <option value={worker.id}
+                    >{worker.name} · {controlledValue('role', worker.role)}</option
+                  >
                 {/each}
               </select>
             </Field>
-            <Field id="finance-comp-project" label={translate('Project scope')} data-field="projectId">
+            <Field
+              id="finance-comp-project"
+              label={translate('Project scope')}
+              data-field="projectId"
+            >
               <select id="finance-comp-project" name="projectId">
                 <option value="">{translate('Global')}</option>
                 {#each availableProjects as project}
@@ -521,12 +747,16 @@
               <select id="finance-comp-ruletype" name="ruleType">
                 <option value="Hourly">{translate('Hourly')}</option>
                 <option value="Daily">{translate('Daily')}</option>
-                <option value="FixedPerBillingPeriod">{translate('Fixed per billing period')}</option>
+                <option value="FixedPerBillingPeriod"
+                  >{translate('Fixed per billing period')}</option
+                >
                 <option value="FixedProjectAmount">{translate('Fixed project amount')}</option>
                 <option value="PercentageOfEligibleClientLabor"
                   >{translate('Percentage of eligible client labor')}</option
                 >
-                <option value="CustomApprovedAdjustment">{translate('Custom approved adjustment')}</option>
+                <option value="CustomApprovedAdjustment"
+                  >{translate('Custom approved adjustment')}</option
+                >
               </select>
             </Field>
             <Field
@@ -544,7 +774,11 @@
                 required
               />
             </Field>
-            <Field id="finance-comp-ratebasis" label={translate('Rate basis')} data-field="rateBasis">
+            <Field
+              id="finance-comp-ratebasis"
+              label={translate('Rate basis')}
+              data-field="rateBasis"
+            >
               <select id="finance-comp-ratebasis" name="rateBasis">
                 <option value="hourly">{translate('Hourly')}</option>
                 <option value="daily">{translate('Daily')}</option>
@@ -570,12 +804,16 @@
               data-field="percentageBasis"
             >
               <select id="finance-comp-percentagebasis" name="percentageBasis">
-                <option value="CLIENT_LABOR_BEFORE_TAX">{translate('Client labor before tax')}</option>
+                <option value="CLIENT_LABOR_BEFORE_TAX"
+                  >{translate('Client labor before tax')}</option
+                >
                 <option value="CLIENT_LABOR_AFTER_APPROVED_DISCOUNT"
                   >{translate('Client labor after approved discount')}</option
                 >
                 <option value="ISSUED_ELIGIBLE_LABOR">{translate('Issued eligible labor')}</option>
-                <option value="COLLECTED_ELIGIBLE_LABOR">{translate('Collected eligible labor')}</option>
+                <option value="COLLECTED_ELIGIBLE_LABOR"
+                  >{translate('Collected eligible labor')}</option
+                >
               </select>
             </Field>
             <Field
@@ -584,7 +822,9 @@
               data-field="settlementTrigger"
             >
               <select id="finance-comp-trigger" name="settlementTrigger">
-                <option value="ON_APPROVED_BILLABLE_LABOR">{translate('Approved billable labor')}</option>
+                <option value="ON_APPROVED_BILLABLE_LABOR"
+                  >{translate('Approved billable labor')}</option
+                >
                 <option value="ON_INVOICE_ISSUE">{translate('Invoice issue')}</option>
                 <option value="ON_CLIENT_PAYMENT">{translate('Client payment')}</option>
               </select>
@@ -626,7 +866,11 @@
         >
           <input type="hidden" name="projectId" value={data.selectedProjectId} />
           <FieldGroup columns="2">
-            <Field id="finance-client-worker" label={translate('Worker scope')} data-field="workerId">
+            <Field
+              id="finance-client-worker"
+              label={translate('Worker scope')}
+              data-field="workerId"
+            >
               <select id="finance-client-worker" name="workerId">
                 <option value="">{translate('All assigned workers')}</option>
                 {#each data.workers ?? [] as worker}
@@ -634,7 +878,11 @@
                 {/each}
               </select>
             </Field>
-            <Field id="finance-client-category" label={translate('Time category')} data-field="category">
+            <Field
+              id="finance-client-category"
+              label={translate('Time category')}
+              data-field="category"
+            >
               <input
                 id="finance-client-category"
                 name="category"
@@ -660,12 +908,18 @@
                 required
               />
             </Field>
-            <Field id="finance-client-overtime" label={translate('Overtime method')} data-field="overtimeMethod">
+            <Field
+              id="finance-client-overtime"
+              label={translate('Overtime method')}
+              data-field="overtimeMethod"
+            >
               <select id="finance-client-overtime" name="overtimeMethod">
                 <option value="BASE_RATE_MULTIPLIER">{translate('Base rate multiplier')}</option>
                 <option value="NONE">{translate('None')}</option>
                 <option value="FIXED_RATE">{translate('Fixed rate')}</option>
-                <option value="FIXED_ADDITION_PER_HOUR">{translate('Fixed addition per hour')}</option>
+                <option value="FIXED_ADDITION_PER_HOUR"
+                  >{translate('Fixed addition per hour')}</option
+                >
                 <option value="PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME"
                   >{translate('Percentage of eligible overtime')}</option
                 >
@@ -703,7 +957,8 @@
                   name="eligibleForPercentage"
                   type="checkbox"
                   checked
-                /> {translate('Eligible for percentage compensation')}
+                />
+                {translate('Eligible for percentage compensation')}
               </label>
             </Field>
           </FieldGroup>
@@ -722,7 +977,12 @@
         >
           <input type="hidden" name="projectId" value={data.selectedProjectId} />
           <FieldGroup columns="2">
-            <Field id="finance-internal-worker" label={translate('Worker')} required data-field="workerId">
+            <Field
+              id="finance-internal-worker"
+              label={translate('Worker')}
+              required
+              data-field="workerId"
+            >
               <select id="finance-internal-worker" name="workerId" required>
                 <option value="">{translate('Select worker')}</option>
                 {#each data.workers ?? [] as worker}
@@ -730,7 +990,11 @@
                 {/each}
               </select>
             </Field>
-            <Field id="finance-internal-currency" label={translate('Currency')} data-field="currency">
+            <Field
+              id="finance-internal-currency"
+              label={translate('Currency')}
+              data-field="currency"
+            >
               <select id="finance-internal-currency" name="currency">
                 <option>USD</option><option>BRL</option><option>EUR</option>
               </select>
@@ -766,7 +1030,9 @@
                 <option value="BASE_RATE_MULTIPLIER">{translate('Base rate multiplier')}</option>
                 <option value="NONE">{translate('None')}</option>
                 <option value="FIXED_RATE">{translate('Fixed rate')}</option>
-                <option value="FIXED_ADDITION_PER_HOUR">{translate('Fixed addition per hour')}</option>
+                <option value="FIXED_ADDITION_PER_HOUR"
+                  >{translate('Fixed addition per hour')}</option
+                >
               </select>
             </Field>
             <Field

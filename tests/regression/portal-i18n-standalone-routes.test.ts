@@ -81,14 +81,16 @@ describe('standalone portal route locale boundary', () => {
   });
 
   it('uses the locale-aware currency formatter on financial standalone pages', () => {
-    for (const path of [
-      standaloneRoutes[3],
-      standaloneRoutes[5],
-      standaloneRoutes[7],
-      standaloneRoutes[8],
-    ]) {
+    const project = read(standaloneRoutes[3]);
+    expect(project).toContain('BigInt(raw)');
+    expect(project).toContain("locale === 'pt' ? 'pt-BR' : locale");
+    expect(project).not.toMatch(/Number\([^\n]*(?:minor|amount)/i);
+
+    for (const path of [standaloneRoutes[5], standaloneRoutes[7], standaloneRoutes[8]]) {
       const source = read(path);
-      expect(source).toMatch(/new Intl\.NumberFormat\(locale === 'pt' \? 'pt-BR' : locale/);
+      expect(source).toContain("import { money as formatMoney } from '$lib/portal/portal-format'");
+      expect(source).toContain("locale === 'pt' ? 'pt-BR' : locale");
+      expect(source).not.toMatch(/\.format\(Number\([^)]*\)\s*\/\s*100\)/);
     }
   });
 

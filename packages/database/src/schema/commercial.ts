@@ -1,4 +1,6 @@
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { AnySQLiteColumn, index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { users } from './identity.ts';
+import { projects } from './projects.ts';
 import { lifecycle } from './shared.ts';
 
 export const clientLaborRates = sqliteTable('client_labor_rate', {
@@ -81,7 +83,42 @@ export const compensationSettlements = sqliteTable('compensation_settlement', {
   settledAt: text('settled_at'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
+  expectedPaymentOn: text('expected_payment_on'),
 });
+
+export const projectCommercialPolicies = sqliteTable(
+  'project_commercial_policy',
+  {
+    id: text('id').primaryKey(),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onUpdate: 'restrict', onDelete: 'restrict' }),
+    supersedesPolicyId: text('supersedes_policy_id')
+      .unique()
+      .references((): AnySQLiteColumn => projectCommercialPolicies.id, {
+        onUpdate: 'restrict',
+        onDelete: 'restrict',
+      }),
+    effectiveFrom: text('effective_from').notNull(),
+    effectiveTo: text('effective_to'),
+    overtimeEnabled: integer('overtime_enabled', { mode: 'boolean' }).notNull(),
+    overtimeThresholdMinutes: integer('overtime_threshold_minutes'),
+    travelClientBillable: integer('travel_client_billable', { mode: 'boolean' }).notNull(),
+    customerSignoffRequired: integer('customer_signoff_required', { mode: 'boolean' }).notNull(),
+    createdBy: text('created_by')
+      .notNull()
+      .references(() => users.id, { onUpdate: 'restrict', onDelete: 'restrict' }),
+    createdAt: text('created_at').notNull(),
+    version: integer('version').notNull(),
+  },
+  (table) => [
+    index('project_commercial_policy_lookup_idx').on(
+      table.projectId,
+      table.effectiveFrom,
+      table.effectiveTo,
+    ),
+  ],
+);
 
 export const assignmentRateOverrides = sqliteTable('assignment_rate_override', {
   id: text('id').primaryKey(),

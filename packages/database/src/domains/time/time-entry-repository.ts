@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { canReviewProject, newId, type Principal } from '@ja/domain';
+import { newId, type Principal } from '@ja/domain';
 
 type ErrorFactory = (message: string) => never;
 
@@ -37,6 +37,7 @@ export type TimeEntryRepositoryDependencies = Readonly<{
   transaction: <T>(work: () => T) => T;
   assertActive: (principal: Principal) => void;
   assertReadable: (principal: Principal) => void;
+  assertCanReview: (principal: Principal, projectId: string) => void;
   audit: (
     principal: Principal,
     action: string,
@@ -483,8 +484,7 @@ export class TimeEntryRepository {
       .prepare('SELECT project_id,approval_state FROM time_entry WHERE id=?')
       .get(id) as { project_id: string; approval_state: string } | undefined;
     if (!row) throw this.deps.errors.validation('Time entry not found');
-    if (!canReviewProject(principal, row.project_id))
-      throw this.deps.errors.accessDenied('Project review required');
+    this.deps.assertCanReview(principal, row.project_id);
     if (row.approval_state !== 'submitted')
       throw this.deps.errors.conflict('Time entry is not submitted');
     const reviewReason = reason?.trim() || undefined;

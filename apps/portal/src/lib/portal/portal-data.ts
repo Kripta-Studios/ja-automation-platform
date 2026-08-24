@@ -30,8 +30,12 @@ export type PortalData = {
   compensationRules?: PortalRow[];
   clientLaborRates?: PortalRow[];
   internalCostRules?: PortalRow[];
+  commercialPolicies?: PortalRow[];
+  financeExpenses?: PortalRow[];
   invoices?: PortalRow[];
   settlements?: PortalRow[];
+  payActivities?: PortalRow[];
+  payExpenses?: PortalRow[];
   reimbursements?: PortalRow[];
   ledger?: Array<Record<string, unknown>>;
   packs?: Array<Record<string, unknown>>;
@@ -50,9 +54,9 @@ export type PortalData = {
     days: Array<{
       date: string;
       label: string;
-      expectedMinutes: number;
+      expectedMinutes: number | null;
       actualMinutes: number;
-      differenceMinutes: number;
+      differenceMinutes: number | null;
       status: string;
       categories: Record<string, number>;
     }>;
@@ -125,10 +129,10 @@ export type PortalData = {
     activeProjects: number;
     actualMinutes: number;
     pendingReports: number;
-    expenseMinor: string;
-    upcomingInvoices: number;
-    upcomingInvoiceMinor: string;
-    currency: string;
+    expenseMinor?: string;
+    upcomingInvoices?: number;
+    upcomingInvoiceMinor?: string;
+    currency?: string;
   };
 };
 

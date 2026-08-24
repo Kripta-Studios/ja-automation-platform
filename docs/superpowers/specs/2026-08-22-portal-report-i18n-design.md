@@ -126,4 +126,3 @@ Render and visually inspect invoice, period, Accounting Pack, daily, and technic
 - Translating technical product names, codes, identifiers, or audit event codes.
 - Rewriting historical snapshots merely to change their display language.
 - Resolving unrelated B5 lifecycle or durable-job functionality beyond the migration-number dependency required for artifact variants.
-

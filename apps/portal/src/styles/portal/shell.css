@@ -3,6 +3,11 @@
   --ja-target-min: 2.75rem;
 }
 
+html.portal-drawer-open,
+body.portal-drawer-open {
+  overflow: hidden;
+}
+
 .portal-layout {
   min-height: 100svh;
   display: grid;

@@ -18,13 +18,9 @@ export const projectActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = clientInputSchema.safeParse(await formObject(request));
     if (!parsed.success)
-      return actionFail(
-        400,
-        'action.validation.clientFields',
-        {},
-        'Check client fields',
-        { fields: parsed.error.flatten().fieldErrors },
-      );
+      return actionFail(400, 'action.validation.clientFields', {}, 'Check client fields', {
+        fields: parsed.error.flatten().fieldErrors,
+      });
     const context = openPortalRepository(locals);
     try {
       const result = context.repository.createClient(context.principal, parsed.data);
@@ -47,13 +43,9 @@ export const projectActions = {
     object.isPrimary = object.isPrimary === 'on';
     const parsed = clientContactInputSchema.safeParse(object);
     if (!parsed.success)
-      return actionFail(
-        400,
-        'action.validation.contactFields',
-        {},
-        'Check contact fields',
-        { fields: parsed.error.flatten().fieldErrors },
-      );
+      return actionFail(400, 'action.validation.contactFields', {}, 'Check contact fields', {
+        fields: parsed.error.flatten().fieldErrors,
+      });
     const context = openPortalRepository(locals);
     try {
       context.repository.createClientContact(context.principal, parsed.data);
@@ -69,11 +61,17 @@ export const projectActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const data = await request.formData();
     const projectId = data.get('projectId')?.toString();
-    if (!projectId) return actionFail(400, 'action.validation.projectIdRequired', {}, 'Project ID required');
+    if (!projectId)
+      return actionFail(400, 'action.validation.projectIdRequired', {}, 'Project ID required');
     const versionValue = data.get('version')?.toString().trim();
     const version = versionValue === undefined ? Number.NaN : Number(versionValue);
     if (!versionValue || !Number.isInteger(version) || version < 1)
-      return actionFail(400, 'action.validation.lifecycleFields', {}, 'Project version is required');
+      return actionFail(
+        400,
+        'action.validation.lifecycleFields',
+        {},
+        'Project version is required',
+      );
     const text = (name: string): string | undefined => {
       const value = data.get(name);
       return value === null ? undefined : value.toString();
@@ -101,6 +99,7 @@ export const projectActions = {
       context.repository.updateProject(context.principal, {
         projectId,
         version,
+        costCenterCode: text('costCenterCode'),
         name: text('name'),
         poNumber: text('poNumber'),
         description: text('description'),
@@ -147,13 +146,9 @@ export const projectActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = projectInputSchema.safeParse(await formObject(request));
     if (!parsed.success)
-      return actionFail(
-        400,
-        'action.validation.projectFields',
-        {},
-        'Check project fields',
-        { fields: parsed.error.flatten().fieldErrors },
-      );
+      return actionFail(400, 'action.validation.projectFields', {}, 'Check project fields', {
+        fields: parsed.error.flatten().fieldErrors,
+      });
     const context = openPortalRepository(locals);
     try {
       const result = context.repository.createProject(context.principal, parsed.data);
@@ -173,13 +168,9 @@ export const projectActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = milestoneInputSchema.safeParse(await formObject(request));
     if (!parsed.success)
-      return actionFail(
-        400,
-        'action.validation.milestoneFields',
-        {},
-        'Check milestone fields',
-        { fields: parsed.error.flatten().fieldErrors },
-      );
+      return actionFail(400, 'action.validation.milestoneFields', {}, 'Check milestone fields', {
+        fields: parsed.error.flatten().fieldErrors,
+      });
     const context = openPortalRepository(locals);
     try {
       context.repository.createProjectMilestone(context.principal, parsed.data);
@@ -219,13 +210,9 @@ export const projectActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = scheduleInputSchema.safeParse(await formObject(request));
     if (!parsed.success)
-      return actionFail(
-        400,
-        'action.validation.scheduleFields',
-        {},
-        'Check schedule fields',
-        { fields: parsed.error.flatten().fieldErrors },
-      );
+      return actionFail(400, 'action.validation.scheduleFields', {}, 'Check schedule fields', {
+        fields: parsed.error.flatten().fieldErrors,
+      });
     const context = openPortalRepository(locals);
     try {
       context.repository.updateProjectSchedule(context.principal, parsed.data);
@@ -241,13 +228,9 @@ export const projectActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = assignmentInputSchema.safeParse(await formObject(request));
     if (!parsed.success)
-      return actionFail(
-        400,
-        'action.validation.assignmentFields',
-        {},
-        'Check assignment fields',
-        { fields: parsed.error.flatten().fieldErrors },
-      );
+      return actionFail(400, 'action.validation.assignmentFields', {}, 'Check assignment fields', {
+        fields: parsed.error.flatten().fieldErrors,
+      });
     const context = openPortalRepository(locals);
     try {
       context.repository.assignWorker(context.principal, parsed.data);
@@ -270,7 +253,12 @@ export const projectActions = {
         'Check client fields and version',
         { fields: parsed.error.flatten().fieldErrors },
       );
-    const { clientId, version, ...input } = parsed.data;
+    const { clientId, version, ...input } = {
+      ...parsed.data,
+      // The repository keeps the update contract string-based while treating
+      // an explicit empty string as the intentional clear operation.
+      clientCode: parsed.data.clientCode === null ? '' : parsed.data.clientCode,
+    };
 
     const context = openPortalRepository(locals);
     try {
@@ -293,7 +281,12 @@ export const projectActions = {
       return actionFail(400, 'action.validation.lifecycleFields', {}, 'Invalid client transition');
     const reason = data.get('reason')?.toString().trim();
     if (!reason)
-      return actionFail(400, 'action.validation.lifecycleFields', {}, 'A transition reason is required');
+      return actionFail(
+        400,
+        'action.validation.lifecycleFields',
+        {},
+        'A transition reason is required',
+      );
     if (!['active', 'closed', 'archived', 'restore'].includes(status))
       return actionFail(400, 'action.validation.lifecycleFields', {}, 'Invalid client transition');
     const context = openPortalRepository(locals);
@@ -304,7 +297,11 @@ export const projectActions = {
         version,
         reason,
       });
-      return actionSuccess('action.projects.clientUpdated', { status: result.status }, 'Client lifecycle updated');
+      return actionSuccess(
+        'action.projects.clientUpdated',
+        { status: result.status },
+        'Client lifecycle updated',
+      );
     } catch (error) {
       return actionFailure(error);
     } finally {
@@ -322,8 +319,24 @@ export const projectActions = {
       return actionFail(400, 'action.validation.lifecycleFields', {}, 'Invalid project transition');
     const reason = data.get('reason')?.toString().trim();
     if (!reason)
-      return actionFail(400, 'action.validation.lifecycleFields', {}, 'A transition reason is required');
-    if (!['draft', 'planned', 'active', 'paused', 'closing', 'closed', 'archived', 'restore'].includes(status))
+      return actionFail(
+        400,
+        'action.validation.lifecycleFields',
+        {},
+        'A transition reason is required',
+      );
+    if (
+      ![
+        'draft',
+        'planned',
+        'active',
+        'paused',
+        'closing',
+        'closed',
+        'archived',
+        'restore',
+      ].includes(status)
+    )
       return actionFail(400, 'action.validation.lifecycleFields', {}, 'Invalid project transition');
     const context = openPortalRepository(locals);
     try {
@@ -341,7 +354,11 @@ export const projectActions = {
         version,
         reason,
       });
-      return actionSuccess('action.projects.projectUpdated', { status: result.status }, 'Project lifecycle updated');
+      return actionSuccess(
+        'action.projects.projectUpdated',
+        { status: result.status },
+        'Project lifecycle updated',
+      );
     } catch (error) {
       return actionFailure(error);
     } finally {
@@ -358,7 +375,12 @@ export const projectActions = {
       return actionFail(400, 'action.validation.lifecycleFields', {}, 'Invalid client transition');
     const reason = formData.get('reason')?.toString().trim();
     if (!reason)
-      return actionFail(400, 'action.validation.lifecycleFields', {}, 'A transition reason is required');
+      return actionFail(
+        400,
+        'action.validation.lifecycleFields',
+        {},
+        'A transition reason is required',
+      );
     const context = openPortalRepository(locals);
     try {
       context.repository.transitionClient(context.principal, {
@@ -379,7 +401,8 @@ export const projectActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const formData = await request.formData();
     const id = formData.get('contactId')?.toString();
-    if (!id) return actionFail(400, 'action.validation.contactIdRequired', {}, 'Contact ID required');
+    if (!id)
+      return actionFail(400, 'action.validation.contactIdRequired', {}, 'Contact ID required');
 
     const input: Record<string, unknown> = {};
     if (formData.has('name')) input.name = formData.get('name')?.toString();
@@ -405,7 +428,8 @@ export const projectActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const formData = await request.formData();
     const id = formData.get('contactId')?.toString();
-    if (!id) return actionFail(400, 'action.validation.contactIdRequired', {}, 'Contact ID required');
+    if (!id)
+      return actionFail(400, 'action.validation.contactIdRequired', {}, 'Contact ID required');
     const context = openPortalRepository(locals);
     try {
       context.repository.deleteClientContact(context.principal, id);
@@ -422,11 +446,21 @@ export const projectActions = {
     const formData = await request.formData();
     const id = formData.get('assignmentId')?.toString();
     if (!id)
-      return actionFail(400, 'action.validation.assignmentIdRequired', {}, 'Assignment ID required');
+      return actionFail(
+        400,
+        'action.validation.assignmentIdRequired',
+        {},
+        'Assignment ID required',
+      );
     const versionValue = formData.get('version')?.toString().trim();
     const version = versionValue === undefined ? Number.NaN : Number(versionValue);
     if (!versionValue || !Number.isInteger(version) || version < 1)
-      return actionFail(400, 'action.validation.lifecycleFields', {}, 'Assignment version is required');
+      return actionFail(
+        400,
+        'action.validation.lifecycleFields',
+        {},
+        'Assignment version is required',
+      );
 
     const input: {
       startsOn?: string;
@@ -460,14 +494,29 @@ export const projectActions = {
     const formData = await request.formData();
     const id = formData.get('assignmentId')?.toString();
     if (!id)
-      return actionFail(400, 'action.validation.assignmentIdRequired', {}, 'Assignment ID required');
+      return actionFail(
+        400,
+        'action.validation.assignmentIdRequired',
+        {},
+        'Assignment ID required',
+      );
     const versionValue = formData.get('version')?.toString().trim();
     const version = versionValue === undefined ? Number.NaN : Number(versionValue);
     if (!versionValue || !Number.isInteger(version) || version < 1)
-      return actionFail(400, 'action.validation.lifecycleFields', {}, 'Assignment version is required');
+      return actionFail(
+        400,
+        'action.validation.lifecycleFields',
+        {},
+        'Assignment version is required',
+      );
     const reason = formData.get('reason')?.toString().trim();
     if (!reason)
-      return actionFail(400, 'action.validation.lifecycleFields', {}, 'A removal reason is required');
+      return actionFail(
+        400,
+        'action.validation.lifecycleFields',
+        {},
+        'A removal reason is required',
+      );
     const context = openPortalRepository(locals);
     try {
       context.repository.removeAssignment(context.principal, id, {
@@ -488,12 +537,23 @@ export const projectActions = {
     const formData = await request.formData();
     const id = formData.get('assignmentId')?.toString();
     if (!id)
-      return actionFail(400, 'action.validation.assignmentIdRequired', {}, 'Assignment ID required');
+      return actionFail(
+        400,
+        'action.validation.assignmentIdRequired',
+        {},
+        'Assignment ID required',
+      );
     const versionValue = formData.get('version')?.toString().trim();
     const version = versionValue === undefined ? Number.NaN : Number(versionValue);
     if (!versionValue || !Number.isInteger(version) || version < 1)
-      return actionFail(400, 'action.validation.lifecycleFields', {}, 'Assignment version is required');
-    const reason = formData.get('reason')?.toString().trim() || 'Removed by an authorized administrator';
+      return actionFail(
+        400,
+        'action.validation.lifecycleFields',
+        {},
+        'Assignment version is required',
+      );
+    const reason =
+      formData.get('reason')?.toString().trim() || 'Removed by an authorized administrator';
     const context = openPortalRepository(locals);
     try {
       context.repository.removeAssignment(context.principal, id, {

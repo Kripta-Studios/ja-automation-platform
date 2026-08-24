@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDatabase } from '@ja/database';
 import {
   B5_TEST_DEPLOYMENT_ID,
+  B5_TEST_SERVICE_CAPABILITIES,
   B5_TEST_TENANT_ID,
   installB5TestDeploymentIdentity,
 } from '../fixtures/b5-test-environment.js';
@@ -80,6 +81,21 @@ describe('requested demo fixture implementation', () => {
       ).toBe(4);
       expect(
         count(
+          `SELECT count(*) count FROM finance_command
+            WHERE (operation LIKE 'accounting_pack%' OR operation LIKE 'legal_entity_revision%')
+              AND (step_up_verified_at IS NULL OR step_up_expires_at IS NULL)`,
+        ),
+      ).toBe(0);
+      expect(
+        count(
+          `SELECT count(*) count FROM session
+             JOIN user ON user.id=session.user_id
+            WHERE user.role='finance_admin' AND user.status='active'
+              AND session.step_up_at IS NOT NULL AND session.expires_at>session.step_up_at`,
+        ),
+      ).toBeGreaterThanOrEqual(1);
+      expect(
+        count(
           "SELECT count(*) count FROM technical_report WHERE report_date_provenance='native' AND report_date IS NOT NULL",
         ),
       ).toBeGreaterThanOrEqual(3);
@@ -100,6 +116,54 @@ describe('requested demo fixture implementation', () => {
           ),
         ),
       ).toBe(true);
+
+      const actor = sqlite
+        .prepare(
+          `SELECT s.id,s.name,s.status,s.tenant_id,s.deployment_id,s.capabilities_json,
+                  b.singleton,b.tenant_id binding_tenant_id,b.deployment_id binding_deployment_id,
+                  b.service_actor_id,b.bound_by_user_id,b.version,
+                  u.role bound_by_role,u.email bound_by_email
+             FROM service_actor s
+             JOIN deployment_service_actor_binding b
+               ON b.singleton=1 AND b.service_actor_id=s.id
+             JOIN user u ON u.id=b.bound_by_user_id
+            WHERE s.id=?`,
+        )
+        .get('demo-client-essential-service-actor') as
+        | {
+            id: string;
+            name: string;
+            status: string;
+            tenant_id: string;
+            deployment_id: string;
+            capabilities_json: string;
+            singleton: number;
+            binding_tenant_id: string;
+            binding_deployment_id: string;
+            service_actor_id: string;
+            bound_by_user_id: string;
+            version: number;
+            bound_by_role: string;
+            bound_by_email: string;
+          }
+        | undefined;
+      expect(actor).toBeDefined();
+      expect(actor).toMatchObject({
+        id: 'demo-client-essential-service-actor',
+        name: 'Client Essential demo service actor',
+        status: 'active',
+        tenant_id: identity.tenant_id,
+        deployment_id: identity.deployment_id,
+        singleton: 1,
+        binding_tenant_id: identity.tenant_id,
+        binding_deployment_id: identity.deployment_id,
+        service_actor_id: 'demo-client-essential-service-actor',
+        bound_by_role: 'owner_admin',
+        bound_by_email: 'antonny.luty@j-aautomation.com',
+        version: 1,
+      });
+      expect(JSON.parse(actor!.capabilities_json)).toEqual([...B5_TEST_SERVICE_CAPABILITIES]);
+      expect(count('SELECT count(*) count FROM deployment_service_actor_binding')).toBe(1);
     } finally {
       sqlite.close();
     }

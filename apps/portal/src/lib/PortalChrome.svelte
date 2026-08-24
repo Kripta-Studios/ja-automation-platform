@@ -3,7 +3,7 @@
   import { page } from '$app/stores';
   import { portalLocales, type PortalLocale } from './portal-i18n';
   import { translateControlledValue } from './i18n/controlled-values';
-  import type { NavItem } from './portal-navigation';
+  import { accountNavigationFor, type NavItem } from './portal-navigation';
   import PortalNavIcon from './PortalNavIcon.svelte';
 
   type ChromeData = {
@@ -28,7 +28,6 @@
     syncMessage,
     locale,
     translate,
-    href,
     itemHref,
     initials,
     logout,
@@ -52,7 +51,6 @@
     syncMessage: string;
     locale: PortalLocale;
     translate: (value: string) => string;
-    href: (section: string) => string;
     itemHref: (item: NavItem) => string;
     initials: (name: string) => string;
     logout: () => Promise<void>;
@@ -67,8 +65,10 @@
   let mobileDrawer = $state(false);
   let drawerWasOpen = false;
   let previousFocus: HTMLElement | null = null;
-  let previousRootOverflow = '';
-  let previousBodyOverflow = '';
+  let rootHadScrollLockClass = false;
+  let bodyHadScrollLockClass = false;
+
+  const drawerScrollLockClass = 'portal-drawer-open';
 
   const navIconPaths: Record<string, string> = {
     Today: 'M3 10.75 12 3l9 7.75V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.25Z',
@@ -96,6 +96,14 @@
   };
 
   const iconPath = (item: NavItem): string => navIconPaths[item.label] ?? 'M5 12h14M12 5l7 7-7 7';
+  const accountNavigation = $derived(
+    accountNavigationFor({
+      primary: navigation,
+      secondary: secondaryNavigation,
+      admin: visibleAdmin,
+      security: securityAdmin,
+    }),
+  );
   const roleLabel = (value: string | undefined): string => {
     const normalized =
       value === 'owner_admin'
@@ -106,7 +114,7 @@
             ? 'manager'
             : value === 'auditor_read_only'
               ? 'admin'
-              : value ?? 'worker';
+              : (value ?? 'worker');
     return translateControlledValue(locale, 'role', normalized);
   };
 
@@ -128,7 +136,9 @@
     if (typeof document === 'undefined') return;
 
     document
-      .querySelector<HTMLButtonElement>(`.menu-button[aria-label="${translate('Toggle navigation')}"]`)
+      .querySelector<HTMLButtonElement>(
+        `.menu-button[aria-label="${translate('Toggle navigation')}"]`,
+      )
       ?.focus();
 
     if (attempt < 20 && typeof window !== 'undefined') {
@@ -191,6 +201,28 @@
     }
   }
 
+  function applyDrawerScrollLock(): void {
+    const root = document.documentElement;
+    const body = document.body;
+    rootHadScrollLockClass = root.classList.contains(drawerScrollLockClass);
+    bodyHadScrollLockClass = body.classList.contains(drawerScrollLockClass);
+    root.classList.add(drawerScrollLockClass);
+    body.classList.add(drawerScrollLockClass);
+    drawerWasOpen = true;
+  }
+
+  function releaseDrawerScrollLock(): void {
+    if (!drawerWasOpen) return;
+
+    const root = document.documentElement;
+    const body = document.body;
+    if (!rootHadScrollLockClass) root.classList.remove(drawerScrollLockClass);
+    if (!bodyHadScrollLockClass) body.classList.remove(drawerScrollLockClass);
+    rootHadScrollLockClass = false;
+    bodyHadScrollLockClass = false;
+    drawerWasOpen = false;
+  }
+
   function itemIsCurrent(item: NavItem): boolean {
     const allItems = [...navigation, ...secondaryNavigation, ...visibleAdmin, ...securityAdmin];
     const itemTarget = itemHref(item);
@@ -234,10 +266,7 @@
       media.removeEventListener('change', updateMobileDrawer);
       document.removeEventListener('keydown', handleDrawerKeydown);
       skipLink?.removeEventListener('click', handleSkipLinkClick);
-      if (drawerWasOpen) {
-        document.documentElement.style.overflow = previousRootOverflow;
-        document.body.style.overflow = previousBodyOverflow;
-      }
+      releaseDrawerScrollLock();
     };
   });
 
@@ -247,11 +276,7 @@
 
     if (open && !drawerWasOpen) {
       previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      previousRootOverflow = document.documentElement.style.overflow;
-      previousBodyOverflow = document.body.style.overflow;
-      document.documentElement.style.overflow = 'hidden';
-      document.body.style.overflow = 'hidden';
-      drawerWasOpen = true;
+      applyDrawerScrollLock();
       void tick().then(() => {
         if (!drawerWasOpen) return;
         drawerFocusableElements()[0]?.focus();
@@ -260,9 +285,7 @@
     }
 
     if (!open && drawerWasOpen) {
-      drawerWasOpen = false;
-      document.documentElement.style.overflow = previousRootOverflow;
-      document.body.style.overflow = previousBodyOverflow;
+      releaseDrawerScrollLock();
       const focusTarget = previousFocus;
       previousFocus = null;
       if (focusTarget && document.contains(focusTarget)) focusTarget.focus();
@@ -326,7 +349,8 @@
   {#if showAdmin && (visibleAdmin.length > 0 || (canAudit && securityAdmin.length > 0))}
     <div class="admin-nav">
       {#if isManager || isFinance}
-        {#if visibleAdmin.length > 0}<small class="nav-heading">{translate('ADMINISTRATION')}</small>{/if}
+        {#if visibleAdmin.length > 0}<small class="nav-heading">{translate('ADMINISTRATION')}</small
+          >{/if}
         {#each visibleAdmin as item}
           <a
             class:active={itemIsCurrent(item)}
@@ -381,7 +405,9 @@
     >
       <span></span><span></span>
     </button>
-    <span class:offline={!online} class="connection"><i></i>{online ? translate('Online') : translate('Offline')}</span>
+    <span class:offline={!online} class="connection"
+      ><i></i>{online ? translate('Online') : translate('Offline')}</span
+    >
     {#if queue > 0}<span class="queue">{queue} {translate('queued')}</span>{/if}
     {#if syncMessage}<span class="sync-message" role="status">{translate(syncMessage)}</span>{/if}
   </div>
@@ -399,8 +425,10 @@
     <button
       type="button"
       class="user account-trigger"
+      aria-label={translate('Account options')}
       aria-haspopup="menu"
       aria-expanded={accountOpen}
+      aria-controls="account-menu"
       onclick={() => (accountOpen = !accountOpen)}
       onkeydown={(event) => {
         if (event.key === 'Escape') accountOpen = false;
@@ -417,33 +445,39 @@
       </span>
     </button>
     {#if accountOpen}
-      <div class="account-menu" role="menu" aria-label={translate('Account options')}>
+      <div
+        id="account-menu"
+        class="account-menu"
+        role="menu"
+        aria-label={translate('Account options')}
+      >
         <div class="account-menu-summary" role="presentation">
           <span class="portal-kicker">{translate('SIGNED IN')}</span>
           <strong>{data.user.name}</strong>
           <small>{roleLabel(data.user.role)} {translate('workspace access')}</small>
         </div>
-        <a role="menuitem" href={href('profile')} onclick={() => (accountOpen = false)}>
-          <span class="account-menu-icon" aria-hidden="true">◎</span>
-          <span><b>{translate('Profile & security')}</b><small>{translate('Personal details, MFA and availability')}</small></span
-          >
-        </a>
-        <a role="menuitem" href={href('notifications')} onclick={() => (accountOpen = false)}>
-          <span class="account-menu-icon" aria-hidden="true">◌</span>
-          <span><b>{translate('Notifications')}</b><small>{translate('Review changes and approval activity')}</small></span>
-        </a>
-        <a role="menuitem" href={href('pay')} onclick={() => (accountOpen = false)}>
-          <span class="account-menu-icon" aria-hidden="true">€</span>
-          <span><b>{translate('My pay')}</b><small>{translate('Compensation, expenses and pay history')}</small></span>
-        </a>
-        <a role="menuitem" href={href('documents')} onclick={() => (accountOpen = false)}>
-          <span class="account-menu-icon" aria-hidden="true">□</span>
-          <span><b>{translate('My documents')}</b><small>{translate('Private files shared with your workspace')}</small></span>
-        </a>
+        {#each accountNavigation as item}
+          {@const accountDetail =
+            item.section === 'pay'
+              ? 'Compensation, expenses and pay history'
+              : item.section === 'documents'
+                ? 'Private files shared with your workspace'
+                : 'Personal details, MFA and availability'}
+          {@const accountIcon =
+            item.section === 'pay' ? '€' : item.section === 'documents' ? '□' : '◎'}
+          <a role="menuitem" href={itemHref(item)} onclick={() => (accountOpen = false)}>
+            <span class="account-menu-icon" aria-hidden="true">{accountIcon}</span>
+            <span><b>{translate(item.label)}</b><small>{translate(accountDetail)}</small></span>
+          </a>
+        {/each}
         <div class="account-menu-divider" role="separator"></div>
         <button type="button" class="account-signout" role="menuitem" onclick={logout}>
           <span class="account-menu-icon" aria-hidden="true">↪</span>
-          <span><b>{translate('Log out')}</b><small>{translate('End this session on this device')}</small></span>
+          <span
+            ><b>{translate('Log out')}</b><small
+              >{translate('End this session on this device')}</small
+            ></span
+          >
         </button>
       </div>
     {/if}

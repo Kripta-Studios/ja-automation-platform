@@ -116,10 +116,10 @@ Legend: **P0** release blocker/current defect, **P1** core production extension,
 97. **V34-010 P1** Deterministic rules/statistical project health baseline.
 98. **V34-011 P2** CPU inference adapter boundary (e.g. CatBoost/ONNX) with versioned model artifacts.
 99. **V34-012 P3** First real GBT experiments for final cost/hours/delay/margin risk only after sufficient real historical data and proper held-out evaluation.
-100. **V34-013 P3** Explainability for GBT predictions (feature contributions/SHAP where operationally appropriate).
-101. **V34-014 P3** Temporal anomaly models only if they outperform robust rules/baselines.
-102. **V34-015 P3** Experimental Project-JEPA / action-conditioned latent dynamics research behind a feature flag and separate scientific validation.
-103. **V34-016 P3** Counterfactual/scenario UI only after causal limitations are explicitly addressed; observational action correlations must never be presented as causal effects.
+100.  **V34-013 P3** Explainability for GBT predictions (feature contributions/SHAP where operationally appropriate).
+101.  **V34-014 P3** Temporal anomaly models only if they outperform robust rules/baselines.
+102.  **V34-015 P3** Experimental Project-JEPA / action-conditioned latent dynamics research behind a feature flag and separate scientific validation.
+103.  **V34-016 P3** Counterfactual/scenario UI only after causal limitations are explicitly addressed; observational action correlations must never be presented as causal effects.
 
 ## Scope policy for Codex
 

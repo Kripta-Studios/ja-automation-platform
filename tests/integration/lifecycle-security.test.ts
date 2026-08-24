@@ -30,12 +30,7 @@ function method(target: object, name: string): unknown {
 describe('B5 lifecycle policy (RED characterization)', () => {
   it('exposes explicit client and project update/archive/restore transitions', () => {
     const value = fixture();
-    for (const name of [
-      'updateClient',
-      'transitionClient',
-      'updateProject',
-      'transitionProject',
-    ]) {
+    for (const name of ['updateClient', 'transitionClient', 'updateProject', 'transitionProject']) {
       expect(typeof method(value.repository, name), `${name} must be a real domain operation`).toBe(
         'function',
       );

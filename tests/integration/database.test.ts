@@ -109,7 +109,7 @@ describe('SQLite migration', () => {
             version: number;
           }
         ).version,
-      ).toBe(27);
+      ).toBe(30);
       expect(
         sqlite
           .prepare("SELECT 1 FROM pragma_table_info('project') WHERE name='fixed_price_minor'")

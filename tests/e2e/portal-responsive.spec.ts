@@ -99,8 +99,6 @@ const sidebarLabels = [
   'Profile',
 ] as const;
 
-
-
 function roleForViewport(width: number): 'owner' | 'finance' | 'worker' {
   if (width <= 430) return 'worker';
   if (width <= 1024) return 'finance';
@@ -432,7 +430,7 @@ test('editable report invalid submission exposes linked errors and preserves val
   page,
 }, testInfo) => {
   expectRequiredProject(testInfo.project.name);
-  page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
+  page.on('console', (msg) => console.log('BROWSER CONSOLE:', msg.text()));
   const errors = runtimeErrorProbe(page);
   await signIn(page, 'owner');
   await page.goto(portal('/reports'));

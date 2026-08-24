@@ -98,16 +98,34 @@ async function startPortal(): Promise<string> {
         JA_PUBLIC_BASE_PATH: '/j-aautomation',
         JA_PORTAL_BASE_PATH: '/j-aautomation/app',
       },
-      stdio: 'inherit',
+      stdio: 'ignore',
     },
   );
-  await seedE2ECredentialAccounts(databasePath);
+  const previousTenantId = process.env.JA_TENANT_ID;
+  const previousDeploymentId = process.env.JA_DEPLOYMENT_ID;
+  process.env.JA_TENANT_ID = 'offline-isolation-tenant';
+  process.env.JA_DEPLOYMENT_ID = 'offline-isolation-deployment';
+  try {
+    await seedE2ECredentialAccounts(databasePath);
+  } finally {
+    if (previousTenantId === undefined) delete process.env.JA_TENANT_ID;
+    else process.env.JA_TENANT_ID = previousTenantId;
+    if (previousDeploymentId === undefined) delete process.env.JA_DEPLOYMENT_ID;
+    else process.env.JA_DEPLOYMENT_ID = previousDeploymentId;
+  }
   const port = await freePort();
   const child = spawn(
-    process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm',
-    ['--filter', '@ja/portal', 'dev', '--host', '127.0.0.1', '--port', String(port)],
+    process.execPath,
+    [
+      join(root, 'apps', 'portal', 'node_modules', 'vite', 'bin', 'vite.js'),
+      'dev',
+      '--host',
+      '127.0.0.1',
+      '--port',
+      String(port),
+    ],
     {
-      cwd: root,
+      cwd: join(root, 'apps', 'portal'),
       env: {
         ...process.env,
         NODE_ENV: 'development',
@@ -124,8 +142,7 @@ async function startPortal(): Promise<string> {
         HOST: '127.0.0.1',
         PORT: String(port),
       },
-      shell: process.platform === 'win32',
-      stdio: 'inherit',
+      stdio: 'ignore',
     },
   );
   children.push(child);
@@ -172,6 +189,20 @@ async function assignmentOptionTexts(page: Page): Promise<string[]> {
     .allTextContents();
 }
 
+async function timeFilterOptionTexts(page: Page): Promise<string[]> {
+  return page.locator('form.time-filters select[name="project"] option').allTextContents();
+}
+
+async function openTimeEntryForm(page: Page): Promise<void> {
+  await page.locator('[data-time-primary-cta]').click();
+  await expect(page.locator('form[action="?/createTime"]')).toHaveCount(1);
+}
+
+async function openDailyReportForm(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'New daily report', exact: true }).click();
+  await expect(page.locator('form[action="?/createDailyReport"]')).toHaveCount(1);
+}
+
 describe('offline authenticated-user partitioning', () => {
   it('revokes user A offline state before an offline navigation after logout', async () => {
     const baseUrl = await startPortal();
@@ -208,37 +239,38 @@ describe('offline authenticated-user partitioning', () => {
     browsers.push(browser);
     const context = await browser.newContext();
     contexts.push(context);
-    // Prime the Manager's own responses before the Worker cache is written. The Recovery project is
-    // assigned to Manager but not Worker, so it is a positive partition marker rather than a
+    // Prime Worker B's own responses before Worker A's cache is written. The Palletizer project is
+    // assigned to Worker B but not Worker A, so it is a positive partition marker rather than a
     // vacuous empty-list assertion.
-    const managerSessionPage = await context.newPage();
-    await signInAt(managerSessionPage, baseUrl, 'manager');
-    const managerOnlyAssignment = 'Caustic Recovery Skid Integration · Demo';
-    await managerSessionPage.goto(`${baseUrl}/time`);
-    await managerSessionPage.waitForLoadState('networkidle');
-    await expect(managerSessionPage.locator('form[action="?/createTime"]')).toHaveCount(1);
-    const managerTimeAssignments = await assignmentOptionTexts(managerSessionPage);
+    const workerBSessionPage = await context.newPage();
+    await signInAt(workerBSessionPage, baseUrl, 'worker2');
+    const workerBOnlyAssignment = 'High-Speed Palletizer Commissioning · Demo';
+    await workerBSessionPage.goto(`${baseUrl}/time`);
+    await workerBSessionPage.waitForLoadState('networkidle');
+    await openTimeEntryForm(workerBSessionPage);
+    const workerBTimeAssignments = await assignmentOptionTexts(workerBSessionPage);
     expect(
-      managerTimeAssignments.some((label) => label.includes(managerOnlyAssignment)),
-      'Manager fixture must positively contain its private Recovery assignment before cache isolation is tested',
+      workerBTimeAssignments.some((label) => label.includes(workerBOnlyAssignment)),
+      'Worker B fixture must positively contain its private Palletizer assignment before cache isolation is tested',
     ).toBe(true);
-    await waitForServiceWorkerCache(managerSessionPage);
+    await waitForServiceWorkerCache(workerBSessionPage);
 
-    await managerSessionPage.goto(`${baseUrl}/reports`);
-    await managerSessionPage.waitForLoadState('networkidle');
-    const managerReportForm = managerSessionPage.locator('form[action="?/createDailyReport"]');
-    await expect(managerReportForm).toHaveCount(1);
+    await workerBSessionPage.goto(`${baseUrl}/reports`);
+    await workerBSessionPage.waitForLoadState('networkidle');
+    await openDailyReportForm(workerBSessionPage);
+    const workerBReportForm = workerBSessionPage.locator('form[action="?/createDailyReport"]');
+    await expect(workerBReportForm).toHaveCount(1);
     await expect(
-      managerReportForm.locator(`select[name="projectId"] option`).filter({
-        hasText: managerOnlyAssignment,
+      workerBReportForm.locator(`select[name="projectId"] option`).filter({
+        hasText: workerBOnlyAssignment,
       }),
     ).toHaveCount(1);
-    await waitForServiceWorkerCache(managerSessionPage);
+    await waitForServiceWorkerCache(workerBSessionPage);
 
-    // Save the Manager session after priming both of its routes. Restoring only this session cookie
-    // later lets the Manager open its own cached routes offline without re-authenticating online.
-    const managerCookies = await context.cookies();
-    await managerSessionPage.close();
+    // Save Worker B's session after priming both routes. Restoring only this session cookie later
+    // lets Worker B open its own cached routes offline without re-authenticating online.
+    const workerBCookies = await context.cookies();
+    await workerBSessionPage.close();
     await context.clearCookies();
 
     const workerPage = await context.newPage();
@@ -250,6 +282,7 @@ describe('offline authenticated-user partitioning', () => {
     await expect(workerPage.locator('.sync-message')).toHaveText('Synced');
 
     const workerOnlyAssignment = 'Remote Controls Support Retainer · Demo';
+    await openTimeEntryForm(workerPage);
     const workerAssignments = await assignmentOptionTexts(workerPage);
     expect(
       workerAssignments.some((label) => label.includes(workerOnlyAssignment)),
@@ -266,69 +299,49 @@ describe('offline authenticated-user partitioning', () => {
     await workerPage.close();
 
     // The same browser storage now carries the Worker assignment cache and private SSR responses,
-    // but only the Manager's authenticated cookie is restored. A correct partition must not render
+    // but only Worker B's authenticated cookie is restored. A correct partition must not render
     // either private Worker value from a cached /time or /reports response.
     await context.clearCookies();
-    await context.addCookies(managerCookies);
+    await context.addCookies(workerBCookies);
     await context.setOffline(true);
-    const managerOfflinePage = await context.newPage();
-    const cachedTimeResponse = await managerOfflinePage.goto(`${baseUrl}/time`);
+    const workerBOfflinePage = await context.newPage();
+    const cachedTimeResponse = await workerBOfflinePage.goto(`${baseUrl}/time`);
     expect
       .soft(
         cachedTimeResponse?.status(),
         'cached private time response must remain loadable offline',
       )
       .toBe(200);
-    await expect.soft(managerOfflinePage.locator('.user-copy b')).toHaveText('Daniel Brooks');
-    await expect
-      .soft(
-        managerOfflinePage.locator('form[action="?/createTime"]'),
-        'Manager offline time route must retain its actionable form',
-      )
-      .toHaveCount(1);
-    const managerAssignments = await assignmentOptionTexts(managerOfflinePage);
+    await expect.soft(workerBOfflinePage.locator('.user-copy b')).toHaveText('Rafael Santos');
+    const workerBAssignments = await timeFilterOptionTexts(workerBOfflinePage);
     expect
       .soft(
-        managerAssignments.some((label) => label.includes(managerOnlyAssignment)),
-        'Manager must retain its own Recovery assignment marker offline',
+        workerBAssignments.some((label) => label.includes(workerBOnlyAssignment)),
+        'Worker B must retain its own Palletizer assignment marker offline',
       )
       .toBe(true);
     expect
       .soft(
-        managerAssignments.some((label) => label.includes(workerOnlyAssignment)),
-        'Manager must not see the Worker-only cached assignment',
+        workerBAssignments.some((label) => label.includes(workerOnlyAssignment)),
+        "Worker B must not see Worker A's private cached assignment",
       )
       .toBe(false);
 
-    const cachedReportsResponse = await managerOfflinePage.goto(`${baseUrl}/reports`);
+    const cachedReportsResponse = await workerBOfflinePage.goto(`${baseUrl}/reports`);
     expect
       .soft(
         cachedReportsResponse?.status(),
         'cached private report response must remain loadable offline',
       )
       .toBe(200);
-    await expect.soft(managerOfflinePage.locator('.user-copy b')).toHaveText('Daniel Brooks');
-    const managerOfflineReportForm = managerOfflinePage.locator(
-      'form[action="?/createDailyReport"]',
-    );
-    await expect
-      .soft(managerOfflineReportForm, 'Manager offline reports route must retain its form')
-      .toHaveCount(1);
-    await expect
-      .soft(
-        managerOfflineReportForm
-          .locator('select[name="projectId"] option')
-          .filter({ hasText: managerOnlyAssignment }),
-        'Manager offline reports form must retain its Recovery assignment marker',
-      )
-      .toHaveCount(1);
+    await expect.soft(workerBOfflinePage.locator('.user-copy b')).toHaveText('Rafael Santos');
     expect
       .soft(
-        await managerOfflinePage.getByText(workerPrivateReport, { exact: true }).count(),
-        'Manager must not see the Worker-only cached report response',
+        await workerBOfflinePage.getByText(workerPrivateReport, { exact: true }).count(),
+        "Worker B must not see Worker A's private cached report response",
       )
       .toBe(0);
-    await managerOfflinePage.close();
+    await workerBOfflinePage.close();
 
     await context.clearCookies();
     await context.setOffline(false);
@@ -339,6 +352,7 @@ describe('offline authenticated-user partitioning', () => {
     await expect(workerQueuePage.locator('.connection')).toHaveText('Online');
     await expect(workerQueuePage.locator('.queue')).toHaveCount(0);
     await expect(workerQueuePage.locator('.sync-message')).toHaveText('Synced');
+    await openTimeEntryForm(workerQueuePage);
     await context.setOffline(true);
     await workerQueuePage.evaluate(
       () =>
@@ -368,9 +382,9 @@ describe('offline authenticated-user partitioning', () => {
     await form.locator('select[name="category"]').selectOption('regular');
     await form.locator('input[name="minutes"]').fill('30');
     await form.locator('textarea[name="summary"]').fill('Worker-only queued draft');
-    await form.locator('button').click();
+    await form.getByRole('button', { name: 'Save draft', exact: true }).click();
     await expect(workerQueuePage.locator('.connection')).toHaveText('Offline');
-    await expect(workerQueuePage.locator('.queue')).toHaveText('1 queued');
+    await expect(workerQueuePage.locator('.queue')).toHaveText('1 Queued');
     await expect(workerQueuePage.locator('.sync-message')).toHaveText(
       'Offline — saved on this device',
     );

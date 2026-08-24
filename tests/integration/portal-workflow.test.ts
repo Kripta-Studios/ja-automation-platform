@@ -2,19 +2,27 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { AccessDeniedError, PortalRepository, createDatabase } from '@ja/database';
+import { AccessDeniedError, PortalRepository, V3Repository, createDatabase } from '@ja/database';
 import type { Principal, Role } from '@ja/domain';
 import { installB5TestDeploymentIdentity } from '../fixtures/b5-test-environment.js';
 
 const directories: string[] = [];
+const databases: Array<ReturnType<typeof createDatabase>['sqlite']> = [];
 let restoreDeploymentIdentity: (() => void) | undefined;
 beforeAll(() => {
   restoreDeploymentIdentity = installB5TestDeploymentIdentity();
 });
 afterAll(() => restoreDeploymentIdentity?.());
-afterEach(() =>
-  directories.splice(0).forEach((directory) => rmSync(directory, { recursive: true, force: true })),
-);
+afterEach(() => {
+  for (const sqlite of databases.splice(0)) {
+    try {
+      sqlite.close();
+    } catch {
+      // A passing test may already have closed the handle; cleanup must remain idempotent.
+    }
+  }
+  directories.splice(0).forEach((directory) => rmSync(directory, { recursive: true, force: true }));
+});
 
 function seedUser(
   sqlite: ReturnType<typeof createDatabase>['sqlite'],
@@ -29,12 +37,36 @@ function seedUser(
     .run(id, id, `${id}@example.com`, role, 'active', timestamp, timestamp);
 }
 
+function stepUpFinance(
+  sqlite: ReturnType<typeof createDatabase>['sqlite'],
+  principal: Principal,
+): Principal {
+  const now = new Date().toISOString();
+  const sessionId = 'portal-workflow-finance-step-up';
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+    )
+    .run(
+      sessionId,
+      `${sessionId}-token`,
+      principal.userId,
+      new Date(Date.now() + 3_600_000).toISOString(),
+      now,
+      now,
+      now,
+    );
+  return { ...principal, sessionId };
+}
+
 describe('V3 operational and billing workflow', () => {
   it('runs time, expense, approval, pay, invoice, payment and finance flows with enforced visibility', () => {
     const directory = mkdtempSync(join(tmpdir(), 'ja-workflow-'));
     directories.push(directory);
     const { sqlite } = createDatabase(join(directory, 'app.db'));
+    databases.push(sqlite);
     const repository = new PortalRepository(sqlite);
+    const v3 = new V3Repository(sqlite);
     seedUser(sqlite, 'owner', 'owner_admin');
     seedUser(sqlite, 'finance', 'finance_admin');
     seedUser(sqlite, 'manager', 'project_manager');
@@ -42,7 +74,11 @@ describe('V3 operational and billing workflow', () => {
     seedUser(sqlite, 'outsider', 'worker');
 
     const owner: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
-    const finance: Principal = { userId: 'finance', role: 'finance_admin', projectIds: new Set() };
+    const finance = stepUpFinance(sqlite, {
+      userId: 'finance',
+      role: 'finance_admin',
+      projectIds: new Set(),
+    });
 
     const client = repository.createClient(owner, {
       legalName: 'Example Manufacturing LLC',
@@ -65,6 +101,36 @@ describe('V3 operational and billing workflow', () => {
       poNumber: 'PO-APPROVED',
     });
     expect(project.projectNumber).toBe('C-0001-P-001');
+    const canonicalLegacyEntity = repository.createLegalEntity(owner, {
+      code: 'JA-CANONICAL',
+      legalName: 'J&A Automation Canonical Entity',
+      currency: 'USD',
+      billingAddress: 'Canonical billing address',
+      companyIdentifiers: 'Canonical company identifiers',
+    });
+    const canonicalRevision = v3.createCanonicalLegalEntityRevision(finance, {
+      legacyLegalEntityId: canonicalLegacyEntity.id,
+      effectiveFrom: '2026-01-01',
+      legalName: 'J&A Automation Canonical Entity S.L.',
+      taxIdentifier: 'ESCANONICAL123',
+      registrationIdentifier: 'CANONICAL-REG-001',
+      addressLine1: 'Canonical billing address',
+      locality: 'Madrid',
+      region: 'Madrid',
+      postalCode: '28001',
+      countryCode: 'ES',
+      baseCurrency: 'USD',
+      timezone: 'America/New_York',
+      reason: 'Bind portal workflow expense classification to canonical authority',
+      idempotencyKey: 'portal-workflow:canonical-entity:revision',
+    });
+    v3.assignCanonicalLegalEntityToProject(finance, {
+      projectId: project.id,
+      legalEntityRevisionId: canonicalRevision.revisionId,
+      effectiveFrom: '2026-01-01',
+      reason: 'Bind portal workflow project to canonical authority',
+      idempotencyKey: 'portal-workflow:canonical-entity:assignment',
+    });
     repository.assignWorker(owner, {
       projectId: project.id,
       workerId: 'manager',
@@ -145,10 +211,19 @@ describe('V3 operational and billing workflow', () => {
       currency: 'USD',
       amountMinor: 25_000n,
       whoPaid: 'worker',
-      clientTreatment: 'reimbursable',
       receiptRequired: false,
     });
-    repository.submitExpense(worker, expense.id, expense.version);
+    const classifiedExpense = repository.classifyExpenseCommercially(finance, {
+      expenseId: expense.id,
+      expectedVersion: expense.version,
+      clientTreatment: 'reimbursable',
+      billingTreatment: 'reimbursable_at_cost',
+      markupBps: 0,
+      taxBps: 0,
+      reason: 'Finance classified project lodging for reimbursement at cost',
+      idempotencyKey: 'portal-workflow:expense-classification:lodging:v1',
+    });
+    repository.submitExpense(worker, expense.id, classifiedExpense.version);
     repository.operationalApproveExpense(manager, expense.id, 'approved');
     repository.financeApproveExpense(finance, expense.id);
 
@@ -161,10 +236,19 @@ describe('V3 operational and billing workflow', () => {
       currency: 'USD',
       amountMinor: 10_000n,
       whoPaid: 'company',
-      clientTreatment: 'all_in',
       receiptRequired: false,
     });
-    repository.submitExpense(worker, allIn.id, allIn.version);
+    const classifiedAllIn = repository.classifyExpenseCommercially(finance, {
+      expenseId: allIn.id,
+      expectedVersion: allIn.version,
+      clientTreatment: 'all_in',
+      billingTreatment: 'all_in',
+      markupBps: 0,
+      taxBps: 0,
+      reason: 'Finance classified the company-paid rental as all-in project cost',
+      idempotencyKey: 'portal-workflow:expense-classification:all-in:v1',
+    });
+    repository.submitExpense(worker, allIn.id, classifiedAllIn.version);
     repository.operationalApproveExpense(manager, allIn.id, 'approved');
     repository.financeApproveExpense(finance, allIn.id);
 

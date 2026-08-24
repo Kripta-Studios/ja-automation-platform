@@ -17,44 +17,61 @@ El script ejecuta pnpm con Node `24.19.0`. Crea una base SQLite y un directorio 
 Desde la raíz del repositorio:
 
 ```powershell
-pwsh -File scripts/build-release-and-upload.ps1 -ReleaseDate 20260823
+pwsh -File scripts/build-release-and-upload.ps1 -ReleaseDate 20260825
 ```
 
 El comando realiza estas operaciones:
 
-1. rechaza un árbol Git con cambios pendientes;
+1. rechaza un árbol Git con cambios pendientes por defecto (usa `-AllowDirty` solo para empaquetar explícitamente el worktree revisado);
 2. instala dependencias con `--frozen-lockfile`;
-3. ejecuta `format:check`, `lint` y `typecheck`;
+3. instala con `--frozen-lockfile` y, salvo `-SkipQualityGates`, ejecuta el `typecheck` recursivo;
 4. compila `@ja/site`, `@ja/portal` y el worker de jobs;
-5. crea `jaautomation-release-20260823-final.zip` desde `HEAD`;
+5. crea `jaautomation-release-20260825-final.zip` desde `HEAD`;
 6. escribe el SHA-256 local;
 7. sube el ZIP y su archivo `.sha256` con nombres temporales y los renombra en `/home/kripta/` después de completar `scp`;
 8. ejecuta `sha256sum -c` en el VPS y compara el SHA-256 remoto con el local;
 9. sube el desplegador y su instalador a `/home/kripta/`.
 
-Usa `-NoUpload` para crear y validar el ZIP sin copiarlo. Usa `-Force` para reemplazar un ZIP local del mismo día. `-SkipQualityGates` omite formato, lint y typecheck; no debe usarse para una entrega al cliente.
+Usa `-NoUpload` para crear y validar el ZIP sin copiarlo. Usa `-Force` para reemplazar un ZIP local del mismo día. `-AllowDirty` crea un índice Git temporal con el contenido actual del worktree, registra el `source_tree` en `RELEASE-BUILD.txt` y no crea ningún commit; úsalo solo después de revisar los cambios que se van a desplegar. `-SkipQualityGates` omite únicamente el `typecheck`; el script no ejecuta `format:check`, `lint`, E2E, backup/restore ni la matriz 360/390/768/1440. No uses esta opción para una entrega al cliente.
 
 ## Contenido del ZIP
 
-El ZIP contiene una carpeta superior `jaautomation-release-YYYYMMDD/`. Dentro aparecen los archivos necesarios para los Dockerfiles de producción:
+El ZIP contiene una carpeta superior `jaautomation-release-YYYYMMDD/`. El script archiva estos
+paths del árbol revisado:
 
 ```text
+.dockerignore
+.env.example
+.gitignore
+.node-version
+.nvmrc
+README.md
 package.json
 pnpm-lock.yaml
 pnpm-workspace.yaml
+tsconfig.json
+eslint.config.js
+prettier.config.mjs
+vitest.config.ts
+playwright.config.ts
+playwright.mvp.config.ts
 website/
-apps/portal/
+apps/
 packages/
 migrations/
-deployment/compose.production.yml
-deployment/Dockerfile.site
-deployment/Dockerfile.portal
-deployment/Caddyfile.snippet
-RELEASE-BUILD.txt
-RELEASE-MANIFEST.sha256
+deployment/
+docs/
+scripts/
+tests/
 ```
 
-El script empaqueta el contenido de Git `HEAD`. Excluye `.git`, `node_modules`, bases SQLite, documentos privados, cargas, resultados de pruebas y salidas locales de build. Los builds locales validan el commit. El VPS recompila las imágenes desde los Dockerfiles fijados a Node `24.19.0` y pnpm `11.22.0`.
+Además genera `RELEASE-BUILD.txt` y `RELEASE-MANIFEST.sha256` dentro de la carpeta superior.
+El script excluye `.git`, `node_modules`, bases SQLite, documentos privados, cargas y salidas
+locales de build porque no forman parte de la lista archivada. Los builds locales se ejecutan
+antes de crear el archivo sobre el worktree actual; con un árbol limpio ese contenido coincide con
+`HEAD`. Con `-AllowDirty`, `RELEASE-BUILD.txt` registra el `source_tree` del índice temporal y el
+ZIP representa explícitamente el snapshot revisado, no `HEAD`. El VPS recompila las imágenes desde
+los Dockerfiles fijados a Node `24.19.0` y pnpm `11.22.0`.
 
 ## Instalar el watcher y desplegar el ZIP subido
 
@@ -63,14 +80,14 @@ Revisa primero los dos scripts subidos:
 ```bash
 less /home/kripta/install-jaautomation-zip-deploy.sh
 less /home/kripta/jaautomation-zip-deploy
-sha256sum /home/kripta/jaautomation-release-20260823-final.zip
+sha256sum /home/kripta/jaautomation-release-20260825-final.zip
 ```
 
 Después ejecuta:
 
 ```bash
 sudo bash /home/kripta/install-jaautomation-zip-deploy.sh \
-  --archive /home/kripta/jaautomation-release-20260823-final.zip
+  --archive /home/kripta/jaautomation-release-20260825-final.zip
 ```
 
 El instalador conserva los servicios J&A existentes. Añade:
@@ -100,6 +117,21 @@ El desplegador:
 - restaura el release, las imágenes, el enlace, la etiqueta y Caddy si falla la activación.
 
 El script no ejecuta el seed de demostración ni reemplaza `/var/lib/jaautomation/data` o `/var/lib/jaautomation/files`.
+
+## Evidencia adicional antes de declarar `CLIENT READY`
+
+El ZIP confirma la compilación y la integridad del archivo, pero no ejecuta la aceptación
+funcional completa. En el mismo snapshot validado, ejecuta como mínimo:
+
+```powershell
+pnpm exec playwright test --project=phone-360 --project=phone-390 --project=tablet-768 --project=desktop
+pwsh -File scripts/run-quality-gates.ps1 -IncludeE2E -IncludeOps
+```
+
+La primera orden cubre las cuatro anchuras representativas; la segunda añade los gates de
+integración, seguridad, build, backup/restore y el resto de suites configuradas. Registra los
+resultados y cualquier evidencia de VPS por separado. Un ZIP creado correctamente no transforma un
+`PARTIAL`, `FAIL` o DoD abierto en `PASS`.
 
 ## Seguimiento
 

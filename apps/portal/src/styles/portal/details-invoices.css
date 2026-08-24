@@ -426,7 +426,9 @@
 .project-record-link .record-card-open {
   flex: 0 0 auto;
   color: #277e78;
-  font: 700 0.62rem Consolas, monospace;
+  font:
+    700 0.62rem Consolas,
+    monospace;
 }
 
 /* A5-D report form composition ------------------------------------------- */

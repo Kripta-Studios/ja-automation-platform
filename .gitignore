@@ -9,6 +9,9 @@ dist/
 coverage/
 test-results/
 playwright-report/
+trace-out/
+.playwright-mcp/
+qa-evidence/
 .tmp/
 *.tsbuildinfo
 *.log
@@ -24,5 +27,11 @@ jaautomation-release-*.zip.sha256
 documents/
 uploads/
 data/backups/
+data/e2e-documents*/
+data/a5-round3-*/
+data/local-demo-documents/
+data/requested-ui-documents/
+Factura EVOCON-JA-2026-001*
+J_A_Automation_EVOCON_2026-001_USD1500_first_pay.html
 .DS_Store
 Thumbs.db

@@ -10,6 +10,7 @@
   } from '../../../standalone-locale';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
+  import { money as formatMoney } from '$lib/portal/portal-format';
   import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
 
   type Row = Record<string, string | number | boolean | null>;
@@ -34,10 +35,7 @@
   const preview = $derived(data.preview as { invoice: Row; lines: Row[]; taxes: Row[] });
   const invoice = $derived(preview.invoice);
   const money = (minor: unknown) =>
-    new Intl.NumberFormat(locale === 'pt' ? 'pt-BR' : locale, {
-      style: 'currency',
-      currency: String(invoice.currency),
-    }).format(Number(minor ?? 0) / 100);
+    formatMoney(minor, String(invoice.currency), locale === 'pt' ? 'pt-BR' : locale);
 
   onMount(() => {
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);

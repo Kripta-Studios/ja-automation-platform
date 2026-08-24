@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '@/lib/i18n/navigation';
 import Image from 'next/image';
 import { contact } from '@/content/company';
-import logoImg from '@/public/brand/logo-jaautomation.png';
+import logoImg from '@/public/brand/logo-jaautomation.webp';
 import { portalLoginUrl } from '@/lib/portal';
 
 export async function Footer() {
@@ -18,10 +18,10 @@ export async function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <Link href="/" aria-label="J-Aautomation Home" className="inline-block">
+            <Link href="/" aria-label={nav('siteHome')} className="inline-block">
               <Image
                 src={logoImg}
-                alt="J-Aautomation"
+                alt={nav('logoAlt')}
                 width={160}
                 height={48}
                 className="h-10 w-auto object-contain brightness-0 invert opacity-90 transition-opacity hover:opacity-100"

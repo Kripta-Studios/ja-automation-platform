@@ -1,4 +1,8 @@
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   REPORT_TEMPLATE_VERSION,
@@ -11,6 +15,18 @@ import {
 const sha256 = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
 const pageCount = (bytes: Uint8Array): number =>
   Buffer.from(bytes).toString('latin1').split('/Type /Page').length - 1;
+const textFromPdf = (bytes: Uint8Array): string => {
+  const directory = mkdtempSync(join(tmpdir(), 'ja-reporting-privacy-'));
+  const input = join(directory, 'report.pdf');
+  try {
+    writeFileSync(input, bytes);
+    return execFileSync('pdftotext', ['-layout', input, '-'], { encoding: 'utf8' })
+      .replace(/\s+/g, ' ')
+      .trim();
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+};
 
 describe('production reporting artifacts', () => {
   it('renders long immutable invoice snapshots as multipage PDFs with traceable template output', () => {
@@ -72,6 +88,76 @@ describe('production reporting artifacts', () => {
       expect(artifact.bytes.byteLength).toBeGreaterThan(0);
       expect(sha256(artifact.bytes)).toMatch(/^[a-f0-9]{64}$/);
     }
+  });
+
+  it('omits commercial calculation and money sections from customer period PDFs while retaining operational records', () => {
+    const pdf = periodReportPdf({
+      project: { number: 'C-0001-P-001', name: 'Commissioning', clientName: 'Client' },
+      periodStart: '2026-08-01',
+      periodEnd: '2026-08-31',
+      audience: 'customer',
+      locale: 'en',
+      commercialSummary: {
+        currency: 'USD',
+        actualMinutes: 600,
+        approvedMinutes: 540,
+        billableMinutes: 480,
+        candidateSubtotalMinor: '123456',
+      },
+      commercialCalculation: [
+        {
+          type: 'labor',
+          basis: 'SECRET COMMERCIAL BASIS',
+          minutes: 480,
+          amountMinor: '123456',
+        },
+      ],
+      financialSummary: {
+        currency: 'USD',
+        approvedCostMinor: '50000',
+        contributionMarginMinor: '73456',
+      },
+      dailyReports: [
+        {
+          work_date: '2026-08-12',
+          summary: 'Customer-visible operational activity retained',
+          approval_state: 'approved',
+        },
+      ],
+      technicalReports: [
+        {
+          report_date: '2026-08-13',
+          change_summary: 'PLC validation record retained',
+          approval_state: 'approved',
+        },
+      ],
+      technicalChanges: [
+        {
+          created_at: '2026-08-14T00:00:00.000Z',
+          change_made: 'Operational change reference retained',
+          approval_state: 'approved',
+        },
+      ],
+      sourceCounts: {
+        dailyReports: 1,
+        technicalReports: 1,
+        technicalChanges: 1,
+        timeEntries: 1,
+      },
+    });
+    expect(Buffer.from(pdf).subarray(0, 5).toString()).toBe('%PDF-');
+    const text = textFromPdf(pdf);
+    expect(text).toContain('Customer-visible operational activity retained');
+    expect(text).toContain('PLC validation record retained');
+    expect(text).toContain('Operational change reference retained');
+    expect(text).toContain('daily 1');
+    expect(text).toContain('technical 1');
+    expect(text).toContain('changes 1');
+    expect(text).toContain('time 1');
+    expect(text).not.toContain('SECRET COMMERCIAL BASIS');
+    expect(text).not.toContain('Calculation basis');
+    expect(text).not.toContain('1,234.56');
+    expect(text).not.toContain('Calculated bill candidate');
   });
 
   it('supports the selectable English, Brazilian Portuguese and Spanish report locales', () => {

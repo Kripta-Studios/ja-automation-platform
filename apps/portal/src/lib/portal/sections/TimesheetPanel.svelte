@@ -16,6 +16,22 @@
     translate: (value: string) => string;
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
   } = $props();
+
+  const displayMinutes = (value: number | null | undefined): string =>
+    value === null || value === undefined ? '—' : hours(value);
+  const expectedTotal = (
+    days: ReadonlyArray<{ expectedMinutes: number | null }> | undefined,
+  ): number | null => {
+    if (!days || days.length === 0 || days.some((day) => day.expectedMinutes === null)) return null;
+    return days.reduce((sum, day) => sum + (day.expectedMinutes ?? 0), 0);
+  };
+  const differenceTotal = (
+    days: ReadonlyArray<{ differenceMinutes: number | null }> | undefined,
+  ): number | null => {
+    if (!days || days.length === 0 || days.some((day) => day.differenceMinutes === null))
+      return null;
+    return days.reduce((sum, day) => sum + (day.differenceMinutes ?? 0), 0);
+  };
 </script>
 
 <section class="timesheet-panel" aria-labelledby="weekly-timesheet-title">
@@ -24,7 +40,9 @@
       <span class="portal-kicker">{translate('WEEKLY TIMESHEET')}</span>
       <h2 id="weekly-timesheet-title">{translate('Actual time, one week at a glance')}</h2>
       <p>
-        {data.timesheet?.weekStart} → {data.timesheet?.weekEnd}. {translate('Expected availability is 10 hours Monday through Saturday; Sunday stays at zero.')}
+        {data.timesheet?.weekStart} → {data.timesheet?.weekEnd}. {translate(
+          'Planning target only; it never creates time.',
+        )}
       </p>
     </div>
     <form class="timesheet-period" method="GET" action={`${base}/app/time`}>
@@ -33,18 +51,35 @@
     </form>
   </div>
   <div class="timesheet-guide" aria-label={translate('How to read this timesheet')}>
-    <div><strong>{translate('Actual')}</strong><span>{translate('Minutes you really recorded.')}</span></div>
     <div>
-      <strong>{translate('Expected')}</strong><span>{translate('Planning target only; it never creates time.')}</span>
+      <strong>{translate('Actual')}</strong><span>{translate('Minutes you really recorded.')}</span>
     </div>
-    <div><strong>{translate('Difference')}</strong><span>{translate('Actual minus expected for the day.')}</span></div>
     <div>
-      <strong>{translate('Status')}</strong><span>{translate('Draft, submitted, approved or needs changes.')}</span>
+      <strong>{translate('Expected')}</strong><span
+        >{translate('Planning target only; it never creates time.')}</span
+      >
+    </div>
+    <div>
+      <strong>{translate('Difference')}</strong><span
+        >{translate('Actual minus expected for the day.')}</span
+      >
+    </div>
+    <div>
+      <strong>{translate('Status')}</strong><span
+        >{translate('Draft, submitted, approved or needs changes.')}</span
+      >
     </div>
   </div>
-  <TableRegion class="timesheet-table-wrap" mobileMode="scroll" headingId="weekly-timesheet-title" label={translate('Timesheet table')}>
+  <TableRegion
+    class="timesheet-table-wrap"
+    mobileMode="scroll"
+    headingId="weekly-timesheet-title"
+    label={translate('Timesheet table')}
+  >
     <table class="timesheet-table">
-      <caption class="visually-hidden">{translate('Weekly actual time and approval status')}</caption>
+      <caption class="visually-hidden"
+        >{translate('Weekly actual time and approval status')}</caption
+      >
       <thead>
         <tr>
           <th scope="col">{translate('Day')}</th>
@@ -57,30 +92,52 @@
       </thead>
       <tbody>
         {#each data.timesheet?.days ?? [] as day}
-          <tr class:timesheet-exception={day.status === 'Needs note' || day.status === 'Needs changes'}>
+          <tr
+            class:timesheet-exception={day.status === 'Needs note' ||
+              day.status === 'Needs changes'}
+          >
             <th scope="row">{day.label}<small>{day.date}</small></th>
             <td>{hours(day.actualMinutes)}</td>
-            <td>{hours(day.expectedMinutes)}</td>
-            <td class:positive={day.differenceMinutes > 0} class:negative={day.differenceMinutes < 0}>
-              {day.differenceMinutes > 0 ? '+' : ''}{hours(day.differenceMinutes)}
+            <td>{displayMinutes(day.expectedMinutes)}</td>
+            <td
+              class:positive={day.differenceMinutes !== null && day.differenceMinutes > 0}
+              class:negative={day.differenceMinutes !== null && day.differenceMinutes < 0}
+            >
+              {day.differenceMinutes === null
+                ? '—'
+                : `${day.differenceMinutes > 0 ? '+' : ''}${hours(day.differenceMinutes)}`}
             </td>
             <td>{categorySummary(day.categories) || '—'}</td>
-            <td><span class="timesheet-status">{controlledValue('status', day.status) || translate(day.status)}</span></td>
+            <td
+              ><span class="timesheet-status"
+                >{controlledValue('status', day.status) || translate(day.status)}</span
+              ></td
+            >
           </tr>
         {/each}
       </tbody>
       <tfoot>
         <tr>
           <th scope="row">{translate('Actual')}</th>
-          <td>{hours(data.timesheet?.days.reduce((sum, day) => sum + day.actualMinutes, 0) ?? 0)}</td>
-          <td>{hours(data.timesheet?.days.reduce((sum, day) => sum + day.expectedMinutes, 0) ?? 0)}</td>
-          <td>{(() => {
-              const difference = data.timesheet?.days.reduce((sum, day) => sum + day.differenceMinutes, 0) ?? 0;
-              return `${difference > 0 ? '+' : ''}${hours(difference)}`;
-            })()}</td>
+          <td
+            >{hours(data.timesheet?.days.reduce((sum, day) => sum + day.actualMinutes, 0) ?? 0)}</td
+          >
+          <td>{displayMinutes(expectedTotal(data.timesheet?.days))}</td>
+          <td
+            >{(() => {
+              const difference = differenceTotal(data.timesheet?.days);
+              return difference === null ? '—' : `${difference > 0 ? '+' : ''}${hours(difference)}`;
+            })()}</td
+          >
           <td colspan="2">
             {#if data.weeklyPay}
-              {hours(data.weeklyPay.approvedMinutes)} {translate('approved')} · {hours(data.weeklyPay.pendingMinutes)} {translate('pending')} · {money(data.weeklyPay.estimatedApprovedMinor, data.weeklyPay.currency)} {translate('approved estimate')}
+              {hours(data.weeklyPay.approvedMinutes)}
+              {translate('approved')} · {hours(data.weeklyPay.pendingMinutes)}
+              {translate('pending')} · {money(
+                data.weeklyPay.estimatedApprovedMinor,
+                data.weeklyPay.currency,
+              )}
+              {translate('approved estimate')}
             {:else}
               {translate('Review access is limited to operational time.')}
             {/if}
@@ -94,7 +151,9 @@
       <summary>{translate('Copy previous week layout')}</summary>
       <div class="timesheet-copy-body">
         <p>
-          {translate('Copies projects, categories and activity labels into zero-minute drafts. It never copies time values.')}
+          {translate(
+            'Copies projects, categories and activity labels into zero-minute drafts. It never copies time values.',
+          )}
         </p>
         <form method="POST" action="?/copyTimeLayout">
           <input type="hidden" name="sourceWeekStart" value={shiftWeek(data.weekStart ?? '', -7)} />

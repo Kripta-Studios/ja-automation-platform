@@ -77,97 +77,113 @@ const optionalText = (maximum: number) =>
 const integerFromForm = (minimum: number, maximum: number) =>
   z.coerce.number().int().min(minimum).max(maximum);
 
-export const clientInputSchema = z.object({
-  legalName: z.string().trim().min(2).max(300),
-  displayName: z.string().trim().min(2).max(160),
-  currency: currencySchema,
-  timezone: z.string().trim().min(1).max(100),
-  billingEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
-  billingContactName: z.string().trim().min(2).max(160).optional(),
-  billingAddress: z.string().trim().min(5).max(2000),
-  paymentTermsDays: z.coerce.number().int().min(0).max(365).default(30),
-  poReference: z.string().trim().max(200).optional(),
-  notes: z.string().trim().max(5000).optional(),
-}).superRefine((value, context) => {
-  if (!value.billingEmail && !value.billingContactName) {
-    context.addIssue({
-      code: 'custom',
-      path: ['billingEmail'],
-      message: 'A billing contact name or billing email is required',
-    });
-  }
-});
+export const clientInputSchema = z
+  .object({
+    clientCode: optionalText(40),
+    legalName: z.string().trim().min(2).max(300),
+    displayName: z.string().trim().min(2).max(160),
+    currency: currencySchema,
+    timezone: z.string().trim().min(1).max(100),
+    billingEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
+    billingContactName: z.string().trim().min(2).max(160).optional(),
+    billingAddress: z.string().trim().min(5).max(2000),
+    paymentTermsDays: z.coerce.number().int().min(0).max(365).default(30),
+    poReference: z.string().trim().max(200).optional(),
+    notes: z.string().trim().max(5000).optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (!value.billingEmail && !value.billingContactName) {
+      context.addIssue({
+        code: 'custom',
+        path: ['billingEmail'],
+        message: 'A billing contact name or billing email is required',
+      });
+    }
+  });
 
 /**
  * The client editor is deliberately an allowlisted partial update.  Identity
  * and optimistic-concurrency fields remain mandatory so a browser cannot
  * submit an unversioned or over-posted client mutation.
  */
-export const clientUpdateInputSchema = z.object({
-  clientId: uuidSchema,
-  version: z.coerce.number().int().positive(),
-  legalName: z.string().trim().min(2).max(300).optional(),
-  displayName: z.string().trim().min(2).max(160).optional(),
-  currency: currencySchema.optional(),
-  timezone: z.string().trim().min(1).max(100).optional(),
-  billingEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
-  billingContactName: z.union([z.literal(''), z.string().trim().min(2).max(160)]).optional(),
-  billingAddress: z.string().trim().min(5).max(2000).optional(),
-  paymentTermsDays: z.coerce.number().int().min(0).max(365).optional(),
-  poReference: z.string().trim().max(200).optional(),
-  notes: z.string().trim().max(5000).optional(),
-});
+export const clientUpdateInputSchema = z
+  .object({
+    clientId: uuidSchema,
+    version: z.coerce.number().int().positive(),
+    clientCode: z
+      .union([z.literal(''), z.string().trim().max(40)])
+      .optional()
+      .transform((value) => (value === '' ? null : value)),
+    legalName: z.string().trim().min(2).max(300).optional(),
+    displayName: z.string().trim().min(2).max(160).optional(),
+    currency: currencySchema.optional(),
+    timezone: z.string().trim().min(1).max(100).optional(),
+    billingEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
+    billingContactName: z.union([z.literal(''), z.string().trim().min(2).max(160)]).optional(),
+    billingAddress: z.string().trim().min(5).max(2000).optional(),
+    paymentTermsDays: z.coerce.number().int().min(0).max(365).optional(),
+    poReference: z.string().trim().max(200).optional(),
+    notes: z.string().trim().max(5000).optional(),
+  })
+  .strict();
 
-export const projectInputSchema = z.object({
-  clientId: uuidSchema,
-  name: z.string().trim().min(2).max(200),
-  description: z.string().trim().max(5000).optional(),
-  projectAlias: z.string().trim().max(120).optional(),
-  timezone: z.string().trim().min(1).max(100),
-  currency: currencySchema,
-  billingModel: z.enum([
-    'tm',
-    'tm_daily_minimum',
-    'all_in',
-    'capped_tm',
-    'milestone',
-    'hybrid',
-    'internal',
-  ]),
-  siteName: z.string().trim().max(200).optional(),
-  country: z.string().trim().max(100).optional(),
-  expectedMinutesPerDay: z.coerce.number().int().min(0).max(1440).default(600),
-  clientDailyMinimumMinutes: z
-    .union([z.literal(''), z.coerce.number().int().min(0).max(1440)])
-    .optional()
-    .transform((value) => (value === '' ? undefined : value)),
-  poNumber: z.string().trim().max(100).optional(),
-  contractNumber: z.string().trim().max(160).optional(),
-  projectManagerId: z.union([z.literal(''), uuidSchema]).optional(),
-  startDate: z.union([z.literal(''), z.iso.date()]).optional(),
-  plannedEndDate: z.union([z.literal(''), z.iso.date()]).optional(),
-  budgetType: z
-    .enum(['none', 'revenue', 'purchase_order', 'labor', 'travel', 'combined'])
-    .default('none'),
-  revenueBudgetMinor: minorUnitsSchema
-    .optional()
-    .transform((value) => (value ? BigInt(value) : undefined)),
-  poCapMinor: minorUnitsSchema.optional().transform((value) => (value ? BigInt(value) : undefined)),
-  fixedPriceMinor: minorUnitsSchema
-    .optional()
-    .transform((value) => (value ? BigInt(value) : undefined)),
-  laborBudgetMinutes: z.coerce.number().int().nonnegative().optional(),
-  travelBudgetMinor: minorUnitsSchema
-    .optional()
-    .transform((value) => (value ? BigInt(value) : undefined)),
-  otherCostBudgetMinor: minorUnitsSchema
-    .optional()
-    .transform((value) => (value ? BigInt(value) : undefined)),
-  weeklyCloseEnabled: z.coerce.boolean().default(false),
-  dailyReportRequired: z.coerce.boolean().default(false),
-  technicalReportingRequired: z.coerce.boolean().default(false),
-  notes: z.string().trim().max(5000).optional(),
-});
+export const projectInputSchema = z
+  .object({
+    clientId: uuidSchema,
+    /** Required for new Essential projects; legacy rows remain nullable in storage. */
+    costCenterCode: z.string().trim().min(1).max(120),
+    name: z.string().trim().min(2).max(200),
+    description: z.string().trim().max(5000).optional(),
+    projectAlias: z.string().trim().max(120).optional(),
+    timezone: z.string().trim().min(1).max(100),
+    currency: currencySchema,
+    billingModel: z.enum([
+      'tm',
+      'tm_daily_minimum',
+      'all_in',
+      'capped_tm',
+      'milestone',
+      'hybrid',
+      'internal',
+    ]),
+    siteName: z.string().trim().max(200).optional(),
+    country: z.string().trim().max(100).optional(),
+    expectedMinutesPerDay: z.coerce.number().int().min(0).max(1440).default(600),
+    clientDailyMinimumMinutes: z
+      .union([z.literal(''), z.coerce.number().int().min(0).max(1440)])
+      .optional()
+      .transform((value) => (value === '' ? undefined : value)),
+    poNumber: z.string().trim().max(100).optional(),
+    contractNumber: z.string().trim().max(160).optional(),
+    projectManagerId: z.union([z.literal(''), uuidSchema]).optional(),
+    startDate: z.union([z.literal(''), z.iso.date()]).optional(),
+    plannedEndDate: z.union([z.literal(''), z.iso.date()]).optional(),
+    budgetType: z
+      .enum(['none', 'revenue', 'purchase_order', 'labor', 'travel', 'combined'])
+      .default('none'),
+    revenueBudgetMinor: minorUnitsSchema
+      .optional()
+      .transform((value) => (value ? BigInt(value) : undefined)),
+    poCapMinor: minorUnitsSchema
+      .optional()
+      .transform((value) => (value ? BigInt(value) : undefined)),
+    fixedPriceMinor: minorUnitsSchema
+      .optional()
+      .transform((value) => (value ? BigInt(value) : undefined)),
+    laborBudgetMinutes: z.coerce.number().int().nonnegative().optional(),
+    travelBudgetMinor: minorUnitsSchema
+      .optional()
+      .transform((value) => (value ? BigInt(value) : undefined)),
+    otherCostBudgetMinor: minorUnitsSchema
+      .optional()
+      .transform((value) => (value ? BigInt(value) : undefined)),
+    weeklyCloseEnabled: z.coerce.boolean().default(false),
+    dailyReportRequired: z.coerce.boolean().default(false),
+    technicalReportingRequired: z.coerce.boolean().default(false),
+    notes: z.string().trim().max(5000).optional(),
+  })
+  .strict();
 
 export const clientContactInputSchema = z.object({
   clientId: uuidSchema,
@@ -254,55 +270,37 @@ export const versionedRecordSchema = z.object({
   version: z.coerce.number().int().positive(),
 });
 
-export const expenseInputSchema = z.object({
-  projectId: uuidSchema,
-  spentOn: z.iso.date(),
-  vendor: z.string().trim().min(1).max(200),
-  category: z.enum([
-    'hotel',
-    'rental_car',
-    'fuel',
-    'tolls',
-    'parking',
-    'airfare',
-    'ground_transport',
-    'meals',
-    'per_diem',
-    'materials',
-    'tools',
-    'shipping',
-    'phone_data',
-    'visa_permit',
-    'other',
-  ]),
-  description: z.string().trim().min(3).max(5000),
-  currency: currencySchema,
-  amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
-  projectCurrencyAmountMinor: minorUnitsSchema
-    .optional()
-    .transform((value) => (value ? BigInt(value) : undefined)),
-  fxRateBps: z.coerce.number().int().positive().optional(),
-  taxAmountMinor: minorUnitsSchema
-    .optional()
-    .transform((value) => (value ? BigInt(value) : undefined)),
-  whoPaid: z.enum(['worker', 'company_card', 'company_direct', 'client', 'third_party']),
-  clientTreatment: z.enum(['all_in', 'reimbursable', 'non_billable']),
-  billingTreatment: z
-    .enum([
-      'reimbursable_at_cost',
-      'reimbursable_plus_markup',
-      'all_in',
-      'internal_non_billable',
-      'client_direct',
-      'allowance_per_diem',
-      'informational',
-    ])
-    .optional(),
-  markupBps: z.coerce.number().int().min(0).max(100_000).optional(),
-  paymentMethod: z.string().trim().max(80).optional(),
-  receiptRequired: z.coerce.boolean().default(false),
-  receiptDocumentId: z.union([z.literal(''), uuidSchema]).optional(),
-});
+export const expenseInputSchema = z
+  .object({
+    projectId: uuidSchema,
+    spentOn: z.iso.date(),
+    vendor: z.string().trim().min(1).max(200),
+    category: z.enum([
+      'hotel',
+      'rental_car',
+      'fuel',
+      'tolls',
+      'parking',
+      'airfare',
+      'ground_transport',
+      'meals',
+      'per_diem',
+      'materials',
+      'tools',
+      'shipping',
+      'phone_data',
+      'visa_permit',
+      'other',
+    ]),
+    description: z.string().trim().min(3).max(5000),
+    currency: currencySchema,
+    amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
+    whoPaid: z.enum(['worker', 'company_card', 'company_direct', 'client', 'third_party']),
+    paymentMethod: z.string().trim().max(80).optional(),
+    receiptRequired: z.coerce.boolean().default(false),
+    receiptDocumentId: z.union([z.literal(''), uuidSchema]).optional(),
+  })
+  .strict();
 
 export const approvalDecisionSchema = z
   .object({
@@ -325,6 +323,94 @@ export const financeDecisionSchema = z.object({
   type: z.enum(['time', 'expense']),
   billable: z.enum(['yes', 'no']).optional(),
 });
+
+const commercialPolicyBooleanSchema = z
+  .union([z.boolean(), z.enum(['true', 'false', '1', '0', 'on', 'off'])])
+  .transform((value) => value === true || value === 'true' || value === '1' || value === 'on');
+
+export const projectCommercialPolicyInputSchema = z
+  .object({
+    projectId: uuidSchema,
+    effectiveFrom: z.iso.date(),
+    overtimeEnabled: commercialPolicyBooleanSchema,
+    overtimeThresholdMinutes: z.preprocess(
+      (value) => (value === '' || value === undefined ? null : value),
+      z.union([z.null(), z.coerce.number().int().min(1).max(1440)]),
+    ),
+    travelClientBillable: commercialPolicyBooleanSchema,
+    customerSignoffRequired: commercialPolicyBooleanSchema,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.overtimeEnabled && value.overtimeThresholdMinutes === null)
+      context.addIssue({
+        code: 'custom',
+        path: ['overtimeThresholdMinutes'],
+        message: 'An overtime threshold is required when overtime is enabled',
+      });
+    if (!value.overtimeEnabled && value.overtimeThresholdMinutes !== null)
+      context.addIssue({
+        code: 'custom',
+        path: ['overtimeThresholdMinutes'],
+        message: 'The overtime threshold must be empty when overtime is disabled',
+      });
+  });
+
+const nullablePlanningDateSchema = z.preprocess(
+  (value) => (value === '' ? null : value),
+  z.union([z.null(), isoDateSchema]),
+);
+
+/**
+ * Finance-only commercial interpretation of operational expense truth.
+ * This contract is intentionally strict so Worker/PM or forged browser
+ * fields cannot cross the server action boundary.
+ */
+export const expenseCommercialClassificationInputSchema = z
+  .object({
+    expenseId: uuidSchema,
+    expectedVersion: z.coerce.number().int().positive(),
+    clientTreatment: z.enum(['all_in', 'reimbursable', 'non_billable']),
+    billingTreatment: z.enum([
+      'reimbursable_at_cost',
+      'reimbursable_plus_markup',
+      'all_in',
+      'internal_non_billable',
+      'client_direct',
+      'allowance_per_diem',
+      'informational',
+    ]),
+    markupBps: z.coerce.number().int().min(0).max(10_000).default(0),
+    taxBps: z.coerce.number().int().min(0).max(100_000).default(0),
+    reason: z.string().trim().min(1).max(2000),
+    idempotencyKey: z.string().trim().min(8).max(240),
+  })
+  .strict();
+
+export const expensePlanningDatesInputSchema = z
+  .object({
+    expenseId: uuidSchema,
+    expectedReimbursementOn: nullablePlanningDateSchema,
+    expectedRecoveryOn: nullablePlanningDateSchema,
+    expectedVersion: z.coerce.number().int().positive(),
+  })
+  .strict();
+
+export const compensationSettlementPlanningInputSchema = z
+  .object({
+    settlementId: uuidSchema,
+    expectedPaymentOn: nullablePlanningDateSchema,
+  })
+  .strict();
+
+export const invoicePlanningDatesInputSchema = z
+  .object({
+    invoiceId: uuidSchema,
+    plannedIssueOn: nullablePlanningDateSchema,
+    expectedCollectionOn: nullablePlanningDateSchema,
+    expectedVersion: z.coerce.number().int().positive(),
+  })
+  .strict();
 
 export const invoicePeriodSchema = z.object({
   billingRuleId: uuidSchema,

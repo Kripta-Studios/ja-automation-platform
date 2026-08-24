@@ -4,6 +4,7 @@ import { lifecycle } from './shared.ts';
 export const clients = sqliteTable('client', {
   id: text('id').primaryKey(),
   clientNumber: text('client_number').notNull().unique(),
+  clientCode: text('client_code'),
   legalName: text('legal_name').notNull(),
   displayName: text('display_name').notNull(),
   status: text('status').notNull(),

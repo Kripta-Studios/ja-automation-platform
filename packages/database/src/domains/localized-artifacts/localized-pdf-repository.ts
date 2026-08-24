@@ -234,11 +234,36 @@ const FINANCE_OWNER_TYPES: readonly LocalizedPdfOwnerType[] = [
   'period_report_revision',
   'accounting_pack_revision',
 ];
+const CUSTOMER_PERIOD_REPORT_PRIVACY_VERSION = '2026.08.24.customer-period-safe-v1';
 
 const now = (): string => new Date().toISOString();
 
+function parseJsonRecord(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'string') return {};
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
 function sha256(value: string): string {
   return createHash('sha256').update(value, 'utf8').digest('hex');
+}
+
+function legacyPeriodReportSnapshotRevision(ownerId: string, snapshotJson: unknown): string {
+  return `${ownerId}:snapshot:${sha256(String(snapshotJson))}`;
+}
+
+function legacyPeriodReportVariantSnapshotRevision(row: LocalizedPdfRow): string | null {
+  if (row.snapshot_hash_kind === 'legacy_verbatim')
+    return legacyPeriodReportSnapshotRevision(row.owner_id, row.snapshot_json);
+  const snapshot = parseJsonRecord(row.snapshot_json);
+  if (!Object.prototype.hasOwnProperty.call(snapshot, 'snapshot_json')) return null;
+  return legacyPeriodReportSnapshotRevision(row.owner_id, snapshot.snapshot_json);
 }
 
 function canonicalJson(value: unknown): string {
@@ -261,6 +286,54 @@ function canonicalJson(value: unknown): string {
 function canonicalSnapshot(value: unknown): { json: string; hash: string } {
   const json = canonicalJson(value);
   return { json, hash: sha256(json) };
+}
+
+/**
+ * Keep the invoice artifact subject projection aligned with the canonical
+ * projection guarded by migration 0023.  Invoice gained planned/expected
+ * date columns in migration 0028; those operational planning fields must not
+ * silently become part of the immutable invoice PDF owner snapshot unless the
+ * database guard is updated in the same migration.
+ */
+function canonicalInvoiceSnapshot(row: Record<string, unknown>): {
+  json: string;
+  hash: string;
+} {
+  return canonicalSnapshot({
+    billing_rule_id: row.billing_rule_id,
+    calculation_hash: row.calculation_hash,
+    configuration_revision_id: row.configuration_revision_id,
+    created_at: row.created_at,
+    currency: row.currency,
+    deployment_id: row.deployment_id,
+    due_at: row.due_at,
+    id: row.id,
+    invoice_number: row.invoice_number,
+    invoice_subject_hash: row.invoice_subject_hash,
+    issued_at: row.issued_at,
+    legal_entity_revision_id: row.legal_entity_revision_id,
+    pdf_byte_length: row.pdf_byte_length,
+    pdf_generated_at: row.pdf_generated_at,
+    pdf_sha256: row.pdf_sha256,
+    pdf_status: row.pdf_status,
+    pdf_storage_key: row.pdf_storage_key,
+    period_end: row.period_end,
+    period_start: row.period_start,
+    predecessor_subject_hash: row.predecessor_subject_hash,
+    project_id: row.project_id,
+    sent_at: row.sent_at,
+    snapshot_json: row.snapshot_json,
+    source_lock_at: row.source_lock_at,
+    state: row.state,
+    stream_type: row.stream_type,
+    subtotal_minor: row.subtotal_minor,
+    tax_minor: row.tax_minor,
+    tenant_id: row.tenant_id,
+    total_minor: row.total_minor,
+    updated_at: row.updated_at,
+    version: row.version,
+    voided_at: row.voided_at,
+  });
 }
 
 function normalizeLocale(value: unknown): LocalizedPdfLocale {
@@ -585,6 +658,7 @@ export class LocalizedPdfRepository {
     const ownerId = assertSegment(selector.ownerId, 'ownerId');
     const identity = this.deployment();
     let row: Record<string, unknown> | undefined;
+    let legacyPeriodReport = false;
     let projectId: string | null = null;
     let sourceUserId: string | null = null;
     let sourceDate: string | null = null;
@@ -616,13 +690,23 @@ export class LocalizedPdfRepository {
           .get(ownerId, identity.tenantId, identity.deploymentId) as
           | Record<string, unknown>
           | undefined;
-        if (!row)
-          row = this.sqlite.prepare('SELECT * FROM period_report WHERE id=?').get(ownerId) as
-            | Record<string, unknown>
-            | undefined;
-         if (row && 'project_id' in row) projectId = projectIdFromRow(row);
-         ownerRevisionId = ownerId;
-        if (row && 'snapshot_json' in row) ownerRevisionId = `${ownerId}:v1`;
+        if (!row) {
+          legacyPeriodReport = true;
+          row = this.sqlite
+            .prepare(
+              `SELECT audience,created_at,created_by,id,pdf_byte_length,pdf_sha256,pdf_storage_key,
+                      period_end,period_start,project_id,report_type,snapshot_json,state,updated_at
+               FROM period_report WHERE id=?`,
+            )
+            .get(ownerId) as Record<string, unknown> | undefined;
+        }
+        if (row && 'project_id' in row) projectId = projectIdFromRow(row);
+        ownerRevisionId = ownerId;
+        if (row && 'snapshot_json' in row) {
+          ownerRevisionId = legacyPeriodReport
+            ? `${ownerId}:snapshot:${sha256(String(row.snapshot_json))}`
+            : `${ownerId}:v1`;
+        }
         break;
       case 'accounting_pack_revision':
         row = this.sqlite
@@ -658,12 +742,26 @@ export class LocalizedPdfRepository {
         break;
     }
     if (!row) throw new AccessDeniedError('Localized PDF owner not found');
+    if (legacyPeriodReport) {
+      const audience = row.audience;
+      const snapshot = parseJsonRecord(row.snapshot_json);
+      if (
+        audience === 'customer' &&
+        snapshot.customerPrivacyVersion !== CUSTOMER_PERIOD_REPORT_PRIVACY_VERSION
+      )
+        throw new AccessDeniedError('Customer period report requires a safe snapshot refresh');
+      // Legacy internal period reports have no revision-level assignment contract. Keep them
+      // finance/owner/auditor readable through the role check, but do not let PM assignment scope
+      // grant access to the finance-facing fallback row.
+      if (audience === 'internal') projectId = null;
+    }
     if (
       (selector.ownerType === 'daily_report' || selector.ownerType === 'technical_report') &&
       (!projectId || !sourceUserId || !sourceDate)
     )
       throw new AccessDeniedError('Localized PDF operational owner scope is incomplete');
-    const snapshot = canonicalSnapshot(row);
+    const snapshot =
+      selector.ownerType === 'invoice' ? canonicalInvoiceSnapshot(row) : canonicalSnapshot(row);
     return {
       ownerType: selector.ownerType,
       ownerId,
@@ -684,7 +782,14 @@ export class LocalizedPdfRepository {
     // A localized artifact is authorized against the immutable source revision captured at
     // request time. If the source was edited after the request, do not silently re-authorize the
     // old bytes using the new worker/project relationship; require a fresh variant instead.
-    if (owner.ownerRevisionId !== row.owner_revision_id)
+    const legacyPeriodReportRevisionMatches =
+      row.owner_type === 'period_report_revision' &&
+      row.owner_revision_id === `${row.owner_id}:v1` &&
+      owner.ownerRevisionId === legacyPeriodReportVariantSnapshotRevision(row);
+    // Migration 0023's legacy period-report insert trigger only permits the v1 subject binding.
+    // Keep that durable compatibility row readable only when its captured snapshot is exactly the
+    // current base snapshot; the derived owner revision remains the deterministic snapshot hash.
+    if (owner.ownerRevisionId !== row.owner_revision_id && !legacyPeriodReportRevisionMatches)
       throw new AccessDeniedError('Localized PDF source revision is no longer current');
     return owner;
   }
@@ -733,14 +838,7 @@ export class LocalizedPdfRepository {
       .prepare(
         "SELECT 1 FROM project_member WHERE project_id=? AND user_id=? AND status='active' AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?) AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?) LIMIT 1",
       )
-      .get(
-        owner.projectId,
-        principal.userId,
-        currentDate,
-        currentDate,
-        objectDate,
-        objectDate,
-      );
+      .get(owner.projectId, principal.userId, currentDate, currentDate, objectDate, objectDate);
     return Boolean(assignment);
   }
 
@@ -882,6 +980,14 @@ export class LocalizedPdfRepository {
       const filename = semanticFilename(owner, localeTag, templateVersion, generationVersion);
       const key = storageKey(owner, localeTag, templateVersion, generationVersion, variantId);
       assertSafeStorageKey(key, () => new ValidationError('Generated storage key is unsafe'));
+      // Migration 0023's legacy period-report subject/canonical guards still require the v1
+      // durable column value. The effective owner revision remains the exact snapshot hash and
+      // ownerForVariant verifies that legacy v1 rows captured that same snapshot.
+      const persistedOwnerRevisionId =
+        owner.ownerType === 'period_report_revision' &&
+        owner.ownerRevisionId.startsWith(`${owner.ownerId}:snapshot:`)
+          ? `${owner.ownerId}:v1`
+          : owner.ownerRevisionId;
       this.sqlite
         .prepare(
           `INSERT INTO localized_pdf_variant(
@@ -895,7 +1001,7 @@ export class LocalizedPdfRepository {
           variantId,
           owner.ownerType,
           owner.ownerId,
-          owner.ownerRevisionId,
+          persistedOwnerRevisionId,
           owner.tenantId,
           owner.deploymentId,
           locale,

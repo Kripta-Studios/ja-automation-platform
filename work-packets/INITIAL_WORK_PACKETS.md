@@ -1,8 +1,18 @@
-# Initial Multi-Agent Work Packets — Historical Ledger and Client Essential Routing
+# Initial Multi-Agent Work Packets — ARCHIVED Historical Ledger
 
-> **Authority notice (2026-08-23):** The Client Essential specification/checklist supersede the historical V3 expansion queue for client delivery. Reuse a packet below only after mapping it to CORE-01..17, narrowing it to an audited Essential gap, and assigning current exclusive ownership. Expanded industrial/business/ML/P2 packets, the old 42-step harness, and 207-row completion work are **DEFERRED POST-CORE ROADMAP** except where an explicit Essential dependency is documented.
+> **ARCHIVED — NOT DISPATCHABLE (2026-08-24):** Every packet definition below preserves the prior
+> worktree/packet queue and its evidence. It is not the current execution authorization. Use the
+> WP-00→WP-10 DAG below and a parent-issued packet brief for current work.
 
-The active dependency order is: migration/test baseline → security/domain foundations → operational truth → financial truth → six Essential report families/artifacts → representative responsive/accessibility and production operations → Client Essential 32-step acceptance.
+> **Authority notice (2026-08-24):** The Client Essential SPEC and checklist, the validated local
+> `J_A_Automation_Contrato_Proyecto_EVOCON_ES.html` (`ANEXO A` scope and `ANEXO D` UAT), and `UI_PLAN.md` for UX/UI supersede the historical V3 expansion queue
+> for client delivery. Expanded industrial/business/ML/P2 packets, the old 42-step harness, and
+> 207-row completion work are **DEFERRED POST-CORE ROADMAP** except where an explicit Essential
+> dependency is documented.
+
+The historical dependency order was: migration/test baseline → security/domain foundations →
+operational truth → financial truth → six Essential report families/artifacts → representative
+responsive/accessibility and production operations → Client Essential 32-step acceptance.
 
 These are orchestration contracts, not implementation authorization. The parent must copy each selected packet into a concrete assignment with exact owned/forbidden paths, branch/worktree, dependencies, acceptance checks, and handoff evidence.
 
@@ -14,7 +24,30 @@ These are orchestration contracts, not implementation authorization. The parent 
 - One parent-assigned migration writer controls migration numbering at a time.
 - All handoffs include: changed paths, preserved public contracts, migrations/backfill/rollback, commands and exact results, unresolved risks, and reviewer-ready evidence.
 
-## Instantiated first wave (created only after WP-R0 passes)
+## Current active Client Essential DAG — WP-00→WP-10 — 2026-08-24
+
+| Order | Packet | Scope lane                                                                          | Dependency                        | State                        |
+| ----: | ------ | ----------------------------------------------------------------------------------- | --------------------------------- | ---------------------------- |
+|     0 | WP-00  | A / Luna Max — authority and queue reconciliation (docs)                            | none; independently reviewed      | COMPLETE                     |
+|     1 | WP-01  | C / Sol lead — projection privacy firewall (tests + production)                     | may run with WP-00                | COMPLETE                     |
+|     2 | WP-02  | C / Sol lead — additive domain contract                                             | WP-01 boundary                    | COMPLETE                     |
+|     3 | WP-03  | B / Sol Medium — canonical commercial authority and fail-closed finance projections | WP-02                             | REVIEW                       |
+|     4 | WP-04  | C / Sol lead — immutable customer conformity and invoice issue blocker              | WP-02                             | COMPLETE — SECURITY APPROVED |
+|     5 | WP-05A | A / Luna Max — Worker time and role navigation                                      | WP-03 + UI primitives             | COMPLETE — BROWSER OPEN      |
+|     6 | WP-05B | A / Luna Max — Worker expenses/My Pay                                               | WP-03 + UI primitives             | COMPLETE — BROWSER OPEN      |
+|     7 | WP-06  | A / Luna Max — Reports/sign-off                                                     | WP-04 + UI primitives             | COMPLETE — BROWSER OPEN      |
+|     8 | WP-07  | A / Luna Max — PM/projects/approvals                                                | WP-01 + UI primitives             | COMPLETE — BROWSER OPEN      |
+|     9 | WP-08  | B / Sol Medium — Finance/Billing/Collections                                        | WP-02 + WP-03                     | IMPLEMENTED — BROWSER OPEN   |
+|    10 | WP-09  | A/C split — integration/browser evidence and independent reviews                    | WP-01..WP-08                      | ACTIVE                       |
+|    11 | WP-10  | C / Sol High — release                                                              | WP-09 + all non-conditional gates | PENDING                      |
+
+The current audit is **NOT READY**. Queue state is authorization evidence only and never upgrades a
+checklist or RTM requirement to `PASS`.
+
+## Archived instantiated first wave — evidence only (created after WP-R0)
+
+> **ARCHIVED — NOT DISPATCHABLE:** The historical worktrees and packets below are retained for
+> traceability. Their branches, paths, and states do not replace the current WP-00→WP-10 DAG.
 
 All three worktrees start from `ecd4f97a84190a36c63473126f55a79a3710d3c9`. Do not copy unrelated dirty-worktree changes into them. The parent creates these branches/worktrees only in a later implementation-authorized turn.
 

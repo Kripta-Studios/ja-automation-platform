@@ -9,10 +9,7 @@ const baseForm = {
   category: 'hotel',
   description: 'One night near the project site',
   amount: '12.34',
-  projectCurrencyAmount: '12.34',
-  fxRateBps: '',
   paymentMethod: 'Company card',
-  receiptDocumentId: '',
 };
 
 describe('expense edit action input', () => {
@@ -24,9 +21,18 @@ describe('expense edit action input', () => {
     expect(result.data.id).toBe(baseForm.id);
     expect(result.data.version).toBe(7);
     expect(result.data.amountMinor).toBe(1234n);
-    expect(result.data.projectCurrencyAmountMinor).toBe(1234n);
-    expect(result.data.fxRateBps).toBeUndefined();
-    expect(result.data).not.toHaveProperty('receiptDocumentId');
+  });
+
+  it.each([
+    ['projectCurrencyAmount', '12.34'],
+    ['projectCurrencyAmountMinor', '1234'],
+    ['fxRateBps', '10000'],
+    ['taxAmountMinor', '210'],
+    ['markupBps', '1000'],
+    ['clientTreatment', 'reimbursable'],
+    ['billingTreatment', 'reimbursable_at_cost'],
+  ])('rejects forged Finance-only %s', (field, value) => {
+    expect(parseExpenseUpdateForm({ ...baseForm, [field]: value }).success).toBe(false);
   });
 
   it('rejects malformed decimal input before reaching the repository', () => {

@@ -123,7 +123,7 @@ function fixture() {
 function claimVariant(
   sqlite: DatabaseSync,
   repository: LocalizedPdfRepository,
-  variant: LocalizedPdfVariant,
+  variant: Pick<LocalizedPdfVariant, 'variantId' | 'currentAttemptNumber'>,
 ): LocalizedPdfExecution {
   const v3 = new V3Repository(sqlite);
   let execution: LocalizedPdfExecution | undefined;
@@ -258,6 +258,253 @@ describe('localized PDF variant authorization and integrity boundary', () => {
     }
   });
 
+  it('guards legacy period-report fallbacks by customer privacy marker and audience', () => {
+    const { sqlite, repository, owner, pm } = fixture();
+    try {
+      const now = new Date().toISOString();
+      const insertLegacyReport = (
+        id: string,
+        audience: 'customer' | 'internal',
+        snapshot: object,
+        periodStart = '2026-08-01',
+        periodEnd = '2026-08-31',
+      ) =>
+        sqlite
+          .prepare(
+            `INSERT INTO period_report(
+               id,project_id,period_start,period_end,audience,report_type,state,snapshot_json,
+               created_by,created_at,updated_at
+             ) VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
+          )
+          .run(
+            id,
+            'project',
+            periodStart,
+            periodEnd,
+            audience,
+            'period_summary',
+            'review',
+            JSON.stringify(snapshot),
+            'owner',
+            now,
+            now,
+          );
+
+      const insertLegacyQueuedVariant = (
+        variantId: string,
+        ownerId: string,
+        snapshotJson: string,
+      ): Pick<LocalizedPdfVariant, 'variantId' | 'currentAttemptNumber'> => {
+        const identity = sqlite
+          .prepare('SELECT tenant_id,deployment_id FROM deployment_identity WHERE singleton=1')
+          .get() as { tenant_id: string; deployment_id: string };
+        sqlite
+          .prepare(
+            `INSERT INTO localized_pdf_variant(
+               variant_id,owner_type,owner_id,owner_revision_id,tenant_id,deployment_id,
+               locale,locale_tag,document_tag,template_version,generation_version,
+               snapshot_json,snapshot_hash,snapshot_hash_kind,status,current_attempt_number,attempt_number,
+               semantic_filename,storage_key,max_attempts,request_key,requested_by,requested_at,updated_at
+             ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'legacy_verbatim','queued',1,1,?,?,?,?,?,?,?)`,
+          )
+          .run(
+            variantId,
+            'period_report_revision',
+            ownerId,
+            `${ownerId}:v1`,
+            identity.tenant_id,
+            identity.deployment_id,
+            'en',
+            'en-US',
+            'period_report',
+            'period-v1',
+            'renderer-1',
+            snapshotJson,
+            'a'.repeat(64),
+            `period-report-${ownerId}-legacy-en.pdf`,
+            `localized/${ownerId}/legacy/en.pdf`,
+            5,
+            null,
+            'owner',
+            now,
+            now,
+          );
+        return { variantId, currentAttemptNumber: 1 };
+      };
+
+      const preFixOwnerId = 'legacy-customer-pre-fix';
+      const preFixUnsafeSnapshot = JSON.stringify({
+        audience: 'customer',
+        commercialSummary: { amountMinor: 1000 },
+      });
+      insertLegacyReport(
+        preFixOwnerId,
+        'customer',
+        JSON.parse(preFixUnsafeSnapshot),
+        '2026-09-01',
+        '2026-09-30',
+      );
+      const preFixVariant = insertLegacyQueuedVariant(
+        'legacy-customer-pre-fix-variant',
+        preFixOwnerId,
+        preFixUnsafeSnapshot,
+      );
+      const preFixExecution = claimVariant(sqlite, repository, preFixVariant);
+      repository.completeVariant(preFixVariant.variantId, {
+        attemptNumber: 1,
+        contentSha256: 'b'.repeat(64),
+        byteLength: 12,
+        rendererVersion: 'renderer-1',
+        execution: preFixExecution,
+      });
+
+      const refreshedCustomerSnapshot = JSON.stringify({
+        audience: 'customer',
+        customerPrivacyVersion: '2026.08.24.customer-period-safe-v1',
+        refreshSequence: 2,
+      });
+      sqlite
+        .prepare(
+          'UPDATE period_report SET snapshot_version=?,snapshot_json=?,updated_at=? WHERE id=?',
+        )
+        .run(2, refreshedCustomerSnapshot, new Date().toISOString(), preFixOwnerId);
+      expect(() => repository.resolveDownload(owner, preFixVariant.variantId)).toThrow(
+        /source revision is no longer current/,
+      );
+
+      const refreshedVariant = repository.requestVariant(owner, {
+        ownerType: 'period_report_revision',
+        ownerId: preFixOwnerId,
+        locale: 'es',
+        templateVersion: 'period-v1',
+        generationVersion: 'renderer-1',
+      });
+      const refreshedExecution = claimVariant(sqlite, repository, refreshedVariant);
+      repository.completeVariant(refreshedVariant.variantId, {
+        attemptNumber: 1,
+        contentSha256: 'f'.repeat(64),
+        byteLength: 12,
+        rendererVersion: 'renderer-1',
+        execution: refreshedExecution,
+      });
+      expect(repository.resolveDownload(owner, refreshedVariant.variantId).ownerId).toBe(
+        preFixOwnerId,
+      );
+      expect(repository.resolveDownload(pm, refreshedVariant.variantId).ownerId).toBe(
+        preFixOwnerId,
+      );
+
+      insertLegacyReport('legacy-customer', 'customer', {
+        customerPrivacyVersion: '2026.08.24.customer-period-safe-v1',
+        audience: 'customer',
+      });
+      const customerVariant = repository.requestVariant(owner, {
+        ownerType: 'period_report_revision',
+        ownerId: 'legacy-customer',
+        locale: 'en',
+        templateVersion: 'period-v1',
+        generationVersion: 'renderer-1',
+      });
+      const customerExecution = claimVariant(sqlite, repository, customerVariant);
+      repository.completeVariant(customerVariant.variantId, {
+        attemptNumber: 1,
+        contentSha256: 'c'.repeat(64),
+        byteLength: 12,
+        rendererVersion: 'renderer-1',
+        execution: customerExecution,
+      });
+      expect(repository.resolveDownload(owner, customerVariant.variantId).ownerId).toBe(
+        'legacy-customer',
+      );
+      expect(repository.resolveDownload(pm, customerVariant.variantId).ownerId).toBe(
+        'legacy-customer',
+      );
+      expect(
+        repository.listVariants(pm, {
+          ownerType: 'period_report_revision',
+          ownerId: 'legacy-customer',
+        }),
+      ).toEqual([expect.objectContaining({ variantId: customerVariant.variantId })]);
+
+      sqlite
+        .prepare(
+          'UPDATE period_report SET snapshot_version=?,snapshot_json=?,updated_at=? WHERE id=?',
+        )
+        .run(
+          2,
+          JSON.stringify({ audience: 'customer', commercialSummary: { amountMinor: 1000 } }),
+          new Date().toISOString(),
+          'legacy-customer',
+        );
+      const customerSelector = {
+        ownerType: 'period_report_revision' as const,
+        ownerId: 'legacy-customer',
+      };
+      expect(() =>
+        repository.requestVariant(owner, {
+          ...customerSelector,
+          locale: 'es',
+          templateVersion: 'period-v1',
+          generationVersion: 'renderer-1',
+        }),
+      ).toThrow(/safe snapshot refresh/);
+      expect(() =>
+        repository.requestVariant(pm, {
+          ...customerSelector,
+          locale: 'pt',
+          templateVersion: 'period-v1',
+          generationVersion: 'renderer-1',
+        }),
+      ).toThrow(AccessDeniedError);
+      expect(() => repository.listVariants(owner, customerSelector)).toThrow(AccessDeniedError);
+      expect(() => repository.listVariants(pm, customerSelector)).toThrow(AccessDeniedError);
+      expect(() => repository.resolveDownload(owner, customerVariant.variantId)).toThrow(
+        AccessDeniedError,
+      );
+      expect(() => repository.resolveDownload(pm, customerVariant.variantId)).toThrow(
+        AccessDeniedError,
+      );
+
+      insertLegacyReport('legacy-internal', 'internal', { audience: 'internal' });
+      const internalVariant = repository.requestVariant(owner, {
+        ownerType: 'period_report_revision',
+        ownerId: 'legacy-internal',
+        locale: 'en',
+        templateVersion: 'period-v1',
+        generationVersion: 'renderer-1',
+      });
+      const internalExecution = claimVariant(sqlite, repository, internalVariant);
+      repository.completeVariant(internalVariant.variantId, {
+        attemptNumber: 1,
+        contentSha256: 'd'.repeat(64),
+        byteLength: 12,
+        rendererVersion: 'renderer-1',
+        execution: internalExecution,
+      });
+      expect(repository.resolveDownload(owner, internalVariant.variantId).ownerId).toBe(
+        'legacy-internal',
+      );
+      const internalSelector = {
+        ownerType: 'period_report_revision' as const,
+        ownerId: 'legacy-internal',
+      };
+      expect(() =>
+        repository.requestVariant(pm, {
+          ...internalSelector,
+          locale: 'es',
+          templateVersion: 'period-v1',
+          generationVersion: 'renderer-1',
+        }),
+      ).toThrow(AccessDeniedError);
+      expect(() => repository.listVariants(pm, internalSelector)).toThrow(AccessDeniedError);
+      expect(() => repository.resolveDownload(pm, internalVariant.variantId)).toThrow(
+        AccessDeniedError,
+      );
+    } finally {
+      sqlite.close();
+    }
+  });
+
   it('rechecks current and source-date assignments for PM/worker request, list, retry and download', () => {
     const { sqlite, repository, worker, pm } = fixture();
     try {
@@ -293,9 +540,9 @@ describe('localized PDF variant authorization and integrity boundary', () => {
         });
       });
 
-      expect(repository.listVariants(pm, { ownerType: 'daily_report', ownerId: 'daily' })).toHaveLength(
-        2,
-      );
+      expect(
+        repository.listVariants(pm, { ownerType: 'daily_report', ownerId: 'daily' }),
+      ).toHaveLength(2);
 
       // Keep the captured principals' projectIds to prove that a stale/forged scope hint cannot
       // retain access after the SQLite assignment is no longer effective.
@@ -334,9 +581,7 @@ describe('localized PDF variant authorization and integrity boundary', () => {
   it('uses technical report_date, not created_at, for the source-date assignment check', () => {
     const { sqlite, repository, worker } = fixture();
     try {
-      sqlite
-        .prepare("UPDATE project_member SET starts_on='2026-08-15',ends_on='2026-12-31'")
-        .run();
+      sqlite.prepare("UPDATE project_member SET starts_on='2026-08-15',ends_on='2026-12-31'").run();
       sqlite
         .prepare(
           `INSERT INTO technical_report(
@@ -368,7 +613,9 @@ describe('localized PDF variant authorization and integrity boundary', () => {
       ).toThrow(AccessDeniedError);
 
       sqlite
-        .prepare("UPDATE technical_report SET report_date='2026-08-20',version=version+1 WHERE id=?")
+        .prepare(
+          "UPDATE technical_report SET report_date='2026-08-20',version=version+1 WHERE id=?",
+        )
         .run('technical-before-assignment');
       expect(() =>
         repository.requestVariant(worker, {

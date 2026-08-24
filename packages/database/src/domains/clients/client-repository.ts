@@ -3,6 +3,7 @@ import { canManageClients, newId, type Principal } from '@ja/domain';
 import type { Currency } from '@ja/money';
 
 export type ClientInput = Readonly<{
+  clientCode?: string;
   legalName: string;
   displayName: string;
   currency: Currency;
@@ -29,6 +30,7 @@ type ErrorFactory = (message: string) => never;
 
 type ClientRow = Readonly<{
   id: string;
+  client_code: string | null;
   legal_name: string;
   display_name: string;
   currency: Currency;
@@ -72,8 +74,7 @@ export type ClientRepositoryDependencies = Readonly<{
   validation: ErrorFactory;
 }>;
 
-const isValidEmail = (value: string): boolean =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+const isValidEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
 export class ClientRepository {
   private readonly deps: ClientRepositoryDependencies;
@@ -88,12 +89,17 @@ export class ClientRepository {
     if (!canManageClients(principal)) return deps.accessDenied('Client administration required');
     const legalName = deps.assertText(input.legalName, 'Legal name', 300);
     const displayName = deps.assertText(input.displayName, 'Display name', 160);
+    const clientCode = input.clientCode?.trim()
+      ? deps.assertText(input.clientCode.trim(), 'Client code', 40)
+      : null;
     const timezone = deps.assertText(input.timezone, 'Timezone', 100);
     if (typeof input.billingAddress !== 'string')
       return deps.validation('Billing address is required for new clients');
     const billingAddress = deps.assertText(input.billingAddress, 'Billing address', 2000);
     const billingEmail =
-      typeof input.billingEmail === 'string' ? input.billingEmail.trim().toLowerCase() || null : null;
+      typeof input.billingEmail === 'string'
+        ? input.billingEmail.trim().toLowerCase() || null
+        : null;
     if (billingEmail && !isValidEmail(billingEmail))
       return deps.validation('Billing email is invalid');
     const billingContactName = input.billingContactName?.trim() || null;
@@ -102,7 +108,8 @@ export class ClientRepository {
     if (billingContactName && billingContactName.length > 160)
       return deps.validation('Billing contact name is too long');
     const poReference = input.poReference?.trim() || null;
-    if (poReference && poReference.length > 200) return deps.validation('PO / reference is too long');
+    if (poReference && poReference.length > 200)
+      return deps.validation('PO / reference is too long');
     const notes = input.notes?.trim() || null;
     if (notes && notes.length > 5000) return deps.validation('Client notes are too long');
     const paymentTermsDays = input.paymentTermsDays ?? 30;
@@ -115,11 +122,12 @@ export class ClientRepository {
       const timestamp = deps.now();
       deps.sqlite
         .prepare(
-          'INSERT INTO client(id,client_number,legal_name,display_name,status,currency,timezone,billing_email,billing_address,po_reference,payment_terms_days,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          'INSERT INTO client(id,client_number,client_code,legal_name,display_name,status,currency,timezone,billing_email,billing_address,po_reference,payment_terms_days,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
         )
         .run(
           id,
           clientNumber,
+          clientCode,
           legalName,
           displayName,
           'active',
@@ -157,8 +165,8 @@ export class ClientRepository {
           isPrimary: true,
         });
       }
-      deps.audit(principal, 'client.create', 'client', id, { clientNumber });
-      return { id, clientNumber };
+      deps.audit(principal, 'client.create', 'client', id, { clientNumber, clientCode });
+      return { id, clientNumber, clientCode };
     });
   }
 
@@ -261,7 +269,7 @@ export class ClientRepository {
       return deps.accessDenied('Client administration required');
     return deps.sqlite
       .prepare(
-        `SELECT id,client_number,display_name,legal_name,status,currency,timezone,billing_email,
+        `SELECT id,client_number,client_code,display_name,legal_name,status,currency,timezone,billing_email,
                 billing_address,po_reference,payment_terms_days,notes,version,
                 (SELECT name FROM client_contact WHERE client_id=client.id AND is_billing_contact=1
                  ORDER BY is_primary DESC,id LIMIT 1) AS billing_contact_name
@@ -282,7 +290,9 @@ export class ClientRepository {
     if (!Number.isInteger(expectedVersion) || expectedVersion < 1)
       return deps.validation('Client version is required');
     return deps.transaction(() => {
-      const existing = deps.sqlite.prepare('SELECT * FROM client WHERE id=?').get(clientId) as ClientRow | undefined;
+      const existing = deps.sqlite.prepare('SELECT * FROM client WHERE id=?').get(clientId) as
+        | ClientRow
+        | undefined;
       if (!existing) return deps.validation('Client not found');
       if (existing.version !== expectedVersion)
         return deps.conflict('Client changed before update');
@@ -295,6 +305,12 @@ export class ClientRepository {
         input.displayName !== undefined
           ? deps.assertText(input.displayName, 'Display name', 160)
           : existing.display_name;
+      const clientCode =
+        input.clientCode === undefined
+          ? existing.client_code
+          : input.clientCode.trim()
+            ? deps.assertText(input.clientCode.trim(), 'Client code', 40)
+            : null;
       const currency = input.currency !== undefined ? input.currency : existing.currency;
       const timezone =
         input.timezone !== undefined
@@ -315,9 +331,7 @@ export class ClientRepository {
       if (!billingAddress || !billingAddress.trim())
         return deps.validation('Billing address is required');
       const poReference =
-        input.poReference !== undefined
-          ? input.poReference?.trim() || null
-          : existing.po_reference;
+        input.poReference !== undefined ? input.poReference?.trim() || null : existing.po_reference;
       if (poReference && poReference.length > 200)
         return deps.validation('PO / reference is too long');
       const notes = input.notes !== undefined ? input.notes?.trim() || null : existing.notes;
@@ -339,7 +353,9 @@ export class ClientRepository {
         if (normalizedBillingContactName) {
           if (existingContact) {
             deps.sqlite
-              .prepare('UPDATE client_contact SET name=?,email=?,is_billing_contact=1,is_primary=1,updated_at=? WHERE id=?')
+              .prepare(
+                'UPDATE client_contact SET name=?,email=?,is_billing_contact=1,is_primary=1,updated_at=? WHERE id=?',
+              )
               .run(normalizedBillingContactName, billingEmail, deps.now(), existingContact.id);
           } else {
             deps.sqlite
@@ -366,23 +382,26 @@ export class ClientRepository {
             .run(deps.now(), existingContact.id);
         }
       }
-      if (input.billingContactName === undefined && input.billingEmail !== undefined && existingContact) {
+      if (
+        input.billingContactName === undefined &&
+        input.billingEmail !== undefined &&
+        existingContact
+      ) {
         deps.sqlite
           .prepare('UPDATE client_contact SET email=?,updated_at=? WHERE id=?')
           .run(billingEmail, deps.now(), existingContact.id);
       }
       const paymentTermsDays =
-        input.paymentTermsDays !== undefined
-          ? input.paymentTermsDays
-          : existing.payment_terms_days;
+        input.paymentTermsDays !== undefined ? input.paymentTermsDays : existing.payment_terms_days;
       if (!Number.isInteger(paymentTermsDays) || paymentTermsDays < 0 || paymentTermsDays > 365)
         return deps.validation('Payment terms must be an integer between 0 and 365 days');
 
       const updated = deps.sqlite
         .prepare(
-          'UPDATE client SET legal_name=?, display_name=?, currency=?, timezone=?, billing_email=?, billing_address=?, po_reference=?, payment_terms_days=?, notes=?, updated_at=?,version=version+1 WHERE id=? AND version=?',
+          'UPDATE client SET client_code=?, legal_name=?, display_name=?, currency=?, timezone=?, billing_email=?, billing_address=?, po_reference=?, payment_terms_days=?, notes=?, updated_at=?,version=version+1 WHERE id=? AND version=?',
         )
         .run(
+          clientCode,
           legalName,
           displayName,
           currency,
@@ -396,8 +415,7 @@ export class ClientRepository {
           clientId,
           expectedVersion,
         );
-      if (updated.changes !== 1)
-        return deps.conflict('Client changed before update');
+      if (updated.changes !== 1) return deps.conflict('Client changed before update');
 
       deps.audit(principal, 'client.update', 'client', clientId, { version: expectedVersion });
     });
@@ -438,8 +456,7 @@ export class ClientRepository {
             'SELECT 1 FROM client_contact WHERE client_id=? AND is_billing_contact=1 AND id<>? LIMIT 1',
           )
           .get(existing.client_id, contactId);
-        if (!alternate)
-          return deps.validation('A billing email or billing contact is required');
+        if (!alternate) return deps.validation('A billing email or billing contact is required');
       }
 
       if (input.isPrimary) {
@@ -492,15 +509,12 @@ export class ClientRepository {
               'SELECT 1 FROM client_contact WHERE client_id=? AND is_billing_contact=1 AND id<>? LIMIT 1',
             )
             .get(existing.client_id, contactId);
-          if (!alternate)
-            return deps.validation('A billing email or billing contact is required');
+          if (!alternate) return deps.validation('A billing email or billing contact is required');
         }
       }
 
       try {
-        const deleted = deps.sqlite
-          .prepare('DELETE FROM client_contact WHERE id=?')
-          .run(contactId);
+        const deleted = deps.sqlite.prepare('DELETE FROM client_contact WHERE id=?').run(contactId);
         if (deleted.changes !== 1) throw deps.conflict('Contact changed before deletion');
       } catch (error) {
         if (error instanceof Error && /SQLITE_CONSTRAINT|FOREIGN KEY/i.test(error.message))

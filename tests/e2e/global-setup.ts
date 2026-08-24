@@ -14,6 +14,7 @@ import {
   writeE2EFixturePointer,
 } from './environment.js';
 import { seedE2ECredentialAccounts } from './auth.js';
+import { e2eDeploymentId, e2eTenantId } from './support/deployment-fixture.js';
 
 function removeDatabaseArtifacts(): void {
   for (const path of [databasePath, `${databasePath}-wal`, `${databasePath}-shm`]) {
@@ -27,6 +28,10 @@ function removeDatabaseArtifacts(): void {
 }
 
 export default async function globalSetup() {
+  // Keep the disposable fixture identity explicit even when this setup is
+  // invoked outside the normal config module evaluation path.
+  process.env.JA_TENANT_ID = e2eTenantId;
+  process.env.JA_DEPLOYMENT_ID = e2eDeploymentId;
   acquireE2EFixtureLock();
   try {
     if (existsSync(e2eFixturePointerPath)) {
@@ -52,6 +57,8 @@ export default async function globalSetup() {
       JA_DATABASE_PATH: databasePath,
       JA_MIGRATIONS_PATH: join(root, 'migrations'),
       JA_DOCUMENT_ROOT: documentRoot,
+      JA_TENANT_ID: e2eTenantId,
+      JA_DEPLOYMENT_ID: e2eDeploymentId,
       JA_FIXTURE_RESET_DOCUMENTS: 'false',
       JA_DEMO_SEED_PRESERVE_DB: 'true',
       JA_AUTH_SECRET: 'e2e-only-secret-do-not-use-in-production',

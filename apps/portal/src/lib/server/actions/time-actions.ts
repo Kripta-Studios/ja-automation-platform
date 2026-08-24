@@ -10,13 +10,9 @@ export const timeActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = timeInputSchema.safeParse(await formObject(request));
     if (!parsed.success)
-      return actionFail(
-        400,
-        'action.validation.timeFields',
-        {},
-        'Check time fields',
-        { fields: parsed.error.flatten().fieldErrors },
-      );
+      return actionFail(400, 'action.validation.timeFields', {}, 'Check time fields', {
+        fields: parsed.error.flatten().fieldErrors,
+      });
     const context = openPortalRepository(locals);
     try {
       context.repository.createTimeEntry(context.principal, parsed.data);
@@ -67,13 +63,9 @@ export const timeActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = timeInputSchema.and(versionedRecordSchema).safeParse(await formObject(request));
     if (!parsed.success)
-      return actionFail(
-        400,
-        'action.validation.timeFields',
-        {},
-        'Check time fields',
-        { fields: parsed.error.flatten().fieldErrors },
-      );
+      return actionFail(400, 'action.validation.timeFields', {}, 'Check time fields', {
+        fields: parsed.error.flatten().fieldErrors,
+      });
     const context = openPortalRepository(locals);
     try {
       context.repository.updateTimeEntry(context.principal, {

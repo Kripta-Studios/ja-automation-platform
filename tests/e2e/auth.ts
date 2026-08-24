@@ -11,6 +11,7 @@ export const e2eCredentials = {
   finance: { email: 'finance@demo.jaautomation.local', password: 'finance' },
   manager: { email: 'pm@demo.jaautomation.local', password: 'pm' },
   worker: { email: 'worker@demo.jaautomation.local', password: 'worker' },
+  worker2: { email: 'rafael@demo.jaautomation.local', password: 'rafael' },
 } as const;
 
 export const e2eArchiveTarget = {

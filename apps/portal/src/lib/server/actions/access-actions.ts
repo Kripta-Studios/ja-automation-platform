@@ -9,13 +9,9 @@ export const accessActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = invitationInputSchema.safeParse(await formObject(request));
     if (!parsed.success)
-      return actionFail(
-        400,
-        'action.validation.invitation',
-        {},
-        'Invalid invitation',
-        { fields: parsed.error.flatten().fieldErrors },
-      );
+      return actionFail(400, 'action.validation.invitation', {}, 'Invalid invitation', {
+        fields: parsed.error.flatten().fieldErrors,
+      });
     const context = openPortalRepository(locals);
     try {
       const result = context.v3.createInvitation(context.principal, parsed.data);
@@ -75,12 +71,7 @@ export const accessActions = {
 
     const parsedId = uuidSchema.safeParse(workerId);
     if (!parsedId.success || !name || !email || !role || !joinedAt)
-      return actionFail(
-        400,
-        'action.validation.workerProfile',
-        {},
-        'Invalid worker profile data',
-      );
+      return actionFail(400, 'action.validation.workerProfile', {}, 'Invalid worker profile data');
 
     const context = openPortalRepository(locals);
     try {

@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const readSource = (path: string): string =>
-  readFileSync(resolve(process.cwd(), path), 'utf8');
+const readSource = (path: string): string => readFileSync(resolve(process.cwd(), path), 'utf8');
 
 describe('B5 report autosave contract (RED characterization)', () => {
   it('exposes the six frozen autosave/recovery selectors on the report edit surface', () => {

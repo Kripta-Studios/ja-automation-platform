@@ -52,4 +52,3 @@ Use characterization tests before any behavior-affecting extraction and show RED
 ## Handoff
 
 Write full report to `.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-b1-report.md`: summary, exact files, public API inventory result, commands/results, migrations (none), preserved invariants, unresolved risks, requirement IDs, and any interface change needed. Return short status only.
-

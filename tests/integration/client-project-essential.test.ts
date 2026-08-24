@@ -420,9 +420,7 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
     );
     expect(portalShell).toContain('{#each operationalProjects as project}');
     const planningStart = portalShell.indexOf("{:else if data.section === 'planning'}");
-    const planningEnd = portalShell.indexOf(
-      "{:else if data.section === 'approvals' || data.section === 'billing'}",
-    );
+    const planningEnd = portalShell.indexOf("{:else if data.section === 'approvals'}");
     expect(planningStart).toBeGreaterThanOrEqual(0);
     expect(planningEnd).toBeGreaterThan(planningStart);
     expect(portalShell.slice(planningStart, planningEnd)).not.toContain('availableProjects');

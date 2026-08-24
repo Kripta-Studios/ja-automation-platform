@@ -78,6 +78,23 @@ describe('B5 effective membership (RED characterization)', () => {
       artifactType: 'report',
     });
 
+    expect(value.repository.search(value.worker, value.project.projectNumber)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: value.project.id })]),
+    );
+    expect(value.repository.search(value.worker, 'Daily work')).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: daily.id })]),
+    );
+    expect(value.repository.search(value.worker, 'Site transport')).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: expense.id })]),
+    );
+    expect(value.repository.searchSuggestions(value.worker)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: value.project.id }),
+        expect.objectContaining({ id: daily.id }),
+        expect.objectContaining({ id: expense.id }),
+      ]),
+    );
+
     // Keep the captured Principal's projectIds to exercise the stale-principal
     // path; authorization must re-check the assignment in SQLite.
     value.sqlite
@@ -90,22 +107,43 @@ describe('B5 effective membership (RED characterization)', () => {
     expect(value.repository.listTimeForScope(value.worker)).toEqual([]);
     expect(value.repository.listExpensesForScope(value.worker)).toEqual([]);
     expect(value.repository.listOwnReports(value.worker)).toEqual([]);
+    const staleSearch = value.repository.search(value.worker, '');
+    expect(staleSearch).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: value.project.id }),
+        expect.objectContaining({ id: daily.id }),
+        expect.objectContaining({ id: expense.id }),
+      ]),
+    );
+    expect(value.repository.searchSuggestions(value.worker)).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: value.project.id }),
+        expect.objectContaining({ id: daily.id }),
+        expect.objectContaining({ id: expense.id }),
+      ]),
+    );
     expect(() => value.repository.listDocuments(value.worker, value.project.id)).toThrow();
     expect(() => value.repository.timeDetail(value.worker, time.id)).toThrow();
     expect(() => value.repository.reportDetail(value.worker, daily.id)).toThrow();
     expect(() => value.repository.expenseDetail(value.worker, expense.id)).toThrow();
-    expect(() => value.repository.updateTimeEntry(value.worker, {
-      id: time.id,
-      version: time.version,
-      minutes: 60,
-    })).toThrow();
+    expect(() =>
+      value.repository.updateTimeEntry(value.worker, {
+        id: time.id,
+        version: time.version,
+        minutes: 60,
+      }),
+    ).toThrow();
     expect(() => value.repository.submitTime(value.worker, time.id, time.version)).toThrow();
-    expect(() => value.repository.updateExpense(value.worker, {
-      id: expense.id,
-      version: expense.version,
-      description: 'Should be denied',
-    })).toThrow();
-    expect(() => value.repository.submitExpense(value.worker, expense.id, expense.version)).toThrow();
+    expect(() =>
+      value.repository.updateExpense(value.worker, {
+        id: expense.id,
+        version: expense.version,
+        description: 'Should be denied',
+      }),
+    ).toThrow();
+    expect(() =>
+      value.repository.submitExpense(value.worker, expense.id, expense.version),
+    ).toThrow();
     expect(() => value.v3.authorizeDocument(value.worker, document.id)).toThrow();
 
     expect(value.repository.timeDetail(value.manager, time.id)).toEqual(
@@ -119,6 +157,31 @@ describe('B5 effective membership (RED characterization)', () => {
     );
     expect(value.repository.timeDetail(value.owner, time.id)).toEqual(
       expect.objectContaining({ id: time.id }),
+    );
+  });
+
+  it('omits Worker search records when the project lifecycle is archived', () => {
+    const value = fixture();
+    const expense = value.repository.createExpense(value.worker, {
+      projectId: value.project.id,
+      spentOn: '2026-08-18',
+      vendor: 'Archived search expense',
+      category: 'travel',
+      description: 'Must disappear with archived project lifecycle',
+      currency: 'EUR',
+      amountMinor: 1_000n,
+      whoPaid: 'worker',
+      receiptRequired: false,
+    });
+    expect(value.repository.search(value.worker, 'Archived search expense')).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: expense.id })]),
+    );
+    value.sqlite.prepare("UPDATE project SET status='archived' WHERE id=?").run(value.project.id);
+    expect(value.repository.search(value.worker, '')).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: value.project.id }),
+        expect.objectContaining({ id: expense.id }),
+      ]),
     );
   });
 
@@ -149,35 +212,41 @@ describe('B5 effective membership (RED characterization)', () => {
       )
       .run(value.project.id);
 
-    expect(() => value.repository.createTechnicalReport(value.worker, {
-      projectId: value.project.id,
-      reportDate: '2026-08-18',
-      systemName: 'PLC',
-      changeSummary: 'Historical report outside assignment',
-      safetyRelated: false,
-    })).toThrow();
-    expect(value.repository.createTechnicalReport(value.worker, {
-      projectId: value.project.id,
-      reportDate: '2026-08-21',
-      systemName: 'PLC',
-      changeSummary: 'Report during assignment',
-      safetyRelated: false,
-    })).toEqual(expect.objectContaining({ version: 1 }));
-
-    expect(() => value.v3.syncMutation(value.worker, {
-      mutationId: '0198be45-cd9c-7ab4-9a5a-a6c000000001',
-      entityType: 'technical_report',
-      entityId: '0198be45-cd9c-7ab4-9a5a-a6c000000002',
-      baseVersion: 0,
-      payload: {
+    expect(() =>
+      value.repository.createTechnicalReport(value.worker, {
         projectId: value.project.id,
         reportDate: '2026-08-18',
         systemName: 'PLC',
-        changeSummary: 'Offline historical report outside assignment',
+        changeSummary: 'Historical report outside assignment',
         safetyRelated: false,
-      },
-      attachments: [],
-    })).toThrow();
+      }),
+    ).toThrow();
+    expect(
+      value.repository.createTechnicalReport(value.worker, {
+        projectId: value.project.id,
+        reportDate: '2026-08-21',
+        systemName: 'PLC',
+        changeSummary: 'Report during assignment',
+        safetyRelated: false,
+      }),
+    ).toEqual(expect.objectContaining({ version: 1 }));
+
+    expect(() =>
+      value.v3.syncMutation(value.worker, {
+        mutationId: '0198be45-cd9c-7ab4-9a5a-a6c000000001',
+        entityType: 'technical_report',
+        entityId: '0198be45-cd9c-7ab4-9a5a-a6c000000002',
+        baseVersion: 0,
+        payload: {
+          projectId: value.project.id,
+          reportDate: '2026-08-18',
+          systemName: 'PLC',
+          changeSummary: 'Offline historical report outside assignment',
+          safetyRelated: false,
+        },
+        attachments: [],
+      }),
+    ).toThrow();
   });
 
   it('rejects receipts from another project in normal and offline expense creation', () => {
@@ -202,38 +271,42 @@ describe('B5 effective membership (RED characterization)', () => {
       storageKey: 'receipts/other-project.pdf',
       originalFilename: 'other-project.pdf',
     });
-    expect(() => value.repository.createExpense(value.worker, {
-      projectId: value.project.id,
-      spentOn: '2026-08-18',
-      vendor: 'Wrong project receipt',
-      category: 'travel',
-      description: 'Receipt must not cross project boundaries',
-      currency: 'EUR',
-      amountMinor: 1_000n,
-      whoPaid: 'worker',
-      clientTreatment: 'reimbursable',
-      receiptRequired: true,
-      receiptDocumentId: receipt.id,
-    })).toThrow();
-    expect(() => value.v3.syncMutation(value.worker, {
-      mutationId: '0198be45-cd9c-7ab4-9a5a-a6c000000003',
-      entityType: 'expense',
-      entityId: '0198be45-cd9c-7ab4-9a5a-a6c000000004',
-      baseVersion: 0,
-      payload: {
+    expect(() =>
+      value.repository.createExpense(value.worker, {
         projectId: value.project.id,
         spentOn: '2026-08-18',
         vendor: 'Wrong project receipt',
         category: 'travel',
         description: 'Receipt must not cross project boundaries',
         currency: 'EUR',
-        amountMinor: '1000',
+        amountMinor: 1_000n,
         whoPaid: 'worker',
         clientTreatment: 'reimbursable',
         receiptRequired: true,
         receiptDocumentId: receipt.id,
-      },
-      attachments: [],
-    })).toThrow();
+      }),
+    ).toThrow();
+    expect(() =>
+      value.v3.syncMutation(value.worker, {
+        mutationId: '0198be45-cd9c-7ab4-9a5a-a6c000000003',
+        entityType: 'expense',
+        entityId: '0198be45-cd9c-7ab4-9a5a-a6c000000004',
+        baseVersion: 0,
+        payload: {
+          projectId: value.project.id,
+          spentOn: '2026-08-18',
+          vendor: 'Wrong project receipt',
+          category: 'travel',
+          description: 'Receipt must not cross project boundaries',
+          currency: 'EUR',
+          amountMinor: '1000',
+          whoPaid: 'worker',
+          clientTreatment: 'reimbursable',
+          receiptRequired: true,
+          receiptDocumentId: receipt.id,
+        },
+        attachments: [],
+      }),
+    ).toThrow();
   });
 });

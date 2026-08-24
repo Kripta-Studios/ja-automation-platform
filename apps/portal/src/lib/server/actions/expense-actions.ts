@@ -39,18 +39,16 @@ const expenseCategorySchema = z.enum([
  * accepted by this browser action; the portal does not pretend to support
  * uploading/replacing a receipt from an edit form.
  */
-const expenseUpdateSchema = versionedRecordSchema.extend({
-  spentOn: z.iso.date().optional(),
-  vendor: z.string().trim().min(1).max(200).optional(),
-  category: expenseCategorySchema.optional(),
-  description: z.string().trim().max(5000).optional(),
-  amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
-  projectCurrencyAmountMinor: minorUnitsSchema
-    .optional()
-    .transform((value) => (value ? BigInt(value) : undefined)),
-  fxRateBps: z.coerce.number().int().positive().optional(),
-  paymentMethod: z.string().trim().max(80).optional(),
-});
+const expenseUpdateSchema = versionedRecordSchema
+  .extend({
+    spentOn: z.iso.date().optional(),
+    vendor: z.string().trim().min(1).max(200).optional(),
+    category: expenseCategorySchema.optional(),
+    description: z.string().trim().max(5000).optional(),
+    amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
+    paymentMethod: z.string().trim().max(80).optional(),
+  })
+  .strict();
 
 /** Normalize the browser's decimal controls into the exact minor-unit update contract. */
 export function parseExpenseUpdateForm(object: Record<string, unknown>) {
@@ -59,17 +57,8 @@ export function parseExpenseUpdateForm(object: Record<string, unknown>) {
   payload.amountMinor = amountMinor ?? payload.amount;
   delete payload.amount;
 
-  const projectCurrencyAmount = payload.projectCurrencyAmount;
-  if (projectCurrencyAmount === '' || projectCurrencyAmount === undefined) {
-    delete payload.projectCurrencyAmount;
-  } else {
-    payload.projectCurrencyAmountMinor =
-      decimalToMinor(projectCurrencyAmount) ?? projectCurrencyAmount;
-    delete payload.projectCurrencyAmount;
-  }
-
   // Empty optional controls should be omitted rather than coerced to zero.
-  for (const key of ['fxRateBps', 'paymentMethod']) {
+  for (const key of ['paymentMethod']) {
     if (payload[key] === '') delete payload[key];
   }
   if (payload.description === '') delete payload.description;
@@ -83,28 +72,19 @@ export const expenseActions = {
     const object = await formObject(request);
     const receipt = object.receipt;
     const receiptFile = receipt instanceof File ? receipt : undefined;
+    delete object.receipt;
     object.receiptRequired =
       object.receiptRequired === 'on' || (receiptFile !== undefined && receiptFile.size > 0);
     object.amountMinor = decimalToMinor(object.amount);
-    for (const key of [
-      'projectCurrencyAmountMinor',
-      'fxRateBps',
-      'taxAmountMinor',
-      'markupBps',
-      'paymentMethod',
-      'receiptDocumentId',
-    ]) {
+    delete object.amount;
+    for (const key of ['paymentMethod', 'receiptDocumentId']) {
       if (object[key] === '') object[key] = undefined;
     }
     const preflight = expenseInputSchema.safeParse(object);
     if (!preflight.success)
-      return actionFail(
-        400,
-        'action.validation.expenseFields',
-        {},
-        'Check expense fields',
-        { fields: preflight.error.flatten().fieldErrors },
-      );
+      return actionFail(400, 'action.validation.expenseFields', {}, 'Check expense fields', {
+        fields: preflight.error.flatten().fieldErrors,
+      });
     const context = openPortalRepository(locals);
     let createdReceiptId: string | undefined;
     let createdReceiptStorageKey: string | undefined;
@@ -193,13 +173,9 @@ export const expenseActions = {
       }
       const parsed = expenseInputSchema.safeParse(object);
       if (!parsed.success)
-        return actionFail(
-          400,
-          'action.validation.expenseFields',
-          {},
-          'Check expense fields',
-          { fields: parsed.error.flatten().fieldErrors },
-        );
+        return actionFail(400, 'action.validation.expenseFields', {}, 'Check expense fields', {
+          fields: parsed.error.flatten().fieldErrors,
+        });
       context.repository.createExpense(context.principal, parsed.data);
       return actionSuccess('action.expense.draftSaved', {}, 'Expense draft saved');
     } catch (error) {
@@ -250,13 +226,9 @@ export const expenseActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const parsed = parseExpenseUpdateForm(await formObject(request));
     if (!parsed.success)
-      return actionFail(
-        400,
-        'action.validation.expenseFields',
-        {},
-        'Check expense fields',
-        { fields: parsed.error.flatten().fieldErrors },
-      );
+      return actionFail(400, 'action.validation.expenseFields', {}, 'Check expense fields', {
+        fields: parsed.error.flatten().fieldErrors,
+      });
     const context = openPortalRepository(locals);
     try {
       context.repository.updateExpense(context.principal, parsed.data);

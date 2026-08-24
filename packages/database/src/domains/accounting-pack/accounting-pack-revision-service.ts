@@ -1,7 +1,13 @@
-import { createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { canManageBilling, type Principal } from '@ja/domain';
 import { runImmediateTransaction } from '../../core/transaction.ts';
+import { canonicalJson as canonicalJsonValue, sha256 } from '../../core/canonical-json.ts';
+import {
+  ensureCommand as writeFinanceCommand,
+  ensureEvidence as writeFinanceEvidence,
+  type FinanceCommand as Command,
+  type FinanceCommandInput,
+} from '../finance/finance-command-writer.ts';
 
 /**
  * The Accounting Pack tables are intentionally a small immutable projection of
@@ -128,6 +134,10 @@ export class AccountingPackRevisionError extends Error {}
 
 type Deployment = Readonly<{ tenantId: string; deploymentId: string }>;
 type DbRow = Record<string, unknown>;
+type StepUpProof = Readonly<{
+  stepUpVerifiedAt: string;
+  stepUpExpiresAt: string;
+}>;
 
 const CONTRACT_VERSION = 'B5-R4';
 const SNAPSHOT_SCHEMA_VERSION = 'accounting-pack-snapshot-v1';
@@ -137,30 +147,15 @@ const SNAPSHOT_TARGET_CONTRACT = 'accounting-pack-revision-snapshot-v1';
 const ENTITY_BRIDGE_TARGET_CONTRACT = 'legal-entity-revision-bridge-v1';
 const LEGACY_BRIDGE_TARGET_CONTRACT = 'accounting-pack-legacy-run-bridge-v1';
 
+const accountingPackError = (message: string): never => {
+  throw new AccountingPackRevisionError(message);
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 function canonicalJson(value: unknown): string {
-  if (value === null || typeof value === 'boolean' || typeof value === 'string')
-    return JSON.stringify(value);
-  if (typeof value === 'bigint') return value.toString();
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value))
-      throw new AccountingPackRevisionError('Value is not JSON serializable');
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) return `[${value.map((entry) => canonicalJson(entry)).join(',')}]`;
-  if (isRecord(value))
-    return `{${Object.entries(value)
-      .filter(([, entry]) => entry !== undefined)
-      .sort(([left], [right]) => (left === right ? 0 : left < right ? -1 : 1))
-      .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`)
-      .join(',')}}`;
-  throw new AccountingPackRevisionError('Value is not JSON serializable');
-}
-
-function sha256(value: string | Uint8Array): string {
-  return createHash('sha256').update(value).digest('hex');
+  return canonicalJsonValue(value, accountingPackError);
 }
 
 function safeText(value: unknown, field: string, max = 5000): string {
@@ -281,7 +276,34 @@ function assertDeployment(sqlite: DatabaseSync, input: AccountingPackSnapshotInp
   return { tenantId: deployment.tenant_id, deploymentId: deployment.deployment_id };
 }
 
-function assertPrincipal(sqlite: DatabaseSync, principal: Principal): void {
+function assertStepUpProof(sqlite: DatabaseSync, principal: Principal): StepUpProof {
+  if (!principal.sessionId)
+    throw new AccountingPackRevisionError('Recent step-up authentication is required');
+  const session = sqlite
+    .prepare('SELECT step_up_at,expires_at FROM session WHERE id=? AND user_id=?')
+    .get(principal.sessionId, principal.userId) as
+    | { step_up_at: string | null; expires_at: string }
+    | undefined;
+  const nowMs = Date.now();
+  const stepUpMs = session?.step_up_at ? Date.parse(session.step_up_at) : Number.NaN;
+  const sessionExpiresMs = session?.expires_at ? Date.parse(session.expires_at) : Number.NaN;
+  const stepUpExpiresMs = stepUpMs + 10 * 60_000;
+  if (
+    !session?.step_up_at ||
+    !Number.isFinite(stepUpMs) ||
+    !Number.isFinite(sessionExpiresMs) ||
+    stepUpMs > nowMs ||
+    stepUpExpiresMs <= nowMs ||
+    sessionExpiresMs <= nowMs
+  )
+    throw new AccountingPackRevisionError('Recent step-up authentication is required');
+  return {
+    stepUpVerifiedAt: session.step_up_at,
+    stepUpExpiresAt: new Date(Math.min(stepUpExpiresMs, sessionExpiresMs)).toISOString(),
+  };
+}
+
+function assertPrincipal(sqlite: DatabaseSync, principal: Principal): StepUpProof {
   if (principal.isServiceActor || !canManageBilling(principal))
     throw new AccountingPackRevisionError('Finance role required');
   const user = sqlite.prepare('SELECT status FROM user WHERE id=?').get(principal.userId) as
@@ -289,17 +311,12 @@ function assertPrincipal(sqlite: DatabaseSync, principal: Principal): void {
     | undefined;
   if (!user || user.status !== 'active')
     throw new AccountingPackRevisionError('Active finance principal required');
+  return assertStepUpProof(sqlite, principal);
 }
 
 function rowValue<T>(row: DbRow | undefined, key: string): T | undefined {
   return row?.[key] as T | undefined;
 }
-
-type Command = Readonly<{
-  commandId: string;
-  requestHash: string;
-  commandHash: string;
-}>;
 
 function ensureEvidence(
   sqlite: DatabaseSync,
@@ -310,42 +327,16 @@ function ensureEvidence(
   blob: Buffer,
   createdAt: string,
 ): string {
-  const hash = sha256(blob);
-  const existing = sqlite
-    .prepare(
-      'SELECT evidence_type,contract_version,semantic_id,canonical_blob,evidence_hash FROM finance_hash_evidence WHERE evidence_id=?',
-    )
-    .get(evidenceId) as
-    | {
-        evidence_type: string;
-        contract_version: string;
-        semantic_id: string;
-        canonical_blob: Uint8Array;
-        evidence_hash: string;
-      }
-    | undefined;
-  if (existing) {
-    assertEqual(existing.evidence_type, evidenceType, 'Evidence type');
-    assertEqual(existing.contract_version, contractVersion, 'Evidence contract');
-    assertEqual(existing.semantic_id, semanticId, 'Evidence semantic id');
-    assertEqual(existing.evidence_hash, hash, 'Evidence hash');
-    if (!Buffer.from(existing.canonical_blob).equals(blob))
-      throw new AccountingPackRevisionError('Evidence bytes are not idempotent');
-    return hash;
-  }
-  const hashOwner = sqlite
-    .prepare('SELECT evidence_id FROM finance_hash_evidence WHERE evidence_hash=?')
-    .get(hash) as { evidence_id: string } | undefined;
-  if (hashOwner && hashOwner.evidence_id !== evidenceId)
-    throw new AccountingPackRevisionError('Evidence hash is already bound to another identity');
-  sqlite
-    .prepare(
-      `INSERT INTO finance_hash_evidence(
-         evidence_id,evidence_type,contract_version,semantic_id,canonical_blob,evidence_hash,created_at
-       ) VALUES(?,?,?,?,?,?,?)`,
-    )
-    .run(evidenceId, evidenceType, contractVersion, semanticId, blob, hash, createdAt);
-  return hash;
+  return writeFinanceEvidence(
+    sqlite,
+    evidenceId,
+    evidenceType,
+    contractVersion,
+    semanticId,
+    blob,
+    createdAt,
+    accountingPackError,
+  );
 }
 
 function ensureCommand(
@@ -365,143 +356,25 @@ function ensureCommand(
     createdAt: string;
   }>,
 ): Command {
-  const payloadHash = sha256(canonicalJson(descriptor.payload));
-  const sessionHash = sha256(principal.sessionId ?? `accounting-pack:${principal.userId}`);
-  const requestBytes = Buffer.from(
-    canonicalJson({
-      schema_version: 'accounting-pack-command-v1',
-      tenant_id: deployment.tenantId,
-      deployment_id: deployment.deploymentId,
-      operation: descriptor.operation,
-      idempotency_key: descriptor.idempotencyKey,
-      principal_id: principal.userId,
-      effective_at: descriptor.effectiveAt,
-      target_kind: descriptor.targetKind,
-      target_semantic_id: descriptor.targetSemanticId,
-      amount_minor: descriptor.amountMinor ?? null,
-      currency: descriptor.currency ?? null,
-      payload_hash: payloadHash,
-      session_id_hash: sessionHash,
-    }),
-  );
-  const requestHash = ensureEvidence(
+  const proof = assertStepUpProof(sqlite, principal);
+  return writeFinanceCommand(
     sqlite,
-    `fp-request-${sha256(requestBytes).slice(0, 48)}`,
-    'finance_request',
-    'accounting-pack-command-v1',
-    `accounting-pack-request:${sha256(requestBytes)}`,
-    requestBytes,
-    descriptor.createdAt,
+    deployment,
+    principal,
+    {
+      ...descriptor,
+      payload: {
+        ...asObject(descriptor.payload),
+        step_up_proof: {
+          verified_at: proof.stepUpVerifiedAt,
+          expires_at: proof.stepUpExpiresAt,
+        },
+      },
+      stepUpVerifiedAt: proof.stepUpVerifiedAt,
+      stepUpExpiresAt: proof.stepUpExpiresAt,
+    } satisfies FinanceCommandInput,
+    accountingPackError,
   );
-  const commandBytes = Buffer.from(
-    canonicalJson({
-      schema_version: 'accounting-pack-command-v1',
-      request_hash: requestHash,
-      operation: descriptor.operation,
-      target_kind: descriptor.targetKind,
-      target_semantic_id: descriptor.targetSemanticId,
-      target_contract_version: descriptor.targetContractVersion,
-      payload_hash: payloadHash,
-    }),
-  );
-  const commandHash = ensureEvidence(
-    sqlite,
-    `fp-command-${sha256(commandBytes).slice(0, 48)}`,
-    'finance_command',
-    'accounting-pack-command-v1',
-    `accounting-pack-command:${sha256(commandBytes)}`,
-    commandBytes,
-    descriptor.createdAt,
-  );
-  const commandId = `fp-cmd-${commandHash.slice(0, 48)}`;
-  const existing = sqlite
-    .prepare(
-      `SELECT command_id,request_hash,command_hash,tenant_id,deployment_id,operation,
-              idempotency_key,principal_id,effective_at,target_kind,target_semantic_id,
-              CAST(amount_minor AS TEXT) amount_minor_text,currency,payload_hash,session_id_hash,state,completed_at
-       FROM finance_command
-       WHERE tenant_id=? AND deployment_id=? AND operation=? AND idempotency_key=?`,
-    )
-    .get(
-      deployment.tenantId,
-      deployment.deploymentId,
-      descriptor.operation,
-      descriptor.idempotencyKey,
-    ) as DbRow | undefined;
-  if (existing) {
-    for (const [key, value] of [
-      ['request_hash', requestHash],
-      ['command_hash', commandHash],
-      ['principal_id', principal.userId],
-      ['effective_at', descriptor.effectiveAt],
-      ['target_kind', descriptor.targetKind],
-      ['target_semantic_id', descriptor.targetSemanticId],
-      ['payload_hash', payloadHash],
-      ['session_id_hash', sessionHash],
-      ['state', 'completed'],
-    ] as const)
-      assertEqual(existing[key], value, `Finance command ${key}`);
-    if (
-      rowValue<string | null>(existing, 'amount_minor_text') !==
-      (descriptor.amountMinor === undefined || descriptor.amountMinor === null
-        ? null
-        : descriptor.amountMinor.toString())
-    )
-      throw new AccountingPackRevisionError('Finance command amount is not idempotent');
-    if (rowValue<string | null>(existing, 'currency') !== (descriptor.currency ?? null))
-      throw new AccountingPackRevisionError('Finance command currency is not idempotent');
-    return {
-      commandId: String(existing.command_id),
-      requestHash,
-      commandHash,
-    };
-  }
-  sqlite
-    .prepare(
-      `INSERT INTO finance_command(
-         command_id,request_hash,command_hash,tenant_id,deployment_id,operation,idempotency_key,
-         principal_id,effective_at,target_kind,target_semantic_id,amount_minor,currency,payload_hash,
-         session_id_hash,step_up_verified_at,step_up_expires_at,policy_revision_id,policy_hash,
-         state,completed_at,created_at
-       ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    )
-    .run(
-      commandId,
-      requestHash,
-      commandHash,
-      deployment.tenantId,
-      deployment.deploymentId,
-      descriptor.operation,
-      descriptor.idempotencyKey,
-      principal.userId,
-      descriptor.effectiveAt,
-      descriptor.targetKind,
-      descriptor.targetSemanticId,
-      descriptor.amountMinor ?? null,
-      descriptor.currency ?? null,
-      payloadHash,
-      sessionHash,
-      null,
-      null,
-      null,
-      null,
-      'completed',
-      descriptor.effectiveAt,
-      descriptor.createdAt,
-    );
-  sqlite
-    .prepare(
-      `INSERT INTO finance_command_target(
-         command_id,target_kind,target_semantic_id,target_contract_version
-       ) VALUES(?,?,?,?)`,
-    )
-    .run(
-      commandId,
-      descriptor.targetKind,
-      descriptor.targetSemanticId,
-      descriptor.targetContractVersion,
-    );
-  return { commandId, requestHash, commandHash };
 }
 
 function ensureAudit(
@@ -612,8 +485,27 @@ function ensureLegalEntityRevision(
   idempotencyKey: string,
 ): string {
   const legalEntityInput = input.legalEntity ?? {};
+  const bridgedAuthority = sqlite
+    .prepare(
+      `SELECT b.bridge_id,b.canonical_revision_id,r.series_id,
+              (SELECT tail.revision_id FROM legal_entity_revision tail
+                WHERE tail.series_id=r.series_id
+                ORDER BY tail.revision_number DESC LIMIT 1) tail_revision_id
+         FROM legal_entity_revision_bridge b
+         JOIN legal_entity_revision r ON r.revision_id=b.canonical_revision_id
+        WHERE b.tenant_id=? AND b.deployment_id=? AND b.legacy_legal_entity_id=?`,
+    )
+    .get(deployment.tenantId, deployment.deploymentId, input.legacyLegalEntityId) as
+    | {
+        bridge_id: string;
+        canonical_revision_id: string;
+        series_id: string;
+        tail_revision_id: string;
+      }
+    | undefined;
   const revisionId =
     input.legalEntityRevisionId ??
+    bridgedAuthority?.tail_revision_id ??
     `fp-entity-revision-${sha256(`${deployment.tenantId}:${deployment.deploymentId}:${input.legacyLegalEntityId}`).slice(0, 40)}`;
   const existing = sqlite
     .prepare('SELECT * FROM legal_entity_revision WHERE revision_id=?')
@@ -1376,8 +1268,17 @@ export class AccountingPackRevisionService {
       const seriesId =
         input.seriesId ??
         `fp-accounting-pack-series-${sha256(`${deployment.tenantId}:${deployment.deploymentId}:${legalEntityRevisionId}:${currency}:${periodStart}:${periodEnd}`).slice(0, 40)}`;
+      const existingIdentityBridge = this.sqlite
+        .prepare(
+          `SELECT bridge_id FROM legal_entity_revision_bridge
+            WHERE tenant_id=? AND deployment_id=? AND legacy_legal_entity_id=?`,
+        )
+        .get(deployment.tenantId, deployment.deploymentId, legacyLegalEntityId) as
+        | { bridge_id: string }
+        | undefined;
       const entityBridgeId =
         input.entityBridgeId ??
+        existingIdentityBridge?.bridge_id ??
         `fp-entity-bridge-${sha256(`${deployment.tenantId}:${deployment.deploymentId}:${legacyLegalEntityId}:${legalEntityRevisionId}`).slice(0, 40)}`;
       const snapshot = normalizeSnapshot(
         input,
@@ -1730,6 +1631,20 @@ export class AccountingPackRevisionService {
           commandHash: String(existingProvenance.command_hash),
         };
         entityAudit = String(existingBridge.audit_event_id);
+        const bridgeSeries = this.sqlite
+          .prepare(
+            `SELECT bridged.series_id bridged_series_id,selected.series_id selected_series_id
+               FROM legal_entity_revision bridged
+               JOIN legal_entity_revision selected ON selected.revision_id=?
+              WHERE bridged.revision_id=?`,
+          )
+          .get(legalEntityRevisionId, String(existingBridge.canonical_revision_id)) as
+          | { bridged_series_id: string; selected_series_id: string }
+          | undefined;
+        if (!bridgeSeries || bridgeSeries.bridged_series_id !== bridgeSeries.selected_series_id)
+          throw new AccountingPackRevisionError(
+            'Legal entity revision does not belong to the bridged canonical series',
+          );
       } else {
         entityBridgeCommand = ensureCommand(this.sqlite, deployment, principal, {
           operation: 'legal_entity_revision_bridge.create',
@@ -1790,8 +1705,6 @@ export class AccountingPackRevisionService {
             tenant_id: deployment.tenantId,
             deployment_id: deployment.deploymentId,
             legacy_legal_entity_id: legacyLegalEntityId,
-            canonical_revision_id: legalEntityRevisionId,
-            identity_manifest_sha256: identityHash,
             command_id: entityBridgeCommand.commandId,
             audit_event_id: entityAudit,
           },

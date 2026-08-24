@@ -108,7 +108,6 @@ The work is not complete because a subagent says “done”. Completion requires
 
 Build the **data-readiness and inference plumbing** now: point-in-time snapshots, immutable business events, feature schema/versioning, export, model registry, prediction history, shadow-mode support, and rule/baseline intelligence. Do not invent a production-quality GBT or JEPA model without real historical data and held-out validation. The UI must make experimental/unvalidated models impossible to mistake for trusted production predictions.
 
-
 ## Luna-first implementation update
 
 This package is configured to use Luna Max aggressively for bounded production implementation. Unprofiled/default subagents also default to Luna Max; Sol Medium/High are selected explicitly by the domain-lead/architect profiles. The parent/architect/integration authority stays Sol High; Sol Medium domain leads are reserved for non-local invariants and must delegate stable implementation leaves to Luna Max. See `AGENTS.md`, `MCP_AGENT_MATRIX.md`, and the custom Luna write agents under `.codex/agents/`.

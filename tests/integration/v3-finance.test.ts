@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -35,6 +36,124 @@ function seedUser(
     .run(id, id, `${id}@example.com`, role, 'active', 1, now, now);
 }
 
+function steppedUpPrincipal(
+  sqlite: ReturnType<typeof createDatabase>['sqlite'],
+  principal: Principal,
+  label: string,
+): Principal {
+  const now = new Date().toISOString();
+  const sessionId = `v3-finance-${principal.userId}-${label}`;
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+    )
+    .run(
+      sessionId,
+      `${sessionId}-token`,
+      principal.userId,
+      new Date(Date.now() + 3_600_000).toISOString(),
+      now,
+      now,
+      now,
+    );
+  return { ...principal, sessionId };
+}
+
+function configureExpenseAuthority(
+  repository: PortalRepository,
+  v3: V3Repository,
+  owner: Principal,
+  finance: Principal,
+  projectId: string,
+  currency: 'USD' | 'EUR' | 'GBP' | 'CAD',
+  label: string,
+): void {
+  const legacy = repository.createLegalEntity(owner, {
+    code: `EXP-${label}`,
+    legalName: `Expense authority ${label}`,
+    currency,
+    billingAddress: '100 Canonical Finance Way',
+    companyIdentifiers: `TAX-${label}`,
+  });
+  const revision = v3.createCanonicalLegalEntityRevision(finance, {
+    legacyLegalEntityId: legacy.id,
+    effectiveFrom: '2026-01-01',
+    legalName: `Expense authority ${label}`,
+    taxIdentifier: `TAX-${label}`,
+    registrationIdentifier: `REG-${label}`,
+    addressLine1: '100 Canonical Finance Way',
+    locality: 'Madrid',
+    postalCode: '28001',
+    countryCode: 'ES',
+    baseCurrency: currency,
+    timezone: 'UTC',
+    reason: 'Bind deterministic Finance authority for expense classification',
+    idempotencyKey: `v3-finance:${label}:revision`,
+  });
+  v3.assignCanonicalLegalEntityToProject(finance, {
+    projectId,
+    legalEntityRevisionId: revision.revisionId,
+    effectiveFrom: '2026-01-01',
+    reason: 'Bind deterministic Finance authority for expense classification',
+    idempotencyKey: `v3-finance:${label}:assignment`,
+  });
+}
+
+// Customer reports may carry operational hours and activity, but must not
+// carry finance/commercial DTO keys or hidden money-bearing metadata.
+const customerForbiddenSnapshotKeys = [
+  'commercialSummary',
+  'commercialCalculation',
+  'financialSummary',
+  'amount',
+  'currency',
+  'treatment',
+  'clientTreatment',
+  'billingTreatment',
+  'billingAmountMinor',
+  'billingState',
+  'billingLockId',
+  'markupBps',
+  'taxAmountMinor',
+  'fxRateBps',
+  'projectCurrencyAmountMinor',
+  'reimbursementAmountMinor',
+  'reimbursementState',
+  'reimbursementReference',
+  'invoiceId',
+  'financeApprovedBy',
+  'financeApprovedAt',
+  'laborRevenueMinor',
+  'expenseRevenueMinor',
+  'milestoneRevenueMinor',
+  'operationalRevenueCandidateMinor',
+  'candidateSubtotalMinor',
+  'invoicedNetMinor',
+  'invoicedGrossMinor',
+  'paidMinor',
+  'receivableMinor',
+  'approvedUnbilledWipMinor',
+  'unapprovedWipMinor',
+  'dailyMinimumTopUpMinor',
+  'directLaborCostMinor',
+  'approvedCostMinor',
+  'contributionMarginMinor',
+  'contributionMarginBps',
+] as const;
+
+function expectNoCustomerFinanceKeys(value: unknown, path = '$'): void {
+  if (Array.isArray(value)) {
+    for (const [index, child] of value.entries())
+      expectNoCustomerFinanceKeys(child, `${path}[${index}]`);
+    return;
+  }
+  if (typeof value !== 'object' || value === null) return;
+  for (const [key, child] of Object.entries(value)) {
+    expect(customerForbiddenSnapshotKeys).not.toContain(key);
+    expectNoCustomerFinanceKeys(child, `${path}.${key}`);
+  }
+}
+
 describe('V3 finance and privacy paths', () => {
   it('keeps percentage pay, overtime, expense treatment and finance economics exact', () => {
     const directory = mkdtempSync(join(tmpdir(), 'ja-v3-finance-'));
@@ -51,7 +170,11 @@ describe('V3 finance and privacy paths', () => {
     seedB5ServiceActorBinding(sqlite, 'owner');
 
     const owner: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
-    const finance: Principal = { userId: 'finance', role: 'finance_admin', projectIds: new Set() };
+    const finance = steppedUpPrincipal(
+      sqlite,
+      { userId: 'finance', role: 'finance_admin', projectIds: new Set() },
+      'economics',
+    );
     const client = repository.createClient(owner, {
       legalName: 'V3 Client',
       displayName: 'V3 Client',
@@ -69,6 +192,7 @@ describe('V3 finance and privacy paths', () => {
       billingModel: 'tm',
       expectedMinutesPerDay: 600,
     });
+    configureExpenseAuthority(repository, v3, owner, finance, project.id, 'USD', 'economics');
     repository.assignWorker(owner, {
       projectId: project.id,
       workerId: 'manager',
@@ -202,6 +326,33 @@ describe('V3 finance and privacy paths', () => {
       v3.workerPay(repository.principalFor('outsider'), '2026-08-01', '2026-08-16'),
     ).not.toThrow();
 
+    const editableExpense = repository.createExpense(workerA, {
+      projectId: project.id,
+      spentOn: '2026-08-04',
+      vendor: 'Editable hotel',
+      category: 'hotel',
+      description: 'Reimbursement amount follows a draft edit',
+      currency: 'USD',
+      amountMinor: 1_234n,
+      whoPaid: 'worker',
+      receiptRequired: false,
+    });
+    expect(
+      sqlite
+        .prepare('SELECT amount_minor,reimbursement_amount_minor FROM expense WHERE id=?')
+        .get(editableExpense.id),
+    ).toEqual({ amount_minor: 1234, reimbursement_amount_minor: 1234 });
+    repository.updateExpense(workerA, {
+      id: editableExpense.id,
+      version: editableExpense.version,
+      amountMinor: 2_345n,
+    });
+    expect(
+      sqlite
+        .prepare('SELECT amount_minor,reimbursement_amount_minor FROM expense WHERE id=?')
+        .get(editableExpense.id),
+    ).toEqual({ amount_minor: 2345, reimbursement_amount_minor: 2345 });
+
     const reimbursable = repository.createExpense(workerA, {
       projectId: project.id,
       spentOn: '2026-08-04',
@@ -211,9 +362,6 @@ describe('V3 finance and privacy paths', () => {
       currency: 'USD',
       amountMinor: 10_000n,
       whoPaid: 'worker',
-      clientTreatment: 'reimbursable',
-      billingTreatment: 'reimbursable_plus_markup',
-      markupBps: 1_000,
       receiptRequired: false,
     });
     const allIn = repository.createExpense(workerA, {
@@ -225,8 +373,6 @@ describe('V3 finance and privacy paths', () => {
       currency: 'USD',
       amountMinor: 5_000n,
       whoPaid: 'company_card',
-      clientTreatment: 'all_in',
-      billingTreatment: 'all_in',
       receiptRequired: false,
     });
     const clientDirect = repository.createExpense(workerA, {
@@ -238,12 +384,42 @@ describe('V3 finance and privacy paths', () => {
       currency: 'USD',
       amountMinor: 7_500n,
       whoPaid: 'client',
-      clientTreatment: 'non_billable',
-      billingTreatment: 'client_direct',
       receiptRequired: false,
     });
-    for (const row of [reimbursable, allIn, clientDirect]) {
-      repository.submitExpense(workerA, row.id, row.version);
+    const classifications = [
+      repository.classifyExpenseCommercially(finance, {
+        expenseId: reimbursable.id,
+        expectedVersion: reimbursable.version,
+        clientTreatment: 'reimbursable',
+        billingTreatment: 'reimbursable_plus_markup',
+        markupBps: 1_000,
+        taxBps: 0,
+        reason: 'Finance classifies reimbursable hotel with configured markup',
+        idempotencyKey: 'v3-finance:economics:reimbursable',
+      }),
+      repository.classifyExpenseCommercially(finance, {
+        expenseId: allIn.id,
+        expectedVersion: allIn.version,
+        clientTreatment: 'all_in',
+        billingTreatment: 'all_in',
+        markupBps: 0,
+        taxBps: 0,
+        reason: 'Finance classifies rental car as all-in',
+        idempotencyKey: 'v3-finance:economics:all-in',
+      }),
+      repository.classifyExpenseCommercially(finance, {
+        expenseId: clientDirect.id,
+        expectedVersion: clientDirect.version,
+        clientTreatment: 'non_billable',
+        billingTreatment: 'client_direct',
+        markupBps: 0,
+        taxBps: 0,
+        reason: 'Finance records the customer-paid direct purchase',
+        idempotencyKey: 'v3-finance:economics:client-direct',
+      }),
+    ];
+    for (const [index, row] of [reimbursable, allIn, clientDirect].entries()) {
+      repository.submitExpense(workerA, row.id, classifications[index]!.version);
       repository.operationalApproveExpense(manager, row.id, 'approved');
       repository.financeApproveExpense(finance, row.id);
     }
@@ -324,7 +500,7 @@ describe('V3 finance and privacy paths', () => {
     sqlite.close();
   });
 
-  it('closes locked streams, drafts once, reconciles payments and persists offline conflicts', () => {
+  it('closes locked streams, drafts once, reconciles payments, persists offline conflicts and keeps customer snapshots operational-only', () => {
     const directory = mkdtempSync(join(tmpdir(), 'ja-v3-billing-'));
     directories.push(directory);
     const { sqlite } = createDatabase(join(directory, 'app.db'));
@@ -336,7 +512,11 @@ describe('V3 finance and privacy paths', () => {
     seedUser(sqlite, 'worker', 'worker');
     seedB5ServiceActorBinding(sqlite, 'owner');
     const owner: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
-    const finance: Principal = { userId: 'finance', role: 'finance_admin', projectIds: new Set() };
+    const finance = steppedUpPrincipal(
+      sqlite,
+      { userId: 'finance', role: 'finance_admin', projectIds: new Set() },
+      'billing',
+    );
     const client = repository.createClient(owner, {
       legalName: 'Billing Client',
       displayName: 'Billing Client',
@@ -354,6 +534,7 @@ describe('V3 finance and privacy paths', () => {
       billingModel: 'tm',
       expectedMinutesPerDay: 600,
     });
+    configureExpenseAuthority(repository, v3, owner, finance, project.id, 'USD', 'billing');
     repository.assignWorker(owner, {
       projectId: project.id,
       workerId: 'manager',
@@ -424,11 +605,19 @@ describe('V3 finance and privacy paths', () => {
       currency: 'USD',
       amountMinor: 2_000n,
       whoPaid: 'worker',
-      clientTreatment: 'reimbursable',
-      billingTreatment: 'reimbursable_at_cost',
       receiptRequired: false,
     });
-    repository.submitExpense(worker, expense.id, expense.version);
+    const expenseClassification = repository.classifyExpenseCommercially(finance, {
+      expenseId: expense.id,
+      expectedVersion: expense.version,
+      clientTreatment: 'reimbursable',
+      billingTreatment: 'reimbursable_at_cost',
+      markupBps: 0,
+      taxBps: 0,
+      reason: 'Finance classifies the hotel for at-cost recovery',
+      idempotencyKey: 'v3-finance:billing:expense',
+    });
+    repository.submitExpense(worker, expense.id, expenseClassification.version);
     repository.operationalApproveExpense(manager, expense.id, 'approved');
     repository.financeApproveExpense(finance, expense.id);
 
@@ -582,6 +771,7 @@ describe('V3 finance and privacy paths', () => {
       periodEnd: '2026-08-16',
     });
     const internalReport = refreshedReports.find((report) => report.audience === 'internal');
+    const customerReport = refreshedReports.find((report) => report.audience === 'customer');
     expect(internalReport?.snapshot).toEqual(
       expect.objectContaining({
         commercialSummary: expect.objectContaining({
@@ -612,6 +802,21 @@ describe('V3 finance and privacy paths', () => {
       4,
     );
     expect(v3.periodReportPdfMetadata(finance, internalReport.id).sha256).toBe('a'.repeat(64));
+    v3.refreshPeriodReports(finance, {
+      projectId: project.id,
+      periodStart: '2026-08-03',
+      periodEnd: '2026-08-16',
+    });
+    // An idempotent refresh preserves the finalized binding. A real source
+    // change below advances the snapshot and invalidates the old PDF.
+    expect(v3.periodReportPdfMetadata(finance, internalReport.id).sha256).toBe('a'.repeat(64));
+    repository.createDailyReport(worker, {
+      projectId: project.id,
+      workDate: '2026-08-12',
+      summary: 'Additional in-period operational evidence',
+      tasksCompleted: 'Verified the refreshed report source binding',
+      downtimeMinutes: 0,
+    });
     v3.refreshPeriodReports(finance, {
       projectId: project.id,
       periodStart: '2026-08-03',
@@ -746,7 +951,97 @@ describe('V3 finance and privacy paths', () => {
     expect(
       sqlite.prepare('SELECT version,minutes FROM time_entry WHERE id=?').get(draft.id),
     ).toEqual({ version: draft.version, minutes: 30 });
-    sqlite.close();
+    try {
+      expect(customerReport).toBeDefined();
+      if (!customerReport) throw new Error('Customer period report was not created');
+      expect(customerReport.snapshot).not.toHaveProperty('commercialSummary');
+      expect(customerReport.snapshot).not.toHaveProperty('commercialCalculation');
+      expect(customerReport.snapshot).not.toHaveProperty('financialSummary');
+      expect(customerReport.snapshot).toEqual(
+        expect.objectContaining({
+          audience: 'customer',
+          timeSummary: expect.arrayContaining([
+            expect.objectContaining({
+              date: '2026-08-03',
+              category: 'regular',
+              minutes: 60,
+              activitySummary: 'Billable hour',
+            }),
+          ]),
+        }),
+      );
+      expect(customerReport.snapshot).not.toHaveProperty('expenses');
+      expectNoCustomerFinanceKeys(customerReport.snapshot);
+
+      const legacyCustomerSnapshot = {
+        project: {
+          id: project.id,
+          number: project.projectNumber,
+          name: project.name,
+          currency: 'USD',
+        },
+        periodStart: '2026-08-03',
+        periodEnd: '2026-08-16',
+        audience: 'customer',
+        reportType: 'period_summary',
+        locale: 'en',
+        dailyReports: [
+          {
+            id: 'legacy-daily',
+            date: '2026-08-03',
+            summary: 'Legacy approved daily record',
+            approvalState: 'approved',
+            amountMinor: '999999',
+          },
+        ],
+        timeSummary: [
+          {
+            date: '2026-08-03',
+            category: 'regular',
+            minutes: 60,
+            activitySummary: 'Legacy approved activity',
+            worker: 'Worker',
+            approvalState: 'approved',
+            currency: 'USD',
+          },
+        ],
+        technicalReports: [],
+        technicalChanges: [],
+        commercialSummary: {
+          currency: 'USD',
+          candidateSubtotalMinor: '999999',
+          sourceCounts: {
+            dailyReports: 1,
+            technicalReports: 0,
+            technicalChanges: 0,
+            timeEntries: 1,
+            expenses: 1,
+          },
+        },
+        expenses: [{ amount: '999999', currency: 'USD', treatment: 'reimbursable' }],
+        generatedAt: new Date().toISOString(),
+      };
+      sqlite
+        .prepare(
+          'UPDATE period_report SET snapshot_version=snapshot_version+1,snapshot_json=?,snapshot_sha256=?,pdf_storage_key=?,pdf_sha256=?,pdf_byte_length=?,approved_at=NULL WHERE id=?',
+        )
+        .run(
+          JSON.stringify(legacyCustomerSnapshot),
+          createHash('sha256').update(JSON.stringify(legacyCustomerSnapshot)).digest('hex'),
+          'reports/legacy-customer-period.pdf',
+          'b'.repeat(64),
+          4,
+          customerReport.id,
+        );
+      expect(() => v3.periodReportSnapshot(worker, customerReport.id)).toThrow(
+        /regenerated from a safe snapshot/,
+      );
+      expect(() => v3.periodReportPdfMetadata(worker, customerReport.id)).toThrow(
+        /regenerated from a safe snapshot/,
+      );
+    } finally {
+      sqlite.close();
+    }
   });
 
   it('delivers outbox events with leases, idempotency and durable failures', async () => {

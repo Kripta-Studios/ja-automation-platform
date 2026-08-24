@@ -291,28 +291,35 @@ describe('Client Essential worker compensation truth', () => {
     value.repository.operationalApproveExpense(value.manager, expense.id, 'approved');
     value.repository.financeApproveExpense(value.finance, expense.id);
 
+    expect(() =>
+      value.v3.recordReimbursement(value.finance, {
+        expenseId: expense.id,
+        amountMinor: 12_000n,
+        reference: 'PAY-ESSENTIAL-PARTIAL',
+      }),
+    ).toThrow(/Partial reimbursement is not supported/u);
     const first = value.v3.recordReimbursement(value.finance, {
       expenseId: expense.id,
-      amountMinor: 12_000n,
+      amountMinor: 12_345n,
       reference: 'PAY-ESSENTIAL-1',
     });
     const second = value.v3.recordReimbursement(value.finance, {
       expenseId: expense.id,
-      amountMinor: 12_000n,
+      amountMinor: 12_345n,
       reference: 'PAY-ESSENTIAL-1',
     });
     expect(second).toEqual(first);
     expect(() =>
       value.v3.recordReimbursement(value.finance, {
         expenseId: expense.id,
-        amountMinor: 11_999n,
+        amountMinor: 12_344n,
         reference: 'PAY-ESSENTIAL-1',
       }),
     ).toThrow(V3ConflictError);
     expect(() =>
       value.v3.recordReimbursement(value.finance, {
         expenseId: expense.id,
-        amountMinor: 12_000n,
+        amountMinor: 12_345n,
         reference: 'PAY-ESSENTIAL-2',
       }),
     ).toThrow(V3ConflictError);
@@ -323,7 +330,7 @@ describe('Client Essential worker compensation truth', () => {
         )
         .get(expense.id),
     ).toEqual({
-      reimbursement_amount_minor: 12_000,
+      reimbursement_amount_minor: 12_345,
       reimbursement_reference: 'PAY-ESSENTIAL-1',
       reimbursement_state: 'reimbursed',
     });

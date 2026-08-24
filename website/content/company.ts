@@ -19,9 +19,11 @@ export const contact: ContactConfig = {
 };
 
 export const teamRoles: TeamRole[] = [
-  { count: 16, labelKey: 'team.plcEngineers' },
-  { count: 7, labelKey: 'team.robotEngineers' },
-  { count: 3, labelKey: 'team.electricalDesigners' },
+  { count: 30, labelKey: 'team.plcEngineers' },
+  { count: 30, labelKey: 'team.robotEngineers' },
+  { count: 5, labelKey: 'team.electricalDesigners' },
+  { count: 5, labelKey: 'team.mechanicalDesigners' },
+  { count: 100, labelKey: 'team.installationTeam' },
   { count: 2, labelKey: 'team.planningSpecialists' },
   { count: 3, labelKey: 'team.siteManagers' },
   { count: 2, labelKey: 'team.instructors' },

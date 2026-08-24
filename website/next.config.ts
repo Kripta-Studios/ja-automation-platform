@@ -3,7 +3,7 @@ import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./lib/i18n/request.ts');
 
-const basePath = process.env.JA_PUBLIC_BASE_PATH ?? '/j-aautomation';
+const basePath = (process.env.JA_PUBLIC_BASE_PATH ?? '/j-aautomation').replace(/\/+$/, '');
 
 const nextConfig: NextConfig = {
   basePath,
@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
   images: {
-    formats: ['image/avif', 'image/webp'],
+    formats: ['image/webp'],
     deviceSizes: [390, 640, 768, 1024, 1280, 1440, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     qualities: [75, 85, 90, 100],

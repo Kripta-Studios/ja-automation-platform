@@ -14,7 +14,9 @@
     "careersTitle": "Careers in Industrial Automation | J&A Automation",
     "careersDescription": "Career opportunities in PLC programming, robotics, electrical design, commissioning and industrial automation engineering.",
     "contactTitle": "Contact J&A Automation | Talk to an Engineer",
-    "contactDescription": "Contact J&A Automation for industrial automation projects, PLC/HMI/SCADA, robotics, electrical controls, commissioning or technical support."
+    "contactDescription": "Contact J&A Automation for industrial automation projects, PLC/HMI/SCADA, robotics, electrical controls, commissioning or technical support.",
+    "industriesTitle": "Industrial Automation Industries | J&A Automation",
+    "industriesDescription": "Explore the industrial sectors where J&A Automation delivers controls, robotics, integration and commissioning."
   },
   "nav": {
     "capabilities": "Capabilities",
@@ -29,7 +31,23 @@
     "portalLogin": "Employee Portal login",
     "skipToContent": "Skip to main content",
     "openMenu": "Open menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "mainNavigation": "Main navigation",
+    "languageSelector": "Language selector",
+    "navigationMenu": "Navigation menu",
+    "siteHome": "J&A Automation home",
+    "logoAlt": "J&A Automation logo",
+    "switchTo": "Switch to {language}",
+    "languageNames": {
+      "en": "English",
+      "pt": "Português",
+      "es": "Español"
+    },
+    "languageLabels": {
+      "en": "EN",
+      "pt": "PT-BR",
+      "es": "ES"
+    }
   },
   "hero": {
     "eyebrow": "INDUSTRIAL AUTOMATION • ROBOTICS • CONTROLS",
@@ -52,7 +70,7 @@
     "eyebrow": "02 / INDUSTRIAL ENGINEERING",
     "h2": "One engineering partner from controls design to stable production.",
     "p1": "We design, integrate, and commission industrial control systems. From PLC logic and robotics to electrical design and stable production, we are your single engineering partner.",
-    "p2": "",
+    "p2": "From new systems and line upgrades through commissioning, troubleshooting and remote support, our team works across the full automation lifecycle with a practical focus on what needs to work on the factory floor.",
     "cta": "About J&A Automation →",
     "imageCaption": "CONTROLS • INTEGRATION • COMMISSIONING"
   },
@@ -74,7 +92,8 @@
     "commissioning": "Commissioning & Startup",
     "commissioningDesc": "FAT/SAT support, on-site integration, startup, ramp-up, troubleshooting and production stabilization.",
     "supportTraining": "Support, Training & Consulting",
-    "supportTrainingDesc": "On-demand or contract technical support, remote diagnostics, modernization planning, equipment specification and PLC/HMI training."
+    "supportTrainingDesc": "On-demand or contract technical support, remote diagnostics, modernization planning, equipment specification and PLC/HMI training.",
+    "explore": "Explore capability"
   },
   "industries": {
     "eyebrow": "01 / INDUSTRIES",
@@ -89,7 +108,9 @@
     "cosmeticsPackaging": "Cosmetics & Packaging",
     "cosmeticsPackagingDesc": "Filling, capping, indexing, motion, pick-and-place, conveying, cartoning and machine integration.",
     "oemGeneral": "OEM & General Industry",
-    "oemGeneralDesc": "Controls engineering, machine integration, retrofits, panel work and commissioning for OEMs and industrial manufacturers."
+    "oemGeneralDesc": "Controls engineering, machine integration, retrofits, panel work and commissioning for OEMs and industrial manufacturers.",
+    "lead": "J&A Automation builds, integrates, and supports industrial control systems across multiple sectors.",
+    "viewProjects": "View projects in this industry"
   },
   "projectExperience": {
     "eyebrow": "04 / PROJECT EXPERIENCE",
@@ -101,7 +122,9 @@
   },
   "clients": {
     "h2": "Selected project experience with global industrial brands.",
-    "disclaimer": "Client names reflect published project experience and do not imply current vendor partnership or endorsement."
+    "disclaimer": "Client names reflect published project experience and do not imply current vendor partnership or endorsement.",
+    "eyebrow": "Selected experience",
+    "logoAlt": "{name} logo"
   },
   "techEcosystem": {
     "eyebrow": "05 / TECHNOLOGY ECOSYSTEM",
@@ -132,7 +155,12 @@
     "body": "J&A provides technical support for PLC, HMI, robot and industrial-control issues on demand or under contract. Remote diagnosis can accelerate troubleshooting when the problem can be investigated through the installed controls environment; field support remains available when the work requires the plant floor.",
     "helper": "Include the machine or line, PLC/robot platform, symptoms, location and urgency so the request can be routed quickly.",
     "cta": "Request Technical Support",
-    "callUs": "Call"
+    "callUs": "Call",
+    "coverageEyebrow": "Field + remote coverage",
+    "coveragePlcHmi": "PLC / HMI",
+    "coverageRobotics": "Robotics",
+    "coverageDrivesMotion": "Drives + motion",
+    "coverageProductionStartup": "Production startup"
   },
   "team": {
     "eyebrow": "07 / ENGINEERING TEAM",
@@ -140,6 +168,8 @@
     "plcEngineers": "PLC programmers / engineers",
     "robotEngineers": "Robot programmers / engineers",
     "electricalDesigners": "Electrical designers",
+    "mechanicalDesigners": "Mechanical designers",
+    "installationTeam": "Installation team members",
     "planningSpecialists": "Planning specialists",
     "siteManagers": "Site managers / project coordinators",
     "instructors": "PLC / robot instructors",
@@ -207,7 +237,7 @@
     "submitSupport": "Send Support Request",
     "machineLine": "Machine / line name",
     "plcPlatform": "PLC / HMI / robot platform",
-    "productionStopped": "Is production stopped?",
+    "productionStopped": "Production stopped",
     "productionYes": "Yes",
     "productionNo": "No",
     "productionIntermittent": "Intermittent",
@@ -247,7 +277,39 @@
     "sending": "Sending…",
     "submitMessage": "Submit message",
     "loading": "Loading…",
-    "required": "Required"
+    "required": "Required",
+    "primaryTitle": "Chief Executive Officer",
+    "website": "Website",
+    "companyRequired": "Company",
+    "countrySite": "Country / Site",
+    "primaryService": "Primary Service of Interest",
+    "technologyPlatform": "Technology / Platform",
+    "plcRobotPlaceholder": "PLC, robot, SCADA, controls…",
+    "emailOption": "Email",
+    "phoneOption": "Phone",
+    "siteFacility": "Site / Facility",
+    "plantLocationPlaceholder": "Plant, site or system location",
+    "affectedSystem": "Affected System / Platform",
+    "plcHmiPlaceholder": "PLC, robot, HMI, SCADA…",
+    "urgency": "Urgency",
+    "degraded": "Degraded",
+    "plannedSupport": "Planned support",
+    "location": "Location",
+    "professionalProfile": "Professional Profile",
+    "controlsPlaceholder": "Controls, robotics, electrical…",
+    "platformsExperience": "Platforms / Experience",
+    "experiencePlaceholder": "PLC, robot, HMI or other experience",
+    "travelAvailability": "Travel Availability",
+    "travelYes": "Yes",
+    "travelLimited": "Limited",
+    "travelNo": "No",
+    "industryAutomotive": "Automotive",
+    "industryFoodBeverage": "Food and beverage",
+    "industryEnergyProcess": "Energy and process",
+    "industryGeneralManufacturing": "General manufacturing",
+    "industryOther": "Other / not sure",
+    "aquarexWaterTreatment": "Aquarex Water Treatment",
+    "otherNotSure": "Other / Not Sure"
   },
   "about": {
     "eyebrow": "ABOUT J&A AUTOMATION",
@@ -256,7 +318,7 @@
     "storyH2": "Built around the realities of production.",
     "storyP1": "Industrial projects are judged on the factory floor. Software has to work with electrical hardware, robots, drives, mechanics, operators, maintenance teams and production schedules. J&A's project history reflects that practical focus—from machine modifications and controls development to line integration, commissioning, ramp-up and ongoing support.",
     "storyP2": "Today the company serves manufacturers, OEMs and engineering teams across the United States, Brazil and international projects, combining field execution with remote controls support.",
-    "teamIntro": "J&A brings together controls programmers, robot programmers, electrical designers, planning specialists, site managers and instructors so projects can be supported beyond a single engineering discipline.",
+    "teamIntro": "J&A brings together controls programmers, robot programmers, electrical and mechanical designers, planning specialists, site managers, installation teams and instructors so projects can be supported beyond a single engineering discipline.",
     "internationalH2": "International project execution.",
     "internationalBody": "J&A's published portfolio includes work in the United States, Brazil, Haiti, Paraguay, Mexico, Papua New Guinea and other international industrial environments. The company is positioned to support customers across the Americas, Europe and global project locations.",
     "principlesH2": "Engineering principles",
@@ -269,7 +331,21 @@
     "principle4Title": "Make diagnostics useful",
     "principle4Body": "States, alarms and HMI information should help maintenance and operations understand what happened and what to do next.",
     "closingH2": "Need an automation team that can follow the project into the plant?",
-    "closingCta": "Talk to an Engineer"
+    "closingCta": "Talk to an Engineer",
+    "storyP3": "Our philosophy is simple: engineering excellence drives reliability. We build code structures that are modular, robust, and designed for the real-world conditions of the factory floor.",
+    "founded": "Founded",
+    "offices": "Offices (USA & Brazil)",
+    "projectsCompleted": "Projects Completed",
+    "standard": "The J&A Standard",
+    "modularEngineering": "Modular Engineering",
+    "modularEngineeringBody": "We develop PLC and HMI codebases using object-oriented principles. Standardized Add-On Instructions (AOIs) ensure consistency, reduce debugging time, and make our systems scalable.",
+    "oemIndependent": "OEM Independent",
+    "oemIndependentBody": "While we have deep expertise in Rockwell, Siemens, and KUKA, we remain hardware-agnostic. We architect the best solution for your specific technical requirements and budget.",
+    "lifecycleSupport": "Lifecycle Support",
+    "lifecycleSupportBody": "Commissioning is not the end. We provide comprehensive documentation, operator training, and secure remote support infrastructure to ensure your line runs at peak OEE for decades.",
+    "joinTeam": "Join Our Team",
+    "joinTeamBody": "We are always looking for talented PLC engineers, robotics specialists, and electrical designers to join our growing operations in the USA and Brazil.",
+    "careerOpportunities": "View Career Opportunities"
   },
   "careers": {
     "eyebrow": "CAREERS",
@@ -294,17 +370,24 @@
     "ctaH2": "Interested in working with J&A?",
     "ctaBody": "Send a short introduction with your location, automation background, primary platforms and travel availability. Include your résumé by email.",
     "ctaPrimary": "Send Your Résumé",
-    "ctaSecondary": "Contact J&A"
+    "ctaSecondary": "Contact J&A",
+    "workH2": "What the work can involve"
   },
   "notFound": {
     "h1": "This page isn't on the line.",
     "body": "The page may have moved as the J&A Automation website was updated.",
     "cta": "Go to Homepage",
-    "ctaSecondary": "Explore Capabilities"
+    "ctaSecondary": "Explore Capabilities",
+    "pageTitle": "Page Not Found",
+    "pageMissingBody": "The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.",
+    "returnHome": "Return to Home"
   },
   "error": {
     "h1": "Something interrupted this request.",
-    "body": "Please try again. If you need to reach J&A directly, use the phone or email contact below."
+    "body": "Please try again. If you need to reach J&A directly, use the phone or email contact below.",
+    "tryAgain": "Try Again",
+    "returnHome": "Return to Home",
+    "unexpected": "An unexpected error has occurred. Our engineering team has been notified."
   },
   "projectFilters": {
     "all": "All",
@@ -337,9 +420,13 @@
     "rockwell": "Rockwell",
     "fanuc": "FANUC",
     "other": "Other",
+    "range2020_2026": "2020–2026",
     "range2015_2019": "2015–2019",
     "range2010_2014": "2010–2014",
-    "before2010": "Before 2010"
+    "before2010": "Before 2010",
+    "formLabel": "Project filters",
+    "projectCount": "{shown} / {total} projects",
+    "trainingConsulting": "Training / consulting"
   },
   "serviceOptions": {
     "plcHmiScada": "PLC / HMI / SCADA",
@@ -352,7 +439,8 @@
     "consulting": "Engineering consulting",
     "training": "Training",
     "aquarex": "Aquarex",
-    "other": "Other"
+    "other": "Other",
+    "trainingConsulting": "Training / consulting"
   },
   "projectStageOptions": {
     "earlyConcept": "Early concept",
@@ -361,5 +449,440 @@
     "commissioning": "Integration / commissioning",
     "upgrade": "Existing system upgrade",
     "notSure": "Not sure"
+  },
+  "common": {
+    "backToCapabilities": "Back to Capabilities",
+    "backToIndustries": "Back to Industries",
+    "backToProjects": "Back to Projects",
+    "relatedProjectExperience": "Related Project Experience",
+    "projectExperience": "Project Experience",
+    "projectScope": "Project Scope",
+    "outcome": "Outcome",
+    "capabilitiesApplied": "Capabilities Applied",
+    "technologies": "Technologies",
+    "exploreCapability": "Explore capability",
+    "viewAllProjects": "View all projects",
+    "viewProjectsInIndustry": "View projects in this industry",
+    "discussSimilarProject": "Discuss a similar project",
+    "contactEngineeringTeam": "Contact our Engineering Team",
+    "needEngineeringSupport": "Need engineering support for {capability}?",
+    "needSectorSupport": "Need engineering support in this sector?",
+    "projectsCount": "{shown} / {total} projects",
+    "notFound": "Not Found",
+    "tryAgain": "Try Again",
+    "returnHome": "Return to Home",
+    "pageNotFound": "Page Not Found",
+    "pageMissingBody": "The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.",
+    "loading": "Loading…"
+  },
+  "imageAlts": {
+    "logo": "J&A Automation Industrial Solutions",
+    "heroRobotics": "Industrial robotic assembly line",
+    "heroFoodBeverage": "Food and beverage production line",
+    "heroEnergyProcess": "Energy and process industrial plant",
+    "automotive": "Industrial robotic automotive body shop",
+    "foodBeverage": "Food and beverage production line",
+    "energyProcess": "Energy and process industrial plant",
+    "cosmeticsPackaging": "Cosmetics filling production line",
+    "oemGeneral": "Industrial robotic cell",
+    "assembly": "State of the art automated assembly line"
+  },
+  "serviceTags": {
+    "siemens": "Siemens",
+    "rockwell": "Rockwell",
+    "wincc": "WinCC",
+    "factoryTalk": "FactoryTalk",
+    "fanuc": "FANUC",
+    "kuka": "KUKA",
+    "abb": "ABB",
+    "yaskawa": "Yaskawa",
+    "processSimulate": "Process Simulate",
+    "robotStudio": "RobotStudio",
+    "offlineEngineering": "Offline engineering",
+    "eplan": "EPLAN",
+    "autoCadElectrical": "AutoCAD Electrical",
+    "panels": "Panels",
+    "safetyInterfaces": "Safety interfaces",
+    "vfd": "VFD",
+    "servo": "Servo",
+    "motion": "Motion",
+    "pid": "PID",
+    "fat": "FAT",
+    "sat": "SAT",
+    "startup": "Startup",
+    "rampUp": "Ramp-up",
+    "remoteSupport": "Remote support",
+    "troubleshooting": "Troubleshooting",
+    "training": "Training",
+    "consulting": "Consulting"
+  },
+  "aquarex": {
+    "eyebrow": "Proprietary Solution",
+    "subtitle": "Intelligent Control System for Industrial Water Treatment & Reverse Osmosis.",
+    "requestDatasheet": "Request Technical Datasheet",
+    "talkToEngineer": "Talk to an Engineer",
+    "systemAdvantages": "System Advantages",
+    "monitoring": "Real-time Monitoring",
+    "monitoringBody": "Continuous data acquisition for conductivity, pH, flow rates, and pressure across all treatment stages.",
+    "architecture": "Standardized Architecture",
+    "architectureBody": "Pre-engineered PLC/HMI codebase reduces commissioning time by up to 40% while ensuring rock-solid reliability.",
+    "compliance": "Compliance Ready",
+    "complianceBody": "Built-in data logging and reporting tools designed to meet stringent food, beverage, and pharmaceutical regulations.",
+    "processControl": "Standardized Process Control",
+    "processBody": "The Aquarex platform integrates seamlessly with Reverse Osmosis (RO) units, Ultrafiltration (UF), and chemical dosing systems. It provides a unified HMI interface for operators and standardizes data structures for easy ERP/MES integration.",
+    "skidIntegration": "Skid Integration",
+    "skidIntegrationBody": "Plug-and-play logic blocks for common OEM skids.",
+    "chemicalDosing": "Chemical Dosing",
+    "chemicalDosingBody": "Precise closed-loop control of dosing pumps based on in-line sensor feedback.",
+    "alarmManagement": "Alarm Management",
+    "alarmManagementBody": "ISA 18.2 compliant alarm structures for rapid troubleshooting.",
+    "diagramAria": "Aquarex Architecture Diagram",
+    "diagramCore": "AQUAREX CORE PLC",
+    "diagramHmi": "SCADA / HMI",
+    "diagramSensors": "Sensors (pH, Cond)",
+    "diagramFlowMeters": "Flow Meters",
+    "diagramDosingPumps": "Dosing Pumps",
+    "diagramVfdMotors": "VFDs / Motors",
+    "diagramValves": "Valves",
+    "datasheetHeading": "Request Technical Datasheet",
+    "datasheetBody": "Enter your details to receive the complete Aquarex specification guide, IO list, and integration requirements.",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "workEmail": "Work Email",
+    "company": "Company",
+    "sendDatasheet": "Send Datasheet",
+    "privacyNote": "By requesting this datasheet, you agree to our privacy policy. We will never share your information."
+  },
+  "projectCatalog": {
+    "fruki-bottling-expansion-2026": {
+      "title": "High-Speed Bottling Line Installation & Format Expansion",
+      "scope": "Turnkey installation of high-speed beverage production line and multi-format capacity expansion, synchronizing filling, packaging, and robotic palletizing.",
+      "outcome": "Optimized throughput across all packaging formats with reduced line downtime and scalable multi-format flexibility.",
+      "displayDate": "2025–2026"
+    },
+    "delta-beverage-rebuild-2025": {
+      "title": "Filler, Kister Packer and Palletizer Line Overhaul",
+      "scope": "Fast-turnaround mechanical and controls overhaul for bottling line Filler, Kister Packer, and Palletizer equipment.",
+      "outcome": "Production restarted on schedule with full line reliability and restored machine efficiency.",
+      "displayDate": "2025–2026"
+    },
+    "krones-variopac-rebuild-2026": {
+      "title": "Krones Variopac Closing Chain Rebuild",
+      "scope": "Complete mechanical and automation rebuild of the closing chain on Krones Variopac packaging equipment for high-speed beverage packaging.",
+      "outcome": "Restored packaging precision and extended equipment lifespan with high-standard OEM-alternative maintenance.",
+      "displayDate": "2026"
+    },
+    "brazil-spring-water-packaging-2025": {
+      "title": "Spring Water Packer, Conveyor and Palletizer Turnkey Integration",
+      "scope": "Turnkey controls engineering, conveyor integration, packing, and automated palletizing for a commercial spring water bottling facility.",
+      "outcome": "High-speed line synchronization delivered on schedule with seamless startup.",
+      "displayDate": "2025–2026"
+    },
+    "usa-automotive-robot-commissioning-2025": {
+      "title": "Automotive Assembly Robotic Cell Commissioning",
+      "scope": "Turnkey robotic cell commissioning, safety interlock programming, and multi-trade coordination for automotive production.",
+      "outcome": "Rapid line ramp-up with optimized robotic cycle times and zero safety defects.",
+      "displayDate": "2025–2026"
+    },
+    "fispal-tecnologia-showcase-2026": {
+      "title": "FISPAL Tecnologia 2026 Automation & Aquarex Showcase",
+      "scope": "Demonstration and technical exchange on smart industrial automation, digital manufacturing, and Aquarex water recycling solutions for food and beverage plants.",
+      "outcome": "Strengthened global partnerships and technical collaboration across international industrial facilities.",
+      "displayDate": "2026"
+    },
+    "incobrasa-silo-2019": {
+      "title": "Cleaner and Silo Expansion for Soy Beans",
+      "scope": "Automation design for silo-control expansion in a soybean drying process using Rockwell PLC controls and Wonderware InTouch supervision.",
+      "outcome": "",
+      "displayDate": "2019"
+    },
+    "incobrasa-oil-2019": {
+      "title": "Soy Oil Filling Line Automation Changes",
+      "scope": "Conveyor changes for production and reliability, palletizer changes for new pallet formation, labeler and conveyor signal integration.",
+      "outcome": "",
+      "displayDate": "2019"
+    },
+    "ford-schuler-2018": {
+      "title": "Schuler Stamping Press",
+      "scope": "Automation improvement, troubleshooting, commissioning and service for stamping equipment.",
+      "outcome": "",
+      "displayDate": "2018–2019"
+    },
+    "chicago-tower-2018": {
+      "title": "Chicago Tower Body Shop",
+      "scope": "Body-shop PLC integration.",
+      "outcome": "",
+      "displayDate": "2018–2019"
+    },
+    "bmw-wire-harness-2018": {
+      "title": "Wire Harness Oven",
+      "scope": "Wire-harness oven extension.",
+      "outcome": "",
+      "displayDate": "2018"
+    },
+    "bmw-marriage-2018": {
+      "title": "Marriage Line",
+      "scope": "PLC and robot integration across the powertrain/body marriage line.",
+      "outcome": "",
+      "displayDate": "2018"
+    },
+    "bmw-hatch-2017": {
+      "title": "Hatch Lift Assist",
+      "scope": "Hatch lift-assist controls.",
+      "outcome": "",
+      "displayDate": "2017–2018"
+    },
+    "bmw-pokayoke-2017": {
+      "title": "Differential Oil Filling Poka-Yoke",
+      "scope": "Interlock to prevent incorrect filling-nozzle placement.",
+      "outcome": "",
+      "displayDate": "2017"
+    },
+    "bmw-nvld-2017": {
+      "title": "NVLD",
+      "scope": "Commissioning, interlock improvements and customer acceptance.",
+      "outcome": "",
+      "displayDate": "2017"
+    },
+    "kister-servo-2017": {
+      "title": "Servo Upgrade for Kister Packer",
+      "scope": "Double-servo pack-separation upgrade; HMI/PLC changes.",
+      "outcome": "",
+      "displayDate": "2017"
+    },
+    "paresa-conveyor-2017": {
+      "title": "Conveyor Changes",
+      "scope": "Bottle-conveyor speed settings and interlock changes.",
+      "outcome": "",
+      "displayDate": "2017"
+    },
+    "heineken-kaizen-2016": {
+      "title": "Bottling-Line Kaizen",
+      "scope": "Production-line audit and cross-functional improvement work involving operations, maintenance and supply planning.",
+      "outcome": "The published project record reports a 20-point increase in average efficiency.",
+      "displayDate": "2016–2017"
+    },
+    "p75-vru-2016": {
+      "title": "Vapor Recovery Unit P-75",
+      "scope": "Electrical and automation development for an oil-and-gas vapor recovery unit, including FAT, FMEA and project documentation.",
+      "outcome": "",
+      "displayDate": "2016"
+    },
+    "porto-acu-2016": {
+      "title": "Air Compressor Control and Interlock",
+      "scope": "PLC/HMI development and commissioning.",
+      "outcome": "",
+      "displayDate": "2016"
+    },
+    "p75-nitrogen-2016": {
+      "title": "P75 Petrobras Nitrogen Generator",
+      "scope": "Automation development, documentation, commissioning, FAT/FMEA for Exd environment.",
+      "outcome": "",
+      "displayDate": "2016"
+    },
+    "p70-nitrogen-2016": {
+      "title": "P70 Petrobras Nitrogen Generator",
+      "scope": "Automation development, documentation, commissioning, FAT/FMEA for Exd environment.",
+      "outcome": "",
+      "displayDate": "2016"
+    },
+    "p71-nitrogen-2016": {
+      "title": "P71 Petrobras Nitrogen Generator",
+      "scope": "Automation development, documentation, commissioning, FAT/FMEA for Exd environment.",
+      "outcome": "",
+      "displayDate": "2016"
+    },
+    "rexam-trimmer-2015": {
+      "title": "Trimmer Machine Overhaul",
+      "scope": "Management of overhaul of five machines, parts and service-technician coordination.",
+      "outcome": "",
+      "displayDate": "2015"
+    },
+    "avon-hotfill-2015": {
+      "title": "Hot-Fill Makeup Line",
+      "scope": "PLC/HMI automation, line integration, commissioning, FAT and SAT across bottle indexing, filling, capping, cooling, pick-and-place and labeling equipment.",
+      "outcome": "",
+      "displayDate": "2015"
+    },
+    "avon-filler-2015": {
+      "title": "Bottle Indexing and Filler",
+      "scope": "PLC/HMI automation development, tests, commissioning, FAT/SAT.",
+      "outcome": "",
+      "displayDate": "2015"
+    },
+    "aquarex-png-2014": {
+      "title": "Aquarex Caustic Recovery System",
+      "scope": "Automation and electrical upgrade for Aquarex caustic recovery system.",
+      "outcome": "",
+      "displayDate": "2014"
+    },
+    "campari-capper-2014": {
+      "title": "Cap Feeder for Zalkin Capper",
+      "scope": "PLC software modification to integrate new capper with Krones filler.",
+      "outcome": "",
+      "displayDate": "2014"
+    },
+    "heineken-haiti-2014": {
+      "title": "40,000 Bottles/Hour Filling Line",
+      "scope": "Commissioning, ramp-up, efficiency improvement and assisted operation.",
+      "outcome": "",
+      "displayDate": "2014"
+    },
+    "femsa-filler-2013": {
+      "title": "Filler Pneumatic Camming Adjustment",
+      "scope": "Software changes for pneumatic cams and mixer changes for sparkling-water production.",
+      "outcome": "",
+      "displayDate": "2013"
+    },
+    "avon-puck-2013": {
+      "title": "Puck Conveyor Upgrade",
+      "scope": "Conveyor modification to create puck buffer at filler infeed.",
+      "outcome": "",
+      "displayDate": "2013"
+    },
+    "boticario-cartoner-2013": {
+      "title": "Cartoner CMF 60/min",
+      "scope": "Assembly, commissioning, startup, FAT, IQ/OQ and documentation localization.",
+      "outcome": "",
+      "displayDate": "2013"
+    },
+    "scjohnson-filler-2013": {
+      "title": "Bug Protection Filler",
+      "scope": "Assembly, commissioning, startup and ramp-up.",
+      "outcome": "",
+      "displayDate": "2013"
+    },
+    "avon-mexico-2013": {
+      "title": "Cap Pick-and-Place",
+      "scope": "Robotic cap-feeding system; commissioning and startup.",
+      "outcome": "",
+      "displayDate": "2013"
+    },
+    "panco-conveyor-2012": {
+      "title": "Batch Air Conveyor for Flour",
+      "scope": "Software development, commissioning and production tests.",
+      "outcome": "",
+      "displayDate": "2012"
+    },
+    "hyosung-tank-2012": {
+      "title": "Chemical Tank Control",
+      "scope": "Pressure and closed-loop control.",
+      "outcome": "",
+      "displayDate": "2012"
+    },
+    "ambev-pet-2012": {
+      "title": "PET 500 ml Format Changeover",
+      "scope": "Air-conveyor software change.",
+      "outcome": "",
+      "displayDate": "2012"
+    },
+    "soy-oil-overhaul-2012": {
+      "title": "Soy Oil Line Overhaul",
+      "scope": "Startup and commissioning after mechanical overhaul.",
+      "outcome": "",
+      "displayDate": "2012"
+    },
+    "petropolis-269-2011": {
+      "title": "269/473 ml Format",
+      "scope": "Recipe creation and adaptation for both formats.",
+      "outcome": "",
+      "displayDate": "2011"
+    },
+    "petropolis-ice-2011": {
+      "title": "Blue Spirit Ice Changeover",
+      "scope": "Recipe and software modification for new bottles.",
+      "outcome": "",
+      "displayDate": "2011"
+    },
+    "bombril-soap-2011": {
+      "title": "Dish Soap Filling Line",
+      "scope": "Line commissioning, startup and ramp-up.",
+      "outcome": "",
+      "displayDate": "2011"
+    },
+    "campari-filling-2010": {
+      "title": "Filling Line 18,000 Bottles/Hour",
+      "scope": "Assembly, commissioning and production tests.",
+      "outcome": "",
+      "displayDate": "2010"
+    },
+    "sabb-hotfill-2010": {
+      "title": "Hot-Fill Production Line",
+      "scope": "Commissioning, startup and production testing.",
+      "outcome": "",
+      "displayDate": "2010"
+    },
+    "cocacola-labeler-2010": {
+      "title": "PET Labeler and Infeed Conveyor",
+      "scope": "Assembly, commissioning and production tests; Contiroll 15,000 bottles per hour reference.",
+      "outcome": "",
+      "displayDate": "2010"
+    },
+    "unilever-ades-2008": {
+      "title": "Continuous Formulation",
+      "scope": "Software development, commissioning and production tests.",
+      "outcome": "",
+      "displayDate": "2008"
+    },
+    "usiminas-ute-2007": {
+      "title": "UTE Usiminas",
+      "scope": "HMI and supervisory system development.",
+      "outcome": "",
+      "displayDate": "Prior experience"
+    },
+    "bmw-hatch-undated": {
+      "title": "Hatch Lift",
+      "scope": "Project design, interlock improvements, Festo CPMAX commissioning, IPS integration and HMI design (V8).",
+      "outcome": "",
+      "displayDate": "Year not specified"
+    },
+    "bmw-abs-undated": {
+      "title": "ABS Tester Rebuild",
+      "scope": "Movidrive commissioning and system startup.",
+      "outcome": "",
+      "displayDate": "Year not specified"
+    },
+    "bmw-console-undated": {
+      "title": "Console Conveyor",
+      "scope": "Project design, commissioning and safety design to BMW standard.",
+      "outcome": "",
+      "displayDate": "Year not specified"
+    },
+    "bmw-shifter-undated": {
+      "title": "Manual Shifter Assembler",
+      "scope": "Commissioning, interlock improvements and IPS integration.",
+      "outcome": "",
+      "displayDate": "Year not specified"
+    },
+    "foaming-station-undated": {
+      "title": "Foaming Station",
+      "scope": "Commissioning and interlock improvements.",
+      "outcome": "",
+      "displayDate": "Year not specified"
+    },
+    "cocacola-krones-undated": {
+      "title": "Krones Filling Line Rebuild",
+      "scope": "Startup after rebuild.",
+      "outcome": "",
+      "displayDate": "Year not specified"
+    },
+    "cocacola-khs-undated": {
+      "title": "KHS Kister Upgrade",
+      "scope": "Software changes and commissioning.",
+      "outcome": "",
+      "displayDate": "Year not specified"
+    },
+    "cocacola-paraguay-undated": {
+      "title": "Conveyor Format Addition",
+      "scope": "Software integration.",
+      "outcome": "",
+      "displayDate": "Year not specified"
+    },
+    "mercedes-bodyshop-undated": {
+      "title": "Body Shop",
+      "scope": "Body-shop automation work.",
+      "outcome": "",
+      "displayDate": "Year not specified"
+    }
   }
 }

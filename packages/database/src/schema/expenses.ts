@@ -42,6 +42,11 @@ export const expenses = sqliteTable(
     reimbursementAmountMinor: integer('reimbursement_amount_minor'),
     reimbursedAt: text('reimbursed_at'),
     reimbursementReference: text('reimbursement_reference'),
+    expectedReimbursementOn: text('expected_reimbursement_on'),
+    expectedRecoveryOn: text('expected_recovery_on'),
+    commercialClassificationState: text('commercial_classification_state')
+      .notNull()
+      .default('legacy_classified'),
     fxRateBps: integer('fx_rate_bps'),
     version: integer('version').notNull().default(1),
     ...lifecycle,

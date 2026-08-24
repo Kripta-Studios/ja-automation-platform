@@ -26,7 +26,16 @@ try {
            password=excluded.password,
            updated_at=excluded.updated_at`,
       )
-      .run(randomUUID(), 'local:credential', user.id, 'credential', user.id, passwordHash, now, now);
+      .run(
+        randomUUID(),
+        'local:credential',
+        user.id,
+        'credential',
+        user.id,
+        passwordHash,
+        now,
+        now,
+      );
   }
   database.sqlite.prepare('DELETE FROM session').run();
   database.sqlite.prepare('DELETE FROM rate_limit_bucket').run();

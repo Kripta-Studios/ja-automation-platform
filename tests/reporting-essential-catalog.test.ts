@@ -51,6 +51,18 @@ const statement: WorkerStatementSnapshot = {
   approvedReimbursementMinor: '12345',
   pendingReimbursementMinor: '500',
   missingCompensationRules: 0,
+  activities: [
+    {
+      id: 'time-own',
+      projectNumber: 'P-001',
+      projectName: 'Own project',
+      date: '2026-08-11',
+      category: 'work',
+      activitySummary: 'Commissioned own equipment',
+      actualMinutes: 480,
+      approvalState: 'approved',
+    },
+  ],
   settlements: [
     {
       id: 'settlement-own',
@@ -61,6 +73,7 @@ const statement: WorkerStatementSnapshot = {
       amountMinor: '123456789012345',
       currency: 'USD',
       state: 'settled',
+      expectedPaymentOn: '2026-09-01',
       settledAt: '2026-09-01T12:00:00.000Z',
     },
   ],
@@ -75,6 +88,8 @@ const statement: WorkerStatementSnapshot = {
       currency: 'USD',
       approvalState: 'approved',
       reimbursementState: 'reimbursed',
+      expectedReimbursementOn: '2026-09-02',
+      reimbursedAt: '2026-09-02T12:00:00.000Z',
     },
   ],
 };
@@ -151,6 +166,9 @@ describe('Client Essential report-family serializers', () => {
     expect(csv).toContain('123456789012345');
     expect(csv).toContain('settled');
     expect(csv).toContain('reimbursed');
+    expect(csv).toContain('Commissioned own equipment');
+    expect(csv).toContain('2026-09-01');
+    expect(csv).toContain('2026-09-02T12:00:00.000Z');
     expect(csv).toContain("'=unsafe-vendor");
     expect(csv).not.toMatch(/client.?rate|internal.?cost|contribution|margin|other.?worker/iu);
 
@@ -259,7 +277,14 @@ beforeEach(() => {
   });
   const worker = { ...principals.get('worker'), projectIds: new Set([project.id]) } as Principal;
   const other = { ...otherWorker, projectIds: new Set([project.id]) } as Principal;
-  repository.createExpense(worker, {
+  repository.createTimeEntry(worker, {
+    projectId: project.id,
+    workDate: '2026-08-11',
+    category: 'commissioning',
+    minutes: 420,
+    summary: 'OWN-WORKER-ACTIVITY',
+  });
+  const ownExpense = repository.createExpense(worker, {
     projectId: project.id,
     spentOn: '2026-08-12',
     category: 'hotel',
@@ -271,6 +296,12 @@ beforeEach(() => {
     whoPaid: 'worker',
     paymentMethod: 'personal_card',
     receiptRequired: false,
+  });
+  repository.setExpensePlanningDates(principals.get('finance_admin') as Principal, {
+    expenseId: ownExpense.id,
+    expectedReimbursementOn: '2026-09-05',
+    expectedRecoveryOn: '2026-09-20',
+    expectedVersion: ownExpense.version,
   });
   repository.createExpense(other, {
     projectId: project.id,
@@ -316,7 +347,10 @@ describe('Client Essential private report routes', () => {
     );
     const body = await response.text();
     expect(body).toContain('OWN-WORKER-VENDOR');
+    expect(body).toContain('OWN-WORKER-ACTIVITY');
+    expect(body).toContain('2026-09-05');
     expect(body).not.toContain('OTHER-WORKER-SECRET');
+    expect(body).not.toContain('2026-09-20');
     expect(body).not.toContain('99999');
     const database = createDatabase();
     const audit = database.sqlite

@@ -128,7 +128,7 @@ Representative captures at 360, 768, and 1440 were manually inspected. They show
   - at 360/390/430 the drawer displays clipped/first-letter-style primary labels and omits administration/security links;
   - at 768 the legacy icon/first-letter layout remains and measured `bodyScrollWidth` was 784 for `innerWidth` 768;
   - representative screenshots make these issues visually explicit.
-  These belong to `FIX-011`, `FIX-015`, `V31-011`, and `V31-016` / WP-T0 or its responsive implementation follow-up.
+    These belong to `FIX-011`, `FIX-015`, `V31-011`, and `V31-016` / WP-T0 or its responsive implementation follow-up.
 - `PortalShell.svelte` remains 2,912 lines. More domain sections can be extracted in later ownership-safe tranches after their contracts are frozen.
 - `legacy.css` remains 1,728 lines by design: this tranche preserved source order mechanically instead of mixing decomposition with responsive redesign. Later CSS cleanup must preserve cascade evidence.
 - Final release evidence still needs Node `24.19.0`; current environment is Node `25.8.1`.

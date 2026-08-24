@@ -52,4 +52,3 @@ Run the narrowest portal tests/typecheck after each tranche, then relevant unit/
 ## Handoff
 
 Write full report to `.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-a1-report.md`: summary, exact files, migrations (none expected), commands/results, browser evidence, preserved contracts, unresolved risks, requirement IDs, and interface changes needed. Return short status only.
-

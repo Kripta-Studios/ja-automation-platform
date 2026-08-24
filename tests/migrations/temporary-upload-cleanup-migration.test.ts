@@ -1,12 +1,5 @@
 import { createHash } from 'node:crypto';
-import {
-  copyFileSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-} from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -51,7 +44,9 @@ function copyMigrationTree(maxVersion: number): string {
   directories.push(directory);
   mkdirSync(join(directory, 'contracts'));
   copyFileSync(CONTRACT, join(directory, 'contracts/ja-b5-migration-contract-v1.json'));
-  for (const file of readdirSync(MIGRATIONS).filter((candidate) => /^\d{4}_.+\.sql$/u.test(candidate))) {
+  for (const file of readdirSync(MIGRATIONS).filter((candidate) =>
+    /^\d{4}_.+\.sql$/u.test(candidate),
+  )) {
     if (Number(file.slice(0, 4)) <= maxVersion)
       copyFileSync(join(MIGRATIONS, file), join(directory, file));
   }
@@ -62,7 +57,9 @@ function buildLegacyDatabase(path: string): void {
   const sqlite = new DatabaseSync(path);
   sqlite.exec('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;');
   for (const file of readdirSync(MIGRATIONS)
-    .filter((candidate) => /^\d{4}_.+\.sql$/u.test(candidate) && Number(candidate.slice(0, 4)) <= 18)
+    .filter(
+      (candidate) => /^\d{4}_.+\.sql$/u.test(candidate) && Number(candidate.slice(0, 4)) <= 18,
+    )
     .sort())
     sqlite.exec(readFileSync(join(MIGRATIONS, file), 'utf8'));
   sqlite.exec(readFileSync(LEGACY_FIXTURE, 'utf8'));
@@ -108,7 +105,8 @@ function insertJob(
   deploymentId = 'test-deployment',
 ): void {
   const now = new Date().toISOString();
-  const payload = kind === 'temporary_upload_cleanup' ? '{"olderThan":"2026-08-22T00:00:00.000Z"}' : '{}';
+  const payload =
+    kind === 'temporary_upload_cleanup' ? '{"olderThan":"2026-08-22T00:00:00.000Z"}' : '{}';
   sqlite
     .prepare(
       `INSERT INTO job(
@@ -140,7 +138,7 @@ describe('CE-CORE16-M1 temporary upload cleanup migration', () => {
   it('registers migration 27 and accepts only the exact new actor/job pair', () => {
     const sqlite = fresh();
     expect(sqlite.prepare('SELECT max(version) version FROM schema_migration').get()).toEqual({
-      version: 27,
+      version: 30,
     });
     expect(
       sqlite
@@ -153,14 +151,11 @@ describe('CE-CORE16-M1 temporary upload cleanup migration', () => {
       migration_name: 'client_essential_temporary_upload_cleanup',
     });
 
-    insertServiceActor(sqlite, 'cleanup-actor', [
-      'document.scan',
-      'storage.temporary.cleanup',
-    ]);
+    insertServiceActor(sqlite, 'cleanup-actor', ['document.scan', 'storage.temporary.cleanup']);
     expect(() =>
       sqlite
         .prepare(
-          "UPDATE service_actor SET capabilities_json='[\"document.scan\",\"storage.temporary.cleanup\",\"backup.verify\"]',version=version+1 WHERE id='cleanup-actor'",
+          'UPDATE service_actor SET capabilities_json=\'["document.scan","storage.temporary.cleanup","backup.verify"]\',version=version+1 WHERE id=\'cleanup-actor\'',
         )
         .run(),
     ).not.toThrow();
@@ -217,7 +212,12 @@ describe('CE-CORE16-M1 temporary upload cleanup migration', () => {
       ),
     ).toThrow();
     expect(() =>
-      insertJob(sqlite, 'unknown-kind-job', 'temporary_upload_unknown', 'storage.temporary.cleanup'),
+      insertJob(
+        sqlite,
+        'unknown-kind-job',
+        'temporary_upload_unknown',
+        'storage.temporary.cleanup',
+      ),
     ).toThrow();
     expect(sqlite.prepare("SELECT state FROM job WHERE id='cleanup-job'").get()).toEqual({
       state: 'queued',
@@ -262,15 +262,21 @@ describe('CE-CORE16-M1 temporary upload cleanup migration', () => {
           .all(),
       ).toEqual(metadataBefore);
       expect(sqlite.prepare('SELECT * FROM finance_v2_cutover').all()).toEqual(cutoverBefore);
-      expect(sqlite.prepare("SELECT contract_version,state FROM job WHERE id='legacy-job'").get()).toEqual({
+      expect(
+        sqlite.prepare("SELECT contract_version,state FROM job WHERE id='legacy-job'").get(),
+      ).toEqual({
         contract_version: 'legacy',
         state: 'queued',
       });
-      expect(sqlite.prepare("SELECT capabilities_json FROM service_actor WHERE id='old-actor'").get()).toEqual({
+      expect(
+        sqlite.prepare("SELECT capabilities_json FROM service_actor WHERE id='old-actor'").get(),
+      ).toEqual({
         capabilities_json: '["document.scan"]',
       });
       expect(() =>
-        sqlite!.prepare("UPDATE job SET state='succeeded',version=version+1 WHERE id='legacy-job'").run(),
+        sqlite!
+          .prepare("UPDATE job SET state='succeeded',version=version+1 WHERE id='legacy-job'")
+          .run(),
       ).toThrow();
       expect(() => sqlite!.prepare("DELETE FROM job WHERE id='legacy-job'").run()).toThrow();
 
@@ -299,7 +305,16 @@ describe('CE-CORE16-M1 temporary upload cleanup migration', () => {
         `INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at)
          VALUES(?,?,?,?,?,?,?,?)`,
       )
-      .run('audit-user', 'Audit User', 'audit-user@example.test', 'finance_admin', 'active', 1, now, now);
+      .run(
+        'audit-user',
+        'Audit User',
+        'audit-user@example.test',
+        'finance_admin',
+        'active',
+        1,
+        now,
+        now,
+      );
     expect(
       sqlite
         .prepare(
@@ -367,7 +382,13 @@ describe('CE-CORE16-M1 temporary upload cleanup migration', () => {
           'native',
         ),
     ).toThrow();
-    expect(sqlite.prepare("SELECT count(*) count FROM audit_event WHERE action='accounting_pack.export_retry'").get()).toEqual({
+    expect(
+      sqlite
+        .prepare(
+          "SELECT count(*) count FROM audit_event WHERE action='accounting_pack.export_retry'",
+        )
+        .get(),
+    ).toEqual({
       count: 1,
     });
     expect(integrityCheck(sqlite)).toBe('ok');

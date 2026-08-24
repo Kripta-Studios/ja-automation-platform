@@ -291,3 +291,121 @@
   color: #8192a0;
   font-size: 0.84rem;
 }
+
+/* PortalShell CSP-safe presentation -------------------------------------- */
+/* These classes preserve the former local presentation rules without
+   emitting inline styles from the authenticated portal shell. */
+.document-delete-form {
+  display: inline;
+}
+
+.preview-link.preview-link-danger {
+  display: inline;
+  margin-top: 0;
+  padding: 0;
+  color: var(--ja-red);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.preview-link.preview-link-danger:hover,
+.preview-link.preview-link-danger:focus-visible {
+  color: var(--ja-red);
+  background: none;
+  transform: none;
+}
+
+.metric-link {
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.detail-grid-link {
+  display: block;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.project-progress-link {
+  color: inherit;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.invitation-help {
+  margin-bottom: 0.5rem;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.state-tag-with-gap {
+  margin-left: 0.5rem;
+}
+
+.worker-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.worker-manage-toggle {
+  padding: 0.25rem 0.5rem;
+  color: inherit;
+  border-radius: 4px;
+  background: var(--surface-3);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.worker-manage-panel {
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  padding: 1rem;
+  border-radius: 4px;
+  background: var(--surface-2);
+  text-align: left;
+}
+
+.worker-profile-form,
+.worker-status-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.worker-status-form {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.worker-form-heading {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.worker-field {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.75rem;
+}
+
+.worker-field-control,
+.worker-form-submit {
+  margin-top: 0.25rem;
+}
+
+.profile-skill-details {
+  margin-bottom: 2rem;
+}

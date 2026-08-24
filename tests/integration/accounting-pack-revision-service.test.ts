@@ -57,13 +57,22 @@ function fixture() {
       now,
       now,
     );
-  const principal: Principal = {
+  const basePrincipal: Principal = {
     userId: 'owner',
     role: 'owner_admin',
     projectIds: new Set(),
   };
+  const sessionId = 'accounting-pack-owner-session';
+  const stepUpAt = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + 3_600_000).toISOString();
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+    )
+    .run(sessionId, 'accounting-pack-owner-token', 'owner', expiresAt, now, now, stepUpAt);
+  const principal: Principal = { ...basePrincipal, sessionId };
   const service = new AccountingPackRevisionService(sqlite);
-  return { sqlite, service, principal };
+  return { sqlite, service, principal, basePrincipal, sessionId, stepUpAt };
 }
 
 function input(overrides: Record<string, unknown> = {}) {
@@ -113,7 +122,7 @@ function input(overrides: Record<string, unknown> = {}) {
 
 describe('AccountingPackRevisionService', () => {
   it('creates one scoped immutable canonical revision with complete source evidence', () => {
-    const { sqlite, service, principal } = fixture();
+    const { sqlite, service, principal, stepUpAt } = fixture();
     try {
       const result = service.createCanonicalRevision(principal, input());
       expect(result.revisionId).toMatch(/^fp-accounting-pack-revision-/u);
@@ -135,6 +144,15 @@ describe('AccountingPackRevisionService', () => {
         .prepare('SELECT snapshot_json FROM accounting_pack_revision_snapshot WHERE revision_id=?')
         .get(result.revisionId) as { snapshot_json: string };
       expect(JSON.parse(snapshot.snapshot_json).gross_minor).toBe(1200);
+      const commands = sqlite
+        .prepare(
+          `SELECT step_up_verified_at,step_up_expires_at
+             FROM finance_command ORDER BY operation`,
+        )
+        .all() as Array<{ step_up_verified_at: string | null; step_up_expires_at: string | null }>;
+      expect(commands).toHaveLength(3);
+      expect(commands.every((command) => command.step_up_verified_at === stepUpAt)).toBe(true);
+      expect(commands.every((command) => command.step_up_expires_at !== null)).toBe(true);
     } finally {
       sqlite.close();
     }
@@ -246,6 +264,72 @@ describe('AccountingPackRevisionService', () => {
         (sqlite.prepare('SELECT count(*) count FROM finance_command').get() as { count: number })
           .count,
       ).toBe(0);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it('requires a valid unexpired human session step-up before any immutable write', () => {
+    const { sqlite, service, basePrincipal, principal, sessionId } = fixture();
+    try {
+      expect(() => service.createCanonicalRevision(basePrincipal, input())).toThrow(
+        /Recent step-up authentication is required/u,
+      );
+
+      sqlite
+        .prepare('UPDATE session SET step_up_at=? WHERE id=?')
+        .run(new Date(Date.now() - 10 * 60_000 - 1).toISOString(), sessionId);
+      expect(() => service.createCanonicalRevision(principal, input())).toThrow(
+        /Recent step-up authentication is required/u,
+      );
+
+      sqlite
+        .prepare('UPDATE session SET step_up_at=?,expires_at=? WHERE id=?')
+        .run(new Date().toISOString(), new Date(Date.now() - 1).toISOString(), sessionId);
+      expect(() => service.createCanonicalRevision(principal, input())).toThrow(
+        /Recent step-up authentication is required/u,
+      );
+
+      const serviceActor: Principal = { ...principal, isServiceActor: true };
+      expect(() => service.createCanonicalRevision(serviceActor, input())).toThrow(
+        AccountingPackRevisionError,
+      );
+      expect(
+        (sqlite.prepare('SELECT count(*) count FROM finance_command').get() as { count: number })
+          .count,
+      ).toBe(0);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it('rejects replay when the same idempotency key swaps step-up proof timestamps', () => {
+    const { sqlite, service, principal, sessionId } = fixture();
+    try {
+      service.createCanonicalRevision(principal, input());
+      const firstProof = sqlite
+        .prepare(
+          `SELECT request_hash,payload_hash,step_up_verified_at,step_up_expires_at
+             FROM finance_command
+            WHERE operation='accounting_pack_revision_snapshot.create'`,
+        )
+        .get() as Record<string, unknown>;
+
+      const replacementStepUp = new Date(Date.now() - 1).toISOString();
+      sqlite
+        .prepare('UPDATE session SET step_up_at=? WHERE id=?')
+        .run(replacementStepUp, sessionId);
+      expect(() => service.createCanonicalRevision(principal, input())).toThrow(/not idempotent/u);
+
+      expect(
+        sqlite
+          .prepare(
+            `SELECT request_hash,payload_hash,step_up_verified_at,step_up_expires_at
+               FROM finance_command
+              WHERE operation='accounting_pack_revision_snapshot.create'`,
+          )
+          .get(),
+      ).toEqual(firstProof);
     } finally {
       sqlite.close();
     }

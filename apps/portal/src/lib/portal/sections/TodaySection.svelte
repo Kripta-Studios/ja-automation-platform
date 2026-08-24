@@ -23,6 +23,20 @@
     translate: (value: string) => string;
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
   } = $props();
+
+  const formatPlanningMinutes = (value: unknown): string | null => {
+    const minutes = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(minutes) || minutes <= 0) return null;
+
+    const wholeMinutes = Math.floor(minutes);
+    const hours = Math.floor(wholeMinutes / 60);
+    const remainingMinutes = wholeMinutes % 60;
+    if (hours === 0) return `${remainingMinutes} min`;
+    if (remainingMinutes === 0) return `${hours} h`;
+    return `${hours} h ${remainingMinutes} min`;
+  };
+
+  const planningReference = $derived(formatPlanningMinutes(data.records?.[0]?.planned_minutes));
 </script>
 
 {#if data.dashboard}
@@ -38,25 +52,31 @@
   </div>
   <div class="finance-grid dashboard-metrics">
     <a class="metric" href={`${base}/app/time`}>
-      <span>{translate('RECORDED HOURS')}</span><strong>{(data.dashboard.actualMinutes / 60).toFixed(1)}</strong>
+      <span>{translate('RECORDED HOURS')}</span><strong
+        >{(data.dashboard.actualMinutes / 60).toFixed(1)}</strong
+      >
       <p>{translate('Approved and submitted field time')}</p>
     </a>
     <a class="metric attention" href={`${base}/app/approvals`}>
       <span>{translate('PENDING REPORTS')}</span><strong>{data.dashboard.pendingReports}</strong>
       <p>{translate('Daily and PLC records awaiting review')}</p>
     </a>
-    <a class="metric" href={`${base}/app/expenses`}>
-      <span>{translate('PROJECT EXPENSES')}</span><strong
-        >{money(data.dashboard.expenseMinor, data.dashboard.currency)}</strong
-      >
-      <p>{translate('All-in and reimbursable combined')}</p>
-    </a>
-    <a class="metric" href={`${base}/app/billing`}>
-      <span>{translate('UPCOMING BILLING')}</span><strong
-        >{money(data.dashboard.upcomingInvoiceMinor, data.dashboard.currency)}</strong
-      >
-      <p>{data.dashboard.upcomingInvoices} {translate('draft invoice streams')}</p>
-    </a>
+    {#if data.dashboard.expenseMinor !== undefined && data.dashboard.currency}
+      <a class="metric" href={`${base}/app/expenses`}>
+        <span>{translate('PROJECT EXPENSES')}</span><strong
+          >{money(data.dashboard.expenseMinor, data.dashboard.currency)}</strong
+        >
+        <p>{translate('All-in and reimbursable combined')}</p>
+      </a>
+    {/if}
+    {#if data.dashboard.upcomingInvoiceMinor !== undefined && data.dashboard.currency}
+      <a class="metric" href={`${base}/app/billing`}>
+        <span>{translate('UPCOMING BILLING')}</span><strong
+          >{money(data.dashboard.upcomingInvoiceMinor, data.dashboard.currency)}</strong
+        >
+        <p>{data.dashboard.upcomingInvoices ?? 0} {translate('draft invoice streams')}</p>
+      </a>
+    {/if}
   </div>
   <section class="record-list dashboard-projects">
     <div class="panel-title">
@@ -74,10 +94,15 @@
 {:else}
   <div class="portal-grid">
     <section class="assignment">
-      <span class="status-chip"><b></b>{translate('TODAY / 10 H EXPECTED')}</span>
+      <span class="status-chip"><b></b>{translate('Today')}</span>
+      {#if planningReference}
+        <small class="assignment-planning-context"
+          >{translate('Planned')}: {planningReference}</small
+        >
+      {/if}
       <div class="quick-actions">
-        <a href={`${base}/app/time`}>{translate('Log actual time')}</a><a href={`${base}/app/reports`}
-          >{translate('Write field report')}</a
+        <a href={`${base}/app/time`}>{translate('Log actual time')}</a><a
+          href={`${base}/app/reports`}>{translate('Write field report')}</a
         ><a href={`${base}/app/expenses`}>{translate('Add expense')}</a>
       </div>
       <h2>{data.records?.[0]?.project_name ?? translate('Field workspace')}</h2>
@@ -91,7 +116,14 @@
       <span class="portal-kicker">{translate('DEVICE STATUS')}</span><strong
         >{online ? translate('Connected to J&A') : translate('Working offline')}</strong
       >
-      <p>{queue} {translate(queue === 1 ? 'local mutation waiting to synchronize.' : 'local mutations waiting to synchronize.')}</p>
+      <p>
+        {queue}
+        {translate(
+          queue === 1
+            ? 'local mutation waiting to synchronize.'
+            : 'local mutations waiting to synchronize.',
+        )}
+      </p>
       {#if syncMessage}<small>{translate(syncMessage)}</small>{/if}
     </section>
   </div>

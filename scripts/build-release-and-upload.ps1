@@ -5,7 +5,8 @@ param(
   [string]$RemoteDirectory = '/home/kripta',
   [switch]$NoUpload,
   [switch]$SkipQualityGates,
-  [switch]$Force
+  [switch]$Force,
+  [switch]$AllowDirty
 )
 
 Set-StrictMode -Version Latest
@@ -30,8 +31,11 @@ $status = (& git status --porcelain=v1)
 if ($LASTEXITCODE -ne 0) {
   throw 'Unable to read Git status.'
 }
-if ($status) {
+if ($status -and -not $AllowDirty) {
   throw 'The working tree is not clean. Commit the reviewed release before packaging it.'
+}
+if ($status -and $AllowDirty) {
+  Write-Warning 'Packaging the current working tree snapshot explicitly; no branch commit will be created.'
 }
 
 $releaseFolder = "jaautomation-release-$ReleaseDate"
@@ -75,6 +79,8 @@ $managedEnvironment = @{
   JA_DEPLOYMENT_BINDING_SECRET = 'release-build-binding-secret-2026-08-client-essential'
 }
 $previousEnvironment = @{}
+$previousGitIndex = [Environment]::GetEnvironmentVariable('GIT_INDEX_FILE', 'Process')
+$temporaryIndexPath = $null
 
 try {
   foreach ($name in $managedEnvironment.Keys) {
@@ -133,7 +139,16 @@ try {
     'scripts',
     'tests'
   )
-  $archiveArguments = @('archive', '--format=tar', "--prefix=$releaseFolder/", "--output=$sourceTar", 'HEAD', '--') + $releasePaths
+  $archiveTreeish = 'HEAD'
+  if ($AllowDirty) {
+    $temporaryIndexPath = Join-Path $temporaryRoot 'worktree.index'
+    $env:GIT_INDEX_FILE = $temporaryIndexPath
+    Invoke-Checked -Command git -Arguments @('read-tree', 'HEAD')
+    Invoke-Checked -Command git -Arguments (@('add', '--') + $releasePaths)
+    $archiveTreeish = (Invoke-Checked -Command git -Arguments @('write-tree')).Trim()
+    Write-Host "Working tree snapshot: $archiveTreeish"
+  }
+  $archiveArguments = @('archive', '--format=tar', "--prefix=$releaseFolder/", "--output=$sourceTar", $archiveTreeish, '--') + $releasePaths
   Invoke-Checked -Command git -Arguments $archiveArguments
   Invoke-Checked -Command tar -Arguments @('-xf', $sourceTar, '-C', $stageRoot)
 
@@ -144,9 +159,16 @@ try {
     "branch=$branch",
     "built_at_utc=$([DateTime]::UtcNow.ToString('o'))",
     'node=24.19.0',
-    'pnpm=11.22.0',
-    'archive_content=reviewed Git HEAD source; production images rebuild from Dockerfiles'
+    'pnpm=11.22.0'
   )
+  if ($AllowDirty) {
+    $buildInfo += 'source_snapshot=working-tree'
+    $buildInfo += "source_tree=$archiveTreeish"
+    $buildInfo += 'archive_content=reviewed working-tree snapshot; production images rebuild from Dockerfiles'
+  } else {
+    $buildInfo += 'source_snapshot=HEAD'
+    $buildInfo += 'archive_content=reviewed Git HEAD source; production images rebuild from Dockerfiles'
+  }
   Set-Content -LiteralPath (Join-Path $releaseRoot 'RELEASE-BUILD.txt') -Value $buildInfo -Encoding utf8NoBOM
 
   $manifestPath = Join-Path $releaseRoot 'RELEASE-MANIFEST.sha256'
@@ -219,6 +241,16 @@ try {
 finally {
   foreach ($name in $managedEnvironment.Keys) {
     [Environment]::SetEnvironmentVariable($name, $previousEnvironment[$name], 'Process')
+  }
+  if ($null -ne $temporaryIndexPath) {
+    if ($null -eq $previousGitIndex) {
+      Remove-Item Env:GIT_INDEX_FILE -ErrorAction SilentlyContinue
+    } else {
+      [Environment]::SetEnvironmentVariable('GIT_INDEX_FILE', $previousGitIndex, 'Process')
+    }
+    if (Test-Path -LiteralPath $temporaryIndexPath) {
+      Remove-Item -LiteralPath $temporaryIndexPath -Force -ErrorAction SilentlyContinue
+    }
   }
   $resolvedTemporaryRoot = [IO.Path]::GetFullPath($temporaryRoot)
   $resolvedSystemTemp = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())

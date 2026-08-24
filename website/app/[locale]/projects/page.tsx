@@ -2,6 +2,8 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/lib/i18n/navigation';
 import { projects } from '@/content/projects';
 import type { Capability, Industry } from '@/content/types';
+import { projectCapabilityKeys, projectIndustryKeys, translateProject } from '@/lib/i18n/content';
+import { localizedAlternates } from '@/lib/i18n/metadata';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -9,6 +11,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return {
     title: t('projectsTitle'),
     description: t('projectsDescription'),
+    alternates: localizedAlternates(locale, '/projects'),
   };
 }
 
@@ -20,6 +23,7 @@ const first = (value: string | string[] | undefined): string =>
 const yearMatches = (projectYear: number | undefined, filter: string): boolean => {
   if (!filter) return true;
   if (!projectYear) return false;
+  if (filter === '2020_2026') return projectYear >= 2020 && projectYear <= 2026;
   if (filter === '2015_2019') return projectYear >= 2015 && projectYear <= 2019;
   if (filter === '2010_2014') return projectYear >= 2010 && projectYear <= 2014;
   if (filter === 'before_2010') return projectYear < 2010;
@@ -48,6 +52,7 @@ export default async function ProjectsPage({
   const t = await getTranslations('projectExperience');
   const nav = await getTranslations('nav');
   const filterText = await getTranslations('projectFilters');
+  const projectCatalog = await getTranslations('projectCatalog');
   const filteredProjects = projects.filter((project) => {
     const region = (project.location ?? '').toLowerCase();
     return (
@@ -59,6 +64,9 @@ export default async function ProjectsPage({
       yearMatches(project.startYear, filters.year)
     );
   });
+  const localizedFilteredProjects = filteredProjects.map((project) =>
+    translateProject(project, projectCatalog),
+  );
   const clients = [...new Set(projects.map((project) => project.client).filter(Boolean))].sort();
   const technologyOptions = [
     ...new Set(projects.flatMap((project) => project.technologies)),
@@ -89,7 +97,7 @@ export default async function ProjectsPage({
           <form
             method="get"
             className="mb-10 border border-ja-line bg-white p-5 sm:p-6"
-            aria-label="Project filters"
+            aria-label={filterText('formLabel')}
           >
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <label className="text-sm font-semibold">
@@ -172,7 +180,7 @@ export default async function ProjectsPage({
                     ] as Capability[]
                   ).map((value) => (
                     <option key={value} value={value}>
-                      {value.replaceAll('-', ' ')}
+                      {filterText(projectCapabilityKeys[value as Capability])}
                     </option>
                   ))}
                 </select>
@@ -192,6 +200,7 @@ export default async function ProjectsPage({
                 {filterText('year')}
                 <select name="year" defaultValue={filters.year} className="mt-2 field-control">
                   <option value="">{filterText('allYears')}</option>
+                  <option value="2020_2026">{filterText('range2020_2026')}</option>
                   <option value="2015_2019">{filterText('range2015_2019')}</option>
                   <option value="2010_2014">{filterText('range2010_2014')}</option>
                   <option value="before_2010">{filterText('before2010')}</option>
@@ -208,7 +217,10 @@ export default async function ProjectsPage({
                 </Link>
               )}
               <span className="text-sm text-ja-steel-500">
-                {filteredProjects.length} / {projects.length} projects
+                {filterText('projectCount', {
+                  shown: filteredProjects.length,
+                  total: projects.length,
+                })}
               </span>
             </div>
           </form>
@@ -220,7 +232,7 @@ export default async function ProjectsPage({
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredProjects.map((project) => (
+              {localizedFilteredProjects.map((project) => (
                 <Link
                   key={project.id}
                   href={`/projects/${project.slug}`}
@@ -228,9 +240,7 @@ export default async function ProjectsPage({
                 >
                   <div className="flex justify-between items-start mb-3">
                     <span className="font-[family-name:var(--font-ibm-plex-mono)] text-xs tracking-wider text-ja-steel-500 uppercase">
-                      {project.industry
-                        .replace('-', ' / ')
-                        .replace('food / beverage', 'Food & Beverage')}
+                      {filterText(projectIndustryKeys[project.industry])}
                     </span>
                     <span className="font-[family-name:var(--font-ibm-plex-mono)] text-xs text-ja-steel-500">
                       {project.displayDate}

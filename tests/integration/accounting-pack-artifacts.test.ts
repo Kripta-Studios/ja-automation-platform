@@ -41,12 +41,24 @@ afterEach(() => {
 
 function seedFinance(sqlite: ReturnType<typeof createDatabase>['sqlite']): Principal {
   const now = new Date().toISOString();
+  const sessionId = 'finance-accounting-pack-session';
+  const expiresAt = new Date(Date.now() + 3_600_000).toISOString();
   sqlite
     .prepare(
       'INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
     )
     .run('finance', 'Finance Test', 'finance@example.com', 'finance_admin', 'active', 1, now, now);
-  return { userId: 'finance', role: 'finance_admin', projectIds: new Set() };
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+    )
+    .run(sessionId, `${sessionId}-token`, 'finance', expiresAt, now, now, now);
+  return {
+    userId: 'finance',
+    role: 'finance_admin',
+    projectIds: new Set(),
+    sessionId,
+  };
 }
 
 function seedLegalEntity(sqlite: ReturnType<typeof createDatabase>['sqlite']): void {
@@ -584,7 +596,9 @@ describe('Accounting Pack artifact lifecycle', () => {
     const first = fixture();
     seedLegalEntity(first.sqlite);
     const staleDraft = first.v3.createAccountingPack(first.principal, '2113-03-01', '2113-03-31');
-    expect(runArtifactJobs(artifactContext(first.directory, first.principal, first.v3))).toMatchObject({
+    expect(
+      runArtifactJobs(artifactContext(first.directory, first.principal, first.v3)),
+    ).toMatchObject({
       failed: 0,
     });
     first.sqlite
@@ -602,11 +616,7 @@ describe('Accounting Pack artifact lifecycle', () => {
 
     const second = fixture();
     seedLegalEntity(second.sqlite);
-    const historical = second.v3.createAccountingPack(
-      second.principal,
-      '2113-04-01',
-      '2113-04-30',
-    );
+    const historical = second.v3.createAccountingPack(second.principal, '2113-04-01', '2113-04-30');
     expect(
       runArtifactJobs(artifactContext(second.directory, second.principal, second.v3)),
     ).toMatchObject({ failed: 0 });
@@ -620,9 +630,9 @@ describe('Accounting Pack artifact lifecycle', () => {
                   '2999-01-01T00:00:00.000Z','2999-01-01T00:00:00.000Z',1)`,
       )
       .run();
-    expect(second.v3.accountingPackExport(second.principal, historical.id, 'xlsx').filename).toContain(
-      '2113-04-01',
-    );
+    expect(
+      second.v3.accountingPackExport(second.principal, historical.id, 'xlsx').filename,
+    ).toContain('2113-04-01');
   });
 
   it('retries only a failed format idempotently and preserves ready siblings', () => {

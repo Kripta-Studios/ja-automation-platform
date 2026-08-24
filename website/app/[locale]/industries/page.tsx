@@ -3,26 +3,34 @@ import { Link } from '@/lib/i18n/navigation';
 import { ArrowRight } from 'lucide-react';
 import { industries } from '@/content/industries';
 import Image, { type StaticImageData } from 'next/image';
-import autoImg from '@/public/images/industries/automotive-body-shop.jpg';
-import foodBevImg from '@/public/images/hero/hero-food-beverage.jpg';
-import energyImg from '@/public/images/hero/hero-energy-process.jpg';
-import cosmeticsImg from '@/public/images/industries/cosmetics-filling.jpg';
-import roboticsImg from '@/public/images/industries/robotics-cell-square.jpg';
+import autoImg from '@/public/images/industries/automotive-body-shop.webp';
+import foodBevImg from '@/public/images/hero/hero-food-beverage.webp';
+import energyImg from '@/public/images/hero/hero-energy-process.webp';
+import cosmeticsImg from '@/public/images/industries/cosmetics-filling.webp';
+import roboticsImg from '@/public/images/industries/robotics-cell-square.webp';
+import { localizedAlternates } from '@/lib/i18n/metadata';
 
-const industryImages: Record<string, { src: StaticImageData; alt: string; position: string }> = {
-  automotive: { src: autoImg, alt: 'Industrial robotic automotive body shop', position: '53% 50%' },
-  foodBeverage: { src: foodBevImg, alt: 'Food and beverage production line', position: '48% 50%' },
+const industryImages: Record<
+  string,
+  {
+    src: StaticImageData;
+    altKey: 'automotive' | 'foodBeverage' | 'energyProcess' | 'cosmeticsPackaging' | 'oemGeneral';
+    position: string;
+  }
+> = {
+  automotive: { src: autoImg, altKey: 'automotive', position: '53% 50%' },
+  foodBeverage: { src: foodBevImg, altKey: 'foodBeverage', position: '48% 50%' },
   energyProcess: {
     src: energyImg,
-    alt: 'Energy and process industrial plant',
+    altKey: 'energyProcess',
     position: '50% 55%',
   },
   cosmeticsPackaging: {
     src: cosmeticsImg,
-    alt: 'Cosmetics filling production line',
+    altKey: 'cosmeticsPackaging',
     position: '48% 52%',
   },
-  oemGeneral: { src: roboticsImg, alt: 'Industrial robotic cell', position: '50% 50%' },
+  oemGeneral: { src: roboticsImg, altKey: 'oemGeneral', position: '50% 50%' },
 };
 
 const indKeyMap: Record<string, string> = {
@@ -44,10 +52,9 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'meta' });
   return {
-    title: t('capabilitiesTitle')
-      .replace('Services', 'Industries')
-      .replace('Serviços', 'Indústrias'),
-    description: t('projectsDescription'),
+    title: t('industriesTitle'),
+    description: t('industriesDescription'),
+    alternates: localizedAlternates(locale, '/industries'),
   };
 }
 
@@ -56,6 +63,7 @@ export default async function IndustriesPage({ params }: { params: Promise<{ loc
   setRequestLocale(locale);
 
   const t = await getTranslations('industries');
+  const imageAlt = await getTranslations('imageAlts');
 
   return (
     <div className="pt-20">
@@ -64,10 +72,7 @@ export default async function IndustriesPage({ params }: { params: Promise<{ loc
         <div className="container-ja">
           <p className="eyebrow text-white/70 mb-4">{t('eyebrow')}</p>
           <h1 className="heading-display mb-6 max-w-4xl">{t('h2')}</h1>
-          <p className="text-lead text-ja-steel-300 max-w-2xl">
-            J&A Automation builds, integrates, and supports industrial control systems across
-            multiple sectors.
-          </p>
+          <p className="text-lead text-ja-steel-300 max-w-2xl">{t('lead')}</p>
         </div>
       </section>
 
@@ -86,7 +91,7 @@ export default async function IndustriesPage({ params }: { params: Promise<{ loc
                   >
                     <Image
                       src={img.src}
-                      alt={img.alt}
+                      alt={imageAlt(img.altKey)}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-[1.025]"
                       style={{ objectPosition: img.position }}
@@ -99,7 +104,7 @@ export default async function IndustriesPage({ params }: { params: Promise<{ loc
                     {t(`${key}Desc` as `${IndustryMessageKey}Desc`)}
                   </p>
                   <Link href={`/industries/${ind.slug}`} className="text-cta">
-                    View projects in this industry <ArrowRight size={16} />
+                    {t('viewProjects')} <ArrowRight size={16} />
                   </Link>
                 </div>
               );

@@ -380,7 +380,9 @@ describe('B5 migration adversarial SQL contract', () => {
       resolve(process.cwd(), 'migrations/0019_lifecycle_security.sql'),
       'utf8',
     );
-    expect(lifecycleSql).toContain("localized_pdf_variant_render' AND NEW.required_capability='artifact.localized_pdf.render'");
+    expect(lifecycleSql).toContain(
+      "localized_pdf_variant_render' AND NEW.required_capability='artifact.localized_pdf.render'",
+    );
     const now = new Date().toISOString();
     const insert = value.sqlite.prepare(
       `INSERT INTO job(
@@ -513,7 +515,7 @@ describe('B5 migration adversarial SQL contract', () => {
     const directory = mkdtempSync(join(tmpdir(), 'ja-b5-migration-archived-'));
     directories.push(directory);
     const dbPath = join(directory, 'app.db');
-    let sqlite = new DatabaseSync(dbPath);
+    const sqlite = new DatabaseSync(dbPath);
     sqlite.exec('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;');
     const migrationDirectory = resolve(process.cwd(), 'migrations');
     const files = readdirSync(migrationDirectory)
@@ -1018,10 +1020,22 @@ describe('B5 migration adversarial SQL contract', () => {
 
   it('keeps finance series identities immutable and pointer updates CAS-bound', () => {
     const sql = readFileSync(resolve(process.cwd(), 'migrations/0020_finance_v2.sql'), 'utf8');
-    for (const [series, pointer, deleteTrigger] of [
-      ['expense_classification_series', 'expense_classification_series_pointer_guard', 'expense_classification_series_no_delete'],
-      ['reimbursement_principal_series', 'reimbursement_principal_series_pointer_guard', 'reimbursement_principal_series_no_delete'],
-      ['compensation_settlement_series_v2', 'compensation_settlement_series_pointer_guard', 'compensation_settlement_series_no_delete'],
+    for (const [, pointer, deleteTrigger] of [
+      [
+        'expense_classification_series',
+        'expense_classification_series_pointer_guard',
+        'expense_classification_series_no_delete',
+      ],
+      [
+        'reimbursement_principal_series',
+        'reimbursement_principal_series_pointer_guard',
+        'reimbursement_principal_series_no_delete',
+      ],
+      [
+        'compensation_settlement_series_v2',
+        'compensation_settlement_series_pointer_guard',
+        'compensation_settlement_series_no_delete',
+      ],
       ['direct_cost_series', 'direct_cost_series_no_update', 'direct_cost_series_no_delete'],
     ]) {
       expect(sql).toContain(`CREATE TRIGGER ${deleteTrigger}`);
@@ -1041,7 +1055,18 @@ describe('B5 migration adversarial SQL contract', () => {
           eac_minor,input_hash,created_at
         ) VALUES(?,?,?,?,?,?,?,?,?,?)`,
       )
-      .run('b5-finance-snapshot', value.project.id, '2026-08-01', 100, 200, 100, 150, 175, hash(), now);
+      .run(
+        'b5-finance-snapshot',
+        value.project.id,
+        '2026-08-01',
+        100,
+        200,
+        100,
+        150,
+        175,
+        hash(),
+        now,
+      );
 
     expectSqliteFailure(() =>
       value.sqlite
@@ -1063,13 +1088,18 @@ describe('B5 migration adversarial SQL contract', () => {
       resolve(process.cwd(), 'migrations/0021_accounting_pack_artifacts.sql'),
       'utf8',
     );
-    const reportSql = readFileSync(resolve(process.cwd(), 'migrations/0022_report_registry.sql'), 'utf8');
+    const reportSql = readFileSync(
+      resolve(process.cwd(), 'migrations/0022_report_registry.sql'),
+      'utf8',
+    );
     for (const sql of [accountingSql, reportSql]) {
       expect(sql).toContain("media_type='application/pdf'");
       expect(sql).toContain("media_type='application/json'");
       expect(sql).toContain("instr(lower(storage_key),'%2e')=0");
       expect(sql).toContain("instr(storage_key,':')=0");
-      expect(sql).toContain("json_extract(j.payload_json,'$.requestedAttempt')=NEW.current_attempt_number");
+      expect(sql).toContain(
+        "json_extract(j.payload_json,'$.requestedAttempt')=NEW.current_attempt_number",
+      );
       expect(sql).toContain("r.outcome='succeeded'");
       expect(sql).toContain('finished_at IS NOT NULL');
     }

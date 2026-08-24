@@ -44,6 +44,73 @@ function seedUser(
     .run(id, id, `${id}@example.com`, role, 'active', 1, now, now);
 }
 
+function stepUpFinance(
+  sqlite: ReturnType<typeof createDatabase>['sqlite'],
+  principal: Principal,
+): Principal {
+  const now = new Date().toISOString();
+  const sessionId = `finance-step-up-${principal.userId}`;
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+    )
+    .run(
+      sessionId,
+      `${sessionId}-token`,
+      principal.userId,
+      new Date(Date.now() + 3_600_000).toISOString(),
+      now,
+      now,
+      now,
+    );
+  return { ...principal, sessionId };
+}
+
+function establishCanonicalAuthority(
+  repository: PortalRepository,
+  v3: V3Repository,
+  sqlite: ReturnType<typeof createDatabase>['sqlite'],
+  owner: Principal,
+  finance: Principal,
+  projectId: string,
+): void {
+  const legacy = repository.createLegalEntity(owner, {
+    code: 'TRUTH-CANONICAL',
+    legalName: 'Finance Truth Canonical Entity',
+    currency: 'USD',
+    billingAddress: 'Canonical finance test address',
+    companyIdentifiers: 'TRUTH-CANONICAL-TAX',
+  });
+  const revision = v3.createCanonicalLegalEntityRevision(finance, {
+    legacyLegalEntityId: legacy.id,
+    effectiveFrom: '2026-01-01',
+    legalName: 'Finance Truth Canonical Entity S.L.',
+    taxIdentifier: 'ESTRUTH123456',
+    registrationIdentifier: 'TRUTH-REG-001',
+    addressLine1: 'Canonical finance test address',
+    locality: 'Madrid',
+    region: 'Madrid',
+    postalCode: '28001',
+    countryCode: 'ES',
+    baseCurrency: 'USD',
+    timezone: 'UTC',
+    reason: 'Bind finance truth fixtures to canonical legal-entity authority',
+    idempotencyKey: 'finance-truth:canonical-entity:revision',
+  });
+  v3.assignCanonicalLegalEntityToProject(finance, {
+    projectId,
+    legalEntityRevisionId: revision.revisionId,
+    effectiveFrom: '2026-01-01',
+    reason: 'Bind finance truth project to canonical legal-entity authority',
+    idempotencyKey: 'finance-truth:canonical-entity:assignment',
+  });
+  expect(
+    sqlite
+      .prepare('SELECT 1 FROM project_legal_entity_assignment WHERE project_id=?')
+      .get(projectId),
+  ).toBeTruthy();
+}
+
 function setup() {
   const directory = mkdtempSync(join(tmpdir(), 'ja-finance-truth-'));
   directories.push(directory);
@@ -56,7 +123,12 @@ function setup() {
   seedUser(sqlite, 'manager', 'project_manager');
   seedUser(sqlite, 'worker', 'worker');
   const owner: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
-  const finance: Principal = { userId: 'finance', role: 'finance_admin', projectIds: new Set() };
+  const financeBase: Principal = {
+    userId: 'finance',
+    role: 'finance_admin',
+    projectIds: new Set(),
+  };
+  const finance = stepUpFinance(sqlite, financeBase);
   const client = repository.createClient(owner, {
     legalName: 'Finance Truth Client',
     displayName: 'Finance Truth Client',
@@ -111,6 +183,7 @@ function setup() {
     rateBasis: 'hourly',
     effectiveFrom: '2026-08-01',
   });
+  establishCanonicalAuthority(repository, v3, sqlite, owner, finance, project.id);
   return {
     sqlite,
     repository,
@@ -177,11 +250,19 @@ describe('Client Essential finance truth and payment reversals', () => {
       currency: 'USD',
       amountMinor: 2_000n,
       whoPaid: 'worker',
-      clientTreatment: 'reimbursable',
-      billingTreatment: 'reimbursable_at_cost',
       receiptRequired: false,
     });
-    repository.submitExpense(worker, expense.id, expense.version);
+    const classifiedExpense = repository.classifyExpenseCommercially(finance, {
+      expenseId: expense.id,
+      expectedVersion: expense.version,
+      clientTreatment: 'reimbursable',
+      billingTreatment: 'reimbursable_at_cost',
+      markupBps: 0,
+      taxBps: 0,
+      reason: 'Finance classified the approved operational hotel for recovery at cost',
+      idempotencyKey: 'finance-truth:expense-classification:v1',
+    });
+    repository.submitExpense(worker, expense.id, classifiedExpense.version);
     repository.operationalApproveExpense(manager, expense.id, 'approved');
     const beforeFinanceApproval = v3.projectFinance(finance, project.id);
     expect(beforeFinanceApproval).toMatchObject({

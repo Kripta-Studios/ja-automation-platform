@@ -53,4 +53,3 @@ Every new regression names the production break it catches, uses hand-derived ex
 ## Handoff
 
 Write full report to `.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-t0-report.md`: exact tests, break each catches, RED evidence, commands/results, files, unresolved fixture/interface needs, and requirement IDs. Return short status only.
-

@@ -11,6 +11,8 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import { services } from '@/content/services';
+import { translateServiceTags } from '@/lib/i18n/content';
+import { localizedAlternates } from '@/lib/i18n/metadata';
 
 const iconMap: Record<string, React.ReactNode> = {
   Cpu: <Cpu size={24} />,
@@ -47,6 +49,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return {
     title: t('capabilitiesTitle'),
     description: t('capabilitiesDescription'),
+    alternates: localizedAlternates(locale, '/capabilities'),
   };
 }
 
@@ -59,6 +62,7 @@ export default async function CapabilitiesPage({
   setRequestLocale(locale);
 
   const t = await getTranslations('capabilities');
+  const serviceTags = await getTranslations('serviceTags');
 
   return (
     <div className="pt-20">
@@ -85,7 +89,7 @@ export default async function CapabilitiesPage({
                     {t(`${key}Desc` as `${CapabilityMessageKey}Desc`)}
                   </p>
                   <div className="flex flex-wrap gap-2 mb-8">
-                    {service.tags.map((tag) => (
+                    {translateServiceTags(service.tags, serviceTags).map((tag) => (
                       <span key={tag} className="chip">
                         {tag}
                       </span>
@@ -95,7 +99,7 @@ export default async function CapabilitiesPage({
                     href={`/capabilities/${service.slug}`}
                     className="text-cta mt-auto inline-flex"
                   >
-                    Explore capability <ArrowRight size={16} />
+                    {t('explore')} <ArrowRight size={16} />
                   </Link>
                 </div>
               );

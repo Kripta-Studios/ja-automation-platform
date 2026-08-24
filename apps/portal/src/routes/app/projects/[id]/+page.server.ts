@@ -4,8 +4,31 @@ import { actionFail, actionFailure, actionSuccess } from '$lib/server/actions/ac
 import { openPortalRepository } from '$lib/server/portal-repository';
 import type { PageServerLoad, Actions } from './$types';
 
-export const load: PageServerLoad = ({ locals, params }) => {
+function currentPeriod(): { periodStart: string; periodEnd: string } {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const pad = (value: number): string => String(value).padStart(2, '0');
+  const periodStart = String(year) + '-' + pad(month + 1) + '-01';
+  const periodEnd = new Date(Date.UTC(year, month + 1, 0)).toISOString().slice(0, 10);
+  return { periodStart, periodEnd };
+}
+
+function resolvePeriod(url: URL): { periodStart: string; periodEnd: string } {
+  const fallback = currentPeriod();
+  const periodSchema = invoicePeriodSchema.pick({ periodStart: true, periodEnd: true });
+  const parsed = periodSchema.safeParse({
+    periodStart: url.searchParams.get('periodStart') ?? fallback.periodStart,
+    periodEnd: url.searchParams.get('periodEnd') ?? fallback.periodEnd,
+  });
+  if (!parsed.success || parsed.data.periodEnd < parsed.data.periodStart)
+    error(400, 'Invalid finance period');
+  return parsed.data;
+}
+
+export const load: PageServerLoad = ({ locals, params, url }) => {
   if (!locals.user) redirect(303, '/j-aautomation/app/login');
+  const { periodStart, periodEnd } = resolvePeriod(url);
   const context = openPortalRepository(locals);
   try {
     const overview = context.repository.projectOverview(context.principal, params.id);
@@ -20,13 +43,23 @@ export const load: PageServerLoad = ({ locals, params }) => {
       : [];
     return {
       user: locals.user,
+      periodStart,
+      periodEnd,
       workers:
         locals.user.role === 'owner_admin'
           ? context.repository.listAllWorkers(context.principal)
           : [],
       billingRules,
       overview: financeVisible
-        ? { ...overview, financial: context.v3.projectFinance(context.principal, params.id) }
+        ? {
+            ...overview,
+            financial: context.v3.projectFinance(
+              context.principal,
+              params.id,
+              periodStart,
+              periodEnd,
+            ),
+          }
         : overview,
     };
   } catch {
@@ -115,6 +148,7 @@ export const actions: Actions = {
     const update = {
       projectId,
       version,
+      costCenterCode: text('costCenterCode'),
       name: text('name') ?? undefined,
       poNumber: text('poNumber'),
       description: text('description'),

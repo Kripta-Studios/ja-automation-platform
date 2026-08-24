@@ -19,6 +19,14 @@ const sectionLoad = readFileSync(
   'utf8',
 );
 const portalShell = readFileSync(resolve(root, 'apps/portal/src/lib/PortalShell.svelte'), 'utf8');
+const billingSection = readFileSync(
+  resolve(root, 'apps/portal/src/lib/portal/sections/BillingSection.svelte'),
+  'utf8',
+);
+const collectionsLedgerSection = readFileSync(
+  resolve(root, 'apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte'),
+  'utf8',
+);
 const repository = readFileSync(resolve(root, 'packages/database/src/repository.ts'), 'utf8');
 
 const validPayment = {
@@ -74,19 +82,24 @@ describe('Client Essential payment billing action boundary', () => {
     expect(sectionActions).toContain('reversePayment: billingActions.reversePayment');
     expect(sectionLoad).toContain('ledger: context.v3.masterLedger(context.principal)');
     expect(sectionLoad).toContain("paymentCommandToken: randomBytes(32).toString('base64url')");
-    expect(portalShell).toContain('name="currency"');
-    expect(portalShell).toContain('name="reference"');
-    expect(portalShell).toContain('name="effectiveOn"');
-    expect(portalShell).toContain('name="reasonCode"');
-    expect(portalShell).toContain('max={minorToDecimal(remainingMinor)}');
-    expect(portalShell).toContain('paymentReversals');
-    expect(portalShell).toContain('directCostComplete');
+    // Billing and collection views are extracted sections; keep the shell
+    // wiring assertion while checking the controls where they actually render.
+    expect(portalShell).toContain('<BillingSection');
+    expect(portalShell).toContain('<CollectionsLedgerSection');
+    expect(billingSection).toContain('name="currency"');
+    expect(billingSection).toContain('name="reference"');
+    expect(billingSection).toContain('name="effectiveOn"');
+    expect(billingSection).toContain('name="reasonCode"');
+    expect(billingSection).toContain('max={minorToDecimal(');
+    expect(billingSection).toContain('paymentReversals');
+    expect(collectionsLedgerSection).toContain('directCostComplete');
   });
 
   it('uses a displayed command token for successive partial payments and hides void reversals', () => {
-    expect(portalShell).toContain('value={String(invoice.paymentCommandToken ??');
-    expect(portalShell).not.toContain('invoice.version ?? invoice.paid_minor');
-    expect(portalShell).toContain("!['void', 'credited'].includes(String(invoice.state))");
+    expect(billingSection).toContain("rowValue(invoice, 'paymentCommandToken')");
+    expect(billingSection).toContain('`payment-${invoiceId}-${currency}`');
+    expect(billingSection).not.toContain('invoice.version ?? invoice.paid_minor');
+    expect(billingSection).toContain("!['void', 'credited'].includes(invoiceStateValue)");
 
     const firstDisplayToken = 'displayed-payment-command-1';
     const secondDisplayToken = 'displayed-payment-command-2';
@@ -95,16 +108,24 @@ describe('Client Essential payment billing action boundary', () => {
   });
 
   it('formats ledger/payment minor units without converting cents through Number', () => {
-    expect(portalShell).toContain("import { paymentMoney } from './portal/payment-money';");
-    expect(portalShell).toContain('paymentMoney(String(row.totalMinor)');
-    expect(portalShell).not.toContain('money(String(row.totalMinor)');
+    expect(collectionsLedgerSection).toContain("import { paymentMoney } from '../payment-money';");
+    expect(collectionsLedgerSection).toContain(
+      "return amount ? paymentMoney(amount, value(row, 'currency') || 'USD') : '—';",
+    );
+    expect(collectionsLedgerSection).not.toContain('Number(');
+    expect(collectionsLedgerSection).not.toContain('money(String(row.totalMinor)');
     expect(paymentMoney('900719925474099301', 'EUR')).toContain('9,007,199,254,740,993.01');
     expect(paymentMoney('-900719925474099301', 'EUR')).toContain('-€9,007,199,254,740,993.01');
   });
 
   it('keeps invoice summaries row-wise exact, reversal-aware, and void-aware', () => {
-    expect(repository).toContain('FROM invoice_payment_reversal_event r WHERE r.invoice_id=i.id');
-    expect(repository).toContain("i.state IN ('void','credited') THEN 0");
+    expect(repository).toContain(
+      'SELECT CAST(amount_minor AS TEXT) amount FROM invoice_payment_reversal_event WHERE invoice_id=?',
+    );
+    expect(repository).toContain('BigInt(row.amount)');
+    expect(repository).toContain('paid_minor: (paid - reversed).toString()');
+    expect(repository).toContain("invoice.state === 'void' || invoice.state === 'credited'");
+    expect(repository).toContain("paid_minor: '0'");
     expect(repository).toContain('paid_minor');
   });
 });

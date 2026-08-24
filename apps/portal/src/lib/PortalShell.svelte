@@ -11,22 +11,21 @@
     translatePortalDom,
     type PortalLocale,
   } from './portal-i18n';
-  import {
-    adminNavigation,
-    portalTitleFor,
-    primaryNavigation,
-    securityNavigation,
-    secondaryNavigation,
-    type NavItem,
-  } from './portal-navigation';
+  import { portalNavigationForRole, portalTitleFor, type NavItem } from './portal-navigation';
   import PortalChrome from './PortalChrome.svelte';
   import { FormCard, FormSection, FieldGroup, Field, formValidation } from './portal/ui';
   import TodaySection from './portal/sections/TodaySection.svelte';
-  import TimesheetPanel from './portal/sections/TimesheetPanel.svelte';
+  import TimeSection from './portal/sections/TimeSection.svelte';
   import ExpenseSection from './portal/sections/ExpenseSection.svelte';
   import ReportSection from './portal/sections/ReportSection.svelte';
-  import FinanceConfigurationSection from './portal/sections/FinanceConfigurationSection.svelte';
-  import AccountingPackArtifactStatus from './portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte';
+  import ProjectSection, {
+    type ProjectLifecycleAction,
+  } from './portal/sections/ProjectSection.svelte';
+  import ApprovalSection from './portal/sections/ApprovalSection.svelte';
+  import BillingSection from './portal/sections/BillingSection.svelte';
+  import FinanceOverviewSection from './portal/sections/FinanceOverviewSection.svelte';
+  import CollectionsLedgerSection from './portal/sections/CollectionsLedgerSection.svelte';
+  import AccountingSection from './portal/sections/AccountingSection.svelte';
   import { createOfflineController } from './portal/offline-controller';
   import type {
     PortalActionResult as ActionResult,
@@ -39,6 +38,7 @@
     formBoolean,
     formNumber,
     formValue,
+    hours,
     initials,
     money,
   } from './portal/portal-format';
@@ -138,22 +138,24 @@
     const messageKey = localized.messageKey;
     if (typeof messageKey === 'string' && messageKey.trim()) {
       const rawParams = localized.messageParams;
-      const params =
+      const params: Record<string, string | number> | undefined =
         rawParams && typeof rawParams === 'object'
-          ? Object.fromEntries(
+          ? (Object.fromEntries(
               Object.entries(rawParams as Record<string, unknown>).filter(
                 ([, value]) => typeof value === 'string' || typeof value === 'number',
               ),
-            )
+            ) as Record<string, string | number>)
           : undefined;
       return portalText(locale, messageKey, params);
     }
     return typeof localized.message === 'string' ? localized.message : '';
   }
 
-  const navigation: NavItem[] = primaryNavigation;
-  const admin: NavItem[] = adminNavigation(base);
-  const securityAdmin: NavItem[] = securityNavigation;
+  const roleNavigation = $derived(portalNavigationForRole(base, data.user.role));
+  const navigation: readonly NavItem[] = $derived(roleNavigation.primary);
+  const secondaryNavigation: readonly NavItem[] = $derived(roleNavigation.secondary);
+  const visibleAdmin: readonly NavItem[] = $derived(roleNavigation.admin);
+  const securityAdmin: readonly NavItem[] = $derived(roleNavigation.security);
   const currentView = $derived($page.url.searchParams.get('view') ?? '');
   const currentTitle = $derived(portalTitleFor(data.section, currentView));
   const actionFeedback = $derived(actionMessage(form));
@@ -182,8 +184,7 @@
     data.user.role === 'owner_admin' || data.user.role === 'project_manager',
   );
   const canAudit = $derived(data.user.role === 'owner_admin' || isAuditor);
-  const showAdmin = $derived(isManager || isFinance || canAudit);
-  const visibleAdmin = $derived(admin.filter((item) => !item.financeOnly || isFinance));
+  const showAdmin = $derived(visibleAdmin.length > 0 || securityAdmin.length > 0);
   const availableProjects = $derived(
     data.projects && data.projects.length > 0 ? data.projects : offlineProjects,
   );
@@ -192,56 +193,57 @@
       ['active', 'planned', 'paused'].includes(String(project.status ?? 'active')),
     ),
   );
-  const activeProjects = operationalProjects;
+  const activeProjects = $derived(operationalProjects);
+
+  /**
+   * Keep project lifecycle semantics in the existing route actions. The new
+   * project surface only renders these already-authorized transitions; it does
+   * not infer or calculate any commercial state.
+   */
+  const projectLifecycleActions = (row: Row): readonly ProjectLifecycleAction[] => {
+    const status = String(row.status ?? '');
+    if (status === 'active' || status === 'paused') {
+      return [
+        {
+          label: translate('Begin close'),
+          action: '?/transitionProject',
+          fields: { status: 'closing' },
+        },
+      ];
+    }
+    if (status === 'closing') {
+      return [
+        {
+          label: translate('Close project'),
+          action: '?/transitionProject',
+          fields: { status: 'closed' },
+        },
+      ];
+    }
+    if (status === 'closed') {
+      return [
+        {
+          label: translate('Archive project'),
+          action: '?/transitionProject',
+          fields: { status: 'archived' },
+          destructive: true,
+        },
+      ];
+    }
+    if (status === 'archived') {
+      return [
+        {
+          label: translate('Restore project'),
+          action: '?/transitionProject',
+          fields: { status: 'restore' },
+        },
+      ];
+    }
+    return [];
+  };
   const activeClients = $derived(
     (data.clients ?? []).filter((client) => String(client.status ?? 'active') !== 'archived'),
   );
-  type LedgerPayment = {
-    id?: unknown;
-    grossAmountMinor?: unknown;
-    reversedMinor?: unknown;
-    netAmountMinor?: unknown;
-    currency?: unknown;
-    received_at?: unknown;
-    reference?: unknown;
-  };
-  type LedgerReversal = {
-    id?: unknown;
-    originalPaymentId?: unknown;
-    amountMinor?: unknown;
-    currency?: unknown;
-    effectiveAt?: unknown;
-    reasonCode?: unknown;
-    reason?: unknown;
-  };
-  type BillingLedgerRow = {
-    invoiceId?: unknown;
-    grossPaymentsMinor?: unknown;
-    paymentReversalsMinor?: unknown;
-    netCollectedMinor?: unknown;
-    outstandingMinor?: unknown;
-    directCostMinor?: unknown;
-    directCostComplete?: unknown;
-    directCostMissingSourceIds?: unknown;
-    contributionMinor?: unknown;
-    paymentStatus?: unknown;
-    payments?: LedgerPayment[];
-    paymentReversals?: LedgerReversal[];
-  };
-  const ledgerForInvoice = (invoiceId: unknown): BillingLedgerRow | undefined =>
-    data.ledger?.find((row) => String(row.invoiceId ?? '') === String(invoiceId)) as
-      | BillingLedgerRow
-      | undefined;
-  const positiveMinor = (value: unknown): boolean => {
-    const raw = String(value ?? '').trim();
-    return /^\d+$/.test(raw) && raw.replace(/^0+/, '').length > 0;
-  };
-  const minorToDecimal = (value: unknown): string => {
-    const raw = String(value ?? '').trim();
-    if (!/^\d+$/.test(raw)) return '0.00';
-    const normalized = raw.replace(/^0+(?=\d)/, '').padStart(3, '0');
-    return `${normalized.slice(0, -2)}.${normalized.slice(-2)}`;
-  };
   const href = (section: string) =>
     section === 'today' ? `${base}/app/` : `${base}/app/${section}`;
   const itemHref = (item: NavItem) => item.href ?? href(item.section);
@@ -266,13 +268,6 @@
     if (row.type === 'expense') return `${base}/app/expenses/${id}`;
     if (row.type === 'worker') return `${base}/app/planning`;
     return `${base}/app/`;
-  };
-  const recordHref = (row: Row) => {
-    const id = String(row.id ?? '');
-    if (row.type === 'time') return `${base}/app/time/${id}`;
-    if (row.type === 'expense') return `${base}/app/expenses/${id}`;
-    if (row.type === 'daily' || row.type === 'technical') return `${base}/app/reports/${id}`;
-    return `${base}/app/approvals`;
   };
   const offlineController = createOfflineController(base, {
     setOnline: (value) => (online = value),
@@ -580,7 +575,6 @@
     {syncMessage}
     {locale}
     {translate}
-    {href}
     {itemHref}
     {initials}
     {logout}
@@ -589,7 +583,7 @@
     onCloseMenu={() => (menuOpen = false)}
   />
   <main id="portal-main">
-    <header class="print-only-header" aria-hidden="true" style="display: none;">
+    <header class="print-only-header" aria-hidden="true">
       <div class="print-identity">
         <img src={`${base}/app/logo.png`} alt="J&A Automation" />
         <small>{translate('INDUSTRIAL AUTOMATION · FIELD SERVICES')}</small>
@@ -738,149 +732,14 @@
         {controlledValue}
       />
     {:else if data.section === 'time'}
-      {#if data.timesheet}
-        <TimesheetPanel {data} {isAuditor} {translate} {controlledValue} />
-      {/if}
-      <div class="worker-form">
-        {#if !isAuditor}<form
-            method="POST"
-            action="?/createTime"
-            class="entry-panel"
-            onsubmit={(event) => saveOfflineDraft(event, 'time')}
-          >
-            <h2>{translate('Log actual time')}</h2>
-            <p>{translate('Enter only minutes actually worked.')}</p>
-            <label
-              >{translate('Project')}<select name="projectId" required
-                ><option value="">{translate('Select assignment')}</option
-                >{#each availableProjects as project}<option value={project.id}
-                    >{project.project_number} — {project.name}</option
-                  >{/each}</select
-              ></label
-            ><label>{translate('Work date')}<input name="workDate" type="date" required /></label
-            ><label
-              >{translate('Category')}<select name="category"
-                ><option value="regular">{translate('Regular')}</option><option
-                  value="commissioning">{translate('Commissioning')}</option
-                ><option value="overtime">{translate('Overtime')}</option><option value="standby"
-                  >{translate('Standby / waiting')}</option
-                ><option value="weekend_holiday">{translate('Weekend / holiday')}</option><option
-                  value="travel">{translate('Travel')}</option
-                ><option value="remote_support">{translate('Remote support')}</option><option
-                  value="training">{translate('Training')}</option
-                ><option value="internal">{translate('Internal')}</option></select
-              ></label
-            ><label
-              >{translate('Minutes')}<input
-                name="minutes"
-                type="number"
-                min="1"
-                max="1440"
-                required
-                inputmode="numeric"
-              /></label
-            ><label
-              >{translate('Activity summary')}<textarea name="summary" required></textarea></label
-            ><button>{translate('Save draft')}</button>
-          </form>{/if}
-        <section class="record-list">
-          <div class="panel-title">
-            <h2>{translate('Recent entries')}</h2>
-            <span>{data.records?.length ?? 0}</span>
-          </div>
-          {#if data.timeFilter?.category || data.timeFilter?.projectId}
-            <p class="form-help time-filter-note">
-              {translate('Filtered view:')}
-              {translate(data.timeFilter.category?.replaceAll('_', ' ') || 'all categories')}.
-              <a href={`${base}/app/time`}>{translate('Clear filter')}</a>
-            </p>
-          {/if}
-          {#each data.records ?? [] as row}<article
-              class:is-modified={row.approval_state === 'needs_changes'}
-              class="record-card"
-            >
-              <a class="record-card-link" href={`${base}/app/time/${String(row.id)}`}>
-                <strong>{row.work_date} · {row.project_number}</strong><small
-                  >{controlledValue('category', row.category)} · {row.minutes} min · {controlledValue(
-                    'status',
-                    row.approval_state,
-                  )}</small
-                >
-                <span class="record-card-open">{translate('Open record →')}</span>
-              </a>
-              {#if row.approval_state === 'draft' && String(row.worker_id) === data.user.id}<div
-                  class="record-actions"
-                >
-                  <details>
-                    <summary>{translate('Edit draft')}</summary>
-                    <form
-                      method="POST"
-                      action="?/updateTime"
-                      data-entity-id={String(row.id)}
-                      data-version={String(row.version)}
-                      onsubmit={(event) => saveOfflineDraft(event, 'time')}
-                    >
-                      <input type="hidden" name="id" value={row.id} /><input
-                        type="hidden"
-                        name="version"
-                        value={row.version}
-                      /><input type="hidden" name="projectId" value={row.project_id} /><input
-                        type="hidden"
-                        name="workDate"
-                        value={row.work_date}
-                      /><label
-                        >{translate('Category')}<select name="category" value={row.category}
-                          ><option value="regular">{translate('Regular')}</option><option
-                            value="commissioning">{translate('Commissioning')}</option
-                          ><option value="overtime">{translate('Overtime')}</option><option
-                            value="standby">{translate('Standby / waiting')}</option
-                          ><option value="weekend_holiday">{translate('Weekend / holiday')}</option
-                          ><option value="travel">{translate('Travel')}</option><option
-                            value="remote_support">{translate('Remote support')}</option
-                          ><option value="training">{translate('Training')}</option><option
-                            value="internal">{translate('Internal')}</option
-                          ></select
-                        ></label
-                      ><label
-                        >{translate('Minutes')}<input
-                          name="minutes"
-                          type="number"
-                          min="0"
-                          max="1440"
-                          value={row.minutes}
-                          required
-                        /></label
-                      ><label
-                        >{translate('Summary')}<textarea name="summary" required
-                          >{row.activity_summary}</textarea
-                        ></label
-                      ><button>{translate('Save changes')}</button>
-                    </form>
-                  </details>
-                  <form method="POST" action="?/submitTime">
-                    <input type="hidden" name="id" value={row.id} /><input
-                      type="hidden"
-                      name="version"
-                      value={row.version}
-                    /><button>{translate('Submit')}</button>
-                  </form>
-                </div>{/if}
-              {#if String(row.worker_id) === data.user.id && row.invoice_id == null && row.approval_state !== 'void'}
-                <div class="record-actions" style="margin-top: 0.5rem;">
-                  <form method="POST" action="?/deleteTime">
-                    <input type="hidden" name="id" value={row.id} />
-                    <input type="hidden" name="version" value={row.version} />
-                    <button class="destructive-button">
-                      {row.approval_state === 'draft' || row.approval_state === 'needs_changes'
-                        ? translate('Delete')
-                        : translate('Void')}
-                    </button>
-                  </form>
-                </div>
-              {/if}
-            </article>{:else}<div class="empty">{translate('No time recorded.')}</div>{/each}
-        </section>
-      </div>
+      <TimeSection
+        {data}
+        {isAuditor}
+        {availableProjects}
+        {saveOfflineDraft}
+        {translate}
+        {controlledValue}
+      />
     {:else if data.section === 'expenses'}
       <ExpenseSection
         {data}
@@ -1027,17 +886,14 @@
                   <form
                     method="POST"
                     action="?/deleteDocument"
-                    style="display:inline;"
+                    class="document-delete-form"
                     onsubmit={(e) => {
                       if (!confirm(translate('Are you sure you want to delete this document?')))
                         e.preventDefault();
                     }}
                   >
                     <input type="hidden" name="documentId" value={String(document.id)} />
-                    <button
-                      type="submit"
-                      class="preview-link"
-                      style="background:none; border:none; padding:0; cursor:pointer; color:var(--ja-red); text-decoration:underline;"
+                    <button type="submit" class="preview-link preview-link-danger"
                       >{translate('Delete')}</button
                     >
                   </form>
@@ -1054,28 +910,46 @@
         ><label>{translate('Through')}<input name="end" type="date" value={data.periodEnd} /></label
         ><button>{translate('Apply period')}</button>
       </form>
+      <section class="record-list full pay-export-actions" aria-labelledby="pay-export-title">
+        <div class="panel-title">
+          <div>
+            <h2 id="pay-export-title">{translate('Worker statement')}</h2>
+            <p class="form-help">
+              {translate(
+                'Download your own activity, compensation, settlement, and reimbursement statement for this period.',
+              )}
+            </p>
+          </div>
+          <div class="record-actions">
+            <a
+              class="preview-link"
+              aria-label={translate('Download worker statement PDF')}
+              href={`${base}/app/api/worker-statement/pdf?start=${data.periodStart}&end=${data.periodEnd}`}
+              >{translate('PDF')}</a
+            >
+            <a
+              class="preview-link"
+              aria-label={translate('Download worker statement CSV')}
+              href={`${base}/app/api/worker-statement/csv?start=${data.periodStart}&end=${data.periodEnd}`}
+              >{translate('CSV')}</a
+            >
+          </div>
+        </div>
+      </section>
       <div class="finance-grid">
-        <a
-          href="{base}/app/time"
-          class="metric"
-          style="text-decoration: none; color: inherit; cursor: pointer;"
-        >
+        <a href="{base}/app/time" class="metric metric-link">
           <span>{translate('APPROVED COMPENSATION')}</span><strong
-            >{money(data.pay.estimatedApprovedMinor, data.pay.currency)}</strong
+            >{paymentMoney(data.pay.estimatedApprovedMinor, data.pay.currency)}</strong
           >
           <p>{data.pay.approvedMinutes} {translate('approved minutes')}</p>
         </a>
-        <a
-          href="{base}/app/expenses"
-          class="metric"
-          style="text-decoration: none; color: inherit; cursor: pointer;"
-        >
+        <a href="{base}/app/expenses" class="metric metric-link">
           <span>{translate('APPROVED REIMBURSEMENTS')}</span><strong
-            >{money(data.pay.approvedReimbursementMinor, data.pay.currency)}</strong
+            >{paymentMoney(data.pay.approvedReimbursementMinor, data.pay.currency)}</strong
           >
           <p>
             {translate('Pending pay:')}
-            {money(data.pay.estimatedPendingMinor, data.pay.currency)} + {money(
+            {paymentMoney(data.pay.estimatedPendingMinor, data.pay.currency)} + {paymentMoney(
               data.pay.pendingReimbursementMinor,
               data.pay.currency,
             )}
@@ -1100,34 +974,22 @@
           >
         </div>
         <div class="detail-grid">
-          <a
-            href="{base}/app/time"
-            style="text-decoration: none; color: inherit; display: block; cursor: pointer;"
-          >
+          <a href="{base}/app/time" class="detail-grid-link">
             <span>{translate('Approved actual time')}</span><strong
-              >{(data.pay.approvedMinutes / 60).toFixed(2)} h</strong
+              >{hours(data.pay.approvedMinutes)}</strong
             >
           </a>
-          <a
-            href="{base}/app/time"
-            style="text-decoration: none; color: inherit; display: block; cursor: pointer;"
-          >
+          <a href="{base}/app/time" class="detail-grid-link">
             <span>{translate('Pending actual time')}</span><strong
-              >{(data.pay.pendingMinutes / 60).toFixed(2)} h</strong
+              >{hours(data.pay.pendingMinutes)}</strong
             >
           </a>
-          <a
-            href="{base}/app/time"
-            style="text-decoration: none; color: inherit; display: block; cursor: pointer;"
-          >
+          <a href="{base}/app/time" class="detail-grid-link">
             <span>{translate('Daily guarantee coverage')}</span><strong
-              >{(data.pay.guaranteedMinutes ?? 0) / 60} h</strong
+              >{hours(data.pay.guaranteedMinutes ?? 0)}</strong
             >
           </a>
-          <a
-            href="{base}/app/projects"
-            style="text-decoration: none; color: inherit; display: block; cursor: pointer;"
-          >
+          <a href="{base}/app/projects" class="detail-grid-link">
             <span>{translate('Projects included')}</span><strong
               >{data.pay.projectIds?.length ?? 0}</strong
             >
@@ -1181,21 +1043,15 @@
                   ><td
                     ><a
                       href="{base}/app/projects/{String(row.projectId ?? '')}"
-                      style="text-decoration: none; font-weight: 500;"
+                      class="project-progress-link"
                       >{String(row.projectNumber)} · {String(row.projectName)}</a
                     ></td
-                  ><td>{(Number(row.actualMinutes ?? 0) / 60).toFixed(1)} h</td><td
-                    >{(Number(row.approvedMinutes ?? 0) / 60).toFixed(1)} h</td
-                  ><td>{(Number(row.pendingMinutes ?? 0) / 60).toFixed(1)} h</td><td
-                    >{row.plannedMinutes === null
-                      ? '—'
-                      : `${(Number(row.plannedMinutes) / 60).toFixed(1)} h`}</td
-                  ><td
-                    >{row.hoursRemaining === null
-                      ? '—'
-                      : `${(Number(row.hoursRemaining) / 60).toFixed(1)} h`}</td
-                  ><td>{money(String(row.estimatedApprovedMinor), String(row.currency))}</td><td
-                    >{money(String(row.estimatedPendingMinor), String(row.currency))}</td
+                  ><td>{hours(row.actualMinutes ?? 0)}</td><td>{hours(row.approvedMinutes ?? 0)}</td
+                  ><td>{hours(row.pendingMinutes ?? 0)}</td><td
+                    >{row.plannedMinutes === null ? '—' : hours(row.plannedMinutes)}</td
+                  ><td>{row.hoursRemaining === null ? '—' : hours(row.hoursRemaining)}</td><td
+                    >{paymentMoney(String(row.estimatedApprovedMinor), String(row.currency))}</td
+                  ><td>{paymentMoney(String(row.estimatedPendingMinor), String(row.currency))}</td
                   ></tr
                 >{:else}<tr
                   ><td colspan="8"
@@ -1206,34 +1062,170 @@
           </table>
         </div>
       </section>
+      <section class="record-list full pay-activity" aria-labelledby="pay-activity-title">
+        <div class="panel-title">
+          <div>
+            <h2 id="pay-activity-title">{translate('Own activity detail')}</h2>
+            <p class="form-help">
+              {translate(
+                'Actual operational activity included in this period. Compensation interpretation remains governed by project rules.',
+              )}
+            </p>
+          </div>
+          <span>{data.payActivities?.length ?? 0} {translate('entries')}</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <caption class="sr-only">{translate('Own activity detail')}</caption>
+            <thead>
+              <tr>
+                <th>{translate('Date')}</th>
+                <th>{translate('Project')}</th>
+                <th>{translate('Category')}</th>
+                <th>{translate('Activity')}</th>
+                <th>{translate('Actual minutes')}</th>
+                <th>{translate('Approval')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each data.payActivities ?? [] as activity}
+                <tr>
+                  <td>{String(activity.date ?? '—')}</td>
+                  <td
+                    >{String(activity.projectNumber ?? '—')} · {String(
+                      activity.projectName ?? '',
+                    )}</td
+                  >
+                  <td>{controlledValue('category', activity.category)}</td>
+                  <td>{String(activity.activitySummary ?? '—')}</td>
+                  <td>{hours(activity.actualMinutes ?? 0)}</td>
+                  <td>{controlledValue('status', activity.approvalState)}</td>
+                </tr>
+              {:else}
+                <tr>
+                  <td colspan="6">{translate('No activity recorded in this period.')}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      </section>
       <section class="record-list full pay-settlements">
         <div class="panel-title">
           <div>
             <h2>{translate('Settlement status')}</h2>
-            <p>{translate('Finalized compensation events for your own approved work.')}</p>
+            <p>{translate('Expected and actual payment dates for your own approved work.')}</p>
           </div>
           <span>{data.settlements?.length ?? 0}</span>
         </div>
-        {#each data.settlements ?? [] as settlement}<article class="record-card">
-            <a
-              class="record-card-link"
-              href="{base}/app/projects/{String(settlement.projectId ?? '')}"
-            >
-              <div>
-                <strong
-                  >{settlement.projectNumber} · {settlement.periodStart} → {settlement.periodEnd}</strong
-                ><small
-                  >{controlledValue('status', settlement.state)} · {settlement.settledAt ??
-                    translate('Estimate only')}</small
-                >
-              </div>
-              <strong>{money(settlement.amountMinor, String(settlement.currency))}</strong>
-              <span class="record-card-open">{translate('Open record →')}</span>
-            </a>
-          </article>{:else}<div class="empty">
-            {translate('No compensation settlements in this period.')}
-          </div>{/each}
+        <div class="table-wrap">
+          <table>
+            <caption class="sr-only">{translate('Settlement status')}</caption>
+            <thead>
+              <tr>
+                <th>{translate('Project / period')}</th>
+                <th>{translate('State')}</th>
+                <th>{translate('Expected payment')}</th>
+                <th>{translate('Actual payment')}</th>
+                <th>{translate('Own amount')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each data.settlements ?? [] as settlement}
+                <tr>
+                  <td>
+                    <a href="{base}/app/projects/{String(settlement.projectId ?? '')}">
+                      {String(settlement.projectNumber ?? '—')} · {String(
+                        settlement.periodStart ?? '—',
+                      )} → {String(settlement.periodEnd ?? '—')}
+                    </a>
+                  </td>
+                  <td>{controlledValue('status', settlement.state)}</td>
+                  <td>{String(settlement.expectedPaymentOn ?? translate('Not scheduled'))}</td>
+                  <td>{String(settlement.settledAt ?? translate('Not paid yet'))}</td>
+                  <td>{paymentMoney(settlement.amountMinor, String(settlement.currency))}</td>
+                </tr>
+              {:else}
+                <tr>
+                  <td colspan="5">{translate('No compensation settlements in this period.')}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
       </section>
+      <section
+        class="record-list full pay-reimbursements"
+        aria-labelledby="pay-reimbursements-title"
+      >
+        <div class="panel-title">
+          <div>
+            <h2 id="pay-reimbursements-title">{translate('Reimbursement status')}</h2>
+            <p>
+              {translate('Expected and actual reimbursement dates for your own approved expenses.')}
+            </p>
+          </div>
+          <span>{data.payExpenses?.length ?? 0}</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <caption class="sr-only">{translate('Reimbursement status')}</caption>
+            <thead>
+              <tr>
+                <th>{translate('Date')}</th>
+                <th>{translate('Project')}</th>
+                <th>{translate('Vendor / category')}</th>
+                <th>{translate('State')}</th>
+                <th>{translate('Expected reimbursement')}</th>
+                <th>{translate('Actual reimbursement')}</th>
+                <th>{translate('Own amount')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each data.payExpenses ?? [] as expense}
+                <tr>
+                  <td>{String(expense.spentOn ?? '—')}</td>
+                  <td>{String(expense.projectNumber ?? '—')}</td>
+                  <td
+                    >{String(expense.vendor ?? '—')} · {controlledValue(
+                      'expenseCategory',
+                      expense.category,
+                    )}</td
+                  >
+                  <td
+                    >{controlledValue(
+                      'status',
+                      expense.reimbursementState ?? expense.approvalState,
+                    )}</td
+                  >
+                  <td>{String(expense.expectedReimbursementOn ?? translate('Not scheduled'))}</td>
+                  <td>{String(expense.reimbursedAt ?? translate('Not reimbursed yet'))}</td>
+                  <td>{paymentMoney(expense.reimbursementAmountMinor, String(expense.currency))}</td
+                  >
+                </tr>
+              {:else}
+                <tr>
+                  <td colspan="7">{translate('No reimbursable expenses in this period.')}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    {:else if data.section === 'projects' && data.user.role === 'project_manager'}
+      <ProjectSection
+        {base}
+        projects={availableProjects}
+        role={data.user.role}
+        capabilities={{
+          canCreateProject: false,
+          canTransitionProject: false,
+          canManageClients: false,
+        }}
+        getProjectLifecycleActions={projectLifecycleActions}
+        {translate}
+        {controlledValue}
+      />
     {:else if data.section === 'projects'}
       <div class="management-stack">
         <section class="record-list full">
@@ -1256,40 +1248,94 @@
               {#if canManageProjects}
                 <div class="record-actions lifecycle-actions">
                   {#if row.status === 'active' || row.status === 'paused'}
-                    <form method="POST" action="?/transitionProject" data-action="transitionProject">
+                    <form
+                      method="POST"
+                      action="?/transitionProject"
+                      data-action="transitionProject"
+                    >
                       <input type="hidden" name="projectId" value={row.id} />
                       <input type="hidden" name="version" value={row.version ?? 1} />
-                      <input type="hidden" name="status" value="{row.status === 'active' ? 'closing' : 'closing'}" />
-                      <label class="sr-only" for={`project-close-reason-${row.id}`}>{translate('Reason')}</label>
-                      <input id={`project-close-reason-${row.id}`} name="reason" required placeholder={translate('Reason')} />
-                      <button type="submit" class="secondary-button">{translate('Begin close')}</button>
+                      <input
+                        type="hidden"
+                        name="status"
+                        value={row.status === 'active' ? 'closing' : 'closing'}
+                      />
+                      <label class="sr-only" for={`project-close-reason-${row.id}`}
+                        >{translate('Reason')}</label
+                      >
+                      <input
+                        id={`project-close-reason-${row.id}`}
+                        name="reason"
+                        required
+                        placeholder={translate('Reason')}
+                      />
+                      <button type="submit" class="secondary-button"
+                        >{translate('Begin close')}</button
+                      >
                     </form>
                   {:else if row.status === 'closing'}
-                    <form method="POST" action="?/transitionProject" data-action="transitionProject">
+                    <form
+                      method="POST"
+                      action="?/transitionProject"
+                      data-action="transitionProject"
+                    >
                       <input type="hidden" name="projectId" value={row.id} />
                       <input type="hidden" name="version" value={row.version ?? 1} />
                       <input type="hidden" name="status" value="closed" />
-                      <label class="sr-only" for={`project-finish-reason-${row.id}`}>{translate('Reason')}</label>
-                      <input id={`project-finish-reason-${row.id}`} name="reason" required placeholder={translate('Reason')} />
-                      <button type="submit" class="secondary-button">{translate('Close project')}</button>
+                      <label class="sr-only" for={`project-finish-reason-${row.id}`}
+                        >{translate('Reason')}</label
+                      >
+                      <input
+                        id={`project-finish-reason-${row.id}`}
+                        name="reason"
+                        required
+                        placeholder={translate('Reason')}
+                      />
+                      <button type="submit" class="secondary-button"
+                        >{translate('Close project')}</button
+                      >
                     </form>
                   {:else if row.status === 'closed'}
-                    <form method="POST" action="?/transitionProject" data-action="transitionProject">
+                    <form
+                      method="POST"
+                      action="?/transitionProject"
+                      data-action="transitionProject"
+                    >
                       <input type="hidden" name="projectId" value={row.id} />
                       <input type="hidden" name="version" value={row.version ?? 1} />
                       <input type="hidden" name="status" value="archived" />
-                      <label class="sr-only" for={`project-archive-reason-${row.id}`}>{translate('Reason')}</label>
-                      <input id={`project-archive-reason-${row.id}`} name="reason" required placeholder={translate('Reason')} />
+                      <label class="sr-only" for={`project-archive-reason-${row.id}`}
+                        >{translate('Reason')}</label
+                      >
+                      <input
+                        id={`project-archive-reason-${row.id}`}
+                        name="reason"
+                        required
+                        placeholder={translate('Reason')}
+                      />
                       <button type="submit" class="danger">{translate('Archive project')}</button>
                     </form>
                   {:else if row.status === 'archived'}
-                    <form method="POST" action="?/transitionProject" data-action="transitionProject">
+                    <form
+                      method="POST"
+                      action="?/transitionProject"
+                      data-action="transitionProject"
+                    >
                       <input type="hidden" name="projectId" value={row.id} />
                       <input type="hidden" name="version" value={row.version ?? 1} />
                       <input type="hidden" name="status" value="restore" />
-                      <label class="sr-only" for={`project-restore-reason-${row.id}`}>{translate('Reason')}</label>
-                      <input id={`project-restore-reason-${row.id}`} name="reason" required placeholder={translate('Reason')} />
-                      <button type="submit" class="secondary-button">{translate('Restore project')}</button>
+                      <label class="sr-only" for={`project-restore-reason-${row.id}`}
+                        >{translate('Reason')}</label
+                      >
+                      <input
+                        id={`project-restore-reason-${row.id}`}
+                        name="reason"
+                        required
+                        placeholder={translate('Reason')}
+                      />
+                      <button type="submit" class="secondary-button"
+                        >{translate('Restore project')}</button
+                      >
                     </form>
                   {/if}
                 </div>
@@ -1302,15 +1348,24 @@
             <div class="panel-title">
               <div>
                 <h2>{translate('Clients')}</h2>
-                <p class="form-help">{translate('Archived clients remain visible to management for safe restore; workers never receive this list.')}</p>
+                <p class="form-help">
+                  {translate(
+                    'Archived clients remain visible to management for safe restore; workers never receive this list.',
+                  )}
+                </p>
               </div>
-              <span>{data.clients.length}</span>
+              <span>{data.clients?.length ?? 0}</span>
             </div>
-            {#each data.clients as client}
+            {#each data.clients ?? [] as client}
               <article class="record-card" data-client-id={client.id}>
                 <div>
                   <strong>{client.client_number} · {client.display_name}</strong>
-                  <small>{client.legal_name} · {client.currency} · {controlledValue('status', client.status)} · {client.billing_address ?? translate('Billing address missing')}</small>
+                  <small
+                    >{client.legal_name} · {client.currency}{client.client_code
+                      ? ` · ${client.client_code}`
+                      : ''} · {controlledValue('status', client.status)} · {client.billing_address ??
+                      translate('Billing address missing')}</small
+                  >
                 </div>
                 <div class="record-actions lifecycle-actions">
                   {#if client.status === 'archived'}
@@ -1318,17 +1373,33 @@
                       <input type="hidden" name="clientId" value={client.id} />
                       <input type="hidden" name="version" value={client.version ?? 1} />
                       <input type="hidden" name="status" value="restore" />
-                      <label class="sr-only" for={`client-restore-reason-${client.id}`}>{translate('Reason')}</label>
-                      <input id={`client-restore-reason-${client.id}`} name="reason" required placeholder={translate('Reason')} />
-                      <button type="submit" class="secondary-button">{translate('Restore client')}</button>
+                      <label class="sr-only" for={`client-restore-reason-${client.id}`}
+                        >{translate('Reason')}</label
+                      >
+                      <input
+                        id={`client-restore-reason-${client.id}`}
+                        name="reason"
+                        required
+                        placeholder={translate('Reason')}
+                      />
+                      <button type="submit" class="secondary-button"
+                        >{translate('Restore client')}</button
+                      >
                     </form>
                   {:else}
                     <form method="POST" action="?/transitionClient" data-action="transitionClient">
                       <input type="hidden" name="clientId" value={client.id} />
                       <input type="hidden" name="version" value={client.version ?? 1} />
                       <input type="hidden" name="status" value="archived" />
-                      <label class="sr-only" for={`client-archive-reason-${client.id}`}>{translate('Reason')}</label>
-                      <input id={`client-archive-reason-${client.id}`} name="reason" required placeholder={translate('Reason')} />
+                      <label class="sr-only" for={`client-archive-reason-${client.id}`}
+                        >{translate('Reason')}</label
+                      >
+                      <input
+                        id={`client-archive-reason-${client.id}`}
+                        name="reason"
+                        required
+                        placeholder={translate('Reason')}
+                      />
                       <button type="submit" class="danger">{translate('Archive client')}</button>
                     </form>
                   {/if}
@@ -1343,6 +1414,11 @@
               <label>{translate('Legal name')}<input name="legalName" required /></label><label
                 >{translate('Display name')}<input name="displayName" required /></label
               ><label
+                >{translate('Client code (optional)')}<input
+                  name="clientCode"
+                  maxlength="40"
+                /></label
+              ><label
                 >{translate('Currency')}<select name="currency"
                   ><option>USD</option><option>BRL</option><option>EUR</option></select
                 ></label
@@ -1353,39 +1429,123 @@
                   required
                 /></label
               ><label>{translate('Billing contact name')}<input name="billingContactName" /></label
-              ><label>{translate('Billing contact email')}<input name="billingEmail" type="email" /></label
-              ><label class="wide-field">{translate('Billing address')}<textarea name="billingAddress" rows="3" required></textarea></label
-              ><label>{translate('Payment terms (days)')}<input name="paymentTermsDays" type="number" min="0" max="365" value="30" required /></label
-              ><label>{translate('PO / reference')}<input name="poReference" /></label
-              ><label class="wide-field">{translate('Notes')}<textarea name="notes" rows="2"></textarea></label>
+              ><label
+                >{translate('Billing contact email')}<input
+                  name="billingEmail"
+                  type="email"
+                /></label
+              ><label class="wide-field"
+                >{translate('Billing address')}<textarea name="billingAddress" rows="3" required
+                ></textarea></label
+              ><label
+                >{translate('Payment terms (days)')}<input
+                  name="paymentTermsDays"
+                  type="number"
+                  min="0"
+                  max="365"
+                  value="30"
+                  required
+                /></label
+              ><label>{translate('PO / reference')}<input name="poReference" /></label><label
+                class="wide-field"
+                >{translate('Notes')}<textarea name="notes" rows="2"></textarea></label
+              >
               <button>{translate('Create client')}</button>
             </form>
           </details>
           <details class="admin-details">
             <summary class="primary-button">{translate('Update Client')}</summary>
-            <p class="form-help">{translate('Each editor carries the record version it displayed. A stale submission is rejected so another administrator\'s changes are not overwritten.')}</p>
+            <p class="form-help">
+              {translate(
+                "Each editor carries the record version it displayed. A stale submission is rejected so another administrator's changes are not overwritten.",
+              )}
+            </p>
             {#each data.clients as client}
               <form method="POST" action="?/updateClient" class="admin-form-grid client-edit-form">
                 <input type="hidden" name="clientId" value={client.id} />
                 <input type="hidden" name="version" value={client.version ?? 1} />
                 <h3 class="wide-field">{client.client_number} · {client.display_name}</h3>
                 {#if !client.billing_address}
-                  <p class="form-help wide-field">{translate('Billing address is missing on this existing record. Enter the real address before saving; the interface will not invent one.')}</p>
+                  <p class="form-help wide-field">
+                    {translate(
+                      'Billing address is missing on this existing record. Enter the real address before saving; the interface will not invent one.',
+                    )}
+                  </p>
                 {/if}
-                <label>{translate('Legal name')}<input name="legalName" value={String(client.legal_name ?? '')} required /></label>
-                <label>{translate('Display name')}<input name="displayName" value={String(client.display_name ?? '')} required /></label>
-                <label>{translate('Currency')}<select name="currency" required>
-                  <option value="USD" selected={client.currency === 'USD'}>USD</option>
-                  <option value="BRL" selected={client.currency === 'BRL'}>BRL</option>
-                  <option value="EUR" selected={client.currency === 'EUR'}>EUR</option>
-                </select></label>
-                <label>{translate('Timezone')}<input name="timezone" value={String(client.timezone ?? '')} required /></label>
-                <label>{translate('Billing contact name')}<input name="billingContactName" value={String(client.billing_contact_name ?? '')} /></label>
-                <label>{translate('Billing contact email')}<input name="billingEmail" type="email" value={String(client.billing_email ?? '')} /></label>
-                <label class="wide-field">{translate('Billing address')}<textarea name="billingAddress" rows="3" required>{String(client.billing_address ?? '')}</textarea></label>
-                <label>{translate('Payment terms (days)')}<input type="number" name="paymentTermsDays" min="0" max="365" value={client.payment_terms_days ?? 30} required /></label>
-                <label>{translate('PO / reference')}<input name="poReference" value={String(client.po_reference ?? '')} /></label>
-                <label class="wide-field">{translate('Notes')}<textarea name="notes" rows="2">{String(client.notes ?? '')}</textarea></label>
+                <label
+                  >{translate('Legal name')}<input
+                    name="legalName"
+                    value={String(client.legal_name ?? '')}
+                    required
+                  /></label
+                >
+                <label
+                  >{translate('Display name')}<input
+                    name="displayName"
+                    value={String(client.display_name ?? '')}
+                    required
+                  /></label
+                >
+                <label
+                  >{translate('Client code (optional)')}<input
+                    name="clientCode"
+                    value={String(client.client_code ?? '')}
+                    maxlength="40"
+                  /></label
+                >
+                <label
+                  >{translate('Currency')}<select name="currency" required>
+                    <option value="USD" selected={client.currency === 'USD'}>USD</option>
+                    <option value="BRL" selected={client.currency === 'BRL'}>BRL</option>
+                    <option value="EUR" selected={client.currency === 'EUR'}>EUR</option>
+                  </select></label
+                >
+                <label
+                  >{translate('Timezone')}<input
+                    name="timezone"
+                    value={String(client.timezone ?? '')}
+                    required
+                  /></label
+                >
+                <label
+                  >{translate('Billing contact name')}<input
+                    name="billingContactName"
+                    value={String(client.billing_contact_name ?? '')}
+                  /></label
+                >
+                <label
+                  >{translate('Billing contact email')}<input
+                    name="billingEmail"
+                    type="email"
+                    value={String(client.billing_email ?? '')}
+                  /></label
+                >
+                <label class="wide-field"
+                  >{translate('Billing address')}<textarea name="billingAddress" rows="3" required
+                    >{String(client.billing_address ?? '')}</textarea
+                  ></label
+                >
+                <label
+                  >{translate('Payment terms (days)')}<input
+                    type="number"
+                    name="paymentTermsDays"
+                    min="0"
+                    max="365"
+                    value={client.payment_terms_days ?? 30}
+                    required
+                  /></label
+                >
+                <label
+                  >{translate('PO / reference')}<input
+                    name="poReference"
+                    value={String(client.po_reference ?? '')}
+                  /></label
+                >
+                <label class="wide-field"
+                  >{translate('Notes')}<textarea name="notes" rows="2"
+                    >{String(client.notes ?? '')}</textarea
+                  ></label
+                >
                 <button>{translate('Update client')}</button>
               </form>
             {:else}
@@ -1403,6 +1563,12 @@
                     >{/each}</select
                 ></label
               ><label>{translate('Name')}<input name="name" required /></label><label
+                >{translate('Cost center code')}<input
+                  name="costCenterCode"
+                  maxlength="120"
+                  required
+                /></label
+              ><label
                 >{translate('Description')}<textarea name="description" rows="2"></textarea></label
               ><label>{translate('Project alias')}<input name="projectAlias" /></label><label
                 >{translate('Currency')}<select name="currency"
@@ -1411,7 +1577,9 @@
               ><label
                 >{translate('Project manager')}<select name="projectManagerId"
                   ><option value="">{translate('Unassigned')}</option
-                  >{#each data.workers ?? [] as worker}{#if worker.role === 'project_manager' && worker.status === 'active'}<option value={worker.id}>{worker.name}</option>{/if}{/each}</select
+                  >{#each data.workers ?? [] as worker}{#if worker.role === 'project_manager' && worker.status === 'active'}<option
+                        value={worker.id}>{worker.name}</option
+                      >{/if}{/each}</select
                 ></label
               ><label
                 >{translate('Billing model')}<select name="billingModel"
@@ -1438,7 +1606,6 @@
                   type="number"
                   min="0"
                   max="1440"
-                  value="600"
                   required
                 /></label
               ><label
@@ -1495,86 +1662,144 @@
             </form>
           </details>
           {#if canManageAssignmentControls}
-          <details class="admin-details">
-            <summary class="primary-button">{translate('Assign Worker')}</summary>
-            <form method="POST" action="?/assignWorker" class="admin-form-grid">
-              <h2>{translate('Assign worker')}</h2>
-              <label
-                >{translate('Project')}<select name="projectId" required
-                  >{#each activeProjects as project}<option value={project.id}
-                      >{project.project_number}</option
-                    >{/each}</select
-                ></label
-              ><label
-                >{translate('Worker')}<select name="workerId" required
-                  >{#each data.workers ?? [] as worker}<option value={worker.id}
-                      >{worker.name} — {controlledValue('role', worker.role)}</option
-                    >{/each}</select
-                ></label
-              ><label
-                >{translate('Role')}<input name="assignmentRole" value="worker" required /></label
-              ><label>{translate('Starts on')}<input name="startsOn" type="date" required /></label
-              ><label>{translate('Ends on (optional)')}<input name="endsOn" type="date" /></label
-              ><button>{translate('Assign')}</button>
-            </form>
-          </details>
-          <details class="admin-details">
-            <summary class="primary-button">{translate('Update Assignment')}</summary>
-            <h2>{translate('Update assignment')}</h2>
-            {#each (data.assignments ?? []).filter((assignment) => assignment.status === 'active') as assignment}
-              <form method="POST" action="?/updateAssignment" class="admin-form-grid assignment-edit-form">
-                <input type="hidden" name="assignmentId" value={assignment.id} />
-                <input type="hidden" name="version" value={assignment.version ?? 1} />
-                <p class="form-help wide-field">{assignment.project_number} · {assignment.project_name} · {assignment.worker_name}</p>
-                <label>{translate('Starts on')}<input name="startsOn" type="date" value={String(assignment.starts_on ?? '')} required /></label>
-                <label>{translate('Ends on')}<input name="endsOn" type="date" value={String(assignment.ends_on ?? '')} /></label>
-                <label>{translate('Planned minutes')}<input name="plannedMinutes" type="number" min="0" value={assignment.planned_minutes ?? ''} /></label>
-                <label class="check"><input name="canReview" type="checkbox" checked={Boolean(assignment.can_review)} /> {translate('Can review')}</label>
-                <button>{translate('Update assignment')}</button>
+            <details class="admin-details">
+              <summary class="primary-button">{translate('Assign Worker')}</summary>
+              <form method="POST" action="?/assignWorker" class="admin-form-grid">
+                <h2>{translate('Assign worker')}</h2>
+                <label
+                  >{translate('Project')}<select name="projectId" required
+                    >{#each activeProjects as project}<option value={project.id}
+                        >{project.project_number}</option
+                      >{/each}</select
+                  ></label
+                ><label
+                  >{translate('Worker')}<select name="workerId" required
+                    >{#each data.workers ?? [] as worker}<option value={worker.id}
+                        >{worker.name} — {controlledValue('role', worker.role)}</option
+                      >{/each}</select
+                  ></label
+                ><label
+                  >{translate('Role')}<input name="assignmentRole" value="worker" required /></label
+                ><label
+                  >{translate('Starts on')}<input name="startsOn" type="date" required /></label
+                ><label>{translate('Ends on (optional)')}<input name="endsOn" type="date" /></label
+                ><button>{translate('Assign')}</button>
               </form>
-            {:else}<p class="empty">{translate('No active assignments to edit.')}</p>{/each}
-          </details>
-          <details class="admin-details">
-            <summary class="primary-button">{translate('Remove Assignment')}</summary>
-            <h2>{translate('Remove assignment')}</h2>
-            <p class="form-help">{translate('Removal ends the assignment and preserves its historical row. It never hard-deletes project history.')}</p>
-            {#each (data.assignments ?? []).filter((assignment) => assignment.status === 'active') as assignment}
-              <form method="POST" action="?/removeAssignment" class="admin-form-grid assignment-remove-form" data-action="removeAssignment">
-                <input type="hidden" name="assignmentId" value={assignment.id} />
-                <input type="hidden" name="version" value={assignment.version ?? 1} />
-                <p class="form-help wide-field">{assignment.project_number} · {assignment.project_name} · {assignment.worker_name}</p>
-                <label>{translate('End date')}<input name="endsOn" type="date" min={String(assignment.starts_on ?? '')} value={String(assignment.ends_on ?? '')} /></label>
-                <label class="wide-field">{translate('Removal reason')}<input name="reason" required maxlength="2000" /></label>
-                <button class="danger">{translate('Remove assignment')}</button>
-              </form>
-            {:else}<p class="empty">{translate('No active assignments to remove.')}</p>{/each}
-          </details>
-          {/if}
-          {#if data.user.role === 'owner_admin'}
-          <details class="admin-details">
-            <summary class="primary-button">{translate('Invite/Create Worker')}</summary>
-            <form method="POST" action="?/createInvitation" class="admin-form-grid">
-              <h2>{translate('Invite new worker')}</h2>
-              <p style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">
+            </details>
+            <details class="admin-details">
+              <summary class="primary-button">{translate('Update Assignment')}</summary>
+              <h2>{translate('Update assignment')}</h2>
+              {#each (data.assignments ?? []).filter((assignment) => assignment.status === 'active') as assignment}
+                <form
+                  method="POST"
+                  action="?/updateAssignment"
+                  class="admin-form-grid assignment-edit-form"
+                >
+                  <input type="hidden" name="assignmentId" value={assignment.id} />
+                  <input type="hidden" name="version" value={assignment.version ?? 1} />
+                  <p class="form-help wide-field">
+                    {assignment.project_number} · {assignment.project_name} · {assignment.worker_name}
+                  </p>
+                  <label
+                    >{translate('Starts on')}<input
+                      name="startsOn"
+                      type="date"
+                      value={String(assignment.starts_on ?? '')}
+                      required
+                    /></label
+                  >
+                  <label
+                    >{translate('Ends on')}<input
+                      name="endsOn"
+                      type="date"
+                      value={String(assignment.ends_on ?? '')}
+                    /></label
+                  >
+                  <label
+                    >{translate('Planned minutes')}<input
+                      name="plannedMinutes"
+                      type="number"
+                      min="0"
+                      value={assignment.planned_minutes ?? ''}
+                    /></label
+                  >
+                  <label class="check"
+                    ><input
+                      name="canReview"
+                      type="checkbox"
+                      checked={Boolean(assignment.can_review)}
+                    />
+                    {translate('Can review')}</label
+                  >
+                  <button>{translate('Update assignment')}</button>
+                </form>
+              {:else}<p class="empty">{translate('No active assignments to edit.')}</p>{/each}
+            </details>
+            <details class="admin-details">
+              <summary class="primary-button">{translate('Remove Assignment')}</summary>
+              <h2>{translate('Remove assignment')}</h2>
+              <p class="form-help">
                 {translate(
-                  "Invitations require step-up authentication. The worker will be added as 'invited' status.",
+                  'Removal ends the assignment and preserves its historical row. It never hard-deletes project history.',
                 )}
               </p>
-              <label>{translate('Email')}<input name="email" type="email" required /></label>
-              <label
-                >{translate('Role')}
-                <select name="role" required>
-                  <option value="worker">{translate('Worker')}</option>
-                  <option value="project_manager">{translate('Project Manager')}</option>
-                  <option value="finance_admin">{translate('Finance Admin')}</option>
-                  <option value="auditor_read_only">{translate('Auditor (Read Only)')}</option>
-                  <option value="owner_admin">{translate('Owner Admin')}</option>
-                </select>
-              </label>
-              <input type="hidden" name="expiresInDays" value="7" />
-              <button>{translate('Create Invitation')}</button>
-            </form>
-          </details>
+              {#each (data.assignments ?? []).filter((assignment) => assignment.status === 'active') as assignment}
+                <form
+                  method="POST"
+                  action="?/removeAssignment"
+                  class="admin-form-grid assignment-remove-form"
+                  data-action="removeAssignment"
+                >
+                  <input type="hidden" name="assignmentId" value={assignment.id} />
+                  <input type="hidden" name="version" value={assignment.version ?? 1} />
+                  <p class="form-help wide-field">
+                    {assignment.project_number} · {assignment.project_name} · {assignment.worker_name}
+                  </p>
+                  <label
+                    >{translate('End date')}<input
+                      name="endsOn"
+                      type="date"
+                      min={String(assignment.starts_on ?? '')}
+                      value={String(assignment.ends_on ?? '')}
+                    /></label
+                  >
+                  <label class="wide-field"
+                    >{translate('Removal reason')}<input
+                      name="reason"
+                      required
+                      maxlength="2000"
+                    /></label
+                  >
+                  <button class="danger">{translate('Remove assignment')}</button>
+                </form>
+              {:else}<p class="empty">{translate('No active assignments to remove.')}</p>{/each}
+            </details>
+          {/if}
+          {#if data.user.role === 'owner_admin'}
+            <details class="admin-details">
+              <summary class="primary-button">{translate('Invite/Create Worker')}</summary>
+              <form method="POST" action="?/createInvitation" class="admin-form-grid">
+                <h2>{translate('Invite new worker')}</h2>
+                <p class="invitation-help">
+                  {translate(
+                    "Invitations require step-up authentication. The worker will be added as 'invited' status.",
+                  )}
+                </p>
+                <label>{translate('Email')}<input name="email" type="email" required /></label>
+                <label
+                  >{translate('Role')}
+                  <select name="role" required>
+                    <option value="worker">{translate('Worker')}</option>
+                    <option value="project_manager">{translate('Project Manager')}</option>
+                    <option value="finance_admin">{translate('Finance Admin')}</option>
+                    <option value="auditor_read_only">{translate('Auditor (Read Only)')}</option>
+                    <option value="owner_admin">{translate('Owner Admin')}</option>
+                  </select>
+                </label>
+                <input type="hidden" name="expiresInDays" value="7" />
+                <button>{translate('Create Invitation')}</button>
+              </form>
+            </details>
           {/if}
           <details class="admin-details">
             <summary class="primary-button">{translate('Add Client Contact')}</summary>
@@ -1603,125 +1828,124 @@
             </form>
           </details>
           {#if canManageAssignmentControls}
-          <details class="admin-details">
-            <summary class="primary-button">{translate('Create Milestone')}</summary>
-            <form method="POST" action="?/createMilestone" class="admin-form-grid">
-              <h2>{translate('Create milestone')}</h2>
-              <label
-                >{translate('Project')}<select name="projectId" required
-                  >{#each activeProjects as project}<option value={project.id}
-                      >{project.project_number} — {project.name}</option
-                    >{/each}</select
-                ></label
-              ><label>{translate('Name')}<input name="name" required /></label><label
-                >{translate('Description')}<textarea name="description" rows="2"></textarea></label
-              ><label
-                >{translate('Amount (minor)')}<input
-                  name="amountMinor"
-                  inputmode="numeric"
-                  pattern="[0-9]*"
-                  required
-                /></label
-              ><label>{translate('Due on')}<input name="dueOn" type="date" /></label><button
-                >{translate('Save milestone')}</button
-              >
-            </form>
-          </details>
-          <details class="admin-details">
-            <summary class="primary-button">{translate('Expected Working Schedule')}</summary>
-            <form method="POST" action="?/updateSchedule" class="admin-form-grid">
-              <h2>{translate('Expected working schedule')}</h2>
-              <label
-                >{translate('Project')}<select name="projectId" required
-                  >{#each operationalProjects as project}<option value={project.id}
-                      >{project.project_number} — {project.name}</option
-                    >{/each}</select
-                ></label
-              ><label
-                >{translate('Timezone')}<input
-                  name="timezone"
-                  value="America/New_York"
-                  required
-                /></label
-              ><label
-                >{translate('Effective from')}<input
-                  name="effectiveFrom"
-                  type="date"
-                  required
-                /></label
-              >
-              <label
-                >{translate('Mon minutes')}<input
-                  name="mondayMinutes"
-                  type="number"
-                  min="0"
-                  max="1440"
-                  value="600"
-                  required
-                /></label
-              ><label
-                >{translate('Tue minutes')}<input
-                  name="tuesdayMinutes"
-                  type="number"
-                  min="0"
-                  max="1440"
-                  value="600"
-                  required
-                /></label
-              ><label
-                >{translate('Wed minutes')}<input
-                  name="wednesdayMinutes"
-                  type="number"
-                  min="0"
-                  max="1440"
-                  value="600"
-                  required
-                /></label
-              ><label
-                >{translate('Thu minutes')}<input
-                  name="thursdayMinutes"
-                  type="number"
-                  min="0"
-                  max="1440"
-                  value="600"
-                  required
-                /></label
-              ><label
-                >{translate('Fri minutes')}<input
-                  name="fridayMinutes"
-                  type="number"
-                  min="0"
-                  max="1440"
-                  value="600"
-                  required
-                /></label
-              ><label
-                >{translate('Sat minutes')}<input
-                  name="saturdayMinutes"
-                  type="number"
-                  min="0"
-                  max="1440"
-                  value="600"
-                  required
-                /></label
-              ><label
-                >{translate('Sun minutes')}<input
-                  name="sundayMinutes"
-                  type="number"
-                  min="0"
-                  max="1440"
-                  value="0"
-                  required
-                /></label
-              ><button>{translate('Save schedule')}</button>
-            </form>
-          </details>
+            <details class="admin-details">
+              <summary class="primary-button">{translate('Create Milestone')}</summary>
+              <form method="POST" action="?/createMilestone" class="admin-form-grid">
+                <h2>{translate('Create milestone')}</h2>
+                <label
+                  >{translate('Project')}<select name="projectId" required
+                    >{#each activeProjects as project}<option value={project.id}
+                        >{project.project_number} — {project.name}</option
+                      >{/each}</select
+                  ></label
+                ><label>{translate('Name')}<input name="name" required /></label><label
+                  >{translate('Description')}<textarea name="description" rows="2"
+                  ></textarea></label
+                ><label
+                  >{translate('Amount (minor)')}<input
+                    name="amountMinor"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    required
+                  /></label
+                ><label>{translate('Due on')}<input name="dueOn" type="date" /></label><button
+                  >{translate('Save milestone')}</button
+                >
+              </form>
+            </details>
+            <details class="admin-details">
+              <summary class="primary-button">{translate('Expected Working Schedule')}</summary>
+              <form method="POST" action="?/updateSchedule" class="admin-form-grid">
+                <h2>{translate('Expected working schedule')}</h2>
+                <label
+                  >{translate('Project')}<select name="projectId" required
+                    >{#each operationalProjects as project}<option value={project.id}
+                        >{project.project_number} — {project.name}</option
+                      >{/each}</select
+                  ></label
+                ><label
+                  >{translate('Timezone')}<input
+                    name="timezone"
+                    value="America/New_York"
+                    required
+                  /></label
+                ><label
+                  >{translate('Effective from')}<input
+                    name="effectiveFrom"
+                    type="date"
+                    required
+                  /></label
+                >
+                <label
+                  >{translate('Mon minutes')}<input
+                    name="mondayMinutes"
+                    type="number"
+                    min="0"
+                    max="1440"
+                    required
+                  /></label
+                ><label
+                  >{translate('Tue minutes')}<input
+                    name="tuesdayMinutes"
+                    type="number"
+                    min="0"
+                    max="1440"
+                    required
+                  /></label
+                ><label
+                  >{translate('Wed minutes')}<input
+                    name="wednesdayMinutes"
+                    type="number"
+                    min="0"
+                    max="1440"
+                    required
+                  /></label
+                ><label
+                  >{translate('Thu minutes')}<input
+                    name="thursdayMinutes"
+                    type="number"
+                    min="0"
+                    max="1440"
+                    required
+                  /></label
+                ><label
+                  >{translate('Fri minutes')}<input
+                    name="fridayMinutes"
+                    type="number"
+                    min="0"
+                    max="1440"
+                    required
+                  /></label
+                ><label
+                  >{translate('Sat minutes')}<input
+                    name="saturdayMinutes"
+                    type="number"
+                    min="0"
+                    max="1440"
+                    required
+                  /></label
+                ><label
+                  >{translate('Sun minutes')}<input
+                    name="sundayMinutes"
+                    type="number"
+                    min="0"
+                    max="1440"
+                    value="0"
+                    required
+                  /></label
+                ><button>{translate('Save schedule')}</button>
+              </form>
+            </details>
           {/if}
           <section class="record-list full assignment-history-list">
             <div class="panel-title">
               <div>
                 <h2>{translate('Assignment history')}</h2>
-                <p class="form-help">{translate('Inactive rows remain available for audit and historical attribution.')}</p>
+                <p class="form-help">
+                  {translate(
+                    'Inactive rows remain available for audit and historical attribution.',
+                  )}
+                </p>
               </div>
               <span>{data.assignments?.length ?? 0}</span>
             </div>
@@ -1729,7 +1953,13 @@
               <article class="record-card">
                 <div>
                   <strong>{assignment.project_number} · {assignment.project_name}</strong>
-                  <small>{assignment.worker_name} · {assignment.starts_on} → {assignment.ends_on ?? translate('Open assignment')} · {controlledValue('status', assignment.status)}</small>
+                  <small
+                    >{assignment.worker_name} · {assignment.starts_on} → {assignment.ends_on ??
+                      translate('Open assignment')} · {controlledValue(
+                      'status',
+                      assignment.status,
+                    )}</small
+                  >
                 </div>
               </article>
             {:else}<div class="empty">{translate('No assignments recorded.')}</div>{/each}
@@ -1831,7 +2061,7 @@
                 <div>
                   <strong>{worker.name}</strong>
                   {#if worker.status !== 'active'}
-                    <span class="state-tag {worker.status}" style="margin-left: 0.5rem;"
+                    <span class="state-tag state-tag-with-gap {worker.status}"
                       >{controlledValue('status', worker.status)}</span
                     >
                   {/if}
@@ -1842,51 +2072,39 @@
                   >
                 </div>
                 {#if data.user.role === 'owner_admin'}
-                  <div
-                    class="worker-actions"
-                    style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end;"
-                  >
+                  <div class="worker-actions">
                     <details>
-                      <summary
-                        style="cursor: pointer; font-size: 0.875rem; font-weight: 500; padding: 0.25rem 0.5rem; border-radius: 4px; background: var(--surface-3);"
-                        >{translate('Manage worker')}</summary
-                      >
-                      <div
-                        class="worker-manage-panel"
-                        style="margin-top: 0.5rem; background: var(--surface-2); padding: 1rem; border-radius: 4px; display: flex; flex-direction: column; gap: 1rem; align-items: flex-start; text-align: left; width: 280px;"
-                      >
+                      <summary class="worker-manage-toggle">{translate('Manage worker')}</summary>
+                      <div class="worker-manage-panel">
                         <form
                           method="POST"
                           action="?/updateWorkerProfile"
-                          class="compact-form"
-                          style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;"
+                          class="compact-form worker-profile-form"
                         >
-                          <h4 style="margin: 0; font-size: 0.875rem;">
-                            {translate('Edit Profile')}
-                          </h4>
+                          <h4 class="worker-form-heading">{translate('Edit Profile')}</h4>
                           <input type="hidden" name="workerId" value={worker.id} />
-                          <label style="display: flex; flex-direction: column; font-size: 0.75rem;"
+                          <label class="worker-field"
                             >{translate('Name')}
                             <input
                               name="name"
                               value={worker.name}
                               required
-                              style="margin-top: 0.25rem;"
+                              class="worker-field-control"
                             /></label
                           >
-                          <label style="display: flex; flex-direction: column; font-size: 0.75rem;"
+                          <label class="worker-field"
                             >{translate('Email')}
                             <input
                               name="email"
                               value={worker.email}
                               type="email"
                               required
-                              style="margin-top: 0.25rem;"
+                              class="worker-field-control"
                             /></label
                           >
-                          <label style="display: flex; flex-direction: column; font-size: 0.75rem;"
+                          <label class="worker-field"
                             >{translate('Role')}
-                            <select name="role" required style="margin-top: 0.25rem;">
+                            <select name="role" required class="worker-field-control">
                               <option value="worker" selected={worker.role === 'worker'}
                                 >{translate('Worker')}</option
                               >
@@ -1910,7 +2128,7 @@
                               >
                             </select>
                           </label>
-                          <label style="display: flex; flex-direction: column; font-size: 0.75rem;"
+                          <label class="worker-field"
                             >{translate('Joined At')}
                             <input
                               name="joinedAt"
@@ -1919,10 +2137,10 @@
                                 ? String(worker.created_at).slice(0, 10)
                                 : ''}
                               required
-                              style="margin-top: 0.25rem;"
+                              class="worker-field-control"
                             /></label
                           >
-                          <button type="submit" style="margin-top: 0.25rem;"
+                          <button type="submit" class="worker-form-submit"
                             >{translate('Save profile')}</button
                           >
                         </form>
@@ -1930,12 +2148,9 @@
                         <form
                           method="POST"
                           action="?/updateUserStatus"
-                          class="compact-form"
-                          style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%; border-top: 1px solid var(--border); padding-top: 1rem;"
+                          class="compact-form worker-status-form"
                         >
-                          <h4 style="margin: 0; font-size: 0.875rem;">
-                            {translate('Account Status')}
-                          </h4>
+                          <h4 class="worker-form-heading">{translate('Account Status')}</h4>
                           <input type="hidden" name="userId" value={worker.id} />
                           <select
                             name="status"
@@ -1967,7 +2182,11 @@
       </div>
     {:else if data.section === 'planning'}
       <div class="management-stack">
-        {#if canManageAssignmentControls}<form method="POST" action="?/createPlanning" class="admin-form-grid">
+        {#if canManageAssignmentControls}<form
+            method="POST"
+            action="?/createPlanning"
+            class="admin-form-grid"
+          >
             <h2>{translate('Publish field assignment')}</h2>
             <label
               >{translate('Project')}<select name="projectId" required
@@ -1988,101 +2207,100 @@
                 name="plannedMinutes"
                 type="number"
                 min="1"
-                value="600"
                 required
               /></label
             ><label>{translate('Site')}<input name="site" /></label><label
               >{translate('Required skill')}<input name="requiredSkill" /></label
             ><button>{translate('Publish assignment')}</button>
           </form>{/if}
-          {#if data.user.role === 'owner_admin' || data.user.role === 'finance_admin'}
-            <details class="admin-details">
-              <summary class="primary-button">{translate('New Skill')}</summary>
-              <form method="POST" action="?/createSkill" class="admin-form-grid">
-                <h2>{translate('Add skill')}</h2>
-                <label>{translate('Code')}<input name="code" required /></label><label
-                  >{translate('Name')}<input name="name" required /></label
-                ><button>{translate('Save skill')}</button>
-              </form>
-            </details>
-            <details class="admin-details">
-              <summary class="primary-button">{translate('Update Skill')}</summary>
-              <form method="POST" action="?/updateSkill" class="admin-form-grid">
-                <h2>{translate('Update skill')}</h2>
-                <label
-                  >{translate('Skill')}<select name="skillId" required>
-                    {#each data.skills ?? [] as skill}<option value={skill.id}
-                        >{skill.code} — {skill.name}</option
-                      >{/each}
-                  </select></label
-                >
-                <label>{translate('Name')}<input name="name" /></label>
-                <button>{translate('Update skill')}</button>
-              </form>
-            </details>
-            <details class="admin-details">
-              <summary class="primary-button">{translate('Delete Skill')}</summary>
-              <form method="POST" action="?/deleteSkill" class="admin-form-grid">
-                <h2>{translate('Delete skill')}</h2>
-                <label
-                  >{translate('Skill')}<select name="skillId" required>
-                    {#each data.skills ?? [] as skill}<option value={skill.id}
-                        >{skill.code} — {skill.name}</option
-                      >{/each}
-                  </select></label
-                >
-                <button class="danger">{translate('Delete skill')}</button>
-              </form>
-            </details>
-            <details class="admin-details">
-              <summary class="primary-button">{translate('Assign Skill')}</summary>
-              <form method="POST" action="?/setWorkerSkill" class="admin-form-grid">
-                <h2>{translate('Assign skill')}</h2>
-                <label
-                  >{translate('Worker')}<select name="workerId" required
-                    >{#each data.workers ?? [] as worker}<option value={worker.id}
-                        >{worker.name}</option
-                      >{/each}</select
-                  ></label
-                ><label
-                  >{translate('Skill')}<select name="skillId" required
-                    >{#each data.skills ?? [] as skill}<option value={skill.id}
-                        >{skill.code} — {skill.name}</option
-                      >{/each}</select
-                  ></label
-                ><label
-                  >{translate('Proficiency')}<select name="proficiency"
-                    ><option value="1">1 · {translate('exposure')}</option><option value="2"
-                      >2 · {translate('developing')}</option
-                    ><option value="3">3 · {translate('capable')}</option><option value="4"
-                      >4 · {translate('advanced')}</option
-                    ><option value="5">5 · {translate('expert')}</option></select
-                  ></label
-                ><button>{translate('Update skill matrix')}</button>
-              </form>
-            </details>
-            <details class="admin-details">
-              <summary class="primary-button">{translate('Remove Worker Skill')}</summary>
-              <form method="POST" action="?/deleteWorkerSkill" class="admin-form-grid">
-                <h2>{translate('Remove worker skill')}</h2>
-                <label
-                  >{translate('Worker')}<select name="workerId" required>
-                    {#each data.workers ?? [] as worker}<option value={worker.id}
-                        >{worker.name}</option
-                      >{/each}
-                  </select></label
-                >
-                <label
-                  >{translate('Skill')}<select name="skillId" required>
-                    {#each data.skills ?? [] as skill}<option value={skill.id}
-                        >{skill.code} — {skill.name}</option
-                      >{/each}
-                  </select></label
-                >
-                <button class="danger">{translate('Remove skill')}</button>
-              </form>
-            </details>
-          {/if}
+        {#if data.user.role === 'owner_admin' || data.user.role === 'finance_admin'}
+          <details class="admin-details">
+            <summary class="primary-button">{translate('New Skill')}</summary>
+            <form method="POST" action="?/createSkill" class="admin-form-grid">
+              <h2>{translate('Add skill')}</h2>
+              <label>{translate('Code')}<input name="code" required /></label><label
+                >{translate('Name')}<input name="name" required /></label
+              ><button>{translate('Save skill')}</button>
+            </form>
+          </details>
+          <details class="admin-details">
+            <summary class="primary-button">{translate('Update Skill')}</summary>
+            <form method="POST" action="?/updateSkill" class="admin-form-grid">
+              <h2>{translate('Update skill')}</h2>
+              <label
+                >{translate('Skill')}<select name="skillId" required>
+                  {#each data.skills ?? [] as skill}<option value={skill.id}
+                      >{skill.code} — {skill.name}</option
+                    >{/each}
+                </select></label
+              >
+              <label>{translate('Name')}<input name="name" /></label>
+              <button>{translate('Update skill')}</button>
+            </form>
+          </details>
+          <details class="admin-details">
+            <summary class="primary-button">{translate('Delete Skill')}</summary>
+            <form method="POST" action="?/deleteSkill" class="admin-form-grid">
+              <h2>{translate('Delete skill')}</h2>
+              <label
+                >{translate('Skill')}<select name="skillId" required>
+                  {#each data.skills ?? [] as skill}<option value={skill.id}
+                      >{skill.code} — {skill.name}</option
+                    >{/each}
+                </select></label
+              >
+              <button class="danger">{translate('Delete skill')}</button>
+            </form>
+          </details>
+          <details class="admin-details">
+            <summary class="primary-button">{translate('Assign Skill')}</summary>
+            <form method="POST" action="?/setWorkerSkill" class="admin-form-grid">
+              <h2>{translate('Assign skill')}</h2>
+              <label
+                >{translate('Worker')}<select name="workerId" required
+                  >{#each data.workers ?? [] as worker}<option value={worker.id}
+                      >{worker.name}</option
+                    >{/each}</select
+                ></label
+              ><label
+                >{translate('Skill')}<select name="skillId" required
+                  >{#each data.skills ?? [] as skill}<option value={skill.id}
+                      >{skill.code} — {skill.name}</option
+                    >{/each}</select
+                ></label
+              ><label
+                >{translate('Proficiency')}<select name="proficiency"
+                  ><option value="1">1 · {translate('exposure')}</option><option value="2"
+                    >2 · {translate('developing')}</option
+                  ><option value="3">3 · {translate('capable')}</option><option value="4"
+                    >4 · {translate('advanced')}</option
+                  ><option value="5">5 · {translate('expert')}</option></select
+                ></label
+              ><button>{translate('Update skill matrix')}</button>
+            </form>
+          </details>
+          <details class="admin-details">
+            <summary class="primary-button">{translate('Remove Worker Skill')}</summary>
+            <form method="POST" action="?/deleteWorkerSkill" class="admin-form-grid">
+              <h2>{translate('Remove worker skill')}</h2>
+              <label
+                >{translate('Worker')}<select name="workerId" required>
+                  {#each data.workers ?? [] as worker}<option value={worker.id}
+                      >{worker.name}</option
+                    >{/each}
+                </select></label
+              >
+              <label
+                >{translate('Skill')}<select name="skillId" required>
+                  {#each data.skills ?? [] as skill}<option value={skill.id}
+                      >{skill.code} — {skill.name}</option
+                    >{/each}
+                </select></label
+              >
+              <button class="danger">{translate('Remove skill')}</button>
+            </form>
+          </details>
+        {/if}
         <section class="record-list full">
           <div class="panel-title">
             <h2>{translate('Published schedule')}</h2>
@@ -2103,1213 +2321,38 @@
             </a>{/each}
         </section>
       </div>
-    {:else if data.section === 'approvals' || data.section === 'billing'}
-      {#if data.section === 'approvals'}
-        <section class="record-list full">
-          <div class="panel-title">
-            <h2>{translate('Records requiring review')}</h2>
-            <span>{data.records?.length ?? 0}</span>
-          </div>
-          {#each data.records ?? [] as row}<article class="approval-row">
-              <a class="record-card-link" href={recordHref(row)}>
-                <strong>{row.type} · {row.date}</strong><small
-                  >{row.amount}
-                  {row.type === 'time' ? translate('minutes') : translate('minor units')} · {controlledValue(
-                    'status',
-                    row.approval_state,
-                  )}</small
-                >
-                <span class="record-card-open">{translate('Open record →')}</span>
-              </a>
-              <div class="record-actions">
-                {#if isAuditor}<span class="state-tag">{translate('Read-only review')}</span
-                  >{:else if row.review_stage === 'report'}<form
-                    method="POST"
-                    action="?/reviewReport"
-                  >
-                    <input type="hidden" name="type" value={row.type} /><input
-                      type="hidden"
-                      name="id"
-                      value={row.id}
-                    /><input type="hidden" name="decision" value="approved" /><button
-                      >{translate('Approve report')}</button
-                    >
-                  </form>
-                  <form method="POST" action="?/reviewReport">
-                    <input type="hidden" name="type" value={row.type} /><input
-                      type="hidden"
-                      name="id"
-                      value={row.id}
-                    /><input type="hidden" name="decision" value="needs_changes" /><label
-                      >{translate('Required change')}<input name="reason" required /></label
-                    ><button>{translate('Return')}</button>
-                  </form>{:else if row.review_stage === 'correction' || row.review_stage === 'owner_override'}<form
-                    method="POST"
-                    action="?/createCorrectionDraft"
-                  >
-                    <input
-                      type="hidden"
-                      name="recordType"
-                      value={row.type === 'time'
-                        ? 'time_entry'
-                        : row.type === 'expense'
-                          ? 'expense'
-                          : `${row.type}_report`}
-                    /><input type="hidden" name="originalId" value={row.id} /><input
-                      type="hidden"
-                      name="requestId"
-                      value={`approval-correction-${row.type}-${row.id}`}
-                    />{#if row.review_stage === 'owner_override'}<input
-                        type="hidden"
-                        name="ownerOverride"
-                        value="yes"
-                      />{/if}<label
-                      >{translate(
-                        row.review_stage === 'owner_override'
-                          ? 'Owner override reason'
-                          : 'Correction reason',
-                      )}<input name="reason" minlength="3" required /></label
-                    ><button
-                      >{translate(
-                        row.review_stage === 'owner_override'
-                          ? 'Create owner override draft'
-                          : 'Create correction draft',
-                      )}</button
-                    >
-                  </form>{:else if row.review_stage === 'finance'}<form
-                    method="POST"
-                    action="?/financeApprove"
-                  >
-                    <input type="hidden" name="type" value={row.type} /><input
-                      type="hidden"
-                      name="id"
-                      value={row.id}
-                    />{#if row.type === 'time'}<select name="billable"
-                        ><option value="yes">{translate('Billable')}</option><option value="no"
-                          >{translate('Non-billable')}</option
-                        ></select
-                      >{/if}<button>{translate('Finance approve')}</button>
-                  </form>{:else}<form method="POST" action="?/approveRecord">
-                    <input type="hidden" name="type" value={row.type} /><input
-                      type="hidden"
-                      name="id"
-                      value={row.id}
-                    /><input type="hidden" name="decision" value="approved" /><button
-                      >{translate('Approve')}</button
-                    >
-                  </form>
-                  <form method="POST" action="?/approveRecord">
-                    <input type="hidden" name="type" value={row.type} /><input
-                      type="hidden"
-                      name="id"
-                      value={row.id}
-                    /><input type="hidden" name="decision" value="rejected" /><label
-                      >{translate('Rejection reason')}<input name="reason" required /></label
-                    ><button>{translate('Reject')}</button>
-                  </form>{/if}
-              </div>
-            </article>{:else}<div class="empty">{translate('Approval queue clear.')}</div>{/each}
-        </section>
-        <section class="record-list full">
-          <div class="panel-title">
-            <h2>{translate('Milestones awaiting approval')}</h2>
-            <span>{data.milestones?.length ?? 0}</span>
-          </div>
-          {#each data.milestones ?? [] as milestone}<article class="approval-row">
-              <a class="record-card-link" href={`${base}/app/projects/${milestone.project_id}`}>
-                <strong>{milestone.project_number} · {milestone.name}</strong><small
-                  >{milestone.due_on ?? translate('No due date')} · {milestone.amount_minor}
-                  {milestone.currency} · {translate('submitted')}</small
-                >
-                <span class="record-card-open">{translate('Open record →')}</span>
-              </a>
-              <div class="record-actions">
-                {#if isAuditor}<span class="state-tag">{translate('Read-only review')}</span
-                  >{:else}<form method="POST" action="?/reviewMilestone">
-                    <input type="hidden" name="id" value={milestone.id} /><input
-                      type="hidden"
-                      name="decision"
-                      value="approved"
-                    /><button>{translate('Approve milestone')}</button>
-                  </form>
-                  <form method="POST" action="?/reviewMilestone">
-                    <input type="hidden" name="id" value={milestone.id} /><input
-                      type="hidden"
-                      name="decision"
-                      value="rejected"
-                    /><input name="reason" placeholder={translate('Reason')} required /><button
-                      >{translate('Reject')}</button
-                    >
-                  </form>{/if}
-              </div>
-            </article>{:else}<div class="empty">
-              {translate('No milestones await approval.')}
-            </div>{/each}
-        </section>
-      {/if}
-      {#if !isAuditor}
-        <details class="admin-details">
-          <summary class="primary-button">{translate('Configure Billing Stream')}</summary>
-          <form method="POST" action="?/createBillingRule" class="admin-form-grid">
-            <h2>{translate('Configure billing stream')}</h2>
-            <p class="form-help">
-              {translate(
-                'Labor and expense streams are configured independently. Draft generation may be automatic; invoice issue and send remain manual.',
-              )}
-            </p>
-            <label
-              >{translate('Project')}<select name="projectId" required
-                ><option value="">{translate('Select project')}</option
-                >{#each availableProjects as project}<option value={project.id}
-                    >{project.project_number} — {project.name} ({project.currency})</option
-                  >{/each}</select
-              ></label
-            ><label
-              >{translate('Stream')}<select name="streamType" required
-                ><option value="labor">{translate('Labor')}</option><option value="expense"
-                  >{translate('Expenses')}</option
-                ><option value="milestone">{translate('Milestone')}</option><option value="other"
-                  >{translate('Other')}</option
-                ></select
-              ></label
-            ><label
-              >{translate('Cadence')}<select name="cadenceType" required
-                ><option value="weekly">{translate('Weekly')}</option><option value="every_14_days"
-                  >{translate('Every 14 days')}</option
-                ><option value="semi_monthly">{translate('Semi-monthly')}</option><option
-                  value="monthly">{translate('Monthly')}</option
-                ><option value="custom">{translate('Custom')}</option><option value="milestone"
-                  >{translate('Milestone')}</option
-                ><option value="manual">{translate('Manual')}</option></select
-              ></label
-            ><label
-              >{translate('Effective from')}<input
-                name="effectiveFrom"
-                type="date"
-                required
-              /></label
-            ><label>{translate('Anchor date')}<input name="anchorDate" type="date" /></label><label
-              >{translate('Legal entity')}<select name="legalEntityId" required
-                ><option value="">{translate('Select legal entity')}</option
-                >{#each data.legalEntities ?? [] as entity}<option value={entity.id}
-                    >{entity.code} — {entity.legal_name} ({entity.currency})</option
-                  >{/each}</select
-              ></label
-            ><label
-              >{translate('Tax profile')}<select name="taxProfileId" required
-                ><option value="">{translate('Select tax profile')}</option
-                >{#each data.taxProfiles ?? [] as profile}<option value={profile.id}
-                    >{profile.name} ({profile.currency})</option
-                  >{/each}</select
-              ></label
-            ><label
-              >{translate('Currency')}<select name="currency" required
-                ><option>USD</option><option>BRL</option><option>EUR</option></select
-              ></label
-            ><label
-              >{translate('Invoice template')}<input
-                name="templateId"
-                value="default"
-                required
-              /></label
-            ><label
-              >{translate('Recipient email')}<input name="recipientEmail" type="email" /></label
-            ><label
-              >{translate('Billing contact')}<select name="billingContactId"
-                ><option value="">{translate('Use recipient email')}</option
-                >{#each data.contacts ?? [] as contact}<option value={contact.id}
-                    >{contact.client_number} · {contact.name} · {contact.email ??
-                      translate('no email')}</option
-                  >{/each}</select
-              ></label
-            ><label
-              >{translate('Payment terms (days)')}<input
-                name="paymentTermsDays"
-                type="number"
-                min="0"
-                max="365"
-                value="30"
-                required
-              /></label
-            ><label>{translate('PO reference')}<input name="poNumberOverride" /></label><label
-              >{translate('Grouping')}<select name="groupingMode"
-                ><option value="summary">{translate('Summary')}</option><option value="detail"
-                  >{translate('Detail')}</option
-                ><option value="by_worker">{translate('By worker')}</option><option value="by_day"
-                  >{translate('By day')}</option
-                ><option value="by_category">{translate('By category')}</option></select
-              ></label
-            ><label
-              >{translate('Semi-monthly rule')}<input
-                name="semiMonthlyRule"
-                value="1_15_16_end"
-                required
-              /></label
-            ><label class="check"
-              ><input name="autoGenerateDraft" type="checkbox" />
-              {translate('Generate drafts when the stream is due')}</label
-            ><button>{translate('Save billing stream')}</button>
-          </form>
-        </details>
-
-        <details class="admin-details">
-          <summary class="primary-button">{translate('New Legal Entity')}</summary>
-          <form method="POST" action="?/createLegalEntity" class="admin-form-grid">
-            <h2>{translate('Legal entity')}</h2>
-            <label>{translate('Code')}<input name="code" required /></label><label
-              >{translate('Legal name')}<input name="legalName" required /></label
-            ><label
-              >{translate('Currency')}<select name="currency"
-                ><option>USD</option><option>BRL</option><option>EUR</option></select
-              ></label
-            ><label
-              >{translate('Billing address')}<textarea name="billingAddress" rows="3" required
-              ></textarea></label
-            ><label
-              >{translate('Company identifiers')}<textarea
-                name="companyIdentifiers"
-                rows="2"
-                required
-              ></textarea></label
-            ><button>{translate('Save legal entity')}</button>
-          </form>
-        </details>
-
-        <details class="admin-details">
-          <summary class="primary-button">{translate('Update Legal Entity')}</summary>
-          <form method="POST" action="?/updateLegalEntity" class="admin-form-grid">
-            <h2>{translate('Update legal entity')}</h2>
-            <label
-              >{translate('Legal Entity')}<select name="legalEntityId" required>
-                {#each data.legalEntities ?? [] as entity}<option value={entity.id}
-                    >{entity.code} — {entity.legal_name}</option
-                  >{/each}
-              </select></label
-            >
-            <label>{translate('Legal name')}<input name="legalName" /></label>
-            <label
-              >{translate('Currency')}<select name="currency"
-                ><option value="">{translate('Keep current')}</option><option value="USD"
-                  >USD</option
-                ><option value="BRL">BRL</option><option value="EUR">EUR</option></select
-              ></label
-            >
-            <label
-              >{translate('Billing address')}<textarea name="billingAddress" rows="3"
-              ></textarea></label
-            >
-            <label
-              >{translate('Company identifiers')}<textarea name="companyIdentifiers" rows="2"
-              ></textarea></label
-            >
-            <button>{translate('Update legal entity')}</button>
-          </form>
-        </details>
-
-        <details class="admin-details">
-          <summary class="primary-button">{translate('Archive Legal Entity')}</summary>
-          <form method="POST" action="?/archiveLegalEntity" class="admin-form-grid">
-            <h2>{translate('Archive legal entity')}</h2>
-            <label
-              >{translate('Legal Entity')}<select name="legalEntityId" required>
-                {#each data.legalEntities ?? [] as entity}<option value={entity.id}
-                    >{entity.code} — {entity.legal_name}</option
-                  >{/each}
-              </select></label
-            >
-            <button class="danger">{translate('Archive legal entity')}</button>
-          </form>
-        </details>
-
-        <details class="admin-details">
-          <summary class="primary-button">{translate('New Invoice Numbering Policy')}</summary>
-          <form method="POST" action="?/createInvoiceNumberPolicy" class="admin-form-grid">
-            <h2>{translate('Invoice numbering policy')}</h2>
-            <label
-              >{translate('Legal entity')}<select name="legalEntityId" required
-                ><option value="">{translate('Select entity')}</option
-                >{#each data.legalEntities ?? [] as entity}<option value={entity.id}
-                    >{entity.code} — {entity.legal_name}</option
-                  >{/each}</select
-              ></label
-            ><label>{translate('Prefix')}<input name="prefix" value="JA-" required /></label><label
-              >{translate('Digits')}<input
-                name="digits"
-                type="number"
-                min="4"
-                max="10"
-                value="6"
-                required
-              /></label
-            ><label
-              >{translate('Effective from')}<input
-                name="effectiveFrom"
-                type="date"
-                required
-              /></label
-            ><label
-              >{translate('Accountant approved at')}<input
-                name="accountantApprovedAt"
-                type="datetime-local"
-                required
-              /></label
-            ><button>{translate('Save numbering policy')}</button>
-          </form>
-        </details>
-
-        <details class="admin-details">
-          <summary class="primary-button">{translate('New Tax Profile')}</summary>
-          <form method="POST" action="?/createTaxProfile" class="admin-form-grid">
-            <h2>{translate('Tax profile')}</h2>
-            <label
-              >{translate('Legal entity')}<select name="legalEntityId"
-                ><option value="">{translate('Global profile')}</option
-                >{#each data.legalEntities ?? [] as entity}<option value={entity.id}
-                    >{entity.code} — {entity.legal_name}</option
-                  >{/each}</select
-              ></label
-            ><label>{translate('Name')}<input name="name" required /></label><label
-              >{translate('Currency')}<select name="currency"
-                ><option>USD</option><option>BRL</option><option>EUR</option></select
-              ></label
-            ><label
-              >{translate('Effective from')}<input
-                name="effectiveFrom"
-                type="date"
-                required
-              /></label
-            ><label
-              >{translate('Component')}<input
-                name="componentName"
-                value="VAT / sales tax"
-                required
-              /></label
-            ><label
-              >{translate('Rate (basis points)')}<input
-                name="componentBasisPoints"
-                type="number"
-                min="0"
-                max="100000"
-                value="0"
-                required
-              /></label
-            ><label class="check"
-              ><input name="componentCompound" type="checkbox" /> {translate('Compound tax')}</label
-            ><button>{translate('Save tax profile')}</button>
-          </form>
-        </details>
-
-        <details class="admin-details">
-          <summary class="primary-button">{translate('Update Tax Profile')}</summary>
-          <form method="POST" action="?/updateTaxProfile" class="admin-form-grid">
-            <h2>{translate('Update tax profile')}</h2>
-            <label
-              >{translate('Tax Profile')}<select name="taxProfileId" required>
-                {#each data.taxProfiles ?? [] as profile}<option value={profile.id}
-                    >{profile.name}</option
-                  >{/each}
-              </select></label
-            >
-            <label>{translate('Name')}<input name="name" /></label>
-            <button>{translate('Update tax profile')}</button>
-          </form>
-        </details>
-
-        <details class="admin-details">
-          <summary class="primary-button">{translate('Archive Tax Profile')}</summary>
-          <form method="POST" action="?/archiveTaxProfile" class="admin-form-grid">
-            <h2>{translate('Archive tax profile')}</h2>
-            <label
-              >{translate('Tax Profile')}<select name="taxProfileId" required>
-                {#each data.taxProfiles ?? [] as profile}<option value={profile.id}
-                    >{profile.name}</option
-                  >{/each}
-              </select></label
-            >
-            <button class="danger">{translate('Archive tax profile')}</button>
-          </form>
-        </details>
-      {/if}
-      <section class="record-list">
-        <div class="panel-title">
-          <h2>{translate('Billing rules')}</h2>
-          <span>{data.billingRules?.length ?? 0}</span>
-        </div>
-        {#each data.billingRules ?? [] as rule}<article>
-            <div>
-              <strong>{rule.project_number} · {rule.stream_type}</strong><small
-                >{rule.cadence_type} · {rule.currency} · {rule.tax_profile_name ??
-                  'No tax profile'}</small
-              >
-            </div>
-            {#if !isAuditor}<div class="compact-actions billing-rule-actions">
-                <details class="billing-rule-editor">
-                  <summary class="secondary-button">{translate('Edit billing rule')}</summary>
-                  <form method="POST" action="?/updateBillingRule" class="admin-form-grid">
-                    <input type="hidden" name="billingRuleId" value={rule.id} />
-                    <label
-                      >{translate('Invoice template')}<input
-                        name="templateId"
-                        value={String(rule.template_id ?? 'default')}
-                      /></label
-                    >
-                    <label
-                      >{translate('Recipient email')}<input
-                        name="recipientEmail"
-                        type="email"
-                        value={String(rule.recipient_email ?? '')}
-                      /></label
-                    >
-                    <label
-                      >{translate('Payment terms (days)')}<input
-                        name="paymentTermsDays"
-                        type="number"
-                        min="0"
-                        max="365"
-                        value={String(rule.payment_terms_days ?? 30)}
-                      /></label
-                    >
-                    <label
-                      >{translate('PO reference')}<input
-                        name="poNumberOverride"
-                        value={String(rule.po_number_override ?? '')}
-                      /></label
-                    >
-                    <label
-                      >{translate('Grouping')}<select name="groupingMode">
-                        <option value="summary" selected={rule.grouping_mode === 'summary'}
-                          >{translate('Summary')}</option
-                        >
-                        <option value="detail" selected={rule.grouping_mode === 'detail'}
-                          >{translate('Detail')}</option
-                        >
-                        <option value="by_worker" selected={rule.grouping_mode === 'by_worker'}
-                          >{translate('By worker')}</option
-                        >
-                        <option value="by_day" selected={rule.grouping_mode === 'by_day'}
-                          >{translate('By day')}</option
-                        >
-                        <option value="by_category" selected={rule.grouping_mode === 'by_category'}
-                          >{translate('By category')}</option
-                        >
-                      </select></label
-                    >
-                    <button type="submit">{translate('Save billing rule')}</button>
-                  </form>
-                </details>
-                <form
-                  method="POST"
-                  action="?/archiveBillingRule"
-                  onsubmit={(event) => {
-                    if (!confirm(translate('Archive this billing rule?'))) event.preventDefault();
-                  }}
-                >
-                  <input type="hidden" name="billingRuleId" value={rule.id} />
-                  <button class="danger" type="submit">{translate('Archive billing rule')}</button>
-                </form>
-                <form method="POST" action="?/createDraft" class="compact-form">
-                  <input type="hidden" name="billingRuleId" value={rule.id} /><input
-                    name="periodStart"
-                    type="date"
-                    aria-label={translate('Period start')}
-                    required
-                  /><input
-                    name="periodEnd"
-                    type="date"
-                    aria-label={translate('Period end')}
-                    required
-                  /><button>{translate('Build draft')}</button>
-                </form>
-                <form method="POST" action="?/closePeriod" class="compact-form">
-                  <input type="hidden" name="billingRuleId" value={rule.id} /><input
-                    name="periodStart"
-                    type="date"
-                    aria-label={translate('Close period start')}
-                    required
-                  /><input
-                    name="periodEnd"
-                    type="date"
-                    aria-label={translate('Close period end')}
-                    required
-                  /><label
-                    >{translate('Report language')}<select
-                      name="reportLocale"
-                      aria-label={translate('Report language')}
-                    >
-                      <option value="en">{translate('English')}</option><option value="pt"
-                        >{translate('Português (BR)')}</option
-                      ><option value="es">{translate('Spanish')}</option>
-                    </select></label
-                  ><button>{translate('Close sources')}</button>
-                </form>
-              </div>{/if}
-          </article>{/each}
-      </section>
-      <section class="record-list full">
-        <div class="panel-title">
-          <h2>{translate('Invoices')}</h2>
-          <span>{data.invoices?.length ?? 0}</span>
-        </div>
-        {#each data.invoices ?? [] as invoice}
-          {@const ledgerRow = ledgerForInvoice(invoice.id)}
-          <article class="invoice-row">
-            <div>
-              <strong>{invoice.invoice_number || 'Draft'} · {invoice.project_number}</strong><small
-                >{controlledValue('billingStream', invoice.stream_type)} · {controlledValue(
-                  'status',
-                  invoice.state,
-                )} · {paymentMoney(invoice.total_minor, String(invoice.currency))} · {translate('Currency')}: {String(
-                  invoice.currency,
-                )}</small
-              >
-              {#if ledgerRow}<small
-                  >{translate('Collected')}: {paymentMoney(
-                    ledgerRow.netCollectedMinor,
-                    String(invoice.currency),
-                  )} · {translate('Outstanding')}: {paymentMoney(
-                    ledgerRow.outstandingMinor,
-                    String(invoice.currency),
-                  )} · {translate('Payment state')}: {controlledValue(
-                    'status',
-                    ledgerRow.paymentStatus,
-                  )}</small
-                >{/if}
-            </div>
-            {#if ledgerRow}<details class="payment-history">
-                <summary>{translate('Collections and reversals')}</summary>
-                <p class="form-help">
-                  {translate('Gross')}: {paymentMoney(ledgerRow.grossPaymentsMinor, String(invoice.currency))} ·
-                  {translate('Reversals')}: {paymentMoney(
-                    ledgerRow.paymentReversalsMinor,
-                    String(invoice.currency),
-                  )} · {translate('Net')}: {paymentMoney(
-                    ledgerRow.netCollectedMinor,
-                    String(invoice.currency),
-                  )}
-                </p>
-                {#each ledgerRow.payments ?? [] as payment}
-                  {@const remainingMinor = String(payment.netAmountMinor ?? '0')}
-                  <article class="record-card payment-history-row">
-                    <div>
-                      <strong>{translate('Payment')} · {String(payment.id ?? '—').slice(0, 12)}</strong>
-                      <small
-                        >{paymentMoney(payment.grossAmountMinor, String(payment.currency ?? invoice.currency))} ·
-                        {String(payment.received_at ?? '').slice(0, 10)} ·
-                        {String(payment.reference ?? translate('No reference'))}</small
-                      >
-                      <small
-                        >{translate('Reversed')}: {paymentMoney(
-                          payment.reversedMinor,
-                          String(payment.currency ?? invoice.currency),
-                        )} · {translate('Net')}: {paymentMoney(
-                          payment.netAmountMinor,
-                          String(payment.currency ?? invoice.currency),
-                        )}</small
-                      >
-                    </div>
-                    {#if !isAuditor && !['void', 'credited'].includes(String(invoice.state)) && positiveMinor(remainingMinor)}<form
-                        method="POST"
-                        action="?/reversePayment"
-                        class="payment-form reversal-form"
-                      >
-                        <input type="hidden" name="paymentId" value={payment.id} />
-                        <label
-                          >{translate('Reversal amount')}<input
-                            name="amount"
-                            inputmode="decimal"
-                            type="number"
-                            min="0.01"
-                            step="0.01"
-                            max={minorToDecimal(remainingMinor)}
-                            value={minorToDecimal(remainingMinor)}
-                            aria-label={translate('Reversal amount')}
-                            required
-                          /></label
-                        >
-                        <label
-                          >{translate('Effective date')}<input
-                            name="effectiveOn"
-                            type="date"
-                            aria-label={translate('Effective date')}
-                            required
-                          /></label
-                        >
-                        <label
-                          >{translate('Reason code')}<select
-                            name="reasonCode"
-                            aria-label={translate('Reason code')}
-                            required
-                          >
-                            <option value="bank_return">{translate('Bank return')}</option>
-                            <option value="duplicate">{translate('Duplicate')}</option>
-                            <option value="entry_correction">{translate('Entry correction')}</option>
-                            <option value="other">{translate('Other')}</option>
-                          </select></label
-                        >
-                        <label
-                          >{translate('Reason')}<input
-                            name="reason"
-                            placeholder={translate('Reason')}
-                            aria-label={translate('Reason')}
-                            required
-                          /></label
-                        >
-                        <input
-                          type="hidden"
-                          name="idempotencyKey"
-                          value={`reversal-${String(payment.id)}-${remainingMinor}`}
-                        />
-                        <button>{translate('Reverse payment')}</button>
-                      </form>{/if}
-                  </article>
-                {:else}<p class="empty">{translate('No payments recorded.')}</p>{/each}
-                {#if (ledgerRow.paymentReversals?.length ?? 0) > 0}<div class="table-wrap">
-                    <table>
-                      <caption>{translate('Immutable reversal history')}</caption>
-                      <thead
-                        ><tr
-                          ><th>{translate('Payment')}</th><th>{translate('Amount')}</th><th
-                            >{translate('Effective date')}</th
-                          ><th>{translate('Reason code')}</th><th>{translate('Reason')}</th></tr
-                        ></thead
-                      ><tbody
-                        >{#each ledgerRow.paymentReversals ?? [] as reversal}<tr
-                            ><td>{String(reversal.originalPaymentId ?? '—').slice(0, 12)}</td><td
-                              >{paymentMoney(reversal.amountMinor, String(reversal.currency ?? invoice.currency))}</td
-                            ><td>{String(reversal.effectiveAt ?? '').slice(0, 10)}</td><td
-                              >{controlledValue('status', reversal.reasonCode)}</td
-                            ><td>{String(reversal.reason ?? '—')}</td></tr
-                          >{/each}</tbody
-                      >
-                    </table>
-                  </div>{/if}
-              </details>{/if}
-            <div class="record-actions">
-              <a class="preview-link" href={`${base}/app/billing/invoices/${invoice.id}`}
-                >{translate('Preview')}</a
-              >
-              {#if !isAuditor}{#if invoice.state === 'draft'}<form
-                    method="POST"
-                    action="?/approveInvoice"
-                  >
-                    <input type="hidden" name="invoiceId" value={invoice.id} /><button
-                      >{translate('Approve')}</button
-                    >
-                  </form>{:else if invoice.state === 'approved'}<form
-                    method="POST"
-                    action="?/issueInvoice"
-                  >
-                    <input type="hidden" name="invoiceId" value={invoice.id} /><label
-                      >{translate('Report language')}<select
-                        name="reportLocale"
-                        aria-label={translate('Invoice report language')}
-                      >
-                        <option value="en">EN</option><option value="pt">PT-BR</option><option
-                          value="es">ES</option
-                        >
-                      </select></label
-                    ><button>{translate('Issue')}</button>
-                  </form>{:else if ['issued', 'sent', 'partially_paid', 'overdue'].includes(String(invoice.state))}<form
-                    method="POST"
-                    action="?/recordPayment"
-                    class="payment-form"
-                  >
-                    <input type="hidden" name="invoiceId" value={invoice.id} /><label
-                      >{translate('Payment amount')}<input
-                        name="amount"
-                        inputmode="decimal"
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        max={minorToDecimal(ledgerRow?.outstandingMinor ?? invoice.total_minor)}
-                        placeholder={translate('0.00')}
-                        aria-label={translate('Payment amount')}
-                        required
-                      /></label
-                    ><label
-                      >{translate('Currency')}<input
-                        name="currency"
-                        value={String(invoice.currency)}
-                        readonly
-                        aria-readonly="true"
-                        required
-                      /></label
-                    ><label
-                      >{translate('Received on')}<input
-                        name="receivedOn"
-                        type="date"
-                        aria-label={translate('Received on')}
-                        required
-                      /></label
-                    ><label
-                      >{translate('Payment reference / note')}<input
-                        name="reference"
-                        placeholder={translate('Payment reference / note')}
-                        aria-label={translate('Payment reference / note')}
-                        required
-                      /></label
-                    ><input
-                      name="idempotencyKey"
-                      type="hidden"
-                      value={String(invoice.paymentCommandToken ?? `payment-${String(invoice.id)}-${String(invoice.currency)}`)}
-                    /><button>{translate('Record payment')}</button>
-                  </form>{/if}
-                {#if invoice.state === 'issued'}
-                  <form method="POST" action="?/sendInvoice">
-                    <input type="hidden" name="invoiceId" value={invoice.id} /><input
-                      type="hidden"
-                      name="idempotencyKey"
-                      value={`send-${invoice.id}`}
-                    /><button>{translate('Mark sent')}</button>
-                  </form>
-                {/if}
-                {#if ['issued', 'sent', 'partially_paid', 'overdue'].includes(String(invoice.state))}
-                  <form method="POST" action="?/voidInvoice">
-                    <input type="hidden" name="invoiceId" value={invoice.id} /><input
-                      type="hidden"
-                      name="idempotencyKey"
-                      value={`void-${invoice.id}`}
-                    /><input
-                      name="reason"
-                      placeholder={translate('Void reason')}
-                      aria-label={translate('Void reason')}
-                      required
-                    /><button>{translate('Void')}</button>
-                  </form>
-                {/if}
-                {#if ['issued', 'sent', 'partially_paid', 'overdue'].includes(String(invoice.state))}
-                  <form method="POST" action="?/createInvoiceAdjustment" class="payment-form">
-                    <input type="hidden" name="originalInvoiceId" value={invoice.id} />
-                    <select name="adjustmentType" aria-label={translate('Adjustment type')}>
-                      <option value="credit">{translate('Credit')}</option><option value="debit"
-                        >{translate('Debit')}</option
-                      ><option value="correction">{translate('Correction')}</option>
-                    </select>
-                    <input
-                      name="amountMinor"
-                      placeholder={translate('Minor-unit amount')}
-                      aria-label={translate('Adjustment amount')}
-                      required
-                    />
-                    <input
-                      name="reason"
-                      placeholder={translate('Reason')}
-                      aria-label={translate('Adjustment reason')}
-                      required
-                    />
-                    <button>{translate('Create adjustment')}</button>
-                  </form>
-                {/if}{/if}
-            </div>
-          </article>{:else}<div class="empty">{translate('No invoice drafts.')}</div>{/each}
-      </section>
+    {:else if data.section === 'approvals'}
+      <ApprovalSection
+        {data}
+        {isAuditor}
+        isOwner={data.user.role === 'owner_admin'}
+        canSeeFinanceReview={isFinance}
+        {translate}
+        {controlledValue}
+      />
+    {:else if data.section === 'billing'}
+      <BillingSection
+        {data}
+        {form}
+        {isAuditor}
+        {availableProjects}
+        {translate}
+        {controlledValue}
+        formatMoney={paymentMoney}
+      />
     {:else if data.section === 'finance' && data.finance}
-      <form class="filter-form">
-        <label
-          >{translate('Project')}<select
-            name="project"
-            onchange={(event) => event.currentTarget.form?.requestSubmit()}
-            >{#each availableProjects as project}<option
-                value={project.id}
-                selected={project.id === data.selectedProjectId}
-                >{project.project_number} — {project.name}</option
-              >{/each}</select
-          ></label
-        >
-      </form>
-      <div class="finance-grid">
-        {#each [['Approved cost', data.finance.approvedCostMinor], ['Revenue candidate', data.finance.revenueCandidateMinor], ['Contribution margin', data.finance.contributionMarginMinor], ['Invoiced', data.finance.invoicedMinor], ['Paid', data.finance.paidMinor], ['Receivable', data.finance.receivableMinor], ['Approved unbilled WIP', data.finance.approvedUnbilledWipMinor], ['Unapproved WIP', data.finance.unapprovedWipMinor]] as metric}<section
-            class="metric"
-          >
-            <span>{translate(String(metric[0]))}</span><strong
-              >{money(metric[1], data.finance.currency)}</strong
-            >
-          </section>{/each}
-      </div>
-      <p class="finance-note">
-        {translate(
-          'Contribution margin is project revenue less approved project cost. It is not company net profit.',
-        )}
-      </p>
-      <section class="record-list full forecast-panel">
-        <div class="panel-title">
-          <div>
-            <h2>{translate('Forecast and budget control')}</h2>
-            <p>
-              {translate(
-                'Forecasts use actual records first and only use configured planning data for the remaining work. They never create actual time or billing sources.',
-              )}
-            </p>
-          </div>
-          <span
-            >{data.finance.forecastAvailable
-              ? translate('Planning basis available')
-              : translate('No detailed plan')}</span
-          >
-        </div>
-        <div class="finance-grid">
-          {#each [['Planned remaining', data.finance.plannedRemainingMinutes === null ? '—' : `${(Number(data.finance.plannedRemainingMinutes) / 60).toFixed(1)} h`], ['ETC direct cost', data.finance.estimateToCompleteMinor === null ? '—' : money(data.finance.estimateToCompleteMinor, data.finance.currency)], ['EAC direct cost', data.finance.estimateAtCompletionCostMinor === null ? '—' : money(data.finance.estimateAtCompletionCostMinor, data.finance.currency)], ['Expected final margin', data.finance.expectedFinalMarginMinor === null ? '—' : money(data.finance.expectedFinalMarginMinor, data.finance.currency)], ['Hours consumed', data.finance.hoursConsumedBps === null ? '—' : `${(Number(data.finance.hoursConsumedBps) / 100).toFixed(1)}%`], ['Travel budget used', data.finance.travelBudgetConsumedBps === null ? '—' : `${(Number(data.finance.travelBudgetConsumedBps) / 100).toFixed(1)}%`]] as metric}<section
-              class="metric"
-            >
-              <span>{translate(String(metric[0]))}</span><strong>{metric[1]}</strong>
-            </section>{/each}
-        </div>
-        {#if data.finance.alerts?.length}<div class="alert-strip" role="status">
-            {#each data.finance.alerts as alert}<span>{String(alert).replaceAll('_', ' ')}</span
-              >{/each}
-          </div>{/if}
-      </section>
-      {#if data.portfolio}<section class="record-list full economics-list">
-          <div class="panel-title">
-            <div>
-              <h2>{translate('Portfolio views')}</h2>
-              <p>
-                {translate(
-                  'Admin/Finance-only aggregates remain grouped by currency and drill back to the selected project economics.',
-                )}
-              </p>
-            </div>
-            <span>{data.portfolio.projects?.length ?? 0} {translate('projects')}</span>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead
-                ><tr
-                  ><th>{translate('Project')}</th><th>{translate('Client')}</th><th
-                    >{translate('Currency')}</th
-                  ><th>{translate('Approved hours')}</th><th>{translate('Revenue candidate')}</th
-                  ><th>{translate('Direct cost')}</th><th>{translate('Contribution')}</th><th
-                    >{translate('WIP')}</th
-                  ></tr
-                ></thead
-              >
-              <tbody
-                >{#each data.portfolio.projects ?? [] as row}<tr
-                    ><td>{String(row.projectNumber)} · {String(row.projectName)}</td><td
-                      >{String(row.clientName)}</td
-                    ><td>{String(row.currency)}</td><td
-                      >{(Number(row.approvedMinutes ?? 0) / 60).toFixed(1)} h</td
-                    ><td>{money(String(row.revenueCandidateMinor), String(row.currency))}</td><td
-                      >{money(String(row.approvedCostMinor), String(row.currency))}</td
-                    ><td>{money(String(row.contributionMarginMinor), String(row.currency))}</td><td
-                      >{money(String(row.approvedUnbilledWipMinor), String(row.currency))}</td
-                    ></tr
-                  >{:else}<tr
-                    ><td colspan="8">{translate('No finance projects are available.')}</td></tr
-                  >{/each}</tbody
-              >
-            </table>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead
-                ><tr
-                  ><th>{translate('Worker')}</th><th>{translate('Currency')}</th><th
-                    >{translate('Approved hours')}</th
-                  ><th>{translate('Billable hours')}</th><th>{translate('Revenue attributed')}</th
-                  ><th>{translate('Loaded labor cost')}</th><th>{translate('Travel / expense')}</th
-                  ><th>{translate('Contribution')}</th></tr
-                ></thead
-              >
-              <tbody
-                >{#each data.portfolio.byWorker ?? [] as row}<tr
-                    ><td>{String(row.workerName)}</td><td>{String(row.currency)}</td><td
-                      >{(Number(row.actualMinutes ?? 0) / 60).toFixed(1)} h</td
-                    ><td>{(Number(row.billableMinutes ?? 0) / 60).toFixed(1)} h</td><td
-                      >{money(String(row.revenue), String(row.currency))}</td
-                    ><td>{money(String(row.internalCost), String(row.currency))}</td><td
-                      >{money(String(row.expenseCost), String(row.currency))}</td
-                    ><td>{money(String(row.contribution), String(row.currency))}</td></tr
-                  >{:else}<tr
-                    ><td colspan="8">{translate('No approved worker economics are available.')}</td
-                    ></tr
-                  >{/each}</tbody
-              >
-            </table>
-          </div>
-        </section>{/if}
-      <FinanceConfigurationSection
+      <FinanceOverviewSection
         {data}
         {availableProjects}
         {isAuditor}
         {translate}
         {controlledValue}
+        {money}
       />
-      <section class="record-list full economics-list">
-        <div class="panel-title">
-          <h2>{translate('Time economics review')}</h2>
-          <span>{data.finance.timeEconomics?.length ?? 0} {translate('records')}</span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead
-              ><tr
-                ><th>{translate('Date')}</th><th>{translate('Category')}</th><th
-                  >{translate('Minutes')}</th
-                ><th>{translate('Billable')}</th><th>{translate('State')}</th><th
-                  >{translate('Billing')}</th
-                ><th>{translate('Client revenue')}</th><th>{translate('Loaded cost')}</th><th
-                  >{translate('Worker compensation')}</th
-                ><th>{translate('Configuration')}</th></tr
-              ></thead
-            ><tbody
-              >{#each data.finance.timeEconomics ?? [] as row}<tr
-                  ><td>{String(row.workDate)}</td><td
-                    >{controlledValue('category', row.category)}</td
-                  ><td>{String(row.actualMinutes)}</td><td
-                    >{String(row.clientBillableMinutes ?? 0)}</td
-                  ><td>{controlledValue('status', row.approvalState)}</td><td
-                    >{controlledValue('status', row.billingStatus ?? 'unlocked')}</td
-                  ><td>{money(String(row.clientRevenueMinor), data.finance.currency)}</td><td
-                    >{money(String(row.internalCostMinor), data.finance.currency)}</td
-                  ><td>{money(String(row.workerCompensationMinor), data.finance.currency)}</td><td
-                    >{row.clientRateConfigured && row.internalCostConfigured
-                      ? translate('Complete')
-                      : translate('Rate review')}</td
-                  ></tr
-                >{:else}<tr
-                  ><td colspan="10"
-                    >{translate('No time economics are available for this project.')}</td
-                  ></tr
-                >{/each}</tbody
-            >
-          </table>
-        </div>
-      </section>
-      <section class="record-list full economics-list">
-        <div class="panel-title">
-          <h2>{translate('Expense economics')}</h2>
-          <span>{data.finance.expenseEconomics?.length ?? 0} {translate('records')}</span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead
-              ><tr
-                ><th>{translate('Date')}</th><th>{translate('Category')}</th><th
-                  >{translate('Treatment')}</th
-                ><th>{translate('Direct cost')}</th><th>{translate('Client revenue')}</th></tr
-              ></thead
-            ><tbody
-              >{#each data.finance.expenseEconomics ?? [] as row}<tr
-                  ><td>{String(row.spentOn)}</td><td>{controlledValue('category', row.category)}</td
-                  ><td>{translate(String(row.treatment))}</td><td
-                    >{money(String(row.costMinor), data.finance.currency)}</td
-                  ><td>{money(String(row.revenueMinor), data.finance.currency)}</td></tr
-                >{:else}<tr
-                  ><td colspan="5"
-                    >{translate('No approved expenses are available for this project.')}</td
-                  ></tr
-                >{/each}</tbody
-            >
-          </table>
-        </div>
-      </section>
-      <section class="record-list full economics-list">
-        <div class="panel-title">
-          <div>
-            <h2>{translate('Compensation settlements')}</h2>
-            <p>
-              {translate(
-                'Finance-only finalization of approved compensation for the selected project.',
-              )}
-            </p>
-          </div>
-          <span>{data.settlements?.length ?? 0}</span>
-        </div>
-        {#if !isAuditor}<form method="POST" action="?/settleCompensation" class="admin-form-grid">
-            <input type="hidden" name="projectId" value={data.selectedProjectId} />
-            <label
-              >{translate('Worker')}<select name="workerId" required
-                ><option value="">{translate('Select worker')}</option
-                >{#each data.workers ?? [] as worker}<option value={worker.id}>{worker.name}</option
-                  >{/each}</select
-              ></label
-            >
-            <label
-              >{translate('Period start')}<input name="periodStart" type="date" required /></label
-            >
-            <label>{translate('Period end')}<input name="periodEnd" type="date" required /></label>
-            <button>{translate('Finalize compensation')}</button>
-          </form>{/if}
-        <div class="table-wrap">
-          <table>
-            <thead
-              ><tr
-                ><th>{translate('Worker')}</th><th>{translate('Period')}</th><th
-                  >{translate('Basis')}</th
-                ><th>{translate('Source')}</th><th>{translate('Amount')}</th><th
-                  >{translate('State')}</th
-                ></tr
-              ></thead
-            ><tbody
-              >{#each data.settlements ?? [] as settlement}<tr
-                  ><td>{String(settlement.workerName)}</td><td
-                    >{String(settlement.periodStart)} → {String(settlement.periodEnd)}</td
-                  ><td>{String(settlement.sourceBasis)}</td><td
-                    >{money(String(settlement.sourceAmountMinor), String(settlement.currency))}</td
-                  ><td>{money(String(settlement.amountMinor), String(settlement.currency))}</td><td
-                    >{controlledValue('status', settlement.state)}</td
-                  ></tr
-                >{:else}<tr
-                  ><td colspan="6">{translate('No settlements recorded for this project.')}</td></tr
-                >{/each}</tbody
-            >
-          </table>
-        </div>
-      </section>
-      <section class="record-list full economics-list">
-        <div class="panel-title">
-          <div>
-            <h2>{translate('Worker reimbursement queue')}</h2>
-            <p>{translate('Reimbursements are separate from customer expense billing status.')}</p>
-          </div>
-          <span>{data.reimbursements?.length ?? 0}</span>
-        </div>
-        {#each data.reimbursements ?? [] as reimbursement}<article class="record-card">
-            <div>
-              <strong>{reimbursement.workerName} · {reimbursement.vendor}</strong><small
-                >{reimbursement.spentOn} · {controlledValue('category', reimbursement.category)} · {controlledValue(
-                  'status',
-                  reimbursement.reimbursementState,
-                )}</small
-              >
-            </div>
-            {#if !isAuditor && reimbursement.reimbursementState !== 'reimbursed'}<form
-                method="POST"
-                action="?/recordReimbursement"
-              >
-                <input type="hidden" name="expenseId" value={reimbursement.id} />
-                <input
-                  type="hidden"
-                  name="amountMinor"
-                  value={reimbursement.reimbursementAmountMinor}
-                />
-                <input
-                  name="reference"
-                  placeholder={translate('Payment reference')}
-                  aria-label={translate('Payment reference')}
-                  required
-                />
-                <button>{translate('Mark reimbursed')}</button>
-              </form>{:else}<strong
-                >{money(
-                  reimbursement.reimbursementAmountMinor,
-                  String(reimbursement.currency),
-                )}</strong
-              >{/if}
-          </article>{:else}<div class="empty">
-            {translate('No approved worker-paid expenses require reimbursement.')}
-          </div>{/each}
-      </section>
     {:else if data.section === 'ledger'}
-      <section class="record-list full ledger-list">
-        <div class="panel-title">
-          <div>
-            <h2>{translate('Master Invoice / Cost / Collection Ledger')}</h2>
-            <p>
-              {translate(
-                'Each row reconciles the issued invoice, locked source records, direct cost, collection, outstanding balance, and contribution.',
-              )}
-            </p>
-          </div>
-          <span>{data.ledger?.length ?? 0} {translate('invoices')}</span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead
-              ><tr
-                ><th>{translate('Invoice')}</th><th>{translate('Client / project')}</th><th
-                  >{translate('Stream')}</th
-                ><th>{translate('Gross')}</th><th>{translate('Reversals')}</th><th
-                  >{translate('Net collected')}</th><th>{translate('Outstanding')}</th
-                ><th>{translate('Direct cost')}</th><th>{translate('Contribution')}</th><th
-                  >{translate('Sources')}</th
-                ><th>{translate('Status')}</th></tr
-              ></thead
-            ><tbody
-              >{#each data.ledger ?? [] as row}<tr
-                  ><td>{String(row.invoiceNumber ?? '—')}</td><td
-                    >{String(row.clientNumber)} · {String(row.projectNumber)}</td
-                  ><td>{String(row.streamType)}</td><td
-                    >{paymentMoney(String(row.totalMinor), String(row.currency))}</td
-                  ><td>{paymentMoney(String(row.paymentReversalsMinor ?? '0'), String(row.currency))}</td
-                  ><td>{paymentMoney(String(row.netCollectedMinor ?? row.collectedMinor ?? '0'), String(row.currency))}</td><td
-                    >{paymentMoney(String(row.outstandingMinor), String(row.currency))}</td
-                  ><td
-                    >{row.directCostComplete
-                      ? paymentMoney(String(row.directCostMinor ?? '0'), String(row.currency))
-                      : translate('Unavailable — missing source IDs')}</td
-                  ><td
-                    >{row.directCostComplete
-                      ? paymentMoney(String(row.contributionMinor ?? '0'), String(row.currency))
-                      : translate('Unavailable')}</td
-                  ><td>{Array.isArray(row.sources) ? row.sources.length : 0}{#if
-                      Array.isArray(row.directCostMissingSourceIds) &&
-                      row.directCostMissingSourceIds.length > 0
-                    }<small> · {row.directCostMissingSourceIds.length} {translate('missing')}</small>{/if}</td><td
-                    >{String(row.paymentStatus)}</td
-                  ></tr
-                >{:else}<tr
-                  ><td colspan="11"
-                    >{translate(
-                      'No issued invoice records match the current authorization scope.',
-                    )}</td
-                  ></tr
-                >{/each}</tbody
-            >
-          </table>
-        </div>
-      </section>
+      <CollectionsLedgerSection {data} {translate} {controlledValue} />
     {:else if data.section === 'accounting'}
-      <div class="management-stack">
-        {#if !isAuditor}<form method="POST" action="?/createAccountingPack" class="admin-form-grid">
-            <h2>{translate('Generate monthly Accounting Pack')}</h2>
-            <p class="form-help">
-              {translate(
-                'The pack contains invoice register, collections, worker/direct costs, expenses, AR, contribution, source counts, and deterministic PDF/XLSX/CSV/JSON artifacts.',
-              )}
-            </p>
-            <label
-              >{translate('Period start')}<input name="periodStart" type="date" required /></label
-            ><label>{translate('Period end')}<input name="periodEnd" type="date" required /></label
-            ><label
-              >{translate('Report language')}<select
-                name="reportLocale"
-                aria-label={translate('Accounting Pack report language')}
-              >
-                <option value="en">{translate('English')}</option><option value="pt"
-                  >{translate('Português (BR)')}</option
-                ><option value="es">{translate('Spanish')}</option>
-              </select></label
-            ><button>{translate('Generate pack')}</button>
-          </form>
-          <form method="POST" action="?/runJobs" class="entry-panel">
-            <h2>{translate('Process durable finance jobs')}</h2>
-            <p>
-              {translate(
-                'Runs queued PDF and Accounting Pack artifact jobs with idempotent output registration.',
-              )}
-            </p>
-            <button>{translate('Run due jobs')}</button>
-          </form>{/if}
-        <section class="record-list full">
-          <div class="panel-title">
-            <h2>{translate('Accounting Pack register')}</h2>
-            <span>{data.packs?.length ?? 0} {translate('packs')}</span>
-          </div>
-          {#each data.packs ?? [] as pack}
-            <AccountingPackArtifactStatus
-              {pack}
-              {isAuditor}
-              {locale}
-              {translate}
-              {controlledValue}
-            />
-          {:else}<div class="empty">
-              {translate('No Accounting Packs have been generated.')}
-            </div>{/each}
-        </section>
-      </div>
+      <AccountingSection {data} {isAuditor} {locale} {translate} {controlledValue} />
     {:else if data.section === 'profile'}
       <div class="management-stack">
         <section class="entry-panel">
@@ -3335,7 +2378,7 @@
             </form>
           {/if}
           {#if !isAuditor}
-            <details class="admin-details" style="margin-bottom: 2rem;">
+            <details class="admin-details profile-skill-details">
               <summary class="primary-button">{translate('Add Skill')}</summary>
               <form method="POST" action="?/setWorkerSkill" class="admin-form-grid">
                 <input type="hidden" name="workerId" value={data.user.id ?? ''} />
@@ -3355,7 +2398,7 @@
                 <button>{translate('Add skill')}</button>
               </form>
             </details>
-            <details class="admin-details" style="margin-bottom: 2rem;">
+            <details class="admin-details profile-skill-details">
               <summary class="primary-button">{translate('Remove Skill')}</summary>
               <form method="POST" action="?/deleteWorkerSkill" class="admin-form-grid">
                 <input type="hidden" name="workerId" value={data.user.id ?? ''} />

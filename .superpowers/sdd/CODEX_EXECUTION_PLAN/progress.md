@@ -1,6 +1,31 @@
-# SDD ledger — plan: CODEX_EXECUTION_PLAN.md
+# ARCHIVED SDD ledger — plan: CODEX_EXECUTION_PLAN.md
 
-> **Client Essential authority notice (2026-08-23):** This ledger is historical implementation evidence. Use it only after mapping work to `J_A_AUTOMATION_CLIENT_ESSENTIAL_SPEC_2026-08-22.md` and the checklist. Old V3.1–V3.4 expansion, 207-row and 42-step gates do not control client delivery. Existing finance/security/lifecycle/migration evidence remains relevant where it supports CORE-01..17.
+> **ARCHIVED — NOT DISPATCHABLE (2026-08-24):** This ledger preserves historical implementation,
+> worktree, packet, and review evidence. It is not the current execution queue. Use the current
+> WP-00→WP-10 DAG in `CODEX_EXECUTION_PLAN.md` and `work-packets/INITIAL_WORK_PACKETS.md`.
+
+## Current authority checkpoint — 2026-08-24
+
+- Branch: `codex/v3-production-completion-orchestrated-20260819`.
+- Current authoritative HEAD: `df31291e9c9ed111d20c8878ae0f68f3d41f8136`.
+- Authority: Client Essential SPEC → checklist → validated local
+  `J_A_Automation_Contrato_Proyecto_EVOCON_ES.html` (`ANEXO A` scope and `ANEXO D` UAT) →
+  `UI_PLAN.md` for UX/UI → repository instructions → older V3 reference.
+- Current queue: WP-00 docs is complete after independent review; WP-01 C/Sol projection privacy
+  firewall (tests + production) is active; WP-02 C additive domain contract → WP-03 B sign-off/enforcement → WP-04 B
+  shell/nav/primitives → WP-05A Worker time → WP-05B Worker expenses/My Pay → WP-06 Reports/sign-off
+  → WP-07 PM/projects/approvals → WP-08 Finance/Billing/Collections → WP-09 independent reviews
+  → WP-10 release.
+- Current audit: **NOT READY**. This historical ledger and WP-00 documentation changes do not
+  claim implementation `PASS` or release readiness.
+
+## Current execution pointer — 2026-08-24
+
+Do not dispatch work from this archived ledger. The live state is recorded in
+`CODEX_EXECUTION_PLAN.md`: WP-01/WP-02/WP-04 complete, WP-03 in final finance review, Worker
+operational slices implemented with browser evidence open, WP-07 active, and WP-08→WP-10 pending.
+The exact remaining dependency is Finance/PM shell integration followed by cross-role browser and
+pinned-runtime release evidence.
 
 ## Gate R0 baseline — 2026-08-20
 

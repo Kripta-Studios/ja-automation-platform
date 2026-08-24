@@ -1,22 +1,32 @@
 import Image from 'next/image';
 import { getTranslations } from 'next-intl/server';
+import ambevLogo from '@/public/brand/clients/ambev.webp';
+import avonLogo from '@/public/brand/clients/avon.webp';
+import bmwLogo from '@/public/brand/clients/bmw.webp';
+import campariLogo from '@/public/brand/clients/campari.webp';
+import cocaColaLogo from '@/public/brand/clients/coca-cola.webp';
+import fordLogo from '@/public/brand/clients/ford.webp';
+import grupoBoticarioLogo from '@/public/brand/clients/grupo-boticario.webp';
+import heinekenLogo from '@/public/brand/clients/heineken.webp';
+import mercedesBenzLogo from '@/public/brand/clients/mercedes-benz.webp';
+import petrobrasLogo from '@/public/brand/clients/petrobras.webp';
+import scJohnsonLogo from '@/public/brand/clients/sc-johnson.webp';
+import unileverLogo from '@/public/brand/clients/unilever.webp';
 
 const clientLogos = [
-  { name: 'BMW', file: 'bmw.png' },
-  { name: 'Ford', file: 'ford.png' },
-  { name: 'Mercedes-Benz', file: 'mercedes-benz.png' },
-  { name: 'Coca-Cola', file: 'coca-cola.png' },
-  { name: 'Heineken', file: 'heineken.png' },
-  { name: 'Avon', file: 'avon.png' },
-  { name: 'Petrobras', file: 'petrobras.png' },
-  { name: 'Campari', file: 'campari.png' },
-  { name: 'Unilever', file: 'unilever.png' },
-  { name: 'Ambev', file: 'ambev.png' },
-  { name: 'SC Johnson', file: 'sc-johnson.png' },
-  { name: 'Grupo Boticário', file: 'grupo-boticario.png' },
+  { name: 'BMW', src: bmwLogo },
+  { name: 'Ford', src: fordLogo },
+  { name: 'Mercedes-Benz', src: mercedesBenzLogo },
+  { name: 'Coca-Cola', src: cocaColaLogo },
+  { name: 'Heineken', src: heinekenLogo },
+  { name: 'Avon', src: avonLogo },
+  { name: 'Petrobras', src: petrobrasLogo },
+  { name: 'Campari', src: campariLogo },
+  { name: 'Unilever', src: unileverLogo },
+  { name: 'Ambev', src: ambevLogo },
+  { name: 'SC Johnson', src: scJohnsonLogo },
+  { name: 'Grupo Boticário', src: grupoBoticarioLogo },
 ] as const;
-
-const publicBasePath = process.env.JA_PUBLIC_BASE_PATH ?? '/j-aautomation';
 
 export async function ClientExperience() {
   const t = await getTranslations('clients');
@@ -25,7 +35,7 @@ export async function ClientExperience() {
     <section id="clients" className="border-y border-ja-line bg-ja-surface py-16 lg:py-20">
       <div className="container-ja">
         <div className="mb-10 max-w-3xl">
-          <p className="eyebrow mb-4">Selected experience</p>
+          <p className="eyebrow mb-4">{t('eyebrow')}</p>
           <h2 className="heading-2">{t('h2')}</h2>
         </div>
 
@@ -36,12 +46,9 @@ export async function ClientExperience() {
               className="flex h-36 items-center justify-center bg-white p-5 sm:h-40 sm:p-7"
             >
               <Image
-                src={`${publicBasePath}/brand/clients/${client.file}`}
-                alt={`${client.name} logo`}
-                unoptimized
-                loading="eager"
-                width={960}
-                height={960}
+                src={client.src}
+                alt={t('logoAlt', { name: client.name })}
+                loading="lazy"
                 className="h-auto max-h-20 w-auto max-w-[78%] object-contain sm:max-h-24"
                 sizes="(max-width: 640px) 39vw, (max-width: 1024px) 26vw, 20vw"
               />

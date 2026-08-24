@@ -2,6 +2,28 @@
 
 These instructions apply to `apps/portal/**`.
 
+## Client Essential role and data boundaries
+
+Validated against the Client Essential authority, local
+`J_A_Automation_Contrato_Proyecto_EVOCON_ES.html` (`ANEXO A`/`ANEXO D`), and `UI_PLAN.md` on
+2026-08-24:
+
+- **Configuration is not data entry.** Workers record operational truth (actual time, activity,
+  travel, expenses, receipts, and reports). Project/Finance configuration determines its commercial
+  interpretation; the Worker must not be asked to choose client billability, tax, markup, or rate
+  treatment as an ordinary field entry.
+- **Role-safe server projections are mandatory.** Customer-facing projections contain operational
+  activity and references but no money. Worker and PM projections omit Finance-only rates, internal
+  cost, margin, client treatment, tax/FX, other-worker pay, and commercial fields at the server DTO
+  boundary; hiding a field in the browser is not sufficient. A Worker projection retains only that
+  Worker's own reimbursement/payment state, amount, reference, and dates. PM projections omit those
+  Worker-private reimbursement fields by default.
+- **PM expense authority is operational-only by default.** A PM may review/approve/reject the
+  scoped operational expense record and request a correction, but may not configure or decide
+  commercial expense treatment, client billability, markup, tax, reimbursement amount/state, or
+  ledger/collection effects. Finance/Admin owns those commercial decisions, with the required
+  authorization and audit trail.
+
 ## Design system first
 
 Prefer reusable primitives over route-specific ad-hoc CSS. Establish and reuse concepts such as:

@@ -39,7 +39,9 @@ describe('requested lifecycle delete and workforce write boundaries', () => {
     }) as { id: string };
     expect(() => value.repository.deleteAssignment(value.owner, provisional.id)).not.toThrow();
     expect(
-      value.sqlite.prepare('SELECT id,status,ends_on FROM project_member WHERE id=?').get(provisional.id),
+      value.sqlite
+        .prepare('SELECT id,status,ends_on FROM project_member WHERE id=?')
+        .get(provisional.id),
     ).toMatchObject({ id: provisional.id, status: 'inactive', ends_on: '2026-08-24' });
 
     const overrideAssignment = value.repository.assignWorker(value.owner, {
@@ -54,12 +56,18 @@ describe('requested lifecycle delete and workforce write boundaries', () => {
       )
       .run('b5-rate-override', overrideAssignment.id, '2026-08-25', timestamp, timestamp);
 
-    expect(() => value.repository.deleteAssignment(value.owner, overrideAssignment.id)).not.toThrow();
+    expect(() =>
+      value.repository.deleteAssignment(value.owner, overrideAssignment.id),
+    ).not.toThrow();
     expect(
-      value.sqlite.prepare('SELECT id,status FROM project_member WHERE id=?').get(overrideAssignment.id),
+      value.sqlite
+        .prepare('SELECT id,status FROM project_member WHERE id=?')
+        .get(overrideAssignment.id),
     ).toMatchObject({ id: overrideAssignment.id, status: 'inactive' });
     expect(
-      value.sqlite.prepare('SELECT starts_on,ends_on FROM project_member WHERE id=?').get(overrideAssignment.id),
+      value.sqlite
+        .prepare('SELECT starts_on,ends_on FROM project_member WHERE id=?')
+        .get(overrideAssignment.id),
     ).toEqual({ starts_on: '2026-08-25', ends_on: '2026-08-25' });
 
     const historicalAssignment = value.sqlite
@@ -72,9 +80,13 @@ describe('requested lifecycle delete and workforce write boundaries', () => {
       minutes: 45,
       summary: 'Assignment history must remain attributable',
     });
-    expect(() => value.repository.deleteAssignment(value.owner, historicalAssignment.id)).not.toThrow();
+    expect(() =>
+      value.repository.deleteAssignment(value.owner, historicalAssignment.id),
+    ).not.toThrow();
     expect(
-      value.sqlite.prepare('SELECT id,status FROM project_member WHERE id=?').get(historicalAssignment.id),
+      value.sqlite
+        .prepare('SELECT id,status FROM project_member WHERE id=?')
+        .get(historicalAssignment.id),
     ).toMatchObject({ id: historicalAssignment.id, status: 'inactive' });
   });
 

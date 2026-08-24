@@ -11,6 +11,10 @@
 **/coverage
 **/test-results
 **/playwright-report
+trace-out
+.playwright-mcp
+qa-evidence
+data
 **/*.log
 **/*.tsbuildinfo
 .env

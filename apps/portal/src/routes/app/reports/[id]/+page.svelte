@@ -65,17 +65,15 @@
   const attachmentCanEdit = $derived(
     Boolean(
       data.detail.canEdit &&
-        ['draft', 'needs_changes'].includes(String(report.approval_state ?? '')) &&
-        (data.user.role === 'owner_admin' ||
-          data.user.role === 'project_manager' ||
-          (data.user.role === 'worker' &&
-            String(data.user.id) === String(report.worker_id ?? report.author_id))),
+      ['draft', 'needs_changes'].includes(String(report.approval_state ?? '')) &&
+      (data.user.role === 'owner_admin' ||
+        data.user.role === 'project_manager' ||
+        (data.user.role === 'worker' &&
+          String(data.user.id) === String(report.worker_id ?? report.author_id))),
     ),
   );
   const attachmentSupersedeCandidates = $derived(
-    attachments.filter(
-      (item) => attachmentDownloadable(item) && !item.supersedes_id,
-    ),
+    attachments.filter((item) => attachmentDownloadable(item) && !item.supersedes_id),
   );
   let attachmentMessage = $state('');
   let attachmentBusy = $state(false);
@@ -465,7 +463,7 @@
   </header>
 
   {#if standaloneActionMessage(locale, form)}
-    <p class:success={form.success} class="action-message" role="status" aria-live="polite">
+    <p class:success={form?.success} class="action-message" role="status" aria-live="polite">
       {standaloneActionMessage(locale, form)}
     </p>
   {/if}
@@ -988,7 +986,9 @@
         <p class="form-help" id="report-attachments-help">
           {isDaily
             ? t('Keep the evidence that supports this daily field report in its private record.')
-            : t('Keep technical files and PLC backups tied to this exact system and report version.')}
+            : t(
+                'Keep technical files and PLC backups tied to this exact system and report version.',
+              )}
         </p>
       </div>
       <span class="state-tag">{attachments.length} {t('files')}</span>
@@ -1001,7 +1001,9 @@
         aria-live="polite"
         tabindex="-1"
         bind:this={attachmentStatusElement}
-      >{attachmentMessage}</p>
+      >
+        {attachmentMessage}
+      </p>
     {/if}
 
     {#if attachments.length > 0}
@@ -1014,9 +1016,14 @@
           >
             <div class="report-attachment-card-header">
               <div>
-                <h3>{display(attachment.safe_filename || attachment.original_filename) || t('Attachment')}</h3>
+                <h3>
+                  {display(attachment.safe_filename || attachment.original_filename) ||
+                    t('Attachment')}
+                </h3>
                 <p>
-                  <span class="state-tag">{controlled('recordType', attachment.attachment_kind)}</span>
+                  <span class="state-tag"
+                    >{controlled('recordType', attachment.attachment_kind)}</span
+                  >
                   {#if !isDaily && attachment.system_reference_snapshot}
                     <span>{t('System')}: {display(attachment.system_reference_snapshot)}</span>
                   {/if}
@@ -1027,8 +1034,8 @@
                   class="secondary-action"
                   href={`${attachmentAction}/${encodeURIComponent(String(attachment.document_id))}`}
                   download
-                  data-attachment-download
-                >{t('Download')}</a>
+                  data-attachment-download>{t('Download')}</a
+                >
               {:else}
                 <span class="form-help" data-attachment-download-state
                   >{t('Download unavailable until this file is clean and ready.')}</span
@@ -1051,7 +1058,8 @@
               <div>
                 <dt>{t('State')}</dt>
                 <dd>
-                  {attachmentState(attachment.state)} · {display(attachment.scan_status) || t('Unknown')}
+                  {attachmentState(attachment.state)} · {display(attachment.scan_status) ||
+                    t('Unknown')}
                 </dd>
               </div>
               <div class="report-attachment-hash">
@@ -1153,10 +1161,8 @@
                   <option
                     value={display(predecessor.document_id)}
                     data-attachment-kind={display(predecessor.attachment_kind)}
-                    hidden={
-                      display(predecessor.attachment_kind) !==
-                      (isDaily ? 'daily_attachment' : 'technical_attachment')
-                    }
+                    hidden={display(predecessor.attachment_kind) !==
+                      (isDaily ? 'daily_attachment' : 'technical_attachment')}
                   >
                     {display(predecessor.safe_filename || predecessor.original_filename)} · v{display(
                       predecessor.version,
@@ -1179,7 +1185,9 @@
             'This report is approved or finalized. Attachments are immutable; create an audited correction draft before adding replacement evidence.',
           )}
         {:else}
-          {t('You have read-only access to this report. Contact the project manager or owner for changes.')}
+          {t(
+            'You have read-only access to this report. Contact the project manager or owner for changes.',
+          )}
         {/if}
       </p>
     {/if}

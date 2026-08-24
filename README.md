@@ -2,7 +2,31 @@
 
 This repository contains the production-oriented J&A Automation V3 product: a browser-safe multilingual
 Next.js public site and a private SvelteKit PWA portal backed by SQLite, exact-money finance and
-durable billing workflows. `J_A_AUTOMATION_CLIENT_ESSENTIAL_SPEC_2026-08-22.md` and its checklist are the client-release authority. The unified V3 specification is non-conflicting domain reference and V3.1–V3.4 expansion is deferred roadmap.
+durable billing workflows. The Client Essential specification and checklist are the primary release
+authority, followed by the validated local contract (`ANEXO A` and `ANEXO D`), `UI_PLAN.md` for UX
+only, and the repository instructions. The unified V3 specification is subordinate domain reference;
+V3.1–V3.4 expansion is deferred roadmap.
+
+## Current release checkpoint
+
+As of 2026-08-25, the preserved completion branch contains the Client Essential implementation through
+the operational Worker, report/sign-off, PM projection and finance foundations. The current release
+verdict is **NOT READY**: final migration-0028/0029/0030 revalidation, the remaining finance/security
+review findings, the authenticated cross-role browser matrix, automatic-job/artifact evidence on the
+final worktree, and live Caddy/VPS smoke are still open. A passing focused test or a completed UI
+component does not by itself establish `CLIENT READY`.
+
+The latest stable pinned-runtime checkpoint recorded in the checklist includes Node `24.19.0` with
+unit (`466`), integration (`203`), security (`74`), invariant (`1`), reporting (`4`) and migration
+(`72`) tests passing, plus production builds, backup/restore and an automatic-job run. Those counts
+predate the 0029/0030 source-binding changes and must be rerun before release. The checklist records
+the current evidence, open dependencies and the final DoD status:
+
+- [Client Essential specification](J_A_AUTOMATION_CLIENT_ESSENTIAL_SPEC_2026-08-22.md)
+- [Client Essential checklist](J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md)
+- [Project contract and UAT](J_A_Automation_Contrato_Proyecto_EVOCON_ES.html)
+- [Approved UX plan](UI_PLAN.md)
+- [Current execution DAG](CODEX_EXECUTION_PLAN.md)
 
 ## Applications
 
@@ -163,6 +187,10 @@ finance, data-leakage and release reviews. Do not claim `READY` until all of tho
 
 ## Quality gates
 
+Run these from a pinned Node `24.19.0` / pnpm `11.22.0` shell. The offline suite is conditional on
+the go-live connectivity decision; the browser and operations commands are release evidence, not
+substitutes for the focused domain/security suites.
+
 ```powershell
 pnpm format:check
 pnpm lint
@@ -181,6 +209,11 @@ pnpm ops:backup:test
 pnpm ops:restore-test
 ```
 
+For the complete release candidate, also run the applicable migration fresh/upgrade/integrity
+checks, the configured Playwright projects at 360/390/768/1440, the automatic jobs runner, and the
+realistic issued-invoice/private-artifact recovery drill. Record exact commands and results in the
+Client Essential checklist. Do not mark a requirement `PASS` from source inspection alone.
+
 ## Deployment
 
 Follow [deployment/README_VPS.md](deployment/README_VPS.md). Caddy proxies the Next.js website to
@@ -196,5 +229,5 @@ and is checked during the Linux container smoke test. Deploying one rebuilds and
 `site` container. It does not seed the database, migrate the portal or change Caddy.
 
 [J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md](J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md)
-for the product authority. Historical fixture notes are retained in
+for subordinate, non-conflicting domain reference only. Historical fixture notes are retained in
 [docs/MVP_DEMO_STATUS.md](docs/MVP_DEMO_STATUS.md) and are not an active product access path.

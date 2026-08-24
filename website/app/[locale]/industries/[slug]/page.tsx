@@ -2,29 +2,39 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { Link } from '@/lib/i18n/navigation';
 import { ArrowLeft } from 'lucide-react';
-import autoImg from '@/public/images/industries/automotive-body-shop.jpg';
-import foodBevImg from '@/public/images/hero/hero-food-beverage.jpg';
-import energyImg from '@/public/images/hero/hero-energy-process.jpg';
-import cosmeticsImg from '@/public/images/industries/cosmetics-filling.jpg';
-import roboticsImg from '@/public/images/industries/robotics-cell-square.jpg';
+import autoImg from '@/public/images/industries/automotive-body-shop.webp';
+import foodBevImg from '@/public/images/hero/hero-food-beverage.webp';
+import energyImg from '@/public/images/hero/hero-energy-process.webp';
+import cosmeticsImg from '@/public/images/industries/cosmetics-filling.webp';
+import roboticsImg from '@/public/images/industries/robotics-cell-square.webp';
 import { industries } from '@/content/industries';
 import { projects } from '@/content/projects';
 import Image, { type StaticImageData } from 'next/image';
+import { projectCapabilityKeys, translateProject } from '@/lib/i18n/content';
+import { LinesMotif } from '@/components/ui/LinesMotif';
+import { localizedAlternates } from '@/lib/i18n/metadata';
 
-const industryImages: Record<string, { src: StaticImageData; alt: string; position: string }> = {
-  automotive: { src: autoImg, alt: 'Industrial robotic automotive body shop', position: '53% 50%' },
-  foodBeverage: { src: foodBevImg, alt: 'Food and beverage production line', position: '48% 50%' },
+const industryImages: Record<
+  string,
+  {
+    src: StaticImageData;
+    altKey: 'automotive' | 'foodBeverage' | 'energyProcess' | 'cosmeticsPackaging' | 'oemGeneral';
+    position: string;
+  }
+> = {
+  automotive: { src: autoImg, altKey: 'automotive', position: '53% 50%' },
+  foodBeverage: { src: foodBevImg, altKey: 'foodBeverage', position: '48% 50%' },
   energyProcess: {
     src: energyImg,
-    alt: 'Energy and process industrial plant',
+    altKey: 'energyProcess',
     position: '50% 55%',
   },
   cosmeticsPackaging: {
     src: cosmeticsImg,
-    alt: 'Cosmetics filling production line',
+    altKey: 'cosmeticsPackaging',
     position: '48% 52%',
   },
-  oemGeneral: { src: roboticsImg, alt: 'Industrial robotic cell', position: '50% 50%' },
+  oemGeneral: { src: roboticsImg, altKey: 'oemGeneral', position: '50% 50%' },
 };
 
 const indKeyMap: Record<string, string> = {
@@ -55,7 +65,11 @@ export async function generateMetadata({
   const industry = industries.find((i) => i.slug === slug);
 
   if (!industry) {
-    return { title: 'Not Found' };
+    const common = await getTranslations({ locale, namespace: 'common' });
+    return {
+      title: common('notFound'),
+      alternates: localizedAlternates(locale, `/industries/${slug}`),
+    };
   }
 
   const t = await getTranslations({ locale, namespace: 'industries' });
@@ -64,6 +78,7 @@ export async function generateMetadata({
   return {
     title: `${t(key as IndustryMessageKey)} | J&A Automation`,
     description: t(`${key}Desc` as `${IndustryMessageKey}Desc`),
+    alternates: localizedAlternates(locale, `/industries/${slug}`),
   };
 }
 
@@ -82,6 +97,10 @@ export default async function IndustryDetailPage({
 
   const t = await getTranslations('industries');
   const nav = await getTranslations('nav');
+  const common = await getTranslations('common');
+  const imageAlt = await getTranslations('imageAlts');
+  const projectFilters = await getTranslations('projectFilters');
+  const projectCatalog = await getTranslations('projectCatalog');
   const key = indKeyMap[industry.id] ?? industry.id;
   const img = industryImages[industry.imageKey];
 
@@ -89,6 +108,9 @@ export default async function IndustryDetailPage({
   const relatedProjects = projects
     .filter((p) => p.industry === industry.id)
     .sort((a, b) => (b.sortWeight ?? 0) - (a.sortWeight ?? 0));
+  const localizedRelatedProjects = relatedProjects.map((project) =>
+    translateProject(project, projectCatalog),
+  );
 
   return (
     <div className="pt-20">
@@ -98,13 +120,13 @@ export default async function IndustryDetailPage({
             href="/industries"
             className="inline-flex items-center gap-2 text-sm font-medium text-ja-steel-500 hover:text-ja-red transition-colors mb-10"
           >
-            <ArrowLeft size={16} /> Back to Industries
+            <ArrowLeft size={16} /> {common('backToIndustries')}
           </Link>
 
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <div>
               <p className="eyebrow mb-4">{nav('industries')}</p>
-              <div className="lines-motif mb-6" aria-hidden="true" />
+              <LinesMotif className="mb-6" />
               <h1 className="heading-display text-4xl lg:text-5xl">
                 {t(key as IndustryMessageKey)}
               </h1>
@@ -116,7 +138,7 @@ export default async function IndustryDetailPage({
             <div className="relative rounded-[14px] overflow-hidden aspect-[16/10]">
               <Image
                 src={img.src}
-                alt={img.alt}
+                alt={imageAlt(img.altKey)}
                 fill
                 className="object-cover"
                 style={{ objectPosition: img.position }}
@@ -131,10 +153,10 @@ export default async function IndustryDetailPage({
       {relatedProjects.length > 0 && (
         <section className="section-padding bg-white border-t border-ja-line">
           <div className="container-ja">
-            <h2 className="heading-2 mb-10 text-3xl">Project Experience</h2>
+            <h2 className="heading-2 mb-10 text-3xl">{common('projectExperience')}</h2>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {relatedProjects.map((project) => (
+              {localizedRelatedProjects.map((project) => (
                 <div key={project.id} className="card">
                   <div className="flex justify-between items-start mb-3">
                     <span className="font-[family-name:var(--font-ibm-plex-mono)] text-xs text-ja-steel-500">
@@ -161,7 +183,7 @@ export default async function IndustryDetailPage({
                     ))}
                     {project.capabilities.slice(0, 2).map((c) => (
                       <span key={c} className="chip">
-                        {c.replace(/-/g, ' ')}
+                        {projectFilters(projectCapabilityKeys[c])}
                       </span>
                     ))}
                   </div>
@@ -175,10 +197,10 @@ export default async function IndustryDetailPage({
       {/* CTA Section */}
       <section className="section-padding bg-ja-graphite text-white text-center">
         <div className="container-ja">
-          <h2 className="heading-2 mb-6">Need engineering support in this sector?</h2>
+          <h2 className="heading-2 mb-6">{common('needSectorSupport')}</h2>
           <div className="flex flex-col sm:flex-row justify-center gap-3">
             <Link href={`/contact?intent=project`} className="btn btn-primary">
-              Talk to an Engineer
+              {nav('talkToEngineer')}
             </Link>
           </div>
         </div>

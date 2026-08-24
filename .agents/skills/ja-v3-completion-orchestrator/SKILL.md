@@ -26,6 +26,7 @@ Read the Client Essential specification and checklist first, then root `AGENTS.m
 ## Luna-first A/B/C routing policy
 
 ### Complexity A — default to Luna Max
+
 Use a Luna/max write agent when the task can be specified with stable inputs/outputs and bounded ownership. This includes, but is not limited to:
 
 - Svelte components, pages, forms, tables, filters, dialogs, badges, empty/error/loading states;
@@ -42,6 +43,7 @@ Use a Luna/max write agent when the task can be specified with stable inputs/out
 **Bias toward A.** A task does not become B merely because it is large, production-facing, spans several files, or touches backend code. Split or contract it until Luna can own as much implementation as safely possible.
 
 ### Complexity B — Sol Medium
+
 Use Sol/medium when implementation itself must reason about multiple non-local invariants or define ambiguous domain semantics, especially:
 
 - finance/accounting/billing calculations and source-of-truth semantics;
@@ -55,6 +57,7 @@ Use Sol/medium when implementation itself must reason about multiple non-local i
 A B-level Sol lead should delegate A-level child packets to Luna/max as soon as the contract is stable.
 
 ### Complexity C — Sol High
+
 Use Sol/high for repository architecture, dependency DAGs, cross-domain contracts, irreducibly risky migration strategy, conflict resolution, integration design and final sign-off.
 
 ## Concurrency guidance

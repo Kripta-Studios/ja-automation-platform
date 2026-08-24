@@ -21,13 +21,13 @@ Read in the repository-mandated order, then use these local execution sources:
 6. `work-packets/INITIAL_WORK_PACKETS.md`
 7. `REQUIREMENTS_TRACEABILITY_MATRIX.md` (historical/roadmap traceability)
 8. `CODEX_MASTER_IMPLEMENTATION_PROMPT.md`
-6. `.superpowers/sdd/CODEX_EXECUTION_PLAN/progress.md`
-7. `.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-a5-contract.md`
-8. `.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-a5-t-report.md`
-9. `.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-b2-r6-architectural-addendum.md`
-10. `.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-b2-contract.md`
-11. `.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-b5-contract.md`
-12. every other contract/review report in `.superpowers/sdd/CODEX_EXECUTION_PLAN/`
+9. `.superpowers/sdd/CODEX_EXECUTION_PLAN/progress.md`
+10. `.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-a5-contract.md`
+11. `.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-a5-t-report.md`
+12. `.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-b2-r6-architectural-addendum.md`
+13. `.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-b2-contract.md`
+14. `.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-b5-contract.md`
+15. every other contract/review report in `.superpowers/sdd/CODEX_EXECUTION_PLAN/`
 
 Do not assume completion from implementation handoffs. Only independent verdicts recorded in the
 ledger release dependencies.

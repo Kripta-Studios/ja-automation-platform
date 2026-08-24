@@ -1,15 +1,28 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PortalRepository, V3Repository, createDatabase } from '@ja/database';
 import type { Principal } from '@ja/domain';
+import { installB5TestDeploymentIdentity } from '../fixtures/b5-test-environment.js';
 
 const directories: string[] = [];
+const restoreDeploymentIdentities: Array<() => void> = [];
+const databases: Array<ReturnType<typeof createDatabase>['sqlite']> = [];
+
+beforeEach(() => restoreDeploymentIdentities.push(installB5TestDeploymentIdentity()));
 
 afterEach(() => {
+  for (const sqlite of databases.splice(0)) {
+    try {
+      sqlite.close();
+    } catch {
+      // A passing test may already have closed the handle; cleanup must remain idempotent.
+    }
+  }
   for (const directory of directories.splice(0))
     rmSync(directory, { recursive: true, force: true });
+  for (const restore of restoreDeploymentIdentities.splice(0).reverse()) restore();
 });
 
 function seedUser(
@@ -31,6 +44,7 @@ describe('commercial billing controls', () => {
     directories.push(directory);
     const databasePath = join(directory, 'app.db');
     const { sqlite } = createDatabase(databasePath);
+    databases.push(sqlite);
     const repository = new PortalRepository(sqlite);
     const v3 = new V3Repository(sqlite);
     seedUser(sqlite, 'owner', 'owner_admin');
@@ -44,6 +58,8 @@ describe('commercial billing controls', () => {
       displayName: 'Commercial Client',
       currency: 'USD',
       timezone: 'UTC',
+      billingAddress: 'Commercial Client billing address',
+      billingEmail: 'billing@commercial.example',
     });
     const capped = repository.createProject(owner, {
       clientId: client.id,
@@ -123,6 +139,7 @@ describe('commercial billing controls', () => {
       effectiveFrom: '2026-08-01',
     });
     const secondDatabase = createDatabase(databasePath);
+    databases.push(secondDatabase.sqlite);
     const secondRepository = new PortalRepository(secondDatabase.sqlite);
     const secondV3 = new V3Repository(secondDatabase.sqlite);
     const closeResults = await Promise.all([
@@ -265,7 +282,5 @@ describe('commercial billing controls', () => {
         }
       ).subtotal_minor,
     ).toBe(15_000);
-    secondDatabase.sqlite.close();
-    sqlite.close();
   });
 });

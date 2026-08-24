@@ -7,6 +7,7 @@ export const projects = sqliteTable(
   {
     id: text('id').primaryKey(),
     projectNumber: text('project_number').notNull().unique(),
+    costCenterCode: text('cost_center_code'),
     clientId: text('client_id')
       .notNull()
       .references(() => clients.id),

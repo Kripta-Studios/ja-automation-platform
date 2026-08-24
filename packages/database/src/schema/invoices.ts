@@ -17,6 +17,8 @@ export const invoices = sqliteTable(
     taxMinor: integer('tax_minor').notNull().default(0),
     totalMinor: integer('total_minor').notNull().default(0),
     issuedAt: text('issued_at'),
+    plannedIssueOn: text('planned_issue_on'),
+    expectedCollectionOn: text('expected_collection_on'),
     snapshotJson: text('snapshot_json'),
     billingRuleId: text('billing_rule_id'),
     periodStart: text('period_start'),

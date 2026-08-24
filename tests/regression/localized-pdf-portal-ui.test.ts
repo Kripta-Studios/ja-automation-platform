@@ -42,13 +42,16 @@ describe('localized PDF portal UI wiring', () => {
 
   it('wires Accounting Pack through an immutable revision-aware surface', () => {
     const shell = read('apps/portal/src/lib/PortalShell.svelte');
+    const accountingSection = read('apps/portal/src/lib/portal/sections/AccountingSection.svelte');
     const accounting = read(
       'apps/portal/src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte',
     );
-    expect(shell).toContain(
-      "AccountingPackArtifactStatus from './portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte'",
+    expect(shell).toContain("AccountingSection from './portal/sections/AccountingSection.svelte'");
+    expect(shell).toContain('<AccountingSection');
+    expect(accountingSection).toContain(
+      "AccountingPackArtifactStatus from '../ui/localized-pdf/AccountingPackArtifactStatus.svelte'",
     );
-    expect(shell).toContain('<AccountingPackArtifactStatus');
+    expect(accountingSection).toContain('<AccountingPackArtifactStatus');
     expect(accounting).toContain('ownerType="accounting_pack_revision"');
     expect(accounting).toContain('pack.revision_id');
     expect(accounting).toContain('{#if revisionId}');

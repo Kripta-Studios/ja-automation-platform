@@ -510,6 +510,16 @@ export type WorkerStatementSnapshot = Readonly<{
   approvedReimbursementMinor: string;
   pendingReimbursementMinor: string;
   missingCompensationRules: number;
+  activities: readonly Readonly<{
+    id: string;
+    projectNumber: string;
+    projectName: string;
+    date: string;
+    category: string;
+    activitySummary: string;
+    actualMinutes: number;
+    approvalState: string;
+  }>[];
   settlements: readonly Readonly<{
     id: string;
     projectNumber: string;
@@ -519,6 +529,7 @@ export type WorkerStatementSnapshot = Readonly<{
     amountMinor: string;
     currency: string;
     state: string;
+    expectedPaymentOn?: string | null;
     settledAt?: string | null;
   }>[];
   expenses: readonly Readonly<{
@@ -531,6 +542,8 @@ export type WorkerStatementSnapshot = Readonly<{
     currency: string;
     approvalState: string;
     reimbursementState: string;
+    expectedReimbursementOn?: string | null;
+    reimbursedAt?: string | null;
   }>[];
 }>;
 
@@ -546,13 +559,18 @@ const workerStatementColumns = [
   'date',
   'vendor',
   'category',
+  'activitySummary',
   'currency',
   'amountMinor',
+  'actualMinutes',
   'approvedMinutes',
   'pendingMinutes',
   'approvalState',
   'paymentStatus',
+  'expectedPaymentOn',
   'settledAt',
+  'expectedReimbursementOn',
+  'reimbursedAt',
 ] as const;
 
 function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] {
@@ -585,6 +603,21 @@ function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] 
       approvalState: 'pending',
       paymentStatus: 'estimated_pending',
     },
+    ...snapshot.activities.map((activity) => ({
+      recordType: 'time_activity',
+      recordId: activity.id,
+      workerId: snapshot.worker.id,
+      workerName: snapshot.worker.name,
+      periodStart: snapshot.periodStart,
+      periodEnd: snapshot.periodEnd,
+      projectNumber: activity.projectNumber,
+      projectName: activity.projectName,
+      date: activity.date,
+      category: activity.category,
+      activitySummary: activity.activitySummary,
+      actualMinutes: activity.actualMinutes,
+      approvalState: activity.approvalState,
+    })),
     ...snapshot.settlements.map((settlement) => ({
       recordType: 'compensation_settlement',
       recordId: settlement.id,
@@ -597,6 +630,7 @@ function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] 
       currency: settlement.currency,
       amountMinor: settlement.amountMinor,
       paymentStatus: settlement.state,
+      expectedPaymentOn: settlement.expectedPaymentOn ?? '',
       settledAt: settlement.settledAt ?? '',
     })),
     ...snapshot.expenses.map((expense) => ({
@@ -614,6 +648,8 @@ function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] 
       amountMinor: expense.reimbursementAmountMinor,
       approvalState: expense.approvalState,
       paymentStatus: expense.reimbursementState,
+      expectedReimbursementOn: expense.expectedReimbursementOn ?? '',
+      reimbursedAt: expense.reimbursedAt ?? '',
     })),
   ];
 }
@@ -637,20 +673,26 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
   const settlements = snapshot.settlements
     .map(
       (row) =>
-        `<tr><td>${htmlEscape(row.projectNumber)} ${htmlEscape(row.projectName)}</td><td>${htmlEscape(row.periodStart)} → ${htmlEscape(row.periodEnd)}</td><td>${htmlEscape(row.state)}</td><td class="amount">${moneyText(row.currency, row.amountMinor, 'en')}</td></tr>`,
+        `<tr><td>${htmlEscape(row.projectNumber)} ${htmlEscape(row.projectName)}</td><td>${htmlEscape(row.periodStart)} → ${htmlEscape(row.periodEnd)}</td><td>${htmlEscape(row.state)}</td><td>${htmlEscape(row.expectedPaymentOn ?? '—')}</td><td>${htmlEscape(row.settledAt ?? '—')}</td><td class="amount">${moneyText(row.currency, row.amountMinor, 'en')}</td></tr>`,
+    )
+    .join('');
+  const activities = snapshot.activities
+    .map(
+      (row) =>
+        `<tr><td>${htmlEscape(row.date)}</td><td>${htmlEscape(row.projectNumber)} ${htmlEscape(row.projectName)}</td><td>${htmlEscape(row.category)}</td><td>${htmlEscape(row.activitySummary)}</td><td>${htmlEscape(row.actualMinutes)}</td><td>${htmlEscape(row.approvalState)}</td></tr>`,
     )
     .join('');
   const expenses = snapshot.expenses
     .map(
       (row) =>
-        `<tr><td>${htmlEscape(row.spentOn)}</td><td>${htmlEscape(row.projectNumber)}</td><td>${htmlEscape(row.vendor)}</td><td>${htmlEscape(row.reimbursementState)}</td><td class="amount">${moneyText(row.currency, row.reimbursementAmountMinor, 'en')}</td></tr>`,
+        `<tr><td>${htmlEscape(row.spentOn)}</td><td>${htmlEscape(row.projectNumber)}</td><td>${htmlEscape(row.vendor)}</td><td>${htmlEscape(row.reimbursementState)}</td><td>${htmlEscape(row.expectedReimbursementOn ?? '—')}</td><td>${htmlEscape(row.reimbursedAt ?? '—')}</td><td class="amount">${moneyText(row.currency, row.reimbursementAmountMinor, 'en')}</td></tr>`,
     )
     .join('');
   return renderHtmlToPdf(
     layout(
       'Worker compensation statement',
       `${snapshot.worker.name} · ${snapshot.periodStart} → ${snapshot.periodEnd}`,
-      `<section class="grid">${summary}</section><p class="muted">Approved minutes: ${htmlEscape(snapshot.approvedMinutes)} · Pending minutes: ${htmlEscape(snapshot.pendingMinutes)} · Missing compensation rules: ${htmlEscape(snapshot.missingCompensationRules)}</p><h2>Settlements</h2><table><thead><tr><th>Project</th><th>Period</th><th>Status</th><th class="amount">Amount</th></tr></thead><tbody>${settlements || '<tr><td colspan="4" class="muted">No settlements in this period.</td></tr>'}</tbody></table><h2>Own reimbursable expenses</h2><table><thead><tr><th>Date</th><th>Project</th><th>Vendor</th><th>Payment status</th><th class="amount">Amount</th></tr></thead><tbody>${expenses || '<tr><td colspan="5" class="muted">No reimbursable expenses in this period.</td></tr>'}</tbody></table>`,
+      `<section class="grid">${summary}</section><p class="muted">Approved minutes: ${htmlEscape(snapshot.approvedMinutes)} · Pending minutes: ${htmlEscape(snapshot.pendingMinutes)} · Missing compensation rules: ${htmlEscape(snapshot.missingCompensationRules)}</p><h2>Own activity</h2><table><thead><tr><th>Date</th><th>Project</th><th>Category</th><th>Activity</th><th>Actual minutes</th><th>Approval</th></tr></thead><tbody>${activities || '<tr><td colspan="6" class="muted">No activity in this period.</td></tr>'}</tbody></table><h2>Settlements</h2><table><thead><tr><th>Project</th><th>Period</th><th>Status</th><th>Expected payment</th><th>Settled</th><th class="amount">Amount</th></tr></thead><tbody>${settlements || '<tr><td colspan="6" class="muted">No settlements in this period.</td></tr>'}</tbody></table><h2>Own reimbursable expenses</h2><table><thead><tr><th>Date</th><th>Project</th><th>Vendor</th><th>Payment status</th><th>Expected reimbursement</th><th>Reimbursed</th><th class="amount">Amount</th></tr></thead><tbody>${expenses || '<tr><td colspan="7" class="muted">No reimbursable expenses in this period.</td></tr>'}</tbody></table>`,
       'en',
     ),
   );
@@ -940,13 +982,16 @@ export function periodReportPdf(
     dailyReports?: readonly Row[];
     technicalReports?: readonly Row[];
     technicalChanges?: readonly Row[];
+    timeSummary?: readonly Row[];
+    sourceCounts?: Readonly<Record<string, unknown>>;
     backupArtifacts?: readonly Row[];
   }>,
 ): Uint8Array {
   const locale = normalizeReportLocale(snapshot.locale);
   const copy = localizedCopy[locale];
-  const summary = snapshot.commercialSummary ?? {};
-  const finance = snapshot.financialSummary ?? {};
+  const customer = snapshot.audience === 'customer';
+  const summary = customer ? {} : (snapshot.commercialSummary ?? {});
+  const finance = customer ? {} : (snapshot.financialSummary ?? {});
   const currency = summary.currency ?? finance.currency ?? 'USD';
   const hours = (minutes: unknown): string =>
     (Number(minutes ?? 0) / 60).toLocaleString(localeTag(locale), {
@@ -957,37 +1002,58 @@ export function periodReportPdf(
     `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${htmlEscape(moneyText(currency, value, locale))}</strong></div>`;
   const hoursMetric = (label: string, value: unknown): string =>
     `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${htmlEscape(`${hours(value)} h`)}</strong></div>`;
-  const publicMetrics = [
-    hoursMetric(copy.actualHours, summary.actualMinutes),
-    hoursMetric(copy.approvedHours, summary.approvedMinutes),
-    hoursMetric(copy.billableHours, summary.billableMinutes),
-    moneyMetric(copy.candidateSubtotal, summary.candidateSubtotalMinor),
-    moneyMetric(copy.operationalCandidate, summary.operationalRevenueCandidateMinor),
-    moneyMetric(copy.invoiced, summary.invoicedNetMinor),
-    moneyMetric(copy.paid, summary.paidMinor),
-    moneyMetric(copy.receivable, summary.receivableMinor),
-  ].join('');
+  const timeSummary = snapshot.timeSummary ?? [];
+  const approvedTimeMinutes = timeSummary.reduce(
+    (total, row) =>
+      total +
+      (row.approval_state === 'approved' ||
+      row.approvalState === 'approved' ||
+      row.approval_state === 'locked' ||
+      row.approvalState === 'locked'
+        ? Number(row.minutes ?? 0)
+        : 0),
+    0,
+  );
+  const publicMetrics = customer
+    ? hoursMetric(copy.approvedHours, approvedTimeMinutes)
+    : [
+        hoursMetric(copy.actualHours, summary.actualMinutes),
+        hoursMetric(copy.approvedHours, summary.approvedMinutes),
+        hoursMetric(copy.billableHours, summary.billableMinutes),
+        moneyMetric(copy.candidateSubtotal, summary.candidateSubtotalMinor),
+        moneyMetric(copy.operationalCandidate, summary.operationalRevenueCandidateMinor),
+        moneyMetric(copy.invoiced, summary.invoicedNetMinor),
+        moneyMetric(copy.paid, summary.paidMinor),
+        moneyMetric(copy.receivable, summary.receivableMinor),
+      ].join('');
   const internalMetrics =
-    snapshot.audience === 'internal'
+    !customer && snapshot.audience === 'internal'
       ? [
           moneyMetric(copy.directCost, finance.approvedCostMinor),
           moneyMetric(copy.contribution, finance.contributionMarginMinor),
           `<div class="metric"><span class="muted">${htmlEscape(copy.contributionMargin)}</span><strong>${htmlEscape(`${(Number(finance.contributionMarginBps ?? 0) / 100).toFixed(1)}%`)}</strong></div>`,
         ].join('')
       : '';
-  const calculationRows = (snapshot.commercialCalculation ?? [])
-    .map(
-      (line) =>
-        `<tr><td>${htmlEscape(translateCalculationType(line.type, locale))}</td><td>${htmlEscape(translateCalculationBasis(line.basis, locale))}</td><td>${line.minutes === null || line.minutes === undefined ? '—' : htmlEscape(`${hours(line.minutes)} h`)}</td><td class="amount">${htmlEscape(moneyText(currency, line.amountMinor, locale))}</td></tr>`,
-    )
-    .join('');
-  const sourceCounts = (summary.sourceCounts ?? {}) as Readonly<Record<string, unknown>>;
+  const calculationRows = customer
+    ? ''
+    : (snapshot.commercialCalculation ?? [])
+        .map(
+          (line) =>
+            `<tr><td>${htmlEscape(translateCalculationType(line.type, locale))}</td><td>${htmlEscape(translateCalculationBasis(line.basis, locale))}</td><td>${line.minutes === null || line.minutes === undefined ? '—' : htmlEscape(`${hours(line.minutes)} h`)}</td><td class="amount">${htmlEscape(moneyText(currency, line.amountMinor, locale))}</td></tr>`,
+        )
+        .join('');
+  const sourceCounts = ((customer ? snapshot.sourceCounts : summary.sourceCounts) ??
+    {}) as Readonly<Record<string, unknown>>;
   const sources = [
     `${localizedCopy[locale].sourceDaily} ${formatReportInteger(sourceCounts.dailyReports ?? 0, locale)}`,
     `${localizedCopy[locale].sourceTechnical} ${formatReportInteger(sourceCounts.technicalReports ?? 0, locale)}`,
     `${localizedCopy[locale].sourceChanges} ${formatReportInteger(sourceCounts.technicalChanges ?? 0, locale)}`,
     `${localizedCopy[locale].sourceTime} ${formatReportInteger(sourceCounts.timeEntries ?? 0, locale)}`,
-    `${localizedCopy[locale].sourceExpenses} ${formatReportInteger(sourceCounts.expenses ?? 0, locale)}`,
+    ...(customer
+      ? []
+      : [
+          `${localizedCopy[locale].sourceExpenses} ${formatReportInteger(sourceCounts.expenses ?? 0, locale)}`,
+        ]),
   ].join(' · ');
   const rows = [
     ...(snapshot.dailyReports ?? []).map((row) => ({
@@ -1011,6 +1077,14 @@ export function periodReportPdf(
       detail: row.change_made ?? row.changeMade,
       status: row.approval_state ?? row.approvalState,
     })),
+    ...(customer
+      ? timeSummary.map((row) => ({
+          type: copy.sourceTime,
+          date: formatReportDate(row.work_date ?? row.workDate ?? row.date, locale),
+          detail: row.activity_summary ?? row.activitySummary ?? row.category,
+          status: row.approval_state ?? row.approvalState,
+        }))
+      : []),
   ];
   const table = rows
     .map(
@@ -1022,7 +1096,9 @@ export function periodReportPdf(
     layout(
       copy.projectPeriodReport,
       `${snapshot.project?.number ?? ''} ${snapshot.project?.name ?? ''} · ${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
-      `<h2>${copy.calculation}</h2><div class="grid">${publicMetrics}${internalMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p><table><thead><tr><th>${copy.type}</th><th>${copy.calculationBasis}</th><th>${copy.billableHours}</th><th class="amount">${copy.amount}</th></tr></thead><tbody>${calculationRows || `<tr><td colspan="4" class="muted">${copy.noCalculation}</td></tr>`}</tbody></table><h2>${copy.operationalRecord}</h2><table><thead><tr><th>${copy.type}</th><th>${copy.date}</th><th>${copy.detail}</th><th>${localizedCopy[locale].status}</th></tr></thead><tbody>${table || `<tr><td colspan="4" class="muted">${copy.noReportRecords}</td></tr>`}</tbody></table>`,
+      customer
+        ? `<h2>${copy.operationalRecord}</h2><div class="grid">${publicMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p><table><thead><tr><th>${copy.type}</th><th>${copy.date}</th><th>${copy.detail}</th><th>${localizedCopy[locale].status}</th></tr></thead><tbody>${table || `<tr><td colspan="4" class="muted">${copy.noReportRecords}</td></tr>`}</tbody></table>`
+        : `<h2>${copy.calculation}</h2><div class="grid">${publicMetrics}${internalMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p><table><thead><tr><th>${copy.type}</th><th>${copy.calculationBasis}</th><th>${copy.billableHours}</th><th class="amount">${copy.amount}</th></tr></thead><tbody>${calculationRows || `<tr><td colspan="4" class="muted">${copy.noCalculation}</td></tr>`}</tbody></table><h2>${copy.operationalRecord}</h2><table><thead><tr><th>${copy.type}</th><th>${copy.date}</th><th>${copy.detail}</th><th>${localizedCopy[locale].status}</th></tr></thead><tbody>${table || `<tr><td colspan="4" class="muted">${copy.noReportRecords}</td></tr>`}</tbody></table>`,
       locale,
     ),
   );

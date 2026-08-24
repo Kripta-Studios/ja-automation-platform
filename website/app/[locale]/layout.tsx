@@ -3,7 +3,8 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { Manrope, IBM_Plex_Mono } from 'next/font/google';
-import { routing } from '@/lib/i18n/routing';
+import { routing, type Locale } from '@/lib/i18n/routing';
+import { localizedAlternates } from '@/lib/i18n/metadata';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import '@/app/globals.css';
@@ -21,9 +22,8 @@ const ibmPlexMono = IBM_Plex_Mono({
   display: 'swap',
 });
 
-export function generateStaticParams() {
-  return routing.locales.map((locale) => ({ locale }));
-}
+const publicBasePath = (process.env.JA_PUBLIC_BASE_PATH ?? '/j-aautomation').replace(/\/+$/, '');
+const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.j-aautomation.com';
 
 export async function generateMetadata({
   params,
@@ -31,34 +31,35 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const messages = (await import(`@/content/locales/${locale}.json`)).default;
+  const selectedLocale = routing.locales.includes(locale as (typeof routing.locales)[number])
+    ? (locale as Locale)
+    : routing.defaultLocale;
+  const messages = (await import(`@/content/locales/${selectedLocale}.json`)).default;
+  const localizedPath = `${publicBasePath}/${selectedLocale}`;
 
   return {
     title: messages.meta.homeTitle,
     description: messages.meta.homeDescription,
-    metadataBase: new URL('https://www.j-aautomation.com'),
-    alternates: {
-      canonical: `/${locale}`,
-      languages: {
-        en: '/en',
-        'pt-BR': '/pt',
-        es: '/es',
-        'x-default': '/en',
-      },
-    },
+    metadataBase: new URL(siteOrigin),
+    alternates: localizedAlternates(selectedLocale),
     openGraph: {
       type: 'website',
-      siteName: 'J&A Automation',
-      locale: locale === 'pt' ? 'pt_BR' : locale === 'es' ? 'es_MX' : 'en_US',
+      siteName: messages.meta.siteName,
+      url: localizedPath,
+      locale: selectedLocale === 'pt' ? 'pt_BR' : selectedLocale === 'es' ? 'es_MX' : 'en_US',
     },
     icons: {
-      icon: [{ url: '/j-aautomation/brand/favicon.png', sizes: '32x32', type: 'image/png' }],
-      apple: '/j-aautomation/brand/favicon.png',
+      icon: [{ url: `${publicBasePath}/brand/favicon.png`, sizes: '32x32', type: 'image/png' }],
+      apple: `${publicBasePath}/brand/favicon.png`,
     },
     other: {
       'darkreader-lock': 'enabled',
     },
   };
+}
+
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
 }
 
 export default async function LocaleLayout({

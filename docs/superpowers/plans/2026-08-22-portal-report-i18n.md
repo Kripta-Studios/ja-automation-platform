@@ -28,6 +28,7 @@
 ### Task 1: Rebuild the canonical mock-database baseline
 
 **Files:**
+
 - Preserve as evidence: `migrations/0019_legal_entity_lifecycle.sql`, `migrations/0020_audit_immutability.sql`
 - Create/modify: `migrations/0019_lifecycle_security.sql`
 - Create/modify: `migrations/0020_finance_v2.sql`
@@ -39,6 +40,7 @@
 - Test: `tests/integration/durable-job-security.test.ts`
 
 **Interfaces:**
+
 - Consumes: frozen contracts in `.superpowers/sdd/CODEX_EXECUTION_PLAN/wp-b5-contract.md` and the I18N-ARCH-13 contract recorded in the approved spec context.
 - Produces: canonical schema version 22, `deployment_identity`, service-actor bindings, fenced job/job-run contract, client/project lifecycle history, correction/revision contracts, Accounting Pack revisions/per-format artifacts, and period-report revisions.
 
@@ -74,6 +76,7 @@ Expected: all selected suites pass against fresh and representative populated fi
 ### Task 2: Establish typed locale catalogs and coverage gates
 
 **Files:**
+
 - Modify: `apps/portal/src/lib/portal-i18n.ts`
 - Create: `apps/portal/src/lib/i18n/catalog.ts`
 - Create: `apps/portal/src/lib/i18n/format.ts`
@@ -83,6 +86,7 @@ Expected: all selected suites pass against fresh and representative populated fi
 - Test: `tests/regression/portal-i18n-coverage.test.ts`
 
 **Interfaces:**
+
 - Produces: `normalizePortalLocale`, `documentLanguage`, `createTranslator`, `formatPortalDate`, `translateControlledValue`, and exact catalog parity.
 
 - [ ] **Step 1: Write RED catalog and static-copy tests**
@@ -106,6 +110,7 @@ Run the command from Step 2 and require zero missing keys and zero unauthorized 
 ### Task 3: Localize portal shell, navigation, and extracted sections
 
 **Files:**
+
 - Modify: `apps/portal/src/lib/PortalChrome.svelte`
 - Modify: `apps/portal/src/lib/PortalShell.svelte`
 - Modify: `apps/portal/src/lib/portal/sections/*.svelte`
@@ -113,6 +118,7 @@ Run the command from Step 2 and require zero missing keys and zero unauthorized 
 - Test: `tests/regression/portal-i18n-shell-sections.test.ts`
 
 **Interfaces:**
+
 - Consumes: Task 2 translator/context.
 - Produces: explicit localized shell/sections and semantic localized replacements for CSS pseudo-content.
 
@@ -140,6 +146,7 @@ pnpm --filter @ja/portal typecheck
 ### Task 4: Localize standalone pages, authentication, and action feedback
 
 **Files:**
+
 - Modify: `apps/portal/src/routes/app/login/**/*.svelte`
 - Modify: `apps/portal/src/routes/app/invite/**/*.svelte`
 - Modify: `apps/portal/src/routes/app/{projects,reports,time,expenses,billing,notifications}/**/*.svelte`
@@ -149,6 +156,7 @@ pnpm --filter @ja/portal typecheck
 - Test: `tests/regression/portal-i18n-standalone-actions.test.ts`
 
 **Interfaces:**
+
 - Consumes: Task 2 translator and message-key contract.
 - Produces: locale bootstrapping without English flash and `{messageKey, messageParams}` action feedback.
 
@@ -177,6 +185,7 @@ pnpm --filter @ja/portal build
 ### Task 5: Complete five PDF renderers in three locales
 
 **Files:**
+
 - Modify: `packages/reporting/src/exports.ts`
 - Modify: `packages/reporting/src/index.ts`
 - Modify: `packages/invoice-templates/src/index.ts`
@@ -184,6 +193,7 @@ pnpm --filter @ja/portal build
 - Test: `tests/reporting-i18n.test.ts`
 
 **Interfaces:**
+
 - Consumes: normalized locale and immutable snapshots.
 - Produces: deterministic `invoicePdf`, `periodReportPdf`, `accountingPackPdf`, `dailyReportPdf`, and `technicalReportPdf` for EN/ES/PT.
 
@@ -211,6 +221,7 @@ pnpm --filter @ja/reporting typecheck
 ### Task 6: Add immutable localized PDF variants
 
 **Files:**
+
 - Create: `migrations/0023_localized_pdf_variants.sql`
 - Modify/create: localized-artifact domain modules under `packages/database/src/domains/`
 - Modify: `packages/database/src/index.ts`
@@ -219,6 +230,7 @@ pnpm --filter @ja/reporting typecheck
 - Test: `tests/security/localized-pdf-variants-security.test.ts`
 
 **Interfaces:**
+
 - Consumes: Task 1 revision/deployment/job contracts and Task 5 renderers.
 - Produces: I18N-ARCH-13 `LocalizedPdfOwner`, request/list/retry/claim/complete/fail/download contracts.
 
@@ -247,6 +259,7 @@ pnpm db:integrity
 ### Task 7: Wire localized jobs, APIs, and portal controls
 
 **Files:**
+
 - Modify: `packages/reporting/src/artifact-jobs.ts`
 - Modify: B5 runner/domain job modules
 - Create: localized PDF API routes under `apps/portal/src/routes/app/api/`
@@ -256,6 +269,7 @@ pnpm db:integrity
 - Test: `tests/e2e/portal-i18n-pdf.spec.ts`
 
 **Interfaces:**
+
 - Consumes: Tasks 1, 5, and 6.
 - Produces: one fenced job per locale variant, truthful status/retry UI, and authorized downloads.
 
@@ -280,6 +294,7 @@ Run Step 2 plus the focused Playwright spec against a disposable seeded database
 ### Task 8: Documentation, exhaustive QA, and independent review
 
 **Files:**
+
 - Modify: `README.md`
 - Modify: `docs/SHOWCASE_ACCESS.md`
 - Modify: `REQUIREMENTS_TRACEABILITY_MATRIX.md`
@@ -287,6 +302,7 @@ Run Step 2 plus the focused Playwright spec against a disposable seeded database
 - Create: quality evidence under `artifacts/quality-gates/i18n/`
 
 **Interfaces:**
+
 - Consumes: all prior tasks.
 - Produces: synchronized documentation and release evidence.
 
@@ -321,4 +337,3 @@ pnpm test:e2e
 ```
 
 Require fresh evidence and distinguish repository-preexisting/unrelated failures from regressions. Final sign-off is Sol/high and may not declare READY with any mandatory failure.
-

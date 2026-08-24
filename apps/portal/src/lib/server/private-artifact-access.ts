@@ -251,10 +251,7 @@ async function assertNoSymlinkParents(root: string, directory: string): Promise<
 }
 
 function writeStorageKeyIsSafe(storageKey: string): boolean {
-  return (
-    safeStorageKey(storageKey) &&
-    storageKey.split('/').every((segment) => Boolean(segment))
-  );
+  return safeStorageKey(storageKey) && storageKey.split('/').every((segment) => Boolean(segment));
 }
 
 async function ensurePrivateStorageDirectory(root: string, directory: string): Promise<void> {
@@ -273,9 +270,7 @@ async function ensurePrivateStorageDirectory(root: string, directory: string): P
   // newly-created component is lstat-validated before the next component.
   const anchor = parse(rootPath).root;
   let cursor = anchor;
-  const chain = relative(anchor, targetDirectory)
-    .split(/[\\/]/u)
-    .filter(Boolean);
+  const chain = relative(anchor, targetDirectory).split(/[\\/]/u).filter(Boolean);
   for (const component of chain) {
     cursor = resolve(cursor, component);
     let stats;
@@ -299,7 +294,9 @@ async function ensurePrivateStorageDirectory(root: string, directory: string): P
 }
 
 function eexistError(path: string): NodeJS.ErrnoException {
-  const error = new Error(`Private artifact destination already exists: ${path}`) as NodeJS.ErrnoException;
+  const error = new Error(
+    `Private artifact destination already exists: ${path}`,
+  ) as NodeJS.ErrnoException;
   error.code = 'EEXIST';
   return error;
 }

@@ -25,8 +25,7 @@ const reportAttachmentMetadataSchema = z
     attachmentKind: reportAttachmentKindSchema,
     notes: z.string().trim().max(5_000).optional(),
     version: z.preprocess(
-      (value) =>
-        typeof value === 'string' && /^\d+$/u.test(value) ? Number(value) : value,
+      (value) => (typeof value === 'string' && /^\d+$/u.test(value) ? Number(value) : value),
       z.number().int().positive(),
     ),
     supersedesDocumentId: z
@@ -90,9 +89,9 @@ export function reportAttachmentTypeForId(
   const daily = sqlite.prepare('SELECT id FROM daily_report WHERE id=?').get(reportId) as
     | { id: string }
     | undefined;
-  const technical = sqlite
-    .prepare('SELECT id FROM technical_report WHERE id=?')
-    .get(reportId) as { id: string } | undefined;
+  const technical = sqlite.prepare('SELECT id FROM technical_report WHERE id=?').get(reportId) as
+    | { id: string }
+    | undefined;
   if (Boolean(daily) === Boolean(technical)) throw new V3NotFoundError('Report not found');
   return daily ? 'daily' : 'technical';
 }

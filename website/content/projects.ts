@@ -1,6 +1,120 @@
 import type { Project } from './types';
 
 export const projects: Project[] = [
+  // ─── 2025–2026 (LinkedIn / Recent Work) ──────────────────────────────────
+  {
+    id: 'fruki-bottling-expansion-2026',
+    slug: 'fruki-bottling-capacity-expansion',
+    title: 'High-Speed Bottling Line Installation & Format Expansion',
+    client: 'FRUKI',
+    location: 'Rio Grande do Sul, Brazil',
+    displayDate: '2025–2026',
+    startYear: 2025,
+    endYear: 2026,
+    industry: 'food-beverage',
+    capabilities: ['plc-hmi-scada', 'robotics', 'commissioning', 'motion-process'],
+    technologies: ['Robotics', 'Line Integration', 'Motion Control', 'PLC / HMI'],
+    scope:
+      'Turnkey installation of high-speed beverage production line and multi-format capacity expansion, synchronizing filling, packaging, and robotic palletizing.',
+    outcome:
+      'Optimized throughput across all packaging formats with reduced line downtime and scalable multi-format flexibility.',
+    featured: true,
+    source: 'new-ja-data',
+    sortWeight: 1000,
+  },
+  {
+    id: 'delta-beverage-rebuild-2025',
+    slug: 'delta-beverage-filler-packer-rebuild',
+    title: 'Filler, Kister Packer and Palletizer Line Overhaul',
+    client: 'Delta Sparkling Beverage',
+    location: 'Zimbabwe',
+    displayDate: '2025–2026',
+    startYear: 2025,
+    endYear: 2026,
+    industry: 'food-beverage',
+    capabilities: ['plc-hmi-scada', 'commissioning', 'support'],
+    technologies: ['Filler Controls', 'Kister Packer', 'Palletizer', 'Line Overhaul'],
+    scope:
+      'Fast-turnaround mechanical and controls overhaul for bottling line Filler, Kister Packer, and Palletizer equipment.',
+    outcome:
+      'Production restarted on schedule with full line reliability and restored machine efficiency.',
+    featured: true,
+    source: 'new-ja-data',
+    sortWeight: 900,
+  },
+  {
+    id: 'usa-automotive-robot-commissioning-2025',
+    slug: 'usa-automotive-robot-commissioning',
+    title: 'Automotive Assembly Robotic Cell Commissioning',
+    location: 'United States',
+    displayDate: '2025–2026',
+    startYear: 2025,
+    endYear: 2026,
+    industry: 'automotive',
+    capabilities: ['robotics', 'commissioning', 'plc-hmi-scada'],
+    technologies: ['FANUC', 'KUKA', 'Safety Interlocks', 'Assembly Cells'],
+    scope:
+      'Turnkey robotic cell commissioning, safety interlock programming, and multi-trade coordination for automotive production.',
+    outcome: 'Rapid line ramp-up with optimized robotic cycle times and zero safety defects.',
+    featured: true,
+    source: 'new-ja-data',
+    sortWeight: 800,
+  },
+  {
+    id: 'krones-variopac-rebuild-2026',
+    slug: 'krones-variopac-closing-chain-rebuild',
+    title: 'Krones Variopac Closing Chain Rebuild',
+    client: 'Krones OEM Line Customer',
+    displayDate: '2026',
+    startYear: 2026,
+    industry: 'food-beverage',
+    capabilities: ['motion-process', 'support', 'commissioning'],
+    technologies: ['Krones Variopac', 'Packaging Automation', 'Motion Control'],
+    scope:
+      'Complete mechanical and automation rebuild of the closing chain on Krones Variopac packaging equipment for high-speed beverage packaging.',
+    outcome:
+      'Restored packaging precision and extended equipment lifespan with high-standard OEM-alternative maintenance.',
+    featured: true,
+    source: 'new-ja-data',
+    sortWeight: 700,
+  },
+  {
+    id: 'brazil-spring-water-packaging-2025',
+    slug: 'spring-water-packer-palletizer-line',
+    title: 'Spring Water Packer, Conveyor and Palletizer Turnkey Integration',
+    location: 'Brazil',
+    displayDate: '2025–2026',
+    startYear: 2025,
+    endYear: 2026,
+    industry: 'food-beverage',
+    capabilities: ['plc-hmi-scada', 'robotics', 'commissioning'],
+    technologies: ['Rockwell', 'Conveyor Systems', 'Robotic Palletizing'],
+    scope:
+      'Turnkey controls engineering, conveyor integration, packing, and automated palletizing for a commercial spring water bottling facility.',
+    outcome: 'High-speed line synchronization delivered on schedule with seamless startup.',
+    featured: true,
+    source: 'new-ja-data',
+    sortWeight: 600,
+  },
+  {
+    id: 'fispal-tecnologia-showcase-2026',
+    slug: 'fispal-tecnologia-industrial-automation',
+    title: 'FISPAL Tecnologia 2026 Automation & Aquarex Showcase',
+    location: 'São Paulo, Brazil',
+    displayDate: '2026',
+    startYear: 2026,
+    industry: 'food-beverage',
+    capabilities: ['training-consulting', 'simulation', 'support'],
+    technologies: ['Aquarex RO Controls', 'Digital Manufacturing', 'Smart Factory'],
+    scope:
+      'Demonstration and technical exchange on smart industrial automation, digital manufacturing, and Aquarex water recycling solutions for food and beverage plants.',
+    outcome:
+      'Strengthened global partnerships and technical collaboration across international industrial facilities.',
+    featured: true,
+    source: 'new-ja-data',
+    sortWeight: 500,
+  },
+
   // ─── 2019 ──────────────────────────────────────────────────────────────
   {
     id: 'incobrasa-silo-2019',

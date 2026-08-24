@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import logoImg from '@/public/brand/logo-jaautomation.png';
+import logoImg from '@/public/brand/logo-jaautomation.webp';
 import { Link, usePathname } from '@/lib/i18n/navigation';
 import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
@@ -97,10 +97,10 @@ export function Header() {
           className={`flex items-center justify-between ${scrolled || !isHome ? 'h-16' : 'h-20'} transition-all duration-300`}
         >
           {/* Logo */}
-          <Link href="/" className="relative z-10 flex-shrink-0" aria-label="J&A Automation Home">
+          <Link href="/" className="relative z-10 flex-shrink-0" aria-label={t('siteHome')}>
             <Image
               src={logoImg}
-              alt="J-Aautomation Logo"
+              alt={t('logoAlt')}
               width={160}
               height={40}
               className={`h-8 w-auto md:h-10 transition-all duration-300 ${logoFilter} hover:scale-105`}
@@ -109,7 +109,7 @@ export function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1" aria-label="Main navigation">
+          <nav className="hidden lg:flex items-center gap-1" aria-label={t('mainNavigation')}>
             {navLinks.map((link) => (
               <Link
                 key={link.key}

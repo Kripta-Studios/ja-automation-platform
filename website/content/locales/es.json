@@ -2,9 +2,9 @@
   "meta": {
     "siteName": "J&A Automation",
     "homeTitle": "J&A Automation | Automatización Industrial, PLC, Robótica y Controles",
-    "homeDescription": "Automatización industrial e ingeniería de controles para PLC/HMI/SCADA, robótica, controles eléctricos, simulación, puesta en marcha, troubleshooting y soporte.",
+    "homeDescription": "Automatización industrial e ingeniería de controles para PLC/HMI/SCADA, robótica, controles eléctricos, simulación, puesta en marcha, diagnóstico de fallas y soporte.",
     "capabilitiesTitle": "Servicios de Automatización Industrial | J&A Automation",
-    "capabilitiesDescription": "Programación de PLC y HMI, integración robótica, controles eléctricos, simulación, motion, puesta en marcha, soporte técnico, modernización y capacitación.",
+    "capabilitiesDescription": "Programación de PLC y HMI, integración robótica, controles eléctricos, simulación, movimiento, puesta en marcha, soporte técnico, modernización y capacitación.",
     "projectsTitle": "Experiencia en Proyectos de Automatización Industrial | J&A Automation",
     "projectsDescription": "Explore la experiencia de proyectos de J&A Automation en automotriz, alimentos y bebidas, energía, procesos, cosméticos, empaques y manufactura industrial.",
     "aquarexTitle": "Aquarex — Soluciones de Reciclaje de Ácido y Cáustico | J&A Automation",
@@ -14,7 +14,9 @@
     "careersTitle": "Carreras en Automatización Industrial | J&A Automation",
     "careersDescription": "Oportunidades en programación de PLC, robótica, diseño eléctrico, puesta en marcha e ingeniería de automatización industrial.",
     "contactTitle": "Contacto | Hable con un Ingeniero | J&A Automation",
-    "contactDescription": "Contacte a J&A Automation para proyectos de automatización industrial, PLC/HMI/SCADA, robótica, controles eléctricos, puesta en marcha o soporte técnico."
+    "contactDescription": "Contacte a J&A Automation para proyectos de automatización industrial, PLC/HMI/SCADA, robótica, controles eléctricos, puesta en marcha o soporte técnico.",
+    "industriesTitle": "Industrias de automatización industrial | J&A Automation",
+    "industriesDescription": "Explore los sectores industriales donde J&A Automation ofrece controles, robótica, integración y puesta en marcha."
   },
   "nav": {
     "capabilities": "Capacidades",
@@ -29,12 +31,28 @@
     "portalLogin": "Entrar al portal del equipo",
     "skipToContent": "Ir al contenido principal",
     "openMenu": "Abrir menú",
-    "closeMenu": "Cerrar menú"
+    "closeMenu": "Cerrar menú",
+    "mainNavigation": "Navegación principal",
+    "languageSelector": "Selector de idioma",
+    "navigationMenu": "Menú de navegación",
+    "siteHome": "Inicio de J&A Automation",
+    "logoAlt": "Logotipo de J&A Automation",
+    "switchTo": "Cambiar a {language}",
+    "languageNames": {
+      "en": "inglés",
+      "pt": "portugués de Brasil",
+      "es": "español"
+    },
+    "languageLabels": {
+      "en": "EN",
+      "pt": "PT-BR",
+      "es": "ES"
+    }
   },
   "hero": {
     "eyebrow": "AUTOMATIZACIÓN INDUSTRIAL • ROBÓTICA • CONTROLES",
     "h1": "Ingeniería que mantiene la producción en movimiento.",
-    "body": "J&A Automation diseña, integra, comisiona y da soporte a sistemas de control industrial en todo el mundo — desde PLC, HMI y SCADA hasta robótica, ingeniería eléctrica, simulación, puesta en marcha y troubleshooting.",
+    "body": "J&A Automation diseña, integra, pone en marcha y da soporte a sistemas de control industrial en todo el mundo — desde PLC, HMI y SCADA hasta robótica, ingeniería eléctrica, simulación, arranque y diagnóstico de fallas.",
     "cta": "Hable con un ingeniero",
     "ctaSecondary": "Explorar capacidades",
     "supportLink": "¿Problema en producción? Solicite soporte técnico →",
@@ -51,8 +69,8 @@
   "intro": {
     "eyebrow": "02 / INGENIERÍA INDUSTRIAL",
     "h2": "Un socio de ingeniería del diseño de controles a la producción estable.",
-    "p1": "Los proyectos de automatización industrial rara vez fallan dentro de una sola disciplina. Lógica de PLC, robots, drives, interfaces de seguridad, diseño eléctrico, mecánica, operadores y programas de producción tienen que funcionar juntos. J&A Automation integra esas interfaces en un solo alcance de ingeniería.",
-    "p2": "Desde nuevos sistemas y actualizaciones de línea hasta puesta en marcha, troubleshooting y soporte remoto, nuestro equipo trabaja en todo el ciclo de vida de la automatización con enfoque práctico en lo que debe funcionar en el piso de producción.",
+    "p1": "Los proyectos de automatización industrial rara vez fallan dentro de una sola disciplina. La lógica de PLC, los robots, los accionamientos, las interfaces de seguridad, el diseño eléctrico, la mecánica, los operadores y los programas de producción tienen que funcionar juntos. J&A Automation integra esas interfaces en un solo alcance de ingeniería.",
+    "p2": "Desde nuevos sistemas y actualizaciones de línea hasta puesta en marcha, diagnóstico de fallas y soporte remoto, nuestro equipo trabaja en todo el ciclo de vida de la automatización con enfoque práctico en lo que debe funcionar en el piso de producción.",
     "cta": "Acerca de J&A Automation →",
     "imageCaption": "CONTROLES • INTEGRACIÓN • PUESTA EN MARCHA"
   },
@@ -64,32 +82,35 @@
     "plcHmiScada": "PLC, HMI y SCADA",
     "plcHmiScadaDesc": "Software de control para máquinas, líneas y sistemas de proceso — desde secuenciamiento e interbloqueos hasta alarmas, recetas, diagnósticos e integración supervisoria.",
     "robotics": "Robótica e Integración de Línea",
-    "roboticsDesc": "Programación de robots, handshakes PLC/robot, coordinación de celdas, interbloqueos, transportadores, lógica de producción e integración a nivel de línea.",
-    "simulation": "Simulación e Ingeniería Offline",
-    "simulationDesc": "Valide layouts, comportamiento de proceso, trayectorias de robots e interfaces de control antes o junto al despliegue en campo.",
+    "roboticsDesc": "Programación de robots, enlaces PLC/robot, coordinación de celdas, interbloqueos, transportadores, lógica de producción e integración a nivel de línea.",
+    "simulation": "Simulación e ingeniería sin conexión",
+    "simulationDesc": "Valide diseños, comportamiento de proceso, trayectorias de robots e interfaces de control antes o junto al despliegue en campo.",
     "electricalControls": "Ingeniería Eléctrica y de Controles",
     "electricalControlsDesc": "Diseño eléctrico, arquitectura de controles, ingeniería de tableros, interfaces de máquinas y coordinación multidisciplinaria del concepto a la entrega.",
-    "motionProcess": "Motion y Control de Procesos",
-    "motionProcessDesc": "VFD, servo, motion y control en lazo cerrado para transportadores, sistemas de llenado, máquinas y equipos de proceso industrial.",
-    "commissioning": "Puesta en Marcha y Startup",
-    "commissioningDesc": "Soporte FAT/SAT, integración en campo, startup, ramp-up, troubleshooting y estabilización de producción.",
+    "motionProcess": "Movimiento y control de procesos",
+    "motionProcessDesc": "VFD, servo, movimiento y control en lazo cerrado para transportadores, sistemas de llenado, máquinas y equipos de proceso industrial.",
+    "commissioning": "Puesta en marcha y arranque",
+    "commissioningDesc": "Soporte FAT/SAT, integración en campo, arranque, aumento gradual de producción, diagnóstico de fallas y estabilización de la producción.",
     "supportTraining": "Soporte, Capacitación y Consultoría",
-    "supportTrainingDesc": "Soporte técnico bajo demanda o por contrato, diagnóstico remoto, planificación de modernización, especificación de equipos y capacitación de PLC/HMI."
+    "supportTrainingDesc": "Soporte técnico bajo demanda o por contrato, diagnóstico remoto, planificación de modernización, especificación de equipos y capacitación de PLC/HMI.",
+    "explore": "Explorar capacidad"
   },
   "industries": {
     "eyebrow": "01 / INDUSTRIAS",
     "h2": "Diseñado para ambientes de producción donde el tiempo muerto es costoso.",
     "cta": "Explorar industrias →",
     "automotive": "Automotriz",
-    "automotiveDesc": "Body shop, ensamble, estampado, tren motriz, transportadores, poka-yoke, integración robot/PLC y puesta en marcha.",
+    "automotiveDesc": "Taller de carrocería, ensamble, estampado, tren motriz, transportadores, poka-yoke, integración robot/PLC y puesta en marcha.",
     "foodBeverage": "Alimentos y Bebidas",
     "foodBeverageDesc": "Llenado, transporte, empaque, recetas, cambios de formato, actualizaciones, trabajo de eficiencia y puesta en marcha de línea.",
     "energyProcess": "Energía y Procesos",
     "energyProcessDesc": "Controles de proceso, compresores, sistemas de gas, paquetes eléctricos/automatización, soporte FAT/FMEA y puesta en marcha en campo.",
     "cosmeticsPackaging": "Cosméticos y Empaques",
-    "cosmeticsPackagingDesc": "Llenado, tapado, indexación, motion, pick-and-place, transporte, encartuchado e integración de máquinas.",
+    "cosmeticsPackagingDesc": "Llenado, tapado, indexación, movimiento, toma y colocación, transporte, encartuchado e integración de máquinas.",
     "oemGeneral": "OEM e Industria General",
-    "oemGeneralDesc": "Ingeniería de controles, integración de máquinas, retrofits, tableros y puesta en marcha para OEMs y fabricantes industriales."
+    "oemGeneralDesc": "Ingeniería de controles, integración de máquinas, modernizaciones, tableros y puesta en marcha para OEMs y fabricantes industriales.",
+    "lead": "J&A Automation construye, integra y brinda soporte a sistemas de control industrial en múltiples sectores.",
+    "viewProjects": "Ver proyectos de esta industria"
   },
   "projectExperience": {
     "eyebrow": "04 / EXPERIENCIA EN PROYECTOS",
@@ -101,16 +122,18 @@
   },
   "clients": {
     "h2": "Experiencia con marcas industriales globales en proyectos seleccionados.",
-    "disclaimer": "Los nombres de clientes reflejan experiencia publicada en proyectos y no implican asociación o respaldo actual."
+    "disclaimer": "Los nombres de clientes reflejan experiencia publicada en proyectos y no implican asociación o respaldo actual.",
+    "eyebrow": "Experiencia seleccionada",
+    "logoAlt": "Logotipo de {name}"
   },
   "techEcosystem": {
     "eyebrow": "05 / ECOSISTEMA TECNOLÓGICO",
-    "h2": "Experiencia multi-vendor para los sistemas que ya están en su piso de producción.",
-    "lead": "Las plantas industriales rara vez operan en una sola plataforma. Los ingenieros de J&A trabajan con ecosistemas de control, robótica, HMI, motion e ingeniería establecidos y modernos — apoyando tanto proyectos nuevos como equipos instalados.",
+    "h2": "Experiencia con múltiples proveedores para los sistemas que ya están en su piso de producción.",
+    "lead": "Las plantas industriales rara vez operan en una sola plataforma. Los ingenieros de J&A trabajan con ecosistemas de control, robótica, HMI, movimiento e ingeniería establecidos y modernos — apoyando tanto proyectos nuevos como equipos instalados.",
     "plcScada": "PLC / SCADA",
     "robotics": "Robótica",
     "engineering": "Ingeniería / Simulación",
-    "motion": "Motion / Campo"
+    "motion": "Movimiento / Campo"
   },
   "delivery": {
     "eyebrow": "06 / ENTREGA",
@@ -122,17 +145,22 @@
     "step3": "Validar",
     "step3Desc": "Probar lógica y supuestos de integración antes del trabajo en campo mediante revisiones, simulación y FAT cuando aplique.",
     "step4": "Comisionar",
-    "step4Desc": "Integrar en sitio, resolver problemas de interfaz, ejecutar actividades de startup/SAT y estabilizar el comportamiento de producción.",
+    "step4Desc": "Integrar en sitio, resolver problemas de interfaz, ejecutar actividades de arranque/SAT y estabilizar el comportamiento de producción.",
     "step5": "Soporte",
-    "step5Desc": "Proporcionar mejoras dirigidas, soporte técnico, capacitación y troubleshooting remoto después de la entrega."
+    "step5Desc": "Proporcionar mejoras dirigidas, soporte técnico, capacitación y diagnóstico remoto después de la entrega."
   },
   "remoteSupport": {
     "eyebrow": "SOPORTE REMOTO + PRESENCIAL",
     "h2": "Cuando la producción tiene un problema de controles, diríjalo a un ingeniero.",
-    "body": "J&A proporciona soporte técnico para problemas de PLC, HMI, robot y controles industriales bajo demanda o por contrato. El diagnóstico remoto puede acelerar el troubleshooting cuando el problema puede investigarse a través del ambiente de controles instalado; el soporte presencial sigue disponible cuando el trabajo requiere el piso de producción.",
+    "body": "J&A proporciona soporte técnico para problemas de PLC, HMI, robot y controles industriales bajo demanda o por contrato. El diagnóstico remoto puede acelerar la resolución de fallas cuando el problema puede investigarse a través del ambiente de controles instalado; el soporte presencial sigue disponible cuando el trabajo requiere el piso de producción.",
     "helper": "Incluya la máquina o línea, plataforma de PLC/robot, síntomas, ubicación y urgencia para que la solicitud pueda ser dirigida rápidamente.",
     "cta": "Solicitar soporte técnico",
-    "callUs": "Llamar"
+    "callUs": "Llamar",
+    "coverageEyebrow": "Cobertura presencial + remota",
+    "coveragePlcHmi": "PLC / HMI",
+    "coverageRobotics": "Robótica",
+    "coverageDrivesMotion": "Variadores + movimiento",
+    "coverageProductionStartup": "Arranque de producción"
   },
   "team": {
     "eyebrow": "07 / EQUIPO DE INGENIERÍA",
@@ -140,10 +168,12 @@
     "plcEngineers": "Programadores / ingenieros de PLC",
     "robotEngineers": "Programadores / ingenieros de robots",
     "electricalDesigners": "Diseñadores eléctricos",
+    "mechanicalDesigners": "Diseñadores mecánicos",
+    "installationTeam": "Personal del equipo de instalación",
     "planningSpecialists": "Especialistas en planificación",
     "siteManagers": "Gerentes de obra / coordinadores de proyecto",
     "instructors": "Instructores de PLC / robótica",
-    "body": "El equipo combina experiencia internacional en proyectos, gestión de proyectos, capacitación de fabricantes y trabajo práctico en ambientes de body shop, pintura, ensamble, estampado y tren motriz automotriz.",
+    "body": "El equipo combina experiencia internacional en proyectos, gestión de proyectos, capacitación de fabricantes y trabajo práctico en ambientes de taller de carrocería, pintura, ensamble, estampado y tren motriz automotriz.",
     "cta": "Acerca de la empresa →"
   },
   "aquarexTeaser": {
@@ -190,7 +220,7 @@
     "projectTab": "Hable con un ingeniero",
     "projectHelper": "Nueva máquina, línea, actualización de controles, robótica, ingeniería eléctrica, simulación, puesta en marcha o consultoría.",
     "supportTab": "Solicitar soporte técnico",
-    "supportHelper": "Troubleshooting, equipo instalado, problema de producción, soporte PLC/HMI/robot, startup o asistencia de mantenimiento.",
+    "supportHelper": "Diagnóstico de fallas, equipo instalado, problema de producción, soporte PLC/HMI/robot, arranque o asistencia de mantenimiento.",
     "name": "Nombre",
     "company": "Empresa",
     "email": "Correo corporativo",
@@ -247,16 +277,48 @@
     "sending": "Enviando…",
     "submitMessage": "Enviar mensaje",
     "loading": "Cargando…",
-    "required": "Requerido"
+    "required": "Requerido",
+    "primaryTitle": "Director ejecutivo",
+    "website": "Sitio web",
+    "companyRequired": "Empresa",
+    "countrySite": "País / sitio",
+    "primaryService": "Servicio principal de interés",
+    "technologyPlatform": "Tecnología / plataforma",
+    "plcRobotPlaceholder": "PLC, robot, SCADA, controles…",
+    "emailOption": "Correo electrónico",
+    "phoneOption": "Teléfono",
+    "siteFacility": "Sitio / planta",
+    "plantLocationPlaceholder": "Ubicación de planta, sitio o sistema",
+    "affectedSystem": "Sistema / plataforma afectada",
+    "plcHmiPlaceholder": "PLC, robot, HMI, SCADA…",
+    "urgency": "Urgencia",
+    "degraded": "Degradada",
+    "plannedSupport": "Soporte planificado",
+    "location": "Ubicación",
+    "professionalProfile": "Perfil profesional",
+    "controlsPlaceholder": "Controles, robótica, electricidad…",
+    "platformsExperience": "Plataformas / experiencia",
+    "experiencePlaceholder": "PLC, robot, HMI u otra experiencia",
+    "travelAvailability": "Disponibilidad para viajar",
+    "travelYes": "Sí",
+    "travelLimited": "Limitada",
+    "travelNo": "No",
+    "industryAutomotive": "Automotriz",
+    "industryFoodBeverage": "Alimentos y bebidas",
+    "industryEnergyProcess": "Energía y procesos",
+    "industryGeneralManufacturing": "Manufactura general",
+    "industryOther": "Otra / no estoy seguro",
+    "aquarexWaterTreatment": "Tratamiento de agua Aquarex",
+    "otherNotSure": "Otro / no estoy seguro"
   },
   "about": {
     "eyebrow": "ACERCA DE J&A AUTOMATION",
     "h1": "Ingenieros de automatización con experiencia de campo detrás del código.",
-    "lead": "J&A Automation fue fundada en 2008 por ingenieros con experiencia en entornos de ingeniería multinacionales y proyectos de automatización industrial. La empresa creció desde trabajos de PLC, robótica y electricidad hasta ingeniería de controles multidisciplinaria, simulación, puesta en marcha, soporte técnico y capacitación.",
+    "lead": "J&A Automation trabaja en controles PLC, robótica, ingeniería eléctrica, simulación, puesta en marcha y diagnóstico de fallas industriales. Buscamos ingenieros y técnicos que combinen profundidad técnica con resolución práctica de problemas en ambientes de producción.",
     "storyH2": "Construida alrededor de las realidades de la producción.",
-    "storyP1": "Los proyectos industriales se juzgan en el piso de producción. El software tiene que funcionar con hardware eléctrico, robots, drives, mecánica, operadores, equipos de mantenimiento y programas de producción. La historia de proyectos de J&A refleja ese enfoque práctico — desde modificaciones de máquinas y desarrollo de controles hasta integración de líneas, puesta en marcha, ramp-up y soporte continuo.",
+    "storyP1": "Los proyectos industriales se juzgan en el piso de producción. El software tiene que funcionar con hardware eléctrico, robots, accionamientos, mecánica, operadores, equipos de mantenimiento y programas de producción. La historia de proyectos de J&A refleja ese enfoque práctico — desde modificaciones de máquinas y desarrollo de controles hasta integración de líneas, puesta en marcha, aumento gradual de producción y soporte continuo.",
     "storyP2": "Hoy la empresa atiende fabricantes, OEMs y equipos de ingeniería en Estados Unidos, Brasil y proyectos internacionales, combinando ejecución en campo con soporte remoto de controles.",
-    "teamIntro": "J&A reúne programadores de controles, programadores de robots, diseñadores eléctricos, especialistas en planificación, gerentes de obra e instructores para que los proyectos puedan ser soportados más allá de una sola disciplina de ingeniería.",
+    "teamIntro": "J&A reúne programadores de controles, programadores de robots, diseñadores eléctricos y mecánicos, especialistas en planificación, gerentes de obra, equipos de instalación e instructores para que los proyectos puedan ser soportados más allá de una sola disciplina de ingeniería.",
     "internationalH2": "Ejecución internacional de proyectos.",
     "internationalBody": "El portafolio publicado de J&A incluye trabajos en Estados Unidos, Brasil, Haití, Paraguay, México, Papúa Nueva Guinea y otros entornos industriales internacionales. La empresa está posicionada para atender clientes en las Américas, Europa y ubicaciones de proyecto globales.",
     "principlesH2": "Principios de ingeniería",
@@ -264,12 +326,26 @@
     "principle1Body": "Muchos problemas de automatización ocurren entre sistemas. Trate el PLC, robot, drive, máquina, dispositivo de campo e interfaz del operador como un solo problema de ingeniería.",
     "principle2Title": "Validar antes de producción",
     "principle2Body": "Encuentre problemas de secuencia, interfaz y modos de falla antes de que consuman tiempo de puesta en marcha.",
-    "principle3Title": "Permanecer hasta el startup",
+    "principle3Title": "Permanecer hasta el arranque",
     "principle3Body": "Un proyecto no está completo porque el código compila. Tiene que operar de forma predecible bajo condiciones de producción.",
     "principle4Title": "Hacer diagnósticos útiles",
     "principle4Body": "Estados, alarmas e información de HMI deben ayudar a mantenimiento y operaciones a entender qué sucedió y qué hacer a continuación.",
     "closingH2": "¿Necesita un equipo de automatización que siga al proyecto hasta la planta?",
-    "closingCta": "Hable con un ingeniero"
+    "closingCta": "Hable con un ingeniero",
+    "storyP3": "Nuestra filosofía es simple: la excelencia en ingeniería impulsa la confiabilidad. Construimos estructuras de código modulares, robustas y diseñadas para las condiciones reales del piso de producción.",
+    "founded": "Fundada",
+    "offices": "Oficinas (EE.UU. y Brasil)",
+    "projectsCompleted": "Proyectos completados",
+    "standard": "El estándar J&A",
+    "modularEngineering": "Ingeniería modular",
+    "modularEngineeringBody": "Desarrollamos bases de código PLC y HMI con principios orientados a objetos. Las instrucciones estandarizadas Add-On (AOI) aseguran consistencia, reducen el tiempo de diagnóstico y hacen escalables nuestros sistemas.",
+    "oemIndependent": "Independientes de OEM",
+    "oemIndependentBody": "Aunque tenemos amplia experiencia en Rockwell, Siemens y KUKA, seguimos siendo independientes del hardware. Diseñamos la mejor solución para sus requisitos técnicos y presupuesto.",
+    "lifecycleSupport": "Soporte de ciclo de vida",
+    "lifecycleSupportBody": "La puesta en marcha no es el final. Proporcionamos documentación completa, capacitación de operadores e infraestructura segura de soporte remoto para que su línea opere con el máximo OEE durante décadas.",
+    "joinTeam": "Únase a nuestro equipo",
+    "joinTeamBody": "Siempre buscamos ingenieros de PLC, especialistas en robótica y diseñadores eléctricos talentosos para unirse a nuestras operaciones en EE.UU. y Brasil.",
+    "careerOpportunities": "Ver oportunidades profesionales"
   },
   "careers": {
     "eyebrow": "CARRERAS",
@@ -294,17 +370,24 @@
     "ctaH2": "¿Interesado en trabajar con J&A?",
     "ctaBody": "Envíe una breve introducción con su ubicación, experiencia en automatización, plataformas principales y disponibilidad para viajar. Incluya su currículum por correo.",
     "ctaPrimary": "Envíe su currículum",
-    "ctaSecondary": "Contactar J&A"
+    "ctaSecondary": "Contactar J&A",
+    "workH2": "Lo que el trabajo puede involucrar"
   },
   "notFound": {
     "h1": "Esta página no está en la línea.",
     "body": "La página puede haberse movido durante la actualización del sitio web de J&A Automation.",
     "cta": "Ir a la página principal",
-    "ctaSecondary": "Explorar capacidades"
+    "ctaSecondary": "Explorar capacidades",
+    "pageTitle": "Página no encontrada",
+    "pageMissingBody": "La página que busca pudo haber sido eliminada, cambiado de nombre o no estar disponible temporalmente.",
+    "returnHome": "Volver al inicio"
   },
   "error": {
     "h1": "Algo interrumpió esta solicitud.",
-    "body": "Por favor, intente de nuevo. Si necesita contactar directamente a J&A, use el teléfono o correo de contacto a continuación."
+    "body": "Por favor, intente de nuevo. Si necesita contactar directamente a J&A, use el teléfono o correo de contacto a continuación.",
+    "tryAgain": "Intentar de nuevo",
+    "returnHome": "Volver al inicio",
+    "unexpected": "Ocurrió un error inesperado. Nuestro equipo de ingeniería ha sido notificado."
   },
   "projectFilters": {
     "all": "Todos",
@@ -329,17 +412,21 @@
     "robotics": "Robótica",
     "electrical": "Eléctrica",
     "simulation": "Simulación",
-    "motion": "Motion",
+    "motion": "Movimiento",
     "commissioning": "Puesta en marcha",
-    "troubleshooting": "Troubleshooting",
+    "troubleshooting": "Diagnóstico de fallas",
     "support": "Soporte",
     "siemens": "Siemens",
     "rockwell": "Rockwell",
     "fanuc": "FANUC",
     "other": "Otros",
+    "range2020_2026": "2020–2026",
     "range2015_2019": "2015–2019",
     "range2010_2014": "2010–2014",
-    "before2010": "Antes de 2010"
+    "before2010": "Antes de 2010",
+    "formLabel": "Filtros de proyectos",
+    "projectCount": "{shown} / {total} proyectos",
+    "trainingConsulting": "Capacitación / consultoría"
   },
   "serviceOptions": {
     "plcHmiScada": "PLC / HMI / SCADA",
@@ -352,7 +439,8 @@
     "consulting": "Consultoría de ingeniería",
     "training": "Capacitación",
     "aquarex": "Aquarex",
-    "other": "Otro"
+    "other": "Otro",
+    "trainingConsulting": "Capacitación / consultoría"
   },
   "projectStageOptions": {
     "earlyConcept": "Concepto inicial",
@@ -361,5 +449,440 @@
     "commissioning": "Integración / puesta en marcha",
     "upgrade": "Actualización de sistema existente",
     "notSure": "No estoy seguro"
+  },
+  "common": {
+    "backToCapabilities": "Volver a capacidades",
+    "backToIndustries": "Volver a industrias",
+    "backToProjects": "Volver a proyectos",
+    "relatedProjectExperience": "Experiencia relacionada en proyectos",
+    "projectExperience": "Experiencia en proyectos",
+    "projectScope": "Alcance del proyecto",
+    "outcome": "Resultado",
+    "capabilitiesApplied": "Capacidades aplicadas",
+    "technologies": "Tecnologías",
+    "exploreCapability": "Explorar capacidad",
+    "viewAllProjects": "Ver todos los proyectos",
+    "viewProjectsInIndustry": "Ver proyectos de esta industria",
+    "discussSimilarProject": "Hablemos de un proyecto similar",
+    "contactEngineeringTeam": "Contactar al equipo de ingeniería",
+    "needEngineeringSupport": "¿Necesita soporte de ingeniería para {capability}?",
+    "needSectorSupport": "¿Necesita soporte de ingeniería en este sector?",
+    "projectsCount": "{shown} / {total} proyectos",
+    "notFound": "No encontrado",
+    "tryAgain": "Intentar de nuevo",
+    "returnHome": "Volver al inicio",
+    "pageNotFound": "Página no encontrada",
+    "pageMissingBody": "La página que busca pudo haber sido eliminada, cambiado de nombre o no estar disponible temporalmente.",
+    "loading": "Cargando…"
+  },
+  "imageAlts": {
+    "logo": "Soluciones industriales de J&A Automation",
+    "heroRobotics": "Línea de ensamblaje robótica industrial",
+    "heroFoodBeverage": "Línea de producción de alimentos y bebidas",
+    "heroEnergyProcess": "Planta industrial de energía y procesos",
+    "automotive": "Taller de carrocería automotriz con robótica industrial",
+    "foodBeverage": "Línea de producción de alimentos y bebidas",
+    "energyProcess": "Planta industrial de energía y procesos",
+    "cosmeticsPackaging": "Línea de producción de llenado de cosméticos",
+    "oemGeneral": "Celda robótica industrial",
+    "assembly": "Línea de ensamblaje automatizada de última generación"
+  },
+  "serviceTags": {
+    "siemens": "Siemens",
+    "rockwell": "Rockwell",
+    "wincc": "WinCC",
+    "factoryTalk": "FactoryTalk",
+    "fanuc": "FANUC",
+    "kuka": "KUKA",
+    "abb": "ABB",
+    "yaskawa": "Yaskawa",
+    "processSimulate": "Process Simulate",
+    "robotStudio": "RobotStudio",
+    "offlineEngineering": "Ingeniería sin conexión",
+    "eplan": "EPLAN",
+    "autoCadElectrical": "AutoCAD Electrical",
+    "panels": "Tableros",
+    "safetyInterfaces": "Interfaces de seguridad",
+    "vfd": "VFD",
+    "servo": "Servo",
+    "motion": "Movimiento",
+    "pid": "PID",
+    "fat": "FAT",
+    "sat": "SAT",
+    "startup": "Arranque",
+    "rampUp": "Aumento gradual de producción",
+    "remoteSupport": "Soporte remoto",
+    "troubleshooting": "Diagnóstico de fallas",
+    "training": "Capacitación",
+    "consulting": "Consultoría"
+  },
+  "aquarex": {
+    "eyebrow": "Solución propia",
+    "subtitle": "Sistema de control inteligente para tratamiento de agua industrial y ósmosis inversa.",
+    "requestDatasheet": "Solicitar ficha técnica",
+    "talkToEngineer": "Hable con un ingeniero",
+    "systemAdvantages": "Ventajas del sistema",
+    "monitoring": "Monitoreo en tiempo real",
+    "monitoringBody": "Adquisición continua de datos de conductividad, pH, caudal y presión en todas las etapas de tratamiento.",
+    "architecture": "Arquitectura estandarizada",
+    "architectureBody": "La base de código PLC/HMI prediseñada reduce hasta un 40 % el tiempo de puesta en marcha y mantiene una confiabilidad sólida.",
+    "compliance": "Lista para cumplimiento",
+    "complianceBody": "Herramientas integradas de registro y reportes diseñadas para cumplir las estrictas regulaciones de alimentos, bebidas y productos farmacéuticos.",
+    "processControl": "Control de procesos estandarizado",
+    "processBody": "La plataforma Aquarex se integra con unidades de ósmosis inversa (RO), ultrafiltración (UF) y sistemas de dosificación química. Proporciona una interfaz HMI unificada y estandariza estructuras de datos para facilitar la integración ERP/MES.",
+    "skidIntegration": "Integración de skids",
+    "skidIntegrationBody": "Bloques lógicos plug-and-play para skids OEM comunes.",
+    "chemicalDosing": "Dosificación química",
+    "chemicalDosingBody": "Control preciso en lazo cerrado de bombas dosificadoras a partir de la retroalimentación de sensores en línea.",
+    "alarmManagement": "Gestión de alarmas",
+    "alarmManagementBody": "Estructuras de alarmas conformes con ISA 18.2 para un diagnóstico rápido de fallas.",
+    "diagramAria": "Diagrama de arquitectura Aquarex",
+    "diagramCore": "PLC CENTRAL AQUAREX",
+    "diagramHmi": "SCADA / HMI",
+    "diagramSensors": "Sensores (pH, cond.)",
+    "diagramFlowMeters": "Medidores de caudal",
+    "diagramDosingPumps": "Bombas dosificadoras",
+    "diagramVfdMotors": "VFD / motores",
+    "diagramValves": "Válvulas",
+    "datasheetHeading": "Solicitar ficha técnica",
+    "datasheetBody": "Ingrese sus datos para recibir la guía completa de especificación Aquarex, la lista de E/S y los requisitos de integración.",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "workEmail": "Correo corporativo",
+    "company": "Empresa",
+    "sendDatasheet": "Enviar ficha técnica",
+    "privacyNote": "Al solicitar esta ficha técnica, acepta nuestra política de privacidad. Nunca compartiremos su información."
+  },
+  "projectCatalog": {
+    "fruki-bottling-expansion-2026": {
+      "title": "Instalación de línea de embotellado de alta velocidad y expansión multiformato",
+      "scope": "Instalación llave en mano de línea de producción de bebidas y posterior expansión de capacidad para múltiples formatos de empaque, sincronizando llenado, empaque y paletizado robótico.",
+      "outcome": "Rendimiento optimizado en todos los formatos con menor tiempo de inactividad y flexibilidad multiformato escalable.",
+      "displayDate": "2025–2026"
+    },
+    "delta-beverage-rebuild-2025": {
+      "title": "Reconstrucción y overhaul de llenadora, empacadora Kister y paletizador",
+      "scope": "Reconstrucción y overhaul mecánico y de control con rápido retorno a producción para llenadora, empacadora Kister y paletizador en línea de bebidas.",
+      "outcome": "Producción reactivada a tiempo con confiabilidad total y recuperación de la eficiencia operativa.",
+      "displayDate": "2025–2026"
+    },
+    "krones-variopac-rebuild-2026": {
+      "title": "Reconstrucción de cadena de cierre para Krones Variopac",
+      "scope": "Reconstrucción completa mecánica y de automatización de la cadena de cierre en empacadora Krones Variopac para líneas de envasado de alta velocidad.",
+      "outcome": "Precisión de empaque restaurada y vida útil extendida con mantenimiento de estándar OEM de costo eficiente.",
+      "displayDate": "2026"
+    },
+    "brazil-spring-water-packaging-2025": {
+      "title": "Integración llave en mano de empacadora, transportadores y paletizador para agua mineral",
+      "scope": "Ingeniería de control, integración de transportadores, empacadora y paletizado automatizado para planta de embotellado de agua mineral.",
+      "outcome": "Sincronización de línea de alta velocidad entregada en plazo con arranque sin incidencias.",
+      "displayDate": "2025–2026"
+    },
+    "usa-automotive-robot-commissioning-2025": {
+      "title": "Puesta en marcha de celdas robóticas de ensamble automotriz",
+      "scope": "Puesta en marcha llave en mano de celdas robóticas, programación de interlocks de seguridad y coordinación de oficios especializados para manufactura automotriz.",
+      "outcome": "Aceleración del arranque de producción con tiempos de ciclo optimizados y cero defectos de seguridad.",
+      "displayDate": "2025–2026"
+    },
+    "fispal-tecnologia-showcase-2026": {
+      "title": "Exhibición de automatización industrial y Aquarex en FISPAL Tecnologia 2026",
+      "scope": "Demostración técnica e intercambio sobre automatización industrial inteligente, manufactura digital y soluciones Aquarex de reciclaje de agua para plantas de alimentos y bebidas.",
+      "outcome": "Consolidación de alianzas globales y colaboración técnica con clientes de más de 30 países.",
+      "displayDate": "2026"
+    },
+    "incobrasa-silo-2019": {
+      "title": "Ampliación del limpiador y silos para soja",
+      "scope": "Diseño de automatización para la ampliación del control de silos en un proceso de secado de soja usando controles PLC Rockwell y supervisión Wonderware InTouch.",
+      "displayDate": "2019",
+      "outcome": ""
+    },
+    "incobrasa-oil-2019": {
+      "title": "Cambios de automatización en línea de llenado de aceite de soja",
+      "scope": "Cambios en transportadores para producción y confiabilidad, cambios en el paletizador para una nueva formación de pallets e integración de señales del etiquetador y transportadores.",
+      "displayDate": "2019",
+      "outcome": ""
+    },
+    "ford-schuler-2018": {
+      "title": "Prensa de estampado Schuler",
+      "scope": "Mejora de automatización, diagnóstico de fallas, puesta en marcha y servicio para equipos de estampado.",
+      "displayDate": "2018–2019",
+      "outcome": ""
+    },
+    "chicago-tower-2018": {
+      "title": "Taller de carrocería Chicago Tower",
+      "scope": "Integración de PLC del taller de carrocería.",
+      "displayDate": "2018–2019",
+      "outcome": ""
+    },
+    "bmw-wire-harness-2018": {
+      "title": "Horno de arneses eléctricos",
+      "scope": "Ampliación del horno de arneses eléctricos.",
+      "displayDate": "2018",
+      "outcome": ""
+    },
+    "bmw-marriage-2018": {
+      "title": "Línea de unión de carrocería y tren motriz",
+      "scope": "Integración de PLC y robots en la línea de unión de carrocería y tren motriz.",
+      "displayDate": "2018",
+      "outcome": ""
+    },
+    "bmw-hatch-2017": {
+      "title": "Asistencia de elevación de portón",
+      "scope": "Controles de asistencia de elevación de portón.",
+      "displayDate": "2017–2018",
+      "outcome": ""
+    },
+    "bmw-pokayoke-2017": {
+      "title": "Poka-yoke de llenado de aceite diferencial",
+      "scope": "Interbloqueo para evitar la colocación incorrecta de la boquilla de llenado.",
+      "displayDate": "2017",
+      "outcome": ""
+    },
+    "bmw-nvld-2017": {
+      "title": "NVLD",
+      "scope": "Puesta en marcha, mejoras de interbloqueos y aceptación del cliente.",
+      "displayDate": "2017",
+      "outcome": ""
+    },
+    "kister-servo-2017": {
+      "title": "Actualización de servos del empacador Kister",
+      "scope": "Actualización de doble servo para separación de paquetes; cambios de HMI/PLC.",
+      "displayDate": "2017",
+      "outcome": ""
+    },
+    "paresa-conveyor-2017": {
+      "title": "Cambios en transportadores",
+      "scope": "Ajustes de velocidad de transportadores de botellas y cambios de interbloqueos.",
+      "displayDate": "2017",
+      "outcome": ""
+    },
+    "heineken-kaizen-2016": {
+      "title": "Kaizen de línea de embotellado",
+      "scope": "Auditoría de línea de producción y trabajo de mejora multifuncional con operaciones, mantenimiento y planificación de suministro.",
+      "outcome": "El registro publicado informa un aumento de 20 puntos en la eficiencia promedio.",
+      "displayDate": "2016–2017"
+    },
+    "p75-vru-2016": {
+      "title": "Unidad de recuperación de vapores P-75",
+      "scope": "Desarrollo eléctrico y de automatización para una unidad de recuperación de vapores de petróleo y gas, incluidos FAT, FMEA y documentación del proyecto.",
+      "displayDate": "2016",
+      "outcome": ""
+    },
+    "porto-acu-2016": {
+      "title": "Control e interbloqueo de compresor de aire",
+      "scope": "Desarrollo de PLC/HMI y puesta en marcha.",
+      "displayDate": "2016",
+      "outcome": ""
+    },
+    "p75-nitrogen-2016": {
+      "title": "Generador de nitrógeno P75 Petrobras",
+      "scope": "Desarrollo de automatización, documentación, puesta en marcha y FAT/FMEA para ambiente Exd.",
+      "displayDate": "2016",
+      "outcome": ""
+    },
+    "p70-nitrogen-2016": {
+      "title": "Generador de nitrógeno P70 Petrobras",
+      "scope": "Desarrollo de automatización, documentación, puesta en marcha y FAT/FMEA para ambiente Exd.",
+      "displayDate": "2016",
+      "outcome": ""
+    },
+    "p71-nitrogen-2016": {
+      "title": "Generador de nitrógeno P71 Petrobras",
+      "scope": "Desarrollo de automatización, documentación, puesta en marcha y FAT/FMEA para ambiente Exd.",
+      "displayDate": "2016",
+      "outcome": ""
+    },
+    "rexam-trimmer-2015": {
+      "title": "Reacondicionamiento de máquina recortadora",
+      "scope": "Gestión de la revisión de cinco máquinas, piezas y coordinación de técnicos de servicio.",
+      "displayDate": "2015",
+      "outcome": ""
+    },
+    "avon-hotfill-2015": {
+      "title": "Línea de maquillaje hot-fill",
+      "scope": "Automatización PLC/HMI, integración de línea, puesta en marcha, FAT y SAT en equipos de indexación de botellas, llenado, tapado, enfriamiento, pick-and-place y etiquetado.",
+      "displayDate": "2015",
+      "outcome": ""
+    },
+    "avon-filler-2015": {
+      "title": "Indexación de botellas y llenadora",
+      "scope": "Desarrollo de automatización PLC/HMI, pruebas, puesta en marcha y FAT/SAT.",
+      "displayDate": "2015",
+      "outcome": ""
+    },
+    "aquarex-png-2014": {
+      "title": "Sistema de recuperación cáustica Aquarex",
+      "scope": "Actualización de automatización y electricidad para un sistema de recuperación cáustica Aquarex.",
+      "displayDate": "2014",
+      "outcome": ""
+    },
+    "campari-capper-2014": {
+      "title": "Alimentador de tapas para taponadora Zalkin",
+      "scope": "Modificación de software PLC para integrar una nueva taponadora con la llenadora Krones.",
+      "displayDate": "2014",
+      "outcome": ""
+    },
+    "heineken-haiti-2014": {
+      "title": "Línea de llenado de 40.000 botellas/hora",
+      "scope": "Puesta en marcha, aumento gradual de producción, mejora de eficiencia y operación asistida.",
+      "displayDate": "2014",
+      "outcome": ""
+    },
+    "femsa-filler-2013": {
+      "title": "Ajuste de sincronización neumática de llenadora",
+      "scope": "Cambios de software para levas neumáticas y cambios de mezclador para producción de agua con gas.",
+      "displayDate": "2013",
+      "outcome": ""
+    },
+    "avon-puck-2013": {
+      "title": "Actualización de transportador de pucks",
+      "scope": "Modificación del transportador para crear un buffer de pucks en la entrada de la llenadora.",
+      "displayDate": "2013",
+      "outcome": ""
+    },
+    "boticario-cartoner-2013": {
+      "title": "Encartonadora CMF 60/min",
+      "scope": "Montaje, puesta en marcha, arranque, FAT, IQ/OQ y localización de documentación.",
+      "displayDate": "2013",
+      "outcome": ""
+    },
+    "scjohnson-filler-2013": {
+      "title": "Llenadora de repelente de insectos",
+      "scope": "Montaje, puesta en marcha, arranque y aumento gradual de producción.",
+      "displayDate": "2013",
+      "outcome": ""
+    },
+    "avon-mexico-2013": {
+      "title": "Pick-and-place de tapas",
+      "scope": "Sistema robótico de alimentación de tapas; puesta en marcha y arranque.",
+      "displayDate": "2013",
+      "outcome": ""
+    },
+    "panco-conveyor-2012": {
+      "title": "Transportador de aire por lotes para harina",
+      "scope": "Desarrollo de software, puesta en marcha y pruebas de producción.",
+      "displayDate": "2012",
+      "outcome": ""
+    },
+    "hyosung-tank-2012": {
+      "title": "Control de tanque químico",
+      "scope": "Control de presión y control en lazo cerrado.",
+      "displayDate": "2012",
+      "outcome": ""
+    },
+    "ambev-pet-2012": {
+      "title": "Cambio de formato PET de 500 ml",
+      "scope": "Cambio de software del transportador de aire.",
+      "displayDate": "2012",
+      "outcome": ""
+    },
+    "soy-oil-overhaul-2012": {
+      "title": "Reacondicionamiento de línea de aceite de soja",
+      "scope": "Arranque y puesta en marcha después de una revisión mecánica.",
+      "displayDate": "2012",
+      "outcome": ""
+    },
+    "petropolis-269-2011": {
+      "title": "Formato de 269/473 ml",
+      "scope": "Creación y adaptación de recetas para ambos formatos.",
+      "displayDate": "2011",
+      "outcome": ""
+    },
+    "petropolis-ice-2011": {
+      "title": "Cambio de formato Blue Spirit Ice",
+      "scope": "Modificación de receta y software para nuevas botellas.",
+      "displayDate": "2011",
+      "outcome": ""
+    },
+    "bombril-soap-2011": {
+      "title": "Línea de llenado de jabón para platos",
+      "scope": "Puesta en marcha, arranque y aumento gradual de producción de la línea.",
+      "displayDate": "2011",
+      "outcome": ""
+    },
+    "campari-filling-2010": {
+      "title": "Línea de llenado de 18.000 botellas/hora",
+      "scope": "Montaje, puesta en marcha y pruebas de producción.",
+      "displayDate": "2010",
+      "outcome": ""
+    },
+    "sabb-hotfill-2010": {
+      "title": "Línea de producción hot-fill",
+      "scope": "Puesta en marcha, arranque y pruebas de producción.",
+      "displayDate": "2010",
+      "outcome": ""
+    },
+    "cocacola-labeler-2010": {
+      "title": "Etiquetadora PET y transportador de entrada",
+      "scope": "Montaje, puesta en marcha y pruebas de producción; referencia Contiroll de 15.000 botellas por hora.",
+      "displayDate": "2010",
+      "outcome": ""
+    },
+    "unilever-ades-2008": {
+      "title": "Formulación continua",
+      "scope": "Desarrollo de software, puesta en marcha y pruebas de producción.",
+      "displayDate": "2008",
+      "outcome": ""
+    },
+    "usiminas-ute-2007": {
+      "title": "UTE Usiminas",
+      "scope": "Desarrollo de HMI y sistema de supervisión.",
+      "displayDate": "Experiencia previa",
+      "outcome": ""
+    },
+    "bmw-hatch-undated": {
+      "title": "Elevación de portón",
+      "scope": "Diseño de proyecto, mejoras de interbloqueos, puesta en marcha de Festo CPMAX, integración IPS y diseño de HMI (V8).",
+      "displayDate": "Año no especificado",
+      "outcome": ""
+    },
+    "bmw-abs-undated": {
+      "title": "Reconstrucción de probador ABS",
+      "scope": "Puesta en marcha de Movidrive y arranque del sistema.",
+      "displayDate": "Año no especificado",
+      "outcome": ""
+    },
+    "bmw-console-undated": {
+      "title": "Transportador de consolas",
+      "scope": "Diseño de proyecto, puesta en marcha y diseño de seguridad conforme al estándar BMW.",
+      "displayDate": "Año no especificado",
+      "outcome": ""
+    },
+    "bmw-shifter-undated": {
+      "title": "Ensambladora de palancas manuales",
+      "scope": "Puesta en marcha, mejoras de interbloqueos e integración IPS.",
+      "displayDate": "Año no especificado",
+      "outcome": ""
+    },
+    "foaming-station-undated": {
+      "title": "Estación de espumado",
+      "scope": "Puesta en marcha y mejoras de interbloqueos.",
+      "displayDate": "Año no especificado",
+      "outcome": ""
+    },
+    "cocacola-krones-undated": {
+      "title": "Reconstrucción de línea de llenado Krones",
+      "scope": "Arranque después de la reconstrucción.",
+      "displayDate": "Año no especificado",
+      "outcome": ""
+    },
+    "cocacola-khs-undated": {
+      "title": "Actualización KHS Kister",
+      "scope": "Cambios de software y puesta en marcha.",
+      "displayDate": "Año no especificado",
+      "outcome": ""
+    },
+    "cocacola-paraguay-undated": {
+      "title": "Adición de formato en transportador",
+      "scope": "Integración de software.",
+      "displayDate": "Año no especificado",
+      "outcome": ""
+    },
+    "mercedes-bodyshop-undated": {
+      "title": "Taller de carrocería",
+      "scope": "Trabajo de automatización del taller de carrocería.",
+      "displayDate": "Año no especificado",
+      "outcome": ""
+    }
   }
 }

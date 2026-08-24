@@ -10,18 +10,78 @@ export const mondayOf = (value: string | null): string => {
   return date.toISOString().slice(0, 10);
 };
 
+export type WeeklyProjectSchedule = Readonly<{
+  project_id: string;
+  assignment_starts_on?: string | null;
+  assignment_ends_on?: string | null;
+  effective_from?: string | null;
+  effective_to?: string | null;
+  monday_minutes?: number | null;
+  tuesday_minutes?: number | null;
+  wednesday_minutes?: number | null;
+  thursday_minutes?: number | null;
+  friday_minutes?: number | null;
+  saturday_minutes?: number | null;
+  sunday_minutes?: number | null;
+}>;
+
+const scheduleMinutesForDay = (
+  schedule: WeeklyProjectSchedule,
+  dayIndex: number,
+): number | null => {
+  const values = [
+    schedule.monday_minutes,
+    schedule.tuesday_minutes,
+    schedule.wednesday_minutes,
+    schedule.thursday_minutes,
+    schedule.friday_minutes,
+    schedule.saturday_minutes,
+    schedule.sunday_minutes,
+  ];
+  const value = values[dayIndex];
+  return value !== null &&
+    value !== undefined &&
+    Number.isInteger(value) &&
+    value >= 0 &&
+    value <= 1440
+    ? value
+    : null;
+};
+
+const scheduleForDate = (
+  schedules: readonly WeeklyProjectSchedule[],
+  projectId: string,
+  date: string,
+): WeeklyProjectSchedule | null =>
+  schedules
+    .filter(
+      (schedule) =>
+        schedule.project_id === projectId &&
+        (!schedule.assignment_starts_on || schedule.assignment_starts_on <= date) &&
+        (!schedule.assignment_ends_on || schedule.assignment_ends_on >= date) &&
+        schedule.effective_from !== null &&
+        schedule.effective_from !== undefined &&
+        schedule.effective_from <= date &&
+        (!schedule.effective_to || schedule.effective_to >= date),
+    )
+    .sort((left, right) => {
+      const effectiveDate = (right.effective_from ?? '').localeCompare(left.effective_from ?? '');
+      return effectiveDate || left.project_id.localeCompare(right.project_id);
+    })[0] ?? null;
+
 export const weeklyView = (
   rows: readonly Record<string, unknown>[],
   weekStart: string,
+  schedules: readonly WeeklyProjectSchedule[] = [],
 ): {
   weekStart: string;
   weekEnd: string;
   days: Array<{
     date: string;
     label: string;
-    expectedMinutes: number;
+    expectedMinutes: number | null;
     actualMinutes: number;
-    differenceMinutes: number;
+    differenceMinutes: number | null;
     status: string;
     categories: Record<string, number>;
   }>;
@@ -38,6 +98,32 @@ export const weeklyView = (
       return result;
     }, {});
     const states = new Set(dayRows.map((row) => String(row.approval_state ?? 'draft')));
+    const rowProjectIds = new Set(
+      dayRows
+        .map((row) => String(row.project_id ?? ''))
+        .filter((projectId) => projectId.length > 0),
+    );
+    // A worker can be assigned to more than one project. We deliberately do not add
+    // project targets together: without an explicit allocation rule that would turn
+    // planning context into a fabricated expectation. A day is targetable only when
+    // exactly one project assignment applies and that project has an effective schedule.
+    const assignedProjectIds = new Set(
+      schedules
+        .filter(
+          (schedule) =>
+            (!schedule.assignment_starts_on || schedule.assignment_starts_on <= dateValue) &&
+            (!schedule.assignment_ends_on || schedule.assignment_ends_on >= dateValue),
+        )
+        .map((schedule) => schedule.project_id),
+    );
+    const projectIds = assignedProjectIds.size > 0 ? assignedProjectIds : rowProjectIds;
+    const onlyProjectId = projectIds.size === 1 ? projectIds.values().next().value : undefined;
+    const expectedSchedule = onlyProjectId
+      ? scheduleForDate(schedules, onlyProjectId, dateValue)
+      : null;
+    const expectedMinutes = expectedSchedule
+      ? scheduleMinutesForDay(expectedSchedule, index)
+      : null;
     const status =
       dayRows.length === 0
         ? '—'
@@ -47,16 +133,15 @@ export const weeklyView = (
             ? 'Submitted'
             : states.has('draft')
               ? 'Draft'
-              : actualMinutes !== 600 && index < 6
+              : expectedMinutes !== null && actualMinutes !== expectedMinutes
                 ? 'Needs note'
                 : 'Approved';
-    const expectedMinutes = index < 6 ? 600 : 0;
     return {
       date: dateValue,
       label: new Intl.DateTimeFormat('en', { weekday: 'short' }).format(date),
       expectedMinutes,
       actualMinutes,
-      differenceMinutes: actualMinutes - expectedMinutes,
+      differenceMinutes: expectedMinutes === null ? null : actualMinutes - expectedMinutes,
       status,
       categories,
     };

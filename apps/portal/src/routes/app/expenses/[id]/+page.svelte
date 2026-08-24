@@ -9,6 +9,7 @@
     standaloneText,
   } from '../../standalone-locale';
   import type { PortalLocale } from '$lib/portal-i18n';
+  import { money as formatMoney } from '$lib/portal/portal-format';
   import {
     translateControlledValue,
     type ControlledValueDomain,
@@ -28,10 +29,7 @@
     );
   const record = $derived(data.record as Row);
   const money = (minor: unknown, currency: string) =>
-    new Intl.NumberFormat(locale === 'pt' ? 'pt-BR' : locale, {
-      style: 'currency',
-      currency,
-    }).format(Number(minor ?? 0) / 100);
+    formatMoney(minor, currency, locale === 'pt' ? 'pt-BR' : locale);
   function printReport(): void {
     if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement)
       document.activeElement.blur();

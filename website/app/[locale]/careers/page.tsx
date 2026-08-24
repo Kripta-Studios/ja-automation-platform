@@ -1,13 +1,19 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/lib/i18n/navigation';
 import { ArrowRight, BriefcaseBusiness, MapPin } from 'lucide-react';
+import { localizedAlternates } from '@/lib/i18n/metadata';
 
 const profiles = ['profile1', 'profile2', 'profile3', 'profile4', 'profile5', 'profile6'] as const;
 const work = ['work1', 'work2', 'work3', 'work4', 'work5', 'work6', 'work7', 'work8'] as const;
 
-export async function generateMetadata() {
-  const t = await getTranslations('meta');
-  return { title: t('careersTitle'), description: t('careersDescription') };
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'meta' });
+  return {
+    title: t('careersTitle'),
+    description: t('careersDescription'),
+    alternates: localizedAlternates(locale, '/careers'),
+  };
 }
 
 export default async function CareersPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -51,7 +57,7 @@ export default async function CareersPage({ params }: { params: Promise<{ locale
         <div className="container-ja grid lg:grid-cols-[0.8fr_1.2fr] gap-12 items-start">
           <div>
             <p className="eyebrow mb-4">{t('workHeading')}</p>
-            <h2 className="heading-2">{t('h1')}</h2>
+            <h2 className="heading-2">{t('workH2')}</h2>
           </div>
           <ul className="grid sm:grid-cols-2 gap-x-8 gap-y-4">
             {work.map((key) => (

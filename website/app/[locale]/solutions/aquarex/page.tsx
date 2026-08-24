@@ -1,12 +1,15 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/lib/i18n/navigation';
 import { Droplets, Activity, ShieldCheck, Settings } from 'lucide-react';
+import { localizedAlternates } from '@/lib/i18n/metadata';
 
-export async function generateMetadata() {
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const meta = await getTranslations({ locale, namespace: 'meta' });
   return {
-    title: 'Aquarex | Intelligent Water Treatment Automation',
-    description:
-      "Aquarex is J&A Automation's standardized solution for industrial water treatment and RO systems.",
+    title: meta('aquarexTitle'),
+    description: meta('aquarexDescription'),
+    alternates: localizedAlternates(locale, '/solutions/aquarex'),
   };
 }
 
@@ -15,6 +18,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
   setRequestLocale(locale);
 
   const t = await getTranslations('aquarexTeaser');
+  const page = await getTranslations('aquarex');
 
   return (
     <div className="pt-20">
@@ -49,21 +53,19 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
           <div className="max-w-3xl">
             <div className="flex items-center gap-3 mb-6">
               <Droplets className="text-ja-red" size={32} />
-              <p className="eyebrow text-white/70 !mb-0">Proprietary Solution</p>
+              <p className="eyebrow text-white/70 !mb-0">{page('eyebrow')}</p>
             </div>
             <h1 className="heading-display mb-6">Aquarex</h1>
-            <p className="text-xl lg:text-2xl text-white/90 mb-8 font-light">
-              Intelligent Control System for Industrial Water Treatment & Reverse Osmosis.
-            </p>
+            <p className="text-xl lg:text-2xl text-white/90 mb-8 font-light">{page('subtitle')}</p>
             <p className="text-body text-ja-steel-300 mb-10 max-w-2xl leading-relaxed">
               {t('body')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <a href="#datasheet" className="btn btn-primary">
-                Request Technical Datasheet
+                {page('requestDatasheet')}
               </a>
               <Link href="/contact?intent=project" className="btn btn-secondary-dark">
-                Talk to an Engineer
+                {page('talkToEngineer')}
               </Link>
             </div>
           </div>
@@ -74,38 +76,31 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
       <section className="section-padding bg-ja-surface">
         <div className="container-ja">
           <div className="text-center mb-16">
-            <h2 className="heading-2">System Advantages</h2>
+            <h2 className="heading-2">{page('systemAdvantages')}</h2>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="card text-center items-center">
               <div className="w-12 h-12 rounded-full bg-ja-red/10 flex items-center justify-center text-ja-red mb-6">
                 <Activity size={24} />
               </div>
-              <h3 className="text-lg font-semibold mb-3">Real-time Monitoring</h3>
-              <p className="text-sm text-ja-steel-700 leading-relaxed">
-                Continuous data acquisition for conductivity, pH, flow rates, and pressure across
-                all treatment stages.
-              </p>
+              <h3 className="text-lg font-semibold mb-3">{page('monitoring')}</h3>
+              <p className="text-sm text-ja-steel-700 leading-relaxed">{page('monitoringBody')}</p>
             </div>
             <div className="card text-center items-center">
               <div className="w-12 h-12 rounded-full bg-ja-red/10 flex items-center justify-center text-ja-red mb-6">
                 <Settings size={24} />
               </div>
-              <h3 className="text-lg font-semibold mb-3">Standardized Architecture</h3>
+              <h3 className="text-lg font-semibold mb-3">{page('architecture')}</h3>
               <p className="text-sm text-ja-steel-700 leading-relaxed">
-                Pre-engineered PLC/HMI codebase reduces commissioning time by up to 40% while
-                ensuring rock-solid reliability.
+                {page('architectureBody')}
               </p>
             </div>
             <div className="card text-center items-center">
               <div className="w-12 h-12 rounded-full bg-ja-red/10 flex items-center justify-center text-ja-red mb-6">
                 <ShieldCheck size={24} />
               </div>
-              <h3 className="text-lg font-semibold mb-3">Compliance Ready</h3>
-              <p className="text-sm text-ja-steel-700 leading-relaxed">
-                Built-in data logging and reporting tools designed to meet stringent food, beverage,
-                and pharmaceutical regulations.
-              </p>
+              <h3 className="text-lg font-semibold mb-3">{page('compliance')}</h3>
+              <p className="text-sm text-ja-steel-700 leading-relaxed">{page('complianceBody')}</p>
             </div>
           </div>
         </div>
@@ -116,33 +111,27 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
         <div className="container-ja">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="heading-2 mb-6">Standardized Process Control</h2>
+              <h2 className="heading-2 mb-6">{page('processControl')}</h2>
               <p className="text-body text-ja-steel-700 mb-6 leading-relaxed">
-                The Aquarex platform integrates seamlessly with Reverse Osmosis (RO) units,
-                Ultrafiltration (UF), and chemical dosing systems. It provides a unified HMI
-                interface for operators and standardizes data structures for easy ERP/MES
-                integration.
+                {page('processBody')}
               </p>
               <ul className="space-y-4 mb-8">
                 <li className="flex items-start gap-3 text-sm text-ja-steel-700">
                   <div className="w-1.5 h-1.5 rounded-full bg-ja-red mt-1.5 flex-shrink-0" />
                   <span>
-                    <strong>Skid Integration:</strong> Plug-and-play logic blocks for common OEM
-                    skids.
+                    <strong>{page('skidIntegration')}:</strong> {page('skidIntegrationBody')}
                   </span>
                 </li>
                 <li className="flex items-start gap-3 text-sm text-ja-steel-700">
                   <div className="w-1.5 h-1.5 rounded-full bg-ja-red mt-1.5 flex-shrink-0" />
                   <span>
-                    <strong>Chemical Dosing:</strong> Precise closed-loop control of dosing pumps
-                    based on in-line sensor feedback.
+                    <strong>{page('chemicalDosing')}:</strong> {page('chemicalDosingBody')}
                   </span>
                 </li>
                 <li className="flex items-start gap-3 text-sm text-ja-steel-700">
                   <div className="w-1.5 h-1.5 rounded-full bg-ja-red mt-1.5 flex-shrink-0" />
                   <span>
-                    <strong>Alarm Management:</strong> ISA 18.2 compliant alarm structures for rapid
-                    troubleshooting.
+                    <strong>{page('alarmManagement')}:</strong> {page('alarmManagementBody')}
                   </span>
                 </li>
               </ul>
@@ -153,7 +142,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
               <svg
                 viewBox="0 0 500 400"
                 className="w-full max-w-md"
-                aria-label="Aquarex Architecture Diagram"
+                aria-label={page('diagramAria')}
               >
                 <defs>
                   <marker
@@ -188,7 +177,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
                   className="font-[family-name:var(--font-manrope)] font-bold text-sm"
                   fill="#11151A"
                 >
-                  AQUAREX CORE PLC
+                  {page('diagramCore')}
                 </text>
 
                 {/* HMI */}
@@ -210,7 +199,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
                   className="font-[family-name:var(--font-manrope)] font-bold text-xs"
                   fill="#E31B23"
                 >
-                  SCADA / HMI
+                  {page('diagramHmi')}
                 </text>
                 <line
                   x1="250"
@@ -242,7 +231,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
                   className="font-[family-name:var(--font-ibm-plex-mono)] text-[10px]"
                   fill="#11151A"
                 >
-                  Sensors (pH, Cond)
+                  {page('diagramSensors')}
                 </text>
                 <path
                   d="M 120 220 L 140 220 L 140 200 L 150 200"
@@ -270,7 +259,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
                   className="font-[family-name:var(--font-ibm-plex-mono)] text-[10px]"
                   fill="#11151A"
                 >
-                  Flow Meters
+                  {page('diagramFlowMeters')}
                 </text>
                 <path
                   d="M 120 270 L 140 270 L 140 225 L 150 225"
@@ -299,7 +288,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
                   className="font-[family-name:var(--font-ibm-plex-mono)] text-[10px]"
                   fill="#11151A"
                 >
-                  Dosing Pumps
+                  {page('diagramDosingPumps')}
                 </text>
                 <line
                   x1="350"
@@ -329,7 +318,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
                   className="font-[family-name:var(--font-ibm-plex-mono)] text-[10px]"
                   fill="#11151A"
                 >
-                  VFDs / Motors
+                  {page('diagramVfdMotors')}
                 </text>
                 <line x1="350" y1="210" x2="370" y2="210" stroke="none" />
                 <path
@@ -358,7 +347,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
                   className="font-[family-name:var(--font-ibm-plex-mono)] text-[10px]"
                   fill="#11151A"
                 >
-                  Valves
+                  {page('diagramValves')}
                 </text>
                 <path
                   d="M 350 230 L 365 230 L 365 280 L 380 280"
@@ -378,11 +367,8 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
         <div className="container-ja">
           <div className="max-w-2xl mx-auto bg-white rounded-xl p-8 lg:p-12 shadow-xl">
             <div className="text-center mb-8">
-              <h2 className="heading-2 mb-2">Request Technical Datasheet</h2>
-              <p className="text-sm text-ja-steel-500">
-                Enter your details to receive the complete Aquarex specification guide, IO list, and
-                integration requirements.
-              </p>
+              <h2 className="heading-2 mb-2">{page('datasheetHeading')}</h2>
+              <p className="text-sm text-ja-steel-500">{page('datasheetBody')}</p>
             </div>
 
             <form className="space-y-4">
@@ -392,7 +378,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
                     htmlFor="firstName"
                     className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                   >
-                    First Name *
+                    {page('firstName')} *
                   </label>
                   <input
                     type="text"
@@ -406,7 +392,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
                     htmlFor="lastName"
                     className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                   >
-                    Last Name *
+                    {page('lastName')} *
                   </label>
                   <input
                     type="text"
@@ -422,7 +408,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
                   htmlFor="email"
                   className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                 >
-                  Work Email *
+                  {page('workEmail')} *
                 </label>
                 <input
                   type="email"
@@ -437,7 +423,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
                   htmlFor="company"
                   className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
                 >
-                  Company
+                  {page('company')}
                 </label>
                 <input
                   type="text"
@@ -447,12 +433,11 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
               </div>
 
               <button type="submit" className="btn btn-primary w-full mt-4">
-                Send Datasheet
+                {page('sendDatasheet')}
               </button>
 
               <p className="text-[11px] text-ja-steel-500 text-center mt-4">
-                By requesting this datasheet, you agree to our privacy policy. We will never share
-                your information.
+                {page('privacyNote')}
               </p>
             </form>
           </div>

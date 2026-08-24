@@ -15,24 +15,6 @@ const sectionBlock = (source: string, section: string): string => {
   return source.slice(start, end < 0 ? source.length : end);
 };
 
-function hasPeriodRegisterInComposeColumn(source: string): boolean {
-  const periodIndex = source.indexOf('period-report-list');
-  if (periodIndex < 0) return false;
-
-  const before = source.slice(0, periodIndex);
-  const stack: string[] = [];
-  for (const match of before.matchAll(/<\/?div(?:\s[^>]*)?>/g)) {
-    const token = match[0] ?? '';
-    if (token.startsWith('</')) {
-      stack.pop();
-      continue;
-    }
-    const className = token.match(/class="([^"]*)"/)?.[1] ?? '';
-    stack.push(className);
-  }
-  return stack.some((className) => className.split(/\s+/).includes('report-compose-column'));
-}
-
 describe('requested portal UI regressions (RED characterization)', () => {
   it('derives the page heading from section plus query view for Clients, Team, Invoices and PLC', () => {
     const source = shellSource();
@@ -67,13 +49,19 @@ describe('requested portal UI regressions (RED characterization)', () => {
 
   it('keeps the period report register in the collapsible report flow so it can reflow upward', () => {
     const report = readSource('apps/portal/src/lib/portal/sections/ReportSection.svelte');
-    const css = readSource('apps/portal/src/styles/portal/legacy.css');
-    const nested = hasPeriodRegisterInComposeColumn(report);
-    const denseGrid = /\.report-workspace[\s\S]*?grid-auto-flow\s*:\s*dense/i.test(css);
+    const css = readSource('apps/portal/src/styles/portal/primitives.css');
+    const generator = report.indexOf('class="report-generator"');
+    const register = report.indexOf('class="report-period-register"');
     expect(
-      nested || denseGrid,
-      'collapsing both report details must not leave the period register stranded in a sparse grid row',
-    ).toBe(true);
+      generator,
+      'the period generator must remain in the report document flow',
+    ).toBeGreaterThan(-1);
+    expect(
+      register,
+      'the generated period register must remain in the report document flow',
+    ).toBeGreaterThan(generator);
+    expect(css).toMatch(/\.report-page\s*\{[\s\S]*?display\s*:\s*grid[\s\S]*?gap\s*:/i);
+    expect(css).not.toMatch(/\.report-period-register\s*\{[\s\S]*?grid-(?:row|column)\s*:/i);
   });
 
   it('hides portal chrome in print media and exposes Print Report on source records', () => {
@@ -106,6 +94,17 @@ describe('requested portal UI regressions (RED characterization)', () => {
     expect(settingsPath, 'Settings must use the centered gear path').toContain('M12 8a4');
     const navIcon = readSource('apps/portal/src/lib/PortalNavIcon.svelte');
     expect(navIcon).toMatch(/<circle\s+cx="12"\s+cy="12"/);
+  });
+
+  it('uses a stylesheet-backed drawer scroll lock instead of CSP-blocked inline styles', () => {
+    const chrome = readSource('apps/portal/src/lib/PortalChrome.svelte');
+    const shell = readSource('apps/portal/src/styles/portal/shell.css');
+    expect(chrome).not.toMatch(/(?:document\.(?:documentElement|body)|\b(?:root|body))\.style\./);
+    expect(chrome).toMatch(/classList\.add\(drawerScrollLockClass\)/);
+    expect(chrome).toMatch(/classList\.remove\(drawerScrollLockClass\)/);
+    expect(shell).toMatch(
+      /html\.portal-drawer-open\s*,\s*body\.portal-drawer-open\s*\{[\s\S]*?overflow:\s*hidden\s*;/,
+    );
   });
 
   it('renders client-contact actions from record ids rather than asking users to type UUIDs', () => {

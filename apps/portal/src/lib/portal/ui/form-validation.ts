@@ -33,7 +33,10 @@ function formIdentity(form: HTMLFormElement): string {
   const existing = formKeys.get(form);
   if (existing) return existing;
   const explicit =
-    form.getAttribute('id') || form.getAttribute('data-validation-id') || form.getAttribute('action') || 'form';
+    form.getAttribute('id') ||
+    form.getAttribute('data-validation-id') ||
+    form.getAttribute('action') ||
+    'form';
   const identity = `validation-${slug(explicit)}-${++nextFormKey}`;
   formKeys.set(form, identity);
   form.setAttribute('data-validation-instance', identity);

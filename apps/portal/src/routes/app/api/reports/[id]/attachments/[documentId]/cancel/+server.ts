@@ -30,10 +30,7 @@ export const POST: RequestHandler = async ({ locals, params }) => {
       )
       .get(reportType, params.id, params.documentId);
     if (!link) throw new V3NotFoundError('Report attachment not found');
-    const cancelled = context.v3.cancelReportAttachment(
-      context.principal,
-      params.documentId,
-    );
+    const cancelled = context.v3.cancelReportAttachment(context.principal, params.documentId);
     await removePrivateFileIfPresent(
       process.env.JA_DOCUMENT_ROOT ?? 'data/documents',
       cancelled.storageKey,

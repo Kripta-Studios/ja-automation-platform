@@ -43,12 +43,12 @@
   .highlight { background: #fff3f3; padding: 0.5mm 1mm; font-weight: bold; color: var(--redDark); }
   body { counter-reset: page; }
   .page { counter-increment: page; }
-  .page-number::after { content: "Página " counter(page) " / 18"; }
+  .page-number::after { content: "Página " counter(page) " / 20"; }
 </style>
 </head>
 <body>
 
-<!-- PAGE 1 -->
+<!-- PAGE 1: CONTRATO PRINCIPAL (1/8) -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
@@ -82,7 +82,7 @@
   </div>
 </section>
 
-<!-- PAGE 2 -->
+<!-- PAGE 2: CONTRATO PRINCIPAL (2/8) -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
@@ -110,6 +110,7 @@
   </div>
 </section>
 
+<!-- PAGE 3: CONTRATO PRINCIPAL (3/8) -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
@@ -134,7 +135,7 @@
   </div>
 </section>
 
-<!-- PAGE 3 -->
+<!-- PAGE 4: CONTRATO PRINCIPAL (4/8) -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
@@ -154,6 +155,7 @@
   </div>
 </section>
 
+<!-- PAGE 5: CONTRATO PRINCIPAL (5/8) -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
@@ -174,7 +176,7 @@
   </div>
 </section>
 
-<!-- PAGE 4 -->
+<!-- PAGE 6: CONTRATO PRINCIPAL (6/8) -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
@@ -200,6 +202,7 @@
   </div>
 </section>
 
+<!-- PAGE 7: CONTRATO PRINCIPAL (7/8) -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
@@ -226,6 +229,7 @@
   </div>
 </section>
 
+<!-- PAGE 8: CONTRATO PRINCIPAL (8/8) -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
@@ -257,6 +261,7 @@
   </div>
 </section>
 
+<!-- PAGE 9: FIRMAS -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
@@ -286,7 +291,7 @@
   </div>
 </section>
 
-<!-- PAGE 6: ANEXO A (1/4) -->
+<!-- PAGE 10: ANEXO A (1/6) -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
@@ -298,17 +303,17 @@
 
   <h3>1. Clientes y proyectos</h3>
   <ul>
-    <li>Alta y gestión de clientes corporativos; numeración unificada de cliente y proyecto.</li>
-    <li>Creación de proyectos asociados a clientes con fechas de inicio/fin y moneda base.</li>
-    <li>Asignación específica de trabajadores elegibles para operar en el proyecto.</li>
+    <li>Alta y gestión de clientes corporativos; número de cliente y código/siglas configurables para identificación documental (por ejemplo, un código tipo <strong>CP-12</strong> cuando J&amp;A así lo defina).</li>
+    <li>Creación de proyectos asociados a clientes con fechas de inicio/fin, moneda base, número de proyecto y número/código de centro de coste del proyecto.</li>
+    <li>Asignación específica de trabajadores elegibles para operar en el proyecto, con fechas efectivas y estado activo/inactivo sin perder el histórico.</li>
     <li>Gestión de presupuesto (Budgets/PO), referencia de PO/contrato del cliente y modalidad comercial del proyecto.</li>
-    <li>Gestión de estados del proyecto (activo, en pausa, cerrado, archivado).</li>
+    <li>Gestión de estados del proyecto (activo, inactivo/en pausa, cerrado, archivado) sin eliminar el histórico económico u operativo.</li>
     <li>Configuración de la periodicidad de facturación preferente.</li>
   </ul>
 
   <h3>2. Trabajadores y acceso</h3>
   <ul>
-    <li>Gestión de usuarios con permisos diferenciados (Administrador, Finance, Project Manager, Worker) según configuración.</li>
+    <li>Gestión de usuarios con permisos diferenciados (Administrador, Finance, Project Manager, Worker) según configuración, incluyendo activación, suspensión/inactivación y reactivación de trabajadores sin borrar su histórico.</li>
     <li>Segregación de información: cada trabajador accede exclusivamente a sus proyectos asignados, sus horas registradas, sus propios reportes, sus gastos y su propia compensación.</li>
   </ul>
 
@@ -316,14 +321,9 @@
   <ul>
     <li>Registro manual de horas reales reportadas por trabajador y proyecto.</li>
     <li>Tipificación configurable del tiempo: Regular, Commissioning, Standby, Overtime, Weekend, Travel, etc.</li>
+    <li><strong>Hora de viaje:</strong> el tiempo Travel podrá activarse por proyecto y configurarse de forma independiente como facturable o no facturable al cliente, sin confundir su tratamiento con el tiempo regular. Su tratamiento para compensación del trabajador podrá configurarse separadamente.</li>
     <li>Proceso de revisión y aprobación/rechazo de horas por parte de los responsables.</li>
-  </ul>
-
-  <h3>4. Regla 10 h (Referencia comercial)</h3>
-  <ul>
-    <li>El sistema permitirá configurar una referencia comercial y operativa de 10 horas diarias de lunes a sábado, sin generar automáticamente horas trabajadas artificiales.</li>
-    <li>El trabajador registrará siempre el tiempo real efectivamente prestado.</li>
-    <li>El cálculo del mínimo facturable al cliente y la garantía de compensación al trabajador actuarán como reglas de negocio independientes y configurables por proyecto.</li>
+    <li><strong>Corrección administrativa de horas:</strong> un Administrador/Finance autorizado podrá añadir, reducir o corregir horas de un trabajador cuando sea necesario. Las correcciones sobre registros ya enviados/aprobados exigirán motivo, trazabilidad y conservación del valor anterior; no se permitirá una reescritura silenciosa del histórico.</li>
   </ul>
 
   <div class="footer">
@@ -332,18 +332,26 @@
   </div>
 </section>
 
-<!-- PAGE 7: ANEXO A (2/4) -->
+<!-- PAGE 11: ANEXO A (2/6) -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
     <div class="title">Anexo A: Alcance Funcional (Cont.)</div>
   </div>
 
+  <h3>4. Jornada de referencia y mínimo facturable</h3>
+  <ul>
+    <li>La jornada de referencia será <strong>configurable por proyecto</strong> (por ejemplo 10, 12, 14 horas u otro valor acordado) y podrá configurarse por días de la semana. No se fijará una regla universal de 10 horas.</li>
+    <li>El trabajador registrará siempre el tiempo real efectivamente prestado; la referencia comercial nunca generará automáticamente horas trabajadas artificiales.</li>
+    <li><strong>Mínimo facturable:</strong> J&amp;A podrá configurar un mínimo de horas facturables por día/jornada/servicio cuando el acuerdo comercial con el cliente lo exija, aunque las horas reales sean inferiores. El mínimo facturable al cliente y la compensación del trabajador serán reglas independientes.</li>
+  </ul>
+
   <h3>5. Compensación y tarifas</h3>
   <ul>
     <li>La compensación a abonar al trabajador, el coste interno registrado por J&A y el precio de venta a facturar al cliente funcionarán como tres valores financieramente independientes en el sistema.</li>
-    <li>Capacidad para configurar tarifas diferentes por trabajador, tipo de actividad (Regular, Overtime, Commissioning) y proyecto.</li>
-    <li>Modelos de tarifa aplicables: hourly, daily, fixed o percentage.</li>
+    <li>Capacidad para configurar tarifas diferentes por trabajador, tipo de actividad (Regular, Overtime, Commissioning, Travel) y proyecto.</li>
+    <li><strong>Base horaria:</strong> la operativa ordinaria de labor de J&amp;A se calculará por hora. Otros modelos ya contemplados (daily, fixed o percentage) solo se aplicarán cuando J&amp;A los active expresamente para un caso concreto.</li>
+    <li><strong>Overtime configurable:</strong> podrá activarse o desactivarse por proyecto, definiendo el umbral a partir del cual comienza (por ejemplo, después de N horas) y un multiplicador o tarifa específica (por ejemplo 1,6×, 2× u otro valor). El multiplicador de compensación del trabajador y el multiplicador/tarifa facturable al cliente podrán ser diferentes.</li>
   </ul>
 
   <h3>6. Compensación porcentual del cliente</h3>
@@ -355,13 +363,9 @@
 
   <h3>7. Visibilidad financiera (My Pay)</h3>
   <ul>
-    <li>Cuando exista un presupuesto o asignación, el trabajador dispondrá de una vista privada con el progreso de sus horas (aprobadas/pendientes) y su compensación estimada.</li>
+    <li>Cuando exista un presupuesto o asignación, el trabajador dispondrá de una vista privada con el progreso de sus horas (aprobadas/pendientes), su compensación estimada y el importe que tiene previsto recibir.</li>
+    <li>Cuando J&amp;A gestione el pago mediante el Sistema, el trabajador podrá ver el estado de su propia liquidación (pendiente/aprobada/programada/pagada, según aplique), la fecha prevista de pago y la fecha efectiva de pago.</li>
     <li>El trabajador no visualizará las tarifas cobradas al cliente, el coste interno de J&A, el margen de la empresa ni la compensación de otros trabajadores.</li>
-  </ul>
-
-  <h3>8. Revisión económica de horas (Finance)</h3>
-  <ul>
-    <li>Los usuarios autorizados de Administración/Finanzas podrán revisar, por trabajador, proyecto y periodo, la transformación comercial: horas reales → horas aprobadas → horas facturables al cliente → compensación del trabajador → coste interno J&A → importe facturable al cliente y estado de facturación.</li>
   </ul>
 
   <div class="footer">
@@ -370,16 +374,24 @@
   </div>
 </section>
 
-<!-- PAGE 8: ANEXO A (3/4) -->
+<!-- PAGE 12: ANEXO A (3/6) -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
     <div class="title">Anexo A: Alcance Funcional (Cont.)</div>
   </div>
 
+  <h3>8. Revisión económica de horas (Finance)</h3>
+  <ul>
+    <li>Los usuarios autorizados de Administración/Finanzas podrán revisar, por trabajador, proyecto y periodo, la transformación comercial: horas reales → horas aprobadas → horas facturables al cliente → compensación del trabajador → coste interno J&A → importe facturable al cliente y estado de facturación.</li>
+    <li>La revisión económica mostrará las fechas relevantes del flujo de caja: periodo/fecha de servicio, fecha prevista y efectiva de facturación, vencimiento/fecha prevista de cobro, fecha efectiva de cobro, fecha prevista de pago al trabajador y fecha efectiva de pago, cuando estos hitos sean aplicables.</li>
+    <li>Administración/Finanzas podrá distinguir claramente <strong>dinero a pagar</strong> (trabajadores/gastos), <strong>dinero a recibir</strong> (cliente), importes ya pagados/cobrados y saldos pendientes, con filtros por trabajador, proyecto, cliente y periodo.</li>
+  </ul>
+
   <h3>9. Reportes (Daily, Project y PLC)</h3>
   <ul>
     <li>Generación de Daily Reports estructurados, revisables y exportables a documento.</li>
+    <li>El reporte de horas podrá incorporar <strong>opcionalmente actividades técnicas realizadas</strong> en la misma jornada (texto libre y/o referencias a Daily/PLC/Technical Reports), de forma que horas y actividad puedan presentarse juntas cuando el cliente lo requiera.</li>
     <li>Reportes técnicos estructurados (PLC) vinculados a proyecto, equipo o estación (registro de problemas, cambios realizados, pruebas/resultados, impacto, pendientes y adjuntos). Identificación de cambios con impacto en seguridad (safety flag) que requieran revisión técnica obligatoria.</li>
     <li><strong>Registro de backups técnicos:</strong> posibilidad de asociar al proyecto archivos y referencias de backup de PLC/HMI/robot u otros artefactos técnicos, conservando fecha, descripción, versión/referencia y relación con el reporte técnico correspondiente.</li>
     <li>Informes consolidados de proyecto y generación de resúmenes técnicos exportables por periodo para uso interno o del cliente.</li>
@@ -390,7 +402,8 @@
     <li>Categorización de gastos de viaje y representación (Hotel, coche, vuelo, comida, taxis, etc.).</li>
     <li><strong>Quién pagó:</strong> Registro explícito de quién adelantó el pago (trabajador, J&A, cliente o tercero).</li>
     <li><strong>Tratamiento:</strong> Configurable como reembolsable al cliente, reembolsable con markup, all-in (asumido por J&A, afecta al margen pero no entra en la factura), no facturable/interno, allowance/per diem, informacional (solo registro), o pagado directamente por el cliente.</li>
-    <li><strong>Estado de reembolso:</strong> Trazabilidad del reembolso al trabajador (pendiente, aprobado, pagado).</li>
+    <li><strong>Estado de reembolso al trabajador:</strong> Trazabilidad del importe adelantado por el trabajador (pendiente, aprobado, programado, pagado), con fecha prevista y efectiva de pago cuando aplique.</li>
+    <li><strong>Estado de recuperación del cliente:</strong> Para gastos facturables, trazabilidad separada de pendiente de facturar, facturado, parcialmente cobrado/cobrado o no recuperable, vinculada a la invoice correspondiente cuando exista.</li>
   </ul>
 
   <h3>11. Carga de recibos</h3>
@@ -399,29 +412,30 @@
     <li>Soporte mínimo para formatos JPEG, PNG y PDF, vinculando obligatoriamente el recibo al gasto reportado y al proyecto.</li>
   </ul>
 
-  <h3>12. Modelos comerciales y de facturación</h3>
-  <ul>
-    <li><strong>Modelos comerciales:</strong> Hourly/T&M, T&M con mínimo diario, Capped T&M sujeto a límite de PO/contrato, Fixed/All-in, Fixed/Milestone, Hybrid —combinación configurable de importes fijos, horas y gastos— e Internal/Non-billable.</li>
-    <li>Soporte de frecuencias de facturación: Semanal, cada 14 días, dos veces al mes (semi-monthly: 1–15 / 16–fin), mensual, periodo personalizado o hito (milestone). Cada stream de facturación (Labor o Expenses) puede tener su propia periodicidad independiente.</li>
-  </ul>
-
   <div class="footer">
     <span>Contrato EVOCON / J&A Automation</span>
     <span class="page-number"></span>
   </div>
 </section>
 
-<!-- PAGE 9: ANEXO A (4/4) -->
+<!-- PAGE 13: ANEXO A (4/6) -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
     <div class="title">Anexo A: Alcance Funcional (Cont.)</div>
   </div>
 
+  <h3>12. Modelos comerciales y de facturación</h3>
+  <ul>
+    <li><strong>Modelos comerciales:</strong> Hourly/T&amp;M como base operativa ordinaria, T&amp;M con mínimo facturable configurable, Capped T&amp;M sujeto a límite de PO/contrato, Fixed/All-in, Fixed/Milestone, Hybrid —combinación configurable de importes fijos, horas y gastos— e Internal/Non-billable cuando J&amp;A los active.</li>
+    <li>Las reglas horarias podrán combinar, por proyecto, jornada de referencia configurable, mínimo facturable, overtime opcional con umbral/multiplicador y tratamiento independiente de Travel facturable/no facturable.</li>
+    <li>Soporte de frecuencias de facturación: Semanal, cada 14 días, dos veces al mes (semi-monthly: 1–15 / 16–fin), mensual, periodo personalizado o hito (milestone). Cada stream de facturación (Labor o Expenses) puede tener su propia periodicidad independiente.</li>
+  </ul>
+
   <h3>13. Generación de facturación e Invoices</h3>
   <ul>
     <li>El sistema generará automáticamente borradores de invoices a partir de horas y gastos aprobados. Los flujos Labor y Expenses podrán producir invoices independientes.</li>
-    <li><strong>Plantillas de Invoice:</strong> Inclusión de plantillas profesionales adaptables a los modelos de J&A (identidad, nº invoice, cliente, PO, periodo, fechas de emisión y vencimiento, conceptos, subtotal, impuestos, total e info de pago).</li>
+    <li><strong>Plantillas de Invoice:</strong> Inclusión de plantillas profesionales adaptables a los modelos de J&amp;A (identidad, nº invoice, cliente, código/siglas de cliente, número de cliente, número de proyecto, número/código de centro de coste, PO, periodo, fechas de emisión y vencimiento, conceptos, subtotal, impuestos, total e info de pago).</li>
     <li><strong>Ciclo de vida de Invoice:</strong> gestión de estados desde borrador hasta emisión, envío, pago parcial, pago, vencimiento, anulación y ajuste/crédito. Una Invoice emitida quedará fijada como documento histórico y sus correcciones se realizarán mediante los mecanismos de ajuste, crédito, anulación o sustitución habilitados por el Sistema.</li>
     <li><strong>Control de pagos:</strong> Registro de estado de invoice, pagos parciales o totales, fechas de cobro y saldo pendiente.</li>
     <li><strong>Revisión obligatoria:</strong> El sistema no emitirá ni enviará facturas sin revisión manual previa.</li>
@@ -429,7 +443,8 @@
 
   <h3>14. Perfiles fiscales configurables</h3>
   <ul>
-    <li>Los flujos Labor y Expenses podrán utilizar perfiles fiscales diferentes, configurados según la información validada por J&A.</li>
+    <li>Los flujos Labor y Expenses podrán utilizar perfiles fiscales diferentes, configurados según la información validada por J&amp;A.</li>
+    <li>La aplicación de impuesto será <strong>opcional y configurable por stream</strong>: Labor y Expenses podrán configurarse de forma independiente como no sujetos/0% o con el perfil/porcentaje indicado por J&amp;A. La configuración fiscal se aplicará a las líneas/importe facturable correspondiente, no a las horas reales como dato operativo.</li>
     <li>EVOCON implementa el mecanismo de cálculo, pero no presta asesoramiento fiscal ni determina automatizadamente la tributación aplicable.</li>
   </ul>
 
@@ -440,25 +455,25 @@
     <li><strong>Resultado directo (Margen de contribución):</strong> Ingresos reconocidos menos costes directos. No constituye el beneficio neto fiscal.</li>
   </ul>
 
-  <h3>16. Multidioma y Dispositivos</h3>
-  <ul>
-    <li>Aplicación web responsive. Interfaz en Inglés (English), Español y Portugués. Reportes exportables generados en el idioma seleccionable (EN/ES/PT).</li>
-  </ul>
-
-  
   <div class="footer">
     <span>Contrato EVOCON / J&A Automation</span>
     <span class="page-number"></span>
   </div>
 </section>
 
+<!-- PAGE 14: ANEXO A (5/6) -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
     <div class="title">Anexo A: Alcance Funcional (Cont.)</div>
   </div>
 
-<h3>17. Automatización y aprobaciones</h3>
+  <h3>16. Multidioma y Dispositivos</h3>
+  <ul>
+    <li>Aplicación web responsive. Interfaz en Inglés (English), Español y Portugués. Reportes exportables generados en el idioma seleccionable (EN/ES/PT).</li>
+  </ul>
+
+  <h3>17. Automatización y aprobaciones</h3>
   <ul>
     <li>Los registros operativos y financieros podrán pasar por flujos de Draft/Submitted/Approved/Needs Changes según el tipo de registro. El Sistema comprobará, antes del cierre de un periodo, elementos pendientes como horas sin aprobar, reportes requeridos, gastos pendientes, receipts faltantes o configuración económica incompleta. Los periodos válidos podrán generar automáticamente reportes consolidados y borradores de invoices para revisión por usuarios autorizados.</li>
   </ul>
@@ -482,10 +497,38 @@
     <li>Las líneas facturadas mantendrán trazabilidad interna hasta sus registros de origen (horas y gastos aprobados). El Sistema evitará la inclusión accidental de una misma fuente aprobada en dos facturas.</li>
   </ul>
 
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<!-- PAGE 15: ANEXO A (6/6) -->
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Anexo A: Alcance Funcional (Prioridades de Operación)</div>
+  </div>
+
   <h3>21. Reporting financiero y cierre de proyecto</h3>
   <ul>
     <li>Generación de informes de gestión que podrán incluir: trabajo aprobado no facturado (WIP), antigüedad de cuentas por cobrar (aging/collections), presupuesto vs. real (budget vs. actual) y previsión a terminación (forecast at completion) cuando existan los datos de planificación necesarios.</li>
     <li>Cierre de proyecto: generación de un paquete de cierre consolidado que incluya resumen del proyecto, informes finales, resumen técnico/PLC, registro de backups, resumen de gastos, registro de invoices, estado de pagos y un manifiesto de documentos.</li>
+  </ul>
+
+  <h3>22. Reportes esenciales por destinatario</h3>
+  <ul>
+    <li><strong>Reporte para el cliente — horas, actividad y conformidad:</strong> Documento por trabajador/proyecto/periodo con fechas, horas y actividades realizadas. No mostrará compensación del trabajador, rates de venta, costes internos, margen ni ningún otro valor monetario. Permitirá recoger la firma/conformidad del cliente y conservar quién firmó, fecha/hora y versión del documento firmado.</li>
+    <li><strong>Condición de firma:</strong> Cuando un proyecto se configure como “firma de cliente requerida para facturar”, las horas/periodo correspondientes no podrán pasar a facturación definitiva hasta disponer de la conformidad/firma exigida. El borrador podrá prepararse, pero el Sistema mostrará el bloqueo de forma explícita.</li>
+    <li><strong>Reporte/vista del trabajador:</strong> Horas y actividades propias, compensación estimada/aprobada, gastos reembolsables propios, estado de liquidación y fechas prevista/efectiva de pago, sin revelar información comercial confidencial de J&amp;A.</li>
+    <li><strong>Reporte/vista de Administración/Finanzas:</strong> Horas y actividades, importe a pagar al trabajador, costes directos, importe a recibir del cliente, facturación, cobros, gastos/reembolsos y sus estados y fechas relevantes.</li>
+  </ul>
+
+  <h3>23. Identificadores, fechas y estados operativos</h3>
+  <ul>
+    <li>Clientes, proyectos e invoices conservarán identificadores empresariales legibles: código/siglas de cliente cuando se use, número de cliente, número de proyecto y número/código de centro de coste del proyecto.</li>
+    <li>Los estados <strong>activo/inactivo</strong> de proyecto y trabajador deberán ser visibles y aplicarse a nuevas operaciones sin borrar ni alterar el histórico existente.</li>
+    <li>Las fechas previstas y efectivas de facturación, cobro al cliente y pago al trabajador se almacenarán separadamente cuando aplique, evitando presentar una previsión como si fuese un movimiento de caja real.</li>
   </ul>
 
   <div class="footer">
@@ -494,7 +537,7 @@
   </div>
 </section>
 
-<!-- PAGE 10: ANEXOS B y C -->
+<!-- PAGE 16: ANEXOS B y C -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
@@ -525,7 +568,7 @@
   </div>
 </section>
 
-<!-- PAGE 11: ANEXO D (1/3) -->
+<!-- PAGE 17: ANEXO D (1/4) -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
@@ -542,13 +585,14 @@
   <p>Constituirá evidencia objetiva de la correcta ejecución del flujo principal que el software permita ejecutar con éxito, de principio a fin, el siguiente escenario operativo básico:</p>
   <ol>
     <li>Crear un nuevo Cliente corporativo y un Proyecto asociado (con fecha y presupuesto).</li>
-    <li>Asignar un Trabajador al proyecto, configurando una tarifa Normal y otra Overtime.</li>
-    <li>El Trabajador accede con su sesión y registra horas reales de trabajo.</li>
+    <li>Asignar un Trabajador activo al proyecto, configurando una tarifa horaria Normal y, cuando aplique, Overtime con umbral y multiplicador/tarifa específica.</li>
+    <li>El Trabajador accede con su sesión y registra horas reales de trabajo, incluyendo Travel cuando aplique y respetando su configuración facturable/no facturable.</li>
     <li>El Trabajador sube un Gasto (Expense), adjuntando evidencia (foto/PDF) y categorizándolo.</li>
     <li>El Trabajador genera un reporte técnico (PLC) y un Daily Report asociado a su jornada.</li>
-    <li>Un rol Administrador/PM aprueba las horas reportadas y el gasto subido.</li>
-    <li>Finanzas revisa el coste interno asociado al trabajador y la correcta aplicación de <em>rates</em>.</li>
-    <li>El sistema genera automáticamente el borrador de una Invoice (factura) de Labor y otra Invoice independiente de Expenses (con perfil fiscal distinto si aplica).</li>
+    <li>Un rol Administrador/PM aprueba las horas reportadas y el gasto subido; una corrección administrativa posterior queda auditada y conserva el valor anterior.</li>
+    <li>Finanzas revisa el coste interno asociado al trabajador, la correcta aplicación de <em>rates</em>, los importes a pagar/recibir y las fechas previstas/efectivas de pago, facturación y cobro.</li>
+    <li>El sistema genera el reporte para firma del cliente con horas y actividades sin importes monetarios y, cuando el proyecto exige conformidad previa, registra la firma antes de liberar la facturación definitiva.</li>
+    <li>El sistema genera automáticamente el borrador de una Invoice (factura) de Labor y otra Invoice independiente de Expenses (con perfil fiscal distinto o sin impuesto si así se configura), mostrando código/siglas de cliente, número de cliente, número de proyecto y centro de coste cuando correspondan.</li>
     <li>Se revisan y aprueban (emiten) las Invoices generadas.</li>
     <li>Se registra un pago parcial o total sobre una de las Invoices.</li>
     <li>Se visualiza en el Ledger el saldo pendiente (Outstanding) y el margen de contribución.</li>
@@ -561,7 +605,7 @@
   </div>
 </section>
 
-<!-- PAGE 12: ANEXO D (2/3) -->
+<!-- PAGE 18: ANEXO D (2/4) -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
@@ -571,15 +615,15 @@
   <h3>D.2 Sistema de Gestión (Casos de Validación Específicos)</h3>
   <p>Sin perjuicio de la superación del flujo principal, se comprobará obligatoriamente que el sistema gestiona correctamente los siguientes casos (edge cases) del alcance contratado:</p>
   <ul>
-    <li><strong>A. Regla 10h:</strong> Si un trabajador registra 4h reales, el sistema conserva las 4h, pero permite aplicar un mínimo de facturación al cliente de 10h, calculando la compensación del trabajador de forma independiente a la facturación del cliente.</li>
+    <li><strong>A. Jornada de referencia y mínimo facturable:</strong> Si un proyecto usa una referencia configurable de 12h y un trabajador registra 4h reales, el sistema conserva las 4h y aplica únicamente el mínimo facturable configurado para ese proyecto, calculando la compensación del trabajador de forma independiente. El mismo mecanismo debe admitir referencias como 10h, 14h u otros valores sin generar horas reales ficticias.</li>
     <li><strong>B. Compensación Porcentual y Overtime:</strong> Si un trabajador está configurado al 55% de la labor elegible y realiza horas Regular y Overtime, el sistema calcula su compensación proporcional a lo facturado, excluyendo del cálculo los gastos e impuestos.</li>
     <li><strong>C. Gastos All-in:</strong> Un gasto de hotel configurado como "All-in" aumenta el coste directo del proyecto (reduciendo margen), pero no se transfiere automáticamente a una Expense Invoice cobrable al cliente.</li>
     <li><strong>D. Gastos Reembolsables:</strong> Un gasto aprobado como "Reembolsable" con su recibo adjunto entra correctamente en el flujo de facturación de Expense.</li>
-    <li><strong>E. Diferenciación de Tarifas (Rates):</strong> El sistema aplica un coste distinto para la tarifa "Regular" frente a la "Overtime" del mismo trabajador, y soporta costes distintos para el Trabajador A frente al Trabajador B en el mismo proyecto.</li>
+    <li><strong>E. Overtime y Travel:</strong> El sistema activa Overtime solo después del umbral configurado y admite multiplicadores como 1,6×, 2× u otro valor; además, Travel puede configurarse como facturable o no facturable al cliente sin alterar las horas reales. Las reglas del trabajador y del cliente pueden ser distintas.</li>
     <li><strong>F. Privacidad de Datos:</strong> Un trabajador que accede a su panel privado "My Pay" NO puede visualizar la tarifa de venta al cliente, NO visualiza su propio coste interno empresarial y NO visualiza el margen de la empresa.</li>
     <li><strong>G. Multidioma:</strong> Un mismo documento (ej. Invoice o Reporte) puede exportarse en idioma EN, ES o PT según la preferencia seleccionada.</li>
     <li><strong>H. Capped T&M / Hybrid:</strong> Un proyecto configurado con PO/cap de USD X, tras registrar horas que consuman el 100% del cap, no permite facturar labor adicional automáticamente y muestra una alerta de presupuesto al administrador.</li>
-    <li><strong>I. Modo Offline y Sincronización:</strong> Un trabajador registra horas y un gasto con recibo en modo sin conexión. Al reconectarse, los registros se sincronizan correctamente al servidor sin crear duplicados.</li>
+    <li><strong>I. Modo Offline y Sincronización (condicional):</strong> Solo si J&amp;A confirma el modo offline como requisito de go-live, un trabajador podrá registrar horas y un gasto con recibo sin conexión y sincronizarlos posteriormente sin duplicados. Si no se activa para el go-live, este caso no bloqueará la aceptación.</li>
     <li><strong>J. Corrección de Invoice (Credit/Adjustment):</strong> Una Invoice emitida NO puede editarse. Su corrección se realiza mediante la emisión de un documento de crédito o ajuste vinculado al original.</li>
     <li><strong>K. Backup PLC:</strong> Un trabajador sube una referencia de backup PLC vinculada a un reporte técnico y a un proyecto, y un usuario autorizado puede recuperarla posteriormente.</li>
     <li><strong>L. No Doble Facturación:</strong> Horas o gastos ya incluidos en una Invoice emitida no pueden ser incluidos normalmente en una segunda Invoice de otro periodo o batch.</li>
@@ -591,7 +635,32 @@
   </div>
 </section>
 
-<!-- PAGE 13: ANEXO D (3/3) -->
+<!-- PAGE 19: ANEXO D (3/4) -->
+<section class="page">
+  <div class="header">
+    <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />
+    <div class="title">Anexo D: Validaciones de Operación y Caja</div>
+  </div>
+
+  <h3>D.2 bis Validaciones específicas acordadas con J&amp;A</h3>
+  <ul>
+    <li><strong>M. Corrección administrativa de horas:</strong> un Administrador autorizado puede añadir/reducir/corregir horas; si el registro ya estaba enviado o aprobado, se exige motivo, audit trail y preservación del valor anterior.</li>
+    <li><strong>N. Firma del cliente:</strong> se genera un PDF de horas + actividades sin valores monetarios. La firma/conformidad queda asociada a una versión concreta y, si el proyecto requiere firma previa, la facturación definitiva queda bloqueada hasta recibirla.</li>
+    <li><strong>O. Tres vistas económicas:</strong> el Cliente ve horas/actividad sin dinero; el Trabajador ve sus horas, actividad, importe propio a recibir y estado/fecha de pago; Administración/Finance ve horas, actividad, dinero a pagar, dinero a recibir, facturación, cobros y saldos.</li>
+    <li><strong>P. Fechas de caja:</strong> se distinguen fecha prevista y efectiva de invoice/cobro del cliente, y fecha prevista y efectiva de pago al trabajador. Las previsiones no se contabilizan como efectivo recibido/pagado.</li>
+    <li><strong>Q. Expense y pago:</strong> un gasto adelantado por trabajador muestra su estado de reembolso y fecha de pago; si además es repercutible, mantiene separadamente su estado de facturación/cobro al cliente.</li>
+    <li><strong>R. Identificación comercial:</strong> una Invoice puede mostrar código/siglas de cliente, número de cliente, número de proyecto y centro de coste del proyecto, además de PO/referencia cuando aplique.</li>
+    <li><strong>S. Fiscalidad opcional por stream:</strong> Labor y Expenses pueden usar perfiles fiscales distintos o quedar configurados sin impuesto/0% conforme a la configuración proporcionada por J&amp;A.</li>
+    <li><strong>T. Activo/Inactivo:</strong> desactivar un trabajador o proyecto impide nuevas operaciones incompatibles con ese estado, pero no borra horas, reportes, gastos, invoices, pagos ni auditoría anteriores.</li>
+  </ul>
+
+  <div class="footer">
+    <span>Contrato EVOCON / J&A Automation</span>
+    <span class="page-number"></span>
+  </div>
+</section>
+
+<!-- PAGE 20: ANEXO D (4/4) -->
 <section class="page">
   <div class="header">
     <img src="Images/logo-evocon.png" alt="EVOCON Solutions" />

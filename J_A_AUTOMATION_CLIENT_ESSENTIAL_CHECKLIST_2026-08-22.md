@@ -3,6 +3,9 @@
 **Date:** 2026-08-22  
 **Scope:** Only release blockers for the client-complete production system.
 
+**Client validation update:** 2026-08-24
+The requirements clarified directly with J&A on 2026-08-24 are release-authoritative. Existing PASS/PARTIAL evidence must be revalidated where these clarifications materially change the behavior; no prior PASS may be assumed to prove a newly clarified rule.
+
 ## Legend
 
 - ✅ Implemented/proven enough for this reduced release scope.
@@ -367,5 +370,16 @@ The release can be called **CLIENT READY** only when all of these pass:
 - [ ] Backup/restore drill passes.
 - [ ] Production build/deployment behind Caddy works.
 - [ ] No core business flow requires a spreadsheet as the system of record.
+- [ ] Reference hours are configurable per project (for example 10/12/14) and remain independent from real worked hours.
+- [ ] Minimum billable hours/day/service are configurable independently from worker compensation.
+- [ ] Overtime is optional and supports a configurable threshold plus worker/client multiplier or rate (including cases such as 1.6x and 2x).
+- [ ] Travel time can be independently configured as client-billable or non-billable, with separate worker-pay treatment.
+- [ ] Authorized Admin/Finance can add/reduce/correct worker hours with reason, audit trail and preservation of prior approved/submitted truth.
+- [ ] Customer time/activity report contains no monetary values, can be signed/conformed by the client, and blocks final labor billing when the project requires signature.
+- [ ] Worker view/report shows own hours/activity, amount expected to receive, reimbursement/settlement state and expected/actual payment dates without Finance-only data.
+- [ ] Admin/Finance view/report shows hours/activity, money to pay, money to receive, billing/collection state and planned/actual cash-flow dates.
+- [ ] Expenses maintain separate worker-reimbursement and client-billing/collection states and dates.
+- [ ] Invoices expose the configured client code/acronym, client number, project number and project cost-center code/number, and Labor/Expenses tax treatment can independently be configured as applicable or no-tax/0%.
+- [ ] Project and worker active/inactive states prevent inappropriate new activity without deleting historical records.
 
 When this section is fully checked, deferred roadmap items must not prevent the release verdict.

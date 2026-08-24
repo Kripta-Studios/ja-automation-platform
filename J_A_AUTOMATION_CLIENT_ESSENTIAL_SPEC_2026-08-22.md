@@ -1,6 +1,7 @@
 # J&A Automation — Client Essential Production Specification
 
 **Date:** 2026-08-22  
+**Client validation update:** 2026-08-24
 **Status:** Proposed delivery authority for the client-complete production release  
 **Purpose:** Reduce the current V3/V3.1–V3.4 completion program to the software J&A actually needs to operate the business end-to-end, without turning the project into a general ERP, CMMS, data platform, or ML product.
 
@@ -37,14 +38,14 @@ Client
 → Project
 → Worker assignment
 → Actual time + standby/overtime/travel
-→ Daily/technical reports
+→ Daily/technical activity reports
 → Expenses + receipts
 → Manager approval
 → Finance review
 → Worker compensation + internal direct cost
 → Client billable amount
 → Project contribution/margin
-→ Customer period report
+→ Customer time/activity report + signature where required
 → Labor/expense/fixed invoice
 → Invoice issue
 → Payment/partial payment
@@ -97,6 +98,7 @@ Required:
 Minimum client data:
 
 - client number;
+- optional client code/acronym used on business documents (for example a J&A-defined code such as `CP-12`);
 - legal/display name;
 - billing contact;
 - billing address;
@@ -120,6 +122,7 @@ Required:
 Minimum project data:
 
 - project number;
+- project/cost-center number or code;
 - client;
 - name;
 - site/location;
@@ -138,6 +141,7 @@ Minimum project data:
 Required:
 
 - assign/remove a worker while preserving history;
+- explicit active/inactive/suspended state for workers and projects where operationally relevant;
 - assignment start/end dates;
 - project-specific worker compensation/rates where needed;
 - permitted project scope enforced server-side.
@@ -159,22 +163,24 @@ Required commercial models:
 
 Required configurable rules:
 
-- expected 10h Monday–Saturday planning template;
+- configurable daily/reference-hours template by project and applicable days (for example 10h, 12h, 14h or another agreed value);
 - actual time remains authoritative;
+- configurable minimum billable hours/day/service independent from actual time and worker compensation;
+- hourly labor as J&A's ordinary operating basis; any existing daily/fixed/percentage behavior is used only where J&A explicitly configures it;
 - worker compensation rule;
 - internal loaded/direct labor cost;
 - client bill rate;
 - per-worker/per-category overrides where required;
 - standby/minimum-day behavior;
-- overtime behavior;
-- travel-time treatment;
+- optional overtime with configurable threshold (after N hours) and configurable worker/client multiplier or rate (for example 1.6x, 2x or another value);
+- travel-time treatment with an explicit client-billable yes/no rule independent from the worker-pay treatment;
 - reimbursable vs all-in expenses;
 - labor and expense billing cadence;
-- labor and expense tax profile;
+- labor and expense tax profile, including an explicit no-tax/0% option when configured by J&A;
 - currency;
 - PO/budget cap.
 
-The software must never turn the expected 10-hour schedule into fabricated actual hours.
+The software must never turn the configured daily/reference-hours template or a minimum billable rule into fabricated actual hours.
 
 ---
 
@@ -188,6 +194,7 @@ Worker mobile flow must allow:
 - standby/waiting;
 - overtime;
 - travel time where applicable;
+- optional activity/technical-work summary linked to the same day/time report;
 - notes;
 - save draft;
 - edit draft;
@@ -206,6 +213,7 @@ Rules:
 
 - actual time is the source of truth;
 - submitted/approved records cannot be silently overwritten;
+- an authorized Admin/Finance user may add, reduce or correct worker time, but corrections to submitted/approved records require a reason, audit evidence and preservation of the prior value/version;
 - draft records may be deleted;
 - approved records require an audited correction/void/superseding change;
 - obvious overlaps and impossible durations are rejected or explicitly reviewed;
@@ -236,9 +244,10 @@ Collected cash
 
 Worker-facing view:
 
-- own approved/estimated compensation;
+- own approved/estimated compensation and amount expected to be received;
 - own reimbursable expenses;
-- own settlement/payment status where used.
+- own settlement/payment status where used;
+- expected payment date and actual payment date when those dates are managed by J&A.
 
 Worker-facing view must never reveal:
 
@@ -287,6 +296,8 @@ Rules:
 
 - all-in expenses increase direct project cost but do not enter the customer expense invoice;
 - reimbursable approved expenses can enter the expense billing stream;
+- worker reimbursement state is tracked separately from client recovery/billing state;
+- when applicable, expected/actual worker reimbursement dates and invoice/collection linkage are recorded;
 - receipt attachment is private;
 - duplicate or missing receipt warnings may be simple heuristics;
 - approved expenses are locked and corrections are audited.
@@ -326,6 +337,16 @@ Required:
 - safety-related flag;
 - before/after backup or technical attachment when applicable;
 - draft/edit/submit/approve.
+
+### Customer time/activity sign-off report
+
+Required:
+
+- generate a customer-facing report by worker/project/period containing dates, approved hours and activities performed;
+- optionally incorporate references/summaries from Daily/PLC/Technical Reports;
+- contain **no worker compensation, client rate, internal cost, company margin or other confidential monetary values**;
+- support customer signature/conformity with signer identity/name, signed timestamp and immutable document/version reference;
+- when a project is configured as `customer sign-off required before billing`, the corresponding labor cannot be finally invoiced until the required signed/conformed report exists; invoice drafts may still be prepared but the blocking reason must be explicit.
 
 ### PLC backup history
 
@@ -399,6 +420,17 @@ Use **Contribution Margin / Direct Project Result**, not statutory “Net Profit
 
 Every total must drill back to source time, expense, rate, invoice, or payment records.
 
+Finance/Owner review must also expose the dates that explain billing and cash flow, where applicable:
+
+- service/work period;
+- planned/actual invoice issue date;
+- invoice due date / expected client receipt date;
+- actual client receipt/collection date;
+- expected worker payment date;
+- actual worker payment date.
+
+Planned dates must never be presented as actual paid/collected cash.
+
 Advanced forecasting/EAC history is useful but not a release blocker. A simple budget-vs-actual view is sufficient initially.
 
 ---
@@ -419,11 +451,12 @@ Labor and expenses must be separate billing streams when configured.
 The system must:
 
 1. identify approved source records for a billing period;
-2. prevent duplicate inclusion;
-3. calculate exact totals;
-4. generate invoice draft(s);
-5. let Finance review;
-6. issue explicitly.
+2. apply any configured customer-signature prerequisite before final labor invoicing;
+3. prevent duplicate inclusion;
+4. calculate exact totals;
+5. generate invoice draft(s);
+6. let Finance review;
+7. issue explicitly.
 
 Default:
 
@@ -458,6 +491,10 @@ Required invoice data:
 - issue/due date;
 - currency;
 - client/bill-to;
+- optional client code/acronym;
+- client number;
+- project number;
+- project cost-center number/code;
 - client/project/PO reference;
 - service period;
 - lines;
@@ -475,7 +512,7 @@ Issuing rules:
 - later corrections use void/credit/adjustment/replacement workflow;
 - never silently edit an issued invoice.
 
-Tax values are configuration, not hard-coded legal advice.
+Tax values are configuration, not hard-coded legal advice. Labor and Expenses may independently use different tax profiles or an explicit no-tax/0% configuration supplied by J&A.
 
 ---
 
@@ -485,9 +522,11 @@ Finance must be able to record:
 
 - full payment;
 - partial payment;
+- expected receipt date where used;
 - received date;
 - amount;
-- reference/note.
+- reference/note;
+- worker settlement/payment planned and actual dates where J&A manages those payments in the system.
 
 Required ledger fields:
 
@@ -513,10 +552,10 @@ Do not make dozens of separately engineered report products block go-live.
 
 The core release needs these **six report families**:
 
-1. **Daily/PLC operational reports**
-2. **Customer period report**
-3. **Project internal financial/profitability report**
-4. **Worker statement / own compensation report**
+1. **Daily/PLC operational reports**, including optional activity linked to time
+2. **Customer period / time-and-activity sign-off report** with no monetary values and customer signature when required
+3. **Project internal financial/profitability report** for Admin/Finance, including hours/activity, money to pay, money to receive and relevant billing/payment dates
+4. **Worker statement / own compensation report**, including hours/activity, own amount to receive, reimbursement/settlement state and expected/actual payment dates
 5. **Invoice & collection ledger/report**
 6. **Monthly Accounting/Finance export pack**
 
@@ -870,27 +909,27 @@ The Client Essential Production Release is complete when this scenario passes wi
 1. Owner invites Worker, PM and Finance users.
 2. Admin creates a client.
 3. Admin creates a project.
-4. Admin configures 10h Mon–Sat planning without creating fake actual hours.
-5. Admin configures project budget/PO and commercial model.
-6. Admin assigns workers with start/end dates.
-7. Admin configures worker compensation, internal cost and client billing rules.
+4. Admin configures the project's reference hours (for example 10/12/14) and minimum billable rule without creating fake actual hours.
+5. Admin configures project budget/PO, commercial model, client/project/cost-center identifiers and active state.
+6. Admin assigns active workers with start/end dates and can later inactivate them without losing history.
+7. Admin configures hourly worker compensation, internal cost, client billing rules, optional overtime threshold/multiplier and Travel billable/non-billable treatment.
 8. A percentage-based worker can be configured when required.
 9. Admin configures reimbursable vs all-in travel/expenses.
-10. Labor and expense billing streams/cadences/tax profiles can differ.
+10. Labor and expense billing streams/cadences/tax profiles can differ, including an explicit no-tax/0% configuration.
 11. Worker opens the portal on a phone.
-12. Worker records regular/standby/overtime/travel time.
-13. Worker sees own pay estimate but not client rate/internal cost/margin.
-14. Worker submits a daily report.
-15. Worker submits a PLC/technical report and backup attachment when relevant.
+12. Worker records regular/standby/overtime/travel time and optional activity; Admin can make an audited time correction without silent history rewrite.
+13. Worker sees own pay estimate, own expected/actual payment status/dates, but not client rate/internal cost/margin.
+14. Worker submits a daily report and the system can generate a customer time/activity report with no monetary values.
+15. Worker submits a PLC/technical report and backup attachment when relevant; technical activity can be referenced from the time/activity report.
 16. Worker submits an expense with receipt.
 17. PM approves/rejects operational records.
-18. Finance reviews billability, compensation, direct cost and revenue.
-19. Project finance shows budget, cost, revenue/WIP, invoiced, collected and contribution.
+18. Finance reviews billability, compensation, direct cost, revenue, money to pay/receive and planned/actual invoice, collection and worker-payment dates.
+19. Project finance shows budget, cost, revenue/WIP, invoiced, collected, outstanding and contribution with drill-down to source rows.
 20. All-in expense affects project cost without entering the expense invoice.
 21. Reimbursable expense enters the expense billing stream after approval.
-22. Period close/generation creates customer report and invoice draft(s).
-23. Finance issues an invoice; issued values/PDF are immutable.
-24. Finance records partial and full payments.
+22. Period close/generation creates the customer time/activity report, captures customer signature when required, and only then releases the applicable labor invoice draft(s) for final issue.
+23. Finance issues an invoice with required client/project/cost-center identifiers; issued values/PDF are immutable.
+24. Finance records partial/full client payments and worker/expense payment states and dates where applicable.
 25. Invoice/collection ledger reconciles with invoices/payments.
 26. Monthly finance/accounting export is generated and reconciles to source data.
 27. Pending/failed artifact generation is represented truthfully and can be retried safely.
@@ -910,14 +949,18 @@ Do not require every possible test permutation. Require evidence proportional to
 
 ## 9.1 Mandatory automated suites
 
-- money/rate/compensation calculations;
-- all-in vs reimbursable expense behavior;
+- money/rate/compensation calculations, including configurable minimum billable hours, overtime threshold/multiplier and Travel billability;
+- admin time correction preserves prior truth and audit evidence;
+- all-in vs reimbursable expense behavior and separate worker-reimbursement/client-recovery states;
 - billing period and duplicate-billing prevention;
 - invoice issue immutability;
 - partial payment/outstanding calculations;
 - RBAC/IDOR/privacy;
 - upload/download authorization;
 - draft→submit→approve→correct lifecycle;
+- customer time/activity sign-off report contains no monetary data and enforces the optional signature-before-billing gate;
+- worker/Admin report privacy and planned-vs-actual payment/collection dates;
+- invoice identifiers and independent optional Labor/Expenses tax configuration;
 - report/invoice/accounting export generation;
 - artifact pending/failure/retry;
 - DB migration/integrity;

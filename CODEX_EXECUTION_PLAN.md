@@ -43,21 +43,21 @@ Production importance, backend location, or code volume alone is not a reason to
 
 ### Current host diagnostic results — 2026-08-25
 
-| Gate                             | Result  | Verified evidence                                                                                        |
-| -------------------------------- | ------- | -------------------------------------------------------------------------------------------------------- |
-| `pnpm format:check`              | PASS    | current worktree                                                                                         |
-| lint / typecheck                 | PASS    | current host; release still repeats typecheck under Node `24.19.0`                                       |
-| unit                             | PASS    | 91 files, 476 tests                                                                                      |
-| reporting                        | PASS    | 1 file, 4 tests                                                                                          |
-| integration                      | PASS    | 34 files, 217 tests                                                                                      |
-| invariants                       | PASS    | 1 file, 1 test                                                                                           |
-| security                         | PASS    | 17 files, 78 tests; independent current-tree approval remains open                                       |
-| offline                          | PASS    | 3 files, 8 tests; go-live offline decision remains conditional                                           |
-| database checks                  | PASS    | WAL, foreign keys, integrity with isolated release identity                                              |
-| build                            | PENDING | release script must repeat site, portal and jobs builds under Node `24.19.0`                             |
-| E2E                              | OPEN    | required phone-360/390, tablet-768 and desktop-1440 authenticated evidence is not complete               |
-| backup/restore operational tests | PASS    | `ops:backup:test` and `ops:restore-test` pass on the host; current-schema/pinned evidence remains open   |
-| strict spec audit                | FAIL    | Client Essential remains NOT READY until all mandatory browser, review and deployment dependencies close |
+| Gate                             | Result | Verified evidence                                                                                                                                       |
+| -------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm format:check`              | PASS   | current worktree                                                                                                                                        |
+| lint / typecheck                 | PASS   | current host; release still repeats typecheck under Node `24.19.0`                                                                                      |
+| unit                             | PASS   | 91 files, 476 tests                                                                                                                                     |
+| reporting                        | PASS   | 1 file, 4 tests                                                                                                                                         |
+| integration                      | PASS   | 34 files, 217 tests                                                                                                                                     |
+| invariants                       | PASS   | 1 file, 1 test                                                                                                                                          |
+| security                         | PASS   | 17 files, 78 tests; independent current-tree approval remains open                                                                                      |
+| offline                          | PASS   | 3 files, 8 tests; go-live offline decision remains conditional                                                                                          |
+| database checks                  | PASS   | WAL, foreign keys, integrity with isolated release identity                                                                                             |
+| build                            | PASS   | release `20260825` built site, portal and jobs under Node `24.19.0`; archive SHA-256 `894f315be30b923856f2a9cdb642dbf759b420771c2e1c1c4505724eb721f8c9` |
+| E2E                              | OPEN   | required phone-360/390, tablet-768 and desktop-1440 authenticated evidence is not complete                                                              |
+| backup/restore operational tests | PASS   | `ops:backup:test` and `ops:restore-test` pass on the host; current-schema/pinned evidence remains open                                                  |
+| strict spec audit                | FAIL   | Client Essential remains NOT READY until all mandatory browser, review and deployment dependencies close                                                |
 
 ### Architecture evidence
 

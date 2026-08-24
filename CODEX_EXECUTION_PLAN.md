@@ -46,7 +46,7 @@ Production importance, backend location, or code volume alone is not a reason to
 | Gate                             | Result | Verified evidence                                                                                                                                       |
 | -------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pnpm format:check`              | PASS   | current worktree                                                                                                                                        |
-| lint / typecheck                 | PASS   | current host; release still repeats typecheck under Node `24.19.0`                                                                                      |
+| lint / typecheck                 | PASS   | current host; release repeated typecheck under Node `24.19.0`                                                                                           |
 | unit                             | PASS   | 91 files, 476 tests                                                                                                                                     |
 | reporting                        | PASS   | 1 file, 4 tests                                                                                                                                         |
 | integration                      | PASS   | 34 files, 217 tests                                                                                                                                     |

@@ -25,9 +25,10 @@ review evidence.
 
 The stable pinned-runtime counts recorded below are a prior checkpoint: Node `24.19.0`, unit
 `466`, integration `203`, security `74`, invariants `1`, reporting `4`, migrations `72`, production
-builds, backup/restore and an automatic-job run. Migrations `0028`, `0029` and `0030` now have a
-focused post-change rerun, but the complete pinned final gate and current-schema recovery drill remain
-open. Focused UI regression is currently `74/74`, but authenticated browser evidence remains open.
+builds, backup/restore and an automatic-job run. The 2026-08-25 release script now separately proves
+the pinned typecheck, production builds, archive validation and remote checksum; the complete pinned
+test gate and current-schema recovery drill remain open. Focused UI regression is currently `74/74`,
+but authenticated browser evidence remains open.
 
 | Requirement                           | Status      | Current evidence and exact next dependency                                                                                                                                                                                                                                                                                                                                                      |
 | ------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

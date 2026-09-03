@@ -613,8 +613,18 @@ process_archive() (
   old_site_image=$(docker inspect -f '{{.Image}}' "$old_site_container")
   old_portal_image=$(docker inspect -f '{{.Image}}' "$old_portal_container")
   rollback_tag="rollback-$timestamp-${sha:0:12}"
-  docker tag "$old_site_image" "ja-automation-site:$rollback_tag"
-  docker tag "$old_portal_image" "ja-automation-portal:$rollback_tag"
+  if docker image inspect "$old_site_image" >/dev/null 2>&1; then
+    docker tag "$old_site_image" "ja-automation-site:$rollback_tag"
+  else
+    log 'La imagen exacta del contenedor site ya no está registrada; se conserva la etiqueta activa verificada'
+    docker tag "ja-automation-site:$old_tag" "ja-automation-site:$rollback_tag"
+  fi
+  if docker image inspect "$old_portal_image" >/dev/null 2>&1; then
+    docker tag "$old_portal_image" "ja-automation-portal:$rollback_tag"
+  else
+    log 'La imagen exacta del contenedor portal ya no está registrada; se conserva la etiqueta activa verificada'
+    docker tag "ja-automation-portal:$old_tag" "ja-automation-portal:$rollback_tag"
+  fi
   log "Imágenes anteriores conservadas con etiqueta $rollback_tag"
 
   jobs_units_backup=$(mktemp -d "$STATE_DIR/jobs-units.${sha:0:12}.XXXXXX")

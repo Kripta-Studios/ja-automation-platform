@@ -1,17 +1,37 @@
 import { error, redirect } from '@sveltejs/kit';
+import { lastCompletePeriodForCadence, type BillingCadence } from '@ja/billing-engine';
 import { invoicePeriodSchema } from '@ja/schemas';
 import { actionFail, actionFailure, actionSuccess } from '$lib/server/actions/action-message';
+import { createInvoiceDraftResolvingPeriod } from '$lib/server/invoice-draft';
+import { defaultLookbackPeriod } from '$lib/server/iso-date';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import type { PageServerLoad, Actions } from './$types';
 
 function currentPeriod(): { periodStart: string; periodEnd: string } {
-  const now = new Date();
-  const year = now.getUTCFullYear();
-  const month = now.getUTCMonth();
-  const pad = (value: number): string => String(value).padStart(2, '0');
-  const periodStart = String(year) + '-' + pad(month + 1) + '-01';
-  const periodEnd = new Date(Date.UTC(year, month + 1, 0)).toISOString().slice(0, 10);
-  return { periodStart, periodEnd };
+  return defaultLookbackPeriod();
+}
+
+function cadencePeriod(rule: Readonly<Record<string, unknown>> | undefined): {
+  periodStart: string;
+  periodEnd: string;
+} {
+  const fallback = currentPeriod();
+  if (!rule) return fallback;
+  const cadence = String(rule.cadence_type ?? rule.cadenceType ?? '') as BillingCadence;
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const aligned = lastCompletePeriodForCadence(cadence, today, {
+      anchorDate: String(rule.anchor_date ?? rule.anchorDate ?? '') || undefined,
+      monthlyCutoffDay:
+        rule.monthly_cutoff_day == null && rule.monthlyCutoffDay == null
+          ? undefined
+          : Number(rule.monthly_cutoff_day ?? rule.monthlyCutoffDay),
+    });
+    if (aligned) return { periodStart: aligned.start, periodEnd: aligned.end };
+  } catch {
+    // Cadence options that require an anchor fall back to the operational lookback.
+  }
+  return fallback;
 }
 
 function resolvePeriod(url: URL): { periodStart: string; periodEnd: string } {
@@ -41,10 +61,15 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
           .listBillingRules(context.principal)
           .filter((rule) => String(rule.project_id) === params.id)
       : [];
+    const invoiceDraftPeriod = cadencePeriod(
+      billingRules[0] as Record<string, unknown> | undefined,
+    );
     return {
       user: locals.user,
       periodStart,
       periodEnd,
+      invoiceDraftStart: invoiceDraftPeriod.periodStart,
+      invoiceDraftEnd: invoiceDraftPeriod.periodEnd,
       workers:
         locals.user.role === 'owner_admin'
           ? context.repository.listAllWorkers(context.principal)
@@ -86,21 +111,7 @@ export const actions: Actions = {
         .filter((rule) => String(rule.project_id) === params.id);
       if (!projectRules.some((rule) => String(rule.id) === parsed.data.billingRuleId))
         return actionFail(403, 'action.validation.billingRuleIdRequired');
-      const result = context.repository.createInvoiceDraft(
-        context.principal,
-        parsed.data.billingRuleId,
-        parsed.data.periodStart,
-        parsed.data.periodEnd,
-      );
-      return actionSuccess(
-        result.created
-          ? 'action.billing.invoiceDraftCreated'
-          : 'action.billing.invoiceDraftExisting',
-        {},
-        result.created
-          ? 'Invoice draft created for review'
-          : 'Existing invoice draft returned for review',
-      );
+      return createInvoiceDraftResolvingPeriod(context, parsed.data);
     } catch (e) {
       return actionFailure(e);
     } finally {
@@ -144,6 +155,23 @@ export const actions: Actions = {
         return undefined;
       }
     };
+    const hoursToMinutes = (
+      hoursName: string,
+      minutesName: string,
+      nullable = false,
+    ): number | null | undefined => {
+      const hoursVal = text(hoursName);
+      if (hoursVal !== undefined) {
+        if (hoursVal.trim() === '') return nullable ? null : undefined;
+        const parsed = Number(hoursVal);
+        if (!Number.isFinite(parsed) || parsed < 0 || parsed > 24) {
+          invalidField = hoursName;
+          return undefined;
+        }
+        return Math.round(parsed * 60);
+      }
+      return integer(minutesName, nullable);
+    };
 
     const update = {
       projectId,
@@ -158,8 +186,13 @@ export const actions: Actions = {
       siteName: text('siteName'),
       country: text('country'),
       projectManagerId: text('projectManagerId') || null,
-      expectedMinutesPerDay: integer('expectedMinutesPerDay') ?? undefined,
-      clientDailyMinimumMinutes: integer('clientDailyMinimumMinutes', true),
+      expectedMinutesPerDay:
+        hoursToMinutes('expectedHoursPerDay', 'expectedMinutesPerDay') ?? undefined,
+      clientDailyMinimumMinutes: hoursToMinutes(
+        'clientDailyMinimumHours',
+        'clientDailyMinimumMinutes',
+        true,
+      ),
       budgetMinor: moneyMinor('budgetMinor'),
       revenueBudgetMinor: moneyMinor('revenueBudgetMinor'),
       poCapMinor: moneyMinor('poCapMinor'),
@@ -189,5 +222,20 @@ export const actions: Actions = {
     } finally {
       context.sqlite.close();
     }
+  },
+  deleteProject: async ({ request, locals }) => {
+    if (!locals.user) return actionFail(401, 'action.error.forbidden');
+    const data = await request.formData();
+    const projectId = data.get('projectId')?.toString();
+    if (!projectId) return actionFail(400, 'action.validation.projectIdRequired');
+    const context = openPortalRepository(locals);
+    try {
+      context.repository.deleteProject(context.principal, projectId);
+    } catch (e) {
+      return actionFailure(e);
+    } finally {
+      context.sqlite.close();
+    }
+    redirect(303, '/j-aautomation/app/projects');
   },
 };

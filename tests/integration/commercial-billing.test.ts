@@ -35,7 +35,38 @@ function seedUser(
     .prepare(
       'INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
     )
-    .run(id, id, `${id}@example.com`, role, 'active', 1, now, now);
+    .run(
+      id,
+      id,
+      role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@example.com`,
+      role,
+      'active',
+      1,
+      now,
+      now,
+    );
+}
+
+function withRecentStepUp(
+  sqlite: ReturnType<typeof createDatabase>['sqlite'],
+  principal: Principal,
+): Principal {
+  const now = new Date().toISOString();
+  const sessionId = `commercial-step-up-${principal.userId}`;
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+    )
+    .run(
+      sessionId,
+      `${sessionId}-token`,
+      principal.userId,
+      new Date(Date.now() + 3_600_000).toISOString(),
+      now,
+      now,
+      now,
+    );
+  return { ...principal, sessionId };
 }
 
 describe('commercial billing controls', () => {
@@ -51,8 +82,16 @@ describe('commercial billing controls', () => {
     seedUser(sqlite, 'finance', 'finance_admin');
     seedUser(sqlite, 'manager', 'project_manager');
     seedUser(sqlite, 'worker', 'worker');
-    const owner: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
-    const finance: Principal = { userId: 'finance', role: 'finance_admin', projectIds: new Set() };
+    const owner = withRecentStepUp(sqlite, {
+      userId: 'owner',
+      role: 'owner_admin',
+      projectIds: new Set(),
+    });
+    const finance = withRecentStepUp(sqlite, {
+      userId: 'finance',
+      role: 'finance_admin',
+      projectIds: new Set(),
+    });
     const client = repository.createClient(owner, {
       legalName: 'Commercial Client',
       displayName: 'Commercial Client',
@@ -172,7 +211,61 @@ describe('commercial billing controls', () => {
           .get(cappedDraft.id) as { snapshot_json: string }
       ).snapshot_json,
     ).toContain('capApplied');
+    expect(
+      sqlite
+        .prepare(
+          `SELECT source_type,source_id,disposition,original_minor,allocated_minor,remaining_minor,reason_code
+           FROM invoice_commercial_source_manifest WHERE invoice_id=?`,
+        )
+        .all(cappedDraft.id),
+    ).toEqual([
+      expect.objectContaining({
+        source_type: 'time',
+        source_id: time.id,
+        disposition: 'partially_included',
+        original_minor: 20_000,
+        allocated_minor: 15_000,
+        remaining_minor: 5_000,
+        reason_code: 'capped_tm_partial_allocation',
+      }),
+    ]);
     repository.approveInvoiceDraft(finance, cappedDraft.id);
+    expect(() => repository.issueInvoice(finance, cappedDraft.id)).toThrow(
+      /Canonical legal entity revision is required/u,
+    );
+    expect(
+      sqlite.prepare('SELECT state,invoice_number FROM invoice WHERE id=?').get(cappedDraft.id),
+    ).toEqual({ state: 'approved', invoice_number: null });
+    expect(
+      sqlite
+        .prepare(
+          "SELECT COUNT(*) count FROM audit_event WHERE entity_type='invoice' AND entity_id=? AND action='invoice.issue'",
+        )
+        .get(cappedDraft.id),
+    ).toEqual({ count: 0 });
+    const canonicalEntity = v3.createCanonicalLegalEntityRevision(finance, {
+      legacyLegalEntityId: entity.id,
+      effectiveFrom: '2026-01-01',
+      legalName: 'Commercial Entity S.L.',
+      taxIdentifier: 'ESCOM12345678',
+      registrationIdentifier: 'COM-REG-001',
+      addressLine1: 'Configured address',
+      locality: 'Madrid',
+      region: 'Madrid',
+      postalCode: '28001',
+      countryCode: 'ES',
+      baseCurrency: 'USD',
+      timezone: 'UTC',
+      reason: 'Bind the commercial billing fixture to reviewed canonical authority',
+      idempotencyKey: 'commercial-billing:canonical-entity',
+    });
+    v3.assignCanonicalLegalEntityToProject(finance, {
+      projectId: capped.id,
+      legalEntityRevisionId: canonicalEntity.revisionId,
+      effectiveFrom: '2026-01-01',
+      reason: 'Bind capped billing to the reviewed canonical entity',
+      idempotencyKey: 'commercial-billing:capped-project-entity',
+    });
     const issueResults = await Promise.all([
       Promise.resolve(repository.issueInvoice(finance, cappedDraft.id)),
       Promise.resolve(secondRepository.issueInvoice(finance, cappedDraft.id)),
@@ -186,6 +279,77 @@ describe('commercial billing controls', () => {
           .get(cappedDraft.id) as { count: number }
       ).count,
     ).toBe(1);
+    expect(
+      sqlite.prepare('SELECT invoice_id,billing_status FROM time_entry WHERE id=?').get(time.id),
+    ).toEqual({ invoice_id: null, billing_status: 'cap_blocked' });
+    expect(() =>
+      sqlite
+        .prepare(
+          'UPDATE invoice_commercial_source_manifest SET remaining_minor=0 WHERE invoice_id=?',
+        )
+        .run(cappedDraft.id),
+    ).toThrow(/commercial source manifest is immutable/i);
+    const issuedSnapshot = JSON.parse(
+      (
+        sqlite.prepare('SELECT snapshot_json FROM invoice WHERE id=?').get(cappedDraft.id) as {
+          snapshot_json: string;
+        }
+      ).snapshot_json,
+    ) as { commercialSourceManifest: Array<Record<string, unknown>> };
+    expect(issuedSnapshot.commercialSourceManifest).toEqual([
+      expect.objectContaining({
+        source_id: time.id,
+        allocated_minor: '15000',
+        remaining_minor: '5000',
+      }),
+    ]);
+    repository.updateProject(owner, { projectId: capped.id, poCapMinor: 30_000n });
+    const cappedRemainderRule = repository.createBillingRule(finance, {
+      projectId: capped.id,
+      legalEntityId: entity.id,
+      streamType: 'labor',
+      cadenceType: 'custom',
+      taxProfileId: tax.id,
+      currency: 'USD',
+      effectiveFrom: '2026-08-01',
+    });
+    const cappedRemainderDraft = repository.createInvoiceDraft(
+      finance,
+      cappedRemainderRule.id,
+      '2026-08-01',
+      '2026-08-31',
+    );
+    expect(
+      sqlite.prepare('SELECT subtotal_minor FROM invoice WHERE id=?').get(cappedRemainderDraft.id),
+    ).toEqual({ subtotal_minor: 5_000 });
+    expect(
+      sqlite
+        .prepare(
+          `SELECT disposition,original_minor,allocated_minor,remaining_minor
+             FROM invoice_commercial_source_manifest
+            WHERE invoice_id=? AND source_type='time' AND source_id=?`,
+        )
+        .get(cappedRemainderDraft.id, time.id),
+    ).toEqual({
+      disposition: 'included',
+      original_minor: 5_000,
+      allocated_minor: 5_000,
+      remaining_minor: 0,
+    });
+    repository.approveInvoiceDraft(finance, cappedRemainderDraft.id);
+    repository.issueInvoice(finance, cappedRemainderDraft.id);
+    expect(
+      sqlite.prepare('SELECT invoice_id,billing_status FROM time_entry WHERE id=?').get(time.id),
+    ).toEqual({ invoice_id: cappedRemainderDraft.id, billing_status: 'locked' });
+    expect(
+      sqlite
+        .prepare(
+          `SELECT SUM(allocated_minor) allocated
+             FROM invoice_commercial_source_manifest
+            WHERE source_type='time' AND source_id=?`,
+        )
+        .get(time.id),
+    ).toEqual({ allocated: 20_000 });
     expect(() =>
       repository.createInvoiceDraft(finance, cappedRule.id, '2026-08-17', '2026-08-30'),
     ).toThrow(/Billing period is not ready/);
@@ -207,6 +371,43 @@ describe('commercial billing controls', () => {
       currency: 'USD',
       effectiveFrom: '2026-08-01',
     });
+    repository.assignWorker(owner, {
+      projectId: fixed.id,
+      workerId: 'manager',
+      startsOn: '2026-08-01',
+      canReview: true,
+    });
+    repository.assignWorker(owner, {
+      projectId: fixed.id,
+      workerId: 'worker',
+      startsOn: '2026-08-01',
+    });
+    repository.createProjectCommercialPolicy(finance, {
+      projectId: fixed.id,
+      effectiveFrom: '2026-08-01',
+      overtimeEnabled: false,
+      overtimeThresholdMinutes: null,
+      travelClientBillable: false,
+      customerSignoffRequired: false,
+    });
+    const excludedAllInTravel = repository.createTimeEntry(repository.principalFor('worker'), {
+      projectId: fixed.id,
+      workDate: '2026-08-10',
+      category: 'travel',
+      minutes: 60,
+      summary: 'Travel compensated to worker but excluded from client billing',
+    });
+    repository.submitTime(
+      repository.principalFor('worker'),
+      excludedAllInTravel.id,
+      excludedAllInTravel.version,
+    );
+    repository.operationalApproveTime(
+      repository.principalFor('manager'),
+      excludedAllInTravel.id,
+      'approved',
+    );
+    repository.financeApproveTime(finance, excludedAllInTravel.id, true);
     const fixedDraft = repository.createInvoiceDraft(
       finance,
       fixedRule.id,
@@ -220,6 +421,26 @@ describe('commercial billing controls', () => {
         }
       ).subtotal_minor,
     ).toBe(30_000);
+    expect(
+      sqlite
+        .prepare(
+          `SELECT disposition,reason_code FROM invoice_commercial_source_manifest
+           WHERE invoice_id=? AND source_type='fixed_price'`,
+        )
+        .get(fixedDraft.id),
+    ).toEqual({ disposition: 'included', reason_code: 'all_in_fixed_price' });
+    expect(
+      sqlite
+        .prepare(
+          "SELECT COUNT(*) count FROM invoice_source WHERE invoice_id=? AND source_type='time' AND source_id=?",
+        )
+        .get(fixedDraft.id, excludedAllInTravel.id),
+    ).toEqual({ count: 0 });
+    expect(
+      sqlite
+        .prepare('SELECT invoice_id,billing_status,billing_lock_id FROM time_entry WHERE id=?')
+        .get(excludedAllInTravel.id),
+    ).toEqual({ invoice_id: null, billing_status: 'unlocked', billing_lock_id: null });
 
     const hybrid = repository.createProject(owner, {
       clientId: client.id,

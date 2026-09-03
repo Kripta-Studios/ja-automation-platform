@@ -88,6 +88,32 @@ export const invoiceSources = sqliteTable('invoice_source', {
   lockedAt: text('locked_at'),
 });
 
+export const invoiceCommercialSourceManifest = sqliteTable(
+  'invoice_commercial_source_manifest',
+  {
+    manifestId: text('manifest_id').primaryKey(),
+    invoiceId: text('invoice_id').notNull(),
+    sourceType: text('source_type').notNull(),
+    sourceId: text('source_id').notNull(),
+    sourceVersion: integer('source_version'),
+    disposition: text('disposition').notNull(),
+    originalMinor: integer('original_minor'),
+    allocatedMinor: integer('allocated_minor'),
+    remainingMinor: integer('remaining_minor'),
+    reasonCode: text('reason_code').notNull(),
+    sourceHash: text('source_hash'),
+    createdAt: text('created_at').notNull(),
+    lockedAt: text('locked_at'),
+  },
+  (table) => [
+    uniqueIndex('invoice_commercial_source_manifest_source_unique').on(
+      table.invoiceId,
+      table.sourceType,
+      table.sourceId,
+    ),
+  ],
+);
+
 export const payments = sqliteTable('payment', {
   id: text('id').primaryKey(),
   invoiceId: text('invoice_id').notNull(),
@@ -143,4 +169,5 @@ export const invoiceAdjustments = sqliteTable('invoice_adjustment', {
   effectiveAt: text('effective_at'),
   priorAdjustmentHash: text('prior_adjustment_hash'),
   adjustmentHash: text('adjustment_hash'),
+  idempotencyKey: text('idempotency_key'),
 });

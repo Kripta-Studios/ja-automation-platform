@@ -35,6 +35,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
 
   let context: ReturnType<typeof openPortalRepository> | undefined;
   let reservationId: string | null = null;
+  let storageFileCreated = false;
   try {
     context = openPortalRepository(locals);
     const reportType = reportAttachmentTypeForId(context.sqlite, params.id);
@@ -63,6 +64,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     const bytes = await validateReportAttachmentFile(file);
     const root = safeDocumentRoot();
     await writePrivateFileExclusive(root, reservation.storageKey, bytes);
+    storageFileCreated = true;
     // Re-check after the potentially long file read/write.  If the report was
     // edited concurrently, cancellation removes both the temporary link and
     // the exact reserved file rather than publishing against stale truth.
@@ -96,7 +98,10 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
         // Preserve the original failure.  Do not remove a path unless the
         // database returned the exact reserved key during cancellation.
       }
-      if (cancelledStorageKey)
+      // Never delete a pre-existing winner after an EEXIST collision. Only
+      // remove a file that this request successfully published before a later
+      // database finalization step failed.
+      if (storageFileCreated && cancelledStorageKey)
         await removePrivateFileIfPresent(safeDocumentRoot(), cancelledStorageKey).catch(
           () => undefined,
         );

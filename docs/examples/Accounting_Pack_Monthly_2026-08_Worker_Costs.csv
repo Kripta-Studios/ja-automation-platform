@@ -1,0 +1,10 @@
+worker,workerName,project,projectNumber,role,hours,actualApprovedMinutes,approvedMinutes,currency,approvedCostMinor,approvedCompensationMinor
+Gabriel Santos,Gabriel Santos,CP020 · BBS Mexico,CP020,Lead PLC Engineer,131.50,7890,7890,USD,526000,526000
+Maico Silva,Maico Silva,CP020 · BBS Mexico,CP020,Automation Specialist,134.60,8076,8076,USD,471100,471100
+Victor Lima,Victor Lima,CP020 · BBS Mexico,CP020,Robot Programmer,129.50,7770,7770,USD,453250,453250
+Andrew Miller,Andrew Miller,CP020 · BBS Mexico,CP020,Commissioning Tech,134.50,8070,8070,USD,470750,470750
+Lucas Oliveira,Lucas Oliveira,CP020 · BBS Mexico,CP020,PLC Programmer,130.60,7836,7836,USD,457100,457100
+Luiz Costa,Luiz Costa,CP020 · BBS Mexico,CP020,Field Specialist,125.75,7545,7545,USD,440125,440125
+Fernando Gomes,Fernando Gomes,CP020 · BBS Mexico,CP020,Electrical Tech,108.00,6480,6480,USD,378000,378000
+Alejandro Ramos,Alejandro Ramos,CP020 · BBS Mexico,CP020,Commissioning Tech,114.00,6840,6840,USD,399000,399000
+Josafa Silva,Josafa Silva,CP020 · BBS Mexico,CP020,Senior Specialist,148.00,8880,8880,USD,592000,592000

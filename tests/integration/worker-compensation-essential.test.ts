@@ -8,6 +8,7 @@ import {
   installB5TestDeploymentIdentity,
   seedB5ServiceActorBinding,
 } from '../fixtures/b5-test-environment.js';
+import { stepUpB5Principal } from '../fixtures/b5-lifecycle-security-fixture.js';
 
 const directories: string[] = [];
 const databases: Array<ReturnType<typeof createDatabase>['sqlite']> = [];
@@ -34,7 +35,16 @@ function seedUser(
     .prepare(
       'INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
     )
-    .run(id, id, `${id}@example.com`, role, 'active', 1, now, now);
+    .run(
+      id,
+      id,
+      role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@example.com`,
+      role,
+      'active',
+      1,
+      now,
+      now,
+    );
 }
 
 type CompensationFixture = Readonly<{
@@ -62,7 +72,11 @@ function fixture(): CompensationFixture {
   seedUser(sqlite, 'other-worker', 'worker');
   seedB5ServiceActorBinding(sqlite, 'owner');
   const owner: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
-  const finance: Principal = { userId: 'finance', role: 'finance_admin', projectIds: new Set() };
+  const finance = stepUpB5Principal(
+    sqlite,
+    { userId: 'finance', role: 'finance_admin', projectIds: new Set() } satisfies Principal,
+    'worker-compensation',
+  );
   const manager: Principal = {
     userId: 'manager',
     role: 'project_manager',

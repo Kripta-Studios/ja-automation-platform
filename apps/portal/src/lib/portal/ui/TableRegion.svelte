@@ -3,7 +3,18 @@
 
   export type TableMobileMode = 'cards' | 'scroll';
   export type TableCardCell = { label: string; value: string };
-  export type TableCardRow = { id?: string; cells: TableCardCell[] };
+  export type TableCardRow = {
+    id?: string;
+    cells: TableCardCell[];
+    /**
+     * Optional row-level action for the card representation. The action is
+     * rendered inside the same card as its source row, so a mobile card never
+     * relies on a detached action list to remain reachable.
+     */
+    href?: string;
+    linkLabel?: string;
+    linkAriaLabel?: string;
+  };
 
   type RegionNameProps =
     | { label: string; ariaLabel?: never }
@@ -13,6 +24,8 @@
     id?: string;
     headingId?: string;
     scrollInstructionId?: string;
+    scrollInstruction?: string;
+    detailsLabel?: string;
     class?: string;
     children?: Snippet;
   } & Record<string, unknown>;
@@ -35,6 +48,8 @@
     id: regionId,
     headingId: _headingId,
     scrollInstructionId,
+    scrollInstruction = 'Scroll horizontally to review all columns.',
+    detailsLabel = 'Open details',
     mobileMode,
     cardRows,
     class: className = '',
@@ -99,6 +114,15 @@
             value: typeof cell.value === 'string' ? cell.value : String(cell.value ?? ''),
           };
         }),
+        href: typeof row.href === 'string' && row.href.trim() ? row.href.trim() : undefined,
+        linkLabel:
+          typeof row.linkLabel === 'string' && row.linkLabel.trim()
+            ? row.linkLabel.trim()
+            : undefined,
+        linkAriaLabel:
+          typeof row.linkAriaLabel === 'string' && row.linkAriaLabel.trim()
+            ? row.linkAriaLabel.trim()
+            : undefined,
       };
     });
   });
@@ -134,8 +158,8 @@
   }
 
   function handleKeydown(event: KeyboardEvent): void {
-    if (mobileMode !== 'scroll') return;
     const region = event.currentTarget as HTMLElement;
+    if (region.scrollWidth <= region.clientWidth + 1) return;
     const distance = Math.max(region.clientWidth * 0.8, 160);
     if (event.key === 'ArrowRight') {
       region.scrollBy({ left: distance, behavior: 'auto' });
@@ -164,12 +188,25 @@
 >
   {#if mobileMode === 'scroll'}
     <p class="ui-table-region-instruction" id={instructionId}>
-      Scroll horizontally to review all columns.
+      {scrollInstruction}
     </p>
     {@render children?.()}
   {:else}
     {#if children}
-      <div class="ui-table-region-desktop" data-table-region-desktop>
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+      <div
+        class="ui-table-region-desktop"
+        data-table-region-desktop
+        role="region"
+        tabindex="0"
+        aria-label={accessibleName}
+        aria-describedby={instructionId}
+        onkeydown={handleKeydown}
+      >
+        <p class="ui-table-region-instruction visually-hidden" id={instructionId}>
+          {scrollInstruction}
+        </p>
         {@render children()}
       </div>
     {/if}
@@ -185,8 +222,54 @@
               <span class="ui-table-region-card-value">{cell.value}</span>
             </div>
           {/each}
+          {#if row.href}
+            <a
+              class="ui-table-region-card-action"
+              data-card-action
+              href={row.href}
+              aria-label={row.linkAriaLabel || row.linkLabel || detailsLabel}
+            >
+              {row.linkLabel || detailsLabel}
+            </a>
+          {/if}
         </article>
       {/each}
     </div>
   {/if}
 </div>
+
+<style>
+  .ui-table-region-card-action {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    min-height: var(--ja-target-min, 2.75rem);
+    margin-top: 0.7rem;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--portal-border-strong, var(--ja-steel, #b8c3d1));
+    border-radius: 0.5rem;
+    background: var(--portal-surface, var(--ja-white, #fff));
+    color: var(--portal-accent, var(--ja-accent, #0f5f73));
+    font: inherit;
+    font-weight: 750;
+    text-decoration: none;
+  }
+
+  .ui-table-region-card-value {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .ui-table-region-card-action:hover {
+    text-decoration: underline;
+  }
+
+  .ui-table-region-card-action:focus-visible,
+  .ui-table-region-desktop:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--portal-accent, #0f5f73) 32%, transparent);
+    outline-offset: 2px;
+  }
+</style>

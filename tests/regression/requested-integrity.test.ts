@@ -3,6 +3,7 @@ import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
   readSource,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -120,7 +121,8 @@ describe('requested immutable-history and RBAC invariants (RED characterization)
 
   it('excludes voided time from worker compensation statements', () => {
     const value = fixture();
-    value.v3.createCompensationRule(value.finance, {
+    const finance = stepUpB5Principal(value.sqlite, value.finance, 'voided-pay');
+    value.v3.createCompensationRule(finance, {
       workerId: value.worker.userId,
       projectId: value.project.id,
       currency: 'EUR',
@@ -150,8 +152,9 @@ describe('requested immutable-history and RBAC invariants (RED characterization)
 
   it('does not allow an owner to demote the last owner account through worker profile editing', () => {
     const value = fixture();
+    const owner = stepUpB5Principal(value.sqlite, value.owner, 'last-owner-demotion');
     expect(() =>
-      value.repository.updateWorkerProfile(value.owner, value.owner.userId, {
+      value.repository.updateWorkerProfile(owner, value.owner.userId, {
         name: 'B5 Owner',
         email: 'b5-owner@example.test',
         role: 'worker',
@@ -162,6 +165,35 @@ describe('requested immutable-history and RBAC invariants (RED characterization)
       value.sqlite.prepare('SELECT role FROM user WHERE id=?').get(value.owner.userId),
       'the final owner role must remain intact when a self-demotion is attempted',
     ).toEqual({ role: 'owner_admin' });
+  });
+
+  it('revokes every target session when a privileged team member is demoted', () => {
+    const value = fixture();
+    const owner = stepUpB5Principal(value.sqlite, value.owner, 'role-demotion-owner');
+    stepUpB5Principal(value.sqlite, value.finance, 'role-demotion-target');
+
+    expect(
+      value.sqlite
+        .prepare('SELECT count(*) count FROM session WHERE user_id=?')
+        .get(value.finance.userId),
+    ).toEqual({ count: 1 });
+
+    value.repository.updateWorkerProfile(owner, value.finance.userId, {
+      name: 'Former Finance User',
+      email: 'former-finance@example.test',
+      role: 'worker',
+      joinedAt: '2026-01-01',
+    });
+
+    expect(
+      value.sqlite.prepare('SELECT role FROM user WHERE id=?').get(value.finance.userId),
+    ).toEqual({ role: 'worker' });
+    expect(
+      value.sqlite
+        .prepare('SELECT count(*) count FROM session WHERE user_id=?')
+        .get(value.finance.userId),
+      'role changes must invalidate every principal carrying the former role',
+    ).toEqual({ count: 0 });
   });
 
   it('requires a durable stale-upload cleanup path and reservation-scoped keys', () => {

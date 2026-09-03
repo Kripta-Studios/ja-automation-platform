@@ -33,11 +33,7 @@
       location.assign(`${base}/app/login/two-factor`);
       return;
     }
-    const current = await authClient.getSession();
-    const user = current.data?.user as { mfaRequired?: boolean; mfaEnrolled?: boolean } | undefined;
-    location.assign(
-      user?.mfaRequired && !user.mfaEnrolled ? `${base}/app/profile` : `${base}/app/`,
-    );
+    location.assign(`${base}/app/`);
   }
   async function login(event: SubmitEvent) {
     event.preventDefault();
@@ -126,7 +122,36 @@
     </div>
   </section>
   <section class="login-panel">
+    <div class="login-panel-tools">
+      <a
+        href="https://webmail.j-aautomation.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="login-top-webmail"
+        title={t('Open corporate webmail in a new tab')}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="14"
+          height="14"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+        </svg>
+        <span>{t('Webmail')}</span>
+        <span class="webmail-btn-arrow" aria-hidden="true">↗</span>
+      </a>
+    </div>
     <form class="login-card" onsubmit={login}>
+      <div class="login-brand mobile-brand" aria-hidden="true">
+        <img src={`${base}/app/logo.png`} alt="J&A Automation" />
+      </div>
       <div class="login-card-heading">
         <p class="portal-kicker">{t('EMPLOYEE PORTAL')}</p>
         <h2>{t('Sign in securely')}</h2>
@@ -162,6 +187,30 @@
       >
         {t('Sign in with a passkey')}
       </button>
+      <a
+        href="https://webmail.j-aautomation.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="login-webmail-btn"
+        title={t('Open corporate webmail in a new tab')}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+        </svg>
+        <span>{t('Access Company Webmail')}</span>
+        <span class="webmail-btn-arrow" aria-hidden="true">↗</span>
+      </a>
       <p class:notice={Boolean(accessMessage) && !message} class="login-status" aria-live="polite">
         {message || accessMessage}
       </p>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { TableRegion } from '../ui';
+  import type { TableCardRow } from '../ui';
   import { categorySummary, hours, money, shiftWeek } from '../portal-format';
   import type { PortalData } from '../portal-data';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
@@ -32,6 +33,35 @@
       return null;
     return days.reduce((sum, day) => sum + (day.differenceMinutes ?? 0), 0);
   };
+
+  const differenceLabel = (value: number | null): string =>
+    value === null ? '—' : `${value > 0 ? '+' : ''}${hours(value)}`;
+
+  const categoryLabel = (category: string): string =>
+    controlledValue('timeCategory', category) || translate(category.replaceAll('_', ' '));
+
+  const summarizeCategories = (categories: Record<string, number>): string =>
+    categorySummary(categories, categoryLabel);
+
+  const timesheetCardRows = $derived.by((): TableCardRow[] =>
+    (data.timesheet?.days ?? []).map((day) => ({
+      id: day.date,
+      cells: [
+        { label: translate('Day'), value: `${day.label} · ${day.date}` },
+        { label: translate('Actual'), value: hours(day.actualMinutes) },
+        { label: translate('Expected'), value: displayMinutes(day.expectedMinutes) },
+        { label: translate('Difference'), value: differenceLabel(day.differenceMinutes) },
+        {
+          label: translate('Categories'),
+          value: summarizeCategories(day.categories) || '—',
+        },
+        {
+          label: translate('Status'),
+          value: controlledValue('status', day.status) || translate(day.status),
+        },
+      ],
+    })),
+  );
 </script>
 
 <section class="timesheet-panel" aria-labelledby="weekly-timesheet-title">
@@ -72,9 +102,12 @@
   </div>
   <TableRegion
     class="timesheet-table-wrap"
-    mobileMode="scroll"
+    mobileMode="cards"
+    cardRows={timesheetCardRows}
     headingId="weekly-timesheet-title"
     label={translate('Timesheet table')}
+    scrollInstruction={translate('Scroll horizontally to review all columns.')}
+    detailsLabel={translate('Open details')}
   >
     <table class="timesheet-table">
       <caption class="visually-hidden"
@@ -103,11 +136,9 @@
               class:positive={day.differenceMinutes !== null && day.differenceMinutes > 0}
               class:negative={day.differenceMinutes !== null && day.differenceMinutes < 0}
             >
-              {day.differenceMinutes === null
-                ? '—'
-                : `${day.differenceMinutes > 0 ? '+' : ''}${hours(day.differenceMinutes)}`}
+              {differenceLabel(day.differenceMinutes)}
             </td>
-            <td>{categorySummary(day.categories) || '—'}</td>
+            <td>{summarizeCategories(day.categories) || '—'}</td>
             <td
               ><span class="timesheet-status"
                 >{controlledValue('status', day.status) || translate(day.status)}</span

@@ -1,4 +1,7 @@
 redir /j-aautomation /j-aautomation/en/ 308
+# Invitation URLs contain a bearer token. Keep the whole path out of Caddy access logs;
+# the application logs the same route with the token replaced by [REDACTED].
+log_skip /j-aautomation/app/invite/*
 handle_path /j-aautomation/portal-assets/* {
   rewrite * /j-aautomation{path}
   reverse_proxy 127.0.0.1:5100

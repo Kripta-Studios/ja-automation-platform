@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   PortalRepository,
   V3ConflictError,
@@ -19,6 +19,7 @@ const databases: Array<ReturnType<typeof createDatabase>['sqlite']> = [];
 beforeEach(() => restoreDeploymentIdentities.push(installB5TestDeploymentIdentity()));
 
 afterEach(() => {
+  vi.useRealTimers();
   for (const sqlite of databases.splice(0)) {
     try {
       sqlite.close();
@@ -35,13 +36,22 @@ function seedUser(
   sqlite: ReturnType<typeof createDatabase>['sqlite'],
   id: string,
   role: Role,
-): void {
+): { id: string } {
   const now = new Date().toISOString();
   sqlite
     .prepare(
       'INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
     )
-    .run(id, id, `${id}@example.com`, role, 'active', 1, now, now);
+    .run(
+      id,
+      id,
+      role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@example.com`,
+      role,
+      'active',
+      1,
+      now,
+      now,
+    );
 }
 
 function stepUpFinance(
@@ -109,9 +119,10 @@ function establishCanonicalAuthority(
       .prepare('SELECT 1 FROM project_legal_entity_assignment WHERE project_id=?')
       .get(projectId),
   ).toBeTruthy();
+  return legacy;
 }
 
-function setup() {
+function setup(options: { canonicalAuthority?: boolean } = {}) {
   const directory = mkdtempSync(join(tmpdir(), 'ja-finance-truth-'));
   directories.push(directory);
   const { sqlite } = createDatabase(join(directory, 'app.db'));
@@ -122,7 +133,11 @@ function setup() {
   seedUser(sqlite, 'finance', 'finance_admin');
   seedUser(sqlite, 'manager', 'project_manager');
   seedUser(sqlite, 'worker', 'worker');
-  const owner: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
+  const owner = stepUpFinance(sqlite, {
+    userId: 'owner',
+    role: 'owner_admin',
+    projectIds: new Set(),
+  });
   const financeBase: Principal = {
     userId: 'finance',
     role: 'finance_admin',
@@ -183,7 +198,16 @@ function setup() {
     rateBasis: 'hourly',
     effectiveFrom: '2026-08-01',
   });
-  establishCanonicalAuthority(repository, v3, sqlite, owner, finance, project.id);
+  const legalEntity =
+    options.canonicalAuthority === false
+      ? repository.createLegalEntity(owner, {
+          code: 'TRUTH-HISTORICAL',
+          legalName: 'Finance Truth Historical Entity',
+          currency: 'USD',
+          billingAddress: 'Historical finance test address',
+          companyIdentifiers: 'TRUTH-HISTORICAL-TAX',
+        })
+      : establishCanonicalAuthority(repository, v3, sqlite, owner, finance, project.id);
   return {
     sqlite,
     repository,
@@ -194,10 +218,92 @@ function setup() {
     worker,
     project,
     workerAssignment,
+    legalEntity,
   };
 }
 
 describe('Client Essential finance truth and payment reversals', () => {
+  it('attributes historical project costs through one unambiguous billing rule without a canonical assignment', () => {
+    const { sqlite, repository, v3, finance, manager, worker, project, legalEntity } = setup({
+      canonicalAuthority: false,
+    });
+    const time = repository.createTimeEntry(worker, {
+      projectId: project.id,
+      workDate: '2026-08-03',
+      category: 'regular',
+      minutes: 60,
+      summary: 'Historical approved source',
+    });
+    repository.submitTime(worker, time.id, time.version);
+    repository.operationalApproveTime(manager, time.id, 'approved');
+    repository.financeApproveTime(finance, time.id, true);
+
+    const expense = repository.createExpense(worker, {
+      projectId: project.id,
+      spentOn: '2026-08-04',
+      vendor: 'Historical hotel',
+      category: 'hotel',
+      description: 'Historical approved expense',
+      currency: 'USD',
+      amountMinor: 2_000n,
+      whoPaid: 'company',
+      receiptRequired: false,
+    });
+    sqlite
+      .prepare(
+        `UPDATE expense
+            SET client_treatment='non_billable',billing_treatment='internal_non_billable',
+                approval_state='approved',project_currency_amount_minor=amount_minor,
+                reimbursement_state='not_applicable',updated_at=?
+          WHERE id=?`,
+      )
+      .run(new Date().toISOString(), expense.id);
+
+    const tax = repository.createTaxProfile(finance, {
+      name: 'Historical zero tax',
+      currency: 'USD',
+      effectiveFrom: '2026-01-01',
+      components: [{ name: 'Zero tax', basisPoints: 0 }],
+    });
+    repository.createBillingRule(finance, {
+      projectId: project.id,
+      legalEntityId: legalEntity.id,
+      streamType: 'labor',
+      cadenceType: 'monthly',
+      taxProfileId: tax.id,
+      currency: 'USD',
+      effectiveFrom: '2026-08-01',
+    });
+    const pack = v3.createAccountingPack(finance, '2026-08-01', '2026-08-31');
+    const snapshot = pack.snapshot as {
+      sourceItems: Array<{ itemKind: string; sourceId: string; legalEntityId: string | null }>;
+      workerCostSegments: Array<{ projectId: string; legalEntityId: string | null }>;
+    };
+    expect(snapshot.sourceItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          itemKind: 'time',
+          sourceId: time.id,
+          legalEntityId: legalEntity.id,
+        }),
+        expect.objectContaining({
+          itemKind: 'expense',
+          sourceId: expense.id,
+          legalEntityId: legalEntity.id,
+        }),
+      ]),
+    );
+    expect(snapshot.workerCostSegments).toEqual([
+      expect.objectContaining({ projectId: project.id, legalEntityId: legalEntity.id }),
+    ]);
+    expect(pack.reconciliation).toMatchObject({
+      canonicalRevision: { status: 'current', missingCurrencies: [] },
+    });
+    expect(sqlite.prepare('SELECT COUNT(*) count FROM accounting_pack_revision').get()).toEqual({
+      count: 1,
+    });
+  });
+
   it('keeps pending work outside actuals and reconciles approved-unbilled WIP to source rows', () => {
     const { repository, v3, finance, manager, worker, project } = setup();
     const approved = repository.createTimeEntry(worker, {
@@ -307,8 +413,20 @@ describe('Client Essential finance truth and payment reversals', () => {
   });
 
   it('appends exact idempotent reversals without mutating payments and excludes void AR', () => {
-    const { sqlite, repository, v3, owner, finance, manager, worker, project, workerAssignment } =
-      setup();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime('2026-08-20T12:00:00.000Z');
+    const {
+      sqlite,
+      repository,
+      v3,
+      owner,
+      finance,
+      manager,
+      worker,
+      project,
+      workerAssignment,
+      legalEntity,
+    } = setup();
     const collectedRule = v3.createCompensationRule(finance, {
       projectId: project.id,
       workerId: 'worker',
@@ -335,15 +453,8 @@ describe('Client Essential finance truth and payment reversals', () => {
     repository.submitTime(worker, time.id, time.version);
     repository.operationalApproveTime(manager, time.id, 'approved');
     repository.financeApproveTime(finance, time.id, true);
-    const entity = repository.createLegalEntity(owner, {
-      code: 'JA-TRUTH',
-      legalName: 'J&A Finance Truth',
-      currency: 'USD',
-      billingAddress: 'Configured address',
-      companyIdentifiers: 'Configured identifiers',
-    });
     repository.createInvoiceNumberPolicy(owner, {
-      legalEntityId: entity.id,
+      legalEntityId: legalEntity.id,
       prefix: 'JA-TRUTH',
       digits: 6,
       effectiveFrom: '2026-01-01',
@@ -357,7 +468,7 @@ describe('Client Essential finance truth and payment reversals', () => {
     });
     const rule = repository.createBillingRule(finance, {
       projectId: project.id,
-      legalEntityId: entity.id,
+      legalEntityId: legalEntity.id,
       streamType: 'labor',
       cadenceType: 'monthly',
       taxProfileId: tax.id,
@@ -442,7 +553,7 @@ describe('Client Essential finance truth and payment reversals', () => {
     ).toBe(false);
     const expenseRule = repository.createBillingRule(finance, {
       projectId: project.id,
-      legalEntityId: entity.id,
+      legalEntityId: legalEntity.id,
       streamType: 'expense',
       cadenceType: 'monthly',
       taxProfileId: tax.id,
@@ -502,22 +613,6 @@ describe('Client Essential finance truth and payment reversals', () => {
           (reason) => reason.sourceId === rejectedExpense.id || reason.sourceId === voidExpense.id,
         ),
     ).toBe(false);
-    const danglingSourceId = '0198be45-cd9c-7ab4-9a5a-a6c4966f9d99';
-    sqlite
-      .prepare(
-        `INSERT INTO invoice_source(
-           source_link_id,invoice_id,source_type,source_id,source_version,locked_at,created_at
-         ) VALUES(?,?,?,?,?,?,?)`,
-      )
-      .run(
-        '0198be45-cd9c-7ab4-9a5a-a6c4966f9d98',
-        invoice.id,
-        'time',
-        danglingSourceId,
-        1,
-        '2026-08-19T00:00:00.000Z',
-        '2026-08-19T00:00:00.000Z',
-      );
     const total = BigInt(
       (
         sqlite.prepare('SELECT total_minor FROM invoice WHERE id=?').get(invoice.id) as {
@@ -525,11 +620,25 @@ describe('Client Essential finance truth and payment reversals', () => {
         }
       ).total_minor,
     );
+    const invoiceVersionBeforeCollections = (
+      sqlite.prepare('SELECT version FROM invoice WHERE id=?').get(invoice.id) as {
+        version: number;
+      }
+    ).version;
+    const issuedAt = (
+      sqlite.prepare('SELECT issued_at FROM invoice WHERE id=?').get(invoice.id) as {
+        issued_at: string;
+      }
+    ).issued_at;
+    const firstPaymentAt = issuedAt;
+    const secondPaymentAt = issuedAt;
+    const partialReversalAt = issuedAt;
+    const overReversalAt = issuedAt;
     const first = v3.recordPayment(finance, {
       invoiceId: invoice.id,
       amountMinor: 7_000n,
       currency: 'USD',
-      receivedAt: '2026-08-20T00:00:00.000Z',
+      receivedAt: firstPaymentAt,
       reference: 'BANK-1',
       idempotencyKey: 'finance-truth-payment-1',
     });
@@ -538,7 +647,7 @@ describe('Client Essential finance truth and payment reversals', () => {
         invoiceId: invoice.id,
         amountMinor: 7_000n,
         currency: 'USD',
-        receivedAt: '2026-08-20T00:00:00.000Z',
+        receivedAt: firstPaymentAt,
         reference: 'BANK-1',
         idempotencyKey: 'finance-truth-payment-1',
       }),
@@ -548,7 +657,7 @@ describe('Client Essential finance truth and payment reversals', () => {
         invoiceId: invoice.id,
         amountMinor: 7_000n,
         currency: 'USD',
-        receivedAt: '2026-08-20T01:00:00.000Z',
+        receivedAt: secondPaymentAt,
         reference: 'BANK-1-CHANGED',
         idempotencyKey: 'finance-truth-payment-1',
       }),
@@ -566,16 +675,29 @@ describe('Client Essential finance truth and payment reversals', () => {
       invoiceId: invoice.id,
       amountMinor: total - 7_000n,
       currency: 'USD',
-      receivedAt: '2026-08-21T00:00:00.000Z',
+      receivedAt: secondPaymentAt,
       reference: 'BANK-2',
       idempotencyKey: 'finance-truth-payment-2',
     });
+    expect(() =>
+      v3.voidInvoice(
+        owner,
+        invoice.id,
+        'A paid invoice cannot be voided before collections are reversed',
+        'finance-truth-paid-void-blocked',
+      ),
+    ).toThrow(/collections must be fully reversed/i);
+    expect(
+      sqlite
+        .prepare('SELECT COUNT(*) count FROM invoice_event WHERE idempotency_key=?')
+        .get('finance-truth-paid-void-blocked'),
+    ).toEqual({ count: 0 });
     const paymentBefore = sqlite.prepare('SELECT * FROM payment WHERE id=?').get(second.id);
     expect(() =>
       v3.reversePayment(finance, {
         paymentId: second.id,
         amountMinor: 1n,
-        effectiveAt: '2026-08-20T23:59:59.999Z',
+        effectiveAt: new Date(Date.parse(issuedAt) - 1).toISOString(),
         reasonCode: 'entry_correction',
         reason: 'A reversal cannot predate its original payment',
         idempotencyKey: 'finance-truth-backdated-reversal',
@@ -594,7 +716,7 @@ describe('Client Essential finance truth and payment reversals', () => {
     const partial = v3.reversePayment(finance, {
       paymentId: second.id,
       amountMinor: 100n,
-      effectiveAt: '2026-08-22T00:00:00.000Z',
+      effectiveAt: partialReversalAt,
       reasonCode: 'bank_return',
       reason: 'Bank returned a partial amount',
       idempotencyKey: 'finance-truth-reversal-1',
@@ -611,7 +733,7 @@ describe('Client Essential finance truth and payment reversals', () => {
       v3.reversePayment(finance, {
         paymentId: second.id,
         amountMinor: 100n,
-        effectiveAt: '2026-08-22T00:00:00.000Z',
+        effectiveAt: partialReversalAt,
         reasonCode: 'bank_return',
         reason: 'Bank returned a partial amount',
         idempotencyKey: 'finance-truth-reversal-1',
@@ -621,7 +743,7 @@ describe('Client Essential finance truth and payment reversals', () => {
       v3.reversePayment(finance, {
         paymentId: second.id,
         amountMinor: 101n,
-        effectiveAt: '2026-08-22T00:00:00.000Z',
+        effectiveAt: partialReversalAt,
         reasonCode: 'bank_return',
         reason: 'Conflicting command replay',
         idempotencyKey: 'finance-truth-reversal-1',
@@ -631,7 +753,7 @@ describe('Client Essential finance truth and payment reversals', () => {
       v3.reversePayment(finance, {
         paymentId: second.id,
         amountMinor: total,
-        effectiveAt: '2026-08-23T00:00:00.000Z',
+        effectiveAt: overReversalAt,
         reasonCode: 'bank_return',
         reason: 'Attempt to reverse too much',
         idempotencyKey: 'finance-truth-over-reversal',
@@ -672,9 +794,9 @@ describe('Client Essential finance truth and payment reversals', () => {
       collectedMinor: (total - 100n).toString(),
       outstandingMinor: '100',
       paymentStatus: 'partially_paid',
-      directCostMinor: null,
-      directCostComplete: false,
-      directCostMissingSourceIds: expect.arrayContaining([time.id, danglingSourceId]),
+      directCostMinor: '4000',
+      directCostComplete: true,
+      directCostMissingSourceIds: [],
     });
     expect(ledger[0]?.payments).toEqual(
       expect.arrayContaining([
@@ -692,12 +814,24 @@ describe('Client Essential finance truth and payment reversals', () => {
     sqlite
       .prepare('UPDATE internal_cost_rule SET hourly_rate_minor=? WHERE id=?')
       .run(99_999, internalRate.id);
-    expect(v3.masterLedger(finance, { projectId: project.id })[0]).toMatchObject({
-      directCostMinor: null,
-      directCostComplete: false,
-      directCostMissingSourceIds: expect.arrayContaining([time.id, danglingSourceId]),
-    });
+    expect(v3.masterLedger(finance, { projectId: project.id, end: '2026-08-31' })[0]).toMatchObject(
+      {
+        directCostMinor: '4000',
+        directCostComplete: true,
+        directCostMissingSourceIds: [],
+      },
+    );
 
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime('2026-09-03T00:00:00.000Z');
+    sqlite
+      .prepare('UPDATE session SET step_up_at=?,expires_at=? WHERE id IN (?,?)')
+      .run(
+        '2026-09-03T00:00:00.000Z',
+        '2026-09-04T00:00:00.000Z',
+        finance.sessionId,
+        owner.sessionId,
+      );
     const postPeriodPayment = v3.recordPayment(finance, {
       invoiceId: invoice.id,
       amountMinor: 100n,
@@ -754,7 +888,7 @@ describe('Client Essential finance truth and payment reversals', () => {
       v3.reversePayment(finance, {
         paymentId: second.id,
         amountMinor: total - 7_100n,
-        effectiveAt: '2026-08-23T00:00:00.000Z',
+        effectiveAt: issuedAt,
         reasonCode: 'bank_return',
         reason: 'Reverse the remaining second payment amount',
         idempotencyKey: 'finance-truth-reversal-2',
@@ -768,7 +902,7 @@ describe('Client Essential finance truth and payment reversals', () => {
       v3.reversePayment(finance, {
         paymentId: first.id,
         amountMinor: 7_000n,
-        effectiveAt: '2026-08-24T00:00:00.000Z',
+        effectiveAt: issuedAt,
         reasonCode: 'bank_return',
         reason: 'Reverse the complete first payment',
         idempotencyKey: 'finance-truth-reversal-3',
@@ -778,16 +912,35 @@ describe('Client Essential finance truth and payment reversals', () => {
       netCollectedMinor: '0',
       outstandingMinor: total.toString(),
     });
-    expect(v3.masterLedger(finance, { projectId: project.id })[0]).toMatchObject({
-      grossPaymentsMinor: (total + 100n).toString(),
-      paymentReversalsMinor: (total + 100n).toString(),
-      netCollectedMinor: '0',
-      collectedMinor: '0',
-      outstandingMinor: total.toString(),
-      paymentStatus: 'unpaid',
-    });
+    expect(v3.masterLedger(finance, { projectId: project.id, end: '2026-08-31' })[0]).toMatchObject(
+      {
+        // The September payment/reversal pair is booked but not effective in the
+        // current August as-of view.
+        grossPaymentsMinor: total.toString(),
+        paymentReversalsMinor: total.toString(),
+        netCollectedMinor: '0',
+        collectedMinor: '0',
+        outstandingMinor: total.toString(),
+        paymentStatus: 'unpaid',
+      },
+    );
+    expect(v3.masterLedger(finance, { projectId: project.id, end: '2026-09-30' })[0]).toMatchObject(
+      {
+        grossPaymentsMinor: (total + 100n).toString(),
+        paymentReversalsMinor: (total + 100n).toString(),
+        netCollectedMinor: '0',
+        paymentStatus: 'unpaid',
+      },
+    );
 
     v3.voidInvoice(owner, invoice.id, 'Customer invoice cancelled', 'finance-truth-void');
+    expect(
+      (
+        sqlite.prepare('SELECT version FROM invoice WHERE id=?').get(invoice.id) as {
+          version: number;
+        }
+      ).version,
+    ).toBe(invoiceVersionBeforeCollections + 8);
     expect(() =>
       v3.voidInvoice(owner, invoice.id, 'Customer invoice cancelled', 'finance-truth-void'),
     ).not.toThrow();
@@ -801,7 +954,7 @@ describe('Client Essential finance truth and payment reversals', () => {
       v3.reversePayment(finance, {
         paymentId: second.id,
         amountMinor: 100n,
-        effectiveAt: '2026-08-22T00:00:00.000Z',
+        effectiveAt: partialReversalAt,
         reasonCode: 'bank_return',
         reason: 'Bank returned a partial amount',
         idempotencyKey: 'finance-truth-reversal-1',
@@ -867,6 +1020,121 @@ describe('Client Essential finance truth and payment reversals', () => {
     const pack = v3.createAccountingPack(finance, '2026-08-01', '2026-08-31');
     expect((pack.snapshot as { totals: { directCostMinor: string } }).totals.directCostMinor).toBe(
       expected,
+    );
+  });
+
+  it('cuts authoritative finance sources into the canonical Accounting Pack revision', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime('2026-08-20T12:00:00.000Z');
+    const { sqlite, repository, v3, finance, manager, worker, project, legalEntity } = setup();
+    const time = repository.createTimeEntry(worker, {
+      projectId: project.id,
+      workDate: '2026-08-03',
+      category: 'regular',
+      minutes: 60,
+      summary: 'Authoritative Accounting Pack time source',
+    });
+    repository.submitTime(worker, time.id, time.version);
+    repository.operationalApproveTime(manager, time.id, 'approved');
+    repository.financeApproveTime(finance, time.id, true);
+    const expense = repository.createExpense(worker, {
+      projectId: project.id,
+      spentOn: '2026-08-04',
+      vendor: 'Authoritative Accounting Pack expense source',
+      category: 'hotel',
+      description: 'Direct project cost source',
+      currency: 'USD',
+      amountMinor: 2_000n,
+      whoPaid: 'worker',
+      clientTreatment: 'non_billable',
+      billingTreatment: 'internal_non_billable',
+      receiptRequired: false,
+    });
+    repository.submitExpense(worker, expense.id, expense.version);
+    repository.operationalApproveExpense(manager, expense.id, 'approved');
+    repository.financeApproveExpense(finance, expense.id);
+    repository.createInvoiceNumberPolicy(repository.principalFor('owner'), {
+      legalEntityId: legalEntity.id,
+      prefix: 'PACK',
+      digits: 6,
+      effectiveFrom: '2026-01-01',
+      accountantApprovedAt: '2026-01-01T00:00:00.000Z',
+    });
+    const tax = repository.createTaxProfile(finance, {
+      name: 'Accounting Pack source tax',
+      currency: 'USD',
+      effectiveFrom: '2026-01-01',
+      components: [{ name: 'No tax', basisPoints: 0 }],
+    });
+    const rule = repository.createBillingRule(finance, {
+      projectId: project.id,
+      legalEntityId: legalEntity.id,
+      streamType: 'labor',
+      cadenceType: 'monthly',
+      taxProfileId: tax.id,
+      currency: 'USD',
+      effectiveFrom: '2026-08-01',
+    });
+    const invoice = repository.createInvoiceDraft(finance, rule.id, '2026-08-01', '2026-08-31');
+    repository.approveInvoiceDraft(finance, invoice.id);
+    repository.issueInvoice(finance, invoice.id);
+    const issuedAt = (
+      sqlite.prepare('SELECT issued_at FROM invoice WHERE id=?').get(invoice.id) as {
+        issued_at: string;
+      }
+    ).issued_at;
+    const paymentAt = issuedAt;
+    const reversalAt = issuedAt;
+    const payment = v3.recordPayment(finance, {
+      invoiceId: invoice.id,
+      amountMinor: 10_000n,
+      currency: 'USD',
+      receivedAt: paymentAt,
+      reference: 'PACK-SOURCE-PAYMENT',
+      idempotencyKey: 'finance-truth-pack-payment',
+    });
+    const reversal = v3.reversePayment(finance, {
+      paymentId: payment.id,
+      amountMinor: 1_000n,
+      effectiveAt: reversalAt,
+      reasonCode: 'bank_return',
+      reason: 'Accounting Pack source reversal',
+      idempotencyKey: 'finance-truth-pack-reversal',
+    });
+    const pack = v3.createAccountingPack(finance, '2026-08-01', '2026-08-31');
+    expect(pack.reconciliation).toMatchObject({ reconciles: true });
+    const revision = sqlite
+      .prepare(
+        `SELECT revision_id,source_cut_id FROM accounting_pack_revision_snapshot
+         WHERE period_start=? AND period_end=? ORDER BY created_at DESC LIMIT 1`,
+      )
+      .get('2026-08-01', '2026-08-31') as
+      | { revision_id: string; source_cut_id: string }
+      | undefined;
+    expect(revision).toBeTruthy();
+    const sourceItems = sqlite
+      .prepare(
+        `SELECT item_kind,item_id,item_version,amount_minor,currency
+         FROM finance_source_cut_item WHERE cut_id=? ORDER BY item_kind,item_id`,
+      )
+      .all(revision!.source_cut_id) as Array<{
+      item_kind: string;
+      item_id: string;
+      item_version: number;
+      amount_minor: number | null;
+      currency: string;
+    }>;
+    expect(sourceItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ item_kind: 'invoice', item_id: invoice.id }),
+        expect.objectContaining({ item_kind: 'time', item_id: time.id }),
+        expect.objectContaining({ item_kind: 'expense', item_id: expense.id }),
+        expect.objectContaining({ item_kind: 'payment', item_id: payment.id }),
+        expect.objectContaining({ item_kind: 'payment_reversal', item_id: reversal.id }),
+        expect.objectContaining({ item_kind: 'compensation' }),
+        expect.objectContaining({ item_kind: 'direct_cost' }),
+        expect.objectContaining({ item_kind: 'commercial_manifest' }),
+      ]),
     );
   });
 });

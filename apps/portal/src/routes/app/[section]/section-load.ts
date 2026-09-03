@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { error, redirect } from '@sveltejs/kit';
+import { defaultLookbackPeriod } from '$lib/server/iso-date';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { mondayOf, weeklyView, type WeeklyProjectSchedule } from '$lib/server/portal-week';
 import type { PageServerLoad } from './$types';
@@ -9,6 +10,7 @@ import {
   projectManagerSearchProjection,
   projectManagerSearchSuggestionsProjection,
 } from './role-projections';
+import { listMailboxAccounts } from '$lib/server/mail-directory';
 
 const sections = [
   'time',
@@ -28,7 +30,7 @@ const sections = [
   'audit',
 ];
 
-export const sectionLoad: PageServerLoad = ({ locals, params, url }) => {
+export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
   const section = params.section;
   if (!section || !sections.includes(section)) error(404, 'Page not found');
   if (!locals.user) redirect(303, '/j-aautomation/app/login');
@@ -43,6 +45,9 @@ export const sectionLoad: PageServerLoad = ({ locals, params, url }) => {
   try {
     const searchQuery = url.searchParams.get('q')?.trim() ?? '';
     const isProjectManager = context.principal.role === 'project_manager';
+    const canonicalOwner =
+      context.principal.role === 'owner_admin' &&
+      locals.user.email.trim().toLowerCase() === 'antonny.luty@j-aautomation.com';
     const common = {
       user: locals.user,
       section,
@@ -156,13 +161,9 @@ export const sectionLoad: PageServerLoad = ({ locals, params, url }) => {
         };
       case 'pay': {
         if (context.principal.role !== 'worker') error(403, 'Worker role required');
-        const periodStart =
-          url.searchParams.get('start') ?? `${new Date().toISOString().slice(0, 7)}-01`;
-        const periodEnd =
-          url.searchParams.get('end') ??
-          new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 0))
-            .toISOString()
-            .slice(0, 10);
+        const lookback = defaultLookbackPeriod();
+        const periodStart = url.searchParams.get('start') ?? lookback.periodStart;
+        const periodEnd = url.searchParams.get('end') ?? lookback.periodEnd;
 
         const pay = context.v3.workerPay(context.principal, periodStart, periodEnd);
         const settlements = context.v3.listCompensationSettlements(
@@ -218,10 +219,69 @@ export const sectionLoad: PageServerLoad = ({ locals, params, url }) => {
           payExpenses,
         };
       }
-      case 'projects':
+      // The base project list is already role-scoped by the repository. Add
+      // only the identity/site fields needed by the Clients directory using
+      // those authorized ids; this keeps the directory useful without
+      // widening the worker/PM projection to finance data.
+      case 'projects': {
+        const authorizedProjects = context.repository.listAssignedProjects(context.principal);
+        const authorizedAssignments =
+          context.principal.role !== 'worker'
+            ? context.repository.listAssignments(context.principal)
+            : [];
+        const assignmentIds = authorizedAssignments
+          .map((assignment) => String(assignment.id ?? ''))
+          .filter(Boolean);
+        const actualMinutesByAssignment = new Map(
+          (assignmentIds.length
+            ? (context.sqlite
+                .prepare(
+                  `SELECT pm.id,
+                          COALESCE(SUM(CASE
+                            WHEN t.approval_state NOT IN ('rejected','void') THEN t.minutes
+                            ELSE 0
+                          END),0) actual_minutes
+                     FROM project_member pm
+                     LEFT JOIN time_entry t
+                       ON t.project_id=pm.project_id
+                      AND t.worker_id=pm.user_id
+                      AND t.work_date>=pm.starts_on
+                      AND (pm.ends_on IS NULL OR t.work_date<=pm.ends_on)
+                    WHERE pm.id IN (${assignmentIds.map(() => '?').join(',')})
+                    GROUP BY pm.id`,
+                )
+                .all(...assignmentIds) as Array<{ id: string; actual_minutes: number }>)
+            : []
+          ).map((row) => [row.id, row.actual_minutes]),
+        );
+        const projectIds = authorizedProjects
+          .map((project) => String(project.id ?? ''))
+          .filter(Boolean);
+        const directoryProjects = projectIds.length
+          ? context.sqlite
+              .prepare(
+                `SELECT p.id,p.client_id,p.project_number,p.name,p.status,p.currency,p.timezone,
+                          p.start_date,p.planned_end_date,p.actual_end_date,p.version,
+                          p.site_name,p.country,c.client_number,c.display_name client_name
+                     FROM project p
+                     LEFT JOIN client c ON c.id=p.client_id
+                    WHERE p.id IN (${projectIds.map(() => '?').join(',')})
+                    ORDER BY p.project_number`,
+              )
+              .all(...projectIds)
+          : [];
+        let mailboxes: Awaited<ReturnType<typeof listMailboxAccounts>> = [];
+        let mailboxesUnavailable = false;
+        if (canonicalOwner) {
+          try {
+            mailboxes = await listMailboxAccounts(context.sqlite);
+          } catch {
+            mailboxesUnavailable = true;
+          }
+        }
         return {
           ...common,
-          projects: context.repository.listAssignedProjects(context.principal),
+          projects: directoryProjects,
           clients:
             context.principal.role === 'owner_admin' ||
             context.principal.role === 'finance_admin' ||
@@ -236,11 +296,20 @@ export const sectionLoad: PageServerLoad = ({ locals, params, url }) => {
             context.principal.role !== 'worker'
               ? context.repository.listAllWorkers(context.principal)
               : [],
-          assignments:
-            context.principal.role !== 'worker'
-              ? context.repository.listAssignments(context.principal)
-              : [],
+          mailboxes,
+          mailboxesUnavailable,
+          mailboxDirectoryStatus: mailboxesUnavailable ? 'unavailable' : 'ready',
+          mailboxDirectoryError: mailboxesUnavailable
+            ? 'The live Stalwart directory could not be reached.'
+            : null,
+          canonicalOwner,
+          canManageMail: canonicalOwner,
+          assignments: authorizedAssignments.map((assignment) => ({
+            ...assignment,
+            actual_minutes: actualMinutesByAssignment.get(String(assignment.id ?? '')) ?? 0,
+          })),
         };
+      }
       case 'approvals':
         return {
           ...common,
@@ -337,6 +406,9 @@ export const sectionLoad: PageServerLoad = ({ locals, params, url }) => {
         const projects = context.repository.listFinanceProjects(context.principal);
         const selected =
           url.searchParams.get('project') ?? (projects[0] as { id?: string } | undefined)?.id ?? '';
+        const canManageCanonicalAuthority = ['owner_admin', 'finance_admin'].includes(
+          context.principal.role,
+        );
         // V3 owns authorization and effective-date filtering; the route only selects the current
         // project and serializes the already-authorized rows for the UI.
         return {
@@ -380,6 +452,19 @@ export const sectionLoad: PageServerLoad = ({ locals, params, url }) => {
           reimbursements: selected
             ? context.v3.listReimbursementQueue(context.principal, selected)
             : [],
+          canonicalLegalEntityOptions: canManageCanonicalAuthority
+            ? context.v3.listCanonicalLegalEntityRevisionOptions(context.principal)
+            : [],
+          projectLegalEntityAssignments:
+            canManageCanonicalAuthority && selected
+              ? context.v3.listProjectLegalEntityAssignments(context.principal, selected)
+              : [],
+          canonicalAssignmentCommandToken: canManageCanonicalAuthority
+            ? randomBytes(32).toString('base64url')
+            : undefined,
+          canonicalAuthorityAsOf: canManageCanonicalAuthority
+            ? new Date().toISOString().slice(0, 10)
+            : undefined,
         };
       }
       case 'ledger':

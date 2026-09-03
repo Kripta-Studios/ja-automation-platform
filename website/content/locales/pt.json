@@ -87,12 +87,16 @@
     "simulationDesc": "Valide projetos, comportamento de processo, trajetórias de robôs e interfaces de controle antes ou junto da implantação em campo.",
     "electricalControls": "Engenharia Elétrica e de Controles",
     "electricalControlsDesc": "Projeto elétrico, arquitetura de controles, engenharia de painéis, interfaces de máquinas e coordenação multidisciplinar do conceito à entrega.",
+    "installation": "Instalação e Montagem Eletromecânica",
+    "installationDesc": "Montagem mecânica e conexão elétrica em campo: lançamento de cabos de força e controle, leitos e eletrocalhas, interligação de painéis e montagem de linhas com equipes multidisciplinares.",
     "motionProcess": "Movimento e controle de processos",
     "motionProcessDesc": "VFD, servo, movimento e controle em malha fechada para transportadores, sistemas de envase, máquinas e equipamentos de processo industrial.",
     "commissioning": "Comissionamento e partida",
     "commissioningDesc": "Suporte FAT/SAT, integração em campo, partida, aumento gradual da produção, diagnóstico de falhas e estabilização da produção.",
     "supportTraining": "Suporte, Treinamento e Consultoria",
     "supportTrainingDesc": "Suporte técnico sob demanda ou por contrato, diagnóstico remoto, planejamento de modernização, especificação de equipamentos e treinamento de CLP/IHM.",
+    "technicalSupport": "Suporte técnico",
+    "technicalSupportDesc": "Suporte de campo e remoto sob demanda ou por contrato para problemas de CLP, IHM, robôs, acionamentos e controles industriais, do diagnóstico à estabilização da produção.",
     "explore": "Explorar capacidade"
   },
   "industries": {
@@ -109,6 +113,8 @@
     "cosmeticsPackagingDesc": "Envase, tampamento, indexação, movimento, pega e coloca, transporte, encartuchamento e integração de máquinas.",
     "oemGeneral": "OEM e Indústria Geral",
     "oemGeneralDesc": "Engenharia de controles, integração de máquinas, modernizações, painéis e comissionamento para OEMs e fabricantes industriais.",
+    "warehouseLogistics": "Armazenamento e Logística",
+    "warehouseLogisticsDesc": "Montagem mecânica e elétrica, cabeamento de campo, programação de CLP e comissionamento de maquinário intralogístico, esteiras transportadoras automatizadas e classificadores industriais.",
     "lead": "A J&A Automation constrói, integra e oferece suporte a sistemas de controle industrial em diversos setores.",
     "viewProjects": "Ver projetos desta indústria"
   },
@@ -307,6 +313,7 @@
     "industryFoodBeverage": "Alimentos e bebidas",
     "industryEnergyProcess": "Energia e processos",
     "industryGeneralManufacturing": "Manufatura geral",
+    "industryWarehouseLogistics": "Armazenamento e logística",
     "industryOther": "Outra / não tenho certeza",
     "aquarexWaterTreatment": "Tratamento de água Aquarex",
     "otherNotSure": "Outro / não tenho certeza"
@@ -408,12 +415,14 @@
     "energyProcess": "Energia e Processos",
     "cosmeticsPackaging": "Cosméticos e Embalagens",
     "generalIndustry": "Indústria Geral",
+    "warehouseLogistics": "Armazenamento e Logística",
     "plcHmi": "CLP / IHM",
     "robotics": "Robótica",
     "electrical": "Elétrica",
     "simulation": "Simulação",
     "motion": "Movimento",
     "commissioning": "Comissionamento",
+    "installation": "Instalação eletromecânica",
     "troubleshooting": "Diagnóstico de falhas",
     "support": "Suporte",
     "siemens": "Siemens",
@@ -432,6 +441,7 @@
     "plcHmiScada": "CLP / IHM / SCADA",
     "robotics": "Robótica e integração de linha",
     "electrical": "Engenharia elétrica e de controles",
+    "installation": "Instalação e montagem eletromecânica",
     "simulation": "Simulação / engenharia offline",
     "motion": "Motion / controle de processos",
     "commissioning": "Comissionamento / startup",
@@ -440,7 +450,8 @@
     "training": "Treinamento",
     "aquarex": "Aquarex",
     "other": "Outro",
-    "trainingConsulting": "Treinamento / consultoria"
+    "trainingConsulting": "Treinamento / consultoria",
+    "support": "Suporte técnico"
   },
   "projectStageOptions": {
     "earlyConcept": "Conceito inicial",
@@ -485,6 +496,7 @@
     "energyProcess": "Planta industrial de energia e processos",
     "cosmeticsPackaging": "Linha de produção de envase de cosméticos",
     "oemGeneral": "Célula robótica industrial",
+    "warehouseLogistics": "Montagem e automação de maquinários em centros logísticos e de distribuição",
     "assembly": "Linha de montagem automatizada de última geração"
   },
   "serviceTags": {
@@ -554,6 +566,24 @@
     "privacyNote": "Ao solicitar esta ficha técnica, você concorda com nossa política de privacidade. Nunca compartilharemos suas informações."
   },
   "projectCatalog": {
+    "amazon-sortation-line-2025": {
+      "title": "Instalação e programação de maquinários de triagem e esteiras automatizadas",
+      "scope": "Montagem eletromecânica, fiação de força e controle, programação de CLP e comissionamento de maquinários de transporte e sistemas automatizados de triagem em centros de distribuição.",
+      "outcome": "Entrega ágil da montagem mecânica e elétrica com calibração precisa dos controles e operação contínua sem paradas.",
+      "displayDate": "2025–2026"
+    },
+    "mercadolibre-fulfillment-conveyor-2025": {
+      "title": "Montagem e integração de maquinários de transporte e classificadores automáticos",
+      "scope": "Instalação mecânica e elétrica, programação de controles para transportadores motorizados (MDR) e calibração de desviadores mecânicos automatizados em centro de distribuição regional.",
+      "outcome": "Sincronização robusta do maquinário de transporte e alta confiabilidade de operação contínua 24/7.",
+      "displayDate": "2025–2026"
+    },
+    "shopee-hub-sorting-2025": {
+      "title": "Montagem de painéis, fiação e programação de maquinários em hub logístico",
+      "scope": "Conexão de painéis de controle, fiação de intertravamentos de segurança, integração de sensores e comissionamento de maquinários em linhas de triagem automatizada.",
+      "outcome": "Maquinário de triagem operacional com certificação de segurança elétrica e partida da linha em tempo recorde.",
+      "displayDate": "2025–2026"
+    },
     "fruki-bottling-expansion-2026": {
       "title": "Instalação de linha de envase de alta velocidade e expansão multiformato",
       "scope": "Instalação chave na mão de linha de produção de bebidas e posterior expansão de capacidade para múltiplos formatos de embalagem, sincronizando envase, empacotamento e paletização robótica.",

@@ -11,6 +11,11 @@ const authMocks = vi.hoisted(() => ({
   signInEmail: vi.fn(),
   getSession: vi.fn(),
 }));
+const cryptoMocks = vi.hoisted(() => ({ verifyPassword: vi.fn(), hashPassword: vi.fn() }));
+vi.mock('better-auth/crypto', () => ({
+  verifyPassword: cryptoMocks.verifyPassword,
+  hashPassword: cryptoMocks.hashPassword,
+}));
 vi.mock('$lib/server/auth', () => ({
   auth: {
     api: {
@@ -59,7 +64,7 @@ function seedInvitation(options?: {
       .prepare(
         `INSERT INTO user(
            id,name,email,email_verified,role,status,mfa_enrolled,mfa_required,created_at,updated_at,version
-         ) VALUES('owner','Owner','owner@example.test',1,'owner_admin','active',1,1,?,?,1)`,
+         ) VALUES('owner','Owner','antonny.luty@j-aautomation.com',1,'owner_admin','active',1,1,?,?,1)`,
       )
       .run(now, now);
     sqlite
@@ -126,6 +131,8 @@ beforeEach(() => {
   authMocks.signInEmail.mockReset();
   authMocks.getSession.mockReset();
   authMocks.getSession.mockResolvedValue(null);
+  cryptoMocks.verifyPassword.mockReset();
+  cryptoMocks.verifyPassword.mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -151,6 +158,7 @@ describe('Client Essential invitation acceptance', () => {
     const response = await POST(eventFor());
 
     expect(response.status).toBe(400);
+    expect(response.headers.get('referrer-policy')).toBe('no-referrer');
     expect(await response.json()).toEqual({ error: 'Invitation could not be activated' });
     expect(authMocks.signUpEmail).not.toHaveBeenCalled();
   });
@@ -251,13 +259,13 @@ describe('Client Essential invitation acceptance', () => {
   it('requires the same credential identity before completing a stale partial signup', async () => {
     seedInvitation({ usedAt: `pending:${Date.now() - 16 * 60_000}:${randomUUID()}` });
     createInvitedCredentialUser();
-    authMocks.signInEmail.mockResolvedValueOnce({ user: { id: 'invited-user', email } });
 
     expect((await POST(eventFor())).status).toBe(200);
     expect(authMocks.signUpEmail).not.toHaveBeenCalled();
-    expect(authMocks.signInEmail).toHaveBeenCalledWith({
-      body: { email, password },
-      headers: expect.any(Headers),
+    expect(authMocks.signInEmail).not.toHaveBeenCalled();
+    expect(cryptoMocks.verifyPassword).toHaveBeenCalledWith({
+      hash: 'hashed-password',
+      password,
     });
     withDatabase(({ sqlite }) => {
       expect(sqlite.prepare('SELECT status FROM user WHERE id=?').get('invited-user')).toEqual({
@@ -276,7 +284,7 @@ describe('Client Essential invitation acceptance', () => {
     const staleClaim = `pending:${Date.now() - 16 * 60_000}:${randomUUID()}`;
     seedInvitation({ usedAt: staleClaim });
     createInvitedCredentialUser();
-    authMocks.signInEmail.mockRejectedValueOnce(new Error('invalid credentials'));
+    cryptoMocks.verifyPassword.mockResolvedValueOnce(false);
 
     expect((await POST(eventFor())).status).toBe(400);
     withDatabase(({ sqlite }) => {
@@ -348,10 +356,13 @@ describe('Client Essential invitation acceptance', () => {
         .run(`pending:${Date.now() - 16 * 60_000}:${randomUUID()}`, invitationId);
     });
 
-    authMocks.signInEmail.mockResolvedValueOnce({ user: { id: 'invited-user', email } });
     expect((await POST(eventFor())).status).toBe(200);
     expect(authMocks.signUpEmail).toHaveBeenCalledTimes(1);
-    expect(authMocks.signInEmail).toHaveBeenCalledTimes(1);
+    expect(authMocks.signInEmail).not.toHaveBeenCalled();
+    expect(cryptoMocks.verifyPassword).toHaveBeenCalledWith({
+      hash: 'hashed-password',
+      password,
+    });
   });
 
   it('rejects a signup result that does not match the claimed invitation email', async () => {

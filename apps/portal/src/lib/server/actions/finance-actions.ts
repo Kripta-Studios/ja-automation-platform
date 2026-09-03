@@ -8,6 +8,7 @@ import {
   expensePlanningDatesInputSchema,
   internalCostRuleInputSchema,
   projectCommercialPolicyInputSchema,
+  projectLegalEntityAssignmentInputSchema,
   reimbursementInputSchema,
   uuidSchema,
 } from '@ja/schemas';
@@ -21,10 +22,43 @@ function parseRuleId(value: FormDataEntryValue | null): string | undefined {
 }
 
 export const financeActions = {
+  assignProjectLegalEntity: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const context = openPortalRepository(locals);
+    try {
+      if (!['owner_admin', 'finance_admin'].includes(context.principal.role))
+        return actionFail(403, 'action.error.forbidden', {}, 'Finance role required');
+      const parsed = projectLegalEntityAssignmentInputSchema.safeParse(await formObject(request));
+      if (!parsed.success)
+        return actionFail(
+          400,
+          'action.validation.projectLegalEntityAssignment',
+          {},
+          'Invalid project legal-entity assignment',
+          { fields: parsed.error.flatten().fieldErrors },
+        );
+      const result = context.v3.assignCanonicalLegalEntityToProject(context.principal, parsed.data);
+      return actionSuccess(
+        'action.finance.projectLegalEntityAssigned',
+        { idempotent: result.idempotent },
+        'Project issuing authority saved',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
   classifyExpenseCommercially: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'finance')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const parsed = expenseCommercialClassificationInputSchema.safeParse(await formObject(request));
+    const form = await formObject(request);
+    // `expensePreset` is a UI-only control that synchronizes the two canonical
+    // treatment fields. Never pass that convenience value across the strict
+    // domain schema boundary.
+    delete form.expensePreset;
+    const parsed = expenseCommercialClassificationInputSchema.safeParse(form);
     if (!parsed.success)
       return actionFail(
         400,
@@ -35,6 +69,8 @@ export const financeActions = {
       );
     const context = openPortalRepository(locals);
     try {
+      if (!['owner_admin', 'finance_admin'].includes(context.principal.role))
+        return actionFail(403, 'action.error.forbidden', {}, 'Finance role required');
       const result = context.repository.classifyExpenseCommercially(context.principal, parsed.data);
       return actionSuccess(
         'action.finance.expenseClassified',
@@ -117,6 +153,8 @@ export const financeActions = {
       );
     const context = openPortalRepository(locals);
     try {
+      if (!['owner_admin', 'finance_admin'].includes(context.principal.role))
+        return actionFail(403, 'action.error.forbidden', {}, 'Finance role required');
       const policy = context.repository.createProjectCommercialPolicy(
         context.principal,
         parsed.data,

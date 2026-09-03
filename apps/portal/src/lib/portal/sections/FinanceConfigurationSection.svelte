@@ -25,9 +25,56 @@
     return '';
   };
 
+  const projectLabel = (project: Row): string => {
+    const number = rowValue(project, 'projectNumber', 'project_number');
+    const name = rowValue(project, 'name', 'projectName', 'project_name');
+    if (number && name && number !== name) return `${number} — ${name}`;
+    return number || name || rowValue(project, 'id');
+  };
+
+  function minorToDecimal(value: unknown): string {
+    const raw = String(value ?? '').trim();
+    if (!/^\d+$/.test(raw)) return '0.00';
+    const normalized = raw.replace(/^0+(?=\d)/, '').padStart(3, '0');
+    return `${normalized.slice(0, -2)}.${normalized.slice(-2)}`;
+  }
+
+  function decimalToMinor(raw: string): string {
+    const value = raw.trim();
+    if (!/^\d+(\.\d{1,2})?$/.test(value)) return '0';
+    const [whole, fraction = ''] = value.split('.');
+    const paddedFraction = `${fraction}00`.slice(0, 2);
+    return `${whole}${paddedFraction}`.replace(/^0+(?=\d)/, '') || '0';
+  }
+
+  function percentToBps(raw: string): string {
+    const value = raw.trim();
+    if (!/^\d+(\.\d{1,2})?$/.test(value)) return '0';
+    const [whole, fraction = ''] = value.split('.');
+    const paddedFraction = `${fraction}00`.slice(0, 2);
+    return `${whole}${paddedFraction}`.replace(/^0+(?=\d)/, '') || '0';
+  }
+
+  function syncDecimalToMinor(event: Event): void {
+    const input = event.currentTarget as HTMLInputElement;
+    const hidden = input.form?.elements.namedItem(
+      input.dataset.minorTarget ?? '',
+    ) as HTMLInputElement | null;
+    if (hidden) hidden.value = decimalToMinor(input.value);
+  }
+
+  function syncPercentToBps(event: Event): void {
+    const input = event.currentTarget as HTMLInputElement;
+    const hidden = input.form?.elements.namedItem(
+      input.dataset.bpsTarget ?? '',
+    ) as HTMLInputElement | null;
+    if (hidden) hidden.value = percentToBps(input.value);
+  }
+
   const moneyLabel = (row: Row, ...keys: string[]): string => {
     const value = rowValue(row, ...keys);
-    return value ? `${value} ${rowValue(row, 'currency')}`.trim() : '—';
+    const currency = rowValue(row, 'currency');
+    return value ? `${minorToDecimal(value)} ${currency}`.trim() : '—';
   };
 
   const booleanValue = (row: Row, ...keys: string[]): boolean =>
@@ -38,21 +85,151 @@
 
   const policyWriteRoles = ['owner_admin', 'finance_admin'];
   const canWritePolicy = $derived(!isAuditor && policyWriteRoles.includes(String(data.user.role)));
+  const canManageCanonicalAuthority = $derived(
+    !isAuditor && policyWriteRoles.includes(String(data.user.role)),
+  );
   let overtimeEnabled = $state(true);
 </script>
 
 <FormCard title={translate('Finance configuration')} class="finance-config-panel">
   <div class="panel-title">
     <div>
-      <h2>{translate('Finance configuration')}</h2>
       <p>
         {translate(
           'Rates are effective-dated and resolved by assignment, category, activity, and project scope.',
         )}
       </p>
     </div>
-    <span>{translate('Exact minor units')}</span>
+    <span>{translate('Commercial policies')}</span>
   </div>
+  <FormSection
+    title={translate('Project issuing authority')}
+    description={translate(
+      'Choose the reviewed legal-entity revision that will issue invoices for this project. Previous assignments remain visible as immutable history.',
+    )}
+    data-project-legal-entity
+  >
+    {#if canManageCanonicalAuthority}
+      <form
+        method="POST"
+        action="?/assignProjectLegalEntity"
+        class="admin-form-grid"
+        data-project-legal-entity-form
+        use:formValidation
+      >
+        <input
+          type="hidden"
+          name="idempotencyKey"
+          value={data.canonicalAssignmentCommandToken ?? ''}
+        />
+        <Field
+          id="finance-legal-entity-project"
+          label={translate('Project')}
+          help={translate('The assignment applies from the selected effective date.')}
+          required
+        >
+          <select id="finance-legal-entity-project" name="projectId" required>
+            <option value="">{translate('Select project')}</option>
+            {#each availableProjects as project}
+              <option
+                value={project.id}
+                selected={String(project.id) === String(data.selectedProjectId)}
+              >
+                {projectLabel(project)}
+              </option>
+            {/each}
+          </select>
+        </Field>
+        <Field
+          id="finance-legal-entity-revision"
+          label={translate('Issuing legal entity revision')}
+          help={translate('Only reviewed canonical revisions are available for assignment.')}
+          required
+        >
+          <select id="finance-legal-entity-revision" name="legalEntityRevisionId" required>
+            <option value="">{translate('Select issuing authority')}</option>
+            {#each data.canonicalLegalEntityOptions ?? [] as option}
+              <option value={rowValue(option, 'revisionId', 'revision_id')}>
+                {rowValue(option, 'legalName', 'legal_name')} ·
+                {rowValue(option, 'legalEntityCode', 'legal_entity_code')} ·
+                {rowValue(option, 'baseCurrency', 'base_currency')} ·
+                {translate('from')}
+                {rowValue(option, 'effectiveFrom', 'effective_from')}
+              </option>
+            {/each}
+          </select>
+        </Field>
+        <Field
+          id="finance-legal-entity-effective-from"
+          label={translate('Effective from')}
+          required
+        >
+          <input
+            id="finance-legal-entity-effective-from"
+            name="effectiveFrom"
+            type="date"
+            required
+          />
+        </Field>
+        <Field
+          id="finance-legal-entity-effective-to"
+          label={translate('Effective to')}
+          help={translate('Leave blank when this authority remains current.')}
+        >
+          <input id="finance-legal-entity-effective-to" name="effectiveTo" type="date" />
+        </Field>
+        <Field
+          id="finance-legal-entity-reason"
+          label={translate('Reason')}
+          help={translate('Record why this project issuing authority was assigned.')}
+          required
+        >
+          <textarea id="finance-legal-entity-reason" name="reason" minlength="5" required
+          ></textarea>
+        </Field>
+        <div class="form-actions">
+          <button type="submit">{translate('Save issuing authority')}</button>
+        </div>
+      </form>
+    {:else}
+      <p class="muted" data-project-legal-entity-readonly>
+        {translate(
+          'Issuing authority assignment is restricted to an authorized Finance or Owner administrator.',
+        )}
+      </p>
+    {/if}
+
+    {#if data.projectLegalEntityAssignments?.length}
+      <div
+        class="record-list"
+        aria-label={translate('Project issuing authority history')}
+        data-project-legal-entity-history
+      >
+        {#each data.projectLegalEntityAssignments as assignment}
+          <article class="record-list-item" data-project-legal-entity-row>
+            <div>
+              <strong>
+                {rowValue(assignment, 'legalName', 'legal_name')} ·
+                {rowValue(assignment, 'legalEntityCode', 'legal_entity_code')}
+              </strong>
+              <small>
+                {translate('Revision')}
+                {rowValue(assignment, 'revisionNumber', 'revision_number')} ·
+                {translate('Effective from')}
+                {rowValue(assignment, 'effectiveFrom', 'effective_from')} →
+                {rowValue(assignment, 'effectiveTo', 'effective_to') || translate('current')} ·
+                {rowValue(assignment, 'baseCurrency', 'base_currency')}
+              </small>
+            </div>
+          </article>
+        {/each}
+      </div>
+    {:else}
+      <p class="muted" data-project-legal-entity-empty>
+        {translate('No project issuing authority assignment is recorded for the selected project.')}
+      </p>
+    {/if}
+  </FormSection>
   <!-- project-commercial-policy-start -->
   <FormSection
     title={translate('Project commercial and time policy')}
@@ -84,7 +261,7 @@
                 value={project.id}
                 selected={String(project.id) === String(data.selectedProjectId)}
               >
-                {rowValue(project, 'projectNumber', 'project_number', 'name', 'id')}
+                {projectLabel(project)}
               </option>
             {/each}
           </select>
@@ -322,14 +499,20 @@
                       />
                       <Field
                         id={`finance-comp-edit-rate-${rowValue(rule, 'id')}`}
-                        label={translate('Rate (minor units)')}
+                        label={translate('Hourly rate')}
                         required
                       >
                         <input
+                          type="hidden"
                           name="rateMinor"
-                          type="number"
-                          min="0"
                           value={rowValue(rule, 'rateMinor', 'rate_minor') || '0'}
+                        />
+                        <input
+                          type="text"
+                          inputmode="decimal"
+                          value={minorToDecimal(rowValue(rule, 'rateMinor', 'rate_minor'))}
+                          data-minor-target="rateMinor"
+                          oninput={syncDecimalToMinor}
                           required
                         />
                       </Field>
@@ -455,14 +638,22 @@
                       />
                       <Field
                         id={`finance-client-edit-rate-${rowValue(rule, 'id')}`}
-                        label={translate('Hourly rate (minor units)')}
+                        label={translate('Hourly rate')}
                         required
                       >
                         <input
+                          type="hidden"
                           name="hourlyRateMinor"
-                          type="number"
-                          min="0"
                           value={rowValue(rule, 'hourlyRateMinor', 'hourly_rate_minor') || '0'}
+                        />
+                        <input
+                          type="text"
+                          inputmode="decimal"
+                          value={minorToDecimal(
+                            rowValue(rule, 'hourlyRateMinor', 'hourly_rate_minor'),
+                          )}
+                          data-minor-target="hourlyRateMinor"
+                          oninput={syncDecimalToMinor}
                           required
                         />
                       </Field>
@@ -562,14 +753,22 @@
                       />
                       <Field
                         id={`finance-internal-edit-rate-${rowValue(rule, 'id')}`}
-                        label={translate('Hourly cost (minor units)')}
+                        label={translate('Hourly cost')}
                         required
                       >
                         <input
+                          type="hidden"
                           name="hourlyRateMinor"
-                          type="number"
-                          min="0"
                           value={rowValue(rule, 'hourlyRateMinor', 'hourly_rate_minor') || '0'}
+                        />
+                        <input
+                          type="text"
+                          inputmode="decimal"
+                          value={minorToDecimal(
+                            rowValue(rule, 'hourlyRateMinor', 'hourly_rate_minor'),
+                          )}
+                          data-minor-target="hourlyRateMinor"
+                          oninput={syncDecimalToMinor}
                           required
                         />
                       </Field>
@@ -673,7 +872,7 @@
               <option value="">{translate('Select project')}</option>
               {#each availableProjects as project}
                 <option value={project.id} selected={project.id === data.selectedProjectId}
-                  >{project.project_number}</option
+                  >{projectLabel(project)}</option
                 >
               {/each}
             </select>
@@ -733,7 +932,7 @@
                 <option value="">{translate('Global')}</option>
                 {#each availableProjects as project}
                   <option value={project.id} selected={project.id === data.selectedProjectId}
-                    >{project.project_number}</option
+                    >{projectLabel(project)}</option
                   >
                 {/each}
               </select>
@@ -761,16 +960,18 @@
             </Field>
             <Field
               id="finance-comp-rate"
-              label={translate('Rate (minor units)')}
+              label={translate('Hourly rate')}
               required
               data-field="rateMinor"
             >
+              <input type="hidden" name="rateMinor" value="0" />
               <input
                 id="finance-comp-rate"
-                name="rateMinor"
-                type="number"
-                min="0"
-                value="0"
+                type="text"
+                inputmode="decimal"
+                value="0.00"
+                data-minor-target="rateMinor"
+                oninput={syncDecimalToMinor}
                 required
               />
             </Field>
@@ -786,16 +987,18 @@
             </Field>
             <Field
               id="finance-comp-percentage"
-              label={translate('Percentage (basis points)')}
+              label={translate('Percentage')}
               data-field="percentageBps"
             >
+              <input type="hidden" name="percentageBps" value="0" />
               <input
                 id="finance-comp-percentage"
-                name="percentageBps"
-                type="number"
-                min="0"
-                max="10000"
-                placeholder={translate('e.g. 5500 = 55%')}
+                type="text"
+                inputmode="decimal"
+                value="0"
+                data-bps-target="percentageBps"
+                oninput={syncPercentToBps}
+                placeholder={translate('e.g. 55')}
               />
             </Field>
             <Field
@@ -896,15 +1099,18 @@
             </Field>
             <Field
               id="finance-client-rate"
-              label={translate('Hourly rate (minor units)')}
+              label={translate('Hourly rate')}
               required
               data-field="hourlyRateMinor"
             >
+              <input type="hidden" name="hourlyRateMinor" value="0" />
               <input
                 id="finance-client-rate"
-                name="hourlyRateMinor"
-                type="number"
-                min="0"
+                type="text"
+                inputmode="decimal"
+                value="0.00"
+                data-minor-target="hourlyRateMinor"
+                oninput={syncDecimalToMinor}
                 required
               />
             </Field>
@@ -927,16 +1133,13 @@
             </Field>
             <Field
               id="finance-client-overtimemult"
-              label={translate('Overtime multiplier (bps)')}
+              label={translate('Overtime multiplier')}
               data-field="overtimeMultiplierBps"
             >
-              <input
-                id="finance-client-overtimemult"
-                name="overtimeMultiplierBps"
-                type="number"
-                min="0"
-                value="15000"
-              />
+              <select id="finance-client-overtimemult" name="overtimeMultiplierBps">
+                <option value="15000">1.5x</option>
+                <option value="20000">2.0x</option>
+              </select>
             </Field>
             <Field
               id="finance-client-effective"
@@ -1001,15 +1204,18 @@
             </Field>
             <Field
               id="finance-internal-cost"
-              label={translate('Hourly cost (minor units)')}
+              label={translate('Hourly cost')}
               required
               data-field="hourlyRateMinor"
             >
+              <input type="hidden" name="hourlyRateMinor" value="0" />
               <input
                 id="finance-internal-cost"
-                name="hourlyRateMinor"
-                type="number"
-                min="0"
+                type="text"
+                inputmode="decimal"
+                value="0.00"
+                data-minor-target="hourlyRateMinor"
+                oninput={syncDecimalToMinor}
                 required
               />
             </Field>
@@ -1037,16 +1243,13 @@
             </Field>
             <Field
               id="finance-internal-overtimemult"
-              label={translate('Overtime multiplier (bps)')}
+              label={translate('Overtime multiplier')}
               data-field="overtimeMultiplierBps"
             >
-              <input
-                id="finance-internal-overtimemult"
-                name="overtimeMultiplierBps"
-                type="number"
-                min="0"
-                value="15000"
-              />
+              <select id="finance-internal-overtimemult" name="overtimeMultiplierBps">
+                <option value="15000">1.5x</option>
+                <option value="20000">2.0x</option>
+              </select>
             </Field>
             <Field
               id="finance-internal-effective"

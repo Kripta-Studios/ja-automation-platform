@@ -470,7 +470,7 @@ function seedMinimalProject(sqlite: DatabaseSync): void {
     .run(
       'wp02t-owner',
       'WP02T Owner',
-      'wp02t.owner@example.test',
+      'antonny.luty@j-aautomation.com',
       'owner_admin',
       'active',
       1,
@@ -873,7 +873,7 @@ afterEach(() => {
 });
 
 describe('additive Client Essential 2026-08-24 migration contract', () => {
-  it('reaches schema version 30 and retains the reviewed migration-28 identity', () => {
+  it('reaches schema version 35 and retains the reviewed migration-28 identity', () => {
     const sqlite = fresh();
     const version = (
       sqlite.prepare('SELECT COALESCE(MAX(version),0) AS version FROM schema_migration').get() as {
@@ -889,11 +889,11 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
       .get() as { migration_version: number; migration_name: string } | undefined;
 
     expect({ version, metadata: metadata ?? null }).toEqual({
-      version: 30,
+      version: 35,
       metadata: { migration_version: 28, migration_name: 'client_essential_20260824' },
     });
     expect(sqlite.prepare('SELECT version FROM schema_migration ORDER BY version').all()).toEqual(
-      Array.from({ length: 30 }, (_, index) => ({ version: index + 1 })),
+      Array.from({ length: 35 }, (_, index) => ({ version: index + 1 })),
     );
   });
 
@@ -1871,7 +1871,7 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
     expect(sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
     expect(integrityCheck(sqlite)).toBe('ok');
     expect(sqlite.prepare('SELECT MAX(version) AS version FROM schema_migration').get()).toEqual({
-      version: 30,
+      version: 35,
     });
   });
 
@@ -1950,7 +1950,7 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
           'SELECT migration_version FROM migration_contract_metadata ORDER BY migration_version',
         )
         .all(),
-    ).toEqual(Array.from({ length: 12 }, (_, index) => ({ migration_version: index + 19 })));
+    ).toEqual(Array.from({ length: 17 }, (_, index) => ({ migration_version: index + 19 })));
     expect(() =>
       sqlite
         .prepare(

@@ -79,9 +79,11 @@
 
   function recordHref(row: Row): string {
     const id = encodeURIComponent(value(row, 'id'));
-    return ['daily', 'technical'].includes(value(row, 'type'))
-      ? `${base}/app/reports/${id}`
-      : `${base}/app/${encodeURIComponent(value(row, 'type'))}/${id}`;
+    const type = value(row, 'type');
+    if (type === 'expense') return `${base}/app/expenses/${id}`;
+    if (type === 'time') return `${base}/app/time/${id}`;
+    if (['daily', 'technical'].includes(type)) return `${base}/app/reports/${id}`;
+    return `${base}/app/${encodeURIComponent(type)}/${id}`;
   }
 
   function tabId(tab: Tab): string {

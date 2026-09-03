@@ -68,7 +68,7 @@
   };
 
   const variantForLocale = (target: LocalizedPdfLocale): LocalizedPdfVariant | undefined =>
-    visibleVariants.find((item) => item.locale === target);
+    visibleVariants.filter((item) => item.locale === target).at(-1);
   const selectedVariant = $derived(variantForLocale(effectiveLocale));
 
   function actionData(value: unknown): Record<string, unknown> {
@@ -218,6 +218,15 @@
           <option value={option.value}>{t(option.labelKey)}</option>
         {/each}
       </select>
+      <button
+        type="button"
+        class="localized-pdf-primary-action"
+        onclick={() => void requestVariant(effectiveLocale)}
+        disabled={submittingLocale !== null ||
+          loading ||
+          selectedVariant?.status === 'queued' ||
+          selectedVariant?.status === 'running'}>{t('Generate report')}</button
+      >
       {#if selectedVariant?.status === 'ready'}
         <a
           class="localized-pdf-primary-action"
@@ -230,13 +239,6 @@
           class="localized-pdf-primary-action"
           onclick={() => void retryVariant(selectedVariant)}
           disabled={retryingVariantId === selectedVariant.variantId}>{t('Retry')}</button
-        >
-      {:else}
-        <button
-          type="button"
-          class="localized-pdf-primary-action"
-          onclick={() => void requestVariant(effectiveLocale)}
-          disabled={submittingLocale !== null || loading}>{t('Generate report')}</button
         >
       {/if}
     </div>

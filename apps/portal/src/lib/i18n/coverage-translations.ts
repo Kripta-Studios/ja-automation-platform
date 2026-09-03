@@ -8,6 +8,137 @@ import { explicitCoverageLiterals } from './coverage-literals';
  */
 
 const exact: Record<string, readonly [string, string]> = {
+  'Access role': ['Rol de acceso', 'Função de acesso'],
+  'Choose the email and role. The invited person sets their own name and password securely.': [
+    'Elige el correo y el rol. La persona invitada configura su nombre y contraseña de forma segura.',
+    'Escolha o e-mail e a função. A pessoa convidada configura o próprio nome e senha com segurança.',
+  ],
+  Copied: ['Copiado', 'Copiado'],
+  'Copy activation link': ['Copiar enlace de activación', 'Copiar link de ativação'],
+  'Copy this private activation link and send it to the invited person.': [
+    'Copia este enlace privado de activación y envíaselo a la persona invitada.',
+    'Copie este link privado de ativação e envie-o à pessoa convidada.',
+  ],
+  'Create invitation': ['Crear invitación', 'Criar convite'],
+  'Create user': ['Crear usuario', 'Criar usuário'],
+  'Create user access': ['Crear acceso de usuario', 'Criar acesso de usuário'],
+  'Email / company alias': ['Correo / alias corporativo', 'E-mail / alias corporativo'],
+  'Invitation expires': ['Caducidad de la invitación', 'Validade do convite'],
+  'Invitation ready': ['Invitación preparada', 'Convite pronto'],
+  'SECURE USER PROVISIONING': ['ALTA SEGURA DE USUARIOS', 'PROVISIONAMENTO SEGURO DE USUÁRIOS'],
+  'Send the link to the invited person through a trusted channel.': [
+    'Envía el enlace a la persona invitada mediante un canal de confianza.',
+    'Envie o link à pessoa convidada por um canal confiável.',
+  ],
+  'The portal creates a single-use activation link.': [
+    'El portal crea un enlace de activación de un solo uso.',
+    'O portal cria um link de ativação de uso único.',
+  ],
+  'They choose their name and password before the account becomes active.': [
+    'La persona elige su nombre y contraseña antes de que la cuenta se active.',
+    'A pessoa escolhe o nome e a senha antes que a conta seja ativada.',
+  ],
+  'What happens next': ['Qué ocurre después', 'O que acontece depois'],
+  day: ['día', 'dia'],
+  days: ['días', 'dias'],
+  'active projects': ['proyectos activos', 'projetos ativos'],
+  Address: ['Dirección', 'Endereço'],
+  'AUTHORIZED DIRECTORY': ['DIRECTORIO AUTORIZADO', 'DIRETÓRIO AUTORIZADO'],
+  'Active specialists, availability and project assignments.': [
+    'Especialistas activos, disponibilidad y asignaciones de proyectos.',
+    'Especialistas ativos, disponibilidade e atribuições de projetos.',
+  ],
+  Assignment: ['Asignación', 'Atribuição'],
+  Assignments: ['Asignaciones', 'Atribuições'],
+  available: ['disponible', 'disponível'],
+  'Authorized client contacts, sites and project context.': [
+    'Contactos autorizados del cliente, plantas y contexto de proyecto.',
+    'Contatos autorizados do cliente, locais e contexto do projeto.',
+  ],
+  'Authorized project': ['Proyecto autorizado', 'Projeto autorizado'],
+  'Company, contact, phone or site': [
+    'Empresa, contacto, teléfono o planta',
+    'Empresa, contato, telefone ou local',
+  ],
+  'Commercial model & owners': [
+    'Modelo comercial y responsables',
+    'Modelo comercial e responsáveis',
+  ],
+  'COMMERCIAL OWNERSHIP': ['RESPONSABILIDAD COMERCIAL', 'RESPONSABILIDADE COMERCIAL'],
+  Contacts: ['Contactos', 'Contatos'],
+  'Project management actions': ['Acciones de gestión de proyectos', 'Ações de gestão de projetos'],
+  'Choose one action. The portal will show only the fields needed for that task.': [
+    'Elige una acción. El portal mostrará solo los campos necesarios para esa tarea.',
+    'Escolha uma ação. O portal mostrará apenas os campos necessários para essa tarefa.',
+  ],
+  'Account status': ['Estado de la cuenta', 'Status da conta'],
+  'Delete this contact?': ['¿Eliminar este contacto?', 'Excluir este contato?'],
+  'Edit profile': ['Editar perfil', 'Editar perfil'],
+  'Edit team member': ['Editar miembro del equipo', 'Editar membro da equipe'],
+  'Remove access': ['Retirar acceso', 'Remover acesso'],
+  'Restore access': ['Restaurar acceso', 'Restaurar acesso'],
+  'Remove this team member access?': [
+    '¿Retirar el acceso de este miembro del equipo?',
+    'Remover o acesso deste membro da equipe?',
+  ],
+  'Dismiss notification': ['Cerrar notificación', 'Fechar notificação'],
+  'Filter by category': ['Filtrar por categoría', 'Filtrar por categoria'],
+  'Filter clients': ['Filtrar clientes', 'Filtrar clientes'],
+  'Identification & client': ['Identificación y cliente', 'Identificação e cliente'],
+  'Include inactive specialists': [
+    'Incluir especialistas inactivos',
+    'Incluir especialistas inativos',
+  ],
+  'Keep the authorized client and project references clear and traceable.': [
+    'Mantén claras y trazables las referencias autorizadas de cliente y proyecto.',
+    'Mantenha claras e rastreáveis as referências autorizadas de cliente e projeto.',
+  ],
+  'LOCATION & PLANNING': ['UBICACIÓN Y PLANIFICACIÓN', 'LOCALIZAÇÃO E PLANEJAMENTO'],
+  'Location & planning': ['Ubicación y planificación', 'Localização e planejamento'],
+  'Name, role or project': ['Nombre, rol o proyecto', 'Nome, função ou projeto'],
+  'No active specialists found.': [
+    'No se encontraron especialistas activos.',
+    'Nenhum especialista ativo encontrado.',
+  ],
+  'No associated projects recorded.': [
+    'No hay proyectos asociados registrados.',
+    'Nenhum projeto associado registrado.',
+  ],
+  'No authorized clients found.': [
+    'No se encontraron clientes autorizados.',
+    'Nenhum cliente autorizado encontrado.',
+  ],
+  'No contacts recorded.': ['No hay contactos registrados.', 'Nenhum contato registrado.'],
+  'No expenses match this category.': [
+    'No hay gastos para esta categoría.',
+    'Nenhuma despesa corresponde a esta categoria.',
+  ],
+  'No project assignments recorded.': [
+    'No hay asignaciones de proyecto registradas.',
+    'Nenhuma atribuição de projeto registrada.',
+  ],
+  'Not provided': ['No proporcionado', 'Não informado'],
+  'OPERATIONAL DIRECTORY': ['DIRECTORIO OPERATIVO', 'DIRETÓRIO OPERACIONAL'],
+  'Planned hours': ['Horas planificadas', 'Horas planejadas'],
+  'Project assignments': ['Asignaciones de proyecto', 'Atribuições de projeto'],
+  'PROJECT IDENTITY': ['IDENTIDAD DEL PROYECTO', 'IDENTIDADE DO PROJETO'],
+  'Projects and sites': ['Proyectos y plantas', 'Projetos e locais'],
+  'Review the commercial model, limits and accountable owner.': [
+    'Revisa el modelo comercial, los límites y el responsable.',
+    'Revise o modelo comercial, os limites e o responsável.',
+  ],
+  'Search clients': ['Buscar clientes', 'Pesquisar clientes'],
+  'Search team': ['Buscar equipo', 'Pesquisar equipe'],
+  'Sites / plants': ['Plantas / sitios', 'Locais / plantas'],
+  Specialist: ['Especialista', 'Especialista'],
+  'Status unavailable': ['Estado no disponible', 'Status indisponível'],
+  'Unnamed contact': ['Contacto sin nombre', 'Contato sem nome'],
+  'Unnamed specialist': ['Especialista sin nombre', 'Especialista sem nome'],
+  'No email': ['Sin correo electrónico', 'Sem e-mail'],
+  'Set the operating site, dates and planning assumptions.': [
+    'Define la planta operativa, las fechas y las premisas de planificación.',
+    'Defina o local operacional, as datas e as premissas de planejamento.',
+  ],
   'Run every project with confidence.': [
     'Gestiona cada proyecto con confianza.',
     'Gerencie cada projeto com confiança.',
@@ -943,6 +1074,16 @@ function titleCase(value: string): string {
  * validation messages without exposing an English fallback to users.
  */
 const actionExact: Record<string, readonly [string, string]> = {
+  'action.access.mailbox.created': ['Buzón creado.', 'Caixa de correio criada.'],
+  'action.access.mailbox.destroyed': ['Buzón eliminado.', 'Caixa de correio excluída.'],
+  'action.access.mailbox.passwordUpdated': [
+    'Contraseña de Webmail actualizada.',
+    'Senha do Webmail atualizada.',
+  ],
+  'action.access.mailboxes.provisioned': [
+    'Buzones incorporados al portal.',
+    'Caixas de correio provisionadas no portal.',
+  ],
   'action.access.accountStatus.updated': [
     'Estado de la cuenta actualizado.',
     'Status da conta atualizado.',
@@ -977,6 +1118,14 @@ const actionExact: Record<string, readonly [string, string]> = {
     'No tienes permiso para realizar esta acción.',
     'Você não tem permissão para realizar esta ação.',
   ],
+  'action.error.stepUpRequired': [
+    'Confirma tu identidad para continuar.',
+    'Confirme sua identidade para continuar.',
+  ],
+  'action.error.unauthenticated': [
+    'Vuelve a iniciar sesión para continuar.',
+    'Entre novamente para continuar.',
+  ],
   'action.error.conflict': [
     'La acción entra en conflicto con el estado actual del registro.',
     'A ação entra em conflito com o estado atual do registro.',
@@ -1008,9 +1157,17 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Borrador de factura creado.',
     'Rascunho de fatura criado.',
   ],
+  'action.billing.invoiceDraftCreatedForPeriod': [
+    'Borrador de factura creado para {periodStart} → {periodEnd}, el último período completo con trabajo facturable aprobado.',
+    'Rascunho de fatura criado para {periodStart} → {periodEnd}, o último período completo com trabalho faturável aprovado.',
+  ],
   'action.billing.invoiceDraftExisting': [
     'Ya existe un borrador de factura.',
     'Já existe um rascunho de fatura.',
+  ],
+  'action.billing.invoiceDraftExistingForPeriod': [
+    'Se devolvió el borrador existente para {periodStart} → {periodEnd}.',
+    'O rascunho existente foi devolvido para {periodStart} → {periodEnd}.',
   ],
   'action.billing.invoiceIssued': ['Factura emitida.', 'Fatura emitida.'],
   'action.billing.invoiceNumberPolicySaved': [
@@ -1018,6 +1175,7 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Política de numeração de faturas salva.',
   ],
   'action.billing.invoiceSent': ['Factura enviada.', 'Fatura enviada.'],
+  'action.billing.invoiceUpdated': ['Factura actualizada.', 'Fatura atualizada.'],
   'action.billing.invoiceVoided': [
     'Factura anulada y registrada en la auditoría.',
     'Fatura anulada e registrada na auditoria.',
@@ -1036,6 +1194,10 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Entidade legal atualizada.',
   ],
   'action.billing.paymentRecorded': ['Pago registrado.', 'Pagamento registrado.'],
+  'action.billing.paymentReversed': [
+    'Reversión del pago registrada.',
+    'Estorno do pagamento registrado.',
+  ],
   'action.billing.periodClosed': [
     'Período de facturación cerrado.',
     'Período de faturamento fechado.',
@@ -1052,9 +1214,97 @@ const actionExact: Record<string, readonly [string, string]> = {
   'action.billing.taxProfileArchived': ['Perfil fiscal archivado.', 'Perfil fiscal arquivado.'],
   'action.billing.taxProfileSaved': ['Perfil fiscal guardado.', 'Perfil fiscal salvo.'],
   'action.billing.taxProfileUpdated': ['Perfil fiscal actualizado.', 'Perfil fiscal atualizado.'],
+  'action.billing.readiness.noBillableSources': [
+    'Este período no tiene horas ni gastos facturables aprobados. Elige un período completo anterior con trabajo aprobado, o espera a que se apruebe el trabajo de este período. La aplicación intenta automáticamente el último período completo con fuentes facturables.',
+    'Este período não tem horas nem despesas faturáveis aprovadas. Escolha um período completo anterior com trabalho aprovado, ou aguarde a aprovação do trabalho deste período. O aplicativo tenta automaticamente o último período completo com fontes faturáveis.',
+  ],
+  'action.billing.readiness.periodCutoffMismatch': [
+    'Las fechas no coinciden con la cadencia de este flujo (por ejemplo, semanal es lunes a domingo). La aplicación alinea al último período completo de esa cadencia cuando es posible.',
+    'As datas não coincidem com a cadência deste fluxo (por exemplo, semanal é segunda a domingo). O aplicativo alinha ao último período completo dessa cadência quando possível.',
+  ],
+  'action.billing.readiness.pendingTimeApproval': [
+    'Hay registros de tiempo de este período pendientes de aprobación. Apruébalos o recházalos en Aprobaciones y vuelve a crear el borrador.',
+    'Há registros de tempo deste período pendentes de aprovação. Aprove ou rejeite-os em Aprovações e crie o rascunho novamente.',
+  ],
+  'action.billing.readiness.pendingExpenseApproval': [
+    'Hay gastos de este período pendientes de aprobación. Apruébalos o recházalos en Aprobaciones y vuelve a crear el borrador.',
+    'Há despesas deste período pendentes de aprovação. Aprove ou rejeite-as em Aprovações e crie o rascunho novamente.',
+  ],
+  'action.billing.readiness.missingTaxProfile': [
+    'Este flujo de facturación no tiene perfil fiscal. Añádelo en Configuración financiera y vuelve a crear el borrador.',
+    'Este fluxo de faturamento não tem perfil fiscal. Adicione-o em Configuração financeira e crie o rascunho novamente.',
+  ],
+  'action.billing.readiness.inactiveTaxProfile': [
+    'El perfil fiscal de este flujo no está activo. Actívalo o asígnale uno activo en Configuración financiera.',
+    'O perfil fiscal deste fluxo não está ativo. Ative-o ou atribua um ativo em Configuração financeira.',
+  ],
+  'action.billing.readiness.missingLegalEntity': [
+    'Este flujo de facturación no tiene entidad jurídica. Asígnale una en Configuración financiera.',
+    'Este fluxo de faturamento não tem entidade legal. Atribua uma em Configuração financeira.',
+  ],
+  'action.billing.readiness.archivedLegalEntity': [
+    'La entidad jurídica de este flujo está archivada. Restaúrala o asígnale una activa en Configuración financiera.',
+    'A entidade legal deste fluxo está arquivada. Restaure-a ou atribua uma ativa em Configuração financeira.',
+  ],
+  'action.billing.readiness.legalEntityCurrencyMismatch': [
+    'La moneda de la entidad jurídica no coincide con la del flujo. Corrígela en Configuración financiera.',
+    'A moeda da entidade legal não coincide com a do fluxo. Corrija em Configuração financeira.',
+  ],
+  'action.billing.readiness.taxProfileCurrencyMismatch': [
+    'La moneda del perfil fiscal no coincide con la del flujo. Corrígela en Configuración financiera.',
+    'A moeda do perfil fiscal não coincide com a do fluxo. Corrija em Configuração financeira.',
+  ],
+  'action.billing.readiness.taxProfileLegalEntityMismatch': [
+    'El perfil fiscal no pertenece a la entidad jurídica de este flujo. Reasígnalo en Configuración financiera.',
+    'O perfil fiscal não pertence à entidade legal deste fluxo. Reatribua em Configuração financeira.',
+  ],
+  'action.billing.readiness.invalidPeriod': [
+    'La fecha de fin es anterior a la de inicio. Elige un período válido.',
+    'A data final é anterior à de início. Escolha um período válido.',
+  ],
+  'action.billing.readiness.invalidPeriodConfiguration': [
+    'La cadencia de este flujo no puede calcular el período. Revisa la fecha de ancla o el día de corte en el flujo de facturación.',
+    'A cadência deste fluxo não consegue calcular o período. Revise a data âncora ou o dia de corte no fluxo de faturamento.',
+  ],
+  'action.billing.readiness.missingFixedPrice': [
+    'Este flujo all-in de mano de obra no tiene precio fijo. Configúralo en el proyecto o en el flujo de facturación.',
+    'Este fluxo all-in de mão de obra não tem preço fixo. Configure-o no projeto ou no fluxo de faturamento.',
+  ],
+  'action.billing.readiness.capExhausted': [
+    'El tope de pedido de este proyecto ya se consumió. Ajusta el tope o factura otro flujo.',
+    'O teto do pedido deste projeto já foi consumido. Ajuste o teto ou fatura outro fluxo.',
+  ],
+  'action.billing.readiness.missingClientRate': [
+    'Hay horas aprobadas sin tarifa de cliente. Añade la tarifa laboral del cliente en Finanzas y vuelve a crear el borrador.',
+    'Há horas aprovadas sem tarifa do cliente. Adicione a tarifa de mão de obra do cliente em Finanças e crie o rascunho novamente.',
+  ],
+  'action.billing.readiness.missingExpenseCurrencyConversion': [
+    'Hay gastos en otra moneda sin conversión a la de facturación. Completa la conversión en Finanzas.',
+    'Há despesas em outra moeda sem conversão para a de faturamento. Conclua a conversão em Finanças.',
+  ],
+  'action.billing.readiness.missingExpenseFinanceProjection': [
+    'Hay gastos clasificados sin proyección financiera. Completa la clasificación comercial en Finanzas.',
+    'Há despesas classificadas sem projeção financeira. Conclua a classificação comercial em Finanças.',
+  ],
+  'action.billing.readiness.customerSignoffRequired': [
+    'Falta la conformidad del cliente para este período. Captúrala en el informe periódico del proyecto y vuelve a emitir.',
+    'Falta a conformidade do cliente para este período. Capture-a no relatório periódico do projeto e emita novamente.',
+  ],
+  'action.billing.readiness.canonicalLegalEntityRevisionRequired': [
+    'Este proyecto no tiene una revisión de entidad jurídica revisada para emitir. Asígnela en Configuración financiera.',
+    'Este projeto não tem uma revisão de entidade legal revisada para emitir. Atribua-a em Configuração financeira.',
+  ],
+  'action.billing.readiness.missingInvoiceNumberPolicy': [
+    'Falta la política de numeración de facturas aprobada. Configúrala en Facturación antes de emitir.',
+    'Falta a política de numeração de faturas aprovada. Configure-a em Faturamento antes de emitir.',
+  ],
+  'action.billing.readiness.inactiveBillingConfiguration': [
+    'El flujo de facturación o su configuración legal/fiscal no está activo. Revísalo en Configuración financiera.',
+    'O fluxo de faturamento ou a configuração legal/fiscal não está ativo. Revise em Configuração financeira.',
+  ],
   'action.conflict.billingPeriodIncomplete': [
-    'El período de facturación está incompleto.',
-    'O período de faturamento está incompleto.',
+    'Este período de facturación no está listo para un borrador. Revisa las causas abajo y corrígelas en Aprobaciones o Configuración financiera.',
+    'Este período de faturamento não está pronto para um rascunho. Revise as causas abaixo e corrija-as em Aprovações ou Configuração financeira.',
   ],
   'action.conflict.reportNotEditable': [
     'El informe no se puede editar.',
@@ -1109,6 +1359,28 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Regla de coste interno sustituida.',
     'Regra de custo interno substituída.',
   ],
+  'action.finance.projectLegalEntityAssigned': [
+    'Autoridad emisora del proyecto guardada.',
+    'Autoridade emissora do projeto salva.',
+  ],
+  'action.validation.projectLegalEntityAssignment': [
+    'La asignación de la autoridad emisora del proyecto no es válida.',
+    'A atribuição da autoridade emissora do projeto é inválida.',
+  ],
+  'action.validation.invalid': ['Revisa los datos enviados.', 'Revise os dados enviados.'],
+  'action.validation.invalidForm': [
+    'Revisa los campos del formulario.',
+    'Revise os campos do formulário.',
+  ],
+  'action.validation.invoiceIdRequired': [
+    'Se requiere el identificador de la factura.',
+    'O identificador da fatura é obrigatório.',
+  ],
+  'action.validation.missingEmails': [
+    'Añade al menos una dirección de correo.',
+    'Adicione pelo menos um endereço de e-mail.',
+  ],
+  'action.validation.missingUsername': ['Añade un alias de cuenta.', 'Adicione um alias de conta.'],
   'action.finance.reimbursementRecorded': ['Reembolso registrado.', 'Reembolso registrado.'],
   'action.navigation.wrongSection': ['Sección incorrecta.', 'Seção incorreta.'],
   'action.notifications.markedRead': [
@@ -1149,6 +1421,8 @@ const actionExact: Record<string, readonly [string, string]> = {
   'action.projects.milestoneDraftSaved': ['Borrador de hito guardado.', 'Rascunho de marco salvo.'],
   'action.projects.milestoneSubmitted': ['Hito enviado.', 'Marco enviado.'],
   'action.projects.projectCreated': ['Proyecto creado.', 'Projeto criado.'],
+  'action.projects.clientDeleted': ['Cliente eliminado.', 'Cliente excluído.'],
+  'action.projects.projectDeleted': ['Proyecto eliminado.', 'Projeto excluído.'],
   'action.projects.projectUpdated': ['Proyecto actualizado.', 'Projeto atualizado.'],
   'action.projects.scheduleSaved': ['Calendario guardado.', 'Cronograma salvo.'],
   'action.reports.autosaved': [
@@ -1361,6 +1635,11 @@ function validationMessage(locale: 'es' | 'pt', suffix: string): string {
       ? `La ruta ${withPreposition} no es válida.`
       : `O caminho ${withPreposition} não é válido.`;
   }
+  if (suffix === 'accountingPeriod') {
+    return locale === 'es'
+      ? 'Indica una fecha de inicio igual o anterior a la de fin. Si dejas las fechas vacías, se usa el mes completo anterior.'
+      : 'Informe uma data inicial igual ou anterior à final. Se deixar as datas vazias, usa-se o mês completo anterior.';
+  }
   if (suffix === 'timeSourceWeekDifferent') {
     return locale === 'es'
       ? 'La semana del registro de tiempo debe coincidir con la semana seleccionada.'
@@ -1402,6 +1681,58 @@ function actionMessage(locale: 'es' | 'pt', key: string): string {
 function englishActionMessage(key: string): string {
   const suffix = key.slice('action.'.length);
   const exactEnglish: Record<string, string> = {
+    'action.billing.paymentReversed': 'Payment reversal recorded.',
+    'action.billing.invoiceDraftCreatedForPeriod':
+      'Invoice draft created for {periodStart} → {periodEnd}, the last complete period with approved billable work.',
+    'action.billing.invoiceDraftExistingForPeriod':
+      'Existing invoice draft returned for {periodStart} → {periodEnd}.',
+    'action.conflict.billingPeriodIncomplete':
+      'This billing period is not ready for a draft. Review the causes below and fix them in Approvals or Finance configuration.',
+    'action.billing.readiness.noBillableSources':
+      'This period has no approved billable hours or expenses to invoice. Choose an earlier complete period that has approved work, or wait until this period’s work is approved. The app tries the last complete period with billable sources automatically.',
+    'action.billing.readiness.periodCutoffMismatch':
+      'These dates do not match this billing stream’s cadence (for example a weekly stream needs a Monday–Sunday week). The app aligns to the last complete cadence period automatically when possible.',
+    'action.billing.readiness.pendingTimeApproval':
+      'Time entries in this period are still waiting for approval. Approve or reject them in Approvals, then create the draft again.',
+    'action.billing.readiness.pendingExpenseApproval':
+      'Expenses in this period are still waiting for approval. Approve or reject them in Approvals, then create the draft again.',
+    'action.billing.readiness.missingTaxProfile':
+      'This billing stream has no tax profile. Add one in Finance configuration, then create the draft again.',
+    'action.billing.readiness.inactiveTaxProfile':
+      'This stream’s tax profile is not active. Activate it or assign an active profile in Finance configuration.',
+    'action.billing.readiness.missingLegalEntity':
+      'This billing stream has no legal entity. Assign one in Finance configuration.',
+    'action.billing.readiness.archivedLegalEntity':
+      'This stream’s legal entity is archived. Restore it or assign an active entity in Finance configuration.',
+    'action.billing.readiness.legalEntityCurrencyMismatch':
+      'The legal entity currency does not match this billing stream. Correct it in Finance configuration.',
+    'action.billing.readiness.taxProfileCurrencyMismatch':
+      'The tax profile currency does not match this billing stream. Correct it in Finance configuration.',
+    'action.billing.readiness.taxProfileLegalEntityMismatch':
+      'The tax profile does not belong to this stream’s legal entity. Reassign it in Finance configuration.',
+    'action.billing.readiness.invalidPeriod':
+      'The period end is before the start date. Choose a valid period.',
+    'action.billing.readiness.invalidPeriodConfiguration':
+      'This stream’s cadence cannot calculate the period. Check the anchor date or monthly cutoff on the billing stream.',
+    'action.billing.readiness.missingFixedPrice':
+      'This all-in labor stream has no fixed price. Configure it on the project or billing stream.',
+    'action.billing.readiness.capExhausted':
+      'This project’s purchase-order cap is already consumed. Increase the cap or invoice another stream.',
+    'action.billing.readiness.missingClientRate':
+      'Approved hours are missing a client labor rate. Add the client rate in Finance, then create the draft again.',
+    'action.billing.readiness.missingExpenseCurrencyConversion':
+      'Expenses in another currency are missing conversion into the billing currency. Complete the conversion in Finance.',
+    'action.billing.readiness.missingExpenseFinanceProjection':
+      'Classified expenses are missing a finance projection. Complete commercial classification in Finance.',
+    'action.billing.readiness.customerSignoffRequired':
+      'Customer conformity is still required for this period. Capture it on the project period report, then issue again.',
+    'action.billing.readiness.canonicalLegalEntityRevisionRequired':
+      'This project has no reviewed legal-entity revision for issuing. Assign it in Finance configuration.',
+    'action.billing.readiness.missingInvoiceNumberPolicy':
+      'The approved invoice numbering policy is missing. Configure it in Billing before issuing.',
+    'action.billing.readiness.inactiveBillingConfiguration':
+      'This billing stream or its legal/tax configuration is not active. Review it in Finance configuration.',
+    'action.reports.dailyDraftSaved': 'Daily report draft saved.',
     'action.reports.periodReportApproved': 'Period report approved.',
     'action.reports.periodReportAlreadyApproved': 'Period report was already approved.',
     'action.reports.customerSignoffRecorded': 'Customer conformity recorded.',
@@ -1410,10 +1741,17 @@ function englishActionMessage(key: string): string {
     'action.validation.customerSignoff': 'Customer conformity details are required.',
     'action.validation.customerSignoffInvalidation':
       'Conformity and invalidation reason are required.',
+    'action.validation.projectLegalEntityAssignment':
+      'The project issuing-authority assignment is invalid.',
+    'action.finance.projectLegalEntityAssigned': 'Project issuing authority saved.',
+    'action.validation.accountingPeriod':
+      'Choose a start date on or before the end date. Empty dates use the previous complete month.',
   };
   if (exactEnglish[key]) return exactEnglish[key];
   if (suffix === 'error.invalid') return 'The submitted values are invalid.';
   if (suffix === 'error.forbidden') return 'You do not have permission to perform this action.';
+  if (suffix === 'error.stepUpRequired') return 'Confirm your identity to continue.';
+  if (suffix === 'error.unauthenticated') return 'Sign in again to continue.';
   if (suffix === 'error.conflict') return 'This action conflicts with the current record state.';
   if (suffix === 'error.unavailable')
     return 'The action could not be completed. Try again shortly.';

@@ -2,6 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { canManageBilling, type Principal } from '@ja/domain';
 import { add, applyBasisPoints, money, type Currency } from '@ja/money';
 import { recordAuditEvent } from '../../core/audit.ts';
+import { readLiveSessionStepUp } from '../../core/authorization.ts';
 import { canonicalJson, sha256 } from '../../core/canonical-json.ts';
 import {
   ensureCommand,
@@ -94,31 +95,17 @@ export class ExpenseCommercialClassificationRepository {
     if (!user || user.status !== 'active')
       return this.deps.errors.accessDenied('Active finance principal required');
     if (
-      principal.isServiceActor ||
       !canManageBilling(principal) ||
       (user.role !== 'owner_admin' && user.role !== 'finance_admin')
     )
       return this.deps.errors.accessDenied('Finance role required');
-    const sessionId = principal.sessionId;
-    if (!sessionId)
-      return this.deps.errors.accessDenied('Recent step-up authentication is required');
-    const session = this.deps.sqlite
-      .prepare('SELECT step_up_at,expires_at FROM session WHERE id=? AND user_id=?')
-      .get(sessionId, principal.userId) as
-      | { step_up_at: string | null; expires_at: string }
-      | undefined;
     const nowMs = Date.parse(this.deps.now());
-    const stepUpMs = session?.step_up_at ? Date.parse(session.step_up_at) : Number.NaN;
-    const sessionExpiresMs = session?.expires_at ? Date.parse(session.expires_at) : Number.NaN;
     if (
-      !session ||
-      !session.step_up_at ||
-      !Number.isFinite(nowMs) ||
-      !Number.isFinite(stepUpMs) ||
-      !Number.isFinite(sessionExpiresMs) ||
-      stepUpMs > nowMs ||
-      nowMs - stepUpMs > 10 * 60_000 ||
-      sessionExpiresMs <= nowMs
+      !readLiveSessionStepUp(
+        this.deps.sqlite,
+        principal,
+        Number.isFinite(nowMs) ? nowMs : Date.now(),
+      )
     )
       return this.deps.errors.accessDenied('Recent step-up authentication is required');
   }
@@ -127,22 +114,16 @@ export class ExpenseCommercialClassificationRepository {
     stepUpVerifiedAt: string;
     stepUpExpiresAt: string;
   } {
-    const sessionId = principal.sessionId;
-    if (!sessionId) return this.failConflict('Recent step-up authentication is required');
-    const session = this.deps.sqlite
-      .prepare('SELECT step_up_at,expires_at FROM session WHERE id=? AND user_id=?')
-      .get(sessionId, principal.userId) as
-      | { step_up_at: string | null; expires_at: string }
-      | undefined;
-    if (!session?.step_up_at) return this.failConflict('Recent step-up authentication is required');
-    const stepUpExpires = new Date(Date.parse(session.step_up_at) + 10 * 60_000);
-    const sessionExpires = new Date(Date.parse(session.expires_at));
+    const nowMs = Date.parse(this.deps.now());
+    const proof = readLiveSessionStepUp(
+      this.deps.sqlite,
+      principal,
+      Number.isFinite(nowMs) ? nowMs : Date.now(),
+    );
+    if (!proof) return this.failConflict('Recent step-up authentication is required');
     return {
-      stepUpVerifiedAt: session.step_up_at,
-      stepUpExpiresAt: (stepUpExpires < sessionExpires
-        ? stepUpExpires
-        : sessionExpires
-      ).toISOString(),
+      stepUpVerifiedAt: proof.verifiedAt,
+      stepUpExpiresAt: proof.expiresAt,
     };
   }
 

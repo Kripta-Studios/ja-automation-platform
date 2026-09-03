@@ -26,6 +26,19 @@ export type PortalNavigation = {
   security: readonly NavItem[];
 };
 
+/**
+ * Resolve the authenticated user's landing destination. Finance roles do not
+ * have an operational Today destination in their allowlist, so the portal
+ * root must land on the read-only Finance Overview instead of rendering a
+ * page with no active navigation item.
+ */
+export function portalLandingForRole(base: string, role?: string | null): string {
+  if (role === 'finance_admin' || role === 'auditor_read_only') {
+    return `${base}/app/finance?view=overview`;
+  }
+  return `${base}/app/`;
+}
+
 const item = (section: string, label: string, icon: string, href?: string): NavItem => ({
   section,
   label,
@@ -137,6 +150,15 @@ export function portalNavigationForRole(base: string, role?: string | null): Por
 
 /** Short alias for callers that only need the role projection. */
 export const navigationForRole = portalNavigationForRole;
+
+/**
+ * Project the role-authorized primary navigation onto the compact phone bar.
+ * The drawer remains the source of truth for secondary and administrative
+ * destinations; this helper only limits presentation and never adds routes.
+ */
+export function mobilePrimaryNavigationFor(navigation: PortalNavigation): readonly NavItem[] {
+  return navigation.primary.slice(0, 4);
+}
 
 /**
  * Keep the account menu a small, role-safe projection of the navigation that

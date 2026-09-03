@@ -12,10 +12,15 @@ CADDY_SNIPPET=/etc/caddy/jaautomation.caddy
 DB_PATH=/var/lib/jaautomation/data/jaautomation.sqlite
 DOCUMENT_ROOT=/var/lib/jaautomation/files
 BACKUP_ROOT=/var/backups/jaautomation
-NODE=/opt/jaautomation/runtime/node-v24.19.0/bin/node
+NODE=/opt/jaautomation/runtime/node/bin/node
+SYSTEMD_DIR=/etc/systemd/system
+JOBS_SERVICE_UNIT=$SYSTEMD_DIR/jaautomation-jobs.service
+JOBS_TIMER_UNIT=$SYSTEMD_DIR/jaautomation-jobs.timer
+BACKUP_SERVICE_UNIT=$SYSTEMD_DIR/jaautomation-backup.service
+BACKUP_TIMER_UNIT=$SYSTEMD_DIR/jaautomation-backup.timer
 COMPOSE_PROJECT=deployment
-PUBLIC_SITE_URL=https://gex-dashboard.hopto.org/j-aautomation/en
-PUBLIC_PORTAL_URL=https://gex-dashboard.hopto.org/j-aautomation/app/login
+PUBLIC_SITE_URL=https://j-aautomation.com/j-aautomation/en
+PUBLIC_PORTAL_URL=https://j-aautomation.com/j-aautomation/app/login
 EXPLICIT_ARCHIVE=''
 INITIALIZE_ONLY=0
 
@@ -61,7 +66,7 @@ require_command() {
 }
 
 [[ ${EUID} -eq 0 ]] || die 'Este desplegador debe ejecutarse como root'
-for command_name in docker unzip zipinfo sha256sum curl caddy systemctl flock; do
+for command_name in docker unzip zipinfo sha256sum curl caddy systemctl systemd-analyze journalctl flock; do
   require_command "$command_name"
 done
 [[ -x "$NODE" ]] || die "No se encuentra Node 24 en $NODE"
@@ -138,6 +143,12 @@ release_shape_is_valid() {
   [[ -f "$root/deployment/Dockerfile.portal" ]] || return 1
   [[ -f "$root/deployment/Caddyfile.snippet" ]] || return 1
   [[ -f "$root/deployment/scripts/backup.mjs" ]] || return 1
+  [[ -f "$root/deployment/scripts/continuity-backup.mjs" ]] || return 1
+  [[ -f "$root/deployment/scripts/jobs-run.mjs" ]] || return 1
+  [[ -f "$root/deployment/jaautomation-jobs.service" ]] || return 1
+  [[ -f "$root/deployment/jaautomation-jobs.timer" ]] || return 1
+  [[ -f "$root/deployment/jaautomation-backup.service" ]] || return 1
+  [[ -f "$root/deployment/jaautomation-backup.timer" ]] || return 1
 }
 
 compose() {
@@ -204,13 +215,222 @@ verify_public_urls() {
   curl --fail --silent --show-error --max-time 20 "$PUBLIC_PORTAL_URL" >/dev/null
 }
 
+validate_candidate_jobs_units() {
+  local release_root=$1
+  SYSTEMD_LOG_LEVEL=err systemd-analyze verify \
+    "$release_root/deployment/jaautomation-jobs.service" \
+    "$release_root/deployment/jaautomation-jobs.timer" \
+    "$release_root/deployment/jaautomation-backup.service" \
+    "$release_root/deployment/jaautomation-backup.timer"
+}
+
+backup_jobs_units() {
+  local backup_dir=$1
+  install -d -o root -g root -m 0700 "$backup_dir"
+  if [[ -f "$JOBS_SERVICE_UNIT" ]]; then
+    cp -a -- "$JOBS_SERVICE_UNIT" "$backup_dir/jaautomation-jobs.service"
+    old_jobs_service_present=1
+  fi
+  if [[ -f "$JOBS_TIMER_UNIT" ]]; then
+    cp -a -- "$JOBS_TIMER_UNIT" "$backup_dir/jaautomation-jobs.timer"
+    old_jobs_timer_present=1
+  fi
+  if [[ -f "$BACKUP_SERVICE_UNIT" ]]; then
+    cp -a -- "$BACKUP_SERVICE_UNIT" "$backup_dir/jaautomation-backup.service"
+    old_backup_service_present=1
+  fi
+  if [[ -f "$BACKUP_TIMER_UNIT" ]]; then
+    cp -a -- "$BACKUP_TIMER_UNIT" "$backup_dir/jaautomation-backup.timer"
+    old_backup_timer_present=1
+  fi
+  if systemctl is-enabled --quiet jaautomation-jobs.timer; then
+    old_jobs_timer_enabled=1
+  fi
+  if systemctl is-active --quiet jaautomation-jobs.timer; then
+    old_jobs_timer_active=1
+  fi
+  if systemctl is-enabled --quiet jaautomation-backup.timer; then
+    old_backup_timer_enabled=1
+  fi
+  if systemctl is-active --quiet jaautomation-backup.timer; then
+    old_backup_timer_active=1
+  fi
+}
+
+atomic_install_unit() {
+  local source=$1
+  local destination=$2
+  local temporary
+  temporary=$(mktemp "$SYSTEMD_DIR/.jaautomation-unit.XXXXXX")
+  if ! install -o root -g root -m 0644 "$source" "$temporary"; then
+    rm -f -- "$temporary"
+    return 1
+  fi
+  mv -f -- "$temporary" "$destination"
+}
+
+install_candidate_jobs_units() {
+  local release_root=$1
+  atomic_install_unit \
+    "$release_root/deployment/jaautomation-jobs.service" \
+    "$JOBS_SERVICE_UNIT"
+  atomic_install_unit \
+    "$release_root/deployment/jaautomation-jobs.timer" \
+    "$JOBS_TIMER_UNIT"
+  atomic_install_unit \
+    "$release_root/deployment/jaautomation-backup.service" \
+    "$BACKUP_SERVICE_UNIT"
+  atomic_install_unit \
+    "$release_root/deployment/jaautomation-backup.timer" \
+    "$BACKUP_TIMER_UNIT"
+  cmp -s -- "$release_root/deployment/jaautomation-jobs.service" "$JOBS_SERVICE_UNIT" \
+    || die 'La unit jaautomation-jobs.service instalada no coincide con el candidato'
+  cmp -s -- "$release_root/deployment/jaautomation-jobs.timer" "$JOBS_TIMER_UNIT" \
+    || die 'La unit jaautomation-jobs.timer instalada no coincide con el candidato'
+  cmp -s -- "$release_root/deployment/jaautomation-backup.service" "$BACKUP_SERVICE_UNIT" \
+    || die 'La unit jaautomation-backup.service instalada no coincide con el candidato'
+  cmp -s -- "$release_root/deployment/jaautomation-backup.timer" "$BACKUP_TIMER_UNIT" \
+    || die 'La unit jaautomation-backup.timer instalada no coincide con el candidato'
+}
+
+restore_previous_jobs_units() {
+  if [[ "${old_jobs_service_present:-0}" -eq 1 ]]; then
+    atomic_install_unit \
+      "$jobs_units_backup/jaautomation-jobs.service" \
+      "$JOBS_SERVICE_UNIT"
+  else
+    rm -f -- "$JOBS_SERVICE_UNIT"
+  fi
+  if [[ "${old_jobs_timer_present:-0}" -eq 1 ]]; then
+    atomic_install_unit \
+      "$jobs_units_backup/jaautomation-jobs.timer" \
+      "$JOBS_TIMER_UNIT"
+  else
+    rm -f -- "$JOBS_TIMER_UNIT"
+  fi
+  if [[ "${old_backup_service_present:-0}" -eq 1 ]]; then
+    atomic_install_unit \
+      "$jobs_units_backup/jaautomation-backup.service" \
+      "$BACKUP_SERVICE_UNIT"
+  else
+    rm -f -- "$BACKUP_SERVICE_UNIT"
+  fi
+  if [[ "${old_backup_timer_present:-0}" -eq 1 ]]; then
+    atomic_install_unit \
+      "$jobs_units_backup/jaautomation-backup.timer" \
+      "$BACKUP_TIMER_UNIT"
+  else
+    rm -f -- "$BACKUP_TIMER_UNIT"
+  fi
+}
+
+restore_previous_jobs_timer_state() {
+  systemctl reset-failed jaautomation-jobs.service >/dev/null 2>&1 || true
+  systemctl reset-failed jaautomation-backup.service >/dev/null 2>&1 || true
+
+  restore_timer_state() {
+    local timer=$1
+    local present=$2
+    local enabled=$3
+    local active=$4
+    local label=$5
+    if [[ "$present" -eq 0 ]]; then
+      systemctl disable --now "$timer" >/dev/null 2>&1 || true
+      return 0
+    fi
+    if [[ "$enabled" -eq 1 ]]; then
+      systemctl enable "$timer" \
+        || log "No se pudo volver a habilitar el timer de $label anterior"
+    else
+      systemctl disable "$timer" \
+        || log "No se pudo restaurar el estado disabled del timer de $label anterior"
+    fi
+    if [[ "$active" -eq 1 ]]; then
+      systemctl start "$timer" \
+        || log "No se pudo volver a iniciar el timer de $label anterior"
+    else
+      systemctl stop "$timer" \
+        || log "No se pudo restaurar el estado inactivo del timer de $label anterior"
+    fi
+  }
+
+  restore_timer_state \
+    jaautomation-jobs.timer \
+    "${old_jobs_timer_present:-0}" \
+    "${old_jobs_timer_enabled:-0}" \
+    "${old_jobs_timer_active:-0}" \
+    jobs
+  restore_timer_state \
+    jaautomation-backup.timer \
+    "${old_backup_timer_present:-0}" \
+    "${old_backup_timer_enabled:-0}" \
+    "${old_backup_timer_active:-0}" \
+    backup
+}
+
+activate_candidate_timers() {
+  systemctl enable --now jaautomation-jobs.timer
+  systemctl is-enabled --quiet jaautomation-jobs.timer \
+    || die 'jaautomation-jobs.timer no quedó habilitado'
+  systemctl is-active --quiet jaautomation-jobs.timer \
+    || die 'jaautomation-jobs.timer no quedó activo'
+  systemctl enable --now jaautomation-backup.timer
+  systemctl is-enabled --quiet jaautomation-backup.timer \
+    || die 'jaautomation-backup.timer no quedó habilitado'
+  systemctl is-active --quiet jaautomation-backup.timer \
+    || die 'jaautomation-backup.timer no quedó activo'
+}
+
+preflight_candidate_jobs() {
+  local result status state logs deadline
+  systemctl reset-failed jaautomation-jobs.service >/dev/null 2>&1 || true
+  if ! systemctl start jaautomation-jobs.service; then
+    result=$(systemctl show jaautomation-jobs.service -p Result --value || true)
+    status=$(systemctl show jaautomation-jobs.service -p ExecMainStatus --value || true)
+    die "El runner de jobs del candidato falló (Result=$result, ExecMainStatus=$status)"
+  fi
+  result=$(systemctl show jaautomation-jobs.service -p Result --value)
+  status=$(systemctl show jaautomation-jobs.service -p ExecMainStatus --value)
+  [[ "$result" == success && "$status" == 0 ]] \
+    || die "El runner de jobs del candidato no terminó correctamente (Result=$result, ExecMainStatus=$status)"
+  deadline=$((SECONDS + 90))
+  state=
+  logs=
+  while ((SECONDS < deadline)); do
+    state=$(docker compose --env-file /etc/jaautomation/jaautomation.env \
+      -f /opt/jaautomation/current/deployment/compose.production.yml \
+      ps --all --format '{{.State}}' jobs 2>/dev/null | head -n1 || true)
+    logs=$(docker compose --env-file /etc/jaautomation/jaautomation.env \
+      -f /opt/jaautomation/current/deployment/compose.production.yml \
+      logs --no-color --tail 100 jobs 2>/dev/null || true)
+    if [[ "$state" == running ]] && grep -q '"event":"jobs.cycle"' <<<"$logs"; then
+      break
+    fi
+    sleep 1
+  done
+  [[ "$state" == running ]] || die 'El worker de jobs del candidato no quedó en ejecución'
+  if grep -Eq \
+    'SERVICE_ACTOR_BINDING_UNAVAILABLE|SERVICE_ACTOR_CAPABILITIES_CORRUPT|LEGACY_JOB_ACTOR_ID_UNSUPPORTED' \
+    <<<"$logs"; then
+    die 'El preflight rechazó el service actor deployment-scoped del candidato'
+  fi
+  grep -q '"event":"jobs.cycle"' <<<"$logs" \
+    || die 'El worker de jobs del candidato no emitió jobs.cycle'
+  activate_candidate_timers
+}
+
 rollback_deployment() {
   log 'Ejecutando rollback al release anterior'
+  systemctl stop jaautomation-jobs.timer >/dev/null 2>&1 || true
   if [[ -n "${old_release:-}" && -d "$old_release" ]]; then
     atomic_current_link "$old_release" || log 'No se pudo restaurar el enlace current'
   fi
   if [[ -n "${old_tag:-}" ]]; then
     update_release_tag "$old_tag" || log 'No se pudo restaurar JA_RELEASE_TAG'
+  fi
+  if [[ -n "${jobs_units_backup:-}" && -d "$jobs_units_backup" ]]; then
+    restore_previous_jobs_units || log 'No se pudieron restaurar las units de jobs anteriores'
+    systemctl daemon-reload || log 'No se pudo recargar systemd durante el rollback'
   fi
   if [[ "${caddy_switched:-0}" -eq 1 && -f "${caddy_backup:-}" ]]; then
     install -o root -g root -m 0644 "$caddy_backup" "$CADDY_SNIPPET" || log 'No se pudo restaurar el snippet de Caddy'
@@ -224,6 +444,7 @@ rollback_deployment() {
   else
     log 'ATENCIÓN: el rollback local no superó la comprobación de salud'
   fi
+  restore_previous_jobs_timer_state
 }
 
 process_archive() (
@@ -239,8 +460,17 @@ process_archive() (
   local new_tag=''
   local timestamp=''
   local caddy_backup=''
+  local jobs_units_backup=''
   local caddy_switched=0
   local rollback_needed=0
+  local old_jobs_service_present=0
+  local old_jobs_timer_present=0
+  local old_jobs_timer_enabled=0
+  local old_jobs_timer_active=0
+  local old_backup_service_present=0
+  local old_backup_timer_present=0
+  local old_backup_timer_enabled=0
+  local old_backup_timer_active=0
 
   on_exit() {
     local status=$?
@@ -371,6 +601,8 @@ process_archive() (
 
   log "Validando Compose del nuevo release ($new_tag)"
   compose "$release_dir" "$new_tag" config --quiet
+  log 'Validando las units de jobs incluidas en el nuevo release'
+  validate_candidate_jobs_units "$release_dir"
   log 'Construyendo imágenes site y portal; los contenedores actuales siguen atendiendo'
   compose "$release_dir" "$new_tag" build site portal
 
@@ -385,7 +617,15 @@ process_archive() (
   docker tag "$old_portal_image" "ja-automation-portal:$rollback_tag"
   log "Imágenes anteriores conservadas con etiqueta $rollback_tag"
 
+  jobs_units_backup=$(mktemp -d "$STATE_DIR/jobs-units.${sha:0:12}.XXXXXX")
+  backup_jobs_units "$jobs_units_backup"
   rollback_needed=1
+  if [[ "$old_jobs_timer_present" -eq 1 ]]; then
+    systemctl stop jaautomation-jobs.timer
+  fi
+  if [[ "$old_backup_timer_present" -eq 1 ]]; then
+    systemctl stop jaautomation-backup.timer
+  fi
   caddy_backup="$CADDY_SNIPPET.before-zip.$timestamp"
   cp -a "$CADDY_SNIPPET" "$caddy_backup"
   install -o root -g root -m 0644 "$release_dir/deployment/Caddyfile.snippet" "$CADDY_SNIPPET"
@@ -397,8 +637,14 @@ process_archive() (
   log 'Activando el release con Docker Compose'
   compose "$release_dir" "$new_tag" up -d --no-build --remove-orphans
 
+  log 'Instalando atómicamente las units de jobs y backup del candidato'
+  install_candidate_jobs_units "$release_dir"
+  systemctl daemon-reload
+
   log 'Esperando salud local de site y portal'
   wait_for_local_health || die 'El nuevo site o portal no alcanzó un estado saludable'
+  log 'Ejecutando el runner de jobs mediante systemd y validando el service actor'
+  preflight_candidate_jobs
   systemctl reload caddy
   log 'Comprobando las dos URLs públicas'
   verify_public_urls

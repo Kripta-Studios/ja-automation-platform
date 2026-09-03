@@ -4,6 +4,7 @@ import {
   ConflictError,
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -233,11 +234,12 @@ describe('Client Essential CORE-02/09/11 identifiers and planned-versus-actual d
   it('keeps invoice planned issue and expected collection dates separate from actual issue and payment dates', () => {
     const value = fixture();
     const invoiceId = seedInvoice(value);
+    const finance = stepUpB5Principal(value.sqlite, value.finance, 'invoice-planning');
 
     const result = command<Record<string, unknown>>(
       value.repository,
       'setInvoicePlanningDates',
-      value.finance,
+      finance,
       {
         invoiceId,
         plannedIssueOn: '2026-09-10',
@@ -288,11 +290,12 @@ describe('Client Essential CORE-02/09/11 identifiers and planned-versus-actual d
   it('keeps expected worker payment dates independent from compensation settlement actuals and scopes the projection', () => {
     const value = fixture();
     const settlementId = seedSettlement(value);
+    const finance = stepUpB5Principal(value.sqlite, value.finance, 'settlement-planning');
 
     const result = command<Record<string, unknown>>(
       value.v3,
       'setCompensationSettlementExpectedPaymentOn',
-      value.finance,
+      finance,
       {
         settlementId,
         expectedPaymentOn: '2026-09-05',
@@ -325,11 +328,12 @@ describe('Client Essential CORE-02/09/11 identifiers and planned-versus-actual d
   it('keeps worker reimbursement planning separate from Finance recovery planning and actual reimbursement', () => {
     const value = fixture();
     const expenseId = seedExpense(value);
+    const finance = stepUpB5Principal(value.sqlite, value.finance, 'expense-planning');
 
     const result = command<Record<string, unknown>>(
       value.repository,
       'setExpensePlanningDates',
-      value.finance,
+      finance,
       {
         expenseId,
         expectedReimbursementOn: '2026-09-05',

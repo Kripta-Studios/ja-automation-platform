@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { workerStatementCsv, type WorkerStatementSnapshot } from '@ja/reporting';
+import {
+  runWorkerStatementArtifactJob,
+  workerStatementCsv,
+  type WorkerStatementJobArtifact,
+  type WorkerStatementSnapshot,
+} from '@ja/reporting';
 
 const snapshot: WorkerStatementSnapshot = {
   worker: { id: 'worker-own', name: 'Own Worker' },
@@ -98,5 +103,48 @@ describe('Client Essential Worker statement allowlist', () => {
     expect(csv).not.toMatch(
       /clientRate|internalCost|contribution|margin|taxBps|expectedRecovery|billingTreatment|workerId.*other/iu,
     );
+  });
+
+  it('records renderer diagnostics without allowing unsafe failure text into durable state', () => {
+    const artifact: WorkerStatementJobArtifact = {
+      artifactId: 'worker-statement-artifact',
+      workerId: snapshot.worker.id,
+      periodStart: snapshot.periodStart,
+      periodEnd: snapshot.periodEnd,
+      format: 'csv',
+      snapshotJson: JSON.stringify(snapshot),
+      storageKey: 'worker-statements/worker/statement.csv',
+      semanticFilename: 'ja-worker-statement-own-worker-2026-08-01-2026-08-31.csv',
+      templateVersion: 'client-essential-v1',
+      generationVersion: 'worker-statement-client-essential-v1',
+      currentAttemptNumber: 1,
+      status: 'queued',
+    };
+    let failure: Readonly<Record<string, unknown>> | undefined;
+    const repository = {
+      claimWorkerStatementArtifact: () => ({ artifact, attemptNumber: 1 }),
+      completeWorkerStatementArtifact: () => artifact,
+      failWorkerStatementArtifact: (
+        _artifactId: string,
+        input: Readonly<Record<string, unknown>>,
+      ) => {
+        failure = input;
+        return artifact;
+      },
+    };
+
+    expect(() =>
+      runWorkerStatementArtifactJob({
+        repository,
+        payload: { artifactId: artifact.artifactId, requestedAttempt: 1 },
+        execution: { jobId: 'job-1', jobRunId: 'run-1', leaseFence: 1 },
+        documentRoot: 'unused',
+        publish: () => {
+          throw new Error('renderer / path\nwith .. unsafe text');
+        },
+      }),
+    ).toThrow('HANDLER_FAILED');
+    expect(failure?.errorCode).toBe('WORKER_STATEMENT_RENDER_FAILED');
+    expect(failure?.failureClass).toBe('renderer   path with . unsafe text');
   });
 });

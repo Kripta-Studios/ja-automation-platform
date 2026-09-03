@@ -4,7 +4,8 @@ export type Industry =
   | 'food-beverage'
   | 'energy-process'
   | 'cosmetics-packaging'
-  | 'general-industry';
+  | 'general-industry'
+  | 'warehouse-logistics';
 
 // ─── Capability ────────────────────────────────────────────────────────────
 export type Capability =
@@ -14,6 +15,7 @@ export type Capability =
   | 'simulation'
   | 'motion-process'
   | 'commissioning'
+  | 'installation'
   | 'support'
   | 'training-consulting';
 

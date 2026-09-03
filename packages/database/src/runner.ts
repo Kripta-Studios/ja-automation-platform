@@ -1,5 +1,11 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
+import {
+  capabilityForJobKind,
+  jobPayloadHash,
+  parseJobPayload,
+} from './domains/jobs/job-contract.ts';
+import type { FencedJobExecution } from './domains/jobs/execution-authorization.ts';
 
 /**
  * A handler receives an execution envelope derived from the claimed database
@@ -7,17 +13,34 @@ import type { DatabaseSync } from 'node:sqlite';
  * by a caller to obtain authority; the runner derives every field from the
  * deployment binding and fenced job/run pair.
  */
-export type DurableJobExecutionContext = Readonly<{
-  sqlite: DatabaseSync;
-  jobId: string;
-  runId: string;
-  tenantId: string;
-  deploymentId: string;
-  requiredCapability: string;
-  fenceVersion: number;
+export type DurableJobExecutionContext = FencedJobExecution &
+  Readonly<{
+    sqlite: DatabaseSync;
+  }>;
+
+/**
+ * A finalizer normally returns nothing and is committed atomically with durable job success.
+ * A domain finalizer may instead report that it committed a truthful terminal failure (for
+ * example, an integrity quarantine). The runner then preserves those domain writes and marks the
+ * durable run failed/retryable in a second transaction.
+ */
+export type DurableCommittedFinalizerFailure = Readonly<{
+  durableFinalizer: 'commit_failure_v1';
+  errorCode: DurableJobErrorCode;
+  errorDetail?: string;
 }>;
 
-export type DurableJobCompletion = () => void | Promise<void>;
+export type DurableJobCompletion = (() =>
+  | void
+  | DurableCommittedFinalizerFailure
+  | Promise<void | DurableCommittedFinalizerFailure>) &
+  Readonly<{
+    afterDurableSuccess?: true;
+    beforeDurableFinish?: () =>
+      | void
+      | DurableCommittedFinalizerFailure
+      | Promise<void | DurableCommittedFinalizerFailure>;
+  }>;
 
 type DurableJobHandler = (
   payload: unknown,
@@ -46,19 +69,24 @@ type HandlerRegistry = Readonly<Record<string, DurableJobHandler>>;
 type SyncHandlerRegistry = Readonly<Record<string, DurableSyncJobHandler>>;
 type DurableJobErrorCode = NonNullable<DurableJobOutcome['errorCode']>;
 
-const DURABLE_JOB_CAPABILITY_BY_KIND: Readonly<Record<string, string>> = Object.freeze({
-  invoice_pdf: 'artifact.invoice.render',
-  period_close_report: 'artifact.report.render',
-  auto_draft: 'billing.draft.generate',
-  accounting_pack_artifact_render: 'artifact.accounting_pack.render',
-  temporary_upload_cleanup: 'storage.temporary.cleanup',
-  localized_pdf_variant_render: 'artifact.localized_pdf.render',
-  document_scan: 'document.scan',
-  outbox_deliver: 'outbox.deliver',
-  alert_dispatch: 'alert.dispatch',
-  email_send: 'email.send',
-  backup_verify: 'backup.verify',
-});
+function committedFinalizerFailure(value: unknown): DurableCommittedFinalizerFailure | null {
+  if (!value || typeof value !== 'object') return null;
+  const candidate = value as Partial<DurableCommittedFinalizerFailure>;
+  if (candidate.durableFinalizer !== 'commit_failure_v1') return null;
+  if (
+    candidate.errorCode !== 'HANDLER_UNAVAILABLE' &&
+    candidate.errorCode !== 'DEPENDENCY_UNAVAILABLE' &&
+    candidate.errorCode !== 'LEASE_LOST' &&
+    candidate.errorCode !== 'PAYLOAD_INVALID' &&
+    candidate.errorCode !== 'HANDLER_FAILED'
+  )
+    return null;
+  return {
+    durableFinalizer: 'commit_failure_v1',
+    errorCode: candidate.errorCode,
+    ...(typeof candidate.errorDetail === 'string' ? { errorDetail: candidate.errorDetail } : {}),
+  };
+}
 
 type ClaimedJob = Readonly<{
   id: string;
@@ -139,33 +167,6 @@ function recordServiceAudit(
     );
 }
 
-function canonicalJson(value: unknown): string {
-  if (value === null || typeof value === 'boolean' || typeof value === 'string')
-    return JSON.stringify(value);
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value)) throw new Error('PAYLOAD_INVALID');
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
-  if (typeof value === 'object') {
-    return `{${Object.entries(value as Record<string, unknown>)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`)
-      .join(',')}}`;
-  }
-  throw new Error('PAYLOAD_INVALID');
-}
-
-function payloadHash(payloadJson: string): string {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(payloadJson);
-  } catch {
-    throw new Error('PAYLOAD_INVALID');
-  }
-  return createHash('sha256').update(canonicalJson(parsed)).digest('hex');
-}
-
 function now(): string {
   return new Date().toISOString();
 }
@@ -181,6 +182,23 @@ function normalizeErrorCode(error: unknown): DurableJobErrorCode {
   )
     return message;
   return 'HANDLER_FAILED';
+}
+
+function sanitizedErrorDetail(errorCode: DurableJobErrorCode, error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error);
+  const sanitized = raw
+    .replace(/[A-Z]:\\(?:[^\s\\]+\\)*[^\s]+/giu, '[PATH]')
+    .replace(/\/(?:[^\s/]+\/)+[^\s]+/gu, '[PATH]')
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/giu, '[EMAIL]')
+    .replace(
+      /\b(?:token|secret|password|authorization|api[_-]?key)\s*[=:]\s*[^\s,;]+/giu,
+      '$1=[REDACTED]',
+    )
+    .replace(/\p{Cc}+/gu, ' ')
+    .replace(/\s+/gu, ' ')
+    .trim();
+  const detail = `${errorCode}:${sanitized || 'unspecified failure'}`;
+  return detail.slice(0, 300);
 }
 
 function activeBinding(
@@ -320,7 +338,7 @@ function claimDueJob(sqlite: DatabaseSync): ClaimedJob | null {
       !job.required_capability
     )
       throw new Error('DEPENDENCY_UNAVAILABLE');
-    const expectedCapability = DURABLE_JOB_CAPABILITY_BY_KIND[job.kind];
+    const expectedCapability = capabilityForJobKind(job.kind);
     if (!expectedCapability || expectedCapability !== job.required_capability)
       throw new Error('DEPENDENCY_UNAVAILABLE');
     if (job.tenant_id !== identity.tenantId || job.deployment_id !== identity.deploymentId)
@@ -457,8 +475,10 @@ function finishJob(
   sqlite: DatabaseSync,
   claimed: ClaimedJob,
   errorCode?: string,
+  errorDetail?: string,
+  transactionAlreadyOpen = false,
 ): 'succeeded' | 'retry_scheduled' | 'failed_terminal' {
-  sqlite.exec('BEGIN IMMEDIATE');
+  if (!transactionAlreadyOpen) sqlite.exec('BEGIN IMMEDIATE');
   let committed = false;
   try {
     const current = sqlite
@@ -488,6 +508,7 @@ function finishJob(
         kind: claimed.kind,
         outcome,
         ...(errorCode ? { errorCode } : {}),
+        ...(errorDetail ? { errorDetail } : {}),
         fenceVersion: claimed.fence_version,
       },
     );
@@ -509,11 +530,11 @@ function finishJob(
         claimed.fence_version,
       );
     if (changed.changes !== 1) throw new Error('LEASE_LOST');
-    sqlite.exec('COMMIT');
+    if (!transactionAlreadyOpen) sqlite.exec('COMMIT');
     committed = true;
     return outcome;
   } finally {
-    if (!committed) {
+    if (!committed && !transactionAlreadyOpen) {
       try {
         sqlite.exec('ROLLBACK');
       } catch {
@@ -538,13 +559,14 @@ export async function runDueConfiguredDurableJobs(
     let failure: DurableJobErrorCode | undefined;
     let outcome: DurableJobOutcome['outcome'] = 'failed_terminal';
     let completion: DurableJobCompletion | undefined;
+    let failureDetail: string | undefined;
     try {
       startJob(sqlite, claimed);
-      if (payloadHash(claimed.payload_json) !== claimed.payload_sha256)
+      if (jobPayloadHash(claimed.payload_json) !== claimed.payload_sha256)
         throw new Error('PAYLOAD_INVALID');
       const handler = handlers[claimed.kind];
       if (!handler) throw new Error('HANDLER_UNAVAILABLE');
-      const payload = JSON.parse(claimed.payload_json) as unknown;
+      const payload = parseJobPayload(claimed.payload_json);
       const result = await handler(payload, {
         sqlite,
         jobId: claimed.id,
@@ -557,22 +579,76 @@ export async function runDueConfiguredDurableJobs(
       if (typeof result === 'function') completion = result;
     } catch (error) {
       failure = normalizeErrorCode(error);
+      failureDetail = sanitizedErrorDetail(failure, error);
     }
-    try {
-      outcome = finishJob(sqlite, claimed, failure);
-    } catch (error) {
-      failure = normalizeErrorCode(error);
-      outcome = 'failed_terminal';
-    }
-    if (!failure && outcome === 'succeeded' && completion) {
-      // The job/run success transition is deliberately committed before an artifact
-      // finalizer can mark its manifest ready.  This prevents a ready artifact from
-      // preceding durable job success.  A finalizer failure is surfaced to the caller;
-      // the variant remains recoverable through its fenced lifecycle.
+    if (!failure && completion?.afterDurableSuccess && completion.beforeDurableFinish) {
       try {
-        await completion();
-      } catch {
-        failure = 'HANDLER_FAILED';
+        const preflightResult = await completion.beforeDurableFinish();
+        const committedFailure = committedFinalizerFailure(preflightResult);
+        if (committedFailure) {
+          failure = committedFailure.errorCode;
+          failureDetail = sanitizedErrorDetail(
+            failure,
+            committedFailure.errorDetail ?? 'domain finalizer committed a terminal failure',
+          );
+        }
+      } catch (error) {
+        failure = normalizeErrorCode(error);
+        failureDetail = sanitizedErrorDetail(failure, error);
+      }
+    }
+    if (!failure && completion && !completion.afterDurableSuccess) {
+      sqlite.exec('BEGIN IMMEDIATE');
+      let committed = false;
+      try {
+        const completionResult = await completion();
+        const committedFailure = committedFinalizerFailure(completionResult);
+        if (committedFailure) {
+          sqlite.exec('COMMIT');
+          committed = true;
+          failure = committedFailure.errorCode;
+          failureDetail = sanitizedErrorDetail(
+            failure,
+            committedFailure.errorDetail ?? 'domain finalizer committed a terminal failure',
+          );
+        } else {
+          outcome = finishJob(sqlite, claimed, undefined, undefined, true);
+          sqlite.exec('COMMIT');
+          committed = true;
+        }
+      } catch (error) {
+        try {
+          sqlite.exec('ROLLBACK');
+        } catch {
+          // Preserve the finalizer failure.
+        }
+        failure = normalizeErrorCode(error);
+        failureDetail = sanitizedErrorDetail(failure, error);
+      } finally {
+        if (!committed && !failure) {
+          try {
+            sqlite.exec('ROLLBACK');
+          } catch {
+            // Preserve the transaction failure.
+          }
+        }
+      }
+    }
+    if (failure || !completion || completion.afterDurableSuccess) {
+      try {
+        outcome = finishJob(sqlite, claimed, failure, failureDetail);
+      } catch (error) {
+        failure = normalizeErrorCode(error);
+        outcome = 'failed_terminal';
+      }
+    }
+    if (!failure && outcome === 'succeeded' && completion?.afterDurableSuccess) {
+      try {
+        const completionResult = await completion();
+        const committedFailure = committedFinalizerFailure(completionResult);
+        if (committedFailure) failure = committedFailure.errorCode;
+      } catch (error) {
+        failure = normalizeErrorCode(error);
       }
     }
     outcomes.push({
@@ -605,14 +681,15 @@ export function runDueConfiguredDurableJobsSync(
     if (!claimed) break;
     let failure: DurableJobErrorCode | undefined;
     let outcome: DurableJobOutcome['outcome'] = 'failed_terminal';
-    let completion: (() => void) | undefined;
+    let completion: DurableJobCompletion | undefined;
+    let failureDetail: string | undefined;
     try {
       startJob(sqlite, claimed);
-      if (payloadHash(claimed.payload_json) !== claimed.payload_sha256)
+      if (jobPayloadHash(claimed.payload_json) !== claimed.payload_sha256)
         throw new Error('PAYLOAD_INVALID');
       const handler = handlers[claimed.kind];
       if (!handler) throw new Error('HANDLER_UNAVAILABLE');
-      const payload = JSON.parse(claimed.payload_json) as unknown;
+      const payload = parseJobPayload(claimed.payload_json);
       const result = handler(payload, {
         sqlite,
         jobId: claimed.id,
@@ -625,18 +702,79 @@ export function runDueConfiguredDurableJobsSync(
       if (typeof result === 'function') completion = result;
     } catch (error) {
       failure = normalizeErrorCode(error);
+      failureDetail = sanitizedErrorDetail(failure, error);
     }
-    try {
-      outcome = finishJob(sqlite, claimed, failure);
-    } catch (error) {
-      failure = normalizeErrorCode(error);
-      outcome = 'failed_terminal';
-    }
-    if (!failure && outcome === 'succeeded' && completion) {
+    if (!failure && completion?.afterDurableSuccess && completion.beforeDurableFinish) {
       try {
-        completion();
-      } catch {
-        failure = 'HANDLER_FAILED';
+        const preflightResult = completion.beforeDurableFinish();
+        if (preflightResult instanceof Promise) throw new Error('HANDLER_FAILED');
+        const committedFailure = committedFinalizerFailure(preflightResult);
+        if (committedFailure) {
+          failure = committedFailure.errorCode;
+          failureDetail = sanitizedErrorDetail(
+            failure,
+            committedFailure.errorDetail ?? 'domain finalizer committed a terminal failure',
+          );
+        }
+      } catch (error) {
+        failure = normalizeErrorCode(error);
+        failureDetail = sanitizedErrorDetail(failure, error);
+      }
+    }
+    if (!failure && completion && !completion.afterDurableSuccess) {
+      sqlite.exec('BEGIN IMMEDIATE');
+      let committed = false;
+      try {
+        const completionResult = completion();
+        if (completionResult instanceof Promise) throw new Error('HANDLER_FAILED');
+        const committedFailure = committedFinalizerFailure(completionResult);
+        if (committedFailure) {
+          sqlite.exec('COMMIT');
+          committed = true;
+          failure = committedFailure.errorCode;
+          failureDetail = sanitizedErrorDetail(
+            failure,
+            committedFailure.errorDetail ?? 'domain finalizer committed a terminal failure',
+          );
+        } else {
+          outcome = finishJob(sqlite, claimed, undefined, undefined, true);
+          sqlite.exec('COMMIT');
+          committed = true;
+        }
+      } catch (error) {
+        try {
+          sqlite.exec('ROLLBACK');
+        } catch {
+          // Preserve the finalizer failure.
+        }
+        failure = normalizeErrorCode(error);
+        failureDetail = sanitizedErrorDetail(failure, error);
+      } finally {
+        if (!committed && !failure) {
+          try {
+            sqlite.exec('ROLLBACK');
+          } catch {
+            // Preserve the transaction failure.
+          }
+        }
+      }
+    }
+    if (failure || !completion || completion.afterDurableSuccess) {
+      try {
+        outcome = finishJob(sqlite, claimed, failure, failureDetail);
+      } catch (error) {
+        failure = normalizeErrorCode(error);
+        outcome = 'failed_terminal';
+      }
+    }
+    if (!failure && outcome === 'succeeded' && completion?.afterDurableSuccess) {
+      try {
+        const completionResult = completion();
+        if (completionResult instanceof Promise) throw new Error('HANDLER_FAILED');
+        const committedFailure = committedFinalizerFailure(completionResult);
+        if (committedFailure) failure = committedFailure.errorCode;
+      } catch (error) {
+        failure = normalizeErrorCode(error);
       }
     }
     outcomes.push({

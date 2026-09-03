@@ -138,7 +138,7 @@ describe('CE-CORE16-M1 temporary upload cleanup migration', () => {
   it('registers migration 27 and accepts only the exact new actor/job pair', () => {
     const sqlite = fresh();
     expect(sqlite.prepare('SELECT max(version) version FROM schema_migration').get()).toEqual({
-      version: 30,
+      version: 35,
     });
     expect(
       sqlite

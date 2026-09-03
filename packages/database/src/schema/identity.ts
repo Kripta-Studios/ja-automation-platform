@@ -69,6 +69,23 @@ export const accounts = sqliteTable('account', {
   updatedAt: text('updated_at').notNull(),
 });
 
+export const mailIdentities = sqliteTable(
+  'mail_identity',
+  {
+    userId: text('user_id').primaryKey(),
+    stalwartAccountId: text('stalwart_account_id').notNull().unique(),
+    email: text('email').notNull().unique(),
+    authMode: text('auth_mode').notNull(),
+    status: text('status').notNull().default('active'),
+    linkedBy: text('linked_by'),
+    linkedAt: text('linked_at').notNull(),
+    archivedAt: text('archived_at'),
+    updatedAt: text('updated_at').notNull(),
+    version: integer('version').notNull().default(1),
+  },
+  (table) => [index('mail_identity_status_idx').on(table.status, table.email)],
+);
+
 export const verifications = sqliteTable('verification', {
   id: text('id').primaryKey(),
   identifier: text('identifier').notNull(),

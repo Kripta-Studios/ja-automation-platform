@@ -18,9 +18,9 @@ if (( AVAILABLE_KB < 10485760 )); then
 fi
 command -v docker >/dev/null
 command -v caddy >/dev/null
-command -v node >/dev/null
-if [[ "$(node --version)" != "v24.19.0" ]]; then
-  echo "Node.js v24.19.0 is required for the host backup service." >&2
+NODE_RUNTIME=/opt/jaautomation/runtime/node/bin/node
+if [[ ! -x "$NODE_RUNTIME" || "$("$NODE_RUNTIME" --version)" != "v24.19.0" ]]; then
+  echo "Node.js v24.19.0 is required at $NODE_RUNTIME for the host backup service." >&2
   exit 1
 fi
 docker compose version >/dev/null

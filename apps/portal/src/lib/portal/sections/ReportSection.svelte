@@ -1,5 +1,6 @@
 <script lang="ts">
   import { base } from '$app/paths';
+  import { page } from '$app/stores';
   import { ResponsiveSheet, StatusBadge } from '../ui';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
@@ -33,7 +34,21 @@
   type Surface = 'daily' | 'technical' | 'generate' | null;
   type SignoffState = 'needs_report' | 'ready_for_signature' | 'signed' | 'invalid';
 
-  let activeTab = $state<ReportTab>('daily');
+  function resolveReportTab(value: string | null): ReportTab {
+    const candidate = value?.trim() ?? '';
+    return tabs.some((tab) => tab.id === candidate) ? (candidate as ReportTab) : 'daily';
+  }
+
+  // Keep direct links such as /app/reports?view=signoff useful on first paint
+  // (including SSR), while retaining an in-page tab selection after a button
+  // click.  The URL key is part of the override so a subsequent navigation to
+  // another allowlisted/invalid view cannot leave the old panel selected.
+  let tabOverride = $state<{ url: string; tab: ReportTab } | null>(null);
+  let activeTab = $derived(
+    tabOverride?.url === $page.url.href
+      ? tabOverride.tab
+      : resolveReportTab($page.url.searchParams.get('view')),
+  );
   let surface = $state<Surface>(null);
 
   const records = $derived(data.records ?? []);
@@ -128,8 +143,35 @@
     }
   }
 
+  // A period row can exist before the renderer has produced a canonical,
+  // immutable snapshot (for example, a freshly closed draft).  The detail
+  // route intentionally rejects those rows instead of rendering unverified
+  // data, so never expose a navigable link until the same binding required by
+  // the detail/approval contract is present.
+  function hasPeriodSnapshot(report: Row): boolean {
+    const version = Number(report.snapshot_version);
+    const hash = String(report.snapshot_sha256 ?? '').trim();
+    return Number.isSafeInteger(version) && version > 0 && /^[a-f0-9]{64}$/u.test(hash);
+  }
+
+  function hasReadyPeriodPdf(report: Row): boolean {
+    const state = String(report.state ?? '')
+      .trim()
+      .toLowerCase();
+    const storageKey = String(report.pdf_storage_key ?? '').trim();
+    const sha256 = String(report.pdf_sha256 ?? '').trim();
+    const byteLength = Number(report.pdf_byte_length);
+    return (
+      ['review', 'approved', 'final'].includes(state) &&
+      storageKey.length > 0 &&
+      /^[a-f0-9]{64}$/u.test(sha256) &&
+      Number.isSafeInteger(byteLength) &&
+      byteLength > 0
+    );
+  }
+
   function setTab(tab: ReportTab): void {
-    activeTab = tab;
+    tabOverride = { url: $page.url.href, tab };
     surface = null;
   }
 
@@ -376,19 +418,41 @@
         {#each customerPeriodReports as report}
           {@const state = signoffState(report)}
           <article class="report-signoff-card" data-conformity-state={state}>
-            <a
-              class="report-register-link"
-              href={`${base}/app/reports/period/${String(report.id)}`}
-            >
-              <span class="report-register-type">{translate('Client sign-off')}</span>
-              <strong>{rowText(report, 'project_number') || translate('Project')}</strong>
-              <small>{rowText(report, 'period_start')} → {rowText(report, 'period_end')}</small>
-              <span class="report-signoff-status">
-                <span class="report-signoff-symbol" aria-hidden="true">{signoffSymbol(state)}</span>
-                <StatusBadge variant={signoffVariant(state)} text={signoffLabel(state)} />
-              </span>
-              <span class="report-register-open">{translate('Open sign-off record →')}</span>
-            </a>
+            {#if hasPeriodSnapshot(report)}
+              <a
+                class="report-register-link"
+                data-period-report-id={String(report.id)}
+                href={`${base}/app/reports/period/${String(report.id)}`}
+              >
+                <span class="report-register-type">{translate('Client sign-off')}</span>
+                <strong>{rowText(report, 'project_number') || translate('Project')}</strong>
+                <small>{rowText(report, 'period_start')} → {rowText(report, 'period_end')}</small>
+                <span class="report-signoff-status">
+                  <span class="report-signoff-symbol" aria-hidden="true"
+                    >{signoffSymbol(state)}</span
+                  >
+                  <StatusBadge variant={signoffVariant(state)} text={signoffLabel(state)} />
+                </span>
+                <span class="report-register-open">{translate('Open sign-off record →')}</span>
+              </a>
+            {:else}
+              <div
+                class="report-register-link report-register-link-disabled"
+                data-period-report-id={String(report.id)}
+                aria-disabled="true"
+              >
+                <span class="report-register-type">{translate('Client sign-off')}</span>
+                <strong>{rowText(report, 'project_number') || translate('Project')}</strong>
+                <small>{rowText(report, 'period_start')} → {rowText(report, 'period_end')}</small>
+                <span class="report-signoff-status">
+                  <span class="report-signoff-symbol" aria-hidden="true"
+                    >{signoffSymbol(state)}</span
+                  >
+                  <StatusBadge variant={signoffVariant(state)} text={signoffLabel(state)} />
+                </span>
+                <span class="report-register-open">{translate('Report queued')}</span>
+              </div>
+            {/if}
           </article>
         {:else}
           <div class="report-empty" role="status">
@@ -446,21 +510,46 @@
       </header>
       {#each periodReports as report}
         <article class="report-period-card">
-          <a class="report-register-link" href={`${base}/app/reports/period/${String(report.id)}`}>
-            <strong
-              >{rowText(report, 'project_number')} · {translate(
-                String(report.report_type ?? 'Period summary'),
-              )}</strong
+          {#if hasPeriodSnapshot(report)}
+            <a
+              class="report-register-link"
+              data-period-report-id={String(report.id)}
+              href={`${base}/app/reports/period/${String(report.id)}`}
             >
-            <small
-              >{rowText(report, 'period_start')} → {rowText(report, 'period_end')} · {controlledValue(
-                'artifactState',
-                report.state,
-              ) || translate(String(report.state ?? 'Unknown'))}</small
+              <strong
+                >{rowText(report, 'project_number')} · {translate(
+                  String(report.report_type ?? 'Period summary'),
+                )}</strong
+              >
+              <small
+                >{rowText(report, 'period_start')} → {rowText(report, 'period_end')} · {controlledValue(
+                  'artifactState',
+                  report.state,
+                ) || translate(String(report.state ?? 'Unknown'))}</small
+              >
+              <span class="report-register-open">{translate('Open period record →')}</span>
+            </a>
+          {:else}
+            <div
+              class="report-register-link report-register-link-disabled"
+              data-period-report-id={String(report.id)}
+              aria-disabled="true"
             >
-            <span class="report-register-open">{translate('Open period record →')}</span>
-          </a>
-          {#if report.pdf_storage_key}
+              <strong
+                >{rowText(report, 'project_number')} · {translate(
+                  String(report.report_type ?? 'Period summary'),
+                )}</strong
+              >
+              <small
+                >{rowText(report, 'period_start')} → {rowText(report, 'period_end')} · {controlledValue(
+                  'artifactState',
+                  report.state,
+                ) || translate(String(report.state ?? 'Unknown'))}</small
+              >
+              <span class="report-register-open">{translate('Report queued')}</span>
+            </div>
+          {/if}
+          {#if hasReadyPeriodPdf(report)}
             <a
               class="report-period-pdf"
               href={`${base}/app/api/reports/${String(report.id)}/pdf`}
@@ -602,6 +691,13 @@
       </label>
       <div class="report-entry-grid">
         <label
+          ><span>{translate('Work date')}</span><input
+            name="reportDate"
+            type="date"
+            required
+          /></label
+        >
+        <label
           ><span>{translate('System / machine')}</span><input
             name="systemName"
             placeholder={translate('Line 4 main conveyor')}
@@ -641,9 +737,17 @@
         /></label
       >
       <label
-        ><span>{translate('Problem and change performed')}</span><textarea
-          name="changeSummary"
+        ><span>{translate('Problem / symptom')}</span><textarea name="problemSymptom" required
+        ></textarea></label
+      >
+      <label
+        ><span>{translate('Diagnosis / root cause')}</span><textarea
+          name="diagnosisRootCause"
           required
+        ></textarea></label
+      >
+      <label
+        ><span>{translate('Change performed')}</span><textarea name="changePerformed" required
         ></textarea></label
       >
       <label

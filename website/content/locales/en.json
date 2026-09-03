@@ -87,12 +87,16 @@
     "simulationDesc": "Validate layouts, process behavior, robot paths and control interfaces before or alongside field deployment.",
     "electricalControls": "Electrical & Controls Engineering",
     "electricalControlsDesc": "Electrical design, controls architecture, panel engineering, machine interfaces and multidisciplinary coordination from concept through handover.",
+    "installation": "Electromechanical Installation & Assembly",
+    "installationDesc": "Turnkey mechanical and electrical field installation: power and control cabling, cable tray infrastructure, panel terminations, and equipment assembly with certified multi-trade crews.",
     "motionProcess": "Motion & Process Control",
     "motionProcessDesc": "VFD, servo, motion and closed-loop control for conveyors, filling systems, machines and industrial process equipment.",
     "commissioning": "Commissioning & Startup",
     "commissioningDesc": "FAT/SAT support, on-site integration, startup, ramp-up, troubleshooting and production stabilization.",
     "supportTraining": "Support, Training & Consulting",
     "supportTrainingDesc": "On-demand or contract technical support, remote diagnostics, modernization planning, equipment specification and PLC/HMI training.",
+    "technicalSupport": "Technical Support",
+    "technicalSupportDesc": "On-demand or contract field and remote support for PLC, HMI, robot, drive and industrial-control issues—from diagnosis through production stabilization.",
     "explore": "Explore capability"
   },
   "industries": {
@@ -109,6 +113,8 @@
     "cosmeticsPackagingDesc": "Filling, capping, indexing, motion, pick-and-place, conveying, cartoning and machine integration.",
     "oemGeneral": "OEM & General Industry",
     "oemGeneralDesc": "Controls engineering, machine integration, retrofits, panel work and commissioning for OEMs and industrial manufacturers.",
+    "warehouseLogistics": "Warehouse & Logistics",
+    "warehouseLogisticsDesc": "Mechanical and electrical assembly, field wiring, PLC programming, and commissioning for intralogistics machinery, automated conveyor systems, and industrial sorters.",
     "lead": "J&A Automation builds, integrates, and supports industrial control systems across multiple sectors.",
     "viewProjects": "View projects in this industry"
   },
@@ -307,6 +313,7 @@
     "industryFoodBeverage": "Food and beverage",
     "industryEnergyProcess": "Energy and process",
     "industryGeneralManufacturing": "General manufacturing",
+    "industryWarehouseLogistics": "Warehouse and logistics",
     "industryOther": "Other / not sure",
     "aquarexWaterTreatment": "Aquarex Water Treatment",
     "otherNotSure": "Other / Not Sure"
@@ -408,12 +415,14 @@
     "energyProcess": "Energy & Process",
     "cosmeticsPackaging": "Cosmetics & Packaging",
     "generalIndustry": "General Industry",
+    "warehouseLogistics": "Warehouse & Logistics",
     "plcHmi": "PLC / HMI",
     "robotics": "Robotics",
     "electrical": "Electrical",
     "simulation": "Simulation",
     "motion": "Motion",
     "commissioning": "Commissioning",
+    "installation": "Electromechanical Installation",
     "troubleshooting": "Troubleshooting",
     "support": "Support",
     "siemens": "Siemens",
@@ -432,6 +441,7 @@
     "plcHmiScada": "PLC / HMI / SCADA",
     "robotics": "Robotics & line integration",
     "electrical": "Electrical & controls engineering",
+    "installation": "Electromechanical installation & assembly",
     "simulation": "Simulation / offline engineering",
     "motion": "Motion / process control",
     "commissioning": "Commissioning / startup",
@@ -440,7 +450,8 @@
     "training": "Training",
     "aquarex": "Aquarex",
     "other": "Other",
-    "trainingConsulting": "Training / consulting"
+    "trainingConsulting": "Training / consulting",
+    "support": "Technical support"
   },
   "projectStageOptions": {
     "earlyConcept": "Early concept",
@@ -485,6 +496,7 @@
     "energyProcess": "Energy and process industrial plant",
     "cosmeticsPackaging": "Cosmetics filling production line",
     "oemGeneral": "Industrial robotic cell",
+    "warehouseLogistics": "Installation, programming, and commissioning of intralogistics machinery",
     "assembly": "State of the art automated assembly line"
   },
   "serviceTags": {
@@ -554,6 +566,24 @@
     "privacyNote": "By requesting this datasheet, you agree to our privacy policy. We will never share your information."
   },
   "projectCatalog": {
+    "amazon-sortation-line-2025": {
+      "title": "Sortation Machinery & Automated Conveyor Installation and Programming",
+      "scope": "Electromechanical installation, field cabling, PLC programming, and commissioning for automated material handling loops and sorting machinery in commercial distribution centers.",
+      "outcome": "Rapid mechanical and electrical assembly handover with optimized controls calibration and zero startup delays.",
+      "displayDate": "2025–2026"
+    },
+    "mercadolibre-fulfillment-conveyor-2025": {
+      "title": "Intralogistics Conveyor & Automated Sorter Machinery Integration",
+      "scope": "Turnkey mechanical assembly, wiring, and controls programming for motorized roller conveyor (MDR) equipment, optical triggers, and automated sorting machinery in regional distribution center.",
+      "outcome": "Seamless equipment synchronization and reliable 24/7 automated machinery operation.",
+      "displayDate": "2025–2026"
+    },
+    "shopee-hub-sorting-2025": {
+      "title": "Automated Logistics Hub Machinery Assembly & Electrical Commissioning",
+      "scope": "Control panel terminations, machine safety interlock wiring, sensor integration, and PLC startup for automated cross-docking sorting machinery.",
+      "outcome": "Fully compliant electrical safety certification and stable machinery ramp-up ready for peak operational demand.",
+      "displayDate": "2025–2026"
+    },
     "fruki-bottling-expansion-2026": {
       "title": "High-Speed Bottling Line Installation & Format Expansion",
       "scope": "Turnkey installation of high-speed beverage production line and multi-format capacity expansion, synchronizing filling, packaging, and robotic palletizing.",

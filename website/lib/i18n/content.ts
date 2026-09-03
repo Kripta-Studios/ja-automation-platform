@@ -8,6 +8,7 @@ export const projectIndustryKeys: Record<Industry, string> = {
   'energy-process': 'energyProcess',
   'cosmetics-packaging': 'cosmeticsPackaging',
   'general-industry': 'generalIndustry',
+  'warehouse-logistics': 'warehouseLogistics',
 };
 
 export const projectCapabilityKeys: Record<Capability, string> = {
@@ -17,6 +18,7 @@ export const projectCapabilityKeys: Record<Capability, string> = {
   simulation: 'simulation',
   'motion-process': 'motion',
   commissioning: 'commissioning',
+  installation: 'installation',
   support: 'support',
   'training-consulting': 'trainingConsulting',
 };

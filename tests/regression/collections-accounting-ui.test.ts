@@ -43,6 +43,9 @@ describe('Collections / Ledger and Accounting sections', () => {
     expect(source).toContain("exportHref(format: 'csv' | 'xlsx')");
     expect(source).toContain('periodStart');
     expect(source).toContain('periodEnd');
+    expect(source).toContain("value(row, 'issueDate'");
+    expect(source).not.toContain('data.periodStart || value(rows[0]');
+    expect(source).not.toContain("'periodStart', 'period_start'");
     expect(source).toContain('Export CSV');
     expect(source).toContain('Export XLSX');
   });
@@ -78,5 +81,7 @@ describe('Collections / Ledger and Accounting sections', () => {
     expect(source).toContain(':focus-visible');
     expect(source).toContain('@media (prefers-reduced-motion: reduce)');
     expect(source).not.toContain('transition: all');
+    expect(source).toContain('function displayDate(');
+    expect(source).not.toContain('min-width: 70rem');
   });
 });

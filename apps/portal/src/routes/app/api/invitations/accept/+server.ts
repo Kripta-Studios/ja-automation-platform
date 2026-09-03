@@ -3,6 +3,7 @@ import { createDatabase, recordAuditEvent } from '@ja/database';
 import { invitationAcceptSchema } from '@ja/schemas';
 import { auth } from '$lib/server/auth';
 import { json, type RequestHandler } from '@sveltejs/kit';
+import { verifyPassword } from 'better-auth/crypto';
 
 const PENDING_CLAIM_STALE_MS = 15 * 60_000;
 const INVITATION_ROLES = new Set([
@@ -39,13 +40,41 @@ function pendingClaimStartedAt(value: string): number | null {
   return null;
 }
 
+function invitationJson(data: unknown, init?: ResponseInit): Response {
+  const response = json(data, init);
+  response.headers.set('referrer-policy', 'no-referrer');
+  return response;
+}
+
 function genericFailure(): Response {
-  return json({ error: 'Invitation could not be activated' }, { status: 400 });
+  return invitationJson({ error: 'Invitation could not be activated' }, { status: 400 });
+}
+
+async function verifyInvitedCredential(userId: string, password: string) {
+  const database = createDatabase();
+  try {
+    const identity = database.sqlite
+      .prepare(
+        `SELECT u.id,u.email,a.password
+         FROM user u
+         JOIN account a ON a.user_id=u.id AND a.provider_id='credential'
+         WHERE u.id=? AND u.status='invited' AND a.password IS NOT NULL`,
+      )
+      .get(userId) as { id: string; email: string; password: string } | undefined;
+    if (!identity || !(await verifyPassword({ hash: identity.password, password })))
+      throw new Error('INVITATION_CREDENTIAL_INVALID');
+    // Recovery proves possession of the credential but deliberately does not
+    // create a session while the canonical account remains non-active.
+    return { user: { id: identity.id, email: identity.email } };
+  } finally {
+    database.sqlite.close();
+  }
 }
 
 export const POST: RequestHandler = async ({ request }) => {
   const parsed = invitationAcceptSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return json({ error: 'Invitation details are invalid' }, { status: 400 });
+  if (!parsed.success)
+    return invitationJson({ error: 'Invitation details are invalid' }, { status: 400 });
 
   const tokenHash = createHash('sha256').update(parsed.data.token).digest('hex');
   const claimStartedAt = Date.now();
@@ -147,10 +176,7 @@ export const POST: RequestHandler = async ({ request }) => {
             },
             headers: request.headers,
           })
-        : await auth.api.signInEmail({
-            body: { email: invitation.email, password: parsed.data.password },
-            headers: request.headers,
-          });
+        : await verifyInvitedCredential(recoveryUserId ?? '', parsed.data.password);
     if (
       !result?.user?.id ||
       typeof result.user.email !== 'string' ||
@@ -212,7 +238,7 @@ export const POST: RequestHandler = async ({ request }) => {
     } finally {
       database.sqlite.close();
     }
-    return json({ accepted: true, email: invitation.email });
+    return invitationJson({ accepted: true, email: invitation.email });
   } catch {
     console.error(
       JSON.stringify({ event: 'invitation.accept.failed', invitationId: invitation.id }),

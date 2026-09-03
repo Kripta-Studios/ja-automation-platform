@@ -2,7 +2,10 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { paymentInputSchema, paymentReversalInputSchema } from '@ja/schemas';
-import { decimalToMinor } from '../../apps/portal/src/lib/server/action-utils.js';
+import {
+  dateOnlyToEffectiveInstant,
+  decimalToMinor,
+} from '../../apps/portal/src/lib/server/action-utils.js';
 import { paymentMoney } from '../../apps/portal/src/lib/portal/payment-money.js';
 
 const root = process.cwd();
@@ -52,6 +55,16 @@ describe('Client Essential payment billing action boundary', () => {
     expect(billingActions).toContain('context.v3.recordPayment(context.principal, parsed.data)');
   });
 
+  it('does not turn a date-only payment or reversal entered today into a future event', () => {
+    const beforeNoon = new Date('2026-08-30T08:15:30.125Z');
+    expect(dateOnlyToEffectiveInstant('2026-08-30', beforeNoon)).toBe('2026-08-30T08:15:30.125Z');
+    expect(dateOnlyToEffectiveInstant('2026-08-29', beforeNoon)).toBe('2026-08-29T23:59:59.999Z');
+    expect(dateOnlyToEffectiveInstant('invalid', beforeNoon)).toBe('invalid');
+    expect(billingActions).toContain(
+      'object.receivedAt = dateOnlyToEffectiveInstant(object.receivedOn)',
+    );
+  });
+
   it('constrains reversal inputs to controlled reasons, required data, and a calendar effective date', () => {
     const validReversal = {
       paymentId: validPayment.invoiceId,
@@ -72,7 +85,9 @@ describe('Client Essential payment billing action boundary', () => {
       paymentReversalInputSchema.safeParse({ ...validReversal, effectiveOn: undefined }).success,
     ).toBe(false);
     expect(billingActions).toContain('context.v3.reversePayment(context.principal, {');
-    expect(billingActions).toContain('effectiveAt: `${parsed.data.effectiveOn}T12:00:00.000Z`');
+    expect(billingActions).toContain(
+      'effectiveAt: String(dateOnlyToEffectiveInstant(parsed.data.effectiveOn))',
+    );
     // Finance role and step-up policy remain delegated to the authoritative v3 command.
     expect(billingActions).not.toContain('context.principal.role ===');
     expect(billingActions).not.toContain('context.principal.stepUp');

@@ -1,9 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
-  adminNavigation,
-  primaryNavigation,
-  securityNavigation,
-  secondaryNavigation,
+  portalNavigationForRole,
+  type PortalRole as NavigationRole,
 } from '../../apps/portal/src/lib/portal-navigation.ts';
 import { portal, signIn } from './auth.js';
 
@@ -21,6 +19,13 @@ const requiredProjects = [
 const allRoles = ['worker', 'manager', 'finance', 'owner'] as const;
 type PortalRole = (typeof allRoles)[number];
 
+const productionRoleByTestRole: Record<PortalRole, NavigationRole> = {
+  worker: 'worker',
+  manager: 'project_manager',
+  finance: 'finance_admin',
+  owner: 'owner_admin',
+};
+
 function expectRequiredProject(projectName: string): void {
   expect(requiredProjects, 'A5 evidence must execute in every named Playwright project').toContain(
     projectName as (typeof requiredProjects)[number],
@@ -33,17 +38,12 @@ function roleNavigationLabels(role: PortalRole): {
   admin: string[];
   security: string[];
 } {
-  const adminItems = adminNavigation('/j-aautomation');
+  const navigation = portalNavigationForRole('/j-aautomation', productionRoleByTestRole[role]);
   return {
-    primary: primaryNavigation.map((item) => item.label),
-    secondary: secondaryNavigation.map((item) => item.label),
-    admin:
-      role === 'worker'
-        ? []
-        : adminItems
-            .filter((item) => role === 'finance' || role === 'owner' || !item.financeOnly)
-            .map((item) => item.label),
-    security: role === 'owner' ? securityNavigation.map((item) => item.label) : [],
+    primary: navigation.primary.map((item) => item.label),
+    secondary: navigation.secondary.map((item) => item.label),
+    admin: navigation.admin.map((item) => item.label),
+    security: navigation.security.map((item) => item.label),
   };
 }
 
@@ -82,22 +82,31 @@ async function expectNoPageClipping(page: import('@playwright/test').Page): Prom
     documentWidth: document.documentElement.scrollWidth,
     bodyWidth: document.body.scrollWidth,
     viewportWidth: innerWidth,
+    offenders: [...document.querySelectorAll<HTMLElement>('body *')]
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          tag: element.tagName.toLowerCase(),
+          id: element.id,
+          className: element.className,
+          left: rect.left,
+          right: rect.right,
+          width: rect.width,
+          scrollWidth: element.scrollWidth,
+          clientWidth: element.clientWidth,
+        };
+      })
+      .filter((element) => element.right > innerWidth + 1 || element.left < -1)
+      .sort((left, right) => right.right - left.right)
+      .slice(0, 8),
   }));
-  expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewportWidth + 1);
-  expect(dimensions.bodyWidth).toBeLessThanOrEqual(dimensions.viewportWidth + 1);
+  expect(dimensions.documentWidth, JSON.stringify(dimensions.offenders)).toBeLessThanOrEqual(
+    dimensions.viewportWidth + 1,
+  );
+  expect(dimensions.bodyWidth, JSON.stringify(dimensions.offenders)).toBeLessThanOrEqual(
+    dimensions.viewportWidth + 1,
+  );
 }
-
-const sidebarLabels = [
-  'Today',
-  'Time',
-  'Reports',
-  'Expenses',
-  'Projects',
-  'My Pay',
-  'Documents',
-  'Notifications',
-  'Profile',
-] as const;
 
 function roleForViewport(width: number): 'owner' | 'finance' | 'worker' {
   if (width <= 430) return 'worker';
@@ -129,11 +138,13 @@ test('authenticated role navigation keeps every permitted label readable at the 
 
   const menuButton = page.getByRole('button', { name: 'Toggle navigation' });
   const drawer = page.locator('#portal-navigation');
-  if (width <= 760) {
+  const expected = roleNavigationLabels(role);
+  if (width < 1024) {
     await expect(menuButton).toBeVisible();
+    await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
     await menuButton.click();
     await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
-    await expect(drawer).toBeVisible();
+    await expect(drawer).toHaveClass(/(?:^|\s)open(?:\s|$)/);
   } else {
     await expect(drawer).toBeVisible();
   }
@@ -142,34 +153,32 @@ test('authenticated role navigation keeps every permitted label readable at the 
     page,
     '#portal-navigation nav[aria-label="Primary navigation"] a',
   );
-  expect(sidebar.map((item) => item.text)).toEqual(sidebarLabels);
+  expect(sidebar.map((item) => item.text)).toEqual([...expected.primary, ...expected.secondary]);
   expect(sidebar, 'sidebar text must have a rendered label, not an icon/first letter only').toEqual(
     expect.arrayContaining(
-      sidebarLabels.map((text) =>
+      [...expected.primary, ...expected.secondary].map((text) =>
         expect.objectContaining({ text, fontSize: expect.not.stringMatching(/^0px$/) }),
       ),
     ),
   );
   expect(sidebar.filter((item) => item.width < 16)).toEqual([]);
 
-  if (role !== 'worker') {
+  if (expected.admin.length > 0 || expected.security.length > 0) {
     await expect(page.locator('.admin-nav')).toBeVisible();
     const admin = await textMetrics(page, '#portal-navigation .admin-nav a');
-    const expected = roleNavigationLabels(role);
     expect(admin.map((item) => item.text)).toEqual([...expected.admin, ...expected.security]);
     expect(admin.filter((item) => item.width < 16)).toEqual([]);
+  } else {
+    await expect(page.locator('.admin-nav')).toHaveCount(0);
   }
 
   if (width <= 760) {
     const mobile = page.getByRole('navigation', { name: 'Mobile navigation' });
     await expect(mobile).toBeVisible();
-    await expect(mobile.getByRole('link').allTextContents()).resolves.toEqual([
-      'Today',
-      'Time',
-      'Reports',
-      'Expenses',
-      'Projects',
-    ]);
+    await expect(mobile.getByRole('link').allTextContents()).resolves.toEqual(
+      expected.primary.slice(0, 4),
+    );
+    await expect(mobile.getByRole('button', { name: 'More', exact: true })).toBeVisible();
   }
 });
 
@@ -184,8 +193,14 @@ for (const role of allRoles) {
     const expected = roleNavigationLabels(role);
     const navigation = page.locator('#portal-navigation');
     const menuButton = page.getByRole('button', { name: 'Toggle navigation' });
-    if (!(await navigation.isVisible())) await menuButton.click();
-    await expect(navigation).toBeVisible();
+    if ((page.viewportSize()?.width ?? 0) < 1024) {
+      await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+      await menuButton.click();
+      await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
+      await expect(navigation).toHaveClass(/(?:^|\s)open(?:\s|$)/);
+    } else {
+      await expect(navigation).toBeVisible();
+    }
 
     const primaryLinks = navigation.locator('nav[aria-label="Primary navigation"] a');
     const primaryAndSecondary = await primaryLinks.locator('.nav-label').allTextContents();
@@ -195,10 +210,15 @@ for (const role of allRoles) {
     const adminLinks = navigation.locator('.admin-nav a .nav-label');
     const adminLabels = (await adminLinks.allTextContents()).map((label) => label.trim());
     expect(adminLabels).toEqual([...expected.admin, ...expected.security]);
+    if (expected.admin.length > 0 || expected.security.length > 0) {
+      await expect(navigation.locator('.admin-nav')).toBeVisible();
+    } else {
+      await expect(navigation.locator('.admin-nav')).toHaveCount(0);
+    }
     if (expected.admin.length > 0) {
       await expect(navigation.getByText('ADMINISTRATION', { exact: true })).toBeVisible();
     } else {
-      await expect(navigation.locator('.admin-nav')).toHaveCount(0);
+      await expect(navigation.getByText('ADMINISTRATION', { exact: true })).toHaveCount(0);
     }
     if (expected.security.length > 0) {
       await expect(navigation.getByText('SECURITY', { exact: true })).toBeVisible();
@@ -206,18 +226,20 @@ for (const role of allRoles) {
       await expect(navigation.getByText('SECURITY', { exact: true })).toHaveCount(0);
     }
 
-    const renderedLabels = await navigation.locator('.nav-label').evaluateAll((elements) =>
-      elements.map((element) => {
-        const box = element.getBoundingClientRect();
-        const style = getComputedStyle(element);
-        return {
-          text: element.textContent?.trim() ?? '',
-          width: box.width,
-          fontSize: style.fontSize,
-          display: style.display,
-        };
-      }),
-    );
+    const renderedLabels = await navigation
+      .locator('nav[aria-label="Primary navigation"] .nav-label, .admin-nav .nav-label')
+      .evaluateAll((elements) =>
+        elements.map((element) => {
+          const box = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          return {
+            text: element.textContent?.trim() ?? '',
+            width: box.width,
+            fontSize: style.fontSize,
+            display: style.display,
+          };
+        }),
+      );
     expect(renderedLabels.map((label) => label.text)).toEqual([
       ...expected.primary,
       ...expected.secondary,
@@ -275,12 +297,23 @@ for (const role of ['finance', 'owner'] as const) {
             ].map((control) => {
               const box = control.getBoundingClientRect();
               const type = control.getAttribute('type')?.toLowerCase() ?? '';
+              const field = control.closest<HTMLElement>('[data-ui="field"]');
+              const parent = field?.parentElement;
               return {
+                id: control.id,
                 type,
                 left: box.left,
                 right: box.right,
                 width: box.width,
                 height: box.height,
+                fieldWidth: field?.getBoundingClientRect().width ?? 0,
+                fieldLeft: field?.getBoundingClientRect().left ?? 0,
+                fieldRight: field?.getBoundingClientRect().right ?? 0,
+                parentClass: parent?.className ?? '',
+                parentColumns: parent ? getComputedStyle(parent).gridTemplateColumns : '',
+                parentLeft: parent?.getBoundingClientRect().left ?? 0,
+                parentWidth: parent?.getBoundingClientRect().width ?? 0,
+                financePanel: Boolean(control.closest('.finance-config-panel')),
               };
             });
             return {
@@ -405,9 +438,7 @@ for (const role of ['finance', 'owner'] as const) {
       expect(overlappingFields, 'phone Field controls must occupy distinct vertical rows').toEqual(
         [],
       );
-      expect(standardControls.map((control) => control.width).filter((size) => size < 240)).toEqual(
-        [],
-      );
+      expect(standardControls.filter((control) => control.width < 240)).toEqual([]);
       expect(
         allFields
           .filter((field) =>
@@ -434,8 +465,27 @@ test('editable report invalid submission exposes linked errors and preserves val
   const errors = runtimeErrorProbe(page);
   await signIn(page, 'owner');
   await page.goto(portal('/reports'));
+  // The seeded showcase records are intentionally submitted/approved so the
+  // correction-draft lifecycle can never be bypassed by an edit test. Create
+  // a real draft through the same report-entry surface, then exercise the
+  // editable form against that draft. This preserves the backend 409 for
+  // submitted/approved records while keeping this browser contract truthful.
+  const draftSummary = `A5 editable draft · ${testInfo.project.name}`;
+  await page.getByRole('button', { name: 'New daily report', exact: true }).click();
+  const draftForm = page.locator('form[data-report-entry-surface="daily"]');
+  await expect(draftForm).toBeVisible();
+  await draftForm.locator('select[name="projectId"]').selectOption({ index: 1 });
+  await draftForm.locator('input[name="workDate"]').fill('2026-08-24');
+  await draftForm.locator('input[name="siteShift"]').fill('A5 editability shift');
+  await draftForm.locator('textarea[name="summary"]').fill(draftSummary);
+  await draftForm
+    .locator('textarea[name="tasksCompleted"]')
+    .fill('A5 draft created for the accessible edit-form contract.');
+  await draftForm.getByRole('button', { name: 'Save daily report', exact: true }).click();
+  await expect(page.getByText('Daily report draft saved')).toBeVisible();
+
   const reportLink = page.locator('main a[href*="/reports/"]').filter({
-    hasText: 'Startup support, sensor timing investigation and customer handover notes.',
+    hasText: draftSummary,
   });
   await expect(reportLink).toHaveCount(1);
   await reportLink.click();
@@ -534,7 +584,7 @@ test('worker timesheet exposes a deliberate readable mobile representation', asy
   const width = page.viewportSize()?.width ?? 0;
   await signIn(page, 'worker');
   await page.goto(portal('/time'));
-  await expect(page.getByRole('heading', { name: 'Time entries' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Time entries', exact: true })).toBeVisible();
   const timesheet = page.locator('section[aria-labelledby="weekly-timesheet-title"]');
   await expect(timesheet).toBeVisible();
   const representation = timesheet.locator('[data-mobile-representation]');
@@ -564,7 +614,7 @@ test('worker timesheet exposes a deliberate readable mobile representation', asy
         expect(row.values).not.toContain('');
       }
     } else {
-      const tableRegion = representation.getAttribute('data-table-region')
+      const tableRegion = (await representation.getAttribute('data-table-region'))
         ? representation
         : representation.locator('[data-table-region]').first();
       await expect(tableRegion).toHaveAttribute('tabindex', '0');
@@ -606,7 +656,7 @@ test('owner invoice preview keeps semantic headers and a named mobile card mode'
   const width = page.viewportSize()?.width ?? 0;
   await signIn(page, 'owner');
   await page.goto(portal('/billing'));
-  await expect(page.getByRole('heading', { name: 'Billing streams' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Invoice register' })).toBeVisible();
   await page.getByRole('link', { name: 'Preview' }).first().click();
   await expect(page.getByText('Separate billing treatment')).toBeVisible();
   const paper = page.locator('.invoice-paper');

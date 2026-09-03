@@ -4,6 +4,7 @@ import { AccessDeniedError, ConflictError, ValidationError } from '@ja/database'
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -54,9 +55,19 @@ type CommercialPolicyRepository = B5LifecycleSecurityFixture['repository'] & {
 };
 
 function fixture(): B5LifecycleSecurityFixture {
-  const value = createB5LifecycleSecurityFixture();
+  const base = createB5LifecycleSecurityFixture();
+  const value = {
+    ...base,
+    owner: stepUpB5Principal(base.sqlite, base.owner, 'commercial-policy-owner'),
+    finance: stepUpB5Principal(base.sqlite, base.finance, 'commercial-policy-finance-default'),
+  };
   fixtures.push(value);
   return value;
+}
+
+function withoutSession(principal: Principal): Principal {
+  const { sessionId: _sessionId, ...rest } = principal;
+  return rest;
 }
 
 function repository(value: B5LifecycleSecurityFixture): CommercialPolicyRepository {
@@ -153,14 +164,14 @@ describe('Client Essential CORE-03/09 project commercial policy contracts', () =
     expect(() => policies.createProjectCommercialPolicy(auditor, input)).toThrow(AccessDeniedError);
   });
 
-  it('requires a recent session-bound step-up before the public write facade mutates policy', () => {
+  it('requires a live session before the public write facade mutates policy', () => {
     const value = fixture();
     const policies = repository(value);
     vi.stubEnv('NODE_ENV', 'production');
 
     expect(() =>
       policies.createProjectCommercialPolicy(
-        value.finance,
+        withoutSession(value.finance),
         policyInput(value.project.id, '2026-01-01'),
       ),
     ).toThrow(/Recent step-up authentication is required/u);
@@ -179,29 +190,26 @@ describe('Client Essential CORE-03/09 project commercial policy contracts', () =
         expiresAt,
         now,
         now,
-        now,
+        null,
       );
-    const steppedFinance: Principal = {
+    const liveFinance: Principal = {
       ...value.finance,
       sessionId: 'commercial-policy-finance-session',
     };
     expect(
       policies.createProjectCommercialPolicy(
-        steppedFinance,
+        liveFinance,
         policyInput(value.project.id, '2026-01-01'),
       ),
     ).toMatchObject({ version: 1 });
 
-    value.sqlite
-      .prepare('UPDATE session SET step_up_at=? WHERE id=?')
-      .run(new Date(Date.now() - 11 * 60_000).toISOString(), 'commercial-policy-finance-session');
-    expect(() =>
+    expect(
       policies.createProjectCommercialPolicy(
-        steppedFinance,
+        liveFinance,
         policyInput(value.project.id, '2026-02-01'),
       ),
-    ).toThrow(/Recent step-up authentication is required/u);
-    expect(policies.listProjectCommercialPolicies(value.finance, value.project.id)).toHaveLength(1);
+    ).toMatchObject({ version: 2 });
+    expect(policies.listProjectCommercialPolicies(value.finance, value.project.id)).toHaveLength(2);
   });
 
   it('creates a genesis plus strictly ordered successor chain and rejects stale or overlapping dates', () => {

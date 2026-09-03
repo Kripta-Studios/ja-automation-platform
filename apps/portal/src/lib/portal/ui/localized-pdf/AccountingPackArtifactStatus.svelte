@@ -1,7 +1,13 @@
 <script lang="ts">
+  import { invalidateAll } from '$app/navigation';
   import { base } from '$app/paths';
   import type { PortalLocale } from '$lib/portal-i18n';
   import type { ControlledValueDomain } from '$lib/i18n/controlled-values';
+  import {
+    downloadAccountingPackArtifact,
+    isModifiedDownloadClick,
+    saveBlobAsFile,
+  } from '$lib/portal/accounting-pack-download';
   import LocalizedPdfPanel from './LocalizedPdfPanel.svelte';
 
   type Pack = Record<string, unknown>;
@@ -126,6 +132,54 @@
   const exportErrors = $derived(accountingPackExportErrors(pack));
   const revisionId = $derived(readRevisionId(pack));
   const packState = $derived(String(pack.state ?? ''));
+  let downloadingKey = $state<AccountingPackExportType | null>(null);
+  let downloadController: AbortController | null = null;
+
+  function artifactHref(key: AccountingPackExportType): string {
+    return `${base}/app/api/accounting-pack/${String(pack.id)}/${key}`;
+  }
+
+  function displayedStatus(
+    key: AccountingPackExportType,
+    status: AccountingPackArtifactStatus,
+  ): AccountingPackArtifactStatus {
+    return downloadingKey === key ? 'processing' : status;
+  }
+
+  async function handleDownloadClick(
+    event: MouseEvent,
+    key: AccountingPackExportType,
+  ): Promise<void> {
+    if (event.defaultPrevented || isModifiedDownloadClick(event) || downloadingKey) return;
+    event.preventDefault();
+    downloadingKey = key;
+    downloadController?.abort();
+    const controller = new AbortController();
+    downloadController = controller;
+    try {
+      const href = artifactHref(key);
+      const result = await downloadAccountingPackArtifact(
+        href,
+        {
+          fetch: (input, init) => fetch(input, init),
+          sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+          save: saveBlobAsFile,
+        },
+        { signal: controller.signal },
+      );
+      if (controller.signal.aborted) return;
+      if (result.ok) {
+        await invalidateAll();
+        return;
+      }
+      if (result.status === 401 || result.status === 403) window.location.assign(href);
+    } finally {
+      if (downloadController === controller) {
+        downloadController = null;
+        downloadingKey = null;
+      }
+    }
+  }
 </script>
 
 <article class="invoice-row accounting-pack-artifact-row">
@@ -135,15 +189,17 @@
   </div>
   <div class="record-actions" aria-label={translate('Accounting Pack artifacts')}>
     {#each accountingPackExportTypes as artifact}
-      {@const status = exportStatuses[artifact.key]}
+      {@const status = displayedStatus(artifact.key, exportStatuses[artifact.key])}
       {@const error = exportErrors[artifact.key]}
       {#if status === 'ready'}
         <a
           class="preview-link"
           data-ui="status-badge"
           data-variant="success"
-          href={`${base}/app/api/accounting-pack/${String(pack.id)}/${artifact.key}`}
+          href={artifactHref(artifact.key)}
+          aria-busy="false"
           aria-label={`${translate(artifact.label)} ${translate('Ready')}`}
+          onclick={(event) => void handleDownloadClick(event, artifact.key)}
           >{translate(artifact.label)} · {translate('Ready')}</a
         >
       {:else}

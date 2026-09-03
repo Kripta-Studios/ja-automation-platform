@@ -6,33 +6,146 @@
 }
 
 .admin-details {
-  background: var(--ja-surface);
-  border: 1px solid var(--ja-border);
+  background: var(--ja-surface, var(--ja-white, #fff));
+  border: 1px solid var(--ja-border-subdued, var(--ja-line, #e2e8f0));
   border-radius: var(--ja-radius);
   padding: 1rem;
 }
 
+.project-workflow-actions {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--ja-border-strong, #cbd5e1);
+  border-radius: var(--ja-radius, 1rem);
+  background: var(--ja-surface-raised, #f1f5f9);
+}
+
+.project-workflow-actions p {
+  margin: 0;
+  color: var(--ja-text-secondary, #475569);
+}
+
+.project-workflow-actions > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+
+.project-workflow-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: var(--ja-target-min, 2.75rem);
+  padding: 0.58rem 0.9rem;
+  border: 1px solid var(--ja-primary, #0f766e);
+  border-radius: 0.6rem;
+  color: #fff;
+  background: var(--ja-primary, #0f766e);
+  box-shadow: 0 0.3rem 0.8rem rgb(16 32 47 / 0.12);
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  cursor: pointer;
+}
+
+.project-workflow-actions button:hover,
+.project-workflow-actions button:focus-visible {
+  color: #fff;
+  border-color: var(--ja-primary-hover, #115e59);
+  background: var(--ja-primary-hover, #115e59);
+}
+
+.project-workflow-actions button.active {
+  color: #fff;
+  border-color: var(--ja-primary-hover, #115e59);
+  background: var(--ja-primary-hover, #115e59);
+  box-shadow:
+    0 0.3rem 0.8rem rgb(16 32 47 / 0.12),
+    0 0 0 3px color-mix(in srgb, var(--ja-primary, #0f766e) 28%, transparent);
+}
+
+.project-workflow-actions button.active:hover,
+.project-workflow-actions button.active:focus-visible {
+  color: #fff;
+  border-color: var(--ja-primary-hover, #115e59);
+  background: var(--ja-primary-hover, #115e59);
+}
+
+.project-workflow-actions .danger-outline {
+  color: #fff;
+  border-color: var(--ja-status-danger, #dc2626);
+  background: var(--ja-status-danger, #dc2626);
+}
+
+.project-workflow-actions .danger-outline:hover,
+.project-workflow-actions .danger-outline:focus-visible {
+  color: #fff;
+  border-color: var(--ja-red-dark, #8f1d14);
+  background: var(--ja-red-dark, #8f1d14);
+}
+
+.project-workflow-actions .danger-outline.active {
+  color: #fff;
+  background: var(--ja-red-dark, #8f1d14);
+  border-color: var(--ja-red-dark, #8f1d14);
+  box-shadow:
+    0 0.3rem 0.8rem rgb(16 32 47 / 0.12),
+    0 0 0 3px color-mix(in srgb, var(--ja-status-danger, #dc2626) 28%, transparent);
+}
+
+.project-workflow-actions .danger-outline.active:hover,
+.project-workflow-actions .danger-outline.active:focus-visible {
+  color: #fff;
+  background: var(--ja-red-dark, #8f1d14);
+  border-color: var(--ja-red-dark, #8f1d14);
+}
+
+.project-workflow-panel {
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 767px) {
+  .project-workflow-actions > div {
+    grid-template-columns: 1fr;
+  }
+}
+
 .admin-details summary {
+  box-sizing: border-box;
+  min-height: var(--ja-target-min, 2.75rem);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   user-select: none;
-  color: var(--ja-marine);
-  padding: 0.5rem;
-  border-radius: 4px;
+  color: var(--ja-text-primary, var(--ja-ink, #0f172a));
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--ja-border-subdued, var(--ja-line, #e2e8f0));
+  border-radius: var(--ja-control-radius, 0.5rem);
+  background: var(--ja-surface, var(--ja-white, #fff));
   transition: background 0.2s;
-  display: inline-block;
 }
 
 .admin-details summary:hover {
-  background: var(--ja-border);
+  border-color: var(--ja-border-strong, #cbd5e1);
+  background: var(--ja-surface-raised, #f1f5f9);
 }
 
 .admin-details[open] summary {
   margin-bottom: 1rem;
-  border-bottom: 1px solid var(--ja-border);
-  padding-bottom: 1rem;
-  border-radius: 4px 4px 0 0;
-  display: block;
+  border-color: color-mix(
+    in srgb,
+    var(--ja-primary, #0f766e) 45%,
+    var(--ja-border-subdued, #e2e8f0)
+  );
+  border-radius: var(--ja-control-radius, 0.5rem);
+  background: color-mix(in srgb, var(--ja-primary, #0f766e) 6%, var(--ja-surface, #fff));
 }
 
 /* Forms, reporting and management ---------------------------------------- */
@@ -84,10 +197,10 @@
   min-width: 0;
   min-height: 2.8rem;
   padding: 0.62rem 0.7rem;
-  color: #213c50;
-  border: 1px solid #d7e1e9;
-  border-radius: 0.52rem;
-  background: #fbfcfe;
+  color: var(--ja-text-primary, #0f172a);
+  border: 1px solid var(--ja-control-border, #cbd5e1);
+  border-radius: var(--ja-control-radius, 0.5rem);
+  background: var(--ja-surface, #fff);
   outline: none;
   font-size: 0.82rem;
 }
@@ -133,9 +246,9 @@
 .filter-form select:focus,
 .record-actions input:focus,
 .record-actions select:focus {
-  border-color: #4ea89f;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgb(78 168 159 / 0.12);
+  border-color: var(--ja-border-focus, #0284c7);
+  background: var(--ja-surface, #fff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ja-border-focus, #0284c7) 14%, transparent);
 }
 
 .entry-panel button,
@@ -201,8 +314,8 @@
 }
 
 .text-button {
-  min-height: 2.25rem;
-  border: 1px solid #b26a00;
+  min-height: var(--ja-target-min, 2.75rem);
+  border: 1px solid var(--ja-status-warning, #b26a00);
   background: #fff;
   color: #7b4600;
   padding: 0.3rem 0.6rem;
@@ -300,21 +413,26 @@
 }
 
 .preview-link.preview-link-danger {
-  display: inline;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 0;
-  padding: 0;
-  color: var(--ja-red);
-  border: 0;
-  border-radius: 0;
-  background: none;
+  min-height: var(--ja-target-min, 2.75rem);
+  padding: 0.58rem 0.9rem;
+  color: #fff;
+  border: 1px solid var(--ja-status-danger, #dc2626);
+  border-radius: 0.6rem;
+  background: var(--ja-status-danger, #dc2626);
+  box-shadow: 0 0.3rem 0.8rem rgb(180 35 24 / 0.18);
   cursor: pointer;
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .preview-link.preview-link-danger:hover,
 .preview-link.preview-link-danger:focus-visible {
-  color: var(--ja-red);
-  background: none;
+  color: #fff;
+  border-color: var(--ja-red-dark, #8f1d14);
+  background: var(--ja-red-dark, #8f1d14);
   transform: none;
 }
 
@@ -404,6 +522,13 @@
 .worker-field-control,
 .worker-form-submit {
   margin-top: 0.25rem;
+}
+
+.worker-identity-hint {
+  margin: 0;
+  color: var(--portal-muted, #526174);
+  font-size: 0.75rem;
+  line-height: 1.4;
 }
 
 .profile-skill-details {

@@ -6,7 +6,7 @@ import { projects } from '@/content/projects';
 import { localizedRouteUrls } from '@/lib/i18n/metadata';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.j-aautomation.com').replace(
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://j-aautomation.com').replace(
     /\/+$/,
     '',
   );

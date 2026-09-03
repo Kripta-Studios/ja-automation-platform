@@ -1,5 +1,5 @@
 [Unit]
-Description=Run J&A Automation backup daily
+Description=Run J&A Automation local and encrypted continuity backup daily
 
 [Timer]
 OnCalendar=*-*-* 02:30:00

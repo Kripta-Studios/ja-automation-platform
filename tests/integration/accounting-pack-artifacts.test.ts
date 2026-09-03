@@ -84,11 +84,10 @@ function fixture() {
   return { directory, sqlite, principal, v3 };
 }
 
-function artifactContext(root: string, principal: Principal, v3: V3Repository) {
+function artifactContext(root: string, _principal: Principal, v3: V3Repository) {
   return {
-    principal,
     documentRoot: join(root, 'documents'),
-    repository: { createInvoiceDraft: () => undefined },
+    repository: { createInvoiceDraftFromJob: () => undefined },
     v3,
   };
 }
@@ -140,7 +139,6 @@ describe('E2E fixture pointer ownership', () => {
  */
 async function runWithRunningBarrier(
   directory: string,
-  principal: Principal,
   onRunning: () => void,
 ): Promise<{ processed: number; failed: number }> {
   const shared = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT);
@@ -150,19 +148,17 @@ async function runWithRunningBarrier(
       const { createDatabase, V3Repository } = await import('@ja/database');
       const { runArtifactJobs } = await import('@ja/reporting');
       const database = createDatabase(workerData.databasePath);
-      const principal = workerData.principal;
       const v3 = new V3Repository(database.sqlite);
       const barrierV3 = Object.create(v3);
-      barrierV3.accountingPackSnapshot = (actor, packId) => {
+      barrierV3.accountingPackSnapshotFromJob = (packId, execution) => {
         parentPort.postMessage({ kind: 'running', packId });
         Atomics.wait(new Int32Array(workerData.shared), 0, 0);
-        return v3.accountingPackSnapshot(actor, packId);
+        return v3.accountingPackSnapshotFromJob(packId, execution);
       };
       try {
         const result = runArtifactJobs({
-          principal,
           documentRoot: workerData.documentRoot,
-          repository: { createInvoiceDraft: () => undefined },
+          repository: { createInvoiceDraftFromJob: () => undefined },
           v3: barrierV3,
         });
         parentPort.postMessage({ kind: 'done', result });
@@ -179,7 +175,6 @@ async function runWithRunningBarrier(
     workerData: {
       databasePath: join(directory, 'app.db'),
       documentRoot: join(directory, 'documents'),
-      principal,
       shared,
     },
   });
@@ -234,6 +229,30 @@ async function runWithRunningBarrier(
 }
 
 describe('Accounting Pack artifact lifecycle', () => {
+  it('requires a live session before creating any pack snapshot, job, or success audit', () => {
+    const { sqlite, principal, v3 } = fixture();
+    sqlite
+      .prepare('UPDATE session SET expires_at=? WHERE id=?')
+      .run(new Date(Date.now() - 1).toISOString(), principal.sessionId);
+
+    expect(() => v3.createAccountingPack(principal, '2110-03-01', '2110-03-31')).toThrow(
+      /step-up/i,
+    );
+    expect(sqlite.prepare('SELECT COUNT(*) count FROM accounting_pack_run').get()).toEqual({
+      count: 0,
+    });
+    expect(
+      sqlite
+        .prepare("SELECT COUNT(*) count FROM job WHERE kind='accounting_pack_artifact_render'")
+        .get(),
+    ).toEqual({ count: 0 });
+    expect(
+      sqlite
+        .prepare("SELECT COUNT(*) count FROM audit_event WHERE action LIKE 'accounting_pack.%'")
+        .get(),
+    ).toEqual({ count: 0 });
+  });
+
   it('keeps XLSX, both CSV registers and JSON available when the PDF renderer fails', () => {
     process.env.JA_ACCOUNTING_PACK_REQUIRE_PDF = 'true';
     // B5 retry scheduling is five minutes by contract. Advance this disposable test clock rather
@@ -392,7 +411,7 @@ describe('Accounting Pack artifact lifecycle', () => {
     const { directory, sqlite, principal, v3 } = fixture();
     const pack = v3.createAccountingPack(principal, '2110-02-01', '2110-02-28');
     let observedPackId = '';
-    const result = await runWithRunningBarrier(directory, principal, () => {
+    const result = await runWithRunningBarrier(directory, () => {
       const job = sqlite
         .prepare(
           'SELECT id,state,attempts,lease_until,active_job_run_id,fence_version,last_error_code FROM job WHERE idempotency_key=?',
@@ -601,18 +620,37 @@ describe('Accounting Pack artifact lifecycle', () => {
     ).toMatchObject({
       failed: 0,
     });
+    const sourceChangedAt = new Date().toISOString();
     first.sqlite
       .prepare(
         `INSERT INTO legal_entity(
            id,code,legal_name,currency,billing_address,company_identifiers,status,
            created_at,updated_at,version
          ) VALUES('entity-later','JALATER','Later Entity','EUR','Address','TAX-LATER','active',
-                  '2999-01-01T00:00:00.000Z','2999-01-01T00:00:00.000Z',1)`,
+                  ?,?,1)`,
       )
-      .run();
-    expect(() => first.v3.accountingPackExport(first.principal, staleDraft.id, 'xlsx')).toThrow(
-      /source changed.*new revision/i,
-    );
+      .run(sourceChangedAt, sourceChangedAt);
+    let staleDownloadError: unknown;
+    try {
+      first.v3.accountingPackExport(first.principal, staleDraft.id, 'xlsx');
+    } catch (error) {
+      staleDownloadError = error;
+    }
+    expect(String(staleDownloadError)).toMatch(/not ready/i);
+    expect(String(staleDownloadError)).not.toMatch(/source changed/i);
+    const refreshedRuns = first.sqlite
+      .prepare(
+        'SELECT id,state FROM accounting_pack_run WHERE period_start=? AND period_end=? ORDER BY created_at,id',
+      )
+      .all('2113-03-01', '2113-03-31') as Array<{ id: string; state: string }>;
+    expect(refreshedRuns).toHaveLength(2);
+    expect(refreshedRuns.some((row) => row.id === staleDraft.id)).toBe(true);
+    expect(
+      runArtifactJobs(artifactContext(first.directory, first.principal, first.v3)),
+    ).toMatchObject({ failed: 0 });
+    expect(
+      first.v3.accountingPackExport(first.principal, staleDraft.id, 'xlsx').filename,
+    ).toContain('2113-03-01');
 
     const second = fixture();
     seedLegalEntity(second.sqlite);
@@ -649,6 +687,39 @@ describe('Accounting Pack artifact lifecycle', () => {
         "SELECT id,export_type,sha256 FROM accounting_pack_export WHERE pack_run_id=? AND export_type<>'pdf' ORDER BY export_type",
       )
       .all(pack.id);
+
+    sqlite
+      .prepare('UPDATE session SET expires_at=? WHERE id=?')
+      .run(new Date(Date.now() - 1).toISOString(), principal.sessionId);
+    const jobsBeforeDeniedRetry = (
+      sqlite
+        .prepare("SELECT COUNT(*) count FROM job WHERE kind='accounting_pack_artifact_render'")
+        .get() as { count: number }
+    ).count;
+    expect(() =>
+      v3.retryAccountingPackExport(principal, pack.id, 'pdf', 'retry-without-live-session'),
+    ).toThrow(/step-up/i);
+    expect(
+      (
+        sqlite
+          .prepare("SELECT COUNT(*) count FROM job WHERE kind='accounting_pack_artifact_render'")
+          .get() as { count: number }
+      ).count,
+    ).toBe(jobsBeforeDeniedRetry);
+    expect(
+      sqlite
+        .prepare(
+          "SELECT COUNT(*) count FROM audit_event WHERE action='accounting_pack.export_retry'",
+        )
+        .get(),
+    ).toEqual({ count: 0 });
+    sqlite
+      .prepare('UPDATE session SET expires_at=?,step_up_at=? WHERE id=?')
+      .run(
+        new Date(Date.now() + 3_600_000).toISOString(),
+        new Date().toISOString(),
+        principal.sessionId,
+      );
 
     const first = v3.retryAccountingPackExport(principal, pack.id, 'pdf', 'retry-pdf-once');
     const replay = v3.retryAccountingPackExport(principal, pack.id, 'pdf', 'retry-pdf-once');
@@ -699,11 +770,27 @@ describe('Accounting Pack artifact lifecycle', () => {
                   '2999-01-01T00:00:00.000Z','2999-01-01T00:00:00.000Z',1)`,
       )
       .run();
-    const stale = v3.createAccountingPack(principal, '2115-01-01', '2115-01-31');
-    expect(stale).toMatchObject({ id: first.id, state: 'stale', sourceStale: true });
+    const refreshed = v3.createAccountingPack(principal, '2115-01-01', '2115-01-31');
+    expect(refreshed.id).not.toBe(first.id);
+    expect(refreshed.state).toBe('queued');
+    const refreshedReconciliation = refreshed.reconciliation as {
+      canonicalRevision: { status: string; revisions: Array<{ revisionId: string }> };
+    };
+    expect(refreshedReconciliation.canonicalRevision.status).toBe('current');
+    expect(refreshedReconciliation.canonicalRevision.revisions).toHaveLength(1);
+    expect(refreshedReconciliation.canonicalRevision.revisions[0]?.revisionId).not.toBe(
+      reconciliation.canonicalRevision.revisions[0]?.revisionId,
+    );
     expect(sqlite.prepare('SELECT count(*) count FROM accounting_pack_revision').get()).toEqual({
-      count: 1,
+      count: 2,
     });
+    expect(
+      sqlite
+        .prepare(
+          'SELECT id,state FROM accounting_pack_run WHERE period_start=? AND period_end=? ORDER BY created_at,id',
+        )
+        .all('2115-01-01', '2115-01-31'),
+    ).toHaveLength(2);
   });
 
   it('schedules and executes fenced temporary-upload cleanup idempotently', () => {

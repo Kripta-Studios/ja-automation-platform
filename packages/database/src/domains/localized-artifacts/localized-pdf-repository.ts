@@ -210,6 +210,8 @@ type DerivedOwner = Readonly<{
   sourceUserId: string | null;
   /** Native operational date used for object-level assignment checks. */
   sourceDate: string | null;
+  /** Compatibility-only customer report projection; internal/finance reports stay private. */
+  customerPeriodReportSafe: boolean;
   documentTag: LocalizedPdfVariant['documentTag'];
   snapshotJson: string;
   snapshotHash: string;
@@ -232,6 +234,10 @@ const DOCUMENT_TAGS: Readonly<Record<LocalizedPdfOwnerType, LocalizedPdfVariant[
 const FINANCE_OWNER_TYPES: readonly LocalizedPdfOwnerType[] = [
   'invoice',
   'period_report_revision',
+  'accounting_pack_revision',
+];
+const STEP_UP_OWNER_TYPES: readonly LocalizedPdfOwnerType[] = [
+  'invoice',
   'accounting_pack_revision',
 ];
 const CUSTOMER_PERIOD_REPORT_PRIVACY_VERSION = '2026.08.24.customer-period-safe-v1';
@@ -491,6 +497,26 @@ function sourceUserIdFromRow(row: Record<string, unknown>, field: string): strin
   return typeof value === 'string' && value.trim() ? value : null;
 }
 
+function parseJsonObject(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === 'object' && !Array.isArray(value))
+    return value as Record<string, unknown>;
+  if (typeof value !== 'string' || !value.trim()) return null;
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed))
+      return parsed as Record<string, unknown>;
+  } catch {
+    // Render-time identity is derived from live joins; malformed nested JSON stays unused.
+  }
+  return null;
+}
+
+function definedText(value: unknown): string | undefined {
+  if (value === null || value === undefined || typeof value === 'object') return undefined;
+  const text = String(value).trim();
+  return text || undefined;
+}
+
 export class LocalizedPdfRepository {
   private readonly sqlite: DatabaseSync;
   private readonly storageVerifier: LocalizedPdfStorageVerifier;
@@ -647,8 +673,6 @@ export class LocalizedPdfRepository {
       | { status: string }
       | undefined;
     if (!row || row.status !== 'active') throw new AccessDeniedError('Active account required');
-    if (principal.isServiceActor)
-      throw new AccessDeniedError('Service execution is not a human operation');
     if (write && principal.role === 'auditor_read_only')
       throw new AccessDeniedError('Read-only role');
   }
@@ -662,6 +686,7 @@ export class LocalizedPdfRepository {
     let projectId: string | null = null;
     let sourceUserId: string | null = null;
     let sourceDate: string | null = null;
+    let customerPeriodReportSafe = false;
     let ownerRevisionId = `${ownerId}:v1`;
     switch (selector.ownerType) {
       case 'invoice':
@@ -750,6 +775,9 @@ export class LocalizedPdfRepository {
         snapshot.customerPrivacyVersion !== CUSTOMER_PERIOD_REPORT_PRIVACY_VERSION
       )
         throw new AccessDeniedError('Customer period report requires a safe snapshot refresh');
+      customerPeriodReportSafe =
+        audience === 'customer' &&
+        snapshot.customerPrivacyVersion === CUSTOMER_PERIOD_REPORT_PRIVACY_VERSION;
       // Legacy internal period reports have no revision-level assignment contract. Keep them
       // finance/owner/auditor readable through the role check, but do not let PM assignment scope
       // grant access to the finance-facing fallback row.
@@ -771,6 +799,7 @@ export class LocalizedPdfRepository {
       projectId,
       sourceUserId,
       sourceDate,
+      customerPeriodReportSafe,
       documentTag: DOCUMENT_TAGS[selector.ownerType],
       snapshotJson: snapshot.json,
       snapshotHash: snapshot.hash,
@@ -798,8 +827,17 @@ export class LocalizedPdfRepository {
     const role = asRole(principal);
     if (role === 'owner_admin' || role === 'finance_admin' || role === 'auditor_read_only')
       return true;
-    if (role === 'project_manager')
-      return owner.projectId !== null && this.hasEffectiveAssignment(principal, owner);
+    if (role === 'project_manager') {
+      const projectScopedOperationalOwner =
+        owner.ownerType === 'daily_report' || owner.ownerType === 'technical_report';
+      const safeCustomerPeriodReport =
+        owner.ownerType === 'period_report_revision' && owner.customerPeriodReportSafe;
+      return (
+        (projectScopedOperationalOwner || safeCustomerPeriodReport) &&
+        owner.projectId !== null &&
+        this.hasEffectiveAssignment(principal, owner)
+      );
+    }
     return (
       (owner.ownerType === 'daily_report' || owner.ownerType === 'technical_report') &&
       owner.sourceUserId === principal.userId &&
@@ -930,6 +968,7 @@ export class LocalizedPdfRepository {
     return this.transaction(() => {
       const owner = this.deriveOwner({ ownerType, ownerId: input.ownerId });
       this.assertWritable(principal, owner);
+      this.assertOwnerStepUp(principal, owner);
       if (requestKey) {
         const existing = this.sqlite
           .prepare(
@@ -1069,7 +1108,9 @@ export class LocalizedPdfRepository {
   ): LocalizedPdfVariant {
     return this.transaction(() => {
       const row = this.row(variantId);
-      this.assertWritable(principal, this.ownerForVariant(row));
+      const owner = this.ownerForVariant(row);
+      this.assertWritable(principal, owner);
+      this.assertOwnerStepUp(principal, owner);
       if (row.status !== 'failed') throw new ConflictError('Only failed variants can be retried');
       if (row.retryable !== 1) throw new ConflictError('Localized PDF failure is not retryable');
       if (row.current_attempt_number >= row.max_attempts)
@@ -1161,13 +1202,140 @@ export class LocalizedPdfRepository {
           expectedAttemptNumber,
         );
       if (changed.changes !== 1) throw new ConflictError('Localized PDF claim was lost');
+      const variant = this.map(this.row(variantId));
       return {
-        variant: this.map(this.row(variantId)),
+        variant: { ...variant, snapshotJson: this.enrichRenderSnapshot(variant) },
         attemptNumber: expectedAttemptNumber,
         startedAt: timestamp,
         execution: binding,
       };
     });
+  }
+
+  /**
+   * Join project/client/worker (and accounting-pack registers) for the renderer only.
+   * Migration 0023 requires the persisted snapshot_json to be exactly the owner-table
+   * json_object; those display fields must never be written back to the variant row.
+   */
+  private enrichRenderSnapshot(variant: LocalizedPdfVariant): string {
+    const parsed = parseJsonObject(variant.snapshotJson);
+    if (!parsed) return variant.snapshotJson;
+    if (variant.ownerType === 'daily_report' || variant.ownerType === 'technical_report') {
+      const userField = variant.ownerType === 'daily_report' ? 'worker_id' : 'author_id';
+      const identity = this.lookupOperationalIdentity(
+        projectIdFromRow(parsed),
+        sourceUserIdFromRow(parsed, userField),
+      );
+      return JSON.stringify({ ...parsed, ...identity });
+    }
+    if (variant.ownerType === 'period_report_revision') {
+      const nested = parseJsonObject(parsed.snapshot_json);
+      const merged = nested ? { ...parsed, ...nested } : parsed;
+      const identity = this.lookupOperationalIdentity(projectIdFromRow(merged), null);
+      const nestedProject = parseJsonObject(merged.project) ?? {};
+      const number =
+        definedText(nestedProject.number) ??
+        definedText(nestedProject.projectNumber) ??
+        identity.project_number;
+      const name =
+        definedText(nestedProject.name) ??
+        definedText(nestedProject.projectName) ??
+        identity.project_name;
+      const clientName =
+        definedText(nestedProject.clientName) ??
+        definedText(nestedProject.client_name) ??
+        identity.client_name;
+      return JSON.stringify({
+        ...merged,
+        ...identity,
+        project: {
+          ...nestedProject,
+          ...(number ? { number } : {}),
+          ...(name ? { name } : {}),
+          ...(clientName ? { clientName } : {}),
+        },
+      });
+    }
+    if (variant.ownerType === 'accounting_pack_revision') {
+      const pack = this.sqlite
+        .prepare(
+          'SELECT snapshot_json, legal_entity_revision_id FROM accounting_pack_revision_snapshot WHERE revision_id=?',
+        )
+        .get(variant.ownerId) as
+        | { snapshot_json: string; legal_entity_revision_id: string }
+        | undefined;
+      const packSnapshot = pack ? parseJsonObject(pack.snapshot_json) : null;
+      const legalEntityRevisionId =
+        definedText(pack?.legal_entity_revision_id) ?? definedText(parsed.legal_entity_revision_id);
+      const legalName = this.lookupLegalEntityName(legalEntityRevisionId);
+      return JSON.stringify({
+        ...parsed,
+        ...(packSnapshot ?? {}),
+        ...(legalName
+          ? {
+              legalEntity: { legalName, legal_name: legalName },
+              legal_entity_name: legalName,
+            }
+          : {}),
+      });
+    }
+    return variant.snapshotJson;
+  }
+
+  private lookupOperationalIdentity(
+    projectId: string | null,
+    userId: string | null,
+  ): Record<string, string> {
+    if (!projectId) return {};
+    const project = this.sqlite
+      .prepare(
+        `SELECT p.project_number, p.name AS project_name, p.site_name,
+                c.client_number, c.display_name AS client_name
+         FROM project p
+         LEFT JOIN client c ON c.id=p.client_id
+         WHERE p.id=?`,
+      )
+      .get(projectId) as
+      | {
+          project_number: string;
+          project_name: string;
+          site_name: string | null;
+          client_number: string | null;
+          client_name: string | null;
+        }
+      | undefined;
+    const identity: Record<string, string> = {};
+    const projectNumber = definedText(project?.project_number);
+    const projectName = definedText(project?.project_name);
+    const siteName = definedText(project?.site_name);
+    const clientNumber = definedText(project?.client_number);
+    const clientName = definedText(project?.client_name);
+    if (projectNumber) identity.project_number = projectNumber;
+    if (projectName) identity.project_name = projectName;
+    if (siteName) identity.site_name = siteName;
+    if (clientNumber) identity.client_number = clientNumber;
+    if (clientName) identity.client_name = clientName;
+    if (userId) {
+      const user = this.sqlite.prepare('SELECT name, email FROM user WHERE id=?').get(userId) as
+        | { name: string; email: string | null }
+        | undefined;
+      const workerName = definedText(user?.name);
+      const workerEmail = definedText(user?.email);
+      if (workerName) {
+        identity.worker_name = workerName;
+        identity.author_name = workerName;
+      }
+      if (workerEmail) identity.worker_email = workerEmail;
+    }
+    return identity;
+  }
+
+  private lookupLegalEntityName(revisionId: string | undefined): string | undefined {
+    if (!revisionId) return undefined;
+    const row = this.sqlite
+      .prepare('SELECT legal_name FROM legal_entity_revision WHERE revision_id=?')
+      .get(revisionId) as { legal_name: string } | undefined;
+    return definedText(row?.legal_name);
   }
 
   private insertIncident(
@@ -1499,6 +1667,10 @@ export class LocalizedPdfRepository {
     assertRecentStepUp(this.sqlite, principal, AccessDeniedError);
   }
 
+  private assertOwnerStepUp(principal: Principal, owner: DerivedOwner): void {
+    if (STEP_UP_OWNER_TYPES.includes(owner.ownerType)) this.assertDownloadStepUp(principal);
+  }
+
   /** Validate the immutable attempt's exact B5 execution before allowing a download. */
   private assertReadyDurableExecution(row: LocalizedPdfRow): void {
     const attempt = this.sqlite
@@ -1661,7 +1833,7 @@ export class LocalizedPdfRepository {
       const owner = this.ownerForVariant(row);
       this.assertReadable(principal, owner);
       try {
-        this.assertDownloadStepUp(principal);
+        this.assertOwnerStepUp(principal, owner);
       } catch (error) {
         if (!(error instanceof AccessDeniedError)) throw error;
         this.recordArtifactAccessAudit(principal, row, owner, 'blocked', 'step_up_required');

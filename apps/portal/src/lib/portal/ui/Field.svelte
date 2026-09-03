@@ -54,7 +54,7 @@
   data-field-error-id={error ? errorId : undefined}
   class={`ui-field ${className}`.trim()}
 >
-  <label for={id} aria-required={required ? 'true' : undefined}>
+  <label for={id}>
     <span>{label}</span>
     {#if required}<span class="ui-field-required" aria-hidden="true">Required</span>{/if}
   </label>

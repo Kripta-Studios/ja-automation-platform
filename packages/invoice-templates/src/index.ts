@@ -92,7 +92,54 @@ type InvoiceCopy = Readonly<{
   subtotal: string;
   tax: string;
   total: string;
+  qty: string;
+  unitPrice: string;
+  discount: string;
+  subtotalLessDiscount: string;
+  balanceDue: string;
+  termsInstructions: string;
+  bankSwiftNumber: string;
+  bankAccountNumber: string;
+  bankName: string;
+  beneficiary: string;
+  pastDueNotice: string;
+  purchaseNo: string;
 }>;
+
+export type InvoiceTermsAndInstructions = Readonly<{
+  bankSwiftNumber: string;
+  bankAccountNumber: string;
+  bankName: string;
+  beneficiary: string;
+  pastDueNotice: string;
+}>;
+
+export const DEFAULT_INVOICE_TERMS: InvoiceTermsAndInstructions = Object.freeze({
+  bankSwiftNumber: 'WFBIUS6S',
+  bankAccountNumber: '8769915615',
+  bankName: 'Wells Fargo Bank',
+  beneficiary: 'J&A Automation LLC',
+  pastDueNotice:
+    'Past Due account subject to service charge of 1.5% per month and/or maximum permitted by law',
+});
+
+export type InvoiceCompanyInfo = Readonly<{
+  name: string;
+  division: string;
+  phone: string;
+  address: string;
+  email: string;
+  website: string;
+}>;
+
+export const DEFAULT_INVOICE_COMPANY_INFO: InvoiceCompanyInfo = Object.freeze({
+  name: 'J&A Automation LLC',
+  division: 'USA division',
+  phone: '+1 (864) 208 4684',
+  address: '112 Birkshire Dr, Georgetown TX 78626',
+  email: 'field.operations@j-aautomation.com',
+  website: 'www.j-aautomation.com',
+});
 
 const copy: Readonly<Record<InvoiceLanguage, InvoiceCopy>> = {
   en: {
@@ -132,6 +179,19 @@ const copy: Readonly<Record<InvoiceLanguage, InvoiceCopy>> = {
     subtotal: 'Subtotal',
     tax: 'Tax',
     total: 'Total',
+    qty: 'QTY',
+    unitPrice: 'UNIT PRICE',
+    discount: 'DISCOUNT',
+    subtotalLessDiscount: 'SUBTOTAL LESS DISCOUNT',
+    balanceDue: 'Balance Due',
+    termsInstructions: 'Terms & Instructions',
+    bankSwiftNumber: 'Bank Swift Number',
+    bankAccountNumber: 'Bank Account Number',
+    bankName: 'Bank Name',
+    beneficiary: 'Beneficiary',
+    pastDueNotice:
+      'Past Due account subject to service charge of 1.5% per month and/or maximum permitted by law',
+    purchaseNo: 'Purchase No.:',
   },
   es: {
     invoice: 'Factura',
@@ -170,6 +230,19 @@ const copy: Readonly<Record<InvoiceLanguage, InvoiceCopy>> = {
     subtotal: 'Subtotal',
     tax: 'Impuesto',
     total: 'Total',
+    qty: 'CANTIDAD',
+    unitPrice: 'PRECIO UNITARIO',
+    discount: 'DESCUENTO',
+    subtotalLessDiscount: 'SUBTOTAL MENOS DESCUENTO',
+    balanceDue: 'Saldo pendiente',
+    termsInstructions: 'Términos e instrucciones',
+    bankSwiftNumber: 'Código SWIFT bancario',
+    bankAccountNumber: 'Número de cuenta bancaria',
+    bankName: 'Nombre del banco',
+    beneficiary: 'Beneficiario',
+    pastDueNotice:
+      'Cuentas vencidas sujetas a un cargo del 1.5% mensual y/o el máximo permitido por ley',
+    purchaseNo: 'Nº de orden / pedido:',
   },
   pt: {
     invoice: 'Fatura',
@@ -184,7 +257,7 @@ const copy: Readonly<Record<InvoiceLanguage, InvoiceCopy>> = {
     period: 'Período de serviço',
     noValue: 'Não informado',
     noInvoiceLines: 'Nenhuma linha de fatura.',
-    laborDetailedInvoice: 'Fatura Detalhada de Mão de Obra',
+    laborDetailedInvoice: 'Fatura Detallada de Mão de Obra',
     laborSummaryInvoice: 'Fatura Resumida de Mão de Obra',
     expensesDetailedInvoice: 'Fatura Detalhada de Despesas',
     fixedMilestoneInvoice: 'Fatura Fixa / por Marco',
@@ -208,6 +281,19 @@ const copy: Readonly<Record<InvoiceLanguage, InvoiceCopy>> = {
     subtotal: 'Subtotal',
     tax: 'Imposto',
     total: 'Total',
+    qty: 'QTD',
+    unitPrice: 'PREÇO UNITÁRIO',
+    discount: 'DESCONTO',
+    subtotalLessDiscount: 'SUBTOTAL MENOS DESCONTO',
+    balanceDue: 'Saldo devedor',
+    termsInstructions: 'Termos e instruções',
+    bankSwiftNumber: 'Código SWIFT bancário',
+    bankAccountNumber: 'Número da conta bancária',
+    bankName: 'Nome do banco',
+    beneficiary: 'Beneficiário',
+    pastDueNotice:
+      'Contas vencidas sujeitas a encargo de 1,5% ao mês e/ou máximo permitido por lei',
+    purchaseNo: 'Nº do pedido:',
   },
 };
 
@@ -362,8 +448,35 @@ const escape = (value: unknown): string =>
 
 const nonEmptyString = (value: unknown): string | undefined => {
   if (value === undefined || value === null) return undefined;
+  if (typeof value === 'object') return undefined;
   const text = String(value);
   return text.length > 0 ? text : undefined;
+};
+
+/** Internal row UUIDs are storage keys, not bill references the client can use. */
+const isInternalRecordId = (value: unknown): boolean => {
+  const text = nonEmptyString(value)?.trim();
+  if (!text) return false;
+  return (
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(text) ||
+    /^01[0-9a-f]{24}$/iu.test(text)
+  );
+};
+
+const displayText = (value: unknown): string | undefined => {
+  const text = nonEmptyString(value);
+  return text && !isInternalRecordId(text) ? text : undefined;
+};
+
+const periodRangeText = (value: unknown): string | undefined => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const record = value as Readonly<Record<string, unknown>>;
+    const start = nonEmptyString(record.start ?? record.from ?? record.periodStart);
+    const end = nonEmptyString(record.end ?? record.to ?? record.periodEnd);
+    if (start && end) return `${start} → ${end}`;
+    return start ?? end;
+  }
+  return nonEmptyString(value);
 };
 
 const nestedLineSnapshot = (
@@ -393,6 +506,22 @@ const lineValue = (
   for (const key of keys) {
     const value = nested[key];
     if (value !== undefined && value !== null && String(value) !== '') return value;
+  }
+  return undefined;
+};
+
+const lineDisplayValue = (
+  line: Readonly<Record<string, unknown>>,
+  ...keys: readonly string[]
+): unknown => {
+  const nested = nestedLineSnapshot(line);
+  for (const key of keys) {
+    const direct = displayText(line[key]);
+    if (direct) return direct;
+  }
+  for (const key of keys) {
+    const value = displayText(nested[key]);
+    if (value) return value;
   }
   return undefined;
 };
@@ -473,7 +602,7 @@ const moneyOrDash = (
 ): string => escape(formatMinorUnits(currency, value, locale) ?? localized.noValue);
 
 const row = (label: string, value: string): string =>
-  `<div class="invoice-field"><dt>${escape(label)}</dt><dd>${value}</dd></div>`;
+  `<div class="invoice-field"><span class="label">${escape(label)}</span><strong class="value">${value}</strong></div>`;
 
 const party = (
   heading: string,
@@ -489,27 +618,115 @@ const party = (
     .filter((value): value is string => Boolean(value))
     .map((value) => `<div>${escape(value)}</div>`)
     .join('');
-  return `<section class="invoice-party"><h2>${escape(heading)}</h2>${fields || `<div class="muted">${escape(localized.noValue)}</div>`}</section>`;
+  return `<section class="invoice-party"><span class="invoice-party-label">${escape(heading)}</span>${fields || `<div class="muted">${escape(localized.noValue)}</div>`}</section>`;
 };
 
 const calculationCurrency = (snapshot: InvoiceTemplateSnapshot): unknown =>
   snapshot.calculation?.currency ?? snapshot.currency;
+
+const resolveTerms = (snapshot: InvoiceTemplateSnapshot): InvoiceTermsAndInstructions => {
+  const custom = (snapshot.termsAndInstructions ?? snapshot.terms_and_instructions) as
+    | Partial<InvoiceTermsAndInstructions>
+    | string
+    | undefined;
+  if (typeof custom === 'string' && custom.trim()) {
+    return {
+      bankSwiftNumber: DEFAULT_INVOICE_TERMS.bankSwiftNumber,
+      bankAccountNumber: DEFAULT_INVOICE_TERMS.bankAccountNumber,
+      bankName: DEFAULT_INVOICE_TERMS.bankName,
+      beneficiary: DEFAULT_INVOICE_TERMS.beneficiary,
+      pastDueNotice: custom.trim(),
+    };
+  }
+  if (typeof custom === 'object' && custom !== null) {
+    return {
+      bankSwiftNumber: custom.bankSwiftNumber || DEFAULT_INVOICE_TERMS.bankSwiftNumber,
+      bankAccountNumber: custom.bankAccountNumber || DEFAULT_INVOICE_TERMS.bankAccountNumber,
+      bankName: custom.bankName || DEFAULT_INVOICE_TERMS.bankName,
+      beneficiary: custom.beneficiary || DEFAULT_INVOICE_TERMS.beneficiary,
+      pastDueNotice: custom.pastDueNotice || DEFAULT_INVOICE_TERMS.pastDueNotice,
+    };
+  }
+  return DEFAULT_INVOICE_TERMS;
+};
+
+const formatInvoiceDate = (value: unknown): string | undefined => {
+  if (!value) return undefined;
+  const str = String(value).trim();
+  if (!str) return undefined;
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) return str;
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match && match[1] && match[2] && match[3]) {
+    return `${parseInt(match[2], 10)}/${parseInt(match[3], 10)}/${match[1]}`;
+  }
+  return str;
+};
+
+const getLineQuantity = (line: Readonly<Record<string, unknown>>): number => {
+  const nested = nestedLineSnapshot(line);
+  const qNum = line.quantity_numerator ?? nested.quantity_numerator;
+  const qDen = line.quantity_denominator ?? nested.quantity_denominator;
+  if (qNum !== undefined && qDen !== undefined) {
+    const num = Number(qNum);
+    const den = Number(qDen);
+    if (den > 0 && Number.isFinite(num)) return num / den;
+  }
+  const raw =
+    line.qty ??
+    line.quantity ??
+    line.hours ??
+    line.hour_quantity ??
+    line.hourQuantity ??
+    line.quantity_display ??
+    nested.qty ??
+    nested.quantity ??
+    nested.hours ??
+    nested.hour_quantity ??
+    nested.hourQuantity ??
+    nested.quantity_display;
+  if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
+    const num = Number(raw);
+    if (Number.isFinite(num)) return num;
+  }
+  return 1;
+};
+
+const formatQuantity = (qty: number): string => {
+  return qty.toFixed(2);
+};
+
+const formatLaborDescription = (
+  line: Readonly<Record<string, unknown>>,
+  localized: InvoiceCopy,
+): string => {
+  const desc = lineDisplayValue(line, 'description', 'detail');
+  if (nonEmptyString(desc)) return String(desc);
+  const worker = lineDisplayValue(line, 'worker_name', 'workerName', 'worker', 'employee_name');
+  const date = lineDisplayValue(line, 'work_date', 'workDate', 'service_date', 'date');
+  if (worker && date) return `${worker} Hours · ${date}`;
+  if (worker) return `${worker} Hours`;
+  return localized.noValue;
+};
 
 const renderCommon = (snapshot: InvoiceTemplateSnapshot, localized: InvoiceCopy): string => {
   const legalEntity = snapshot.legalEntity;
   const client = snapshot.client;
   const project = snapshot.project;
   const calculation = snapshot.calculation;
-  const issueDate =
-    snapshot.issueDate ?? snapshot.issue_date ?? snapshot.issuedAt ?? snapshot.issued_at;
-  const dueDate = snapshot.dueDate ?? snapshot.due_date ?? snapshot.dueAt ?? snapshot.due_at;
+  const issueDate = formatInvoiceDate(
+    snapshot.issueDate ?? snapshot.issue_date ?? snapshot.issuedAt ?? snapshot.issued_at,
+  );
+  const dueDate = formatInvoiceDate(
+    snapshot.dueDate ?? snapshot.due_date ?? snapshot.dueAt ?? snapshot.due_at,
+  );
   const periodParts = [
     snapshot.periodStart ?? snapshot.period_start,
     snapshot.periodEnd ?? snapshot.period_end,
-  ].filter((value) => nonEmptyString(value));
+  ]
+    .map((value) => periodRangeText(value) ?? nonEmptyString(value))
+    .filter((value): value is string => Boolean(value));
   const servicePeriod =
-    snapshot.servicePeriod ??
-    snapshot.service_period ??
+    periodRangeText(snapshot.servicePeriod ?? snapshot.service_period) ??
     (periodParts.length ? periodParts.join(' → ') : undefined);
   const projectValue = project
     ? [project.number ?? project.projectNumber, project.name]
@@ -518,23 +735,35 @@ const renderCommon = (snapshot: InvoiceTemplateSnapshot, localized: InvoiceCopy)
     : (snapshot.projectNumber ?? snapshot.projectName);
   const poValue =
     project?.poNumber ?? project?.po_number ?? snapshot.poNumber ?? snapshot.po_number;
+  const purchaseNo = snapshot.purchaseNo ?? snapshot.purchase_no ?? poValue;
+  const invoiceNumber = snapshot.number ?? snapshot.invoiceNumber;
+
   const metadata = [
     row(localized.issueDate, valueOrDash(issueDate, localized)),
     row(localized.dueDate, valueOrDash(dueDate, localized)),
+    ...(nonEmptyString(purchaseNo)
+      ? [row(localized.purchaseNo, valueOrDash(purchaseNo, localized))]
+      : nonEmptyString(poValue)
+        ? [row(localized.po, valueOrDash(poValue, localized))]
+        : []),
+    ...(nonEmptyString(invoiceNumber)
+      ? [row(localized.invoice, valueOrDash(invoiceNumber, localized))]
+      : []),
     row(localized.currency, valueOrDash(calculation?.currency ?? snapshot.currency, localized)),
     ...(nonEmptyString(projectValue)
       ? [row(localized.project, valueOrDash(projectValue, localized))]
       : []),
-    ...(nonEmptyString(poValue) ? [row(localized.po, valueOrDash(poValue, localized))] : []),
     ...(nonEmptyString(servicePeriod)
       ? [row(localized.period, valueOrDash(servicePeriod, localized))]
       : []),
   ].join('');
-  return `<section class="invoice-parties">${party(localized.from, legalEntity, localized)}${party(localized.billTo, client, localized, true)}</section><dl class="invoice-meta">${metadata}</dl>`;
+
+  return `<section class="invoice-parties">${party(localized.from, legalEntity, localized)}${party(localized.billTo, client, localized, true)}</section><div class="invoice-meta">${metadata}</div>`;
 };
 
 type InvoiceColumn = Readonly<{
   label: string;
+  numeric?: boolean;
   render: (line: Readonly<Record<string, unknown>>) => string;
 }>;
 
@@ -542,22 +771,30 @@ const table = (
   columns: readonly InvoiceColumn[],
   lines: readonly Readonly<Record<string, unknown>>[],
   localized: InvoiceCopy,
+  totalQtyText?: string,
+  totalAmountText?: string,
 ): string => {
-  const headers = columns.map((column) => `<th>${escape(column.label)}</th>`).join('');
+  const cell = (column: InvoiceColumn, content: string, tag: 'th' | 'td'): string =>
+    `<${tag}${column.numeric ? ' class="amount"' : ''}>${content}</${tag}>`;
+  const headers = columns.map((column) => cell(column, escape(column.label), 'th')).join('');
   const body = lines.length
     ? lines
         .map(
           (line) =>
-            `<tr>${columns.map((column) => `<td>${column.render(line)}</td>`).join('')}</tr>`,
+            `<tr>${columns.map((column) => cell(column, column.render(line), 'td')).join('')}</tr>`,
         )
         .join('')
     : `<tr><td colspan="${columns.length}" class="muted">${escape(localized.noInvoiceLines)}</td></tr>`;
-  return `<table class="invoice-lines"><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table>`;
+  const footer =
+    totalQtyText || totalAmountText
+      ? `<tfoot><tr class="qty-total-row"><td><strong>${escape(localized.total)}</strong></td><td class="amount qty-total-cell"><strong>${escape(totalQtyText ?? '—')}</strong></td><td></td><td class="amount total-amount-cell"><strong>${escape(totalAmountText ?? '')}</strong></td></tr></tfoot>`
+      : '';
+  return `<table class="invoice-lines"><thead><tr>${headers}</tr></thead><tbody>${body}</tbody>${footer}</table>`;
 };
 
 const textColumn = (label: string, ...keys: readonly string[]): InvoiceColumn => ({
   label,
-  render: (line) => valueOrDash(lineValue(line, ...keys)),
+  render: (line) => valueOrDash(lineDisplayValue(line, ...keys)),
 });
 
 const moneyColumn = (
@@ -568,12 +805,17 @@ const moneyColumn = (
   ...keys: readonly string[]
 ): InvoiceColumn => ({
   label,
+  numeric: true,
   render: (line) => moneyOrDash(currency, lineValue(line, ...keys), locale, localized),
 });
 
-const quantityColumn = (label: string, ...keys: readonly string[]): InvoiceColumn => ({
+const quantityColumn = (label: string, ..._keys: readonly string[]): InvoiceColumn => ({
   label,
-  render: (line) => valueOrDash(lineValue(line, ...keys)),
+  numeric: true,
+  render: (line) => {
+    const qty = getLineQuantity(line);
+    return escape(formatQuantity(qty));
+  },
 });
 
 const descriptionBlock = (
@@ -588,6 +830,29 @@ const descriptionBlock = (
     : '';
 };
 
+const lineSubtotalMinorSum = (
+  lines: readonly Readonly<Record<string, unknown>>[],
+  snapshot: InvoiceTemplateSnapshot,
+): bigint => {
+  const sum = lines.reduce((acc, line) => {
+    const raw = lineValue(
+      line,
+      'subtotal_minor',
+      'subtotalMinor',
+      'amount_minor',
+      'amountMinor',
+      'adjustment_amount_minor',
+      'adjustmentAmountMinor',
+      'total_minor',
+      'totalMinor',
+    );
+    return acc + (raw !== undefined && raw !== null && raw !== '' ? BigInt(String(raw)) : 0n);
+  }, 0n);
+  if (sum !== 0n) return sum;
+  const snapMinor = snapshot.calculation?.subtotalMinor ?? snapshot.calculation?.totalMinor;
+  return snapMinor ? BigInt(String(snapMinor)) : 0n;
+};
+
 const renderLaborDetailed = (
   snapshot: InvoiceTemplateSnapshot,
   localized: InvoiceCopy,
@@ -595,15 +860,27 @@ const renderLaborDetailed = (
 ): string => {
   const currency = calculationCurrency(snapshot);
   const lines = snapshot.lines ?? [];
-  return `<h2>${escape(localized.invoiceDetail)}</h2>${descriptionBlock(lines, localized)}${table(
+  const totalQty = lines.reduce((sum, line) => sum + getLineQuantity(line), 0);
+  const totalQtyText = totalQty > 0 ? formatQuantity(totalQty) : undefined;
+  const totalAmountMinor = lineSubtotalMinorSum(lines, snapshot);
+  const totalAmountText =
+    totalAmountMinor !== 0n ? formatMinorUnits(currency, totalAmountMinor, locale) : undefined;
+  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.worker)}</h2>${descriptionBlock(lines, localized)}${table(
     [
-      textColumn(localized.description, 'description', 'detail'),
-      textColumn(localized.date, 'work_date', 'workDate', 'service_date', 'serviceDate', 'date'),
-      textColumn(localized.worker, 'worker_name', 'workerName', 'worker', 'employee_name'),
-      textColumn(localized.category, 'category', 'line_kind', 'lineKind'),
-      quantityColumn(localized.hours, 'hours', 'hour_quantity', 'hourQuantity', 'quantity_display'),
+      {
+        label: `${localized.description} / ${localized.worker}`,
+        render: (line) => escape(formatLaborDescription(line, localized)),
+      },
+      quantityColumn(
+        localized.qty,
+        'hours',
+        'hour_quantity',
+        'hourQuantity',
+        'quantity_display',
+        'quantity',
+      ),
       moneyColumn(
-        localized.rate,
+        localized.unitPrice,
         currency,
         locale,
         localized,
@@ -611,9 +888,10 @@ const renderLaborDetailed = (
         'unitPriceMinor',
         'rate_minor',
         'rateMinor',
+        'unit_amount_minor',
       ),
       moneyColumn(
-        localized.amount,
+        `${localized.total} / ${localized.amount}`,
         currency,
         locale,
         localized,
@@ -621,10 +899,13 @@ const renderLaborDetailed = (
         'subtotalMinor',
         'amount_minor',
         'amountMinor',
+        'gross_amount_minor',
       ),
     ],
     lines,
     localized,
+    totalQtyText,
+    totalAmountText,
   )}`;
 };
 
@@ -635,11 +916,16 @@ const renderLaborSummary = (
 ): string => {
   const currency = calculationCurrency(snapshot);
   const lines = snapshot.lines ?? [];
-  return `<h2>${escape(localized.invoiceDetail)}</h2>${descriptionBlock(lines, localized)}${table(
+  const totalQty = lines.reduce((sum, line) => sum + getLineQuantity(line), 0);
+  const totalQtyText = totalQty > 0 ? formatQuantity(totalQty) : undefined;
+  const totalAmountMinor = lineSubtotalMinorSum(lines, snapshot);
+  const totalAmountText =
+    totalAmountMinor !== 0n ? formatMinorUnits(currency, totalAmountMinor, locale) : undefined;
+  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.summaryQuantity)}</h2>${descriptionBlock(lines, localized)}${table(
     [
-      textColumn(localized.group, 'grouping_key', 'groupingKey', 'category', 'description'),
+      textColumn(localized.description, 'grouping_key', 'groupingKey', 'category', 'description'),
       quantityColumn(
-        localized.summaryQuantity,
+        `${localized.qty} / ${localized.summaryQuantity}`,
         'hours',
         'hour_quantity',
         'hourQuantity',
@@ -647,7 +933,18 @@ const renderLaborSummary = (
         'quantity',
       ),
       moneyColumn(
-        localized.amount,
+        localized.unitPrice,
+        currency,
+        locale,
+        localized,
+        'unit_price_minor',
+        'unitPriceMinor',
+        'rate_minor',
+        'rateMinor',
+        'unit_amount_minor',
+      ),
+      moneyColumn(
+        `${localized.total} / ${localized.amount}`,
         currency,
         locale,
         localized,
@@ -659,6 +956,8 @@ const renderLaborSummary = (
     ],
     lines,
     localized,
+    totalQtyText,
+    totalAmountText,
   )}`;
 };
 
@@ -669,14 +968,38 @@ const renderExpensesDetailed = (
 ): string => {
   const currency = calculationCurrency(snapshot);
   const lines = snapshot.lines ?? [];
-  return `<h2>${escape(localized.invoiceDetail)}</h2>${descriptionBlock(lines, localized)}${table(
+  const totalQty = lines.reduce((sum, line) => sum + getLineQuantity(line), 0);
+  const totalQtyText = totalQty > 0 ? formatQuantity(totalQty) : undefined;
+  const totalAmountMinor = lineSubtotalMinorSum(lines, snapshot);
+  const totalAmountText =
+    totalAmountMinor !== 0n ? formatMinorUnits(currency, totalAmountMinor, locale) : undefined;
+  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.vendor)}</h2>${descriptionBlock(lines, localized)}${table(
     [
-      textColumn(localized.date, 'expense_date', 'expenseDate', 'date'),
-      textColumn(localized.category, 'category', 'expense_category', 'expenseCategory'),
-      textColumn(localized.vendor, 'vendor', 'merchant', 'supplier'),
-      textColumn(localized.description, 'description', 'detail'),
+      {
+        label: `${localized.description} / ${localized.vendor}`,
+        render: (line) => {
+          const desc = lineDisplayValue(line, 'description', 'detail');
+          const vendor = lineDisplayValue(line, 'vendor', 'merchant', 'supplier');
+          if (desc && vendor && !String(desc).includes(String(vendor))) {
+            return `${escape(String(desc))} <span class="sub-muted">(${escape(String(vendor))})</span>`;
+          }
+          return escape(String(desc || vendor || localized.noValue));
+        },
+      },
+      quantityColumn(localized.qty, 'quantity', 'quantity_display', 'qty'),
       moneyColumn(
-        localized.amount,
+        localized.unitPrice,
+        currency,
+        locale,
+        localized,
+        'unit_price_minor',
+        'unitPriceMinor',
+        'rate_minor',
+        'rateMinor',
+        'subtotal_minor',
+      ),
+      moneyColumn(
+        `${localized.total} / ${localized.amount}`,
         currency,
         locale,
         localized,
@@ -688,6 +1011,8 @@ const renderExpensesDetailed = (
     ],
     lines,
     localized,
+    totalQtyText,
+    totalAmountText,
   )}`;
 };
 
@@ -698,21 +1023,37 @@ const renderFixedMilestone = (
 ): string => {
   const currency = calculationCurrency(snapshot);
   const lines = snapshot.lines ?? [];
-  return `<h2>${escape(localized.invoiceDetail)}</h2>${descriptionBlock(lines, localized)}${table(
+  const totalQty = lines.reduce((sum, line) => sum + getLineQuantity(line), 0);
+  const totalQtyText = totalQty > 0 ? formatQuantity(totalQty) : undefined;
+  const totalAmountMinor = lineSubtotalMinorSum(lines, snapshot);
+  const totalAmountText =
+    totalAmountMinor !== 0n ? formatMinorUnits(currency, totalAmountMinor, locale) : undefined;
+  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.milestone)}</h2>${descriptionBlock(lines, localized)}${table(
     [
-      textColumn(localized.milestone, 'milestone', 'milestone_name', 'milestoneName'),
-      textColumn(localized.service, 'service', 'description', 'detail'),
-      textColumn(localized.period, 'service_period', 'servicePeriod', 'period'),
-      textColumn(
-        localized.reference,
-        'reference',
-        'po_number',
-        'poNumber',
-        'source_id',
-        'sourceId',
+      {
+        label: `${localized.description} / ${localized.milestone}`,
+        render: (line) => {
+          const milestone = lineDisplayValue(line, 'milestone', 'milestone_name', 'milestoneName');
+          const desc = lineDisplayValue(line, 'description', 'service', 'detail');
+          if (milestone && desc && !String(desc).includes(String(milestone))) {
+            return `${escape(String(desc))} <span class="sub-muted">(${escape(String(milestone))})</span>`;
+          }
+          return escape(String(desc || milestone || localized.noValue));
+        },
+      },
+      quantityColumn(localized.qty, 'quantity', 'quantity_display'),
+      moneyColumn(
+        localized.unitPrice,
+        currency,
+        locale,
+        localized,
+        'unit_price_minor',
+        'unitPriceMinor',
+        'subtotal_minor',
+        'subtotalMinor',
       ),
       moneyColumn(
-        localized.amount,
+        `${localized.total} / ${localized.amount}`,
         currency,
         locale,
         localized,
@@ -724,6 +1065,8 @@ const renderFixedMilestone = (
     ],
     lines,
     localized,
+    totalQtyText,
+    totalAmountText,
   )}`;
 };
 
@@ -734,19 +1077,48 @@ const renderCreditAdjustment = (
 ): string => {
   const currency = calculationCurrency(snapshot);
   const lines = snapshot.lines ?? [];
-  return `<h2>${escape(localized.invoiceDetail)}</h2>${descriptionBlock(lines, localized)}${table(
+  const totalQty = lines.reduce((sum, line) => sum + getLineQuantity(line), 0);
+  const totalQtyText = totalQty > 0 ? formatQuantity(totalQty) : undefined;
+  const totalAmountMinor = lineSubtotalMinorSum(lines, snapshot);
+  const totalAmountText =
+    totalAmountMinor !== 0n ? formatMinorUnits(currency, totalAmountMinor, locale) : undefined;
+  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.originalInvoice)}</h2>${descriptionBlock(lines, localized)}${table(
     [
-      textColumn(
-        localized.originalInvoice,
-        'original_invoice_number',
-        'originalInvoiceNumber',
-        'original_invoice',
-        'originalInvoice',
-      ),
-      textColumn(localized.reference, 'reference', 'adjustment_reference', 'adjustmentReference'),
-      textColumn(localized.reason, 'reason', 'adjustment_reason', 'adjustmentReason'),
+      {
+        label: `${localized.description} / ${localized.originalInvoice}`,
+        render: (line) => {
+          const original = lineDisplayValue(
+            line,
+            'original_invoice_number',
+            'originalInvoiceNumber',
+            'original_invoice',
+            'originalInvoice',
+          );
+          const reason = lineDisplayValue(line, 'reason', 'adjustment_reason', 'adjustmentReason');
+          const desc = lineDisplayValue(line, 'description', 'detail');
+          const parts = [
+            desc,
+            original ? `${localized.originalInvoice}: ${original}` : undefined,
+            reason,
+          ]
+            .filter(nonEmptyString)
+            .map(String);
+          return escape(parts.join(' · ') || localized.noValue);
+        },
+      },
+      quantityColumn(localized.qty, 'quantity', 'quantity_display'),
       moneyColumn(
-        localized.adjustmentAmount,
+        localized.unitPrice,
+        currency,
+        locale,
+        localized,
+        'adjustment_amount_minor',
+        'adjustmentAmountMinor',
+        'subtotal_minor',
+        'subtotalMinor',
+      ),
+      moneyColumn(
+        `${localized.total} / ${localized.amount}`,
         currency,
         locale,
         localized,
@@ -760,6 +1132,8 @@ const renderCreditAdjustment = (
     ],
     lines,
     localized,
+    totalQtyText,
+    totalAmountText,
   )}`;
 };
 
@@ -798,7 +1172,36 @@ const renderTotals = (
 ): string => {
   const calculation = snapshot.calculation;
   const currency = calculationCurrency(snapshot);
-  return `<div class="invoice-total"><div><span>${escape(localized.subtotal)}</span><span>${moneyOrDash(currency, calculation?.subtotalMinor ?? calculation?.subtotal_minor, locale, localized)}</span></div><div><span>${escape(localized.tax)}</span><span>${moneyOrDash(currency, calculation?.taxMinor ?? calculation?.tax_minor, locale, localized)}</span></div><div><strong>${escape(localized.total)}</strong><strong>${moneyOrDash(currency, calculation?.totalMinor ?? calculation?.total_minor, locale, localized)}</strong></div></div>`;
+  const subtotalMinor = calculation?.subtotalMinor ?? calculation?.subtotal_minor;
+  const discountMinor =
+    snapshot.discountMinor ?? snapshot.discount_minor ?? snapshot.discount ?? '0';
+  const subtotalBig = exactMinorUnits(subtotalMinor);
+  const discountBig = exactMinorUnits(discountMinor);
+  const subtotalLessDiscountMinor =
+    subtotalBig !== undefined && discountBig !== undefined
+      ? (subtotalBig - discountBig).toString()
+      : subtotalMinor;
+  const totalMinor =
+    calculation?.totalMinor ?? calculation?.total_minor ?? subtotalLessDiscountMinor;
+  const terms = resolveTerms(snapshot);
+
+  return `<div class="invoice-bottom-grid">
+  <div class="invoice-terms-card">
+    <div class="terms-heading">${escape(localized.termsInstructions)}</div>
+    <div class="terms-field"><strong>${escape(localized.bankSwiftNumber)}:</strong> ${escape(terms.bankSwiftNumber)}</div>
+    <div class="terms-field"><strong>${escape(localized.bankAccountNumber)}:</strong> ${escape(terms.bankAccountNumber)}</div>
+    <div class="terms-field"><strong>${escape(localized.bankName)}:</strong> ${escape(terms.bankName)}</div>
+    <div class="terms-field"><strong>${escape(localized.beneficiary)}:</strong> ${escape(terms.beneficiary)}</div>
+    <div class="terms-notice">${escape(terms.pastDueNotice)}</div>
+  </div>
+  <div class="invoice-total">
+    <div class="total-row"><span>${escape(localized.subtotal)}</span><span>${moneyOrDash(currency, subtotalMinor, locale, localized)}</span></div>
+    <div class="total-row"><span>${escape(localized.discount)}</span><span>${moneyOrDash(currency, discountMinor, locale, localized)}</span></div>
+    <div class="total-row"><span>${escape(localized.subtotalLessDiscount)}</span><span>${moneyOrDash(currency, subtotalLessDiscountMinor, locale, localized)}</span></div>
+    ${calculation?.taxMinor || calculation?.tax_minor ? `<div class="total-row"><span>${escape(localized.tax)}</span><span>${moneyOrDash(currency, calculation.taxMinor ?? calculation.tax_minor, locale, localized)}</span></div>` : ''}
+    <div class="total-row grand-total"><strong>${escape(localized.total)}</strong><strong>${moneyOrDash(currency, totalMinor, locale, localized)}</strong></div>
+  </div>
+</div>`;
 };
 
 export type RenderedInvoiceTemplate = Readonly<{
@@ -837,6 +1240,33 @@ type LegacyInvoiceHtmlSnapshot = Readonly<{
   locale?: InvoiceLocale | string;
 }>;
 
+const invoiceStandaloneCss = `
+body{font:13px Arial,sans-serif;color:#1e293b;margin:28px}
+h1{border-bottom:2px solid #0f2d3d;padding-bottom:12px;color:#0f2d3d}
+.invoice-parties{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;padding:16px 0}
+.invoice-party{display:grid;gap:5px;font-size:12px}
+.invoice-party-label{color:#64748b;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.invoice-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:12px 0;border-block:1px solid #d9e1e7}
+.invoice-field{display:grid;gap:3px}
+.invoice-field .label{color:#64748b;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.invoice-field .value{margin:0;font-size:12px}
+.invoice-lines{width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;margin-top:20px}
+.invoice-lines th{background:#dbebf7;color:#0d3b66;text-align:left;padding:8px 10px;font-size:11px;font-weight:700;letter-spacing:.04em;border-top:1px solid #b8d5ec;border-bottom:1px solid #b8d5ec}
+.invoice-lines td{border-bottom:1px solid #e2e8f0;padding:8px 10px;vertical-align:top;font-size:12px}
+.invoice-lines th.amount,.invoice-lines td.amount{text-align:right;white-space:nowrap}
+.qty-total-cell,.total-amount-cell{border:1.5px solid #0d3b66!important;background:#fff;font-weight:700;text-align:right}
+.invoice-bottom-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;margin-top:24px;align-items:start}
+.invoice-terms-card{font-size:11.5px;color:#1e293b;line-height:1.5}
+.terms-heading{font-size:13px;font-weight:700;color:#0f2d3d;text-decoration:underline;margin-bottom:8px}
+.terms-field{margin:2px 0}
+.terms-notice{margin-top:10px;font-style:italic;color:#64748b;font-size:11px}
+.invoice-total{border-top:2px solid #cbd5e1;padding-top:8px}
+.total-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;padding:3px 0;font-size:12px}
+.total-row span:last-child,.total-row strong:last-child{text-align:right}
+.muted{color:#64748b}
+.sub-muted{color:#64748b;font-size:11px}
+`;
+
 /**
  * Standalone HTML renderer retained for callers that do not use @ja/reporting.
  * The same registry contract is used as the PDF renderer. The legacy overload
@@ -867,5 +1297,5 @@ export function invoiceHtml(
   const rendered = renderInvoiceTemplate(normalized);
   const number =
     nonEmptyString(normalized.number ?? normalized.invoiceNumber) ?? rendered.definition.id;
-  return `<!doctype html><html lang="${invoiceLocaleTag(rendered.locale)}"><head><meta charset="utf-8"><meta name="invoice-template-id" content="${escape(rendered.definition.id)}"><meta name="invoice-template-version" content="${escape(rendered.definition.versionId)}"><style>body{font:14px Arial,sans-serif;color:#17212b;margin:32px}h1{border-bottom:4px solid #e23d2d;padding-bottom:16px;color:#0f2d3d}.invoice-parties{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}.invoice-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 24px}.invoice-field{display:grid;grid-template-columns:minmax(120px,1fr) minmax(0,2fr);gap:8px}.invoice-field dt{color:#64748b}.invoice-field dd{margin:0}.invoice-lines{width:100%;border-collapse:collapse;margin-top:24px}.invoice-lines th{background:#0f2d3d;color:#fff;text-align:left;padding:8px}.invoice-lines td{border-bottom:1px solid #d9e1e7;padding:8px;vertical-align:top}.invoice-total{margin:24px 0 0 auto;max-width:360px;border-top:3px solid #e23d2d;padding-top:12px}.invoice-total div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;padding:4px 0}.invoice-total span:last-child,.invoice-total strong:last-child{text-align:right;overflow-wrap:anywhere}.muted{color:#64748b}</style></head><body><h1>${escape(rendered.title)} ${escape(number)}</h1><p class="muted">${escape(rendered.subtitle)}</p>${rendered.body}</body></html>`;
+  return `<!doctype html><html lang="${invoiceLocaleTag(rendered.locale)}"><head><meta charset="utf-8"><meta name="invoice-template-id" content="${escape(rendered.definition.id)}"><meta name="invoice-template-version" content="${escape(rendered.definition.versionId)}"><style>${invoiceStandaloneCss}</style></head><body><h1>${escape(rendered.title)} ${escape(number)}</h1><p class="muted">${escape(rendered.subtitle)}</p>${rendered.body}</body></html>`;
 }

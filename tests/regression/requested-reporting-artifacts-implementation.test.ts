@@ -7,6 +7,7 @@ import {
   REPORT_TEMPLATE_VERSION,
   runArtifactJobs,
   type ArtifactJobContext,
+  type ArtifactJobExecution,
 } from '@ja/reporting';
 import {
   makeB5DurableJobFixture,
@@ -32,62 +33,42 @@ const snapshot = {
   totals: { revenueMinor: '1000' },
 };
 
-type B5ArtifactPrincipal = Readonly<{
-  actor: string;
-  tenantId: string;
-  deploymentId: string;
-  serviceActorId: string;
-  jobId: string;
-  jobRunId: string;
-  fenceVersion: number;
-  capability: string;
-}>;
-
 function b5ArtifactPrincipal(): {
   execution: B5DurableJobFixture;
-  principal: B5ArtifactPrincipal;
+  proof: ArtifactJobExecution;
 } {
   const execution = makeB5DurableJobFixture({ jobState: 'running', runState: 'running' });
   return {
     execution,
-    principal: {
-      actor: execution.serviceActor.id,
+    proof: {
+      jobId: execution.job.id,
+      runId: execution.jobRun.id,
       tenantId: execution.tenantId,
       deploymentId: execution.deploymentId,
-      serviceActorId: execution.serviceActor.id,
-      jobId: execution.job.id,
-      jobRunId: execution.jobRun.id,
+      requiredCapability: execution.jobRun.capability,
       fenceVersion: execution.jobRun.fenceVersion,
-      capability: execution.jobRun.capability,
     },
   };
 }
 
 function expectB5ArtifactExecution(
-  principal: B5ArtifactPrincipal,
+  proof: ArtifactJobExecution,
   execution: B5DurableJobFixture,
 ): void {
-  expect(principal).toMatchObject({
-    actor: execution.serviceActor.id,
+  expect(proof).toMatchObject({
+    jobId: execution.job.id,
+    runId: execution.jobRun.id,
     tenantId: execution.tenantId,
     deploymentId: execution.deploymentId,
-    serviceActorId: execution.serviceActor.id,
-    jobId: execution.job.id,
-    jobRunId: execution.jobRun.id,
+    requiredCapability: execution.jobRun.capability,
     fenceVersion: execution.jobRun.fenceVersion,
-    capability: execution.jobRun.capability,
   });
 }
 
-function baseContext(
-  root: string,
-  v3: NonNullable<ArtifactJobContext<B5ArtifactPrincipal>['v3']>,
-  principal: B5ArtifactPrincipal,
-): ArtifactJobContext<B5ArtifactPrincipal> {
+function baseContext(root: string, v3: ArtifactJobContext['v3']): ArtifactJobContext {
   return {
-    principal,
     documentRoot: root,
-    repository: { createInvoiceDraft: () => undefined },
+    repository: { createInvoiceDraftFromJob: () => undefined },
     v3,
   };
 }
@@ -96,7 +77,7 @@ describe('requested reporting artifact implementation', () => {
   it('rejects a pre-existing destination with different deterministic content and cleans temp files', () => {
     const root = mkdtempSync(join(tmpdir(), 'ja-reporting-collision-'));
     roots.push(root);
-    const { principal } = b5ArtifactPrincipal();
+    const { proof } = b5ArtifactPrincipal();
     const target = join(root, 'invoices', 'invoice-1', `${REPORT_TEMPLATE_VERSION}.pdf`);
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, Buffer.from('unrelated pre-existing content'));
@@ -104,30 +85,26 @@ describe('requested reporting artifact implementation', () => {
     let recorded = false;
 
     const result = runArtifactJobs(
-      baseContext(
-        root,
-        {
-          runDueJobs: (_limit, handlers) => {
-            try {
-              handlers.invoice_pdf({ invoiceId: 'invoice-1' });
-              return { processed: 1, failed: 0, overdueMarked: 0 };
-            } catch (error) {
-              thrown = error;
-              return { processed: 0, failed: 1, overdueMarked: 0 };
-            }
-          },
-          invoiceSnapshot: () => ({ number: 'JA-INV-0001' }),
-          recordInvoicePdf: () => {
-            recorded = true;
-          },
-          refreshPeriodReports: () => [],
-          recordPeriodReportPdf: () => undefined,
-          accountingPackSnapshot: () => snapshot,
-          recordAccountingPackExport: () => ({ id: 'export-1', created: true }),
-          recordDocumentScan: () => undefined,
+      baseContext(root, {
+        runDueJobs: (_limit, handlers) => {
+          try {
+            handlers.invoice_pdf({ invoiceId: 'invoice-1' }, proof);
+            return { processed: 1, failed: 0, overdueMarked: 0 };
+          } catch (error) {
+            thrown = error;
+            return { processed: 0, failed: 1, overdueMarked: 0 };
+          }
         },
-        principal,
-      ),
+        invoiceSnapshotFromJob: () => ({ number: 'JA-INV-0001' }),
+        recordInvoicePdfFromJob: () => {
+          recorded = true;
+        },
+        refreshPeriodReportsFromJob: () => [],
+        recordPeriodReportPdfFromJob: () => undefined,
+        accountingPackSnapshotFromJob: () => snapshot,
+        recordAccountingPackExportFromJob: () => ({ id: 'export-1', created: true }),
+        recordDocumentScanFromJob: () => undefined,
+      }),
     );
 
     expect(result).toMatchObject({ processed: 0, failed: 1 });
@@ -142,41 +119,37 @@ describe('requested reporting artifact implementation', () => {
     const root = mkdtempSync(join(tmpdir(), 'ja-reporting-independent-'));
     roots.push(root);
     process.env.JA_CHROMIUM_PATH = join(root, 'missing-chromium');
-    const { execution, principal } = b5ArtifactPrincipal();
+    const { execution, proof } = b5ArtifactPrincipal();
     const ready: string[] = [];
     const failed: string[] = [];
 
     const result = runArtifactJobs(
-      baseContext(
-        root,
-        {
-          runDueJobs: (_limit, handlers) => {
-            try {
-              expect(handlers.accounting_pack_artifact_render).toBeTypeOf('function');
-              handlers.accounting_pack_artifact_render({ packId: 'pack-1' });
-              return { processed: 1, failed: 0, overdueMarked: 0 };
-            } catch {
-              return { processed: 0, failed: 1, overdueMarked: 0 };
-            }
-          },
-          invoiceSnapshot: () => ({}),
-          recordInvoicePdf: () => undefined,
-          refreshPeriodReports: () => [],
-          recordPeriodReportPdf: () => undefined,
-          accountingPackSnapshot: () => snapshot,
-          recordAccountingPackExport: (actor, _packId, exportType) => {
-            expectB5ArtifactExecution(actor, execution);
-            ready.push(exportType);
-            return { id: `export-${exportType}`, created: true };
-          },
-          recordAccountingPackExportFailure: (actor, _packId, exportType) => {
-            expectB5ArtifactExecution(actor, execution);
-            failed.push(exportType);
-          },
-          recordDocumentScan: () => undefined,
+      baseContext(root, {
+        runDueJobs: (_limit, handlers) => {
+          try {
+            expect(handlers.accounting_pack_artifact_render).toBeTypeOf('function');
+            handlers.accounting_pack_artifact_render({ packId: 'pack-1' }, proof);
+            return { processed: 1, failed: 0, overdueMarked: 0 };
+          } catch {
+            return { processed: 0, failed: 1, overdueMarked: 0 };
+          }
         },
-        principal,
-      ),
+        invoiceSnapshotFromJob: () => ({}),
+        recordInvoicePdfFromJob: () => undefined,
+        refreshPeriodReportsFromJob: () => [],
+        recordPeriodReportPdfFromJob: () => undefined,
+        accountingPackSnapshotFromJob: () => snapshot,
+        recordAccountingPackExportFromJob: (_packId, exportType, _key, _sha, _bytes, actor) => {
+          expectB5ArtifactExecution(actor, execution);
+          ready.push(exportType);
+          return { id: `export-${exportType}`, created: true };
+        },
+        recordAccountingPackExportFailureFromJob: (_packId, exportType, _error, actor) => {
+          expectB5ArtifactExecution(actor, execution);
+          failed.push(exportType);
+        },
+        recordDocumentScanFromJob: () => undefined,
+      }),
     );
 
     expect(result).toMatchObject({ processed: 1, failed: 0 });

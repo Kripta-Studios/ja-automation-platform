@@ -53,7 +53,15 @@ function fixture() {
       .prepare(
         'INSERT INTO user(id,name,email,role,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',
       )
-      .run(id, id, `${id}@example.test`, role, 'active', now, now);
+      .run(
+        id,
+        id,
+        role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@example.test`,
+        role,
+        'active',
+        now,
+        now,
+      );
   }
   seedB5ServiceActorBinding(sqlite, 'owner');
   sqlite
@@ -158,6 +166,25 @@ function fixture() {
         : { exists: false, byteLength: null, contentSha256: null },
   });
   return { sqlite, repository, owner, finance, worker };
+}
+
+function stepUpPrincipal(sqlite: DatabaseSync, principal: Principal, suffix: string): Principal {
+  const timestamp = new Date().toISOString();
+  const sessionId = `localized-pdf-${principal.userId}-${suffix}`;
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+    )
+    .run(
+      sessionId,
+      `${sessionId}-token`,
+      principal.userId,
+      new Date(Date.now() + 60 * 60_000).toISOString(),
+      timestamp,
+      timestamp,
+      timestamp,
+    );
+  return { ...principal, sessionId };
 }
 
 /** Claim through the real B5 runner so repository transitions never use forged execution IDs. */
@@ -301,7 +328,7 @@ describe('localized PDF variants', () => {
             version: number;
           }
         ).version,
-      ).toBe(30);
+      ).toBe(35);
     } finally {
       sqlite.close();
     }
@@ -414,9 +441,26 @@ describe('localized PDF variants', () => {
         pdf_sha256: 'c'.repeat(64),
         pdf_byte_length: 128,
       });
-      expect(() => repository.resolveDownload(owner, 'legacy-invoice:invoice')).toThrow(
-        ConflictError,
-      );
+      const now = new Date().toISOString();
+      sqlite
+        .prepare(
+          'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+        )
+        .run(
+          'legacy-invoice-download-session',
+          'legacy-invoice-download-token',
+          owner.userId,
+          new Date(Date.now() + 60 * 60_000).toISOString(),
+          now,
+          now,
+          now,
+        );
+      expect(() =>
+        repository.resolveDownload(
+          { ...owner, sessionId: 'legacy-invoice-download-session' },
+          'legacy-invoice:invoice',
+        ),
+      ).toThrow(ConflictError);
       expect(integrityCheck(sqlite)).toBe('ok');
     } finally {
       sqlite.close();
@@ -426,14 +470,17 @@ describe('localized PDF variants', () => {
   it('coexists in en/es/pt, derives a canonical snapshot, and is idempotent per identity', () => {
     const { sqlite, repository, finance, worker } = fixture();
     try {
-      // Migration 0028 adds planning dates to invoice. They are operational
-      // projections, not part of the migration-0023 immutable invoice owner
-      // snapshot guarded by localized_pdf_canonical_snapshot_guard.
-      sqlite
-        .prepare('UPDATE invoice SET planned_issue_on=?,expected_collection_on=? WHERE id=?')
-        .run('2026-09-01', '2026-09-30', 'invoice');
+      const financeWithStepUp = stepUpPrincipal(sqlite, finance, 'coexistence');
+      // Issued planning/cash-flow dates are part of the immutable historical
+      // invoice record after migration 0034. Localized rendering must consume
+      // the sealed row rather than mutating it as test setup.
+      expect(() =>
+        sqlite
+          .prepare('UPDATE invoice SET planned_issue_on=?,expected_collection_on=? WHERE id=?')
+          .run('2026-09-01', '2026-09-30', 'invoice'),
+      ).toThrow(/immutable/i);
       const variants = ['en', 'es', 'pt'].map((locale) =>
-        repository.requestVariant(finance, {
+        repository.requestVariant(financeWithStepUp, {
           ownerType: 'invoice',
           ownerId: 'invoice',
           locale,
@@ -450,7 +497,7 @@ describe('localized PDF variants', () => {
       expect(
         variants.every((variant) => variant.storageKey.includes('localized-pdf/invoice')),
       ).toBe(true);
-      const duplicate = repository.requestVariant(finance, {
+      const duplicate = repository.requestVariant(financeWithStepUp, {
         ownerType: 'invoice',
         ownerId: 'invoice',
         locale: 'pt-BR',
@@ -847,13 +894,21 @@ describe('localized PDF variants', () => {
         .prepare(
           'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
         )
-        .run('owner-download-session', 'owner-download-token', 'owner', future, now, now);
+        .run(
+          'owner-download-session',
+          'owner-download-token',
+          'owner',
+          new Date(Date.now() - 1).toISOString(),
+          now,
+          now,
+        );
       const sessionOwner: Principal = { ...owner, sessionId: 'owner-download-session' };
-      const variant = repository.requestVariant(owner, {
-        ownerType: 'technical_report',
-        ownerId: 'technical',
+      const requestOwner = stepUpPrincipal(sqlite, owner, 'request');
+      const variant = repository.requestVariant(requestOwner, {
+        ownerType: 'invoice',
+        ownerId: 'invoice',
         locale: 'en',
-        templateVersion: 'technical-v1',
+        templateVersion: 'invoice-v1',
         generationVersion: 'renderer-1',
       });
       const execution = claimVariant(sqlite, repository, variant);
@@ -876,8 +931,8 @@ describe('localized PDF variants', () => {
           .get(),
       ).toMatchObject({
         action: 'artifact.access',
-        entity_type: 'document',
-        entity_id: 'technical',
+        entity_type: 'invoice',
+        entity_id: 'invoice',
       });
       const blockedDetails = JSON.parse(
         (
@@ -896,7 +951,9 @@ describe('localized PDF variants', () => {
         reason: 'step_up_required',
       });
 
-      sqlite.prepare('UPDATE session SET step_up_at=? WHERE id=?').run(now, sessionOwner.sessionId);
+      sqlite
+        .prepare('UPDATE session SET expires_at=? WHERE id=?')
+        .run(future, sessionOwner.sessionId);
       expect(repository.resolveDownload(sessionOwner, variant.variantId)).toMatchObject({
         variantId: variant.variantId,
       });
@@ -1066,6 +1123,61 @@ describe('localized PDF variants', () => {
         generationVersion: 'renderer-1',
       });
       expect(() => sqlite.prepare('DELETE FROM daily_report WHERE id=?').run('daily')).toThrow();
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it('enriches daily report render snapshots at claim without mutating the persisted owner snapshot', () => {
+    const { sqlite, repository, owner } = fixture();
+    try {
+      const variant = repository.requestVariant(owner, {
+        ownerType: 'daily_report',
+        ownerId: 'daily',
+        locale: 'en',
+        templateVersion: 'daily-v1',
+        generationVersion: 'renderer-1',
+      });
+      const persisted = JSON.parse(variant.snapshotJson) as Record<string, unknown>;
+      expect(persisted).not.toHaveProperty('project_number');
+      expect(persisted).not.toHaveProperty('worker_name');
+      expect(persisted.project_id).toBe('project');
+      expect(persisted.summary).toBe('Field handover');
+
+      const v3 = new V3Repository(sqlite);
+      let claimedSnapshot = '';
+      v3.enqueueJob(
+        'localized_pdf_variant_render',
+        `test-localized-pdf:${variant.variantId}:attempt:${variant.currentAttemptNumber}`,
+        { variantId: variant.variantId, requestedAttempt: variant.currentAttemptNumber },
+      );
+      const result = v3.runDueJobs(1, {
+        localized_pdf_variant_render: (payload, context) => {
+          const values = payload as { variantId?: unknown; requestedAttempt?: unknown };
+          const claim = repository.claimVariant(
+            String(values.variantId),
+            {
+              jobId: context.jobId,
+              jobRunId: context.runId,
+              leaseFence: context.fenceVersion,
+            },
+            Number(values.requestedAttempt),
+          );
+          claimedSnapshot = claim.variant.snapshotJson;
+        },
+      });
+      expect(result).toMatchObject({ processed: 1, failed: 0 });
+      const claimed = JSON.parse(claimedSnapshot) as Record<string, unknown>;
+      expect(claimed.project_number).toBe('C-0001-P-001');
+      expect(claimed.project_name).toBe('Localized Project');
+      expect(claimed.client_name).toBe('Localized Client');
+      expect(claimed.worker_name).toBe('worker');
+
+      const stored = sqlite
+        .prepare('SELECT snapshot_json FROM localized_pdf_variant WHERE variant_id=?')
+        .get(variant.variantId) as { snapshot_json: string };
+      expect(JSON.parse(stored.snapshot_json)).not.toHaveProperty('project_number');
+      expect(JSON.parse(stored.snapshot_json)).not.toHaveProperty('worker_name');
     } finally {
       sqlite.close();
     }

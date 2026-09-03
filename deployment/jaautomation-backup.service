@@ -1,10 +1,10 @@
 [Unit]
-Description=Backup J&A Automation SQLite and private documents
+Description=Backup J&A Automation SQLite/private documents and replicate encrypted continuity copy
 After=local-fs.target
 
 [Service]
 Type=oneshot
 WorkingDirectory=/opt/jaautomation/current
 EnvironmentFile=-/etc/jaautomation/jaautomation.env
-ExecStart=/usr/bin/node deployment/scripts/backup.mjs
+ExecStart=/opt/jaautomation/runtime/node/bin/node deployment/scripts/continuity-backup.mjs
 TimeoutStartSec=300

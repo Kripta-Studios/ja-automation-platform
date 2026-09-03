@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { canManageBilling, type Principal } from '@ja/domain';
 import { recordAuditEvent } from '../../core/audit.ts';
+import { readLiveSessionStepUp } from '../../core/authorization.ts';
 import { canonicalJson, sha256 } from '../../core/canonical-json.ts';
 import {
   ensureCommand,
@@ -69,6 +70,31 @@ export type ProjectLegalEntityAssignmentResult = Readonly<{
   idempotent: boolean;
 }>;
 
+export type CanonicalLegalEntityRevisionOption = Readonly<{
+  revisionId: string;
+  legalEntityId: string;
+  legalEntityCode: string;
+  legalName: string;
+  baseCurrency: string;
+  timezone: string;
+  revisionNumber: number;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+}>;
+
+export type ProjectLegalEntityAssignmentView = Readonly<{
+  assignmentId: string;
+  projectId: string;
+  revisionId: string;
+  legalEntityId: string;
+  legalEntityCode: string;
+  legalName: string;
+  baseCurrency: string;
+  revisionNumber: number;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+}>;
+
 export type ResolvedCanonicalProjectLegalEntity = Readonly<{
   assignmentId: string;
   projectId: string;
@@ -134,31 +160,18 @@ export class CanonicalProjectLegalEntityRepository {
     if (!user || user.status !== 'active')
       return this.deps.errors.accessDenied('Active finance principal required');
     if (
-      principal.isServiceActor ||
       !canManageBilling(principal) ||
       (user.role !== 'owner_admin' && user.role !== 'finance_admin')
     )
       return this.deps.errors.accessDenied('Finance role required');
     if (!requireStepUp) return;
-    if (!principal.sessionId)
-      return this.deps.errors.accessDenied('Recent step-up authentication is required');
-    const session = this.deps.sqlite
-      .prepare('SELECT step_up_at,expires_at FROM session WHERE id=? AND user_id=?')
-      .get(principal.sessionId, principal.userId) as
-      | { step_up_at: string | null; expires_at: string }
-      | undefined;
     const nowMs = Date.parse(this.deps.now());
-    const stepUpMs = session?.step_up_at ? Date.parse(session.step_up_at) : Number.NaN;
-    const expiresMs = session?.expires_at ? Date.parse(session.expires_at) : Number.NaN;
     if (
-      !session ||
-      !session.step_up_at ||
-      !Number.isFinite(nowMs) ||
-      !Number.isFinite(stepUpMs) ||
-      !Number.isFinite(expiresMs) ||
-      stepUpMs > nowMs ||
-      nowMs - stepUpMs > 10 * 60_000 ||
-      expiresMs <= nowMs
+      !readLiveSessionStepUp(
+        this.deps.sqlite,
+        principal,
+        Number.isFinite(nowMs) ? nowMs : Date.now(),
+      )
     )
       return this.deps.errors.accessDenied('Recent step-up authentication is required');
   }
@@ -278,20 +291,14 @@ export class CanonicalProjectLegalEntityRepository {
     stepUpVerifiedAt: string;
     stepUpExpiresAt: string;
   } {
-    const sessionId = principal.sessionId;
-    if (!sessionId) return this.failConflict('Recent step-up authentication is required');
-    const session = this.deps.sqlite
-      .prepare('SELECT step_up_at,expires_at FROM session WHERE id=? AND user_id=?')
-      .get(sessionId, principal.userId) as
-      | { step_up_at: string | null; expires_at: string }
-      | undefined;
-    if (!session?.step_up_at) return this.failConflict('Recent step-up authentication is required');
-    const stepUpExpires = new Date(Date.parse(session.step_up_at) + 10 * 60_000);
-    const sessionExpires = new Date(Date.parse(session.expires_at));
-    const expiresAt = (
-      stepUpExpires < sessionExpires ? stepUpExpires : sessionExpires
-    ).toISOString();
-    return { stepUpVerifiedAt: session.step_up_at, stepUpExpiresAt: expiresAt };
+    const nowMs = Date.parse(this.deps.now());
+    const proof = readLiveSessionStepUp(
+      this.deps.sqlite,
+      principal,
+      Number.isFinite(nowMs) ? nowMs : Date.now(),
+    );
+    if (!proof) return this.failConflict('Recent step-up authentication is required');
+    return { stepUpVerifiedAt: proof.verifiedAt, stepUpExpiresAt: proof.expiresAt };
   }
 
   private commandDescriptor(
@@ -972,6 +979,97 @@ export class CanonicalProjectLegalEntityRepository {
         idempotent: false,
       };
     });
+  }
+
+  listCanonicalLegalEntityRevisionOptions(
+    principal: Principal,
+  ): CanonicalLegalEntityRevisionOption[] {
+    this.assertActiveFinancePrincipal(principal, false);
+    const deployment = this.deployment();
+    return this.deps.sqlite
+      .prepare(
+        `SELECT r.revision_id,b.legacy_legal_entity_id,e.code,r.legal_name,r.base_currency,
+                r.timezone,r.revision_number,r.effective_from,r.effective_to
+           FROM legal_entity_revision_bridge b
+           JOIN legal_entity_revision r ON r.revision_id=b.canonical_revision_id
+           JOIN legal_entity e ON e.id=b.legacy_legal_entity_id
+           JOIN finance_hash_evidence h
+             ON h.evidence_type='legal_entity_revision'
+            AND h.contract_version=? AND h.evidence_hash=r.revision_hash
+          WHERE b.tenant_id=? AND b.deployment_id=?
+            AND r.tenant_id=? AND r.deployment_id=? AND e.status='active'
+          ORDER BY r.legal_name,r.effective_from DESC,r.revision_number DESC`,
+      )
+      .all(
+        REVISION_CONTRACT,
+        deployment.tenantId,
+        deployment.deploymentId,
+        deployment.tenantId,
+        deployment.deploymentId,
+      )
+      .map((row) => {
+        const value = row as DbRow;
+        return {
+          revisionId: String(value.revision_id),
+          legalEntityId: String(value.legacy_legal_entity_id),
+          legalEntityCode: String(value.code),
+          legalName: String(value.legal_name),
+          baseCurrency: String(value.base_currency),
+          timezone: String(value.timezone),
+          revisionNumber: Number(value.revision_number),
+          effectiveFrom: String(value.effective_from),
+          effectiveTo: rowValue<string | null>(value, 'effective_to') ?? null,
+        };
+      });
+  }
+
+  listProjectLegalEntityAssignments(
+    principal: Principal,
+    projectId: string,
+  ): ProjectLegalEntityAssignmentView[] {
+    this.assertActiveFinancePrincipal(principal, false);
+    const cleanProjectId = this.assertText(projectId, 'Project id', 200);
+    const deployment = this.deployment();
+    if (!this.deps.sqlite.prepare('SELECT id FROM project WHERE id=?').get(cleanProjectId))
+      return this.failValidation('Project not found');
+    return this.deps.sqlite
+      .prepare(
+        `SELECT a.assignment_id,a.project_id,a.legal_entity_revision_id,
+                b.legacy_legal_entity_id,e.code,r.legal_name,r.base_currency,r.revision_number,
+                a.effective_from,a.effective_to
+           FROM project_legal_entity_assignment a
+           JOIN legal_entity_revision r ON r.revision_id=a.legal_entity_revision_id
+           JOIN legal_entity_revision_bridge b ON b.canonical_revision_id=r.revision_id
+           JOIN legal_entity e ON e.id=b.legacy_legal_entity_id
+          WHERE a.project_id=? AND a.tenant_id=? AND a.deployment_id=?
+            AND r.tenant_id=? AND r.deployment_id=?
+            AND b.tenant_id=? AND b.deployment_id=?
+          ORDER BY a.effective_from DESC,a.assignment_id DESC`,
+      )
+      .all(
+        cleanProjectId,
+        deployment.tenantId,
+        deployment.deploymentId,
+        deployment.tenantId,
+        deployment.deploymentId,
+        deployment.tenantId,
+        deployment.deploymentId,
+      )
+      .map((row) => {
+        const value = row as DbRow;
+        return {
+          assignmentId: String(value.assignment_id),
+          projectId: String(value.project_id),
+          revisionId: String(value.legal_entity_revision_id),
+          legalEntityId: String(value.legacy_legal_entity_id),
+          legalEntityCode: String(value.code),
+          legalName: String(value.legal_name),
+          baseCurrency: String(value.base_currency),
+          revisionNumber: Number(value.revision_number),
+          effectiveFrom: String(value.effective_from),
+          effectiveTo: rowValue<string | null>(value, 'effective_to') ?? null,
+        };
+      });
   }
 
   resolveCanonicalProjectLegalEntity(

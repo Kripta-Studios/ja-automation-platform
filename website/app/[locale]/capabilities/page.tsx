@@ -9,6 +9,8 @@ import {
   Gauge,
   HardHat,
   GraduationCap,
+  Wrench,
+  Headphones,
 } from 'lucide-react';
 import { services } from '@/content/services';
 import { translateServiceTags } from '@/lib/i18n/content';
@@ -19,9 +21,11 @@ const iconMap: Record<string, React.ReactNode> = {
   Bot: <Bot size={24} />,
   MonitorPlay: <MonitorPlay size={24} />,
   Zap: <Zap size={24} />,
+  Wrench: <Wrench size={24} />,
   Gauge: <Gauge size={24} />,
   HardHat: <HardHat size={24} />,
   GraduationCap: <GraduationCap size={24} />,
+  Headphones: <Headphones size={24} />,
 };
 
 const capabilityKeys: Record<string, string> = {
@@ -29,9 +33,11 @@ const capabilityKeys: Record<string, string> = {
   robotics: 'robotics',
   simulation: 'simulation',
   'electrical-controls': 'electricalControls',
+  installation: 'installation',
   'motion-process': 'motionProcess',
   commissioning: 'commissioning',
   'training-consulting': 'supportTraining',
+  support: 'technicalSupport',
 };
 
 type CapabilityMessageKey =
@@ -39,9 +45,11 @@ type CapabilityMessageKey =
   | 'robotics'
   | 'simulation'
   | 'electricalControls'
+  | 'installation'
   | 'motionProcess'
   | 'commissioning'
-  | 'supportTraining';
+  | 'supportTraining'
+  | 'technicalSupport';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

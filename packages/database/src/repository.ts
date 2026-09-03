@@ -15,12 +15,17 @@ import {
   type OvertimeMethod,
 } from '@ja/billing-engine';
 import { add, hourlyRateForMinutes, money, type Currency } from '@ja/money';
+import { decodeTechnicalReportChange } from '@ja/schemas';
 import { recordAuditEvent } from './core/audit.ts';
 import { assertActiveAccount, assertRecentStepUp } from './core/authorization.ts';
 import { verifyPrivatePdfArtifact } from './core/private-pdf-proof.ts';
 import { nextNumberSequence } from './core/sequence.ts';
 import { assertSafeStorageKey } from './core/storage-key.ts';
 import { runImmediateTransaction } from './core/transaction.ts';
+import {
+  assertFencedJobExecution,
+  type FencedJobExecution,
+} from './domains/jobs/execution-authorization.ts';
 import {
   ClientRepository,
   type ClientContactInput,
@@ -53,8 +58,8 @@ export class ValidationError extends Error {}
 export class ReadinessError extends Error {
   readonly reasons: readonly ReadinessReason[];
 
-  constructor(reasons: readonly ReadinessReason[]) {
-    super('Billing period is not ready');
+  constructor(reasons: readonly ReadinessReason[], message = 'Billing period is not ready') {
+    super(message);
     this.reasons = reasons;
   }
 }
@@ -95,6 +100,28 @@ type BillingTimeSlice = Readonly<{
   policyId: string | null;
   sliceIndex: number;
 }>;
+
+type InvoiceListSourceRow = Readonly<{
+  id: string;
+  invoice_number: string | null;
+  stream_type: string;
+  state: string;
+  currency: Currency;
+  total_minor: number | string;
+  period_start: string;
+  period_end: string;
+  planned_issue_on: string | null;
+  expected_collection_on: string | null;
+  issued_at: string | null;
+  version: number;
+  pdf_status: string;
+  pdf_generated_at: string | null;
+  voided: number;
+  project_number: string;
+  [key: string]: unknown;
+}>;
+
+type InvoiceListRow = Readonly<InvoiceListSourceRow & { paid_minor: string }>;
 
 type ReportLocale = 'en' | 'pt' | 'es';
 const normalizeReportLocale = (value: unknown): ReportLocale =>
@@ -146,7 +173,9 @@ type ProjectInput = Readonly<{
     | 'internal';
   siteName?: string;
   country?: string;
+  expectedHoursPerDay?: number | string;
   expectedMinutesPerDay?: number;
+  clientDailyMinimumHours?: number | string | null;
   clientDailyMinimumMinutes?: number;
   poNumber?: string;
   contractNumber?: string;
@@ -244,6 +273,9 @@ type TechnicalReportInput = Readonly<{
   softwareVersion?: string;
   programReference?: string;
   changeSummary: string;
+  problemSymptom?: string;
+  diagnosisRootCause?: string;
+  changePerformed?: string;
   safetyRelated: boolean;
   productionImpact?: string;
   validation?: string;
@@ -298,14 +330,51 @@ type InvoiceRow = {
   stream_type: string;
   state: string;
   currency: Currency;
-  subtotal_minor: number;
-  tax_minor: number;
-  total_minor: number;
+  subtotal_minor: string;
+  tax_minor: string;
+  total_minor: string;
   issued_at: string | null;
   snapshot_json: string | null;
   billing_rule_id: string;
   period_start: string;
   period_end: string;
+};
+
+type InvoiceIssueLine = {
+  id: string;
+  invoice_id: string;
+  description: string;
+  quantity_numerator: number;
+  quantity_denominator: number;
+  unit_price_minor: string;
+  subtotal_minor: string;
+  source_type: string;
+  source_id: string;
+  snapshot_json: string;
+  tax_minor: string | null;
+  grouping_key: string | null;
+  line_number: number | null;
+  line_kind: string | null;
+  unit_amount_minor: string | null;
+  net_amount_minor: string | null;
+  tax_bps: number | null;
+  tax_amount_minor: string | null;
+  gross_amount_minor: string | null;
+  source_bucket_key: string | null;
+  rounding_rank: number | null;
+  created_at: string | null;
+};
+
+type InvoiceIssueManifest = {
+  source_type: string;
+  source_id: string;
+  source_version: number | null;
+  disposition: string;
+  original_minor: string | null;
+  allocated_minor: string | null;
+  remaining_minor: string | null;
+  reason_code: string;
+  source_hash: string | null;
 };
 
 type Row = Record<string, string | number | null>;
@@ -353,6 +422,15 @@ function safeInteger(value: bigint): number {
 function assertDate(value: string, field: string): void {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00Z`)))
     throw new ValidationError(`${field} must be an ISO date`);
+}
+
+function canonicalInstant(value: string, field: string): { iso: string; epochMs: number } {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value))
+    throw new ValidationError(`${field} must be an ISO datetime with timezone`);
+  const epochMs = Date.parse(value);
+  if (!Number.isFinite(epochMs))
+    throw new ValidationError(`${field} must be an ISO datetime with timezone`);
+  return { iso: new Date(epochMs).toISOString(), epochMs };
 }
 
 function assertText(value: string, field: string, max = 5000): string {
@@ -796,6 +874,115 @@ export class PortalRepository {
     return this.clients.listAllClientContacts(principal);
   }
 
+  deleteClient(principal: Principal, clientId: string) {
+    return this.clients.deleteClient(principal, clientId);
+  }
+
+  deleteProject(principal: Principal, projectId: string) {
+    this.assertActive(principal);
+    if (!canManageClients(principal))
+      throw new AccessDeniedError('Project administration required');
+    return this.transaction(() => {
+      const existing = this.sqlite
+        .prepare('SELECT id, project_number, name FROM project WHERE id=?')
+        .get(projectId) as { id: string; project_number: string; name: string } | undefined;
+      if (!existing) throw new ValidationError('Project not found');
+
+      const timeCount = this.sqlite
+        .prepare('SELECT COUNT(*) AS count FROM time_entry WHERE project_id=?')
+        .get(projectId) as { count: number } | undefined;
+      if ((timeCount?.count ?? 0) > 0) {
+        throw new ConflictError(
+          'Project has recorded time entries and cannot be deleted. Please archive the project instead.',
+        );
+      }
+
+      const expenseCount = this.sqlite
+        .prepare('SELECT COUNT(*) AS count FROM expense WHERE project_id=?')
+        .get(projectId) as { count: number } | undefined;
+      if ((expenseCount?.count ?? 0) > 0) {
+        throw new ConflictError(
+          'Project has recorded expenses and cannot be deleted. Please archive the project instead.',
+        );
+      }
+
+      const invoiceCount = this.sqlite
+        .prepare('SELECT COUNT(*) AS count FROM invoice WHERE project_id=?')
+        .get(projectId) as { count: number } | undefined;
+      if ((invoiceCount?.count ?? 0) > 0) {
+        throw new ConflictError(
+          'Project has generated invoices and cannot be deleted. Please archive the project instead.',
+        );
+      }
+
+      const dailyReportCount = this.sqlite
+        .prepare('SELECT COUNT(*) AS count FROM daily_report WHERE project_id=?')
+        .get(projectId) as { count: number } | undefined;
+      if ((dailyReportCount?.count ?? 0) > 0) {
+        throw new ConflictError(
+          'Project has recorded daily field reports and cannot be deleted. Please archive the project instead.',
+        );
+      }
+
+      const techReportCount = this.sqlite
+        .prepare('SELECT COUNT(*) AS count FROM technical_report WHERE project_id=?')
+        .get(projectId) as { count: number } | undefined;
+      if ((techReportCount?.count ?? 0) > 0) {
+        throw new ConflictError(
+          'Project has recorded technical reports and cannot be deleted. Please archive the project instead.',
+        );
+      }
+
+      this.sqlite.prepare('UPDATE project SET expected_schedule_id=NULL WHERE id=?').run(projectId);
+      try {
+        this.sqlite
+          .prepare(
+            'DELETE FROM assignment_rate_override WHERE project_member_id IN (SELECT id FROM project_member WHERE project_id=?)',
+          )
+          .run(projectId);
+      } catch {
+        // Compatibility cleanup: older schemas may not contain assignment overrides.
+      }
+      this.sqlite.prepare('DELETE FROM schedule WHERE project_id=?').run(projectId);
+      this.sqlite.prepare('DELETE FROM planning_assignment WHERE project_id=?').run(projectId);
+      this.sqlite.prepare('DELETE FROM project_member WHERE project_id=?').run(projectId);
+      this.sqlite.prepare('DELETE FROM compensation_rule WHERE project_id=?').run(projectId);
+      this.sqlite.prepare('DELETE FROM billing_rule WHERE project_id=?').run(projectId);
+      this.sqlite.prepare('DELETE FROM billing_lock WHERE project_id=?').run(projectId);
+      try {
+        this.sqlite.prepare('DELETE FROM project_milestone WHERE project_id=?').run(projectId);
+      } catch {
+        // Compatibility cleanup: older schemas may not contain project milestones.
+      }
+      try {
+        this.sqlite
+          .prepare('DELETE FROM project_commercial_policy_binding WHERE project_id=?')
+          .run(projectId);
+      } catch {
+        // Compatibility cleanup: the commercial-policy binding is additive.
+      }
+      try {
+        this.sqlite
+          .prepare('UPDATE audit_event SET project_id=NULL WHERE project_id=?')
+          .run(projectId);
+      } catch {
+        // Legacy audit schemas may not expose project_id; audit rows remain immutable.
+      }
+
+      const deleted = this.sqlite.prepare('DELETE FROM project WHERE id=?').run(projectId);
+      if (deleted.changes !== 1) throw new ConflictError('Project changed before deletion');
+
+      this.audit(principal, 'lifecycle.transition', 'project', projectId, {
+        fromState: 'active',
+        toState: 'deleted',
+        reason: 'Hard delete empty project',
+        projectNumber: existing.project_number,
+        name: existing.name,
+      });
+      return { id: projectId, projectNumber: existing.project_number };
+    });
+  }
+
   createProject(principal: Principal, input: ProjectInput) {
     this.assertActive(principal);
     if (!canManageClients(principal))
@@ -807,19 +994,25 @@ export class PortalRepository {
       if (!client) throw new ValidationError('Active client not found');
       if (client.currency !== input.currency)
         throw new ValidationError('Project currency must match the client currency');
+      const expectedMinutes =
+        input.expectedHoursPerDay !== undefined && input.expectedHoursPerDay !== ''
+          ? Math.round(Number(input.expectedHoursPerDay) * 60)
+          : (input.expectedMinutesPerDay ?? 600);
+      if (!Number.isInteger(expectedMinutes) || expectedMinutes < 0 || expectedMinutes > 1440)
+        throw new ValidationError('Expected working hours must be between 0 and 24 hours');
+      const clientDailyMinimumMinutes =
+        input.clientDailyMinimumHours !== undefined
+          ? input.clientDailyMinimumHours === null || input.clientDailyMinimumHours === ''
+            ? null
+            : Math.round(Number(input.clientDailyMinimumHours) * 60)
+          : (input.clientDailyMinimumMinutes ?? null);
       if (
-        !Number.isInteger(input.expectedMinutesPerDay ?? 600) ||
-        (input.expectedMinutesPerDay ?? 600) < 0 ||
-        (input.expectedMinutesPerDay ?? 600) > 1440
+        clientDailyMinimumMinutes !== null &&
+        (!Number.isInteger(clientDailyMinimumMinutes) ||
+          clientDailyMinimumMinutes < 0 ||
+          clientDailyMinimumMinutes > 1440)
       )
-        throw new ValidationError('Expected working minutes must be between 0 and 1440');
-      if (
-        input.clientDailyMinimumMinutes !== undefined &&
-        (!Number.isInteger(input.clientDailyMinimumMinutes) ||
-          input.clientDailyMinimumMinutes < 0 ||
-          input.clientDailyMinimumMinutes > 1440)
-      )
-        throw new ValidationError('Client daily minimum must be between 0 and 1440 minutes');
+        throw new ValidationError('Client daily minimum must be between 0 and 24 hours');
       const projectManagerId = input.projectManagerId || null;
       if (projectManagerId) {
         const manager = this.sqlite
@@ -871,14 +1064,13 @@ export class PortalRepository {
           input.siteName ?? null,
           input.country ?? null,
           principal.role === 'project_manager' ? principal.userId : projectManagerId,
-          input.expectedMinutesPerDay ?? 600,
-          input.clientDailyMinimumMinutes ?? null,
+          expectedMinutes,
+          clientDailyMinimumMinutes,
           input.poNumber ?? null,
           timestamp,
           timestamp,
         );
       const scheduleId = newId();
-      const expectedMinutes = input.expectedMinutesPerDay ?? 600;
       this.sqlite
         .prepare(
           'INSERT INTO schedule(id,project_id,timezone,monday_minutes,tuesday_minutes,wednesday_minutes,thursday_minutes,friday_minutes,saturday_minutes,sunday_minutes,effective_from) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
@@ -1170,18 +1362,28 @@ export class PortalRepository {
     decision: 'approved' | 'rejected',
     reason?: string,
   ): void {
-    this.assertActive(principal);
-    const row = this.sqlite
-      .prepare('SELECT project_id,approval_state FROM project_milestone WHERE id=?')
-      .get(milestoneId) as { project_id: string; approval_state: string } | undefined;
-    if (!row) throw new ValidationError('Milestone not found');
-    this.assertOperationalReviewer(principal, row.project_id);
-    if (row.approval_state !== 'submitted') throw new ConflictError('Submitted milestone required');
     if (decision === 'rejected' && !reason?.trim())
       throw new ValidationError('A rejection reason is required');
-    const timestamp = now();
     this.transaction(() => {
-      this.sqlite
+      this.assertActive(principal);
+      const row = this.sqlite
+        .prepare(
+          `SELECT pm.project_id,pm.approval_state,p.status project_status
+             FROM project_milestone pm
+             JOIN project p ON p.id=pm.project_id
+            WHERE pm.id=?`,
+        )
+        .get(milestoneId) as
+        | { project_id: string; approval_state: string; project_status: string }
+        | undefined;
+      if (!row) throw new ValidationError('Milestone not found');
+      this.assertOperationalReviewer(principal, row.project_id);
+      if (row.project_status !== 'active')
+        throw new AccessDeniedError('Active project required for milestone review');
+      if (row.approval_state !== 'submitted')
+        throw new ConflictError('Submitted milestone required');
+      const timestamp = now();
+      const result = this.sqlite
         .prepare(
           "UPDATE project_milestone SET approval_state=?,approved_by=?,approved_at=?,updated_at=?,version=version+1 WHERE id=? AND approval_state='submitted'",
         )
@@ -1192,6 +1394,7 @@ export class PortalRepository {
           timestamp,
           milestoneId,
         );
+      if (result.changes !== 1) throw new ConflictError('Submitted milestone required');
       this.sqlite
         .prepare(
           'INSERT INTO approval_event(id,entity_type,entity_id,from_state,to_state,actor_id,reason,occurred_at) VALUES(?,?,?,?,?,?,?,?)',
@@ -1567,6 +1770,16 @@ export class PortalRepository {
       .get(id) as Record<string, unknown> | undefined;
     const report = daily ?? technical;
     if (!report) throw new ValidationError('Report not found');
+    if (technical) {
+      const change = decodeTechnicalReportChange(technical.change_summary);
+      if (change) {
+        technical.problem_symptom = change.problemSymptom;
+        technical.diagnosis_root_cause = change.diagnosisRootCause;
+        technical.change_performed = change.changePerformed;
+      } else {
+        technical.change_performed = technical.change_summary;
+      }
+    }
     const type = String(report.type) === 'technical' ? 'technical' : 'daily';
     const projectId = String(report.project_id);
     const ownerId = String(report.owner_id ?? report.worker_id ?? report.author_id);
@@ -1583,6 +1796,18 @@ export class PortalRepository {
       Boolean(
         this.sqlite.prepare('SELECT 1 FROM technical_change WHERE technical_report_id=?').get(id),
       );
+    const hasApprovalHistory = Boolean(
+      this.sqlite
+        .prepare('SELECT 1 FROM approval_event WHERE entity_type=? AND entity_id=? LIMIT 1')
+        .get(this.reportSourceType(type), id),
+    );
+    const canDeleteDraft =
+      !locked &&
+      String(report.approval_state) === 'draft' &&
+      !hasTechnicalChildren &&
+      !hasApprovalHistory &&
+      (principal.role === 'owner_admin' ||
+        (principal.userId === ownerId && principal.role !== 'auditor_read_only'));
     const history = this.sqlite
       .prepare(
         `SELECT ae.action,ae.occurred_at,ae.details_json,u.name actor_name
@@ -1596,7 +1821,7 @@ export class PortalRepository {
       history,
       locked,
       canEdit: !locked && this.canMutateReport(principal, projectId, ownerId, objectDate),
-      canDelete: !locked && principal.role === 'owner_admin' && !hasTechnicalChildren,
+      canDelete: canDeleteDraft,
     };
   }
 
@@ -2290,14 +2515,40 @@ export class PortalRepository {
     this.assertActive(principal);
     const table = type === 'daily' ? 'daily_report' : 'technical_report';
     const ownerColumn = type === 'daily' ? 'worker_id' : 'author_id';
-    const timestamp = now();
-    const result = this.sqlite
-      .prepare(
-        `UPDATE ${table} SET approval_state='submitted',updated_at=?,version=version+1 WHERE id=? AND ${ownerColumn}=? AND approval_state IN ('draft','needs_changes') AND version=?`,
-      )
-      .run(timestamp, id, principal.userId, baseVersion);
-    if (result.changes !== 1) throw new ConflictError('Report changed or cannot be submitted');
-    this.audit(principal, `${type}_report.submit`, table, id, { baseVersion });
+    const dateColumn = type === 'daily' ? 'work_date' : 'report_date';
+    return this.transaction(() => {
+      const row = this.sqlite
+        .prepare(
+          `SELECT r.project_id,r.${dateColumn} business_date,p.status project_status
+             FROM ${table} r JOIN project p ON p.id=r.project_id
+            WHERE r.id=? AND r.${ownerColumn}=?`,
+        )
+        .get(id, principal.userId) as
+        | { project_id: string; business_date: string; project_status: string }
+        | undefined;
+      if (!row) throw new AccessDeniedError('Report submission access required');
+      if (row.project_status !== 'active')
+        throw new AccessDeniedError('Active project required for report submission');
+      if (principal.role !== 'owner_admin' && principal.role !== 'finance_admin') {
+        const assignment = this.sqlite
+          .prepare(
+            `SELECT 1 FROM project_member
+              WHERE project_id=? AND user_id=? AND status='active'
+                AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?)`,
+          )
+          .get(row.project_id, principal.userId, row.business_date, row.business_date);
+        if (!assignment)
+          throw new AccessDeniedError('Effective project assignment required for submission');
+      }
+      const timestamp = now();
+      const result = this.sqlite
+        .prepare(
+          `UPDATE ${table} SET approval_state='submitted',updated_at=?,version=version+1 WHERE id=? AND ${ownerColumn}=? AND approval_state IN ('draft','needs_changes') AND version=?`,
+        )
+        .run(timestamp, id, principal.userId, baseVersion);
+      if (result.changes !== 1) throw new ConflictError('Report changed or cannot be submitted');
+      this.audit(principal, `${type}_report.submit`, table, id, { baseVersion });
+    });
   }
 
   reviewReport(
@@ -2307,29 +2558,43 @@ export class PortalRepository {
     decision: 'approved' | 'needs_changes',
     reason?: string,
   ) {
-    this.assertActive(principal);
     const table = type === 'daily' ? 'daily_report' : 'technical_report';
     const ownerColumn = type === 'daily' ? 'worker_id' : 'author_id';
-    const row = this.sqlite
-      .prepare(
-        `SELECT project_id,${ownerColumn} owner_id,approval_state,safety_related FROM ${table} WHERE id=?`,
-      )
-      .get(id) as
-      | { project_id: string; owner_id: string; approval_state: string; safety_related: number }
-      | undefined;
-    if (!row) throw new ValidationError('Report not found');
-    this.assertOperationalReviewer(principal, row.project_id);
-    if (row.approval_state !== 'submitted') throw new ConflictError('Report is not submitted');
     const reviewReason = reason?.trim() || undefined;
     if (decision === 'needs_changes' && !reviewReason)
       throw new ValidationError('A reason is required');
-    const timestamp = now();
     this.transaction(() => {
-      this.sqlite
+      this.assertActive(principal);
+      const row = this.sqlite
         .prepare(
-          `UPDATE ${table} SET approval_state=?,reviewed_by=?,reviewed_at=?,updated_at=?,version=version+1 WHERE id=?`,
+          `SELECT r.project_id,r.${ownerColumn} owner_id,r.approval_state,r.safety_related,
+                  p.status project_status
+             FROM ${table} r
+             JOIN project p ON p.id=r.project_id
+            WHERE r.id=?`,
         )
-        .run(decision, principal.userId, timestamp, timestamp, id);
+        .get(id) as
+        | {
+            project_id: string;
+            owner_id: string;
+            approval_state: string;
+            safety_related: number;
+            project_status: string;
+          }
+        | undefined;
+      if (!row) throw new ValidationError('Report not found');
+      this.assertOperationalReviewer(principal, row.project_id);
+      if (row.project_status !== 'active')
+        throw new AccessDeniedError('Active project required for report review');
+      if (row.approval_state !== 'submitted') throw new ConflictError('Report is not submitted');
+      const timestamp = now();
+      const result = this.sqlite
+        .prepare(
+          `UPDATE ${table} SET approval_state=?,reviewed_by=?,reviewed_at=?,updated_at=?,version=version+1
+            WHERE id=? AND approval_state='submitted' AND project_id=?`,
+        )
+        .run(decision, principal.userId, timestamp, timestamp, id, row.project_id);
+      if (result.changes !== 1) throw new ConflictError('Report is not submitted');
       this.sqlite
         .prepare(
           'INSERT INTO approval_event(id,entity_type,entity_id,from_state,to_state,actor_id,reason,occurred_at) VALUES(?,?,?,?,?,?,?,?)',
@@ -3433,9 +3698,11 @@ export class PortalRepository {
   }
 
   private billingSliceClientRate(
-    principal: Principal,
+    principal: Principal | null,
     projectId: string,
     slice: BillingTimeSlice,
+    execution?: FencedJobExecution,
+    billingRuleId?: string,
   ): bigint | null {
     const row = slice.row;
     if (slice.category === 'overtime') {
@@ -3446,6 +3713,9 @@ export class PortalRepository {
         'overtime',
         row.work_date,
         row.activity_code,
+        slice.category,
+        execution,
+        billingRuleId,
       );
       if (overtime !== null) return overtime;
     }
@@ -3457,6 +3727,8 @@ export class PortalRepository {
       row.work_date,
       row.activity_code,
       slice.category,
+      execution,
+      billingRuleId,
     );
   }
 
@@ -3468,12 +3740,23 @@ export class PortalRepository {
   ) {
     this.assertActive(principal);
     if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
+    return this.billingReadinessCore(billingRuleId, periodStart, periodEnd, principal);
+  }
+
+  private billingReadinessCore(
+    billingRuleId: string,
+    periodStart: string,
+    periodEnd: string,
+    principal: Principal | null,
+    execution?: FencedJobExecution,
+  ) {
     const rule = this.sqlite
       .prepare(
         `SELECT br.project_id,br.stream_type,br.tax_profile_id,br.legal_entity_id,br.cadence_type,
                 br.anchor_date,br.monthly_cutoff_day,br.semi_monthly_rule,
                 br.currency rule_currency,
-                p.billing_model,p.po_cap_minor,p.fixed_price_minor,
+                p.billing_model,CAST(p.po_cap_minor AS TEXT) po_cap_minor,
+                CAST(p.fixed_price_minor AS TEXT) fixed_price_minor,
                 le.status legal_entity_status,le.currency legal_entity_currency,
                 tp.status tax_profile_status,tp.currency tax_profile_currency,
                 tp.legal_entity_id tax_profile_legal_entity_id
@@ -3494,8 +3777,8 @@ export class PortalRepository {
           semi_monthly_rule: string | null;
           rule_currency: Currency;
           billing_model: string;
-          po_cap_minor: number | null;
-          fixed_price_minor: number | null;
+          po_cap_minor: string | null;
+          fixed_price_minor: string | null;
           legal_entity_status: string | null;
           legal_entity_currency: Currency | null;
           tax_profile_status: string | null;
@@ -3577,7 +3860,15 @@ export class PortalRepository {
           !slice.clientBillable
         )
           continue;
-        if (this.billingSliceClientRate(principal, rule.project_id, slice) === null)
+        if (
+          this.billingSliceClientRate(
+            principal,
+            rule.project_id,
+            slice,
+            execution,
+            billingRuleId,
+          ) === null
+        )
           missingRateSources.add(row.id);
       }
       reasons.push(
@@ -3643,7 +3934,45 @@ export class PortalRepository {
     const readiness = this.billingReadiness(principal, billingRuleId, periodStart, periodEnd);
     if (readiness.state !== 'ready' && readiness.state !== 'already_closed')
       throw new ReadinessError(readiness.reasons);
+    return this.createInvoiceDraftCore(billingRuleId, periodStart, periodEnd, principal);
+  }
+
+  createInvoiceDraftFromJob(
+    billingRuleId: string,
+    periodStart: string,
+    periodEnd: string,
+    execution: FencedJobExecution,
+  ) {
+    if (!execution) throw new Error('FENCED_JOB_EXECUTION_INVALID');
+    assertDate(periodStart, 'Period start');
+    assertDate(periodEnd, 'Period end');
+    return this.createInvoiceDraftCore(billingRuleId, periodStart, periodEnd, null, execution);
+  }
+
+  private createInvoiceDraftCore(
+    billingRuleId: string,
+    periodStart: string,
+    periodEnd: string,
+    principal: Principal | null,
+    execution?: FencedJobExecution,
+  ) {
     return this.transaction(() => {
+      if (execution) {
+        assertFencedJobExecution(this.sqlite, execution, {
+          kind: 'auto_draft',
+          capability: 'billing.draft.generate',
+          payloadTarget: { billingRuleId, periodStart, periodEnd },
+        });
+        const readiness = this.billingReadinessCore(
+          billingRuleId,
+          periodStart,
+          periodEnd,
+          null,
+          execution,
+        );
+        if (readiness.state !== 'ready' && readiness.state !== 'already_closed')
+          throw new ReadinessError(readiness.reasons);
+      }
       const existing = this.sqlite
         .prepare(
           'SELECT id,state FROM invoice WHERE billing_rule_id=? AND period_start=? AND period_end=?',
@@ -3655,6 +3984,9 @@ export class PortalRepository {
         // Drafts are previews, so they can be rebuilt from newly approved
         // source data. Issued/approved invoices take a separate immutable
         // workflow and never reach this branch.
+        this.sqlite
+          .prepare('DELETE FROM invoice_commercial_source_manifest WHERE invoice_id=?')
+          .run(existing.id);
         this.sqlite.prepare('DELETE FROM invoice_source WHERE invoice_id=?').run(existing.id);
         this.sqlite.prepare('DELETE FROM invoice_line WHERE invoice_id=?').run(existing.id);
         this.sqlite.prepare("DELETE FROM invoice WHERE id=? AND state='draft'").run(existing.id);
@@ -3662,7 +3994,8 @@ export class PortalRepository {
       }
       const rule = this.sqlite
         .prepare(
-          `SELECT br.*,p.billing_model,p.po_cap_minor,p.fixed_price_minor
+          `SELECT br.*,p.billing_model,CAST(p.po_cap_minor AS TEXT) po_cap_minor,
+                  CAST(p.fixed_price_minor AS TEXT) fixed_price_minor
            FROM billing_rule br JOIN project p ON p.id=br.project_id
            JOIN legal_entity le ON le.id=br.legal_entity_id AND le.status='active'
            JOIN tax_profile tp ON tp.id=br.tax_profile_id AND tp.status='active'
@@ -3679,9 +4012,9 @@ export class PortalRepository {
         monthly_cutoff_day: number | null;
         semi_monthly_rule: string | null;
         billing_model: string;
-        po_cap_minor: number | null;
-        fixed_price_minor: number | null;
-        fixed_amount_minor: number | null;
+        po_cap_minor: string | null;
+        fixed_price_minor: string | null;
+        fixed_amount_minor: string | null;
         included_minutes: number | null;
       };
       if (!rule)
@@ -3785,13 +4118,28 @@ export class PortalRepository {
             slice.row.invoice_id === null &&
             slice.clientBillable,
         );
-        const daily = new Map<string, { minutes: number; rate: bigint; sourceIds: Set<string> }>();
+        const daily = new Map<
+          string,
+          {
+            workerId: string;
+            workDate: string;
+            minutes: number;
+            rate: bigint;
+            sourceIds: Set<string>;
+          }
+        >();
         const reservedSources = new Set<string>();
         let includedRemaining =
           rule.billing_model === 'hybrid' ? Math.max(0, rule.included_minutes ?? 0) : 0;
         for (const slice of slices) {
           const row = slice.row;
-          const rate = this.billingSliceClientRate(principal, rule.project_id, slice);
+          const rate = this.billingSliceClientRate(
+            principal,
+            rule.project_id,
+            slice,
+            execution,
+            billingRuleId,
+          );
           if (rate === null)
             throw new ReadinessError([{ code: 'missing_client_rate', sourceId: row.id }]);
           const billableMinutes =
@@ -3800,10 +4148,23 @@ export class PortalRepository {
               : slice.minutes;
           if (rule.billing_model === 'hybrid')
             includedRemaining = Math.max(0, includedRemaining - slice.minutes);
+          if (!reservedSources.has(row.id)) {
+            this.insertInvoiceSource(
+              id,
+              'time',
+              row.id,
+              row.version,
+              rule.billing_model === 'capped_tm',
+            );
+            reservedSources.add(row.id);
+          }
           if (billableMinutes === 0) continue;
           const amount = hourlyRateForMinutes(money(rule.currency, rate), billableMinutes);
           subtotal = add(subtotal, amount);
-          const day = daily.get(row.work_date) ?? {
+          const workerDayKey = `${row.worker_id}:${row.work_date}`;
+          const day = daily.get(workerDayKey) ?? {
+            workerId: row.worker_id,
+            workDate: row.work_date,
             minutes: 0,
             rate: 0n,
             sourceIds: new Set<string>(),
@@ -3811,7 +4172,7 @@ export class PortalRepository {
           day.minutes += billableMinutes;
           day.rate = day.rate > rate ? day.rate : rate;
           day.sourceIds.add(row.id);
-          daily.set(row.work_date, day);
+          daily.set(workerDayKey, day);
           this.insertInvoiceLine(
             id,
             `${row.work_date} · ${row.category}${slice.category === 'overtime' && row.category !== 'overtime' ? ' → overtime' : ''} · ${row.activity_summary}`,
@@ -3833,32 +4194,29 @@ export class PortalRepository {
               commercialSliceIndex: slice.sliceIndex,
             },
           );
-          if (!reservedSources.has(row.id)) {
-            this.insertInvoiceSource(id, 'time', row.id, row.version);
-            reservedSources.add(row.id);
-          }
         }
         const minimum = this.sqlite
           .prepare('SELECT client_daily_minimum_minutes FROM project WHERE id=?')
           .get(rule.project_id) as { client_daily_minimum_minutes: number | null } | undefined;
         if (minimum?.client_daily_minimum_minutes) {
-          for (const [workDate, day] of daily) {
+          for (const day of daily.values()) {
             const topUp = Math.max(0, minimum.client_daily_minimum_minutes - day.minutes);
             if (!topUp) continue;
             const amount = hourlyRateForMinutes(money(rule.currency, day.rate), topUp);
             subtotal = add(subtotal, amount);
             this.insertInvoiceLine(
               id,
-              `${workDate} · contractual daily minimum top-up`,
+              `${day.workDate} · contractual daily minimum top-up`,
               topUp,
               60,
               safeInteger(day.rate),
               amount.minorUnits,
               'billing_adjustment',
-              `${rule.project_id}:${workDate}:daily-minimum`,
+              `${rule.project_id}:${day.workerId}:${day.workDate}:daily-minimum`,
               {
                 projectId: rule.project_id,
-                workDate,
+                workerId: day.workerId,
+                workDate: day.workDate,
                 actualMinutes: day.minutes,
                 minimumMinutes: minimum.client_daily_minimum_minutes,
                 topUpMinutes: topUp,
@@ -3916,7 +4274,13 @@ export class PortalRepository {
             row.id,
             row,
           );
-          this.insertInvoiceSource(id, 'expense', row.id, row.version);
+          this.insertInvoiceSource(
+            id,
+            'expense',
+            row.id,
+            row.version,
+            rule.billing_model === 'capped_tm',
+          );
         }
       } else if (rule.stream_type === 'milestone') {
         const milestones = this.sqlite
@@ -3948,9 +4312,20 @@ export class PortalRepository {
             milestone.id,
             milestone,
           );
-          this.insertInvoiceSource(id, 'milestone', milestone.id, milestone.version);
+          this.insertInvoiceSource(
+            id,
+            'milestone',
+            milestone.id,
+            milestone.version,
+            rule.billing_model === 'capped_tm',
+          );
         }
       }
+      if (rule.billing_model === 'capped_tm')
+        subtotal = money(
+          rule.currency,
+          this.applyPriorCappedSourceAllocations(id, rule.project_id),
+        );
       if (capRemaining !== null && subtotal.minorUnits > capRemaining) {
         let remaining = capRemaining;
         const lines = this.sqlite
@@ -3974,6 +4349,25 @@ export class PortalRepository {
         }
         subtotal = money(rule.currency, capRemaining);
       }
+      if (rule.billing_model === 'all_in' && rule.stream_type === 'labor') {
+        const coveredSources = new Map<string, { id: string; version: number }>();
+        for (const slice of this.billingTimeSlices(rule.project_id, periodStart, periodEnd)) {
+          if (
+            ['approved', 'locked'].includes(slice.row.approval_state) &&
+            slice.row.billability_state === 'billable' &&
+            slice.row.invoice_id === null &&
+            slice.clientBillable
+          )
+            coveredSources.set(slice.row.id, {
+              id: slice.row.id,
+              version: slice.row.version,
+            });
+        }
+        for (const source of coveredSources.values())
+          this.insertInvoiceSource(id, 'time', source.id, source.version);
+      }
+      if (subtotal.minorUnits <= 0n) throw new ReadinessError([{ code: 'no_billable_sources' }]);
+      this.rebuildInvoiceCommercialManifest(id, rule.billing_model, timestamp);
       const components = this.sqlite
         .prepare(
           'SELECT basis_points,compound FROM tax_component WHERE tax_profile_id=? ORDER BY calculation_order,id',
@@ -3998,11 +4392,12 @@ export class PortalRepository {
           timestamp,
           id,
         );
-      this.audit(principal, 'invoice.draft_create', 'invoice', id, {
-        billingRuleId,
-        periodStart,
-        periodEnd,
-      });
+      if (principal)
+        this.audit(principal, 'invoice.draft_create', 'invoice', id, {
+          billingRuleId,
+          periodStart,
+          periodEnd,
+        });
       return { id, created: !refreshed, refreshed };
     });
   }
@@ -4014,6 +4409,7 @@ export class PortalRepository {
       adjustmentType: 'credit' | 'debit' | 'correction';
       amountMinor: bigint;
       reason: string;
+      idempotencyKey?: string;
     }>,
   ) {
     this.assertActive(principal);
@@ -4021,10 +4417,65 @@ export class PortalRepository {
     this.assertStepUp(principal);
     if (input.amountMinor === 0n) throw new ValidationError('Adjustment amount must be non-zero');
     const reason = assertText(input.reason, 'Adjustment reason', 2000);
+    const idempotencyKey =
+      input.idempotencyKey?.trim() ||
+      `adjustment-v1:${createHash('sha256')
+        .update(
+          JSON.stringify({
+            originalInvoiceId: input.originalInvoiceId,
+            adjustmentType: input.adjustmentType,
+            amountMinor: input.amountMinor.toString(),
+            reason,
+          }),
+        )
+        .digest('hex')}`;
+    if (idempotencyKey.length < 8 || idempotencyKey.length > 240)
+      throw new ValidationError('Adjustment idempotency key is invalid');
     return this.transaction(() => {
+      const existing = this.sqlite
+        .prepare(
+          `SELECT ia.id adjustment_id,ia.original_invoice_id,ia.adjustment_invoice_id,
+                  ia.adjustment_type,ia.reason,i.subtotal_minor
+           FROM invoice_adjustment ia JOIN invoice i ON i.id=ia.adjustment_invoice_id
+           WHERE ia.idempotency_key=?`,
+        )
+        .get(idempotencyKey) as
+        | {
+            adjustment_id: string;
+            original_invoice_id: string;
+            adjustment_invoice_id: string;
+            adjustment_type: string;
+            reason: string;
+            subtotal_minor: number;
+          }
+        | undefined;
+      const requestedSignedAmount =
+        input.adjustmentType === 'credit'
+          ? -(input.amountMinor < 0n ? -input.amountMinor : input.amountMinor)
+          : input.adjustmentType === 'debit'
+            ? input.amountMinor < 0n
+              ? -input.amountMinor
+              : input.amountMinor
+            : input.amountMinor;
+      if (existing) {
+        if (
+          existing.original_invoice_id !== input.originalInvoiceId ||
+          existing.adjustment_type !== input.adjustmentType ||
+          existing.reason !== reason ||
+          BigInt(existing.subtotal_minor) !== requestedSignedAmount
+        )
+          throw new ConflictError(
+            'Adjustment idempotency key was already used for another command',
+          );
+        return {
+          id: existing.adjustment_invoice_id,
+          adjustmentId: existing.adjustment_id,
+          created: false,
+        };
+      }
       const original = this.sqlite
         .prepare(
-          "SELECT id,project_id,billing_rule_id,currency,period_start,period_end,state FROM invoice WHERE id=? AND state IN ('issued','sent','partially_paid','paid','overdue')",
+          "SELECT id,project_id,billing_rule_id,currency,period_start,period_end,state,CAST(total_minor AS TEXT) total_minor FROM invoice WHERE id=? AND state IN ('issued','sent','partially_paid','paid','overdue')",
         )
         .get(input.originalInvoiceId) as
         | {
@@ -4035,19 +4486,31 @@ export class PortalRepository {
             period_start: string;
             period_end: string;
             state: string;
+            total_minor: string;
           }
         | undefined;
       if (!original) throw new ValidationError('Issued original invoice required');
+      if (requestedSignedAmount < 0n) {
+        const originalGross = BigInt(original.total_minor);
+        const requestedCredit = -requestedSignedAmount;
+        if (originalGross <= 0n || requestedCredit > originalGross)
+          throw new ValidationError('Credit adjustment exceeds original invoice gross');
+        const priorCredits = (
+          this.sqlite
+            .prepare(
+              `SELECT CAST(i.total_minor AS TEXT) amount
+                 FROM invoice_adjustment ia
+                 JOIN invoice i ON i.id=ia.adjustment_invoice_id
+                WHERE ia.original_invoice_id=? AND i.total_minor<0 AND i.state!='void'`,
+            )
+            .all(original.id) as Array<{ amount: string }>
+        ).reduce((sum, row) => sum - BigInt(row.amount), 0n);
+        if (priorCredits + requestedCredit > originalGross)
+          throw new ValidationError('Cumulative credit adjustments exceed original invoice gross');
+      }
       const adjustmentId = newId();
       const invoiceId = newId();
-      const signedAmount =
-        input.adjustmentType === 'credit'
-          ? -(input.amountMinor < 0n ? -input.amountMinor : input.amountMinor)
-          : input.adjustmentType === 'debit'
-            ? input.amountMinor < 0n
-              ? -input.amountMinor
-              : input.amountMinor
-            : input.amountMinor;
+      const signedAmount = requestedSignedAmount;
       const timestamp = now();
       this.sqlite
         .prepare(
@@ -4080,9 +4543,10 @@ export class PortalRepository {
         { originalInvoiceId: original.id, adjustmentType: input.adjustmentType, reason },
       );
       this.insertInvoiceSource(invoiceId, 'adjustment', adjustmentId, 1);
+      this.rebuildInvoiceCommercialManifest(invoiceId, 'adjustment', timestamp);
       this.sqlite
         .prepare(
-          'INSERT INTO invoice_adjustment(id,original_invoice_id,adjustment_invoice_id,adjustment_type,reason,created_by,created_at) VALUES(?,?,?,?,?,?,?)',
+          'INSERT INTO invoice_adjustment(id,original_invoice_id,adjustment_invoice_id,adjustment_type,reason,created_by,created_at,idempotency_key) VALUES(?,?,?,?,?,?,?,?)',
         )
         .run(
           adjustmentId,
@@ -4092,7 +4556,11 @@ export class PortalRepository {
           reason,
           principal.userId,
           timestamp,
+          idempotencyKey,
         );
+      this.sqlite
+        .prepare('UPDATE invoice SET version=version+1,updated_at=? WHERE id=?')
+        .run(timestamp, original.id);
       this.audit(principal, 'invoice.adjustment.create', 'invoice', invoiceId, {
         originalInvoiceId: original.id,
         adjustmentType: input.adjustmentType,
@@ -4122,22 +4590,36 @@ export class PortalRepository {
   }
 
   private findClientRateMinor(
-    principal: Principal,
+    principal: Principal | null,
     projectId: string,
     workerId: string,
     category: string,
     date: string,
     activityCode?: string | null,
     effectiveCategory: 'regular' | 'overtime' = category === 'overtime' ? 'overtime' : 'regular',
+    execution?: FencedJobExecution,
+    billingRuleId?: string,
   ): bigint | null {
-    const resolved = new V3Repository(this.sqlite).resolveClientLaborRate(
-      principal,
-      projectId,
-      workerId,
-      category,
-      date,
-      activityCode,
-    );
+    const resolved = execution
+      ? new V3Repository(this.sqlite).resolveClientLaborRateFromJob(
+          execution,
+          billingRuleId ?? '',
+          projectId,
+          workerId,
+          category,
+          date,
+          activityCode,
+        )
+      : principal
+        ? new V3Repository(this.sqlite).resolveClientLaborRate(
+            principal,
+            projectId,
+            workerId,
+            category,
+            date,
+            activityCode,
+          )
+        : null;
     if (!resolved) return null;
     if (effectiveCategory === 'regular') return BigInt(resolved.hourlyRateMinor);
     if (category === 'overtime') return BigInt(resolved.effectiveRateMinor);
@@ -4196,11 +4678,328 @@ export class PortalRepository {
       );
   }
 
+  /**
+   * Materialize the commercial allocation cut while the invoice is a mutable
+   * draft. Issuance locks these rows, so later operational changes cannot
+   * rewrite which source value was included, partially allocated, or covered
+   * by an all-in/hybrid fixed amount.
+   */
+  private rebuildInvoiceCommercialManifest(
+    invoiceId: string,
+    billingModel: string,
+    createdAt: string,
+  ): void {
+    this.sqlite
+      .prepare('DELETE FROM invoice_commercial_source_manifest WHERE invoice_id=?')
+      .run(invoiceId);
+    const sourceRows = this.sqlite
+      .prepare(
+        `SELECT source_type,source_id,source_version
+         FROM invoice_source WHERE invoice_id=? ORDER BY source_type,source_id`,
+      )
+      .all(invoiceId) as Array<{
+      source_type: string;
+      source_id: string;
+      source_version: number;
+    }>;
+    const lines = this.sqlite
+      .prepare(
+        `SELECT source_type,source_id,subtotal_minor,snapshot_json
+         FROM invoice_line WHERE invoice_id=? ORDER BY rowid`,
+      )
+      .all(invoiceId) as Array<{
+      source_type: string;
+      source_id: string;
+      subtotal_minor: number;
+      snapshot_json: string;
+    }>;
+    const bySource = new Map<
+      string,
+      { original: bigint; allocated: bigint; snapshots: string[] }
+    >();
+    for (const line of lines) {
+      const key = `${line.source_type}\u0000${line.source_id}`;
+      let snapshot: Record<string, unknown> = {};
+      try {
+        const parsed = JSON.parse(line.snapshot_json) as unknown;
+        if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed))
+          snapshot = parsed as Record<string, unknown>;
+      } catch {
+        // The immutable hash below still includes the exact stored snapshot.
+      }
+      const original =
+        typeof snapshot.originalSubtotalMinor === 'string' &&
+        /^-?\d+$/u.test(snapshot.originalSubtotalMinor)
+          ? BigInt(snapshot.originalSubtotalMinor)
+          : BigInt(line.subtotal_minor);
+      const current = bySource.get(key) ?? { original: 0n, allocated: 0n, snapshots: [] };
+      current.original += original;
+      current.allocated += BigInt(line.subtotal_minor);
+      current.snapshots.push(line.snapshot_json);
+      bySource.set(key, current);
+    }
+    // A capped source can remain only in the immutable commercial manifest
+    // after its first invoice consumed a partial amount.  The global
+    // invoice_source reservation intentionally cannot be duplicated, so the
+    // next invoice must still emit a manifest row from its invoice line.
+    // Include the union of source reservations and line provenance here;
+    // otherwise a partial remainder would disappear from the audit cut.
+    const sourceByKey = new Map<
+      string,
+      { source_type: string; source_id: string; source_version: number }
+    >();
+    for (const source of sourceRows)
+      sourceByKey.set(`${source.source_type}\u0000${source.source_id}`, source);
+    for (const line of lines) {
+      if (!['time', 'expense', 'milestone', 'adjustment'].includes(line.source_type)) continue;
+      const key = `${line.source_type}\u0000${line.source_id}`;
+      if (sourceByKey.has(key)) continue;
+      let sourceVersion = 1;
+      try {
+        const snapshot = JSON.parse(line.snapshot_json) as unknown;
+        if (
+          typeof snapshot === 'object' &&
+          snapshot !== null &&
+          !Array.isArray(snapshot) &&
+          Number.isSafeInteger((snapshot as Record<string, unknown>).sourceVersion)
+        )
+          sourceVersion = Number((snapshot as Record<string, unknown>).sourceVersion);
+      } catch {
+        // The exact bytes remain in the source hash; the current source
+        // version is checked again by the issue-time recheck.
+      }
+      sourceByKey.set(key, {
+        source_type: line.source_type,
+        source_id: line.source_id,
+        source_version: sourceVersion,
+      });
+    }
+    const insert = this.sqlite.prepare(
+      `INSERT INTO invoice_commercial_source_manifest(
+         manifest_id,invoice_id,source_type,source_id,source_version,disposition,
+         original_minor,allocated_minor,remaining_minor,reason_code,source_hash,created_at
+       ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+    );
+    for (const source of sourceByKey.values()) {
+      const allocation = bySource.get(`${source.source_type}\u0000${source.source_id}`);
+      const signedOriginal = allocation?.original ?? null;
+      const signedAllocated = allocation?.allocated ?? null;
+      const original =
+        source.source_type === 'adjustment' && signedOriginal !== null
+          ? signedOriginal < 0n
+            ? -signedOriginal
+            : signedOriginal
+          : signedOriginal;
+      const allocated =
+        source.source_type === 'adjustment' && signedAllocated !== null
+          ? signedAllocated < 0n
+            ? -signedAllocated
+            : signedAllocated
+          : signedAllocated;
+      const remaining = original === null || allocated === null ? null : original - allocated;
+      const disposition =
+        remaining === null || remaining === 0n
+          ? 'included'
+          : allocated === 0n
+            ? 'blocked'
+            : 'partially_included';
+      const reasonCode =
+        billingModel === 'capped_tm' && remaining !== null && remaining > 0n
+          ? allocated === 0n
+            ? 'capped_tm_blocked_by_cap'
+            : 'capped_tm_partial_allocation'
+          : billingModel === 'all_in'
+            ? 'all_in_source_covered_by_fixed_price'
+            : billingModel === 'hybrid' && !allocation
+              ? 'hybrid_source_covered_by_fixed_price'
+              : `${billingModel}_source_included`;
+      const sourceHash = createHash('sha256')
+        .update(
+          JSON.stringify({
+            sourceType: source.source_type,
+            sourceId: source.source_id,
+            sourceVersion: source.source_version,
+            snapshots: allocation?.snapshots ?? [],
+          }),
+        )
+        .digest('hex');
+      insert.run(
+        newId(),
+        invoiceId,
+        source.source_type,
+        source.source_id,
+        source.source_version,
+        disposition,
+        original === null ? null : safeInteger(original),
+        allocated === null ? null : safeInteger(allocated),
+        remaining === null ? null : safeInteger(remaining),
+        reasonCode,
+        sourceHash,
+        createdAt,
+      );
+    }
+    for (const line of lines.filter((candidate) => candidate.source_type === 'fixed_price')) {
+      const allocation = bySource.get(`${line.source_type}\u0000${line.source_id}`);
+      if (!allocation) continue;
+      insert.run(
+        newId(),
+        invoiceId,
+        'fixed_price',
+        line.source_id,
+        1,
+        'included',
+        safeInteger(allocation.original),
+        safeInteger(allocation.allocated),
+        safeInteger(allocation.original - allocation.allocated),
+        billingModel === 'all_in' ? 'all_in_fixed_price' : 'hybrid_fixed_price',
+        createHash('sha256').update(allocation.snapshots.join('\n')).digest('hex'),
+        createdAt,
+      );
+    }
+    for (const line of lines.filter(
+      (candidate) => candidate.source_type === 'billing_adjustment',
+    )) {
+      const allocation = bySource.get(`${line.source_type}\u0000${line.source_id}`);
+      if (!allocation) continue;
+      insert.run(
+        newId(),
+        invoiceId,
+        'minimum_top_up',
+        line.source_id,
+        1,
+        'included',
+        safeInteger(allocation.original),
+        safeInteger(allocation.allocated),
+        safeInteger(allocation.original - allocation.allocated),
+        'contractual_daily_minimum_top_up',
+        createHash('sha256').update(allocation.snapshots.join('\n')).digest('hex'),
+        createdAt,
+      );
+    }
+    // Materialize the canonical source authority while the invoice is still
+    // a mutable draft. The manifest hash covers the source identity, version
+    // and exact line snapshots; the signed net allocation comes from the
+    // invoice lines (commercial-manifest adjustment values are deliberately
+    // absolute). Issuance only adds the lock timestamp, preserving these
+    // bytes as historical truth.
+    this.sqlite
+      .prepare(
+        `UPDATE invoice_source AS source
+            SET source_hash=(
+                  SELECT manifest.source_hash
+                    FROM invoice_commercial_source_manifest manifest
+                   WHERE manifest.invoice_id=source.invoice_id
+                     AND manifest.source_type=source.source_type
+                     AND manifest.source_id=source.source_id
+                ),
+                allocated_net_minor=(
+                  SELECT CAST(SUM(line.subtotal_minor) AS INTEGER)
+                    FROM invoice_line line
+                   WHERE line.invoice_id=source.invoice_id
+                     AND line.source_type=CASE source.source_type
+                       WHEN 'minimum_top_up' THEN 'billing_adjustment' ELSE source.source_type END
+                     AND line.source_id=source.source_id
+                ),
+                allocated_tax_minor=(
+                  SELECT CAST(SUM(COALESCE(line.tax_amount_minor,line.tax_minor,0)) AS INTEGER)
+                    FROM invoice_line line
+                   WHERE line.invoice_id=source.invoice_id
+                     AND line.source_type=CASE source.source_type
+                       WHEN 'minimum_top_up' THEN 'billing_adjustment' ELSE source.source_type END
+                     AND line.source_id=source.source_id
+                ),
+                allocated_gross_minor=(
+                  SELECT CAST(SUM(COALESCE(line.gross_amount_minor,
+                           line.subtotal_minor+COALESCE(line.tax_amount_minor,line.tax_minor,0))) AS INTEGER)
+                    FROM invoice_line line
+                   WHERE line.invoice_id=source.invoice_id
+                     AND line.source_type=CASE source.source_type
+                       WHEN 'minimum_top_up' THEN 'billing_adjustment' ELSE source.source_type END
+                     AND line.source_id=source.source_id
+                ),
+                created_at=COALESCE(source.created_at,?)
+          WHERE source.invoice_id=? AND source.locked_at IS NULL
+            AND EXISTS(
+              SELECT 1 FROM invoice_commercial_source_manifest manifest
+               WHERE manifest.invoice_id=source.invoice_id
+                 AND manifest.source_type=source.source_type
+                 AND manifest.source_id=source.source_id
+            )`,
+      )
+      .run(createdAt, invoiceId);
+  }
+
+  /**
+   * A capped source may span more than one invoice after an authorised cap
+   * increase.  Immutable manifests are the allocation ledger: remove only
+   * amounts allocated by non-void historical invoices, line by line, before
+   * applying the current cap.  This prevents both duplicate billing and the
+   * old permanent-reservation failure for a legitimate remainder.
+   */
+  private applyPriorCappedSourceAllocations(invoiceId: string, projectId: string): bigint {
+    const lines = this.sqlite
+      .prepare(
+        `SELECT id,source_type,source_id,subtotal_minor,snapshot_json
+           FROM invoice_line WHERE invoice_id=? ORDER BY rowid`,
+      )
+      .all(invoiceId) as Array<{
+      id: string;
+      source_type: string;
+      source_id: string;
+      subtotal_minor: number;
+      snapshot_json: string;
+    }>;
+    const priorBySource = new Map<string, bigint>();
+    let subtotal = 0n;
+    for (const line of lines) {
+      const key = `${line.source_type}\u0000${line.source_id}`;
+      let prior = priorBySource.get(key);
+      if (prior === undefined) {
+        const rows = this.sqlite
+          .prepare(
+            `SELECT CAST(m.allocated_minor AS TEXT) allocated_minor
+               FROM invoice_commercial_source_manifest m
+               JOIN invoice historical ON historical.id=m.invoice_id
+              WHERE historical.project_id=? AND historical.id<>?
+                AND historical.state IN ('issued','sent','partially_paid','paid','overdue')
+                AND m.source_type=? AND m.source_id=? AND m.allocated_minor IS NOT NULL`,
+          )
+          .all(projectId, invoiceId, line.source_type, line.source_id) as Array<{
+          allocated_minor: string;
+        }>;
+        prior = rows.reduce((sum, row) => sum + BigInt(row.allocated_minor), 0n);
+      }
+      const original = BigInt(line.subtotal_minor);
+      const consumed = prior > 0n ? (prior < original ? prior : original) : 0n;
+      const remaining = original - consumed;
+      priorBySource.set(key, prior - consumed);
+      let snapshot: Record<string, unknown> = {};
+      try {
+        const parsed = JSON.parse(line.snapshot_json) as unknown;
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed))
+          snapshot = parsed as Record<string, unknown>;
+      } catch {
+        // Preserve a truthful new snapshot even if a mutable draft contained
+        // malformed legacy JSON; issued snapshots remain protected elsewhere.
+      }
+      snapshot.sourceOriginalSubtotalMinor = original.toString();
+      snapshot.priorAllocatedSubtotalMinor = consumed.toString();
+      this.sqlite
+        .prepare(
+          'UPDATE invoice_line SET subtotal_minor=?,unit_price_minor=?,snapshot_json=? WHERE id=?',
+        )
+        .run(safeInteger(remaining), safeInteger(remaining), JSON.stringify(snapshot), line.id);
+      subtotal += remaining;
+    }
+    return subtotal;
+  }
+
   private insertInvoiceSource(
     invoiceId: string,
     sourceType: string,
     sourceId: string,
     sourceVersion: number,
+    allowPriorCappedAllocation = false,
   ): void {
     const identity = this.deploymentIdentity();
     const existing = this.sqlite
@@ -4209,8 +5008,27 @@ export class PortalRepository {
       )
       .get(sourceType, sourceId) as { invoice_id: string; source_version: number } | undefined;
     if (existing) {
-      if (existing.invoice_id !== invoiceId)
-        throw new ConflictError(`Source ${sourceType}:${sourceId} is already reserved for billing`);
+      if (existing.invoice_id !== invoiceId) {
+        const reusable = allowPriorCappedAllocation
+          ? this.sqlite
+              .prepare(
+                `SELECT 1
+                   FROM invoice historical
+                   JOIN invoice_commercial_source_manifest manifest
+                     ON manifest.invoice_id=historical.id
+                  WHERE historical.id=?
+                    AND historical.state IN ('issued','sent','partially_paid','paid','overdue','void')
+                    AND manifest.source_type=? AND manifest.source_id=?
+                    AND manifest.disposition IN ('partially_included','blocked')`,
+              )
+              .get(existing.invoice_id, sourceType, sourceId)
+          : undefined;
+        if (!reusable)
+          throw new ConflictError(
+            `Source ${sourceType}:${sourceId} is already reserved for billing`,
+          );
+        return;
+      }
       if (existing.source_version !== sourceVersion)
         throw new ConflictError(`Source ${sourceType}:${sourceId} snapshot version changed`);
       // Retrying the same source reservation for the same invoice is safe and
@@ -4408,9 +5226,21 @@ export class PortalRepository {
     if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
     this.assertStepUp(principal);
     return this.transaction(() => {
-      const invoice = this.sqlite.prepare('SELECT * FROM invoice WHERE id=?').get(invoiceId) as
-        | InvoiceRow
-        | undefined;
+      // Read monetary columns as text.  Node's sqlite INTEGER reader returns
+      // JavaScript numbers by default and therefore rejects/rounds values
+      // outside Number.MAX_SAFE_INTEGER before the domain can turn them into
+      // bigint.  Issuance is an exact-money boundary, so keep the SQLite
+      // integer representation textual until the snapshot is serialized.
+      const invoice = this.sqlite
+        .prepare(
+          `SELECT id,project_id,invoice_number,stream_type,state,currency,
+                  CAST(subtotal_minor AS TEXT) subtotal_minor,
+                  CAST(tax_minor AS TEXT) tax_minor,
+                  CAST(total_minor AS TEXT) total_minor,
+                  issued_at,snapshot_json,billing_rule_id,period_start,period_end
+             FROM invoice WHERE id=?`,
+        )
+        .get(invoiceId) as InvoiceRow | undefined;
       if (!invoice) throw new ValidationError('Invoice not found');
       if (
         ['issued', 'sent', 'partially_paid', 'paid', 'overdue', 'void', 'credited'].includes(
@@ -4428,8 +5258,9 @@ export class PortalRepository {
                   br.po_number_override,br.grouping_mode,br.cadence_type,br.anchor_date,br.billing_contact_id,
                   le.code,le.legal_name,le.billing_address,le.company_identifiers,
                   le.status legal_entity_status,le.currency legal_entity_currency,
-                  c.legal_name client_legal_name,c.client_number,c.billing_email,c.payment_terms_days,
-                  p.project_number,p.name project_name,p.po_number,
+                  c.legal_name client_legal_name,c.client_code,c.client_number,c.billing_address client_billing_address,
+                  c.po_reference client_po_reference,c.billing_email,c.payment_terms_days,
+                  p.project_number,p.name project_name,p.cost_center_code,p.po_number,
                   tp.id tax_profile_id,tp.name tax_name,tp.currency tax_currency,tp.status tax_profile_status,
                   tp.jurisdiction_label,tp.description tax_description
            FROM billing_rule br JOIN legal_entity le ON le.id=br.legal_entity_id
@@ -4454,11 +5285,15 @@ export class PortalRepository {
             legal_entity_status: string;
             legal_entity_currency: Currency;
             client_legal_name: string;
+            client_code: string | null;
             client_number: string;
+            client_billing_address: string | null;
+            client_po_reference: string | null;
             billing_email: string | null;
             payment_terms_days: number;
             project_number: string;
             project_name: string;
+            cost_center_code: string | null;
             po_number: string | null;
             tax_profile_id: string;
             tax_name: string;
@@ -4477,6 +5312,42 @@ export class PortalRepository {
         throw new ValidationError('Legal entity currency no longer matches the invoice currency');
       if (context.tax_currency !== invoice.currency)
         throw new ValidationError('Tax profile currency no longer matches the invoice currency');
+      const deployment = this.deploymentIdentity();
+      const canonicalAuthority = this.sqlite
+        .prepare(
+          `SELECT bridge.canonical_revision_id legal_entity_revision_id
+             FROM legal_entity_revision_bridge bridge
+             JOIN project_legal_entity_assignment assignment
+               ON assignment.legal_entity_revision_id=bridge.canonical_revision_id
+              AND assignment.project_id=?
+              AND assignment.tenant_id=? AND assignment.deployment_id=?
+              AND assignment.effective_from<=?
+              AND (assignment.effective_to IS NULL OR assignment.effective_to>=?)
+            WHERE bridge.legacy_legal_entity_id=?
+              AND bridge.tenant_id=? AND bridge.deployment_id=?
+            ORDER BY assignment.effective_from DESC,assignment.assignment_id DESC
+            LIMIT 1`,
+        )
+        .get(
+          invoice.project_id,
+          deployment.tenantId,
+          deployment.deploymentId,
+          invoice.period_start,
+          invoice.period_end,
+          context.legal_entity_id,
+          deployment.tenantId,
+          deployment.deploymentId,
+        ) as { legal_entity_revision_id: string } | undefined;
+      if (!canonicalAuthority?.legal_entity_revision_id)
+        throw new ReadinessError(
+          [
+            {
+              code: 'canonical_legal_entity_revision_required',
+              sourceId: invoice.project_id,
+            },
+          ],
+          'Canonical legal entity revision is required',
+        );
       const billingContact = context.billing_contact_id
         ? (this.sqlite
             .prepare('SELECT id,name,email,phone,role FROM client_contact WHERE id=?')
@@ -4505,19 +5376,66 @@ export class PortalRepository {
         | undefined;
       if (!policy)
         throw new ReadinessError([{ code: 'missing_accountant_approved_number_policy' }]);
+      const lines = this.sqlite
+        .prepare(
+          `SELECT id,invoice_id,description,quantity_numerator,quantity_denominator,
+                  CAST(unit_price_minor AS TEXT) unit_price_minor,
+                  CAST(subtotal_minor AS TEXT) subtotal_minor,
+                  source_type,source_id,snapshot_json,
+                  CAST(tax_minor AS TEXT) tax_minor,grouping_key,line_number,line_kind,
+                  CAST(unit_amount_minor AS TEXT) unit_amount_minor,
+                  CAST(net_amount_minor AS TEXT) net_amount_minor,tax_bps,
+                  CAST(tax_amount_minor AS TEXT) tax_amount_minor,
+                  CAST(gross_amount_minor AS TEXT) gross_amount_minor,
+                  source_bucket_key,rounding_rank,created_at
+             FROM invoice_line WHERE invoice_id=? ORDER BY rowid`,
+        )
+        .all(invoiceId);
+      const sources = this.sqlite
+        .prepare(
+          `SELECT source_link_id,invoice_id,invoice_line_id,source_type,source_id,source_version,
+                  locked_at,source_hash,
+                  CAST(allocated_net_minor AS TEXT) allocated_net_minor,
+                  CAST(allocated_tax_minor AS TEXT) allocated_tax_minor,
+                  CAST(allocated_gross_minor AS TEXT) allocated_gross_minor,created_at
+             FROM invoice_source
+            WHERE invoice_id=? ORDER BY source_type,source_id`,
+        )
+        .all(invoiceId);
+      const commercialSourceManifest = this.sqlite
+        .prepare(
+          `SELECT source_type,source_id,source_version,disposition,
+                  CAST(original_minor AS TEXT) original_minor,
+                  CAST(allocated_minor AS TEXT) allocated_minor,
+                  CAST(remaining_minor AS TEXT) remaining_minor,
+                  reason_code,source_hash
+           FROM invoice_commercial_source_manifest
+           WHERE invoice_id=? ORDER BY source_type,source_id`,
+        )
+        .all(invoiceId);
+      if (lines.length === 0) throw new ConflictError('Invoice line projection is empty');
+      if (commercialSourceManifest.length === 0)
+        throw new ConflictError('Invoice commercial source manifest is empty');
+      this.recheckInvoiceProjection(
+        invoice,
+        lines as InvoiceIssueLine[],
+        commercialSourceManifest as InvoiceIssueManifest[],
+      );
       const year = new Date().getUTCFullYear();
       const sequence = this.nextSequence('invoice', `${context.legal_entity_id}:${year}`);
       const invoiceNumber = `${policy.prefix}-${year}-${String(sequence).padStart(policy.digits, '0')}`;
-      const lines = this.sqlite
-        .prepare('SELECT * FROM invoice_line WHERE invoice_id=? ORDER BY id')
-        .all(invoiceId);
-      const sources = this.sqlite
-        .prepare('SELECT * FROM invoice_source WHERE invoice_id=? ORDER BY source_type,source_id')
-        .all(invoiceId);
       const issuedAt = now();
       const due = new Date(
         Date.parse(issuedAt) + context.billing_payment_terms_days * 86_400_000,
       ).toISOString();
+      let draftCustomizations: Record<string, unknown> = {};
+      if (invoice.snapshot_json) {
+        try {
+          draftCustomizations = JSON.parse(invoice.snapshot_json);
+        } catch {
+          // Preserve issuance using the canonical defaults when a legacy snapshot is malformed.
+        }
+      }
       const snapshot = {
         template: {
           id: controlledInvoiceTemplateId(context.template_id, invoice.stream_type),
@@ -4526,14 +5444,18 @@ export class PortalRepository {
         },
         legalEntity: {
           id: context.legal_entity_id,
+          revisionId: canonicalAuthority?.legal_entity_revision_id ?? null,
           code: context.code,
           legalName: context.legal_name,
           billingAddress: context.billing_address,
           companyIdentifiers: context.company_identifiers,
         },
         client: {
+          code: context.client_code,
           legalName: context.client_legal_name,
           number: context.client_number,
+          billingAddress: context.client_billing_address,
+          poReference: context.client_po_reference,
           billingEmail: context.billing_email,
           recipientEmail: context.recipient_email,
           billingContact: billingContact ?? null,
@@ -4541,8 +5463,33 @@ export class PortalRepository {
         project: {
           number: context.project_number,
           name: context.project_name,
+          costCenterCode: context.cost_center_code,
           poNumber: context.po_number_override ?? context.po_number,
         },
+        purchaseNo:
+          draftCustomizations.purchaseNo ??
+          context.po_number_override ??
+          context.po_number ??
+          context.client_po_reference ??
+          null,
+        termsAndInstructions: draftCustomizations.termsAndInstructions ?? {
+          bankSwiftNumber: 'WFBIUS6S',
+          bankAccountNumber: '8769915615',
+          bankName: 'Wells Fargo Bank',
+          beneficiary: 'J&A Automation LLC',
+          pastDueNotice:
+            'Past Due account subject to service charge of 1.5% per month and/or maximum permitted by law',
+        },
+        companyInfo: draftCustomizations.companyInfo ?? {
+          name: 'J&A Automation LLC',
+          division: 'USA division',
+          phone: '+1 (864) 208 4684',
+          address: '112 Birkshire Dr, Georgetown TX 78626',
+          email: 'field.operations@j-aautomation.com',
+          website: 'www.j-aautomation.com',
+        },
+        discountMinor: draftCustomizations.discountMinor ?? '0',
+        servicePeriod: { start: invoice.period_start, end: invoice.period_end },
         number: invoiceNumber,
         locale: normalizeReportLocale(reportLocale),
         invoiceNumber,
@@ -4572,10 +5519,16 @@ export class PortalRepository {
         billingRuleId: invoice.billing_rule_id,
         lines,
         sources,
+        commercialSourceManifest,
         generatedAt: issuedAt,
       };
       const snapshotJson = JSON.stringify(snapshot);
       const calculationHash = createHash('sha256').update(snapshotJson).digest('hex');
+      new V3Repository(this.sqlite).freezeInvoiceDirectCosts(
+        invoiceId,
+        canonicalAuthority?.legal_entity_revision_id ?? null,
+        issuedAt,
+      );
       // Lock source rows while the invoice is still approved.  The finance
       // migration deliberately makes issued source rows immutable, so this
       // mutation must be part of the same transaction immediately before the
@@ -4585,9 +5538,16 @@ export class PortalRepository {
         .run(issuedAt, invoiceId);
       if (sourceLock.changes !== sources.length)
         throw new ConflictError('Invoice sources changed before issue');
+      const manifestLock = this.sqlite
+        .prepare(
+          'UPDATE invoice_commercial_source_manifest SET locked_at=? WHERE invoice_id=? AND locked_at IS NULL',
+        )
+        .run(issuedAt, invoiceId);
+      if (manifestLock.changes !== commercialSourceManifest.length)
+        throw new ConflictError('Invoice commercial source manifest changed before issue');
       const invoiceTransition = this.sqlite
         .prepare(
-          "UPDATE invoice SET invoice_number=?,state='issued',issued_at=?,due_at=?,snapshot_json=?,calculation_hash=?,source_lock_at=?,pdf_status='pending',updated_at=?,version=version+1 WHERE id=? AND state='approved'",
+          "UPDATE invoice SET invoice_number=?,state='issued',issued_at=?,due_at=?,snapshot_json=?,calculation_hash=?,source_lock_at=?,tenant_id=?,deployment_id=?,legal_entity_revision_id=?,pdf_status='pending',updated_at=?,version=version+1 WHERE id=? AND state='approved'",
         )
         .run(
           invoiceNumber,
@@ -4596,6 +5556,9 @@ export class PortalRepository {
           snapshotJson,
           calculationHash,
           issuedAt,
+          deployment.tenantId,
+          deployment.deploymentId,
+          canonicalAuthority?.legal_entity_revision_id ?? null,
           issuedAt,
           invoiceId,
         );
@@ -4603,6 +5566,19 @@ export class PortalRepository {
       const sourceRows = this.sqlite
         .prepare('SELECT source_type,source_id FROM invoice_source WHERE invoice_id=?')
         .all(invoiceId) as Array<{ source_type: string; source_id: string }>;
+      const manifestOnlySources = this.sqlite
+        .prepare(
+          `SELECT source_type,source_id FROM invoice_commercial_source_manifest
+            WHERE invoice_id=? AND source_type IN ('time','expense','milestone')
+              AND NOT EXISTS(
+                SELECT 1 FROM invoice_source reserved
+                 WHERE reserved.invoice_id=?
+                   AND reserved.source_type=invoice_commercial_source_manifest.source_type
+                   AND reserved.source_id=invoice_commercial_source_manifest.source_id
+              )`,
+        )
+        .all(invoiceId, invoiceId) as Array<{ source_type: string; source_id: string }>;
+      sourceRows.push(...manifestOnlySources);
       for (const source of sourceRows) {
         if (source.source_type === 'milestone') {
           const changed = this.sqlite
@@ -4615,11 +5591,27 @@ export class PortalRepository {
         } else if (source.source_type === 'time' || source.source_type === 'expense') {
           const table = source.source_type === 'time' ? 'time_entry' : 'expense';
           const billingColumn = source.source_type === 'time' ? 'billing_status' : 'billing_state';
+          const allocation = this.sqlite
+            .prepare(
+              `SELECT disposition FROM invoice_commercial_source_manifest
+               WHERE invoice_id=? AND source_type=? AND source_id=?`,
+            )
+            .get(invoiceId, source.source_type, source.source_id) as
+            | { disposition: string }
+            | undefined;
+          const capBlocked =
+            allocation?.disposition === 'partially_included' ||
+            allocation?.disposition === 'blocked';
           const changed = this.sqlite
             .prepare(
-              `UPDATE ${table} SET invoice_id=?,${billingColumn}='locked',updated_at=? WHERE id=? AND invoice_id IS NULL`,
+              `UPDATE ${table} SET invoice_id=?,${billingColumn}=?,updated_at=? WHERE id=? AND invoice_id IS NULL`,
             )
-            .run(invoiceId, issuedAt, source.source_id);
+            .run(
+              capBlocked ? null : invoiceId,
+              capBlocked ? 'cap_blocked' : 'locked',
+              issuedAt,
+              source.source_id,
+            );
           if (changed.changes !== 1)
             throw new ConflictError(
               `${source.source_type} source ${source.source_id} changed during issue`,
@@ -4719,6 +5711,76 @@ export class PortalRepository {
     });
   }
 
+  private recheckInvoiceProjection(
+    invoice: InvoiceRow,
+    lines: InvoiceIssueLine[],
+    manifests: InvoiceIssueManifest[],
+  ): void {
+    const snapshotsBySource = new Map<string, string[]>();
+    for (const line of lines) {
+      const key = `${line.source_type}\u0000${line.source_id}`;
+      const snapshots = snapshotsBySource.get(key) ?? [];
+      snapshots.push(line.snapshot_json);
+      snapshotsBySource.set(key, snapshots);
+    }
+
+    const sourceHashes = new Map<string, string | null>();
+    const sourceRows = this.sqlite
+      .prepare(
+        `SELECT source_type,source_id,source_hash
+           FROM invoice_source WHERE invoice_id=?`,
+      )
+      .all(invoice.id) as Array<{
+      source_type: string;
+      source_id: string;
+      source_hash: string | null;
+    }>;
+    for (const source of sourceRows)
+      sourceHashes.set(`${source.source_type}\u0000${source.source_id}`, source.source_hash);
+
+    for (const manifest of manifests) {
+      if (!manifest.source_hash)
+        throw new ConflictError(
+          `Invoice commercial source manifest ${manifest.source_type}:${manifest.source_id} is missing a hash`,
+        );
+      const lineSourceType =
+        manifest.source_type === 'minimum_top_up' ? 'billing_adjustment' : manifest.source_type;
+      const snapshots = snapshotsBySource.get(`${lineSourceType}\u0000${manifest.source_id}`) ?? [];
+      const canonicalHash = createHash('sha256')
+        .update(
+          manifest.source_type === 'fixed_price' || manifest.source_type === 'minimum_top_up'
+            ? snapshots.join('\n')
+            : JSON.stringify({
+                sourceType: manifest.source_type,
+                sourceId: manifest.source_id,
+                sourceVersion: manifest.source_version,
+                snapshots,
+              }),
+        )
+        .digest('hex');
+      if (manifest.source_hash !== canonicalHash)
+        throw new ConflictError(
+          `Invoice commercial source manifest ${manifest.source_type}:${manifest.source_id} hash mismatch`,
+        );
+      const linkedHash = sourceHashes.get(`${manifest.source_type}\u0000${manifest.source_id}`);
+      if (linkedHash !== undefined && linkedHash !== manifest.source_hash)
+        throw new ConflictError(
+          `Invoice source ${manifest.source_type}:${manifest.source_id} hash mismatch`,
+        );
+    }
+
+    for (const source of sourceRows) {
+      const manifest = manifests.find(
+        (candidate) =>
+          candidate.source_type === source.source_type && candidate.source_id === source.source_id,
+      );
+      if (!manifest || source.source_hash !== manifest.source_hash)
+        throw new ConflictError(
+          `Invoice source ${source.source_type}:${source.source_id} is not bound to its commercial manifest`,
+        );
+    }
+  }
+
   private recheckInvoiceSources(invoice: InvoiceRow): void {
     const sources = this.sqlite
       .prepare('SELECT source_type,source_id,source_version FROM invoice_source WHERE invoice_id=?')
@@ -4815,95 +5877,22 @@ export class PortalRepository {
       idempotencyKey: string;
     },
   ) {
-    this.assertActive(principal);
-    if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
-    this.assertStepUp(principal);
-    if (input.amountMinor <= 0n) throw new ValidationError('Payment must be positive');
-    assertDate(input.receivedAt.slice(0, 10), 'Payment date');
-    if (input.idempotencyKey.trim().length < 8)
-      throw new ValidationError('Payment idempotency key is required');
-    return this.transaction(() => {
-      const existing = this.sqlite
-        .prepare('SELECT id,invoice_id,amount_minor,currency FROM payment WHERE idempotency_key=?')
-        .get(input.idempotencyKey) as
-        | { id: string; invoice_id: string; amount_minor: number; currency: Currency }
-        | undefined;
-      if (existing) {
-        if (
-          existing.invoice_id !== input.invoiceId ||
-          existing.amount_minor !== safeInteger(input.amountMinor) ||
-          existing.currency !== input.currency
-        )
-          throw new ConflictError('Payment idempotency key was already used for another payment');
-        return { id: existing.id, created: false };
-      }
-      const invoice = this.sqlite
-        .prepare(
-          "SELECT currency,total_minor,state FROM invoice WHERE id=? AND state IN ('issued','sent','partially_paid','overdue')",
-        )
-        .get(input.invoiceId) as
-        | { currency: Currency; total_minor: number; state: string }
-        | undefined;
-      if (!invoice || invoice.currency !== input.currency)
-        throw new ValidationError('Issued invoice in matching currency required');
-      const paid = (
-        this.sqlite
-          .prepare('SELECT CAST(amount_minor AS TEXT) amount FROM payment WHERE invoice_id=?')
-          .all(input.invoiceId) as Array<{ amount: string }>
-      ).reduce((sum, row) => sum + BigInt(row.amount), 0n);
-      const reversed = (
-        this.sqlite
-          .prepare(
-            'SELECT CAST(amount_minor AS TEXT) amount FROM invoice_payment_reversal_event WHERE invoice_id=?',
-          )
-          .all(input.invoiceId) as Array<{ amount: string }>
-      ).reduce((sum, row) => sum + BigInt(row.amount), 0n);
-      const netPaid = paid - reversed;
-      if (netPaid + input.amountMinor > BigInt(invoice.total_minor))
-        throw new ValidationError('Payment exceeds invoice balance');
-      const id = newId();
-      this.sqlite
-        .prepare(
-          'INSERT INTO payment(id,invoice_id,amount_minor,currency,received_at,reference,created_at,idempotency_key) VALUES(?,?,?,?,?,?,?,?)',
-        )
-        .run(
-          id,
-          input.invoiceId,
-          safeInteger(input.amountMinor),
-          input.currency,
-          input.receivedAt,
-          input.reference ?? null,
-          now(),
-          input.idempotencyKey,
-        );
-      const totalPaid = netPaid + input.amountMinor;
-      this.sqlite
-        .prepare('UPDATE invoice SET state=?,updated_at=? WHERE id=?')
-        .run(
-          totalPaid === BigInt(invoice.total_minor) ? 'paid' : 'partially_paid',
-          now(),
-          input.invoiceId,
-        );
-      this.sqlite
-        .prepare(
-          'INSERT INTO invoice_event(id,invoice_id,event_type,amount_minor,reason,actor_id,occurred_at,idempotency_key) VALUES(?,?,?,?,?,?,?,?)',
-        )
-        .run(
-          newId(),
-          input.invoiceId,
-          'payment',
-          safeInteger(input.amountMinor),
-          input.reference?.trim() || 'Payment received',
-          principal.userId,
-          now(),
-          `payment-event:${input.idempotencyKey}`,
-        );
-      this.audit(principal, 'payment.record', 'payment', id, {
-        invoiceId: input.invoiceId,
-        amountMinor: input.amountMinor.toString(),
-      });
-      return { id, created: true };
+    const received = canonicalInstant(input.receivedAt, 'Payment received date');
+    const invoice = this.sqlite
+      .prepare('SELECT issued_at FROM invoice WHERE id=?')
+      .get(input.invoiceId) as { issued_at: string | null } | undefined;
+    if (!invoice?.issued_at) throw new ValidationError('Issued invoice required');
+    const issued = canonicalInstant(invoice.issued_at, 'Invoice issue date');
+    const commandTimeMs = Date.now();
+    if (received.epochMs < issued.epochMs)
+      throw new ValidationError('Payment received date cannot precede invoice issue date');
+    if (received.epochMs > commandTimeMs)
+      throw new ValidationError('Payment received date cannot be in the future');
+    const result = new V3Repository(this.sqlite).recordPayment(principal, {
+      ...input,
+      receivedAt: received.iso,
     });
+    return { id: result.id, created: result.created };
   }
 
   voidInvoice(principal: Principal, invoiceId: string, reason: string, idempotencyKey: string) {
@@ -4915,7 +5904,7 @@ export class PortalRepository {
     this.transaction(() => {
       const invoice = this.sqlite
         .prepare(
-          "SELECT 1 ok FROM invoice WHERE id=? AND state IN ('issued','sent','partially_paid','overdue')",
+          "SELECT 1 ok FROM invoice WHERE id=? AND state IN ('issued','sent','partially_paid','paid','overdue')",
         )
         .get(invoiceId);
       if (!invoice) throw new ValidationError('Issued invoice required');
@@ -4928,6 +5917,22 @@ export class PortalRepository {
         return;
       }
       const cleanReason = assertText(reason, 'Void reason');
+      const paid = (
+        this.sqlite
+          .prepare('SELECT CAST(amount_minor AS TEXT) amount FROM payment WHERE invoice_id=?')
+          .all(invoiceId) as Array<{ amount: string }>
+      ).reduce((sum, row) => sum + BigInt(row.amount), 0n);
+      const reversed = (
+        this.sqlite
+          .prepare(
+            'SELECT CAST(amount_minor AS TEXT) amount FROM invoice_payment_reversal_event WHERE invoice_id=?',
+          )
+          .all(invoiceId) as Array<{ amount: string }>
+      ).reduce((sum, row) => sum + BigInt(row.amount), 0n);
+      if (paid - reversed !== 0n)
+        throw new ValidationError(
+          'Invoice collections must be fully reversed before the invoice can be voided',
+        );
       const timestamp = now();
       this.sqlite
         .prepare(
@@ -4935,7 +5940,9 @@ export class PortalRepository {
         )
         .run(newId(), invoiceId, cleanReason, principal.userId, timestamp, idempotencyKey);
       this.sqlite
-        .prepare("UPDATE invoice SET state='void',voided_at=?,updated_at=? WHERE id=?")
+        .prepare(
+          "UPDATE invoice SET state='void',voided_at=?,updated_at=?,version=version+1 WHERE id=?",
+        )
         .run(timestamp, timestamp, invoiceId);
       this.audit(principal, 'invoice.void', 'invoice', invoiceId, { reason: cleanReason });
     });
@@ -5445,10 +6452,53 @@ export class PortalRepository {
       throw new AccessDeniedError('Finance role required');
     const invoice = this.sqlite
       .prepare(
-        'SELECT i.*,p.project_number,p.name project_name,c.client_number,c.display_name client_name,c.legal_name client_legal_name,c.billing_email,le.legal_name issuer_name,le.billing_address issuer_address,le.company_identifiers,tp.name tax_profile_name FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id LEFT JOIN billing_rule br ON br.id=i.billing_rule_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id WHERE i.id=?',
+        'SELECT i.*,p.project_number,p.name project_name,p.po_number project_po_number,c.client_number,c.display_name client_name,c.legal_name client_legal_name,c.billing_email,le.legal_name issuer_name,le.billing_address issuer_address,le.company_identifiers,tp.name tax_profile_name FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id LEFT JOIN billing_rule br ON br.id=i.billing_rule_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id WHERE i.id=?',
       )
-      .get(invoiceId);
+      .get(invoiceId) as Record<string, unknown> | undefined;
     if (!invoice) throw new ValidationError('Invoice not found');
+    let customSnapshot: Record<string, unknown> = {};
+    if (typeof invoice.snapshot_json === 'string') {
+      try {
+        customSnapshot = JSON.parse(invoice.snapshot_json);
+      } catch {
+        // A malformed legacy snapshot is projected with safe invoice defaults below.
+      }
+    }
+    const defaultTerms = {
+      bankSwiftNumber: 'WFBIUS6S',
+      bankAccountNumber: '8769915615',
+      bankName: 'Wells Fargo Bank',
+      beneficiary: 'J&A Automation LLC',
+      pastDueNotice:
+        'Past Due account subject to service charge of 1.5% per month and/or maximum permitted by law',
+    };
+    const defaultCompany = {
+      name: 'J&A Automation LLC',
+      division: 'USA division',
+      phone: '+1 (864) 208 4684',
+      address: '112 Birkshire Dr, Georgetown TX 78626',
+      email: 'field.operations@j-aautomation.com',
+      website: 'www.j-aautomation.com',
+    };
+    const enrichedInvoice = {
+      ...invoice,
+      purchase_no:
+        customSnapshot.purchaseNo ?? customSnapshot.purchase_no ?? invoice.project_po_number ?? '—',
+      terms_and_instructions: {
+        ...defaultTerms,
+        ...(typeof customSnapshot.termsAndInstructions === 'object' &&
+        customSnapshot.termsAndInstructions !== null
+          ? customSnapshot.termsAndInstructions
+          : {}),
+      },
+      company_info: {
+        ...defaultCompany,
+        ...(typeof customSnapshot.companyInfo === 'object' && customSnapshot.companyInfo !== null
+          ? customSnapshot.companyInfo
+          : {}),
+      },
+      discount_minor: customSnapshot.discountMinor ?? customSnapshot.discount_minor ?? '0',
+    };
     const lines = this.sqlite
       .prepare(
         'SELECT description,quantity_numerator,quantity_denominator,unit_price_minor,subtotal_minor,source_type FROM invoice_line WHERE invoice_id=? ORDER BY rowid',
@@ -5459,7 +6509,66 @@ export class PortalRepository {
         'SELECT tc.name,tc.basis_points FROM invoice i JOIN billing_rule br ON br.id=i.billing_rule_id JOIN tax_component tc ON tc.tax_profile_id=br.tax_profile_id WHERE i.id=? ORDER BY tc.calculation_order',
       )
       .all(invoiceId);
-    return { invoice, lines, taxes };
+    return { invoice: enrichedInvoice, lines, taxes };
+  }
+
+  updateInvoiceDraftCustomizations(
+    principal: Principal,
+    invoiceId: string,
+    data: {
+      purchaseNo?: string;
+      termsAndInstructions?: Record<string, string>;
+      companyInfo?: Record<string, string>;
+      discountMinor?: string;
+    },
+  ) {
+    this.assertActive(principal);
+    if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
+    return this.transaction(() => {
+      const invoice = this.sqlite
+        .prepare('SELECT id, state, snapshot_json FROM invoice WHERE id=?')
+        .get(invoiceId) as { id: string; state: string; snapshot_json: string | null } | undefined;
+      if (!invoice) throw new ValidationError('Invoice not found');
+      if (invoice.state !== 'draft' && invoice.state !== 'approved') {
+        throw new ConflictError('Only draft or approved invoices can be modified before issuance');
+      }
+      let currentSnapshot: Record<string, unknown> = {};
+      if (invoice.snapshot_json) {
+        try {
+          currentSnapshot = JSON.parse(invoice.snapshot_json);
+        } catch {
+          // Invalid legacy customization data is replaced only in the new draft snapshot.
+        }
+      }
+      if (data.purchaseNo !== undefined) {
+        currentSnapshot.purchaseNo = data.purchaseNo;
+      }
+      if (data.termsAndInstructions !== undefined) {
+        currentSnapshot.termsAndInstructions = {
+          ...(typeof currentSnapshot.termsAndInstructions === 'object' &&
+          currentSnapshot.termsAndInstructions !== null
+            ? currentSnapshot.termsAndInstructions
+            : {}),
+          ...data.termsAndInstructions,
+        };
+      }
+      if (data.companyInfo !== undefined) {
+        currentSnapshot.companyInfo = {
+          ...(typeof currentSnapshot.companyInfo === 'object' &&
+          currentSnapshot.companyInfo !== null
+            ? currentSnapshot.companyInfo
+            : {}),
+          ...data.companyInfo,
+        };
+      }
+      if (data.discountMinor !== undefined) {
+        currentSnapshot.discountMinor = data.discountMinor;
+      }
+      this.sqlite
+        .prepare('UPDATE invoice SET snapshot_json=?, updated_at=? WHERE id=?')
+        .run(JSON.stringify(currentSnapshot), now(), invoiceId);
+      return { success: true };
+    });
   }
 
   listOwnReports(principal: Principal) {
@@ -6031,6 +7140,8 @@ export class PortalRepository {
     currency: string;
     approvalState: string;
     reimbursementState: string;
+    expectedReimbursementOn: string | null;
+    reimbursedAt: string | null;
   }> {
     this.assertReadable(principal);
     if (principal.role !== 'worker') throw new AccessDeniedError('Worker role required');
@@ -6038,24 +7149,17 @@ export class PortalRepository {
     assertDate(periodEnd, 'Period end');
     if (periodStart > periodEnd)
       throw new ValidationError('Period start must not follow period end');
-    const projectIds = [...principal.projectIds];
-    if (projectIds.length === 0) return [];
-    const projectPlaceholders = projectIds.map(() => '?').join(',');
     const rows = this.sqlite
       .prepare(
-        `SELECT e.id,e.spent_on,e.vendor,e.category,
-                CAST(CASE WHEN e.project_currency_amount_minor IS NULL
-                          THEN e.amount_minor
-                          ELSE COALESCE(e.reimbursement_amount_minor,e.project_currency_amount_minor)
-                     END AS TEXT) reimbursement_amount_minor,
-                CASE WHEN e.project_currency_amount_minor IS NULL
-                     THEN e.currency ELSE p.currency END reimbursement_currency,
-                p.project_number,e.approval_state,e.reimbursement_state
+        `SELECT e.id,e.spent_on,e.vendor,e.category,CAST(e.amount_minor AS TEXT) amount_minor,
+                e.currency source_currency,p.currency project_currency,
+                CAST(e.project_currency_amount_minor AS TEXT) project_currency_amount_minor,
+                CAST(e.reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,
+                p.project_number,e.approval_state,e.reimbursement_state,
+                e.expected_reimbursement_on,e.reimbursed_at
          FROM expense e
          JOIN project p ON p.id=e.project_id
          WHERE e.worker_id=?
-           AND e.project_id IN (${projectPlaceholders})
-           AND p.status IN ('active','planned','paused')
            AND e.spent_on>=? AND e.spent_on<=?
            AND e.who_paid='worker'
            AND e.approval_state NOT IN ('rejected','void')
@@ -6065,24 +7169,27 @@ export class PortalRepository {
              FROM project_member pm_scope
              WHERE pm_scope.project_id=e.project_id
                AND pm_scope.user_id=e.worker_id
-               AND pm_scope.status='active'
-               AND pm_scope.starts_on<=e.spent_on
-               AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=e.spent_on)
-               AND pm_scope.starts_on<=?
-               AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=?)
-           )
+                AND pm_scope.status='active'
+                AND pm_scope.starts_on<=e.spent_on
+                AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=e.spent_on)
+            )
          ORDER BY e.spent_on DESC,e.created_at DESC,e.id`,
       )
-      .all(principal.userId, ...projectIds, periodStart, periodEnd, today(), today()) as Array<{
+      .all(principal.userId, periodStart, periodEnd) as Array<{
       id: string;
       project_number: string;
       spent_on: string;
       vendor: string | null;
       category: string;
-      reimbursement_amount_minor: string;
-      reimbursement_currency: string;
+      amount_minor: string;
+      source_currency: string;
+      project_currency: string;
+      project_currency_amount_minor: string | null;
+      reimbursement_amount_minor: string | null;
       approval_state: string;
       reimbursement_state: string | null;
+      expected_reimbursement_on: string | null;
+      reimbursed_at: string | null;
     }>;
     return rows.map((row) => ({
       id: row.id,
@@ -6091,11 +7198,57 @@ export class PortalRepository {
       vendor: row.vendor ?? '',
       category: row.category,
       // Keep SQLite's exact minor-unit text all the way to the export layer.
-      reimbursementAmountMinor: row.reimbursement_amount_minor,
-      currency: row.reimbursement_currency,
+      // Worker reimbursement is an obligation in the expense/source currency.
+      // Project-currency projection belongs to project economics and must not
+      // silently redenominate what the worker is owed. Aggregate callers reject
+      // mixed currencies instead of adding unlike minor units.
+      reimbursementAmountMinor: String(row.reimbursement_amount_minor ?? row.amount_minor),
+      currency: row.source_currency,
       approvalState: row.approval_state,
       reimbursementState: row.reimbursement_state ?? 'pending',
+      expectedReimbursementOn: row.expected_reimbursement_on,
+      reimbursedAt: row.reimbursed_at,
     }));
+  }
+
+  /**
+   * Return the complete own time history for a worker statement. Access is
+   * proven against the assignment on each source date, not against whether
+   * the assignment or project is still active today.
+   */
+  listWorkerStatementTime(
+    principal: Principal,
+    periodStart: string,
+    periodEnd: string,
+  ): Array<Record<string, unknown>> {
+    this.assertReadable(principal);
+    if (principal.role !== 'worker') throw new AccessDeniedError('Worker role required');
+    assertDate(periodStart, 'Period start');
+    assertDate(periodEnd, 'Period end');
+    if (periodStart > periodEnd)
+      throw new ValidationError('Period start must not follow period end');
+    return this.sqlite
+      .prepare(
+        `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
+                t.activity_summary,t.approval_state,t.billability_state,t.version,
+                p.project_number,p.name project_name
+         FROM time_entry t
+         JOIN project p ON p.id=t.project_id
+         WHERE t.worker_id=?
+           AND t.work_date>=? AND t.work_date<=?
+           AND t.approval_state NOT IN ('rejected','void')
+           AND EXISTS (
+             SELECT 1
+             FROM project_member pm_scope
+             WHERE pm_scope.project_id=t.project_id
+               AND pm_scope.user_id=t.worker_id
+               AND pm_scope.status='active'
+               AND pm_scope.starts_on<=t.work_date
+               AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=t.work_date)
+           )
+         ORDER BY t.work_date DESC,t.created_at DESC,t.id`,
+      )
+      .all(principal.userId, periodStart, periodEnd) as Array<Record<string, unknown>>;
   }
 
   expenseDetail(principal: Principal, id: string) {
@@ -6177,15 +7330,15 @@ export class PortalRepository {
       .all(...ids, ...ids, ...ids, ...ids, ...ids, ...ids, ...ids, ...ids);
   }
 
-  listInvoices(principal: Principal) {
+  listInvoices(principal: Principal): readonly InvoiceListRow[] {
     this.assertReadable(principal);
     if (!canManageBilling(principal) && principal.role !== 'auditor_read_only')
       throw new AccessDeniedError('Finance role required');
     const invoices = this.sqlite
       .prepare(
-        "SELECT i.id,i.invoice_number,i.stream_type,i.state,i.currency,i.total_minor,i.period_start,i.period_end,i.planned_issue_on,i.expected_collection_on,i.issued_at,i.version,EXISTS(SELECT 1 FROM invoice_event e WHERE e.invoice_id=i.id AND e.event_type='void') voided,p.project_number FROM invoice i JOIN project p ON p.id=i.project_id ORDER BY i.created_at DESC",
+        "SELECT i.id,i.invoice_number,i.stream_type,i.state,i.currency,i.total_minor,i.period_start,i.period_end,i.planned_issue_on,i.expected_collection_on,i.issued_at,i.version,i.pdf_status,i.pdf_generated_at,EXISTS(SELECT 1 FROM invoice_event e WHERE e.invoice_id=i.id AND e.event_type='void') voided,p.project_number FROM invoice i JOIN project p ON p.id=i.project_id ORDER BY i.created_at DESC",
       )
-      .all() as Array<Record<string, unknown> & { id: string; state: string }>;
+      .all() as InvoiceListSourceRow[];
     return invoices.map((invoice) => {
       if (invoice.state === 'void' || invoice.state === 'credited')
         return { ...invoice, paid_minor: '0' };
@@ -6316,7 +7469,7 @@ export class PortalRepository {
       throw new AccessDeniedError('Finance role required');
     return this.sqlite
       .prepare(
-        'SELECT br.id,br.project_id,br.stream_type,br.cadence_type,br.currency,br.enabled,p.project_number,p.name project_name,tp.name tax_profile_name,le.code legal_entity_code,cc.name billing_contact_name FROM billing_rule br JOIN project p ON p.id=br.project_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN client_contact cc ON cc.id=br.billing_contact_id ORDER BY p.project_number,br.stream_type',
+        'SELECT br.id,br.project_id,br.stream_type,br.cadence_type,br.anchor_date,br.monthly_cutoff_day,br.currency,br.enabled,p.project_number,p.name project_name,tp.name tax_profile_name,le.code legal_entity_code,cc.name billing_contact_name FROM billing_rule br JOIN project p ON p.id=br.project_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN client_contact cc ON cc.id=br.billing_contact_id ORDER BY p.project_number,br.stream_type',
       )
       .all();
   }
@@ -6335,6 +7488,8 @@ export class PortalRepository {
     input: { name: string; email: string; role: string; joinedAt: string },
   ): void {
     this.assertActive(principal);
+    if (principal.role !== 'owner_admin')
+      throw new AccessDeniedError('Owner administration required');
     this.assertStepUp(principal);
     this.workforce.updateWorkerProfile(principal, workerId, input);
   }
@@ -6709,7 +7864,9 @@ export class PortalRepository {
       siteName?: string | null;
       country?: string | null;
       projectManagerId?: string | null;
+      expectedHoursPerDay?: number | string;
       expectedMinutesPerDay?: number;
+      clientDailyMinimumHours?: number | string | null;
       clientDailyMinimumMinutes?: number | null;
       budgetMinor?: bigint | null;
       revenueBudgetMinor?: bigint | null;
@@ -6809,13 +7966,27 @@ export class PortalRepository {
           ? String(existing.timezone)
           : assertText(input.timezone, 'Timezone', 80);
       const expectedMinutesPerDay =
-        input.expectedMinutesPerDay === undefined
-          ? Number(existing.expected_minutes_per_day ?? 600)
-          : boundedInteger(input.expectedMinutesPerDay, 'Expected minutes per day', 1440)!;
+        input.expectedHoursPerDay !== undefined && input.expectedHoursPerDay !== ''
+          ? boundedInteger(
+              Math.round(Number(input.expectedHoursPerDay) * 60),
+              'Expected hours per day',
+              1440,
+            )!
+          : input.expectedMinutesPerDay === undefined
+            ? Number(existing.expected_minutes_per_day ?? 600)
+            : boundedInteger(input.expectedMinutesPerDay, 'Expected minutes per day', 1440)!;
       const clientDailyMinimumMinutes =
-        input.clientDailyMinimumMinutes === undefined
-          ? (existing.client_daily_minimum_minutes as number | null)
-          : boundedInteger(input.clientDailyMinimumMinutes, 'Client daily minimum', 1440);
+        input.clientDailyMinimumHours !== undefined
+          ? input.clientDailyMinimumHours === null || input.clientDailyMinimumHours === ''
+            ? null
+            : boundedInteger(
+                Math.round(Number(input.clientDailyMinimumHours) * 60),
+                'Client daily minimum hours',
+                1440,
+              )
+          : input.clientDailyMinimumMinutes === undefined
+            ? (existing.client_daily_minimum_minutes as number | null)
+            : boundedInteger(input.clientDailyMinimumMinutes, 'Client daily minimum', 1440);
       const laborBudgetMinutes =
         input.laborBudgetMinutes === undefined
           ? (existing.labor_budget_minutes as number | null)

@@ -149,11 +149,12 @@ export const projectInputSchema = z
     ]),
     siteName: z.string().trim().max(200).optional(),
     country: z.string().trim().max(100).optional(),
+    expectedHoursPerDay: z.union([z.literal(''), z.coerce.number().min(0).max(24)]).optional(),
     expectedMinutesPerDay: z.coerce.number().int().min(0).max(1440).default(600),
+    clientDailyMinimumHours: z.union([z.literal(''), z.coerce.number().min(0).max(24)]).optional(),
     clientDailyMinimumMinutes: z
       .union([z.literal(''), z.coerce.number().int().min(0).max(1440)])
-      .optional()
-      .transform((value) => (value === '' ? undefined : value)),
+      .optional(),
     poNumber: z.string().trim().max(100).optional(),
     contractNumber: z.string().trim().max(160).optional(),
     projectManagerId: z.union([z.literal(''), uuidSchema]).optional(),
@@ -183,7 +184,24 @@ export const projectInputSchema = z
     technicalReportingRequired: z.coerce.boolean().default(false),
     notes: z.string().trim().max(5000).optional(),
   })
-  .strict();
+  .strict()
+  .transform((data) => {
+    const expectedMinutes =
+      data.expectedHoursPerDay !== undefined && data.expectedHoursPerDay !== ''
+        ? Math.round(Number(data.expectedHoursPerDay) * 60)
+        : data.expectedMinutesPerDay;
+    const clientDailyMinimumMinutes =
+      data.clientDailyMinimumHours !== undefined && data.clientDailyMinimumHours !== ''
+        ? Math.round(Number(data.clientDailyMinimumHours) * 60)
+        : data.clientDailyMinimumMinutes === '' || data.clientDailyMinimumMinutes === undefined
+          ? undefined
+          : data.clientDailyMinimumMinutes;
+    return {
+      ...data,
+      expectedMinutesPerDay: expectedMinutes,
+      clientDailyMinimumMinutes,
+    };
+  });
 
 export const clientContactInputSchema = z.object({
   clientId: uuidSchema,
@@ -353,6 +371,31 @@ export const projectCommercialPolicyInputSchema = z
         code: 'custom',
         path: ['overtimeThresholdMinutes'],
         message: 'The overtime threshold must be empty when overtime is disabled',
+      });
+  });
+
+export const projectLegalEntityAssignmentInputSchema = z
+  .object({
+    projectId: uuidSchema,
+    legalEntityRevisionId: z
+      .string()
+      .trim()
+      .regex(/^ce-legal-entity-revision-[0-9a-f]{40}$/u),
+    effectiveFrom: isoDateSchema,
+    effectiveTo: z.preprocess(
+      (value) => (value === '' || value === undefined ? undefined : value),
+      isoDateSchema.optional(),
+    ),
+    reason: z.string().trim().min(5).max(2000),
+    idempotencyKey: z.string().trim().min(8).max(240),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.effectiveTo !== undefined && value.effectiveTo <= value.effectiveFrom)
+      context.addIssue({
+        code: 'custom',
+        path: ['effectiveTo'],
+        message: 'Effective to must follow effective from',
       });
   });
 
@@ -688,6 +731,39 @@ export const dailyReportInputSchema = z.object({
   customerContact: optionalText(200),
 });
 
+export type TechnicalReportChangeFields = Readonly<{
+  problemSymptom: string;
+  diagnosisRootCause: string;
+  changePerformed: string;
+}>;
+
+const TECHNICAL_REPORT_CHANGE_SCHEMA = 'ja.technical-report.change.v1';
+
+export function encodeTechnicalReportChange(fields: TechnicalReportChangeFields): string {
+  return JSON.stringify({ schema: TECHNICAL_REPORT_CHANGE_SCHEMA, ...fields });
+}
+
+export function decodeTechnicalReportChange(value: unknown): TechnicalReportChangeFields | null {
+  if (typeof value !== 'string' || !value.startsWith('{')) return null;
+  try {
+    const parsed = JSON.parse(value) as Record<string, unknown>;
+    if (
+      parsed.schema !== TECHNICAL_REPORT_CHANGE_SCHEMA ||
+      typeof parsed.problemSymptom !== 'string' ||
+      typeof parsed.diagnosisRootCause !== 'string' ||
+      typeof parsed.changePerformed !== 'string'
+    )
+      return null;
+    return {
+      problemSymptom: parsed.problemSymptom,
+      diagnosisRootCause: parsed.diagnosisRootCause,
+      changePerformed: parsed.changePerformed,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export const technicalReportInputSchema = z
   .object({
     projectId: uuidSchema,
@@ -703,7 +779,13 @@ export const technicalReportInputSchema = z
     networkProtocol: optionalText(160),
     softwareVersion: optionalText(160),
     programReference: optionalText(300),
-    changeSummary: requiredText(5000),
+    // `changeSummary` remains accepted for historical clients. New portal
+    // submissions use the three explicit Client Essential fields below and
+    // persist them as one versioned, atomically reviewed source value.
+    changeSummary: optionalText(20000),
+    problemSymptom: optionalText(5000),
+    diagnosisRootCause: optionalText(5000),
+    changePerformed: optionalText(5000),
     safetyRelated: z.boolean().default(false),
     productionImpact: optionalText(3000),
     validation: optionalText(5000),
@@ -712,6 +794,19 @@ export const technicalReportInputSchema = z
     rollbackPlan: optionalText(5000),
   })
   .superRefine((value, context) => {
+    const structured = [value.problemSymptom, value.diagnosisRootCause, value.changePerformed];
+    if (!value.changeSummary && structured.some((entry) => !entry))
+      for (const [index, path] of [
+        [0, 'problemSymptom'],
+        [1, 'diagnosisRootCause'],
+        [2, 'changePerformed'],
+      ] as const)
+        if (!structured[index])
+          context.addIssue({
+            code: 'custom',
+            path: [path],
+            message: 'Problem, diagnosis, and change performed are required',
+          });
     if (value.safetyRelated && !value.validation)
       context.addIssue({
         code: 'custom',
@@ -724,7 +819,18 @@ export const technicalReportInputSchema = z
         path: ['rollbackPlan'],
         message: 'Safety-related changes require rollback detail',
       });
-  });
+  })
+  .transform((value) => ({
+    ...value,
+    changeSummary:
+      value.problemSymptom && value.diagnosisRootCause && value.changePerformed
+        ? encodeTechnicalReportChange({
+            problemSymptom: value.problemSymptom,
+            diagnosisRootCause: value.diagnosisRootCause,
+            changePerformed: value.changePerformed,
+          })
+        : (value.changeSummary as string),
+  }));
 
 export const technicalChangeInputSchema = z
   .object({

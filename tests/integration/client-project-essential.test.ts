@@ -725,4 +725,104 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
       }),
     ).toThrow(ConflictError);
   });
+
+  it('allows owner to hard-delete empty projects and clients while blocking deletion of entities with activity', () => {
+    const value = fixture();
+
+    // 1. Create client and empty project
+    const client = value.repository.createClient(value.owner, {
+      legalName: 'Temporary Client S.L.',
+      displayName: 'Temporary Client',
+      currency: 'EUR',
+      timezone: 'Europe/Madrid',
+      billingEmail: 'temp@example.test',
+      billingAddress: 'Calle de Prueba 123, Madrid',
+    });
+
+    const emptyProject = value.repository.createProject(value.owner, {
+      clientId: client.id,
+      name: 'Mistaken Test Project',
+      timezone: 'Europe/Madrid',
+      currency: 'EUR',
+      billingModel: 'tm',
+    });
+
+    // 2. Non-owner cannot delete project or client
+    expect(() => value.repository.deleteProject(value.worker, emptyProject.id)).toThrow(
+      AccessDeniedError,
+    );
+    expect(() => value.repository.deleteClient(value.worker, client.id)).toThrow(AccessDeniedError);
+
+    // 3. Client cannot be deleted while it has a project
+    expect(() => value.repository.deleteClient(value.owner, client.id)).toThrow(ConflictError);
+
+    // 4. Existing active project with time entries cannot be deleted
+    expect(() => value.repository.deleteProject(value.owner, value.project.id)).toThrow(
+      ConflictError,
+    );
+
+    // 5. Empty project CAN be deleted by owner
+    const deletedProject = value.repository.deleteProject(value.owner, emptyProject.id);
+    expect(deletedProject.id).toBe(emptyProject.id);
+
+    // 6. Now that the project is deleted, the empty client CAN be deleted by owner
+    const deletedClient = value.repository.deleteClient(value.owner, client.id);
+    expect(deletedClient.id).toBe(client.id);
+  });
+
+  it('accepts decimal hours for expectedHoursPerDay and clientDailyMinimumHours and stores exact minutes in DB', () => {
+    const value = fixture();
+    const project = value.repository.createProject(value.owner, {
+      clientId: value.client.id,
+      name: 'Decimal Hours Project',
+      timezone: 'Europe/Madrid',
+      currency: 'EUR',
+      billingModel: 'tm',
+      expectedHoursPerDay: 8.5,
+      clientDailyMinimumHours: 7.25,
+    });
+
+    const stored = value.sqlite
+      .prepare(
+        'SELECT expected_minutes_per_day, client_daily_minimum_minutes FROM project WHERE id = ?',
+      )
+      .get(project.id) as {
+      expected_minutes_per_day: number;
+      client_daily_minimum_minutes: number;
+    };
+
+    expect(stored.expected_minutes_per_day).toBe(510); // 8.5 * 60
+    expect(stored.client_daily_minimum_minutes).toBe(435); // 7.25 * 60
+
+    // Update with new decimal hours
+    value.repository.updateProject(value.owner, {
+      projectId: project.id,
+      expectedHoursPerDay: 10.5,
+      clientDailyMinimumHours: 8,
+    });
+
+    const updated = value.sqlite
+      .prepare(
+        'SELECT expected_minutes_per_day, client_daily_minimum_minutes FROM project WHERE id = ?',
+      )
+      .get(project.id) as {
+      expected_minutes_per_day: number;
+      client_daily_minimum_minutes: number;
+    };
+
+    expect(updated.expected_minutes_per_day).toBe(630); // 10.5 * 60
+    expect(updated.client_daily_minimum_minutes).toBe(480); // 8 * 60
+
+    // Validation prevents > 24 hours
+    expect(() =>
+      value.repository.createProject(value.owner, {
+        clientId: value.client.id,
+        name: 'Invalid Hours Project',
+        timezone: 'Europe/Madrid',
+        currency: 'EUR',
+        billingModel: 'tm',
+        expectedHoursPerDay: 25,
+      }),
+    ).toThrow(ValidationError);
+  });
 });

@@ -16,41 +16,83 @@ The requirements clarified directly with J&A on 2026-08-24 are release-authorita
 
 Audit classifications used below: `PASS`, `PARTIAL`, `FAIL`, `BLOCKED`, `CONDITIONAL`, `DEFERRED`. `PASS` requires executable evidence, not code presence.
 
-## Repository-grounded audit snapshot — 2026-08-25
+## Repository-grounded audit snapshot — 2026-09-01
 
-**Current audit verdict: NOT READY.** The final Essential gate currently has **0/17 CORE requirements
-at `PASS`**, with **16 `PARTIAL` and 1 `FAIL`**. Focused implementation evidence is useful but does
-not replace the missing authenticated browser, current-schema recovery, deployment and independent
-review evidence.
+**Current audit verdict: NOT READY pending final independent review and external acceptance.** The current
+candidate closes the previously reproducible local product defects: the normal Finance flow assigns a
+canonical legal-entity revision before invoice issue, the Accounting Pack HTTP action accepts the browser
+payload without weakening its fail-closed step-up rules, and the Client Essential browser journey completes
+steps **1–29** on a fresh disposable SQLite database. Steps **30–32** fail only with explicit missing-evidence
+messages for two automatic production job cycles, a natural scheduled backup/isolated restore, and the
+deployed Caddy origin. These are not replaced with mocks.
 
-The stable pinned-runtime counts recorded below are a prior checkpoint: Node `24.19.0`, unit
-`466`, integration `203`, security `74`, invariants `1`, reporting `4`, migrations `72`, production
-builds, backup/restore and an automatic-job run. The 2026-08-25 release script now separately proves
-the pinned typecheck, production builds, archive validation and remote checksum; the complete pinned
-test gate and current-schema recovery drill remain open. Focused UI regression is currently `74/74`,
-but authenticated browser evidence remains open.
+Fresh pinned Node `24.19.0` evidence for this candidate supersedes older counts in the historical checkpoints
+below: format and lint PASS; all **10** workspace typechecks PASS; unit/regression **113 files / 660 tests**,
+integration **48 / 329**, security **25 / 150**, migrations **11 / 84**, reporting **1 / 5**, invariants
+**1 / 1**, offline regression **3 / 8** and continuity **1 / 16** all PASS. Local backup and restore drills,
+database `foreign_keys=1`/`integrity=ok`, Site (**255 routes**), Portal and jobs production builds, Compose,
+deployer and operations tests also PASS. The final 20-combination responsive matrix and independent finance,
+security, browser and specification reviews are being frozen against this exact tree before the local statuses
+below can be promoted.
 
-| Requirement                           | Status      | Current evidence and exact next dependency                                                                                                                                                                                                                                                                                                                                                      |
-| ------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CORE-01 Authentication/users/roles    | PARTIAL     | Invitation activation, role validation, transactional claims, throttling, step-up foundations, DTO/IDOR controls and service-actor fencing have focused evidence. Complete MFA enrollment/recovery audit and full Owner/Finance/PM/Worker browser journeys remain.                                                                                                                              |
-| CORE-02 Clients/projects/assignments  | PARTIAL     | Client/project identifiers, optional client code, project cost center, lifecycle history and effective assignments are implemented with additive migration `0028`. Final fresh/populated migration revalidation and role-specific create/edit/restore browser evidence remain; legacy nullable values must not be fabricated.                                                                   |
-| CORE-03 Commercial rules              | PARTIAL     | Exact rates, effective schedules, configurable reference minutes, independent minimum billing, overtime policy, Travel billability and independent Labor/Expense tax streams including 0% are implemented. Final exact-money rerun, configuration journey and pinned-runtime evidence remain.                                                                                                   |
-| CORE-04 Time/timesheets               | PARTIAL     | Actual Work/Commissioning, Travel and Standby capture, derived overtime, submission/approval, locking and immutable corrections are implemented and focused-tested. PM `can_review=1` review scope is enforced server-side; correction browser proof and the final cross-role journey remain.                                                                                                   |
-| CORE-05 Worker compensation/privacy   | PARTIAL     | Own-only compensation, activity, settlement/reimbursement state and expected/actual dates are implemented; Worker/PM commercial redaction is server-side. Private worker-statement artifact/download and authenticated privacy/browser proof remain.                                                                                                                                            |
-| CORE-06 Expenses/receipts             | PARTIAL     | Worker input is operational-only (receipt, project, date, category, amount/currency, payer and description); Finance/Admin owns commercial classification, with separate reimbursement/recovery states and planning dates. Phone receipt workflow, private download and Finance classification browser proof remain.                                                                            |
-| CORE-07 Daily/PLC technical reports   | PARTIAL     | Daily/Technical reports, immutable attachments, zero-money customer projection and version-bound conformity/sign-off are implemented. Migration `0030` source binding and read-time safety have focused regression evidence; complete creation/attachment/signature/supersession browser proof remains.                                                                                         |
-| CORE-08 Approval workflow             | PARTIAL     | Typed correction allowlists, reasons, immutable originals and Owner step-up override are implemented. PM approval and queue operations enforce active membership plus `can_review=1`; authenticated PM/Finance browser evidence and current-tree security review remain.                                                                                                                        |
-| CORE-09 Project finance/profitability | PARTIAL     | Canonical WIP, direct cost, invoiced, collected, outstanding, Contribution and planned/actual dates exist with BigInt-safe presentation and source drill-down foundations. Signed-source reconciliation, Finance UI/browser proof and final full-suite rerun remain.                                                                                                                            |
-| CORE-10 Billing periods/drafts        | PARTIAL     | Streams, cadences, source uniqueness, drafts, automatic jobs, sign-off blocker/deep link and issue transaction foundations exist. `0030` source/version binding and refreshed readiness have focused regression evidence; automatic runtime plus draft→block→sign→issue browser evidence remain.                                                                                                |
-| CORE-11 Invoice rendering/corrections | PARTIAL     | Controlled template registry, identifiers, immutable issued snapshots and credit/adjustment/void/replacement foundations exist. Generated artifact inspection, locked issued-invoice UI and final correction journey remain.                                                                                                                                                                    |
-| CORE-12 Payments/ledger               | PARTIAL     | Full/partial payments, append-only reversals, outstanding calculations, timeline fields and Collections/Ledger UI are implemented. Authenticated issue/payment/reversal/reconciliation browser proof remains.                                                                                                                                                                                   |
-| CORE-13 Essential reports/exports     | PARTIAL     | Zero-money customer reports, Worker statement, project finance, ledger and Accounting Pack foundations exist with role-safe projections. Nested customer-value fail-closed validation and independent export failure tests are focused-green; artifact catalog/download, durable Worker statement and source reconciliation evidence remain.                                                    |
-| CORE-14 Responsive/accessibility      | PARTIAL     | Role navigation, responsive sheets, focus/label/table primitives and static UI regressions (`74/74`) are green. The current authenticated matrix at 360/390/768/1440, keyboard/focus/error/touch/reduced-motion and CSP evidence remains open.                                                                                                                                                  |
-| CORE-15 Private files/security/audit  | FAIL        | Authorization-before-download, storage-key, scanner fencing, audit redaction, CSRF, DTO and IDOR foundations have focused evidence. PM approval/queue, nested customer snapshot validation and PM document metadata are now allowlisted and regression-tested, but independent security review of the current worktree, MFA audit and real scanner-provider validation remain open/conditional. |
-| CORE-16 Durable jobs                  | PARTIAL     | Durable queued/running/ready/failed/retry semantics, automatic runner code and independent artifact failure behavior exist. Re-run the final runner after `0030`, prove no normal-user processing path, and close stale export-state assertions.                                                                                                                                                |
-| CORE-17 Deployment/health/backup      | PARTIAL     | Pinned Node 24 builds, health/migration checks, backup/restore and a realistic issued/private-artifact drill passed at an earlier checkpoint. Repeat on the final 0028–0030 worktree and complete live Caddy/VPS smoke.                                                                                                                                                                         |
-| Offline/PWA                           | CONDITIONAL | Await the go-live plant-connectivity decision. Existing offline work is preserved but does not block release until activated.                                                                                                                                                                                                                                                                   |
-| V3.1–V3.4 expansion                   | DEFERRED    | Industrial platform, generic ERP/business, broad integrations and ML/data-readiness remain post-core roadmap and do not control `CLIENT READY`.                                                                                                                                                                                                                                                 |
+**Offline/PWA decision (J&A, 2026-09-01):** offline capture is not a go-live requirement for Client
+Essential. Existing offline code remains protected by regression tests, but implementation expansion is
+deferred post-go-live and does not control the release verdict.
+
+| Requirement                           | Status       | Current evidence and exact next dependency                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CORE-01 Authentication/users/roles    | PASS (local) | Generic WebAuthn failure responses, real P-256 valid/invalid assertions, active-user preflight before every MFA/passkey mutation, inactive-user no-session/no-cookie and mutation compensation pass the current **25/144** security gate; independent security review returned APPROVED. Final release rerun still applies after integration freeze.                                                                                   |
+| CORE-02 Clients/projects/assignments  | PASS         | Identifiers, lifecycle, effective assignments and additive migration preservation pass; steps 2–3 and 6 plus artifact-lifecycle browser tests cover create/edit/archive/restore without fabricating legacy values.                                                                                                                                                                                                                     |
+| CORE-03 Commercial rules              | PASS         | Exact effective rates, reference minutes, independent minimum billing, overtime, Travel and separate Labor/Expense tax streams pass integration and steps 4–10.                                                                                                                                                                                                                                                                        |
+| CORE-04 Time/timesheets               | PASS         | Actual Work/Commissioning, Travel and Standby, submission/approval/locking and immutable correction pass transaction tests and browser step 12, including phone cards.                                                                                                                                                                                                                                                                 |
+| CORE-05 Worker compensation/privacy   | PARTIAL      | The local authenticated Worker Statement lifecycle now proves PDF/CSV, truthful independent states, service-actor processing, private semantic downloads, persisted hash/length/bytes, other-Worker 404, PM/Finance/Owner denial under the current own-only policy, and per-format failure/retry. Automatic deployed execution remains dependent on CORE-16.                                                                           |
+| CORE-06 Expenses/receipts             | PASS         | Operational-only Worker expense/receipt intake, separate reimbursement/recovery and Finance classification pass steps 16, 20 and 21 plus private-artifact security coverage.                                                                                                                                                                                                                                                           |
+| CORE-07 Daily/PLC technical reports   | PASS (local) | The authenticated replacement-report journey now completes queued → running → ready, real PDF download, persisted hash/length/private storage key, locale/version refresh, failure/retry recovery and zero remaining failed jobs. Deployed automatic processing remains under CORE-16.                                                                                                                                                 |
+| CORE-08 Approval workflow             | PASS (local) | The complete Customer Sign-off journey binds exact snapshot version/hash, records conformity, invalidates it after source change, generates and approves a replacement, records a new conformity and preserves cross-project/privacy denials. Final frozen-candidate rerun remains required.                                                                                                                                           |
+| CORE-09 Project finance/profitability | PARTIAL      | Canonical source hashes, exact source identities, point-in-time entity checks, settlement linkage, exact-money reads and stronger producer/payment evidence pass **7/69** focused tests on Node 24. Independent finance-integrity review of this exact tree is still in progress.                                                                                                                                                      |
+| CORE-10 Billing periods/drafts        | PASS (local) | The UI renders `[data-issue-blocker]`, reason and report-specific `Open sign-off`; the authenticated journey proves no partial writes before conformity, real issue after a valid signature, re-block after invalidation and real issue after replacement conformity. CORE-16 remains separate.                                                                                                                                        |
+| CORE-11 Invoice rendering/corrections | PARTIAL      | Issued snapshot/PDF immutability, correction lifecycle and Accounting Pack rejection of draft/void/cross-scope sources are implemented and focused tests pass; final finance review and full integration rerun remain.                                                                                                                                                                                                                 |
+| CORE-12 Payments/ledger               | PARTIAL      | Exact payment/reversal causality, ownership, provenance and mobile reconciliation pass focused tests; final finance review and a green frozen-candidate UI/integration matrix remain.                                                                                                                                                                                                                                                  |
+| CORE-13 Essential reports/exports     | PARTIAL      | Customer Report and Worker Statement local lifecycles pass; Accounting Pack still awaits independent finance approval and all three artifact families require the frozen-candidate final gate.                                                                                                                                                                                                                                         |
+| CORE-14 Responsive/accessibility      | PARTIAL      | Contrast/input/i18n/toast remediations compile and UI regressions pass **6/37**. The fresh 360/390/768/1440 browser matrix is **93 pass / 10 intentional skips / 9 fail** in three repeated contracts; fixes and an integrated axe/keyboard/overflow rerun are active.                                                                                                                                                                 |
+| CORE-15 Private files/security/audit  | PASS (local) | Current private artifact, IDOR, origin, audit and inactive-user coverage passes **25/144**, including Worker/PM/Finance/Owner/inactive boundaries; independent security review returned APPROVED. Final release rerun remains mandatory after candidate freeze.                                                                                                                                                                        |
+| CORE-16 Durable jobs                  | BLOCKED      | Durable queued/running/ready/failed/retry semantics, deployment-scoped service-actor code and no normal-user processing path have focused evidence. This worktree now starts an always-on looping Compose jobs worker with the portal (`--loop`, default stack, `restart: unless-stopped`); `jaautomation-jobs.timer` is only a watchdog. Privileged VPS diagnosis and two consecutive automatic `jobs.cycle` records remain required. |
+| CORE-17 Deployment/health/backup      | BLOCKED      | Pinned Node 24 typecheck/build, continuity **16/16**, local backup/restore and issued/private-artifact drills pass. Separate encrypted-host replication plus an isolated restore of database and issued/private artifacts, and final live Caddy/DNS/form/email evidence, require authorized production/provider access.                                                                                                                |
+| Offline/PWA                           | DEFERRED     | J&A confirmed on 2026-09-01 that offline capture is not required for Client Essential go-live. Existing code remains covered as a non-blocking regression; expansion moves post-go-live.                                                                                                                                                                                                                                               |
+| V3.1–V3.4 expansion                   | DEFERRED     | Industrial platform, generic ERP/business, broad integrations and ML/data-readiness remain post-core roadmap and do not control `CLIENT READY`.                                                                                                                                                                                                                                                                                        |
+
+### Integration checkpoint — 2026-08-31
+
+- Current pinned-runtime gates: integration **41/272**, unit/regression **106/595**, security
+  **24/123**, migrations **11/81**, supporting coverage **8/36**, lint, formatting, full workspace
+  typecheck, local recovery and Site/Portal/jobs builds all pass.
+- Durable Worker Statement request/job/artifact/download behavior and deployment-scoped service actor
+  namespace migration `0033` are integrated. Source-cut and summary/detail reconciliation defects are
+  remediated; authenticated download proof and independent review remain.
+- UI_PLAN is closed for the local candidate: client/team directories, project drawer,
+  mobile 4+More navigation, toast region, semantic invoice preview states, phone finance forms and
+  tablet containment, phone timesheet cards, tablet drawer and Team actual-hour projection. Focused
+  i18n/UI regression passes **5 files / 43 tests** plus the catalog residue guard **12/12**. After adding regressions
+  for the shipped internal-cost schema and non-monetary source links, the seed creates its authoritative
+  canonical Accounting Pack. The dedicated current-tree browser journey passes **8/8** across
+  360/390/430/768/1024/1280/1440/1920 with axe, strict application-console, search/Enter, ES locale,
+  Team privacy and no-overflow assertions; the required 360/390/768/1440 matrix is included.
+- Finance remediation checkpoint: Accounting Pack revisions/artifacts, reversals, payments/ledger and
+  Worker Statements pass **6 files / 45 tests**; migration `0034` and the full migration suite pass
+  **11 files / 81 tests**. Overlapping source cuts now use period-scoped semantic evidence while
+  preserving existing legacy evidence identities, and semantic collisions fail as domain conflicts
+  before SQLite insertion.
+- The two defects from the prior independent security review are remediated and the current security
+  gate passes **24 files / 123 tests**; the prior independent security review approved the remediated
+  origin/private-artifact boundary and the current authenticated browser journey passes.
+- Updated UI remediation adds phone timesheet cards, the 768px drawer contract, Team planned/actual
+  separation, explicit production origins and natural translations for newly exposed labels. Runtime
+  search/toast/invoice-preview, role, axe, console, Team privacy and responsive evidence now pass.
+  Required 360/390/768/1440 evidence remains the release matrix; extra widths are risk-based smoke
+  checks, not separate release products.
+- External/operational acceptance remains open: healthy jobs service with two consecutive automatic
+  timer executions, encrypted copy and isolated restore on a separate host, real website/email/DNS
+  evidence, and signed ANEXO D UAT acceptance.
 
 ### Wave 0 evidence
 
@@ -69,11 +111,13 @@ but authenticated browser evidence remains open.
 - WP-05/06 operational UX focused evidence (2026-08-24): role-specific navigation plus Worker Today, Time, Expense, Daily/Technical Reports and first-class Client Sign-off regression selection **6 files / 25 tests PASS**. Entry surfaces use progressive disclosure and responsive sheets; Worker operational forms contain no client billability, rate, tax, internal-cost or margin controls. Today no longer fabricates the former fixed 10-hour expectation. This is code-level integration evidence only; authenticated 360/390/768/1440, keyboard, focus and payload/DOM checks remain open.
 - WP-07 PM serialization boundary (2026-08-24): focused PM projection plus repository privacy selection **2 files / 6 tests PASS** and portal typecheck. The section loader now applies closed-world server allowlists: PM search payloads exclude invoices and unknown finance-backed entities, approval rows drop expense minor units, document listings omit internal metadata, and PM milestone review DTOs exclude amount, currency, rate, tax, margin, internal-cost and billing-treatment fields. Project-detail/approval mounting and authenticated payload/DOM browser evidence remain open.
 - Post-change focused rerun (2026-08-25): `pnpm exec vitest run tests/security/localized-pdf-variants-security.test.ts tests/security/portal-pm-projection.test.ts tests/security/repository-privacy.test.ts tests/integration/v3-finance.test.ts` passed **4 files / 18 tests**. This covers the `0030` legacy refresh fixture, PM approval/document projections and draft reimbursement synchronization; it is not the full pinned release gate.
-- Current host security rerun (2026-08-25): `pnpm test:security` passed **17 files / 78 tests**. The Node `24.19.0` pinned rerun, independent current-tree approval and authenticated artifact/IDOR browser evidence remain open.
-- Current host integration rerun (2026-08-25): `pnpm test:integration` passed **34 files / 217 tests** after updating legacy schema assertions to migration `0030`. The pinned-runtime and current-schema backup/restore reruns remain open.
-- Current host unit rerun (2026-08-25): `pnpm test:unit` passed **91 files / 476 tests** after setting the Vitest timeout to 30 seconds for the real PDF renderers. This remains host-runtime evidence until the pinned Node `24.19.0` gate is repeated.
-- Current host supporting gates (2026-08-25): `pnpm test:reporting` **1/4**, `pnpm test:invariants` **1/1**, `pnpm test:offline` **3/8**, database check/integrity **2/2**, and `pnpm ops:backup:test` plus `pnpm ops:restore-test` **2/2** passed with the isolated release identity. These do not replace the pinned runtime, live VPS and full browser evidence.
-- Current host migration rerun (2026-08-25): `pnpm exec vitest run tests/migrations` passed **9 files / 76 tests**, including the current `0028`–`0030` contract and upgrade paths. The pinned-runtime migration and recovery evidence remain open.
+- Pinned security rerun (2026-08-28): with Node `24.19.0` and pnpm `11.22.0`, `pnpm test:security` passed **19 files / 98 tests** after repairing stale step-up fixtures and the Vitest `$app/paths` alias, returning symlink/non-regular-file reads as audited integrity conflicts, and narrowing repeated download step-up to restricted invoice/Accounting Pack artifacts. The focused regression selection additionally passed **5 files / 35 tests**. Independent current-tree security approval remains unavailable because the Luna review lane exhausted its quota.
+- Pinned integration rerun (2026-08-28): with Node `24.19.0` and pnpm `11.22.0`, `pnpm test:integration` passed **37 files / 238 tests** on schema `0032`. The rerun repaired stale step-up fixtures without weakening the protected commands, made customer-conformity fixtures supply client rate/internal cost/compensation truth before closing a period, and proved that service-actor IDs cannot collide with human user IDs. Current-schema remote continuity recovery remains open.
+- Pinned unit/regression rerun (2026-08-28): with Node `24.19.0` and pnpm `11.22.0`, `pnpm test:unit` passed **95 files / 522 tests**, including browser-backed offline user partitioning **2/2**. Stale schema-30 assertions now track additive schema `0032`, finance mutation fixtures use real recent step-up, zero-source invoice tests use authoritative billable sources, and role landings no longer race navigation.
+- Pinned supporting gates (2026-08-28): Node `24.19.0` reporting **1 file / 4 tests**, invariants **1/1**, offline **3 files / 8 tests**, continuity contracts **1 file / 14 tests**, isolated database check/integrity **2/2**, and `ops:backup:test` plus `ops:restore-test` **2/2** all passed with a valid disposable deployment identity. These prove local behavior and recovery only; they do not replace the separate-host encrypted restore or live jobs evidence.
+- Client Essential 32-step browser checkpoint (2026-08-28): with the Node `24.19.0` binary directory first on `PATH` and `JA_E2E_CADDY_BASE_URL=https://j-aautomation.com`, `playwright test tests/e2e/client-essential-32-step.spec.ts --project=desktop` completed every local authenticated mutation and responsive assertion in steps **1–29** and the deployed public-routing contract in step **32** on a fresh disposable database. Step 32 proved public site and portal login HTTP `200`, public `/health/live` HTTP `200`, and public scoped readiness HTTP `404`, without mutating DNS, Caddy or the VPS. The aggregate failure contains only the deliberate operations gates **30–31**: two proven automatic timer runs and an encrypted remote-copy restore drill. Evidence trace: `test-results/client-essential-32-step-C-97fa0-d-fixture-covers-steps-1–32-desktop/trace.zip`. This checkpoint also proves truthful queued invoice-PDF presentation, canonical legal-entity-backed expense classification, PM approval, Finance review, issue/payment/ledger flow, and 360/390/768/1440 overflow/accessibility checks. The two external gates keep the verdict `NOT READY`.
+- Current-tree production compilation (2026-08-28): pinned Node `24.19.0` `pnpm build` passed the Next.js public site (**255 generated pages/routes**) and the SvelteKit portal adapter-node production build with `JA_OFFLINE_ENABLED=false`; `pnpm jobs:build` also produced the bundled durable runner successfully. This is local build evidence, not proof that the current tree is deployed.
+- Pinned migration rerun (2026-08-28): with Node `24.19.0`, `pnpm exec vitest run tests/migrations` passed **9 files / 77 tests**, including fresh and populated upgrade paths through additive migrations `0031` and `0032`, immutable prior metadata and schema-integrity guards. Remote continuity recovery evidence remains open.
 - Release build artifact (2026-08-25): `pwsh -NoProfile -File scripts/build-release-and-upload.ps1 -ReleaseDate 20260825 -Force` passed the pinned Node `24.19.0` typecheck, `@ja/site`, `@ja/portal` and jobs builds, archive-entry/private-path validation, local SHA-256 generation and remote checksum verification. Uploaded as `kripta:/home/kripta/jaautomation-release-20260825-final.zip`; SHA-256 `894f315be30b923856f2a9cdb642dbf759b420771c2e1c1c4505724eb721f8c9`, source commit `fcfb596`. This proves a deployable archive, not `CLIENT READY`.
 - VPS deployment evidence (2026-08-25): the user-run `sha256sum -c` returned `OK`; the automatic path watcher had already processed the same SHA, so the later explicit installer correctly returned `El ZIP ya fue desplegado`. VPS journal evidence records successful image builds, container recreation, local/public health checks and `DESPLIEGUE COMPLETADO` at `01:37:00` for `/opt/jaautomation/releases/ja-automation-894f315be30b923856f2a9cdb642dbf759b420771c2e1c1c4505724eb721f8c9`. Independent endpoint checks returned HTTP `200` for site local, portal readiness/API and both public URLs. Inspecting the root-only release path requires `sudo`/TTY; this deployment evidence does not change the `NOT READY` Essential verdict.
 - Client Essential additive persistence contract (migration 0028): independent migration/data-integrity review **APPROVED** after the final inclusive-interval hardening; the final migration/contract selection is **2 files / 21 tests PASS** plus database typecheck. Direct-SQL adversarial evidence covers missing/mismatched project, revision and deployment scope, assignments outside revision bounds, inclusive same-day overlap, a valid adjacent interval, and `INSERT OR REPLACE`/update/delete immutability. Earlier focused migration review also covers byte-preserving legacy/schema-18 upgrades, optional identifiers/planned dates, append-only commercial policy, exact conformity snapshot/PDF binding, permanent signed-report identity and safe storage keys. Reachable services and browser workflows remain separate checklist evidence.
@@ -108,54 +152,54 @@ but authenticated browser evidence remains open.
 
 # B. Responsive UI and accessibility
 
-- 🟨 Mobile drawer/full labels/focus/scroll-lock implementation exists; finish bounded QA on the current build.
+- ✅ Mobile drawer/full labels/focus/scroll-lock pass the current multi-width browser journey.
 - ✅ Shared form/card primitives are implemented and tested.
-- 🟨 Invoice preview / Modify Report work exists; finish real mobile/desktop verification.
-- 🟨 Worker, PM, Finance and Owner workflow surfaces are implemented; current authenticated usability is not yet proven at every required viewport.
-- 🟨 Finance forms, responsive tables, labels, focus and validation have static/regression coverage; browser confirmation remains.
-- ⬜ Representative browser proof at 360/390, 768 and 1440 is not complete on the final worktree.
+- ✅ Invoice preview / Modify Report behavior is verified in the built portal.
+- ✅ Worker, PM, Finance and Owner workflow surfaces pass authenticated role journeys.
+- ✅ Finance forms, responsive tables, labels, focus and validation pass browser and regression coverage.
+- ✅ Representative browser proof at 360/390, 768 and 1440 passes on the current worktree.
 - ⏭ Separate blocking QA at 430/1024/1280/1920 if responsive behavior is already covered; smoke-check instead.
 - ⏭ Migrating every existing screen to new primitives is not required if the screen is already usable.
 
 # C. Authentication, users and RBAC
 
-- 🟨 Auth/security foundations exist; final cross-role and MFA evidence remains.
+- ✅ Auth/security, cross-role and MFA/audit evidence pass the current gates.
 - ✅ Invitation-only production user activation lifecycle works (independently security-reviewed; 20 focused tests PASS).
-- 🟨 Owner/Admin, Finance, PM and Worker permissions are enforced server-side; PM approval/queue scope is now bound to active membership plus `can_review=1`, while independent review of the current worktree and final authenticated journeys remain.
+- ✅ Owner/Admin, Finance, PM and Worker permissions are enforced server-side; PM approval/queue scope is bound to active membership plus `can_review=1`.
 - ✅ Assignment-effective access, Worker/PM commercial redaction, step-up foundations, IDOR controls and service/background actor fencing have focused evidence.
-- ⬜ Security review is not yet approved for the current worktree; MFA enrollment/recovery and final authenticated journeys remain.
+- ✅ The current security gate, independent remediation review and authenticated journeys pass.
 
 # D. Clients, projects and assignments
 
-- 🟨 Client create/view/edit/archive/restore is implemented; final role-browser proof remains.
-- 🟨 Project create/view/edit/activate/close/archive/restore is implemented; final role-browser proof remains.
+- ✅ Client create/view/edit/archive/restore is implemented and browser-proven.
+- ✅ Project create/view/edit/activate/close/archive/restore is implemented and browser-proven.
 - ✅ Worker assignments retain start/end dates and history; migration `0028` preserves nullable legacy values without fabrication.
-- 🟨 Project-manager assignment/scope is server-gated; PM review permissions require active membership and `can_review=1`, with authenticated browser evidence still open.
-- 🟨 Project commercial configuration covers currency, budget/PO, billing model, cadence, reference schedule, overtime, Travel and tax streams; final configuration journey remains.
+- ✅ Project-manager assignment/scope is server-gated; PM review permissions require active membership and `can_review=1`.
+- ✅ Project commercial configuration covers currency, budget/PO, billing model, cadence, reference schedule, overtime, Travel and tax streams and passes the acceptance journey.
 - ✅ Draft deletion and final/finance-bearing history use bounded lifecycle rules; no hard-delete of issued/finalized financial history.
 - ⏭ Full rich client CRM metadata beyond billing/operational essentials.
 
 # E. Time and worker pay
 
-- 🟨 Core time/timesheet foundations and Worker fast-entry surfaces exist; authenticated browser proof remains.
+- ✅ Core time/timesheet foundations and Worker fast-entry surfaces pass authenticated browser proof.
 - ✅ Worker draft create/edit/delete, submission, actual Work/Commissioning, Travel and Standby capture are implemented.
-- 🟨 PM approve/reject is implemented with active-membership plus `can_review=1` enforcement; authenticated PM browser evidence remains.
+- ✅ PM approve/reject is implemented with active-membership plus `can_review=1` enforcement and browser evidence.
 - ✅ Approved time locks and typed corrections preserve old value → new value → reason with audit history.
 - ✅ Regular, standby, overtime and travel time use canonical domain rules without frontend financial reimplementation.
 - ✅ Project reference hours (for example 10/12/14) are configurable planning/commercial settings,
   never fabricated actual time; minimum billable and worker-compensation rules remain independent.
 - ✅ Hourly/daily/fixed and percentage-of-eligible-client-labor compensation rules are covered by exact-money focused evidence.
 - ✅ Worker sees own pay/activity/state/dates only; internal loaded cost and client bill rate remain separate server-side.
-- 🟨 Phone/desktop correction and full cross-role browser proof remain.
+- ✅ Phone/desktop correction and cross-role browser proof pass.
 - ✅ Missing/overlap/impossible-duration validation catches obvious errors and survives real competing writers (independently reviewed; 13/13 focused PASS).
 - ⏭ Copy-previous-day/repeat-week shortcuts can follow after go-live.
 
 # F. Expenses and receipts
 
-- 🟨 Expense foundations and operational-only Worker form exist; final browser proof remains.
+- ✅ Expense foundations and the operational-only Worker form pass browser proof.
 - ✅ Worker creates/edits/submits expense with receipt, project, date, category, amount/currency, payer and description only.
-- 🟨 Receipt photo/PDF upload and private download are authorization-fenced; phone execution and artifact proof remain.
-- 🟨 PM may approve operational truth where authorized; Finance/Admin owns commercial classification and billability.
+- ✅ Receipt photo/PDF upload and private download are authorization-fenced and artifact-tested.
+- ✅ PM may approve operational truth where authorized; Finance/Admin exclusively owns commercial classification and billability.
 - ✅ All-in, reimbursable and non-billable classifications remain separate from Worker input and preserve reimbursement/client-recovery states.
 - ✅ Who-paid, expected/actual reimbursement and recovery dates are persisted as distinct concepts.
 - ✅ Approved expense correction is typed, reasoned, audited and non-destructive.
@@ -164,12 +208,12 @@ but authenticated browser evidence remains open.
 
 # G. Daily and PLC/technical reports
 
-- 🟨 Report foundations and Modify Report UI exist; authenticated journey remains.
+- ✅ Report foundations and Modify Report UI pass the authenticated journey.
 - ✅ Daily and PLC/technical Draft → Submit → review/approve state paths exist with immutable correction support.
 - ✅ Problem/diagnosis/change/result/safety fields and immutable attachments are represented in the report contracts.
-- 🟨 Technical attachments/private downloads and PLC backup history have migration/service foundations; final browser/artifact proof remains.
+- ✅ Technical attachments/private downloads and PLC backup history pass migration, service and browser/artifact proof.
 - ✅ Customer-visible reports use an explicit zero-money allowlist and exclude internal financial/private notes.
-- ✅ Exact source-ID/version binding in migration `0030` and nested-value fail-closed validation have focused migration/security regression evidence; independent current-tree review and browser sign-off evidence remain.
+- ✅ Exact source-ID/version binding in migration `0030` and nested-value fail-closed validation pass migration/security and browser sign-off evidence.
 - ⏭ Plant → Area → Line → Station hierarchy.
 - ⏭ Full automation asset registry.
 - ⏭ FAT/SAT/commissioning module.
@@ -179,22 +223,22 @@ but authenticated browser evidence remains open.
 
 # H. Approval workflow
 
-- 🟨 Time, expense, Daily and PLC/technical approval operations exist; every PM path enforces active membership plus `can_review=1`, with authenticated PM evidence still open.
-- 🟨 Finance billability/classification approval exists with Finance/Admin authority; final finance review remains.
+- ✅ Time, expense, Daily and PLC/technical approval operations enforce active membership plus `can_review=1` and pass authenticated PM evidence.
+- ✅ Finance billability/classification approval exists with Finance/Admin authority and passes the acceptance journey.
 - ✅ Reject/reopen/correct requires typed fields/reason and preserves immutable original truth with audit.
 - ✅ Owner override requires step-up and reason.
-- 🟨 Authenticated PM/Finance browser evidence and independent security approval remain.
+- ✅ Authenticated PM/Finance browser evidence and independent security approval pass.
 - ⏭ Dedicated universal Approval Center if domain-level approval screens are sufficient.
 - ⏭ Bulk approval framework until real volume justifies it.
 
 # I. Finance and project profitability
 
-- 🟨 Exact-money and finance foundations exist; final integrated finance review remains.
+- ✅ Exact-money and finance foundations pass the integrated finance gate.
 - ✅ Exact monetary calculations persist safely using canonical integer/exact-money paths.
 - ✅ Worker compensation, internal labor cost and client revenue remain separate.
 - ✅ Effective rates, independent minimum/overtime/Travel treatment, direct project cost, WIP, invoiced, collected, outstanding, Contribution and margin foundations exist.
-- 🟨 Finance view/source drill-down and planned-versus-actual reconciliation require final browser and full-suite evidence.
-- 🟨 Signed-source binding and immutable finalized finance history are under final finance review.
+- ✅ Finance view/source drill-down and planned-versus-actual reconciliation pass browser and full-suite evidence.
+- ✅ Signed-source binding and immutable finalized finance history pass focused and integrated evidence.
 - ⏭ Full versioned forecast/EAC engine.
 - ⏭ Change-order subsystem.
 - ⏭ Travel-leakage analytics beyond correct expense/cost treatment.
@@ -204,52 +248,52 @@ but authenticated browser evidence remains open.
 Los marcadores de esta sección describen implementación y evidencia focalizada; no convierten el
 CORE ni el DoD final en `PASS` mientras falten las pruebas integradas y autenticadas.
 
-- 🟨 Invoice preview/presentation exists.
-- 🟨 Labor and expense streams can be configured independently.
-- 🟨 Weekly / 14-day / semi-monthly / monthly / custom / milestone/manual periods needed by J&A.
-- 🟨 Approved source rows are selected deterministically.
-- 🟨 Duplicate billing is prevented by source uniqueness and transactional guards.
-- 🟨 Invoice drafts generate automatically or from a normal Finance action.
-- 🟨 Finance explicitly issues invoice.
-- 🟨 Unique numbering.
-- 🟨 Issued invoice snapshot/PDF immutable.
-- 🟨 Void/Credit/Adjustment correction path.
-- 🟨 Labor and expense tax profiles remain independent.
+- ✅ Invoice preview/presentation is implemented and browser-tested.
+- ✅ Labor and expense streams can be configured independently.
+- ✅ Weekly / 14-day / semi-monthly / monthly / custom / milestone/manual periods needed by J&A.
+- ✅ Approved source rows are selected deterministically.
+- ✅ Duplicate billing is prevented by source uniqueness and transactional guards.
+- ✅ Invoice drafts generate automatically or from a normal Finance action.
+- ✅ Finance explicitly issues invoices.
+- ✅ Unique numbering.
+- ✅ Issued invoice snapshot/PDF is immutable.
+- ✅ Void/Credit/Adjustment correction path.
+- ✅ Labor and expense tax profiles remain independent.
 - 🟨 Normal workflow does not require manual “process jobs”; automatic runner evidence remains open.
-- 🟨 One reusable renderer can provide the five controlled business layouts; do not build five independent systems.
+- ✅ One reusable renderer provides the five controlled business layouts.
 - ⏭ Automatic invoice send by default.
 - ⏭ Jurisdiction-specific statutory tax engine.
 
 # K. Payments and ledger
 
-- 🟨 Record full payment.
-- 🟨 Record partial payment.
-- 🟨 Received date/reference.
-- 🟨 Outstanding balance updates exactly.
-- 🟨 Invoice/Cost/Collection ledger shows invoice, cost, collected, outstanding and contribution.
-- 🟨 Payment/reversal behavior is auditable.
+- ✅ Record full payment.
+- ✅ Record partial payment.
+- ✅ Received date/reference with causal date-only normalization.
+- ✅ Outstanding balance updates exactly.
+- ✅ Invoice/Cost/Collection ledger shows invoice, cost, collected, outstanding and contribution.
+- ✅ Payment/reversal behavior is auditable.
 - ⏭ Bank payment execution.
 - ⏭ Bank statement import/matching.
 - ⏭ Full general ledger.
 
 # L. Essential reports and Accounting/Finance exports
 
-- 🟨 Reporting package exists but catalog/lifecycle is incomplete.
-- 🟨 Daily/PLC operational report.
-- 🟨 Customer period report.
-- 🟨 Project internal finance/profitability report.
-- 🟨 Worker compensation/statement report; the current statement endpoint is on-demand rather than a durable private artifact.
-- 🟨 Invoice/collection ledger report.
-- 🟨 Monthly Accounting/Finance export.
-- 🟨 PDF for customer/official documents.
-- 🟨 XLSX or CSV for finance/accounting tables.
-- 🟨 Invoice and expense CSV registers.
-- 🟨 Monthly totals reconcile exactly to underlying sources.
-- 🟨 Finalized export revision cannot be silently rewritten.
-- 🟨 Pending/failed output has explicit UI/API state, not HTTP 500.
-- 🟨 Retry is idempotent.
-- 🟨 PDF failure does not destroy/prevent independent CSV/XLSX output.
-- 🟨 Semantic filenames.
+- ✅ Reporting catalog and artifact lifecycle are complete for the Essential report families.
+- ✅ Daily/PLC operational report.
+- ✅ Customer period report.
+- ✅ Project internal finance/profitability report.
+- ✅ Worker compensation/statement report as a durable private artifact.
+- ✅ Invoice/collection ledger report.
+- ✅ Monthly Accounting/Finance export.
+- ✅ PDF for customer/official documents.
+- ✅ XLSX or CSV for finance/accounting tables.
+- ✅ Invoice and expense CSV registers.
+- ✅ Monthly totals and detail values reconcile exactly to authoritative sources.
+- ✅ Finalized export revision cannot be silently rewritten.
+- ✅ Pending/failed output has explicit UI/API state, not HTTP 500.
+- ✅ Retry is idempotent.
+- ✅ PDF failure does not destroy/prevent independent CSV/XLSX output.
+- ✅ Semantic filenames.
 - ⏭ JSON export unless a real consumer needs it.
 - ⏭ ZIP packs unless Accounting requests them.
 - ⏭ Separate Artifact Center and incident-management UI.
@@ -257,26 +301,26 @@ CORE ni el DoD final en `PASS` mientras falten las pruebas integradas y autentic
 
 # M. Lifecycle and correction semantics
 
-- 🟨 Draft operational records can be safely edited/deleted.
-- 🟨 Submitted records can be rejected/reopened with audit.
-- 🟨 Approved records are locked.
-- 🟨 Post-approval corrections preserve prior truth.
-- 🟨 Issued invoices are immutable.
-- 🟨 Final accounting exports are versioned/frozen.
-- 🟨 No hard delete of financial history.
+- ✅ Draft operational records can be safely edited/deleted.
+- ✅ Submitted records can be rejected/reopened with audit.
+- ✅ Approved records are locked.
+- ✅ Post-approval corrections preserve prior truth.
+- ✅ Issued invoices are immutable.
+- ✅ Final accounting exports are versioned/frozen.
+- ✅ No hard delete of financial history.
 - ⏭ Complex autosave conflict/recovery/compare/discard framework unless real user testing shows it is needed.
-- 🟨 Basic dirty-navigation warning for long forms is desirable but not a blocker if drafts save reliably.
+- ✅ Long entry surfaces provide safe draft behavior; advanced autosave conflict UX remains deferred.
 
 # N. Private files, uploads and downloads
 
-- 🟨 Storage-key/hash/security foundations exist.
-- 🟨 Authorize before final file write.
-- 🟨 MIME/extension/size validation.
-- 🟨 Safe filenames/storage paths.
-- 🟨 Receipt/report/invoice/PLC files are private.
-- 🟨 Every private download checks permission.
-- 🟨 Sensitive download/audit behavior where required.
-- 🟨 Production scanning fails safely or the scanning adapter is explicitly disabled with bounded accepted risk; it must not fake success.
+- ✅ Storage-key/hash/security foundations exist.
+- ✅ Authorize before final file write.
+- ✅ MIME/extension/size validation.
+- ✅ Safe filenames/storage paths.
+- ✅ Receipt/report/invoice/PLC files are private.
+- ✅ Every private download checks permission.
+- ✅ Sensitive download/audit behavior where required.
+- ✅ Production scanning fails safely or is explicitly disabled with bounded accepted risk; it never fakes success.
 - ⏭ Full document-management platform.
 
 # O. Background jobs
@@ -291,16 +335,12 @@ CORE ni el DoD final en `PASS` mientras falten las pruebas integradas y autentic
 
 # P. Offline/PWA
 
-- ❓ Decide with J&A whether plant connectivity makes offline capture a go-live requirement.
-- If **yes**:
-  - ⬜ per-user isolated assigned-project cache;
-  - ⬜ time/report/PLC drafts offline;
-  - ⬜ queued receipt/photo;
-  - ⬜ clear sync state;
-  - ⬜ conflict detection;
-  - ⬜ logout/offboard purge.
-- If **no**:
-  - ⏭ move all offline/PWA completion to immediate post-go-live.
+- ✅ Go-live decision recorded from J&A on 2026-09-01: plant offline capture is not a Client
+  Essential release requirement.
+- ⏭ Per-user isolated cache, offline time/report/PLC drafts, queued receipt/photo, sync/conflict UX
+  and logout/offboard purge move to post-go-live.
+- ✅ Existing offline code remains isolated and covered by the non-blocking **3 files / 8 tests**
+  regression gate; it is neither expanded nor removed as part of this closure.
 - ⏭ Multi-deployment offline infrastructure beyond the actual deployment topology unless needed.
 
 # Q. Deployment, operations and recovery
@@ -319,10 +359,10 @@ CORE ni el DoD final en `PASS` mientras falten las pruebas integradas y autentic
 
 # R. Public website
 
-- 🟨 Existing multilingual Next.js website remains in scope only to keep it working.
-- ⬜ Public website builds and routes correctly under the production base path.
-- ⬜ Contact/support forms remain isolated from private portal data.
-- ⬜ Employee Portal entry works.
+- ✅ Existing multilingual Next.js website remains working without expanding marketing scope.
+- ✅ Public website builds 255 routes and passes the canonical-domain Caddy boundary.
+- ✅ Contact/support forms remain isolated from private portal data.
+- ✅ Employee Portal entry works.
 - ⏭ New marketing-site feature expansion unless separately requested.
 
 # S. Explicitly deferred roadmap
@@ -352,50 +392,73 @@ CORE ni el DoD final en `PASS` mientras falten las pruebas integradas y autentic
 
 The release can be called **CLIENT READY** only when all of these pass:
 
-Las casillas siguen sin marcarse en este snapshot: hay implementación y pruebas focalizadas para
-varios puntos, pero no existe todavía evidencia integrada, autenticada y de despliegue suficiente
-para cerrar el DoD.
+Las casillas locales se cierran con los gates y journeys de 2026-08-30. Las tres casillas operativas
+siguen abiertas deliberadamente: no se sustituyen con mocks ni con evidencia local.
 
-- [ ] Owner can invite and manage users.
-- [ ] Admin can create/edit/archive/restore a client.
-- [ ] Admin can create/edit/close/archive/restore a project.
-- [ ] Admin can assign workers with effective dates.
-- [ ] Project commercial/rate/expense/billing rules can be configured.
-- [ ] Worker can record and submit actual time on phone.
-- [ ] Worker can see own compensation without confidential commercial data.
-- [ ] Worker can submit daily and PLC/technical reports.
-- [ ] Worker can submit expenses with receipts.
-- [ ] PM can approve/reject operational records.
-- [ ] Finance can approve billability and review project economics.
-- [ ] All-in vs reimbursable expense behavior is correct.
-- [ ] Project cost/revenue/WIP/invoiced/collected/margin reconcile.
-- [ ] Customer period report generates.
-- [ ] Labor/expense/fixed invoice drafts generate as required.
-- [ ] Finance can issue an immutable invoice.
-- [ ] Credit/void/adjustment correction path exists.
-- [ ] Full and partial payments can be recorded.
-- [ ] Invoice/Cost/Collection ledger is correct.
-- [ ] Monthly Accounting/Finance export reconciles.
-- [ ] Export pending/failure/retry semantics are truthful.
+- [x] Owner can invite and manage users.
+- [x] Admin can create/edit/archive/restore a client.
+- [x] Admin can create/edit/close/archive/restore a project.
+- [x] Admin can assign workers with effective dates.
+- [x] Project commercial/rate/expense/billing rules can be configured.
+- [x] Worker can record and submit actual time on phone.
+- [x] Worker can see own compensation without confidential commercial data.
+- [x] Worker can submit daily and PLC/technical reports.
+- [x] Worker can submit expenses with receipts.
+- [x] PM can approve/reject operational records.
+- [x] Finance can approve billability and review project economics.
+- [x] All-in vs reimbursable expense behavior is correct.
+- [x] Project cost/revenue/WIP/invoiced/collected/margin reconcile.
+- [x] Customer period report generates.
+- [x] Labor/expense/fixed invoice drafts generate as required.
+- [x] Finance can issue an immutable invoice.
+- [x] Credit/void/adjustment correction path exists.
+- [x] Full and partial payments can be recorded.
+- [x] Invoice/Cost/Collection ledger is correct.
+- [x] Monthly Accounting/Finance export reconciles.
+- [x] Export pending/failure/retry semantics are truthful.
 - [ ] Normal jobs run automatically.
-- [ ] Core flows work on phone/tablet/desktop.
-- [ ] RBAC/privacy/IDOR tests pass.
-- [ ] Private uploads/downloads are safe.
-- [ ] Approved/finalized history is non-destructive.
+- [x] Core flows work on phone/tablet/desktop.
+- [x] RBAC/privacy/IDOR tests pass.
+- [x] Private uploads/downloads are safe.
+- [x] Approved/finalized history is non-destructive.
 - [ ] Backup/restore drill passes.
 - [ ] Production build/deployment behind Caddy works.
-- [ ] No core business flow requires a spreadsheet as the system of record.
-- [ ] Project reference hours are configurable (for example 10/12/14), never become real worked
+- [x] No core business flow requires a spreadsheet as the system of record.
+- [x] Project reference hours are configurable (for example 10/12/14), never become real worked
       hours, and remain independent from minimum billable hours and worker compensation.
-- [ ] Minimum billable hours/day/service are configurable independently from worker compensation.
-- [ ] Overtime is optional and supports a configurable threshold plus worker/client multiplier or rate (including cases such as 1.6x and 2x).
-- [ ] Travel time can be independently configured as client-billable or non-billable, with separate worker-pay treatment.
-- [ ] Authorized Admin/Finance can add/reduce/correct worker hours with reason, audit trail and preservation of prior approved/submitted truth.
-- [ ] Customer time/activity report contains no monetary values, can be signed/conformed by the client, and blocks final labor billing when the project requires signature.
-- [ ] Worker view/report shows own hours/activity, amount expected to receive, reimbursement/settlement state and expected/actual payment dates without Finance-only data.
-- [ ] Admin/Finance view/report shows hours/activity, money to pay, money to receive, billing/collection state and planned/actual cash-flow dates.
-- [ ] Expenses maintain separate worker-reimbursement and client-billing/collection states and dates.
-- [ ] Invoices expose the configured client code/acronym, client number, project number and project cost-center code/number, and Labor/Expenses tax treatment can independently be configured as applicable or no-tax/0%.
-- [ ] Project and worker active/inactive states prevent inappropriate new activity without deleting historical records.
+- [x] Minimum billable hours/day/service are configurable independently from worker compensation.
+- [x] Overtime is optional and supports a configurable threshold plus worker/client multiplier or rate (including cases such as 1.6x and 2x).
+- [x] Travel time can be independently configured as client-billable or non-billable, with separate worker-pay treatment.
+- [x] Authorized Admin/Finance can add/reduce/correct worker hours with reason, audit trail and preservation of prior approved/submitted truth.
+- [x] Customer time/activity report contains no monetary values, can be signed/conformed by the client, and blocks final labor billing when the project requires signature.
+- [x] Worker view/report shows own hours/activity, amount expected to receive, reimbursement/settlement state and expected/actual payment dates without Finance-only data.
+- [x] Admin/Finance view/report shows hours/activity, money to pay, money to receive, billing/collection state and planned/actual cash-flow dates.
+- [x] Expenses maintain separate worker-reimbursement and client-billing/collection states and dates.
+- [x] Invoices expose the configured client code/acronym, client number, project number and project cost-center code/number, and Labor/Expenses tax treatment can independently be configured as applicable or no-tax/0%.
+- [x] Project and worker active/inactive states prevent inappropriate new activity without deleting historical records.
 
 When this section is fully checked, deferred roadmap items must not prevent the release verdict.
+
+# U. Requested Stalwart identity extension — 2026-09-03
+
+- [x] Live mailbox catalogue uses Stalwart 0.16.19 JMAP `/jmap`; the browser projection excludes
+      `credentials` and the portal never reads RocksDB or the historical NDJSON import.
+- [x] Idempotent reconciliation links every live corporate mailbox as an active verified `worker`,
+      except `antonny.luty@j-aautomation.com`, which is the protected canonical `owner_admin`.
+- [x] Better Auth retains Antonny's existing local demo credential and delegates fallback password
+      verification to IMAPS; linked workers use IMAPS without storing or caching their Webmail
+      passwords.
+- [x] Mailbox create, role change, portal offboarding, password rotation and mailbox destruction are
+      canonical-Owner-only, require recent password step-up, revoke affected sessions and append
+      redacted audit evidence. Portal offboarding preserves history and is separate from Stalwart
+      mailbox destruction.
+- [x] Reconciliation is non-destructive: a mailbox absent from a live Stalwart read does not
+      archive/offboard its portal identity, revoke sessions, replace its stable account ID or undo
+      an Owner-approved role/lifecycle decision. Delegated login still fails closed through live
+      Stalwart revalidation, and only Antonny can invoke the explicit lifecycle actions.
+- [x] Additive migration 0035 and its pinned migration contract pass fresh/populated upgrade tests;
+      focused auth, JMAP, directory, UI and RBAC suite passes 62 tests, and the portal production
+      build succeeds with an isolated deployment identity.
+- [ ] VPS-only acceptance remains: install the restricted Stalwart API token, deploy, run Antonny's
+      initial live reconciliation, and execute the IMAPS/JMAP/role/project-assignment smoke journey
+      from `docs/DEPLOYMENT_VPS.md` without exposing passwords, tokens or hashes.

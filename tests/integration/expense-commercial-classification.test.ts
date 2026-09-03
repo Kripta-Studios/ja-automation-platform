@@ -913,7 +913,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
   it('does not let a rejected foreign expense poison valid EUR Worker Pay', () => {
     const value = expenseFixture();
     const repository = expenseContract(value);
-    value.v3.createCompensationRule(value.finance, {
+    value.v3.createCompensationRule(stepUpFinance(value), {
       workerId: value.worker.userId,
       projectId: value.project.id,
       currency: 'EUR',

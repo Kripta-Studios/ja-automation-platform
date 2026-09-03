@@ -1,0 +1,5 @@
+date,spentOn,vendor,worker,workerName,project,projectNumber,category,currency,grossMinor,costMinor,amountMinor,billable
+2026-08-02,2026-08-02,American Airlines,Josafa Silva,Josafa Silva,CP020 · BBS Mexico,CP020,flight,USD,97380,97380,97380,true
+2026-08-03,2026-08-03,Hertz DFW,Josafa Silva,Josafa Silva,CP020 · BBS Mexico,CP020,car_rental,USD,25898,25898,25898,true
+2026-08-04,2026-08-04,Marriott Georgetown,Josafa Silva,Josafa Silva,CP020 · BBS Mexico,CP020,hotel,USD,85632,85632,85632,true
+2026-08-05,2026-08-05,Chevron Fuel,Josafa Silva,Josafa Silva,CP020 · BBS Mexico,CP020,fuel,USD,10790,10790,10790,true

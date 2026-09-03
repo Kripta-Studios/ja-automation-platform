@@ -4,13 +4,20 @@ import {
   lstat,
   mkdir as mkdirDirectory,
   open as openFile,
+  realpath,
   unlink as unlinkFile,
+  type FileHandle,
 } from 'node:fs/promises';
 import type { DatabaseSync } from 'node:sqlite';
 import { dirname, parse, relative, resolve } from 'node:path';
 import { json } from '@sveltejs/kit';
 import { newId, type Principal } from '@ja/domain';
-import { V3AccessDeniedError, V3ConflictError, V3ValidationError } from '@ja/database';
+import {
+  V3AccessDeniedError,
+  V3ConflictError,
+  V3ValidationError,
+  readLiveSessionStepUp,
+} from '@ja/database';
 
 /**
  * The compatibility download routes pre-date the durable localized-artifact
@@ -25,6 +32,10 @@ export type PrivateArtifactSubject = Readonly<{
   entityType: 'accounting_pack' | 'invoice' | 'period_report';
   entityId: string;
   projectId?: string;
+  /** Audience is present for period reports so routes can retain the same
+   * object-scope authorization while applying stronger controls to internal
+   * finance/audit artifacts. */
+  audience?: string;
   tenantId: string;
   deploymentId: string;
 }>;
@@ -44,8 +55,20 @@ export type PrivateArtifactDownloadOptions = Readonly<{
   id: string;
   loadMetadata: () => PrivateArtifactMetadata;
   expectedMediaType?: string;
+  /**
+   * Restricted finance artifacts require a recent proof on this exact session.
+   * Operational project reports can explicitly opt out because their repository
+   * authorization and access audit already protect the ordinary download path.
+   */
+  requireStepUp?: boolean | ((subject: PrivateArtifactSubject) => boolean);
   now?: () => number;
   stepUpWindowMs?: number;
+  /**
+   * When set, the response is this renderer output rather than the stored
+   * file. Used for invoice PDFs so Open/Download present the frozen snapshot
+   * with the current invoice layout without mutating a terminal stored artifact.
+   */
+  generateBytes?: () => Uint8Array;
 }>;
 
 type SqliteLike = DatabaseSync;
@@ -55,8 +78,8 @@ type DeploymentIdentity = Readonly<{ tenant_id: string; deployment_id: string }>
 const STEP_UP_WINDOW_MS = 10 * 60_000;
 const B5_AUDIT_CONTRACT_VERSION = 'B5-R4';
 
-const NOT_FOUND_MESSAGE = 'Private artifact not found';
-const STEP_UP_MESSAGE = 'Recent step-up authentication is required';
+const NOT_FOUND_MESSAGE = 'File unavailable';
+const STEP_UP_MESSAGE = 'Confirm your identity to continue';
 const INTEGRITY_MESSAGE = 'Private artifact integrity check failed';
 
 function notFound(): Response {
@@ -72,6 +95,8 @@ function conflict(message: string): Response {
 function serverError(): Response {
   return json({ error: 'Private artifact is unavailable' }, { status: 500 });
 }
+
+class PrivateArtifactPathIntegrityError extends Error {}
 
 function isSafeIdentifier(value: string): boolean {
   return (
@@ -180,12 +205,16 @@ export function authorizePrivateArtifact(
   // finance/auditor readers used by the repository contract.
   const globalReader = isFinanceReadableRole(principal);
   const scopedReader = hasProjectScope(principal, row.project_id);
-  if (row.audience === 'internal' ? !globalReader : !globalReader && !scopedReader) return null;
+  // Only the reviewed customer audience is eligible for project-scoped access.
+  // Unknown, null-like, or future audience values must fail closed as restricted
+  // financial material instead of silently inheriting the customer policy.
+  if (row.audience !== 'customer' ? !globalReader : !globalReader && !scopedReader) return null;
   return {
     kind,
     entityType: 'period_report',
     entityId: row.id,
     projectId: row.project_id,
+    audience: row.audience,
     tenantId: identity.tenant_id,
     deploymentId: identity.deployment_id,
   };
@@ -197,17 +226,22 @@ function recentStepUp(
   now: () => number,
   windowMs: number,
 ): boolean {
-  if (!principal.sessionId) return false;
-  const row = sqlite
-    .prepare('SELECT step_up_at FROM session WHERE id=? AND user_id=? AND expires_at>?')
-    .get(principal.sessionId, principal.userId, new Date(now()).toISOString()) as
-    | { step_up_at: string | null }
-    | undefined;
-  if (!row?.step_up_at) return false;
-  const steppedAt = Date.parse(row.step_up_at);
-  if (!Number.isFinite(steppedAt)) return false;
-  const age = now() - steppedAt;
-  return age >= 0 && age <= windowMs;
+  return readLiveSessionStepUp(sqlite, principal, now(), windowMs) !== null;
+}
+
+/**
+ * Enforce the session-bound step-up contract at a route/action boundary.
+ * Principals without a bound human session are deliberately rejected: this
+ * guard is for interactive high-risk operations only.
+ */
+export function assertRecentStepUp(
+  sqlite: SqliteLike,
+  principal: Principal,
+  now: () => number = Date.now,
+  windowMs = STEP_UP_WINDOW_MS,
+): void {
+  if (!recentStepUp(sqlite, principal, now, windowMs))
+    throw new V3AccessDeniedError(STEP_UP_MESSAGE);
 }
 
 function safeStorageKey(storageKey: string): boolean {
@@ -254,7 +288,35 @@ function writeStorageKeyIsSafe(storageKey: string): boolean {
   return safeStorageKey(storageKey) && storageKey.split('/').every((segment) => Boolean(segment));
 }
 
-async function ensurePrivateStorageDirectory(root: string, directory: string): Promise<void> {
+/** Resolve the one configured private-artifact root used by every download path. */
+export function privateArtifactRoot(): string {
+  return resolve(process.env.JA_DOCUMENT_ROOT ?? process.env.JA_FILES_ROOT ?? 'data/documents');
+}
+
+type FsConstantsWithDescriptorFlags = typeof fsConstants & {
+  O_DIRECTORY?: number;
+  O_NOFOLLOW?: number;
+};
+
+const descriptorFsConstants = fsConstants as FsConstantsWithDescriptorFlags;
+const noFollowFlag = descriptorFsConstants.O_NOFOLLOW ?? 0;
+const directoryFlag = descriptorFsConstants.O_DIRECTORY ?? 0;
+
+/**
+ * Node does not expose openat(2) directly.  Linux's proc-fd directory handles
+ * provide the equivalent descriptor-relative walk: once a parent handle is
+ * opened, replacing an ancestor pathname cannot redirect the next component.
+ * Windows has no equivalent in the Node fs API, so it uses the conservative
+ * lstat + O_EXCL/O_NOFOLLOW fallback below and records that limitation in the
+ * security handoff.
+ */
+const supportsDescriptorRelativeWalk = process.platform === 'linux' && directoryFlag !== 0;
+
+function descriptorChildPath(parent: FileHandle, component: string): string {
+  return `/proc/self/fd/${parent.fd}/${component}`;
+}
+
+function pathComponentsInsideRoot(root: string, directory: string): string[] {
   const rootPath = resolve(root);
   const targetDirectory = resolve(directory);
   const relativeDirectory = relative(rootPath, targetDirectory);
@@ -264,6 +326,81 @@ async function ensurePrivateStorageDirectory(root: string, directory: string): P
     relativeDirectory.startsWith('\\')
   )
     throw new Error('Private artifact path escaped its root');
+  return relativeDirectory.split(/[\\/]/u).filter(Boolean);
+}
+
+async function assertCanonicalPrivatePath(root: string, target: string): Promise<void> {
+  const canonicalRoot = resolve(await realpath(root));
+  const canonicalTarget = resolve(await realpath(target));
+  const canonicalRelative = relative(canonicalRoot, canonicalTarget);
+  if (
+    !canonicalRelative ||
+    canonicalRelative.split(/[\\/]/u).some((segment) => segment === '..') ||
+    canonicalRelative.startsWith('/') ||
+    canonicalRelative.startsWith('\\')
+  )
+    throw new Error('Private artifact symlink/reparse path escaped its root');
+}
+
+async function openDirectoryDescriptor(
+  root: string,
+  directory: string,
+  createMissing: boolean,
+): Promise<FileHandle> {
+  const rootPath = resolve(root);
+  const components = pathComponentsInsideRoot(rootPath, directory);
+  let current: FileHandle | undefined;
+  try {
+    try {
+      current = await openFile(rootPath, fsConstants.O_RDONLY | directoryFlag | noFollowFlag);
+    } catch (error) {
+      if (!createMissing || !isErrno(error, 'ENOENT')) throw error;
+      // The configured root is trusted configuration.  It is still opened
+      // with O_NOFOLLOW immediately afterwards so a symlink cannot become the
+      // private root silently.
+      await mkdirDirectory(rootPath, { recursive: true });
+      current = await openFile(rootPath, fsConstants.O_RDONLY | directoryFlag | noFollowFlag);
+    }
+
+    for (const component of components) {
+      let next: FileHandle;
+      try {
+        next = await openFile(
+          descriptorChildPath(current, component),
+          fsConstants.O_RDONLY | directoryFlag | noFollowFlag,
+        );
+      } catch (error) {
+        if (!createMissing || !isErrno(error, 'ENOENT')) throw error;
+        try {
+          await mkdirDirectory(descriptorChildPath(current, component));
+        } catch (mkdirError) {
+          if (!isErrno(mkdirError, 'EEXIST')) throw mkdirError;
+        }
+        next = await openFile(
+          descriptorChildPath(current, component),
+          fsConstants.O_RDONLY | directoryFlag | noFollowFlag,
+        );
+      }
+      await current.close();
+      current = next;
+    }
+    return current;
+  } catch (error) {
+    await current?.close().catch(() => undefined);
+    throw error;
+  }
+}
+
+async function ensurePrivateStorageDirectory(root: string, directory: string): Promise<void> {
+  const rootPath = resolve(root);
+  const targetDirectory = resolve(directory);
+  pathComponentsInsideRoot(rootPath, targetDirectory);
+
+  if (supportsDescriptorRelativeWalk) {
+    const directoryHandle = await openDirectoryDescriptor(rootPath, targetDirectory, true);
+    await directoryHandle.close();
+    return;
+  }
 
   // Create one component at a time.  Recursive mkdir can follow a symlinked
   // ancestor between the existence check and the write, so every existing and
@@ -301,6 +438,24 @@ function eexistError(path: string): NodeJS.ErrnoException {
   return error;
 }
 
+function sameSha256(left: Uint8Array, right: Uint8Array): boolean {
+  return (
+    createHash('sha256').update(left).digest('hex') ===
+    createHash('sha256').update(right).digest('hex')
+  );
+}
+
+async function readOpenedPrivateFile(path: string): Promise<Buffer> {
+  const handle = await openFile(path, fsConstants.O_RDONLY | noFollowFlag);
+  try {
+    const stats = await handle.stat();
+    if (!stats.isFile()) throw new Error('Private artifact must be a regular file');
+    return await handle.readFile();
+  } finally {
+    await handle.close();
+  }
+}
+
 /**
  * Publish an uploaded private file without following a symlink or replacing an
  * existing file.  The action layer deliberately treats EEXIST as an idempotent
@@ -315,20 +470,53 @@ export async function writePrivateFileExclusive(
   const rootPath = resolve(root);
   const target = resolve(rootPath, storageKey);
   const targetDirectory = dirname(target);
+
+  if (supportsDescriptorRelativeWalk) {
+    const directoryHandle = await openDirectoryDescriptor(rootPath, targetDirectory, true);
+    try {
+      const destination = descriptorChildPath(directoryHandle, parse(target).base);
+      const flags = fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL | noFollowFlag;
+      let handle: FileHandle;
+      try {
+        handle = await openFile(destination, flags, 0o640);
+      } catch (error) {
+        if (isErrno(error, 'EEXIST')) {
+          // Verify the collision while still anchored to the opened parent.
+          // The action layer performs the media-type check before finalizing
+          // metadata; this helper proves the winner has the same bytes/length.
+          const existing = await readOpenedPrivateFile(destination);
+          if (existing.byteLength !== bytes.byteLength || !sameSha256(existing, bytes))
+            throw eexistError(target);
+        }
+        throw error;
+      }
+
+      try {
+        const buffer = Buffer.from(bytes);
+        let offset = 0;
+        while (offset < buffer.byteLength) {
+          const result = await handle.write(buffer, offset, buffer.byteLength - offset, offset);
+          if (result.bytesWritten <= 0) throw new Error('Private artifact write made no progress');
+          offset += result.bytesWritten;
+        }
+        await handle.sync();
+        return target;
+      } finally {
+        await handle.close();
+        // A descriptor-relative unlink API is not exposed by Node.  Leaving a
+        // failed publication orphaned is safer than unlinking a path that may
+        // have been replaced by a concurrent publisher; no DB metadata points
+        // at it and the cleanup job can remove it later.
+      }
+    } finally {
+      await directoryHandle.close();
+    }
+  }
+
   await ensurePrivateStorageDirectory(rootPath, targetDirectory);
   await assertNoSymlinkParents(rootPath, targetDirectory);
 
-  try {
-    const existing = await lstat(target);
-    if (existing.isSymbolicLink() || !existing.isFile())
-      throw new Error('Private artifact destination must be a regular file');
-    throw eexistError(target);
-  } catch (error) {
-    if (!isErrno(error, 'ENOENT')) throw error;
-  }
-
-  const noFollow = (fsConstants as typeof fsConstants & { O_NOFOLLOW?: number }).O_NOFOLLOW ?? 0;
-  const flags = fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL | noFollow;
+  const flags = fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL | noFollowFlag;
   let handle: Awaited<ReturnType<typeof openFile>>;
   try {
     handle = await openFile(target, flags, 0o640);
@@ -339,7 +527,22 @@ export async function writePrivateFileExclusive(
       const existing = await lstat(target);
       if (existing.isSymbolicLink() || !existing.isFile())
         throw new Error('Private artifact destination must be a regular file');
+      await assertCanonicalPrivatePath(rootPath, target);
+      const existingBytes = await readRegularFileNoFollow(target);
+      if (existingBytes.byteLength !== bytes.byteLength || !sameSha256(existingBytes, bytes))
+        throw eexistError(target);
     }
+    throw error;
+  }
+
+  // Re-validate the complete path after the path-based fallback open, before
+  // any bytes are written. Linux never reaches this branch because it uses the
+  // descriptor-relative walk above; Windows has no Node openat equivalent.
+  try {
+    await assertNoSymlinkParents(rootPath, targetDirectory);
+    await assertCanonicalPrivatePath(rootPath, target);
+  } catch (error) {
+    await handle.close().catch(() => undefined);
     throw error;
   }
 
@@ -366,6 +569,26 @@ export async function removePrivateFileIfPresent(root: string, storageKey: strin
   if (!writeStorageKeyIsSafe(storageKey)) throw new Error('Invalid private artifact storage key');
   const rootPath = resolve(root);
   const target = resolve(rootPath, storageKey);
+
+  if (supportsDescriptorRelativeWalk) {
+    let directoryHandle: FileHandle | undefined;
+    try {
+      directoryHandle = await openDirectoryDescriptor(rootPath, dirname(target), false);
+      const destination = descriptorChildPath(directoryHandle, parse(target).base);
+      const stats = await lstat(destination);
+      if (stats.isSymbolicLink() || !stats.isFile())
+        throw new Error('Private artifact destination must be a regular file');
+      // unlink(2) does not follow a leaf symlink, and the parent descriptor is
+      // pinned for the entire operation, preventing an ancestor pathname race.
+      await unlinkFile(destination);
+    } catch (error) {
+      if (!isErrno(error, 'ENOENT')) throw error;
+    } finally {
+      await directoryHandle?.close().catch(() => undefined);
+    }
+    return;
+  }
+
   try {
     await assertNoSymlinkParents(rootPath, dirname(target));
     const stats = await lstat(target);
@@ -378,8 +601,7 @@ export async function removePrivateFileIfPresent(root: string, storageKey: strin
 }
 
 async function readRegularFileNoFollow(path: string): Promise<Buffer> {
-  const noFollow = (fsConstants as typeof fsConstants & { O_NOFOLLOW?: number }).O_NOFOLLOW ?? 0;
-  const handle = await openFile(path, fsConstants.O_RDONLY | noFollow);
+  const handle = await openFile(path, fsConstants.O_RDONLY | noFollowFlag);
   try {
     const stats = await handle.stat();
     if (!stats.isFile()) throw new Error('Private artifact must be a regular file');
@@ -387,6 +609,41 @@ async function readRegularFileNoFollow(path: string): Promise<Buffer> {
   } finally {
     await handle.close();
   }
+}
+
+/**
+ * Open a private artifact beneath a pinned root and return its bytes.  Linux
+ * uses a descriptor-relative proc-fd walk; the fallback performs checks both
+ * before and after the no-follow leaf open because Node exposes no portable
+ * openat/no-follow-ancestor primitive on Windows.
+ */
+export async function readPrivateFileNoFollow(root: string, storageKey: string): Promise<Buffer> {
+  if (!safeStorageKey(storageKey)) throw new Error('Invalid private artifact storage key');
+  const rootPath = resolve(root);
+  const target = resolve(rootPath, storageKey);
+  const targetDirectory = dirname(target);
+
+  if (supportsDescriptorRelativeWalk) {
+    const directoryHandle = await openDirectoryDescriptor(rootPath, targetDirectory, false);
+    try {
+      return await readOpenedPrivateFile(descriptorChildPath(directoryHandle, parse(target).base));
+    } finally {
+      await directoryHandle.close();
+    }
+  }
+
+  await assertNoSymlinkParents(rootPath, targetDirectory);
+  const targetStats = await lstat(target);
+  if (targetStats.isSymbolicLink() || !targetStats.isFile())
+    throw new PrivateArtifactPathIntegrityError('Private artifact symlink or non-regular file');
+  await assertCanonicalPrivatePath(rootPath, target);
+  const bytes = await readRegularFileNoFollow(target);
+  // A second canonical-path check closes the common Windows junction/symlink
+  // swap window around the path-based open. The opened handle remains the
+  // source of bytes; if an ancestor was replaced while opening, fail closed.
+  await assertNoSymlinkParents(rootPath, targetDirectory);
+  await assertCanonicalPrivatePath(rootPath, target);
+  return bytes;
 }
 
 function pdfMagicValid(bytes: Uint8Array): boolean {
@@ -432,7 +689,10 @@ function mediaSignatureValid(mediaType: string, bytes: Uint8Array): boolean {
   return false;
 }
 
-function contentDispositionFilename(filename: string): string {
+function contentDispositionFilename(
+  filename: string,
+  disposition: 'attachment' | 'inline' = 'attachment',
+): string {
   const normalized = filename.normalize('NFKC').replace(/[\r\n]/gu, '_');
   const fallback =
     normalized
@@ -443,7 +703,37 @@ function contentDispositionFilename(filename: string): string {
     /[!'()*]/gu,
     (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
   );
-  return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+  return `${disposition}; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+}
+
+export type PrivateDocumentResponseMetadata = Readonly<{
+  mediaType: string;
+  filename: string;
+  sensitive: boolean;
+}>;
+
+/**
+ * Shared response construction for legacy and API document downloads. Keeping
+ * the headers here prevents one route from accidentally dropping the private
+ * cache policy or the sensitive-document marker.
+ */
+export function privateDocumentResponse(
+  bytes: Uint8Array,
+  metadata: PrivateDocumentResponseMetadata,
+  disposition: 'attachment' | 'inline' = 'attachment',
+): Response {
+  const body = new Uint8Array(bytes.byteLength);
+  body.set(bytes);
+  return new Response(body.buffer as ArrayBuffer, {
+    headers: {
+      'content-type': metadata.mediaType,
+      'content-length': String(body.byteLength),
+      'content-disposition': contentDispositionFilename(metadata.filename, disposition),
+      'cache-control': 'private, no-store',
+      'x-content-type-options': 'nosniff',
+      'x-document-sensitive': String(metadata.sensitive),
+    },
+  });
 }
 
 function auditDetails(
@@ -592,6 +882,19 @@ export async function servePrivateArtifact(
   );
   if (!subject) return notFound();
 
+  const now = options.now ?? Date.now;
+  const windowMs = options.stepUpWindowMs ?? STEP_UP_WINDOW_MS;
+  const stepUpRequired =
+    typeof options.requireStepUp === 'function'
+      ? options.requireStepUp(subject)
+      : options.requireStepUp !== false;
+  if (stepUpRequired && !recentStepUp(options.sqlite, options.principal, now, windowMs)) {
+    recordAccessAudit(options.sqlite, options.principal, subject, 'blocked', {
+      reason: 'step_up_required',
+    });
+    return json({ error: STEP_UP_MESSAGE }, { status: 403 });
+  }
+
   let metadata: PrivateArtifactMetadata;
   try {
     metadata = options.loadMetadata();
@@ -639,21 +942,57 @@ export async function servePrivateArtifact(
     return conflict('Private artifact length metadata is invalid');
   }
 
-  const now = options.now ?? Date.now;
-  const windowMs = options.stepUpWindowMs ?? STEP_UP_WINDOW_MS;
-  if (!recentStepUp(options.sqlite, options.principal, now, windowMs)) {
-    recordAccessAudit(options.sqlite, options.principal, subject, 'blocked', {
-      reason: 'step_up_required',
-    });
-    return json({ error: STEP_UP_MESSAGE }, { status: 403 });
-  }
-
   if (!safeStorageKey(metadata.storageKey)) {
     recordAccessAuditBestEffort(options.sqlite, options.principal, subject, 'integrity', {
       reason: 'storage_key_invalid',
     });
     return conflict('Private artifact path is invalid');
   }
+
+  if (options.generateBytes) {
+    let generated: Uint8Array;
+    try {
+      generated = options.generateBytes();
+    } catch {
+      recordAccessAuditBestEffort(options.sqlite, options.principal, subject, 'blocked', {
+        reason: 'artifact_renderer_unavailable',
+      });
+      return serverError();
+    }
+    if (generated.byteLength <= 0 || !mediaSignatureValid(metadata.mediaType, generated)) {
+      recordAccessAuditBestEffort(options.sqlite, options.principal, subject, 'integrity', {
+        reason: 'generated_content_invalid',
+      });
+      return conflict(INTEGRITY_MESSAGE);
+    }
+    const observedHash = createHash('sha256').update(generated).digest('hex');
+    try {
+      recordAccessAudit(options.sqlite, options.principal, subject, 'authorized', {
+        sha256: observedHash,
+        byteLength: generated.byteLength,
+        mediaType: metadata.mediaType,
+        renderer: 'snapshot',
+      });
+    } catch {
+      return serverError();
+    }
+    const responseBytes = new Uint8Array(generated.byteLength);
+    responseBytes.set(generated);
+    return new Response(responseBytes.buffer as ArrayBuffer, {
+      headers: {
+        'content-type': metadata.mediaType,
+        'content-length': String(generated.byteLength),
+        'content-disposition': contentDispositionFilename(metadata.filename),
+        'cache-control': 'private, no-store',
+        pragma: 'no-cache',
+        expires: '0',
+        'x-content-type-options': 'nosniff',
+        'cross-origin-resource-policy': 'same-origin',
+        'content-security-policy': 'sandbox',
+      },
+    });
+  }
+
   const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
   const target = resolve(root, metadata.storageKey);
   const relativeTarget = relative(root, target);
@@ -671,15 +1010,7 @@ export async function servePrivateArtifact(
 
   let bytes: Buffer;
   try {
-    await assertNoSymlinkParents(root, dirname(target));
-    const targetStats = await lstat(target);
-    if (!targetStats.isFile() || targetStats.isSymbolicLink()) {
-      recordAccessAuditBestEffort(options.sqlite, options.principal, subject, 'integrity', {
-        reason: 'symlink_or_non_regular_file',
-      });
-      return conflict('Private artifact is unavailable');
-    }
-    bytes = await readRegularFileNoFollow(target);
+    bytes = await readPrivateFileNoFollow(root, metadata.storageKey);
   } catch (cause) {
     if (isErrno(cause, 'ENOENT')) {
       recordAccessAuditBestEffort(options.sqlite, options.principal, subject, 'blocked', {
@@ -687,7 +1018,11 @@ export async function servePrivateArtifact(
       });
       return conflict('Private artifact is not ready');
     }
-    if (isErrno(cause, 'ELOOP') || isErrno(cause, 'EPERM')) {
+    if (
+      cause instanceof PrivateArtifactPathIntegrityError ||
+      isErrno(cause, 'ELOOP') ||
+      isErrno(cause, 'EPERM')
+    ) {
       recordAccessAuditBestEffort(options.sqlite, options.principal, subject, 'integrity', {
         reason: 'symlink_or_reparse_path',
       });

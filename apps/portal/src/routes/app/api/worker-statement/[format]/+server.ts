@@ -1,13 +1,56 @@
-import { error, type RequestHandler } from '@sveltejs/kit';
+import { error, json, type RequestHandler } from '@sveltejs/kit';
 import {
-  workerStatementCsv,
-  workerStatementPdf,
-  type WorkerStatementSnapshot,
-} from '@ja/reporting';
+  AccessDeniedError,
+  ConflictError,
+  ValidationError,
+  V3AccessDeniedError,
+} from '@ja/database';
+import { assertRecentStepUp } from '$lib/server/private-artifact-access';
 import { openPortalRepository } from '$lib/server/portal-repository';
-import { requiredExportPeriod, semanticFilenamePart } from '$lib/server/report-export-request';
-import { sensitiveExportResponse } from '$lib/server/sensitive-export-response';
+import { requiredExportPeriod } from '$lib/server/report-export-request';
+import {
+  artifactDownloadLocation,
+  publicWorkerStatementStatus,
+  workerStatementRepository,
+} from '../worker-statement-api';
 
+function privateHeaders(): Record<string, string> {
+  return {
+    'cache-control': 'private, no-store',
+    pragma: 'no-cache',
+    expires: '0',
+    'x-content-type-options': 'nosniff',
+    'cross-origin-resource-policy': 'same-origin',
+    'content-security-policy': 'sandbox',
+  };
+}
+
+function durableFailure(cause: unknown): Response | null {
+  if (cause instanceof AccessDeniedError || cause instanceof V3AccessDeniedError)
+    return json(
+      { error: 'Worker statement artifact not found' },
+      { status: 404, headers: privateHeaders() },
+    );
+  if (cause instanceof ConflictError)
+    return json({ error: cause.message }, { status: 409, headers: privateHeaders() });
+  if (cause instanceof ValidationError)
+    return json({ error: cause.message }, { status: 400, headers: privateHeaders() });
+  if (cause instanceof Error && /no such table:\s*worker_statement_/iu.test(cause.message))
+    return json(
+      { error: 'Worker statement durable artifacts are not available yet' },
+      { status: 503, headers: privateHeaders() },
+    );
+  return null;
+}
+
+/**
+ * Compatibility download shim.
+ *
+ * Requests are deliberately handled by the collection POST endpoint. A GET here may only look up
+ * an artifact that already exists; it must not build a source snapshot, create an artifact/job,
+ * render a file, or write an export audit record. Ready artifacts are redirected to the canonical
+ * private download route, which owns the final authorization, step-up and integrity boundary.
+ */
 export const GET: RequestHandler = ({ locals, params, url }) => {
   if (!locals.user || !locals.session) error(401, 'Sign in required');
   if (locals.user.role !== 'worker') error(403, 'Worker role required');
@@ -16,88 +59,56 @@ export const GET: RequestHandler = ({ locals, params, url }) => {
   const { periodStart, periodEnd } = requiredExportPeriod(url);
   const context = openPortalRepository(locals);
   try {
-    // These repository calls re-check active identity and self-scope on every
-    // request. No worker ID is accepted from the URL or query string.
-    const pay = context.v3.workerPay(context.principal, periodStart, periodEnd);
-    const settlements = context.v3.listCompensationSettlements(
-      context.principal,
-      periodStart,
-      periodEnd,
-    );
-    const expenses = context.repository.listWorkerStatementExpenses(
-      context.principal,
-      periodStart,
-      periodEnd,
-    );
-    const activities = context.repository.listTimeForScope(context.principal, {
-      from: periodStart,
-      to: periodEnd,
-    });
-    const snapshot: WorkerStatementSnapshot = {
-      worker: { id: context.principal.userId, name: locals.user.name },
-      periodStart,
-      periodEnd,
-      currency: String(pay.currency),
-      approvedMinutes: pay.approvedMinutes,
-      pendingMinutes: pay.pendingMinutes,
-      estimatedApprovedMinor: pay.estimatedApprovedMinor,
-      estimatedPendingMinor: pay.estimatedPendingMinor,
-      approvedReimbursementMinor: pay.approvedReimbursementMinor,
-      pendingReimbursementMinor: pay.pendingReimbursementMinor,
-      missingCompensationRules: pay.missingCompensationRules,
-      activities: activities.map((row) => ({
-        id: String(row.id),
-        projectNumber: String(row.project_number),
-        projectName: String(row.project_name),
-        date: String(row.work_date),
-        category: String(row.category),
-        activitySummary: String(row.activity_summary ?? ''),
-        actualMinutes: Number(row.minutes),
-        approvalState: String(row.approval_state),
-      })),
-      settlements: settlements.map((row) => ({
-        id: String(row.id),
-        projectNumber: String(row.projectNumber),
-        projectName: String(row.projectName),
-        periodStart: String(row.periodStart),
-        periodEnd: String(row.periodEnd),
-        amountMinor: String(row.amountMinor),
-        currency: String(row.currency),
-        state: String(row.state),
-        expectedPaymentOn: row.expectedPaymentOn === null ? null : String(row.expectedPaymentOn),
-        settledAt: row.settledAt === null ? null : String(row.settledAt),
-      })),
-      expenses: expenses.map((row) => {
-        const detail = context.repository.expenseDetail(context.principal, row.id);
-        return {
-          ...row,
-          expectedReimbursementOn:
-            detail.expected_reimbursement_on === null ||
-            detail.expected_reimbursement_on === undefined
-              ? null
-              : String(detail.expected_reimbursement_on),
-          reimbursedAt:
-            detail.reimbursed_at === null || detail.reimbursed_at === undefined
-              ? null
-              : String(detail.reimbursed_at),
-        };
-      }),
-    };
-    const bytes = format === 'pdf' ? workerStatementPdf(snapshot) : workerStatementCsv(snapshot);
-    const worker = semanticFilenamePart(locals.user.name, 'worker');
-    const filename = `ja-worker-statement-${worker}-${periodStart}-${periodEnd}.${format}`;
-    return sensitiveExportResponse({
-      sqlite: context.sqlite,
-      principal: context.principal,
-      auditEntityType: 'document',
-      auditEntityId: `worker-statement:${context.principal.userId}:${periodStart}:${periodEnd}`,
-      exportKind: 'worker_compensation_statement',
-      format,
-      filename,
-      bytes,
-      periodStart,
-      periodEnd,
-    });
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        assertRecentStepUp(context.sqlite, context.principal);
+      } catch (cause) {
+        if (cause instanceof V3AccessDeniedError) error(403, cause.message);
+        throw cause;
+      }
+    }
+
+    try {
+      const repository = workerStatementRepository(context.sqlite);
+      const artifact = repository
+        .listWorkerStatementArtifacts(context.principal, { periodStart, periodEnd })
+        .find((candidate) => candidate.format === format);
+      if (!artifact)
+        return json(
+          { error: 'Worker statement artifact not found' },
+          { status: 404, headers: privateHeaders() },
+        );
+
+      if (artifact.status === 'ready') {
+        // The canonical download route performs the final private-file authorization and
+        // integrity verification. Redirecting keeps this compatibility GET free of audit and
+        // quarantine writes while preserving browser download behavior.
+        return new Response(null, {
+          status: 302,
+          headers: {
+            ...privateHeaders(),
+            location: artifactDownloadLocation(url, artifact.artifactId),
+          },
+        });
+      }
+
+      const status = artifact.status === 'failed' ? 409 : 202;
+      const headers = privateHeaders();
+      if (status === 202) {
+        headers['retry-after'] = '2';
+        headers.location = artifactDownloadLocation(url, artifact.artifactId);
+      }
+      return json(
+        {
+          artifact: publicWorkerStatementStatus(artifact),
+        },
+        { status, headers },
+      );
+    } catch (cause) {
+      const mapped = durableFailure(cause);
+      if (mapped) return mapped;
+      throw cause;
+    }
   } finally {
     context.sqlite.close();
   }

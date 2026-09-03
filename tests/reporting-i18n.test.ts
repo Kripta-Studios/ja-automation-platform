@@ -210,6 +210,16 @@ const periodSnapshot = (locale: Locale) => ({
       approval_state: 'needs_changes',
     },
   ],
+  timeSummary: [
+    {
+      date: '2026-08-01',
+      category: 'work',
+      minutes: 480,
+      activitySummary: 'Commissioned line sensors',
+      worker: 'Alex Rivera',
+      approvalState: 'approved',
+    },
+  ],
 });
 
 const packSnapshot = (locale: Locale) => ({
@@ -325,11 +335,21 @@ describe('localized report PDF renderers', () => {
     const periodTitle = titles.period[locale];
     expect(containsPdfCopy(periodText, periodTitle.split(' ')[0])).toBe(true);
     expect(containsPdfCopy(periodText, periodTitle.split(' ').at(-1) ?? periodTitle)).toBe(true);
+    expect(containsPdfCopy(periodText, 'C-0001-P-001')).toBe(true);
+    expect(containsPdfCopy(periodText, 'Northline Mobility')).toBe(true);
     expect(containsPdfCopy(packText, titles.pack[locale])).toBe(true);
+    expect(containsPdfCopy(periodText, locale === 'en' ? 'Hours' : 'Horas')).toBe(true);
+    expect(
+      containsPdfCopy(
+        packText,
+        locale === 'en' ? 'Metric' : locale === 'es' ? 'Métrica' : 'Métrica',
+      ),
+    ).toBe(true);
     for (const label of packMetricLabels[locale])
       expect(containsPdfCopy(packText, label)).toBe(true);
     expect(containsPdfCopy(invoiceText, 'Startup support, sensor timing investigation')).toBe(true);
-    expect(containsPdfCopy(periodText, 'Startup support, sensor timing investigation')).toBe(true);
+    expect(containsPdfCopy(periodText, 'Startup support')).toBe(true);
+    expect(containsPdfCopy(periodText, 'sensor timing investigation')).toBe(true);
     expect(containsPdfCopy(periodText, 'handover notes')).toBe(true);
     for (const text of [invoiceText, periodText, packText]) {
       if (locale !== 'en')
@@ -375,6 +395,8 @@ describe('localized report PDF renderers', () => {
     const technicalText = expectPdf(technicalReportPdf(technicalSnapshot(locale)));
     expect(containsPdfCopy(dailyText, titles.daily[locale])).toBe(true);
     expect(containsPdfCopy(technicalText, titles.technical[locale])).toBe(true);
+    expect(containsPdfCopy(dailyText, 'C-0001-P-001')).toBe(true);
+    expect(containsPdfCopy(technicalText, 'C-0001-P-001')).toBe(true);
     expect(
       containsPdfCopy(
         dailyText,
@@ -389,5 +411,56 @@ describe('localized report PDF renderers', () => {
         expect(containsPdfCopy(technicalText, residue)).toBe(false);
       }
     }
+  });
+
+  it('fills daily/technical project identity from joined source fields', () => {
+    const dailyText = expectPdf(
+      dailyReportPdf({
+        locale: 'en',
+        project_number: 'C-0001-P-002',
+        project_name: 'Remote Controls Support Retainer',
+        client_name: 'Demo',
+        work_date: '2026-08-21',
+        worker_name: 'Alex Rivera',
+        summary: 'Resolved a sequence observation and documented the release recommendation.',
+        tasks_completed: 'Documented the release recommendation.',
+        approval_state: 'approved',
+      }),
+    );
+    expect(containsPdfCopy(dailyText, 'C-0001-P-002')).toBe(true);
+    expect(containsPdfCopy(dailyText, 'Remote Controls Support Retainer')).toBe(true);
+    expect(containsPdfCopy(dailyText, 'Alex Rivera')).toBe(true);
+    expect(containsPdfCopy(dailyText, 'Documented the release recommendation')).toBe(true);
+  });
+
+  it('renders Accounting Pack invoice and worker registers instead of only totals', () => {
+    const text = expectPdf(
+      accountingPackPdf({
+        ...packSnapshot('en'),
+        invoiceRegister: [
+          {
+            invoiceNumber: 'DEMO-2026-00001',
+            client: 'Northline Mobility',
+            project: 'C-0001-P-001',
+            stream: 'labor',
+            servicePeriod: '2026-08-10/2026-08-16',
+            grossMinor: '7980000',
+          },
+        ],
+        workerCosts: [
+          {
+            worker: 'Alex Rivera',
+            project: 'C-0001-P-001',
+            actualApprovedMinutes: 420,
+            approvedCompensationMinor: '1380875',
+          },
+        ],
+      }),
+    );
+    expect(containsPdfCopy(text, 'DEMO-2026-00001')).toBe(true);
+    expect(containsPdfCopy(text, 'Northline Mobility')).toBe(true);
+    expect(containsPdfCopy(text, 'Alex Rivera')).toBe(true);
+    expect(containsPdfCopy(text, 'C-0001-P-001')).toBe(true);
+    expect(containsPdfCopy(text, 'legalEntityId')).toBe(false);
   });
 });

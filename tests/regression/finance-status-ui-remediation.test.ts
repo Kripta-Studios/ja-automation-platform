@@ -42,4 +42,10 @@ describe('Accounting Pack status UI remediation', () => {
     expect(accountingPackStatus).toContain('accountingPackStatusLabel(status)');
     expect(accountingPackStatus).toMatch(/\{#if error\}[\s\S]*\{error\}[\s\S]*\{\/if\}/);
   });
+
+  it('recovers a stale Ready download by creating the current revision instead of showing the source-changed error', () => {
+    expect(accountingPackStatus).toContain('downloadAccountingPackArtifact');
+    expect(accountingPackStatus).toContain('handleDownloadClick');
+    expect(accountingPackStatus).not.toContain('Accounting Pack source changed');
+  });
 });

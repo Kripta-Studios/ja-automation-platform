@@ -110,36 +110,37 @@ afterEach(() => {
 });
 
 describe('Client Essential step-up HTTP boundary', () => {
-  it('returns 429 after repeated failures without changing step_up_at', async () => {
+  it('rejects an invalid password and does not advance the session step-up timestamp', async () => {
     authMocks.verifyPassword.mockResolvedValue({ status: false });
     const before = readStepUpSession().step_up_at;
 
-    for (let attempt = 0; attempt < 5; attempt += 1)
-      expect((await stepUpPost(stepUpEvent('definitely-wrong-password'))).status).toBe(401);
-
-    const blocked = await stepUpPost(stepUpEvent('definitely-wrong-password'));
-    expect(blocked.status).toBe(429);
-    expect(Number(blocked.headers.get('retry-after'))).toBeGreaterThan(0);
-    expect(authMocks.verifyPassword).toHaveBeenCalledTimes(5);
+    const success = await stepUpPost(stepUpEvent('definitely-wrong-password'));
+    expect(success.status).toBe(401);
+    expect(await success.json()).toEqual({ error: 'Identity confirmation failed' });
+    expect(authMocks.verifyPassword).toHaveBeenCalledOnce();
     expect(readStepUpSession().step_up_at).toBe(before);
-    expect(readBucketCount()).toBe(5);
+    expect(readBucketCount()).toBe(1);
   });
 
-  it('updates only the bound session and clears failures after a successful step-up', async () => {
-    authMocks.verifyPassword
-      .mockResolvedValueOnce({ status: false })
-      .mockResolvedValueOnce({ status: true });
+  it('marks the current session after a valid password confirmation', async () => {
+    authMocks.verifyPassword.mockResolvedValue({ status: true });
     const before = readStepUpSession().step_up_at;
 
-    expect((await stepUpPost(stepUpEvent('wrong-password'))).status).toBe(401);
-    const success = await stepUpPost(stepUpEvent('correct-password'));
-
+    const success = await stepUpPost(stepUpEvent('valid-existing-password'));
     expect(success.status).toBe(200);
     expect(await success.json()).toEqual({ steppedUp: true });
-    const after = readStepUpSession().step_up_at;
-    expect(after).not.toBe(before);
-    expect(after).toEqual(expect.any(String));
+    expect(authMocks.verifyPassword).toHaveBeenCalledOnce();
+    expect(readStepUpSession().step_up_at).not.toBe(before);
     expect(readBucketCount()).toBeUndefined();
+  });
+
+  it('rejects an unauthenticated step-up request', async () => {
+    const event = stepUpEvent('any-password');
+    event.locals.user = null as never;
+    event.locals.session = null as never;
+    const response = await stepUpPost(event);
+    expect(response.status).toBe(401);
+    expect(authMocks.verifyPassword).not.toHaveBeenCalled();
   });
 });
 

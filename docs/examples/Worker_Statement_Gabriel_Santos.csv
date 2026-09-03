@@ -1,0 +1,9 @@
+recordType,recordId,workerId,workerName,periodStart,periodEnd,projectNumber,projectName,date,vendor,category,activitySummary,currency,amountMinor,actualMinutes,approvedMinutes,pendingMinutes,approvalState,paymentStatus,expectedPaymentOn,settledAt,expectedReimbursementOn,reimbursedAt
+compensation_summary,w-gabriel:2026-08-01:2026-08-14,w-gabriel,Gabriel Santos,2026-08-01,2026-08-14,,,,,,,USD,526000,,2430,0,incomplete,estimated_approved,,,,
+pending_compensation,w-gabriel:2026-08-01:2026-08-14:pending,w-gabriel,Gabriel Santos,2026-08-01,2026-08-14,,,,,,,USD,0,,2430,0,pending,estimated_pending,,,,
+time_activity,,w-gabriel,Gabriel Santos,2026-08-01,2026-08-14,CP020,BBS Mexico,2026-08-03,,work,Allen Bradley PLC program commissioning Line 1,USD,129876,600,,,approved,,,,,
+time_activity,,w-gabriel,Gabriel Santos,2026-08-01,2026-08-14,CP020,BBS Mexico,2026-08-04,,work,Safety circuit integration and interlock testing,USD,136370,630,,,approved,,,,,
+time_activity,,w-gabriel,Gabriel Santos,2026-08-01,2026-08-14,CP020,BBS Mexico,2026-08-05,,work,HMI alarms setup and sensor calibration,USD,129876,600,,,approved,,,,,
+time_activity,,w-gabriel,Gabriel Santos,2026-08-01,2026-08-14,CP020,BBS Mexico,2026-08-06,,work,Cycle time optimization Line 1 & 2,USD,129878,600,,,approved,,,,,
+compensation_settlement,,w-gabriel,Gabriel Santos,2026-08-01,2026-08-14,CP020,BBS Mexico,,,,,USD,526000,,,,,paid,2026-08-15,2026-08-15,,
+reimbursable_expense,,w-gabriel,Gabriel Santos,2026-08-01,2026-08-14,CP020,,2026-08-03,Chevron Gas & Oil,fuel,,USD,12500,,,,approved,paid,,,2026-08-15,2026-08-15

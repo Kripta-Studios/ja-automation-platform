@@ -33,7 +33,16 @@ function seedUser(
     .prepare(
       'INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
     )
-    .run(id, id, `${id}@example.com`, role, 'active', 1, now, now);
+    .run(
+      id,
+      id,
+      role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@example.com`,
+      role,
+      'active',
+      1,
+      now,
+      now,
+    );
 }
 
 function steppedUpPrincipal(
@@ -67,7 +76,7 @@ function configureExpenseAuthority(
   projectId: string,
   currency: 'USD' | 'EUR' | 'GBP' | 'CAD',
   label: string,
-): void {
+): { id: string } {
   const legacy = repository.createLegalEntity(owner, {
     code: `EXP-${label}`,
     legalName: `Expense authority ${label}`,
@@ -97,6 +106,7 @@ function configureExpenseAuthority(
     reason: 'Bind deterministic Finance authority for expense classification',
     idempotencyKey: `v3-finance:${label}:assignment`,
   });
+  return legacy;
 }
 
 // Customer reports may carry operational hours and activity, but must not
@@ -534,7 +544,15 @@ describe('V3 finance and privacy paths', () => {
       billingModel: 'tm',
       expectedMinutesPerDay: 600,
     });
-    configureExpenseAuthority(repository, v3, owner, finance, project.id, 'USD', 'billing');
+    const canonicalBillingEntity = configureExpenseAuthority(
+      repository,
+      v3,
+      owner,
+      finance,
+      project.id,
+      'USD',
+      'billing',
+    );
     repository.assignWorker(owner, {
       projectId: project.id,
       workerId: 'manager',
@@ -621,15 +639,8 @@ describe('V3 finance and privacy paths', () => {
     repository.operationalApproveExpense(manager, expense.id, 'approved');
     repository.financeApproveExpense(finance, expense.id);
 
-    const entity = repository.createLegalEntity(owner, {
-      code: 'JA-V3',
-      legalName: 'J&A Automation',
-      currency: 'USD',
-      billingAddress: 'Configured address',
-      companyIdentifiers: 'Configured identifiers',
-    });
     repository.createInvoiceNumberPolicy(owner, {
-      legalEntityId: entity.id,
+      legalEntityId: canonicalBillingEntity.id,
       prefix: 'JA-V3',
       digits: 6,
       effectiveFrom: '2026-01-01',
@@ -649,7 +660,7 @@ describe('V3 finance and privacy paths', () => {
     });
     const laborRule = repository.createBillingRule(finance, {
       projectId: project.id,
-      legalEntityId: entity.id,
+      legalEntityId: canonicalBillingEntity.id,
       streamType: 'labor',
       cadenceType: 'every_14_days',
       anchorDate: '2026-08-03',
@@ -659,7 +670,7 @@ describe('V3 finance and privacy paths', () => {
     });
     const expenseRule = repository.createBillingRule(finance, {
       projectId: project.id,
-      legalEntityId: entity.id,
+      legalEntityId: canonicalBillingEntity.id,
       streamType: 'expense',
       cadenceType: 'monthly',
       taxProfileId: expenseTax.id,
@@ -899,11 +910,18 @@ describe('V3 finance and privacy paths', () => {
         total_minor: number;
       }
     ).total_minor;
+    const issuedAt = (
+      sqlite.prepare('SELECT issued_at FROM invoice WHERE id=?').get(laborDraft.id) as {
+        issued_at: string;
+      }
+    ).issued_at;
+    const partialPaymentAt = issuedAt;
+    const finalPaymentAt = issuedAt;
     const partial = v3.recordPayment(finance, {
       invoiceId: laborDraft.id,
       amountMinor: BigInt(total - 1),
       currency: 'USD',
-      receivedAt: '2026-08-20T00:00:00.000Z',
+      receivedAt: partialPaymentAt,
       idempotencyKey: 'v3-partial-payment',
     });
     expect(partial.state).toBe('partially_paid');
@@ -912,7 +930,7 @@ describe('V3 finance and privacy paths', () => {
         invoiceId: laborDraft.id,
         amountMinor: 1n,
         currency: 'USD',
-        receivedAt: '2026-08-21T00:00:00.000Z',
+        receivedAt: finalPaymentAt,
         idempotencyKey: 'v3-final-payment',
       }).state,
     ).toBe('paid');

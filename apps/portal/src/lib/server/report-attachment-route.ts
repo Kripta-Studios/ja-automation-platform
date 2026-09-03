@@ -1,7 +1,5 @@
 import { createHash } from 'node:crypto';
-import { constants as fsConstants } from 'node:fs';
-import { lstat, open as openFile } from 'node:fs/promises';
-import { dirname, relative, resolve } from 'node:path';
+import { relative, resolve } from 'node:path';
 import { z } from 'zod';
 import {
   V3ConflictError,
@@ -11,6 +9,7 @@ import {
   type ReportAttachmentType,
 } from '@ja/database';
 import type { DatabaseSync } from 'node:sqlite';
+import { readPrivateFileNoFollow } from './private-artifact-access';
 
 /** The only report attachment kinds exposed by the report-detail surface. */
 export const reportAttachmentKindSchema = z.enum([
@@ -266,33 +265,14 @@ export async function assertRegularPrivateFile(
   expectedLength: number,
   expectedMediaType: string,
 ): Promise<Uint8Array> {
-  const target = assertStoragePathInsideRoot(root, storageKey);
-  const rootPath = resolve(root);
-  const parent = dirname(target);
-  const parentRelative = relative(rootPath, parent);
-  const parentParts = parentRelative.split(/[\\/]/u).filter(Boolean);
-  const rootStats = await lstat(rootPath);
-  if (rootStats.isSymbolicLink() || !rootStats.isDirectory())
-    throw new V3ConflictError('Attachment storage root is unavailable');
-  let cursor = rootPath;
-  for (const part of parentParts) {
-    cursor = resolve(cursor, part);
-    const parentStats = await lstat(cursor);
-    if (parentStats.isSymbolicLink() || !parentStats.isDirectory())
-      throw new V3ConflictError('Attachment storage path is unavailable');
-  }
-  const stats = await lstat(target);
-  if (stats.isSymbolicLink() || !stats.isFile())
-    throw new V3ConflictError('Attachment is unavailable');
-  const noFollow = (fsConstants as typeof fsConstants & { O_NOFOLLOW?: number }).O_NOFOLLOW ?? 0;
-  const handle = await openFile(target, fsConstants.O_RDONLY | noFollow);
+  assertStoragePathInsideRoot(root, storageKey);
   let bytes: Uint8Array;
   try {
-    const openedStats = await handle.stat();
-    if (!openedStats.isFile()) throw new V3ConflictError('Attachment is unavailable');
-    bytes = new Uint8Array(await handle.readFile());
-  } finally {
-    await handle.close();
+    bytes = new Uint8Array(await readPrivateFileNoFollow(root, storageKey));
+  } catch (error) {
+    if (error instanceof Error && /regular file|symlink|non-regular file/u.test(error.message))
+      throw new V3ConflictError('Attachment is unavailable');
+    throw error;
   }
   const rule = mediaRules[expectedMediaType.toLowerCase()];
   if (

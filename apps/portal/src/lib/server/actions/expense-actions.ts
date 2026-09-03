@@ -7,6 +7,7 @@ import {
   removePrivateFileIfPresent,
   writePrivateFileExclusive,
 } from '$lib/server/private-artifact-access';
+import { assertRegularPrivateFile } from '$lib/server/report-attachment-route';
 import { actionFail, actionFailure, actionSuccess } from './action-message';
 import {
   decimalToMinor,
@@ -153,6 +154,10 @@ export const expenseActions = {
           receiptFileCreated = true;
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+          // A collision is only idempotent when the winner is the exact same
+          // receipt. Verify bytes, hash, length and declared media before the
+          // reservation is allowed to become document metadata.
+          await assertRegularPrivateFile(root, storageKey, sha256, receiptSize, receiptType);
         }
 
         const document = context.v3.finalizeUpload(context.principal, reservation.reservationId, {

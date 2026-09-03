@@ -15,6 +15,10 @@ export const GET: RequestHandler = async ({ locals, params }) => {
       kind: 'period_report',
       id: params.id,
       expectedMediaType: 'application/pdf',
+      // Assigned-project customer reports are protected by the repository
+      // object-scope check and download audit. Internal reports remain
+      // finance/audit artifacts and require recent session-bound step-up.
+      requireStepUp: (subject) => subject.audience !== 'customer',
       loadMetadata: () => ({
         ...context.v3.periodReportPdfMetadata(context.principal, params.id!),
         mediaType: 'application/pdf',

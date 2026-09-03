@@ -16,12 +16,16 @@ import {
 } from '@ja/schemas';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess, type ActionMessageKey } from './action-message';
+import { createInvoiceDraftResolvingPeriod } from '../invoice-draft';
+import { billingReadinessMessageKey } from '../../portal/billing-readiness';
 import {
+  dateOnlyToEffectiveInstant,
   decimalToMinor,
   formObject,
   normalizeLocalDateTime,
   type PortalActionEvent,
 } from '$lib/server/action-utils';
+import { isRealIsoDate, previousCompleteMonth } from '$lib/server/iso-date';
 
 type AccountingPackStatusRecord = Readonly<{
   id?: unknown;
@@ -424,19 +428,7 @@ export const billingActions = {
       return actionFail(400, 'action.validation.billingPeriod', {}, 'Invalid billing period');
     const context = openPortalRepository(locals);
     try {
-      const result = context.repository.createInvoiceDraft(
-        context.principal,
-        parsed.data.billingRuleId,
-        parsed.data.periodStart,
-        parsed.data.periodEnd,
-      );
-      return actionSuccess(
-        result.created
-          ? 'action.billing.invoiceDraftCreated'
-          : 'action.billing.invoiceDraftExisting',
-        {},
-        result.created ? 'Invoice draft created' : 'Existing draft returned',
-      );
+      return createInvoiceDraftResolvingPeriod(context, parsed.data);
     } catch (error) {
       return actionFailure(error);
     } finally {
@@ -446,7 +438,9 @@ export const billingActions = {
   createInvoiceAdjustment: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'billing')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const parsed = invoiceAdjustmentSchema.safeParse(await formObject(request));
+    const object = await formObject(request);
+    object.amountMinor = decimalToMinor(object.amount) ?? object.amountMinor;
+    const parsed = invoiceAdjustmentSchema.safeParse(object);
     if (!parsed.success)
       return actionFail(
         400,
@@ -526,8 +520,7 @@ export const billingActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
     object.amountMinor = decimalToMinor(object.amount);
-    if (typeof object.receivedOn === 'string')
-      object.receivedAt = `${object.receivedOn}T12:00:00.000Z`;
+    object.receivedAt = dateOnlyToEffectiveInstant(object.receivedOn);
     const parsed = paymentInputSchema.safeParse(object);
     if (!parsed.success)
       return actionFail(400, 'action.validation.payment', {}, 'Invalid payment', {
@@ -562,7 +555,7 @@ export const billingActions = {
       context.v3.reversePayment(context.principal, {
         paymentId: parsed.data.paymentId,
         amountMinor: parsed.data.amountMinor,
-        effectiveAt: `${parsed.data.effectiveOn}T12:00:00.000Z`,
+        effectiveAt: String(dateOnlyToEffectiveInstant(parsed.data.effectiveOn)),
         reasonCode: parsed.data.reasonCode,
         reason: parsed.data.reason,
         idempotencyKey: parsed.data.idempotencyKey,
@@ -589,16 +582,13 @@ export const billingActions = {
         parsed.data.periodEnd,
         parsed.data.reportLocale,
       );
-      if (!result.closed)
-        return actionFail(
-          409,
-          'action.conflict.billingPeriodIncomplete',
-          {},
-          'Period is incomplete',
-          {
-            reasons: result.reasons,
-          },
-        );
+      if (!result.closed) {
+        const reasons = result.reasons ?? [];
+        const messageKey = billingReadinessMessageKey(
+          (reasons[0] as { code?: string } | undefined)?.code,
+        ) as ActionMessageKey;
+        return actionFail(409, messageKey, {}, undefined, { reasons });
+      }
       return actionSuccess(
         'action.billing.periodClosed',
         {},
@@ -658,9 +648,34 @@ export const billingActions = {
   createAccountingPack: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'accounting')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const parsed = accountingPackPeriodSchema.safeParse(await formObject(request));
+    const object = await formObject(request);
+    const fallback = previousCompleteMonth();
+    const suppliedStart = typeof object.periodStart === 'string' ? object.periodStart.trim() : '';
+    const suppliedEnd = typeof object.periodEnd === 'string' ? object.periodEnd.trim() : '';
+    if (
+      (suppliedStart !== '' && !isRealIsoDate(suppliedStart)) ||
+      (suppliedEnd !== '' && !isRealIsoDate(suppliedEnd))
+    )
+      return actionFail(
+        400,
+        'action.validation.accountingPeriod',
+        {},
+        'Choose valid calendar dates for the accounting period.',
+      );
+    const start = suppliedStart || fallback.periodStart;
+    const end = suppliedEnd || fallback.periodEnd;
+    const parsed = accountingPackPeriodSchema.safeParse({
+      ...object,
+      periodStart: start,
+      periodEnd: end,
+    });
     if (!parsed.success)
-      return actionFail(400, 'action.validation.accountingPeriod', {}, 'Invalid accounting period');
+      return actionFail(
+        400,
+        'action.validation.accountingPeriod',
+        {},
+        'Choose a start date on or before the end date. Empty dates use the previous complete month.',
+      );
     const context = openPortalRepository(locals);
     try {
       const pack = context.v3.createAccountingPack(
@@ -698,6 +713,62 @@ export const billingActions = {
         {},
         'Accounting Pack marked final',
       );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  updateInvoiceDraftDetails: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'billing')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const formData = await request.formData();
+    const invoiceId = formData.get('invoiceId')?.toString();
+    if (!invoiceId)
+      return actionFail(400, 'action.validation.invoiceIdRequired', {}, 'Invoice ID required');
+
+    const purchaseNo = formData.get('purchaseNo')?.toString();
+    const discountRaw = formData.get('discount')?.toString();
+    let discountMinor: string | undefined = undefined;
+    if (discountRaw !== undefined && discountRaw !== '') {
+      const minor = decimalToMinor(discountRaw);
+      discountMinor = minor ?? '0';
+    }
+
+    const termsAndInstructions: Record<string, string> = {};
+    if (formData.has('bankSwiftNumber'))
+      termsAndInstructions.bankSwiftNumber = formData.get('bankSwiftNumber')!.toString();
+    if (formData.has('bankAccountNumber'))
+      termsAndInstructions.bankAccountNumber = formData.get('bankAccountNumber')!.toString();
+    if (formData.has('bankName'))
+      termsAndInstructions.bankName = formData.get('bankName')!.toString();
+    if (formData.has('beneficiary'))
+      termsAndInstructions.beneficiary = formData.get('beneficiary')!.toString();
+    if (formData.has('pastDueNotice'))
+      termsAndInstructions.pastDueNotice = formData.get('pastDueNotice')!.toString();
+
+    const companyInfo: Record<string, string> = {};
+    if (formData.has('companyName')) companyInfo.name = formData.get('companyName')!.toString();
+    if (formData.has('companyDivision'))
+      companyInfo.division = formData.get('companyDivision')!.toString();
+    if (formData.has('companyPhone')) companyInfo.phone = formData.get('companyPhone')!.toString();
+    if (formData.has('companyAddress'))
+      companyInfo.address = formData.get('companyAddress')!.toString();
+    if (formData.has('companyEmail')) companyInfo.email = formData.get('companyEmail')!.toString();
+    if (formData.has('companyWebsite'))
+      companyInfo.website = formData.get('companyWebsite')!.toString();
+
+    const context = openPortalRepository(locals);
+    try {
+      context.repository.updateInvoiceDraftCustomizations(context.principal, invoiceId, {
+        purchaseNo,
+        termsAndInstructions: Object.keys(termsAndInstructions).length
+          ? termsAndInstructions
+          : undefined,
+        companyInfo: Object.keys(companyInfo).length ? companyInfo : undefined,
+        discountMinor,
+      });
+      return actionSuccess('action.billing.invoiceUpdated', {}, 'Invoice draft details updated');
     } catch (error) {
       return actionFailure(error);
     } finally {

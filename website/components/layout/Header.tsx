@@ -101,7 +101,7 @@ export function Header() {
             <Image
               src={logoImg}
               alt={t('logoAlt')}
-              width={160}
+              width={40}
               height={40}
               className={`h-8 w-auto md:h-10 transition-all duration-300 ${logoFilter} hover:scale-105`}
               priority

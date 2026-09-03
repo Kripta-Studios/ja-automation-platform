@@ -832,17 +832,45 @@
               />
             </Field>
             <Field
-              id="report-change-summary"
-              label={t('Change summary')}
+              id="report-problem-symptom"
+              label={t('Problem / symptom')}
               required
-              data-field="changeSummary"
+              data-field="problemSymptom"
             >
               <textarea
-                id="report-change-summary"
-                data-field="changeSummary"
-                name="changeSummary"
+                id="report-problem-symptom"
+                data-field="problemSymptom"
+                name="problemSymptom"
                 required
-                value={display(report.change_summary)}
+                value={display(report.problem_symptom)}
+              ></textarea>
+            </Field>
+            <Field
+              id="report-diagnosis-root-cause"
+              label={t('Diagnosis / root cause')}
+              required
+              data-field="diagnosisRootCause"
+            >
+              <textarea
+                id="report-diagnosis-root-cause"
+                data-field="diagnosisRootCause"
+                name="diagnosisRootCause"
+                required
+                value={display(report.diagnosis_root_cause)}
+              ></textarea>
+            </Field>
+            <Field
+              id="report-change-performed"
+              label={t('Change performed')}
+              required
+              data-field="changePerformed"
+            >
+              <textarea
+                id="report-change-performed"
+                data-field="changePerformed"
+                name="changePerformed"
+                required
+                value={display(report.change_performed ?? report.change_summary)}
               ></textarea>
             </Field>
             <Field
@@ -1254,9 +1282,9 @@
   </SectionCard>
 
   {#if data.detail.canDelete}
-    <section class="danger-zone" aria-labelledby="owner-controls-title">
+    <section class="danger-zone" aria-labelledby="draft-controls-title">
       <div>
-        <h2 id="owner-controls-title">{t('Owner controls')}</h2>
+        <h2 id="draft-controls-title">{t('Owner controls')}</h2>
         <p id="delete-report-warning">
           {t(
             'Deleting removes this draft source record and records the action in the audit trail. Finalized reports cannot be deleted.',
@@ -1265,14 +1293,21 @@
       </div>
       <form
         method="POST"
-        action="?/deleteReport"
+        action={`${base}/app/reports?/deleteDraft`}
+        data-action="deleteDraft"
+        data-record-type={isDaily ? 'daily_report' : 'technical_report'}
+        data-record-id={String(report.id)}
         onsubmit={(event) => {
           if (!confirm(t('Delete this report? This cannot be undone.'))) event.preventDefault();
         }}
       >
-        <input type="hidden" name="id" value={report.id} />
+        <input
+          type="hidden"
+          name="recordType"
+          value={isDaily ? 'daily_report' : 'technical_report'}
+        />
+        <input type="hidden" name="recordId" value={report.id} />
         <input type="hidden" name="version" value={report.version} />
-        <input type="hidden" name="type" value={data.detail.type} />
         <button class="danger-button" type="submit" aria-describedby="delete-report-warning">
           {t('Delete report')}
         </button>

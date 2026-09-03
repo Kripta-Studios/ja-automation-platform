@@ -105,7 +105,13 @@ async function expectPhoneControlsUsable(
         .filter((element) => {
           const style = getComputedStyle(element);
           const box = element.getBoundingClientRect();
-          return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0;
+          const inactiveSurface = element.closest('[inert], [aria-hidden="true"]');
+          return (
+            !inactiveSurface &&
+            style.display !== 'none' &&
+            style.visibility !== 'hidden' &&
+            box.width > 0
+          );
         })
         .map((element) => {
           const box = element.getBoundingClientRect();
@@ -217,7 +223,7 @@ test('critical portal surfaces render without runtime errors', async ({ page }, 
     });
     await page.goto(portal('/billing'));
     await page.waitForLoadState('networkidle');
-    await expect(page.getByRole('heading', { name: 'Billing streams' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Invoice register' })).toBeVisible();
     await page.getByRole('link', { name: 'Preview' }).first().click();
     await page.waitForLoadState('networkidle');
     await expect(page.getByText('Separate billing treatment')).toBeVisible();
@@ -254,7 +260,7 @@ test('account menu exposes profile, activity and session controls', async ({ pag
   test.skip(testInfo.project.name !== 'desktop');
   await page.goto(portal('/login'));
   await signIn(page, 'worker');
-  await page.getByRole('button', { name: /Alex Rivera worker/ }).click();
+  await page.getByRole('button', { name: 'Account options' }).click();
   const menu = page.getByRole('menu', { name: 'Account options' });
   await expect(menu).toBeVisible();
   await expect(menu.getByRole('menuitem', { name: /Profile & security/ })).toHaveAttribute(
@@ -386,8 +392,14 @@ test('worker phone flow records operational truth without commercial configurati
   await technicalForm.locator('select[name="projectId"]').selectOption({ index: 1 });
   await technicalForm.locator('input[name="systemName"]').fill('Line 4 PLC station');
   await technicalForm
-    .locator('textarea[name="changeSummary"]')
-    .fill('Documented the control-system validation completed during the shift.');
+    .locator('textarea[name="problemSymptom"]')
+    .fill('The station sequence stopped intermittently.');
+  await technicalForm
+    .locator('textarea[name="diagnosisRootCause"]')
+    .fill('The completion signal was shorter than the configured debounce.');
+  await technicalForm
+    .locator('textarea[name="changePerformed"]')
+    .fill('Adjusted the debounce and documented validation completed during the shift.');
   await technicalForm.getByRole('button', { name: 'Save PLC report' }).click();
   await expect(page.getByText('PLC report draft saved')).toBeVisible();
   await expectNoHorizontalOverflow(page);
@@ -473,8 +485,14 @@ test('worker can create an offline time draft and sync it once online', async ({
   await technicalForm.locator('select[name="projectId"]').selectOption({ index: 1 });
   await technicalForm.locator('input[name="systemName"]').fill('Offline PLC station');
   await technicalForm
-    .locator('textarea[name="changeSummary"]')
-    .fill('Offline technical change draft.');
+    .locator('textarea[name="problemSymptom"]')
+    .fill('Offline station sequence symptom.');
+  await technicalForm
+    .locator('textarea[name="diagnosisRootCause"]')
+    .fill('Offline root-cause diagnosis.');
+  await technicalForm
+    .locator('textarea[name="changePerformed"]')
+    .fill('Offline technical change performed.');
   await technicalForm.getByRole('button', { name: 'Save PLC report' }).click();
   await expect(page.getByText('Offline — saved on this device')).toBeVisible();
 

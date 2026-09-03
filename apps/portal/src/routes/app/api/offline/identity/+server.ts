@@ -10,6 +10,10 @@ type OfflineIdentityConfig = Readonly<{
 
 const partitionPattern = /^[A-Za-z0-9._:-]{1,160}$/;
 
+function offlineEnabled(): boolean {
+  return process.env.JA_OFFLINE_ENABLED?.trim().toLowerCase() !== 'false';
+}
+
 function configuration(): OfflineIdentityConfig | null {
   const secret = process.env.JA_AUTH_SECRET?.trim();
   const tenantId = process.env.JA_TENANT_ID?.trim();
@@ -41,6 +45,11 @@ function issueIdentity(userId: string, sessionId: string, config: OfflineIdentit
 
 export const GET: RequestHandler = ({ cookies, locals }) => {
   if (!locals.user || !locals.session) return json({ error: 'Unauthorized' }, { status: 401 });
+  if (!offlineEnabled())
+    return json(
+      { offlineEnabled: false, error: 'Offline identity is disabled for this deployment' },
+      { status: 503, headers: { 'cache-control': 'no-store' } },
+    );
   const config = configuration();
   if (!config)
     return json(

@@ -330,7 +330,7 @@ describe('project-manager portal serialization', () => {
     );
   });
 
-  it.each(['finance_admin', 'owner_admin'])(
+  it.each(['owner_admin'])(
     'preserves repository-authorized root search data for %s',
     async (role) => {
       const loaded = (await callRootLoader(role)) as Record<string, unknown>;
@@ -350,4 +350,11 @@ describe('project-manager portal serialization', () => {
       );
     },
   );
+
+  it('routes finance to its role landing without serializing root search data', async () => {
+    await expect(callRootLoader('finance_admin')).rejects.toMatchObject({
+      status: 303,
+      location: '/j-aautomation/app/finance?view=overview&q=project',
+    });
+  });
 });

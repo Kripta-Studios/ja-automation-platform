@@ -2,7 +2,7 @@
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
-  import { ResponsiveSheet } from '$lib/portal/ui';
+  import { ResponsiveSheet, ToastRegion, type ToastItem } from '$lib/portal/ui';
   import {
     applyStandaloneDocumentLocale,
     persistStandaloneLocale,
@@ -11,6 +11,7 @@
     standaloneText,
   } from '../../standalone-locale';
   import type { PortalLocale } from '$lib/portal-i18n';
+  import { billingReadinessMessageKey } from '$lib/portal/billing-readiness';
   import {
     translateControlledValue,
     type ControlledValueDomain,
@@ -52,13 +53,30 @@
     status?: Primitive;
   };
 
+  const allowedTabIds: readonly TabId[] = ['overview', 'team', 'reports', 'commercial', 'billing'];
+
+  function resolveTabFromUrl(value: string | null, roleValue: unknown): TabId {
+    const candidate = value?.trim() ?? '';
+    if (!allowedTabIds.includes(candidate as TabId)) return 'overview';
+    const tab = candidate as TabId;
+    const commercialRole =
+      roleValue === 'owner_admin' ||
+      roleValue === 'finance_admin' ||
+      roleValue === 'auditor_read_only';
+    if (!commercialRole && (tab === 'commercial' || tab === 'billing')) return 'overview';
+    return tab;
+  }
+
   let { data, form } = $props();
   let localeOverride = $state<PortalLocale | null>(null);
-  let activeTab = $state<TabId>('overview');
+  let activeTab = $derived(resolveTabFromUrl($page.url.searchParams.get('tab'), data.user?.role));
   let editOpen = $state(false);
   let invoiceOpen = $state(false);
   let saving = $state(false);
-  let tabButtons: Partial<Record<TabId, HTMLButtonElement>> = {};
+  let mounted = $state(false);
+  let dismissedActionToastKey = $state('');
+  let expenseCategoryFilter = $state('');
+  let tabButtons = $state<Partial<Record<TabId, HTMLButtonElement>>>({});
 
   const locale = $derived(
     localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
@@ -82,6 +100,20 @@
   const finance = $derived(overview.financial);
   const financePeriodStart = $derived(String(data.periodStart ?? ''));
   const financePeriodEnd = $derived(String(data.periodEnd ?? ''));
+  const invoiceDraftStart = $derived(String(data.invoiceDraftStart ?? financePeriodStart));
+  const invoiceDraftEnd = $derived(String(data.invoiceDraftEnd ?? financePeriodEnd));
+  const expenseCategories = $derived(
+    [...new Set(overview.expenses.map((expense) => String(expense.category ?? '').trim()))]
+      .filter(Boolean)
+      .sort(),
+  );
+  const filteredExpenses = $derived(
+    expenseCategoryFilter
+      ? overview.expenses.filter(
+          (expense) => String(expense.category ?? '') === expenseCategoryFilter,
+        )
+      : overview.expenses,
+  );
 
   const tabs = $derived([
     { id: 'overview' as const, label: t('Overview') },
@@ -97,7 +129,9 @@
       '/finance-export?periodStart=' +
       financePeriodStart +
       '&periodEnd=' +
-      financePeriodEnd,
+      financePeriodEnd +
+      '&locale=' +
+      encodeURIComponent(locale),
   );
 
   function display(value: unknown, fallback = '—'): string {
@@ -164,6 +198,39 @@
     saving = true;
   }
 
+  type ActionFeedback = {
+    success?: boolean;
+    messageKey?: unknown;
+  };
+
+  const actionFeedback = $derived(standaloneActionMessage(locale, form));
+  const actionResult = $derived((form ?? null) as ActionFeedback | null);
+  const actionFeedbackKey = $derived(
+    actionFeedback
+      ? `${actionResult?.success === true ? 'success' : 'error'}:${String(actionResult?.messageKey ?? actionFeedback)}`
+      : '',
+  );
+  const actionToastVisible = $derived(
+    Boolean(mounted && actionFeedbackKey && dismissedActionToastKey !== actionFeedbackKey),
+  );
+  const actionToasts = $derived<ToastItem[]>(
+    actionToastVisible
+      ? [
+          {
+            id: `project-action:${actionFeedbackKey}`,
+            message: actionFeedback,
+            title: actionResult?.success === true ? t('Success') : t('Error'),
+            variant: actionResult?.success === true ? 'success' : 'danger',
+            closeLabel: t('Dismiss notification'),
+          },
+        ]
+      : [],
+  );
+
+  function dismissActionToast(): void {
+    dismissedActionToastKey = actionFeedbackKey;
+  }
+
   async function handleTabKeydown(event: KeyboardEvent, current: TabId): Promise<void> {
     const index = tabs.findIndex((tab) => tab.id === current);
     if (index < 0) return;
@@ -188,6 +255,7 @@
   }
 
   onMount(() => {
+    mounted = true;
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
     persistStandaloneLocale(locale);
     applyStandaloneDocumentLocale(locale);
@@ -219,14 +287,15 @@
     </div>
   </nav>
 
-  {#if standaloneActionMessage(locale, form)}
+  {#if actionFeedback && !actionToastVisible}
     <p
       class:success={form?.success}
       class="project-action-message"
+      data-project-action-message
       role="status"
       aria-live="polite"
     >
-      {standaloneActionMessage(locale, form)}
+      {actionFeedback}
     </p>
   {/if}
 
@@ -369,7 +438,7 @@
                     : t('Operational expenses')}
                 </h2>
               </div>
-              <span class="surface-count">{overview.expenses.length}</span>
+              <span class="surface-count">{filteredExpenses.length}</span>
             </div>
             <p class="surface-intro">
               {isFinance || isOwner || isAuditor
@@ -378,8 +447,17 @@
                     'Reported operational amounts and approval state. No commercial treatment is inferred.',
                   )}
             </p>
+            <label class="expense-filter">
+              <span>{t('Filter by category')}</span>
+              <select bind:value={expenseCategoryFilter}>
+                <option value="">{t('All categories')}</option>
+                {#each expenseCategories as category}
+                  <option value={category}>{controlled('expenseCategory', category)}</option>
+                {/each}
+              </select>
+            </label>
             <div class="compact-record-list">
-              {#each overview.expenses.slice(0, 5) as expense}
+              {#each filteredExpenses.slice(0, 5) as expense}
                 <a
                   class="compact-record"
                   href={base + '/app/expenses/' + String(expense.id)}
@@ -396,9 +474,13 @@
                   >
                   <span class="record-value">{expenseAmount(expense)}</span>
                 </a>
-              {:else}<p class="empty-state">{t('No expenses recorded for this project.')}</p>{/each}
+              {:else}<p class="empty-state">
+                  {expenseCategoryFilter
+                    ? t('No expenses match this category.')
+                    : t('No expenses recorded for this project.')}
+                </p>{/each}
             </div>
-            {#if overview.expenses.length > 5}<a class="inline-link" href={base + '/app/expenses'}
+            {#if filteredExpenses.length > 5}<a class="inline-link" href={base + '/app/expenses'}
                 >{t('View all expenses')} →</a
               >{/if}
           </section>
@@ -522,7 +604,7 @@
             <a class="primary-button" href={base + '/app/reports'}>{t('Open Reports')}</a>
           </div>
           <div class="report-surface-grid">
-            <a class="report-type-card" href={base + '/app/reports'}
+            <a class="report-type-card" href={base + '/app/reports?view=daily'}
               ><span class="report-type-icon" aria-hidden="true">D</span><strong
                 >{t('Daily')}</strong
               ><small>{t('Field activity and operational summary')}</small><span
@@ -530,7 +612,7 @@
                 >{overview.reports.filter((row) => row.type !== 'PLC').length}</span
               ></a
             >
-            <a class="report-type-card" href={base + '/app/reports'}
+            <a class="report-type-card" href={base + '/app/reports?view=technical'}
               ><span class="report-type-icon" aria-hidden="true">P</span><strong
                 >{t('Technical / PLC')}</strong
               ><small>{t('Controls, systems and technical evidence')}</small><span
@@ -538,7 +620,9 @@
                 >{overview.reports.filter((row) => row.type === 'PLC').length}</span
               ></a
             >
-            <a class="report-type-card report-signoff-card" href={base + '/app/reports'}
+            <a
+              class="report-type-card report-signoff-card"
+              href={base + '/app/reports?view=signoff'}
               ><span class="report-type-icon" aria-hidden="true">✓</span><strong
                 >{t('Client Sign-off')}</strong
               ><small>{t('Customer-safe hours, activities and conformity surface')}</small><span
@@ -779,6 +863,13 @@
   </div>
 </main>
 
+<ToastRegion
+  toasts={actionToasts}
+  label={t('Notifications')}
+  class="project-action-toast-region"
+  ondismiss={dismissActionToast}
+/>
+
 {#if isOwner}
   <ResponsiveSheet
     open={editOpen}
@@ -800,190 +891,221 @@
           )}</span
         >
       </div>
-      <div class="edit-field-grid">
-        <label
-          >{t('Name')}<input
-            name="name"
-            value={display(project.name, '')}
-            required
-            maxlength="200"
-          /></label
-        >
-        <label
-          >{t('Cost center code')}<input
-            name="costCenterCode"
-            value={display(project.cost_center_code, '')}
-            required
-            maxlength="120"
-          /></label
-        >
-        <label
-          >{t('Project alias')}<input
-            name="projectAlias"
-            value={display(project.project_alias, '')}
-            maxlength="120"
-          /></label
-        >
-        <label
-          >{t('PO / reference')}<input
-            name="poNumber"
-            value={display(project.po_number, '')}
-            maxlength="200"
-          /></label
-        >
-        <label
-          >{t('Contract number')}<input
-            name="contractNumber"
-            value={display(project.contract_number, '')}
-            maxlength="200"
-          /></label
-        >
-        <label
-          >{t('Timezone')}<input
-            name="timezone"
-            value={display(project.timezone, '')}
-            required
-            maxlength="80"
-          /></label
-        >
-        <label
-          >{t('Site / plant')}<input
-            name="siteName"
-            value={display(project.site_name, '')}
-            maxlength="200"
-          /></label
-        >
-        <label
-          >{t('Country')}<input
-            name="country"
-            value={display(project.country, '')}
-            maxlength="120"
-          /></label
-        >
-        <label
-          >{t('Project manager')}<select name="projectManagerId"
-            ><option value="">{t('Unassigned')}</option
-            >{#each data.workers ?? [] as worker}{#if worker.role === 'project_manager'}<option
-                  value={worker.id}
-                  selected={String(worker.id) === String(project.project_manager_id)}
-                  >{display(worker.name)}</option
-                >{/if}{/each}</select
-          ></label
-        >
-        <label
-          >{t('Commercial model')}<select name="billingModel"
-            >{#each ['tm', 'tm_daily_minimum', 'all_in', 'capped_tm', 'milestone', 'hybrid', 'internal'] as model}<option
-                value={model}
-                selected={String(project.billing_model) === model}
-                >{controlled('billingStream', model)}</option
-              >{/each}</select
-          ></label
-        >
-        <label
-          >{t('Budget type')}<input
-            name="budgetType"
-            value={display(project.budget_type, 'none')}
-            maxlength="80"
-          /></label
-        >
-        <label
-          >{t('Start date')}<input
-            name="startDate"
-            type="date"
-            value={display(project.start_date, '')}
-          /></label
-        >
-        <label
-          >{t('Planned end')}<input
-            name="plannedEndDate"
-            type="date"
-            value={display(project.planned_end_date, '')}
-          /></label
-        >
-        <label
-          >{t('Expected minutes / day')}<input
-            name="expectedMinutesPerDay"
-            type="number"
-            min="0"
-            max="1440"
-            value={display(project.expected_minutes_per_day, '')}
-            required
-          /></label
-        >
-        <label
-          >{t('Client minimum minutes')}<input
-            name="clientDailyMinimumMinutes"
-            type="number"
-            min="0"
-            max="1440"
-            value={display(project.client_daily_minimum_minutes, '')}
-          /></label
-        >
-        <label
-          >{t('Planned minutes')}<input
-            name="plannedMinutes"
-            type="number"
-            min="0"
-            value={display(project.planned_minutes, '')}
-          /></label
-        >
-        <label
-          >{t('Budget · minor units')}<input
-            name="budgetMinor"
-            type="number"
-            min="0"
-            value={display(project.budget_minor, '')}
-          /></label
-        >
-        <label
-          >{t('Revenue budget · minor units')}<input
-            name="revenueBudgetMinor"
-            type="number"
-            min="0"
-            value={display(project.revenue_budget_minor, '')}
-          /></label
-        >
-        <label
-          >{t('PO cap · minor units')}<input
-            name="poCapMinor"
-            type="number"
-            min="0"
-            value={display(project.po_cap_minor, '')}
-          /></label
-        >
-        <label
-          >{t('Fixed price · minor units')}<input
-            name="fixedPriceMinor"
-            type="number"
-            min="0"
-            value={display(project.fixed_price_minor, '')}
-          /></label
-        >
-        <label
-          >{t('Labor budget minutes')}<input
-            name="laborBudgetMinutes"
-            type="number"
-            min="0"
-            value={display(project.labor_budget_minutes, '')}
-          /></label
-        >
-        <label
-          >{t('Travel budget · minor units')}<input
-            name="travelBudgetMinor"
-            type="number"
-            min="0"
-            value={display(project.travel_budget_minor, '')}
-          /></label
-        >
-        <label
-          >{t('Other cost budget · minor units')}<input
-            name="otherCostBudgetMinor"
-            type="number"
-            min="0"
-            value={display(project.other_cost_budget_minor, '')}
-          /></label
-        >
-      </div>
+      <section class="edit-form-section" aria-labelledby="edit-identification-title">
+        <div class="edit-form-section__heading">
+          <p class="portal-kicker">{t('PROJECT IDENTITY')}</p>
+          <h3 id="edit-identification-title">{t('Identification & client')}</h3>
+          <p>{t('Keep the authorized client and project references clear and traceable.')}</p>
+        </div>
+        <div class="edit-field-grid">
+          <label
+            >{t('Name')}<input
+              name="name"
+              value={display(project.name, '')}
+              required
+              maxlength="200"
+            /></label
+          >
+          <label
+            >{t('Cost center code')}<input
+              name="costCenterCode"
+              value={display(project.cost_center_code, '')}
+              required
+              maxlength="120"
+            /></label
+          >
+          <label
+            >{t('Project alias')}<input
+              name="projectAlias"
+              value={display(project.project_alias, '')}
+              maxlength="120"
+            /></label
+          >
+          <label
+            >{t('PO / reference')}<input
+              name="poNumber"
+              value={display(project.po_number, '')}
+              maxlength="200"
+            /></label
+          >
+          <label
+            >{t('Contract number')}<input
+              name="contractNumber"
+              value={display(project.contract_number, '')}
+              maxlength="200"
+            /></label
+          >
+        </div>
+      </section>
+      <section class="edit-form-section" aria-labelledby="edit-planning-title">
+        <div class="edit-form-section__heading">
+          <p class="portal-kicker">{t('LOCATION & PLANNING')}</p>
+          <h3 id="edit-planning-title">{t('Location & planning')}</h3>
+          <p>{t('Set the operating site, dates and planning assumptions.')}</p>
+        </div>
+        <div class="edit-field-grid">
+          <label
+            >{t('Timezone')}<input
+              name="timezone"
+              value={display(project.timezone, '')}
+              required
+              maxlength="80"
+            /></label
+          >
+          <label
+            >{t('Site / plant')}<input
+              name="siteName"
+              value={display(project.site_name, '')}
+              maxlength="200"
+            /></label
+          >
+          <label
+            >{t('Country')}<input
+              name="country"
+              value={display(project.country, '')}
+              maxlength="120"
+            /></label
+          >
+          <label
+            >{t('Start date')}<input
+              name="startDate"
+              type="date"
+              value={display(project.start_date, '')}
+            /></label
+          >
+          <label
+            >{t('Planned end')}<input
+              name="plannedEndDate"
+              type="date"
+              value={display(project.planned_end_date, '')}
+            /></label
+          >
+          <label
+            >{t('Expected hours / day')}<input
+              name="expectedHoursPerDay"
+              type="number"
+              step="0.25"
+              min="0"
+              max="24"
+              value={project.expected_minutes_per_day != null
+                ? Number((project.expected_minutes_per_day / 60).toFixed(2))
+                : ''}
+              required
+            /></label
+          >
+          <label
+            >{t('Client minimum hours')}<input
+              name="clientDailyMinimumHours"
+              type="number"
+              step="0.25"
+              min="0"
+              max="24"
+              value={project.client_daily_minimum_minutes != null
+                ? Number((project.client_daily_minimum_minutes / 60).toFixed(2))
+                : ''}
+            /></label
+          >
+          <label
+            >{t('Planned minutes')}<input
+              name="plannedMinutes"
+              type="number"
+              min="0"
+              value={display(project.planned_minutes, '')}
+            /></label
+          >
+        </div>
+      </section>
+      <section class="edit-form-section" aria-labelledby="edit-commercial-title">
+        <div class="edit-form-section__heading">
+          <p class="portal-kicker">{t('COMMERCIAL OWNERSHIP')}</p>
+          <h3 id="edit-commercial-title">{t('Commercial model & owners')}</h3>
+          <p>{t('Review the commercial model, limits and accountable owner.')}</p>
+        </div>
+        <div class="edit-field-grid">
+          <label
+            >{t('Project manager')}<select name="projectManagerId"
+              ><option value="">{t('Unassigned')}</option
+              >{#each data.workers ?? [] as worker}{#if worker.role === 'project_manager'}<option
+                    value={worker.id}
+                    selected={String(worker.id) === String(project.project_manager_id)}
+                    >{display(worker.name)}</option
+                  >{/if}{/each}</select
+            ></label
+          >
+          <label
+            >{t('Commercial model')}<select name="billingModel"
+              >{#each ['tm', 'tm_daily_minimum', 'all_in', 'capped_tm', 'milestone', 'hybrid', 'internal'] as model}<option
+                  value={model}
+                  selected={String(project.billing_model) === model}
+                  >{controlled('billingStream', model)}</option
+                >{/each}</select
+            ></label
+          >
+          <label
+            >{t('Budget type')}<input
+              name="budgetType"
+              value={display(project.budget_type, 'none')}
+              maxlength="80"
+            /></label
+          >
+          <label
+            >{t('Budget · minor units')}<input
+              name="budgetMinor"
+              type="number"
+              min="0"
+              value={display(project.budget_minor, '')}
+            /></label
+          >
+          <label
+            >{t('Revenue budget · minor units')}<input
+              name="revenueBudgetMinor"
+              type="number"
+              min="0"
+              value={display(project.revenue_budget_minor, '')}
+            /></label
+          >
+          <label
+            >{t('PO cap · minor units')}<input
+              name="poCapMinor"
+              type="number"
+              min="0"
+              value={display(project.po_cap_minor, '')}
+            /></label
+          >
+          <label
+            >{t('Fixed price · minor units')}<input
+              name="fixedPriceMinor"
+              type="number"
+              min="0"
+              value={display(project.fixed_price_minor, '')}
+            /></label
+          >
+          <label
+            >{t('Labor budget minutes')}<input
+              name="laborBudgetMinutes"
+              type="number"
+              min="0"
+              value={display(project.labor_budget_minutes, '')}
+            /></label
+          >
+          <label
+            >{t('Travel budget · minor units')}<input
+              name="travelBudgetMinor"
+              type="number"
+              min="0"
+              value={display(project.travel_budget_minor, '')}
+            /></label
+          >
+          <label
+            >{t('Other cost budget · minor units')}<input
+              name="otherCostBudgetMinor"
+              type="number"
+              min="0"
+              value={display(project.other_cost_budget_minor, '')}
+            /></label
+          >
+        </div>
+      </section>
       <details class="advanced-edit-fields">
         <summary>{t('Advanced reporting and notes')}</summary>
         <div class="edit-field-grid">
@@ -1071,7 +1193,7 @@
           >{t('Period start')}<input
             name="periodStart"
             type="date"
-            value={financePeriodStart}
+            value={invoiceDraftStart}
             required
           /></label
         >
@@ -1079,10 +1201,20 @@
           >{t('Period end')}<input
             name="periodEnd"
             type="date"
-            value={financePeriodEnd}
+            value={invoiceDraftEnd}
             required
           /></label
         >
+        {#if form && !form.success && Array.isArray((form as { reasons?: unknown }).reasons)}
+          <aside class="form-notice" role="alert">
+            <span>{actionFeedback}</span>
+            <ul>
+              {#each (form as { reasons?: Array<{ code?: string }> }).reasons ?? [] as reason}
+                <li>{t(billingReadinessMessageKey(reason?.code))}</li>
+              {/each}
+            </ul>
+          </aside>
+        {/if}
         <p class="form-help">
           {t(
             'Customer sign-off and other canonical billing readiness checks remain enforced by the server.',
@@ -1325,6 +1457,18 @@
   }
   .project-tab-panel {
     padding-block: 1.25rem 2rem;
+    animation: project-panel-enter 180ms ease-out both;
+  }
+
+  @keyframes project-panel-enter {
+    from {
+      opacity: 0;
+      transform: translateY(0.35rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   .project-panel-grid {
     display: grid;
@@ -1378,6 +1522,31 @@
   .surface-intro {
     margin: 0 0 1rem;
     font-size: 0.9rem;
+  }
+
+  .expense-filter {
+    display: grid;
+    max-width: 19rem;
+    gap: 0.35rem;
+    margin: 0 0 0.85rem;
+    color: var(--project-muted);
+    font-size: 0.8rem;
+    font-weight: 750;
+  }
+
+  .expense-filter select {
+    min-height: 2.75rem;
+    border: 1px solid var(--project-line);
+    border-radius: 0.4rem;
+    padding: 0.65rem 0.7rem;
+    background: var(--project-surface);
+    color: var(--project-ink);
+    font: inherit;
+  }
+
+  .expense-filter select:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--ja-teal, #277e78) 35%, transparent);
+    outline-offset: 1px;
   }
 
   .compact-record-list,
@@ -1521,9 +1690,37 @@
     display: grid;
     gap: 1rem;
   }
+
+  .edit-form-section {
+    display: grid;
+    gap: 0.9rem;
+    padding: 1rem;
+    border: 1px solid var(--project-line);
+    border-radius: 0.55rem;
+    background: var(--project-soft);
+  }
+
+  .edit-form-section__heading {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .edit-form-section__heading h3 {
+    margin: 0;
+    color: var(--project-ink);
+    font-size: 1rem;
+  }
+
+  .edit-form-section__heading p:last-child {
+    margin: 0;
+    color: var(--project-muted);
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+
   .edit-field-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.85rem;
   }
   .edit-field-grid label,
@@ -1591,12 +1788,19 @@
   }
   .sheet-form-actions {
     position: sticky;
+    z-index: 2;
     bottom: -1.25rem;
     justify-content: flex-end;
     margin: 0 -1.25rem -1.25rem;
     padding: 0.8rem 1.25rem;
     border-top: 1px solid var(--project-line);
     background: var(--project-surface);
+    box-shadow: 0 -0.5rem 1rem rgb(255 255 255 / 75%);
+    backdrop-filter: blur(0.65rem);
+  }
+
+  :global(.project-edit-sheet) {
+    width: min(40rem, 60vw);
   }
   button:disabled {
     cursor: progress;
@@ -1609,6 +1813,9 @@
     }
     .project-panel-grid {
       grid-template-columns: 1fr;
+    }
+    :global(.project-edit-sheet) {
+      width: min(40rem, 60vw);
     }
   }
   @media (max-width: 640px) {
@@ -1690,6 +1897,9 @@
       animation-iteration-count: 1 !important;
       scroll-behavior: auto !important;
       transition-duration: 0.01ms !important;
+    }
+    .project-tab-panel {
+      animation: none !important;
     }
   }
   @media print {

@@ -1,5 +1,14 @@
 import { expect, test } from '@playwright/test';
 test('localized public homepage has no horizontal overflow', async ({ page }) => {
+  const aspectRatioWarnings: string[] = [];
+  page.on('console', (message) => {
+    if (
+      message.type() === 'warning' &&
+      message.text().includes('has either width or height modified, but not the other')
+    ) {
+      aspectRatioWarnings.push(message.text());
+    }
+  });
   await page.goto('/j-aautomation/en/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Engineering');
   expect(
@@ -10,6 +19,7 @@ test('localized public homepage has no horizontal overflow', async ({ page }) =>
   const portalLogin = page.getByRole('link', { name: /Portal login/i }).first();
   await expect(portalLogin).toBeVisible();
   await expect(portalLogin).toHaveAttribute('href', '/j-aautomation/app/login');
+  expect(aspectRatioWarnings).toEqual([]);
 });
 
 test('desktop portal login CTA keeps a white surface and hover motion', async ({
@@ -199,16 +209,16 @@ test('public SEO routes include base path and localized sitemap links', async ({
   const sitemap = await request.get('/j-aautomation/sitemap.xml');
   expect(sitemap.ok()).toBe(true);
   const sitemapBody = await sitemap.text();
-  expect(sitemapBody).toContain('https://www.j-aautomation.com/j-aautomation/en/privacy');
+  expect(sitemapBody).toContain('https://j-aautomation.com/j-aautomation/en/privacy');
   expect(sitemapBody).toContain(
-    'https://www.j-aautomation.com/j-aautomation/pt/projects/incobrasa-silo-expansion',
+    'https://j-aautomation.com/j-aautomation/pt/projects/incobrasa-silo-expansion',
   );
   expect(sitemapBody).toContain('hreflang="pt-BR"');
 
   const robots = await request.get('/j-aautomation/robots.txt');
   expect(robots.ok()).toBe(true);
   expect(await robots.text()).toContain(
-    'Sitemap: https://www.j-aautomation.com/j-aautomation/sitemap.xml',
+    'Sitemap: https://j-aautomation.com/j-aautomation/sitemap.xml',
   );
 });
 

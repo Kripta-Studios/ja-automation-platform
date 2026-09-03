@@ -14,7 +14,9 @@ import {
   LocalizedPdfRepository,
   PortalRepository,
   V3Repository,
+  WorkerStatementRepository,
 } from '@ja/database';
+import { resolveConfiguredServiceActor } from '../../packages/database/src/domains/jobs/service-actor-repository.ts';
 import { runArtifactJobs } from '@ja/reporting';
 import { sendOperationalAlert } from './alerts.mjs';
 
@@ -32,6 +34,16 @@ function log(level, event, fields = {}) {
       ...fields,
     })}\n`,
   );
+}
+
+function diagnosticError(error) {
+  let message = error instanceof Error ? error.message : 'unknown error';
+  for (const [name, value] of Object.entries(process.env)) {
+    if (!/(?:SECRET|PASSWORD|TOKEN|PRIVATE|SSH_KEY|ENCRYPTION_KEY)/u.test(name)) continue;
+    if (typeof value === 'string' && value.length > 0)
+      message = message.replaceAll(value, '[REDACTED]');
+  }
+  return message || 'unknown error';
 }
 
 function minimumFreeBytes() {
@@ -99,146 +111,282 @@ function pdfMagicValid(bytes) {
   return header === '%PDF-' && tail.includes('%%EOF');
 }
 
-const database = createDatabase(databasePath);
-const sqlite = database.sqlite;
-try {
-  assertDiskReady();
-  const actorId = process.env.JA_JOB_ACTOR_ID;
-  if (!actorId) throw new Error('JA_JOB_ACTOR_ID must name an active finance service actor');
-  const actor = sqlite
-    .prepare(
-      "SELECT id,role FROM user WHERE id=? AND status='active' AND role IN ('owner_admin','finance_admin')",
+function csvContentValid(bytes) {
+  if (bytes.byteLength === 0 || bytes.includes(0)) return false;
+  try {
+    new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function verifyWorkerStatementStorage(storageKey, expected) {
+  try {
+    const target = resolve(root, storageKey);
+    const relativeTarget = relative(root, target);
+    if (
+      !relativeTarget ||
+      relativeTarget.split(/[\\/]/u).includes('..') ||
+      relativeTarget.startsWith('\\') ||
+      relativeTarget.startsWith('/')
     )
-    .get(actorId);
-  if (!actor) throw new Error('Configured JA_JOB_ACTOR_ID is not an active finance actor');
-  const principal = {
-    userId: actor.id,
-    role: actor.role,
-    projectIds: new Set(),
-    isServiceActor: true,
-  };
-  const repository = new PortalRepository(sqlite);
-  const v3 = new V3Repository(sqlite);
-  const localizedPdf = new LocalizedPdfRepository(sqlite, {
-    verify: (storageKey) => {
-      try {
-        const target = resolve(root, storageKey);
-        const relativeTarget = relative(root, target);
-        if (
-          !relativeTarget ||
-          relativeTarget.split(/[\\/]/u).includes('..') ||
-          relativeTarget.startsWith('\\') ||
-          relativeTarget.startsWith('/')
-        )
-          return { exists: false, byteLength: null, contentSha256: null };
-        assertNoSymlinkParents(root, dirname(target));
-        const stat = lstatSync(target);
-        if (!stat.isFile() || stat.isSymbolicLink())
-          return { exists: false, byteLength: null, contentSha256: null };
-        const bytes = readRegularFileNoFollow(target);
-        const magicValid = pdfMagicValid(bytes);
-        return {
-          exists: true,
-          byteLength: bytes.byteLength,
-          contentSha256: createHash('sha256').update(bytes).digest('hex'),
-          mediaType: magicValid ? 'application/pdf' : 'application/octet-stream',
-          magicValid,
-        };
-      } catch {
-        return { exists: false, byteLength: null, contentSha256: null };
-      }
-    },
-  });
-  v3.scheduleCoreJobs();
-  const result = runArtifactJobs({
-    repository,
-    v3,
-    principal,
-    documentRoot: root,
-    localizedPdf,
-  });
-  const webhookUrl = process.env.JA_OUTBOX_WEBHOOK_URL;
-  const webhookSecret = process.env.JA_OUTBOX_WEBHOOK_SECRET;
-  const outbox = await v3.runDueOutbox(20, async (event) => {
-    if (!webhookUrl || !webhookSecret)
-      throw new Error('JA_OUTBOX_WEBHOOK_URL and JA_OUTBOX_WEBHOOK_SECRET are required');
-    if (process.env.NODE_ENV === 'production' && !webhookUrl.startsWith('https://'))
-      throw new Error('Production outbox webhook must use HTTPS');
-    let payload = event.payload;
-    if (event.topic === 'public-inquiry.received') {
-      const inquiryId = String(payload?.inquiryId ?? '');
-      const inquiry = sqlite
-        .prepare(
-          'SELECT id,kind,payload_json,source_hash,created_at FROM public_inquiry WHERE id=?',
-        )
-        .get(inquiryId);
-      if (!inquiry) throw new Error('Public inquiry source is missing');
-      payload = {
-        ...payload,
-        inquiry: {
-          ...inquiry,
-          payload: JSON.parse(inquiry.payload_json),
-        },
-      };
-      delete payload.inquiry.payload_json;
-    }
-    const body = JSON.stringify({
-      eventId: event.id,
-      topic: event.topic,
-      aggregateId: event.aggregateId,
-      idempotencyKey: event.idempotencyKey,
-      attempts: event.attempts,
-      payload,
-    });
-    const signature = createHmac('sha256', webhookSecret).update(body).digest('hex');
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'user-agent': 'jaautomation-outbox/3',
-        'x-ja-event-id': event.id,
-        'x-ja-idempotency-key': event.idempotencyKey,
-        'x-ja-signature': `sha256=${signature}`,
-      },
-      body,
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!response.ok) throw new Error(`Outbox webhook returned HTTP ${response.status}`);
-  });
-  const combined = { ...result, outbox };
-  log(
-    result.failed > 0 || outbox.failed > 0 || outbox.permanentlyFailed > 0 ? 'error' : 'info',
-    'jobs.cycle',
-    {
-      ...combined,
-      actorId,
-    },
+      return { exists: false, byteLength: null, contentSha256: null, magicValid: false };
+    assertNoSymlinkParents(root, dirname(target));
+    const stat = lstatSync(target);
+    if (!stat.isFile() || stat.isSymbolicLink())
+      return { exists: false, byteLength: null, contentSha256: null, magicValid: false };
+    const bytes = readRegularFileNoFollow(target);
+    const mediaType =
+      expected?.mediaType ?? (pdfMagicValid(bytes) ? 'application/pdf' : 'text/csv');
+    const magicValid =
+      mediaType === 'application/pdf' ? pdfMagicValid(bytes) : csvContentValid(bytes);
+    return {
+      exists: true,
+      byteLength: bytes.byteLength,
+      contentSha256: createHash('sha256').update(bytes).digest('hex'),
+      mediaType,
+      magicValid,
+    };
+  } catch {
+    return { exists: false, byteLength: null, contentSha256: null, magicValid: false };
+  }
+}
+
+function workerStatementSchemaReady(sqlite) {
+  const requiredTables = [
+    'worker_statement_artifact',
+    'worker_statement_artifact_attempt',
+    'worker_statement_retry_decision',
+    'worker_statement_integrity_incident',
+  ];
+  const tables = sqlite
+    .prepare(
+      `SELECT name FROM sqlite_master WHERE type='table' AND name IN (${requiredTables
+        .map(() => '?')
+        .join(',')})`,
+    )
+    .all(...requiredTables)
+    .map((row) => row.name);
+  if (tables.length !== requiredTables.length) return false;
+  const migration = sqlite
+    .prepare('SELECT COALESCE(MAX(version),0) version FROM schema_migration')
+    .get();
+  return Number(migration?.version ?? 0) >= 32;
+}
+
+function hasWorkerStatementJob(sqlite) {
+  return Boolean(
+    sqlite
+      .prepare(
+        "SELECT 1 FROM job WHERE kind='worker_statement_artifact_render' AND state IN ('queued','claimed','running') LIMIT 1",
+      )
+      .get(),
   );
-  if (result.failed > 0 || outbox.failed > 0 || outbox.permanentlyFailed > 0) {
-    process.exitCode = 1;
-    await sendOperationalAlert('jobs.cycle.failed', {
-      actorId,
-      failedJobs: result.failed,
-      failedOutbox: outbox.failed,
-      permanentlyFailedOutbox: outbox.permanentlyFailed,
+}
+
+function jobsLoopRequested() {
+  return process.argv.includes('--loop') || process.env.JA_JOBS_LOOP === '1';
+}
+
+function pollIntervalMs() {
+  const raw = process.env.JA_JOBS_POLL_MS ?? '5000';
+  if (!/^(?:[1-9]\d{2,6})$/.test(raw))
+    throw new Error('JA_JOBS_POLL_MS must be an integer from 100 to 9999999 milliseconds');
+  const value = Number(raw);
+  if (value < 1000) throw new Error('JA_JOBS_POLL_MS must be at least 1000 milliseconds');
+  return value;
+}
+
+function sleep(ms) {
+  return new Promise((resolveSleep) => {
+    setTimeout(resolveSleep, ms);
+  });
+}
+
+async function runCycle() {
+  let sqlite;
+  try {
+    sqlite = createDatabase(databasePath).sqlite;
+    assertDiskReady();
+    // The singleton deployment binding is authoritative.  The former
+    // JA_JOB_ACTOR_ID setting represented a human-table lookup and is retired;
+    // fail closed rather than allowing an old deployment to select an actor by
+    // environment configuration.
+    if (process.env.JA_JOB_ACTOR_ID !== undefined)
+      throw new Error('LEGACY_JOB_ACTOR_ID_UNSUPPORTED');
+    const actor = resolveConfiguredServiceActor(sqlite);
+    const repository = new PortalRepository(sqlite);
+    const v3 = new V3Repository(sqlite);
+    const workerStatementReady = workerStatementSchemaReady(sqlite);
+    if (!workerStatementReady && hasWorkerStatementJob(sqlite))
+      throw new Error('WORKER_STATEMENT_SCHEMA_UNAVAILABLE: migration 0032 is required');
+    const workerStatement = workerStatementReady
+      ? new WorkerStatementRepository(sqlite, {
+          verify: (storageKey, expected) => verifyWorkerStatementStorage(storageKey, expected),
+        })
+      : undefined;
+    const localizedPdf = new LocalizedPdfRepository(sqlite, {
+      verify: (storageKey) => {
+        try {
+          const target = resolve(root, storageKey);
+          const relativeTarget = relative(root, target);
+          if (
+            !relativeTarget ||
+            relativeTarget.split(/[\\/]/u).includes('..') ||
+            relativeTarget.startsWith('\\') ||
+            relativeTarget.startsWith('/')
+          )
+            return { exists: false, byteLength: null, contentSha256: null };
+          assertNoSymlinkParents(root, dirname(target));
+          const stat = lstatSync(target);
+          if (!stat.isFile() || stat.isSymbolicLink())
+            return { exists: false, byteLength: null, contentSha256: null };
+          const bytes = readRegularFileNoFollow(target);
+          const magicValid = pdfMagicValid(bytes);
+          return {
+            exists: true,
+            byteLength: bytes.byteLength,
+            contentSha256: createHash('sha256').update(bytes).digest('hex'),
+            mediaType: magicValid ? 'application/pdf' : 'application/octet-stream',
+            magicValid,
+          };
+        } catch {
+          return { exists: false, byteLength: null, contentSha256: null };
+        }
+      },
+    });
+    v3.scheduleCoreJobs();
+    const result = runArtifactJobs({
+      repository,
+      v3,
+      documentRoot: root,
+      localizedPdf,
+      workerStatement,
+    });
+    const webhookUrl = process.env.JA_OUTBOX_WEBHOOK_URL;
+    const webhookSecret = process.env.JA_OUTBOX_WEBHOOK_SECRET;
+    const pendingOutbox = Number(
+      sqlite
+        .prepare(
+          'SELECT COUNT(*) count FROM outbox_event WHERE delivered_at IS NULL AND failed_at IS NULL',
+        )
+        .get()?.count ?? 0,
+    );
+    if (pendingOutbox > 0 && (!webhookUrl || !webhookSecret))
+      log('warn', 'outbox.deferred.configuration_missing', { pending: pendingOutbox });
+    const outbox =
+      !webhookUrl || !webhookSecret
+        ? { processed: 0, failed: 0, permanentlyFailed: 0, deferred: pendingOutbox }
+        : await v3.runDueOutbox(20, async (event) => {
+            if (process.env.NODE_ENV === 'production' && !webhookUrl.startsWith('https://'))
+              throw new Error('Production outbox webhook must use HTTPS');
+            let payload = event.payload;
+            if (event.topic === 'public-inquiry.received') {
+              const inquiryId = String(payload?.inquiryId ?? '');
+              const inquiry = sqlite
+                .prepare(
+                  'SELECT id,kind,payload_json,source_hash,created_at FROM public_inquiry WHERE id=?',
+                )
+                .get(inquiryId);
+              if (!inquiry) throw new Error('Public inquiry source is missing');
+              payload = {
+                ...payload,
+                inquiry: {
+                  ...inquiry,
+                  payload: JSON.parse(inquiry.payload_json),
+                },
+              };
+              delete payload.inquiry.payload_json;
+            }
+            const body = JSON.stringify({
+              eventId: event.id,
+              topic: event.topic,
+              aggregateId: event.aggregateId,
+              idempotencyKey: event.idempotencyKey,
+              attempts: event.attempts,
+              payload,
+            });
+            const signature = createHmac('sha256', webhookSecret).update(body).digest('hex');
+            const response = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                'user-agent': 'jaautomation-outbox/3',
+                'x-ja-event-id': event.id,
+                'x-ja-idempotency-key': event.idempotencyKey,
+                'x-ja-signature': `sha256=${signature}`,
+              },
+              body,
+              signal: AbortSignal.timeout(15_000),
+            });
+            if (!response.ok) throw new Error(`Outbox webhook returned HTTP ${response.status}`);
+          });
+    const combined = { ...result, outbox };
+    log(
+      result.failed > 0 || outbox.failed > 0 || outbox.permanentlyFailed > 0 ? 'error' : 'info',
+      'jobs.cycle',
+      {
+        ...combined,
+        actorId: actor.id,
+      },
+    );
+    if (result.failed > 0 || outbox.failed > 0 || outbox.permanentlyFailed > 0) {
+      process.exitCode = 1;
+      await sendOperationalAlert('jobs.cycle.failed', {
+        actorId: actor.id,
+        failedJobs: result.failed,
+        failedOutbox: outbox.failed,
+        permanentlyFailedOutbox: outbox.permanentlyFailed,
+      }).catch((alertError) =>
+        log('error', 'alerts.delivery.failed', {
+          error: diagnosticError(alertError),
+        }),
+      );
+    }
+  } catch (error) {
+    log('error', 'jobs.runner.error', {
+      error: diagnosticError(error),
+    });
+    await sendOperationalAlert('jobs.runner.error', {
+      error: diagnosticError(error),
     }).catch((alertError) =>
       log('error', 'alerts.delivery.failed', {
-        error: alertError instanceof Error ? alertError.message : 'unknown error',
+        error: diagnosticError(alertError),
       }),
     );
+    process.exitCode = 1;
+  } finally {
+    try {
+      sqlite?.close();
+    } catch (error) {
+      log('error', 'jobs.runner.close_failed', { error: diagnosticError(error) });
+      process.exitCode = 1;
+    }
   }
-} catch (error) {
-  log('error', 'jobs.runner.error', {
-    error: error instanceof Error ? error.message : 'unknown error',
-  });
-  await sendOperationalAlert('jobs.runner.error', {
-    error: error instanceof Error ? error.message : 'unknown error',
-  }).catch((alertError) =>
-    log('error', 'alerts.delivery.failed', {
-      error: alertError instanceof Error ? alertError.message : 'unknown error',
-    }),
-  );
-  process.exitCode = 1;
-} finally {
-  sqlite.close();
 }
+
+async function main() {
+  if (!jobsLoopRequested()) {
+    await runCycle();
+    return;
+  }
+
+  const pollMs = pollIntervalMs();
+  let stopping = false;
+  const requestStop = () => {
+    stopping = true;
+  };
+  process.on('SIGINT', requestStop);
+  process.on('SIGTERM', requestStop);
+  log('info', 'jobs.loop.start', { pollMs });
+  while (!stopping) {
+    process.exitCode = 0;
+    await runCycle();
+    if (stopping) break;
+    await sleep(pollMs);
+  }
+  log('info', 'jobs.loop.stop', {});
+}
+
+await main();

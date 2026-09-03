@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -12,7 +13,12 @@ afterEach(() => {
 });
 
 function fixture(): B5LifecycleSecurityFixture {
-  const value = createB5LifecycleSecurityFixture();
+  const base = createB5LifecycleSecurityFixture();
+  const value = {
+    ...base,
+    owner: stepUpB5Principal(base.sqlite, base.owner, 'policy-consumption-owner'),
+    finance: stepUpB5Principal(base.sqlite, base.finance, 'policy-consumption-finance'),
+  };
   fixtures.push(value);
   value.v3.createClientLaborRate(value.finance, {
     projectId: value.project.id,

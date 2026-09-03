@@ -44,7 +44,9 @@ describe('Finance expense classification and planning UI', () => {
 
     expect(component).toContain("const financeWriteRoles = ['owner_admin', 'finance_admin']");
     expect(component).toContain('const canWriteFinance = $derived(');
-    expect(component).toContain('{#if canWriteFinance && !locked}');
+    expect(component).toContain(
+      '{#if canWriteFinance && !locked && selectedExpenseId === expenseId}',
+    );
     expect(component).toContain('name="taxBps"');
     expect(component).toContain('value="0"');
     expect(component).toContain('0% allowed');

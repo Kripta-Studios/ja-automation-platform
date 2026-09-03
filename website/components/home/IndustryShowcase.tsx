@@ -8,12 +8,25 @@ import foodBevImg from '@/public/images/hero/hero-food-beverage.webp';
 import energyImg from '@/public/images/hero/hero-energy-process.webp';
 import cosmeticsImg from '@/public/images/industries/cosmetics-filling.webp';
 import roboticsImg from '@/public/images/industries/robotics-cell-square.webp';
+import warehouseImg from '@/public/images/industries/warehouse-logistics.webp';
 
 const industryCards: Array<{
-  key: 'automotive' | 'foodBeverage' | 'energyProcess' | 'cosmeticsPackaging' | 'oemGeneral';
+  key:
+    | 'automotive'
+    | 'foodBeverage'
+    | 'energyProcess'
+    | 'cosmeticsPackaging'
+    | 'oemGeneral'
+    | 'warehouseLogistics';
   href: string;
   image: StaticImageData;
-  altKey: 'automotive' | 'foodBeverage' | 'energyProcess' | 'cosmeticsPackaging' | 'oemGeneral';
+  altKey:
+    | 'automotive'
+    | 'foodBeverage'
+    | 'energyProcess'
+    | 'cosmeticsPackaging'
+    | 'oemGeneral'
+    | 'warehouseLogistics';
   position: string;
   layout: string;
   sizes: string;
@@ -24,8 +37,8 @@ const industryCards: Array<{
     image: autoImg,
     altKey: 'automotive',
     position: '53% 50%',
-    layout: 'md:col-span-2 lg:col-span-2 aspect-[21/9]',
-    sizes: '(max-width: 1024px) 100vw, 66vw',
+    layout: 'aspect-[4/3]',
+    sizes: '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw',
   },
   {
     key: 'foodBeverage',
@@ -33,8 +46,17 @@ const industryCards: Array<{
     image: foodBevImg,
     altKey: 'foodBeverage',
     position: '48% 50%',
-    layout: 'aspect-[4/5] lg:aspect-auto',
-    sizes: '(max-width: 1024px) 100vw, 33vw',
+    layout: 'aspect-[4/3]',
+    sizes: '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw',
+  },
+  {
+    key: 'warehouseLogistics',
+    href: '/industries/warehouse-logistics',
+    image: warehouseImg,
+    altKey: 'warehouseLogistics',
+    position: '50% 50%',
+    layout: 'aspect-[4/3]',
+    sizes: '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw',
   },
   {
     key: 'energyProcess',
@@ -43,7 +65,7 @@ const industryCards: Array<{
     altKey: 'energyProcess',
     position: '50% 55%',
     layout: 'aspect-[4/3]',
-    sizes: '(max-width: 1024px) 100vw, 33vw',
+    sizes: '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw',
   },
   {
     key: 'cosmeticsPackaging',
@@ -52,7 +74,7 @@ const industryCards: Array<{
     altKey: 'cosmeticsPackaging',
     position: '48% 52%',
     layout: 'aspect-[4/3]',
-    sizes: '(max-width: 1024px) 100vw, 33vw',
+    sizes: '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw',
   },
   {
     key: 'oemGeneral',
@@ -61,7 +83,7 @@ const industryCards: Array<{
     altKey: 'oemGeneral',
     position: '50% 50%',
     layout: 'aspect-[4/3]',
-    sizes: '(max-width: 1024px) 100vw, 33vw',
+    sizes: '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw',
   },
 ];
 

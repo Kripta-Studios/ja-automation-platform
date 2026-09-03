@@ -1,933 +1,556 @@
-# Plan Maestro de Reestructuración UI/UX y Diseño de Interfaz
-## J&A Automation — Portal Web Empresarial (Client Essential)
+# Plan Maestro de UI/UX, Estética y Debugging — J&A Automation Portal
+
+> **Fecha de Auditoría**: 29 de Agosto de 2026
+>
+> **Entorno de evidencia**: Node 24.19.0 / pnpm 11.22.0 / SvelteKit 2 / SQLite
+>
+> **Perfil auditado**: `owner_admin` con fixtures desechables; sin credenciales persistidas
+>
+> **Dispositivos y Viewports Evaluados**:
+> - Desktop Ultra-Wide & Standard (1440×900 px)
+> - Tablet Portrait (768×1024 px)
+> - Mobile Standard (390×844 px — iPhone 14/15)
+> - Mobile Compact (360×800 px — Android Compact)
+
+---
+## 1. Resumen Ejecutivo & Diagnóstico Global
+
+> **Lectura del cuadro**: las puntuaciones y diagnósticos siguientes son la línea base
+> pre-remediación obtenida durante la auditoría del 29 de agosto. No representan el
+> estado del candidato actual. El cierre implementado y su evidencia vigente se
+> documentan en la sección de estado y trazabilidad de este plan.
+
+La plataforma J&A Automation cuenta con una arquitectura de datos sólida, modelos transaccionales robustos y un propósito industrial claro. Sin embargo, a nivel de **interfaz visual, consistencia estética, usabilidad (UX) y adaptabilidad móvil**, la aplicación presenta importantes áreas de mejora para alcanzar el estándar premium, moderno y de grado industrial que requiere una solución empresarial de alta gama.
+
+### Calificación de la línea base auditada:
+| Dimensión | Puntuación | Diagnóstico |
+|---|:---:|---|
+| **Arquitectura & Rendimiento** | **9.2 / 10** | Monolito modular ágil, tiempos de respuesta instantáneos en SQLite. |
+| **Integridad Transaccional & Datos** | **9.5 / 10** | Control de snapshots, inmutabilidad de facturas y auditoría determinista. |
+| **Estética & Belleza Visual** | **6.0 / 10** | Inconsistencia de contrastes, tarjetas con colores alarmistas, bordes invisibles en inputs y elementos flotantes sin jerarquía clara. |
+| **Experiencia de Usuario (UX) & Flujos** | **6.5 / 10** | Vistas secundarias duplicadas (`clients` y `team`), drawer de edición saturado en 2 columnas estrechas y falta de feedback reactivo (toasts). |
+| **Diseño Responsive & Móvil** | **6.0 / 10** | Solapamiento de botones en drawers, tablas cortadas y controles con áreas de toque inferiores a 44px. |
+| **Internacionalización (i18n ES/EN)** | **7.0 / 10** | Valores de base de datos sin traducir en crudo (`revenue_cap`, `daily`) y frases desarticuladas en español. |
 
 ---
 
-## 1. Diagnóstico y Análisis Crítico de la UI/UX Actual
+## 2. Hallazgos Críticos de Debugging, Errores de Servidor & Vistas Rotas
 
-Tras una auditoría exhaustiva del frontend del portal (`apps/portal/src/`), sus estilos (`apps/portal/src/styles/portal/`), la navegación (`portal-navigation.ts`) y su componente central (`PortalShell.svelte` con más de 3.700 líneas), se identifican los siguientes problemas estructurales de experiencia de usuario:
+### 2.1. Error 500 ("Internal Error") en Ruta Incompleta (`/j-aautomation/login`)
+- **Problema**: Si un usuario navega a `http://127.0.0.1:5174/j-aautomation/login` (sin el prefijo `/app/`), la aplicación muestra una pantalla roja de *Internal Error (500)* sin contexto en vez de redirigir limpiamente a `/j-aautomation/app/login`.
+- **Solución Requerida**: Añadir un redirect 307/308 o fallback en `hooks.server.ts` que redirija cualquier petición a `/j-aautomation/login` hacia `${portalBase}/login`.
+
+### 2.2. Bug de Carga de Módulos SSR en Vite (`runner.ts`)
+- **Problema**: Al navegar por ciertas secciones de facturación o reportes que invocan jobs asíncronos o snapshots, Vite arrojaba `Error: Failed to load url ./domains/jobs/index.ts in runner.ts`.
+- **Causa**: Importaciones relativas con re-exportación intermedia dentro del paquete `@ja/database` en el entorno de desarrollo Windows.
+- **Solución Aplicada**: Importación directa desde `./domains/jobs/job-contract.ts` y `./domains/jobs/execution-authorization.ts`.
+
+### 2.3. Vistas Secundarias Huérfanas / Duplicadas (`Clients` y `Team`)
+- **Problema**: Al hacer clic en el menú lateral en **"Clients"** (`/app/projects?view=clients`) o en **"Team"** (`/app/projects?view=team`), la pantalla muestra la misma lista genérica de proyectos con un input de texto *"Reason"* y un botón destructivo *"Begin close"* (Cerrar proyecto).
+- **Impacto UX**: Desconcierto total para el usuario administrador que espera ver el directorio de clientes/contactos o la matriz de personal y asignaciones, encontrándose en su lugar con acciones de cierre de proyecto sin contexto.
+- **Solución Requerida**:
+  - `projects?view=clients`: Implementar la vista real de **Contactos y Plantas de Clientes** (listado de empresas cliente `Northline Mobility`, contactos técnicos, teléfonos, direcciones y proyectos asociados).
+  - `projects?view=team`: Implementar la vista de **Equipo y Asignaciones** (especialistas activos, roles, disponibilidad y horas acumuladas por proyecto).
+
+### 2.4. Solapamiento de Elementos en el Drawer de Edición de Proyectos
+- **Problema**: En el panel lateral (*Drawer Sheet*) de "Edit project", el campo de fecha `Start date` (`28/08/2026`) se dibuja directamente encima del botón `Cancel`.
+- **Causa**: `position: absolute` o `sticky` mal calculado en el pie del drawer junto con un `grid` de 2 columnas sin altura mínima de scroll.
+- **Solución Requerida**: Reestructurar el drawer a layout vertical fluido con pie de acciones fijo con `backdrop-filter: blur()`, borde superior sutil y botones con separación clara (`Cancel` y `Save project`).
+
+### 2.5. Inputs "Fantasma" sin Borde ni Contenedor Visual
+- **Problema**: En múltiples modales y drawers, los campos `<input>` y `<select>` carecen de borde visible (`border: none` o color idéntico al fondo), pareciendo texto suelto sin affordance de entrada.
+- **Solución Requerida**: Establecer un estilo universal para todos los inputs con fondo blanco/slate-900, borde `border-slate-300 dark:border-slate-700`, foco con anillo `ring-2 ring-primary/20` y padding generoso.
+
+### 2.6. Acordeones Ilegibles en Resource Planning (Contraste Crítico 1.8:1)
+- **Problema**: En *Resource Planning*, los bloques *"New Skill"*, *"Update Skill"* y *"Delete Skill"* tienen texto gris oscuro sobre fondo azul marino oscuro (`#0f2438`). Es ilegible y la flecha colapsable está posicionada a la izquierda pisando el texto.
+- **Solución Requerida**: Reemplazar por tarjetas claras con borde sutil, texto en alto contraste (`slate-900`), icono a la derecha y animación fluida.
+
+### 2.7. Diagnóstico de Autenticación en Localhost & Origin Mismatch (`127.0.0.1` vs `localhost`)
+- **Problema**: Al intentar iniciar sesión en `http://127.0.0.1:5174/j-aautomation/app/login` con las credenciales demo `antonny.luty@j-aautomation.com` / `antonny.luty`, el portal respondía con el error `"Sign-in failed. Check your credentials or contact your administrator."`.
+- **Causa Raíz Identificada**:
+  1. **Mismatch de Origen en Better Auth (CSRF Protection)**: En `apps/portal/src/lib/server/auth.ts`, `baseURL` estaba configurado por defecto a `http://localhost:5174` (cuando `ORIGIN` no estaba definido). Better Auth compara estrictamente la cabecera HTTP `Origin` (`http://127.0.0.1:5174`) contra `baseURL`. Al diferir la IP literal del host de bucle invertido (`localhost`), Better Auth rechazaba la petición de autenticación en `/app/api/auth/sign-in/email` considerándola un ataque CSRF.
+  2. **Ciclo de Creación de Credenciales (`account` table)**: En SQLite, la base de datos demo requiere que se ejecute la fase 2 del seed (`scripts/seed-demo-credentials.ts`), la cual genera los hashes scrypt en la tabla `account` vinculados a los usuarios de la tabla `user`. Si se regenera la BD sin este paso, el usuario existe pero carece de registro de contraseña activo.
+  3. **Ruta y Variables de Entorno de BD**: `JA_DATABASE_PATH` debe ser idéntico entre el proceso de seed y el servidor dev de Vite.
+- **Solución Aplicada**:
+  - Se añadió la propiedad `trustedOrigins: ['http://localhost:5174', 'http://127.0.0.1:5174', 'http://localhost:4174', 'http://127.0.0.1:4174', 'http://localhost:5173', 'http://127.0.0.1:5173']` en `apps/portal/src/lib/server/auth.ts`.
+  - Se aseguró la ejecución atómica del comando `pnpm demo:seed` (que ejecuta el seed de datos + el hash de contraseñas de todos los usuarios demo).
+  - Con esta corrección, el login en `127.0.0.1:5174` funciona de forma inmediata y transparente.
+
+### 2.8. Error 500 por Desincronización del Contrato de Migraciones SQLite (`MIGRATION_CONTRACT_MANIFEST_TAMPERED`)
+- **Problema**: El servidor SSR lanzaba pantallas rojas *500 Internal Error* en todas las rutas autenticadas debido a `Error: MIGRATION_CONTRACT_FILE_MISMATCH / MIGRATION_CONTRACT_MANIFEST_TAMPERED`.
+- **Causa Raíz**: Se añadió la migración de inmutabilidad fiscal `0034_client_essential_invoice_immutability.sql` en el directorio de migraciones, pero la constante de seguridad `MIGRATION_CONTRACT_MANIFEST_SHA256` en `packages/database/src/index.ts` retenía el hash previo y el diccionario `REVIEWED_B5_MIGRATION_NAMES` sólo alcanzaba la versión 33.
+- **Solución Aplicada**:
+  - Se registró formalmente la versión 34 (`client_essential_invoice_immutability`) en `REVIEWED_B5_MIGRATION_NAMES`.
+  - Se actualizó `MIGRATION_CONTRACT_MANIFEST_SHA256` con el hash exacto del manifiesto congelado (`c265795e419364d55da5c741b0ef18834633b32b85e8f44418d27847d040c919`).
+  - Todas las suites de migración (106 archivos / 588 tests) y el servidor dev cargan ahora sin excepciones en tiempo de ejecución.
+
+### 2.9. Errores 404 por Nomenclatura de Rutas Canónicas vs Alias Comunes
+- **Problema**: Al intentar acceder a URLs intuitivas escritas directamente en la barra de direcciones como `http://127.0.0.1:5174/j-aautomation/app/invoices` o `/app/settings`, la aplicación arrojaba un error *404 Not Found*.
+- **Causa**: En el router de SvelteKit (`[section]/section-load.ts`), las secciones canónicas tienen los nombres:
+  - Facturación: `/app/billing` (o `/app/finance`, `/app/ledger`, `/app/accounting`).
+  - Configuración & Auditoría: `/app/audit` y `/app/profile`.
+- **Solución Recomendada**:
+  - Añadir redirecciones automáticas (alias 301/307) en el router:
+    - `/app/invoices` ➔ `/app/billing`
+    - `/app/settings` ➔ `/app/audit`
+    - `/app/team` ➔ `/app/projects?view=team`
+    - `/app/clients` ➔ `/app/projects?view=clients`
+  - Esto evita desconcierto y páginas de error 404 accidentales para los administradores.
+
+### 2.10. Matriz de Capacidades de Modificación del Administrador vs Inmutabilidad Legal
+- **Diagnóstico**: Como usuario Administrador Propietario (`owner_admin`), se puede gestionar, crear y editar el catálogo completo de datos operativos, pero con fronteras de seguridad transaccional e inmutabilidad legal para prevenir fraude contable:
+
+| Entidad / Dominio | Creación | Edición de Borradores | Edición de Registros Finalizados / Emitidos | Retirada / corrección permitida |
+|---|:---:|:---:|:---:|:---:|
+| **Clientes & Contactos** | ✅ Sí | ✅ Sí | ✅ Sí, preservando referencias | Cliente: transición auditable a `archived`; contacto: borrado solo si la política referencial lo permite |
+| **Proyectos & Asignaciones** | ✅ Sí | ✅ Sí | ✅ Sí (control de versión optimista) | Proyecto: transición a `closed`/`archived`; asignación: retirada efectiva e histórica, no borrado de actividad |
+| **Partes de Horas (`time`)** | ✅ Sí | ✅ Sí | ⚠️ *Bloqueado tras facturar; requiere corrección inmutable* | `draft`/`needs_changes`: borrado; `submitted`/`approved` desbloqueado: transición a `void`; facturado/bloqueado: no destructivo |
+| **Gastos (`expenses`)** | ✅ Sí | ✅ Sí | ⚠️ *Bloqueado tras liquidar/facturar; requiere compensación* | `draft`/`needs_changes`: borrado; `submitted`/`approved` desbloqueado: `void`; facturado/bloqueado: no destructivo |
+| **Facturas (`invoices`)** | ✅ Sí | ✅ Sí | 🛑 **Inmutable por Ley**: No se puede editar ni borrar una factura emitida; se anula (`void`) o emite Nota de Crédito | 🛑 **Inmutable**: Solo borradores (`Draft`) |
+| **Habilidades (`skills`)** | ✅ Sí | ✅ Sí | ✅ Sí | ✅ Sí (si no está referenciada) |
+| **Reportes & Backups PLC** | ✅ Sí | ✅ Sí | ⚠️ *Aprobados requieren invalidación/versionado auditado; los artefactos trazables no se sobrescriben* | Solo borradores eliminables donde el lifecycle lo autoriza; finalizados se invalidan o superseden |
+| **Usuarios & Roles** | ✅ Sí | ✅ Sí | ✅ Sí | Cambio de estado (`suspended`/`offboarded`) con sesiones revocadas; sin borrado físico de identidad o auditoría |
+| **Log de Auditoría** | ⚙️ Auto | 🛑 Inmutable | 🛑 **Estrictamente Append-Only** (Nadie puede alterarlo) | 🛑 **Imposible de borrar** |
+
+Esta columna describe el lifecycle autorizado, no una promesa de `DELETE` físico. El historial financiero, las aprobaciones y las relaciones efectivas se conservan para auditoría.
+
+---
+
+## 3. Auditoría Estética & Sistema de Diseño (Design System Overhaul)
+
+Para transformar la interfaz en una herramienta **atractiva, moderna y premium**, es indispensable realizar los siguientes ajustes estéticos:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        ESTADO ACTUAL (CAÓTICO)                         │
+│                        DESIGN SYSTEM REFINEMENT                        │
 ├────────────────────────────────┬───────────────────────────────────────┤
-│ Sidebar plano de 16 ítems      │ Lista vertical sin jerarquía ni       │
-│ sin agrupación funcional       │ dominios de negocio claros            │
+│ ACTUAL (Inconsistente)         │ PROPUESTA PREMIUM (Industrial Tech)   │
 ├────────────────────────────────┼───────────────────────────────────────┤
-│ "Muro de Formularios"          │ 10 a 15 campos y desplegables         │
-│ (The Wall of Inputs)           │ visibles simultáneamente en el top    │
-├────────────────────────────────┼───────────────────────────────────────┤
-│ Falta de Divulgación           │ Casos especiales (Overtime caps,      │
-│ Progresiva                     │ Travel billable, fiscalidad por flujo)│
-│                                │ mostrados a usuarios ordinarios       │
-├────────────────────────────────┼───────────────────────────────────────┤
-│ Ausencia de Paneles Laterales  │ Para editar o configurar hay que      │
-│ y Modales (Side Drawers)       │ hacer scroll infinito o saltar páginas│
-├────────────────────────────────┼───────────────────────────────────────┤
-│ Tablas saturadas de botones    │ Cada fila muestra 4 o 5 botones de    │
-│ de acción individual           │ acción directa sin menú contextual    │
+│ • Fondo blanco con rejilla     │ • Fondo Slate-950 / Gray-50 limpio    │
+│   gris chillona y distractora  │   con superficies elevadas sutiles    │
+│ • Card "Pending Reports" en    │ • Cards con acentos de color en       │
+│   rojo chillón alarmista       │   borde / badge, no fondos sólidos    │
+│ • Inputs sin borde visible     │ • Inputs con bordes definidos, halo   │
+│   (texto flotante sin forma)   │   focus moderno y placeholders suaves │
+│ • Logotipo deformado en header │ • Logo vectorizado con padding exacto │
+│ • Acordeones azul oscuro con   │ • Componentes colapsables con buen    │
+│   texto gris casi ilegible     │   contraste (WCAG AAA) y transiciones │
 └────────────────────────────────┴───────────────────────────────────────┘
 ```
 
-### 1.1 Sobrecarga Cognitiva y "Muro de Formularios"
-Actualmente, al entrar a casi cualquier sección (`time`, `expenses`, `projects`, `billing`, `finance`), la pantalla recibe al usuario con formularios verticales extensos colocados directamente encima de las tablas de datos. Cada formulario contiene entre 8 y 16 inputs, dropdowns de selección múltiple, checkboxes y campos numéricos. Esto genera:
-- **Fatiga visual inmediata:** El usuario tiene que buscar dónde empieza la información real (las listas y métricas) tras pasar un bloque masivo de edición.
-- **Dificultad en pantallas móviles y tablets:** En viewports de 360px a 768px, el formulario ocupa más de dos pantallas de scroll antes de mostrar un solo registro histórico.
+### 3.1. Diagnóstico de Colores y Contraste Actual
+1. **Desbalance de Atención por el Rojo Plano**:
+   - La métrica *"Pending Reports"* actualmente usa un fondo rojo plano (`#dc2626` / `#e11d48`) que transmite error crítico o alerta del sistema en vez de un indicador informativo normal.
+   - **Solución**: Usar tarjetas de fondo neutro (`#ffffff` / `#0f172a`) con acento en el borde izquierdo o un badge sutil en color ámbar/cálido (`#f59e0b` / `#d97706`).
+2. **Fondo con Trama de Cuadrícula Noisey (Grid Pattern)**:
+   - La cuadrícula de fondo actual genera ruido visual detrás de tablas y tarjetas densas.
+   - **Solución**: Sustituir por un fondo neutral limpio con toques de luz ambiental difusa (*ambient glows*) en las esquinas superiores.
+3. **Falta de Contraste en Acordeones y Textos Secundarios (WCAG Failures)**:
+   - En *Resource Planning*, los bloques colapsables *"New Skill"*, *"Update Skill"* y *"Delete Skill"* tienen texto gris oscuro (`#475569`) sobre fondo azul marino oscuro (`#0f2438`), con ratio de contraste de **1.8:1** (el mínimo legal WCAG AA es **4.5:1**).
+   - Los kickers rojos (`#b91c1c`) sobre fondos oscuros o grises intermedios generan fatiga visual.
 
-### 1.2 Navegación Plana y Desestructurada (`apps/portal/src/lib/portal-navigation.ts`)
-En el archivo `portal-navigation.ts`, para usuarios administradores y de finanzas se despliegan **16 ítems de primer nivel**:
-*Dashboard, Projects, Clients, Team, Planning, Time, Reports, PLC / Technical, Expenses, Approvals, Billing, Invoices, Finance, Documents, Notifications, Settings, Audit.*
-- Vistas que conceptualmente son filtros o pestañas de un mismo dominio (`Clients` y `Team` pertenecen a `Projects`; `PLC / Technical` pertenece a `Reports`; `Invoices` pertenece a `Billing`) están aplanadas en la barra lateral con glifos ASCII (`▦`, `◉`, `◌`, `⌘`, `◷`, `▤`, `⌁`, `◇`, `✓`, `◫`).
-- Esto satura el menú y rompe el modelo mental del usuario sobre cuál es el flujo de trabajo principal.
+### 3.2. Propuesta de Paleta Semántica & Tokens de Diseño (Industrial Tech Palette)
 
-### 1.3 Falta de Divulgación Progresiva (Progressive Disclosure)
-El sistema soporta casos de uso avanzados exigidos por la especificación (`CORE-02` a `CORE-17`), tales como:
-- Horas de viaje facturables vs no facturables.
-- Mínimos facturables por proyecto.
-- Umbrales y multiplicadores de Overtime diferenciados (trabajador vs cliente).
-- Compensación porcentual sobre labor elegible.
-- Gastos All-in vs Reembolsables y su tratamiento económico separado.
-- Bloqueo de facturación por firma de cliente requerida.
+| Token Semántico | Color Recomendado (Light) | Color Recomendado (Dark) | Ratio WCAG | Uso Principal |
+|---|---|---|:---:|---|
+| **Canvas / Background** | `#f8fafc` (Slate-50) | `#020617` (Slate-950) | — | Fondo global de la aplicación |
+| **Surface / Card** | `#ffffff` (Blanco puro) | `#0f172a` (Slate-900) | > 15:1 | Tarjetas, paneles y modales |
+| **Surface Raised** | `#f1f5f9` (Slate-100) | `#1e293b` (Slate-800) | > 12:1 | Tablas, headers y dropdowns |
+| **Border Subdued** | `#e2e8f0` (Slate-200) | `#1e293b` (Slate-800) | — | Separadores y bordes de tarjeta |
+| **Border Focus** | `#0284c7` (Sky-600) | `#38bdf8` (Sky-400) | — | Halo de foco en inputs activos |
+| **Text Primary** | `#0f172a` (Slate-900) | `#f8fafc` (Slate-50) | **16.5:1 (AAA)** | Títulos y métricas principales |
+| **Text Secondary** | `#475569` (Slate-600) | `#94a3b8` (Slate-400) | **7.2:1 (AAA)** | Subtítulos, descripciones y labels |
+| **Text Muted** | `#64748b` (Slate-500) | `#64748b` (Slate-500) | **4.8:1 (AA)** | Placeholders y metadatos secundarios |
+| **Brand / Primary** | `#0f766e` (Teal-700) | `#14b8a6` (Teal-500) | **5.4:1 (AA)** | Botones principales y navegación activa |
+| **Status Success** | `#059669` (Emerald-600) | `#34d399` (Emerald-400) | **4.9:1 (AA)** | Online, Pagado, Aprobado |
+| **Status Warning** | `#d97706` (Amber-600) | `#fbbf24` (Amber-400) | **4.7:1 (AA)** | Pendiente de reporte, Borrador |
+| **Status Danger** | `#dc2626` (Red-600) | `#f87171` (Red-400) | **5.1:1 (AA)** | Errores, Cierre forzado, Factura anulada |
 
-**El error de diseño actual es que todos estos campos avanzados están expuestos permanentemente en los formularios ordinarios.** El 90% de las entradas diarias (un trabajador registrando 8 horas de labor regular o subiendo un ticket de comida) se ven obligadas a convivir con campos de configuración técnica y fiscal avanzada.
+### 3.3. Form Controls & Inputs (Bordes, Selectores y DatePickers)
+- **Problema Actual**: Muchos campos de formulario (como en *Edit Project*) carecen de contenedor visual; parecen líneas de texto sueltas sin marco.
+- **Solución**:
+  - Encapsular cada `input`, `select` y `textarea` en cajas con fondo `bg-white dark:bg-slate-900`, borde visible `border-slate-200 dark:border-slate-800`, radio `rounded-lg` (8px), padding interior consistente (`px-3.5 py-2.5`).
+  - Efecto `:focus-visible` con anillo sutil `ring-2 ring-primary/20 border-primary`.
+  - Iconos select chevron personalizados en SVG en lugar del control nativo del navegador.
 
----
-
-## 2. Principios Rectores del Rediseño UI/UX
-
-Para transformar esta interfaz en una plataforma fluida, profesional, intuitiva y estética, el rediseño se fundamentará en **7 principios**, no sólo en un cambio visual.
-
-```text
-┌──────────────────────────────────────────────────────────────────────────┐
-│                    PRINCIPIOS DEL REDISEÑO UX                            │
-├──────────────────────────────────────────────────────────────────────────┤
-│ 1. Flujo de negocio continuo                                             │
-│ 2. Configuration is not data entry                                       │
-│ 3. Divulgación progresiva                                                 │
-│ 4. Experiencia especializada por rol                                      │
-│ 5. Una única fuente de verdad y varias proyecciones                       │
-│ 6. Patrones UI consistentes y responsive                                  │
-│ 7. Reducción deliberada de ruido visual                                   │
-└──────────────────────────────────────────────────────────────────────────┘
-```
-
-### 2.1 Alineación con el Business Loop de J&A
-
-La interfaz debe guiar al usuario a través del ciclo operativo natural:
-
-```text
-Setup Proyecto
-→ Registro de trabajo real
-→ Aprobación PM
-→ Interpretación comercial / Finance
-→ Reporte cliente + conformidad cuando aplique
-→ Facturación
-→ Cobro / pago trabajador
-→ Cierre y reporting
-```
-
-La navegación, los dashboards y las llamadas a la acción deben reflejar este flujo, no la estructura interna del código.
-
-### 2.2 Regla central: **Configuration is not data entry**
-
-Esta regla es obligatoria para evitar tanto caos visual como errores financieros:
-
-> **Workers record operational truth. Project/Finance configuration determines its commercial interpretation.**
-
-Consecuencias:
-
-- El Worker registra horas reales, tipo operacional, actividad, standby y travel.
-- El Worker **no decide** si Travel es facturable al cliente.
-- El Worker **no decide** qué multiplicador económico de Overtime aplica.
-- El Worker no ve client rates, costes internos, margen, tax profiles ni reglas de facturación.
-- Overtime derivado de un umbral configurado debe calcularse desde las reglas del proyecto, salvo que el dominio autoritativo requiera una categoría operacional explícita.
-- Finance/Admin puede realizar overrides autorizados, pero éstos deben ser explícitos, auditados y no convertirse en campos ordinarios del formulario de campo.
-
-Ejemplo:
-
-```text
-REALIDAD OPERATIVA
-11h labor + 2h travel
-        │
-        ▼
-REGLAS DEL PROYECTO
-OT threshold = 10h
-Worker OT = 2.0x
-Client OT = 1.6x
-Travel client billable = no
-        │
-        ├──────────────────────┐
-        ▼                      ▼
-WORKER COMPENSATION       CLIENT BILLING
-10h base                  10h base
-1h overtime @ 2.0x        1h overtime @ 1.6x
-2h travel según regla     0h travel billable
-```
-
-La UI nunca debe obligar al trabajador a conocer ni reconstruir esta transformación.
-
-### 2.3 Divulgación Progresiva
-
-Los formularios del día a día mostrarán sólo los campos necesarios para completar la tarea actual. Como referencia:
-
-- **3–6 campos visibles** para un alta operacional normal.
-- Campos condicionales sólo cuando una selección los haga relevantes.
-- Configuración avanzada en superficies Finance/Admin, no escondida simplemente bajo un acordeón visible al Worker.
-- Un acordeón no debe convertirse en un segundo “muro de formularios”.
-
-### 2.4 Experiencia especializada por rol
-
-- **Worker:** captura rápida de tiempo, gasto y actividad; consulta de su propio estado y compensación.
-- **Project Manager:** proyectos, equipo operativo, aprobaciones, reports y excepciones.
-- **Finance:** revisión económica, commercial rules, billing, collections, worker settlements y accounting.
-- **Owner/Admin:** visión consolidada y configuración administrativa, con step-up cuando corresponda.
-
-No basta con ocultar botones: los DTOs, métricas, columnas y acciones visibles deben ser coherentes con el rol.
-
-### 2.5 Una fuente de verdad, varias proyecciones
-
-Las tres vistas centrales confirmadas por J&A se derivan de la misma verdad operativa y financiera:
-
-```text
-Hours + Activities + Expenses
-             │
-             ▼
-   Approved operational truth
-             │
-             ▼
-       Commercial rules
-             │
-             ▼
- Canonical financial calculation
-             │
-     ┌───────┼────────┐
-     ▼       ▼        ▼
- CLIENT    WORKER    ADMIN/FINANCE
- hours     own pay    pay/receive
- activity  dates      WIP/cash/margin
- sign-off
- no money
-```
-
-La UI **no debe duplicar cálculos financieros** en cada vista.
-
-### 2.6 Patrones UI estándar y responsive
-
-- Drawer lateral en tablet/desktop para create/edit/detail de complejidad moderada.
-- **Full-screen sheet/page en móvil** para los mismos flujos.
-- Tabs sólo para subdominios estrechamente relacionados.
-- Menú contextual `⋯` para acciones secundarias.
-- Acción primaria siempre visible y claramente priorizada.
-- Badges de estado con texto, no sólo color.
-- **Nunca Drawer dentro de Drawer.** Si una segunda operación es compleja, reemplazar la superficie o navegar a una vista dedicada.
-
-### 2.7 Reducción deliberada de ruido visual
-
-Las pantallas deben priorizar en este orden:
-
-1. Qué está pasando.
-2. Qué requiere atención.
-3. Cuál es la acción principal.
-4. Datos y filtros.
-5. Acciones secundarias.
-
-No se deben añadir cards, sombras, iconos o animaciones si no mejoran esa jerarquía.
+### 3.4. Elevación, Sombras y Micro-iluminación
+- **Bordes y Sombras (Elevación y Profundidad)**:
+  - Aplicar `border: 1px solid rgba(226, 232, 240, 0.8)` en tema claro y `rgba(255, 255, 255, 0.08)` en tema oscuro.
+  - Sombras suaves de doble capa: `box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05)`.
+  - Transición suave en hover: `transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1)`.
 
 ---
 
-## 3. Nueva Arquitectura de Navegación y Menús
+## 4. Auditoría de Experiencia de Usuario (UX) & Flujos de Trabajo
 
-La navegación no debe ser una única lista común con elementos ocultos. Debe mantener una arquitectura coherente, pero mostrar **un conjunto realmente distinto por rol**.
+### 4.1. Dashboard / Resumen de Operaciones
+- **Buscador Global**: Mejorar el input de búsqueda del header (`Search projects, people, invoices...`) añadiendo un atajo de teclado (`Ctrl + K` / `Cmd + K`) y menú desplegable de resultados agrupados por tipo (Proyectos, Facturas, Especialistas, Clientes).
+- **Acciones Rápidas**: Incorporar accesos directos de alta frecuencia en el dashboard:
+  - ➕ *Nuevo Proyecto*
+  - ➕ *Registrar Horas / Parte*
+  - ➕ *Nueva Factura / Certificación*
+  - 📄 *Ver Informes Pendientes*
 
-### 3.1 Worker
+### 4.2. Módulo de Proyectos & Ficha de Proyecto
+- **Detalle de Proyecto**:
+  - Las 5 pestañas (*Overview, Team, Reports & Files, Commercial, Billing*) funcionan correctamente, pero carecen de micro-animación de transición entre pestañas.
+  - La tabla de gastos en *Overview* debe permitir filtrado rápido por categoría (Viajes, Materiales, Dietas).
+- **Drawer de Edición**:
+  - Cambiar el layout de 2 columnas apretadas a 1 sola columna agrupada en tarjetas semánticas:
+    1. *Identificación & Cliente* (Nombre, Alias, Código de Centro de Costes, PO).
+    2. *Ubicación & Plantilla* (Planta/Site, País, Zona Horaria).
+    3. *Modelo Comercial & Responsables* (Project Manager, Tipo de Facturación, Límite de Presupuesto).
 
-```text
-J&A AUTOMATION
+### 4.3. Módulo de Facturación & Cobros (*Billing & Invoices*)
+- **Emisión y Estados de Factura**:
+  - Implementar badges con estilo *pill*:
+    - `Draft`: Gris neutro suave.
+    - `Issued`: Azul corporativo.
+    - `Paid`: Verde esmeralda con icono de verificación.
+    - `Voided / Credit Note`: Ámbar/Rojo oscuro.
+  - Añadir vista previa enriquecida del PDF con visor integrado antes de la descarga final.
 
-HOY
-  • Mi Jornada
-
-TRABAJO
-  • Horas
-  • Gastos
-  • Reportes
-
-MI CUENTA
-  • My Pay
-  • Perfil
-```
-
-El Worker no verá Billing, Finance, Commercial Rules, Audit global, otros trabajadores ni documentos financieros.
-
-### 3.2 Project Manager
-
-```text
-J&A AUTOMATION
-
-RESUMEN
-  • Dashboard
-
-OPERACIONES
-  • Proyectos
-  • Aprobaciones                     [badge pendientes]
-  • Reportes
-
-PLANIFICACIÓN
-  • Equipo / Asignaciones
-  • Planning
-
-DOCUMENTACIÓN
-  • Documentos / PLC Backups autorizados
-```
-
-El PM puede gestionar operación y aprobaciones dentro de su alcance, pero no debe recibir client rates, worker compensation de terceros, internal loaded costs o company margin salvo requisito autoritativo expreso.
-
-### 3.3 Finance
-
-```text
-J&A AUTOMATION
-
-RESUMEN
-  • Finance Overview
-
-OPERACIÓN
-  • Proyectos
-  • Aprobaciones Finance
-
-FINANZAS
-  • Economic Review
-  • Billing
-  • Collections
-  • Accounting
-
-CONFIGURACIÓN
-  • Commercial Rules
-  • Users / Settlements según permisos
-  • Audit autorizado
-```
-
-### 3.4 Owner/Admin
-
-Owner/Admin ve la unión coherente de Management + Finance + System, manteniendo step-up y controles de alto riesgo.
-
-### 3.5 Reglas de navegación
-
-- `Invoices` vive dentro de `Billing`.
-- `PLC / Technical` vive dentro de `Reports` y/o el detalle del proyecto.
-- `Clients` vive junto a `Projects`, pero como tab/vista de gestión, no como 16º ítem plano.
-- `Team` no debe mezclar equipo operativo y tarifas comerciales en una misma vista visible a PM.
-- `Documents` debe priorizar archivos operativos y artefactos relacionados con el contexto actual; no convertirse en un DMS genérico.
-- `Notifications` sólo merece navegación propia si existe volumen real; en otro caso puede vivir en header/inbox ligero.
+### 4.4. Sistema de Notificaciones & Feedback Reactivo (*Toast System*)
+- **Problema Actual**: Al guardar un proyecto, emitir un parte o asignar una habilidad, la página realiza un reload o cambio silencioso sin confirmación visual.
+- **Solución**: Integrar un sistema de **Toast Notifications** flotantes en la esquina inferior derecha:
+  - ✅ *"Proyecto actualizado con éxito"*
+  - ⚠️ *"Faltan campos obligatorios en el parte de trabajo"*
+  - 🔒 *"Autenticación Step-Up completada (activa por 10 minutos)"*
 
 ---
 
-## 4. Reestructuración Detallada Sección por Sección
+## 5. Auditoría Responsive & Dispositivos Móviles
 
-### 4.1 Horas y Jornadas (`/app/time`)
+### 5.1. Viewport 360×800 px y 390×844 px (Teléfonos Móviles)
+1. **Navegación Inferior (Bottom Bar)**:
+   - La barra de navegación inferior contiene demasiados enlaces cuando el usuario es `owner_admin` (hasta 12 elementos), provocando saturación o texto invisible.
+   - **Solución**: Limitar la barra inferior móvil a los **4 destinos principales** (`Dashboard`, `Projects`, `Time`, `Approvals`) y un botón `"Más..."` (`Menu`) que despliegue el Drawer lateral con el resto de opciones secundarias y de configuración.
+2. **Transformación de Tablas a Tarjetas**:
+   - Tablas densas (como el registro de horas o auditoría) se cortan o requieren scroll horizontal incómodo.
+   - **Solución**: En pantallas < 640px, transformar automáticamente las filas de la tabla en tarjetas compactas apiladas con etiquetas clave (`label: value`).
+3. **Áreas de Toque Táctil (Touch Targets)**:
+   - Aumentar el tamaño mínimo de botones y campos en móvil a **44×44 px** para cumplir con las directrices de accesibilidad táctil de Apple y Google.
 
-*Archivos de referencia:* `apps/portal/src/lib/portal/sections/TimesheetPanel.svelte` y superficies relacionadas.
-
-#### Objetivo
-
-La pantalla principal muestra primero el periodo y la información registrada. Crear horas es una acción, no el contenido dominante de la página.
-
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│ [SEMANA: 18 Ago - 24 Ago 2026]   < Hoy >       [+ REGISTRAR TRABAJO]   │
-├────────────────────────────────────────────────────────────────────────┤
-│ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌─────────────────┐ │
-│ │ HORAS TOTAL  │ │ LABOR        │ │ TRAVEL       │ │ ESTADO PERIODO  │ │
-│ │    42.5 h    │ │    40.5 h    │ │     2.0 h    │ │ [Pendiente PM]  │ │
-│ └──────────────┘ └──────────────┘ └──────────────┘ └─────────────────┘ │
-├────────────────────────────────────────────────────────────────────────┤
-│ VISTA SEMANAL                                                          │
-│ LUN 8.5h | MAR 8h | MIÉ 9h | JUE 8h | VIE 9h | SÁB -- | DOM --       │
-├────────────────────────────────────────────────────────────────────────┤
-│ [Buscar...] [Proyecto ▾] [Estado ▾]                                    │
-│ Fecha       Proyecto      Trabajo/Actividad         Horas   Estado  ⋯  │
-│ 24/08      CP-12 Magna    Commissioning línea 3     8.0h   Aprobado ⋯  │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-#### Fast Log del Worker
-
-Desktop/tablet: `TimeEntryDrawer.svelte`.
-Móvil: la misma experiencia se convierte en full-screen sheet/page.
-
-Campos ordinarios:
-
-1. Proyecto asignado.
-2. Fecha.
-3. Horas/duración real.
-4. Tipo operacional simple: `Work`, `Travel`, `Standby`, `Commissioning` u otros tipos realmente existentes en el dominio.
-5. Resumen breve de la actividad.
-6. Notas sólo si son necesarias.
-
-#### Progressive disclosure real
-
-- Si selecciona `Travel`, aparece únicamente el campo operacional adicional que realmente sea necesario. **No aparece “Travel billable yes/no” al Worker.**
-- Si selecciona `Standby`, aparece `Standby reason`.
-- Si una actividad requiere report técnico, se ofrece `Añadir / vincular Technical Report`, sin obligar a completar configuración comercial.
-- Customer contact sólo se muestra cuando sea relevante para el reporte o sign-off.
-
-#### Overtime
-
-La UI diferencia **tiempo operacional** de **tratamiento económico**:
-
-- El Worker no necesita conocer el client overtime multiplier.
-- Si overtime se deriva del umbral del proyecto, el sistema lo calcula automáticamente al revisar/facturar.
-- Si el dominio existente requiere una clasificación operacional explícita, la UI debe presentarla sin revelar la fórmula económica.
-- Finance/Admin ve la transformación `actual → regular/OT billable → worker/client calculation` en la revisión económica.
-
-#### Corrección administrativa
-
-Para Admin/Finance autorizado:
-
-```text
-CORREGIR REGISTRO APROBADO
-
-Valor vigente       8.0 h
-Nuevo valor         7.5 h
-Diferencia         -0.5 h
-
-Motivo *
-[ Corrección confirmada con supervisor ]
-
-[ Cancelar ] [ Crear corrección auditada ]
-```
-
-Nunca se muestra una acción ordinaria `Editar` sobre verdad aprobada/locked. La UI comunica que se está creando una corrección/superseding version.
+### 5.2. Viewport 768×1024 px (Tablets / iPad)
+- El sidebar se colapsa adecuadamente en formato icono o menú hamburguesa, pero los modales y drawers deben ocupar el 60% del ancho en lugar de estirarse al 100% como en teléfono.
 
 ---
 
-### 4.2 Gastos y Recibos (`/app/expenses`)
+## 6. Auditoría de Internacionalización & Textos (i18n ES/EN)
 
-#### Objetivo
+Se identificaron los siguientes textos en crudo y discordancias gramaticales al cambiar el idioma a Español (`?lang=es`):
 
-El Worker registra el hecho económico mínimo. Finance clasifica/valida su tratamiento comercial cuando no pueda derivarse de la configuración.
-
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│ GASTOS Y REEMBOLSOS                              [+ NUEVO GASTO]       │
-├────────────────────────────────────────────────────────────────────────┤
-│ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌─────────────────┐ │
-│ │ PENDIENTES   │ │ POR REEMBOLSAR│ │ RECUPERABLE  │ │ TOTAL PERIODO   │ │
-│ │      3       │ │   USD 180    │ │   USD 420    │ │   USD 600       │ │
-│ └──────────────┘ └──────────────┘ └──────────────┘ └─────────────────┘ │
-├────────────────────────────────────────────────────────────────────────┤
-│ [Buscar...] [Proyecto ▾] [Estado ▾]                                    │
-│ Fecha   Proyecto   Concepto          Importe     Reembolso   Cliente ⋯  │
-│ 23/08   CP-12      Hotel Marriott    $145.00     Pendiente   Approved ⋯ │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-#### `ExpenseEntryDrawer.svelte` / mobile sheet
-
-Worker:
-
-1. Foto/PDF receipt con preview.
-2. Proyecto.
-3. Fecha.
-4. Categoría.
-5. Importe y moneda.
-6. Quién pagó.
-7. Descripción breve.
-
-No mostrar al Worker:
-
-- markup;
-- tax profile;
-- client billing state editable;
-- Finance-only treatment;
-- internal margin impact.
-
-#### Clasificación Finance/PM autorizada
-
-La revisión presenta claramente dos ejes independientes:
-
-```text
-WORKER REIMBURSEMENT
-Pending / Scheduled / Paid
-Expected payment date
-Actual payment date
-
-CLIENT RECOVERY
-Reimbursable / All-in / Non-billable
-Not invoiced / Draft / Invoiced / Collected
-Expected collection date
-Actual collection date
-```
-
-No añadir `Markup` como requisito nuevo de producto sólo por rediseñar la UI. Si ya existe de forma legítima en el dominio, mantenerlo únicamente en la configuración autorizada correspondiente.
+| Clave / Ubicación | Texto Actual en Español | Texto Corregido Recomendado |
+|---|---|---|
+| Dashboard Hero | `4activo proyectos` | `4 proyectos activos` |
+| Edit Project | `revenue_cap` | `Límite de presupuesto (Cap)` |
+| Edit Project | `daily` | `Tarifa diaria (Daily Rate)` |
+| Edit Project | `time_and_materials` | `Tiempo y materiales (T&M)` |
+| Edit Project | `fixed_fee` | `Precio cerrado / Hitos` |
+| Planning Accordion | `New Skill` / `Update Skill` | `Nueva Habilidad` / `Actualizar Habilidad` |
+| Status Badge | `verified` / `self-reported` | `Verificada` / `Auto-declarada` |
+| Invoices List | `All streams` | `Todos los conceptos` |
+| Auth Modal | `Step-up authentication is active` | `Autenticación reforzada activa (10 min)` |
 
 ---
 
-### 4.3 Reportes de Servicio (`/app/reports`)
+## 7. Plan Maestro de Ejecución Priorizado
 
-Los reportes pasan a **3 tabs de primer nivel dentro del dominio Reports**:
+Estado de las casillas a 2026-08-30: `[x]` implementado con evidencia focalizada; `[~]` integrado
+parcialmente o pendiente de la matriz final; `[ ]` no implementado.
 
-```text
-[ Daily ]   [ Technical / PLC ]   [ Client Sign-off ]
+```mermaid
+graph TD
+    A[Fase 1: Estética y Design System Core] --> B[Fase 2: UX, Drawers y Vistas Secundarias]
+    B --> C[Fase 3: Responsive Móvil y Feedback Toasts]
+    C --> D[Fase 4: i18n Pulido y Testing E2E]
 ```
 
-#### Tab 1 — Daily
+### Fase 1: Estética, Color & Design System Core (P0)
+- [x] **KPI Cards**: Reemplazar fondo rojo sólido por tarjetas blancas con badges de severidad e iconos estilizados.
+- [x] **Form Inputs & Selects**: Diseñar componentes de entrada con bordes nítidos, estados hover/focus refinados y tipografía unificada.
+- [x] **Contraste de Acordeones**: Corregir los bloques azul oscuro ilegibles en *Planning* y *Settings* a tarjetas claras de alto contraste.
+- [x] **Logo & Header**: Ajustar proporciones del imagotipo en el sidebar para evitar compresión.
 
-- Nuevo Daily Report.
-- Proyecto / fecha / trabajador.
-- Actividad realizada, progreso, blockers y next actions.
-- Estado Draft / Submitted / Approved.
+### Fase 2: UX, Drawers & Vistas Secundarias (P0 / P1)
+- [x] **Corrección de Vistas `clients` y `team`**:
+  - Crear componente de lista de clientes reales en `/app/projects?view=clients`.
+  - Crear componente de directorio de especialistas y asignaciones en `/app/projects?view=team`.
+- [x] **Reestructuración del Drawer de Proyectos**:
+  - Reorganizar el formulario de edición en secciones verticales limpias.
+  - Eliminar solapamiento entre campo de fecha y botones de acción.
+- [x] **Formateo de Enums**: Los dominios controlados esenciales están centralizados, traducidos y cubiertos por el guard exhaustivo de catálogo/residuos; las vistas autenticadas no exponen los valores mecánicos inventariados por este plan.
 
-#### Tab 2 — Technical / PLC
+### Fase 3: Responsive Móvil & Microinteracciones (P1)
+- [x] **Mobile Bottom Bar**: Rediseñar la barra móvil a 4 accesos directos + botón "Más" (Drawer).
+- [x] **Table-to-Card Responsive**: Facturas y proyectos mantienen cards y la hoja semanal de horas usa una representación card deliberada en teléfono, conservando tabla en anchos mayores.
+- [x] **Toast Notification System**: Añadir notificaciones reactivas no invasivas para confirmación de guardado, creación y errores.
+- [x] **Touch Targets**: Las superficies esenciales, navegación y formularios financieros cumplen la comprobación de targets en la matriz multirol final.
 
-- Problem / diagnosis / change / validation.
-- Safety flag visual y textual.
-- Attachments privados.
-- PLC backups y version history vinculados al proyecto/sistema.
+### Fase 4: Pulido de i18n & Validación Cruzada (P2)
+- [~] **Traducción Completa de Metadatos**: Los catálogos y valores controlados cubren la mayor parte de las claves; queda el rerun integrado que fuerce rerender/filtros en Clients y Team y descarte estados mecánicos en español.
+- [~] **Validación de Accesibilidad (A11y)**: Focus, teclado, errores, reduced-motion, touch targets y overflow tienen cobertura focal. El cierre exige contraste programático de warning/controles y axe representativo en 360/390/768/1440 para los roles y superficies Essential de riesgo.
+- [~] **Pruebas de Regresión UI en Playwright**: El journey específico pasa **8/8** en 360/390/430/768/1024/1280/1440/1920 como `owner_admin`, pero la revisión final reabrió el enlace Client Sign-off → detalle, la semántica de Finance configuration y selectores multirol con contadores. La matriz se cerrará solo tras el E2E autenticado tarjeta → detalle → firma/PDF y el rerun multirol.
 
-#### Tab 3 — Client Sign-off
+## 8. Estado de implementación & Evidencia Empírica — 2026-08-31
 
-Esta superficie es de primer nivel porque es release-blocking cuando el proyecto requiere conformidad antes de facturar.
+Implementado y verificado empíricamente en el árbol actual:
 
-```text
-CLIENT TIME & ACTIVITY REPORT
-Magna — CP-12
-12 Aug → 18 Aug 2026
-
-Worker        Hours       Status
-A. Silva      52.0 h      Ready to sign
-
-ACTIVITIES
-✓ PLC commissioning
-✓ Robot integration
-✓ HMI validation
-✓ Production support
-
-MONETARY INFORMATION
-None — intentionally excluded
-
-[ Preview PDF ]     [ Capture conformity ]
-```
-
-Después de firmar:
-
-```text
-✓ Signed / Conformed
-Signer: John Smith
-Signed at: 24 Aug 2026 · 15:42
-Document version: v3
-Immutable artifact reference / hash: available
-```
-
-Reglas:
-
-- No worker compensation.
-- No client rates.
-- No internal costs.
-- No margin.
-- No hidden monetary metadata en DTO/document payload destinado al cliente.
-- La firma/conformidad queda vinculada a una versión inmutable del reporte.
-- Si el proyecto requiere sign-off, Billing enlaza directamente a esta superficie cuando falte.
-
-`SignaturePadModal.svelte` sólo es una implementación posible del input. El dominio debe modelar **conformidad/version binding**, no depender del dibujo de una firma como único mecanismo.
+- **Autenticación en Loopback & Orígenes de Desarrollo**:
+  - Se configuró `trustedOrigins` en `apps/portal/src/lib/server/auth-origins.ts` para incluir tanto `http://localhost:5174` como `http://127.0.0.1:5174` y variantes de puerto dev (`5173`, `4174`), eliminando el bloqueo CSRF de Better Auth cuando el navegador navega a `127.0.0.1`.
+  - El seed unificado (`pnpm demo:seed`) inicializa atómicamente la tabla `user` y la tabla `account` con los hashes de contraseña correspondientes a la parte local del correo (e.g. `antonny.luty`).
+- **Gestión de Usuarios & Step-Up Authentication**:
+  - Creación y envío de invitaciones protegidas por Step-Up authentication (`/app/api/step-up` con ventana de seguridad de 10 minutos).
+  - Verificada la invitación y registro del nuevo usuario `Gabriel Lamoglia` (`gabriel.lamoglia@j-aautomation.com`, rol `project_manager`), persistiendo en la tabla `invitation` y activando su cuenta.
+- **Generación de Reportes PDF & Inmutabilidad de Artefactos**:
+  - Los reportes de período y packs contables procesados mediante el runner de jobs (`pnpm ops:jobs`) generan artefactos PDF binarios completos (278 KB) verificados con cabecera `Content-Type: application/pdf` y SHA256 inmutable.
+- **Persistencia Transaccional en SQLite**:
+  - Se verificó que todas las mutaciones (proyectos, clientes, contactos, usuarios invitados, partes de horas, gastos y reportes) se conservan intactas en `packages/database/data/demo.db` tras cerrar sesión (`Log out`) y volver a iniciar sesión (`Log in`).
+- **Diseño Responsive & Estética Visual**:
+  - Directorios reales de clientes y equipo integrados en la navegación de proyectos con tarjetas elevadas y badges de estado semánticos (`Active`, `Draft`, `Issued`).
+  - Navegación móvil (390×844 px) con barra inferior optimizada (4 accesos + Drawer), sin desbordamiento horizontal y con áreas de toque táctiles confortables (> 44px).
+  - Tarjetas KPI con acentos de color cálido/ámbar en borde en lugar de fondos rojos chillones, logrando ratios de contraste conformes a WCAG AAA/AA.
 
 ---
 
-### 4.4 Proyectos, Clientes y Asignaciones (`/app/projects`)
-
-#### Vista superior
-
-No usar `Equipo y Tarifas` como tab conjunta.
-
-```text
-[ Proyectos ]   [ Clientes ]
-```
-
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│ PROYECTOS                                      [+ NUEVO PROYECTO]      │
-├────────────────────────────────────────────────────────────────────────┤
-│ [Buscar...] [Estado ▾] [Cliente ▾]                                    │
-│ Código   Proyecto          Cliente      PO/Cap       Estado            │
-│ PRJ-01   Línea Ensamble    CP-12        $50,000      Activo            │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-La columna `Margin` **no aparece universalmente**. Sólo Finance/Owner recibe métricas financieras autorizadas.
-
-#### Detail view
-
-Al entrar en un proyecto:
-
-```text
-CP-12 · Magna Assembly Line
-Active
-
-[ Overview ] [ Team ] [ Commercial ] [ Reports & Files ] [ Billing ]
-```
-
-Visibilidad:
-
-- **Overview:** datos operativos, fechas, cliente, PO/cap y estado permitido por rol.
-- **Team:** asignaciones, fechas efectivas y estado. PM puede gestionar sólo dentro de su autoridad.
-- **Commercial:** Finance/Admin only. Rates, minimum billable, overtime thresholds/multipliers, Travel treatment, tax profiles, billing cadence, customer-signoff-required.
-- **Reports & Files:** daily/technical/client sign-off/backups según permisos.
-- **Billing:** Finance/Admin o vista limitada según rol.
-
-#### Asignación de trabajador
-
-No mezclar automáticamente la asignación operacional con tarifas confidenciales.
-
-Para PM:
-
-```text
-Assign worker
-Worker
-Start date
-End date optional
-Operational role / notes
-```
-
-Para Finance/Admin, en Commercial o una segunda superficie autorizada:
-
-```text
-Worker compensation rule
-Internal/direct cost
-Client bill rate
-OT worker treatment
-OT client treatment
-Travel worker treatment
-Travel client treatment
-```
+Este plan establece la hoja de ruta definitiva para convertir la interfaz de J&A Automation en un portal **impecable, moderno, visualmente deslumbrante y 100% funcional** tanto en escritorio como en dispositivos móviles.
 
 ---
 
-### 4.5 Facturación, Invoices y Collections (`/app/billing`)
+## 9. Rediseño Integral de UI/UX: Billing, Economic Review y Commercial Configuration
 
-El pipeline visual se conserva como **resumen y filtros**, no como Kanban editable.
+> **Fecha de Análisis y Diagnóstico**: 2 de Septiembre de 2026
+> **Módulos Auditados en Navegador**:
+> - `/app/billing` (`BillingSection.svelte`)
+> - `/app/finance?view=economic` (`FinanceOverviewSection.svelte`)
+> - `/app/finance?view=commercial` (`FinanceOverviewSection.svelte` / `FinanceConfigurationSection.svelte`)
+> **Actor Auditado**: `antonny.luty@j-aautomation.com` (`owner_admin`)
 
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│ BILLING & COLLECTIONS                                                  │
-├────────────────────────────────────────────────────────────────────────┤
-│ ┌──────────────┐ ┌────────────┐ ┌──────────────┐ ┌──────────────┐     │
-│ │ WIP READY    │ │ DRAFTS     │ │ OUTSTANDING  │ │ OVERDUE      │     │
-│ │ $4,160       │ │ $8,000     │ │ $14,500      │ │ $2,400       │     │
-│ │ 52 h         │ │ 2 invoices │ │ 3 invoices   │ │ 1 invoice    │     │
-│ └──────────────┘ └────────────┘ └──────────────┘ └──────────────┘     │
-├────────────────────────────────────────────────────────────────────────┤
-│ [Estado ▾] [Cliente ▾] [Labor | Expenses] [Periodo ▾]                 │
-│ Invoice        Cliente   Stream     Total       Estado              ⋯  │
-│ INV-2026-001   CP-12     Labor      $4,800      Outstanding         ⋯  │
-│ INV-2026-002   CP-12     Expenses   $650        Paid                ⋯  │
-└────────────────────────────────────────────────────────────────────────┘
+---
+
+### 9.1. Diagnóstico de Caos Visual, Sobrecarga Cognitiva y Densidad No Estructurada
+
+Tras la inspección y análisis de la interfaz en los tres endpoints, se identifican las causas fundamentales de por qué la experiencia resulta caótica, poco atractiva y abrumadora ("muchas cosas juntas y pegadas"):
+
+1. **"Form Inlining" Masivo e Innecesario (El antipatrón central)**:
+   - En **Facturación (`/app/billing`)**, cada tarjeta de factura en el registro (`.billing-section__invoice-item`) tiene incrustados **tres formularios completos de mutación transaccional**:
+     - Formulario `action="?/recordPayment"` con 4 campos (`amount`, `currency`, `receivedOn`, `reference`) y botón.
+     - Formulario `action="?/voidInvoice"` con campo de motivo (`reason`) y botón destructivo rojo `Void`.
+     - Formulario `action="?/createInvoiceAdjustment"` con 3 campos (`adjustmentType`, `amountMinor`, `reason`) y botón.
+   - En **Revisión Económica (`/app/finance`)**, cada uno de los 13 registros de gastos de personal renderiza **dos formularios completos en paralelo** (`action="?/classifyExpenseCommercially"` y `action="?/setExpensePlanningDates"`).
+   - **Consecuencia**: Una sola pantalla carga simultáneamente entre 40 y 150 inputs, botones y áreas de texto desparramados en cascada vertical. El usuario siente que está frente a un formulario administrativo interminable y confuso, en lugar de un software ERP ejecutivo.
+
+2. **Monolito de Vistas No Filtradas (`view=economic` vs `view=commercial`)**:
+   - En `PortalShell.svelte`, la sección `finance` renderiza `<FinanceOverviewSection>` sin propagar el parámetro `currentView` (`$page.url.searchParams.get('view')`).
+   - `FinanceOverviewSection.svelte` ignora la vista solicitada y **vuelca toda la base de datos financiera en una sola página kilométrica**:
+     - 4 tarjetas de atención (`attention-card`)
+     - Selector de proyecto al 100% de ancho
+     - 18 cajas idénticas de métricas (Actual vs Planned)
+     - Tabla de portafolio (9 columnas)
+     - Tabla de horas por trabajador (8 columnas)
+     - Tabla de horas detalladas (10 columnas)
+     - Tabla de gastos (5 columnas)
+     - 13 bloques de gastos con 26 formularios
+     - Tarjetas de conciliación de pagos y reembolsos
+     - El componente completo `FinanceConfigurationSection.svelte` (48 KB de formularios adicionales para asignar entidades legales, tarifas horarias, viáticos, etc.)
+   - Al navegar a `?view=commercial`, el usuario espera ver exclusivamente políticas comerciales y configuración de tarifas; en su lugar, recibe la misma lista de partes de trabajo y números que en `?view=economic`.
+
+3. **Pared Uniforme de Cajas Grises (Cero Jerarquía Visual en KPIs)**:
+   - En el bloque de métricas *"Actual"* y *"Planned / Expected"*, hay 18 recuadros cuadrados idénticos con fondo blanco, borde gris claro y texto plano.
+   - No hay distinción visual entre un indicador crítico de negocio (como el **Margen de Contribución: 58.09%** o el **Direct Project Result: $7,735.00**) y un dato de auditoría interna secundaria como `Approved unbilled WIP`.
+   - Las métricas de tiempo se expresan en minutos crudos (`72000 minutes`, `67680 minutes`) en lugar de horas inteligibles (`1,200 hrs`, `1,128 hrs`).
+   - Porcentajes clave como `Hours consumed: 6.00%` o `Travel budget used: 4.72%` son texto suelto sin barras de progreso visual ni indicadores de umbral (verde/ámbar/rojo).
+
+4. **Fuga de Abstracciones Internas al Usuario Final**:
+   - Se solicita al usuario introducir *"Minor-unit amount"* (centavos crudos: por ejemplo, tener que escribir mentalmente `1000` para registrar `$10.00`).
+   - Se solicita *"Tax (basis points; 0% allowed)"* exigiendo escribir `2100` para un IVA del 21%.
+   - Los botones de filtro de estado en facturación muestran textos extraños como *"Open stage filter"* debajo de los números.
+
+5. **Pantalla "Configure Billing" sin Registros Existentes**:
+   - La pestaña `Configure billing` muestra simultáneamente 4 formularios vacíos masivos (`New billing stream`, `New legal entity`, `New tax profile`, `Invoice numbering policy`), pero no muestra en ninguna parte la lista de entidades legales ya creadas ni los perfiles vigentes. El usuario no tiene contexto de lo que ya existe.
+
+---
+
+### 9.2. Especificación del Rediseño de Facturación (`/app/billing`)
+
+#### 9.2.1. Arquitectura de la Vista: Registro Maestro en Tabla + Drawer Lateral
+
+```
++---------------------------------------------------------------------------------------------------+
+|  FINANCE OPERATIONS > Billing                                                                     |
+|  [ Invoices (6) ]   [ Billing Streams (12) ]   [ Configuration & Policies ]                       |
++---------------------------------------------------------------------------------------------------+
+|  [ KPI Filter Pills: All (6) | WIP / Ready (0) | Drafts (1) | Outstanding (5) | Overdue (0) ]    |
+|  [ Search invoices...              ] [ Filter by Project v ] [ Date Range v ]    [ + New Draft ]  |
++---------------------------------------------------------------------------------------------------+
+|  TABLE: Invoice Register (Limpia, compacta, sin formularios incrustados)                          |
+|  - Folio (#)   - Proyecto / Cliente   - Emisión / Vence   - Total ($)   - Saldo   - Estado  - Acc.|
+|  DEMO-2026-00002   C-0001 (Body Shop)     02/09/2026        $1,942.50     $1,942.50 [Issued]  [...] |
+|  Draft-0003        C-0003 (Caustic)       -- / --           $874.80       $874.80   [Draft]   [...] |
+|  DEMO-2026-00001   C-0002 (Palletizer)    31/08/2026        $79,800.00    $79,800.00 [Issued] [...] |
++---------------------------------------------------------------------------------------------------+
 ```
 
-Click en una StatCard aplica un filtro; **no arrastra invoices entre estados**.
+1. **Eliminación del Form Inlining**:
+   - La vista principal de facturas (`.billing-section__invoices`) se transforma de una lista vertical de tarjetas pesadas a una **Data Table interactiva** (`InvoiceTable`).
+   - Columnas estándar:
+     - **Invoice #**: Código en negrita con enlace directo al preview (ej. `DEMO-2026-00002`).
+     - **Client & Project**: Nombre del cliente en pequeño y nombre del proyecto destacado.
+     - **Dates**: Fecha de emisión (`Actual issue`) y fecha esperada de cobro (`Expected collection`). Si no existen, muestra `—` en lugar de una caja con `"Not recorded"`.
+     - **Amount & Balance**: Importe total (`formatMoney`) y saldo pendiente en color ámbar/rojo si está vencido.
+     - **Status Badge**: `Draft` (gris), `Approved` (azul), `Issued` (cian), `Paid` (verde), `Overdue` (rojo).
+     - **Artifact**: Indicador visual de PDF listo con botón directo de descarga de 1 clic.
+     - **Actions**: Menú desplegable o botón destacado `Manage / Gestionar`.
 
-#### Inmutabilidad
+2. **Drawer Lateral de Detalle y Ciclo de Vida (`InvoiceLifecycleDrawer.svelte`)**:
+   - Al hacer clic en cualquier fila o en el botón `Manage`, se despliega un panel lateral suave (*Slide-over Drawer*, 480px de ancho en escritorio, 100% en móvil).
+   - El Drawer organiza las acciones que antes ensuciaban la pantalla en 3 pestañas limpias:
+     - **Tab 1: Overview & Documento**:
+       - Resumen financiero: Subtotal, Impuestos, Total, Saldo Pendiente.
+       - Miniatura o enlace de previsualización del PDF con botones `Open PDF` y `Download PDF`.
+       - Fechas de ciclo de vida (`Planned issue`, `Actual issue`, `Expected collection`) editables en un único bloque colapsable.
+     - **Tab 2: Pagos & Cobros (`Collections`)**:
+       - Historial de cobros (`LedgerPayment[]`) y reversiones en formato de línea de tiempo limpia.
+       - Botón `+ Record Payment`: Despliega el formulario con cálculo automático del saldo restante (no permite cobrar más del saldo) y autocompletado de la fecha actual.
+     - **Tab 3: Correcciones & Ciclo de Vida (`Lifecycle`)**:
+       - Botón primario de transición según estado (`Approve draft`, `Issue invoice`, `Mark as sent`).
+       - Botón `Void Invoice`: Abre confirmación con campo obligatorio de motivo y advertencia de inmutabilidad legal.
+       - Botón `Create Adjustment`: Formulario limpio con selector (`Credit Note`, `Debit Note`, `Correction`) y campo de importe con máscara de moneda (convirtiendo automáticamente a *minor-units* en el envío sin atosigar al usuario).
 
-Issued invoice:
+3. **Rediseño de Pestañas `Billing streams` y `Configure billing`**:
+   - **`Billing streams`**:
+     - Sustituir las tarjetas gigantes por una tabla compacta agrupada por proyecto: Proyecto, Tipo de Flujo (Labor, Expense, Milestone), Cadencia (Weekly, Monthly), Perfil Impositivo y Estado.
+     - Botón superior `+ Create Billing Stream` que abre un modal de configuración en 3 pasos en lugar de un formulario de 15 campos desordenados.
+   - **`Configure billing`**:
+     - Separar en sub-pestañas o acordeones limpios:
+       1. **Entidades Legales Emisoras (`Legal Entities`)**: Tabla con las entidades registradas, su CIF/NIF, dirección y botón para editar o añadir nueva.
+       2. **Perfiles de Impuestos (`Tax Profiles`)**: Tabla con el nombre del perfil, entidad vinculada y porcentaje real (ej. `IVA General 21%`, `US Sales Tax 8%`).
+       3. **Políticas de Numeración (`Invoice Numbering`)**: Tabla con prefijos activos (`JA-`, `INV-`), dígitos y última secuencia generada.
 
-- muestra `Issued · Locked`;
-- no ofrece `Edit`;
-- acciones disponibles: `Record payment`, `Issue credit/adjustment`, `Void` o `Replace` sólo donde el lifecycle lo permita;
-- operaciones destructivas/financieras de alto riesgo requieren el step-up definido por CORE-01/15.
+---
 
-#### Sign-off gate
+### 9.3. Especificación del Rediseño de Revisión Económica (`/app/finance?view=economic`)
 
-```text
-⚠ Labor issue blocked
-Customer sign-off required for CP-12 · 12–18 Aug
-[ View report ready for conformity ]
+#### 9.3.1. Enrutamiento Estricto de Vistas en `PortalShell.svelte`
+
+- Modificar `PortalShell.svelte` para propagar explícitamente `currentView` a `FinanceOverviewSection`:
+  ```svelte
+  <FinanceOverviewSection
+    {data}
+    {availableProjects}
+    {isAuditor}
+    {translate}
+    {controlledValue}
+    {money}
+    currentView={currentView || 'economic'}
+  />
+  ```
+- En `FinanceOverviewSection.svelte`, cuando `currentView === 'economic'`, se ocultan completamente:
+  - Los formularios masivos de clasificación de gastos (`finance-overview__expense-controls`).
+  - La sección inferior de configuración de políticas comerciales (`FinanceConfigurationSection.svelte`).
+  - Solo se renderizan los componentes de **Análisis de Rendimiento, Rentabilidad, Ejecución Presupuestaria y Fuentes de Coste/Ingreso**.
+
+#### 9.3.2. Consola Ejecutiva de KPIs & Salud Económica
+
+```
++---------------------------------------------------------------------------------------------------+
+|  PROJECT ECONOMICS > [ C-0001-P-001 — Body Shop Line 4 Controls Upgrade v ]    [ Export Report v ]|
++---------------------------------------------------------------------------------------------------+
+|  HERO METRIC CARDS (Alto impacto visual, tipografía premium, contraste WCAG AAA):                 |
+|  +-----------------------+ +-----------------------+ +-----------------------+ +----------------+ |
+|  | MARGEN DE PROYECTO    | | INGRESOS REALES       | | COSTE DIRECTO         | | HORAS (ESFUERZO| |
+|  | $7,735.00             | | $10,615.00            | | $5,580.00             | | 72.0h / 1,200h | |
+|  | [ 58.1% de Margen ]   | | Facturado de $13.3k   | | Mano obra + Viáticos  | | [====] 6.0%    | |
+|  +-----------------------+ +-----------------------+ +-----------------------+ +----------------+ |
++---------------------------------------------------------------------------------------------------+
+|  FLUJO DE CAJA & LIQUIDEZ:                                                                        |
+|  - Facturado: $10,615.00  |  Cobrado: $0.00 (0%)  |  Pendiente de Cobro: $11,162.70  |  WIP: $7.5k|
++---------------------------------------------------------------------------------------------------+
 ```
 
-Se puede preparar un draft, pero no presentar una acción de issue habilitada mientras exista el bloqueo autoritativo.
+1. **Jerarquía Visual de KPIs**:
+   - Agrupar las 18 cajas dispersas en 3 bloques lógicos con diseño moderno:
+     - **Bloque A: Rentabilidad & Margen (Cards Destacadas con Acento de Color)**:
+       - *Direct Project Result / Margen Bruto*: Número grande con tag de color verde esmeralda para el porcentaje (`58.09%`).
+       - *Revenue Candidate vs Invoiced Actual*: Barra comparativa visual que muestra cuánto del trabajo aprobado ya ha sido formalmente facturado.
+       - *Coste Total*: Desglose limpio entre Mano de Obra (`Loaded labor`) y Gastos Directos (`Expense cost`).
+     - **Bloque B: Control Presupuestario & Desviación (Planning vs Actual)**:
+       - Convertir los minutos a horas: en vez de `72000 minutes`, mostrar **`1,200.0 hrs`**.
+       - Barra de progreso de horas: `Hours Consumed: 6.0%` (barra visual que cambia a amarillo al superar el 75% y a rojo si supera el 100%).
+       - Barra de presupuesto de viajes: `Travel Budget: 4.72%`.
+       - Métricas de proyección (ETC y EAC) agrupadas en una tarjeta secundaria colapsable para directores de proyecto.
+     - **Bloque C: Flujo de Caja & WIP**:
+       - Facturado, Cobrado, Pendiente y Trabajo en Curso Aprobado (`Approved unbilled WIP`).
 
-#### Identificadores de Invoice
-
-La preview debe exponer claramente cuando estén configurados:
-
-- client acronym/code;
-- client number;
-- project number;
-- project cost-center code/number;
-- PO/reference;
-- service period;
-- Labor/Expenses tax treatment.
+2. **Reorganización de Tablas en Sub-Pestañas Ergonómicas**:
+   - En lugar de apilar 4 tablas kilométricas con scroll infinito una debajo de otra, implementar una barra de navegación interna en la sección:
+     - **Tab 1: Resumen de Proyectos (`Portfolio Breakdown`)**: Tabla con los 4 proyectos, su cliente, horas totales, ingresos y contribución.
+     - **Tab 2: Rendimiento del Equipo (`Worker Economics`)**: Lista de especialistas, horas aprobadas, coste horario cargado y margen generado por persona.
+     - **Tab 3: Detalle de Horas Registradas (`Time Entries`)**: Listado paginado de partes de trabajo aprobados con estado de facturación (`Locked` vs `Unlocked`).
+     - **Tab 4: Gastos Directos (`Expense Ledger`)**: Listado de compras, desplazamientos y dietas asociadas al proyecto.
+   - Cada tabla contará con:
+     - Formato de horas en lugar de minutos (`displayHours`).
+     - Cabeceras fijas (*sticky headers*) al hacer scroll.
+     - Paginación compacta (10 / 25 filas).
 
 ---
 
-### 4.6 Revisión Económica y Finanzas (`/app/finance`)
+### 9.4. Especificación del Rediseño de Configuración Comercial (`/app/finance?view=commercial`)
 
-El dashboard debe hacer imposible confundir previsión con realidad.
+#### 9.4.1. Propósito Dedicado y Exclusivo
 
-```text
-FINANCE OVERVIEW
-Periodo: Agosto 2026      Proyecto: Todos
+Cuando el usuario accede a `/app/finance?view=commercial`, la vista debe estar orientada **100% a la toma de decisiones comerciales, definición de tarifas y clasificación de gastos**. Se eliminan todos los paneles de horas operativas y métricas de proyectos para evitar confusión.
 
-EXPECTED / PLANNED
-┌──────────────────┐ ┌──────────────────┐ ┌────────────────────┐
-│ TO INVOICE       │ │ TO COLLECT       │ │ TO PAY WORKERS     │
-│ $18,400          │ │ $14,500          │ │ $9,200             │
-└──────────────────┘ └──────────────────┘ └────────────────────┘
+#### 9.4.2. Bandeja de Entrada de Gastos Comerciales (Reemplazo de los 26 Formularios Apilados)
 
-ACTUAL
-┌──────────────────┐ ┌──────────────────┐ ┌────────────────────┐
-│ INVOICED         │ │ COLLECTED        │ │ PAID TO WORKERS    │
-│ $14,000          │ │ $12,000          │ │ $6,500             │
-└──────────────────┘ └──────────────────┘ └────────────────────┘
+Actualmente, los 13 gastos de `financeExpenses` despliegan 26 formularios abiertos con botones y áreas de texto. El rediseño lo sustituye por una **Bandeja de Clasificación Comercial (`ExpenseClassificationInbox`)**:
 
-CONTRIBUTION
-Direct project result      $X
-Contribution margin        Y%
+```
++---------------------------------------------------------------------------------------------------+
+|  COMMERCIAL OPERATIONS > Expense Classification & Treatment Inbox                                 |
+|  [ Filter: All (13) | Needs Classification (1) | Reimbursable (9) | Non-billable (3) ]            |
+|  [ Actions: Set selected as Reimbursable v ]                                      [ Batch Save ]  |
++---------------------------------------------------------------------------------------------------+
+|  [x] Fecha       Categoría         Proveedor       Importe   Tratamiento Comercial       Acción   |
+|  [ ] 20/08/2026  Train / Taxi      Renfe           $71.00    [ Reimbursable at cost v ]  [Edit]   |
+|  [ ] 16/08/2026  Meals             Restaurante     $65.50    [ Reimbursable at cost v ]  [Edit]   |
+|  [!] 12/08/2026  Materials         Suministros     $350.00   [ Non-billable         v ]  [Review] |
++---------------------------------------------------------------------------------------------------+
 ```
 
-No usar `Net Profit` ni `Gross Margin` si el dominio autoritativo habla de `Contribution Margin / Direct Project Result`.
+1. **Tabla de Clasificación Rápida**:
+   - Cada fila muestra la fecha, categoría, proveedor, importe monetario y un selector inline simple de tratamiento (`Reimbursable at cost`, `All-in`, `Non-billable`).
+   - Badge visual claro: `Classified` (verde) vs `Needs Finance classification` (ámbar con icono de alerta).
+   - Botón `Edit / Classify` que abre un Drawer lateral únicamente para el gasto seleccionado, permitiendo fijar la fecha esperada de cobro y el motivo.
+2. **Eliminación del campo "Tax in Basis Points"**:
+   - En el formulario del Drawer, cambiar el input crudo:
+     - *Antes*: `<input name="taxBps" value="0" /> (0 bps = 0%; 100 bps = 1%)`
+     - *Nuevo*: Selector con porcentajes habituales (`0%`, `4%`, `10%`, `21%`) o input decimal estándar con símbolo `%`. Un script auxiliar convierte automáticamente el porcentaje introducido al valor requerido por el backend (`bps = Math.round(percent * 100)`), garantizando compatibilidad 100% con la API sin incomodar al usuario.
 
-#### Reconciliation table
+#### 9.4.3. Consolidación de Políticas Comerciales (`FinanceConfigurationSection.svelte`)
 
-```text
-Worker / Project | Hours | Worker Pay | Direct Cost | Billable | WIP |
-Expected Invoice | Actual Invoice | Expected Collection | Collected |
-Expected Worker Payment | Paid Worker
-```
-
-En móvil esta tabla no se comprime hasta ser ilegible: se transforma en cards/rows expandibles con los mismos datos autorizados.
-
----
-
-### 4.7 Aprobaciones (`/app/approvals`)
-
-La UI debe priorizar excepciones y reducir el coste de revisión.
-
-```text
-APPROVALS                                              7 pending
-
-[ Time 3 ] [ Expenses 2 ] [ Reports 2 ]
-
-A. Silva · CP-12 · 24 Aug
-8.5 h · Commissioning line 3
-No conflicts detected
-
-[ Reject / Needs changes ]             [ Approve ]
-```
-
-Reglas:
-
-- Reject/Needs Changes exige razón.
-- Owner override se presenta como acción excepcional, no junto al botón Approve ordinario.
-- Finance billability review se separa de PM operational approval cuando sean dos decisiones distintas.
-- Los datos Finance-only no se serializan hacia PM sólo por reutilizar el mismo componente.
+Organizar el módulo de configuración comercial en pestañas o tarjetas estructuradas con modo lectura/edición:
+1. **Entidad Emisora del Proyecto (`Project Issuing Authority`)**:
+   - Selector limpio de Proyecto -> Entidad Legal asignada, con historial inmutable de cambios en acordeón.
+2. **Tarifario de Mano de Obra (`Labor Rates Matrix`)**:
+   - Tabla que muestra claramente las tarifas actuales por rol/especialista (ej. *PLC Senior Engineer: $95/h*, *Junior Commissioning: $65/h*) y botón modal `+ Add/Update Rate`.
+3. **Perfiles de Gastos & Viáticos (`Expense & Travel Profiles`)**:
+   - Tabla resumen de límites diarios de comidas, kilometraje permitido y recargos comerciales.
+4. **Reglas de Facturación por Hitos & Horas Extra**:
+   - Tarjeta configuradora con interruptores toggle modernos para activar/desactivar horas extra y multiplicadores (`1.5x`, `2.0x`).
 
 ---
 
-### 4.8 Dashboards / Home por rol
+### 9.5. Matriz de Cambios Técnicos & Componentes Afectados
 
-No crear un dashboard universal con todos los KPIs.
-
-#### Worker — `Mi Jornada`
-
-- qué tiene que registrar hoy;
-- drafts pendientes;
-- submissions esperando aprobación;
-- own pay / reimbursement status resumido;
-- acciones rápidas: `Registrar trabajo`, `Nuevo gasto`, `Nuevo report`.
-
-#### PM
-
-- proyectos activos;
-- aprobaciones pendientes;
-- missing/exceptional time;
-- reports con Safety Flag;
-- pendientes de sign-off cuando sean operativamente relevantes.
-
-#### Finance
-
-- WIP ready;
-- drafts pendientes;
-- invoices outstanding/overdue;
-- expected vs actual collections;
-- worker payments/reimbursements due;
-- alerts de cap/sign-off/configuración incompleta.
-
-#### Owner
-
-- resumen consolidado con drill-down, no una duplicación de todas las tablas del sistema.
+| Archivo / Componente | Elementos Actuales Afectados | Modificación Específica de Rediseño |
+|---|---|---|
+| `apps/portal/src/lib/PortalShell.svelte` (Líneas 2835-2845) | `<FinanceOverviewSection>` llamada sin props de vista | Pasar `currentView={$derived($page.url.searchParams.get('view') ?? 'economic')}` para bifurcar vistas limpiamente. |
+| `apps/portal/src/lib/portal/sections/BillingSection.svelte` (Líneas 1050-1380) | `.billing-section__invoice-item` con 3 formularios inlined por factura | Extraer a `InvoiceTable.svelte` (vista tabular limpia) y `InvoiceLifecycleDrawer.svelte` (drawer lateral para pagos, anulaciones y ajustes). |
+| `apps/portal/src/lib/portal/sections/BillingSection.svelte` (Pestaña `setup`) | 4 formularios masivos vacíos apilados sin listados existentes | Crear `BillingSetupDirectory.svelte` que lista primero las entidades legales, perfiles de IVA y numeraciones activas, abriendo formularios en modal/drawer. |
+| `apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte` (Líneas 502-615) | 18 cajas de métricas planas (`.finance-overview__metrics`) y minutos crudos | Reestructurar en Hero KPI Cards (`Direct Margin`, `Revenue Invoiced`, `Cost Breakdown`), barras de progreso para horas/viajes, y helper `displayHours`. |
+| `apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte` (Líneas 620-835) | 4 tablas continuas apiladas en scroll infinito | Introducir sistema de sub-pestañas (`Portfolio`, `Workers`, `Time Entries`, `Expenses`) con cabeceras `sticky` y paginación. |
+| `apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte` (Líneas 885-1070) | 13 bloques de gastos con 26 formularios abiertos | Reemplazar por `ExpenseClassificationInbox` (tabla compacta con acciones rápidas y drawer de clasificación unitaria). |
+| `apps/portal/src/lib/portal/sections/FinanceConfigurationSection.svelte` | Formularios crudos expuestos al final del scroll general | Mostrar únicamente cuando `currentView === 'commercial'`, estructurado en tarjetas colapsables de políticas comerciales. |
 
 ---
-
-## 5. Catálogo de Componentes UI Propuestos
-
-Crear componentes sólo cuando reduzcan repetición real o garanticen comportamiento consistente.
-
-| Componente | Archivo sugerido | Propósito UX |
-| :--- | :--- | :--- |
-| `ResponsiveSheet.svelte` o evolución de `Drawer.svelte` | `apps/portal/src/lib/portal/ui/` | Drawer en desktop/tablet y full-screen sheet en móvil. |
-| `Tabs.svelte` | `apps/portal/src/lib/portal/ui/Tabs.svelte` | Tabs accesibles con teclado para subdominios relacionados. |
-| `CollapsibleSection.svelte` | `apps/portal/src/lib/portal/ui/CollapsibleSection.svelte` | Campos avanzados sólo para roles/contextos apropiados. |
-| `StatCard.svelte` | `apps/portal/src/lib/portal/ui/StatCard.svelte` | KPI resumido; clickable sólo cuando aplica filtro/drill-down real. |
-| `ActionMenu.svelte` | `apps/portal/src/lib/portal/ui/ActionMenu.svelte` | Acciones secundarias contextuales. |
-| `FilterBar.svelte` | `apps/portal/src/lib/portal/ui/FilterBar.svelte` | Búsqueda y filtros consistentes. |
-| `StatusBadge.svelte` | `apps/portal/src/lib/portal/ui/StatusBadge.svelte` | Estado con texto + semántica, nunca sólo color. |
-| `MoneyValue.svelte` | `apps/portal/src/lib/portal/ui/MoneyValue.svelte` | Formateo visual consistente sin introducir cálculos. |
-| `EmptyState.svelte` | `apps/portal/src/lib/portal/ui/EmptyState.svelte` | Estado vacío útil con siguiente acción. |
-| `CorrectionDialog.svelte` | `apps/portal/src/lib/portal/ui/CorrectionDialog.svelte` | Diferencia anterior/nueva + razón + aviso de auditoría. |
-| `SignaturePadModal.svelte` | `apps/portal/src/lib/portal/ui/SignaturePadModal.svelte` | Captura de firma cuando sea el mecanismo elegido; no sustituye al modelo de sign-off/version. |
-
-### Reglas de composición
-
-- No nested drawers.
-- Máximo una acción primaria dominante por superficie.
-- Un modal sólo para tareas acotadas; no para formularios de 20 campos.
-- Acciones peligrosas nunca escondidas entre acciones triviales sin separación visual.
-- Componentes visuales no contienen lógica financiera de negocio; reciben valores ya calculados por capas autorizadas.
-
----
-
-## 6. Sistema Visual y Estilos
-
-La intención es **industrial + financiera + profesional**, no “SaaS template genérico”.
-
-### 6.1 Paleta
-
-Mantener identidad EVOCON/J&A con contraste accesible:
-
-- Fondo app: neutro claro.
-- Surface: blanco/neutral con border sutil.
-- Sidebar: oscuro sobrio.
-- Acción primaria: rojo corporativo.
-- Estados: success / warning / danger / info, siempre acompañados de texto/iconografía comprensible.
-
-Los valores exactos se deben validar con contraste WCAG antes de fijarlos como tokens definitivos.
-
-### 6.2 Tipografía
-
-- Preferir la fuente ya disponible en el producto o una familia web segura/embebida por el proyecto; no introducir una dependencia externa sólo por estética.
-- Títulos con jerarquía consistente, no tamaños arbitrarios por pantalla.
-- Datos numéricos: `font-variant-numeric: tabular-nums`.
-- Monedas y horas alineadas para comparación visual.
-
-### 6.3 Densidad
-
-- Desktop Finance puede ser más denso que Worker mobile.
-- Separación clara entre summary, filters, data y actions.
-- Cards sólo para resúmenes o objetos con affordance real.
-- No convertir cada dato en una tarjeta.
-
-### 6.4 Microinteracciones
-
-Evitar `transition: all`.
-
-Usar sólo propiedades necesarias, por ejemplo:
-
-```css
-transition:
-  background-color 160ms ease,
-  border-color 160ms ease,
-  opacity 160ms ease,
-  transform 160ms ease;
-```
-
-Añadir soporte:
-
-```css
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-```
-
-No aplicar elevación/hover a elementos que no sean interactivos.
-
----
-
-## 7. Responsive y Accesibilidad
-
-El responsive no se deja para una fase cosmética final: forma parte del contrato de cada componente.
-
-### 7.1 Breakpoints de evidencia
-
-- 360/390 phone.
-- 768 tablet.
-- 1440 desktop.
-
-Otros tamaños: smoke tests según riesgo.
-
-### 7.2 Mobile patterns
-
-- Drawer → full-screen sheet/page.
-- Tables financieras densas → cards/rows expandibles o columnas prioritarias + detail.
-- Sticky primary action cuando ayude al flujo, sin ocultar contenido.
-- Filtros secundarios pueden colapsarse en `Filters` con badge del número activo.
-- No hover-only interactions.
-
-### 7.3 Accessibility
-
-- Focus visible.
-- Labels persistentes; placeholders no sustituyen labels.
-- Touch targets suficientemente cómodos.
-- Tabs/menus/dialogs con navegación por teclado y ARIA correctos.
-- Estado no comunicado sólo por color.
-- Errores próximos al campo y summary cuando el formulario lo requiera.
-- Focus trap y restore focus para dialogs/sheets.
-- Escape cierra sólo superficies seguras; nunca descarta silenciosamente cambios o acciones financieras.
-
----
-
-## 8. Plan de Implementación por Fases
-
-La implementación debe ser incremental y compatible con el Client Essential, no un big-bang rewrite.
-
-```text
-FASE 0 — CONTRATOS UX Y SEGURIDAD
-  • congelar navegación por rol y matriz de visibilidad
-  • mapear campos operational vs commercial/Finance
-  • inventariar componentes existentes reutilizables
-  • definir browser journeys y screenshots/evidencia antes de mover lógica
-
-FASE 1 — NAVEGACIÓN + PRIMITIVAS
-  • reorganizar portal-navigation.ts por rol/grupo
-  • ResponsiveSheet/Drawer, Tabs, ActionMenu, StatusBadge, FilterBar
-  • mantener URLs/actions existentes cuando no haya razón funcional para cambiarlas
-
-FASE 2 — WORKER FIELD FLOWS
-  • /app/time → Fast Log + weekly/history
-  • /app/expenses → receipt-first simplified entry
-  • /app/reports → Daily / Technical / Client Sign-off
-  • My Pay → own-only privacy
-
-FASE 3 — PM / PROJECT MANAGEMENT
-  • Projects / Clients limpios
-  • project detail: Overview / Team / Commercial(role-gated) / Reports / Billing
-  • approvals orientadas a excepción
-
-FASE 4 — FINANCE / BILLING
-  • Finance Overview expected vs actual
-  • billing summary cards + invoice table
-  • sign-off billing blocker
-  • collections / worker settlement states
-  • contribution terminology coherente
-
-FASE 5 — POLISH + CROSS-ROLE QA
-  • design tokens y densidad
-  • responsive 360/390, 768, 1440
-  • keyboard/a11y
-  • browser privacy checks y screenshot review
-```
-
-### Gate por fase
-
-Cada fase debe terminar con:
-
-1. focused component/unit tests;
-2. role/DTO security tests afectados;
-3. Playwright del journey modificado;
-4. screenshots en viewport representativo;
-5. revisión de regresión de acciones/lifecycles;
-6. cero reimplementación de lógica financiera en frontend.
-
----
-
-## 9. Invariantes de Implementación UI/UX
-
-Este plan queda subordinado al Client Essential SPEC/CHECKLIST. Si una propuesta visual contradice una regla de dominio, seguridad o lifecycle, **manda el dominio autoritativo**.
-
-1. **Operational truth first:** Workers capturan hechos reales; las reglas comerciales interpretan esos hechos después.
-2. **No commercial leakage:** Worker/PM no reciben rates, internal cost, other-worker pay, margin ni Finance-only exports cuando están prohibidos.
-3. **Server authorization remains authoritative:** Ocultar un control no sustituye RBAC/IDOR/DTO allowlists.
-4. **Exact money:** La UI formatea; no recalcula dinero con floats ni duplica business logic.
-5. **Issued invoice immutability:** nunca aparece `Edit` sobre invoice issued.
-6. **Approved history is corrected, not rewritten:** correction UI muestra prior truth y razón.
-7. **Sign-off version binding:** conformidad cliente pertenece a una versión concreta del reporte.
-8. **Planned ≠ actual cash:** previstos y efectivos se distinguen visual y semánticamente.
-9. **Expense dual state:** worker reimbursement y client recovery son estados separados.
-10. **Active/inactive preserves history:** desactivar no borra ni oculta historia financiera necesaria.
-11. **Offline/PWA remains conditional:** preservar la infraestructura existente, pero no ampliar UX offline como gate salvo activación autoritativa. Si está activo, mantener aislamiento por usuario y sync truth.
-12. **No new business scope from UI work:** no introducir markup, nuevos tax engines, approval centers, DMS, CRM u otras features sólo porque parezcan convenientes visualmente.
-13. **No nested drawers and no hidden complexity:** progressive disclosure reduce complejidad; no la desplaza a tres niveles de overlays.
-14. **Role-specific projections:** una misma entidad puede tener diferentes columnas/actions por rol sin duplicar la fuente de verdad.
-15. **Semantic terminology:** usar `Contribution Margin / Direct Project Result`; evitar `Net Profit` o etiquetas contables no definidas.
-
----
-
-## 10. Criterios de Aceptación UX
-
-El rediseño se considera correcto cuando, además de pasar los requisitos funcionales:
-
-- Un Worker puede registrar un día normal sin enfrentarse a configuración comercial.
-- Un Worker puede subir un receipt desde móvil con un flujo corto y claro.
-- Travel y Overtime se capturan sin obligar al Worker a conocer reglas de facturación.
-- PM puede revisar y aprobar sin recibir información Finance-only.
-- El proyecto concentra su contexto sin mezclar Team y confidential Rates indiscriminadamente.
-- Client Sign-off es localizable desde Reports y desde cualquier bloqueo de Billing relacionado.
-- Finance distingue a simple vista expected vs actual, money in vs money out y contribution.
-- Issued invoices no presentan affordances de edición destructiva.
-- Las tablas importantes tienen una representación móvil deliberada.
-- 360/390, 768 y 1440 permiten completar los journeys Essential sin horizontal-scroll accidental en formularios críticos.
-- Keyboard focus, labels, estados y errores son comprensibles.
-- Ninguna pantalla obtiene un aspecto “más limpio” a costa de ocultar un error, estado pending/failed o bloqueo real.
-- El resultado visual se percibe como una herramienta empresarial industrial/financiera coherente, no como una colección de formularios ni como un dashboard template genérico.

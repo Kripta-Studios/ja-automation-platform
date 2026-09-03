@@ -17,6 +17,18 @@
 
   const packs = $derived(data.packs ?? []);
 
+  function previousCompleteMonth(): { periodStart: string; periodEnd: string } {
+    const now = new Date();
+    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0));
+    return {
+      periodStart: start.toISOString().slice(0, 10),
+      periodEnd: end.toISOString().slice(0, 10),
+    };
+  }
+
+  const packPeriod = previousCompleteMonth();
+
   function packState(pack: Record<string, unknown>): string {
     return String(pack.state ?? 'pending').toLowerCase();
   }
@@ -71,14 +83,19 @@
             'The pack contains invoice register, collections, worker/direct costs, expenses, accounts receivable, contribution, source counts and deterministic artifacts.',
           )}
         </p>
+        <p>
+          {translate(
+            'The previous complete month is filled in. Change the dates only if you need another range.',
+          )}
+        </p>
         <div class="accounting-section__fields">
           <label>
             <span>{translate('Period start')}</span>
-            <input name="periodStart" type="date" required />
+            <input name="periodStart" type="date" value={packPeriod.periodStart} required />
           </label>
           <label>
             <span>{translate('Period end')}</span>
-            <input name="periodEnd" type="date" required />
+            <input name="periodEnd" type="date" value={packPeriod.periodEnd} required />
           </label>
           <label>
             <span>{translate('Report language')}</span>

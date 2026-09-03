@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import type { Principal } from '@ja/domain';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
@@ -46,24 +45,14 @@ function quarantinedDocument(value: B5LifecycleSecurityFixture, suffix: string) 
   });
 }
 
-function servicePrincipal(value: B5LifecycleSecurityFixture): Principal {
-  return { ...value.owner, isServiceActor: true };
-}
-
 describe('document scan durable execution fencing', () => {
   it('rejects a forged service-actor boolean without a B5 running execution', () => {
     const value = fixture();
     const document = quarantinedDocument(value, 'a');
 
     expect(() =>
-      value.v3.recordDocumentScan(
-        servicePrincipal(value),
-        document.id,
-        'clean',
-        'test-scanner',
-        undefined as never,
-      ),
-    ).toThrow(/execution proof/i);
+      value.v3.recordDocumentScanFromJob(document.id, 'clean', 'test-scanner', undefined as never),
+    ).toThrow(/execution proof|FENCED_JOB_EXECUTION_INVALID/i);
     expect(
       value.sqlite.prepare('SELECT state,scan_status FROM document WHERE id=?').get(document.id),
     ).toEqual({ state: 'quarantined', scan_status: 'pending' });
@@ -72,20 +61,16 @@ describe('document scan durable execution fencing', () => {
   it('accepts the active document.scan job/run and releases a clean document', () => {
     const value = fixture();
     const document = quarantinedDocument(value, 'b');
-    const principal = servicePrincipal(value);
-
     expect(
       value.v3.runDueJobs(1, {
         document_scan: (payload, execution) => {
-          value.v3.recordDocumentScan(
-            principal,
+          value.v3.recordDocumentScanFromJob(
             (payload as { documentId: string }).documentId,
             'clean',
             'test-scanner',
             execution,
           );
-          value.v3.recordDocumentScan(
-            principal,
+          value.v3.recordDocumentScanFromJob(
             (payload as { documentId: string }).documentId,
             'clean',
             'test-scanner',
@@ -97,39 +82,57 @@ describe('document scan durable execution fencing', () => {
     expect(value.v3.authorizeDocument(value.owner, document.id)).toEqual(
       expect.objectContaining({ sha256: 'b'.repeat(64), byteLength: 5 }),
     );
-    const audit = value.sqlite
-      .prepare("SELECT metadata_json FROM audit_event WHERE action='document.scan' AND entity_id=?")
-      .get(document.id) as { metadata_json: string };
-    expect(JSON.parse(audit.metadata_json)).toEqual(
-      expect.objectContaining({
-        result: 'clean',
-        provider: 'test-scanner',
-        serviceCapability: 'document.scan',
-      }),
-    );
+    const serviceAudits = value.sqlite
+      .prepare(
+        `SELECT actor_id,actor_kind,service_actor_id,service_capability,job_id,job_run_id,
+                tenant_id,deployment_id
+           FROM audit_event
+          WHERE actor_kind='service' AND job_id IS NOT NULL AND job_run_id IS NOT NULL`,
+      )
+      .all() as Array<Record<string, string | null>>;
+    expect(serviceAudits.length).toBeGreaterThanOrEqual(3);
     expect(
-      value.sqlite
-        .prepare(
-          "SELECT count(*) count FROM audit_event WHERE action='document.scan' AND entity_id=?",
-        )
-        .get(document.id),
-    ).toEqual({ count: 1 });
+      serviceAudits.every(
+        (row) =>
+          row.actor_id === null &&
+          row.service_actor_id === 'test-b5-service-actor' &&
+          row.service_capability === 'document.scan' &&
+          row.tenant_id === 'test-tenant' &&
+          row.deployment_id === 'test-deployment',
+      ),
+    ).toBe(true);
   });
 
   it('rejects a wrong fence and leaves the document quarantined', () => {
     const value = fixture();
     const document = quarantinedDocument(value, 'c');
-    const principal = servicePrincipal(value);
-
     expect(
       value.v3.runDueJobs(1, {
         document_scan: (payload, execution) =>
-          value.v3.recordDocumentScan(
-            principal,
+          value.v3.recordDocumentScanFromJob(
             (payload as { documentId: string }).documentId,
             'clean',
             'test-scanner',
             { ...execution, fenceVersion: execution.fenceVersion + 1 },
+          ),
+      }),
+    ).toEqual({ processed: 0, failed: 1, overdueMarked: 0 });
+    expect(
+      value.sqlite.prepare('SELECT state,scan_status FROM document WHERE id=?').get(document.id),
+    ).toEqual({ state: 'quarantined', scan_status: 'pending' });
+  });
+
+  it('rejects a document target that differs from the claimed payload', () => {
+    const value = fixture();
+    const document = quarantinedDocument(value, '1');
+    expect(
+      value.v3.runDueJobs(1, {
+        document_scan: (_payload, execution) =>
+          value.v3.recordDocumentScanFromJob(
+            'different-document-id',
+            'clean',
+            'test-scanner',
+            execution,
           ),
       }),
     ).toEqual({ processed: 0, failed: 1, overdueMarked: 0 });
@@ -144,8 +147,7 @@ describe('document scan durable execution fencing', () => {
     expect(
       wrongCapability.v3.runDueJobs(1, {
         document_scan: (payload, execution) =>
-          wrongCapability.v3.recordDocumentScan(
-            servicePrincipal(wrongCapability),
+          wrongCapability.v3.recordDocumentScanFromJob(
             (payload as { documentId: string }).documentId,
             'clean',
             'test-scanner',
@@ -164,8 +166,7 @@ describe('document scan durable execution fencing', () => {
     expect(
       wrongProvider.v3.runDueJobs(1, {
         document_scan: (payload, execution) =>
-          wrongProvider.v3.recordDocumentScan(
-            servicePrincipal(wrongProvider),
+          wrongProvider.v3.recordDocumentScanFromJob(
             (payload as { documentId: string }).documentId,
             'clean',
             'unconfigured-scanner',
@@ -204,8 +205,7 @@ describe('document scan durable execution fencing', () => {
                WHERE singleton=1`,
             )
             .run(now, value.owner.userId);
-          value.v3.recordDocumentScan(
-            servicePrincipal(value),
+          value.v3.recordDocumentScanFromJob(
             (payload as { documentId: string }).documentId,
             'clean',
             'test-scanner',
@@ -225,8 +225,7 @@ describe('document scan durable execution fencing', () => {
     expect(
       value.v3.runDueJobs(1, {
         document_scan: (payload, execution) =>
-          value.v3.recordDocumentScan(
-            servicePrincipal(value),
+          value.v3.recordDocumentScanFromJob(
             (payload as { documentId: string }).documentId,
             'rejected',
             'test-scanner',

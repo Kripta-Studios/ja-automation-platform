@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   accountNavigationFor,
+  portalLandingForRole,
   portalNavigationForRole,
   type NavItem,
 } from '../../apps/portal/src/lib/portal-navigation';
@@ -65,6 +68,17 @@ describe('portal role navigation contract', () => {
       'Profile',
     ]);
     expect(labels('finance_admin')).not.toContain('Audit');
+  });
+
+  it('maps finance landings to an authorized active destination', () => {
+    expect(portalLandingForRole('/j-aautomation', 'finance_admin')).toBe(
+      '/j-aautomation/app/finance?view=overview',
+    );
+    expect(portalLandingForRole('/j-aautomation', 'auditor_read_only')).toBe(
+      '/j-aautomation/app/finance?view=overview',
+    );
+    expect(portalLandingForRole('/j-aautomation', 'owner_admin')).toBe('/j-aautomation/app/');
+    expect(portalLandingForRole('/j-aautomation', 'worker')).toBe('/j-aautomation/app/');
   });
 
   it('gives Owner the authorized superset and keeps Audit explicit', () => {
@@ -134,5 +148,22 @@ describe('portal role navigation contract', () => {
     expect(accountLabels('owner_admin')).toEqual(['Documents', 'Profile']);
     expect(accountLabels('auditor_read_only')).toEqual(['Profile']);
     expect(accountLabels('worker')).not.toContain('Notifications');
+  });
+
+  it('lets the mobile footer size itself from its links without fixed columns or inline CSP styles', () => {
+    const shell = readFileSync(
+      resolve(process.cwd(), 'apps/portal/src/lib/PortalShell.svelte'),
+      'utf8',
+    );
+    const responsive = readFileSync(
+      resolve(process.cwd(), 'apps/portal/src/styles/portal/responsive.css'),
+      'utf8',
+    );
+
+    expect(shell).not.toContain('mobileNavigationStyle');
+    expect(shell).not.toMatch(/<nav class="bottom-nav"[^>]*\sstyle=/u);
+    expect(responsive).not.toContain('grid-template-columns: repeat(5, 1fr)');
+    expect(responsive).toContain('grid-auto-flow: column');
+    expect(responsive).toContain('grid-auto-columns: minmax(0, 1fr)');
   });
 });

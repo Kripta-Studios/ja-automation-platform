@@ -27,7 +27,7 @@ export function resolveStandaloneLocale(
   } catch {
     // Storage can be unavailable in privacy-restricted browser contexts.
   }
-  return normalizePortalLocale(saved ?? serverLocale ?? window.navigator.language);
+  return normalizePortalLocale(saved ?? serverLocale ?? 'en');
 }
 
 export function documentLanguage(locale: PortalLocale): DocumentLanguage {

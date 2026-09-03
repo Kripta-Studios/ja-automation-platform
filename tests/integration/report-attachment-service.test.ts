@@ -53,7 +53,16 @@ function seedUser(
     .prepare(
       'INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
     )
-    .run(id, id, `${id}@attachments.test`, role, 'active', 1, now, now);
+    .run(
+      id,
+      id,
+      role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@attachments.test`,
+      role,
+      'active',
+      1,
+      now,
+      now,
+    );
 }
 
 type AttachmentFixture = Readonly<{

@@ -24,7 +24,38 @@ export function seedB5User(
     .prepare(
       'INSERT INTO user(id,name,email,role,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',
     )
-    .run(id, id, `${id}@example.test`, role, 'active', timestamp, timestamp);
+    .run(
+      id,
+      id,
+      role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@example.test`,
+      role,
+      'active',
+      timestamp,
+      timestamp,
+    );
+}
+
+export function stepUpB5Principal(
+  sqlite: ReturnType<typeof createDatabase>['sqlite'],
+  principal: Principal,
+  suffix: string,
+): Principal {
+  const now = new Date().toISOString();
+  const sessionId = `b5-step-up-${principal.userId}-${suffix}`;
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+    )
+    .run(
+      sessionId,
+      `${sessionId}-token`,
+      principal.userId,
+      new Date(Date.now() + 3_600_000).toISOString(),
+      now,
+      now,
+      now,
+    );
+  return { ...principal, sessionId };
 }
 
 export function createB5LifecycleSecurityFixture() {

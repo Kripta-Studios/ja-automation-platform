@@ -8,6 +8,11 @@ import { isAbsolute, join, relative, resolve } from 'node:path';
 import { createDatabase, integrityCheck } from '@ja/database';
 import { createBackup } from '../scripts/backup.mjs';
 import { restoreBackup } from '../scripts/restore.mjs';
+import {
+  createFilesystemContinuityTransport,
+  replicateBackup,
+  runRemoteRestoreDrill,
+} from '../scripts/continuity-backup.mjs';
 
 const TENANT_ID = 'client-essential-tenant';
 const DEPLOYMENT_ID = 'client-essential-deployment';
@@ -461,6 +466,67 @@ try {
     );
   }
 
+  const remoteTransport = createFilesystemContinuityTransport(join(root, 'remote-continuity'));
+  const continuityKey = Buffer.alloc(32, 0x2a);
+  const remoteBackup = await replicateBackup({
+    backupPath: created.path,
+    backupId: 'client-essential-encrypted-restore',
+    transport: remoteTransport,
+    env: {
+      JA_BACKUP_REMOTE_ENABLED: 'true',
+      JA_BACKUP_REMOTE_RETENTION_DAYS: '30',
+      JA_BACKUP_REMOTE_NAMESPACE: 'client-essential',
+      JA_DEPLOYMENT_ID: DEPLOYMENT_ID,
+      JA_BACKUP_ENCRYPTION_KEY: continuityKey.toString('hex'),
+    },
+    encryptionKey: continuityKey,
+    now: new Date(NOW),
+  });
+  assert.equal(remoteBackup.status, 'READY');
+  const remoteRestoredDatabasePath = join(root, 'remote-restored', 'jaautomation.sqlite');
+  const remoteRestoredDocumentRoot = join(root, 'remote-restored', 'files');
+  const remoteDrill = await runRemoteRestoreDrill({
+    transport: remoteTransport,
+    env: {
+      JA_BACKUP_REMOTE_ENABLED: 'true',
+      JA_BACKUP_REMOTE_RETENTION_DAYS: '30',
+      JA_BACKUP_REMOTE_NAMESPACE: 'client-essential',
+      JA_DEPLOYMENT_ID: DEPLOYMENT_ID,
+      JA_BACKUP_ENCRYPTION_KEY: continuityKey.toString('hex'),
+    },
+    encryptionKey: continuityKey,
+    backupId: 'client-essential-encrypted-restore',
+    databasePath: remoteRestoredDatabasePath,
+    documentRoot: remoteRestoredDocumentRoot,
+    tempRoot: root,
+  });
+  assert.equal(remoteDrill.status, 'PASS');
+  assert.equal(remoteDrill.restored.documentCount, artifacts.length);
+  const remoteRestoredSqlite = new DatabaseSync(remoteDrill.restored.databasePath);
+  const remoteInvoice = plainRow(
+    remoteRestoredSqlite
+      .prepare(
+        `SELECT id,state,invoice_number,total_minor,snapshot_json,source_lock_at,tenant_id,deployment_id
+       FROM invoice WHERE id='invoice-issued'`,
+      )
+      .get(),
+  );
+  remoteRestoredSqlite.close();
+  assert.deepEqual(remoteInvoice, {
+    id: 'invoice-issued',
+    state: 'issued',
+    invoice_number: 'CE-2026-0001',
+    total_minor: 145200,
+    snapshot_json: invoiceSnapshot,
+    source_lock_at: NOW,
+    tenant_id: TENANT_ID,
+    deployment_id: DEPLOYMENT_ID,
+  });
+  for (const artifact of artifacts) {
+    const bytes = await readFile(join(remoteRestoredDocumentRoot, artifact.storageKey));
+    assert.equal(bytes.equals(artifact.bytes), true, `${artifact.id} changed in encrypted restore`);
+  }
+
   const maliciousBackup = join(root, 'malicious-backup');
   await cp(created.path, maliciousBackup, { recursive: true, force: false, errorOnExist: true });
   const maliciousManifestPath = join(maliciousBackup, 'manifest.json');
@@ -478,7 +544,7 @@ try {
   );
 
   console.log(
-    `client-essential backup/restore drill: ok (invoice=issued, private_artifacts=${artifacts.length}, integrity=ok, foreign_keys=1)`,
+    `client-essential backup/restore drill: ok (invoice=issued, private_artifacts=${artifacts.length}, encrypted_remote=pass, integrity=ok, foreign_keys=1)`,
   );
 } finally {
   try {

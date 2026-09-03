@@ -11,6 +11,8 @@ import {
   Gauge,
   HardHat,
   GraduationCap,
+  Wrench,
+  Headphones,
 } from 'lucide-react';
 import { services } from '@/content/services';
 import { projects } from '@/content/projects';
@@ -22,18 +24,22 @@ type CapabilityMessageKey =
   | 'robotics'
   | 'simulation'
   | 'electricalControls'
+  | 'installation'
   | 'motionProcess'
   | 'commissioning'
-  | 'supportTraining';
+  | 'supportTraining'
+  | 'technicalSupport';
 
 const iconMap: Record<string, React.ReactNode> = {
   Cpu: <Cpu size={32} />,
   Bot: <Bot size={32} />,
   MonitorPlay: <MonitorPlay size={32} />,
   Zap: <Zap size={32} />,
+  Wrench: <Wrench size={32} />,
   Gauge: <Gauge size={32} />,
   HardHat: <HardHat size={32} />,
   GraduationCap: <GraduationCap size={32} />,
+  Headphones: <Headphones size={32} />,
 };
 
 const capabilityKeys: Record<string, string> = {
@@ -41,9 +47,11 @@ const capabilityKeys: Record<string, string> = {
   robotics: 'robotics',
   simulation: 'simulation',
   'electrical-controls': 'electricalControls',
+  installation: 'installation',
   'motion-process': 'motionProcess',
   commissioning: 'commissioning',
   'training-consulting': 'supportTraining',
+  support: 'technicalSupport',
 };
 
 // Generate static routes for all capabilities

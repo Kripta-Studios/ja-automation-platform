@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -35,7 +36,7 @@ describe('B5 lifecycle/security migration integration', () => {
       value.sqlite.prepare('SELECT MAX(version) AS version FROM schema_migration').get() as {
         version: number;
       },
-    ).toEqual({ version: 30 });
+    ).toEqual({ version: 35 });
   });
 
   it('permits the repository archive flow but never reactivates or deletes history', () => {
@@ -52,7 +53,8 @@ describe('B5 lifecycle/security migration integration', () => {
       value.sqlite.prepare('SELECT status,version FROM legal_entity WHERE id=?').get(entity.id),
     ).toEqual({ status: 'active', version: 1 });
 
-    expect(() => value.repository.archiveLegalEntity(value.owner, entity.id)).not.toThrow();
+    const steppedOwner = stepUpB5Principal(value.sqlite, value.owner, 'archive-legal-entity');
+    expect(() => value.repository.archiveLegalEntity(steppedOwner, entity.id)).not.toThrow();
     expect(
       value.sqlite.prepare('SELECT status,version FROM legal_entity WHERE id=?').get(entity.id),
     ).toEqual({ status: 'archived', version: 2 });

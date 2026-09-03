@@ -1,5 +1,5 @@
 import { hashPassword } from 'better-auth/crypto';
-import { createDatabase } from '@ja/database';
+import { createDatabase, recordAuditEvent } from '@ja/database';
 import { randomUUID } from 'node:crypto';
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -39,6 +39,8 @@ const email = process.env.JA_BOOTSTRAP_EMAIL?.trim().toLowerCase();
 const name = process.env.JA_BOOTSTRAP_NAME?.trim();
 if (!email || !emailPattern.test(email) || email.length > 254)
   throw new Error('JA_BOOTSTRAP_EMAIL must be a valid company email address.');
+if (email !== 'antonny.luty@j-aautomation.com')
+  throw new Error('JA_BOOTSTRAP_EMAIL must be antonny.luty@j-aautomation.com.');
 if (!name || name.length < 2 || name.length > 120)
   throw new Error('JA_BOOTSTRAP_NAME must contain 2–120 characters.');
 
@@ -60,6 +62,11 @@ try {
     .prepare('SELECT id,status FROM user WHERE lower(email)=?')
     .get(email) as { id: string; status: string } | undefined;
   if (existing) throw new Error(`An account already exists for ${email} (${existing.status}).`);
+  const anotherOwner = database.sqlite
+    .prepare("SELECT id,email FROM user WHERE role='owner_admin' LIMIT 1")
+    .get();
+  if (anotherOwner)
+    throw new Error('A non-canonical Owner already exists; resolve it before bootstrap.');
 
   database.sqlite
     .prepare(
@@ -75,23 +82,12 @@ try {
        ) VALUES(?,?,?,?,?,?,?,?)`,
     )
     .run(randomUUID(), 'local:credential', userId, 'credential', userId, passwordHash, now, now);
-  database.sqlite
-    .prepare(
-      `INSERT INTO audit_event(
-         id,actor_id,action,entity_type,entity_id,occurred_at,details_json,reason,metadata_json
-       ) VALUES(?,?,?,?,?,?,?,?,?)`,
-    )
-    .run(
-      randomUUID(),
-      userId,
-      'user.bootstrap',
-      'user',
-      userId,
-      now,
-      JSON.stringify({ role: 'owner_admin', mfaRequired: true }),
-      'Initial owner account provisioned by an operator.',
-      JSON.stringify({ source: 'bootstrap-cli' }),
-    );
+  recordAuditEvent(database.sqlite, null, 'user.bootstrap', 'user', userId, {
+    role: 'owner_admin',
+    mfaRequired: true,
+    reason: 'Initial owner account provisioned by an operator.',
+    source: 'bootstrap-cli',
+  });
   database.sqlite.exec('COMMIT');
 } catch (error) {
   try {

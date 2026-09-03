@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -113,8 +114,9 @@ describe('domain security implementation contracts', () => {
 
   it('rejects compensation rules for admin targets and settlements outside a full assignment period', () => {
     const value = fixture();
+    const finance = stepUpB5Principal(value.sqlite, value.finance, 'domain-security');
     expect(() =>
-      value.v3.createCompensationRule(value.finance, {
+      value.v3.createCompensationRule(finance, {
         workerId: value.owner.userId,
         projectId: value.project.id,
         currency: 'EUR',
@@ -131,7 +133,7 @@ describe('domain security implementation contracts', () => {
       )
       .run(value.project.id, value.worker.userId);
     expect(() =>
-      value.v3.settleCompensation(value.finance, {
+      value.v3.settleCompensation(finance, {
         workerId: value.worker.userId,
         projectId: value.project.id,
         periodStart: '2026-08-10',

@@ -25,6 +25,7 @@ export { runArtifactJobs } from './artifact-jobs.ts';
 export type {
   AccountingPackArtifactResult,
   AccountingPackExportType,
+  ArtifactJobExecution,
   ArtifactJobContext,
   ArtifactJobRepository,
   ArtifactJobV3,
@@ -41,6 +42,27 @@ export {
   type LocalizedPdfJobResult,
   type LocalizedPdfJobVariant,
 } from './localized-pdf-jobs.ts';
+
+export {
+  runWorkerStatementArtifactJob,
+  workerStatementJobPayload,
+  WORKER_STATEMENT_FORMATS,
+  WORKER_STATEMENT_GENERATION_VERSION,
+  WORKER_STATEMENT_JOB_CAPABILITY,
+  WORKER_STATEMENT_JOB_KIND,
+  WORKER_STATEMENT_RENDERER_VERSION,
+  assertWorkerStatementSnapshot,
+  canonicalWorkerStatementSnapshot,
+  workerStatementGenerationVersion,
+  type WorkerStatementArtifactStatus,
+  type WorkerStatementFormat,
+  type WorkerStatementJobArtifact,
+  type WorkerStatementJobClaim,
+  type WorkerStatementJobExecution,
+  type WorkerStatementJobPayload,
+  type WorkerStatementJobRepository,
+  type WorkerStatementJobResult,
+} from './worker-statement-artifacts.ts';
 
 export {
   accountingPackArtifacts,

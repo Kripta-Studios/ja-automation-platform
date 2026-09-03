@@ -1,9 +1,12 @@
 import { createHash } from 'node:crypto';
-import { mkdir, unlink, writeFile } from 'node:fs/promises';
-import { relative, resolve } from 'node:path';
 import { uuidSchema } from '@ja/schemas';
 import { json } from '@sveltejs/kit';
 import { actionFailure, openPortalRepository } from '$lib/server/portal-repository';
+import {
+  removePrivateFileIfPresent,
+  writePrivateFileExclusive,
+} from '$lib/server/private-artifact-access';
+import { assertRegularPrivateFile } from '$lib/server/report-attachment-route';
 import type { RequestHandler } from './$types';
 
 const receiptSignature = (mediaType: string, bytes: Uint8Array): boolean => {
@@ -30,6 +33,11 @@ const receiptSignature = (mediaType: string, bytes: Uint8Array): boolean => {
 
 export const POST: RequestHandler = async ({ locals, request }) => {
   if (!locals.user || !locals.session) return json({ error: 'Unauthorized' }, { status: 401 });
+  if (process.env.JA_OFFLINE_ENABLED?.trim().toLowerCase() === 'false')
+    return json(
+      { offlineEnabled: false, error: 'Offline capture is disabled for this deployment' },
+      { status: 503, headers: { 'cache-control': 'no-store' } },
+    );
   const form = await request.formData();
   const projectId = form.get('projectId');
   const attachmentId = form.get('attachmentId');
@@ -64,6 +72,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
   const context = openPortalRepository(locals);
   let createdStoragePath: string | null = null;
+  let createdStorageKey: string | null = null;
   let fileCreated = false;
   let reservationId: string | null = null;
   try {
@@ -79,28 +88,16 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     reservationId = reservation.reservationId;
 
     const storageKey = reservation.storageKey;
-    const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
-    const target = resolve(root, storageKey);
-    const targetRelativePath = relative(root, target);
-    if (
-      !targetRelativePath ||
-      targetRelativePath.split(/[\\/]/).includes('..') ||
-      targetRelativePath.startsWith('\\') ||
-      targetRelativePath.startsWith('/')
-    ) {
-      context.v3.cancelUploadReservation(context.principal, reservation.reservationId);
-      reservationId = null;
-      return json({ error: 'Invalid receipt storage path' }, { status: 400 });
-    }
-
-    createdStoragePath = target;
-
-    await mkdir(resolve(target, '..'), { recursive: true });
+    createdStorageKey = storageKey;
+    const root = process.env.JA_DOCUMENT_ROOT ?? 'data/documents';
     try {
-      await writeFile(target, bytes, { flag: 'wx' });
+      createdStoragePath = await writePrivateFileExclusive(root, storageKey, bytes);
       fileCreated = true;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+      // A retried request may encounter its own already-published file. Verify
+      // the winner before allowing the database reservation to reference it.
+      await assertRegularPrivateFile(root, storageKey, sha256, uploadedSize, uploadedMediaType);
     }
 
     context.v3.finalizeUpload(context.principal, reservation.reservationId, {
@@ -119,16 +116,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         // Preserve the original upload error; stale cleanup remains available.
       }
     }
-    if (fileCreated && createdStoragePath) {
-      const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
-      const relativePath = relative(root, createdStoragePath);
-      if (
-        relativePath &&
-        !relativePath.split(/[\\/]/).includes('..') &&
-        !relativePath.startsWith('\\') &&
-        !relativePath.startsWith('/')
-      )
-        await unlink(createdStoragePath).catch(() => undefined);
+    if (fileCreated && createdStoragePath && createdStorageKey) {
+      const root = process.env.JA_DOCUMENT_ROOT ?? 'data/documents';
+      await removePrivateFileIfPresent(root, createdStorageKey).catch(() => undefined);
     }
     const failure = actionFailure(error);
     return json(

@@ -528,4 +528,52 @@ export class ClientRepository {
       });
     });
   }
+
+  deleteClient(principal: Principal, clientId: string) {
+    const { deps } = this;
+    deps.assertActive(principal);
+    if (!canManageClients(principal)) return deps.accessDenied('Client administration required');
+    return deps.transaction(() => {
+      const existing = deps.sqlite
+        .prepare('SELECT id, client_number, display_name FROM client WHERE id=?')
+        .get(clientId) as { id: string; client_number: string; display_name: string } | undefined;
+      if (!existing) return deps.validation('Client not found');
+
+      // Check if client has any projects
+      const projectCount = deps.sqlite
+        .prepare('SELECT COUNT(*) AS count FROM project WHERE client_id=?')
+        .get(clientId) as { count: number } | undefined;
+      if ((projectCount?.count ?? 0) > 0) {
+        throw deps.conflict(
+          'Client has associated projects and cannot be deleted. Please delete or archive its projects first.',
+        );
+      }
+
+      // Check if client has any invoices
+      const invoiceCount = deps.sqlite
+        .prepare(
+          'SELECT COUNT(*) AS count FROM invoice WHERE project_id IN (SELECT id FROM project WHERE client_id=?)',
+        )
+        .get(clientId) as { count: number } | undefined;
+      if ((invoiceCount?.count ?? 0) > 0) {
+        throw deps.conflict(
+          'Client is referenced by invoice history and cannot be deleted. Please archive the client instead.',
+        );
+      }
+
+      // Safe to delete child contacts and client
+      deps.sqlite.prepare('DELETE FROM client_contact WHERE client_id=?').run(clientId);
+      const deleted = deps.sqlite.prepare('DELETE FROM client WHERE id=?').run(clientId);
+      if (deleted.changes !== 1) throw deps.conflict('Client changed before deletion');
+
+      deps.audit(principal, 'lifecycle.transition', 'client', clientId, {
+        fromState: 'active',
+        toState: 'deleted',
+        reason: 'Hard delete empty client',
+        clientNumber: existing.client_number,
+        displayName: existing.display_name,
+      });
+      return { id: clientId, clientNumber: existing.client_number };
+    });
+  }
 }

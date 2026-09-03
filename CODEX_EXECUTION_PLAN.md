@@ -2,7 +2,7 @@
 
 Retargeted: 2026-08-24
 Current planning baseline: branch `codex/v3-production-completion-orchestrated-20260819` at
-`df31291e9c9ed111d20c8878ae0f68f3d41f8136`.
+`4db442e466b294eebc001bfd5deba2700f6d4cb1` (re-established 2026-08-27).
 
 This plan preserves useful historical repository findings but is subordinate to the Client
 Essential SPEC, checklist, the validated 2026-08-24 `J_A_Automation_Contrato_Proyecto_EVOCON_ES.html`
@@ -10,6 +10,71 @@ Essential SPEC, checklist, the validated 2026-08-24 `J_A_Automation_Contrato_Pro
 V3.1–V3.4 expansion, all P0/P1/P2 backlog items, all 207 RTM rows, and the old 42-step scenario are
 deferred roadmap evidence, not the client-release verdict. The current audit remains **NOT READY**;
 documentation changes do not create implementation evidence.
+
+## Current completion checkpoint — 2026-08-30
+
+This checkpoint supersedes the active/pending packet labels retained below as execution history.
+Independent final review has reopened CORE-01/05/07/08, CORE-09/11/12/13/14/15 pending inactive-user
+authentication fencing, invoice-PDF IDOR remediation, adversarial Accounting Pack validation and an
+authenticated Worker Statement lifecycle journey and the Client Sign-off/UI rerun; `UI_PLAN.md` is
+therefore temporarily `PARTIAL`. Pinned Node `24.19.0` baseline gates pass: integration **41 files / 272 tests**, unit
+**106 / 595**, security **24 / 123**, migrations **11 / 81**, lint, formatting, workspace typecheck,
+site build (**255 routes**), portal build and jobs build. Authenticated browser evidence passes the
+UI plan at **8/8 viewports**, the private-artifact lifecycle at **6/6**, and Client Essential journey
+steps **1–29** plus the deployed Caddy boundary in step **32**.
+
+The release verdict remains **NOT READY**. The reopened local finance/browser packets must close
+before it can be reduced to externally blocked. CORE-16 and CORE-17 additionally require
+production-operator evidence that cannot be fabricated in the repository: repair the live
+`jaautomation-jobs.service`, prove two
+consecutive automatic timer executions, and perform an encrypted remote-copy restore drill on an
+isolated target including the database and issued/private artifacts. Offline/PWA remains
+`CONDITIONAL`. The authoritative item-by-item status and exact evidence are maintained in
+`J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md`.
+
+## Active remediation checkpoint — 2026-08-27
+
+The prior implementation plan was re-grounded against the current worktree. The current verdict
+remains **NOT READY**. The approved public-website changes and `.gitignore` modification predate this
+checkpoint and are preserved; the website lane is isolated from portal/finance remediation.
+
+Runtime discovery found the shell on Node `25.8.1` with pnpm `11.22.0`, while the repository requires
+Node `24.19.0` and pnpm `11.22.0`. A local pnpm-store Node `24.19.0` executable is available for the
+pinned gates. The quality-gate entrypoint must reject any mismatched runtime before producing release
+evidence.
+
+```text
+WP-RUNTIME (pinned baseline/tests) ─┐
+WP-WEB (approved website stream) ─├── parallel, non-overlapping A/Luna Max leaves
+WP-UI (role navigation/responsive) ─┤
+WP-OPS (continuity backup contract) ─┤
+WP-ART (durable Worker statement) ─┘
+
+WP-FIN (exclusive repository hot-file finance truth, B/Sol Medium)
+  → WP-SEC/JOBS (serialized security, MFA, step-up, service-actor contract)
+  → mechanical migration/test/UI leaves routed back to Luna Max
+  → 32-step authenticated browser journey (Luna Max)
+  → independent finance/security/responsive/spec reviews
+  → pinned Client Essential release gate and integration sign-off
+```
+
+| Packet      | Lane                     | Owned paths                                                        | State                                 |
+| ----------- | ------------------------ | ------------------------------------------------------------------ | ------------------------------------- |
+| WP-RUNTIME  | A / Luna Max             | quality-gate script and deterministic non-E2E tests                | ACTIVE                                |
+| WP-WEB      | A / Luna Max             | `website/**`                                                       | ACTIVE                                |
+| WP-UI       | A / Luna Max             | portal shell/navigation/CSS and navigation unit tests              | ACTIVE                                |
+| WP-OPS      | A / Luna Max             | continuity backup scripts/config/tests                             | ACTIVE                                |
+| WP-ART      | A / Luna Max             | reporting/Worker-statement artifact leaves                         | ACTIVE                                |
+| WP-FIN      | B / Sol Medium           | `repository.ts`, `v3-repository.ts`, bounded finance modules/tests | ACTIVE — EXCLUSIVE HOT-FILE OWNER     |
+| WP-SEC/JOBS | B contract + Luna leaves | security/MFA/private storage/service actor                         | PENDING AFTER WP-FIN HOT-FILE RELEASE |
+| WP-E2E-32   | A / Luna Max             | deterministic fixtures and authenticated Playwright journey        | PENDING AFTER CONTRACTS               |
+| WP-REVIEWS  | independent reviewers    | read-only finance/security/browser/spec audit                      | PENDING                               |
+| WP-RELEASE  | C / Sol High integration | final pinned release gate and verdict                              | PENDING                               |
+
+Offline/PWA is disabled for this go-live decision. Malware scanning is intentionally disabled with a
+truthful `not_scanned` state and documented bounded risk. Remote continuity proof remains externally
+blocked until a separately administered SSH host and credentials are supplied; local fake-transport
+tests do not substitute for the live restore drill.
 
 ## Gate R0 — Orchestration and worktree attestation
 

@@ -21,6 +21,8 @@ describe('Billing section lifecycle surface', () => {
     expect(value).toContain('Filter billing');
     expect(value).toContain('data-billing-invoice-list');
     expect(value).toContain('Configure billing');
+    expect(value).toContain('role="tablist"');
+    expect(value).toContain("workspace = $state<BillingWorkspace>('invoices')");
     expect(value.indexOf('billing-section__filters')).toBeLessThan(
       value.indexOf('data-billing-invoice-list'),
     );
@@ -77,5 +79,34 @@ describe('Billing section lifecycle surface', () => {
     expect(value).toContain('@media (prefers-reduced-motion: reduce)');
     expect(value).toContain(':focus-visible');
     expect(value).not.toMatch(/transition\s*:\s*all/);
+  });
+
+  it('maps invoice lifecycle states to the finance status pill semantics', () => {
+    const value = source();
+
+    expect(value).toContain("case 'draft':\n        return 'neutral';");
+    expect(value).toContain("case 'issued':\n      case 'sent':");
+    expect(value).toContain("case 'paid':\n        return 'success';");
+    expect(value).toMatch(/case 'void':[\s\S]*return 'danger';/);
+    expect(value).toMatch(/case 'credited':[\s\S]*case 'credit_note':[\s\S]*return 'warning';/);
+    expect(value).toContain('invoiceStatusText(invoice)');
+    expect(value).toContain('✓ ');
+  });
+
+  it('exposes the invoice PDF lifecycle without offering a non-ready download', () => {
+    const value = source();
+
+    expect(value).toContain(
+      "type InvoicePdfStatus = 'queued' | 'running' | 'ready' | 'failed' | 'unavailable';",
+    );
+    expect(value).toContain("return 'unavailable';");
+    expect(value).toContain('data-invoice-pdf-status={pdfStatus}');
+    expect(value).toContain("pdfStatus === 'ready'");
+    expect(value).toContain(
+      'href={`${base}/app/api/invoices/${encodeURIComponent(invoiceId)}/pdf`}',
+    );
+    expect(value).not.toContain('pdfStorageKey');
+    expect(value).not.toContain('storageKey');
+    expect(value).not.toContain('data:application/pdf');
   });
 });

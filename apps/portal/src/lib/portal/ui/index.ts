@@ -7,6 +7,8 @@ export { default as ActionBar } from './ActionBar.svelte';
 export { default as StatusBadge } from './StatusBadge.svelte';
 export { default as TableRegion } from './TableRegion.svelte';
 export { default as ResponsiveSheet } from './ResponsiveSheet.svelte';
+export { default as Toast } from './Toast.svelte';
+export { default as ToastRegion } from './ToastRegion.svelte';
 export { default as LocalizedPdfPanel } from './localized-pdf/LocalizedPdfPanel.svelte';
 export { default as formValidation } from './form-validation';
 export {
@@ -16,6 +18,22 @@ export {
 } from './form-validation';
 export type FieldGroupColumns = '1' | '2' | '3' | 'auto';
 export type StatusVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
+export type ToastVariant = 'success' | 'warning' | 'danger' | 'info';
+export type ToastItem = {
+  id: string;
+  message: string;
+  title?: string;
+  variant?: ToastVariant;
+  autoDismiss?: boolean;
+  durationMs?: number;
+  closeLabel?: string;
+};
 export type TableMobileMode = 'cards' | 'scroll';
 export type TableCardCell = { label: string; value: string };
-export type TableCardRow = { id?: string; cells: TableCardCell[] };
+export type TableCardRow = {
+  id?: string;
+  cells: TableCardCell[];
+  href?: string;
+  linkLabel?: string;
+  linkAriaLabel?: string;
+};

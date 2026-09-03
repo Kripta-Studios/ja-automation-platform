@@ -1,4 +1,8 @@
 import { expect, test } from '@playwright/test';
+import {
+  portalNavigationForRole,
+  type PortalRole as NavigationRole,
+} from '../../apps/portal/src/lib/portal-navigation.ts';
 import { portal, signIn } from './auth.js';
 
 const projects = [
@@ -12,7 +16,20 @@ const projects = [
   'wide-1920',
 ] as const;
 
-const roles = ['worker', 'manager', 'finance', 'owner'] as const;
+const roles = ['worker', 'manager', 'finance', 'owner', 'auditor'] as const;
+type TestRole = (typeof roles)[number];
+
+const productionRoleByTestRole: Record<TestRole, NavigationRole> = {
+  worker: 'worker',
+  manager: 'project_manager',
+  finance: 'finance_admin',
+  owner: 'owner_admin',
+  auditor: 'auditor_read_only',
+};
+
+function navigationContract(role: TestRole) {
+  return portalNavigationForRole('/j-aautomation', productionRoleByTestRole[role]);
+}
 
 function assertProject(projectName: string): void {
   expect(projects).toContain(projectName as (typeof projects)[number]);
@@ -74,6 +91,7 @@ async function expectDrawerClosed(
   options: { focusReturn?: boolean } = {},
 ): Promise<void> {
   await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+  await expect(navigation).not.toHaveClass(/(?:^|\s)open(?:\s|$)/);
   if (options.focusReturn) {
     await expect
       .poll(() => page.evaluate(() => document.activeElement?.getAttribute('aria-label')))
@@ -96,6 +114,18 @@ async function expectDrawerClosed(
   expect(sequentialDescendants).toBe(0);
 }
 
+async function expectDrawerOpen(
+  menuButton: import('@playwright/test').Locator,
+  navigation: import('@playwright/test').Locator,
+): Promise<void> {
+  // The mobile aside remains geometrically visible while it is translated
+  // off-canvas. Its explicit state contract, not Locator.isVisible(), proves
+  // that the drawer is open.
+  await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
+  await expect(navigation).toHaveClass(/(?:^|\s)open(?:\s|$)/);
+  await expect(navigation).not.toHaveAttribute('aria-hidden', 'true');
+}
+
 async function expectFocusInside(
   page: import('@playwright/test').Page,
   navigation: import('@playwright/test').Locator,
@@ -106,7 +136,7 @@ async function expectFocusInside(
 }
 
 for (const role of roles) {
-  test(`${role} mobile drawer has a trapped keyboard lifecycle`, async ({ page }, testInfo) => {
+  test(`${role} responsive drawer has a trapped keyboard lifecycle`, async ({ page }, testInfo) => {
     assertProject(testInfo.project.name);
     const width = page.viewportSize()?.width ?? 0;
     const errors = captureRuntimeErrors(page);
@@ -114,12 +144,13 @@ for (const role of roles) {
     const menuButton = page.getByRole('button', { name: 'Toggle navigation' });
     const navigation = page.locator('#portal-navigation');
 
-    if (width <= 430) {
+    // PortalChrome switches to the off-canvas drawer below 63.99rem
+    // (1024px at the evidence root size), including the tablet project.
+    if (width < 1024) {
       await expectDrawerClosed(page, menuButton, navigation);
       await expect(menuButton).toHaveAttribute('aria-controls', 'portal-navigation');
       await menuButton.press('Enter');
-      await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
-      await expect(navigation).toBeVisible();
+      await expectDrawerOpen(menuButton, navigation);
       await expect
         .poll(() =>
           page.evaluate(
@@ -182,7 +213,7 @@ for (const role of ['worker', 'owner'] as const) {
     await signIn(page, role);
     const menuButton = page.getByRole('button', { name: 'Toggle navigation' });
     const navigation = page.locator('#portal-navigation');
-    if (width > 430) {
+    if (width >= 1024) {
       await expect(navigation).toBeVisible();
       expect(
         (await navigation.locator('.nav-label').allTextContents()).every((label) => label.trim()),
@@ -193,7 +224,7 @@ for (const role of ['worker', 'owner'] as const) {
     await expectDrawerClosed(page, menuButton, navigation);
     await expect(menuButton).toHaveAttribute('aria-controls', 'portal-navigation');
     await menuButton.press('Space');
-    await expect(navigation).toBeVisible();
+    await expectDrawerOpen(menuButton, navigation);
     const backdrop = page.locator('.nav-backdrop');
     await expect(backdrop).toBeVisible();
     await expect(backdrop).toHaveAttribute('aria-label', expect.stringContaining('Close'));
@@ -211,28 +242,44 @@ for (const role of ['worker', 'owner'] as const) {
     await signIn(page, role);
     const menuButton = page.getByRole('button', { name: 'Toggle navigation' });
     const navigation = page.locator('#portal-navigation');
-    if (width > 430) {
+    if (width >= 1024) {
       await expect(navigation).toBeVisible();
-      const timeLink = navigation
-        .locator('nav[aria-label="Primary navigation"] a')
-        .filter({ hasText: /^Time$/ });
-      await expect(timeLink).toHaveCount(1);
-      await timeLink.click();
-      await expect(page).toHaveURL(portal('/time'));
-      await expect(page.getByRole('heading', { name: 'Time entries' })).toBeVisible();
+      const contract = navigationContract(role);
+      const target =
+        contract.primary.find((item) => item.section === 'time') ?? contract.primary[0];
+      if (!target) throw new Error(`No primary navigation target is defined for ${role}`);
+      const targetLink = navigation.locator('nav[aria-label="Primary navigation"] a').filter({
+        hasText: new RegExp(`^${target.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`),
+      });
+      await expect(targetLink).toHaveCount(1);
+      await targetLink.click();
+      const targetHref =
+        target.href ?? (target.section === 'today' ? portal('') : portal(`/${target.section}`));
+      await expect(page).toHaveURL(targetHref);
+      await expect(
+        navigation.locator('a[aria-current="page"]').filter({ hasText: target.label }),
+      ).toHaveCount(1);
       expect(errors).toEqual([]);
       return;
     }
     await menuButton.press('Enter');
+    await expectDrawerOpen(menuButton, navigation);
     await expectFocusInside(page, navigation);
-    const timeLink = navigation
+    const contract = navigationContract(role);
+    const target = contract.primary.find((item) => item.section === 'time') ?? contract.primary[0];
+    if (!target) throw new Error(`No primary navigation target is defined for ${role}`);
+    const targetLink = navigation
       .locator('nav[aria-label="Primary navigation"] a')
-      .filter({ hasText: /^Time$/ });
-    await expect(timeLink).toHaveCount(1);
-    await timeLink.click();
-    await expect(page).toHaveURL(portal('/time'));
+      .filter({ hasText: new RegExp(`^${target.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) });
+    await expect(targetLink).toHaveCount(1);
+    await targetLink.click();
+    const targetHref =
+      target.href ?? (target.section === 'today' ? portal('') : portal(`/${target.section}`));
+    await expect(page).toHaveURL(targetHref);
     await expectDrawerClosed(page, menuButton, navigation, { focusReturn: true });
-    await expect(page.getByRole('heading', { name: 'Time entries' })).toBeVisible();
+    await expect(
+      page.locator('#portal-navigation a[aria-current="page"]').filter({ hasText: target.label }),
+    ).toHaveCount(1);
     expect(errors).toEqual([]);
   });
 }
@@ -308,7 +355,8 @@ test('keyboard order reaches skip target, shell, navigation, fields, errors and 
   expect(skipHref).toMatch(/^#/);
   const skipTarget = page.locator(skipHref!);
   await expect(skipTarget).toHaveCount(1);
-  await skipLink.click();
+  await skipLink.focus();
+  await skipLink.press('Enter');
   await expect
     .poll(() => page.evaluate(() => document.activeElement?.id ?? ''))
     .toBe(skipHref!.slice(1));
@@ -325,24 +373,23 @@ test('keyboard order reaches skip target, shell, navigation, fields, errors and 
     shellSequence,
   );
   expect(firstTab.snapshot.text.toLowerCase()).toContain('skip');
-  const menuButton = page.getByRole('button', { name: 'Toggle navigation' });
-  const menuStop = await tabUntil(
-    page,
-    (snapshot) => snapshot.ariaLabel === 'Toggle navigation',
-    'navigation toggle',
-    80,
-    shellSequence,
-  );
-  expect(menuStop.absoluteTabs).toBeGreaterThan(firstTab.absoluteTabs);
-  await expect(menuButton).toHaveAttribute('aria-controls', 'portal-navigation');
-  await expect(menuButton).toBeFocused();
-  await expectVisibleFocus(menuButton);
-
   const navigation = page.locator('#portal-navigation');
   const width = page.viewportSize()?.width ?? 0;
-  if (width <= 430) {
+  if (width < 1024) {
+    const menuButton = page.getByRole('button', { name: 'Toggle navigation' });
+    const menuStop = await tabUntil(
+      page,
+      (snapshot) => snapshot.ariaLabel === 'Toggle navigation',
+      'navigation toggle',
+      80,
+      shellSequence,
+    );
+    expect(menuStop.absoluteTabs).toBeGreaterThan(firstTab.absoluteTabs);
+    await expect(menuButton).toHaveAttribute('aria-controls', 'portal-navigation');
+    await expect(menuButton).toBeFocused();
+    await expectVisibleFocus(menuButton);
     await menuButton.press('Enter');
-    await expect(navigation).toBeVisible();
+    await expectDrawerOpen(menuButton, navigation);
     await expect
       .poll(() =>
         page.evaluate(
@@ -371,7 +418,7 @@ test('keyboard order reaches skip target, shell, navigation, fields, errors and 
       80,
       shellSequence,
     );
-    expect(navStop.absoluteTabs).toBeGreaterThan(menuStop.absoluteTabs);
+    expect(navStop.absoluteTabs).toBeGreaterThan(firstTab.absoluteTabs);
     await expectVisibleFocus(navigation.locator('a').first());
   }
 

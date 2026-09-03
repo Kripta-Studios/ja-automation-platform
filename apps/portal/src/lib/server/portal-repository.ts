@@ -34,6 +34,17 @@ export function openPortalRepository(locals: App.Locals) {
 }
 
 export function actionFailure(error: unknown) {
+  if (
+    (error instanceof AccessDeniedError || error instanceof V3AccessDeniedError) &&
+    /Recent step-up authentication is required/u.test(error.message)
+  )
+    return fail(403, {
+      success: false,
+      message: 'Confirm your identity to continue.',
+      stepUpRequired: true,
+    });
+  if (error instanceof AccessDeniedError && error.message === 'Sign in required')
+    return fail(401, { success: false, message: 'Sign in required' });
   if (error instanceof AccessDeniedError || error instanceof V3AccessDeniedError)
     return fail(403, { success: false, message: error.message });
   if (error instanceof ConflictError || error instanceof V3ConflictError)
@@ -46,7 +57,7 @@ export function actionFailure(error: unknown) {
     if (/Recent step-up authentication is required/u.test(error.message))
       return fail(403, {
         success: false,
-        message: error.message,
+        message: 'Confirm your identity to continue.',
         stepUpRequired: true,
       });
     if (/^(?:Active finance principal|Finance role) required$/u.test(error.message))

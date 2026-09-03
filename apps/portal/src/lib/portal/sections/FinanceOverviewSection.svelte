@@ -3,7 +3,7 @@
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import FinanceConfigurationSection from './FinanceConfigurationSection.svelte';
-  import { SectionCard, StatusBadge, TableRegion, formValidation } from '../ui';
+  import { Field, SectionCard, StatusBadge, TableRegion, formValidation } from '../ui';
   import type { TableCardRow } from '../ui';
 
   type MoneyFormatter = (minor: unknown, currency?: string) => string;
@@ -13,6 +13,16 @@
     value: string;
     note?: string;
   };
+  type FinanceProjectionReason = {
+    code?: string;
+    sourceId?: string;
+  };
+  type FinanceProjection = NonNullable<PortalData['finance']> & {
+    /** Canonical V3 uses `state`; `financeProjectionState` is accepted for DTO compatibility. */
+    state?: string;
+    financeProjectionState?: string;
+    reasons?: FinanceProjectionReason[];
+  };
 
   let {
     data,
@@ -21,6 +31,7 @@
     translate,
     controlledValue,
     money,
+    currentView = 'overview',
   }: {
     data: PortalData;
     availableProjects: Row[];
@@ -28,12 +39,40 @@
     translate: (value: string) => string;
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
     money: MoneyFormatter;
+    currentView?: string;
   } = $props();
 
   const financeRoles = ['owner_admin', 'finance_admin', 'auditor_read_only'] as const;
   const financeWriteRoles = ['owner_admin', 'finance_admin'] as const;
   const componentId = $props.id();
-  const finance = $derived(data.finance);
+  type FinanceWorkspaceView = 'overview' | 'economic' | 'commercial';
+  type SourceTab = 'portfolio' | 'workers' | 'time' | 'expenses' | 'settlements';
+  type ExpenseInboxFilter = 'all' | 'needs' | 'reimbursable' | 'non_billable';
+
+  const activeView = $derived.by((): FinanceWorkspaceView => {
+    const requested = String(currentView ?? '')
+      .trim()
+      .toLowerCase();
+    if (requested === 'economic' || requested === 'commercial' || requested === 'overview') {
+      return requested;
+    }
+    return 'overview';
+  });
+  const showEconomics = $derived(activeView === 'overview' || activeView === 'economic');
+  const showSourceTabs = $derived(activeView === 'economic');
+  const showCommercial = $derived(activeView === 'commercial');
+
+  let sourceTab = $state<SourceTab>('portfolio');
+  let sourcePage = $state(0);
+  const sourcePageSize = 25;
+  let expenseInboxFilter = $state<ExpenseInboxFilter>('all');
+  let selectedExpenseId = $state('');
+  const finance = $derived(data.finance as FinanceProjection | null | undefined);
+  const financeProjectionIncomplete = $derived(
+    Boolean(finance) &&
+      (finance?.financeProjectionState === 'incomplete' || finance?.state === 'incomplete'),
+  );
+  const financeProjectionReasons = $derived(finance?.reasons ?? []);
   const authorizedFinance = $derived(
     financeRoles.includes(String(data.user.role) as (typeof financeRoles)[number]),
   );
@@ -74,9 +113,67 @@
     return `${negative ? '-' : ''}${whole}.${fraction}%`;
   }
 
-  function displayMinutes(valueToFormat: unknown): string {
+  function displayHours(valueToFormat: unknown): string {
     const raw = String(valueToFormat ?? '').trim();
-    return raw ? `${raw} ${translate('minutes')}` : '—';
+    if (!/^-?\d+$/.test(raw)) return '—';
+    const negative = raw.startsWith('-');
+    const abs = BigInt(negative ? raw.slice(1) : raw);
+    const tenths = (abs * 10n) / 60n;
+    const whole = tenths / 10n;
+    const fraction = tenths % 10n;
+    const grouped = whole.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return `${negative ? '-' : ''}${grouped}.${fraction} ${translate('hrs')}`;
+  }
+
+  function consumptionTone(valueToFormat: unknown): 'ok' | 'warning' | 'danger' {
+    const raw = String(valueToFormat ?? '').trim();
+    if (!/^-?\d+$/.test(raw)) return 'ok';
+    const digits = BigInt(raw.startsWith('-') ? raw.slice(1) : raw);
+    if (digits > 10000n) return 'danger';
+    if (digits >= 7500n) return 'warning';
+    return 'ok';
+  }
+
+  function barWidth(valueToFormat: unknown): string {
+    const raw = String(valueToFormat ?? '').trim();
+    if (!/^\d+$/.test(raw)) return '0%';
+    const digits = BigInt(raw);
+    const capped = digits > 10000n ? 10000n : digits;
+    const whole = capped / 100n;
+    const fraction = (capped % 100n).toString().padStart(2, '0');
+    return `${whole}.${fraction}%`;
+  }
+
+  function paginate<T>(rows: readonly T[], page: number): T[] {
+    const start = page * sourcePageSize;
+    return rows.slice(start, start + sourcePageSize);
+  }
+
+  function pageCount(length: number): number {
+    return Math.max(1, Math.ceil(length / sourcePageSize));
+  }
+
+  function setSourceTab(next: SourceTab): void {
+    sourceTab = next;
+    sourcePage = 0;
+  }
+
+  function taxPercentOptions(): Array<{ label: string; bps: string }> {
+    return [
+      { label: '0%', bps: '0' },
+      { label: '4%', bps: '400' },
+      { label: '10%', bps: '1000' },
+      { label: '21%', bps: '2100' },
+    ];
+  }
+
+  function syncTaxBps(event: Event): void {
+    const select = event.currentTarget as HTMLSelectElement;
+    const form = select.form;
+    const taxBps = form?.elements.namedItem('taxBps') as HTMLInputElement | null;
+    if (!taxBps) return;
+    const selected = taxPercentOptions().find((option) => option.bps === select.value);
+    taxBps.value = selected?.bps ?? '0';
   }
 
   function statusLabel(status: unknown): string {
@@ -159,6 +256,26 @@
 
   function projectHref(row: Row | Record<string, unknown>): string {
     return `${base}/app/projects/${encodeURIComponent(projectId(row))}`;
+  }
+
+  const projectionReasonMessages: Record<string, string> = {
+    missing_client_rate: 'Client rate is missing for a source record.',
+    missing_internal_cost: 'Internal cost is missing for a source record.',
+    missing_compensation_rule: 'Worker compensation rule is missing for a source record.',
+    missing_expense_finance_projection:
+      'Expense finance projection is missing for a source record.',
+    missing_expense_currency_conversion:
+      'Expense currency conversion is missing for a source record.',
+  };
+
+  function projectionReasonText(reason: FinanceProjectionReason): string {
+    const message =
+      projectionReasonMessages[String(reason.code ?? '').trim()] ??
+      'A finance source record needs projection review.';
+    const sourceId = String(reason.sourceId ?? '').trim();
+    return sourceId
+      ? `${translate(message)} · ${translate('Source record')}: ${sourceId}`
+      : translate(message);
   }
 
   function rowStatusVariant(
@@ -262,13 +379,13 @@
       {
         key: 'planned-minutes',
         label: translate('Planned reference minutes'),
-        value: displayMinutes(finance.plannedMinutes),
+        value: displayHours(finance.plannedMinutes),
         note: translate('Planning input only; it never creates actual time'),
       },
       {
         key: 'planned-remaining',
         label: translate('Planned remaining'),
-        value: displayMinutes(finance.plannedRemainingMinutes),
+        value: displayHours(finance.plannedRemainingMinutes),
       },
       {
         key: 'etc-direct-cost',
@@ -299,31 +416,40 @@
   });
 
   const portfolioCardRows = $derived.by((): TableCardRow[] =>
-    portfolioProjects.map((row) => ({
-      id: projectId(row),
-      cells: [
-        { label: translate('Project'), value: `${projectNumber(row)} · ${projectName(row)}` },
-        { label: translate('Client'), value: value(row, 'clientName', 'client_name') || '—' },
-        { label: translate('Currency'), value: value(row, 'currency') || '—' },
-        {
-          label: translate('Approved hours'),
-          value: displayMinutes(value(row, 'approvedMinutes', 'approved_minutes')),
-        },
-        {
-          label: translate('Contribution'),
-          value: displayMoney(
-            value(row, 'contributionMarginMinor', 'contribution'),
-            value(row, 'currency'),
-          ),
-        },
-        {
-          label: translate('Source'),
-          value: projectId(row)
-            ? translate('Open project source')
-            : translate('Source unavailable'),
-        },
-      ],
-    })),
+    portfolioProjects.map((row) => {
+      const id = projectId(row);
+      const label = `${projectNumber(row)} · ${projectName(row)}`;
+      return {
+        id,
+        cells: [
+          { label: translate('Project'), value: label },
+          { label: translate('Client'), value: value(row, 'clientName', 'client_name') || '—' },
+          { label: translate('Currency'), value: value(row, 'currency') || '—' },
+          {
+            label: translate('Approved hours'),
+            value: displayHours(value(row, 'approvedMinutes', 'approved_minutes')),
+          },
+          {
+            label: translate('Contribution'),
+            value: displayMoney(
+              value(row, 'contributionMarginMinor', 'contribution'),
+              value(row, 'currency'),
+            ),
+          },
+          {
+            label: translate('Source'),
+            value: id ? translate('Available') : translate('Source unavailable'),
+          },
+        ],
+        ...(id
+          ? {
+              href: projectHref(row),
+              linkLabel: translate('Open source'),
+              linkAriaLabel: `${translate('Open source')}: ${label}`,
+            }
+          : {}),
+      };
+    }),
   );
 
   const workerCardRows = $derived.by((): TableCardRow[] =>
@@ -334,7 +460,7 @@
         { label: translate('Currency'), value: value(row, 'currency') || '—' },
         {
           label: translate('Approved hours'),
-          value: displayMinutes(value(row, 'actualMinutes', 'actual_minutes')),
+          value: displayHours(value(row, 'actualMinutes', 'actual_minutes')),
         },
         {
           label: translate('Contribution'),
@@ -354,8 +480,8 @@
         { label: translate('Date'), value: value(row, 'workDate', 'work_date') || '—' },
         { label: translate('Category'), value: categoryLabel(row.category) },
         {
-          label: translate('Minutes'),
-          value: value(row, 'actualMinutes', 'actual_minutes') || '—',
+          label: translate('Hours'),
+          value: displayHours(value(row, 'actualMinutes', 'actual_minutes')),
         },
         { label: translate('State'), value: statusLabel(row.approvalState) },
         {
@@ -398,6 +524,57 @@
       (row) => value(row, 'reimbursementState', 'reimbursement_state') !== 'reimbursed',
     ).length,
   );
+
+  const workspaceTitle = $derived(
+    activeView === 'commercial'
+      ? translate('Commercial Configuration')
+      : activeView === 'economic'
+        ? translate('Economic Review')
+        : translate('Finance overview'),
+  );
+  const workspaceEyebrow = $derived(
+    activeView === 'commercial'
+      ? translate('Commercial operations')
+      : activeView === 'economic'
+        ? translate('Project economics')
+        : translate('Finance control'),
+  );
+
+  const filteredFinanceExpenses = $derived.by(() => {
+    return financeExpenses.filter((expense) => {
+      const preset = expensePreset(expense);
+      const classification = expenseClassificationState(expense);
+      if (expenseInboxFilter === 'needs') return classification !== 'classified';
+      if (expenseInboxFilter === 'reimbursable') return preset === 'reimbursable_at_cost';
+      if (expenseInboxFilter === 'non_billable') return preset === 'non_billable';
+      return true;
+    });
+  });
+  const needsClassificationCount = $derived(
+    financeExpenses.filter((expense) => expenseClassificationState(expense) !== 'classified')
+      .length,
+  );
+  const reimbursableCount = $derived(
+    financeExpenses.filter((expense) => expensePreset(expense) === 'reimbursable_at_cost').length,
+  );
+  const nonBillableCount = $derived(
+    financeExpenses.filter((expense) => expensePreset(expense) === 'non_billable').length,
+  );
+
+  const pagedPortfolio = $derived(paginate(portfolioProjects, sourcePage));
+  const pagedWorkers = $derived(paginate(portfolioWorkers, sourcePage));
+  const pagedTime = $derived(paginate(timeEconomics, sourcePage));
+  const currentSourceCount = $derived(
+    sourceTab === 'workers'
+      ? portfolioWorkers.length
+      : sourceTab === 'time'
+        ? timeEconomics.length
+        : sourceTab === 'expenses'
+          ? expenseEconomics.length
+          : sourceTab === 'settlements'
+            ? settlements.length
+            : portfolioProjects.length,
+  );
 </script>
 
 {#if !authorizedFinance}
@@ -412,50 +589,91 @@
   <div class="finance-overview" data-ui="finance-overview">
     <header class="finance-overview__context">
       <div>
-        <p class="finance-overview__eyebrow">{translate('Finance control')}</p>
-        <h2>{translate('Finance overview')}</h2>
+        <p class="finance-overview__eyebrow">{workspaceEyebrow}</p>
+        <h2>{workspaceTitle}</h2>
         <p>
-          {translate(
-            'Review canonical project economics, source records, planning signals, settlements, and reimbursements in one authorized workspace.',
-          )}
+          {#if activeView === 'commercial'}
+            {translate(
+              'Classify expenses and set commercial policies. Operational hours and project metrics stay on Economic Review.',
+            )}
+          {:else if activeView === 'economic'}
+            {translate(
+              'Review profitability, budget consumption, and source records for the selected project.',
+            )}
+          {:else}
+            {translate(
+              'Review canonical project economics, source records, planning signals, settlements, and reimbursements in one authorized workspace.',
+            )}
+          {/if}
         </p>
       </div>
       <StatusBadge
-        variant={finance ? 'success' : 'neutral'}
-        text={finance ? translate('Canonical projection loaded') : translate('No project selected')}
+        variant={finance ? (financeProjectionIncomplete ? 'warning' : 'success') : 'neutral'}
+        text={finance
+          ? financeProjectionIncomplete
+            ? translate('Canonical finance projection incomplete')
+            : translate('Canonical projection loaded')
+          : translate('No project selected')}
       />
     </header>
 
-    <div class="finance-overview__attention" aria-label={translate('Finance attention summary')}>
-      <article class="finance-overview__attention-card">
-        <span>{translate('Projects')}</span>
-        <strong>{portfolioProjects.length}</strong>
-        <small>{translate('Authorized project sources')}</small>
-      </article>
-      <article class="finance-overview__attention-card finance-overview__attention-card--notice">
-        <span>{translate('Settlement review')}</span>
-        <strong>{attentionSettlements}</strong>
-        <small>{translate('Expected or actual payment follow-up')}</small>
-      </article>
-      <article class="finance-overview__attention-card finance-overview__attention-card--notice">
-        <span>{translate('Reimbursement review')}</span>
-        <strong>{attentionReimbursements}</strong>
-        <small>{translate('Expected or actual reimbursement follow-up')}</small>
-      </article>
-      <article class="finance-overview__attention-card">
-        <span>{translate('Alerts')}</span>
-        <strong>{finance?.alerts?.length ?? 0}</strong>
-        <small>{translate('Canonical projection warnings')}</small>
-      </article>
-    </div>
+    {#if finance && financeProjectionIncomplete}
+      <section
+        class="finance-overview__projection-warning"
+        data-finance-projection-warning
+        role="alert"
+        aria-labelledby={`finance-projection-warning-${componentId}`}
+      >
+        <strong id={`finance-projection-warning-${componentId}`}>
+          {translate('Canonical finance projection incomplete')}
+        </strong>
+        <p>
+          {translate(
+            'Some approved source records still need finance projection data. Totals remain visible for traceability but are not complete for final review.',
+          )}
+        </p>
+        {#if financeProjectionReasons.length}
+          <ul aria-label={translate('Projection completeness reasons')}>
+            {#each financeProjectionReasons as reason}
+              <li>{projectionReasonText(reason)}</li>
+            {/each}
+          </ul>
+        {/if}
+      </section>
+    {/if}
+
+    {#if showEconomics}
+      <div class="finance-overview__attention" aria-label={translate('Finance attention summary')}>
+        <article class="finance-overview__attention-card">
+          <span>{translate('Projects')}</span>
+          <strong>{portfolioProjects.length}</strong>
+          <small>{translate('Authorized project sources')}</small>
+        </article>
+        <article class="finance-overview__attention-card finance-overview__attention-card--notice">
+          <span>{translate('Settlement review')}</span>
+          <strong>{attentionSettlements}</strong>
+          <small>{translate('Expected or actual payment follow-up')}</small>
+        </article>
+        <article class="finance-overview__attention-card finance-overview__attention-card--notice">
+          <span>{translate('Reimbursement review')}</span>
+          <strong>{attentionReimbursements}</strong>
+          <small>{translate('Expected or actual reimbursement follow-up')}</small>
+        </article>
+        <article class="finance-overview__attention-card">
+          <span>{translate('Alerts')}</span>
+          <strong>{finance?.alerts?.length ?? 0}</strong>
+          <small>{translate('Canonical projection warnings')}</small>
+        </article>
+      </div>
+    {/if}
 
     <form
       class="finance-overview__filters"
       method="GET"
       aria-label={translate('Filter finance by project')}
     >
-      <label for={`finance-project-${componentId}`}>
-        <span>{translate('Project')}</span>
+      <input type="hidden" name="view" value={activeView} />
+      <Field id={`finance-project-${componentId}`} label={translate('Project')}>
         <select
           id={`finance-project-${componentId}`}
           name="project"
@@ -472,31 +690,83 @@
             <option value="">{translate('No authorized projects')}</option>
           {/each}
         </select>
-      </label>
+      </Field>
     </form>
 
     {#if finance}
-      <div class="finance-overview__summary-grid">
-        <SectionCard
-          title={translate('Actual')}
-          class="finance-overview__surface"
-          data-finance-actual
-        >
-          <p class="finance-overview__surface-note">
-            {translate(
-              'Actual values come from approved source records, issued invoices, and append-only payment events.',
-            )}
-          </p>
-          <div class="finance-overview__metrics" aria-label={translate('Actual finance metrics')}>
-            {#each actualMetrics as metric}
-              <article class="finance-overview__metric" data-metric={metric.key}>
-                <span>{metric.label}</span>
-                <strong>{metric.value}</strong>
-                {#if metric.note}<small>{metric.note}</small>{/if}
-              </article>
-            {/each}
-          </div>
-        </SectionCard>
+      {#if showEconomics}
+        <div class="finance-overview__hero" data-finance-actual>
+          <article
+            class="finance-overview__hero-card finance-overview__hero-card--accent"
+            data-metric="direct-project-result"
+          >
+            <span>{translate('Direct Project Result')}</span>
+            <strong>{displayMoney(finance.contributionMarginMinor, finance.currency)}</strong>
+            <span class="finance-overview__margin-tag" data-metric="contribution-margin-percent">
+              {displayBps(finance.contributionMarginBps)}
+              {translate('Contribution Margin %')}
+            </span>
+            <small
+              >{translate('Contribution')} · {translate(
+                'Contribution after approved direct cost',
+              )}</small
+            >
+          </article>
+          <article class="finance-overview__hero-card" data-metric="invoiced">
+            <span>{translate('Invoiced (actual)')}</span>
+            <strong>{displayMoney(finance.invoicedMinor, finance.currency)}</strong>
+            <small>
+              {translate('Revenue candidate')}:
+              {displayMoney(finance.revenueCandidateMinor, finance.currency)}
+            </small>
+          </article>
+          <article class="finance-overview__hero-card" data-metric="direct-cost">
+            <span>{translate('Direct cost')}</span>
+            <strong>{displayMoney(finance.approvedCostMinor, finance.currency)}</strong>
+            <small>
+              {translate('Loaded labor')}:
+              {displayMoney(finance.directLaborCostMinor, finance.currency)}
+              · {translate('Expenses')}:
+              {displayMoney(finance.otherDirectCostMinor, finance.currency)}
+            </small>
+          </article>
+          <article class="finance-overview__hero-card" data-metric="hours-consumed">
+            <span>{translate('Hours')}</span>
+            <strong>
+              {displayHours(finance.actualMinutes ?? finance.approvedMinutes)}
+              /
+              {displayHours(finance.plannedMinutes)}
+            </strong>
+            <div
+              class="finance-overview__progress"
+              data-tone={consumptionTone(finance.hoursConsumedBps)}
+              aria-label={translate('Hours consumed')}
+            >
+              <span style:width={barWidth(finance.hoursConsumedBps)}></span>
+            </div>
+            <small>{displayBps(finance.hoursConsumedBps)} {translate('Hours consumed')}</small>
+          </article>
+        </div>
+
+        <div class="finance-overview__cash" aria-label={translate('Cash and liquidity')}>
+          <span data-metric="collected"
+            >{translate('Collected (actual)')}:
+            <strong>{displayMoney(finance.paidMinor, finance.currency)}</strong></span
+          >
+          <span data-metric="outstanding"
+            >{translate('Outstanding (actual)')}:
+            <strong>{displayMoney(finance.receivableMinor, finance.currency)}</strong></span
+          >
+          <span data-metric="approved-wip"
+            >{translate('Approved unbilled WIP')}:
+            <strong>{displayMoney(finance.approvedUnbilledWipMinor, finance.currency)}</strong
+            ></span
+          >
+          <span data-metric="revenue-candidate"
+            >{translate('Revenue candidate')}:
+            <strong>{displayMoney(finance.revenueCandidateMinor, finance.currency)}</strong></span
+          >
+        </div>
 
         <SectionCard
           title={translate('Planned / Expected')}
@@ -516,18 +786,53 @@
                 : translate('No detailed plan')}
             />
           </div>
-          <div
-            class="finance-overview__metrics"
-            aria-label={translate('Planned and expected finance metrics')}
-          >
-            {#each expectedMetrics as metric}
-              <article class="finance-overview__metric" data-metric={metric.key}>
-                <span>{metric.label}</span>
-                <strong>{metric.value}</strong>
-                {#if metric.note}<small>{metric.note}</small>{/if}
-              </article>
-            {/each}
+          <div class="finance-overview__budget-row">
+            <article class="finance-overview__metric" data-metric="planned-minutes">
+              <span>{translate('Planned reference minutes')}</span>
+              <strong>{displayHours(finance.plannedMinutes)}</strong>
+              <small>{translate('Planning input only; it never creates actual time')}</small>
+            </article>
+            <article class="finance-overview__metric" data-metric="travel-budget-used">
+              <span>{translate('Travel budget used')}</span>
+              <strong>{displayBps(finance.travelBudgetConsumedBps)}</strong>
+              <div
+                class="finance-overview__progress"
+                data-tone={consumptionTone(finance.travelBudgetConsumedBps)}
+              >
+                <span style:width={barWidth(finance.travelBudgetConsumedBps)}></span>
+              </div>
+            </article>
           </div>
+          <details class="finance-overview__projection-details">
+            <summary>{translate('Estimate to complete')}</summary>
+            <div
+              class="finance-overview__metrics"
+              aria-label={translate('Planned and expected finance metrics')}
+            >
+              {#each expectedMetrics as metric}
+                <article class="finance-overview__metric" data-metric={metric.key}>
+                  <span>{metric.label}</span>
+                  <strong
+                    >{metric.key === 'planned-minutes'
+                      ? displayHours(finance.plannedMinutes)
+                      : metric.key === 'planned-remaining'
+                        ? displayHours(finance.plannedRemainingMinutes)
+                        : metric.value}</strong
+                  >
+                  {#if metric.note}<small>{metric.note}</small>{/if}
+                </article>
+              {/each}
+              {#each actualMetrics as metric}
+                {#if !['direct-project-result', 'invoiced', 'direct-cost', 'collected', 'outstanding', 'approved-wip', 'revenue-candidate', 'contribution-margin-percent'].includes(metric.key)}
+                  <article class="finance-overview__metric" data-metric={metric.key}>
+                    <span>{metric.label}</span>
+                    <strong>{metric.value}</strong>
+                    {#if metric.note}<small>{metric.note}</small>{/if}
+                  </article>
+                {/if}
+              {/each}
+            </div>
+          </details>
           {#if finance.alerts?.length}
             <div
               class="finance-overview__alerts"
@@ -540,280 +845,342 @@
             </div>
           {/if}
         </SectionCard>
-      </div>
+      {/if}
 
-      <SectionCard
-        title={translate('Portfolio source drill-down')}
-        class="finance-overview__surface"
-      >
-        <p class="finance-overview__surface-note">
-          {translate(
-            'Open the project source for the underlying operational and commercial records. Portfolio values remain grouped by currency.',
-          )}
-        </p>
-        <TableRegion
-          class="finance-overview__table-region"
-          ariaLabel={translate('Portfolio finance source table')}
-          mobileMode="cards"
-          cardRows={portfolioCardRows}
-        >
-          <table class="finance-overview__table">
-            <caption class="sr-only">{translate('Portfolio finance source drill-down')}</caption>
-            <thead>
-              <tr>
-                <th scope="col">{translate('Project')}</th>
-                <th scope="col">{translate('Client')}</th>
-                <th scope="col">{translate('Currency')}</th>
-                <th scope="col">{translate('Approved hours')}</th>
-                <th scope="col">{translate('Revenue candidate')}</th>
-                <th scope="col">{translate('Direct cost')}</th>
-                <th scope="col">{translate('Contribution')}</th>
-                <th scope="col">{translate('WIP')}</th>
-                <th scope="col">{translate('Source')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each portfolioProjects as row}
-                <tr data-finance-project-row={projectId(row)}>
-                  <td>
-                    {#if projectId(row)}
-                      <a class="finance-overview__source-link" href={projectHref(row)}>
-                        <strong>{projectNumber(row)}</strong>
-                        <span>{projectName(row)}</span>
-                      </a>
-                    {:else}
-                      <strong>{projectNumber(row)}</strong>
-                    {/if}
-                  </td>
-                  <td>{value(row, 'clientName', 'client_name') || '—'}</td>
-                  <td>{value(row, 'currency') || '—'}</td>
-                  <td>{displayMinutes(value(row, 'approvedMinutes', 'approved_minutes'))}</td>
-                  <td
-                    >{displayMoney(
-                      value(row, 'revenueCandidateMinor', 'revenue_candidate_minor'),
-                      value(row, 'currency'),
-                    )}</td
-                  >
-                  <td
-                    >{displayMoney(
-                      value(row, 'approvedCostMinor', 'approved_cost_minor'),
-                      value(row, 'currency'),
-                    )}</td
-                  >
-                  <td
-                    >{displayMoney(
-                      value(row, 'contributionMarginMinor', 'contribution'),
-                      value(row, 'currency'),
-                    )}</td
-                  >
-                  <td
-                    >{displayMoney(
-                      value(row, 'approvedUnbilledWipMinor', 'approved_unbilled_wip_minor'),
-                      value(row, 'currency'),
-                    )}</td
-                  >
-                  <td>
-                    {#if projectId(row)}
-                      <a class="finance-overview__source-link" href={projectHref(row)}
-                        >{translate('Open source')}</a
-                      >
-                    {:else}
-                      {translate('Unavailable')}
-                    {/if}
-                  </td>
-                </tr>
-              {:else}
-                <tr><td colspan="9">{translate('No finance projects are available.')}</td></tr>
-              {/each}
-            </tbody>
-          </table>
-        </TableRegion>
-
-        {#if portfolioWorkers.length}
-          <div class="finance-overview__subsurface">
-            <div class="finance-overview__subsurface-heading">
-              <h3>{translate('Worker economics by source')}</h3>
-              <span>{portfolioWorkers.length} {translate('records')}</span>
-            </div>
+      {#if showSourceTabs}
+        <SectionCard title={translate('Source records')} class="finance-overview__surface">
+          <div
+            class="finance-overview__source-tabs"
+            role="tablist"
+            aria-label={translate('Source records')}
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={sourceTab === 'portfolio'}
+              class:finance-overview__source-tab--active={sourceTab === 'portfolio'}
+              class="finance-overview__source-tab"
+              onclick={() => setSourceTab('portfolio')}>{translate('Portfolio')}</button
+            >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={sourceTab === 'workers'}
+              class:finance-overview__source-tab--active={sourceTab === 'workers'}
+              class="finance-overview__source-tab"
+              onclick={() => setSourceTab('workers')}>{translate('Worker economics')}</button
+            >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={sourceTab === 'time'}
+              class:finance-overview__source-tab--active={sourceTab === 'time'}
+              class="finance-overview__source-tab"
+              onclick={() => setSourceTab('time')}>{translate('Time entries')}</button
+            >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={sourceTab === 'expenses'}
+              class:finance-overview__source-tab--active={sourceTab === 'expenses'}
+              class="finance-overview__source-tab"
+              onclick={() => setSourceTab('expenses')}>{translate('Expense ledger')}</button
+            >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={sourceTab === 'settlements'}
+              class:finance-overview__source-tab--active={sourceTab === 'settlements'}
+              class="finance-overview__source-tab"
+              onclick={() => setSourceTab('settlements')}>{translate('Settlements')}</button
+            >
+          </div>
+          <p class="finance-overview__surface-note">
+            {translate(
+              'Open the project source for the underlying operational and commercial records. Portfolio values remain grouped by currency.',
+            )}
+          </p>
+          {#if sourceTab === 'portfolio'}
             <TableRegion
               class="finance-overview__table-region"
-              ariaLabel={translate('Worker economics source table')}
+              ariaLabel={translate('Portfolio finance source table')}
               mobileMode="cards"
-              cardRows={workerCardRows}
+              cardRows={portfolioCardRows}
             >
               <table class="finance-overview__table">
-                <caption class="sr-only">{translate('Worker economics by source')}</caption>
+                <caption class="sr-only">{translate('Portfolio finance source drill-down')}</caption
+                >
                 <thead>
                   <tr>
-                    <th scope="col">{translate('Worker')}</th>
+                    <th scope="col">{translate('Project')}</th>
+                    <th scope="col">{translate('Client')}</th>
                     <th scope="col">{translate('Currency')}</th>
                     <th scope="col">{translate('Approved hours')}</th>
-                    <th scope="col">{translate('Billable hours')}</th>
-                    <th scope="col">{translate('Revenue attributed')}</th>
-                    <th scope="col">{translate('Loaded labor cost')}</th>
-                    <th scope="col">{translate('Travel / expense')}</th>
+                    <th scope="col">{translate('Revenue candidate')}</th>
+                    <th scope="col">{translate('Direct cost')}</th>
                     <th scope="col">{translate('Contribution')}</th>
+                    <th scope="col">{translate('WIP')}</th>
+                    <th scope="col">{translate('Source')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {#each portfolioWorkers as row}
-                    <tr>
-                      <td>{value(row, 'workerName', 'worker_name') || '—'}</td>
+                  {#each pagedPortfolio as row}
+                    <tr data-finance-project-row={projectId(row)}>
+                      <td>
+                        {#if projectId(row)}
+                          <a class="finance-overview__source-link" href={projectHref(row)}>
+                            <strong>{projectNumber(row)}</strong>
+                            <span>{projectName(row)}</span>
+                          </a>
+                        {:else}
+                          <strong>{projectNumber(row)}</strong>
+                        {/if}
+                      </td>
+                      <td>{value(row, 'clientName', 'client_name') || '—'}</td>
                       <td>{value(row, 'currency') || '—'}</td>
-                      <td>{displayMinutes(value(row, 'actualMinutes', 'actual_minutes'))}</td>
-                      <td>{displayMinutes(value(row, 'billableMinutes', 'billable_minutes'))}</td>
-                      <td>{displayMoney(value(row, 'revenue'), value(row, 'currency'))}</td>
+                      <td>{displayHours(value(row, 'approvedMinutes', 'approved_minutes'))}</td>
                       <td
                         >{displayMoney(
-                          value(row, 'internalCost', 'internal_cost'),
+                          value(row, 'revenueCandidateMinor', 'revenue_candidate_minor'),
                           value(row, 'currency'),
                         )}</td
                       >
                       <td
                         >{displayMoney(
-                          value(row, 'expenseCost', 'expense_cost'),
+                          value(row, 'approvedCostMinor', 'approved_cost_minor'),
                           value(row, 'currency'),
                         )}</td
                       >
                       <td
                         >{displayMoney(
-                          value(row, 'contribution', 'contributionMinor'),
+                          value(row, 'contributionMarginMinor', 'contribution'),
                           value(row, 'currency'),
                         )}</td
+                      >
+                      <td
+                        >{displayMoney(
+                          value(row, 'approvedUnbilledWipMinor', 'approved_unbilled_wip_minor'),
+                          value(row, 'currency'),
+                        )}</td
+                      >
+                      <td>
+                        {projectId(row) ? translate('Available') : translate('Unavailable')}
+                      </td>
+                    </tr>
+                  {:else}
+                    <tr><td colspan="9">{translate('No finance projects are available.')}</td></tr>
+                  {/each}
+                </tbody>
+              </table>
+            </TableRegion>
+          {/if}
+
+          {#if sourceTab === 'workers'}
+            <div class="finance-overview__subsurface">
+              <div class="finance-overview__subsurface-heading">
+                <h3>{translate('Worker economics by source')}</h3>
+                <span>{portfolioWorkers.length} {translate('records')}</span>
+              </div>
+              <TableRegion
+                class="finance-overview__table-region"
+                ariaLabel={translate('Worker economics source table')}
+                mobileMode="cards"
+                cardRows={workerCardRows}
+              >
+                <table class="finance-overview__table">
+                  <caption class="sr-only">{translate('Worker economics by source')}</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">{translate('Worker')}</th>
+                      <th scope="col">{translate('Currency')}</th>
+                      <th scope="col">{translate('Approved hours')}</th>
+                      <th scope="col">{translate('Billable hours')}</th>
+                      <th scope="col">{translate('Revenue attributed')}</th>
+                      <th scope="col">{translate('Loaded labor cost')}</th>
+                      <th scope="col">{translate('Travel / expense')}</th>
+                      <th scope="col">{translate('Contribution')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {#each pagedWorkers as row}
+                      <tr>
+                        <td>{value(row, 'workerName', 'worker_name') || '—'}</td>
+                        <td>{value(row, 'currency') || '—'}</td>
+                        <td>{displayHours(value(row, 'actualMinutes', 'actual_minutes'))}</td>
+                        <td>{displayHours(value(row, 'billableMinutes', 'billable_minutes'))}</td>
+                        <td>{displayMoney(value(row, 'revenue'), value(row, 'currency'))}</td>
+                        <td
+                          >{displayMoney(
+                            value(row, 'internalCost', 'internal_cost'),
+                            value(row, 'currency'),
+                          )}</td
+                        >
+                        <td
+                          >{displayMoney(
+                            value(row, 'expenseCost', 'expense_cost'),
+                            value(row, 'currency'),
+                          )}</td
+                        >
+                        <td
+                          >{displayMoney(
+                            value(row, 'contribution', 'contributionMinor'),
+                            value(row, 'currency'),
+                          )}</td
+                        >
+                      </tr>
+                    {:else}
+                      <tr
+                        ><td colspan="8"
+                          >{translate('No approved worker economics are available.')}</td
+                        ></tr
+                      >
+                    {/each}
+                  </tbody>
+                </table>
+              </TableRegion>
+            </div>
+          {/if}
+
+          {#if sourceTab === 'time'}
+            <div class="finance-overview__subsurface-heading">
+              <div>
+                <h3>{translate('Approved time source records')}</h3>
+                <p>
+                  {translate(
+                    'Review source minutes, billing state, canonical rates, and direct cost without recalculating them here.',
+                  )}
+                </p>
+              </div>
+              <span>{timeEconomics.length} {translate('records')}</span>
+            </div>
+            <TableRegion
+              class="finance-overview__table-region"
+              ariaLabel={translate('Time economics source table')}
+              mobileMode="cards"
+              cardRows={timeCardRows}
+            >
+              <table class="finance-overview__table">
+                <caption class="sr-only">{translate('Time economics review')}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">{translate('Date')}</th>
+                    <th scope="col">{translate('Category')}</th>
+                    <th scope="col">{translate('Hours')}</th>
+                    <th scope="col">{translate('Billable hours')}</th>
+                    <th scope="col">{translate('State')}</th>
+                    <th scope="col">{translate('Billing')}</th>
+                    <th scope="col">{translate('Client revenue')}</th>
+                    <th scope="col">{translate('Loaded cost')}</th>
+                    <th scope="col">{translate('Worker compensation')}</th>
+                    <th scope="col">{translate('Configuration')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each pagedTime as row}
+                    <tr>
+                      <td>{value(row, 'workDate', 'work_date') || '—'}</td>
+                      <td>{categoryLabel(row.category)}</td>
+                      <td>{displayHours(value(row, 'actualMinutes', 'actual_minutes'))}</td>
+                      <td
+                        >{displayHours(
+                          value(row, 'clientBillableMinutes', 'client_billable_minutes'),
+                        )}</td
+                      >
+                      <td
+                        ><StatusBadge
+                          variant={rowStatusVariant(row.approvalState)}
+                          text={statusLabel(row.approvalState)}
+                        /></td
+                      >
+                      <td>{statusLabel(row.billingStatus ?? 'unlocked')}</td>
+                      <td>{displayMoney(row.clientRevenueMinor, finance.currency)}</td>
+                      <td>{displayMoney(row.internalCostMinor, finance.currency)}</td>
+                      <td>{displayMoney(row.workerCompensationMinor, finance.currency)}</td>
+                      <td
+                        >{row.clientRateConfigured && row.internalCostConfigured
+                          ? translate('Complete')
+                          : translate('Rate review')}</td
                       >
                     </tr>
                   {:else}
                     <tr
-                      ><td colspan="8"
-                        >{translate('No approved worker economics are available.')}</td
+                      ><td colspan="10"
+                        >{translate('No time economics are available for this project.')}</td
                       ></tr
                     >
                   {/each}
                 </tbody>
               </table>
             </TableRegion>
-          </div>
-        {/if}
-      </SectionCard>
+          {/if}
 
-      <SectionCard title={translate('Time economics review')} class="finance-overview__surface">
-        <div class="finance-overview__subsurface-heading">
-          <div>
-            <h3>{translate('Approved time source records')}</h3>
-            <p>
-              {translate(
-                'Review source minutes, billing state, canonical rates, and direct cost without recalculating them here.',
-              )}
-            </p>
-          </div>
-          <span>{timeEconomics.length} {translate('records')}</span>
-        </div>
-        <TableRegion
-          class="finance-overview__table-region"
-          ariaLabel={translate('Time economics source table')}
-          mobileMode="cards"
-          cardRows={timeCardRows}
-        >
-          <table class="finance-overview__table">
-            <caption class="sr-only">{translate('Time economics review')}</caption>
-            <thead>
-              <tr>
-                <th scope="col">{translate('Date')}</th>
-                <th scope="col">{translate('Category')}</th>
-                <th scope="col">{translate('Minutes')}</th>
-                <th scope="col">{translate('Billable minutes')}</th>
-                <th scope="col">{translate('State')}</th>
-                <th scope="col">{translate('Billing')}</th>
-                <th scope="col">{translate('Client revenue')}</th>
-                <th scope="col">{translate('Loaded cost')}</th>
-                <th scope="col">{translate('Worker compensation')}</th>
-                <th scope="col">{translate('Configuration')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each timeEconomics as row}
-                <tr>
-                  <td>{value(row, 'workDate', 'work_date') || '—'}</td>
-                  <td>{categoryLabel(row.category)}</td>
-                  <td>{value(row, 'actualMinutes', 'actual_minutes') || '—'}</td>
-                  <td>{value(row, 'clientBillableMinutes', 'client_billable_minutes') || '0'}</td>
-                  <td
-                    ><StatusBadge
-                      variant={rowStatusVariant(row.approvalState)}
-                      text={statusLabel(row.approvalState)}
-                    /></td
-                  >
-                  <td>{statusLabel(row.billingStatus ?? 'unlocked')}</td>
-                  <td>{displayMoney(row.clientRevenueMinor, finance.currency)}</td>
-                  <td>{displayMoney(row.internalCostMinor, finance.currency)}</td>
-                  <td>{displayMoney(row.workerCompensationMinor, finance.currency)}</td>
-                  <td
-                    >{row.clientRateConfigured && row.internalCostConfigured
-                      ? translate('Complete')
-                      : translate('Rate review')}</td
-                  >
-                </tr>
-              {:else}
-                <tr
-                  ><td colspan="10"
-                    >{translate('No time economics are available for this project.')}</td
-                  ></tr
-                >
-              {/each}
-            </tbody>
-          </table>
-        </TableRegion>
-      </SectionCard>
+          {#if sourceTab === 'expenses'}
+            <div class="finance-overview__subsurface-heading">
+              <div>
+                <h3>{translate('Finance-classified expense source records')}</h3>
+                <p>
+                  {translate(
+                    'Operational expense truth and Finance classification remain separate workflows.',
+                  )}
+                </p>
+              </div>
+              <span>{expenseEconomics.length} {translate('records')}</span>
+            </div>
+            <TableRegion
+              class="finance-overview__table-region"
+              ariaLabel={translate('Expense economics source table')}
+              mobileMode="cards"
+              cardRows={expenseCardRows}
+            >
+              <table class="finance-overview__table">
+                <caption class="sr-only">{translate('Expense economics')}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">{translate('Date')}</th>
+                    <th scope="col">{translate('Category')}</th>
+                    <th scope="col">{translate('Treatment')}</th>
+                    <th scope="col">{translate('Direct cost')}</th>
+                    <th scope="col">{translate('Client revenue')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each expenseEconomics as row}
+                    <tr>
+                      <td>{value(row, 'spentOn', 'spent_on') || '—'}</td>
+                      <td>{categoryLabel(row.category)}</td>
+                      <td>{translate(value(row, 'treatment') || 'Not classified')}</td>
+                      <td>{displayMoney(row.costMinor, finance.currency)}</td>
+                      <td>{displayMoney(row.revenueMinor, finance.currency)}</td>
+                    </tr>
+                  {:else}
+                    <tr
+                      ><td colspan="5"
+                        >{translate('No approved expenses are available for this project.')}</td
+                      ></tr
+                    >
+                  {/each}
+                </tbody>
+              </table>
+            </TableRegion>
+          {/if}
 
-      <SectionCard title={translate('Expense economics')} class="finance-overview__surface">
-        <div class="finance-overview__subsurface-heading">
-          <div>
-            <h3>{translate('Finance-classified expense source records')}</h3>
-            <p>
-              {translate(
-                'Operational expense truth and Finance classification remain separate workflows.',
-              )}
-            </p>
-          </div>
-          <span>{expenseEconomics.length} {translate('records')}</span>
-        </div>
-        <TableRegion
-          class="finance-overview__table-region"
-          ariaLabel={translate('Expense economics source table')}
-          mobileMode="cards"
-          cardRows={expenseCardRows}
-        >
-          <table class="finance-overview__table">
-            <caption class="sr-only">{translate('Expense economics')}</caption>
-            <thead>
-              <tr>
-                <th scope="col">{translate('Date')}</th>
-                <th scope="col">{translate('Category')}</th>
-                <th scope="col">{translate('Treatment')}</th>
-                <th scope="col">{translate('Direct cost')}</th>
-                <th scope="col">{translate('Client revenue')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each expenseEconomics as row}
-                <tr>
-                  <td>{value(row, 'spentOn', 'spent_on') || '—'}</td>
-                  <td>{categoryLabel(row.category)}</td>
-                  <td>{translate(value(row, 'treatment') || 'Not classified')}</td>
-                  <td>{displayMoney(row.costMinor, finance.currency)}</td>
-                  <td>{displayMoney(row.revenueMinor, finance.currency)}</td>
-                </tr>
-              {:else}
-                <tr
-                  ><td colspan="5"
-                    >{translate('No approved expenses are available for this project.')}</td
-                  ></tr
-                >
-              {/each}
-            </tbody>
-          </table>
-        </TableRegion>
+          {#if currentSourceCount > sourcePageSize}
+            <div class="finance-overview__pager">
+              <button type="button" disabled={sourcePage === 0} onclick={() => (sourcePage -= 1)}
+                >{translate('Previous')}</button
+              >
+              <span>{sourcePage + 1} / {pageCount(currentSourceCount)}</span>
+              <button
+                type="button"
+                disabled={sourcePage + 1 >= pageCount(currentSourceCount)}
+                onclick={() => (sourcePage += 1)}>{translate('Next')}</button
+              >
+            </div>
+          {/if}
+        </SectionCard>
+      {/if}
 
+      {#if showCommercial}
         {#if financeExpenses.length}
           <div
             class="finance-overview__expense-controls"
@@ -832,7 +1199,42 @@
               <span>{financeExpenses.length} {translate('source records')}</span>
             </div>
 
-            {#each financeExpenses as expense}
+            <div
+              class="finance-overview__inbox-filters"
+              role="group"
+              aria-label={translate('Expense classification inbox')}
+            >
+              <button
+                type="button"
+                class:finance-overview__inbox-filter--active={expenseInboxFilter === 'all'}
+                class="finance-overview__inbox-filter"
+                onclick={() => (expenseInboxFilter = 'all')}
+                >{translate('All')} ({financeExpenses.length})</button
+              >
+              <button
+                type="button"
+                class:finance-overview__inbox-filter--active={expenseInboxFilter === 'needs'}
+                class="finance-overview__inbox-filter"
+                onclick={() => (expenseInboxFilter = 'needs')}
+                >{translate('Needs classification')} ({needsClassificationCount})</button
+              >
+              <button
+                type="button"
+                class:finance-overview__inbox-filter--active={expenseInboxFilter === 'reimbursable'}
+                class="finance-overview__inbox-filter"
+                onclick={() => (expenseInboxFilter = 'reimbursable')}
+                >{translate('Reimbursable at cost')} ({reimbursableCount})</button
+              >
+              <button
+                type="button"
+                class:finance-overview__inbox-filter--active={expenseInboxFilter === 'non_billable'}
+                class="finance-overview__inbox-filter"
+                onclick={() => (expenseInboxFilter = 'non_billable')}
+                >{translate('Non-billable')} ({nonBillableCount})</button
+              >
+            </div>
+
+            {#each filteredFinanceExpenses as expense}
               {@const expenseId = value(expense, 'id')}
               {@const expenseVersion = value(expense, 'version') || '1'}
               {@const classificationState = expenseClassificationState(expense)}
@@ -864,6 +1266,17 @@
                       ? translate('Classified')
                       : translate('Needs Finance classification')}
                   />
+                  {#if canWriteFinance && !locked}
+                    <button
+                      type="button"
+                      onclick={() =>
+                        (selectedExpenseId = selectedExpenseId === expenseId ? '' : expenseId)}
+                    >
+                      {classificationState === 'classified'
+                        ? translate('Review')
+                        : translate('Classify')}
+                    </button>
+                  {/if}
                 </header>
 
                 <div class="finance-overview__expense-timeline" data-expense-timeline>
@@ -887,7 +1300,7 @@
                   >
                 </div>
 
-                {#if canWriteFinance && !locked}
+                {#if canWriteFinance && !locked && selectedExpenseId === expenseId}
                   <div class="finance-overview__expense-form-grid">
                     <form
                       method="POST"
@@ -934,18 +1347,14 @@
                         </select>
                       </label>
                       <label>
-                        <span>{translate('Tax (basis points; 0% allowed)')}</span>
-                        <input
-                          name="taxBps"
-                          type="number"
-                          min="0"
-                          max="100000"
-                          step="1"
-                          value="0"
-                          inputmode="numeric"
-                          required
-                        />
-                        <small>{translate('0 bps = 0%; 100 bps = 1%.')}</small>
+                        <span>{translate('Tax rate')}</span>
+                        <select name="taxPercent" onchange={syncTaxBps}>
+                          {#each taxPercentOptions() as option}
+                            <option value={option.bps}>{option.label}</option>
+                          {/each}
+                        </select>
+                        <input name="taxBps" type="hidden" value="0" />
+                        <small>{translate('0% allowed')}</small>
                       </label>
                       <label>
                         <span>{translate('Reason')}</span>
@@ -1015,255 +1424,268 @@
             )}
           </p>
         {/if}
-      </SectionCard>
 
-      <SectionCard title={translate('Compensation settlements')} class="finance-overview__surface">
-        <p class="finance-overview__surface-note">
-          {translate(
-            'Finance-only finalization of approved compensation. Settlements are immutable snapshots and keep expected and actual dates distinct.',
-          )}
-        </p>
-        {#if canWriteFinance}
-          <form method="POST" action="?/settleCompensation" class="finance-overview__action-form">
-            <input type="hidden" name="projectId" value={data.selectedProjectId} />
-            <label>
-              <span>{translate('Worker')}</span>
-              <select name="workerId" required>
-                <option value="">{translate('Select worker')}</option>
-                {#each data.workers ?? [] as worker}
-                  <option value={String(worker.id)}>{worker.name}</option>
-                {/each}
-              </select>
-            </label>
-            <label
-              ><span>{translate('Period start')}</span><input
-                name="periodStart"
-                type="date"
-                required
-              /></label
-            >
-            <label
-              ><span>{translate('Period end')}</span><input
-                name="periodEnd"
-                type="date"
-                required
-              /></label
-            >
-            <button type="submit">{translate('Finalize compensation')}</button>
-          </form>
-        {/if}
-        <TableRegion
-          class="finance-overview__table-region"
-          ariaLabel={translate('Compensation settlements table')}
-          mobileMode="cards"
-          cardRows={settlements.map((row) => ({
-            id: value(row, 'id'),
-            cells: [
-              { label: translate('Worker'), value: value(row, 'workerName', 'worker_name') || '—' },
-              {
-                label: translate('Period'),
-                value: `${value(row, 'periodStart', 'period_start')} → ${value(row, 'periodEnd', 'period_end')}`,
-              },
-              { label: translate('Amount'), value: displayMoney(row.amountMinor, row.currency) },
-              { label: translate('State'), value: statusLabel(row.state ?? row.status) },
-              {
-                label: translate('Timeline'),
-                value: timeline(
-                  row,
-                  ['expectedPaymentDate', 'expected_payment_date'],
-                  ['settledAt', 'settled_at'],
-                ),
-              },
-            ],
-          }))}
+        <div class="finance-overview__configuration">
+          <FinanceConfigurationSection
+            {data}
+            {availableProjects}
+            {isAuditor}
+            {translate}
+            {controlledValue}
+          />
+        </div>
+      {/if}
+
+      {#if showSourceTabs && sourceTab === 'settlements'}
+        <SectionCard
+          title={translate('Compensation settlements')}
+          class="finance-overview__surface"
         >
-          <table class="finance-overview__table">
-            <caption class="sr-only">{translate('Compensation settlements')}</caption>
-            <thead>
-              <tr>
-                <th scope="col">{translate('Worker')}</th>
-                <th scope="col">{translate('Period')}</th>
-                <th scope="col">{translate('Basis')}</th>
-                <th scope="col">{translate('Source')}</th>
-                <th scope="col">{translate('Amount')}</th>
-                <th scope="col">{translate('State')}</th>
-                <th scope="col">{translate('Expected / actual')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each settlements as settlement}
-                <tr>
-                  <td>{value(settlement, 'workerName', 'worker_name') || '—'}</td>
-                  <td
-                    >{value(settlement, 'periodStart', 'period_start')} → {value(
-                      settlement,
-                      'periodEnd',
-                      'period_end',
-                    )}</td
-                  >
-                  <td>{value(settlement, 'sourceBasis', 'source_basis') || '—'}</td>
-                  <td
-                    >{displayMoney(
-                      value(settlement, 'sourceAmountMinor', 'source_amount_minor'),
-                      settlement.currency,
-                    )}</td
-                  >
-                  <td>{displayMoney(settlement.amountMinor, settlement.currency)}</td>
-                  <td
-                    ><StatusBadge
-                      variant={rowStatusVariant(settlement.state ?? settlement.status)}
-                      text={statusLabel(settlement.state ?? settlement.status)}
-                    /></td
-                  >
-                  <td
-                    >{timeline(
-                      settlement,
-                      ['expectedPaymentDate', 'expected_payment_date'],
-                      ['settledAt', 'settled_at'],
-                    )}</td
-                  >
-                </tr>
-              {:else}
-                <tr
-                  ><td colspan="7">{translate('No settlements recorded for this project.')}</td></tr
-                >
-              {/each}
-            </tbody>
-          </table>
-        </TableRegion>
-        {#if settlements.length && canWriteFinance}
-          <div
-            class="finance-overview__settlement-planning"
-            data-settlement-planning
-            aria-label={translate('Expected worker payment planning')}
-          >
-            <h3>{translate('Expected worker payment')}</h3>
-            <p class="finance-overview__surface-note">
-              {translate(
-                'Set an expected payment date while preserving the actual settled timestamp.',
-              )}
-            </p>
-            {#each settlements as settlement}
-              {@const settlementState = value(settlement, 'state', 'status')}
-              <form
-                method="POST"
-                action="?/setCompensationSettlementExpectedPaymentOn"
-                class="finance-overview__settlement-form"
-                data-settlement-planning-form
-                use:formValidation
-              >
-                <input type="hidden" name="settlementId" value={value(settlement, 'id')} />
-                <label>
-                  <span
-                    >{value(settlement, 'workerName', 'worker_name') || translate('Worker')}</span
-                  >
-                  <small
-                    >{translate('Actual settled')}: {value(settlement, 'settledAt', 'settled_at') ||
-                      statusLabel(settlementState) ||
-                      '—'}</small
-                  >
-                  <input
-                    name="expectedPaymentOn"
-                    type="date"
-                    value={value(settlement, 'expectedPaymentOn', 'expected_payment_on')}
-                    aria-label={translate('Expected worker payment date')}
-                  />
-                </label>
-                <button type="submit">{translate('Save expected date')}</button>
-              </form>
-            {/each}
-          </div>
-        {/if}
-      </SectionCard>
-
-      <SectionCard
-        title={translate('Worker reimbursement queue')}
-        class="finance-overview__surface"
-      >
-        <p class="finance-overview__surface-note">
-          {translate(
-            'Worker reimbursement and client expense recovery are separate from customer billing and invoice collection.',
-          )}
-        </p>
-        <div class="finance-overview__reimbursement-list">
-          {#each reimbursements as reimbursement}
-            {@const reimbursementState = value(
-              reimbursement,
-              'reimbursementState',
-              'reimbursement_state',
+          <p class="finance-overview__surface-note">
+            {translate(
+              'Finance-only finalization of approved compensation. Settlements are immutable snapshots and keep expected and actual dates distinct.',
             )}
-            <article
-              class="finance-overview__reimbursement"
-              data-reimbursement-id={value(reimbursement, 'id')}
+          </p>
+          {#if canWriteFinance}
+            <form method="POST" action="?/settleCompensation" class="finance-overview__action-form">
+              <input type="hidden" name="projectId" value={data.selectedProjectId} />
+              <label>
+                <span>{translate('Worker')}</span>
+                <select name="workerId" required>
+                  <option value="">{translate('Select worker')}</option>
+                  {#each data.workers ?? [] as worker}
+                    <option value={String(worker.id)}>{worker.name}</option>
+                  {/each}
+                </select>
+              </label>
+              <label
+                ><span>{translate('Period start')}</span><input
+                  name="periodStart"
+                  type="date"
+                  required
+                /></label
+              >
+              <label
+                ><span>{translate('Period end')}</span><input
+                  name="periodEnd"
+                  type="date"
+                  required
+                /></label
+              >
+              <button type="submit">{translate('Finalize compensation')}</button>
+            </form>
+          {/if}
+          <TableRegion
+            class="finance-overview__table-region"
+            ariaLabel={translate('Compensation settlements table')}
+            mobileMode="cards"
+            cardRows={settlements.map((row) => ({
+              id: value(row, 'id'),
+              cells: [
+                {
+                  label: translate('Worker'),
+                  value: value(row, 'workerName', 'worker_name') || '—',
+                },
+                {
+                  label: translate('Period'),
+                  value: `${value(row, 'periodStart', 'period_start')} → ${value(row, 'periodEnd', 'period_end')}`,
+                },
+                { label: translate('Amount'), value: displayMoney(row.amountMinor, row.currency) },
+                { label: translate('State'), value: statusLabel(row.state ?? row.status) },
+                {
+                  label: translate('Timeline'),
+                  value: timeline(
+                    row,
+                    ['expectedPaymentDate', 'expected_payment_date'],
+                    ['settledAt', 'settled_at'],
+                  ),
+                },
+              ],
+            }))}
+          >
+            <table class="finance-overview__table">
+              <caption class="sr-only">{translate('Compensation settlements')}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">{translate('Worker')}</th>
+                  <th scope="col">{translate('Period')}</th>
+                  <th scope="col">{translate('Basis')}</th>
+                  <th scope="col">{translate('Source')}</th>
+                  <th scope="col">{translate('Amount')}</th>
+                  <th scope="col">{translate('State')}</th>
+                  <th scope="col">{translate('Expected / actual')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each settlements as settlement}
+                  <tr>
+                    <td>{value(settlement, 'workerName', 'worker_name') || '—'}</td>
+                    <td
+                      >{value(settlement, 'periodStart', 'period_start')} → {value(
+                        settlement,
+                        'periodEnd',
+                        'period_end',
+                      )}</td
+                    >
+                    <td>{value(settlement, 'sourceBasis', 'source_basis') || '—'}</td>
+                    <td
+                      >{displayMoney(
+                        value(settlement, 'sourceAmountMinor', 'source_amount_minor'),
+                        settlement.currency,
+                      )}</td
+                    >
+                    <td>{displayMoney(settlement.amountMinor, settlement.currency)}</td>
+                    <td
+                      ><StatusBadge
+                        variant={rowStatusVariant(settlement.state ?? settlement.status)}
+                        text={statusLabel(settlement.state ?? settlement.status)}
+                      /></td
+                    >
+                    <td
+                      >{timeline(
+                        settlement,
+                        ['expectedPaymentDate', 'expected_payment_date'],
+                        ['settledAt', 'settled_at'],
+                      )}</td
+                    >
+                  </tr>
+                {:else}
+                  <tr
+                    ><td colspan="7">{translate('No settlements recorded for this project.')}</td
+                    ></tr
+                  >
+                {/each}
+              </tbody>
+            </table>
+          </TableRegion>
+          {#if settlements.length && canWriteFinance}
+            <div
+              class="finance-overview__settlement-planning"
+              data-settlement-planning
+              aria-label={translate('Expected worker payment planning')}
             >
-              <div>
-                <strong
-                  >{value(reimbursement, 'workerName', 'worker_name')} · {value(
-                    reimbursement,
-                    'vendor',
-                  ) || translate('Expense')}</strong
-                >
-                <small>
-                  {value(reimbursement, 'spentOn', 'spent_on')} · {categoryLabel(
-                    reimbursement.category,
-                  )} ·
-                  <StatusBadge
-                    variant={rowStatusVariant(reimbursementState)}
-                    text={statusLabel(reimbursementState)}
-                  />
-                </small>
-                <small
-                  >{timeline(
-                    reimbursement,
-                    ['expectedReimbursementDate', 'expected_reimbursement_date'],
-                    ['reimbursedAt', 'reimbursed_at'],
-                  )}</small
-                >
-              </div>
-              {#if canWriteFinance && reimbursementState !== 'reimbursed'}
+              <h3>{translate('Expected worker payment')}</h3>
+              <p class="finance-overview__surface-note">
+                {translate(
+                  'Set an expected payment date while preserving the actual settled timestamp.',
+                )}
+              </p>
+              {#each settlements as settlement}
+                {@const settlementState = value(settlement, 'state', 'status')}
                 <form
                   method="POST"
-                  action="?/recordReimbursement"
-                  class="finance-overview__reimbursement-form"
+                  action="?/setCompensationSettlementExpectedPaymentOn"
+                  class="finance-overview__settlement-form"
+                  data-settlement-planning-form
+                  use:formValidation
                 >
-                  <input type="hidden" name="expenseId" value={reimbursement.id} />
-                  <input
-                    type="hidden"
-                    name="amountMinor"
-                    value={reimbursement.reimbursementAmountMinor}
-                  />
+                  <input type="hidden" name="settlementId" value={value(settlement, 'id')} />
                   <label>
-                    <span>{translate('Payment reference')}</span>
-                    <input name="reference" required />
+                    <span
+                      >{value(settlement, 'workerName', 'worker_name') || translate('Worker')}</span
+                    >
+                    <small
+                      >{translate('Actual settled')}: {value(
+                        settlement,
+                        'settledAt',
+                        'settled_at',
+                      ) ||
+                        statusLabel(settlementState) ||
+                        '—'}</small
+                    >
+                    <input
+                      name="expectedPaymentOn"
+                      type="date"
+                      value={value(settlement, 'expectedPaymentOn', 'expected_payment_on')}
+                      aria-label={translate('Expected worker payment date')}
+                    />
                   </label>
-                  <button type="submit">{translate('Mark reimbursed')}</button>
+                  <button type="submit">{translate('Save expected date')}</button>
                 </form>
-              {:else}
-                <strong
-                  >{displayMoney(
-                    reimbursement.reimbursementAmountMinor,
-                    reimbursement.currency,
-                  )}</strong
-                >
-              {/if}
-            </article>
-          {:else}
-            <div class="finance-overview__empty" role="status">
-              {translate('No approved worker-paid expenses require reimbursement.')}
+              {/each}
             </div>
-          {/each}
-        </div>
-      </SectionCard>
+          {/if}
+        </SectionCard>
 
-      <div class="finance-overview__configuration">
-        <FinanceConfigurationSection
-          {data}
-          {availableProjects}
-          {isAuditor}
-          {translate}
-          {controlledValue}
-        />
-      </div>
+        <SectionCard
+          title={translate('Worker reimbursement queue')}
+          class="finance-overview__surface"
+        >
+          <p class="finance-overview__surface-note">
+            {translate(
+              'Worker reimbursement and client expense recovery are separate from customer billing and invoice collection.',
+            )}
+          </p>
+          <div class="finance-overview__reimbursement-list">
+            {#each reimbursements as reimbursement}
+              {@const reimbursementState = value(
+                reimbursement,
+                'reimbursementState',
+                'reimbursement_state',
+              )}
+              <article
+                class="finance-overview__reimbursement"
+                data-reimbursement-id={value(reimbursement, 'id')}
+              >
+                <div>
+                  <strong
+                    >{value(reimbursement, 'workerName', 'worker_name')} · {value(
+                      reimbursement,
+                      'vendor',
+                    ) || translate('Expense')}</strong
+                  >
+                  <small>
+                    {value(reimbursement, 'spentOn', 'spent_on')} · {categoryLabel(
+                      reimbursement.category,
+                    )} ·
+                    <StatusBadge
+                      variant={rowStatusVariant(reimbursementState)}
+                      text={statusLabel(reimbursementState)}
+                    />
+                  </small>
+                  <small
+                    >{timeline(
+                      reimbursement,
+                      ['expectedReimbursementDate', 'expected_reimbursement_date'],
+                      ['reimbursedAt', 'reimbursed_at'],
+                    )}</small
+                  >
+                </div>
+                {#if canWriteFinance && reimbursementState !== 'reimbursed'}
+                  <form
+                    method="POST"
+                    action="?/recordReimbursement"
+                    class="finance-overview__reimbursement-form"
+                  >
+                    <input type="hidden" name="expenseId" value={reimbursement.id} />
+                    <input
+                      type="hidden"
+                      name="amountMinor"
+                      value={reimbursement.reimbursementAmountMinor}
+                    />
+                    <label>
+                      <span>{translate('Payment reference')}</span>
+                      <input name="reference" required />
+                    </label>
+                    <button type="submit">{translate('Mark reimbursed')}</button>
+                  </form>
+                {:else}
+                  <strong
+                    >{displayMoney(
+                      reimbursement.reimbursementAmountMinor,
+                      reimbursement.currency,
+                    )}</strong
+                  >
+                {/if}
+              </article>
+            {:else}
+              <div class="finance-overview__empty" role="status">
+                {translate('No approved worker-paid expenses require reimbursement.')}
+              </div>
+            {/each}
+          </div>
+        </SectionCard>
+      {/if}
     {:else}
       <SectionCard title={translate('Select a project')} class="finance-overview__surface">
         <p>
@@ -1275,6 +1697,168 @@
 {/if}
 
 <style>
+  .finance-overview__hero {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.85rem;
+  }
+
+  .finance-overview__hero-card {
+    display: grid;
+    gap: 0.4rem;
+    min-height: 8.5rem;
+    padding: 1.05rem 1.1rem;
+    border: 1px solid var(--portal-border, #d7dee8);
+    border-radius: 0.9rem;
+    background: var(--portal-surface, #fff);
+    box-shadow: 0 0.45rem 1.4rem rgb(16 32 42 / 0.05);
+  }
+
+  .finance-overview__hero-card--accent {
+    border-color: color-mix(in srgb, #0f766e 42%, var(--portal-border, #d7dee8));
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, #0f766e 10%, #fff) 0%,
+      var(--portal-surface, #fff) 55%
+    );
+  }
+
+  .finance-overview__hero-card span {
+    color: var(--portal-muted, #64748b);
+    font-size: 0.74rem;
+    font-weight: 750;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .finance-overview__hero-card strong {
+    color: var(--portal-ink, #16202a);
+    font-size: clamp(1.45rem, 2vw, 1.85rem);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+  }
+
+  .finance-overview__margin-tag {
+    display: inline-flex;
+    width: fit-content;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: #d7f4e4;
+    color: #17663a;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .finance-overview__cash {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--portal-border, #d7dee8);
+    border-radius: 0.8rem;
+    background: color-mix(in srgb, var(--portal-surface, #fff) 88%, var(--portal-wash, #eef2f5));
+  }
+
+  .finance-overview__cash span {
+    display: grid;
+    gap: 0.2rem;
+    color: var(--portal-muted, #64748b);
+    font-size: 0.78rem;
+  }
+
+  .finance-overview__cash strong {
+    color: var(--portal-ink, #16202a);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .finance-overview__progress {
+    height: 0.45rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--portal-wash, #eef2f5);
+  }
+
+  .finance-overview__progress span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #0f766e;
+  }
+
+  .finance-overview__progress[data-tone='warning'] span {
+    background: #b7791f;
+  }
+
+  .finance-overview__progress[data-tone='danger'] span {
+    background: #b42318;
+  }
+
+  .finance-overview__budget-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .finance-overview__source-tabs,
+  .finance-overview__inbox-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .finance-overview__source-tab,
+  .finance-overview__inbox-filter {
+    min-height: 2.75rem;
+    padding: 0.45rem 0.9rem;
+    border: 1px solid var(--portal-border, #d7dee8);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--portal-ink, #16202a);
+    font: inherit;
+    font-weight: 650;
+  }
+
+  .finance-overview__source-tab--active,
+  .finance-overview__inbox-filter--active,
+  .finance-overview__source-tab[aria-selected='true'] {
+    background: var(--portal-ink, #16202a);
+    border-color: var(--portal-ink, #16202a);
+    color: #fff;
+  }
+
+  .finance-overview__pager {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    margin-top: 0.85rem;
+  }
+
+  .finance-overview__pager button {
+    min-height: 2.75rem;
+  }
+
+  .finance-overview__projection-details {
+    margin-top: 0.75rem;
+  }
+
+  .finance-overview__projection-details summary {
+    min-height: 2.75rem;
+    cursor: pointer;
+    font-weight: 750;
+  }
+
+  .finance-overview__table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--portal-surface, #fff);
+  }
+
   .finance-overview {
     display: grid;
     gap: 1rem;
@@ -1317,6 +1901,39 @@
     border: 1px solid var(--portal-border, #d7dee8);
     border-radius: 0.8rem;
     background: var(--portal-surface, #fff);
+  }
+
+  .finance-overview__projection-warning {
+    display: grid;
+    gap: 0.45rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid
+      color-mix(in srgb, var(--portal-warning, #b7791f) 58%, var(--portal-border, #d7dee8));
+    border-left-width: 0.3rem;
+    border-radius: 0.7rem;
+    background: color-mix(in srgb, var(--portal-warning, #b7791f) 10%, var(--portal-surface, #fff));
+    color: var(--portal-ink, #16202a);
+  }
+
+  .finance-overview__projection-warning strong {
+    color: var(--portal-ink, #16202a);
+  }
+
+  .finance-overview__projection-warning p {
+    max-width: 70rem;
+    margin: 0;
+    line-height: 1.45;
+  }
+
+  .finance-overview__projection-warning ul {
+    display: grid;
+    gap: 0.25rem;
+    margin: 0.1rem 0 0;
+    padding-left: 1.2rem;
+  }
+
+  .finance-overview__projection-warning li {
+    overflow-wrap: anywhere;
   }
 
   .finance-overview__attention {
@@ -1368,7 +1985,6 @@
     background: color-mix(in srgb, var(--portal-surface, #fff) 92%, var(--portal-wash, #eef2f5));
   }
 
-  .finance-overview__filters label,
   .finance-overview__action-form label,
   .finance-overview__reimbursement-form label {
     display: grid;
@@ -1382,19 +1998,13 @@
   .finance-overview__action-form input,
   .finance-overview__action-form select,
   .finance-overview__reimbursement-form input {
-    min-height: 2.7rem;
+    min-height: 44px;
     padding: 0.55rem 0.7rem;
     border: 1px solid var(--portal-border-strong, #b8c3d1);
     border-radius: 0.5rem;
     background: var(--portal-surface, #fff);
     color: var(--portal-ink, #16202a);
     font: inherit;
-  }
-
-  .finance-overview__summary-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
   }
 
   .finance-overview__surface-note {
@@ -1625,7 +2235,7 @@
   .finance-overview__expense-form textarea,
   .finance-overview__settlement-form input {
     width: 100%;
-    min-height: 2.7rem;
+    min-height: 44px;
     padding: 0.55rem 0.7rem;
     border: 1px solid var(--portal-border-strong, #b8c3d1);
     border-radius: 0.5rem;
@@ -1647,7 +2257,7 @@
 
   .finance-overview__expense-form button,
   .finance-overview__settlement-form button {
-    min-height: 2.7rem;
+    min-height: 44px;
     padding: 0.55rem 0.85rem;
     border: 1px solid var(--portal-accent, #0f5f73);
     border-radius: 0.5rem;
@@ -1690,7 +2300,7 @@
 
   .finance-overview__action-form button,
   .finance-overview__reimbursement-form button {
-    min-height: 2.7rem;
+    min-height: 44px;
     padding: 0.55rem 0.85rem;
     border: 1px solid var(--portal-accent, #0f5f73);
     border-radius: 0.5rem;
@@ -1762,10 +2372,6 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .finance-overview__summary-grid {
-      grid-template-columns: 1fr;
-    }
-
     .finance-overview__action-form {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -1798,6 +2404,9 @@
 
   @media (max-width: 36rem) {
     .finance-overview__attention,
+    .finance-overview__hero,
+    .finance-overview__cash,
+    .finance-overview__budget-row,
     .finance-overview__metrics,
     .finance-overview__action-form,
     .finance-overview__expense-form-grid,

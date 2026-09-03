@@ -57,7 +57,16 @@ function seedBase(sqlite: DatabaseSync): void {
     `INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at)
      VALUES(?,?,?,?,?,?,?,?)`,
   );
-  insertUser.run('owner', 'Owner', 'owner@attachments.test', 'owner_admin', 'active', 1, now, now);
+  insertUser.run(
+    'owner',
+    'Owner',
+    'antonny.luty@j-aautomation.com',
+    'owner_admin',
+    'active',
+    1,
+    now,
+    now,
+  );
   insertUser.run('worker', 'Worker', 'worker@attachments.test', 'worker', 'active', 1, now, now);
   sqlite
     .prepare(
@@ -223,7 +232,7 @@ describe('CORE-07 report attachment migration', () => {
           version: number;
         }
       ).version,
-    ).toBe(30);
+    ).toBe(35);
     expect(
       (
         sqlite

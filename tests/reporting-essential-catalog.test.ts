@@ -1,5 +1,6 @@
 import { inflateRawSync } from 'node:zlib';
-import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -17,6 +18,8 @@ import { installB5TestDeploymentIdentity } from './fixtures/b5-test-environment.
 
 const { GET: workerStatementGet } =
   await import('../apps/portal/src/routes/app/api/worker-statement/[format]/+server.js');
+const { POST: workerStatementRequestPost } =
+  await import('../apps/portal/src/routes/app/api/worker-statement/+server.js');
 const { GET: invoiceLedgerGet } =
   await import('../apps/portal/src/routes/app/api/invoice-collection-ledger/[format]/+server.js');
 
@@ -175,6 +178,20 @@ describe('Client Essential report-family serializers', () => {
     const pdf = workerStatementPdf(statement);
     expect(Buffer.from(pdf).subarray(0, 5).toString()).toBe('%PDF-');
     expect(pdf.byteLength).toBeGreaterThan(1_000);
+    const directory = mkdtempSync(join(tmpdir(), 'ja-worker-statement-pdf-'));
+    try {
+      const input = join(directory, 'statement.pdf');
+      writeFileSync(input, pdf);
+      const text = execFileSync('pdftotext', ['-layout', input, '-'], { encoding: 'utf8' });
+      expect(text).toMatch(/Estimated pay/i);
+      expect(text).toMatch(/Approved compensation/i);
+      expect(text).toMatch(/Own activity/i);
+      expect(text).toMatch(/Total/i);
+      expect(text).not.toMatch(/not client billing rates/i);
+      expect(text).not.toMatch(/Settlements below are recorded payments/i);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
 
   it('keeps reversal, void and incomplete-cost truth row-local in CSV and XLSX', () => {
@@ -216,7 +233,33 @@ function seedUser(repository: PortalRepository, role: Role, id: string): Princip
     .prepare(
       'INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
     )
-    .run(id, id, `${id}@example.test`, role, 'active', 1, now, now);
+    .run(
+      id,
+      id,
+      role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@example.test`,
+      role,
+      'active',
+      1,
+      now,
+      now,
+    );
+  if (role === 'finance_admin' || role === 'owner_admin') {
+    const sessionId = `${id}-session`;
+    sqlite
+      .prepare(
+        'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+      )
+      .run(
+        sessionId,
+        `${sessionId}-token`,
+        id,
+        new Date(Date.now() + 3_600_000).toISOString(),
+        now,
+        now,
+        now,
+      );
+    return { userId: id, role, projectIds: new Set(), sessionId };
+  }
   return { userId: id, role, projectIds: new Set() };
 }
 
@@ -229,13 +272,39 @@ function event(
   const id = role ?? 'anonymous';
   return {
     locals: {
-      user: role ? { id, name: id, email: `${id}@example.test`, role, status: 'active' } : null,
+      user: role
+        ? {
+            id,
+            name: id,
+            email: role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@example.test`,
+            role,
+            status: 'active',
+          }
+        : null,
       session: role ? { id: `${id}-session`, userId: id, expiresAt: new Date() } : null,
       correlationId: `${id}-correlation`,
     },
     params: { format },
     url: new URL(`http://localhost/app/api/${route}/${format}?${query}`),
   } as never;
+}
+
+async function requestWorkerStatement(role: Role, query: string): Promise<Response> {
+  const url = new URL(`http://localhost/app/api/worker-statement?${query}`);
+  const request = new Request(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      periodStart: url.searchParams.get('periodStart'),
+      periodEnd: url.searchParams.get('periodEnd'),
+      requestKey: `reporting-${role}-${Date.now()}`,
+    }),
+  });
+  return workerStatementRequestPost({
+    ...event(role, 'worker', 'csv', query),
+    url,
+    request,
+  } as never);
 }
 
 beforeEach(() => {
@@ -328,39 +397,78 @@ afterEach(() => {
 });
 
 describe('Client Essential private report routes', () => {
-  it('allows only a worker to export their own statement and ignores guessed worker IDs', async () => {
+  it('allows only a worker to request their own durable statement and ignores guessed worker IDs', async () => {
     expect(() => workerStatementGet(event(null, 'worker', 'csv'))).toThrowError();
     for (const role of ['project_manager', 'finance_admin', 'owner_admin'] as const)
       expect(() => workerStatementGet(event(role, 'worker', 'csv'))).toThrowError();
 
-    const response = workerStatementGet(
-      event(
-        'worker',
-        'worker',
-        'csv',
-        'periodStart=2026-08-01&periodEnd=2026-08-31&workerId=other-worker',
-      ),
-    ) as Response;
-    expect(response.status).toBe(200);
-    expect(response.headers.get('content-disposition')).toContain(
-      'ja-worker-statement-worker-2026-08-01-2026-08-31.csv',
-    );
-    const body = await response.text();
-    expect(body).toContain('OWN-WORKER-VENDOR');
-    expect(body).toContain('OWN-WORKER-ACTIVITY');
-    expect(body).toContain('2026-09-05');
-    expect(body).not.toContain('OTHER-WORKER-SECRET');
-    expect(body).not.toContain('2026-09-20');
-    expect(body).not.toContain('99999');
+    const query = 'periodStart=2026-08-01&periodEnd=2026-08-31&workerId=other-worker';
+    const requestResponse = await requestWorkerStatement('worker', query);
+    expect(requestResponse.status).toBe(202);
+    const requestBody = (await requestResponse.json()) as {
+      artifacts: Array<{ artifactId: string; format: string; status: string }>;
+    };
+    const requested = requestBody.artifacts.find((artifact) => artifact.format === 'csv');
+    if (!requested) throw new Error('Worker statement CSV artifact was not requested');
+    expect(requested.status).toBe('queued');
+
+    const before = createDatabase();
+    const beforeCounts = {
+      artifacts: (
+        before.sqlite.prepare('SELECT COUNT(*) AS count FROM worker_statement_artifact').get() as {
+          count: number;
+        }
+      ).count,
+      jobs: (before.sqlite.prepare('SELECT COUNT(*) AS count FROM job').get() as { count: number })
+        .count,
+      accessAudits: (
+        before.sqlite
+          .prepare("SELECT COUNT(*) AS count FROM audit_event WHERE action='artifact.access'")
+          .get() as { count: number }
+      ).count,
+    };
+    before.sqlite.close();
+
+    const response = workerStatementGet(event('worker', 'worker', 'csv', query)) as Response;
+    expect(response.status).toBe(202);
+    expect(response.headers.get('retry-after')).toBe('2');
+    const body = (await response.json()) as { artifact: { artifactId: string; status: string } };
+    expect(body.artifact).toMatchObject({ artifactId: requested.artifactId, status: 'queued' });
+
     const database = createDatabase();
-    const audit = database.sqlite
+    const afterCounts = {
+      artifacts: (
+        database.sqlite
+          .prepare('SELECT COUNT(*) AS count FROM worker_statement_artifact')
+          .get() as { count: number }
+      ).count,
+      jobs: (
+        database.sqlite.prepare('SELECT COUNT(*) AS count FROM job').get() as { count: number }
+      ).count,
+      accessAudits: (
+        database.sqlite
+          .prepare("SELECT COUNT(*) AS count FROM audit_event WHERE action='artifact.access'")
+          .get() as { count: number }
+      ).count,
+    };
+    expect(afterCounts).toEqual(beforeCounts);
+    const row = database.sqlite
       .prepare(
-        "SELECT entity_type,entity_id,details_json FROM audit_event WHERE action='artifact.access' ORDER BY occurred_at DESC LIMIT 1",
+        'SELECT worker_id,status,snapshot_json FROM worker_statement_artifact WHERE artifact_id=?',
       )
-      .get() as { entity_type: string; entity_id: string; details_json: string };
-    expect(audit.entity_type).toBe('document');
-    expect(audit.entity_id).toContain('worker-statement:worker:');
-    expect(audit.details_json).not.toContain('other-worker');
+      .get(requested.artifactId) as {
+      worker_id: string;
+      status: string;
+      snapshot_json: string;
+    };
+    expect(row.worker_id).toBe('worker');
+    expect(row.status).toBe('queued');
+    expect(row.snapshot_json).toContain('OWN-WORKER-VENDOR');
+    expect(row.snapshot_json).toContain('OWN-WORKER-ACTIVITY');
+    expect(row.snapshot_json).toContain('2026-09-05');
+    expect(row.snapshot_json).not.toContain('OTHER-WORKER-SECRET');
+    expect(row.snapshot_json).not.toContain('2026-09-20');
+    expect(row.snapshot_json).not.toContain('99999');
     database.sqlite.close();
   });
 

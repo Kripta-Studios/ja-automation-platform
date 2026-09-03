@@ -17,7 +17,16 @@ export type FinanceCommand = Readonly<{
   commandHash: string;
 }>;
 
+export type FinanceEvidence = Readonly<{
+  evidenceId: string;
+  evidenceHash: string;
+}>;
+
 type DbRow = Record<string, unknown>;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
 
 function assertEqual(
   actual: unknown,
@@ -37,7 +46,7 @@ function rowValue<T>(row: DbRow | undefined, key: string): T | undefined {
  * collisions.  The error factory keeps the caller's public domain error
  * class stable while this writer remains reusable by other finance domains.
  */
-export function ensureEvidence(
+export function ensureEvidenceRecord(
   sqlite: DatabaseSync,
   evidenceId: string,
   evidenceType: string,
@@ -46,7 +55,7 @@ export function ensureEvidence(
   blob: Buffer,
   createdAt: string,
   fail: CanonicalJsonErrorFactory,
-): string {
+): FinanceEvidence {
   const hash = sha256(blob);
   const existing = sqlite
     .prepare(
@@ -68,21 +77,87 @@ export function ensureEvidence(
     assertEqual(existing.evidence_hash, hash, 'Evidence hash', fail);
     if (!Buffer.from(existing.canonical_blob).equals(blob))
       return fail('Evidence bytes are not idempotent');
-    return hash;
+    return { evidenceId, evidenceHash: hash };
+  }
+  const semanticOwner = sqlite
+    .prepare(
+      `SELECT evidence_id,canonical_blob,evidence_hash
+       FROM finance_hash_evidence
+       WHERE evidence_type=? AND contract_version=? AND semantic_id=?`,
+    )
+    .get(evidenceType, contractVersion, semanticId) as
+    | { evidence_id: string; canonical_blob: Uint8Array; evidence_hash: string }
+    | undefined;
+  if (semanticOwner) {
+    assertEqual(semanticOwner.evidence_hash, hash, 'Evidence semantic hash', fail);
+    if (!Buffer.from(semanticOwner.canonical_blob).equals(blob))
+      return fail('Evidence semantic bytes are not idempotent');
+    return { evidenceId: semanticOwner.evidence_id, evidenceHash: hash };
   }
   const hashOwner = sqlite
     .prepare('SELECT evidence_id FROM finance_hash_evidence WHERE evidence_hash=?')
     .get(hash) as { evidence_id: string } | undefined;
   if (hashOwner && hashOwner.evidence_id !== evidenceId)
     return fail('Evidence hash is already bound to another identity');
-  sqlite
-    .prepare(
-      `INSERT INTO finance_hash_evidence(
-         evidence_id,evidence_type,contract_version,semantic_id,canonical_blob,evidence_hash,created_at
-       ) VALUES(?,?,?,?,?,?,?)`,
-    )
-    .run(evidenceId, evidenceType, contractVersion, semanticId, blob, hash, createdAt);
-  return hash;
+  try {
+    sqlite
+      .prepare(
+        `INSERT INTO finance_hash_evidence(
+           evidence_id,evidence_type,contract_version,semantic_id,canonical_blob,evidence_hash,created_at
+         ) VALUES(?,?,?,?,?,?,?)`,
+      )
+      .run(evidenceId, evidenceType, contractVersion, semanticId, blob, hash, createdAt);
+    return { evidenceId, evidenceHash: hash };
+  } catch (error) {
+    const code = isRecord(error) && typeof error.code === 'string' ? error.code : '';
+    const message = error instanceof Error ? error.message : '';
+    if (!code.startsWith('SQLITE_CONSTRAINT') && !message.includes('UNIQUE constraint failed:'))
+      throw error;
+    // A second writer may win after the checks above. Re-read the immutable
+    // owner and apply the same byte-for-byte idempotency contract instead of
+    // leaking a storage-engine UNIQUE error through the finance boundary.
+    const racedOwner = sqlite
+      .prepare(
+        `SELECT evidence_id,canonical_blob,evidence_hash
+           FROM finance_hash_evidence
+          WHERE evidence_type=? AND contract_version=? AND semantic_id=?`,
+      )
+      .get(evidenceType, contractVersion, semanticId) as
+      | { evidence_id: string; canonical_blob: Uint8Array; evidence_hash: string }
+      | undefined;
+    if (racedOwner) {
+      assertEqual(racedOwner.evidence_hash, hash, 'Evidence semantic hash', fail);
+      if (!Buffer.from(racedOwner.canonical_blob).equals(blob))
+        return fail('Evidence semantic bytes are not idempotent');
+      return { evidenceId: racedOwner.evidence_id, evidenceHash: hash };
+    }
+    return fail('Evidence immutable identity conflict');
+  }
+}
+
+export function ensureEvidence(
+  sqlite: DatabaseSync,
+  evidenceId: string,
+  evidenceType: string,
+  contractVersion: string,
+  semanticId: string,
+  blob: Buffer,
+  createdAt: string,
+  fail: CanonicalJsonErrorFactory,
+): string {
+  const evidence = ensureEvidenceRecord(
+    sqlite,
+    evidenceId,
+    evidenceType,
+    contractVersion,
+    semanticId,
+    blob,
+    createdAt,
+    fail,
+  );
+  if (evidence.evidenceId !== evidenceId)
+    return fail('Evidence semantic identity is already bound to another identity');
+  return evidence.evidenceHash;
 }
 
 export type FinanceCommandInput = Readonly<{

@@ -114,6 +114,45 @@
   .admin-form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  /* Finance configuration cards sit beside the persistent tablet navigation,
+     leaving only roughly 470px for the card at 768px.  Keep their responsive
+     field groups on one track and stack the historical edit/supersede action
+     below the record details.  The legacy `.record-list article div` rule
+     otherwise wins on specificity and leaves the action grid shrink-wrapped
+     to its summary text (176px in the tablet regression). */
+  .finance-config-panel .admin-form-grid,
+  .finance-config-panel [data-ui='field-group'][data-columns] {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .finance-config-panel .record-list article {
+    box-sizing: border-box;
+    align-items: stretch;
+    flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .finance-config-panel .record-list article .form-actions {
+    box-sizing: border-box;
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .finance-config-panel .record-list article .form-actions > details,
+  .finance-config-panel .record-list article .form-actions > form,
+  .finance-config-panel .record-list article .form-actions > details > .admin-form-grid {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+  }
 }
 
 @media (max-width: 767px) {
@@ -228,31 +267,34 @@
   }
 
   .login-page {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .login-page > .login-panel {
+    order: 1;
+    min-height: auto;
+    padding: 1.25rem 1rem 2rem;
   }
 
   .login-page > .login-showcase {
+    order: 2;
     min-height: auto;
-    padding: 1.5rem;
+    padding: 2rem 1.25rem 3rem;
   }
 
   .login-intro {
     margin: 0;
-    padding-top: clamp(4rem, 12vw, 6rem);
+    padding-top: 1rem;
   }
 
   .login-intro h1 {
     max-width: 13ch;
-    font-size: clamp(2.7rem, 12vw, 4.4rem);
+    font-size: clamp(2.2rem, 10vw, 3.8rem);
   }
 
   .login-proof {
-    margin-top: 2.5rem;
-  }
-
-  .login-page > .login-panel {
-    min-height: auto;
-    padding: 1.25rem 1rem 2.2rem;
+    margin-top: 2rem;
   }
 
   .portal-layout {
@@ -372,26 +414,37 @@
     display: none;
   }
 
+  .account-chevron {
+    display: none;
+  }
+
   .bottom-nav {
     position: fixed;
     z-index: 10;
     inset: auto 0 0;
     height: 4.2rem;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    align-items: stretch;
     background: #fff;
     border-top: 1px solid var(--ja-line);
   }
 
   .bottom-nav a {
+    min-width: 0;
     min-height: var(--ja-target-min);
     display: grid;
     place-content: center;
+    padding: 0.4rem 0.25rem;
     text-align: center;
     color: var(--ja-steel);
     border-top: 3px solid transparent;
-    font-size: 0.63rem;
+    font-size: 0.7rem;
     font-weight: 800;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .bottom-nav a.active {
@@ -400,21 +453,29 @@
   }
 
   .login-page {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
   }
 
-  .login-page > section {
-    min-height: 42svh;
+  .login-page > .login-panel {
+    order: 1;
+    min-height: auto;
+    padding: 1rem 0.75rem 1.5rem;
+  }
+
+  .login-page > .login-showcase {
+    order: 2;
+    min-height: auto;
     padding: 2rem 1.2rem;
   }
 
-  .login-page > section img {
+  .login-page > .login-showcase img {
     width: 9rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
   }
 
   .login-page form {
-    margin-block: 1.5rem;
+    margin-block: 0.5rem 1rem;
     padding: 1.3rem;
   }
 
@@ -445,20 +506,37 @@
 
 @media (max-width: 800px) {
   .login-page {
-    grid-template-columns: minmax(0, 1fr);
+    display: flex;
+    flex-direction: column;
   }
 
-  .login-page > .login-showcase,
   .login-page > .login-panel {
+    order: 1;
     min-height: auto;
+    padding: 1.5rem 1rem 2rem;
   }
 
   .login-page > .login-showcase {
-    padding: 2rem 1.5rem;
+    order: 2;
+    min-height: auto;
+    padding: 2.5rem 1.5rem 3.5rem;
   }
 
-  .login-page > .login-panel {
-    padding: 1.5rem 1rem 2.2rem;
+  .login-page .mobile-brand {
+    display: block;
+    margin-bottom: 1.2rem;
+    padding: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .login-page .mobile-brand img {
+    width: 8.5rem;
+  }
+
+  .login-intro {
+    margin: 0;
+    padding-top: 1rem;
   }
 
   .portal-title {
@@ -493,6 +571,24 @@
 }
 
 @media (max-width: 520px) {
+  .portal-layout > header {
+    gap: 0.25rem;
+    padding-inline: 0.5rem;
+  }
+
+  .portal-webmail-link {
+    padding: 0.32rem 0.5rem;
+    margin-right: 0.25rem;
+  }
+
+  .locale-switcher {
+    margin-right: 0;
+  }
+
+  .portal-webmail-link .webmail-text {
+    display: none;
+  }
+
   .timesheet-panel {
     padding: 1rem;
   }
@@ -567,6 +663,205 @@
   .bottom-nav a.active {
     color: #277e78;
     border-color: #55cfc0;
+  }
+}
+
+/* The same webmail action remains available in the labelled navigation
+   drawer. Removing its duplicate header icon prevents intrinsic header
+   controls from widening the required 360/390px phone viewport. */
+@media (max-width: 400px) {
+  .portal-webmail-link {
+    display: none;
+  }
+
+  .account-trigger {
+    box-sizing: border-box;
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .locale-switcher select {
+    box-sizing: border-box;
+    width: 4rem;
+    min-width: 4rem;
+    padding-left: 0.4rem;
+    padding-right: 1.35rem;
+  }
+}
+
+/* Drawers remain contextual on tablets: large enough for a comfortable form,
+   but never allowed to consume the whole 768px portrait viewport. Phone
+   layouts keep the established full-screen sheet treatment. */
+@media (min-width: 48rem) and (max-width: 63.99rem) {
+  .responsive-sheet,
+  [data-ui='responsive-sheet'] {
+    width: min(60vw, 40rem);
+    min-width: min(24rem, calc(100vw - 1rem));
+    max-width: 60vw;
+  }
+}
+
+/* Tablet portrait uses the same labelled off-canvas navigation contract as
+   phones. The content keeps the full viewport while the drawer remains
+   contextual; opening it exposes every textual destination and the existing
+   PortalChrome focus trap. */
+@media (min-width: 48rem) and (max-width: 63.99rem) {
+  .portal-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 4.35rem minmax(0, 1fr);
+    grid-template-areas: 'head' 'main';
+  }
+
+  .portal-layout > aside {
+    width: min(20rem, calc(100vw - 1rem));
+    height: calc(100svh - 4.35rem);
+    position: fixed;
+    top: 4.35rem;
+    left: 0;
+    display: flex;
+    transform: translateX(calc(-100% - 1rem));
+    border-radius: 0 1rem 1rem 0;
+    box-shadow: 0 1rem 2.5rem rgb(4 20 32 / 28%);
+    transition: transform 200ms var(--ja-ease);
+  }
+
+  .portal-layout > aside.open {
+    transform: translateX(0);
+  }
+
+  .nav-backdrop {
+    position: fixed;
+    z-index: 18;
+    top: 4.35rem;
+    right: 0;
+    bottom: 0;
+    left: min(20rem, calc(100vw - 1rem));
+    display: block;
+    width: auto;
+    padding: 0;
+    border: 0;
+    background: rgb(4 20 32 / 46%);
+    cursor: default;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease;
+  }
+
+  .nav-backdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .portal-layout > header {
+    height: 4.35rem;
+    padding: 0 1rem;
+  }
+
+  .menu-button {
+    display: grid;
+  }
+}
+
+@media (min-width: 48rem) {
+  /* At desktop/tablet widths the card primitive reveals its semantic table
+     child. Keep the named timesheet region scrollable if its six columns need
+     more room than a narrow content column. */
+  .timesheet-table-wrap[data-mobile-representation='cards'] {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 39.99rem) {
+  /* TimesheetPanel supplies the structured card rows. Remove the legacy
+     table wrapper's intrinsic width so cards are the complete phone
+     representation rather than a scroll-only fallback. */
+  .timesheet-table-wrap[data-mobile-representation='cards'] {
+    overflow: visible;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .timesheet-table-wrap[data-mobile-representation='cards'] > [data-table-region-desktop] {
+    display: none;
+  }
+
+  .timesheet-table-wrap[data-mobile-representation='cards'] > [data-table-region-cards] {
+    display: grid;
+  }
+
+  .timesheet-table-wrap[data-mobile-representation='cards'] .timesheet-table {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 47.99rem) {
+  /* Keep the phone contract explicit as well as the shared tablet rule above;
+     the narrower breakpoint also owns the phone FieldGroup assertion. */
+  .finance-config-panel .admin-form-grid,
+  .finance-config-panel [data-ui='field-group'][data-columns] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The edit form sits inside a padded record surface and already has its
+     own border. Keep a compact phone inset so the controls retain a usable
+     width after the two nested surfaces are accounted for. */
+  .finance-config-panel .record-list article .form-actions > details > .admin-form-grid {
+    padding: 0.5rem;
+  }
+
+  .responsive-sheet,
+  [data-ui='responsive-sheet'] {
+    inset-inline: 0;
+    width: 100vw;
+    min-width: 0;
+    max-width: 100vw;
+    border-inline-start: 0;
+    border-radius: 0;
+  }
+
+  [data-ui='toast-region'] {
+    inset-inline: 0.75rem;
+    inset-block-end: calc(4.75rem + env(safe-area-inset-bottom));
+    width: auto;
+  }
+}
+
+/* Legacy route markup predates the shared primitives. Keep its interactive
+   controls usable at the representative phone widths and on coarse-pointer
+   devices without enlarging ordinary inline links. */
+@media (max-width: 47.99rem), (pointer: coarse) {
+  .portal-layout
+    :where(
+      button,
+      select,
+      textarea,
+      input:not([type='hidden']):not([type='checkbox']):not([type='radio']),
+      summary,
+      [role='button'],
+      [role='tab']
+    ) {
+    min-height: max(44px, var(--ja-target-min, 2.75rem));
+  }
+
+  .portal-layout
+    :where(
+      a.primary-button,
+      a.secondary-button,
+      a.print-trigger,
+      a.portal-webmail-link,
+      a.portal-external-nav-link,
+      .quick-actions a,
+      .bottom-nav a
+    ) {
+    min-height: max(44px, var(--ja-target-min, 2.75rem));
+  }
+
+  .portal-layout :where(input[type='checkbox'], input[type='radio']) {
+    min-width: 1.25rem;
+    min-height: 1.25rem;
   }
 }
 
@@ -851,6 +1146,10 @@
   }
 
   .report-tab-list > button {
-    min-width: 8rem;
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 0.35rem;
+    line-height: 1.15;
+    white-space: normal;
   }
 }

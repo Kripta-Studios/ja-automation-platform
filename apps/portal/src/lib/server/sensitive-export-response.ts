@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { recordAuditEvent } from '@ja/database';
 import type { Principal } from '@ja/domain';
-import { contentDispositionFilename } from './private-artifact-access';
+import { assertRecentStepUp, contentDispositionFilename } from './private-artifact-access';
 
 const mediaTypes = {
   csv: 'text/csv; charset=utf-8',
@@ -15,7 +15,7 @@ export function sensitiveExportResponse(
     principal: Principal;
     auditEntityType: 'document' | 'invoice';
     auditEntityId: string;
-    exportKind: 'worker_compensation_statement' | 'invoice_collection_ledger';
+    exportKind: 'worker_compensation_statement' | 'invoice_collection_ledger' | 'project_finance';
     format: keyof typeof mediaTypes;
     filename: string;
     bytes: Uint8Array;
@@ -23,6 +23,11 @@ export function sensitiveExportResponse(
     periodEnd: string;
   }>,
 ): Response {
+  // Keep the defense-in-depth check here so a newly added sensitive export
+  // cannot accidentally return financial bytes without a current proof on the
+  // exact interactive session. Route handlers check before querying/generating
+  // and this boundary checks again immediately before the response.
+  assertRecentStepUp(input.sqlite, input.principal);
   // Audit before returning restricted financial bytes. If the append-only
   // audit sink is unavailable, the download fails closed.
   recordAuditEvent(

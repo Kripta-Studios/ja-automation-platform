@@ -17,6 +17,7 @@ export const GET: RequestHandler = async ({ locals, params }) => {
       principal: context.principal,
       kind: 'accounting_pack',
       id: packId,
+      requireStepUp: true,
       loadMetadata: () =>
         context.v3.accountingPackExport(
           context.principal,

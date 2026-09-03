@@ -13,6 +13,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   LOCALIZED_PDF_RENDERER_VERSION,
+  REPORT_TEMPLATE_VERSION,
   runLocalizedPdfVariantJob,
   type LocalizedPdfJobExecution,
   type LocalizedPdfJobRepository,
@@ -44,8 +45,8 @@ function fakeVariant(
     snapshotJson: JSON.stringify(snapshot),
     storageKey: `localized-pdf/${ownerType}/variant-${ownerType}.pdf`,
     semanticFilename: `${ownerType}-es.pdf`,
-    templateVersion: '2026.08.23.1',
-    generationVersion: 'localized-2026.08.23.1',
+    templateVersion: REPORT_TEMPLATE_VERSION,
+    generationVersion: `localized-${REPORT_TEMPLATE_VERSION}`,
     currentAttemptNumber: 1,
     status: 'queued',
   };

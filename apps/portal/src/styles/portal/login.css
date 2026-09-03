@@ -53,6 +53,10 @@
   margin-bottom: 0;
 }
 
+.login-page .mobile-brand {
+  display: none;
+}
+
 .login-intro {
   margin-top: auto;
   padding-top: clamp(5rem, 16vh, 11rem);
@@ -252,6 +256,46 @@
   transform: translateY(-1px);
 }
 
+.worker-form button.danger,
+.entry-panel button.danger,
+.admin-form-grid button.danger,
+.filter-form button.danger,
+.record-card button.danger,
+.record-actions button.danger,
+.compact-form button.danger,
+.payment-form button.danger,
+.worker-form button.danger-button,
+.entry-panel button.danger-button,
+.admin-form-grid button.danger-button,
+.filter-form button.danger-button,
+.record-card button.danger-button,
+.record-actions button.danger-button,
+.compact-form button.danger-button,
+.payment-form button.danger-button {
+  border-color: var(--ja-status-danger, #dc2626);
+  background: var(--ja-status-danger, #dc2626);
+}
+
+.worker-form button.danger:hover:not(:disabled),
+.entry-panel button.danger:hover:not(:disabled),
+.admin-form-grid button.danger:hover:not(:disabled),
+.filter-form button.danger:hover:not(:disabled),
+.record-card button.danger:hover:not(:disabled),
+.record-actions button.danger:hover:not(:disabled),
+.compact-form button.danger:hover:not(:disabled),
+.payment-form button.danger:hover:not(:disabled),
+.worker-form button.danger-button:hover:not(:disabled),
+.entry-panel button.danger-button:hover:not(:disabled),
+.admin-form-grid button.danger-button:hover:not(:disabled),
+.filter-form button.danger-button:hover:not(:disabled),
+.record-card button.danger-button:hover:not(:disabled),
+.record-actions button.danger-button:hover:not(:disabled),
+.compact-form button.danger-button:hover:not(:disabled),
+.payment-form button.danger-button:hover:not(:disabled) {
+  border-color: var(--ja-red-dark, #8f1d14);
+  background: var(--ja-red-dark, #8f1d14);
+}
+
 .login-page .login-submit:hover:not(:disabled) {
   border-color: var(--ja-red-dark);
   background: var(--ja-red-dark);
@@ -321,4 +365,65 @@ button:disabled {
   border-color: #83b5bd;
   background: #e6f3f5;
   color: #0a4a55;
+}
+
+.login-panel-tools {
+  width: min(100%, 29rem);
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 auto 0.75rem;
+}
+
+.login-top-webmail {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.65rem;
+  color: #486577;
+  border: 1px solid #dbe5ec;
+  border-radius: 0.45rem;
+  background: #f5f8fa;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.login-top-webmail:hover {
+  color: #fff;
+  border-color: #0e3048;
+  background: #0e3048;
+}
+
+.login-page .login-webmail-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--ja-target-min);
+  gap: 0.55rem;
+  padding: 0.65rem 1rem;
+  color: #174059;
+  border: 1px solid #c7d9e5;
+  border-radius: 0.65rem;
+  background: #f4f8fb;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.login-page .login-webmail-btn:hover {
+  color: #fff;
+  border-color: #0e3048;
+  background: #0e3048;
+}
+
+.login-page .login-webmail-btn svg {
+  flex-shrink: 0;
+}
+
+.login-page .webmail-btn-arrow {
+  margin-left: 0.15rem;
+  font-size: 0.85rem;
+  opacity: 0.8;
 }

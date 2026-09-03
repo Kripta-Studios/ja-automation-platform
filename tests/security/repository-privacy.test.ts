@@ -42,7 +42,16 @@ function seedUser(
     .prepare(
       'INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
     )
-    .run(id, id, `${id}@example.com`, role, 'active', 1, timestamp, timestamp);
+    .run(
+      id,
+      id,
+      role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@example.com`,
+      role,
+      'active',
+      1,
+      timestamp,
+      timestamp,
+    );
 }
 
 function seedConfiguredAlertActor(

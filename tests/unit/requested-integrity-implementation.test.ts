@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -30,7 +31,8 @@ describe('requested integrity implementation', () => {
   it('closes a financial rule interval before creating its successor', () => {
     const fixture = createB5LifecycleSecurityFixture();
     fixtures.push(fixture);
-    const created = fixture.v3.createCompensationRule(fixture.finance, {
+    const finance = stepUpB5Principal(fixture.sqlite, fixture.finance, 'rule-successor');
+    const created = fixture.v3.createCompensationRule(finance, {
       workerId: fixture.worker.userId,
       projectId: fixture.project.id,
       currency: 'EUR',
@@ -40,7 +42,7 @@ describe('requested integrity implementation', () => {
       effectiveFrom: '2026-01-01',
     });
 
-    const successor = fixture.v3.supersedeCompensationRule(fixture.finance, created.id, {
+    const successor = fixture.v3.supersedeCompensationRule(finance, created.id, {
       workerId: fixture.worker.userId,
       projectId: fixture.project.id,
       currency: 'EUR',
@@ -56,7 +58,7 @@ describe('requested integrity implementation', () => {
     ).toEqual({ effective_to: '2026-08-31' });
     expect(successor.previousId).toBe(created.id);
 
-    fixture.v3.deactivateCompensationRule(fixture.finance, successor.id, '2026-12-31');
+    fixture.v3.deactivateCompensationRule(finance, successor.id, '2026-12-31');
     expect(
       fixture.sqlite
         .prepare('SELECT effective_to FROM compensation_rule WHERE id=?')

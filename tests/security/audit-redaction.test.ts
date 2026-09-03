@@ -8,6 +8,7 @@ import {
   installB5TestDeploymentIdentity,
   seedB5ServiceActorBinding,
 } from '../fixtures/b5-test-environment.js';
+import { stepUpB5Principal } from '../fixtures/b5-lifecycle-security-fixture.js';
 
 const directories: string[] = [];
 const databases: ReturnType<typeof createDatabase>['sqlite'][] = [];
@@ -51,10 +52,14 @@ describe('controlled audit detail', () => {
     const now = new Date().toISOString();
     sqlite
       .prepare(
-        "INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at) VALUES('owner','Owner','owner@example.com','owner_admin','active',1,?,?)",
+        "INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at) VALUES('owner','Owner','antonny.luty@j-aautomation.com','owner_admin','active',1,?,?)",
       )
       .run(now, now);
-    const principal: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
+    const principal = stepUpB5Principal(
+      sqlite,
+      { userId: 'owner', role: 'owner_admin', projectIds: new Set() } satisfies Principal,
+      'invitation-audit',
+    );
     v3.createInvitation(principal, {
       email: 'worker@example.com',
       role: 'worker',
@@ -86,7 +91,7 @@ describe('controlled audit detail', () => {
     const now = new Date().toISOString();
     sqlite
       .prepare(
-        "INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at) VALUES('owner','Owner','owner-scan@example.com','owner_admin','active',1,?,?)",
+        "INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at) VALUES('owner','Owner','antonny.luty@j-aautomation.com','owner_admin','active',1,?,?)",
       )
       .run(now, now);
     seedB5ServiceActorBinding(sqlite, 'owner');
@@ -102,12 +107,11 @@ describe('controlled audit detail', () => {
       sensitivity: 'customer_private',
     });
     expect(() => v3.authorizeDocument(owner, document.id)).toThrow(/Document not found/);
-    const service: Principal = { ...owner, isServiceActor: true };
     expect(
       v3.runDueJobs(1, {
         document_scan: (payload, execution) => {
           const documentId = (payload as { documentId: string }).documentId;
-          v3.recordDocumentScan(service, documentId, 'clean', 'test-scanner', execution);
+          v3.recordDocumentScanFromJob(documentId, 'clean', 'test-scanner', execution);
         },
       }),
     ).toEqual({ processed: 1, failed: 0, overdueMarked: 0 });

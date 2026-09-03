@@ -89,7 +89,28 @@ export type ReportCopy = Readonly<{
   safetyRelated: string;
   summary: string;
   project: string;
+  client: string;
   worker: string;
+  siteShift: string;
+  tasksCompleted: string;
+  problemsFound: string;
+  correctiveActions: string;
+  clientDecisions: string;
+  openItems: string;
+  blockers: string;
+  nextDayPlan: string;
+  customerContact: string;
+  downtimeMinutes: string;
+  standbyReason: string;
+  invoiceRegister: string;
+  workerCosts: string;
+  expenses: string;
+  collections: string;
+  legalEntity: string;
+  stream: string;
+  hours: string;
+  vendor: string;
+  invoiceNumber: string;
   system: string;
   systemType: string;
   plcPlatform: string;
@@ -102,6 +123,9 @@ export type ReportCopy = Readonly<{
   area: string;
   station: string;
   changeSummary: string;
+  problemSymptom: string;
+  diagnosisRootCause: string;
+  changePerformed: string;
   productionImpact: string;
   validation: string;
   validationResult: string;
@@ -172,7 +196,28 @@ const en: ReportCopy = {
   safetyRelated: 'Safety-related',
   summary: 'Summary',
   project: 'Project',
+  client: 'Client',
   worker: 'Worker',
+  siteShift: 'Site / shift',
+  tasksCompleted: 'Tasks completed',
+  problemsFound: 'Problems found',
+  correctiveActions: 'Corrective actions',
+  clientDecisions: 'Client decisions',
+  openItems: 'Open items',
+  blockers: 'Blockers',
+  nextDayPlan: 'Next-day plan',
+  customerContact: 'Customer contact',
+  downtimeMinutes: 'Downtime minutes',
+  standbyReason: 'Standby reason',
+  invoiceRegister: 'Invoice register',
+  workerCosts: 'Worker costs',
+  expenses: 'Expenses',
+  collections: 'Collections',
+  legalEntity: 'Legal entity',
+  stream: 'Stream',
+  hours: 'Hours',
+  vendor: 'Vendor',
+  invoiceNumber: 'Invoice',
   system: 'System',
   systemType: 'System type',
   plcPlatform: 'PLC platform',
@@ -185,6 +230,9 @@ const en: ReportCopy = {
   area: 'Area / line',
   station: 'Station / machine',
   changeSummary: 'Change summary',
+  problemSymptom: 'Problem / symptom',
+  diagnosisRootCause: 'Diagnosis / root cause',
+  changePerformed: 'Change performed',
   productionImpact: 'Production impact',
   validation: 'Validation',
   validationResult: 'Validation result',
@@ -255,7 +303,28 @@ const pt: ReportCopy = {
   safetyRelated: 'Relacionado à segurança',
   summary: 'Resumo',
   project: 'Projeto',
+  client: 'Cliente',
   worker: 'Trabalhador',
+  siteShift: 'Planta / turno',
+  tasksCompleted: 'Tarefas concluídas',
+  problemsFound: 'Problemas encontrados',
+  correctiveActions: 'Ações corretivas',
+  clientDecisions: 'Decisões do cliente',
+  openItems: 'Itens em aberto',
+  blockers: 'Bloqueios',
+  nextDayPlan: 'Plano do dia seguinte',
+  customerContact: 'Contato do cliente',
+  downtimeMinutes: 'Minutos de parada',
+  standbyReason: 'Motivo de espera',
+  invoiceRegister: 'Registro de faturas',
+  workerCosts: 'Custos dos colaboradores',
+  expenses: 'Despesas',
+  collections: 'Cobranças',
+  legalEntity: 'Entidade legal',
+  stream: 'Fluxo',
+  hours: 'Horas',
+  vendor: 'Fornecedor',
+  invoiceNumber: 'Fatura',
   system: 'Sistema',
   systemType: 'Tipo de sistema',
   plcPlatform: 'Plataforma PLC',
@@ -268,6 +337,9 @@ const pt: ReportCopy = {
   area: 'Área / linha',
   station: 'Estação / máquina',
   changeSummary: 'Resumo da alteração',
+  problemSymptom: 'Problema / sintoma',
+  diagnosisRootCause: 'Diagnóstico / causa raiz',
+  changePerformed: 'Alteração realizada',
   productionImpact: 'Impacto na produção',
   validation: 'Validação',
   validationResult: 'Resultado da validação',
@@ -338,7 +410,28 @@ const es: ReportCopy = {
   safetyRelated: 'Relacionado con la seguridad',
   summary: 'Resumen',
   project: 'Proyecto',
+  client: 'Cliente',
   worker: 'Trabajador',
+  siteShift: 'Planta / turno',
+  tasksCompleted: 'Tareas completadas',
+  problemsFound: 'Problemas encontrados',
+  correctiveActions: 'Acciones correctivas',
+  clientDecisions: 'Decisiones del cliente',
+  openItems: 'Partidas abiertas',
+  blockers: 'Bloqueos',
+  nextDayPlan: 'Plan del día siguiente',
+  customerContact: 'Contacto del cliente',
+  downtimeMinutes: 'Minutos de parada',
+  standbyReason: 'Motivo de espera',
+  invoiceRegister: 'Registro de facturas',
+  workerCosts: 'Costes de trabajadores',
+  expenses: 'Gastos',
+  collections: 'Cobros',
+  legalEntity: 'Entidad legal',
+  stream: 'Flujo',
+  hours: 'Horas',
+  vendor: 'Proveedor',
+  invoiceNumber: 'Factura',
   system: 'Sistema',
   systemType: 'Tipo de sistema',
   plcPlatform: 'Plataforma PLC',
@@ -351,6 +444,9 @@ const es: ReportCopy = {
   area: 'Área / línea',
   station: 'Estación / máquina',
   changeSummary: 'Resumen del cambio',
+  problemSymptom: 'Problema / síntoma',
+  diagnosisRootCause: 'Diagnóstico / causa raíz',
+  changePerformed: 'Cambio realizado',
   productionImpact: 'Impacto en producción',
   validation: 'Validación',
   validationResult: 'Resultado de validación',

@@ -3,7 +3,7 @@
   import { page } from '$app/stores';
   import { portalLocales, type PortalLocale } from './portal-i18n';
   import { translateControlledValue } from './i18n/controlled-values';
-  import { accountNavigationFor, type NavItem } from './portal-navigation';
+  import { accountNavigationFor, portalLandingForRole, type NavItem } from './portal-navigation';
   import PortalNavIcon from './PortalNavIcon.svelte';
 
   type ChromeData = {
@@ -238,6 +238,11 @@
     };
     const targetSignature = routeSignature(target);
     const currentSignature = routeSignature(current);
+    const rootSignature = routeSignature(new URL(`${base}/app/`, current.origin));
+    const landingSignature = routeSignature(
+      new URL(portalLandingForRole(base, data.user.role), current.origin),
+    );
+    if (currentSignature === rootSignature && targetSignature === landingSignature) return true;
     const exact = allItems.find(
       (candidate) =>
         routeSignature(new URL(itemHref(candidate), current.origin)) === currentSignature,
@@ -252,7 +257,7 @@
   }
 
   onMount(() => {
-    const media = window.matchMedia('(max-width: 767px)');
+    const media = window.matchMedia('(max-width: 63.99rem)');
     const updateMobileDrawer = (): void => {
       mobileDrawer = media.matches;
     };
@@ -383,6 +388,31 @@
       {/if}
     </div>
   {/if}
+  <a
+    href="https://webmail.j-aautomation.com/"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="portal-external-nav-link"
+    title={translate('Company Webmail')}
+  >
+    <span class="nav-icon" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+      </svg>
+    </span>
+    <span class="nav-label">{translate('Company Webmail')}</span>
+    <span class="nav-external-arrow" aria-hidden="true">↗</span>
+  </a>
   <button class="signout" onclick={logout}>{translate('Sign out')}</button>
 </aside>
 
@@ -411,6 +441,30 @@
     {#if queue > 0}<span class="queue">{queue} {translate('queued')}</span>{/if}
     {#if syncMessage}<span class="sync-message" role="status">{translate(syncMessage)}</span>{/if}
   </div>
+  <a
+    href="https://webmail.j-aautomation.com/"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="portal-webmail-link"
+    title={translate('Company Webmail')}
+    aria-label={translate('Company Webmail')}
+  >
+    <svg
+      viewBox="0 0 24 24"
+      width="15"
+      height="15"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+    </svg>
+    <span class="webmail-text">{translate('Webmail')}</span>
+  </a>
   <label class="locale-switcher">
     <span class="visually-hidden">{translate('Language')}</span>
     <select aria-label={translate('Language')} value={locale} onchange={changeLocale}>
@@ -470,6 +524,19 @@
             <span><b>{translate(item.label)}</b><small>{translate(accountDetail)}</small></span>
           </a>
         {/each}
+        <div class="account-menu-divider" role="separator"></div>
+        <a
+          role="menuitem"
+          href="https://webmail.j-aautomation.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          onclick={() => (accountOpen = false)}
+        >
+          <span class="account-menu-icon" aria-hidden="true">✉</span>
+          <span
+            ><b>{translate('Company Webmail')}</b><small>webmail.j-aautomation.com ↗</small></span
+          >
+        </a>
         <div class="account-menu-divider" role="separator"></div>
         <button type="button" class="account-signout" role="menuitem" onclick={logout}>
           <span class="account-menu-icon" aria-hidden="true">↪</span>

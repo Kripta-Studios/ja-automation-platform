@@ -26,7 +26,7 @@ import {
   type LocalizedPdfJobVariant,
 } from '@ja/reporting';
 
-export const LOCALIZED_PDF_GENERATION_VERSION = `localized-${REPORT_TEMPLATE_VERSION}`;
+export const LOCALIZED_PDF_GENERATION_VERSION = `localized-${REPORT_TEMPLATE_VERSION}-identity`;
 
 export const LOCALIZED_PDF_OWNER_TYPES: readonly LocalizedPdfOwnerType[] = [
   'invoice',

@@ -26,6 +26,12 @@ export const services: ServiceCard[] = [
     tags: ['EPLAN', 'AutoCAD Electrical', 'Panels', 'Safety interfaces'],
   },
   {
+    id: 'installation',
+    slug: 'electromechanical-installation',
+    icon: 'Wrench',
+    tags: ['Panels', 'Safety interfaces', 'Startup', 'Ramp-up'],
+  },
+  {
     id: 'motion-process',
     slug: 'motion-process-control',
     icon: 'Gauge',
@@ -42,5 +48,11 @@ export const services: ServiceCard[] = [
     slug: 'training-consulting',
     icon: 'GraduationCap',
     tags: ['Remote support', 'Troubleshooting', 'Training', 'Consulting'],
+  },
+  {
+    id: 'support',
+    slug: 'technical-support',
+    icon: 'Headphones',
+    tags: ['Remote support', 'Troubleshooting', 'Startup', 'Ramp-up'],
   },
 ];

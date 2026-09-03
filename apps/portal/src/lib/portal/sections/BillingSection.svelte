@@ -2,9 +2,13 @@
   import { base } from '$app/paths';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
-  import { SectionCard, StatusBadge } from '../ui';
+  import { ResponsiveSheet, SectionCard, StatusBadge, TableRegion } from '../ui';
+  import type { TableCardRow } from '../ui';
+  import { billingReadinessMessageKey } from '../billing-readiness';
 
   type BillingStage = 'all' | 'wip' | 'drafts' | 'outstanding' | 'overdue';
+  type BillingWorkspace = 'invoices' | 'streams' | 'setup';
+  type InvoicePdfStatus = 'queued' | 'running' | 'ready' | 'failed' | 'unavailable';
 
   type LedgerPayment = {
     id?: unknown;
@@ -79,6 +83,49 @@
   let search = $state('');
   let projectFilter = $state('');
   let stageFilter = $state<BillingStage>('all');
+  let workspace = $state<BillingWorkspace>('invoices');
+  let selectedInvoiceId = $state('');
+  type InvoiceDrawerTab = 'overview' | 'collections' | 'lifecycle';
+  let invoiceDrawerTab = $state<InvoiceDrawerTab>('overview');
+
+  function lastCompleteWeek(): { start: string; end: string } {
+    const now = new Date();
+    const day = now.getUTCDay();
+    const distanceToMonday = (day + 6) % 7;
+    const thisMonday = Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() - distanceToMonday,
+    );
+    const lastSunday = thisMonday - 86_400_000;
+    const lastMonday = lastSunday - 6 * 86_400_000;
+    return {
+      start: new Date(lastMonday).toISOString().slice(0, 10),
+      end: new Date(lastSunday).toISOString().slice(0, 10),
+    };
+  }
+
+  const draftPeriod = $derived(lastCompleteWeek());
+  const todayIso = $derived(new Date().toISOString().slice(0, 10));
+
+  function streamDraftPeriod(rule: Row): { start: string; end: string } {
+    const cadence = rowValue(rule, 'cadence_type', 'cadenceType').toLowerCase();
+    if (cadence === 'monthly') {
+      const now = new Date();
+      const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+      const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0));
+      return {
+        start: start.toISOString().slice(0, 10),
+        end: end.toISOString().slice(0, 10),
+      };
+    }
+    return draftPeriod;
+  }
+
+  function readinessReasons(): Array<{ code?: string }> {
+    if (!form || !Array.isArray(form.reasons)) return [];
+    return form.reasons as Array<{ code?: string }>;
+  }
 
   const invoices = $derived(data.invoices ?? []);
   const billingRules = $derived(data.billingRules ?? []);
@@ -151,6 +198,45 @@
     });
   });
 
+  const selectedInvoice = $derived(
+    invoices.find((invoice) => rowValue(invoice, 'id') === selectedInvoiceId),
+  );
+
+  const invoiceCardRows = $derived.by((): TableCardRow[] =>
+    visibleInvoices.map((invoice) => {
+      const id = rowValue(invoice, 'id');
+      const ledger = ledgerForInvoice(id);
+      const currency = invoiceCurrency(invoice);
+      return {
+        id,
+        href: `#invoice-${id}`,
+        linkLabel: translate('Manage'),
+        cells: [
+          {
+            label: translate('Invoice'),
+            value: invoiceTitle(invoice),
+          },
+          {
+            label: translate('Project'),
+            value: rowValue(invoice, 'project_number', 'projectNumber') || '—',
+          },
+          {
+            label: translate('Amount'),
+            value: invoiceTotal(invoice),
+          },
+          {
+            label: translate('Status'),
+            value: invoiceStatusText(invoice),
+          },
+          {
+            label: translate('Outstanding'),
+            value: ledger ? formatMoney(ledger.outstandingMinor, currency) : '—',
+          },
+        ],
+      };
+    }),
+  );
+
   function stageLabel(stage: BillingStage): string {
     switch (stage) {
       case 'wip':
@@ -178,12 +264,17 @@
       case 'overdue':
         return 'danger';
       case 'draft':
+        return 'neutral';
       case 'wip':
       case 'ready':
         return 'warning';
       case 'void':
+      case 'voided':
+        return 'danger';
       case 'credited':
-        return 'neutral';
+      case 'credit_note':
+      case 'credit':
+        return 'warning';
       default:
         return 'neutral';
     }
@@ -191,8 +282,43 @@
 
   function dateValue(value: unknown): string {
     const raw = String(value ?? '').trim();
-    if (!raw) return translate('Not recorded');
+    if (!raw) return '—';
     return raw.replace('T', ' ').slice(0, 16);
+  }
+
+  function isoDateAttr(value: unknown): string {
+    const raw = String(value ?? '').trim();
+    return raw ? raw.slice(0, 10) : '';
+  }
+
+  function defaultDrawerTab(state: string): InvoiceDrawerTab {
+    if (['draft', 'approved'].includes(state)) return 'lifecycle';
+    if (['issued', 'sent', 'partially_paid', 'overdue'].includes(state)) return 'collections';
+    return 'overview';
+  }
+
+  function openInvoice(invoice: Row): void {
+    selectedInvoiceId = rowValue(invoice, 'id');
+    invoiceDrawerTab = defaultDrawerTab(invoiceState(invoice));
+  }
+
+  function openInvoiceFromCard(event: MouseEvent): void {
+    const article = (event.target as HTMLElement | null)?.closest('[data-row]');
+    if (!(article instanceof HTMLElement)) return;
+    const id = article.getAttribute('data-row') ?? '';
+    const invoice = visibleInvoices.find((row) => rowValue(row, 'id') === id);
+    if (!invoice) return;
+    event.preventDefault();
+    openInvoice(invoice);
+  }
+
+  function percentToBps(raw: string): string {
+    const value = raw.trim();
+    if (!/^\d+(\.\d{1,2})?$/.test(value)) return '0';
+    const [whole, fraction = ''] = value.split('.');
+    const paddedFraction = `${fraction}00`.slice(0, 2);
+    const digits = `${whole}${paddedFraction}`.replace(/^0+(?=\d)/, '') || '0';
+    return digits;
   }
 
   function minorToDecimal(value: unknown): string {
@@ -282,6 +408,20 @@
     );
   }
 
+  function invoiceStatusText(invoice: Row): string {
+    const status = invoiceStatus(invoice);
+    return invoiceState(invoice) === 'paid' ? `✓ ${status}` : status;
+  }
+
+  function invoicePdfStatus(invoice: Row): InvoicePdfStatus {
+    const status = rowValue(invoice, 'pdf_status', 'pdfStatus').toLowerCase();
+    if (status === 'ready') return 'ready';
+    if (status === 'failed') return 'failed';
+    if (status === 'rendering' || status === 'running' || status === 'processing') return 'running';
+    if (status === 'queued' || status === 'pending') return 'queued';
+    return 'unavailable';
+  }
+
   function invoiceTitle(invoice: Row): string {
     return rowValue(invoice, 'invoice_number', 'invoiceNumber') || translate('Draft invoice');
   }
@@ -290,6 +430,30 @@
     return ledger
       ? controlledValue('status', ledger.paymentStatus) || translate('Unpaid')
       : translate('No ledger row');
+  }
+
+  function lifecycleStage(state: string): 'draft' | 'approved' | 'issued' | 'collected' {
+    if (state === 'paid') return 'collected';
+    if (['issued', 'sent', 'partially_paid', 'overdue'].includes(state)) return 'issued';
+    if (state === 'approved') return 'approved';
+    return 'draft';
+  }
+
+  function nextStepCopy(state: string): string {
+    if (state === 'draft')
+      return translate(
+        'Approve this draft after Finance has reviewed the lines. The client does not receive it yet.',
+      );
+    if (state === 'approved')
+      return translate(
+        'Issue to assign the invoice number, lock the snapshot and generate the client PDF.',
+      );
+    if (['issued', 'sent', 'partially_paid', 'overdue'].includes(state))
+      return translate(
+        'Record money received from the client. That is the only path that counts as collected.',
+      );
+    if (state === 'paid') return translate('Issued history is immutable');
+    return translate('No lifecycle action available');
   }
 </script>
 
@@ -300,7 +464,7 @@
       <h2>{translate('Billing')}</h2>
       <p>
         {translate(
-          'Move approved sources through draft, issue, collection and correction lifecycles with a reconciled ledger.',
+          'Invoices are the bill: draft, approve, issue, collect. Billing streams only set cadence and template for a project.',
         )}
       </p>
     </div>
@@ -321,68 +485,111 @@
     </aside>
   {/if}
 
-  <div class="billing-section__summary" aria-label={translate('Billing stage summary')}>
-    {#each [['wip', 'WIP / Ready', stageCounts.wip], ['drafts', 'Drafts', stageCounts.drafts], ['outstanding', 'Outstanding', stageCounts.outstanding], ['overdue', 'Overdue', stageCounts.overdue]] as summary}
-      <button
-        type="button"
-        class:billing-section__summary-card--active={stageFilter === summary[0]}
-        class:billing-section__summary-card--danger={summary[0] === 'overdue'}
-        class="billing-section__summary-card"
-        aria-pressed={stageFilter === summary[0]}
-        onclick={() => (stageFilter = summary[0] as BillingStage)}
-      >
-        <span>{translate(String(summary[1]))}</span>
-        <strong>{summary[2]}</strong>
-        <small>{translate('Open stage filter')}</small>
-      </button>
-    {/each}
-  </div>
+  {#if readinessReasons().length > 0}
+    <aside class="billing-section__issue-blocker" data-billing-readiness role="alert">
+      <div>
+        <strong>{translate(String(form?.messageKey ?? 'Error'))}</strong>
+        <ul>
+          {#each readinessReasons() as reason}
+            <li>{translate(billingReadinessMessageKey(reason.code))}</li>
+          {/each}
+        </ul>
+      </div>
+    </aside>
+  {/if}
 
-  <form
-    class="billing-section__filters"
-    aria-label={translate('Filter billing')}
-    onsubmit={(event) => event.preventDefault()}
-  >
-    <label>
-      <span>{translate('Search invoices')}</span>
-      <input
-        bind:value={search}
-        type="search"
-        placeholder={translate('Invoice, project or period')}
-      />
-    </label>
-    <label>
-      <span>{translate('Project')}</span>
-      <select bind:value={projectFilter}>
-        <option value="">{translate('All projects')}</option>
-        {#each availableProjects as project}
-          <option value={rowValue(project, 'id')}>{projectLabel(project)}</option>
-        {/each}
-      </select>
-    </label>
-    <label>
-      <span>{translate('Stage')}</span>
-      <select bind:value={stageFilter}>
-        <option value="all">{translate('All invoices')}</option>
-        <option value="wip">{translate('WIP / Ready')}</option>
-        <option value="drafts">{translate('Drafts')}</option>
-        <option value="outstanding">{translate('Outstanding')}</option>
-        <option value="overdue">{translate('Overdue')}</option>
-      </select>
-    </label>
+  <div class="billing-section__workspace" role="tablist" aria-label={translate('Billing')}>
     <button
       type="button"
-      class="secondary-button"
-      onclick={() => {
-        search = '';
-        projectFilter = '';
-        stageFilter = 'all';
-      }}>{translate('Clear filters')}</button
+      role="tab"
+      aria-selected={workspace === 'invoices'}
+      class:billing-section__workspace-tab--active={workspace === 'invoices'}
+      class="billing-section__workspace-tab"
+      onclick={() => (workspace = 'invoices')}>{translate('Invoices')}</button
     >
-  </form>
+    <button
+      type="button"
+      role="tab"
+      aria-selected={workspace === 'streams'}
+      class:billing-section__workspace-tab--active={workspace === 'streams'}
+      class="billing-section__workspace-tab"
+      onclick={() => (workspace = 'streams')}>{translate('Billing streams')}</button
+    >
+    {#if canManageBilling}
+      <button
+        type="button"
+        role="tab"
+        aria-selected={workspace === 'setup'}
+        class:billing-section__workspace-tab--active={workspace === 'setup'}
+        class="billing-section__workspace-tab"
+        onclick={() => (workspace = 'setup')}>{translate('Configure billing')}</button
+      >
+    {/if}
+  </div>
 
-  {#if canManageBilling}
-    <details class="billing-section__config">
+  {#if workspace === 'invoices'}
+    <div class="billing-section__summary" aria-label={translate('Billing stage summary')}>
+      {#each [['all', 'All invoices', invoices.length], ['wip', 'WIP / Ready', stageCounts.wip], ['drafts', 'Drafts', stageCounts.drafts], ['outstanding', 'Outstanding', stageCounts.outstanding], ['overdue', 'Overdue', stageCounts.overdue]] as summary}
+        <button
+          type="button"
+          class:billing-section__summary-card--active={stageFilter === summary[0]}
+          class:billing-section__summary-card--danger={summary[0] === 'overdue'}
+          class="billing-section__summary-card"
+          aria-pressed={stageFilter === summary[0]}
+          onclick={() => (stageFilter = summary[0] as BillingStage)}
+        >
+          <span>{translate(String(summary[1]))}</span>
+          <strong>{summary[2]}</strong>
+        </button>
+      {/each}
+    </div>
+
+    <form
+      class="billing-section__filters"
+      aria-label={translate('Filter billing')}
+      onsubmit={(event) => event.preventDefault()}
+    >
+      <label>
+        <span>{translate('Search invoices')}</span>
+        <input
+          bind:value={search}
+          type="search"
+          placeholder={translate('Invoice, project or period')}
+        />
+      </label>
+      <label>
+        <span>{translate('Project')}</span>
+        <select bind:value={projectFilter}>
+          <option value="">{translate('All projects')}</option>
+          {#each availableProjects as project}
+            <option value={rowValue(project, 'id')}>{projectLabel(project)}</option>
+          {/each}
+        </select>
+      </label>
+      <label>
+        <span>{translate('Stage')}</span>
+        <select bind:value={stageFilter}>
+          <option value="all">{translate('All invoices')}</option>
+          <option value="wip">{translate('WIP / Ready')}</option>
+          <option value="drafts">{translate('Drafts')}</option>
+          <option value="outstanding">{translate('Outstanding')}</option>
+          <option value="overdue">{translate('Overdue')}</option>
+        </select>
+      </label>
+      <button
+        type="button"
+        class="secondary-button"
+        onclick={() => {
+          search = '';
+          projectFilter = '';
+          stageFilter = 'all';
+        }}>{translate('Clear filters')}</button
+      >
+    </form>
+  {/if}
+
+  {#if workspace === 'setup' && canManageBilling}
+    <details class="billing-section__config" open>
       <summary class="primary-button">{translate('Configure billing')}</summary>
       <div class="billing-section__config-body">
         <div class="billing-section__config-heading">
@@ -394,6 +601,58 @@
               )}
             </p>
           </div>
+        </div>
+
+        <div class="billing-section__directories">
+          <section>
+            <h4>{translate('Legal entities')}</h4>
+            <table class="billing-section__table">
+              <thead>
+                <tr>
+                  <th scope="col">{translate('Code')}</th>
+                  <th scope="col">{translate('Legal name')}</th>
+                  <th scope="col">{translate('Currency')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each data.legalEntities ?? [] as entity}
+                  <tr>
+                    <td>{rowValue(entity, 'code')}</td>
+                    <td>{rowValue(entity, 'legal_name', 'legalName')}</td>
+                    <td>{rowValue(entity, 'currency')}</td>
+                  </tr>
+                {:else}
+                  <tr><td colspan="3">{translate('No legal entities recorded.')}</td></tr>
+                {/each}
+              </tbody>
+            </table>
+          </section>
+          <section>
+            <h4>{translate('Tax profiles')}</h4>
+            <table class="billing-section__table">
+              <thead>
+                <tr>
+                  <th scope="col">{translate('Name')}</th>
+                  <th scope="col">{translate('Legal entity')}</th>
+                  <th scope="col">{translate('Currency')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each data.taxProfiles ?? [] as profile}
+                  <tr>
+                    <td>{rowValue(profile, 'name')}</td>
+                    <td
+                      >{rowValue(profile, 'legal_entity_code', 'legalEntityCode') ||
+                        translate('Global profile')}</td
+                    >
+                    <td>{rowValue(profile, 'currency')}</td>
+                  </tr>
+                {:else}
+                  <tr><td colspan="3">{translate('No tax profiles recorded.')}</td></tr>
+                {/each}
+              </tbody>
+            </table>
+          </section>
         </div>
 
         <form method="POST" action="?/createBillingRule" class="billing-section__config-form">
@@ -588,14 +847,23 @@
               /></label
             >
             <label
-              ><span>{translate('Rate (basis points)')}</span><input
-                name="componentBasisPoints"
+              ><span>{translate('Tax rate')}</span><input
+                name="componentPercent"
                 type="number"
                 min="0"
-                max="100000"
+                max="100"
+                step="0.01"
                 value="0"
                 required
-              /></label
+                oninput={(event) => {
+                  const form = event.currentTarget.form;
+                  const hidden = form?.elements.namedItem(
+                    'componentBasisPoints',
+                  ) as HTMLInputElement | null;
+                  if (!hidden) return;
+                  hidden.value = percentToBps(event.currentTarget.value);
+                }}
+              /><input type="hidden" name="componentBasisPoints" value="0" /></label
             >
             <label class="billing-section__checkbox"
               ><input name="componentCompound" type="checkbox" /><span
@@ -660,590 +928,1011 @@
     </details>
   {/if}
 
-  <SectionCard title={translate('Billing rules')} class="billing-section__rules">
-    <div class="billing-section__section-intro">
-      <p>{translate('Streams define source cadence and controlled invoice configuration.')}</p>
-      <span>{billingRules.length}</span>
-    </div>
-    {#if billingRules.length > 0}
-      <div class="billing-section__rule-list" aria-live="polite">
-        {#each billingRules as rule}
-          <article class="billing-section__rule" data-billing-rule={rowValue(rule, 'id')}>
-            <div>
-              <strong
-                >{rowValue(rule, 'project_number', 'projectNumber')} · {rowValue(
-                  rule,
-                  'stream_type',
-                  'streamType',
-                )}</strong
-              >
-              <small>
-                {controlledValue('status', rowValue(rule, 'cadence_type', 'cadenceType'))} ·
-                {rowValue(rule, 'currency')} ·
-                {rowValue(rule, 'tax_profile_name', 'taxProfileName') ||
-                  translate('No tax profile')}
-              </small>
-            </div>
-            {#if canManageBilling}
-              <details class="billing-section__rule-editor">
-                <summary class="secondary-button">{translate('Manage stream')}</summary>
-                <div class="billing-section__rule-actions">
-                  <form
-                    method="POST"
-                    action="?/updateBillingRule"
-                    class="billing-section__inline-form"
-                  >
-                    <input type="hidden" name="billingRuleId" value={rowValue(rule, 'id')} />
-                    <label
-                      ><span>{translate('Invoice template')}</span><select name="templateId">
-                        <option
-                          value="default"
-                          selected={rowValue(rule, 'template_id', 'templateId') === 'default'}
-                          >{translate('Default')}</option
-                        >
-                        <option
-                          value="labor-detailed"
-                          selected={rowValue(rule, 'template_id', 'templateId') ===
-                            'labor-detailed'}>{translate('Labor detailed')}</option
-                        >
-                        <option
-                          value="labor-summary"
-                          selected={rowValue(rule, 'template_id', 'templateId') === 'labor-summary'}
-                          >{translate('Labor summary')}</option
-                        >
-                        <option
-                          value="expenses-detailed"
-                          selected={rowValue(rule, 'template_id', 'templateId') ===
-                            'expenses-detailed'}>{translate('Expenses detailed')}</option
-                        >
-                        <option
-                          value="fixed-milestone"
-                          selected={rowValue(rule, 'template_id', 'templateId') ===
-                            'fixed-milestone'}>{translate('Fixed milestone')}</option
-                        >
-                      </select></label
-                    >
-                    <label
-                      ><span>{translate('Recipient email')}</span><input
-                        name="recipientEmail"
-                        type="email"
-                        value={rowValue(rule, 'recipient_email', 'recipientEmail')}
-                      /></label
-                    >
-                    <label
-                      ><span>{translate('Payment terms (days)')}</span><input
-                        name="paymentTermsDays"
-                        type="number"
-                        min="0"
-                        max="365"
-                        value={rowValue(rule, 'payment_terms_days', 'paymentTermsDays') || '30'}
-                      /></label
-                    >
-                    <label
-                      ><span>{translate('PO reference')}</span><input
-                        name="poNumberOverride"
-                        value={rowValue(rule, 'po_number_override', 'poNumberOverride')}
-                      /></label
-                    >
-                    <label
-                      ><span>{translate('Grouping')}</span><select name="groupingMode">
-                        <option
-                          value="summary"
-                          selected={rowValue(rule, 'grouping_mode', 'groupingMode') === 'summary'}
-                          >{translate('Summary')}</option
-                        >
-                        <option
-                          value="detail"
-                          selected={rowValue(rule, 'grouping_mode', 'groupingMode') === 'detail'}
-                          >{translate('Detail')}</option
-                        >
-                        <option
-                          value="by_worker"
-                          selected={rowValue(rule, 'grouping_mode', 'groupingMode') === 'by_worker'}
-                          >{translate('By worker')}</option
-                        >
-                        <option
-                          value="by_day"
-                          selected={rowValue(rule, 'grouping_mode', 'groupingMode') === 'by_day'}
-                          >{translate('By day')}</option
-                        >
-                        <option
-                          value="by_category"
-                          selected={rowValue(rule, 'grouping_mode', 'groupingMode') ===
-                            'by_category'}>{translate('By category')}</option
-                        >
-                      </select></label
-                    >
-                    <button type="submit">{translate('Save billing stream')}</button>
-                  </form>
-                  <form
-                    method="POST"
-                    action="?/archiveBillingRule"
-                    onsubmit={(event) => {
-                      if (!confirm(translate('Archive this billing rule?'))) event.preventDefault();
-                    }}
-                  >
-                    <input type="hidden" name="billingRuleId" value={rowValue(rule, 'id')} />
-                    <button type="submit" class="danger"
-                      >{translate('Archive billing stream')}</button
-                    >
-                  </form>
-                  <form method="POST" action="?/createDraft" class="billing-section__period-form">
-                    <input type="hidden" name="billingRuleId" value={rowValue(rule, 'id')} />
-                    <label
-                      ><span>{translate('Period start')}</span><input
-                        name="periodStart"
-                        type="date"
-                        required
-                      /></label
-                    >
-                    <label
-                      ><span>{translate('Period end')}</span><input
-                        name="periodEnd"
-                        type="date"
-                        required
-                      /></label
-                    >
-                    <button type="submit">{translate('Build draft')}</button>
-                  </form>
-                  <form method="POST" action="?/closePeriod" class="billing-section__period-form">
-                    <input type="hidden" name="billingRuleId" value={rowValue(rule, 'id')} />
-                    <label
-                      ><span>{translate('Close period start')}</span><input
-                        name="periodStart"
-                        type="date"
-                        required
-                      /></label
-                    >
-                    <label
-                      ><span>{translate('Close period end')}</span><input
-                        name="periodEnd"
-                        type="date"
-                        required
-                      /></label
-                    >
-                    <label
-                      ><span>{translate('Report language')}</span><select name="reportLocale"
-                        ><option value="en">{translate('English')}</option><option value="pt"
-                          >{translate('Português (BR)')}</option
-                        ><option value="es">{translate('Spanish')}</option></select
-                      ></label
-                    >
-                    <button type="submit">{translate('Close sources')}</button>
-                  </form>
-                </div>
-              </details>
-            {/if}
-          </article>
-        {/each}
+  {#if workspace === 'streams'}
+    <SectionCard title={translate('Billing streams')} class="billing-section__rules">
+      <div class="billing-section__section-intro">
+        <p>
+          {translate(
+            'A billing stream sets cadence, template and tax for one project. Create the draft here. Approve, issue and collect in Invoices.',
+          )}
+        </p>
+        <span>{billingRules.length}</span>
       </div>
-    {:else}
-      <div class="billing-section__empty" role="status">
-        <strong>{translate('No billing streams configured.')}</strong>
-        <span>{translate('Create an effective-dated stream to prepare an invoice draft.')}</span>
-      </div>
-    {/if}
-  </SectionCard>
-
-  <SectionCard title={translate('Invoice register')} class="billing-section__invoices">
-    <div class="billing-section__section-intro">
-      <p>
-        {stageFilter === 'all'
-          ? translate('Invoices and reconciled collection history.')
-          : `${stageLabel(stageFilter)} · ${translate('filtered')}`}
-      </p>
-      <span>{visibleInvoices.length}</span>
-    </div>
-
-    {#if visibleInvoices.length > 0}
-      <div class="billing-section__invoice-list" data-billing-invoice-list aria-live="polite">
-        {#each visibleInvoices as invoice}
-          {@const invoiceId = rowValue(invoice, 'id')}
-          {@const invoiceStateValue = invoiceState(invoice)}
-          {@const ledger = ledgerForInvoice(invoiceId)}
-          {@const currency = invoiceCurrency(invoice)}
-          {@const rowBlocker = invoiceIssueBlocker(invoice)}
-          <article class="billing-section__invoice" data-invoice-row={invoiceId}>
-            <div class="billing-section__invoice-heading">
-              <div>
-                <strong
-                  >{invoiceTitle(invoice)} · {rowValue(
-                    invoice,
-                    'project_number',
-                    'projectNumber',
-                  )}</strong
-                >
-                <small>
-                  {controlledValue('billingStream', rowValue(invoice, 'stream_type', 'streamType'))} ·
-                  {invoiceStatus(invoice)} · {invoiceTotal(invoice)} · {translate('Currency')}: {currency}
-                </small>
-              </div>
-              <StatusBadge
-                variant={statusVariant(invoiceStateValue)}
-                text={invoiceStatus(invoice)}
-              />
-            </div>
-
-            <div class="billing-section__invoice-dates" aria-label={translate('Invoice timeline')}>
-              <div>
-                <span>{translate('Planned issue')}</span><strong
-                  >{dateValue(rowValue(invoice, 'planned_issue_on', 'plannedIssueOn'))}</strong
-                >
-              </div>
-              <div>
-                <span>{translate('Actual issue')}</span><strong
-                  >{dateValue(rowValue(invoice, 'issued_at', 'issuedAt'))}</strong
-                >
-              </div>
-              <div>
-                <span>{translate('Expected collection')}</span><strong
-                  >{dateValue(
-                    rowValue(invoice, 'expected_collection_on', 'expectedCollectionOn'),
-                  )}</strong
-                >
-              </div>
-              <div>
-                <span>{translate('Actual collection')}</span><strong
-                  >{dateValue(ledger?.paidAt ?? ledger?.lastPaymentDate)}</strong
-                >
-              </div>
-            </div>
-
-            {#if canManageBilling && ['draft', 'approved'].includes(invoiceStateValue)}
-              <form
-                method="POST"
-                action="?/setInvoicePlanningDates"
-                class="billing-section__planning-form"
-                aria-label={translate('Plan invoice dates')}
-              >
-                <fieldset>
-                  <legend>{translate('Planned and expected dates')}</legend>
-                  <p>
-                    {translate(
-                      'Planning and expected values are directional controls. They never count as actual time, paid cash, or collected revenue.',
-                    )}
-                  </p>
-                  <div class="billing-section__planning-fields">
-                    <label
-                      ><span>{translate('Planned issue')}</span><input
-                        name="plannedIssueOn"
-                        type="date"
-                        value={rowValue(invoice, 'planned_issue_on', 'plannedIssueOn')}
-                      /></label
-                    >
-                    <label
-                      ><span>{translate('Expected collection')}</span><input
-                        name="expectedCollectionOn"
-                        type="date"
-                        value={rowValue(invoice, 'expected_collection_on', 'expectedCollectionOn')}
-                      /></label
-                    >
-                    <input type="hidden" name="invoiceId" value={invoiceId} />
-                    <input
-                      type="hidden"
-                      name="expectedVersion"
-                      value={rowValue(invoice, 'version')}
-                    />
-                    <button type="submit">{translate('Save planning dates')}</button>
-                  </div>
-                </fieldset>
-              </form>
-            {/if}
-
-            <p class="billing-section__timeline-note">
-              {translate('Only append-only payment events count as collected')}
-            </p>
-
-            {#if ledger}
-              <div class="billing-section__invoice-ledger">
-                <span
-                  >{translate('Collected')}:
-                  <strong>{formatMoney(ledger.netCollectedMinor, currency)}</strong></span
-                >
-                <span
-                  >{translate('Outstanding')}:
-                  <strong>{formatMoney(ledger.outstandingMinor, currency)}</strong></span
-                >
-                <span>{translate('Payment state')}: <strong>{paymentStatus(ledger)}</strong></span>
-              </div>
-            {/if}
-
-            {#if rowBlocker}
-              <aside class="billing-section__row-blocker" data-invoice-issue-blocker role="alert">
-                <span>{blockerMessage(rowBlocker)}</span>
-                {#if blockerHref(rowBlocker)}<a href={blockerHref(rowBlocker)}
-                    >{translate('Open sign-off')}</a
-                  >{/if}
-              </aside>
-            {/if}
-
-            {#if ledger}
-              <details class="billing-section__payment-history">
-                <summary>{translate('Collections and reversals')}</summary>
-                <div class="billing-section__history-summary">
-                  <span
-                    >{translate('Gross')}: {formatMoney(ledger.grossPaymentsMinor, currency)}</span
-                  >
-                  <span
-                    >{translate('Reversals')}: {formatMoney(
-                      ledger.paymentReversalsMinor,
-                      currency,
-                    )}</span
-                  >
-                  <span>{translate('Net')}: {formatMoney(ledger.netCollectedMinor, currency)}</span>
-                </div>
-                {#each ledger.payments ?? [] as payment}
-                  <article class="billing-section__payment-row">
-                    <div>
-                      <strong
-                        >{translate('Payment')} · {String(payment.id ?? '—').slice(0, 12)}</strong
-                      >
-                      <small>
-                        {formatMoney(
-                          payment.grossAmountMinor,
-                          String(payment.currency ?? currency),
-                        )} ·
-                        {dateValue(payment.received_at)} · {String(
-                          payment.reference ?? translate('No reference'),
-                        )}
-                      </small>
-                      <small>
-                        {translate('Reversed')}: {formatMoney(
-                          payment.reversedMinor,
-                          String(payment.currency ?? currency),
-                        )} ·
-                        {translate('Net')}: {formatMoney(
-                          payment.netAmountMinor,
-                          String(payment.currency ?? currency),
-                        )}
-                      </small>
-                    </div>
-                    {#if canManageBilling && !['void', 'credited'].includes(invoiceStateValue) && positiveMinor(payment.netAmountMinor)}
+      {#if billingRules.length > 0}
+        <div class="billing-section__rule-list" aria-live="polite">
+          <table class="billing-section__table">
+            <caption class="sr-only">{translate('Billing streams')}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{translate('Project')}</th>
+                <th scope="col">{translate('Cadence')}</th>
+                <th scope="col">{translate('Tax profile')}</th>
+                <th scope="col">{translate('Actions')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each billingRules as rule}
+                <tr data-billing-rule={rowValue(rule, 'id')}>
+                  <td>
+                    <strong>{rowValue(rule, 'project_number', 'projectNumber')}</strong>
+                    <small>
+                      {controlledValue(
+                        'billingStream',
+                        rowValue(rule, 'stream_type', 'streamType'),
+                      ) || rowValue(rule, 'stream_type', 'streamType')}
+                    </small>
+                  </td>
+                  <td>
+                    {controlledValue('status', rowValue(rule, 'cadence_type', 'cadenceType'))}
+                    · {rowValue(rule, 'currency')}
+                  </td>
+                  <td>
+                    {rowValue(rule, 'tax_profile_name', 'taxProfileName') ||
+                      translate('No tax profile')}
+                  </td>
+                  <td>
+                    {#if canManageBilling}
                       <form
                         method="POST"
-                        action="?/reversePayment"
+                        action="?/createDraft"
+                        class="billing-section__period-form"
+                      >
+                        <input type="hidden" name="billingRuleId" value={rowValue(rule, 'id')} />
+                        <label
+                          ><span>{translate('Period start')}</span><input
+                            name="periodStart"
+                            type="date"
+                            value={streamDraftPeriod(rule).start}
+                            required
+                          /></label
+                        >
+                        <label
+                          ><span>{translate('Period end')}</span><input
+                            name="periodEnd"
+                            type="date"
+                            value={streamDraftPeriod(rule).end}
+                            required
+                          /></label
+                        >
+                        <button type="submit">{translate('Create invoice draft')}</button>
+                      </form>
+                      <details class="billing-section__rule-editor">
+                        <summary class="secondary-button">{translate('Manage stream')}</summary>
+                        <div class="billing-section__rule-actions">
+                          <form
+                            method="POST"
+                            action="?/updateBillingRule"
+                            class="billing-section__inline-form"
+                          >
+                            <input
+                              type="hidden"
+                              name="billingRuleId"
+                              value={rowValue(rule, 'id')}
+                            />
+                            <label
+                              ><span>{translate('Invoice template')}</span><select
+                                name="templateId"
+                              >
+                                <option
+                                  value="default"
+                                  selected={rowValue(rule, 'template_id', 'templateId') ===
+                                    'default'}>{translate('Default')}</option
+                                >
+                                <option
+                                  value="labor-detailed"
+                                  selected={rowValue(rule, 'template_id', 'templateId') ===
+                                    'labor-detailed'}>{translate('Labor detailed')}</option
+                                >
+                                <option
+                                  value="labor-summary"
+                                  selected={rowValue(rule, 'template_id', 'templateId') ===
+                                    'labor-summary'}>{translate('Labor summary')}</option
+                                >
+                                <option
+                                  value="expenses-detailed"
+                                  selected={rowValue(rule, 'template_id', 'templateId') ===
+                                    'expenses-detailed'}>{translate('Expenses detailed')}</option
+                                >
+                                <option
+                                  value="fixed-milestone"
+                                  selected={rowValue(rule, 'template_id', 'templateId') ===
+                                    'fixed-milestone'}>{translate('Fixed milestone')}</option
+                                >
+                              </select></label
+                            >
+                            <label
+                              ><span>{translate('Recipient email')}</span><input
+                                name="recipientEmail"
+                                type="email"
+                                value={rowValue(rule, 'recipient_email', 'recipientEmail')}
+                              /></label
+                            >
+                            <label
+                              ><span>{translate('Payment terms (days)')}</span><input
+                                name="paymentTermsDays"
+                                type="number"
+                                min="0"
+                                max="365"
+                                value={rowValue(rule, 'payment_terms_days', 'paymentTermsDays') ||
+                                  '30'}
+                              /></label
+                            >
+                            <label
+                              ><span>{translate('PO reference')}</span><input
+                                name="poNumberOverride"
+                                value={rowValue(rule, 'po_number_override', 'poNumberOverride')}
+                              /></label
+                            >
+                            <label
+                              ><span>{translate('Grouping')}</span><select name="groupingMode">
+                                <option
+                                  value="summary"
+                                  selected={rowValue(rule, 'grouping_mode', 'groupingMode') ===
+                                    'summary'}>{translate('Summary')}</option
+                                >
+                                <option
+                                  value="detail"
+                                  selected={rowValue(rule, 'grouping_mode', 'groupingMode') ===
+                                    'detail'}>{translate('Detail')}</option
+                                >
+                                <option
+                                  value="by_worker"
+                                  selected={rowValue(rule, 'grouping_mode', 'groupingMode') ===
+                                    'by_worker'}>{translate('By worker')}</option
+                                >
+                                <option
+                                  value="by_day"
+                                  selected={rowValue(rule, 'grouping_mode', 'groupingMode') ===
+                                    'by_day'}>{translate('By day')}</option
+                                >
+                                <option
+                                  value="by_category"
+                                  selected={rowValue(rule, 'grouping_mode', 'groupingMode') ===
+                                    'by_category'}>{translate('By category')}</option
+                                >
+                              </select></label
+                            >
+                            <button type="submit">{translate('Save billing stream')}</button>
+                          </form>
+                          <form
+                            method="POST"
+                            action="?/archiveBillingRule"
+                            onsubmit={(event) => {
+                              if (!confirm(translate('Archive this billing rule?')))
+                                event.preventDefault();
+                            }}
+                          >
+                            <input
+                              type="hidden"
+                              name="billingRuleId"
+                              value={rowValue(rule, 'id')}
+                            />
+                            <button type="submit" class="danger"
+                              >{translate('Archive billing stream')}</button
+                            >
+                          </form>
+                          <details class="billing-section__close-sources">
+                            <summary>{translate('Close sources')}</summary>
+                            <p>
+                              {translate(
+                                'Close sources after the invoice is issued so leftover work cannot be billed twice.',
+                              )}
+                            </p>
+                            <form
+                              method="POST"
+                              action="?/closePeriod"
+                              class="billing-section__period-form"
+                            >
+                              <input
+                                type="hidden"
+                                name="billingRuleId"
+                                value={rowValue(rule, 'id')}
+                              />
+                              <label
+                                ><span>{translate('Close period start')}</span><input
+                                  name="periodStart"
+                                  type="date"
+                                  value={streamDraftPeriod(rule).start}
+                                  required
+                                /></label
+                              >
+                              <label
+                                ><span>{translate('Close period end')}</span><input
+                                  name="periodEnd"
+                                  type="date"
+                                  value={streamDraftPeriod(rule).end}
+                                  required
+                                /></label
+                              >
+                              <label
+                                ><span>{translate('Report language')}</span><select
+                                  name="reportLocale"
+                                  ><option value="en">{translate('English')}</option><option
+                                    value="pt">{translate('Português (BR)')}</option
+                                  ><option value="es">{translate('Spanish')}</option></select
+                                ></label
+                              >
+                              <button type="submit">{translate('Close sources')}</button>
+                            </form>
+                          </details>
+                        </div>
+                      </details>
+                    {/if}
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {:else}
+        <div class="billing-section__empty" role="status">
+          <strong>{translate('No billing streams configured.')}</strong>
+          <span>{translate('Create an effective-dated stream to prepare an invoice draft.')}</span>
+        </div>
+      {/if}
+    </SectionCard>
+  {/if}
+
+  {#if workspace === 'invoices'}
+    <SectionCard title={translate('Invoice register')} class="billing-section__invoices">
+      <div class="billing-section__section-intro">
+        <p>
+          {stageFilter === 'all'
+            ? translate(
+                'Each row is one bill. Open Manage to approve, issue, collect, or correct. Adjustment is a new draft, never an edit of the issued bill.',
+              )
+            : `${stageLabel(stageFilter)} · ${translate('filtered')}`}
+        </p>
+        <span>{visibleInvoices.length}</span>
+      </div>
+
+      {#if visibleInvoices.length > 0}
+        <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+        <div
+          class="billing-section__invoice-list"
+          data-billing-invoice-list
+          aria-live="polite"
+          onclick={openInvoiceFromCard}
+        >
+          <TableRegion
+            class="billing-section__table-region"
+            ariaLabel={translate('Invoice register')}
+            mobileMode="cards"
+            cardRows={invoiceCardRows}
+          >
+            <table class="billing-section__table">
+              <caption class="sr-only">{translate('Invoice register')}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">{translate('Invoice')}</th>
+                  <th scope="col">{translate('Project')}</th>
+                  <th scope="col">{translate('Dates')}</th>
+                  <th scope="col">{translate('Amount')}</th>
+                  <th scope="col">{translate('Outstanding')}</th>
+                  <th scope="col">{translate('Status')}</th>
+                  <th scope="col">{translate('PDF')}</th>
+                  <th scope="col">{translate('Actions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each visibleInvoices as invoice}
+                  {@const invoiceId = rowValue(invoice, 'id')}
+                  {@const invoiceStateValue = invoiceState(invoice)}
+                  {@const ledger = ledgerForInvoice(invoiceId)}
+                  {@const currency = invoiceCurrency(invoice)}
+                  {@const pdfStatus = invoicePdfStatus(invoice)}
+                  <tr
+                    data-invoice-row={invoiceId}
+                    data-invoice-state={invoiceStateValue}
+                    data-invoice-issued-on={isoDateAttr(rowValue(invoice, 'issued_at', 'issuedAt'))}
+                  >
+                    <td>
+                      <a href={`${base}/app/billing/invoices/${encodeURIComponent(invoiceId)}`}>
+                        <strong>{invoiceTitle(invoice)}</strong>
+                      </a>
+                    </td>
+                    <td>{rowValue(invoice, 'project_number', 'projectNumber') || '—'}</td>
+                    <td>
+                      {dateValue(rowValue(invoice, 'issued_at', 'issuedAt'))}
+                      /
+                      {dateValue(
+                        rowValue(invoice, 'expected_collection_on', 'expectedCollectionOn'),
+                      )}
+                    </td>
+                    <td>{invoiceTotal(invoice)}</td>
+                    <td>{ledger ? formatMoney(ledger.outstandingMinor, currency) : '—'}</td>
+                    <td>
+                      <StatusBadge
+                        variant={statusVariant(invoiceStateValue)}
+                        text={invoiceStatusText(invoice)}
+                        data-invoice-status={invoiceStateValue}
+                        aria-label={invoiceStatus(invoice)}
+                      />
+                    </td>
+                    <td>
+                      <span data-invoice-pdf-status={pdfStatus}>
+                        {translate('PDF')} · {translate(
+                          pdfStatus === 'unavailable' ? 'Unavailable' : pdfStatus,
+                        )}
+                      </span>
+                      {#if pdfStatus === 'ready'}
+                        <a
+                          href={`${base}/app/api/invoices/${encodeURIComponent(invoiceId)}/pdf`}
+                          download
+                          aria-label={`${translate('Download PDF')}: ${invoiceTitle(invoice)}`}
+                          >{translate('Download PDF')}</a
+                        >
+                      {/if}
+                    </td>
+                    <td>
+                      <button type="button" onclick={() => openInvoice(invoice)}
+                        >{translate('Manage')}</button
+                      >
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </TableRegion>
+
+          {#if selectedInvoice}
+            {@const invoice = selectedInvoice}
+            {@const invoiceId = rowValue(invoice, 'id')}
+            {@const invoiceStateValue = invoiceState(invoice)}
+            {@const ledger = ledgerForInvoice(invoiceId)}
+            {@const currency = invoiceCurrency(invoice)}
+            {@const rowBlocker = invoiceIssueBlocker(invoice)}
+            {@const pdfStatus = invoicePdfStatus(invoice)}
+            {@const currentLifecycle = lifecycleStage(invoiceStateValue)}
+            <ResponsiveSheet
+              open={true}
+              title={invoiceTitle(invoice)}
+              description={rowValue(invoice, 'project_number', 'projectNumber')}
+              closeLabel={translate('Close')}
+              onclose={() => (selectedInvoiceId = '')}
+            >
+              <article class="billing-section__invoice" data-invoice-row={invoiceId}>
+                <div class="billing-section__drawer-tabs" role="tablist">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={invoiceDrawerTab === 'overview'}
+                    onclick={() => (invoiceDrawerTab = 'overview')}>{translate('Overview')}</button
+                  >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={invoiceDrawerTab === 'collections'}
+                    onclick={() => (invoiceDrawerTab = 'collections')}
+                    >{translate('Collections')}</button
+                  >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={invoiceDrawerTab === 'lifecycle'}
+                    onclick={() => (invoiceDrawerTab = 'lifecycle')}
+                    >{translate('Lifecycle')}</button
+                  >
+                </div>
+                <div class="billing-section__invoice-heading">
+                  <div>
+                    <strong
+                      >{invoiceTitle(invoice)} · {rowValue(
+                        invoice,
+                        'project_number',
+                        'projectNumber',
+                      )}</strong
+                    >
+                    <small>
+                      {controlledValue(
+                        'billingStream',
+                        rowValue(invoice, 'stream_type', 'streamType'),
+                      )} ·
+                      {invoiceStatus(invoice)} · {invoiceTotal(invoice)} · {translate('Currency')}: {currency}
+                    </small>
+                  </div>
+                  <StatusBadge
+                    variant={statusVariant(invoiceStateValue)}
+                    text={invoiceStatusText(invoice)}
+                    data-invoice-status={invoiceStateValue}
+                    aria-label={invoiceStatus(invoice)}
+                  />
+                </div>
+                <ol class="billing-section__lifecycle" aria-label={translate('Invoice timeline')}>
+                  {#each ['draft', 'approved', 'issued', 'collected'] as step}
+                    {@const status =
+                      ['draft', 'approved', 'issued', 'collected'].indexOf(step) <
+                      ['draft', 'approved', 'issued', 'collected'].indexOf(currentLifecycle)
+                        ? 'done'
+                        : step === currentLifecycle
+                          ? 'current'
+                          : 'upcoming'}
+                    <li
+                      class="billing-section__lifecycle-step"
+                      data-lifecycle-status={status}
+                      aria-current={status === 'current' ? 'step' : undefined}
+                    >
+                      {step === 'draft'
+                        ? translate('Draft invoice')
+                        : step === 'approved'
+                          ? translate('Approved')
+                          : step === 'issued'
+                            ? translate('Issue invoice')
+                            : translate('Collected')}
+                    </li>
+                  {/each}
+                </ol>
+
+                <div
+                  class="billing-section__invoice-dates"
+                  aria-label={translate('Invoice timeline')}
+                >
+                  <div>
+                    <span>{translate('Planned issue')}</span><strong
+                      >{dateValue(rowValue(invoice, 'planned_issue_on', 'plannedIssueOn'))}</strong
+                    >
+                  </div>
+                  <div>
+                    <span>{translate('Actual issue')}</span><strong
+                      >{dateValue(rowValue(invoice, 'issued_at', 'issuedAt'))}</strong
+                    >
+                  </div>
+                  <div>
+                    <span>{translate('Expected collection')}</span><strong
+                      >{dateValue(
+                        rowValue(invoice, 'expected_collection_on', 'expectedCollectionOn'),
+                      )}</strong
+                    >
+                  </div>
+                  <div>
+                    <span>{translate('Actual collection')}</span><strong
+                      >{dateValue(ledger?.paidAt ?? ledger?.lastPaymentDate)}</strong
+                    >
+                  </div>
+                </div>
+
+                {#if canManageBilling && ['draft', 'approved'].includes(invoiceStateValue)}
+                  <form
+                    method="POST"
+                    action="?/setInvoicePlanningDates"
+                    class="billing-section__planning-form"
+                    aria-label={translate('Plan invoice dates')}
+                  >
+                    <fieldset>
+                      <legend>{translate('Planned and expected dates')}</legend>
+                      <p>
+                        {translate(
+                          'Planning and expected values are directional controls. They never count as actual time, paid cash, or collected revenue.',
+                        )}
+                      </p>
+                      <div class="billing-section__planning-fields">
+                        <label
+                          ><span>{translate('Planned issue')}</span><input
+                            name="plannedIssueOn"
+                            type="date"
+                            value={rowValue(invoice, 'planned_issue_on', 'plannedIssueOn')}
+                          /></label
+                        >
+                        <label
+                          ><span>{translate('Expected collection')}</span><input
+                            name="expectedCollectionOn"
+                            type="date"
+                            value={rowValue(
+                              invoice,
+                              'expected_collection_on',
+                              'expectedCollectionOn',
+                            )}
+                          /></label
+                        >
+                        <input type="hidden" name="invoiceId" value={invoiceId} />
+                        <input
+                          type="hidden"
+                          name="expectedVersion"
+                          value={rowValue(invoice, 'version')}
+                        />
+                        <button type="submit">{translate('Save planning dates')}</button>
+                      </div>
+                    </fieldset>
+                  </form>
+                {/if}
+
+                <p class="billing-section__timeline-note">
+                  {translate('Only append-only payment events count as collected')}
+                </p>
+
+                {#if ledger}
+                  <div class="billing-section__invoice-ledger">
+                    <span
+                      >{translate('Collected')}:
+                      <strong>{formatMoney(ledger.netCollectedMinor, currency)}</strong></span
+                    >
+                    <span
+                      >{translate('Outstanding')}:
+                      <strong>{formatMoney(ledger.outstandingMinor, currency)}</strong></span
+                    >
+                    <span
+                      >{translate('Payment state')}: <strong>{paymentStatus(ledger)}</strong></span
+                    >
+                  </div>
+                {/if}
+
+                {#if rowBlocker}
+                  <aside
+                    class="billing-section__row-blocker"
+                    data-invoice-issue-blocker
+                    role="alert"
+                  >
+                    <span>{blockerMessage(rowBlocker)}</span>
+                    {#if blockerHref(rowBlocker)}<a href={blockerHref(rowBlocker)}
+                        >{translate('Open sign-off')}</a
+                      >{/if}
+                  </aside>
+                {/if}
+
+                {#if ledger}
+                  <details class="billing-section__payment-history">
+                    <summary>{translate('Collections and reversals')}</summary>
+                    <div class="billing-section__history-summary">
+                      <span
+                        >{translate('Gross')}: {formatMoney(
+                          ledger.grossPaymentsMinor,
+                          currency,
+                        )}</span
+                      >
+                      <span
+                        >{translate('Reversals')}: {formatMoney(
+                          ledger.paymentReversalsMinor,
+                          currency,
+                        )}</span
+                      >
+                      <span
+                        >{translate('Net')}: {formatMoney(ledger.netCollectedMinor, currency)}</span
+                      >
+                    </div>
+                    {#each ledger.payments ?? [] as payment}
+                      <article class="billing-section__payment-row">
+                        <div>
+                          <strong
+                            >{translate('Payment')} · {String(payment.id ?? '—').slice(
+                              0,
+                              12,
+                            )}</strong
+                          >
+                          <small>
+                            {formatMoney(
+                              payment.grossAmountMinor,
+                              String(payment.currency ?? currency),
+                            )} ·
+                            {dateValue(payment.received_at)} · {String(
+                              payment.reference ?? translate('No reference'),
+                            )}
+                          </small>
+                          <small>
+                            {translate('Reversed')}: {formatMoney(
+                              payment.reversedMinor,
+                              String(payment.currency ?? currency),
+                            )} ·
+                            {translate('Net')}: {formatMoney(
+                              payment.netAmountMinor,
+                              String(payment.currency ?? currency),
+                            )}
+                          </small>
+                        </div>
+                        {#if canManageBilling && !['void', 'credited'].includes(invoiceStateValue) && positiveMinor(payment.netAmountMinor)}
+                          <form
+                            method="POST"
+                            action="?/reversePayment"
+                            class="billing-section__payment-form"
+                          >
+                            <input
+                              type="hidden"
+                              name="paymentId"
+                              value={String(payment.id ?? '')}
+                            />
+                            <label
+                              ><span>{translate('Reversal amount')}</span><input
+                                name="amount"
+                                inputmode="decimal"
+                                type="number"
+                                min="0.01"
+                                step="0.01"
+                                max={minorToDecimal(payment.netAmountMinor)}
+                                value={minorToDecimal(payment.netAmountMinor)}
+                                required
+                              /></label
+                            >
+                            <label
+                              ><span>{translate('Effective date')}</span><input
+                                name="effectiveOn"
+                                type="date"
+                                required
+                              /></label
+                            >
+                            <label
+                              ><span>{translate('Reason code')}</span><select
+                                name="reasonCode"
+                                required
+                                ><option value="bank_return">{translate('Bank return')}</option
+                                ><option value="duplicate">{translate('Duplicate')}</option><option
+                                  value="entry_correction">{translate('Entry correction')}</option
+                                ><option value="other">{translate('Other')}</option></select
+                              ></label
+                            >
+                            <label
+                              ><span>{translate('Reason')}</span><input
+                                name="reason"
+                                required
+                              /></label
+                            >
+                            <input
+                              type="hidden"
+                              name="idempotencyKey"
+                              value={`reversal-${String(payment.id ?? '')}-${String(payment.netAmountMinor ?? '0')}`}
+                            />
+                            <button type="submit">{translate('Reverse payment')}</button>
+                          </form>
+                        {/if}
+                      </article>
+                    {:else}
+                      <p class="billing-section__empty">{translate('No payments recorded.')}</p>
+                    {/each}
+                    {#if (ledger.paymentReversals?.length ?? 0) > 0}
+                      <div class="billing-section__reversal-table">
+                        <table>
+                          <caption>{translate('Immutable reversal history')}</caption>
+                          <thead
+                            ><tr
+                              ><th scope="col">{translate('Payment')}</th><th scope="col"
+                                >{translate('Amount')}</th
+                              ><th scope="col">{translate('Effective date')}</th><th scope="col"
+                                >{translate('Reason code')}</th
+                              ><th scope="col">{translate('Reason')}</th></tr
+                            ></thead
+                          >
+                          <tbody>
+                            {#each ledger.paymentReversals ?? [] as reversal}
+                              <tr
+                                ><td>{String(reversal.originalPaymentId ?? '—').slice(0, 12)}</td
+                                ><td
+                                  >{formatMoney(
+                                    reversal.amountMinor,
+                                    String(reversal.currency ?? currency),
+                                  )}</td
+                                ><td>{dateValue(reversal.effectiveAt)}</td><td
+                                  >{controlledValue('status', reversal.reasonCode)}</td
+                                ><td>{String(reversal.reason ?? '—')}</td></tr
+                              >
+                            {/each}
+                          </tbody>
+                        </table>
+                      </div>
+                    {/if}
+                  </details>
+                {/if}
+
+                <div class="billing-section__invoice-actions">
+                  <div class="billing-section__next-step">
+                    <strong>{translate('Next step')}</strong>
+                    <p>{nextStepCopy(invoiceStateValue)}</p>
+                  </div>
+                  <div class="billing-section__invoice-toolbar">
+                    <a
+                      class="secondary-button"
+                      href={`${base}/app/billing/invoices/${encodeURIComponent(invoiceId)}`}
+                      >{translate('Preview')}</a
+                    >
+                    <span
+                      class="billing-section__artifact-status"
+                      data-invoice-pdf-status={pdfStatus}
+                      aria-live="polite"
+                    >
+                      {translate('PDF')} · {translate(
+                        pdfStatus === 'unavailable' ? 'Unavailable' : pdfStatus,
+                      )}
+                    </span>
+                    {#if pdfStatus === 'ready'}
+                      <a
+                        class="secondary-button"
+                        href={`${base}/app/api/invoices/${encodeURIComponent(invoiceId)}/pdf`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${translate('Open PDF')}: ${invoiceTitle(invoice)}`}
+                        >{translate('Open PDF')}</a
+                      >
+                      <a
+                        class="secondary-button"
+                        href={`${base}/app/api/invoices/${encodeURIComponent(invoiceId)}/pdf`}
+                        download
+                        aria-label={`${translate('Download PDF')}: ${invoiceTitle(invoice)}`}
+                        >{translate('Download PDF')}</a
+                      >
+                    {:else if pdfStatus === 'failed'}
+                      <span class="billing-section__artifact-note" role="alert"
+                        >{translate('Failed')}</span
+                      >
+                    {:else if pdfStatus === 'queued' || pdfStatus === 'running'}
+                      <span class="billing-section__artifact-note" role="status"
+                        >{translate('PDF')} · {translate(pdfStatus)}</span
+                      >
+                    {:else}
+                      <span class="billing-section__artifact-note" role="status"
+                        >{translate('Unavailable')}</span
+                      >
+                    {/if}
+                  </div>
+                  {#if isAuditor}
+                    <span class="billing-section__read-only"
+                      >{translate('Issued history is immutable')}</span
+                    >
+                  {:else if invoiceStateValue === 'draft'}
+                    <form method="POST" action="?/approveInvoice">
+                      <input type="hidden" name="invoiceId" value={invoiceId} />
+                      <button type="submit">{translate('Approve')}</button>
+                    </form>
+                    <form method="POST" action="?/deleteInvoice">
+                      <input type="hidden" name="invoiceId" value={invoiceId} />
+                      <button type="submit" class="danger">{translate('Discard draft')}</button>
+                    </form>
+                  {:else if invoiceStateValue === 'approved'}
+                    <form
+                      method="POST"
+                      action="?/issueInvoice"
+                      class="billing-section__primary-form"
+                    >
+                      <input type="hidden" name="invoiceId" value={invoiceId} />
+                      <label
+                        ><span>{translate('Report language')}</span><select name="reportLocale"
+                          ><option value="en">EN</option><option value="pt">PT-BR</option><option
+                            value="es">ES</option
+                          ></select
+                        ></label
+                      >
+                      <button type="submit">{translate('Issue invoice')}</button>
+                    </form>
+                  {:else if ['issued', 'sent', 'partially_paid', 'overdue'].includes(invoiceStateValue)}
+                    <details class="billing-section__action-panel">
+                      <summary>{translate('Record payment')}</summary>
+                      <p>
+                        {translate(
+                          'Record money received from the client. That is the only path that counts as collected.',
+                        )}
+                      </p>
+                      <form
+                        method="POST"
+                        action="?/recordPayment"
                         class="billing-section__payment-form"
                       >
-                        <input type="hidden" name="paymentId" value={String(payment.id ?? '')} />
+                        <input type="hidden" name="invoiceId" value={invoiceId} />
                         <label
-                          ><span>{translate('Reversal amount')}</span><input
+                          ><span>{translate('Payment amount')}</span><input
                             name="amount"
                             inputmode="decimal"
                             type="number"
                             min="0.01"
                             step="0.01"
-                            max={minorToDecimal(payment.netAmountMinor)}
-                            value={minorToDecimal(payment.netAmountMinor)}
+                            max={minorToDecimal(
+                              ledger?.outstandingMinor ??
+                                rowValue(invoice, 'total_minor', 'totalMinor'),
+                            )}
                             required
                           /></label
                         >
                         <label
-                          ><span>{translate('Effective date')}</span><input
-                            name="effectiveOn"
+                          ><span>{translate('Currency')}</span><input
+                            name="currency"
+                            value={currency}
+                            readonly
+                            aria-readonly="true"
+                            required
+                          /></label
+                        >
+                        <label
+                          ><span>{translate('Received on')}</span><input
+                            name="receivedOn"
                             type="date"
+                            value={todayIso}
                             required
                           /></label
                         >
                         <label
-                          ><span>{translate('Reason code')}</span><select name="reasonCode" required
-                            ><option value="bank_return">{translate('Bank return')}</option><option
-                              value="duplicate">{translate('Duplicate')}</option
-                            ><option value="entry_correction"
-                              >{translate('Entry correction')}</option
-                            ><option value="other">{translate('Other')}</option></select
+                          ><span>{translate('Payment reference / note')}</span><input
+                            name="reference"
+                            required
+                          /></label
+                        >
+                        <input
+                          name="idempotencyKey"
+                          type="hidden"
+                          value={rowValue(invoice, 'paymentCommandToken') ||
+                            `payment-${invoiceId}-${currency}`}
+                        />
+                        <button type="submit">{translate('Record payment')}</button>
+                      </form>
+                    </details>
+                    <details class="billing-section__action-panel">
+                      <summary>{translate('Create adjustment')}</summary>
+                      <p>
+                        {translate(
+                          'Open a credit or debit draft. The issued bill stays unchanged.',
+                        )}
+                      </p>
+                      <form
+                        method="POST"
+                        action="?/createInvoiceAdjustment"
+                        class="billing-section__payment-form"
+                      >
+                        <input type="hidden" name="originalInvoiceId" value={invoiceId} />
+                        <label
+                          ><span>{translate('Adjustment type')}</span><select name="adjustmentType"
+                            ><option value="credit">{translate('Credit')}</option><option
+                              value="debit">{translate('Debit')}</option
+                            ><option value="correction">{translate('Correction')}</option></select
                           ></label
                         >
                         <label
-                          ><span>{translate('Reason')}</span><input name="reason" required /></label
+                          ><span>{translate('Adjustment amount')}</span><input
+                            name="amount"
+                            inputmode="decimal"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            required
+                          /></label
                         >
-                        <input
-                          type="hidden"
-                          name="idempotencyKey"
-                          value={`reversal-${String(payment.id ?? '')}-${String(payment.netAmountMinor ?? '0')}`}
-                        />
-                        <button type="submit">{translate('Reverse payment')}</button>
+                        <label
+                          ><span>{translate('Adjustment reason')}</span><input
+                            name="reason"
+                            required
+                          /></label
+                        >
+                        <button type="submit">{translate('Create adjustment')}</button>
                       </form>
-                    {/if}
-                  </article>
-                {:else}
-                  <p class="billing-section__empty">{translate('No payments recorded.')}</p>
-                {/each}
-                {#if (ledger.paymentReversals?.length ?? 0) > 0}
-                  <div class="billing-section__reversal-table">
-                    <table>
-                      <caption>{translate('Immutable reversal history')}</caption>
-                      <thead
-                        ><tr
-                          ><th scope="col">{translate('Payment')}</th><th scope="col"
-                            >{translate('Amount')}</th
-                          ><th scope="col">{translate('Effective date')}</th><th scope="col"
-                            >{translate('Reason code')}</th
-                          ><th scope="col">{translate('Reason')}</th></tr
-                        ></thead
+                    </details>
+                    <details class="billing-section__action-panel">
+                      <summary>{translate('More actions')}</summary>
+                      {#if invoiceStateValue === 'issued'}
+                        <form method="POST" action="?/sendInvoice">
+                          <input type="hidden" name="invoiceId" value={invoiceId} />
+                          <input type="hidden" name="idempotencyKey" value={`send-${invoiceId}`} />
+                          <button type="submit">{translate('Mark sent')}</button>
+                        </form>
+                      {/if}
+                      <form
+                        method="POST"
+                        action="?/voidInvoice"
+                        class="billing-section__payment-form"
                       >
-                      <tbody>
-                        {#each ledger.paymentReversals ?? [] as reversal}
-                          <tr
-                            ><td>{String(reversal.originalPaymentId ?? '—').slice(0, 12)}</td><td
-                              >{formatMoney(
-                                reversal.amountMinor,
-                                String(reversal.currency ?? currency),
-                              )}</td
-                            ><td>{dateValue(reversal.effectiveAt)}</td><td
-                              >{controlledValue('status', reversal.reasonCode)}</td
-                            ><td>{String(reversal.reason ?? '—')}</td></tr
-                          >
-                        {/each}
-                      </tbody>
-                    </table>
-                  </div>
-                {/if}
-              </details>
-            {/if}
-
-            <div class="billing-section__invoice-actions">
-              <a
-                class="secondary-button"
-                href={`${base}/app/billing/invoices/${encodeURIComponent(invoiceId)}`}
-                >{translate('Preview')}</a
-              >
-              {#if isAuditor}
-                <span class="billing-section__read-only"
-                  >{translate('Issued history is immutable')}</span
-                >
-              {:else if invoiceStateValue === 'draft'}
-                <form method="POST" action="?/approveInvoice">
-                  <input type="hidden" name="invoiceId" value={invoiceId} />
-                  <button type="submit">{translate('Approve')}</button>
-                </form>
-                <form method="POST" action="?/deleteInvoice">
-                  <input type="hidden" name="invoiceId" value={invoiceId} />
-                  <button type="submit" class="danger">{translate('Discard draft')}</button>
-                </form>
-              {:else if invoiceStateValue === 'approved'}
-                <form method="POST" action="?/issueInvoice">
-                  <input type="hidden" name="invoiceId" value={invoiceId} />
-                  <label
-                    ><span>{translate('Report language')}</span><select name="reportLocale"
-                      ><option value="en">EN</option><option value="pt">PT-BR</option><option
-                        value="es">ES</option
-                      ></select
-                    ></label
-                  >
-                  <button type="submit">{translate('Issue invoice')}</button>
-                </form>
-              {:else if ['issued', 'sent', 'partially_paid', 'overdue'].includes(invoiceStateValue)}
-                <form method="POST" action="?/recordPayment" class="billing-section__payment-form">
-                  <input type="hidden" name="invoiceId" value={invoiceId} />
-                  <label
-                    ><span>{translate('Payment amount')}</span><input
-                      name="amount"
-                      inputmode="decimal"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      max={minorToDecimal(
-                        ledger?.outstandingMinor ?? rowValue(invoice, 'total_minor', 'totalMinor'),
-                      )}
-                      required
-                    /></label
-                  >
-                  <label
-                    ><span>{translate('Currency')}</span><input
-                      name="currency"
-                      value={currency}
-                      readonly
-                      aria-readonly="true"
-                      required
-                    /></label
-                  >
-                  <label
-                    ><span>{translate('Received on')}</span><input
-                      name="receivedOn"
-                      type="date"
-                      required
-                    /></label
-                  >
-                  <label
-                    ><span>{translate('Payment reference / note')}</span><input
-                      name="reference"
-                      required
-                    /></label
-                  >
-                  <input
-                    name="idempotencyKey"
-                    type="hidden"
-                    value={rowValue(invoice, 'paymentCommandToken') ||
-                      `payment-${invoiceId}-${currency}`}
-                  />
-                  <button type="submit">{translate('Record payment')}</button>
-                </form>
-                {#if invoiceStateValue === 'issued'}
-                  <form method="POST" action="?/sendInvoice">
-                    <input type="hidden" name="invoiceId" value={invoiceId} />
-                    <input type="hidden" name="idempotencyKey" value={`send-${invoiceId}`} />
-                    <button type="submit">{translate('Mark sent')}</button>
-                  </form>
-                {/if}
-                <form method="POST" action="?/voidInvoice">
-                  <input type="hidden" name="invoiceId" value={invoiceId} />
-                  <input type="hidden" name="idempotencyKey" value={`void-${invoiceId}`} />
-                  <label
-                    ><span>{translate('Void reason')}</span><input name="reason" required /></label
-                  >
-                  <button type="submit" class="danger">{translate('Void')}</button>
-                </form>
-                <form
-                  method="POST"
-                  action="?/createInvoiceAdjustment"
-                  class="billing-section__payment-form"
-                >
-                  <input type="hidden" name="originalInvoiceId" value={invoiceId} />
-                  <label
-                    ><span>{translate('Adjustment type')}</span><select name="adjustmentType"
-                      ><option value="credit">{translate('Credit')}</option><option value="debit"
-                        >{translate('Debit')}</option
-                      ><option value="correction">{translate('Correction')}</option></select
-                    ></label
-                  >
-                  <label
-                    ><span>{translate('Minor-unit amount')}</span><input
-                      name="amountMinor"
-                      required
-                    /></label
-                  >
-                  <label
-                    ><span>{translate('Adjustment reason')}</span><input
-                      name="reason"
-                      required
-                    /></label
-                  >
-                  <button type="submit">{translate('Create adjustment')}</button>
-                </form>
-              {:else}
-                <span class="billing-section__read-only"
-                  >{translate('No lifecycle action available')}</span
-                >
-              {/if}
-            </div>
-          </article>
-        {/each}
-      </div>
-    {:else}
-      <div class="billing-section__empty" role="status">
-        <strong>{translate('No invoices match this view.')}</strong>
-        <span
-          >{translate('Adjust filters or build a draft from an authorized billing stream.')}</span
-        >
-      </div>
-    {/if}
-  </SectionCard>
+                        <input type="hidden" name="invoiceId" value={invoiceId} />
+                        <input type="hidden" name="idempotencyKey" value={`void-${invoiceId}`} />
+                        <label
+                          ><span>{translate('Void reason')}</span><input
+                            name="reason"
+                            required
+                          /></label
+                        >
+                        <button type="submit" class="danger">{translate('Void')}</button>
+                      </form>
+                    </details>
+                  {:else}
+                    <span class="billing-section__read-only"
+                      >{translate('No lifecycle action available')}</span
+                    >
+                  {/if}
+                </div>
+              </article>
+            </ResponsiveSheet>
+          {/if}
+        </div>
+      {:else}
+        <div class="billing-section__empty" role="status">
+          <strong>{translate('No invoices match this view.')}</strong>
+          <span
+            >{translate('Adjust filters or build a draft from an authorized billing stream.')}</span
+          >
+        </div>
+      {/if}
+    </SectionCard>
+  {/if}
 </div>
 
 <style>
+  .billing-section__table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .billing-section__table th,
+  .billing-section__table td {
+    padding: 0.65rem 0.7rem;
+    border-bottom: 1px solid var(--portal-border, #d7dee8);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .billing-section__table td small {
+    display: block;
+    color: var(--portal-muted, #64748b);
+    font-size: 0.78rem;
+  }
+
+  .billing-section__table td .billing-section__period-form {
+    margin-bottom: 0.5rem;
+  }
+
+  .billing-section__table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--portal-surface, #fff);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .billing-section__table tbody tr:hover {
+    background: color-mix(in srgb, var(--portal-accent, #0f5f73) 6%, #fff);
+  }
+
+  .billing-section__directories {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .billing-section__drawer-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .billing-section__drawer-tabs button {
+    min-height: 2.75rem;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--portal-border, #d7dee8);
+    border-radius: 999px;
+    background: #fff;
+    font: inherit;
+    font-weight: 650;
+  }
+
+  .billing-section__drawer-tabs button[aria-selected='true'] {
+    background: var(--portal-ink, #16202a);
+    border-color: var(--portal-ink, #16202a);
+    color: #fff;
+  }
+
   .billing-section {
     display: grid;
     gap: 1.25rem;
+  }
+
+  .billing-section__workspace {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .billing-section__workspace-tab {
+    min-height: 2.75rem;
+    padding: 0.55rem 1rem;
+    border: 1px solid var(--portal-line, #d5e2e8);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--portal-ink, #16202a);
+    font-weight: 650;
+  }
+
+  .billing-section__workspace-tab--active,
+  .billing-section__workspace-tab[aria-selected='true'] {
+    background: var(--portal-ink, #16202a);
+    border-color: var(--portal-ink, #16202a);
+    color: #fff;
+  }
+
+  .billing-section__workspace-tab:focus-visible {
+    outline: 2px solid var(--portal-accent, #277e78);
+    outline-offset: 2px;
   }
 
   .billing-section__context {
@@ -1281,6 +1970,41 @@
     font-weight: 700;
   }
 
+  .billing-section :global([data-ui='status-badge'][data-invoice-status='issued']),
+  .billing-section :global([data-ui='status-badge'][data-invoice-status='sent']),
+  .billing-section :global([data-ui='status-badge'][data-invoice-status='partially_paid']) {
+    color: #1f5f85;
+    border-color: #5ca5ca;
+    background: #e0f1fa;
+  }
+
+  .billing-section :global([data-ui='status-badge'][data-invoice-status='paid']) {
+    color: #17663a;
+    border-color: #4da876;
+    background: #dff4e5;
+  }
+
+  .billing-section :global([data-ui='status-badge'][data-invoice-status='draft']) {
+    color: #526174;
+    border-color: #aebbc8;
+    background: #f0f3f6;
+  }
+
+  .billing-section :global([data-ui='status-badge'][data-invoice-status='void']),
+  .billing-section :global([data-ui='status-badge'][data-invoice-status='voided']) {
+    color: #8a252b;
+    border-color: #cb6d72;
+    background: #fbe4e4;
+  }
+
+  .billing-section :global([data-ui='status-badge'][data-invoice-status='credited']),
+  .billing-section :global([data-ui='status-badge'][data-invoice-status='credit_note']),
+  .billing-section :global([data-ui='status-badge'][data-invoice-status='credit']) {
+    color: #80520b;
+    border-color: #d6a54b;
+    background: #fff1cc;
+  }
+
   .billing-section__issue-blocker,
   .billing-section__row-blocker {
     display: flex;
@@ -1315,7 +2039,7 @@
 
   .billing-section__summary {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.75rem;
   }
 
@@ -1423,6 +2147,7 @@
   }
 
   .billing-section__config > summary {
+    box-sizing: border-box;
     width: fit-content;
     margin: 0.9rem;
     cursor: pointer;
@@ -1526,11 +2251,14 @@
     background: var(--portal-surface, #fff);
   }
 
-  .billing-section__rule {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
+  .billing-section__rule-head {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .billing-section__rule-editor[open] {
+    width: 100%;
+    min-width: 0;
   }
 
   .billing-section__rule > div:first-child,
@@ -1546,7 +2274,10 @@
   }
 
   .billing-section__rule-editor > summary,
-  .billing-section__payment-history > summary {
+  .billing-section__payment-history > summary,
+  .billing-section__action-panel > summary,
+  .billing-section__close-sources > summary {
+    box-sizing: border-box;
     width: fit-content;
     padding: 0.55rem 0.7rem;
     border: 1px solid var(--portal-border-strong, #b8c3d1);
@@ -1559,9 +2290,11 @@
   }
 
   .billing-section__rule-actions {
+    box-sizing: border-box;
     display: grid;
     gap: 0.8rem;
-    min-width: min(48rem, 80vw);
+    width: min(48rem, 100%);
+    min-width: 0;
     margin-top: 0.65rem;
     padding: 0.85rem;
     border: 1px solid var(--portal-border, #d7dee8);
@@ -1709,15 +2442,58 @@
     gap: 0.25rem;
   }
 
-  .billing-section__invoice-actions {
+  .billing-section__lifecycle {
     display: flex;
     flex-wrap: wrap;
-    align-items: end;
-    gap: 0.65rem;
-    padding-top: 0.25rem;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .billing-section__lifecycle-step {
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: var(--portal-wash, #f7f9fb);
+    color: var(--portal-muted, #64748b);
+    font-size: 0.74rem;
+    font-weight: 750;
+  }
+
+  .billing-section__lifecycle-step[data-lifecycle-status='done'] {
+    background: #e0f1fa;
+    color: #1f5f85;
+  }
+
+  .billing-section__lifecycle-step[data-lifecycle-status='current'] {
+    background: var(--portal-ink, #16202a);
+    color: #fff;
+  }
+
+  .billing-section__invoice-actions {
+    display: grid;
+    gap: 0.85rem;
+    padding-top: 0.35rem;
     border-top: 1px solid var(--portal-border, #d7dee8);
   }
 
+  .billing-section__next-step {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.85rem 0.95rem;
+    border: 1px solid var(--portal-border, #d7dee8);
+    border-radius: 0.65rem;
+    background: var(--portal-wash, #f7f9fb);
+  }
+
+  .billing-section__next-step p {
+    margin: 0;
+    color: var(--portal-muted, #64748b);
+    max-width: 48rem;
+  }
+
+  .billing-section__invoice-toolbar,
+  .billing-section__primary-form,
   .billing-section__invoice-actions > form {
     display: flex;
     flex-wrap: wrap;
@@ -1725,8 +2501,31 @@
     gap: 0.65rem;
   }
 
-  .billing-section__invoice-actions > form > label {
+  .billing-section__invoice-actions form > label,
+  .billing-section__payment-form > label {
     min-width: 11rem;
+  }
+
+  .billing-section__action-panel,
+  .billing-section__close-sources {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .billing-section__action-panel[open],
+  .billing-section__close-sources[open] {
+    padding: 0.85rem;
+    border: 1px solid var(--portal-border, #d7dee8);
+    border-radius: 0.65rem;
+    background: var(--portal-wash, #f7f9fb);
+  }
+
+  .billing-section__action-panel p,
+  .billing-section__close-sources p {
+    margin: 0;
+    color: var(--portal-muted, #64748b);
+    font-size: 0.82rem;
+    max-width: 48rem;
   }
 
   .billing-section__reversal-table {
@@ -1772,6 +2571,10 @@
   }
 
   @media (max-width: 52rem) {
+    .billing-section__rule {
+      grid-template-columns: 1fr;
+    }
+
     .billing-section__filters {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -1799,6 +2602,15 @@
       flex-direction: column;
     }
 
+    .billing-section__workspace {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    .billing-section__workspace-tab {
+      width: 100%;
+    }
+
     .billing-section__summary {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -1806,6 +2618,7 @@
     .billing-section__filters,
     .billing-section__config-form,
     .billing-section__config-compact-grid,
+    .billing-section__directories,
     .billing-section__invoice-dates,
     .billing-section__planning-fields {
       grid-template-columns: 1fr;
@@ -1819,13 +2632,18 @@
     }
 
     .billing-section__config > summary,
-    .billing-section__invoice-actions > a,
+    .billing-section__invoice-toolbar > a,
     .billing-section__invoice-actions > form,
     .billing-section__invoice-actions > form > button,
     .billing-section__invoice-actions > form > label,
+    .billing-section__primary-form,
     .billing-section__rule-editor,
     .billing-section__rule-editor > summary {
       width: 100%;
+    }
+
+    .billing-section__config > summary {
+      width: calc(100% - 1.8rem);
     }
 
     .billing-section__rule-actions,

@@ -142,7 +142,7 @@ describe('legacy private artifact download boundary', () => {
       loadMetadata,
     });
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: 'Private artifact not found' });
+    expect(await response.json()).toEqual({ error: 'File unavailable' });
     expect(loadMetadata).not.toHaveBeenCalled();
     expect(
       value.sqlite
@@ -151,13 +151,13 @@ describe('legacy private artifact download boundary', () => {
     ).toEqual({ count: 0 });
   });
 
-  it('requires a recent step-up even outside production and rejects traversal/tamper', async () => {
+  it('serves a live session without a second password confirmation and still rejects traversal/tamper', async () => {
     const value = fixture();
     const { reportId, sessionId } = reportFixture(value);
     const bytes = pdfBytes();
     const stale = new Date(Date.now() - 11 * 60_000).toISOString();
     value.sqlite.prepare('UPDATE session SET step_up_at=? WHERE id=?').run(stale, sessionId);
-    const noStepUp = await servePrivateArtifact({
+    const liveSession = await servePrivateArtifact({
       sqlite: value.sqlite,
       principal: { ...value.worker, sessionId },
       kind: 'period_report',
@@ -170,11 +170,8 @@ describe('legacy private artifact download boundary', () => {
         filename: 'report.pdf',
       }),
     });
-    expect(noStepUp.status).toBe(403);
+    expect(liveSession.status).not.toBe(403);
 
-    value.sqlite
-      .prepare('UPDATE session SET step_up_at=? WHERE id=?')
-      .run(new Date().toISOString(), sessionId);
     const traversal = await servePrivateArtifact({
       sqlite: value.sqlite,
       principal: { ...value.worker, sessionId },
@@ -245,5 +242,32 @@ describe('legacy private artifact download boundary', () => {
       }),
     });
     expect(response.status).toBe(409);
+  });
+
+  it('serves generated snapshot bytes instead of the stored file', async () => {
+    const value = fixture();
+    const { reportId, sessionId } = reportFixture(value);
+    const root = mkdtempSync(join(process.env.TEMP ?? process.env.TMP ?? '.', 'ja-private-route-'));
+    roots.push(root);
+    process.env.JA_DOCUMENT_ROOT = root;
+    const stored = pdfBytes();
+    installFile(root, 'reports/private-report.pdf', stored);
+    const generated = Buffer.from('%PDF-1.7\ngenerated-layout\n%%EOF\n', 'ascii');
+    const response = await servePrivateArtifact({
+      sqlite: value.sqlite,
+      principal: { ...value.worker, sessionId },
+      kind: 'period_report',
+      id: reportId,
+      loadMetadata: () => ({
+        storageKey: 'reports/private-report.pdf',
+        sha256: createHash('sha256').update(stored).digest('hex'),
+        byteLength: stored.byteLength,
+        mediaType: 'application/pdf',
+        filename: 'report.pdf',
+      }),
+      generateBytes: () => generated,
+    });
+    expect(response.status).toBe(200);
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(generated);
   });
 });

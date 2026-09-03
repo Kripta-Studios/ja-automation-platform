@@ -32,11 +32,8 @@ test('required viewport responsive remediation evidence', async ({ page }, testI
   await signIn(page, 'owner');
 
   await page.goto(portal('/projects?view=team'));
-  await expect(page.getByRole('heading', { name: 'Team access', level: 1 })).toBeVisible();
-  const closedPanel = page
-    .locator('.worker-actions details:not([open]) .worker-manage-panel')
-    .first();
-  await expect(closedPanel).toHaveCSS('display', 'none');
+  await expect(page.locator('[data-team-directory]')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Team', exact: true })).toBeVisible();
   const projects = await pageMetrics(page);
   console.log('PROJECTS RESPONSIVE METRICS', JSON.stringify(projects));
   expect(projects.documentWidth).toBeLessThanOrEqual(projects.viewport + 1);

@@ -8,6 +8,7 @@ import { assertCustomerPeriodSnapshotSafe } from '../../packages/database/src/do
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -85,11 +86,21 @@ type BillingContract = B5LifecycleSecurityFixture['repository'] & {
 };
 
 function fixture(): B5LifecycleSecurityFixture {
-  const value = createB5LifecycleSecurityFixture();
+  const base = createB5LifecycleSecurityFixture();
+  const value = {
+    ...base,
+    owner: stepUpB5Principal(base.sqlite, base.owner, 'customer-conformity-owner-default'),
+    finance: stepUpB5Principal(base.sqlite, base.finance, 'customer-conformity-finance-default'),
+  };
   fixtures.push(value);
   previousDocumentRoots.set(value, process.env.JA_DOCUMENT_ROOT);
   process.env.JA_DOCUMENT_ROOT = join(value.directory, 'documents');
   return value;
+}
+
+function withoutSession(principal: Principal): Principal {
+  const { sessionId: _sessionId, ...rest } = principal;
+  return rest;
 }
 
 function conformity(value: B5LifecycleSecurityFixture): CustomerConformityContract {
@@ -125,11 +136,91 @@ function steppedUp(
   return { ...principal, sessionId };
 }
 
+function bindCanonicalLegalEntity(
+  value: B5LifecycleSecurityFixture,
+  legacyLegalEntityId: string,
+  key: string,
+) {
+  const finance = steppedUp(value, value.finance, `canonical-${key}`);
+  const revision = value.v3.createCanonicalLegalEntityRevision(finance, {
+    legacyLegalEntityId,
+    effectiveFrom: '2026-01-01',
+    legalName: `Customer conformity ${key} entity`,
+    taxIdentifier: `ES${key.replace(/[^A-Z0-9]/giu, '').toUpperCase()}01`,
+    addressLine1: 'Customer conformity billing address',
+    locality: 'Madrid',
+    postalCode: '28001',
+    countryCode: 'ES',
+    baseCurrency: 'EUR',
+    timezone: 'Europe/Madrid',
+    reason: 'Establish canonical legal-entity authority before invoice issue',
+    idempotencyKey: `customer-conformity:${key}:canonical-revision`,
+  });
+  value.v3.assignCanonicalLegalEntityToProject(finance, {
+    projectId: value.project.id,
+    legalEntityRevisionId: revision.revisionId,
+    effectiveFrom: '2026-01-01',
+    reason: 'Bind the sign-off invoice to its canonical project legal entity',
+    idempotencyKey: `customer-conformity:${key}:canonical-assignment`,
+  });
+}
+
 function customerReport(
   value: B5LifecycleSecurityFixture,
   state: 'review' | 'approved' | 'final' = 'approved',
   withPdf = true,
 ) {
+  const hasRate = value.sqlite
+    .prepare('SELECT 1 FROM client_labor_rate WHERE project_id=? AND worker_id=? LIMIT 1')
+    .get(value.project.id, value.worker.userId);
+  if (!hasRate)
+    value.repository.createClientLaborRate(value.finance, {
+      projectId: value.project.id,
+      workerId: value.worker.userId,
+      currency: 'EUR',
+      hourlyRateMinor: 10_000n,
+      effectiveFrom: '2026-01-01',
+    });
+  const hasInternalCost = value.sqlite
+    .prepare('SELECT 1 FROM internal_cost_rule WHERE project_id=? AND worker_id=? LIMIT 1')
+    .get(value.project.id, value.worker.userId);
+  if (!hasInternalCost)
+    value.repository.createInternalCostRule(value.finance, {
+      projectId: value.project.id,
+      workerId: value.worker.userId,
+      currency: 'EUR',
+      hourlyRateMinor: 4_000n,
+      effectiveFrom: '2026-01-01',
+    });
+  const hasCompensation = value.sqlite
+    .prepare('SELECT 1 FROM compensation_rule WHERE project_id=? AND worker_id=? LIMIT 1')
+    .get(value.project.id, value.worker.userId);
+  if (!hasCompensation)
+    value.repository.createCompensationRule(value.finance, {
+      projectId: value.project.id,
+      workerId: value.worker.userId,
+      currency: 'EUR',
+      rateMinor: 3_000n,
+      rateBasis: 'hourly',
+      effectiveFrom: '2026-01-01',
+    });
+  const hasApprovedLabor = value.sqlite
+    .prepare(
+      "SELECT 1 FROM time_entry WHERE project_id=? AND worker_id=? AND work_date BETWEEN '2026-08-01' AND '2026-08-31' AND finance_approved_at IS NOT NULL LIMIT 1",
+    )
+    .get(value.project.id, value.worker.userId);
+  if (!hasApprovedLabor) {
+    const time = value.repository.createTimeEntry(value.worker, {
+      projectId: value.project.id,
+      workDate: '2026-08-10',
+      category: 'regular',
+      minutes: 60,
+      summary: 'Customer report signed labor source',
+    });
+    value.repository.submitTime(value.worker, time.id, time.version);
+    value.repository.operationalApproveTime(value.manager, time.id, 'approved');
+    value.repository.financeApproveTime(value.finance, time.id, true);
+  }
   const entity = value.repository.createLegalEntity(value.owner, {
     code: `B5-SIGNOFF-${state}`,
     legalName: `B5 Sign-off ${state} Entity`,
@@ -575,7 +666,7 @@ describe('Client Essential CORE-07/10 customer conformity contract', () => {
 
       const finance = steppedUp(value, value.finance, 'finance');
       expect(() =>
-        service.recordCustomerConformity(value.finance, {
+        service.recordCustomerConformity(withoutSession(value.finance), {
           periodReportId: reportId,
           signerName: 'Ana Client',
           signerIdentity: 'ana.client@example.test',
@@ -640,7 +731,7 @@ describe('Client Essential CORE-07/10 customer conformity contract', () => {
 
       const owner = steppedUp(value, value.owner, 'owner');
       expect(() =>
-        service.invalidateCustomerConformity(value.owner, {
+        service.invalidateCustomerConformity(withoutSession(value.owner), {
           conformityId: signed.id,
           reason: 'Customer requested corrected activity wording',
         }),
@@ -709,18 +800,41 @@ describe('Client Essential customer sign-off security boundary', () => {
     ).toThrow(/review|access/i);
   });
 
-  it('returns PM customer-only period-report metadata without private artifact bindings', () => {
+  it('returns assigned PM/Worker the customer approval binding without private artifact or commercial data', () => {
     const value = fixture();
-    customerReport(value, 'approved');
-    const rows = value.v3.listPeriodReports(value.manager) as Array<Record<string, unknown>>;
-    expect(rows.length).toBeGreaterThan(0);
-    for (const row of rows) {
-      expect(row.audience).toBe('customer');
-      expect(row).not.toHaveProperty('snapshot_sha256');
-      expect(row).not.toHaveProperty('pdf_storage_key');
-      expect(row).not.toHaveProperty('pdf_sha256');
-      expect(row).not.toHaveProperty('pdf_byte_length');
+    const generated = customerReport(value, 'approved');
+    const financeRow = value.v3
+      .listPeriodReports(value.finance)
+      .find((row) => String(row.id) === generated.reportId) as Record<string, unknown> | undefined;
+    expect(financeRow).toMatchObject({
+      snapshot_version: expect.any(Number),
+      snapshot_sha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      pdf_storage_key: generated.storageKey,
+      pdf_sha256: generated.reportPdfSha256,
+      pdf_byte_length: generated.byteLength,
+    });
+    for (const principal of [value.manager, value.worker]) {
+      const rows = value.v3.listPeriodReports(principal) as Array<Record<string, unknown>>;
+      expect(rows.length).toBeGreaterThan(0);
+      for (const row of rows) {
+        expect(row.audience).toBe('customer');
+        expect(row.snapshot_version).toEqual(expect.any(Number));
+        expect(row.snapshot_sha256).toMatch(/^[a-f0-9]{64}$/u);
+        expect(row).not.toHaveProperty('pdf_storage_key');
+        expect(row).not.toHaveProperty('pdf_sha256');
+        expect(row).not.toHaveProperty('pdf_byte_length');
+        expect(JSON.stringify(row)).not.toMatch(
+          /amount|currency|rate|cost|margin|tax|billing|reimbursement|compensation|storage_key|pdf_sha256/i,
+        );
+      }
     }
+
+    expect(value.v3.listPeriodReports({ ...value.manager, projectIds: new Set<string>() })).toEqual(
+      [],
+    );
+    expect(value.v3.listPeriodReports({ ...value.worker, projectIds: new Set<string>() })).toEqual(
+      [],
+    );
   });
 
   it('fails closed on adversarial nested customer snapshot reads for PM and Worker', () => {
@@ -1029,59 +1143,41 @@ describe('Client Essential customer sign-off security boundary', () => {
     ).toBeUndefined();
   });
 
-  it('rejects Finance and Owner service actors for record and invalidate even with stepped-up sessions', () => {
+  it('keeps service actors out of human principals and requires step-up for sign-off mutations', () => {
     const value = fixture();
     const service = conformity(value);
     const { reportId } = customerReport(value, 'approved');
-    const serviceFinance = steppedUp(
-      value,
-      { ...value.finance, isServiceActor: true },
-      'service-finance',
-    );
-    const serviceOwner = steppedUp(
-      value,
-      { ...value.owner, isServiceActor: true },
-      'service-owner',
+    expect(() => value.repository.principalFor('test-b5-service-actor')).toThrow(
+      /active account required/i,
     );
 
-    for (const [label, principal] of [
-      ['finance', serviceFinance],
-      ['owner', serviceOwner],
-    ] as const) {
-      expect(
-        () =>
-          service.recordCustomerConformity(principal, {
-            periodReportId: reportId,
-            signerName: 'Ana Client',
-            signedAt: '2026-08-24T16:30:00.000Z',
-          }),
-        `${label} service actor record`,
-      ).toThrow(/human finance|service|access|denied|required/i);
-    }
-
-    const signed = service.recordCustomerConformity(
-      steppedUp(value, value.finance, 'human-finance-after-service-rejections'),
-      {
+    expect(() =>
+      service.recordCustomerConformity(withoutSession(value.finance), {
         periodReportId: reportId,
         signerName: 'Ana Client',
         signedAt: '2026-08-24T16:30:00.000Z',
-      },
-    );
-    for (const [label, principal] of [
-      ['finance', serviceFinance],
-      ['owner', serviceOwner],
-    ] as const) {
-      expect(
-        () =>
-          service.invalidateCustomerConformity(principal, {
-            conformityId: signed.id,
-            reason: `${label} service actor must not invalidate customer sign-off`,
-          }),
-        `${label} service actor invalidate`,
-      ).toThrow(/human finance|service|access|denied|required/i);
-    }
+      }),
+    ).toThrow(/recent step-up authentication is required/i);
+
+    const signed = service.recordCustomerConformity(value.finance, {
+      periodReportId: reportId,
+      signerName: 'Ana Client',
+      signedAt: '2026-08-24T16:30:00.000Z',
+    });
+    expect(() =>
+      service.invalidateCustomerConformity(withoutSession(value.owner), {
+        conformityId: signed.id,
+        reason: 'Owner must step up before invalidating customer sign-off',
+      }),
+    ).toThrow(/recent step-up authentication is required/i);
+    expect(
+      service.invalidateCustomerConformity(value.owner, {
+        conformityId: signed.id,
+        reason: 'Authorized owner invalidation',
+      }),
+    ).toMatchObject({ conformityId: signed.id });
     expect(service.getCustomerConformity(value.owner, signed.id)).toMatchObject({
-      status: 'active',
+      status: 'invalidated',
     });
   });
 
@@ -1249,6 +1345,7 @@ describe('Client Essential billing sign-off gate', () => {
     const rule = value.sqlite
       .prepare('SELECT legal_entity_id FROM billing_rule WHERE id=?')
       .get(report.billingRuleId) as { legal_entity_id: string };
+    bindCanonicalLegalEntity(value, rule.legal_entity_id, 'source-coverage');
     value.repository.createInvoiceNumberPolicy(value.owner, {
       legalEntityId: rule.legal_entity_id,
       prefix: 'B5-SRC',
@@ -1324,6 +1421,7 @@ describe('Client Essential billing sign-off gate', () => {
       billingAddress: 'B5 sign-off billing address',
       companyIdentifiers: 'B5-SIGNOFF-ID',
     });
+    bindCanonicalLegalEntity(value, entity.id, 'structured-deep-link');
     const tax = value.repository.createTaxProfile(value.finance, {
       name: 'No tax sign-off profile',
       currency: 'EUR',

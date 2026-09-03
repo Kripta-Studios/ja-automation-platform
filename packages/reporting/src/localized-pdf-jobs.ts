@@ -339,6 +339,14 @@ function numberValue(row: Record<string, unknown>, ...keys: string[]): string | 
   return undefined;
 }
 
+function snapshotArray(row: Record<string, unknown>, ...keys: string[]): Record<string, unknown>[] {
+  for (const key of keys) {
+    const value = row[key];
+    if (Array.isArray(value)) return value as Record<string, unknown>[];
+  }
+  return [];
+}
+
 function renderVariant(variant: LocalizedPdfJobVariant): Uint8Array {
   const row = nestedSnapshot(parseSnapshot(variant.snapshotJson));
   const locale = variant.locale;
@@ -372,14 +380,8 @@ function renderVariant(variant: LocalizedPdfJobVariant): Uint8Array {
                 number: stringValue(row, 'project_number'),
                 name: stringValue(row, 'project_name'),
               },
-      });
-    case 'accounting_pack_revision':
-      return accountingPackPdf({
-        ...row,
-        locale,
-        periodStart: stringValue(row, 'periodStart', 'period_start') ?? '1970-01-01',
-        periodEnd: stringValue(row, 'periodEnd', 'period_end') ?? '1970-01-01',
         currency: stringValue(row, 'currency') ?? 'USD',
+        legalEntity: row.legalEntity ?? row.legal_entity,
         totals:
           row.totals && typeof row.totals === 'object'
             ? (row.totals as ReportRow)
@@ -387,8 +389,33 @@ function renderVariant(variant: LocalizedPdfJobVariant): Uint8Array {
                 subtotalMinor: numberValue(row, 'subtotalMinor', 'subtotal_minor'),
                 totalMinor: numberValue(row, 'totalMinor', 'total_minor'),
               },
-        totalsByCurrency: Array.isArray(row.totalsByCurrency) ? row.totalsByCurrency : [],
-      });
+        totalsByCurrency: snapshotArray(row, 'totalsByCurrency', 'totals_by_currency'),
+        invoiceRegister: snapshotArray(row, 'invoiceRegister', 'invoice_register'),
+        collections: snapshotArray(row, 'collections'),
+        workerCosts: snapshotArray(row, 'workerCosts', 'worker_costs'),
+        expenseRegister: snapshotArray(row, 'expenseRegister', 'expense_register'),
+      } as Parameters<typeof periodReportPdf>[0]);
+    case 'accounting_pack_revision':
+      return accountingPackPdf({
+        ...row,
+        locale,
+        periodStart: stringValue(row, 'periodStart', 'period_start') ?? '1970-01-01',
+        periodEnd: stringValue(row, 'periodEnd', 'period_end') ?? '1970-01-01',
+        currency: stringValue(row, 'currency') ?? 'USD',
+        legalEntity: row.legalEntity ?? row.legal_entity,
+        totals:
+          row.totals && typeof row.totals === 'object'
+            ? (row.totals as ReportRow)
+            : {
+                subtotalMinor: numberValue(row, 'subtotalMinor', 'subtotal_minor'),
+                totalMinor: numberValue(row, 'totalMinor', 'total_minor'),
+              },
+        totalsByCurrency: snapshotArray(row, 'totalsByCurrency', 'totals_by_currency'),
+        invoiceRegister: snapshotArray(row, 'invoiceRegister', 'invoice_register'),
+        collections: snapshotArray(row, 'collections'),
+        workerCosts: snapshotArray(row, 'workerCosts', 'worker_costs'),
+        expenseRegister: snapshotArray(row, 'expenseRegister', 'expense_register'),
+      } as Parameters<typeof accountingPackPdf>[0]);
     case 'daily_report':
       return dailyReportPdf({
         ...row,
@@ -476,7 +503,7 @@ export function runLocalizedPdfVariantJob(
       byteLength: metadata.byteLength,
       attemptNumber: claim.attemptNumber,
     };
-    const finalize = (): LocalizedPdfJobResult => {
+    const finalize = (() => {
       const completed = input.repository.completeVariant(payload.variantId, {
         attemptNumber: claim.attemptNumber,
         contentSha256: metadata.contentSha256,
@@ -488,7 +515,8 @@ export function runLocalizedPdfVariantJob(
       });
       if (completed.status !== 'ready') throw new Error('LOCALIZED_PDF_COMPLETION_FAILED');
       return result;
-    };
+    }) as (() => LocalizedPdfJobResult) & { afterDurableSuccess?: true };
+    finalize.afterDurableSuccess = true;
     return input.deferCompletion ? { ...result, finalize } : finalize();
   } catch (error) {
     // A failed render is scoped to this locale/attempt. A stale fence is deliberately not

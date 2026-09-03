@@ -111,14 +111,46 @@ export class TechnicalChangeRepository {
 
   submitTechnicalChange(principal: Principal, id: string, version: number): void {
     this.deps.assertWritable(principal);
-    const result = this.deps.sqlite
-      .prepare(
-        "UPDATE technical_change SET approval_state='submitted',updated_at=?,version=version+1 WHERE id=? AND author_id=? AND approval_state IN ('draft','needs_changes') AND version=?",
-      )
-      .run(this.deps.timestamp(), id, principal.userId, version);
-    if (result.changes !== 1)
-      throw this.deps.errors.conflict('Technical change changed or cannot be submitted');
-    this.deps.audit(principal, 'technical_change.submit', 'technical_change', id, { version });
+    this.deps.transaction(() => {
+      const row = this.deps.sqlite
+        .prepare(
+          `SELECT tc.project_id,COALESCE(tr.report_date,substr(tc.created_at,1,10)) business_date,
+                  p.status project_status
+             FROM technical_change tc
+             JOIN project p ON p.id=tc.project_id
+             LEFT JOIN technical_report tr ON tr.id=tc.technical_report_id
+            WHERE tc.id=? AND tc.author_id=?`,
+        )
+        .get(id, principal.userId) as
+        | { project_id: string; business_date: string; project_status: string }
+        | undefined;
+      if (!row) throw this.deps.errors.accessDenied('Technical change submission access required');
+      if (row.project_status !== 'active')
+        throw this.deps.errors.accessDenied(
+          'Active project required for technical change submission',
+        );
+      if (principal.role !== 'owner_admin' && principal.role !== 'finance_admin') {
+        const assignment = this.deps.sqlite
+          .prepare(
+            `SELECT 1 FROM project_member
+              WHERE project_id=? AND user_id=? AND status='active'
+                AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?)`,
+          )
+          .get(row.project_id, principal.userId, row.business_date, row.business_date);
+        if (!assignment)
+          throw this.deps.errors.accessDenied(
+            'Effective project assignment required for technical change submission',
+          );
+      }
+      const result = this.deps.sqlite
+        .prepare(
+          "UPDATE technical_change SET approval_state='submitted',updated_at=?,version=version+1 WHERE id=? AND author_id=? AND approval_state IN ('draft','needs_changes') AND version=?",
+        )
+        .run(this.deps.timestamp(), id, principal.userId, version);
+      if (result.changes !== 1)
+        throw this.deps.errors.conflict('Technical change changed or cannot be submitted');
+      this.deps.audit(principal, 'technical_change.submit', 'technical_change', id, { version });
+    });
   }
 
   reviewTechnicalChange(
@@ -127,43 +159,52 @@ export class TechnicalChangeRepository {
     decision: TechnicalChangeDecision,
     reason?: string,
   ): void {
-    this.deps.assertActive(principal);
-    const row = this.deps.sqlite
-      .prepare(
-        'SELECT project_id,author_id,approval_state,safety_impact,validation,rollback_information FROM technical_change WHERE id=?',
-      )
-      .get(id) as
-      | {
-          project_id: string;
-          author_id: string;
-          approval_state: string;
-          safety_impact: number;
-          validation: string | null;
-          rollback_information: string | null;
-        }
-      | undefined;
-    if (!row) throw this.deps.errors.validation('Technical change not found');
-    if (!this.deps.canReviewProject(principal, row.project_id))
-      throw this.deps.errors.accessDenied('Technical change review required');
-    if (row.approval_state !== 'submitted')
-      throw this.deps.errors.conflict('Technical change is not submitted');
     if (decision !== 'approved' && !reason?.trim())
       throw this.deps.errors.validation('A review reason is required');
-    if (
-      decision === 'approved' &&
-      row.safety_impact === 1 &&
-      (!row.validation?.trim() || !row.rollback_information?.trim())
-    )
-      throw this.deps.errors.validation(
-        'Safety-impacting changes cannot be approved without validation and rollback information',
-      );
-    const now = this.deps.timestamp();
     this.deps.transaction(() => {
-      this.deps.sqlite
+      this.deps.assertActive(principal);
+      const row = this.deps.sqlite
         .prepare(
-          "UPDATE technical_change SET approval_state=?,updated_at=?,version=version+1 WHERE id=? AND approval_state='submitted'",
+          `SELECT tc.project_id,tc.author_id,tc.approval_state,tc.safety_impact,
+                  tc.validation,tc.rollback_information,p.status project_status
+             FROM technical_change tc
+             JOIN project p ON p.id=tc.project_id
+            WHERE tc.id=?`,
         )
-        .run(decision, now, id);
+        .get(id) as
+        | {
+            project_id: string;
+            author_id: string;
+            approval_state: string;
+            safety_impact: number;
+            validation: string | null;
+            rollback_information: string | null;
+            project_status: string;
+          }
+        | undefined;
+      if (!row) throw this.deps.errors.validation('Technical change not found');
+      if (!this.deps.canReviewProject(principal, row.project_id))
+        throw this.deps.errors.accessDenied('Technical change review required');
+      if (row.project_status !== 'active')
+        throw this.deps.errors.accessDenied('Active project required for technical change review');
+      if (row.approval_state !== 'submitted')
+        throw this.deps.errors.conflict('Technical change is not submitted');
+      if (
+        decision === 'approved' &&
+        row.safety_impact === 1 &&
+        (!row.validation?.trim() || !row.rollback_information?.trim())
+      )
+        throw this.deps.errors.validation(
+          'Safety-impacting changes cannot be approved without validation and rollback information',
+        );
+      const now = this.deps.timestamp();
+      const result = this.deps.sqlite
+        .prepare(
+          "UPDATE technical_change SET approval_state=?,updated_at=?,version=version+1 WHERE id=? AND approval_state='submitted' AND project_id=?",
+        )
+        .run(decision, now, id, row.project_id);
+      if (result.changes !== 1)
+        throw this.deps.errors.conflict('Technical change is not submitted');
       this.deps.sqlite
         .prepare(
           'INSERT INTO approval_event(id,entity_type,entity_id,from_state,to_state,actor_id,reason,occurred_at) VALUES(?,?,?,?,?,?,?,?)',

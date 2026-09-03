@@ -9,6 +9,7 @@ import type { Page } from '@playwright/test';
 export const e2eCredentials = {
   owner: { email: 'antonny.luty@j-aautomation.com', password: 'antonny.luty' },
   finance: { email: 'finance@demo.jaautomation.local', password: 'finance' },
+  auditor: { email: 'auditor@demo.jaautomation.local', password: 'auditor' },
   manager: { email: 'pm@demo.jaautomation.local', password: 'pm' },
   worker: { email: 'worker@demo.jaautomation.local', password: 'worker' },
   worker2: { email: 'rafael@demo.jaautomation.local', password: 'rafael' },
@@ -99,7 +100,14 @@ export async function signIn(page: Page, role: keyof typeof e2eCredentials): Pro
   await page.getByLabel('Work email').fill(credentials.email);
   await page.getByLabel('Password').fill(credentials.password);
   await page.getByRole('button', { name: 'Continue to workspace' }).click();
-  await page.waitForURL(portal(''));
+  const application = new URL(portal(''));
+  await page.waitForURL((url) => {
+    const isApplicationRoute =
+      url.origin === application.origin &&
+      (url.pathname === application.pathname ||
+        url.pathname.startsWith(`${application.pathname}/`));
+    return isApplicationRoute && url.pathname !== `${application.pathname}/login`;
+  });
   await page.waitForLoadState('networkidle');
 }
 
@@ -107,6 +115,20 @@ export async function seedE2ECredentialAccounts(databasePath: string): Promise<v
   const database = createDatabase(databasePath);
   try {
     const now = new Date().toISOString();
+    // The auditor is intentionally created only in the disposable browser fixture.  It is not a
+    // production/demo account and therefore does not expand the application's normal seed data.
+    const auditor = e2eCredentials.auditor;
+    const auditorExists = database.sqlite
+      .prepare('SELECT id FROM user WHERE email=?')
+      .get(auditor.email) as { id: string } | undefined;
+    if (!auditorExists) {
+      database.sqlite
+        .prepare(
+          `INSERT INTO user(id,name,email,email_verified,role,status,mfa_enrolled,created_at,updated_at)
+           VALUES(?,?,?,1,'auditor_read_only','active',0,?,?)`,
+        )
+        .run(randomUUID(), 'E2E Read-only Auditor', auditor.email, now, now);
+    }
     for (const account of Object.values(e2eCredentials)) {
       const user = database.sqlite
         .prepare("SELECT id FROM user WHERE email=? AND status='active'")

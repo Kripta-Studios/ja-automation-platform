@@ -78,7 +78,6 @@
   border-radius: 0.58rem;
   background: rgb(255 255 255 / 0.035);
   color: #82a5b6;
-  font-size: 0;
   transition:
     color 160ms var(--ja-ease),
     background-color 160ms var(--ja-ease),
@@ -126,16 +125,10 @@
 
 .portal-layout > main {
   min-width: 0;
-  background-color: var(--ja-paper);
-  background-image:
-    radial-gradient(circle at 88% 0%, rgb(92 195 188 / 0.1), transparent 25rem),
-    linear-gradient(rgb(16 32 47 / 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(16 32 47 / 0.025) 1px, transparent 1px);
+  background-color: var(--ja-canvas, var(--ja-paper));
+  background-image: radial-gradient(circle at 88% 0%, rgb(20 184 166 / 0.08), transparent 25rem);
   background-attachment: fixed;
-  background-size:
-    auto,
-    4rem 4rem,
-    4rem 4rem;
+  background-size: auto;
 }
 
 .global-search {
@@ -159,6 +152,41 @@
   box-shadow: none;
 }
 
+/* The search field sits inside a styled form, so restore a high-contrast
+   focus ring on the control itself for keyboard users. */
+.global-search input:focus-visible,
+.global-search button:focus-visible,
+.search-popover-item:focus-visible {
+  outline: 3px solid #0d6070;
+  outline-offset: 2px;
+}
+
+.global-search input,
+.global-search button,
+.search-popover-item {
+  min-height: var(--ja-target-min, 2.75rem);
+}
+
+/* Dense operational tables keep their full column meaning on small screens;
+   the named TableRegion supplies the scroll instruction and keyboard paging. */
+.worker-pay-table,
+.worker-profile-table {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.report-period-table {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.worker-pay-table:focus-visible,
+.worker-profile-table:focus-visible,
+.report-period-table:focus-visible {
+  outline: 3px solid #0d6070;
+  outline-offset: 3px;
+}
+
 .global-search button {
   border-radius: 0.6rem;
 }
@@ -173,8 +201,8 @@
 .invoice-preview-page input:not([type='hidden']):not([type='checkbox']):not([type='radio']),
 .invoice-preview-page select,
 .invoice-preview-page textarea {
-  border-color: #91b8c2;
-  background: #fff;
+  border-color: var(--ja-control-border, #cbd5e1);
+  background: var(--ja-surface, #fff);
 }
 
 /* Keep native selects readable while replacing the browser-specific arrow with
@@ -185,8 +213,8 @@
 .invoice-preview-page select:not([multiple]) {
   -webkit-appearance: none;
   appearance: none;
-  padding-right: 2.4rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m3.5 6 4.5 4 4.5-4' fill='none' stroke='%233b6170' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.6'/%3E%3C/svg%3E");
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m3.5 6 4.5 4 4.5-4' fill='none' stroke='%230f766e' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.7rem center;
   background-size: 0.9rem;
@@ -208,6 +236,12 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.7;
+}
+
+@media (max-width: 620px) {
+  .account-chevron {
+    display: none;
+  }
 }
 
 .contact-card {
@@ -313,8 +347,8 @@
 .invoice-preview-page input:not([type='hidden']):not([type='checkbox']):not([type='radio']):focus,
 .invoice-preview-page select:focus,
 .invoice-preview-page textarea:focus {
-  border-color: #27887e;
-  box-shadow: 0 0 0 3px rgb(39 136 126 / 0.14);
+  border-color: var(--ja-border-focus, #0284c7);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ja-border-focus, #0284c7) 14%, transparent);
 }
 
 .global-search input {
@@ -360,7 +394,7 @@
   gap: 0.45rem;
   min-height: var(--ja-target-min, 2.75rem);
   padding: 0.58rem 0.9rem;
-  border: 1px solid #173b52;
+  border: 1px solid var(--ja-primary, #0f766e);
   border-radius: 0.6rem;
   font-size: 0.75rem;
   font-weight: 800;
@@ -371,27 +405,51 @@
 
 .primary-button {
   color: #fff;
-  background: #173b52;
+  background: var(--ja-primary, #0f766e);
   box-shadow: 0 0.3rem 0.8rem rgb(16 32 47 / 0.12);
 }
 
 .secondary-button {
-  color: #173b52;
-  background: #fff;
+  color: var(--ja-primary-hover, #115e59);
+  background: var(--ja-surface, #fff);
 }
 
 .primary-button:hover,
 .primary-button:focus-visible {
   color: #fff;
-  border-color: #0d6070;
-  background: #0d6070;
+  border-color: var(--ja-primary-hover, #115e59);
+  background: var(--ja-primary-hover, #115e59);
 }
 
 .secondary-button:hover,
 .secondary-button:focus-visible {
-  color: #0d6070;
-  border-color: #0d6070;
-  background: #effaf8;
+  color: var(--ja-primary-hover, #115e59);
+  border-color: var(--ja-primary, #0f766e);
+  background: color-mix(in srgb, var(--ja-primary, #0f766e) 7%, var(--ja-surface, #fff));
+}
+
+.project-workflow-actions .primary-button.active:not(.danger-outline) {
+  color: #fff;
+  border-color: var(--ja-primary-hover, #115e59);
+  background: var(--ja-primary-hover, #115e59);
+  box-shadow:
+    0 0.3rem 0.8rem rgb(16 32 47 / 0.12),
+    0 0 0 3px color-mix(in srgb, var(--ja-primary, #0f766e) 28%, transparent);
+}
+
+.project-workflow-actions .danger-outline,
+.project-workflow-actions .danger-outline:hover,
+.project-workflow-actions .danger-outline:focus-visible {
+  color: #fff;
+  border-color: var(--ja-status-danger, #dc2626);
+  background: var(--ja-status-danger, #dc2626);
+}
+
+.project-workflow-actions .danger-outline:hover,
+.project-workflow-actions .danger-outline:focus-visible,
+.project-workflow-actions .danger-outline.active {
+  border-color: var(--ja-red-dark, #8f1d14);
+  background: var(--ja-red-dark, #8f1d14);
 }
 
 .artifact-pending {
@@ -472,6 +530,54 @@ details > summary::after {
 details[open] > summary::after {
   background-color: #d9f3ef;
   transform: rotate(180deg);
+}
+
+/* Administrative disclosures are action surfaces, not alarm banners. Keep
+   their text and icon on a light, high-contrast card even when the legacy
+   markup still carries the `primary-button` class. */
+.admin-details > summary,
+.admin-details > summary.primary-button {
+  box-sizing: border-box;
+  min-height: var(--ja-target-min, 2.75rem);
+  width: 100%;
+  color: var(--ja-text-primary, #0f172a);
+  border: 1px solid var(--ja-border-subdued, #e2e8f0);
+  border-radius: var(--ja-control-radius, 0.5rem);
+  background: var(--ja-surface, #fff);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  text-shadow: none;
+}
+
+.admin-details > summary:hover,
+.admin-details > summary.primary-button:hover,
+.admin-details > summary.primary-button:focus-visible {
+  color: var(--ja-text-primary, #0f172a);
+  border-color: var(--ja-primary, #0f766e);
+  background: var(--ja-surface-raised, #f1f5f9);
+}
+
+.admin-details[open] > summary,
+.admin-details[open] > summary.primary-button {
+  color: var(--ja-text-primary, #0f172a);
+  border-color: color-mix(
+    in srgb,
+    var(--ja-primary, #0f766e) 45%,
+    var(--ja-border-subdued, #e2e8f0)
+  );
+  background: color-mix(in srgb, var(--ja-primary, #0f766e) 6%, var(--ja-surface, #fff));
+}
+
+.admin-details > summary::after {
+  border-color: color-mix(
+    in srgb,
+    var(--ja-primary, #0f766e) 45%,
+    var(--ja-border-subdued, #e2e8f0)
+  );
+  background-color: color-mix(in srgb, var(--ja-primary, #0f766e) 8%, var(--ja-surface, #fff));
+}
+
+.admin-details[open] > summary::after {
+  background-color: color-mix(in srgb, var(--ja-primary, #0f766e) 14%, var(--ja-surface, #fff));
 }
 
 .admin-details > summary,
@@ -655,6 +761,31 @@ details[open] > summary::after {
 .dashboard-projects:hover,
 .record-list:hover {
   box-shadow: 0 0.8rem 2rem rgb(16 32 47 / 0.08);
+}
+
+/* A pending report is normal workflow state, not a system failure. The
+   amber edge keeps the signal visible without turning the whole KPI into an
+   alarm-colored block. */
+.dashboard-metrics .attention {
+  color: var(--ja-text-primary, #0f172a);
+  border-color: var(--ja-border-subdued, #e2e8f0);
+  border-inline-start: 0.3rem solid var(--ja-status-warning, #d97706);
+  background: var(--ja-surface, #fff);
+  box-shadow: var(--ja-shadow-soft, 0 1px 3px rgb(15 23 42 / 0.05));
+}
+
+.dashboard-metrics .attention strong,
+.dashboard-metrics .attention span,
+.dashboard-metrics .attention p {
+  color: inherit;
+}
+
+.dashboard-metrics .attention span {
+  color: var(--ja-status-warning-foreground, #92400e);
+}
+
+.dashboard-metrics .attention p {
+  color: var(--ja-text-secondary, #475569);
 }
 
 button:not(:disabled):active,

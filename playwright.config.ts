@@ -89,6 +89,10 @@ export default defineConfig({
         JA_DOCUMENT_ROOT: e2eDocumentRoot,
         JA_TENANT_ID: e2eTenantId,
         JA_DEPLOYMENT_ID: e2eDeploymentId,
+        JA_OFFLINE_ENABLED: 'false',
+        // The evidence matrix creates many independent real sessions against
+        // one disposable IP/database. Production keeps the default limit of 10.
+        JA_AUTH_RATE_LIMIT_MAX: '500',
         JA_REPORTING_LOGO_PATH: join(root, 'packages/reporting/assets/logo-jaautomation.png'),
         JA_FIXTURE_RESET_DOCUMENTS: 'false',
         JA_AUTH_SECRET: 'e2e-only-secret-do-not-use-in-production',

@@ -293,6 +293,9 @@ function ContactFormContent() {
                         <option value="general_manufacturing">
                           {t('industryGeneralManufacturing')}
                         </option>
+                        <option value="warehouse_logistics">
+                          {t('industryWarehouseLogistics')}
+                        </option>
                         <option value="other">{t('industryOther')}</option>
                       </select>
                     </div>
@@ -322,11 +325,15 @@ function ContactFormContent() {
                               ? 'plcHmiScada'
                               : s.id === 'electrical-controls'
                                 ? 'electrical'
-                                : s.id === 'motion-process'
-                                  ? 'motion'
-                                  : s.id === 'training-consulting'
-                                    ? 'trainingConsulting'
-                                    : s.id,
+                                : s.id === 'installation'
+                                  ? 'installation'
+                                  : s.id === 'support'
+                                    ? 'support'
+                                    : s.id === 'motion-process'
+                                      ? 'motion'
+                                      : s.id === 'training-consulting'
+                                        ? 'trainingConsulting'
+                                        : s.id,
                           )}
                         </option>
                       ))}
@@ -572,10 +579,10 @@ function ContactFormContent() {
           {/* Contact Info Sidebar */}
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm border border-ja-line p-6 md:p-8">
-              <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+              <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
                 <Phone size={20} className="text-ja-red" />
                 {t('directContact')}
-              </h3>
+              </h2>
               <p className="font-semibold text-ja-ink">{contact.primaryName}</p>
               <p className="mb-6 text-sm text-ja-steel-500">{t('primaryTitle')}</p>
               <a
@@ -595,10 +602,10 @@ function ContactFormContent() {
             </div>
 
             <div className="bg-ja-graphite text-white rounded-xl shadow-sm p-6 md:p-8">
-              <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+              <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
                 <Mail size={20} className="text-ja-red" />
                 {t('generalInquiries')}
-              </h3>
+              </h2>
               <a
                 href={`mailto:${contact.email}`}
                 className="text-sm text-ja-steel-300 hover:text-white transition-colors"

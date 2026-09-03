@@ -423,7 +423,7 @@ select {
 .form-help {
   grid-column: 1 / -1;
   margin: -0.35rem 0 0;
-  color: #718293;
+  color: #526174;
   font-size: 0.75rem;
   line-height: 1.5;
 }
@@ -457,7 +457,7 @@ select {
 
 .panel-title > div > p {
   margin: 0.4rem 0 0;
-  color: #718293;
+  color: #526174;
   font-size: 0.74rem;
   line-height: 1.45;
 }
@@ -479,7 +479,7 @@ select {
 }
 
 .detail-grid span {
-  color: #718293;
+  color: #526174;
   font-size: 0.64rem;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -500,7 +500,7 @@ select {
 
 .statement-note p {
   margin: 0.35rem 0 0;
-  color: #617685;
+  color: #526174;
   font-size: 0.76rem;
   line-height: 1.5;
 }
@@ -532,7 +532,7 @@ select {
 }
 
 .table-wrap th {
-  color: #718293;
+  color: #526174;
   font-size: 0.61rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;

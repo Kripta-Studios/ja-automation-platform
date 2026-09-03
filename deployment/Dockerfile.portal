@@ -15,6 +15,7 @@ RUN env \
     JA_TENANT_ID=release-build-tenant \
     JA_DEPLOYMENT_ID=release-build-deployment \
     JA_DEPLOYMENT_BINDING_SECRET=release-build-binding-secret-2026-08-client-essential \
+    JA_RELEASE_BUILD=1 \
     pnpm --filter @ja/portal build \
  && rm -f /tmp/jaautomation-release-build.sqlite /tmp/jaautomation-release-build.sqlite-shm /tmp/jaautomation-release-build.sqlite-wal
 RUN env \
@@ -23,6 +24,7 @@ RUN env \
     JA_TENANT_ID=release-build-tenant \
     JA_DEPLOYMENT_ID=release-build-deployment \
     JA_DEPLOYMENT_BINDING_SECRET=release-build-binding-secret-2026-08-client-essential \
+    JA_RELEASE_BUILD=1 \
     pnpm jobs:build \
  && rm -f /tmp/jaautomation-release-build.sqlite /tmp/jaautomation-release-build.sqlite-shm /tmp/jaautomation-release-build.sqlite-wal
 RUN pnpm --filter @ja/portal deploy --prod --legacy /portal

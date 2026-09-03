@@ -50,6 +50,9 @@ describe('PM approvals section', () => {
     expect(value).toContain('document.getElementById(tabId(tab))?.focus()');
     expect(value).toContain("encodeURIComponent(value(row, 'id'))");
     expect(value).toContain("encodeURIComponent(value(milestone, 'project_id'))");
+    expect(value).toContain("if (type === 'expense') return `${base}/app/expenses/${id}`");
+    expect(value).toContain("if (type === 'time') return `${base}/app/time/${id}`");
+    expect(value).not.toContain("${base}/app/${encodeURIComponent(value(row, 'type'))}/${id}");
 
     for (const forbidden of [
       'client_rate',

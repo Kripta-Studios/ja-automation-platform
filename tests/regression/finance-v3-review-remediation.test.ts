@@ -34,7 +34,39 @@ function seedUser(
     .prepare(
       'INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
     )
-    .run(id, id, `${id}@example.com`, role, 'active', 1, now, now);
+    .run(
+      id,
+      id,
+      role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@example.com`,
+      role,
+      'active',
+      1,
+      now,
+      now,
+    );
+}
+
+function withRecentStepUp(
+  sqlite: ReturnType<typeof createDatabase>['sqlite'],
+  principal: Principal,
+  suffix: string,
+): Principal {
+  const now = new Date().toISOString();
+  const sessionId = `finance-review-${principal.userId}-${suffix}`;
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+    )
+    .run(
+      sessionId,
+      `${sessionId}-token`,
+      principal.userId,
+      new Date(Date.now() + 3_600_000).toISOString(),
+      now,
+      now,
+      now,
+    );
+  return { ...principal, sessionId };
 }
 
 describe('V3 finance review remediation', () => {
@@ -46,7 +78,11 @@ describe('V3 finance review remediation', () => {
     const v3 = new V3Repository(sqlite);
     seedUser(sqlite, 'finance', 'finance_admin');
     seedB5ServiceActorBinding(sqlite, 'finance');
-    const finance: Principal = { userId: 'finance', role: 'finance_admin', projectIds: new Set() };
+    const finance = withRecentStepUp(
+      sqlite,
+      { userId: 'finance', role: 'finance_admin', projectIds: new Set() },
+      'settlement',
+    );
     const pack = v3.createAccountingPack(finance, '2120-01-01', '2120-01-31');
     const hash = 'a'.repeat(64);
 
@@ -60,14 +96,6 @@ describe('V3 finance review remediation', () => {
     });
     expect(() => v3.accountingPackExport(finance, pack.id, 'pdf')).toThrow(/pdf export failed/i);
 
-    v3.recordAccountingPackExport(
-      finance,
-      pack.id,
-      'expense_csv',
-      'exports/empty.csv',
-      'b'.repeat(64),
-      0,
-    );
     expect(() => v3.accountingPackExport(finance, pack.id, 'expense_csv')).toThrow(/not ready/i);
   });
 
@@ -85,7 +113,11 @@ describe('V3 finance review remediation', () => {
     seedB5ServiceActorBinding(sqlite, 'owner');
 
     const owner: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
-    const finance: Principal = { userId: 'finance', role: 'finance_admin', projectIds: new Set() };
+    const finance = withRecentStepUp(
+      sqlite,
+      { userId: 'finance', role: 'finance_admin', projectIds: new Set() },
+      'settlement',
+    );
     const client = repository.createClient(owner, {
       legalName: 'Settlement Review Client',
       displayName: 'Settlement Review Client',

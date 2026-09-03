@@ -1,4 +1,5 @@
 import { redirect } from '@sveltejs/kit';
+import { base } from '$app/paths';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import {
   projectManagerDashboardProjection,
@@ -6,10 +7,17 @@ import {
   projectManagerSearchSuggestionsProjection,
 } from './[section]/role-projections';
 import type { PageServerLoad } from './$types';
+import { portalLandingForRole } from '$lib/portal-navigation';
 export const load: PageServerLoad = ({ locals, url }) => {
   if (!locals.user) redirect(303, '/j-aautomation/app/login');
   if (locals.user.status === 'suspended' || locals.user.status === 'offboarded')
     redirect(303, '/j-aautomation/app/login?reason=access-revoked');
+  if (locals.user.role === 'finance_admin' || locals.user.role === 'auditor_read_only') {
+    const destination = new URL(portalLandingForRole(base, locals.user.role), url);
+    const query = url.searchParams.get('q')?.trim();
+    if (query) destination.searchParams.set('q', query);
+    redirect(303, `${destination.pathname}${destination.search}`);
+  }
   const context = openPortalRepository(locals);
   try {
     const searchQuery = url.searchParams.get('q')?.trim() ?? '';

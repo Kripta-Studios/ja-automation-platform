@@ -121,20 +121,4 @@ export const actions: Actions = {
       context.sqlite.close();
     }
   },
-  deleteReport: async ({ locals, request, params }) => {
-    const object = await formObject(request);
-    const type = object.type;
-    const parsed = versionedRecordSchema.safeParse(object);
-    if (!parsed.success || object.id !== params.id || (type !== 'daily' && type !== 'technical'))
-      return actionFail(400, 'action.validation.report', {}, 'Invalid report deletion');
-    const context = openPortalRepository(locals);
-    try {
-      context.repository.deleteReport(context.principal, type, parsed.data.id, parsed.data.version);
-    } catch (error) {
-      return actionFailure(error);
-    } finally {
-      context.sqlite.close();
-    }
-    throw redirect(303, '/j-aautomation/app/reports');
-  },
 };

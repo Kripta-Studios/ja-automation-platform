@@ -39,6 +39,18 @@ describe('Finance Overview section architecture', () => {
     expect(component).toContain('Only append-only payment events count as collected');
   });
 
+  it('does not present an incomplete canonical projection as ready', () => {
+    const component = source();
+
+    expect(component).toContain("finance?.financeProjectionState === 'incomplete'");
+    expect(component).toContain("finance?.state === 'incomplete'");
+    expect(component).toContain('data-finance-projection-warning');
+    expect(component).toContain('role="alert"');
+    expect(component).toContain('financeProjectionReasons');
+    expect(component).toContain('Projection completeness reasons');
+    expect(component).toContain('Canonical finance projection incomplete');
+  });
+
   it('uses the injected money formatter and does not recalculate money in the component', () => {
     const component = source();
 

@@ -243,19 +243,65 @@ export function xlsxFromSheets(
   ]);
 }
 
-export const REPORT_TEMPLATE_VERSION = '2026.08.23.1';
+export const REPORT_TEMPLATE_VERSION = '2026.09.02.2';
 
 const normalizeReportLocale = (value: unknown): ReportLocale => normalizeLocale(value);
 
 const localeTag = (locale: ReportLocale): string => reportLocaleTag(locale);
 
-const htmlEscape = (value: unknown): string =>
-  String(value ?? '').replace(
+const htmlEscape = (value: unknown): string => {
+  if (value !== null && typeof value === 'object') return '';
+  return String(value ?? '').replace(
     /[&<>"']/g,
     (character) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] ??
       character,
   );
+};
+
+function snapshotText(source: unknown, ...keys: string[]): string {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return '';
+  const row = source as Record<string, unknown>;
+  for (const key of keys) {
+    const value = row[key];
+    if (value === null || value === undefined || typeof value === 'object') continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return '';
+}
+
+function projectIdentity(snapshot: unknown): {
+  number: string;
+  name: string;
+  clientName: string;
+  title: string;
+} {
+  const row = snapshot && typeof snapshot === 'object' ? (snapshot as Record<string, unknown>) : {};
+  const nested =
+    row.project && typeof row.project === 'object' && !Array.isArray(row.project)
+      ? (row.project as Record<string, unknown>)
+      : {};
+  const number =
+    snapshotText(nested, 'number', 'projectNumber', 'project_number') ||
+    snapshotText(row, 'projectNumber', 'project_number');
+  const name =
+    snapshotText(nested, 'name', 'projectName', 'project_name') ||
+    snapshotText(row, 'projectName', 'project_name');
+  const clientName =
+    snapshotText(nested, 'clientName', 'client_name', 'clientNumber', 'client_number') ||
+    snapshotText(row, 'clientName', 'client_name', 'client_number', 'clientNumber');
+  return {
+    number,
+    name,
+    clientName,
+    title: [number, name].filter(Boolean).join(' · '),
+  };
+}
+
+function reportNarrative(snapshot: unknown, ...keys: string[]): string {
+  return snapshotText(snapshot, ...keys);
+}
 
 const companyLogoCandidates = [
   process.env.JA_REPORTING_LOGO_PATH,
@@ -354,18 +400,28 @@ h2 { margin: 7mm 0 2mm; color: #0f2d3d; font-size: 13pt; border-bottom: 1px soli
 .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4mm 10mm; }
 .metric { background:#f1f5f7; border-left:3px solid #e23d2d; padding:3mm; break-inside:avoid; }
 .metric strong { display:block; color:#0f2d3d; font-size:15pt; margin-top:1mm; }
-table { width:100%; border-collapse:collapse; margin-top:3mm; break-inside:auto; }
-thead { display:table-header-group; }
+table { width:100%; max-width:100%; border-collapse:collapse; margin-top:3mm; break-inside:auto; }
+thead, tfoot { display:table-header-group; }
 tr { break-inside:avoid; }
-th { background:#0f2d3d; color:#fff; text-align:left; font-size:8pt; text-transform:uppercase; letter-spacing:.06em; padding:2.4mm; }
-td { border-bottom:1px solid #d9e1e7; padding:2.4mm; vertical-align:top; }
+th { background:#0f2d3d; color:#fff; text-align:left; font-size:8pt; text-transform:uppercase; letter-spacing:.06em; padding:2.4mm; overflow-wrap:anywhere; word-break:break-word; }
+td { border-bottom:1px solid #d9e1e7; padding:2.4mm; vertical-align:top; overflow-wrap:anywhere; word-break:break-word; }
 td.amount, th.amount { text-align:right; white-space:nowrap; }
+tfoot td { font-weight:700; background:#f1f5f7; border-top:2px solid #0f2d3d; }
+.metric-stack { margin-top:3mm; }
+.metric-stack + .metric-stack { margin-top:5mm; }
+.metric-stack h3 { margin:0 0 1mm; color:#0f2d3d; font-size:10pt; }
+.metric-stack table { table-layout:fixed; }
 .total { margin:6mm 0 0 auto; width:min(92mm, 100%); max-width:100%; border-top:3px solid #e23d2d; padding-top:3mm; }
 .total div { display:grid; grid-template-columns:minmax(0,1fr) minmax(30mm,1fr); align-items:start; gap:4mm; padding:1mm 0; }
 .total div > :last-child { min-width:0; max-width:100%; text-align:right; overflow-wrap:anywhere; word-break:break-all; }
 .total strong { color:#0f2d3d; font-size:15pt; overflow-wrap:anywhere; word-break:break-all; }
 .report-section { break-inside:auto; page-break-inside:auto; }
 .page-break { break-before: page; }
+.signature-block { margin-top:10mm; display:flex; justify-content:space-between; align-items:flex-end; gap:12mm; break-inside:avoid; page-break-inside:avoid; padding-top:5mm; border-top:1px dashed #cbd5e1; }
+.signature-block > div { display:flex; flex-direction:column; gap:1.5mm; }
+.signature-block span { font-weight:700; font-size:8.5pt; color:#0f2d3d; }
+.signature-line { font-family:monospace; font-size:9pt; color:#64748b; letter-spacing:0.05em; }
+.signature-block small { font-size:7.5pt; color:#64748b; }
 `;
 
 function layout(title: string, subtitle: string, body: string, locale: ReportLocale): string {
@@ -373,7 +429,55 @@ function layout(title: string, subtitle: string, body: string, locale: ReportLoc
   return `<!doctype html><html lang="${localeTag(locale)}"><head><meta charset="utf-8"><meta name="template-version" content="${REPORT_TEMPLATE_VERSION}"><meta name="report-locale" content="${localeTag(locale)}"><style>${pageCss}</style></head><body><header class="masthead"><div class="brand-lockup"><img class="brand-logo" src="${companyLogo()}" alt="J&amp;A Automation logo"><div class="masthead-copy"><div class="eyebrow">J&amp;A Automation</div><h1>${htmlEscape(title)}</h1><div class="muted">${htmlEscape(subtitle)}</div></div></div><div class="muted">${htmlEscape(copy.template)} ${REPORT_TEMPLATE_VERSION}</div></header>${body}</body></html>`;
 }
 
-function moneyText(currency: unknown, minor: unknown, locale: ReportLocale = 'en'): string {
+/**
+ * Invoice-only presentation. Shared report `pageCss` styles `.grid` / `.total` but not
+ * `.invoice-parties`, `.invoice-meta`, or `.invoice-total`, so wrapping invoice HTML in
+ * `layout()` collapsed parties, metadata and totals into unstructured text.
+ */
+const invoiceCss = `
+.invoice-masthead { display:flex; align-items:flex-start; justify-content:space-between; gap:10mm; border-bottom:3px solid #0f2d3d; padding-bottom:5mm; margin-bottom:5mm; }
+.invoice-identity { text-align:right; min-width:0; }
+.invoice-identity h1 { margin:1mm 0 0; font-size:18pt; letter-spacing:-.02em; }
+.invoice-document { min-width:0; }
+.invoice-parties { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8mm; padding:5mm 0 4mm; }
+.invoice-party { display:grid; gap:1.2mm; min-width:0; }
+.invoice-party-label { color:#64748b; font-size:8pt; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+.invoice-party div { margin:0; line-height:1.45; }
+.invoice-meta { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:5mm; padding:4mm 0; margin:0; border-block:1px solid #d9e1e7; }
+.invoice-field { display:grid; gap:1mm; min-width:0; }
+.invoice-field .label { color:#64748b; font-size:8pt; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.invoice-field .value { margin:0; font-weight:700; overflow-wrap:anywhere; }
+.invoice-document > h2 { margin:6mm 0 2mm; font-size:11pt; }
+.invoice-description-block { margin:0 0 3mm; }
+.invoice-lines { width:100%; max-width:100%; table-layout:fixed; border-collapse:collapse; margin-top:4mm; }
+.invoice-lines th { background:#dbebf7; color:#0d3b66; font-size:8.5pt; font-weight:700; letter-spacing:.03em; border-top:1px solid #b8d5ec; border-bottom:1px solid #b8d5ec; padding:2.2mm 2.8mm; overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
+.invoice-lines td { padding:2.2mm 2.8mm; border-bottom:1px solid #e2e8f0; font-size:8.5pt; overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
+.invoice-lines th.amount, .invoice-lines td.amount { text-align:right; white-space:nowrap; }
+.qty-total-cell, .total-amount-cell { border:1.5px solid #0d3b66 !important; background:#ffffff; font-weight:700; text-align:right; }
+.invoice-bottom-grid { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:10mm; margin-top:6mm; align-items:start; }
+.invoice-terms-card { font-size:8pt; color:#1e293b; line-height:1.45; }
+.terms-heading { font-size:9.5pt; font-weight:700; color:#0f2d3d; text-decoration:underline; margin-bottom:2mm; }
+.terms-field { margin:0.8mm 0; }
+.terms-notice { margin-top:2.5mm; font-style:italic; color:#64748b; font-size:7.5pt; }
+.invoice-total { margin:0; width:100%; border-top:2px solid #cbd5e1; padding-top:2mm; }
+.invoice-total .total-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(28mm,1fr); align-items:start; gap:4mm; padding:1.2mm 0; }
+.invoice-total .total-row span:last-child, .invoice-total .total-row strong:last-child { text-align:right; overflow-wrap:anywhere; }
+.invoice-total .grand-total strong { color:#0f2d3d; font-size:12pt; }
+.company-contact-masthead { margin-top:1.5mm; font-size:7.5pt; color:#475569; line-height:1.35; }
+`;
+
+function invoiceLayout(
+  title: string,
+  subtitle: string,
+  number: string,
+  body: string,
+  locale: ReportLocale,
+): string {
+  const copy = localizedCopy[locale];
+  return `<!doctype html><html lang="${localeTag(locale)}"><head><meta charset="utf-8"><meta name="template-version" content="${REPORT_TEMPLATE_VERSION}"><meta name="invoice-layout" content="structured-v1"><meta name="report-locale" content="${localeTag(locale)}"><style>${pageCss}${invoiceCss}</style></head><body><header class="invoice-masthead"><div class="brand-lockup"><img class="brand-logo" src="${companyLogo()}" alt="J&amp;A Automation logo"><div class="masthead-copy"><div class="eyebrow">J&amp;A Automation LLC</div><div class="company-contact-masthead"><div>USA division · Phone: +1 (864) 208 4684</div><div>112 Birkshire Dr, Georgetown TX 78626</div><div>field.operations@j-aautomation.com · www.j-aautomation.com</div></div><div class="muted" style="margin-top:1mm;font-size:7pt">${htmlEscape(copy.template)} ${REPORT_TEMPLATE_VERSION}</div></div></div><div class="invoice-identity"><div class="eyebrow">${htmlEscape(title)}</div><h1>${htmlEscape(number)}</h1><div class="muted">${htmlEscape(subtitle)}</div></div></header><article class="invoice-document">${body}</article></body></html>`;
+}
+
+function exactMoneyText(currency: unknown, minor: unknown, locale: ReportLocale = 'en'): string {
   const code =
     typeof currency === 'string' && /^[A-Za-z]{3}$/.test(currency) ? currency.toUpperCase() : 'USD';
   let amount: bigint;
@@ -432,21 +536,32 @@ function moneyText(currency: unknown, minor: unknown, locale: ReportLocale = 'en
   } catch {
     prefix = `${code} `;
   }
-  return htmlEscape(`${negative ? '-' : ''}${prefix}${integer}${fraction}${suffix}`);
+  return `${negative ? '-' : ''}${prefix}${integer}${fraction}${suffix}`;
 }
 
-function metricValue(key: string, value: unknown, currency: unknown, locale: ReportLocale): string {
+function moneyText(currency: unknown, minor: unknown, locale: ReportLocale = 'en'): string {
+  return htmlEscape(exactMoneyText(currency, minor, locale));
+}
+
+function metricDisplay(
+  key: string,
+  value: unknown,
+  currency: unknown,
+  locale: ReportLocale,
+): string {
   const normalized = key.toLowerCase();
-  if (normalized.includes('minor')) return moneyText(currency, value, locale);
-  if (normalized.includes('minutes')) return htmlEscape(formatReportInteger(value, locale));
+  if (normalized.includes('minor')) return exactMoneyText(currency, value, locale);
+  if (normalized.includes('minutes')) return formatReportInteger(value, locale);
   if (normalized.includes('bps')) {
     const bps = Number(value ?? 0);
     if (Number.isFinite(bps))
-      return htmlEscape(
-        `${new Intl.NumberFormat(localeTag(locale), { minimumFractionDigits: 1, maximumFractionDigits: 2 }).format(bps / 100)}%`,
-      );
+      return `${new Intl.NumberFormat(localeTag(locale), { minimumFractionDigits: 1, maximumFractionDigits: 2 }).format(bps / 100)}%`;
   }
-  return htmlEscape(value);
+  return value === null || value === undefined ? '' : String(value);
+}
+
+function metricValue(key: string, value: unknown, currency: unknown, locale: ReportLocale): string {
+  return htmlEscape(metricDisplay(key, value, currency, locale));
 }
 
 export function accountingPackCsv(
@@ -473,8 +588,8 @@ export function accountingPackXlsx(
 
 /**
  * Build the synchronous, current-snapshot workbook used by the project finance screen.
- * The database already returns money as exact minor-unit strings; this exporter deliberately
- * keeps those values as text so the workbook cannot introduce binary floating-point rounding.
+ * Money stays exact: display uses bigint minor units, and a parallel column keeps the
+ * canonical minor-unit string so the workbook cannot introduce binary floating-point rounding.
  */
 export function projectFinanceXlsx(
   snapshot: Readonly<{
@@ -482,20 +597,460 @@ export function projectFinanceXlsx(
     financial: Readonly<Record<string, unknown>>;
     timeEconomics: readonly Record<string, unknown>[];
     expenseEconomics: readonly Record<string, unknown>[];
+    invoices?: readonly Record<string, unknown>[];
+    milestones?: readonly Record<string, unknown>[];
+    locale?: ReportLocale | string;
   }>,
 ): Uint8Array {
-  const summaryRows = Object.entries(snapshot.financial)
-    .filter(([, value]) => !Array.isArray(value) && (typeof value !== 'object' || value === null))
-    .map(([metric, value]) => ({ metric, value: exportCell(value) }));
-  const alerts = snapshot.financial.alerts;
-  if (Array.isArray(alerts))
-    summaryRows.push({ metric: 'alerts', value: alerts.map(String).join('; ') });
+  const locale = normalizeReportLocale(snapshot.locale);
+  const finance = snapshot.financial;
+  const currency = String(finance.currency ?? snapshot.project.currency ?? '');
+  const labels = projectFinanceCopy(locale);
   return xlsxFromSheets([
-    { name: 'Project overview', rows: [snapshot.project] },
-    { name: 'Finance metrics', rows: summaryRows },
-    { name: 'Employee cost detail', rows: exportRows(snapshot.timeEconomics) },
-    { name: 'Expense detail', rows: exportRows(snapshot.expenseEconomics) },
+    {
+      name: labels.summarySheet,
+      rows: projectFinanceSummaryRows(snapshot.project, finance, currency, locale, labels),
+      columns: ['section', 'metric', 'value', 'exactMinorUnits'],
+    },
+    {
+      name: labels.laborSheet,
+      rows: projectFinanceLaborRows(snapshot.timeEconomics, currency, locale),
+      columns: [
+        'worker',
+        'date',
+        'category',
+        'actualHours',
+        'actualMinutes',
+        'billableHours',
+        'billableMinutes',
+        'clientRevenue',
+        'internalCost',
+        'workerCompensation',
+        'billability',
+        'approval',
+        'billingStatus',
+        'invoiceId',
+        'clientRevenueExactMinor',
+        'internalCostExactMinor',
+        'workerCompensationExactMinor',
+      ],
+    },
+    {
+      name: labels.expenseSheet,
+      rows: projectFinanceExpenseRows(snapshot.expenseEconomics, currency, locale),
+      columns: [
+        'worker',
+        'date',
+        'category',
+        'paidBy',
+        'treatment',
+        'cost',
+        'actualCost',
+        'revenue',
+        'pendingFinanceRevenue',
+        'approval',
+        'financeApproval',
+        'projection',
+        'costExactMinor',
+        'revenueExactMinor',
+      ],
+    },
+    {
+      name: labels.unbilledSheet,
+      rows: projectFinanceUnbilledRows(finance.approvedUnbilledSources, currency, locale),
+      columns: ['sourceType', 'sourceId', 'date', 'workerId', 'amount', 'amountExactMinor'],
+    },
+    {
+      name: labels.minimumSheet,
+      rows: projectFinanceMinimumRows(finance.dailyMinimumAdjustments, currency, locale),
+      columns: [
+        'workerId',
+        'date',
+        'adjustmentHours',
+        'adjustmentMinutes',
+        'revenue',
+        'revenueExactMinor',
+      ],
+    },
+    {
+      name: labels.invoiceSheet,
+      rows: projectFinanceInvoiceRows(snapshot.invoices ?? [], locale),
+      columns: [
+        'invoiceNumber',
+        'stream',
+        'state',
+        'periodStart',
+        'periodEnd',
+        'currency',
+        'total',
+        'collected',
+        'issuedAt',
+        'dueAt',
+        'totalExactMinor',
+        'collectedExactMinor',
+      ],
+    },
+    {
+      name: labels.milestoneSheet,
+      rows: projectFinanceMilestoneRows(snapshot.milestones ?? [], currency, locale),
+      columns: ['name', 'dueOn', 'state', 'amount', 'amountExactMinor'],
+    },
+    {
+      name: labels.alertSheet,
+      rows: projectFinanceAlertRows(finance),
+      columns: ['code', 'sourceId'],
+    },
   ]);
+}
+
+type ProjectFinanceCopy = Readonly<{
+  summarySheet: string;
+  laborSheet: string;
+  expenseSheet: string;
+  unbilledSheet: string;
+  minimumSheet: string;
+  invoiceSheet: string;
+  milestoneSheet: string;
+  alertSheet: string;
+  project: string;
+  economics: string;
+  collections: string;
+  forecast: string;
+}>;
+
+function projectFinanceCopy(locale: ReportLocale): ProjectFinanceCopy {
+  if (locale === 'es')
+    return {
+      summarySheet: 'Resumen',
+      laborSheet: 'Mano de obra',
+      expenseSheet: 'Gastos',
+      unbilledSheet: 'WIP no facturado',
+      minimumSheet: 'Minimo diario',
+      invoiceSheet: 'Facturas',
+      milestoneSheet: 'Hitos',
+      alertSheet: 'Alertas',
+      project: 'Proyecto',
+      economics: 'Economia del proyecto',
+      collections: 'Facturacion y cobro',
+      forecast: 'Prevision',
+    };
+  if (locale === 'pt')
+    return {
+      summarySheet: 'Resumo',
+      laborSheet: 'Mao de obra',
+      expenseSheet: 'Despesas',
+      unbilledSheet: 'WIP nao faturado',
+      minimumSheet: 'Minimo diario',
+      invoiceSheet: 'Faturas',
+      milestoneSheet: 'Marcos',
+      alertSheet: 'Alertas',
+      project: 'Projeto',
+      economics: 'Economia do projeto',
+      collections: 'Faturamento e cobranca',
+      forecast: 'Previsao',
+    };
+  return {
+    summarySheet: 'Summary',
+    laborSheet: 'Labor',
+    expenseSheet: 'Expenses',
+    unbilledSheet: 'Unbilled WIP',
+    minimumSheet: 'Daily minimum',
+    invoiceSheet: 'Invoices',
+    milestoneSheet: 'Milestones',
+    alertSheet: 'Alerts',
+    project: 'Project',
+    economics: 'Project economics',
+    collections: 'Billing and collections',
+    forecast: 'Forecast',
+  };
+}
+
+function minutesAsHours(value: unknown): string {
+  const minutes = Number(value);
+  if (!Number.isInteger(minutes)) return '';
+  const sign = minutes < 0 ? '-' : '';
+  const absolute = Math.abs(minutes);
+  const hours = Math.trunc(absolute / 60);
+  const remainder = absolute % 60;
+  const hundredths = Math.round((remainder * 100) / 60);
+  if (hundredths === 100) return `${sign}${hours + 1}.00`;
+  return `${sign}${hours}.${String(hundredths).padStart(2, '0')}`;
+}
+
+function formatBpsExact(value: unknown): string {
+  try {
+    const amount = BigInt(String(value ?? ''));
+    const negative = amount < 0n;
+    const absolute = negative ? -amount : amount;
+    const whole = absolute / 100n;
+    const fraction = absolute % 100n;
+    return `${negative ? '-' : ''}${whole.toString()}.${fraction.toString().padStart(2, '0')}%`;
+  } catch {
+    return '';
+  }
+}
+
+function summaryRow(section: string, metric: string, value: Cell, exactMinor: Cell = ''): Row {
+  return { section, metric, value, exactMinorUnits: exactMinor };
+}
+
+function projectFinanceSummaryRows(
+  project: Readonly<Record<string, Cell>>,
+  finance: Readonly<Record<string, unknown>>,
+  currency: string,
+  locale: ReportLocale,
+  labels: ProjectFinanceCopy,
+): readonly Row[] {
+  const money = (key: string): { display: string; exact: string } => {
+    const exact = finance[key] == null ? '' : String(finance[key]);
+    return { display: exact === '' ? '' : exactMoneyText(currency, exact, locale), exact };
+  };
+  const hours = (key: string): string => minutesAsHours(finance[key]);
+  const text = (key: string): string => (finance[key] == null ? '' : String(finance[key]));
+  const laborRevenue = money('laborRevenueMinor');
+  const expenseRevenue = money('expenseRevenueMinor');
+  const milestoneRevenue = money('milestoneRevenueMinor');
+  const revenue = money('revenueCandidateMinor');
+  const laborCost = money('directLaborCostMinor');
+  const travelCost = money('travelCostMinor');
+  const otherCost = money('otherDirectCostMinor');
+  const directCost = money('approvedCostMinor');
+  const compensation = money('workerCompensationMinor');
+  const contribution = money('contributionMarginMinor');
+  const invoiced = money('invoicedMinor');
+  const invoicedGross = money('invoicedGrossMinor');
+  const collected = money('paidMinor');
+  const receivable = money('receivableMinor');
+  const unbilled = money('approvedUnbilledWipMinor');
+  const unapproved = money('unapprovedWipMinor');
+  const budget = money('budgetMinor');
+  const remaining = money('remainingCapMinor');
+  const travelBudget = money('travelBudgetMinor');
+  const etc = money('estimateToCompleteMinor');
+  const eacCost = money('estimateAtCompletionCostMinor');
+  const eacRevenue = money('estimateAtCompletionRevenueMinor');
+  const finalMargin = money('expectedFinalMarginMinor');
+  return [
+    summaryRow(labels.project, 'Project number', project.project_number ?? ''),
+    summaryRow(labels.project, 'Project name', project.project_name ?? ''),
+    summaryRow(labels.project, 'Client number', project.client_number ?? ''),
+    summaryRow(labels.project, 'Client name', project.client_name ?? ''),
+    summaryRow(labels.project, 'Currency', currency),
+    summaryRow(labels.project, 'Period start', project.period_start ?? ''),
+    summaryRow(labels.project, 'Period end', project.period_end ?? ''),
+    summaryRow(labels.project, 'Billing model', text('billingModel')),
+    summaryRow(labels.project, 'Projection state', text('state')),
+    summaryRow(labels.economics, 'Labor revenue', laborRevenue.display, laborRevenue.exact),
+    summaryRow(labels.economics, 'Expense revenue', expenseRevenue.display, expenseRevenue.exact),
+    summaryRow(
+      labels.economics,
+      'Milestone revenue',
+      milestoneRevenue.display,
+      milestoneRevenue.exact,
+    ),
+    summaryRow(labels.economics, 'Revenue', revenue.display, revenue.exact),
+    summaryRow(labels.economics, 'Internal labor cost', laborCost.display, laborCost.exact),
+    summaryRow(labels.economics, 'Travel cost', travelCost.display, travelCost.exact),
+    summaryRow(labels.economics, 'Other direct cost', otherCost.display, otherCost.exact),
+    summaryRow(labels.economics, 'Direct cost', directCost.display, directCost.exact),
+    summaryRow(labels.economics, 'Worker compensation', compensation.display, compensation.exact),
+    summaryRow(labels.economics, 'Contribution', contribution.display, contribution.exact),
+    summaryRow(
+      labels.economics,
+      'Contribution margin',
+      formatBpsExact(finance.contributionMarginBps),
+    ),
+    summaryRow(labels.economics, 'Actual hours', hours('actualMinutes')),
+    summaryRow(labels.economics, 'Approved hours', hours('approvedMinutes')),
+    summaryRow(labels.economics, 'Billable hours', hours('billableMinutes')),
+    summaryRow(labels.collections, 'Invoiced net', invoiced.display, invoiced.exact),
+    summaryRow(labels.collections, 'Invoiced gross', invoicedGross.display, invoicedGross.exact),
+    summaryRow(labels.collections, 'Collected', collected.display, collected.exact),
+    summaryRow(labels.collections, 'Receivable', receivable.display, receivable.exact),
+    summaryRow(labels.collections, 'Approved unbilled WIP', unbilled.display, unbilled.exact),
+    summaryRow(labels.collections, 'Unapproved WIP', unapproved.display, unapproved.exact),
+    summaryRow(labels.forecast, 'Budget', budget.display, budget.exact),
+    summaryRow(labels.forecast, 'Remaining cap', remaining.display, remaining.exact),
+    summaryRow(labels.forecast, 'Budget consumed', formatBpsExact(finance.budgetConsumedBps)),
+    summaryRow(labels.forecast, 'Travel budget', travelBudget.display, travelBudget.exact),
+    summaryRow(labels.forecast, 'Estimate to complete', etc.display, etc.exact),
+    summaryRow(labels.forecast, 'Estimate at completion cost', eacCost.display, eacCost.exact),
+    summaryRow(
+      labels.forecast,
+      'Estimate at completion revenue',
+      eacRevenue.display,
+      eacRevenue.exact,
+    ),
+    summaryRow(labels.forecast, 'Expected final margin', finalMargin.display, finalMargin.exact),
+    summaryRow(labels.forecast, 'Forecast basis', text('forecastBasis')),
+  ];
+}
+
+function projectFinanceLaborRows(
+  rows: readonly Record<string, unknown>[],
+  currency: string,
+  locale: ReportLocale,
+): readonly Row[] {
+  return rows.map((row) => ({
+    worker: String(row.workerName ?? row.worker_name ?? ''),
+    date: String(row.workDate ?? row.work_date ?? ''),
+    category: String(row.category ?? ''),
+    actualHours: minutesAsHours(row.actualMinutes ?? row.actual_minutes ?? row.minutes),
+    actualMinutes:
+      row.actualMinutes == null && row.actual_minutes == null && row.minutes == null
+        ? ''
+        : String(row.actualMinutes ?? row.actual_minutes ?? row.minutes),
+    billableHours: minutesAsHours(row.clientBillableMinutes ?? row.client_billable_minutes),
+    billableMinutes:
+      row.clientBillableMinutes == null && row.client_billable_minutes == null
+        ? ''
+        : String(row.clientBillableMinutes ?? row.client_billable_minutes),
+    clientRevenue: exactMoneyText(
+      currency,
+      row.clientRevenueMinor ?? row.client_revenue_minor,
+      locale,
+    ),
+    internalCost: exactMoneyText(
+      currency,
+      row.internalCostMinor ?? row.internal_cost_minor,
+      locale,
+    ),
+    workerCompensation: exactMoneyText(
+      currency,
+      row.workerCompensationMinor ?? row.worker_compensation_minor,
+      locale,
+    ),
+    billability: String(row.billabilityState ?? row.billability_state ?? ''),
+    approval: translateReportStatus(row.approvalState ?? row.approval_state, locale),
+    billingStatus: String(row.billingStatus ?? row.billing_status ?? ''),
+    invoiceId: String(row.invoiceId ?? row.invoice_id ?? ''),
+    clientRevenueExactMinor: String(row.clientRevenueMinor ?? row.client_revenue_minor ?? ''),
+    internalCostExactMinor: String(row.internalCostMinor ?? row.internal_cost_minor ?? ''),
+    workerCompensationExactMinor: String(
+      row.workerCompensationMinor ?? row.worker_compensation_minor ?? '',
+    ),
+  }));
+}
+
+function projectFinanceExpenseRows(
+  rows: readonly Record<string, unknown>[],
+  currency: string,
+  locale: ReportLocale,
+): readonly Row[] {
+  return rows.map((row) => ({
+    worker: String(row.workerName ?? row.worker_name ?? ''),
+    date: String(row.spentOn ?? row.spent_on ?? ''),
+    category: String(row.category ?? ''),
+    paidBy: String(row.paidBy ?? ''),
+    treatment: String(row.treatment ?? ''),
+    cost: exactMoneyText(currency, row.costMinor, locale),
+    actualCost: exactMoneyText(currency, row.actualCostMinor, locale),
+    revenue: exactMoneyText(currency, row.revenueMinor, locale),
+    pendingFinanceRevenue: exactMoneyText(
+      currency,
+      row.pendingFinanceRevenueMinor ?? row.pendingApprovalRevenueMinor,
+      locale,
+    ),
+    approval: translateReportStatus(row.approvalState, locale),
+    financeApproval: String(row.financeApprovalState ?? ''),
+    projection: String(row.financeProjectionState ?? ''),
+    costExactMinor: String(row.costMinor ?? ''),
+    revenueExactMinor: String(row.revenueMinor ?? ''),
+  }));
+}
+
+function projectFinanceUnbilledRows(
+  sources: unknown,
+  currency: string,
+  locale: ReportLocale,
+): readonly Row[] {
+  if (!Array.isArray(sources)) return [];
+  return sources.map((item) => {
+    const row = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    return {
+      sourceType: String(row.sourceType ?? ''),
+      sourceId: String(row.sourceId ?? ''),
+      date: String(row.workDate ?? row.spentOn ?? row.dueOn ?? ''),
+      workerId: String(row.workerId ?? ''),
+      amount: exactMoneyText(currency, row.amountMinor, locale),
+      amountExactMinor: String(row.amountMinor ?? ''),
+    };
+  });
+}
+
+function projectFinanceMinimumRows(
+  sources: unknown,
+  currency: string,
+  locale: ReportLocale,
+): readonly Row[] {
+  if (!Array.isArray(sources)) return [];
+  return sources.map((item) => {
+    const row = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    return {
+      workerId: String(row.workerId ?? ''),
+      date: String(row.workDate ?? ''),
+      adjustmentHours: minutesAsHours(row.adjustmentMinutes),
+      adjustmentMinutes: row.adjustmentMinutes == null ? '' : String(row.adjustmentMinutes),
+      revenue: exactMoneyText(currency, row.revenueMinor, locale),
+      revenueExactMinor: String(row.revenueMinor ?? ''),
+    };
+  });
+}
+
+function projectFinanceInvoiceRows(
+  rows: readonly Record<string, unknown>[],
+  locale: ReportLocale,
+): readonly Row[] {
+  return rows.map((row) => {
+    const currency = String(row.currency ?? '');
+    const total = row.total_minor ?? row.totalMinor ?? '';
+    const collected = row.paid_minor ?? row.paidMinor ?? '';
+    return {
+      invoiceNumber: String(row.invoice_number ?? row.invoiceNumber ?? ''),
+      stream: String(row.stream_type ?? row.streamType ?? ''),
+      state: translateReportStatus(row.state, locale),
+      periodStart: String(row.period_start ?? row.periodStart ?? ''),
+      periodEnd: String(row.period_end ?? row.periodEnd ?? ''),
+      currency,
+      total: exactMoneyText(currency, total, locale),
+      collected: exactMoneyText(currency, collected, locale),
+      issuedAt: String(row.issued_at ?? row.issuedAt ?? ''),
+      dueAt: String(row.due_at ?? row.dueAt ?? ''),
+      totalExactMinor: String(total ?? ''),
+      collectedExactMinor: String(collected ?? ''),
+    };
+  });
+}
+
+function projectFinanceMilestoneRows(
+  rows: readonly Record<string, unknown>[],
+  fallbackCurrency: string,
+  locale: ReportLocale,
+): readonly Row[] {
+  return rows.map((row) => {
+    const currency = String(row.currency ?? fallbackCurrency);
+    const amount = row.amount_minor ?? row.amountMinor ?? '';
+    return {
+      name: String(row.name ?? ''),
+      dueOn: String(row.due_on ?? row.dueOn ?? ''),
+      state: translateReportStatus(row.approval_state ?? row.approvalState, locale),
+      amount: exactMoneyText(currency, amount, locale),
+      amountExactMinor: String(amount ?? ''),
+    };
+  });
+}
+
+function projectFinanceAlertRows(finance: Readonly<Record<string, unknown>>): readonly Row[] {
+  const alerts = Array.isArray(finance.alerts)
+    ? finance.alerts.map((code) => ({ code: String(code), sourceId: '' }))
+    : [];
+  const reasons = Array.isArray(finance.reasons)
+    ? finance.reasons.map((item) => {
+        const row = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+        return { code: String(row.code ?? ''), sourceId: String(row.sourceId ?? '') };
+      })
+    : [];
+  return [...alerts, ...reasons];
 }
 
 export type WorkerStatementSnapshot = Readonly<{
@@ -544,6 +1099,11 @@ export type WorkerStatementSnapshot = Readonly<{
     reimbursementState: string;
     expectedReimbursementOn?: string | null;
     reimbursedAt?: string | null;
+    /** Legacy aliases accepted when rendering historical worker statements. */
+    date?: string | null;
+    project?: string | null;
+    status?: string | null;
+    amountMinor?: string | null;
   }>[];
 }>;
 
@@ -573,7 +1133,32 @@ const workerStatementColumns = [
   'reimbursedAt',
 ] as const;
 
+function workerActivityCompensation(snapshot: WorkerStatementSnapshot): bigint[] {
+  const approvedIndexes: number[] = [];
+  const pendingIndexes: number[] = [];
+  snapshot.activities.forEach((activity, index) => {
+    if (isApprovedRecordState(activity.approvalState)) approvedIndexes.push(index);
+    else pendingIndexes.push(index);
+  });
+  const amounts = snapshot.activities.map(() => 0n);
+  const assign = (indexes: readonly number[], totalMinor: string) => {
+    const shares = allocateMinorAcrossMinutes(
+      indexes.map((index) => snapshot.activities[index]?.actualMinutes ?? 0),
+      totalMinor,
+    );
+    shares.forEach((share, shareIndex) => {
+      const activityIndex = indexes[shareIndex];
+      if (activityIndex === undefined) return;
+      amounts[activityIndex] = share;
+    });
+  };
+  assign(approvedIndexes, snapshot.estimatedApprovedMinor);
+  assign(pendingIndexes, snapshot.estimatedPendingMinor);
+  return amounts;
+}
+
 function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] {
+  const activityCompensation = workerActivityCompensation(snapshot);
   return [
     {
       recordType: 'compensation_summary',
@@ -603,7 +1188,7 @@ function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] 
       approvalState: 'pending',
       paymentStatus: 'estimated_pending',
     },
-    ...snapshot.activities.map((activity) => ({
+    ...snapshot.activities.map((activity, index) => ({
       recordType: 'time_activity',
       recordId: activity.id,
       workerId: snapshot.worker.id,
@@ -617,6 +1202,8 @@ function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] 
       activitySummary: activity.activitySummary,
       actualMinutes: activity.actualMinutes,
       approvalState: activity.approvalState,
+      currency: snapshot.currency,
+      amountMinor: (activityCompensation[index] ?? 0n).toString(),
     })),
     ...snapshot.settlements.map((settlement) => ({
       recordType: 'compensation_settlement',
@@ -659,6 +1246,15 @@ export function workerStatementCsv(snapshot: WorkerStatementSnapshot): Uint8Arra
 }
 
 export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Array {
+  const activityCompensation = workerActivityCompensation(snapshot);
+  const activityHoursTotal = sumFiniteNumbers(
+    snapshot.activities.map((activity) => activity.actualMinutes),
+  );
+  const activityAmountTotal = activityCompensation.reduce((sum, amount) => sum + amount, 0n);
+  const settlementAmountTotal = sumMinorUnits(snapshot.settlements.map((row) => row.amountMinor));
+  const expenseAmountTotal = sumMinorUnits(
+    snapshot.expenses.map((row) => row.reimbursementAmountMinor),
+  );
   const summary = [
     ['Approved compensation', snapshot.estimatedApprovedMinor],
     ['Pending compensation', snapshot.estimatedPendingMinor],
@@ -670,29 +1266,64 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
         `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${moneyText(snapshot.currency, amount, 'en')}</strong></div>`,
     )
     .join('');
-  const settlements = snapshot.settlements
-    .map(
-      (row) =>
-        `<tr><td>${htmlEscape(row.projectNumber)} ${htmlEscape(row.projectName)}</td><td>${htmlEscape(row.periodStart)} → ${htmlEscape(row.periodEnd)}</td><td>${htmlEscape(row.state)}</td><td>${htmlEscape(row.expectedPaymentOn ?? '—')}</td><td>${htmlEscape(row.settledAt ?? '—')}</td><td class="amount">${moneyText(row.currency, row.amountMinor, 'en')}</td></tr>`,
-    )
-    .join('');
-  const activities = snapshot.activities
-    .map(
-      (row) =>
-        `<tr><td>${htmlEscape(row.date)}</td><td>${htmlEscape(row.projectNumber)} ${htmlEscape(row.projectName)}</td><td>${htmlEscape(row.category)}</td><td>${htmlEscape(row.activitySummary)}</td><td>${htmlEscape(row.actualMinutes)}</td><td>${htmlEscape(row.approvalState)}</td></tr>`,
-    )
-    .join('');
-  const expenses = snapshot.expenses
-    .map(
-      (row) =>
-        `<tr><td>${htmlEscape(row.spentOn)}</td><td>${htmlEscape(row.projectNumber)}</td><td>${htmlEscape(row.vendor)}</td><td>${htmlEscape(row.reimbursementState)}</td><td>${htmlEscape(row.expectedReimbursementOn ?? '—')}</td><td>${htmlEscape(row.reimbursedAt ?? '—')}</td><td class="amount">${moneyText(row.currency, row.reimbursementAmountMinor, 'en')}</td></tr>`,
-    )
-    .join('');
+  const activityRows = snapshot.activities.map((row, index) => {
+    const project =
+      [row.projectNumber, row.projectName].filter(Boolean).join(' · ') ||
+      row.projectNumber ||
+      row.projectName ||
+      '—';
+    return [
+      row.date ?? '—',
+      project,
+      row.category ?? '—',
+      row.activitySummary ?? '—',
+      minutesAsHours(row.actualMinutes) || String(row.actualMinutes ?? '—'),
+      row.approvalState ?? '—',
+      exactMoneyText(snapshot.currency, activityCompensation[index] ?? 0n, 'en'),
+    ];
+  });
+  const settlementRows = snapshot.settlements.map((row) => {
+    const project =
+      [row.projectNumber, row.projectName].filter(Boolean).join(' · ') ||
+      row.projectNumber ||
+      row.projectName ||
+      '—';
+    const period =
+      row.periodStart && row.periodEnd
+        ? `${row.periodStart} → ${row.periodEnd}`
+        : row.periodStart ||
+          row.periodEnd ||
+          (snapshot.periodStart && snapshot.periodEnd
+            ? `${snapshot.periodStart} → ${snapshot.periodEnd}`
+            : '—');
+    const currency = row.currency || snapshot.currency || 'USD';
+    return [
+      project,
+      period,
+      row.state ?? '—',
+      row.expectedPaymentOn ?? '—',
+      row.settledAt ?? '—',
+      exactMoneyText(currency, row.amountMinor, 'en'),
+    ];
+  });
+  const expenseRows = snapshot.expenses.map((row) => [
+    row.spentOn ?? row.date ?? '—',
+    row.projectNumber ?? row.project ?? '—',
+    row.vendor ?? '—',
+    row.reimbursementState ?? row.status ?? '—',
+    row.expectedReimbursementOn ?? '—',
+    row.reimbursedAt ?? '—',
+    exactMoneyText(
+      row.currency || snapshot.currency,
+      row.reimbursementAmountMinor ?? row.amountMinor,
+      'en',
+    ),
+  ]);
   return renderHtmlToPdf(
     layout(
       'Worker compensation statement',
       `${snapshot.worker.name} · ${snapshot.periodStart} → ${snapshot.periodEnd}`,
-      `<section class="grid">${summary}</section><p class="muted">Approved minutes: ${htmlEscape(snapshot.approvedMinutes)} · Pending minutes: ${htmlEscape(snapshot.pendingMinutes)} · Missing compensation rules: ${htmlEscape(snapshot.missingCompensationRules)}</p><h2>Own activity</h2><table><thead><tr><th>Date</th><th>Project</th><th>Category</th><th>Activity</th><th>Actual minutes</th><th>Approval</th></tr></thead><tbody>${activities || '<tr><td colspan="6" class="muted">No activity in this period.</td></tr>'}</tbody></table><h2>Settlements</h2><table><thead><tr><th>Project</th><th>Period</th><th>Status</th><th>Expected payment</th><th>Settled</th><th class="amount">Amount</th></tr></thead><tbody>${settlements || '<tr><td colspan="6" class="muted">No settlements in this period.</td></tr>'}</tbody></table><h2>Own reimbursable expenses</h2><table><thead><tr><th>Date</th><th>Project</th><th>Vendor</th><th>Payment status</th><th>Expected reimbursement</th><th>Reimbursed</th><th class="amount">Amount</th></tr></thead><tbody>${expenses || '<tr><td colspan="7" class="muted">No reimbursable expenses in this period.</td></tr>'}</tbody></table>`,
+      `<section class="grid">${summary}</section><p class="muted">Approved hours: ${htmlEscape(minutesAsHours(snapshot.approvedMinutes) || snapshot.approvedMinutes)} · Pending hours: ${htmlEscape(minutesAsHours(snapshot.pendingMinutes) || snapshot.pendingMinutes)}</p><h2>Own activity</h2>${htmlTable(['Date', 'Project', 'Category', 'Activity', 'Hours', 'Approval', 'Estimated pay'], activityRows, 'No activity in this period.', { amountIndexes: [6], footer: activityRows.length ? ['Total', '', '', '', minutesAsHours(activityHoursTotal) || String(activityHoursTotal), '', exactMoneyText(snapshot.currency, activityAmountTotal, 'en')] : undefined })}<h2>Settlements</h2>${htmlTable(['Project', 'Period', 'Status', 'Expected payment', 'Settled', 'Amount'], settlementRows, 'No settlements in this period.', { amountIndexes: [5], footer: settlementRows.length ? ['Total', '', '', '', '', exactMoneyText(snapshot.currency, settlementAmountTotal, 'en')] : undefined })}<h2>Own reimbursable expenses</h2>${htmlTable(['Date', 'Project', 'Vendor', 'Payment status', 'Expected reimbursement', 'Reimbursed', 'Amount'], expenseRows, 'No reimbursable expenses in this period.', { amountIndexes: [6], footer: expenseRows.length ? ['Total', '', '', '', '', '', exactMoneyText(snapshot.currency, expenseAmountTotal, 'en')] : undefined })}`,
       'en',
     ),
   );
@@ -728,36 +1359,74 @@ export type InvoiceCollectionLedgerRow = Readonly<{
   paymentReversals: readonly Readonly<Record<string, unknown>>[];
 }>;
 
+const ledgerText = (row: InvoiceCollectionLedgerRow, ...keys: string[]): string => {
+  const source = row as unknown as Record<string, unknown>;
+  for (const key of keys) {
+    const value = source[key];
+    if (value === null || value === undefined || typeof value === 'object') continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return '';
+};
+
 const invoiceCollectionRows = (rows: readonly InvoiceCollectionLedgerRow[]): readonly Row[] =>
-  rows.map((row) => ({
-    invoiceId: row.invoiceId,
-    invoiceNumber: row.invoiceNumber ?? '',
-    clientNumber: row.clientNumber,
-    clientName: row.clientName,
-    projectNumber: row.projectNumber,
-    projectName: row.projectName,
-    issueDate: row.issueDate ?? '',
-    dueDate: row.dueDate ?? '',
-    currency: row.currency,
-    subtotalMinor: row.subtotalMinor,
-    taxMinor: row.taxMinor,
-    totalMinor: row.totalMinor,
-    grossPaymentsMinor: row.grossPaymentsMinor,
-    paymentReversalsMinor: row.paymentReversalsMinor,
-    netCollectedMinor: row.netCollectedMinor,
-    collectedMinor: row.collectedMinor,
-    outstandingMinor: row.outstandingMinor,
-    directCostKnownMinor: row.directCostKnownMinor,
-    directCostMinor: row.directCostMinor ?? '',
-    directCostComplete: row.directCostComplete,
-    directCostMissingSourceIds: row.directCostMissingSourceIds.join(';'),
-    contributionMinor: row.contributionMinor ?? '',
-    contributionMarginBps: row.contributionMarginBps ?? '',
-    paymentStatus: row.paymentStatus,
-    billingStatus: row.billingStatus,
-    payments: JSON.stringify(row.payments),
-    paymentReversals: JSON.stringify(row.paymentReversals),
-  }));
+  rows.map((row) => {
+    const currency = ledgerText(row, 'currency') || String(row.currency ?? '');
+    const totalMinor = ledgerText(row, 'totalMinor', 'total_minor') || row.totalMinor;
+    const collectedMinor =
+      ledgerText(row, 'collectedMinor', 'collected_minor') || row.collectedMinor;
+    const outstandingMinor =
+      ledgerText(row, 'outstandingMinor', 'outstanding_minor') || row.outstandingMinor;
+    return {
+      invoiceId: ledgerText(row, 'invoiceId', 'invoice_id') || row.invoiceId,
+      invoiceNumber:
+        ledgerText(row, 'invoiceNumber', 'invoice_number') || String(row.invoiceNumber ?? ''),
+      clientNumber: ledgerText(row, 'clientNumber', 'client_number') || row.clientNumber,
+      clientName: ledgerText(row, 'clientName', 'client_name') || row.clientName,
+      projectNumber: ledgerText(row, 'projectNumber', 'project_number') || row.projectNumber,
+      projectName: ledgerText(row, 'projectName', 'project_name') || row.projectName,
+      issueDate:
+        ledgerText(row, 'issueDate', 'issue_date', 'issuedAt', 'issued_at') ||
+        String(row.issueDate ?? ''),
+      dueDate:
+        ledgerText(row, 'dueDate', 'due_date', 'dueAt', 'due_at') || String(row.dueDate ?? ''),
+      currency,
+      subtotalMinor: ledgerText(row, 'subtotalMinor', 'subtotal_minor') || row.subtotalMinor,
+      taxMinor: ledgerText(row, 'taxMinor', 'tax_minor') || row.taxMinor,
+      totalMinor,
+      grossPaymentsMinor:
+        ledgerText(row, 'grossPaymentsMinor', 'gross_payments_minor') || row.grossPaymentsMinor,
+      paymentReversalsMinor:
+        ledgerText(row, 'paymentReversalsMinor', 'payment_reversals_minor') ||
+        row.paymentReversalsMinor,
+      netCollectedMinor:
+        ledgerText(row, 'netCollectedMinor', 'net_collected_minor') || row.netCollectedMinor,
+      collectedMinor,
+      outstandingMinor,
+      directCostKnownMinor:
+        ledgerText(row, 'directCostKnownMinor', 'direct_cost_known_minor') ||
+        row.directCostKnownMinor,
+      directCostMinor:
+        ledgerText(row, 'directCostMinor', 'direct_cost_minor') ||
+        String(row.directCostMinor ?? ''),
+      directCostComplete: row.directCostComplete,
+      directCostMissingSourceIds: (row.directCostMissingSourceIds ?? []).join(';'),
+      contributionMinor:
+        ledgerText(row, 'contributionMinor', 'contribution_minor') ||
+        String(row.contributionMinor ?? ''),
+      contributionMarginBps:
+        ledgerText(row, 'contributionMarginBps', 'contribution_margin_bps') ||
+        String(row.contributionMarginBps ?? ''),
+      paymentStatus: ledgerText(row, 'paymentStatus', 'payment_status') || row.paymentStatus,
+      billingStatus: ledgerText(row, 'billingStatus', 'billing_status') || row.billingStatus,
+      payments: JSON.stringify(row.payments ?? []),
+      paymentReversals: JSON.stringify(row.paymentReversals ?? []),
+      totalDisplay: exactMoneyText(currency, totalMinor, 'en'),
+      collectedDisplay: exactMoneyText(currency, collectedMinor, 'en'),
+      outstandingDisplay: exactMoneyText(currency, outstandingMinor, 'en'),
+    };
+  });
 
 export function invoiceCollectionLedgerCsv(
   rows: readonly InvoiceCollectionLedgerRow[],
@@ -769,10 +1438,10 @@ export function invoiceCollectionLedgerXlsx(
   rows: readonly InvoiceCollectionLedgerRow[],
 ): Uint8Array {
   const payments = rows.flatMap((row) =>
-    row.payments.map((payment) => ({ invoiceId: row.invoiceId, ...payment })),
+    (row.payments ?? []).map((payment) => ({ invoiceId: row.invoiceId, ...payment })),
   );
   const reversals = rows.flatMap((row) =>
-    row.paymentReversals.map((reversal) => ({ invoiceId: row.invoiceId, ...reversal })),
+    (row.paymentReversals ?? []).map((reversal) => ({ invoiceId: row.invoiceId, ...reversal })),
   );
   return xlsxFromSheets([
     { name: 'Invoice collection ledger', rows: invoiceCollectionRows(rows) },
@@ -929,41 +1598,180 @@ export function accountingPackArtifacts(snapshot: AccountingPackSourceSnapshot):
   }));
 }
 
+function accountingPackMetricKey(key: string): boolean {
+  const normalized = key.replace(/[_\s]/g, '').toLowerCase();
+  return !/(?:id|ids)$/u.test(normalized) && normalized !== 'locale';
+}
+
+function accountingPackRegisterRows(
+  rows: readonly Record<string, unknown>[] | undefined,
+  columns: readonly { key: string; fallback?: readonly string[] }[],
+): readonly (readonly string[])[] {
+  return (rows ?? []).map((row) =>
+    columns.map((column) => snapshotText(row, column.key, ...(column.fallback ?? []))),
+  );
+}
+
 export function accountingPackPdf(
   snapshot: Readonly<{
     periodStart: string;
     periodEnd: string;
     locale?: ReportLocale | string;
     currency?: string;
+    legalEntity?: unknown;
     totals: Row | null;
     totalsByCurrency?: readonly Row[];
+    invoiceRegister?: readonly Record<string, unknown>[];
+    collections?: readonly Record<string, unknown>[];
+    workerCosts?: readonly Record<string, unknown>[];
+    expenseRegister?: readonly Record<string, unknown>[];
   }>,
 ): Uint8Array {
   const locale = normalizeReportLocale(snapshot.locale);
   const copy = localizedCopy[locale];
   const snapshotCurrency = snapshot.currency ?? snapshot.totals?.currency ?? 'USD';
+  const legalEntityName =
+    snapshotText(snapshot.legalEntity, 'legalName', 'legal_name', 'code', 'name') ||
+    snapshotText(snapshot.totals, 'legalEntityName', 'legal_entity_name');
   const totals = Object.entries(snapshot.totals ?? {})
+    .filter(([key]) => accountingPackMetricKey(key))
     .map(
       ([key, value]) =>
         `<div class="metric"><span class="muted">${htmlEscape(translateReportMetric(key, locale))}</span><strong>${metricValue(key, value, snapshotCurrency, locale)}</strong></div>`,
     )
     .join('');
   const byCurrency = (snapshot.totalsByCurrency ?? [])
-    .map(
-      (row) =>
-        `<tr>${Object.entries(row)
-          .map(
-            ([key, value]) =>
-              `<td><span class="muted">${htmlEscape(translateReportMetric(key, locale))}</span>: ${metricValue(key, value, row.currency ?? snapshotCurrency, locale)}</td>`,
-          )
-          .join('')}</tr>`,
-    )
+    .map((row) => {
+      const currency = String(row.currency ?? snapshotCurrency);
+      const metrics = Object.entries(row).filter(([key]) => accountingPackMetricKey(key));
+      const metricRows = metrics.map(([key, value]) => [
+        translateReportMetric(key, locale),
+        metricDisplay(key, value, currency, locale),
+      ]);
+      return `<div class="metric-stack"><h3>${htmlEscape(currency)}</h3>${htmlTable([copy.metric, copy.value], metricRows, copy.noCurrencyBreakdown, { amountIndexes: [1] })}</div>`;
+    })
     .join('');
+  const invoiceSource = accountingPackRegisterRows(snapshot.invoiceRegister, [
+    { key: 'invoiceNumber', fallback: ['invoice_number'] },
+    { key: 'client', fallback: ['clientName', 'client_name'] },
+    {
+      key: 'project',
+      fallback: ['projectNumber', 'project_number', 'projectName', 'project_name'],
+    },
+    { key: 'stream', fallback: ['streamType', 'stream_type'] },
+    {
+      key: 'servicePeriod',
+      fallback: ['periodStart', 'period_start', 'issueDate', 'issue_date', 'issuedAt', 'issued_at'],
+    },
+    { key: 'grossMinor', fallback: ['gross_minor', 'totalMinor', 'total_minor', 'netMinor'] },
+  ]);
+  const invoiceRows = invoiceSource.map((row) => [
+    row[0] ?? '',
+    row[1] ?? '',
+    row[2] ?? '',
+    row[3] ?? '',
+    row[4] ?? '',
+    exactMoneyText(snapshotCurrency, row[5], locale),
+  ]);
+  const parseWorkerHours = (rawVal: unknown): number => {
+    if (rawVal === undefined || rawVal === null || rawVal === '') return 0;
+    const num = Number(rawVal);
+    if (Number.isNaN(num)) return 0;
+    if (Number.isInteger(num) && (num >= 600 || num % 60 === 0)) {
+      return num / 60;
+    }
+    return num;
+  };
+
+  const formatWorkerHoursDisplay = (rawVal: unknown): string => {
+    if (rawVal === undefined || rawVal === null || rawVal === '') return '0.00';
+    const hrs = parseWorkerHours(rawVal);
+    return hrs.toFixed(2);
+  };
+
+  const workerSource = accountingPackRegisterRows(snapshot.workerCosts, [
+    { key: 'worker', fallback: ['workerName', 'worker_name', 'name'] },
+    {
+      key: 'project',
+      fallback: ['projectNumber', 'project_number', 'projectName', 'project_name'],
+    },
+    {
+      key: 'actualApprovedMinutes',
+      fallback: [
+        'actual_approved_minutes',
+        'approvedMinutes',
+        'approved_minutes',
+        'actualMinutes',
+        'actual_minutes',
+        'minutes',
+        'hours',
+      ],
+    },
+    {
+      key: 'approvedCompensationMinor',
+      fallback: [
+        'approved_compensation_minor',
+        'compensationMinor',
+        'compensation_minor',
+        'approvedCostMinor',
+        'approved_cost_minor',
+        'amountMinor',
+        'amount_minor',
+        'costMinor',
+        'cost_minor',
+      ],
+    },
+  ]);
+  const workerRows = workerSource.map((row) => [
+    row[0] ?? '',
+    row[1] ?? '',
+    `${formatWorkerHoursDisplay(row[2])} h`,
+    exactMoneyText(snapshotCurrency, row[3], locale),
+  ]);
+  const totalWorkerHours = workerSource.reduce((acc, row) => acc + parseWorkerHours(row[2]), 0);
+  const expenseSource = accountingPackRegisterRows(snapshot.expenseRegister, [
+    { key: 'date', fallback: ['spentOn', 'spent_on'] },
+    { key: 'worker', fallback: ['workerName', 'worker_name'] },
+    { key: 'project', fallback: ['projectNumber', 'project_number'] },
+    { key: 'vendor' },
+    { key: 'category' },
+    {
+      key: 'grossMinor',
+      fallback: [
+        'amountMinor',
+        'amount_minor',
+        'costMinor',
+        'cost_minor',
+        'reimbursementAmountMinor',
+        'reimbursement_amount_minor',
+      ],
+    },
+  ]);
+  const expenseRows = expenseSource.map((row) => [
+    row[0] ?? '',
+    row[1] ?? '',
+    row[2] ?? '',
+    row[3] ?? '',
+    row[4] ?? '',
+    exactMoneyText(snapshotCurrency, row[5], locale),
+  ]);
+  const collectionSource = accountingPackRegisterRows(snapshot.collections, [
+    { key: 'invoiceNumber', fallback: ['invoice_number'] },
+    { key: 'client', fallback: ['clientName', 'client_name'] },
+    { key: 'receivedAt', fallback: ['received_at', 'date'] },
+    { key: 'amountMinor', fallback: ['amount_minor', 'netCollectedMinor'] },
+  ]);
+  const collectionRows = collectionSource.map((row) => [
+    row[0] ?? '',
+    row[1] ?? '',
+    row[2] ?? '',
+    exactMoneyText(snapshotCurrency, row[3], locale),
+  ]);
   return renderHtmlToPdf(
     layout(
       copy.accountingPack,
       `${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
-      `<section class="grid">${totals || `<div class="muted">${copy.noTotals}</div>`}</section><h2>${copy.totalsByCurrency}</h2><table><tbody>${byCurrency || `<tr><td class="muted">${copy.noCurrencyBreakdown}</td></tr>`}</tbody></table>`,
+      `${legalEntityName ? `<p class="muted">${htmlEscape(copy.legalEntity)}: ${htmlEscape(legalEntityName)} · ${htmlEscape(String(snapshotCurrency))}</p>` : ''}<section class="grid">${totals || `<div class="muted">${copy.noTotals}</div>`}</section><h2>${copy.totalsByCurrency}</h2>${byCurrency || `<p class="muted">${copy.noCurrencyBreakdown}</p>`}<h2>${copy.invoiceRegister}</h2>${htmlTable([copy.invoiceNumber, copy.client, copy.project, copy.stream, copy.date, copy.amount], invoiceRows, copy.noInvoiceLines, { amountIndexes: [5], footer: invoiceRows.length ? [copy.total, '', '', '', '', exactMoneyText(snapshotCurrency, sumMinorUnits(invoiceSource.map((row) => row[5])), locale)] : undefined })}<h2>${copy.workerCosts}</h2>${htmlTable([copy.worker, copy.project, copy.hours, copy.amount], workerRows, copy.noTotals, { amountIndexes: [3], footer: workerRows.length ? [copy.total, '', `${totalWorkerHours.toFixed(2)} h`, exactMoneyText(snapshotCurrency, sumMinorUnits(workerSource.map((row) => row[3])), locale)] : undefined })}<h2>${copy.expenses}</h2>${htmlTable([copy.date, copy.worker, copy.project, copy.vendor, copy.detail, copy.amount], expenseRows, copy.noTotals, { amountIndexes: [5], footer: expenseRows.length ? [copy.total, '', '', '', '', exactMoneyText(snapshotCurrency, sumMinorUnits(expenseSource.map((row) => row[5])), locale)] : undefined })}<h2>${copy.collections}</h2>${htmlTable([copy.invoiceNumber, copy.client, copy.date, copy.amount], collectionRows, copy.noTotals, { amountIndexes: [3], footer: collectionRows.length ? [copy.total, '', '', exactMoneyText(snapshotCurrency, sumMinorUnits(collectionSource.map((row) => row[3])), locale)] : undefined })}`,
       locale,
     ),
   );
@@ -989,6 +1797,7 @@ export function periodReportPdf(
 ): Uint8Array {
   const locale = normalizeReportLocale(snapshot.locale);
   const copy = localizedCopy[locale];
+  const project = projectIdentity(snapshot);
   const customer = snapshot.audience === 'customer';
   const summary = customer ? {} : (snapshot.commercialSummary ?? {});
   const finance = customer ? {} : (snapshot.financialSummary ?? {});
@@ -1034,14 +1843,15 @@ export function periodReportPdf(
           `<div class="metric"><span class="muted">${htmlEscape(copy.contributionMargin)}</span><strong>${htmlEscape(`${(Number(finance.contributionMarginBps ?? 0) / 100).toFixed(1)}%`)}</strong></div>`,
         ].join('')
       : '';
-  const calculationRows = customer
-    ? ''
-    : (snapshot.commercialCalculation ?? [])
-        .map(
-          (line) =>
-            `<tr><td>${htmlEscape(translateCalculationType(line.type, locale))}</td><td>${htmlEscape(translateCalculationBasis(line.basis, locale))}</td><td>${line.minutes === null || line.minutes === undefined ? '—' : htmlEscape(`${hours(line.minutes)} h`)}</td><td class="amount">${htmlEscape(moneyText(currency, line.amountMinor, locale))}</td></tr>`,
-        )
-        .join('');
+  const calculationLines = customer ? [] : (snapshot.commercialCalculation ?? []);
+  const calculationTableRows = calculationLines.map((line) => [
+    translateCalculationType(line.type, locale),
+    translateCalculationBasis(line.basis, locale),
+    line.minutes === null || line.minutes === undefined ? '—' : `${hours(line.minutes)} h`,
+    exactMoneyText(currency, line.amountMinor, locale),
+  ]);
+  const calculationMinutesTotal = sumFiniteNumbers(calculationLines.map((line) => line.minutes));
+  const calculationAmountTotal = sumMinorUnits(calculationLines.map((line) => line.amountMinor));
   const sourceCounts = ((customer ? snapshot.sourceCounts : summary.sourceCounts) ??
     {}) as Readonly<Record<string, unknown>>;
   const sources = [
@@ -1055,11 +1865,13 @@ export function periodReportPdf(
           `${localizedCopy[locale].sourceExpenses} ${formatReportInteger(sourceCounts.expenses ?? 0, locale)}`,
         ]),
   ].join(' · ');
-  const rows = [
+  const operationalRows = [
     ...(snapshot.dailyReports ?? []).map((row) => ({
       type: copy.dailyReport,
       date: formatReportDate(row.work_date ?? row.workDate ?? row.date, locale),
-      detail: row.summary,
+      worker: String(row.worker ?? row.workerName ?? row.worker_name ?? ''),
+      detail: String(row.summary ?? ''),
+      minutes: null as number | null,
       status: row.approval_state ?? row.approvalState,
     })),
     ...(snapshot.technicalReports ?? []).map((row) => ({
@@ -1068,37 +1880,104 @@ export function periodReportPdf(
         row.report_date ?? row.reportDate ?? row.date ?? row.created_at ?? row.createdAt,
         locale,
       ),
-      detail: row.change_summary ?? row.changeSummary,
+      worker: String(row.worker ?? row.workerName ?? row.worker_name ?? ''),
+      detail: String(row.change_summary ?? row.changeSummary ?? ''),
+      minutes: null as number | null,
       status: row.approval_state ?? row.approvalState,
     })),
     ...(snapshot.technicalChanges ?? []).map((row) => ({
       type: copy.technicalChange,
       date: formatReportDate(row.created_at ?? row.createdAt ?? row.date, locale),
-      detail: row.change_made ?? row.changeMade,
+      worker: String(row.worker ?? row.workerName ?? row.worker_name ?? ''),
+      detail: String(row.change_made ?? row.changeMade ?? ''),
+      minutes: null as number | null,
       status: row.approval_state ?? row.approvalState,
     })),
-    ...(customer
-      ? timeSummary.map((row) => ({
-          type: copy.sourceTime,
-          date: formatReportDate(row.work_date ?? row.workDate ?? row.date, locale),
-          detail: row.activity_summary ?? row.activitySummary ?? row.category,
-          status: row.approval_state ?? row.approvalState,
-        }))
-      : []),
+    ...timeSummary.map((row) => ({
+      type: copy.sourceTime,
+      date: formatReportDate(row.work_date ?? row.workDate ?? row.date, locale),
+      worker: String(row.worker ?? row.workerName ?? row.worker_name ?? ''),
+      detail: String(row.activity_summary ?? row.activitySummary ?? row.category ?? ''),
+      minutes: Number(row.minutes ?? 0),
+      status: row.approval_state ?? row.approvalState,
+    })),
   ];
-  const table = rows
-    .map(
-      (row) =>
-        `<tr><td>${htmlEscape(row.type)}</td><td>${htmlEscape(row.date)}</td><td>${htmlEscape(row.detail)}</td><td>${htmlEscape(translateReportStatus(row.status, locale))}</td></tr>`,
-    )
-    .join('');
+  const operationalMinutesTotal = sumFiniteNumbers(operationalRows.map((row) => row.minutes ?? 0));
+  const operationalTableRows = operationalRows.map((row) =>
+    customer
+      ? [
+          row.type,
+          row.date,
+          row.detail,
+          row.minutes === null ? '—' : `${hours(row.minutes)} h`,
+          translateReportStatus(row.status, locale),
+        ]
+      : [
+          row.type,
+          row.date,
+          row.worker || '—',
+          row.detail,
+          row.minutes === null ? '—' : `${hours(row.minutes)} h`,
+          translateReportStatus(row.status, locale),
+        ],
+  );
+  const operationalHeaders = customer
+    ? [copy.type, copy.date, copy.detail, copy.hours, copy.status]
+    : [copy.type, copy.date, copy.worker, copy.detail, copy.hours, copy.status];
+  const operationalFooter = operationalRows.length
+    ? customer
+      ? [copy.total, '', '', `${hours(operationalMinutesTotal)} h`, '']
+      : [copy.total, '', '', '', `${hours(operationalMinutesTotal)} h`, '']
+    : undefined;
+  const calculationTable = customer
+    ? ''
+    : htmlTable(
+        [copy.type, copy.calculationBasis, copy.billableHours, copy.amount],
+        calculationTableRows,
+        copy.noCalculation,
+        {
+          amountIndexes: [3],
+          footer: calculationTableRows.length
+            ? [
+                copy.total,
+                '',
+                `${hours(calculationMinutesTotal)} h`,
+                exactMoneyText(currency, calculationAmountTotal, locale),
+              ]
+            : undefined,
+        },
+      );
+  function customerSignatureBlock(locale: ReportLocale): string {
+    const sigLabel =
+      locale === 'es'
+        ? 'Firma del Representante del Cliente'
+        : locale === 'pt'
+          ? 'Assinatura do Representante do Cliente'
+          : 'Client Representative Signature';
+    const nameLabel =
+      locale === 'es' ? 'Nombre y Cargo' : locale === 'pt' ? 'Nome e Cargo' : 'Name & Title';
+    const dateLabel = locale === 'es' ? 'Fecha' : locale === 'pt' ? 'Data' : 'Date';
+
+    return `<div class="signature-block">
+  <div>
+    <span>${htmlEscape(sigLabel)}</span>
+    <div class="signature-line">____________________________________</div>
+    <small>${htmlEscape(nameLabel)}</small>
+  </div>
+  <div>
+    <span>${htmlEscape(dateLabel)}</span>
+    <div class="signature-line">__________________</div>
+  </div>
+</div>`;
+  }
+
   return renderHtmlToPdf(
     layout(
       copy.projectPeriodReport,
-      `${snapshot.project?.number ?? ''} ${snapshot.project?.name ?? ''} · ${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
+      `${project.title}${project.title ? ' · ' : ''}${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
       customer
-        ? `<h2>${copy.operationalRecord}</h2><div class="grid">${publicMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p><table><thead><tr><th>${copy.type}</th><th>${copy.date}</th><th>${copy.detail}</th><th>${localizedCopy[locale].status}</th></tr></thead><tbody>${table || `<tr><td colspan="4" class="muted">${copy.noReportRecords}</td></tr>`}</tbody></table>`
-        : `<h2>${copy.calculation}</h2><div class="grid">${publicMetrics}${internalMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p><table><thead><tr><th>${copy.type}</th><th>${copy.calculationBasis}</th><th>${copy.billableHours}</th><th class="amount">${copy.amount}</th></tr></thead><tbody>${calculationRows || `<tr><td colspan="4" class="muted">${copy.noCalculation}</td></tr>`}</tbody></table><h2>${copy.operationalRecord}</h2><table><thead><tr><th>${copy.type}</th><th>${copy.date}</th><th>${copy.detail}</th><th>${localizedCopy[locale].status}</th></tr></thead><tbody>${table || `<tr><td colspan="4" class="muted">${copy.noReportRecords}</td></tr>`}</tbody></table>`,
+        ? `<h2>${copy.operationalRecord}</h2><div class="grid">${reportField(copy.project, project.title)}${reportField(copy.client, project.clientName)}${publicMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p>${htmlTable(operationalHeaders, operationalTableRows, copy.noReportRecords, { footer: operationalFooter })}${customerSignatureBlock(locale)}`
+        : `<h2>${copy.calculation}</h2><div class="grid">${reportField(copy.project, project.title)}${reportField(copy.client, project.clientName)}${publicMetrics}${internalMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p>${calculationTable}<h2>${copy.operationalRecord}</h2>${htmlTable(operationalHeaders, operationalTableRows, copy.noReportRecords, { footer: operationalFooter })}`,
       locale,
     ),
   );
@@ -1109,7 +1988,7 @@ export function invoicePdf(snapshot: InvoiceTemplateSnapshot): Uint8Array {
   const rendered = renderInvoiceTemplate(snapshot);
   const number = String(snapshot.number ?? snapshot.invoiceNumber ?? '');
   return renderHtmlToPdf(
-    layout(`${rendered.title} ${htmlEscape(number)}`, rendered.subtitle, rendered.body, locale),
+    invoiceLayout(rendered.title, rendered.subtitle, number, rendered.body, locale),
   );
 }
 
@@ -1177,6 +2056,12 @@ type TechnicalReportSnapshot = Readonly<{
   changes?: unknown;
   changeSummary?: unknown;
   change_summary?: unknown;
+  problemSymptom?: unknown;
+  problem_symptom?: unknown;
+  diagnosisRootCause?: unknown;
+  diagnosis_root_cause?: unknown;
+  changePerformed?: unknown;
+  change_performed?: unknown;
   safetyRelated?: unknown;
   safety_related?: unknown;
   productionImpact?: unknown;
@@ -1196,50 +2081,161 @@ type TechnicalReportSnapshot = Readonly<{
   [key: string]: unknown;
 }>;
 
-function reportProjectTitle(
-  project: ReportProject | undefined,
-  fallbackNumber: unknown,
-  fallbackName: unknown,
-): string {
-  const number = project?.number ?? project?.projectNumber ?? fallbackNumber ?? '';
-  const name = project?.name ?? fallbackName ?? '';
-  return [number, name]
-    .filter((value) => String(value).length > 0)
-    .map(String)
-    .join(' · ');
+function reportField(label: string, value: unknown): string {
+  const text = value !== null && typeof value === 'object' ? '' : String(value ?? '').trim();
+  if (!text) return '';
+  return `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${htmlEscape(text)}</strong></div>`;
 }
 
-function reportField(label: string, value: unknown): string {
-  return `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${htmlEscape(value)}</strong></div>`;
+function reportParagraph(title: string, value: unknown): string {
+  const text = value !== null && typeof value === 'object' ? '' : String(value ?? '').trim();
+  if (!text) return '';
+  return `<h2>${htmlEscape(title)}</h2><p>${htmlEscape(text)}</p>`;
+}
+
+function sumMinorUnits(values: readonly unknown[]): bigint {
+  return values.reduce<bigint>((sum, value) => {
+    try {
+      return sum + BigInt(String(value ?? 0).trim() || 0);
+    } catch {
+      return sum;
+    }
+  }, 0n);
+}
+
+function sumFiniteNumbers(values: readonly unknown[]): number {
+  return values.reduce<number>((sum, value) => {
+    const amount = Number(value);
+    return Number.isFinite(amount) ? sum + amount : sum;
+  }, 0);
+}
+
+function isApprovedRecordState(value: unknown): boolean {
+  const state = String(value ?? '').toLowerCase();
+  return state === 'approved' || state === 'locked';
+}
+
+function allocateMinorAcrossMinutes(minutes: readonly number[], totalMinor: string): bigint[] {
+  let remaining = 0n;
+  try {
+    remaining = BigInt(String(totalMinor ?? 0));
+  } catch {
+    remaining = 0n;
+  }
+  if (minutes.length === 0) return [];
+  const amounts = minutes.map(() => 0n);
+  if (remaining === 0n) return amounts;
+  const totalMinutes = minutes.reduce((sum, value) => sum + Math.max(0, value), 0);
+  if (totalMinutes <= 0) {
+    amounts[0] = remaining;
+    return amounts;
+  }
+  const pool = remaining;
+  for (let index = 0; index < minutes.length; index += 1) {
+    const share =
+      index === minutes.length - 1
+        ? remaining
+        : (pool * BigInt(Math.max(0, minutes[index] ?? 0))) / BigInt(totalMinutes);
+    amounts[index] = share;
+    remaining -= share;
+  }
+  return amounts;
+}
+
+function htmlTable(
+  headers: readonly string[],
+  rows: readonly (readonly string[])[],
+  empty: string,
+  options?: Readonly<{
+    amountIndexes?: readonly number[];
+    footer?: readonly string[];
+  }>,
+): string {
+  if (rows.length === 0) return `<p class="muted">${htmlEscape(empty)}</p>`;
+  const amountIndexes = new Set(options?.amountIndexes ?? []);
+  const cell = (value: string, index: number, tag: 'th' | 'td'): string => {
+    const amountClass = amountIndexes.has(index) ? ' class="amount"' : '';
+    return `<${tag}${amountClass}>${htmlEscape(value)}</${tag}>`;
+  };
+  const head = headers.map((header, index) => cell(header, index, 'th')).join('');
+  const body = rows
+    .map((row) => `<tr>${row.map((value, index) => cell(value, index, 'td')).join('')}</tr>`)
+    .join('');
+  const footer =
+    options?.footer && options.footer.length === headers.length
+      ? `<tfoot><tr>${options.footer.map((value, index) => cell(value, index, 'td')).join('')}</tr></tfoot>`
+      : '';
+  return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody>${footer}</table>`;
+}
+
+function technicalReportChangeFields(snapshot: TechnicalReportSnapshot): {
+  problemSymptom: unknown;
+  diagnosisRootCause: unknown;
+  changePerformed: unknown;
+} {
+  const explicit = {
+    problemSymptom: snapshot.problemSymptom ?? snapshot.problem_symptom,
+    diagnosisRootCause: snapshot.diagnosisRootCause ?? snapshot.diagnosis_root_cause,
+    changePerformed: snapshot.changePerformed ?? snapshot.change_performed,
+  };
+  if (explicit.problemSymptom || explicit.diagnosisRootCause || explicit.changePerformed)
+    return explicit;
+  const legacy = snapshot.changeSummary ?? snapshot.change_summary ?? snapshot.changes;
+  if (typeof legacy === 'string' && legacy.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(legacy) as Record<string, unknown>;
+      if (parsed.schema === 'ja.technical-report.change.v1')
+        return {
+          problemSymptom: parsed.problemSymptom,
+          diagnosisRootCause: parsed.diagnosisRootCause,
+          changePerformed: parsed.changePerformed,
+        };
+    } catch {
+      // Historical free text remains the change-performed fallback.
+    }
+  }
+  return { problemSymptom: '', diagnosisRootCause: '', changePerformed: legacy };
 }
 
 /** Render one immutable Daily Field Report source record in the requested locale. */
 export function dailyReportPdf(snapshot: DailyReportSnapshot): Uint8Array {
   const locale = normalizeReportLocale(snapshot.locale);
   const copy = localizedCopy[locale];
-  const projectTitle = reportProjectTitle(
-    snapshot.project,
-    snapshot.projectNumber,
-    snapshot.projectName,
-  );
+  const project = projectIdentity(snapshot);
   const date = snapshot.date ?? snapshot.workDate ?? snapshot.work_date;
   const status = snapshot.approvalState ?? snapshot.approval_state;
   const safety = snapshot.safetyRelated ?? snapshot.safety_related;
-  const worker = snapshot.worker ?? snapshot.workerName ?? snapshot.worker_name;
+  const worker =
+    snapshotText(snapshot, 'workerName', 'worker_name', 'author_name', 'authorName') ||
+    (typeof snapshot.worker === 'string'
+      ? snapshot.worker
+      : snapshotText(snapshot.worker, 'name', 'workerName', 'worker_name'));
   const fields = [
-    reportField(copy.project, projectTitle),
+    reportField(copy.project, project.title),
+    reportField(copy.client, project.clientName),
     reportField(copy.date, formatReportDate(date, locale)),
-    ...(worker === undefined || worker === null || worker === ''
-      ? []
-      : [reportField(copy.worker, worker)]),
+    reportField(copy.worker, worker),
     reportField(copy.status, translateReportStatus(status, locale)),
     reportField(copy.safetyRelated, translateReportBoolean(safety, locale)),
+    reportField(
+      copy.siteShift,
+      reportNarrative(snapshot, 'siteShift', 'site_shift', 'siteName', 'site_name'),
+    ),
+    reportField(
+      copy.downtimeMinutes,
+      reportNarrative(snapshot, 'downtimeMinutes', 'downtime_minutes'),
+    ),
+    reportField(copy.standbyReason, reportNarrative(snapshot, 'standbyReason', 'standby_reason')),
+    reportField(
+      copy.customerContact,
+      reportNarrative(snapshot, 'customerContact', 'customer_contact'),
+    ),
   ].join('');
   return renderHtmlToPdf(
     layout(
       copy.dailyReport,
-      `${projectTitle}${projectTitle && date ? ' · ' : ''}${formatReportDate(date, locale)}`,
-      `<h2>${copy.operationalRecord}</h2><div class="grid">${fields}</div><h2>${copy.summary}</h2><p>${htmlEscape(snapshot.summary)}</p>`,
+      `${project.title}${project.title && date ? ' · ' : ''}${formatReportDate(date, locale)}`,
+      `<h2>${copy.operationalRecord}</h2><div class="grid">${fields}</div>${reportParagraph(copy.summary, snapshot.summary)}${reportParagraph(copy.tasksCompleted, reportNarrative(snapshot, 'tasksCompleted', 'tasks_completed'))}${reportParagraph(copy.problemsFound, reportNarrative(snapshot, 'problemsFound', 'problems_found'))}${reportParagraph(copy.correctiveActions, reportNarrative(snapshot, 'correctiveActions', 'corrective_actions'))}${reportParagraph(copy.clientDecisions, reportNarrative(snapshot, 'clientDecisions', 'client_decisions'))}${reportParagraph(copy.openItems, reportNarrative(snapshot, 'openItems', 'open_items'))}${reportParagraph(copy.blockers, reportNarrative(snapshot, 'blockers'))}${reportParagraph(copy.nextDayPlan, reportNarrative(snapshot, 'nextDayPlan', 'next_day_plan'))}`,
       locale,
     ),
   );
@@ -1249,11 +2245,7 @@ export function dailyReportPdf(snapshot: DailyReportSnapshot): Uint8Array {
 export function technicalReportPdf(snapshot: TechnicalReportSnapshot): Uint8Array {
   const locale = normalizeReportLocale(snapshot.locale);
   const copy = localizedCopy[locale];
-  const projectTitle = reportProjectTitle(
-    snapshot.project,
-    snapshot.projectNumber,
-    snapshot.projectName,
-  );
+  const project = projectIdentity(snapshot);
   const date =
     snapshot.reportDate ??
     snapshot.report_date ??
@@ -1262,8 +2254,10 @@ export function technicalReportPdf(snapshot: TechnicalReportSnapshot): Uint8Arra
     snapshot.created_at;
   const status = snapshot.approvalState ?? snapshot.approval_state;
   const safety = snapshot.safetyRelated ?? snapshot.safety_related;
+  const changeFields = technicalReportChangeFields(snapshot);
   const fields = [
-    reportField(copy.project, projectTitle),
+    reportField(copy.project, project.title),
+    reportField(copy.client, project.clientName),
     reportField(copy.date, formatReportDate(date, locale)),
     reportField(copy.system, snapshot.system ?? snapshot.systemName ?? snapshot.system_name),
     reportField(copy.site, snapshot.site ?? snapshot.plantSite ?? snapshot.plant_site),
@@ -1303,8 +2297,8 @@ export function technicalReportPdf(snapshot: TechnicalReportSnapshot): Uint8Arra
   return renderHtmlToPdf(
     layout(
       copy.technicalReport,
-      `${projectTitle}${projectTitle && date ? ' · ' : ''}${formatReportDate(date, locale)}`,
-      `<section class="report-section"><h2>${copy.operationalRecord}</h2><div class="grid">${fields}</div></section>${technicalDetails ? `<section class="report-section"><h2>${copy.technicalRecords}</h2><div class="grid">${technicalDetails}</div></section>` : ''}<section class="report-section"><h2>${copy.changeSummary}</h2><p>${htmlEscape(snapshot.changeSummary ?? snapshot.change_summary ?? snapshot.changes)}</p><div class="grid">${reportField(copy.productionImpact, snapshot.productionImpact ?? snapshot.production_impact)}${reportField(copy.validation, snapshot.validation)}${reportField(copy.validationResult, snapshot.validationResult ?? snapshot.validation_result)}${reportField(copy.openRisk, snapshot.openRisk ?? snapshot.open_risk)}${reportField(copy.rollbackPlan, snapshot.rollbackPlan ?? snapshot.rollbackInformation ?? snapshot.rollback_information)}</div></section>${changesSection}`,
+      `${project.title}${project.title && date ? ' · ' : ''}${formatReportDate(date, locale)}`,
+      `<section class="report-section"><h2>${copy.operationalRecord}</h2><div class="grid">${fields}</div></section>${technicalDetails ? `<section class="report-section"><h2>${copy.technicalRecords}</h2><div class="grid">${technicalDetails}</div></section>` : ''}<section class="report-section"><h2>${copy.changeSummary}</h2><div class="grid">${reportField(copy.problemSymptom, changeFields.problemSymptom)}${reportField(copy.diagnosisRootCause, changeFields.diagnosisRootCause)}${reportField(copy.changePerformed, changeFields.changePerformed)}${reportField(copy.productionImpact, snapshot.productionImpact ?? snapshot.production_impact)}${reportField(copy.validation, snapshot.validation)}${reportField(copy.validationResult, snapshot.validationResult ?? snapshot.validation_result)}${reportField(copy.openRisk, snapshot.openRisk ?? snapshot.open_risk)}${reportField(copy.rollbackPlan, snapshot.rollbackPlan ?? snapshot.rollbackInformation ?? snapshot.rollback_information)}</div></section>${changesSection}`,
       locale,
     ),
   );

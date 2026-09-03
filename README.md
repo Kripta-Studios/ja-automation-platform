@@ -9,18 +9,21 @@ V3.1–V3.4 expansion is deferred roadmap.
 
 ## Current release checkpoint
 
-As of 2026-08-25, the preserved completion branch contains the Client Essential implementation through
-the operational Worker, report/sign-off, PM projection and finance foundations. The current release
-verdict is **NOT READY**: final migration-0028/0029/0030 revalidation, the remaining finance/security
-review findings, the authenticated cross-role browser matrix, automatic-job/artifact evidence on the
-final worktree, and live Caddy/VPS smoke are still open. A passing focused test or a completed UI
-component does not by itself establish `CLIENT READY`.
+As of 2026-08-28, the current worktree contains the Client Essential implementation through the
+Worker statement, report/sign-off, PM projection, finance, service-actor and continuity foundations.
+The release verdict remains **NOT READY**. The latest checkpoint proves the local authenticated
+browser journey through steps 1–29 and the deployed public-routing assertions in step 32; the
+deliberate operations gates for two successful automatic jobs-timer runs (step 30) and an encrypted
+remote-copy restore drill (step 31) remain open. Formatting/lint and independent release reviews
+also remain release-gate dependencies. A passing focused test, a deployable ZIP, or a live Caddy
+smoke check does not by itself establish `CLIENT READY`.
 
-The latest stable pinned-runtime checkpoint recorded in the checklist includes Node `24.19.0` with
-unit (`466`), integration (`203`), security (`74`), invariant (`1`), reporting (`4`) and migration
-(`72`) tests passing, plus production builds, backup/restore and an automatic-job run. Those counts
-predate the 0029/0030 source-binding changes and must be rerun before release. The checklist records
-the current evidence, open dependencies and the final DoD status:
+The pinned Node `24.19.0` / pnpm `11.22.0` evidence recorded in the checklist includes unit
+(`522`), integration (`238`), security (`98`), invariant (`1`), reporting (`4`), offline (`8`),
+continuity-contract (`14`) and migration (`77`) tests, plus production builds, local backup/restore
+and the 2026-08-28 browser checkpoint. These are repository/local or endpoint checks, not proof of
+healthy live jobs or remote continuity. The checklist records the current evidence, open dependencies
+and final DoD status:
 
 - [Client Essential specification](J_A_AUTOMATION_CLIENT_ESSENTIAL_SPEC_2026-08-22.md)
 - [Client Essential checklist](J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md)
@@ -56,6 +59,13 @@ The portal opens at `http://localhost:5174/j-aautomation/app/login`. The public 
 Employee Portal login button in the header, mobile menu and footer. The portal always uses the
 Better Auth credential/passkey session flow; there is no passwordless role switch or public
 registration.
+
+A production-mode local preview keeps the jobs worker looping with the built portal, so queued PDFs
+and exports do not sit in `queued` until a manual cycle:
+
+```powershell
+pnpm preview:release
+```
 
 `JA_AUTH_SECRET`, `JA_TENANT_ID` and `JA_DEPLOYMENT_ID` are required runtime configuration for the
 portal's authenticated offline identity. The values above are suitable only for a disposable local
@@ -149,14 +159,17 @@ Run the worker locally with the same identity and document-root variables used b
 
 ```powershell
 pnpm jobs:build
-node deployment/jobs-build/jobs-run.mjs
-# equivalent wrapper, including the build:
+node deployment/jobs-build/jobs-run.mjs --loop
+# equivalent wrappers:
+pnpm ops:jobs:loop
+# one-shot cycle, including the build:
 pnpm ops:jobs
 ```
 
-`JA_JOB_ACTOR_ID` must identify an active `owner_admin` or `finance_admin` service actor. The worker
-verifies the private document root, rejects symlink/path escapes, writes atomically, and rechecks PDF
-magic bytes, byte length and SHA-256 before publishing or serving a file.
+The worker resolves the active deployment singleton service-actor binding, verifies the private
+document root, rejects symlink/path escapes, writes atomically, and rechecks PDF magic bytes, byte
+length and SHA-256 before publishing or serving a file. Provision or rotate the binding with the
+production service-actor CLI; missing, disabled or drifted capability state fails closed.
 
 ## Disposable database rebuild and recovery
 
@@ -179,11 +192,12 @@ untouched until an explicitly scoped, command- and audit-anchored bridge is crea
 
 ## Release status
 
-The localized portal/PDF implementation and the additive B5 migration set are documented with their
-focused evidence, but this file is not a production-release certificate. A full release still
-requires the pinned Node `24.19.0`/pnpm `11.22.0` gate, fresh and realistic-upgrade migration runs,
-backup/restore evidence, authenticated responsive browser evidence, and independent security,
-finance, data-leakage and release reviews. Do not claim `READY` until all of those gates are green.
+The localized portal/PDF implementation, additive migrations and the latest steps 1–29/32 browser
+checkpoint are documented with focused evidence, but this file is not a production-release
+certificate. The known remaining blockers are the static-quality gate, independent security/finance/
+responsive/spec reviews, two successful automatic jobs-timer runs, and a separate-host encrypted
+continuity upload plus isolated restore of the database and private artifacts. Do not claim `READY`
+until the same reviewed snapshot satisfies the Client Essential checklist and its evidence gates.
 
 ## Quality gates
 
@@ -201,18 +215,37 @@ pnpm test:integration
 pnpm test:invariants
 pnpm test:security
 pnpm test:offline
+pnpm test:continuity
 pnpm db:check
 pnpm db:integrity
 pnpm build
 pnpm test:e2e
 pnpm ops:backup:test
 pnpm ops:restore-test
+pnpm ops:continuity-readiness
+pnpm ops:continuity-restore-drill
 ```
 
+The current Client Essential browser checkpoint can be reproduced against a disposable local preview
+while checking the deployed Caddy boundary (it does not change DNS, Caddy or VPS state):
+
+```powershell
+$env:JA_E2E_CADDY_BASE_URL = "https://j-aautomation.com"
+pnpm exec playwright test tests/e2e/client-essential-32-step.spec.ts --project=desktop
+```
+
+This checkpoint currently records steps 1–29 and 32; steps 30–31 intentionally remain blocked until
+the operator attaches two automatic timer runs and a real encrypted remote-restore drill. The
+external `/health/live` liveness check is distinct from the public `/j-aautomation/health/ready`
+readiness path, which is expected to return `404` through Caddy.
+
 For the complete release candidate, also run the applicable migration fresh/upgrade/integrity
-checks, the configured Playwright projects at 360/390/768/1440, the automatic jobs runner, and the
-realistic issued-invoice/private-artifact recovery drill. Record exact commands and results in the
-Client Essential checklist. Do not mark a requirement `PASS` from source inspection alone.
+checks, the Client Essential browser journey, the automatic jobs timer twice, and the realistic
+issued-invoice/private-artifact recovery drill. `ops:continuity-readiness` and
+`ops:continuity-restore-drill` require real operator-supplied remote values outside the repository;
+they must return a real `READY`/`PASS`, not a local fixture result, before CORE-17 can pass. Record
+exact commands, timestamps, SHA/schema identity and artifacts in the Client Essential checklist.
+Do not mark a requirement `PASS` from source inspection alone.
 
 ## Deployment
 

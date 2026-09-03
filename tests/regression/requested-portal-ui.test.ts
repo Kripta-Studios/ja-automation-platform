@@ -32,19 +32,28 @@ describe('requested portal UI regressions (RED characterization)', () => {
     expect(routeSource).toMatch(/(?:viewTitle|viewTitles|titleFor|searchParams\.get\(['"]view)/i);
   });
 
-  it('places Authorized projects before administrative edit panels', () => {
+  it('places project actions under the page title and before Authorized projects', () => {
     const projects = sectionBlock(shellSource(), 'projects');
+    const workflowActions = projects.indexOf('class="project-workflow-actions"');
     const authorizedCandidates = [
       projects.indexOf('<h2>Authorized projects</h2>'),
       projects.indexOf("<h2>{translate('Authorized projects')}</h2>"),
     ].filter((index) => index >= 0);
     const authorized = authorizedCandidates.length > 0 ? Math.min(...authorizedCandidates) : -1;
     const firstAdminPanel = projects.indexOf('<details class="admin-details">');
+    expect(workflowActions, 'Projects must expose the Choose one action buttons').toBeGreaterThan(
+      -1,
+    );
     expect(authorized, 'Projects must render the authorized-projects surface').toBeGreaterThan(-1);
     expect(firstAdminPanel, 'Projects must retain its administrative panels').toBeGreaterThan(-1);
-    expect(authorized, 'authorized projects should be the first Projects surface').toBeLessThan(
-      firstAdminPanel,
-    );
+    expect(
+      workflowActions,
+      'action buttons should sit under J&A / PROJECTS, above Authorized projects',
+    ).toBeLessThan(authorized);
+    expect(
+      authorized,
+      'authorized projects should still precede collapsible admin panels',
+    ).toBeLessThan(firstAdminPanel);
   });
 
   it('keeps the period report register in the collapsible report flow so it can reflow upward', () => {

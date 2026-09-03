@@ -1,7 +1,23 @@
 import { base } from '$app/paths';
 export const GET = () => {
   const scope = `${base}/app/`;
+  const offlineDisabled = process.env.JA_OFFLINE_ENABLED?.trim().toLowerCase() === 'false';
+  if (offlineDisabled) {
+    const source = [
+      'const OFFLINE_ENABLED=false;',
+      "self.addEventListener('install',()=>self.skipWaiting());",
+      "self.addEventListener('activate',(event)=>event.waitUntil((async()=>{await self.clients.claim();const keys=await caches.keys();await Promise.all(keys.filter((key)=>key.startsWith('ja-portal-private-')).map((key)=>caches.delete(key)));})()));",
+    ].join('');
+    return new Response(source, {
+      headers: {
+        'content-type': 'application/javascript; charset=utf-8',
+        'service-worker-allowed': scope,
+        'cache-control': 'no-cache',
+      },
+    });
+  }
   const source = [
+    'const OFFLINE_ENABLED=true;',
     `const SCOPE=${JSON.stringify(scope)};`,
     "const STATIC_CACHE='ja-portal-static-v2';",
     "const IDENTITY_COOKIE='ja_offline_identity';",

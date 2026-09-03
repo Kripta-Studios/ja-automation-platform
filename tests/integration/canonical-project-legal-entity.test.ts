@@ -144,6 +144,67 @@ function assignmentId(result: Record<string, unknown>): string {
 }
 
 describe('Client Essential canonical project legal-entity authority', () => {
+  it('projects only safe bridged revision choices and assignment history to Owner/Finance', () => {
+    const value = fixture();
+    const finance = steppedUp(value, value.finance, 'safe-projection');
+    const canonical = createRevision(value, finance);
+    const canonicalId = revisionId(canonical);
+
+    const options = command<Array<Record<string, unknown>>>(
+      value.v3,
+      'listCanonicalLegalEntityRevisionOptions',
+      finance,
+    );
+    expect(options).toEqual([
+      expect.objectContaining({
+        revisionId: canonicalId,
+        legalEntityId: value.legacyLegalEntityId,
+        legalName: 'J&A Automation Europe S.L.',
+        legalEntityCode: 'WP03-LEGACY',
+        baseCurrency: 'EUR',
+        effectiveFrom: '2026-01-01',
+        effectiveTo: null,
+      }),
+    ]);
+    expect(options[0]).not.toHaveProperty('taxIdentifier');
+    expect(options[0]).not.toHaveProperty('registrationIdentifier');
+    expect(options[0]).not.toHaveProperty('addressLine1');
+
+    assignRevision(value, finance, {
+      projectId: value.project.id,
+      legalEntityRevisionId: canonicalId,
+      effectiveFrom: '2026-02-01',
+      reason: 'Bind project to the reviewed issuing authority',
+      idempotencyKey: 'wp03:safe-projection:assignment',
+    });
+    expect(
+      command<Array<Record<string, unknown>>>(
+        value.v3,
+        'listProjectLegalEntityAssignments',
+        finance,
+        value.project.id,
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        projectId: value.project.id,
+        legalName: 'J&A Automation Europe S.L.',
+        legalEntityCode: 'WP03-LEGACY',
+        baseCurrency: 'EUR',
+        effectiveFrom: '2026-02-01',
+        effectiveTo: null,
+      }),
+    ]);
+
+    for (const principal of [value.worker, value.manager]) {
+      expect(() => command(value.v3, 'listCanonicalLegalEntityRevisionOptions', principal)).toThrow(
+        V3AccessDeniedError,
+      );
+      expect(() =>
+        command(value.v3, 'listProjectLegalEntityAssignments', principal, value.project.id),
+      ).toThrow(V3AccessDeniedError);
+    }
+  });
+
   it('requires complete explicit legal-entity data and a recent step-up for Owner/Finance writes', () => {
     const value = fixture();
     if (

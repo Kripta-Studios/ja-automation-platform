@@ -11,6 +11,7 @@
     date: string;
     amountMinor: string;
     currency: string;
+    reference: string;
     detail: string;
   };
 
@@ -72,9 +73,27 @@
       : '0';
   }
 
+  function sourceSummary(row: Row): string {
+    const count = sourceCount(row);
+    const missing = missingSourceCount(row);
+    return missing === '0' ? count : `${count} · ${missing} ${translate('missing')}`;
+  }
+
   function moneyValue(row: Row, ...keys: string[]): string {
     const amount = value(row, ...keys);
     return amount ? paymentMoney(amount, value(row, 'currency') || 'USD') : '—';
+  }
+
+  function directCostValue(row: Row): string {
+    return value(row, 'directCostComplete', 'direct_cost_complete') === 'false'
+      ? translate('Unavailable — missing source IDs')
+      : moneyValue(row, 'directCostMinor', 'direct_cost_minor');
+  }
+
+  function contributionValue(row: Row): string {
+    return value(row, 'directCostComplete', 'direct_cost_complete') === 'false'
+      ? translate('Unavailable')
+      : moneyValue(row, 'contributionMinor', 'contribution_minor');
   }
 
   function paymentRows(row: Row): Row[] {
@@ -100,7 +119,8 @@
       date: value(payment, 'received_at', 'receivedAt'),
       amountMinor: value(payment, 'grossAmountMinor', 'amount_minor', 'amountMinor'),
       currency: value(payment, 'currency') || value(row, 'currency') || 'USD',
-      detail: value(payment, 'reference') || translate('No reference'),
+      reference: value(payment, 'reference') || translate('No reference'),
+      detail: '',
     }));
     const reversals = reversalRows(row).map((reversal) => ({
       id: `reversal-${value(reversal, 'id')}`,
@@ -108,12 +128,27 @@
       date: value(reversal, 'effectiveAt', 'effective_at'),
       amountMinor: value(reversal, 'amountMinor', 'amount_minor'),
       currency: value(reversal, 'currency') || value(row, 'currency') || 'USD',
+      reference: value(reversal, 'commandId', 'command_id', 'id') || translate('No reference'),
       detail:
         value(reversal, 'reason') ||
         value(reversal, 'reasonCode', 'reason_code') ||
         translate('No reason recorded'),
     }));
     return [...payments, ...reversals].sort((left, right) => left.date.localeCompare(right.date));
+  }
+
+  function timelineSummary(row: Row): string {
+    const events = timeline(row);
+    if (events.length === 0) return translate('No payment or reversal events recorded.');
+
+    return events
+      .map((event) => {
+        const kind = event.kind === 'reversal' ? translate('Reversal') : translate('Payment');
+        const date = displayDate(event.date, translate('Date unavailable'));
+        const reference = `${translate('Payment reference / note')}: ${event.reference}`;
+        return `${kind}: ${paymentMoney(event.amountMinor, event.currency)} · ${date} · ${reference}${event.detail ? ` · ${event.detail}` : ''}`;
+      })
+      .join(' · ');
   }
 
   const visibleRows = $derived.by(() =>
@@ -153,10 +188,40 @@
             value: `${invoice} · ${value(row, 'clientNumber', 'client_number') || '—'}`,
           },
           {
-            label: translate('Client / project'),
-            value: `${value(row, 'clientName', 'client_name') || '—'} · ${value(row, 'projectNumber', 'project_number') || '—'}`,
+            label: translate('Client'),
+            value: `${value(row, 'clientName', 'client_name') || '—'} · ${value(row, 'clientNumber', 'client_number') || '—'}`,
           },
-          { label: translate('Gross'), value: moneyValue(row, 'totalMinor', 'total_minor') },
+          {
+            label: translate('Project'),
+            value: `${value(row, 'projectName', 'project_name') || '—'} · ${value(row, 'projectNumber', 'project_number') || '—'}`,
+          },
+          {
+            label: translate('Stream'),
+            value: value(row, 'streamType', 'stream_type') || '—',
+          },
+          {
+            label: translate('Actual issue'),
+            value: displayDate(
+              value(row, 'issueDate', 'issue_date'),
+              translate('Issue date unavailable'),
+            ),
+          },
+          {
+            label: translate('Due on'),
+            value: displayDate(value(row, 'dueDate', 'due_date'), translate('No due date')),
+          },
+          {
+            label: translate('Invoiced'),
+            value: moneyValue(row, 'invoicedMinor', 'invoiced_minor', 'totalMinor', 'total_minor'),
+          },
+          {
+            label: translate('Gross'),
+            value: moneyValue(row, 'grossPaymentsMinor', 'gross_payments_minor'),
+          },
+          {
+            label: translate('Reversals'),
+            value: moneyValue(row, 'paymentReversalsMinor', 'payment_reversals_minor'),
+          },
           {
             label: translate('Net collected'),
             value: moneyValue(row, 'netCollectedMinor', 'collectedMinor', 'net_collected_minor'),
@@ -165,19 +230,41 @@
             label: translate('Outstanding'),
             value: moneyValue(row, 'outstandingMinor', 'outstanding_minor'),
           },
+          { label: translate('Direct cost'), value: directCostValue(row) },
+          { label: translate('Contribution'), value: contributionValue(row) },
+          { label: translate('Sources'), value: sourceSummary(row) },
           { label: translate('Status'), value: statusLabel(status) },
+          { label: translate('Timeline'), value: timelineSummary(row) },
         ],
       };
     }),
   );
 
-  const periodStart = $derived(
-    data.periodStart || value(rows[0] ?? {}, 'periodStart', 'period_start') || '',
-  );
-  const periodEnd = $derived(
-    data.periodEnd || value(rows[0] ?? {}, 'periodEnd', 'period_end') || '',
-  );
+  function isoCalendarDate(value: string): string {
+    const match = /^(\d{4}-\d{2}-\d{2})/.exec(value.trim());
+    return match?.[1] ?? '';
+  }
 
+  function displayDate(raw: string, fallback: string): string {
+    const calendar = isoCalendarDate(raw);
+    return calendar || raw.trim() || fallback;
+  }
+
+  const exportPeriod = $derived.by(() => {
+    const dates = rows
+      .map((row) =>
+        isoCalendarDate(
+          value(row, 'issueDate', 'issue_date', 'issuedAt', 'issued_at', 'createdAt', 'created_at'),
+        ),
+      )
+      .filter(Boolean)
+      .sort();
+    if (dates.length === 0) return null;
+    return { periodStart: dates[0]!, periodEnd: dates[dates.length - 1]! };
+  });
+
+  const periodStart = $derived(exportPeriod?.periodStart ?? '');
+  const periodEnd = $derived(exportPeriod?.periodEnd ?? '');
   const canExport = $derived(Boolean(periodStart && periodEnd));
 
   function exportHref(format: 'csv' | 'xlsx'): string {
@@ -193,7 +280,7 @@
   <header class="collections-ledger__context">
     <div>
       <p class="collections-ledger__eyebrow">{translate('Finance control')}</p>
-      <h2>{translate('Collections / Ledger')}</h2>
+      <h2>{translate('Invoice / cost ledger')}</h2>
       <p>
         {translate(
           'Reconcile issued invoices, direct costs, collections, outstanding balances and contribution from canonical source rows.',
@@ -298,8 +385,10 @@
               <td>
                 <strong>{value(row, 'invoiceNumber', 'invoice_number', 'invoiceId') || '—'}</strong>
                 <small
-                  >{value(row, 'issueDate', 'issue_date') ||
-                    translate('Issue date unavailable')}</small
+                  >{displayDate(
+                    value(row, 'issueDate', 'issue_date'),
+                    translate('Issue date unavailable'),
+                  )}</small
                 >
               </td>
               <td>
@@ -315,14 +404,10 @@
               >
               <td>{moneyValue(row, 'outstandingMinor', 'outstanding_minor')}</td>
               <td>
-                {value(row, 'directCostComplete', 'direct_cost_complete') === 'false'
-                  ? translate('Unavailable — missing source IDs')
-                  : moneyValue(row, 'directCostMinor', 'direct_cost_minor')}
+                {directCostValue(row)}
               </td>
               <td>
-                {value(row, 'directCostComplete', 'direct_cost_complete') === 'false'
-                  ? translate('Unavailable')
-                  : moneyValue(row, 'contributionMinor', 'contribution_minor')}
+                {contributionValue(row)}
               </td>
               <td>
                 {sourceCount(row)}
@@ -348,7 +433,10 @@
                         <div>
                           <strong>{paymentMoney(event.amountMinor, event.currency)}</strong>
                           <small
-                            >{event.date || translate('Date unavailable')} · {event.detail}</small
+                            >{displayDate(event.date, translate('Date unavailable'))} · {translate(
+                              'Payment reference / note',
+                            )}:
+                            {event.reference}{event.detail ? ` · ${event.detail}` : ''}</small
                           >
                         </div>
                       </article>
@@ -502,6 +590,7 @@
     color: var(--portal-muted, #64748b);
     font-size: 0.7rem;
     letter-spacing: 0.06em;
+    line-height: 1.25;
     text-transform: uppercase;
     white-space: nowrap;
   }
@@ -510,6 +599,10 @@
     color: var(--portal-ink, #16202a);
     font-size: 0.88rem;
     font-variant-numeric: tabular-nums;
+  }
+
+  .collections-ledger__table td:nth-child(n + 4):nth-child(-n + 9) {
+    white-space: nowrap;
   }
 
   .collections-ledger__table td > span,
@@ -525,7 +618,7 @@
   }
 
   .collections-ledger__timeline-toggle {
-    min-width: 11rem;
+    min-width: 0;
   }
 
   .collections-ledger__timeline-toggle summary {
@@ -548,7 +641,8 @@
   .collections-ledger__timeline {
     display: grid;
     gap: 0.55rem;
-    min-width: 16rem;
+    min-width: 12rem;
+    max-width: 22rem;
     margin-top: 0.55rem;
     padding: 0.65rem;
     border: 1px solid var(--portal-border, #d7dee8);
@@ -578,6 +672,7 @@
   .collections-ledger__timeline p {
     color: var(--portal-muted, #64748b);
     font-size: 0.76rem;
+    overflow-wrap: anywhere;
   }
 
   .collections-ledger__empty {
@@ -598,12 +693,6 @@
   .collections-ledger__timeline-toggle summary:focus-visible {
     outline: 3px solid color-mix(in srgb, var(--portal-accent, #0f5f73) 32%, transparent);
     outline-offset: 2px;
-  }
-
-  @media (max-width: 60rem) {
-    .collections-ledger__table {
-      min-width: 70rem;
-    }
   }
 
   @media (max-width: 52rem) {

@@ -11,6 +11,7 @@
     "db:check": "node --experimental-strip-types src/cli.ts check",
     "db:migrate:fresh": "node --experimental-strip-types src/cli.ts fresh",
     "db:integrity": "node --experimental-strip-types src/cli.ts integrity",
+    "service-actor": "node --experimental-strip-types src/cli/service-actor.ts",
     "demo:seed": "node --experimental-strip-types src/demo-seed.ts"
   },
   "dependencies": {

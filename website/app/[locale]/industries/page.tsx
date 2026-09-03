@@ -8,13 +8,20 @@ import foodBevImg from '@/public/images/hero/hero-food-beverage.webp';
 import energyImg from '@/public/images/hero/hero-energy-process.webp';
 import cosmeticsImg from '@/public/images/industries/cosmetics-filling.webp';
 import roboticsImg from '@/public/images/industries/robotics-cell-square.webp';
+import warehouseImg from '@/public/images/industries/warehouse-logistics.webp';
 import { localizedAlternates } from '@/lib/i18n/metadata';
 
 const industryImages: Record<
   string,
   {
     src: StaticImageData;
-    altKey: 'automotive' | 'foodBeverage' | 'energyProcess' | 'cosmeticsPackaging' | 'oemGeneral';
+    altKey:
+      | 'automotive'
+      | 'foodBeverage'
+      | 'energyProcess'
+      | 'cosmeticsPackaging'
+      | 'oemGeneral'
+      | 'warehouseLogistics';
     position: string;
   }
 > = {
@@ -31,6 +38,7 @@ const industryImages: Record<
     position: '48% 52%',
   },
   oemGeneral: { src: roboticsImg, altKey: 'oemGeneral', position: '50% 50%' },
+  warehouseLogistics: { src: warehouseImg, altKey: 'warehouseLogistics', position: '50% 50%' },
 };
 
 const indKeyMap: Record<string, string> = {
@@ -39,6 +47,7 @@ const indKeyMap: Record<string, string> = {
   'energy-process': 'energyProcess',
   'cosmetics-packaging': 'cosmeticsPackaging',
   'general-industry': 'oemGeneral',
+  'warehouse-logistics': 'warehouseLogistics',
 };
 
 type IndustryMessageKey =
@@ -46,7 +55,8 @@ type IndustryMessageKey =
   | 'foodBeverage'
   | 'energyProcess'
   | 'cosmeticsPackaging'
-  | 'oemGeneral';
+  | 'oemGeneral'
+  | 'warehouseLogistics';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

@@ -1,26 +1,61 @@
 /* --------------------------------------------------------------------------
-   Portal refresh: a quieter, product-focused visual layer for V3.
-   The functional forms and role-aware routes deliberately remain unchanged.
+   Portal foundations: a calm Industrial Tech surface for dense operational
+   screens.  The semantic tokens are intentionally separate from the legacy
+   `--ja-*` aliases so existing route styles can migrate incrementally without
+   changing financial, role or lifecycle behaviour.
    -------------------------------------------------------------------------- */
 :root {
+  --ja-canvas: #f8fafc;
+  --ja-surface: #ffffff;
+  --ja-surface-raised: #f1f5f9;
+  --ja-border-subdued: #e2e8f0;
+  --ja-border-strong: #cbd5e1;
+  /* Enabled controls need a boundary that remains perceivable against the
+     white/tinted surfaces used by forms (WCAG 1.4.11, >= 3:1).  Keep the
+     softer border-strong token for cards and separators. */
+  --ja-control-border-strong: #64748b;
+  --ja-border-focus: #0284c7;
+  --ja-text-primary: #0f172a;
+  --ja-text-secondary: #475569;
+  --ja-text-muted: #64748b;
+  --ja-primary: #0f766e;
+  --ja-primary-hover: #115e59;
+  /* Retains WCAG AA contrast on the tinted success surface used by badges. */
+  --ja-status-success: #047857;
+  /* Foreground is intentionally separate from the amber accent used for
+     borders and indicator rails: #92400e is >= 4.5:1 on white and amber
+     notification tints. */
+  --ja-status-warning: #d97706;
+  --ja-status-warning-foreground: #92400e;
+  --ja-status-danger: #dc2626;
+  --ja-status-info: #0369a1;
   --ja-red: #b42318;
   --ja-red-dark: #8f1d14;
-  --ja-ink: #10202f;
-  --ja-paper: #f4f7fb;
-  --ja-white: #ffffff;
-  --ja-steel: #637486;
-  --ja-line: #dce4ed;
-  --ja-success: #169c76;
-  --ja-warning: #c78516;
-  --ja-danger: #c43e36;
+  --ja-ink: var(--ja-text-primary);
+  --ja-paper: var(--ja-canvas);
+  --ja-white: var(--ja-surface);
+  --ja-steel: var(--ja-text-secondary);
+  --ja-line: var(--ja-border-subdued);
+  --ja-border: var(--ja-border-subdued);
+  --ja-control-border: var(--ja-control-border-strong);
+  --ja-focus-ring: var(--ja-border-focus);
+  --ja-success: var(--ja-status-success);
+  --ja-warning: var(--ja-status-warning);
+  --ja-danger: var(--ja-status-danger);
+  --ja-marine: var(--ja-text-primary);
+  --ja-graphite: var(--ja-text-primary);
+  --ja-control-radius: 0.5rem;
   --ja-radius: 1rem;
-  --ja-shadow: 0 1.25rem 3.5rem rgb(16 32 47 / 0.08);
-  --ja-shadow-soft: 0 0.5rem 1.5rem rgb(16 32 47 / 0.05);
+  --ja-shadow: 0 1.25rem 3.5rem rgb(15 23 42 / 0.08);
+  --ja-shadow-soft: 0 1px 3px rgb(15 23 42 / 0.05), 0 1px 2px -1px rgb(15 23 42 / 0.05);
+  --ja-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ja-target-min: 2.75rem;
 }
 
 html,
 body {
   background: var(--ja-paper);
+  color: var(--ja-ink);
   font-family:
     Inter,
     ui-sans-serif,
@@ -40,15 +75,77 @@ button,
 input,
 select,
 textarea {
-  font: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
 }
 
-button,
-a,
-input,
-select,
-textarea,
-summary {
+/* Tailwind Preflight removes native button chrome. Restore a visible
+   control for action/submit buttons so they cannot collapse into body text.
+   :where() keeps this at zero specificity so tabs, menus, icon dismissals
+   and named variants (.primary-button, .secondary-button, .menu-button)
+   continue to own their own look. */
+:where(
+  button:not([role='tab']):not(.menu-button):not(.nav-backdrop):not(.account-trigger):not(
+      .account-signout
+    ):not(.signout):not(.ui-toast-dismiss):not(.print-trigger):not(.quiet-button):not(
+      .text-button
+    ):not(.responsive-sheet-close):not(.login-passkey):not(.localized-pdf-refresh)
+) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: var(--ja-target-min, 2.75rem);
+  padding: 0.58rem 0.9rem;
+  border: 1px solid var(--ja-primary, #0f766e);
+  border-radius: 0.6rem;
+  color: #fff;
+  background: var(--ja-primary, #0f766e);
+  box-shadow: 0 0.3rem 0.8rem rgb(16 32 47 / 0.12);
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+:where(
+  button:not([role='tab']):not(.menu-button):not(.nav-backdrop):not(.account-trigger):not(
+      .account-signout
+    ):not(.signout):not(.ui-toast-dismiss):not(.print-trigger):not(.quiet-button):not(
+      .text-button
+    ):not(.responsive-sheet-close):not(.login-passkey):not(.localized-pdf-refresh):hover
+):not(:disabled),
+:where(
+  button:not([role='tab']):not(.menu-button):not(.nav-backdrop):not(.account-trigger):not(
+      .account-signout
+    ):not(.signout):not(.ui-toast-dismiss):not(.print-trigger):not(.quiet-button):not(
+      .text-button
+    ):not(.responsive-sheet-close):not(.login-passkey):not(.localized-pdf-refresh):focus-visible
+):not(:disabled) {
+  color: #fff;
+  border-color: var(--ja-primary-hover, #115e59);
+  background: var(--ja-primary-hover, #115e59);
+}
+
+button.danger,
+button.danger-button {
+  color: #fff;
+  border-color: var(--ja-status-danger, #dc2626);
+  background: var(--ja-status-danger, #dc2626);
+  box-shadow: 0 0.3rem 0.8rem rgb(180 35 24 / 0.18);
+}
+
+button.danger:hover:not(:disabled),
+button.danger:focus-visible:not(:disabled),
+button.danger-button:hover:not(:disabled),
+button.danger-button:focus-visible:not(:disabled) {
+  color: #fff;
+  border-color: var(--ja-red-dark, #8f1d14);
+  background: var(--ja-red-dark, #8f1d14);
+}
+
+:where(button, a, input, select, textarea, summary) {
   transition:
     border-color 160ms var(--ja-ease),
     background-color 160ms var(--ja-ease),
@@ -63,8 +160,72 @@ a {
 }
 
 :focus-visible {
-  outline: 3px solid #ffcf71;
-  outline-offset: 3px;
+  outline: 3px solid color-mix(in srgb, var(--ja-border-focus) 78%, white);
+  outline-offset: 2px;
+}
+
+/* Persistent field affordances.  Route-specific selectors may provide a
+   denser layout, but they should not be able to make a field look like plain
+   text again. */
+:where(
+  input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='submit']):not(
+      [type='button']
+    ):not([type='reset']),
+  select,
+  textarea
+) {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: var(--ja-target-min);
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--ja-control-border);
+  border-radius: var(--ja-control-radius);
+  color: var(--ja-text-primary);
+  background-color: var(--ja-surface);
+}
+
+:where(
+  input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='submit']):not(
+      [type='button']
+    ):not([type='reset']),
+  select,
+  textarea
+):hover {
+  border-color: color-mix(in srgb, var(--ja-border-strong) 75%, var(--ja-primary));
+}
+
+:where(
+  input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='submit']):not(
+      [type='button']
+    ):not([type='reset']),
+  select,
+  textarea
+):focus-visible {
+  border-color: var(--ja-border-focus);
+  outline: 2px solid color-mix(in srgb, var(--ja-border-focus) 24%, transparent);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ja-border-focus) 14%, transparent);
+}
+
+:where(textarea) {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+:where(input, select, textarea)::placeholder {
+  color: var(--ja-text-muted);
+  opacity: 0.95;
+}
+
+/* Keep the select affordance consistent across Chromium, Safari and Firefox
+   while retaining native keyboard and screen-reader behaviour. */
+:where(select:not([multiple])) {
+  appearance: none;
+  padding-inline-end: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m3.5 6 4.5 4 4.5-4' fill='none' stroke='%230f766e' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
 }
 
 .portal-kicker {

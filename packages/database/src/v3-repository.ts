@@ -22,12 +22,25 @@ import {
   timeInputSchema,
 } from '@ja/schemas';
 import { recordAuditEvent } from './core/audit.ts';
-import { assertActiveAccount, assertRecentStepUp } from './core/authorization.ts';
+import {
+  assertActiveAccount,
+  assertRecentStepUp,
+  readLiveSessionStepUp,
+} from './core/authorization.ts';
 import { canonicalJson, sha256 as canonicalSha256 } from './core/canonical-json.ts';
 import { verifyPrivatePdfArtifact } from './core/private-pdf-proof.ts';
 import { assertSafeStorageKey } from './core/storage-key.ts';
 import { runImmediateTransaction } from './core/transaction.ts';
 import { runDueConfiguredDurableJobsSync, type DurableJobExecutionContext } from './runner.ts';
+import {
+  DURABLE_JOB_CAPABILITY_BY_KIND,
+  canonicalJobJson,
+  jobPayloadHash,
+} from './domains/jobs/job-contract.ts';
+import {
+  assertFencedJobExecution,
+  type FencedJobExecution,
+} from './domains/jobs/execution-authorization.ts';
 import {
   TechnicalChangeRepository,
   type TechnicalChangeInput,
@@ -37,6 +50,7 @@ import {
   type AccountingPackRevisionResult,
   type AccountingPackSnapshotInput,
 } from './domains/accounting-pack/index.ts';
+import { ensureCommand } from './domains/finance/finance-command-writer.ts';
 import {
   CustomerConformityRepository,
   assertCustomerPeriodSnapshotSafe,
@@ -57,8 +71,11 @@ import {
   type CanonicalLegalEntityRevisionResult,
   type ProjectLegalEntityAssignmentInput,
   type ProjectLegalEntityAssignmentResult,
+  type CanonicalLegalEntityRevisionOption,
+  type ProjectLegalEntityAssignmentView,
   type ResolvedCanonicalProjectLegalEntity,
 } from './domains/finance/canonical-project-legal-entity-repository.ts';
+import { resolveAccountingPackProjectLegalEntity } from './domains/finance/accounting-pack-revision-service.ts';
 import {
   deriveTimeCommercialSlices,
   type TimeCommercialSlice,
@@ -73,6 +90,11 @@ type DbValue = string | number | bigint | null;
 type OutputValue = DbValue | boolean;
 type SafeStorageKey = string;
 type V3Currency = Currency;
+
+// Each Worker Statement artifact attempt owns one durable job. A failed handler must terminalize
+// that obsolete payload because the authorized artifact retry creates a fresh job for the next
+// attempt. Other durable kinds retain the shared bounded retry budget.
+const WORKER_STATEMENT_ARTIFACT_RENDER_JOB_KIND = 'worker_statement_artifact_render' as const;
 type ReportLocale = 'en' | 'pt' | 'es';
 
 export type ReportAttachmentType = 'daily' | 'technical';
@@ -158,37 +180,6 @@ function resolveArtifactClassification(
   if (!ARTIFACT_CLASSIFICATIONS.includes(classification))
     throw new V3ValidationError('Document classification is invalid');
   return classification;
-}
-
-const B5_JOB_CAPABILITIES: Readonly<Record<string, string>> = Object.freeze({
-  invoice_pdf: 'artifact.invoice.render',
-  period_close_report: 'artifact.report.render',
-  auto_draft: 'billing.draft.generate',
-  accounting_pack_artifact_render: 'artifact.accounting_pack.render',
-  temporary_upload_cleanup: 'storage.temporary.cleanup',
-  localized_pdf_variant_render: 'artifact.localized_pdf.render',
-  document_scan: 'document.scan',
-  outbox_deliver: 'outbox.deliver',
-  alert_dispatch: 'alert.dispatch',
-  email_send: 'email.send',
-  backup_verify: 'backup.verify',
-});
-
-function canonicalJobJson(value: unknown): string {
-  if (value === null || typeof value === 'boolean' || typeof value === 'string')
-    return JSON.stringify(value);
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value))
-      throw new V3ValidationError('Job payload contains a non-finite number');
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) return `[${value.map(canonicalJobJson).join(',')}]`;
-  if (typeof value === 'object')
-    return `{${Object.entries(value as Record<string, unknown>)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJobJson(entry)}`)
-      .join(',')}}`;
-  throw new V3ValidationError('Job payload is not JSON serializable');
 }
 
 type CompensationInput = Readonly<{
@@ -307,7 +298,7 @@ type CompensationRuleRow = {
   worker_id: string;
   project_id: string | null;
   currency: V3Currency;
-  rate_minor: number;
+  rate_minor: string;
   rate_basis: string;
   daily_guarantee_minutes: number | null;
   rule_type: string;
@@ -316,7 +307,7 @@ type CompensationRuleRow = {
   settlement_trigger: string;
   overtime_method: OvertimeMethod;
   overtime_multiplier_bps: number | null;
-  overtime_rate_minor: number | null;
+  overtime_rate_minor: string | null;
   weekend_method: string;
   travel_method: string;
   standby_method: string;
@@ -329,10 +320,10 @@ type LaborRateRow = {
   worker_id: string | null;
   category: string | null;
   currency: V3Currency;
-  hourly_rate_minor: number;
+  hourly_rate_minor: string;
   overtime_method: OvertimeMethod;
   overtime_multiplier_bps: number | null;
-  overtime_rate_minor: number | null;
+  overtime_rate_minor: string | null;
   eligible_for_percentage: number;
   effective_from: string;
 };
@@ -342,10 +333,10 @@ type InternalCostRow = {
   worker_id: string;
   project_id: string | null;
   currency: V3Currency;
-  hourly_rate_minor: number;
+  hourly_rate_minor: string;
   overtime_method: OvertimeMethod;
   overtime_multiplier_bps: number | null;
-  overtime_rate_minor: number | null;
+  overtime_rate_minor: string | null;
   effective_from: string;
 };
 
@@ -382,6 +373,21 @@ function malwareScannerRequired(): boolean {
   );
 }
 
+/**
+ * A disabled scanner is an explicit, truthful state rather than an implicit
+ * approval.  In particular, a row carrying `clean` must never be treated as
+ * scanner-disabled evidence: that value can only come from an authorized
+ * scanner execution while scanning is required.  Keeping this predicate
+ * shared by every private download boundary prevents one route from silently
+ * becoming an arbitrary-scan-status bypass.
+ */
+function scannerStatusAllowsPrivateDownload(
+  status: string | null | undefined,
+  scannerRequired: boolean,
+): boolean {
+  return scannerRequired ? status === 'clean' : status === 'not_scanned';
+}
+
 function requireDate(value: string, field: string): void {
   if (!isoDate(value)) throw new V3ValidationError(`${field} must be an ISO date`);
 }
@@ -390,6 +396,11 @@ function requireDateTime(value: string, field: string): void {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value))
     throw new V3ValidationError(`${field} must be an RFC3339 UTC timestamp`);
   if (Number.isNaN(Date.parse(value))) throw new V3ValidationError(`${field} is invalid`);
+}
+
+function canonicalUtcTimestamp(value: string, field: string): string {
+  requireDateTime(value, field);
+  return new Date(Date.parse(value)).toISOString();
 }
 
 function shiftIsoDate(value: string, days: number): string {
@@ -405,10 +416,12 @@ function requireText(value: string, field: string, max = 5000): string {
   return clean;
 }
 
-function sqliteInteger(value: bigint, field: string): number {
-  const numberValue = Number(value);
-  if (!Number.isSafeInteger(numberValue)) throw new V3ValidationError(`${field} is out of range`);
-  return numberValue;
+function sqliteInteger(value: bigint, field: string): bigint {
+  const sqliteMin = -9223372036854775808n;
+  const sqliteMax = 9223372036854775807n;
+  if (value < sqliteMin || value > sqliteMax)
+    throw new V3ValidationError(`${field} is out of range`);
+  return value;
 }
 
 function parseJsonRecord(value: string): Record<string, unknown> {
@@ -420,6 +433,12 @@ function parseJsonRecord(value: string): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+function asRecord(value: unknown): Readonly<Record<string, unknown>> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Readonly<Record<string, unknown>>)
+    : {};
 }
 
 function isPendingApproval(value: string): boolean {
@@ -553,6 +572,22 @@ export class V3Repository {
     return this.canonicalProjectLegalEntities.assignCanonicalLegalEntityToProject(principal, input);
   }
 
+  listCanonicalLegalEntityRevisionOptions(
+    principal: Principal,
+  ): CanonicalLegalEntityRevisionOption[] {
+    return this.canonicalProjectLegalEntities.listCanonicalLegalEntityRevisionOptions(principal);
+  }
+
+  listProjectLegalEntityAssignments(
+    principal: Principal,
+    projectId: string,
+  ): ProjectLegalEntityAssignmentView[] {
+    return this.canonicalProjectLegalEntities.listProjectLegalEntityAssignments(
+      principal,
+      projectId,
+    );
+  }
+
   resolveCanonicalProjectLegalEntity(
     principal: Principal,
     projectId: string,
@@ -570,7 +605,7 @@ export class V3Repository {
   }
 
   private ensureFinanceEvidence(
-    evidenceType: 'finance_request' | 'finance_command' | 'payment_reversal',
+    evidenceType: 'finance_request' | 'finance_command' | 'payment_record' | 'payment_reversal',
     contractVersion: string,
     semanticId: string,
     value: unknown,
@@ -708,7 +743,7 @@ export class V3Repository {
     const existing = this.sqlite
       .prepare(
         `SELECT command_id,request_hash,command_hash,principal_id,effective_at,target_semantic_id,
-                amount_minor,currency,payload_hash,session_id_hash,state
+                  CAST(amount_minor AS TEXT) amount_minor,currency,payload_hash,session_id_hash,state
          FROM finance_command
          WHERE tenant_id=? AND deployment_id=? AND operation='payment.reverse' AND idempotency_key=?`,
       )
@@ -720,7 +755,7 @@ export class V3Repository {
           principal_id: string;
           effective_at: string;
           target_semantic_id: string;
-          amount_minor: number;
+          amount_minor: string;
           currency: string;
           payload_hash: string;
           session_id_hash: string;
@@ -734,7 +769,7 @@ export class V3Repository {
         existing.principal_id !== principal.userId ||
         existing.effective_at !== descriptor.effectiveAt ||
         existing.target_semantic_id !== targetSemanticId ||
-        existing.amount_minor !== sqliteInteger(descriptor.amountMinor, 'Payment reversal') ||
+        existing.amount_minor !== descriptor.amountMinor.toString() ||
         existing.currency !== descriptor.currency ||
         existing.payload_hash !== payloadHash ||
         existing.session_id_hash !== sessionHash ||
@@ -745,15 +780,9 @@ export class V3Repository {
         );
       return { commandId: existing.command_id, created: false };
     }
-    const session = principal.sessionId
-      ? (this.sqlite
-          .prepare('SELECT step_up_at FROM session WHERE id=? AND user_id=?')
-          .get(principal.sessionId, principal.userId) as { step_up_at: string | null } | undefined)
-      : undefined;
-    const stepUpAt = session?.step_up_at ?? null;
-    const stepUpExpiresAt = stepUpAt
-      ? new Date(Date.parse(stepUpAt) + 10 * 60_000).toISOString()
-      : null;
+    const stepUp = readLiveSessionStepUp(this.sqlite, principal);
+    const stepUpAt = stepUp?.verifiedAt ?? null;
+    const stepUpExpiresAt = stepUp?.expiresAt ?? null;
     this.sqlite
       .prepare(
         `INSERT INTO finance_command(
@@ -819,29 +848,8 @@ export class V3Repository {
     assertRecentStepUp(this.sqlite, principal, V3AccessDeniedError);
   }
 
-  /**
-   * The shared step-up helper intentionally permits non-production fixtures to
-   * exercise ordinary Finance commands without session ceremony. Customer
-   * conformity is an explicit sign-off authority boundary, so its service
-   * keeps the session proof requirement in tests as well as production.
-   */
   private assertCustomerConformityStepUp(principal: Principal): void {
     this.assertStepUp(principal);
-    if (principal.isServiceActor) return;
-    const session = principal.sessionId
-      ? (this.sqlite
-          .prepare('SELECT step_up_at,expires_at FROM session WHERE id=? AND user_id=?')
-          .get(principal.sessionId, principal.userId) as
-          | { step_up_at: string | null; expires_at: string }
-          | undefined)
-      : undefined;
-    if (
-      !session?.step_up_at ||
-      Date.parse(session.step_up_at) > Date.now() ||
-      Date.now() - Date.parse(session.step_up_at) > 10 * 60_000 ||
-      Date.parse(session.expires_at) <= Date.now()
-    )
-      throw new V3AccessDeniedError('Recent step-up authentication is required');
   }
 
   private assertProjectAccess(principal: Principal, projectId: string, allowAuditor = false): void {
@@ -1078,9 +1086,9 @@ export class V3Repository {
     }>,
   ): { id: string; token: string; expiresAt: string } {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
     if (principal.role !== 'owner_admin')
       throw new V3AccessDeniedError('Owner role required to invite users');
+    this.assertStepUp(principal);
     const email = input.email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       throw new V3ValidationError('Invitation email is invalid');
@@ -1261,7 +1269,15 @@ export class V3Repository {
     if (projectId) this.assertProjectAccess(principal, projectId, true);
     const rows = this.sqlite
       .prepare(
-        `SELECT cr.*,u.name worker_name,p.project_number,p.name project_name
+        `SELECT cr.id,cr.worker_id,cr.project_id,cr.currency,
+                CAST(cr.rate_minor AS TEXT) rate_minor,cr.rate_basis,cr.effective_from,cr.effective_to,
+                cr.created_at,cr.updated_at,cr.daily_guarantee_minutes,cr.worker_visible,cr.rule_type,
+                cr.percentage_bps,cr.percentage_basis,cr.settlement_trigger,cr.overtime_method,
+                cr.overtime_multiplier_bps,CAST(cr.overtime_rate_minor AS TEXT) overtime_rate_minor,
+                cr.weekend_method,cr.travel_method,cr.standby_method,
+                CAST(cr.fixed_period_minor AS TEXT) fixed_period_minor,
+                CAST(cr.fixed_project_minor AS TEXT) fixed_project_minor,cr.notes,cr.version,
+                u.name worker_name,p.project_number,p.name project_name
          FROM compensation_rule cr
          JOIN user u ON u.id=cr.worker_id
          LEFT JOIN project p ON p.id=cr.project_id
@@ -1277,7 +1293,12 @@ export class V3Repository {
     if (projectId) this.assertProjectAccess(principal, projectId, true);
     return this.sqlite
       .prepare(
-        `SELECT clr.*,p.project_number,p.name project_name,u.name worker_name
+        `SELECT clr.id,clr.project_id,clr.worker_id,clr.category,clr.currency,
+                CAST(clr.hourly_rate_minor AS TEXT) hourly_rate_minor,clr.effective_from,clr.effective_to,
+                clr.created_at,clr.updated_at,clr.rate_basis,clr.overtime_method,
+                clr.overtime_multiplier_bps,CAST(clr.overtime_rate_minor AS TEXT) overtime_rate_minor,
+                clr.eligible_for_percentage,clr.notes,clr.version,
+                p.project_number,p.name project_name,u.name worker_name
          FROM client_labor_rate clr
          JOIN project p ON p.id=clr.project_id
          LEFT JOIN user u ON u.id=clr.worker_id
@@ -1292,7 +1313,11 @@ export class V3Repository {
     if (projectId) this.assertProjectAccess(principal, projectId, true);
     return this.sqlite
       .prepare(
-        `SELECT ic.*,u.name worker_name,p.project_number,p.name project_name
+        `SELECT ic.id,ic.worker_id,ic.project_id,ic.currency,
+                CAST(ic.hourly_rate_minor AS TEXT) hourly_rate_minor,ic.effective_from,ic.effective_to,
+                ic.created_at,ic.updated_at,ic.overtime_method,ic.overtime_multiplier_bps,
+                CAST(ic.overtime_rate_minor AS TEXT) overtime_rate_minor,ic.cost_method,ic.notes,ic.version,
+                u.name worker_name,p.project_number,p.name project_name
          FROM internal_cost_rule ic
          JOIN user u ON u.id=ic.worker_id
          LEFT JOIN project p ON p.id=ic.project_id
@@ -1665,7 +1690,14 @@ export class V3Repository {
       if (override?.compensation_rule_id) {
         const specific = this.sqlite
           .prepare(
-            'SELECT * FROM compensation_rule WHERE id=? AND worker_id=? AND (project_id=? OR project_id IS NULL) AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)',
+            `SELECT cr.id,cr.worker_id,cr.project_id,cr.currency,CAST(cr.rate_minor AS TEXT) rate_minor,
+                    cr.rate_basis,cr.daily_guarantee_minutes,cr.rule_type,cr.percentage_bps,
+                    cr.percentage_basis,cr.settlement_trigger,cr.overtime_method,
+                    cr.overtime_multiplier_bps,CAST(cr.overtime_rate_minor AS TEXT) overtime_rate_minor,
+                    cr.weekend_method,cr.travel_method,cr.standby_method,cr.effective_from
+               FROM compensation_rule cr
+              WHERE cr.id=? AND cr.worker_id=? AND (cr.project_id=? OR cr.project_id IS NULL)
+                AND cr.effective_from<=? AND (cr.effective_to IS NULL OR cr.effective_to>=?)`,
           )
           .get(override.compensation_rule_id, workerId, projectId, workDate, workDate) as
           | CompensationRuleRow
@@ -1676,10 +1708,15 @@ export class V3Repository {
     return (
       (this.sqlite
         .prepare(
-          `SELECT * FROM compensation_rule
-           WHERE worker_id=? AND (project_id=? OR project_id IS NULL)
-             AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)
-           ORDER BY (project_id IS NOT NULL) DESC, effective_from DESC, id DESC LIMIT 1`,
+          `SELECT cr.id,cr.worker_id,cr.project_id,cr.currency,CAST(cr.rate_minor AS TEXT) rate_minor,
+                  cr.rate_basis,cr.daily_guarantee_minutes,cr.rule_type,cr.percentage_bps,
+                  cr.percentage_basis,cr.settlement_trigger,cr.overtime_method,
+                  cr.overtime_multiplier_bps,CAST(cr.overtime_rate_minor AS TEXT) overtime_rate_minor,
+                  cr.weekend_method,cr.travel_method,cr.standby_method,cr.effective_from
+             FROM compensation_rule cr
+            WHERE cr.worker_id=? AND (cr.project_id=? OR cr.project_id IS NULL)
+              AND cr.effective_from<=? AND (cr.effective_to IS NULL OR cr.effective_to>=?)
+            ORDER BY (cr.project_id IS NOT NULL) DESC, cr.effective_from DESC, cr.id DESC LIMIT 1`,
         )
         .get(workerId, projectId, workDate, workDate) as CompensationRuleRow | undefined) ?? null
     );
@@ -1710,7 +1747,13 @@ export class V3Repository {
       if (override?.client_labor_rate_id) {
         const specific = this.sqlite
           .prepare(
-            'SELECT * FROM client_labor_rate WHERE id=? AND project_id=? AND (worker_id=? OR worker_id IS NULL) AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)',
+            `SELECT clr.id,clr.project_id,clr.worker_id,clr.category,clr.currency,
+                    CAST(clr.hourly_rate_minor AS TEXT) hourly_rate_minor,clr.effective_from,
+                    clr.effective_to,clr.rate_basis,clr.overtime_method,clr.overtime_multiplier_bps,
+                    CAST(clr.overtime_rate_minor AS TEXT) overtime_rate_minor,clr.eligible_for_percentage
+               FROM client_labor_rate clr
+              WHERE clr.id=? AND clr.project_id=? AND (clr.worker_id=? OR clr.worker_id IS NULL)
+                AND clr.effective_from<=? AND (clr.effective_to IS NULL OR clr.effective_to>=?)`,
           )
           .get(override.client_labor_rate_id, projectId, workerId, workDate, workDate) as
           | LaborRateRow
@@ -1720,10 +1763,14 @@ export class V3Repository {
     }
     const candidates = this.sqlite
       .prepare(
-        `SELECT * FROM client_labor_rate
-         WHERE project_id=? AND (worker_id=? OR worker_id IS NULL)
-           AND (category=? OR category IS NULL)
-           AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)`,
+        `SELECT clr.id,clr.project_id,clr.worker_id,clr.category,clr.currency,
+                CAST(clr.hourly_rate_minor AS TEXT) hourly_rate_minor,clr.effective_from,
+                clr.effective_to,clr.rate_basis,clr.overtime_method,clr.overtime_multiplier_bps,
+                CAST(clr.overtime_rate_minor AS TEXT) overtime_rate_minor,clr.eligible_for_percentage
+           FROM client_labor_rate clr
+          WHERE clr.project_id=? AND (clr.worker_id=? OR clr.worker_id IS NULL)
+            AND (clr.category=? OR clr.category IS NULL)
+            AND clr.effective_from<=? AND (clr.effective_to IS NULL OR clr.effective_to>=?)`,
       )
       .all(projectId, workerId, category, workDate, workDate) as LaborRateRow[];
     const selected = chooseMostSpecificRate(
@@ -1847,6 +1894,38 @@ export class V3Repository {
     };
   }
 
+  /** Resolve a billing rate for the active automatic-draft execution. */
+  resolveClientLaborRateFromJob(
+    execution: FencedJobExecution,
+    billingRuleId: string,
+    projectId: string,
+    workerId: string,
+    category: string,
+    workDate: string,
+    activityCode?: string | null,
+  ): Readonly<{
+    id: string;
+    currency: V3Currency;
+    hourlyRateMinor: string;
+    effectiveRateMinor: string;
+    eligibleForPercentage: boolean;
+  }> | null {
+    assertFencedJobExecution(this.sqlite, execution, {
+      kind: 'auto_draft',
+      capability: 'billing.draft.generate',
+      payloadTarget: { billingRuleId },
+    });
+    const rule = this.clientRateFor(projectId, workerId, category, workDate, activityCode);
+    if (!rule) return null;
+    return {
+      id: rule.id,
+      currency: rule.currency,
+      hourlyRateMinor: String(rule.hourly_rate_minor),
+      effectiveRateMinor: this.clientRateAmount({ category }, rule).toString(),
+      eligibleForPercentage: rule.eligible_for_percentage === 1,
+    };
+  }
+
   resolveInternalCostRate(
     principal: Principal,
     projectId: string,
@@ -1897,7 +1976,13 @@ export class V3Repository {
       if (override?.internal_cost_rule_id) {
         const specific = this.sqlite
           .prepare(
-            'SELECT * FROM internal_cost_rule WHERE id=? AND worker_id=? AND (project_id=? OR project_id IS NULL) AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)',
+            `SELECT ic.id,ic.worker_id,ic.project_id,ic.currency,
+                    CAST(ic.hourly_rate_minor AS TEXT) hourly_rate_minor,ic.effective_from,
+                    ic.effective_to,ic.overtime_method,ic.overtime_multiplier_bps,
+                    CAST(ic.overtime_rate_minor AS TEXT) overtime_rate_minor
+               FROM internal_cost_rule ic
+              WHERE ic.id=? AND ic.worker_id=? AND (ic.project_id=? OR ic.project_id IS NULL)
+                AND ic.effective_from<=? AND (ic.effective_to IS NULL OR ic.effective_to>=?)`,
           )
           .get(override.internal_cost_rule_id, workerId, projectId, workDate, workDate) as
           | InternalCostRow
@@ -1908,10 +1993,14 @@ export class V3Repository {
     return (
       (this.sqlite
         .prepare(
-          `SELECT * FROM internal_cost_rule
-           WHERE worker_id=? AND (project_id=? OR project_id IS NULL)
-             AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)
-           ORDER BY (project_id IS NOT NULL) DESC, effective_from DESC, id DESC LIMIT 1`,
+          `SELECT ic.id,ic.worker_id,ic.project_id,ic.currency,
+                  CAST(ic.hourly_rate_minor AS TEXT) hourly_rate_minor,ic.effective_from,
+                  ic.effective_to,ic.overtime_method,ic.overtime_multiplier_bps,
+                  CAST(ic.overtime_rate_minor AS TEXT) overtime_rate_minor
+             FROM internal_cost_rule ic
+            WHERE ic.worker_id=? AND (ic.project_id=? OR ic.project_id IS NULL)
+              AND ic.effective_from<=? AND (ic.effective_to IS NULL OR ic.effective_to>=?)
+            ORDER BY (ic.project_id IS NOT NULL) DESC, ic.effective_from DESC, ic.id DESC LIMIT 1`,
         )
         .get(workerId, projectId, workDate, workDate) as InternalCostRow | undefined) ?? null
     );
@@ -2061,167 +2150,171 @@ export class V3Repository {
       input.periodStart,
       input.periodEnd,
     );
-    const sourceRows = this.sqlite
-      .prepare(
-        `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
+    // Begin the immediate transaction before reading the authoritative time,
+    // rule and rate rows.  A settlement is one snapshot: a concurrent writer
+    // must wait for this transaction rather than changing the effective rate
+    // between calculation and persistence.
+    return this.transaction(() => {
+      const sourceRows = this.sqlite
+        .prepare(
+          `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
                 t.approval_state,t.billability_state,p.currency project_currency
          FROM time_entry t JOIN project p ON p.id=t.project_id
          WHERE t.project_id=? AND t.worker_id=? AND t.work_date BETWEEN ? AND ?
            AND t.approval_state IN ('approved','locked')
          ORDER BY t.work_date,t.id`,
-      )
-      .all(input.projectId, input.workerId, input.periodStart, input.periodEnd) as TimeRow[];
-    const rows = this.canonicalEconomicTimeRows(sourceRows);
-    const byRule = new Map<
-      string,
-      {
-        rule: CompensationRuleRow;
-        sourceAmount: bigint;
-        amount: bigint;
-        currency: V3Currency;
-        percentage: boolean;
+        )
+        .all(input.projectId, input.workerId, input.periodStart, input.periodEnd) as TimeRow[];
+      const rows = this.canonicalEconomicTimeRows(sourceRows);
+      const byRule = new Map<
+        string,
+        {
+          rule: CompensationRuleRow;
+          sourceAmount: bigint;
+          amount: bigint;
+          currency: V3Currency;
+          percentage: boolean;
+        }
+      >();
+      for (const row of rows) {
+        const rule = this.compensationRuleFor(
+          input.projectId,
+          input.workerId,
+          row.category,
+          row.work_date,
+          row.activity_code,
+        );
+        if (!rule) throw new V3ValidationError(`Missing compensation rule for ${row.id}`);
+        if (rule.currency !== row.project_currency)
+          throw new V3ValidationError(`Compensation currency mismatch for ${row.id}`);
+        if (
+          rule.rule_type === 'FixedProjectAmount' &&
+          this.sqlite
+            .prepare(
+              "SELECT 1 FROM compensation_settlement WHERE worker_id=? AND project_id=? AND compensation_rule_id=? AND state='settled' LIMIT 1",
+            )
+            .get(input.workerId, input.projectId, rule.id)
+        )
+          continue;
+        if (
+          rule.rule_type === 'PercentageOfEligibleClientLabor' &&
+          !this.settlementTriggerReady(row, rule.settlement_trigger)
+        )
+          continue;
+        const clientRate = this.clientRateFor(
+          input.projectId,
+          input.workerId,
+          row.category,
+          row.work_date,
+          row.activity_code,
+        );
+        const current = byRule.get(rule.id) ?? {
+          rule,
+          sourceAmount: 0n,
+          amount: 0n,
+          currency: rule.currency,
+          percentage: rule.rule_type === 'PercentageOfEligibleClientLabor',
+        };
+        if (rule.rule_type === 'PercentageOfEligibleClientLabor') {
+          const eligible =
+            row.billability_state === 'billable' && clientRate?.eligible_for_percentage === 1
+              ? this.eligibleLaborForSettlement(
+                  row,
+                  rule.percentage_basis as SettlementBasis,
+                  clientRate,
+                )
+              : 0n;
+          current.sourceAmount += eligible;
+          current.amount += applyBasisPoints(
+            money(rule.currency, eligible),
+            rule.percentage_bps ?? 0,
+          ).minorUnits;
+        } else if (
+          rule.rule_type === 'FixedPerBillingPeriod' ||
+          rule.rule_type === 'FixedProjectAmount' ||
+          rule.rule_type === 'CustomApprovedAdjustment'
+        ) {
+          // Fixed/custom rules settle once per rule in the period, not once per
+          // time entry. The amount is taken from the configured rule.
+          current.amount = BigInt(rule.rate_minor);
+        } else if (rule.rule_type === 'Daily' || rule.rate_basis === 'daily') {
+          const dayKey = `${rule.id}:${row.work_date}`;
+          const day = byRule.get(dayKey);
+          if (day) day.sourceAmount += BigInt(row.minutes);
+          else
+            byRule.set(dayKey, {
+              rule,
+              sourceAmount: BigInt(row.minutes),
+              amount: BigInt(rule.rate_minor),
+              currency: rule.currency,
+              percentage: false,
+            });
+          continue;
+        } else {
+          current.sourceAmount += BigInt(row.minutes);
+          current.amount += this.compensationAmount(row, rule, clientRate);
+        }
+        byRule.set(rule.id, current);
       }
-    >();
-    for (const row of rows) {
-      const rule = this.compensationRuleFor(
-        input.projectId,
-        input.workerId,
-        row.category,
-        row.work_date,
-        row.activity_code,
-      );
-      if (!rule) throw new V3ValidationError(`Missing compensation rule for ${row.id}`);
-      if (rule.currency !== row.project_currency)
-        throw new V3ValidationError(`Compensation currency mismatch for ${row.id}`);
-      if (
-        rule.rule_type === 'FixedProjectAmount' &&
-        this.sqlite
-          .prepare(
-            "SELECT 1 FROM compensation_settlement WHERE worker_id=? AND project_id=? AND compensation_rule_id=? AND state='settled' LIMIT 1",
-          )
-          .get(input.workerId, input.projectId, rule.id)
-      )
-        continue;
-      if (
-        rule.rule_type === 'PercentageOfEligibleClientLabor' &&
-        !this.settlementTriggerReady(row, rule.settlement_trigger)
-      )
-        continue;
-      const clientRate = this.clientRateFor(
-        input.projectId,
-        input.workerId,
-        row.category,
-        row.work_date,
-        row.activity_code,
-      );
-      const current = byRule.get(rule.id) ?? {
-        rule,
-        sourceAmount: 0n,
-        amount: 0n,
-        currency: rule.currency,
-        percentage: rule.rule_type === 'PercentageOfEligibleClientLabor',
-      };
-      if (rule.rule_type === 'PercentageOfEligibleClientLabor') {
-        const eligible =
-          row.billability_state === 'billable' && clientRate?.eligible_for_percentage === 1
-            ? this.eligibleLaborForSettlement(
-                row,
-                rule.percentage_basis as SettlementBasis,
-                clientRate,
-              )
-            : 0n;
-        current.sourceAmount += eligible;
-        current.amount += applyBasisPoints(
-          money(rule.currency, eligible),
-          rule.percentage_bps ?? 0,
-        ).minorUnits;
-      } else if (
-        rule.rule_type === 'FixedPerBillingPeriod' ||
-        rule.rule_type === 'FixedProjectAmount' ||
-        rule.rule_type === 'CustomApprovedAdjustment'
-      ) {
-        // Fixed/custom rules settle once per rule in the period, not once per
-        // time entry. The amount is taken from the configured rule.
-        current.amount = BigInt(rule.rate_minor);
-      } else if (rule.rule_type === 'Daily' || rule.rate_basis === 'daily') {
-        const dayKey = `${rule.id}:${row.work_date}`;
-        const day = byRule.get(dayKey);
-        if (day) day.sourceAmount += BigInt(row.minutes);
-        else
-          byRule.set(dayKey, {
-            rule,
-            sourceAmount: BigInt(row.minutes),
-            amount: BigInt(rule.rate_minor),
-            currency: rule.currency,
-            percentage: false,
+      // Apply hourly daily guarantees independently from client minimum billing.
+      // Aggregate by effective rule and date so two entries on the same day cannot
+      // apply the same guarantee twice.
+      const guaranteeDays = new Map<string, { rule: CompensationRuleRow; actual: number }>();
+      for (const row of rows) {
+        const rule = this.compensationRuleFor(
+          input.projectId,
+          input.workerId,
+          row.category,
+          row.work_date,
+          row.activity_code,
+        );
+        if (
+          !rule ||
+          rule.rule_type !== 'Hourly' ||
+          rule.rate_basis === 'daily' ||
+          !rule.daily_guarantee_minutes
+        )
+          continue;
+        const key = `${rule.id}:${row.work_date}`;
+        const day = guaranteeDays.get(key) ?? { rule, actual: 0 };
+        day.actual += row.minutes;
+        guaranteeDays.set(key, day);
+      }
+      for (const { rule, actual } of guaranteeDays.values()) {
+        const topUp = Math.max(0, (rule.daily_guarantee_minutes ?? 0) - actual);
+        const current = byRule.get(rule.id);
+        if (current && topUp > 0)
+          current.amount += hourlyRateForMinutes(
+            money(rule.currency, BigInt(rule.rate_minor)),
+            topUp,
+          ).minorUnits;
+      }
+      const consolidated = new Map<
+        string,
+        {
+          rule: CompensationRuleRow;
+          sourceAmount: bigint;
+          amount: bigint;
+          currency: V3Currency;
+        }
+      >();
+      for (const [key, value] of byRule) {
+        const separator = key.indexOf(':');
+        const ruleId = separator >= 0 ? key.slice(0, separator) : key;
+        const existing = consolidated.get(ruleId);
+        if (existing) {
+          existing.sourceAmount += value.sourceAmount;
+          existing.amount += value.amount;
+        } else
+          consolidated.set(ruleId, {
+            rule: value.rule,
+            sourceAmount: value.sourceAmount,
+            amount: value.amount,
+            currency: value.currency,
           });
-        continue;
-      } else {
-        current.sourceAmount += BigInt(row.minutes);
-        current.amount += this.compensationAmount(row, rule, clientRate);
       }
-      byRule.set(rule.id, current);
-    }
-    // Apply hourly daily guarantees independently from client minimum billing.
-    // Aggregate by effective rule and date so two entries on the same day cannot
-    // apply the same guarantee twice.
-    const guaranteeDays = new Map<string, { rule: CompensationRuleRow; actual: number }>();
-    for (const row of rows) {
-      const rule = this.compensationRuleFor(
-        input.projectId,
-        input.workerId,
-        row.category,
-        row.work_date,
-        row.activity_code,
-      );
-      if (
-        !rule ||
-        rule.rule_type !== 'Hourly' ||
-        rule.rate_basis === 'daily' ||
-        !rule.daily_guarantee_minutes
-      )
-        continue;
-      const key = `${rule.id}:${row.work_date}`;
-      const day = guaranteeDays.get(key) ?? { rule, actual: 0 };
-      day.actual += row.minutes;
-      guaranteeDays.set(key, day);
-    }
-    for (const { rule, actual } of guaranteeDays.values()) {
-      const topUp = Math.max(0, (rule.daily_guarantee_minutes ?? 0) - actual);
-      const current = byRule.get(rule.id);
-      if (current && topUp > 0)
-        current.amount += hourlyRateForMinutes(
-          money(rule.currency, BigInt(rule.rate_minor)),
-          topUp,
-        ).minorUnits;
-    }
-    const consolidated = new Map<
-      string,
-      {
-        rule: CompensationRuleRow;
-        sourceAmount: bigint;
-        amount: bigint;
-        currency: V3Currency;
-      }
-    >();
-    for (const [key, value] of byRule) {
-      const separator = key.indexOf(':');
-      const ruleId = separator >= 0 ? key.slice(0, separator) : key;
-      const existing = consolidated.get(ruleId);
-      if (existing) {
-        existing.sourceAmount += value.sourceAmount;
-        existing.amount += value.amount;
-      } else
-        consolidated.set(ruleId, {
-          rule: value.rule,
-          sourceAmount: value.sourceAmount,
-          amount: value.amount,
-          currency: value.currency,
-        });
-    }
-    if (consolidated.size === 0)
-      throw new V3ValidationError('No approved time is available to settle');
-    return this.transaction(() => {
+      if (consolidated.size === 0)
+        throw new V3ValidationError('No approved time is available to settle');
       const now = timestamp();
       const settlements = [] as Array<{
         id: string;
@@ -2234,7 +2327,8 @@ export class V3Repository {
       for (const [ruleId, value] of consolidated) {
         const existing = this.sqlite
           .prepare(
-            `SELECT id,source_basis,source_amount_minor,percentage_bps,amount_minor,currency,state
+            `SELECT id,source_basis,CAST(source_amount_minor AS TEXT) source_amount_minor,
+                      percentage_bps,CAST(amount_minor AS TEXT) amount_minor,currency,state
              FROM compensation_settlement
              WHERE worker_id=? AND project_id=? AND compensation_rule_id=? AND period_start=? AND period_end=?`,
           )
@@ -2242,9 +2336,9 @@ export class V3Repository {
           | {
               id: string;
               source_basis: string;
-              source_amount_minor: number;
+              source_amount_minor: string;
               percentage_bps: number | null;
-              amount_minor: number;
+              amount_minor: string;
               currency: V3Currency;
               state: string;
             }
@@ -2254,9 +2348,9 @@ export class V3Repository {
         if (existing?.state === 'settled') {
           const semanticallyIdentical =
             existing.source_basis === sourceBasis &&
-            String(existing.source_amount_minor) === value.sourceAmount.toString() &&
+            existing.source_amount_minor === value.sourceAmount.toString() &&
             existing.percentage_bps === percentageBps &&
-            String(existing.amount_minor) === value.amount.toString() &&
+            existing.amount_minor === value.amount.toString() &&
             existing.currency === value.currency;
           if (!semanticallyIdentical)
             throw new V3ConflictError(
@@ -2267,8 +2361,8 @@ export class V3Repository {
           settlements.push({
             id: existing.id,
             ruleId,
-            amountMinor: String(existing.amount_minor),
-            sourceAmountMinor: String(existing.source_amount_minor),
+            amountMinor: existing.amount_minor,
+            sourceAmountMinor: existing.source_amount_minor,
             currency: existing.currency,
             state: existing.state,
           });
@@ -2339,7 +2433,8 @@ export class V3Repository {
     if (basis === 'ISSUED_ELIGIBLE_LABOR' || basis === 'COLLECTED_ELIGIBLE_LABOR') {
       const invoiceRows = this.sqlite
         .prepare(
-          `SELECT i.id,i.total_minor,il.subtotal_minor line_subtotal
+          `SELECT i.id,CAST(i.total_minor AS TEXT) total_minor,
+                  CAST(il.subtotal_minor AS TEXT) line_subtotal
            FROM invoice_source s
            JOIN invoice i ON i.id=s.invoice_id
            JOIN invoice_line il ON il.invoice_id=i.id AND il.source_type='time' AND il.source_id=s.source_id
@@ -2348,24 +2443,18 @@ export class V3Repository {
         )
         .all(row.id) as Array<{
         id: string;
-        total_minor: number;
-        line_subtotal: number;
+        total_minor: string;
+        line_subtotal: string;
       }>;
       const issued = invoiceRows.reduce((sum, invoice) => sum + BigInt(invoice.line_subtotal), 0n);
       if (basis === 'ISSUED_ELIGIBLE_LABOR') return issued;
       return invoiceRows.reduce((sum, invoice) => {
-        if (invoice.total_minor <= 0) return sum;
+        const invoiceTotal = BigInt(invoice.total_minor);
+        if (invoiceTotal <= 0n) return sum;
         const netCollected = this.invoiceCollectionTotals(invoice.id).netCollected;
         if (netCollected <= 0n) return sum;
-        const collectionBasis =
-          netCollected > BigInt(invoice.total_minor) ? BigInt(invoice.total_minor) : netCollected;
-        return (
-          sum +
-          divideRounded(
-            BigInt(invoice.line_subtotal) * collectionBasis,
-            BigInt(invoice.total_minor),
-          )
-        );
+        const collectionBasis = netCollected > invoiceTotal ? invoiceTotal : netCollected;
+        return sum + divideRounded(BigInt(invoice.line_subtotal) * collectionBasis, invoiceTotal);
       }, 0n);
     }
     return direct;
@@ -2395,8 +2484,17 @@ export class V3Repository {
           `SELECT 1
            FROM invoice_source s
            JOIN payment p ON p.invoice_id=s.invoice_id
+           JOIN invoice i ON i.id=p.invoice_id
            WHERE s.source_type='time' AND s.source_id=?
-           LIMIT 1`,
+             AND p.tenant_id IS NOT NULL AND p.deployment_id IS NOT NULL
+             AND p.legal_entity_revision_id IS NOT NULL
+             AND p.payment_payload_hash IS NOT NULL AND p.command_id IS NOT NULL
+             AND p.payment_hash IS NOT NULL
+             AND p.tenant_id=i.tenant_id
+             AND p.deployment_id=i.deployment_id
+             AND p.legal_entity_revision_id=i.legal_entity_revision_id
+             AND p.currency=i.currency
+            LIMIT 1`,
         )
         .get(row.id),
     );
@@ -2436,7 +2534,8 @@ export class V3Repository {
     const rows = this.sqlite
       .prepare(
         `SELECT cs.id,cs.worker_id,cs.project_id,cs.period_start,cs.period_end,cs.source_basis,
-                cs.source_amount_minor,cs.percentage_bps,cs.amount_minor,cs.currency,cs.state,
+                CAST(cs.source_amount_minor AS TEXT) source_amount_minor,cs.percentage_bps,
+                CAST(cs.amount_minor AS TEXT) amount_minor,cs.currency,cs.state,
                 cs.settled_at,cs.expected_payment_on,p.project_number,p.name project_name,u.name worker_name
          FROM compensation_settlement cs
          JOIN project p ON p.id=cs.project_id
@@ -2538,7 +2637,9 @@ export class V3Repository {
     const rows = this.sqlite
       .prepare(
         `SELECT e.id,e.project_id,e.worker_id,e.spent_on,e.vendor,e.category,e.currency,
-                e.amount_minor,e.project_currency_amount_minor,e.reimbursement_amount_minor,
+                CAST(e.amount_minor AS TEXT) amount_minor,
+                CAST(e.project_currency_amount_minor AS TEXT) project_currency_amount_minor,
+                CAST(e.reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,
                 e.reimbursement_state,e.reimbursement_reference,p.project_number,p.name project_name,
                 p.currency project_currency,
                 u.name worker_name
@@ -2774,7 +2875,13 @@ export class V3Repository {
                      END AS TEXT) amount
          FROM expense e JOIN project p ON p.id=e.project_id
          WHERE e.worker_id=? AND e.spent_on BETWEEN ? AND ? AND e.who_paid='worker'
-           AND e.approval_state NOT IN ('rejected','void')`,
+           AND e.approval_state NOT IN ('rejected','void')
+           AND EXISTS (
+             SELECT 1 FROM project_member pm
+             WHERE pm.project_id=e.project_id AND pm.user_id=e.worker_id
+               AND pm.status='active' AND pm.starts_on<=e.spent_on
+               AND (pm.ends_on IS NULL OR pm.ends_on>=e.spent_on)
+           )`,
       )
       .all(principal.userId, periodStart, periodEnd) as Array<{
       approval_state: string;
@@ -2871,6 +2978,10 @@ export class V3Repository {
   ) {
     this.assertFinanceReadable(principal);
     this.assertProjectAccess(principal, projectId, true);
+    return this.projectFinanceCore(projectId, periodStart, periodEnd);
+  }
+
+  private projectFinanceCore(projectId: string, periodStart?: string, periodEnd?: string) {
     const project = this.sqlite
       .prepare(
         `SELECT client_id,currency,client_daily_minimum_minutes,revenue_budget_minor,po_cap_minor,
@@ -2945,11 +3056,15 @@ export class V3Repository {
     let standbyMinutes = 0;
     let travelMinutes = 0;
     let missingRates = 0;
+    const timeFinanceReasons: Array<{ code: string; sourceId: string }> = [];
     let unapprovedWip = 0n;
     const economics: Array<Record<string, OutputValue>> = [];
     const approvedUnbilledSources: Array<Record<string, unknown>> = [];
     const approvedCommerciallyBillableSourceIds = new Set<string>();
-    const dailyBillable = new Map<string, { minutes: number; rate: bigint }>();
+    const dailyBillable = new Map<
+      string,
+      { workerId: string; workDate: string; minutes: number; rate: bigint }
+    >();
     const dailyMinimumAdjustments: Array<Record<string, unknown>> = [];
     for (const row of time) {
       const policy = policyByDate.get(row.work_date) ?? null;
@@ -3189,17 +3304,29 @@ export class V3Repository {
         billableMinutes += sourceBillableMinutes;
         const firstPriced = pricedClientSlices.find((slice) => slice.rateMinor !== null);
         if (firstPriced?.rateMinor !== null && firstPriced?.rateMinor !== undefined) {
-          const daily = dailyBillable.get(row.work_date) ?? {
+          const workerDayKey = `${row.worker_id}:${row.work_date}`;
+          const daily = dailyBillable.get(workerDayKey) ?? {
+            workerId: row.worker_id,
+            workDate: row.work_date,
             minutes: 0,
             rate: firstPriced.rateMinor,
           };
           daily.minutes += sourceBillableMinutes;
-          dailyBillable.set(row.work_date, daily);
+          dailyBillable.set(workerDayKey, daily);
         }
       }
-      if (!allBillableSlicesPriced) missingRates += 1;
-      if (!allInternalRatesConfigured) missingRates += 1;
-      if (!allCompensationRulesConfigured) missingRates += 1;
+      if (!allBillableSlicesPriced) {
+        missingRates += 1;
+        timeFinanceReasons.push({ code: 'missing_client_rate', sourceId: row.id });
+      }
+      if (!allInternalRatesConfigured) {
+        missingRates += 1;
+        timeFinanceReasons.push({ code: 'missing_internal_cost', sourceId: row.id });
+      }
+      if (!allCompensationRulesConfigured) {
+        missingRates += 1;
+        timeFinanceReasons.push({ code: 'missing_compensation_rule', sourceId: row.id });
+      }
       laborRevenue += revenue;
       laborCost += cost;
       workerCompensation += compensation;
@@ -3247,7 +3374,7 @@ export class V3Repository {
     }
     let dailyMinimumTopUp = 0n;
     if (project.client_daily_minimum_minutes !== null) {
-      for (const [workDate, daily] of dailyBillable.entries()) {
+      for (const daily of dailyBillable.values()) {
         const billable = billableMinutesForDailyMinimum(
           daily.minutes,
           project.client_daily_minimum_minutes,
@@ -3260,11 +3387,13 @@ export class V3Repository {
           ).minorUnits;
           dailyMinimumTopUp += topUpMinor;
           dailyMinimumAdjustments.push({
-            workDate,
+            workerId: daily.workerId,
+            workDate: daily.workDate,
             sourceTimeIds: time
               .filter(
                 (row) =>
-                  row.work_date === workDate &&
+                  row.worker_id === daily.workerId &&
+                  row.work_date === daily.workDate &&
                   (row.approval_state === 'approved' || row.approval_state === 'locked') &&
                   approvedCommerciallyBillableSourceIds.has(row.id),
               )
@@ -3276,7 +3405,8 @@ export class V3Repository {
           });
           const allSourceTimeRows = time.filter(
             (row) =>
-              row.work_date === workDate &&
+              row.worker_id === daily.workerId &&
+              row.work_date === daily.workDate &&
               (row.approval_state === 'approved' || row.approval_state === 'locked') &&
               approvedCommerciallyBillableSourceIds.has(row.id),
           );
@@ -3290,10 +3420,11 @@ export class V3Repository {
           if (sourceTimeIds.length > 0 && sourceTimeIds.length === allSourceTimeRows.length)
             approvedUnbilledSources.push({
               sourceType: 'minimum_top_up',
-              sourceId: `daily-minimum:${projectId}:${workDate}`,
+              sourceId: `daily-minimum:${projectId}:${daily.workerId}:${daily.workDate}`,
               sourceVersion: 1,
               amountMinor: topUpMinor.toString(),
-              workDate,
+              workerId: daily.workerId,
+              workDate: daily.workDate,
               sourceTimeIds,
             });
           billableMinutes += topUp;
@@ -3303,10 +3434,16 @@ export class V3Repository {
     }
     const expenses = this.sqlite
       .prepare(
-        `SELECT id,spent_on,worker_id,category,currency,amount_minor,project_currency_amount_minor,who_paid,
-                client_treatment,billing_treatment,billing_amount_minor,approval_state,
-                finance_approved_at,invoice_id,version,commercial_classification_state
-         FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND approval_state NOT IN ('rejected','void')`,
+        `SELECT e.id,e.spent_on,e.worker_id,e.category,e.currency,
+                CAST(e.amount_minor AS TEXT) amount_minor,
+                CAST(e.project_currency_amount_minor AS TEXT) project_currency_amount_minor,
+                e.who_paid,e.client_treatment,e.billing_treatment,
+                CAST(e.billing_amount_minor AS TEXT) billing_amount_minor,
+                e.approval_state,e.finance_approved_at,e.invoice_id,e.version,
+                e.commercial_classification_state,u.name worker_name
+         FROM expense e JOIN user u ON u.id=e.worker_id
+         WHERE e.project_id=? AND e.spent_on BETWEEN ? AND ?
+           AND e.approval_state NOT IN ('rejected','void')`,
       )
       .all(projectId, start, end) as Array<{
       id: string;
@@ -3314,17 +3451,18 @@ export class V3Repository {
       worker_id: string;
       category: string;
       currency: string;
-      amount_minor: number;
-      project_currency_amount_minor: number | null;
+      amount_minor: string;
+      project_currency_amount_minor: string | null;
       who_paid: string;
       client_treatment: string;
       billing_treatment: string;
-      billing_amount_minor: number | null;
+      billing_amount_minor: string | null;
       approval_state: string;
       finance_approved_at: string | null;
       invoice_id: string | null;
       version: number;
       commercial_classification_state: string;
+      worker_name: string;
     }>;
     let expenseCost = 0n;
     let expenseRevenue = 0n;
@@ -3383,6 +3521,7 @@ export class V3Repository {
         expenseEconomics.push({
           id: expense.id,
           workerId: expense.worker_id,
+          workerName: expense.worker_name,
           spentOn: expense.spent_on,
           category: expense.category,
           approvalState: expense.approval_state,
@@ -3427,6 +3566,7 @@ export class V3Repository {
       expenseEconomics.push({
         id: expense.id,
         workerId: expense.worker_id,
+        workerName: expense.worker_name,
         spentOn: expense.spent_on,
         category: expense.category,
         approvalState: expense.approval_state,
@@ -3442,14 +3582,14 @@ export class V3Repository {
     }
     const milestoneRows = this.sqlite
       .prepare(
-        `SELECT id,amount_minor,currency,approval_state,invoice_id,due_on
+        `SELECT id,CAST(amount_minor AS TEXT) amount_minor,currency,approval_state,invoice_id,due_on
          FROM project_milestone
          WHERE project_id=? AND approval_state IN ('approved','final')
            AND (? IS NULL OR due_on IS NULL OR due_on BETWEEN ? AND ?)`,
       )
       .all(projectId, periodStart ?? null, periodStart ?? null, periodEnd ?? null) as Array<{
       id: string;
-      amount_minor: number;
+      amount_minor: string;
       currency: V3Currency;
       approval_state: string;
       invoice_id: string | null;
@@ -3470,13 +3610,20 @@ export class V3Repository {
     }
     const invoicePeriodFilter =
       periodStart && periodEnd ? ' AND i.period_end>=? AND i.period_start<=?' : '';
+    const invoiceAsOf = periodEnd ? `${periodEnd}T23:59:59.999Z` : timestamp();
+    const invoiceAsOfFilter = periodEnd
+      ? ' AND COALESCE(i.issued_at,i.created_at)<=? AND (i.voided_at IS NULL OR i.voided_at>?)'
+      : '';
     const invoiceValues: DbValue[] = [projectId];
     if (periodStart && periodEnd) invoiceValues.push(periodStart, periodEnd);
+    if (periodEnd) invoiceValues.push(invoiceAsOf, invoiceAsOf);
     const activeInvoiceRows = this.sqlite
       .prepare(
         `SELECT i.id,CAST(i.subtotal_minor AS TEXT) subtotal,CAST(i.total_minor AS TEXT) total
          FROM invoice i
-         WHERE i.project_id=? AND i.state IN ('issued','sent','partially_paid','paid','overdue')${invoicePeriodFilter}`,
+         WHERE i.project_id=?
+           AND i.state IN ('issued','sent','partially_paid','paid','overdue'${periodEnd ? ",'void'" : ''})
+           ${invoicePeriodFilter}${invoiceAsOfFilter}`,
       )
       .all(...invoiceValues) as Array<{ id: string; subtotal: string; total: string }>;
     const invoicedSubtotal = activeInvoiceRows.reduce(
@@ -3488,7 +3635,7 @@ export class V3Repository {
       0n,
     );
     const collected = activeInvoiceRows.reduce(
-      (sum, invoice) => sum + this.invoiceCollectionTotals(invoice.id).netCollected,
+      (sum, invoice) => sum + this.invoiceCollectionTotals(invoice.id, invoiceAsOf).netCollected,
       0n,
     );
     const operationalRevenue = laborRevenue + expenseRevenue + milestoneRevenue;
@@ -3658,8 +3805,9 @@ export class V3Repository {
     if (missingRates > 0) alerts.push('MISSING_RATE');
     if (expenseFinanceReasons.length > 0) alerts.push('MISSING_EXPENSE_FINANCE_PROJECTION');
     return {
-      state: expenseFinanceReasons.length > 0 ? 'incomplete' : 'ready',
-      reasons: expenseFinanceReasons,
+      state:
+        timeFinanceReasons.length > 0 || expenseFinanceReasons.length > 0 ? 'incomplete' : 'ready',
+      reasons: [...timeFinanceReasons, ...expenseFinanceReasons],
       currency: project.currency,
       billingModel: project.billing_model,
       fixedPriceMinor:
@@ -3907,8 +4055,18 @@ export class V3Repository {
         if (!['approved', 'locked'].includes(String(row.approvalState))) continue;
         const workerId = String(row.workerId ?? '');
         const workerKey = `${workerId}:${project.currency}`;
-        const worker = byWorker.get(workerKey);
-        if (!worker) continue;
+        const worker = byWorker.get(workerKey) ?? {
+          workerId,
+          workerName: String(row.workerName ?? workerId),
+          currency: project.currency,
+          actualMinutes: 0,
+          billableMinutes: 0,
+          revenue: 0n,
+          internalCost: 0n,
+          compensation: 0n,
+          travelCost: 0n,
+          expenseCost: 0n,
+        };
         const expense = toBigInt(row.costMinor);
         worker.expenseCost += expense;
         if (
@@ -3925,6 +4083,7 @@ export class V3Repository {
           ].includes(String(row.category))
         )
           worker.travelCost += expense;
+        byWorker.set(workerKey, worker);
       }
     }
     const serialize = (row: Record<string, unknown>): Record<string, unknown> =>
@@ -4047,10 +4206,13 @@ export class V3Repository {
       clauses.push('i.state=?');
       values.push(filters.state);
     }
+    const collectionAsOf = filters.end ? `${filters.end}T23:59:59.999Z` : timestamp();
     const invoices = this.sqlite
       .prepare(
         `SELECT i.id,i.invoice_number,i.project_id,i.stream_type,i.currency,i.period_start,i.period_end,
-                i.issued_at,i.due_at,i.subtotal_minor,i.tax_minor,i.total_minor,i.state,
+                i.issued_at,i.due_at,CAST(i.subtotal_minor AS TEXT) subtotal_minor,
+                CAST(i.tax_minor AS TEXT) tax_minor,CAST(i.total_minor AS TEXT) total_minor,
+                i.state,i.voided_at,i.version,i.legal_entity_revision_id,br.legal_entity_id,
                 p.project_number,p.name project_name,c.client_number,c.display_name client_name,
                 p.po_number
          FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id
@@ -4067,10 +4229,14 @@ export class V3Repository {
       period_end: string | null;
       issued_at: string | null;
       due_at: string | null;
-      subtotal_minor: number;
-      tax_minor: number;
-      total_minor: number;
+      subtotal_minor: string;
+      tax_minor: string;
+      total_minor: string;
       state: string;
+      voided_at: string | null;
+      version: number;
+      legal_entity_revision_id: string | null;
+      legal_entity_id: string;
       project_number: string;
       project_name: string;
       client_number: string;
@@ -4080,25 +4246,27 @@ export class V3Repository {
     return invoices.map((invoice) => {
       const paymentRows = this.sqlite
         .prepare(
-          'SELECT id,amount_minor,currency,received_at,reference FROM payment WHERE invoice_id=? ORDER BY received_at',
+          `SELECT id,CAST(amount_minor AS TEXT) amount_minor,currency,received_at,reference FROM payment
+           WHERE invoice_id=? AND received_at<=? ORDER BY received_at,id`,
         )
-        .all(invoice.id) as Array<{
+        .all(invoice.id, collectionAsOf) as Array<{
         id: string;
-        amount_minor: number;
+        amount_minor: string;
         currency: V3Currency;
         received_at: string;
         reference: string | null;
       }>;
       const reversalRows = this.sqlite
         .prepare(
-          `SELECT id,original_payment_id,amount_minor,currency,effective_at,reason_code,reason_text,
+          `SELECT id,original_payment_id,CAST(amount_minor AS TEXT) amount_minor,currency,effective_at,reason_code,reason_text,
                   command_id,reversal_hash
-           FROM invoice_payment_reversal_event WHERE invoice_id=? ORDER BY effective_at,id`,
+           FROM invoice_payment_reversal_event
+           WHERE invoice_id=? AND effective_at<=? ORDER BY effective_at,id`,
         )
-        .all(invoice.id) as Array<{
+        .all(invoice.id, collectionAsOf) as Array<{
         id: string;
         original_payment_id: string;
-        amount_minor: number;
+        amount_minor: string;
         currency: V3Currency;
         effective_at: string;
         reason_code: string;
@@ -4137,7 +4305,9 @@ export class V3Repository {
       const sources = this.sqlite
         .prepare(
           `SELECT source_type,source_id,source_version,locked_at,source_hash,
-                  allocated_net_minor,allocated_tax_minor,allocated_gross_minor
+                  CAST(allocated_net_minor AS TEXT) allocated_net_minor,
+                  CAST(allocated_tax_minor AS TEXT) allocated_tax_minor,
+                  CAST(allocated_gross_minor AS TEXT) allocated_gross_minor
            FROM invoice_source WHERE invoice_id=? ORDER BY source_type,source_id`,
         )
         .all(invoice.id) as Array<{
@@ -4146,9 +4316,9 @@ export class V3Repository {
         source_version: number;
         locked_at: string | null;
         source_hash: string | null;
-        allocated_net_minor: number | null;
-        allocated_tax_minor: number | null;
-        allocated_gross_minor: number | null;
+        allocated_net_minor: string | null;
+        allocated_tax_minor: string | null;
+        allocated_gross_minor: string | null;
       }>;
       let directLabor = 0n;
       let travel = 0n;
@@ -4174,7 +4344,7 @@ export class V3Repository {
         }>;
         const frozenSnapshot = this.sqlite
           .prepare(
-            `SELECT amount_minor FROM finance_internal_cost_snapshot
+            `SELECT CAST(amount_minor AS TEXT) amount_minor FROM finance_internal_cost_snapshot
              WHERE source_kind=? AND source_id=? AND source_version=? AND currency=?
                AND (? IS NULL OR source_hash=?)
              ORDER BY created_at DESC LIMIT 1`,
@@ -4186,7 +4356,7 @@ export class V3Repository {
             invoice.currency,
             source.source_hash,
             source.source_hash,
-          ) as { amount_minor: number } | undefined;
+          ) as { amount_minor: string } | undefined;
         const frozenDirectCost =
           frozenEventRows.length > 0
             ? frozenEventRows.reduce(
@@ -4222,14 +4392,17 @@ export class V3Repository {
         } else if (source.source_type === 'expense') {
           const row = this.sqlite
             .prepare(
-              'SELECT worker_id,category,amount_minor,project_currency_amount_minor,who_paid,billing_treatment FROM expense WHERE id=?',
+              `SELECT worker_id,category,currency,CAST(amount_minor AS TEXT) amount_minor,
+                      CAST(project_currency_amount_minor AS TEXT) project_currency_amount_minor,
+                      who_paid,billing_treatment FROM expense WHERE id=?`,
             )
             .get(source.source_id) as
             | {
                 worker_id: string;
                 category: string;
-                amount_minor: number;
-                project_currency_amount_minor: number | null;
+                currency: V3Currency;
+                amount_minor: string;
+                project_currency_amount_minor: string | null;
                 who_paid: string;
                 billing_treatment: string;
               }
@@ -4240,6 +4413,14 @@ export class V3Repository {
             // Issued invoice source triggers freeze these expense fields.  V2
             // direct-cost evidence takes precedence when present; this legacy
             // fallback is therefore historical source truth, never a live rate.
+            if (
+              frozenDirectCost === null &&
+              row.currency !== invoice.currency &&
+              row.project_currency_amount_minor === null
+            ) {
+              directCostMissingSourceIds.push(source.source_id);
+              continue;
+            }
             const amount =
               frozenDirectCost ?? BigInt(row.project_currency_amount_minor ?? row.amount_minor);
             if (
@@ -4282,13 +4463,16 @@ export class V3Repository {
         0n,
       );
       const netCollected = grossPayments - reversed;
-      const collected = invoice.state === 'void' ? 0n : netCollected;
-      const outstanding = invoice.state === 'void' ? 0n : BigInt(invoice.total_minor) - collected;
+      const voidAsOf = invoice.voided_at !== null && invoice.voided_at <= collectionAsOf;
+      const collected = voidAsOf ? 0n : netCollected;
+      const outstanding = voidAsOf ? 0n : BigInt(invoice.total_minor) - collected;
       const contribution = BigInt(invoice.subtotal_minor) - directCost;
       const directCostComplete = directCostMissingSourceIds.length === 0;
       return {
         invoiceId: invoice.id,
         invoiceNumber: invoice.invoice_number,
+        legalEntityId: invoice.legal_entity_id,
+        legalEntityRevisionId: invoice.legal_entity_revision_id,
         clientNumber: invoice.client_number,
         clientName: invoice.client_name,
         projectNumber: invoice.project_number,
@@ -4302,6 +4486,7 @@ export class V3Repository {
         subtotalMinor: String(invoice.subtotal_minor),
         taxMinor: String(invoice.tax_minor),
         totalMinor: String(invoice.total_minor),
+        version: invoice.version,
         directLaborCostMinor: directLabor.toString(),
         travelCostMinor: travel.toString(),
         otherDirectCostMinor: other.toString(),
@@ -4312,7 +4497,7 @@ export class V3Repository {
         contributionMinor: directCostComplete ? contribution.toString() : null,
         contributionMarginBps: !directCostComplete
           ? null
-          : invoice.subtotal_minor === 0
+          : BigInt(invoice.subtotal_minor) === 0n
             ? '0'
             : divideRounded(contribution * 10_000n, BigInt(invoice.subtotal_minor)).toString(),
         grossPaymentsMinor: grossPayments.toString(),
@@ -4323,17 +4508,24 @@ export class V3Repository {
         firstPaymentDate,
         lastPaymentDate,
         paidAt,
-        paymentStatus:
-          invoice.state === 'void'
-            ? 'void'
-            : outstanding <= 0n
-              ? 'paid'
-              : collected > 0n
-                ? 'partially_paid'
-                : invoice.state === 'overdue'
-                  ? 'overdue'
-                  : 'unpaid',
-        billingStatus: invoice.state,
+        paymentStatus: voidAsOf
+          ? 'void'
+          : outstanding <= 0n
+            ? 'paid'
+            : collected > 0n
+              ? 'partially_paid'
+              : invoice.state === 'overdue'
+                ? 'overdue'
+                : 'unpaid',
+        billingStatus: voidAsOf
+          ? 'void'
+          : outstanding <= 0n
+            ? 'paid'
+            : collected > 0n
+              ? 'partially_paid'
+              : invoice.due_at !== null && invoice.due_at.slice(0, 10) < collectionAsOf.slice(0, 10)
+                ? 'overdue'
+                : 'issued',
         poNumber: invoice.po_number,
         workerIds: [...workers],
         payments,
@@ -4353,25 +4545,187 @@ export class V3Repository {
     });
   }
 
+  /**
+   * Materialize the point-in-time direct cost used by an issued invoice.
+   * This is deliberately invoked before the approved -> issued transition so
+   * the source hash and version are still the reviewed draft authority.  The
+   * immutable snapshot prevents later rate/configuration edits from changing
+   * historical invoice contribution.
+   */
+  freezeInvoiceDirectCosts(
+    invoiceId: string,
+    legalEntityRevisionId: string | null,
+    createdAt: string,
+  ): void {
+    const deployment = this.sqlite
+      .prepare('SELECT tenant_id,deployment_id FROM deployment_identity WHERE singleton=1')
+      .get() as { tenant_id: string; deployment_id: string } | undefined;
+    if (!deployment) throw new V3ConflictError('Deployment identity is not configured');
+    const invoice = this.sqlite
+      .prepare("SELECT project_id,currency FROM invoice WHERE id=? AND state='approved'")
+      .get(invoiceId) as { project_id: string; currency: V3Currency } | undefined;
+    if (!invoice) throw new V3ConflictError('Approved invoice is required to freeze direct costs');
+    const sources = this.sqlite
+      .prepare(
+        `SELECT source_type,source_id,source_version,source_hash
+           FROM invoice_source WHERE invoice_id=? ORDER BY source_type,source_id`,
+      )
+      .all(invoiceId) as Array<{
+      source_type: string;
+      source_id: string;
+      source_version: number;
+      source_hash: string | null;
+    }>;
+    for (const source of sources) {
+      if (!source.source_hash || !['time', 'expense'].includes(source.source_type)) continue;
+      let amount: bigint | null = null;
+      let effectiveAt: string | null = null;
+      if (source.source_type === 'time') {
+        const row = this.sqlite
+          .prepare(
+            `SELECT worker_id,category,activity_code,work_date,minutes
+               FROM time_entry WHERE id=? AND version=? AND project_id=?`,
+          )
+          .get(source.source_id, source.source_version, invoice.project_id) as
+          | {
+              worker_id: string;
+              category: string;
+              activity_code: string | null;
+              work_date: string;
+              minutes: number;
+            }
+          | undefined;
+        if (row) {
+          const rate = this.internalCostFor(
+            invoice.project_id,
+            row.worker_id,
+            row.category,
+            row.work_date,
+            row.activity_code,
+          );
+          if (rate && rate.currency === invoice.currency)
+            amount = hourlyRateForMinutes(
+              money(invoice.currency, this.internalCostAmount(row, rate)),
+              row.minutes,
+            ).minorUnits;
+          effectiveAt = `${row.work_date}T00:00:00.000Z`;
+        }
+      } else {
+        const row = this.sqlite
+          .prepare(
+            `SELECT spent_on,currency,CAST(amount_minor AS TEXT) amount_minor,
+                    CAST(project_currency_amount_minor AS TEXT) project_currency_amount_minor,
+                    who_paid,billing_treatment
+               FROM expense WHERE id=? AND version=? AND project_id=?`,
+          )
+          .get(source.source_id, source.source_version, invoice.project_id) as
+          | {
+              spent_on: string;
+              currency: V3Currency;
+              amount_minor: string;
+              project_currency_amount_minor: string | null;
+              who_paid: string;
+              billing_treatment: string;
+            }
+          | undefined;
+        if (row) {
+          if (row.who_paid === 'client' || row.billing_treatment === 'client_direct') amount = 0n;
+          else if (row.project_currency_amount_minor !== null)
+            amount = BigInt(row.project_currency_amount_minor);
+          else if (row.currency === invoice.currency) amount = BigInt(row.amount_minor);
+          effectiveAt = `${row.spent_on}T00:00:00.000Z`;
+        }
+      }
+      if (amount === null || effectiveAt === null) continue;
+      const snapshotId = `finance-cost-snapshot-${canonicalSha256(
+        canonicalJson({
+          invoiceId,
+          sourceKind: source.source_type,
+          sourceId: source.source_id,
+          sourceVersion: source.source_version,
+          sourceHash: source.source_hash,
+          currency: invoice.currency,
+          amountMinor: amount.toString(),
+        }),
+      ).slice(0, 48)}`;
+      const existing = this.sqlite
+        .prepare(
+          `SELECT CAST(amount_minor AS TEXT) amount_minor,project_id,legal_entity_revision_id,
+                  currency,effective_at
+             FROM finance_internal_cost_snapshot WHERE snapshot_id=?`,
+        )
+        .get(snapshotId) as
+        | {
+            amount_minor: string;
+            project_id: string;
+            legal_entity_revision_id: string | null;
+            currency: string;
+            effective_at: string;
+          }
+        | undefined;
+      if (existing) {
+        if (
+          existing.amount_minor !== amount.toString() ||
+          existing.project_id !== invoice.project_id ||
+          existing.legal_entity_revision_id !== legalEntityRevisionId ||
+          existing.currency !== invoice.currency ||
+          existing.effective_at !== effectiveAt
+        )
+          throw new V3ConflictError('Invoice direct-cost snapshot identity conflict');
+        continue;
+      }
+      this.sqlite
+        .prepare(
+          `INSERT INTO finance_internal_cost_snapshot(
+             snapshot_id,tenant_id,deployment_id,project_id,legal_entity_revision_id,
+             source_kind,source_id,source_version,source_hash,currency,amount_minor,effective_at,created_at
+           ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          snapshotId,
+          deployment.tenant_id,
+          deployment.deployment_id,
+          invoice.project_id,
+          legalEntityRevisionId,
+          source.source_type,
+          source.source_id,
+          source.source_version,
+          source.source_hash,
+          invoice.currency,
+          amount,
+          effectiveAt,
+          createdAt,
+        );
+    }
+  }
+
   private invoiceCollectionTotals(
     invoiceId: string,
     effectiveAt = timestamp(),
   ): { netCollected: bigint; outstanding: bigint; state: string } {
     const invoice = this.sqlite
-      .prepare('SELECT total_minor,due_at,state FROM invoice WHERE id=?')
-      .get(invoiceId) as { total_minor: number; due_at: string | null; state: string } | undefined;
+      .prepare(
+        'SELECT CAST(total_minor AS TEXT) total_minor,due_at,state,voided_at FROM invoice WHERE id=?',
+      )
+      .get(invoiceId) as
+      | { total_minor: string; due_at: string | null; state: string; voided_at: string | null }
+      | undefined;
     if (!invoice) throw new V3ValidationError('Invoice not found');
-    if (invoice.state === 'void') return { netCollected: 0n, outstanding: 0n, state: 'void' };
+    if (invoice.voided_at !== null && invoice.voided_at <= effectiveAt)
+      return { netCollected: 0n, outstanding: 0n, state: 'void' };
     const paymentRows = this.sqlite
       .prepare(
-        'SELECT CAST(amount_minor AS TEXT) amount FROM payment WHERE invoice_id=? ORDER BY id',
+        `SELECT CAST(amount_minor AS TEXT) amount
+         FROM payment WHERE invoice_id=? AND received_at<=? ORDER BY received_at,id`,
       )
-      .all(invoiceId) as Array<{ amount: string }>;
+      .all(invoiceId, effectiveAt) as Array<{ amount: string }>;
     const reversalRows = this.sqlite
       .prepare(
-        'SELECT CAST(amount_minor AS TEXT) amount FROM invoice_payment_reversal_event WHERE invoice_id=? ORDER BY id',
+        `SELECT CAST(amount_minor AS TEXT) amount
+         FROM invoice_payment_reversal_event
+         WHERE invoice_id=? AND effective_at<=? ORDER BY effective_at,id`,
       )
-      .all(invoiceId) as Array<{ amount: string }>;
+      .all(invoiceId, effectiveAt) as Array<{ amount: string }>;
     const grossCollected = paymentRows.reduce((sum, row) => sum + BigInt(row.amount), 0n);
     const reversed = reversalRows.reduce((sum, row) => sum + BigInt(row.amount), 0n);
     const netCollected = grossCollected - reversed;
@@ -4383,9 +4737,9 @@ export class V3Repository {
     if (netCollected === 0n) {
       const sent = this.sqlite
         .prepare(
-          "SELECT 1 present FROM invoice_event WHERE invoice_id=? AND event_type='sent' LIMIT 1",
+          "SELECT 1 present FROM invoice_event WHERE invoice_id=? AND event_type='sent' AND occurred_at<=? LIMIT 1",
         )
-        .get(invoiceId) as { present: number } | undefined;
+        .get(invoiceId, effectiveAt) as { present: number } | undefined;
       const overdue =
         invoice.due_at !== null && invoice.due_at.slice(0, 10) < effectiveAt.slice(0, 10);
       return { netCollected, outstanding, state: overdue ? 'overdue' : sent ? 'sent' : 'issued' };
@@ -4393,6 +4747,27 @@ export class V3Repository {
     const overdue =
       invoice.due_at !== null && invoice.due_at.slice(0, 10) < effectiveAt.slice(0, 10);
     return { netCollected, outstanding, state: overdue ? 'overdue' : 'partially_paid' };
+  }
+
+  /**
+   * Enforces command invariants across all booked events, including future
+   * events. Historical views and lifecycle state use invoiceCollectionTotals
+   * with an explicit as-of timestamp instead.
+   */
+  private invoiceBookedCollectionBalance(invoiceId: string): bigint {
+    const payments = (
+      this.sqlite
+        .prepare('SELECT CAST(amount_minor AS TEXT) amount FROM payment WHERE invoice_id=?')
+        .all(invoiceId) as Array<{ amount: string }>
+    ).reduce((sum, row) => sum + BigInt(row.amount), 0n);
+    const reversals = (
+      this.sqlite
+        .prepare(
+          'SELECT CAST(amount_minor AS TEXT) amount FROM invoice_payment_reversal_event WHERE invoice_id=?',
+        )
+        .all(invoiceId) as Array<{ amount: string }>
+    ).reduce((sum, row) => sum + BigInt(row.amount), 0n);
+    return payments - reversals;
   }
 
   recordPayment(
@@ -4410,7 +4785,7 @@ export class V3Repository {
     this.assertStepUp(principal);
     if (input.amountMinor <= 0n) throw new V3ValidationError('Payment must be positive');
     sqliteInteger(input.amountMinor, 'Payment');
-    requireDateTime(input.receivedAt, 'Payment received date');
+    const receivedAt = canonicalUtcTimestamp(input.receivedAt, 'Payment received date');
     const reference = input.reference?.trim() || null;
     if (reference !== null && reference.length > 200)
       throw new V3ValidationError('Payment reference is too long');
@@ -4420,64 +4795,189 @@ export class V3Repository {
     return this.transaction(() => {
       const duplicate = this.sqlite
         .prepare(
-          'SELECT id,invoice_id,amount_minor,currency,received_at,reference FROM payment WHERE idempotency_key=?',
+          `SELECT id,invoice_id,CAST(amount_minor AS TEXT) amount_minor,currency,received_at,reference,
+                  tenant_id,deployment_id,legal_entity_revision_id,command_id,payment_hash
+             FROM payment WHERE idempotency_key=?`,
         )
         .get(idempotencyKey) as
         | {
             id: string;
             invoice_id: string;
-            amount_minor: number;
+            amount_minor: string;
             currency: V3Currency;
             received_at: string;
             reference: string | null;
+            tenant_id: string | null;
+            deployment_id: string | null;
+            legal_entity_revision_id: string | null;
+            command_id: string | null;
+            payment_hash: string | null;
           }
         | undefined;
       if (duplicate) {
         if (
           duplicate.invoice_id !== input.invoiceId ||
-          duplicate.amount_minor !== sqliteInteger(input.amountMinor, 'Payment') ||
+          duplicate.amount_minor !== input.amountMinor.toString() ||
           duplicate.currency !== input.currency ||
-          duplicate.received_at !== input.receivedAt ||
+          duplicate.received_at !== receivedAt ||
           duplicate.reference !== reference
         )
           throw new V3ConflictError('Payment idempotency key was already used for another payment');
+        if (
+          !duplicate.tenant_id ||
+          !duplicate.deployment_id ||
+          !duplicate.legal_entity_revision_id ||
+          !duplicate.command_id ||
+          !duplicate.payment_hash
+        )
+          throw new V3ConflictError('Legacy payment truth lacks canonical finance provenance');
         return { id: duplicate.id, created: false };
       }
       const invoice = this.sqlite
         .prepare(
-          "SELECT id,total_minor,currency,state FROM invoice WHERE id=? AND state IN ('issued','sent','partially_paid','overdue')",
+          `SELECT id,CAST(total_minor AS TEXT) total_minor,currency,state,issued_at,
+                  tenant_id,deployment_id,legal_entity_revision_id
+             FROM invoice WHERE id=? AND state IN ('issued','sent','partially_paid','overdue')`,
         )
         .get(input.invoiceId) as
-        | { id: string; total_minor: number; currency: V3Currency; state: string }
+        | {
+            id: string;
+            total_minor: string;
+            currency: V3Currency;
+            state: string;
+            issued_at: string | null;
+            tenant_id: string | null;
+            deployment_id: string | null;
+            legal_entity_revision_id: string | null;
+          }
         | undefined;
       if (!invoice || invoice.currency !== input.currency)
         throw new V3ValidationError('Issued invoice in matching currency required');
-      const netPaidBefore = this.invoiceCollectionTotals(
-        input.invoiceId,
-        input.receivedAt,
-      ).netCollected;
+      if (!invoice.issued_at)
+        throw new V3ConflictError('Issued invoice is missing its immutable issue timestamp');
+      if (!invoice.tenant_id || !invoice.deployment_id || !invoice.legal_entity_revision_id)
+        throw new V3ConflictError('Issued invoice lacks canonical legal-entity provenance');
+      const issuedAt = canonicalUtcTimestamp(invoice.issued_at, 'Invoice issue date');
+      if (receivedAt < issuedAt)
+        throw new V3ValidationError(
+          'Payment received date cannot be before the invoice was issued',
+        );
+      const now = timestamp();
+      if (receivedAt > now)
+        throw new V3ValidationError('Payment received date cannot be in the future');
+      const netPaidBefore = this.invoiceBookedCollectionBalance(input.invoiceId);
       if (netPaidBefore + input.amountMinor > BigInt(invoice.total_minor))
         throw new V3ValidationError('Payment exceeds invoice balance');
       const id = newId();
-      const now = timestamp();
+      const stepUp = readLiveSessionStepUp(this.sqlite, principal);
+      const commandPayload = {
+        schema_version: 'invoice-payment-record-v1',
+        payment_id: id,
+        invoice_id: input.invoiceId,
+        legal_entity_revision_id: invoice.legal_entity_revision_id,
+        amount_minor: input.amountMinor.toString(),
+        currency: input.currency,
+        received_at: receivedAt,
+        reference,
+      };
+      const command = ensureCommand(
+        this.sqlite,
+        { tenantId: invoice.tenant_id, deploymentId: invoice.deployment_id },
+        principal,
+        {
+          operation: 'payment.record',
+          targetKind: 'payment',
+          targetSemanticId: `payment:${input.invoiceId}:${canonicalSha256(idempotencyKey)}`,
+          targetContractVersion: 'invoice-payment-record-v1',
+          idempotencyKey,
+          effectiveAt: receivedAt,
+          currency: input.currency,
+          amountMinor: input.amountMinor,
+          payload: commandPayload,
+          createdAt: now,
+          contractVersion: 'invoice-payment-command-v1',
+          evidenceNamespace: 'invoice-payment',
+          evidenceIdPrefix: 'payment',
+          commandIdPrefix: 'payment-command',
+          stepUpVerifiedAt: stepUp?.verifiedAt ?? null,
+          stepUpExpiresAt: stepUp?.expiresAt ?? null,
+        },
+        (message) => {
+          throw new V3ConflictError(message);
+        },
+      );
+      const prior = this.sqlite
+        .prepare(
+          'SELECT payment_hash FROM payment WHERE invoice_id=? AND payment_hash IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1',
+        )
+        .get(input.invoiceId) as { payment_hash: string } | undefined;
+      const paymentEvidence = this.ensureFinanceEvidence(
+        'payment_record',
+        'invoice-payment-record-v1',
+        `payment:${id}`,
+        {
+          ...commandPayload,
+          command_id: command.commandId,
+          prior_payment_hash: prior?.payment_hash ?? null,
+        },
+        now,
+      );
+      const paymentHash = canonicalSha256(
+        canonicalJson({
+          schema_version: 'invoice-payment-chain-v1',
+          payload_hash: paymentEvidence.hash,
+          prior_payment_hash: prior?.payment_hash ?? null,
+        }),
+      );
       this.sqlite
         .prepare(
-          'INSERT INTO payment(id,invoice_id,amount_minor,currency,received_at,reference,created_at,idempotency_key) VALUES(?,?,?,?,?,?,?,?)',
+          `INSERT INTO payment(
+             id,invoice_id,amount_minor,currency,received_at,reference,created_at,idempotency_key,
+             tenant_id,deployment_id,legal_entity_revision_id,external_reference,prior_payment_hash,
+             payment_payload_hash,actor_id,command_id,payment_hash
+           ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         )
         .run(
           id,
           input.invoiceId,
           sqliteInteger(input.amountMinor, 'Payment'),
           input.currency,
-          input.receivedAt,
+          receivedAt,
           reference,
           now,
           idempotencyKey,
+          invoice.tenant_id,
+          invoice.deployment_id,
+          invoice.legal_entity_revision_id,
+          reference,
+          prior?.payment_hash ?? null,
+          paymentEvidence.hash,
+          principal.userId,
+          command.commandId,
+          paymentHash,
         );
-      const totalPaid = netPaidBefore + input.amountMinor;
-      const state = totalPaid === BigInt(invoice.total_minor) ? 'paid' : 'partially_paid';
       this.sqlite
-        .prepare('UPDATE invoice SET state=?,updated_at=? WHERE id=?')
+        .prepare(
+          `INSERT INTO finance_change_event(
+             change_id,tenant_id,deployment_id,entity_kind,entity_id,change_kind,effective_at,
+             evidence_type,evidence_id,evidence_hash,command_id,created_at
+           ) VALUES(?,?,?,?,?,'append',?,'payment_record',?,?,?,?)`,
+        )
+        .run(
+          newId(),
+          invoice.tenant_id,
+          invoice.deployment_id,
+          'payment',
+          id,
+          receivedAt,
+          paymentEvidence.id,
+          paymentEvidence.hash,
+          command.commandId,
+          now,
+        );
+      const state = this.invoiceCollectionTotals(input.invoiceId, now).state;
+      this.sqlite
+        .prepare('UPDATE invoice SET state=?,updated_at=?,version=version+1 WHERE id=?')
         .run(state, now, input.invoiceId);
       this.sqlite
         .prepare(
@@ -4526,7 +5026,7 @@ export class V3Repository {
     this.assertStepUp(principal);
     if (input.amountMinor <= 0n) throw new V3ValidationError('Payment reversal must be positive');
     sqliteInteger(input.amountMinor, 'Payment reversal');
-    requireDateTime(input.effectiveAt, 'Payment reversal effective date');
+    const effectiveAt = canonicalUtcTimestamp(input.effectiveAt, 'Payment reversal effective date');
     const reasonCode = requireText(input.reasonCode, 'Payment reversal reason code', 80);
     if (!/^[a-z][a-z0-9_]*$/.test(reasonCode))
       throw new V3ValidationError('Payment reversal reason code is invalid');
@@ -4541,8 +5041,13 @@ export class V3Repository {
     return this.transaction(() => {
       const payment = this.sqlite
         .prepare(
-          `SELECT pa.id,pa.invoice_id,pa.amount_minor,pa.currency,pa.received_at,
-                  i.total_minor,i.state,i.due_at
+          `SELECT pa.id,pa.invoice_id,CAST(pa.amount_minor AS TEXT) amount_minor,pa.currency,pa.received_at,
+                  pa.tenant_id payment_tenant_id,pa.deployment_id payment_deployment_id,
+                  pa.legal_entity_revision_id payment_legal_entity_revision_id,
+                  pa.payment_payload_hash,pa.command_id,pa.payment_hash,
+                  CAST(i.total_minor AS TEXT) total_minor,i.state,i.due_at,i.currency invoice_currency,
+                  i.tenant_id invoice_tenant_id,i.deployment_id invoice_deployment_id,
+                  i.legal_entity_revision_id invoice_legal_entity_revision_id
            FROM payment pa JOIN invoice i ON i.id=pa.invoice_id
            WHERE pa.id=?`,
         )
@@ -4550,22 +5055,48 @@ export class V3Repository {
         | {
             id: string;
             invoice_id: string;
-            amount_minor: number;
+            amount_minor: string;
             currency: V3Currency;
             received_at: string;
-            total_minor: number;
+            payment_tenant_id: string | null;
+            payment_deployment_id: string | null;
+            payment_legal_entity_revision_id: string | null;
+            payment_payload_hash: string | null;
+            command_id: string | null;
+            payment_hash: string | null;
+            total_minor: string;
             state: string;
             due_at: string | null;
+            invoice_currency: V3Currency;
+            invoice_tenant_id: string | null;
+            invoice_deployment_id: string | null;
+            invoice_legal_entity_revision_id: string | null;
           }
         | undefined;
       if (!payment) throw new V3ValidationError('Invoice payment is required');
+      if (
+        !payment.invoice_tenant_id ||
+        !payment.invoice_deployment_id ||
+        !payment.invoice_legal_entity_revision_id ||
+        !payment.payment_tenant_id ||
+        !payment.payment_deployment_id ||
+        !payment.payment_legal_entity_revision_id ||
+        !payment.payment_payload_hash ||
+        !payment.command_id ||
+        !payment.payment_hash ||
+        payment.payment_tenant_id !== payment.invoice_tenant_id ||
+        payment.payment_deployment_id !== payment.invoice_deployment_id ||
+        payment.payment_legal_entity_revision_id !== payment.invoice_legal_entity_revision_id ||
+        payment.currency !== payment.invoice_currency
+      )
+        throw new V3ConflictError('Payment provenance does not match its invoice');
       const now = timestamp();
       const command = this.ensurePaymentReversalCommand(principal, {
         paymentId: payment.id,
         invoiceId: payment.invoice_id,
         currency: payment.currency,
         amountMinor: input.amountMinor,
-        effectiveAt: input.effectiveAt,
+        effectiveAt,
         reasonCode,
         reasonText: reason,
         idempotencyKey,
@@ -4574,10 +5105,11 @@ export class V3Repository {
       if (!command.created) {
         const existing = this.sqlite
           .prepare(
-            'SELECT id,invoice_id,amount_minor FROM invoice_payment_reversal_event WHERE command_id=?',
+            `SELECT id,invoice_id,CAST(amount_minor AS TEXT) amount_minor
+             FROM invoice_payment_reversal_event WHERE command_id=?`,
           )
           .get(command.commandId) as
-          | { id: string; invoice_id: string; amount_minor: number }
+          | { id: string; invoice_id: string; amount_minor: string }
           | undefined;
         if (!existing)
           throw new V3ConflictError('Completed payment reversal command has no reversal event');
@@ -4594,8 +5126,10 @@ export class V3Repository {
         };
       }
       const receivedAtMs = Date.parse(payment.received_at);
-      if (Number.isNaN(receivedAtMs) || Date.parse(input.effectiveAt) < receivedAtMs)
+      if (Number.isNaN(receivedAtMs) || Date.parse(effectiveAt) < receivedAtMs)
         throw new V3ValidationError('Payment reversal cannot predate the original payment');
+      if (effectiveAt > now)
+        throw new V3ValidationError('Payment reversal effective date cannot be in the future');
       if (!['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(payment.state))
         throw new V3ValidationError('Active issued invoice payment is required');
       const prior = this.sqlite
@@ -4621,7 +5155,7 @@ export class V3Repository {
         invoice_id: payment.invoice_id,
         currency: payment.currency,
         amount_minor: input.amountMinor.toString(),
-        effective_at: input.effectiveAt,
+        effective_at: effectiveAt,
         reason_code: reasonCode,
         reason_text: reason,
         prior_reversal_hash: prior?.reversal_hash ?? null,
@@ -4658,7 +5192,7 @@ export class V3Repository {
           payment.invoice_id,
           payment.currency,
           sqliteInteger(input.amountMinor, 'Payment reversal'),
-          input.effectiveAt,
+          effectiveAt,
           reasonCode,
           reason,
           prior?.reversal_hash ?? null,
@@ -4681,16 +5215,16 @@ export class V3Repository {
         .run(
           newId(),
           reversalId,
-          input.effectiveAt,
+          effectiveAt,
           reversalEvidence.id,
           reversalEvidence.hash,
           command.commandId,
           now,
           command.commandId,
         );
-      const totals = this.invoiceCollectionTotals(payment.invoice_id, input.effectiveAt);
+      const totals = this.invoiceCollectionTotals(payment.invoice_id, now);
       this.sqlite
-        .prepare('UPDATE invoice SET state=?,updated_at=? WHERE id=?')
+        .prepare('UPDATE invoice SET state=?,updated_at=?,version=version+1 WHERE id=?')
         .run(totals.state, now, payment.invoice_id);
       return {
         id: reversalId,
@@ -4799,10 +5333,14 @@ export class V3Repository {
       }
       const invoice = this.sqlite
         .prepare(
-          "SELECT id,state FROM invoice WHERE id=? AND state IN ('issued','sent','partially_paid','overdue')",
+          "SELECT id,state FROM invoice WHERE id=? AND state IN ('issued','sent','partially_paid','paid','overdue')",
         )
         .get(invoiceId) as { id: string; state: string } | undefined;
       if (!invoice) throw new V3ValidationError('Issued invoice required');
+      if (this.invoiceBookedCollectionBalance(invoiceId) !== 0n)
+        throw new V3ValidationError(
+          'Invoice collections must be fully reversed before the invoice can be voided',
+        );
       const now = timestamp();
       this.sqlite
         .prepare(
@@ -4810,7 +5348,9 @@ export class V3Repository {
         )
         .run(newId(), invoiceId, normalizedReason, principal.userId, now, normalizedKey);
       this.sqlite
-        .prepare("UPDATE invoice SET state='void',voided_at=?,updated_at=? WHERE id=?")
+        .prepare(
+          "UPDATE invoice SET state='void',voided_at=?,updated_at=?,version=version+1 WHERE id=?",
+        )
         .run(now, now, invoiceId);
       this.audit(principal, 'invoice.void', 'invoice', invoiceId, {
         reason: normalizedReason,
@@ -4825,6 +5365,7 @@ export class V3Repository {
     periodEnd: string,
   ) {
     this.assertFinance(principal);
+    this.assertStepUp(principal);
     requireDate(periodStart, 'Period start');
     requireDate(periodEnd, 'Period end');
     const rule = this.sqlite
@@ -4954,7 +5495,7 @@ export class V3Repository {
     if (rule.stream_type === 'expense') {
       const rows = this.sqlite
         .prepare(
-          "SELECT id,currency,project_currency_amount_minor,billing_amount_minor,approval_state,finance_approved_at,receipt_required,receipt_document_id FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND invoice_id IS NULL AND approval_state NOT IN ('rejected','void') AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem'))",
+          "SELECT id,currency,CAST(project_currency_amount_minor AS TEXT) project_currency_amount_minor,CAST(billing_amount_minor AS TEXT) billing_amount_minor,approval_state,finance_approved_at,receipt_required,receipt_document_id FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND invoice_id IS NULL AND approval_state NOT IN ('rejected','void') AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem'))",
         )
         .all(rule.project_id, periodStart, periodEnd) as Array<{
         id: string;
@@ -4963,8 +5504,8 @@ export class V3Repository {
         receipt_required: number;
         receipt_document_id: string | null;
         currency: V3Currency;
-        project_currency_amount_minor: number | null;
-        billing_amount_minor: number | null;
+        project_currency_amount_minor: string | null;
+        billing_amount_minor: string | null;
       }>;
       for (const row of rows) {
         if (row.approval_state !== 'approved' || !row.finance_approved_at)
@@ -5167,6 +5708,7 @@ export class V3Repository {
   ): Array<{
     id: string;
     audience: 'customer' | 'internal';
+    snapshotVersion: number;
     snapshot: Readonly<Record<string, unknown>>;
   }> {
     this.assertFinance(principal);
@@ -5176,7 +5718,57 @@ export class V3Repository {
     if (input.periodEnd < input.periodStart)
       throw new V3ValidationError('Period end must follow start');
     this.assertProjectAccess(principal, input.projectId);
+    return this.refreshPeriodReportsCore(input, principal);
+  }
+
+  refreshPeriodReportsFromJob(
+    input: Readonly<{
+      projectId: string;
+      periodStart: string;
+      periodEnd: string;
+      reportLocale?: ReportLocale;
+    }>,
+    execution: FencedJobExecution,
+  ): Array<{
+    id: string;
+    audience: 'customer' | 'internal';
+    snapshotVersion: number;
+    snapshot: Readonly<Record<string, unknown>>;
+  }> {
+    if (!execution) throw new Error('FENCED_JOB_EXECUTION_INVALID');
+    requireDate(input.periodStart, 'Period start');
+    requireDate(input.periodEnd, 'Period end');
+    if (input.periodEnd < input.periodStart)
+      throw new V3ValidationError('Period end must follow start');
+    return this.refreshPeriodReportsCore(input, null, execution);
+  }
+
+  private refreshPeriodReportsCore(
+    input: Readonly<{
+      projectId: string;
+      periodStart: string;
+      periodEnd: string;
+      reportLocale?: ReportLocale;
+    }>,
+    principal: Principal | null,
+    execution?: FencedJobExecution,
+  ): Array<{
+    id: string;
+    audience: 'customer' | 'internal';
+    snapshotVersion: number;
+    snapshot: Readonly<Record<string, unknown>>;
+  }> {
     return this.transaction(() => {
+      if (execution)
+        assertFencedJobExecution(this.sqlite, execution, {
+          kind: 'period_close_report',
+          capability: 'artifact.report.render',
+          payloadTarget: {
+            projectId: input.projectId,
+            periodStart: input.periodStart,
+            periodEnd: input.periodEnd,
+          },
+        });
       const project = this.sqlite
         .prepare(
           `SELECT p.id,p.project_number,p.name,p.currency,c.client_number,c.display_name client_name
@@ -5268,19 +5860,17 @@ export class V3Repository {
       }>;
       const expenses = this.sqlite
         .prepare(
-          `SELECT e.id,e.spent_on,e.vendor,e.category,e.currency,e.amount_minor,e.tax_amount_minor,
-                  e.project_currency_amount_minor,e.who_paid,e.client_treatment,e.billing_treatment,
+          `SELECT e.id,e.spent_on,e.vendor,e.category,e.currency,
+                  CAST(e.amount_minor AS TEXT) amount_minor,
+                  CAST(e.tax_amount_minor AS TEXT) tax_amount_minor,
+                  CAST(e.project_currency_amount_minor AS TEXT) project_currency_amount_minor,
+                  e.who_paid,e.client_treatment,e.billing_treatment,
                   e.approval_state,e.receipt_document_id,e.billing_state,u.name worker_name
            FROM expense e JOIN user u ON u.id=e.worker_id
            WHERE e.project_id=? AND e.spent_on BETWEEN ? AND ? ORDER BY e.spent_on,e.id`,
         )
         .all(input.projectId, input.periodStart, input.periodEnd) as Array<Record<string, unknown>>;
-      const finance = this.projectFinance(
-        principal,
-        input.projectId,
-        input.periodStart,
-        input.periodEnd,
-      );
+      const finance = this.projectFinanceCore(input.projectId, input.periodStart, input.periodEnd);
       const commercialSummary = {
         currency: finance.currency,
         billingModel: finance.billingModel,
@@ -5374,6 +5964,7 @@ export class V3Repository {
       const output: Array<{
         id: string;
         audience: 'customer' | 'internal';
+        snapshotVersion: number;
         snapshot: Readonly<Record<string, unknown>>;
       }> = [];
       for (const report of reports) {
@@ -5628,14 +6219,20 @@ export class V3Repository {
             .run(report.id, source.type, source.id);
           reportSources.push({ reportId: report.id, sourceType: source.type, sourceId: source.id });
         }
-        output.push({ id: report.id, audience: report.audience, snapshot });
+        output.push({
+          id: report.id,
+          audience: report.audience,
+          snapshotVersion: nextSnapshotVersion,
+          snapshot,
+        });
       }
-      this.audit(principal, 'period_report.refresh', 'project', input.projectId, {
-        periodStart: input.periodStart,
-        periodEnd: input.periodEnd,
-        reportIds: output.map((report) => report.id),
-        sourceCount: reportSources.length,
-      });
+      if (principal)
+        this.audit(principal, 'period_report.refresh', 'project', input.projectId, {
+          periodStart: input.periodStart,
+          periodEnd: input.periodEnd,
+          reportIds: output.map((report) => report.id),
+          sourceCount: reportSources.length,
+        });
       return output;
     });
   }
@@ -5693,7 +6290,7 @@ export class V3Repository {
     const rows = this.sqlite
       .prepare(
         `SELECT r.id,r.project_id,r.period_start,r.period_end,r.audience,r.report_type,r.state,
-                r.snapshot_version,r.snapshot_sha256,r.pdf_storage_key,r.pdf_sha256,
+                r.snapshot_version,r.snapshot_sha256,r.pdf_storage_key,r.pdf_sha256,r.pdf_byte_length,
                 r.created_at,r.updated_at,p.project_number,p.name project_name,
                 CASE
                   WHEN r.audience<>'customer' THEN NULL
@@ -5733,9 +6330,9 @@ export class V3Repository {
         return [];
       }
       const {
-        snapshot_sha256: _snapshotSha256,
         pdf_storage_key: _pdfStorageKey,
         pdf_sha256: _pdfSha256,
+        pdf_byte_length: _pdfByteLength,
         ...roleSafe
       } = candidate;
       return [roleSafe];
@@ -5850,6 +6447,46 @@ export class V3Repository {
     this.assertStorageKey(storageKey);
     if (!/^[a-f0-9]{64}$/.test(sha256) || !Number.isSafeInteger(byteLength) || byteLength <= 0)
       throw new V3ValidationError('Period report PDF metadata is invalid');
+    this.recordPeriodReportPdfCore(reportId, storageKey, sha256, byteLength, principal);
+  }
+
+  recordPeriodReportPdfFromJob(
+    reportId: string,
+    storageKey: SafeStorageKey,
+    sha256: string,
+    byteLength: number,
+    execution: FencedJobExecution,
+  ): void {
+    this.transaction(() => {
+      const target = this.sqlite
+        .prepare('SELECT project_id,period_start,period_end FROM period_report WHERE id=?')
+        .get(reportId) as
+        | { project_id: string; period_start: string; period_end: string }
+        | undefined;
+      if (!target) throw new V3ValidationError('Period report not found');
+      assertFencedJobExecution(this.sqlite, execution, {
+        kind: 'period_close_report',
+        capability: 'artifact.report.render',
+        payloadTarget: {
+          projectId: target.project_id,
+          periodStart: target.period_start,
+          periodEnd: target.period_end,
+        },
+      });
+      this.assertStorageKey(storageKey);
+      if (!/^[a-f0-9]{64}$/.test(sha256) || !Number.isSafeInteger(byteLength) || byteLength <= 0)
+        throw new V3ValidationError('Period report PDF metadata is invalid');
+      this.recordPeriodReportPdfCore(reportId, storageKey, sha256, byteLength, null);
+    });
+  }
+
+  private recordPeriodReportPdfCore(
+    reportId: string,
+    storageKey: SafeStorageKey,
+    sha256: string,
+    byteLength: number,
+    principal: Principal | null,
+  ): void {
     const report = this.sqlite
       .prepare(
         `SELECT project_id,audience,state,snapshot_version,snapshot_sha256,snapshot_json,
@@ -5871,7 +6508,7 @@ export class V3Repository {
       | undefined;
     if (!report) throw new V3ValidationError('Period report not found');
     if (report.audience === 'customer') {
-      this.assertCustomerConformityStepUp(principal);
+      if (principal) this.assertCustomerConformityStepUp(principal);
       let canonical: ReturnType<typeof canonicalCustomerPeriodSnapshot>;
       try {
         canonical = canonicalCustomerPeriodSnapshot(report.snapshot_json);
@@ -5908,12 +6545,13 @@ export class V3Repository {
         report.pdf_byte_length !== byteLength
       )
         throw new V3ConflictError('Period report PDF is already finalized with another binding');
-      this.audit(principal, 'period_report.pdf_ready', 'period_report', reportId, {
-        storageKey,
-        sha256,
-        byteLength,
-        idempotent: true,
-      });
+      if (principal)
+        this.audit(principal, 'period_report.pdf_ready', 'period_report', reportId, {
+          storageKey,
+          sha256,
+          byteLength,
+          idempotent: true,
+        });
       return;
     }
     const result = this.sqlite
@@ -5924,11 +6562,12 @@ export class V3Repository {
     if (result.changes !== 1) {
       throw new V3ConflictError('Period report PDF changed during finalization');
     }
-    this.audit(principal, 'period_report.pdf_ready', 'period_report', reportId, {
-      storageKey,
-      sha256,
-      byteLength,
-    });
+    if (principal)
+      this.audit(principal, 'period_report.pdf_ready', 'period_report', reportId, {
+        storageKey,
+        sha256,
+        byteLength,
+      });
   }
 
   periodReportPdfMetadata(
@@ -5985,15 +6624,42 @@ export class V3Repository {
     periodStart: string,
     periodEnd: string,
     createdAt: string,
+    revisionIdentity?: string,
   ): Readonly<Record<string, unknown>> {
-    if (reconciliation.reconciles !== true)
+    const sourceReconciliation = asRecord(snapshot.sourceReconciliation);
+    const reportedMismatchCount =
+      reconciliation.sourceMismatchCount ?? sourceReconciliation.sourceMismatchCount;
+    const checks = asRecord(reconciliation.checks);
+    const authoritativeReconciles =
+      Number.isSafeInteger(reportedMismatchCount) &&
+      reportedMismatchCount === 0 &&
+      [
+        'invoiceSources',
+        'payments',
+        'workerCosts',
+        'expenses',
+        'directCosts',
+        'contribution',
+      ].every((name) => checks[name] === true);
+    if (!authoritativeReconciles)
       return { status: 'blocked', reason: 'source_reconciliation_failed', revisions: [] };
+    const deployment = this.sqlite
+      .prepare('SELECT tenant_id,deployment_id FROM deployment_identity WHERE singleton=1')
+      .get() as { tenant_id: string; deployment_id: string } | undefined;
+    if (!deployment) throw new V3ConflictError('Deployment identity is not configured');
     const totalsRows = Array.isArray(snapshot.totalsByCurrency)
       ? (snapshot.totalsByCurrency as Array<Record<string, unknown>>)
       : [];
+    // Keep inactive entities addressable when they are referenced by an
+    // immutable historical source.  The active-first ordering preserves the
+    // existing unconfigured fallback for a new, empty pack while allowing a
+    // project whose legal entity changed during the period to retain both
+    // point-in-time segments.
     const entities = this.sqlite
-      .prepare("SELECT id,currency FROM legal_entity WHERE status='active' ORDER BY code,id")
-      .all() as Array<{ id: string; currency: string }>;
+      .prepare(
+        "SELECT id,currency,status FROM legal_entity ORDER BY CASE WHEN status='active' THEN 0 ELSE 1 END,code,id",
+      )
+      .all() as Array<{ id: string; currency: string; status: string }>;
     if (entities.length === 0)
       return { status: 'unconfigured', reason: 'active_legal_entity_required', revisions: [] };
     const scopedTotals =
@@ -6021,45 +6687,119 @@ export class V3Repository {
     const workerCosts = Array.isArray(snapshot.workerCosts)
       ? (snapshot.workerCosts as Array<Record<string, unknown>>)
       : [];
+    const workerCostSegments = Array.isArray(snapshot.workerCostSegments)
+      ? (snapshot.workerCostSegments as Array<Record<string, unknown>>)
+      : [];
     const expenseRegister = Array.isArray(snapshot.expenseRegister)
       ? (snapshot.expenseRegister as Array<Record<string, unknown>>)
+      : [];
+    const sourceItemsFromSnapshot = Array.isArray(snapshot.sourceItems)
+      ? (snapshot.sourceItems as Array<Record<string, unknown>>)
       : [];
     const revisions: AccountingPackRevisionResult[] = [];
     const missingCurrencies: string[] = [];
     for (const totals of scopedTotals) {
       const currency = String(totals.currency ?? '');
-      const entity = entities.find((candidate) => candidate.currency === currency);
+      const requestedLegalEntityId =
+        typeof totals.legalEntityId === 'string' ? totals.legalEntityId : null;
+      const entity = requestedLegalEntityId
+        ? entities.find(
+            (candidate) =>
+              candidate.id === requestedLegalEntityId && candidate.currency === currency,
+          )
+        : entities.filter((candidate) => candidate.currency === currency).length === 1
+          ? entities.find((candidate) => candidate.currency === currency)
+          : undefined;
       if (!entity) {
-        missingCurrencies.push(currency);
+        missingCurrencies.push(
+          requestedLegalEntityId ? `${requestedLegalEntityId}:${currency}` : currency,
+        );
         continue;
       }
-      const scopedInvoices = invoiceRegister.filter((row) => row.currency === currency);
-      const scopedCollections = collections.filter((row) => row.currency === currency);
-      const scopedWorkerCosts = workerCosts.filter((row) => row.currency === currency);
-      const scopedExpenses = expenseRegister.filter(
-        (row) => row.projectCurrency === currency || row.currency === currency,
+      const scopedInvoices = invoiceRegister.filter(
+        (row) => row.currency === currency && row.legalEntityId === entity.id,
       );
-      const sourceItems = scopedInvoices.map((row, index) => ({
-        id: `invoice-${String(row.invoiceId ?? index + 1)}`,
-        itemKind: 'invoice',
-        sourceId: String(row.invoiceId ?? `invoice-${index + 1}`),
-        itemVersion: 1,
-        effectiveAt: (() => {
-          const value = String(row.issueDate ?? periodStart);
-          return /^\d{4}-\d{2}-\d{2}$/u.test(value)
-            ? `${value}T00:00:00.000Z`
-            : new Date(value).toISOString();
-        })(),
-        evidenceType: 'invoice_source',
-        amountMinor: String(row.netMinor ?? '0'),
-        currency,
-        payload: row,
-      }));
+      const scopedCollections = collections.filter(
+        (row) => row.currency === currency && row.legalEntityId === entity.id,
+      );
+      const projectBelongsToEntity = (projectId: unknown, businessDate: string): boolean => {
+        if (typeof projectId !== 'string') return false;
+        return (
+          (resolveAccountingPackProjectLegalEntity(this.sqlite, {
+            projectId,
+            businessDate,
+            tenantId: deployment.tenant_id,
+            deploymentId: deployment.deployment_id,
+          }) ?? null) === entity.id
+        );
+      };
+      const scopedWorkerCosts =
+        workerCostSegments.length > 0
+          ? workerCostSegments.filter(
+              (row) => row.currency === currency && row.legalEntityId === entity.id,
+            )
+          : workerCosts.filter(
+              (row) =>
+                row.currency === currency && projectBelongsToEntity(row.projectId, periodEnd),
+            );
+      const scopedExpenses = expenseRegister.filter(
+        (row) =>
+          (row.projectCurrency === currency || row.currency === currency) &&
+          projectBelongsToEntity(row.projectId, String(row.date ?? periodEnd)),
+      );
+      const sourceItems = (
+        sourceItemsFromSnapshot.length > 0
+          ? sourceItemsFromSnapshot.filter(
+              (row) => row.currency === currency && row.legalEntityId === entity.id,
+            )
+          : scopedInvoices.map((row, index) => ({
+              id: `invoice-${String(row.invoiceId ?? index + 1)}`,
+              itemKind: 'invoice',
+              sourceId: String(row.invoiceId ?? `invoice-${index + 1}`),
+              itemVersion: Number(row.version ?? 1),
+              effectiveAt: (() => {
+                const value = String(row.issueDate ?? periodStart);
+                return /^\d{4}-\d{2}-\d{2}$/u.test(value)
+                  ? `${value}T00:00:00.000Z`
+                  : new Date(value).toISOString();
+              })(),
+              evidenceType: 'invoice_source',
+              amountMinor: String(row.netMinor ?? '0'),
+              currency,
+              payload: row,
+            }))
+      ) as NonNullable<AccountingPackSnapshotInput['sourceItems']>;
+      const sourceItemRows = sourceItems as Array<Record<string, unknown>>;
+      const scopedInvoiceSourceCount = sourceItemRows.filter(
+        (row) => row.itemKind === 'invoice_source' || row.item_kind === 'invoice_source',
+      ).length;
+      const scopedInvoiceSourceFallbackCount = scopedInvoices.length > 0 ? sourceItems.length : 0;
+      const scopedApprovedTimeEntryCount = sourceItemRows.filter(
+        (row) => row.itemKind === 'time' || row.item_kind === 'time',
+      ).length;
+      const scopedApprovedExpenseCount = sourceItemRows.filter(
+        (row) => row.itemKind === 'expense' || row.item_kind === 'expense',
+      ).length;
       const stableSnapshot = { ...snapshot };
       delete stableSnapshot.generatedAt;
       const sourceHash = createHash('sha256')
         .update(canonicalJobJson({ currency, snapshot: stableSnapshot, reconciliation }))
         .digest('hex');
+      const baseIdempotencyKey = `accounting-pack:${entity.id}:${periodStart}:${periodEnd}:${sourceHash}`;
+      const idempotencyKey = revisionIdentity
+        ? `${baseIdempotencyKey}:refresh:${revisionIdentity}`
+        : baseIdempotencyKey;
+      const sourceCutId = `fp-source-cut-${createHash('sha256')
+        // A stale refresh is a new immutable source cut. Reusing the prior
+        // cut id would try to attach a second revision to already sealed
+        // snapshot evidence and is correctly rejected by the DB triggers.
+        .update(`${idempotencyKey}:source-cut`)
+        .digest('hex')
+        .slice(0, 40)}`;
+      const revisionId = `fp-accounting-pack-revision-${createHash('sha256')
+        .update(`${idempotencyKey}:revision`)
+        .digest('hex')
+        .slice(0, 40)}`;
       const directCost = BigInt(String(totals.directCostMinor ?? '0'));
       const workerCost = BigInt(String(totals.internalLaborCostMinor ?? '0'));
       const result = this.accountingPackRevisions.createCanonicalRevision(principal, {
@@ -6079,10 +6819,10 @@ export class V3Repository {
         workerCostCount: scopedWorkerCosts.length,
         expenseCount: scopedExpenses.length,
         sourceItemCount: sourceItems.length,
-        invoiceSourceCount: sourceItems.length,
-        sourceMismatchCount: 0,
-        approvedTimeEntryCount: 0,
-        approvedExpenseCount: 0,
+        invoiceSourceCount: scopedInvoiceSourceCount || scopedInvoiceSourceFallbackCount,
+        sourceMismatchCount: Number(reportedMismatchCount),
+        approvedTimeEntryCount: scopedApprovedTimeEntryCount,
+        approvedExpenseCount: scopedApprovedExpenseCount,
         netMinor: String(totals.totalInvoicedMinor ?? '0'),
         taxMinor: String(totals.taxInvoicedMinor ?? '0'),
         grossMinor: String(totals.grossInvoicedMinor ?? '0'),
@@ -6092,9 +6832,11 @@ export class V3Repository {
         expenseCostMinor: directCost - workerCost,
         directCostMinor: directCost,
         contributionMinor: String(totals.contributionMinor ?? '0'),
-        reconciliationStatus: reconciliation.reconciles === true ? 'CLEAN' : 'BLOCKED',
-        blockerCount: reconciliation.reconciles === true ? 0 : 1,
-        idempotencyKey: `accounting-pack:${entity.id}:${periodStart}:${periodEnd}:${sourceHash}`,
+        reconciliationStatus: authoritativeReconciles ? 'CLEAN' : 'BLOCKED',
+        blockerCount: authoritativeReconciles ? 0 : 1,
+        idempotencyKey,
+        sourceCutId,
+        revisionId,
         createdAt,
         effectiveAt: createdAt,
       });
@@ -6123,6 +6865,21 @@ export class V3Repository {
            UNION ALL SELECT MAX(created_at) FROM invoice_payment_reversal_event
              WHERE substr(effective_at,1,10)<=?
            UNION ALL SELECT MAX(created_at) FROM finance_change_event WHERE effective_at<=?
+           UNION ALL SELECT MAX(updated_at) FROM compensation_settlement
+             WHERE period_start<=? AND period_end>=?
+           UNION ALL SELECT MAX(updated_at) FROM compensation_rule
+             WHERE effective_from<=? AND (effective_to IS NULL OR effective_to>=?)
+           UNION ALL SELECT MAX(updated_at) FROM internal_cost_rule
+             WHERE effective_from<=? AND (effective_to IS NULL OR effective_to>=?)
+           UNION ALL SELECT MAX(updated_at) FROM client_labor_rate
+             WHERE effective_from<=? AND (effective_to IS NULL OR effective_to>=?)
+           UNION ALL SELECT MAX(updated_at) FROM assignment_rate_override
+             WHERE effective_from<=? AND (effective_to IS NULL OR effective_to>=?)
+           UNION ALL SELECT MAX(created_at) FROM finance_internal_cost_snapshot
+             WHERE substr(effective_at,1,10) BETWEEN ? AND ?
+           UNION ALL SELECT MAX(created_at) FROM direct_cost_event
+             WHERE substr(effective_at,1,10) BETWEEN ? AND ?
+           UNION ALL SELECT MAX(created_at) FROM finance_hash_evidence
            UNION ALL SELECT MAX(updated_at) FROM legal_entity WHERE status='active'
          )`,
       )
@@ -6136,6 +6893,20 @@ export class V3Repository {
         periodEnd,
         periodEnd,
         `${periodEnd}T23:59:59.999Z`,
+        periodEnd,
+        periodStart,
+        periodEnd,
+        periodStart,
+        periodEnd,
+        periodStart,
+        periodEnd,
+        periodStart,
+        periodEnd,
+        periodStart,
+        periodStart,
+        periodEnd,
+        periodStart,
+        periodEnd,
       ) as { changed_at: string | null };
     return Boolean(row.changed_at && row.changed_at > createdAt);
   }
@@ -6147,791 +6918,1473 @@ export class V3Repository {
     reportLocale: ReportLocale = 'en',
   ) {
     this.assertFinance(principal);
+    this.assertStepUp(principal);
     requireDate(periodStart, 'Period start');
     requireDate(periodEnd, 'Period end');
     if (periodEnd < periodStart) throw new V3ValidationError('Period end must follow start');
-    const existing = this.sqlite
-      .prepare(
-        'SELECT id,snapshot_json,reconciliation_json,state,created_at FROM accounting_pack_run WHERE period_start=? AND period_end=? AND legal_entity_id IS NULL',
-      )
-      .get(periodStart, periodEnd) as
-      | {
-          id: string;
-          snapshot_json: string;
-          reconciliation_json: string;
-          state: string;
-          created_at: string;
-        }
-      | undefined;
-    if (existing) {
-      const job = this.latestAccountingPackJob(existing.id);
-      const exportCount = this.sqlite
+    return this.transaction(() => {
+      const existing = this.sqlite
         .prepare(
-          "SELECT COUNT(DISTINCT export_type) AS count FROM accounting_pack_export WHERE pack_run_id=? AND export_type IN ('xlsx','invoice_csv','expense_csv') AND byte_length>0 AND length(sha256)=64",
+          'SELECT id,snapshot_json,reconciliation_json,state,created_at FROM accounting_pack_run WHERE period_start=? AND period_end=? AND legal_entity_id IS NULL ORDER BY created_at DESC,id DESC LIMIT 1',
         )
-        .get(existing.id) as { count: number };
-      const state =
-        existing.state === 'final'
-          ? 'final'
-          : job?.state === 'claimed' || job?.state === 'running'
-            ? 'running'
-            : job?.state === 'queued'
-              ? 'queued'
-              : job?.state === 'dead_letter'
-                ? 'failed'
-                : exportCount.count >= requiredAccountingPackExportTypes.length
-                  ? 'ready'
-                  : existing.state;
-      const sourceStale = this.accountingPackSourcesChangedSince(
-        periodStart,
-        periodEnd,
-        existing.created_at,
-      );
-      return {
-        id: existing.id,
-        state: sourceStale && existing.state !== 'final' ? 'stale' : state,
-        sourceStale,
-        snapshot: JSON.parse(existing.snapshot_json) as unknown,
-        reconciliation: JSON.parse(existing.reconciliation_json) as unknown,
-      };
-    }
-    const ledger = this.masterLedger(principal, { start: periodStart, end: periodEnd });
-    const addAmount = (
-      map: Map<V3Currency, bigint>,
-      currency: V3Currency,
-      amount: bigint,
-    ): void => {
-      map.set(currency, (map.get(currency) ?? 0n) + amount);
-    };
-    const amountMap = (values: ReadonlyMap<V3Currency, bigint>): Record<string, string> =>
-      Object.fromEntries(
-        [...values.entries()].map(([currency, amount]) => [currency, amount.toString()]),
-      );
-    const invoiceRegister = ledger.map((row) => ({
-      invoiceId: row.invoiceId,
-      invoiceNumber: row.invoiceNumber,
-      client: row.clientName,
-      project: row.projectNumber,
-      stream: row.streamType,
-      servicePeriod: `${row.periodStart ?? ''}/${row.periodEnd ?? ''}`,
-      issueDate: row.issueDate,
-      dueDate: row.dueDate,
-      currency: row.currency,
-      netMinor: row.subtotalMinor,
-      taxMinor: row.taxMinor,
-      grossMinor: row.totalMinor,
-      status: row.paymentStatus,
-    }));
-    const eventDateInRange = (value: string, label: string, includeBefore = false): boolean => {
-      try {
-        requireDateTime(value, label);
-      } catch {
-        throw new V3ConflictError(`${label} must be a canonical RFC3339 UTC timestamp`);
+        .get(periodStart, periodEnd) as
+        | {
+            id: string;
+            snapshot_json: string;
+            reconciliation_json: string;
+            state: string;
+            created_at: string;
+          }
+        | undefined;
+      if (existing) {
+        const job = this.latestAccountingPackJob(existing.id);
+        const exportCount = this.sqlite
+          .prepare(
+            "SELECT COUNT(DISTINCT export_type) AS count FROM accounting_pack_export WHERE pack_run_id=? AND export_type IN ('xlsx','invoice_csv','expense_csv') AND byte_length>0 AND length(sha256)=64",
+          )
+          .get(existing.id) as { count: number };
+        const state =
+          existing.state === 'final'
+            ? 'final'
+            : job?.state === 'claimed' || job?.state === 'running'
+              ? 'running'
+              : job?.state === 'queued'
+                ? 'queued'
+                : job?.state === 'dead_letter'
+                  ? 'failed'
+                  : exportCount.count >= requiredAccountingPackExportTypes.length
+                    ? 'ready'
+                    : existing.state;
+        const sourceStale = this.accountingPackSourcesChangedSince(
+          periodStart,
+          periodEnd,
+          existing.created_at,
+        );
+        if (!sourceStale)
+          return {
+            id: existing.id,
+            state,
+            sourceStale: false,
+            snapshot: JSON.parse(existing.snapshot_json) as unknown,
+            reconciliation: JSON.parse(existing.reconciliation_json) as unknown,
+          };
       }
-      const date = value.slice(0, 10);
-      return includeBefore ? date <= periodEnd : date >= periodStart && date <= periodEnd;
-    };
-    const allPaymentEventRows = this.sqlite
-      .prepare(
-        `SELECT pa.id payment_id,pa.invoice_id,pa.amount_minor,pa.currency,pa.received_at,pa.reference,
-                i.invoice_number,i.total_minor,i.currency invoice_currency,
+      const ledger = this.masterLedger(principal, { start: periodStart, end: periodEnd });
+      const deployment = this.sqlite
+        .prepare('SELECT tenant_id,deployment_id FROM deployment_identity WHERE singleton=1')
+        .get() as { tenant_id: string; deployment_id: string } | undefined;
+      if (!deployment) throw new V3ConflictError('Deployment identity is not configured');
+      const projectLegalEntityAt = (projectId: string, businessDate: string): string | null => {
+        return resolveAccountingPackProjectLegalEntity(this.sqlite, {
+          projectId,
+          businessDate,
+          tenantId: deployment.tenant_id,
+          deploymentId: deployment.deployment_id,
+        });
+      };
+      const addAmount = (
+        map: Map<V3Currency, bigint>,
+        currency: V3Currency,
+        amount: bigint,
+      ): void => {
+        map.set(currency, (map.get(currency) ?? 0n) + amount);
+      };
+      const amountMap = (values: ReadonlyMap<V3Currency, bigint>): Record<string, string> =>
+        Object.fromEntries(
+          [...values.entries()].map(([currency, amount]) => [currency, amount.toString()]),
+        );
+      const invoiceRegister = ledger.map((row) => ({
+        invoiceId: row.invoiceId,
+        legalEntityId: row.legalEntityId,
+        legalEntityRevisionId: row.legalEntityRevisionId,
+        version: row.version,
+        invoiceNumber: row.invoiceNumber,
+        client: row.clientName,
+        project: row.projectNumber,
+        stream: row.streamType,
+        servicePeriod: `${row.periodStart ?? ''}/${row.periodEnd ?? ''}`,
+        issueDate: row.issueDate,
+        dueDate: row.dueDate,
+        currency: row.currency,
+        netMinor: row.subtotalMinor,
+        taxMinor: row.taxMinor,
+        grossMinor: row.totalMinor,
+        status: row.paymentStatus,
+      }));
+      const eventDateInRange = (value: string, label: string, includeBefore = false): boolean => {
+        try {
+          requireDateTime(value, label);
+        } catch {
+          throw new V3ConflictError(`${label} must be a canonical RFC3339 UTC timestamp`);
+        }
+        const date = value.slice(0, 10);
+        return includeBefore ? date <= periodEnd : date >= periodStart && date <= periodEnd;
+      };
+      const allPaymentEventRows = this.sqlite
+        .prepare(
+          `SELECT pa.id payment_id,pa.invoice_id,CAST(pa.amount_minor AS TEXT) amount_minor,
+                pa.currency,pa.received_at,pa.reference,i.invoice_number,
+                CAST(i.total_minor AS TEXT) total_minor,i.currency invoice_currency,
                 c.display_name client_name
          FROM payment pa
          JOIN invoice i ON i.id=pa.invoice_id
          JOIN project p ON p.id=i.project_id
          JOIN client c ON c.id=p.client_id
-         WHERE i.state<>'void'
          ORDER BY pa.received_at,pa.id`,
-      )
-      .all() as Array<{
-      payment_id: string;
-      invoice_id: string;
-      amount_minor: number;
-      currency: V3Currency;
-      received_at: string;
-      reference: string | null;
-      invoice_number: string | null;
-      total_minor: number;
-      invoice_currency: V3Currency;
-      client_name: string;
-    }>;
-    const paymentRows = allPaymentEventRows.filter((payment) =>
-      eventDateInRange(payment.received_at, 'Payment received date'),
-    );
-    const allPaymentReversalRows = this.sqlite
-      .prepare(
-        `SELECT r.id reversal_id,r.original_payment_id payment_id,r.invoice_id,r.amount_minor,
-                r.currency,r.effective_at,r.reason_text reference,i.invoice_number,i.total_minor,
+        )
+        .all() as Array<{
+        payment_id: string;
+        invoice_id: string;
+        amount_minor: string;
+        currency: V3Currency;
+        received_at: string;
+        reference: string | null;
+        invoice_number: string | null;
+        total_minor: string;
+        invoice_currency: V3Currency;
+        client_name: string;
+      }>;
+      const paymentRows = allPaymentEventRows.filter((payment) =>
+        eventDateInRange(payment.received_at, 'Payment received date'),
+      );
+      const allPaymentReversalRows = this.sqlite
+        .prepare(
+          `SELECT r.id reversal_id,r.original_payment_id payment_id,r.invoice_id,
+                CAST(r.amount_minor AS TEXT) amount_minor,r.currency,r.effective_at,
+                r.reason_text reference,i.invoice_number,CAST(i.total_minor AS TEXT) total_minor,
                 i.currency invoice_currency,c.display_name client_name
          FROM invoice_payment_reversal_event r
          JOIN invoice i ON i.id=r.invoice_id
          JOIN project p ON p.id=i.project_id
          JOIN client c ON c.id=p.client_id
-         WHERE i.state<>'void'
          ORDER BY r.effective_at,r.id`,
-      )
-      .all() as Array<{
-      reversal_id: string;
-      payment_id: string;
-      invoice_id: string;
-      amount_minor: number;
-      currency: V3Currency;
-      effective_at: string;
-      reference: string | null;
-      invoice_number: string | null;
-      total_minor: number;
-      invoice_currency: V3Currency;
-      client_name: string;
-    }>;
-    const paymentReversalRows = allPaymentReversalRows.filter((reversal) =>
-      eventDateInRange(reversal.effective_at, 'Payment reversal effective date'),
-    );
-    const totalCollectedByInvoice = new Map<string, bigint>();
-    for (const payment of allPaymentEventRows) {
-      if (!eventDateInRange(payment.received_at, 'Payment received date', true)) continue;
-      totalCollectedByInvoice.set(
-        payment.invoice_id,
-        (totalCollectedByInvoice.get(payment.invoice_id) ?? 0n) + BigInt(payment.amount_minor),
+        )
+        .all() as Array<{
+        reversal_id: string;
+        payment_id: string;
+        invoice_id: string;
+        amount_minor: string;
+        currency: V3Currency;
+        effective_at: string;
+        reference: string | null;
+        invoice_number: string | null;
+        total_minor: string;
+        invoice_currency: V3Currency;
+        client_name: string;
+      }>;
+      const paymentReversalRows = allPaymentReversalRows.filter((reversal) =>
+        eventDateInRange(reversal.effective_at, 'Payment reversal effective date'),
       );
-    }
-    for (const reversal of allPaymentReversalRows) {
-      if (!eventDateInRange(reversal.effective_at, 'Payment reversal effective date', true))
-        continue;
-      totalCollectedByInvoice.set(
-        reversal.invoice_id,
-        (totalCollectedByInvoice.get(reversal.invoice_id) ?? 0n) - BigInt(reversal.amount_minor),
+      const totalCollectedByInvoice = new Map<string, bigint>();
+      for (const payment of allPaymentEventRows) {
+        if (!eventDateInRange(payment.received_at, 'Payment received date', true)) continue;
+        totalCollectedByInvoice.set(
+          payment.invoice_id,
+          (totalCollectedByInvoice.get(payment.invoice_id) ?? 0n) + BigInt(payment.amount_minor),
+        );
+      }
+      for (const reversal of allPaymentReversalRows) {
+        if (!eventDateInRange(reversal.effective_at, 'Payment reversal effective date', true))
+          continue;
+        totalCollectedByInvoice.set(
+          reversal.invoice_id,
+          (totalCollectedByInvoice.get(reversal.invoice_id) ?? 0n) - BigInt(reversal.amount_minor),
+        );
+      }
+      const collections = [
+        ...paymentRows.map((payment) => ({
+          collectionType: 'payment' as const,
+          paymentId: payment.payment_id,
+          reversalId: null,
+          invoiceId: payment.invoice_id,
+          invoiceNumber: payment.invoice_number,
+          client: payment.client_name,
+          grossInvoicedMinor: String(payment.total_minor),
+          amountCollectedInMonthMinor: String(payment.amount_minor),
+          totalCollectedToDateMinor: (
+            totalCollectedByInvoice.get(payment.invoice_id) ?? 0n
+          ).toString(),
+          outstandingMinor: (
+            BigInt(payment.total_minor) - (totalCollectedByInvoice.get(payment.invoice_id) ?? 0n)
+          ).toString(),
+          paymentDate: payment.received_at,
+          paymentReference: payment.reference,
+          currency: payment.currency,
+          legalEntityId:
+            ledger.find((invoice) => invoice.invoiceId === payment.invoice_id)?.legalEntityId ??
+            null,
+        })),
+        ...paymentReversalRows.map((reversal) => ({
+          collectionType: 'payment_reversal' as const,
+          paymentId: reversal.payment_id,
+          reversalId: reversal.reversal_id,
+          invoiceId: reversal.invoice_id,
+          invoiceNumber: reversal.invoice_number,
+          client: reversal.client_name,
+          grossInvoicedMinor: String(reversal.total_minor),
+          amountCollectedInMonthMinor: (-BigInt(reversal.amount_minor)).toString(),
+          totalCollectedToDateMinor: (
+            totalCollectedByInvoice.get(reversal.invoice_id) ?? 0n
+          ).toString(),
+          outstandingMinor: (
+            BigInt(reversal.total_minor) - (totalCollectedByInvoice.get(reversal.invoice_id) ?? 0n)
+          ).toString(),
+          paymentDate: reversal.effective_at,
+          paymentReference: reversal.reference,
+          currency: reversal.currency,
+          legalEntityId:
+            ledger.find((invoice) => invoice.invoiceId === reversal.invoice_id)?.legalEntityId ??
+            null,
+        })),
+      ].sort(
+        (left, right) =>
+          left.paymentDate.localeCompare(right.paymentDate) ||
+          String(left.reversalId ?? left.paymentId).localeCompare(
+            String(right.reversalId ?? right.paymentId),
+          ),
       );
-    }
-    const collections = [
-      ...paymentRows.map((payment) => ({
-        collectionType: 'payment' as const,
-        paymentId: payment.payment_id,
-        reversalId: null,
-        invoiceId: payment.invoice_id,
-        invoiceNumber: payment.invoice_number,
-        client: payment.client_name,
-        grossInvoicedMinor: String(payment.total_minor),
-        amountCollectedInMonthMinor: String(payment.amount_minor),
-        totalCollectedToDateMinor: (
-          totalCollectedByInvoice.get(payment.invoice_id) ?? 0n
-        ).toString(),
-        outstandingMinor: (
-          BigInt(payment.total_minor) - (totalCollectedByInvoice.get(payment.invoice_id) ?? 0n)
-        ).toString(),
-        paymentDate: payment.received_at,
-        paymentReference: payment.reference,
-        currency: payment.currency,
-      })),
-      ...paymentReversalRows.map((reversal) => ({
-        collectionType: 'payment_reversal' as const,
-        paymentId: reversal.payment_id,
-        reversalId: reversal.reversal_id,
-        invoiceId: reversal.invoice_id,
-        invoiceNumber: reversal.invoice_number,
-        client: reversal.client_name,
-        grossInvoicedMinor: String(reversal.total_minor),
-        amountCollectedInMonthMinor: (-BigInt(reversal.amount_minor)).toString(),
-        totalCollectedToDateMinor: (
-          totalCollectedByInvoice.get(reversal.invoice_id) ?? 0n
-        ).toString(),
-        outstandingMinor: (
-          BigInt(reversal.total_minor) - (totalCollectedByInvoice.get(reversal.invoice_id) ?? 0n)
-        ).toString(),
-        paymentDate: reversal.effective_at,
-        paymentReference: reversal.reference,
-        currency: reversal.currency,
-      })),
-    ].sort(
-      (left, right) =>
-        left.paymentDate.localeCompare(right.paymentDate) ||
-        String(left.reversalId ?? left.paymentId).localeCompare(
-          String(right.reversalId ?? right.paymentId),
-        ),
-    );
-    const expenseRows = this.sqlite
-      .prepare(
-        `SELECT e.id,e.spent_on,e.worker_id,e.project_id,e.vendor,e.category,e.who_paid,
+      const expenseRows = this.sqlite
+        .prepare(
+          `SELECT e.id,e.spent_on,e.worker_id,e.project_id,e.vendor,e.category,e.who_paid,
                 COALESCE(e.billing_treatment,e.client_treatment) treatment,e.client_treatment,
-                e.currency,e.amount_minor,e.tax_amount_minor,e.project_currency_amount_minor,
-                e.billing_amount_minor,e.reimbursement_state,e.receipt_document_id,e.billing_state,
+                e.currency,CAST(e.amount_minor AS TEXT) amount_minor,
+                CAST(e.tax_amount_minor AS TEXT) tax_amount_minor,
+                CAST(e.project_currency_amount_minor AS TEXT) project_currency_amount_minor,
+                CAST(e.billing_amount_minor AS TEXT) billing_amount_minor,
+                e.reimbursement_state,e.receipt_document_id,e.billing_state,e.version,
                 e.invoice_id,p.project_number,p.currency project_currency,u.name worker_name
          FROM expense e JOIN project p ON p.id=e.project_id JOIN user u ON u.id=e.worker_id
          WHERE e.spent_on BETWEEN ? AND ? AND e.approval_state IN ('approved','locked') ORDER BY e.spent_on,e.id`,
-      )
-      .all(periodStart, periodEnd) as Array<{
-      id: string;
-      spent_on: string;
-      worker_id: string;
-      project_id: string;
-      vendor: string;
-      category: string;
-      who_paid: string;
-      treatment: string;
-      client_treatment: string;
-      currency: V3Currency;
-      amount_minor: number;
-      tax_amount_minor: number | null;
-      project_currency_amount_minor: number | null;
-      billing_amount_minor: number | null;
-      reimbursement_state: string;
-      receipt_document_id: string | null;
-      billing_state: string;
-      invoice_id: string | null;
-      project_number: string;
-      project_currency: V3Currency;
-      worker_name: string;
-    }>;
-    const travelCategories = new Set([
-      'hotel',
-      'rental_car',
-      'fuel',
-      'tolls',
-      'parking',
-      'airfare',
-      'ground_transport',
-      'meals',
-      'per_diem',
-    ]);
-    const expenseCostByCurrency = new Map<V3Currency, bigint>();
-    const travelCostByCurrency = new Map<V3Currency, bigint>();
-    const otherCostByCurrency = new Map<V3Currency, bigint>();
-    const expenses = expenseRows.map((expense) => {
-      const netProjectMinor = BigInt(expense.project_currency_amount_minor ?? expense.amount_minor);
-      const taxMinor = BigInt(expense.tax_amount_minor ?? 0);
-      if (expense.who_paid !== 'client' && expense.treatment !== 'client_direct') {
-        addAmount(expenseCostByCurrency, expense.project_currency, netProjectMinor);
-        addAmount(
-          travelCategories.has(expense.category) ? travelCostByCurrency : otherCostByCurrency,
-          expense.project_currency,
-          netProjectMinor,
+        )
+        .all(periodStart, periodEnd) as Array<{
+        id: string;
+        spent_on: string;
+        worker_id: string;
+        project_id: string;
+        vendor: string;
+        category: string;
+        who_paid: string;
+        treatment: string;
+        client_treatment: string;
+        currency: V3Currency;
+        amount_minor: string;
+        tax_amount_minor: string | null;
+        project_currency_amount_minor: string | null;
+        billing_amount_minor: string | null;
+        reimbursement_state: string;
+        receipt_document_id: string | null;
+        billing_state: string;
+        version: number;
+        invoice_id: string | null;
+        project_number: string;
+        project_currency: V3Currency;
+        worker_name: string;
+      }>;
+      const travelCategories = new Set([
+        'hotel',
+        'rental_car',
+        'fuel',
+        'tolls',
+        'parking',
+        'airfare',
+        'ground_transport',
+        'meals',
+        'per_diem',
+      ]);
+      const expenseCostByCurrency = new Map<V3Currency, bigint>();
+      const travelCostByCurrency = new Map<V3Currency, bigint>();
+      const otherCostByCurrency = new Map<V3Currency, bigint>();
+      const expenses = expenseRows.map((expense) => {
+        if (
+          expense.currency !== expense.project_currency &&
+          expense.project_currency_amount_minor === null
+        )
+          throw new V3ConflictError(
+            `Expense ${expense.id} is missing its authoritative project-currency projection`,
+          );
+        const netProjectMinor = BigInt(
+          expense.project_currency_amount_minor ?? expense.amount_minor,
         );
-      }
-      return {
-        expenseId: expense.id,
-        date: expense.spent_on,
-        workerId: expense.worker_id,
-        worker: expense.worker_name,
-        projectId: expense.project_id,
-        project: expense.project_number,
-        vendor: expense.vendor,
-        category: expense.category,
-        whoPaid: expense.who_paid,
-        clientTreatment: expense.client_treatment,
-        billingTreatment: expense.treatment,
-        currency: expense.currency,
-        amountMinor: String(expense.amount_minor),
-        taxMinor: String(taxMinor),
-        grossMinor: (BigInt(expense.amount_minor) + taxMinor).toString(),
-        projectCurrency: expense.project_currency,
-        projectCurrencyAmountMinor: netProjectMinor.toString(),
-        billingAmountMinor:
-          expense.billing_amount_minor === null ? null : String(expense.billing_amount_minor),
-        reimbursementStatus: expense.reimbursement_state,
-        billingStatus: expense.billing_state,
-        invoiceId: expense.invoice_id,
-        receiptDocumentId: expense.receipt_document_id,
-      };
-    });
-    const timeRows = this.sqlite
-      .prepare(
-        `SELECT t.id,t.worker_id,t.project_id,t.category,t.work_date,t.activity_code,t.minutes,
+        const taxMinor = BigInt(expense.tax_amount_minor ?? 0);
+        if (expense.who_paid !== 'client' && expense.treatment !== 'client_direct') {
+          addAmount(expenseCostByCurrency, expense.project_currency, netProjectMinor);
+          addAmount(
+            travelCategories.has(expense.category) ? travelCostByCurrency : otherCostByCurrency,
+            expense.project_currency,
+            netProjectMinor,
+          );
+        }
+        return {
+          expenseId: expense.id,
+          version: expense.version,
+          date: expense.spent_on,
+          workerId: expense.worker_id,
+          worker: expense.worker_name,
+          projectId: expense.project_id,
+          legalEntityId: projectLegalEntityAt(expense.project_id, expense.spent_on),
+          project: expense.project_number,
+          vendor: expense.vendor,
+          category: expense.category,
+          whoPaid: expense.who_paid,
+          clientTreatment: expense.client_treatment,
+          billingTreatment: expense.treatment,
+          currency: expense.currency,
+          amountMinor: String(expense.amount_minor),
+          taxMinor: String(taxMinor),
+          grossMinor: (BigInt(expense.amount_minor) + taxMinor).toString(),
+          projectCurrency: expense.project_currency,
+          projectCurrencyAmountMinor: netProjectMinor.toString(),
+          billingAmountMinor:
+            expense.billing_amount_minor === null ? null : String(expense.billing_amount_minor),
+          reimbursementStatus: expense.reimbursement_state,
+          billingStatus: expense.billing_state,
+          invoiceId: expense.invoice_id,
+          receiptDocumentId: expense.receipt_document_id,
+        };
+      });
+      const timeRows = this.sqlite
+        .prepare(
+          `SELECT t.id,t.worker_id,t.project_id,t.category,t.work_date,t.activity_code,t.minutes,
                 t.approval_state,t.billability_state,t.version,u.name worker_name,p.project_number,
                 p.currency project_currency
          FROM time_entry t JOIN user u ON u.id=t.worker_id JOIN project p ON p.id=t.project_id
          WHERE t.work_date BETWEEN ? AND ? AND t.approval_state IN ('approved','locked')
          ORDER BY t.work_date,t.id`,
-      )
-      .all(periodStart, periodEnd) as Array<{
-      id: string;
-      worker_id: string;
-      project_id: string;
-      category: string;
-      work_date: string;
-      activity_code: string | null;
-      minutes: number;
-      approval_state: string;
-      billability_state: string;
-      version: number;
-      worker_name: string;
-      project_number: string;
-      project_currency: V3Currency;
-    }>;
-    const timeByWorkerProject = new Map<
-      string,
-      {
-        workerId: string;
-        worker: string;
-        projectId: string;
-        project: string;
-        currency: V3Currency;
-        actualMinutes: number;
-        regularMinutes: number;
-        standbyMinutes: number;
-        overtimeMinutes: number;
-        travelMinutes: number;
-        compensationMinor: bigint;
-        compensationRuleTypes: Set<string>;
-        compensationBases: Set<string>;
-        internalLaborCostMinor: bigint;
-        sourceTimeIds: string[];
-        missingCostRuleCount: number;
-        dailyCompensationDays: Set<string>;
-        fixedCompensationRules: Set<string>;
-        guaranteeActualByRuleDay: Map<string, { rule: CompensationRuleRow; minutes: number }>;
-      }
-    >();
-    for (const row of timeRows) {
-      const key = `${row.worker_id}:${row.project_id}`;
-      const current = timeByWorkerProject.get(key) ?? {
-        workerId: row.worker_id,
-        worker: row.worker_name,
-        projectId: row.project_id,
-        project: row.project_number,
-        currency: row.project_currency,
-        actualMinutes: 0,
-        regularMinutes: 0,
-        standbyMinutes: 0,
-        overtimeMinutes: 0,
-        travelMinutes: 0,
-        compensationMinor: 0n,
-        compensationRuleTypes: new Set<string>(),
-        compensationBases: new Set<string>(),
-        internalLaborCostMinor: 0n,
-        sourceTimeIds: [],
-        missingCostRuleCount: 0,
-        dailyCompensationDays: new Set<string>(),
-        fixedCompensationRules: new Set<string>(),
-        guaranteeActualByRuleDay: new Map<string, { rule: CompensationRuleRow; minutes: number }>(),
-      };
-      current.actualMinutes += row.minutes;
-      if (row.category === 'overtime') current.overtimeMinutes += row.minutes;
-      else if (row.category === 'standby') current.standbyMinutes += row.minutes;
-      else if (row.category === 'travel') current.travelMinutes += row.minutes;
-      else current.regularMinutes += row.minutes;
-      current.sourceTimeIds.push(row.id);
-      const timeRow = {
-        id: row.id,
-        project_id: row.project_id,
-        worker_id: row.worker_id,
-        work_date: row.work_date,
-        category: row.category,
-        activity_code: row.activity_code,
-        minutes: row.minutes,
-        approval_state: row.approval_state,
-        billability_state: row.billability_state,
-        project_currency: row.project_currency,
-      } satisfies TimeRow;
-      const compensationRule = this.compensationRuleFor(
-        row.project_id,
-        row.worker_id,
-        row.category,
-        row.work_date,
-        row.activity_code,
-      );
-      const clientRate = this.clientRateFor(
-        row.project_id,
-        row.worker_id,
-        row.category,
-        row.work_date,
-        row.activity_code,
-      );
-      if (compensationRule) {
-        current.compensationRuleTypes.add(compensationRule.rule_type);
-        if (compensationRule.percentage_basis)
-          current.compensationBases.add(compensationRule.percentage_basis);
-        if (
-          compensationRule.rule_type === 'FixedPerBillingPeriod' ||
-          compensationRule.rule_type === 'FixedProjectAmount' ||
-          compensationRule.rule_type === 'CustomApprovedAdjustment'
-        ) {
-          if (!current.fixedCompensationRules.has(compensationRule.id)) {
-            current.fixedCompensationRules.add(compensationRule.id);
-            current.compensationMinor += BigInt(compensationRule.rate_minor);
-          }
-        } else if (
-          compensationRule.rule_type === 'Daily' ||
-          compensationRule.rate_basis === 'daily'
-        ) {
-          const dayKey = `${compensationRule.id}:${row.work_date}`;
-          if (!current.dailyCompensationDays.has(dayKey)) {
-            current.dailyCompensationDays.add(dayKey);
-            current.compensationMinor += BigInt(compensationRule.rate_minor);
-          }
-        } else {
-          current.compensationMinor += this.compensationAmount(
-            timeRow,
-            compensationRule,
-            clientRate,
-          );
+        )
+        .all(periodStart, periodEnd) as Array<{
+        id: string;
+        worker_id: string;
+        project_id: string;
+        category: string;
+        work_date: string;
+        activity_code: string | null;
+        minutes: number;
+        approval_state: string;
+        billability_state: string;
+        version: number;
+        worker_name: string;
+        project_number: string;
+        project_currency: V3Currency;
+      }>;
+      const timeByWorkerProject = new Map<
+        string,
+        {
+          workerId: string;
+          worker: string;
+          projectId: string;
+          project: string;
+          legalEntityId: string | null;
+          currency: V3Currency;
+          actualMinutes: number;
+          regularMinutes: number;
+          standbyMinutes: number;
+          overtimeMinutes: number;
+          travelMinutes: number;
+          compensationMinor: bigint;
+          compensationRuleTypes: Set<string>;
+          compensationBases: Set<string>;
+          internalLaborCostMinor: bigint;
+          sourceTimeIds: string[];
+          missingCostRuleCount: number;
+          dailyCompensationDays: Set<string>;
+          fixedCompensationRules: Set<string>;
+          guaranteeActualByRuleDay: Map<string, { rule: CompensationRuleRow; minutes: number }>;
         }
-        if (
-          compensationRule.rule_type === 'Hourly' &&
-          compensationRule.rate_basis !== 'daily' &&
-          compensationRule.daily_guarantee_minutes
-        ) {
-          const guaranteeKey = `${compensationRule.id}:${row.work_date}`;
-          const day = current.guaranteeActualByRuleDay.get(guaranteeKey) ?? {
-            rule: compensationRule,
-            minutes: 0,
-          };
-          day.minutes += row.minutes;
-          current.guaranteeActualByRuleDay.set(guaranteeKey, day);
+      >();
+      for (const row of timeRows) {
+        const legalEntityId = projectLegalEntityAt(row.project_id, row.work_date);
+        const key = `${row.worker_id}:${row.project_id}:${legalEntityId ?? 'unassigned'}`;
+        const current = timeByWorkerProject.get(key) ?? {
+          workerId: row.worker_id,
+          worker: row.worker_name,
+          projectId: row.project_id,
+          project: row.project_number,
+          legalEntityId,
+          currency: row.project_currency,
+          actualMinutes: 0,
+          regularMinutes: 0,
+          standbyMinutes: 0,
+          overtimeMinutes: 0,
+          travelMinutes: 0,
+          compensationMinor: 0n,
+          compensationRuleTypes: new Set<string>(),
+          compensationBases: new Set<string>(),
+          internalLaborCostMinor: 0n,
+          sourceTimeIds: [],
+          missingCostRuleCount: 0,
+          dailyCompensationDays: new Set<string>(),
+          fixedCompensationRules: new Set<string>(),
+          guaranteeActualByRuleDay: new Map<
+            string,
+            { rule: CompensationRuleRow; minutes: number }
+          >(),
+        };
+        current.actualMinutes += row.minutes;
+        if (row.category === 'overtime') current.overtimeMinutes += row.minutes;
+        else if (row.category === 'standby') current.standbyMinutes += row.minutes;
+        else if (row.category === 'travel') current.travelMinutes += row.minutes;
+        else current.regularMinutes += row.minutes;
+        current.sourceTimeIds.push(row.id);
+        const timeRow = {
+          id: row.id,
+          project_id: row.project_id,
+          worker_id: row.worker_id,
+          work_date: row.work_date,
+          category: row.category,
+          activity_code: row.activity_code,
+          minutes: row.minutes,
+          approval_state: row.approval_state,
+          billability_state: row.billability_state,
+          project_currency: row.project_currency,
+        } satisfies TimeRow;
+        const compensationRule = this.compensationRuleFor(
+          row.project_id,
+          row.worker_id,
+          row.category,
+          row.work_date,
+          row.activity_code,
+        );
+        const clientRate = this.clientRateFor(
+          row.project_id,
+          row.worker_id,
+          row.category,
+          row.work_date,
+          row.activity_code,
+        );
+        if (compensationRule) {
+          current.compensationRuleTypes.add(compensationRule.rule_type);
+          if (compensationRule.percentage_basis)
+            current.compensationBases.add(compensationRule.percentage_basis);
+          if (
+            compensationRule.rule_type === 'FixedPerBillingPeriod' ||
+            compensationRule.rule_type === 'FixedProjectAmount' ||
+            compensationRule.rule_type === 'CustomApprovedAdjustment'
+          ) {
+            if (!current.fixedCompensationRules.has(compensationRule.id)) {
+              current.fixedCompensationRules.add(compensationRule.id);
+              current.compensationMinor += BigInt(compensationRule.rate_minor);
+            }
+          } else if (
+            compensationRule.rule_type === 'Daily' ||
+            compensationRule.rate_basis === 'daily'
+          ) {
+            const dayKey = `${compensationRule.id}:${row.work_date}`;
+            if (!current.dailyCompensationDays.has(dayKey)) {
+              current.dailyCompensationDays.add(dayKey);
+              current.compensationMinor += BigInt(compensationRule.rate_minor);
+            }
+          } else {
+            current.compensationMinor += this.compensationAmount(
+              timeRow,
+              compensationRule,
+              clientRate,
+            );
+          }
+          if (
+            compensationRule.rule_type === 'Hourly' &&
+            compensationRule.rate_basis !== 'daily' &&
+            compensationRule.daily_guarantee_minutes
+          ) {
+            const guaranteeKey = `${compensationRule.id}:${row.work_date}`;
+            const day = current.guaranteeActualByRuleDay.get(guaranteeKey) ?? {
+              rule: compensationRule,
+              minutes: 0,
+            };
+            day.minutes += row.minutes;
+            current.guaranteeActualByRuleDay.set(guaranteeKey, day);
+          }
         }
-      }
-      const internalRate = this.internalCostFor(
-        row.project_id,
-        row.worker_id,
-        row.category,
-        row.work_date,
-        row.activity_code,
-      );
-      if (!internalRate || internalRate.currency !== row.project_currency)
-        current.missingCostRuleCount += 1;
-      else
-        current.internalLaborCostMinor += hourlyRateForMinutes(
-          money(row.project_currency, this.internalCostAmount(timeRow, internalRate)),
-          row.minutes,
-        ).minorUnits;
-      timeByWorkerProject.set(key, current);
-    }
-    for (const current of timeByWorkerProject.values())
-      for (const { rule, minutes } of current.guaranteeActualByRuleDay.values()) {
-        const topUp = Math.max(0, (rule.daily_guarantee_minutes ?? 0) - minutes);
-        if (topUp > 0)
-          current.compensationMinor += hourlyRateForMinutes(
-            money(rule.currency, BigInt(rule.rate_minor)),
-            topUp,
+        const internalRate = this.internalCostFor(
+          row.project_id,
+          row.worker_id,
+          row.category,
+          row.work_date,
+          row.activity_code,
+        );
+        if (!internalRate || internalRate.currency !== row.project_currency)
+          current.missingCostRuleCount += 1;
+        else
+          current.internalLaborCostMinor += hourlyRateForMinutes(
+            money(row.project_currency, this.internalCostAmount(timeRow, internalRate)),
+            row.minutes,
           ).minorUnits;
+        timeByWorkerProject.set(key, current);
       }
-    const reimbursementRows = this.sqlite
-      .prepare(
-        `SELECT worker_id,project_id,COALESCE(project_currency_amount_minor,amount_minor) amount
-         FROM expense
-         WHERE spent_on BETWEEN ? AND ? AND approval_state IN ('approved','locked') AND who_paid='worker'
-         ORDER BY worker_id,project_id,id`,
-      )
-      .all(periodStart, periodEnd) as Array<{
-      worker_id: string;
-      project_id: string;
-      amount: number;
-    }>;
-    const reimbursementByWorkerProject = new Map<string, bigint>();
-    for (const row of reimbursementRows) {
-      const key = `${row.worker_id}:${row.project_id}`;
-      reimbursementByWorkerProject.set(
-        key,
-        (reimbursementByWorkerProject.get(key) ?? 0n) + BigInt(row.amount),
-      );
-    }
-    const settledRows = this.sqlite
-      .prepare(
-        `SELECT worker_id,project_id,amount_minor amount
-         FROM compensation_settlement
-         WHERE period_start=? AND period_end=? AND state IN ('approved','settled')
-         ORDER BY worker_id,project_id,id`,
-      )
-      .all(periodStart, periodEnd) as Array<{
-      worker_id: string;
-      project_id: string;
-      amount: number;
-    }>;
-    const settledByWorkerProject = new Map<string, bigint>();
-    for (const row of settledRows) {
-      const key = `${row.worker_id}:${row.project_id}`;
-      settledByWorkerProject.set(key, (settledByWorkerProject.get(key) ?? 0n) + BigInt(row.amount));
-    }
-    const workerCosts = [...timeByWorkerProject.values()].map((row) => ({
-      workerId: row.workerId,
-      worker: row.worker,
-      projectId: row.projectId,
-      project: row.project,
-      currency: row.currency,
-      actualApprovedMinutes: row.actualMinutes,
-      regularMinutes: row.regularMinutes,
-      standbyMinutes: row.standbyMinutes,
-      overtimeMinutes: row.overtimeMinutes,
-      travelMinutes: row.travelMinutes,
-      compensationRuleType: [...row.compensationRuleTypes].join('|') || null,
-      compensationBasis: [...row.compensationBases].join('|') || null,
-      approvedCompensationMinor: row.compensationMinor.toString(),
-      settledCompensationMinor: (
-        settledByWorkerProject.get(`${row.workerId}:${row.projectId}`) ?? 0n
-      ).toString(),
-      internalLoadedLaborCostMinor: row.internalLaborCostMinor.toString(),
-      reimbursementMinor: (
-        reimbursementByWorkerProject.get(`${row.workerId}:${row.projectId}`) ?? 0n
-      ).toString(),
-      missingCostRuleCount: row.missingCostRuleCount,
-      sourceTimeIds: row.sourceTimeIds,
-    }));
-    const workerCompensationByCurrency = new Map<V3Currency, bigint>();
-    const internalLaborByCurrency = new Map<V3Currency, bigint>();
-    for (const row of workerCosts) {
-      addAmount(workerCompensationByCurrency, row.currency, BigInt(row.approvedCompensationMinor));
-      addAmount(internalLaborByCurrency, row.currency, BigInt(row.internalLoadedLaborCostMinor));
-    }
-    const invoiceNetByCurrency = new Map<V3Currency, bigint>();
-    const invoiceTaxByCurrency = new Map<V3Currency, bigint>();
-    const invoiceGrossByCurrency = new Map<V3Currency, bigint>();
-    for (const row of ledger) {
-      if (row.billingStatus === 'void') continue;
-      addAmount(invoiceNetByCurrency, row.currency, BigInt(row.subtotalMinor));
-      addAmount(invoiceTaxByCurrency, row.currency, BigInt(row.taxMinor));
-      addAmount(invoiceGrossByCurrency, row.currency, BigInt(row.totalMinor));
-    }
-    const collectedByCurrency = new Map<V3Currency, bigint>();
-    for (const row of collections)
-      addAmount(collectedByCurrency, row.currency, BigInt(row.amountCollectedInMonthMinor));
-    const directCostByCurrency = new Map<V3Currency, bigint>();
-    for (const [currency, amount] of internalLaborByCurrency)
-      addAmount(directCostByCurrency, currency, amount);
-    for (const [currency, amount] of expenseCostByCurrency)
-      addAmount(directCostByCurrency, currency, amount);
-    const currencies = new Set<V3Currency>([
-      ...invoiceNetByCurrency.keys(),
-      ...directCostByCurrency.keys(),
-      ...collectedByCurrency.keys(),
-    ]);
-    const totalsByCurrency = [...currencies].sort().map((currency) => {
-      const invoiceNet = invoiceNetByCurrency.get(currency) ?? 0n;
-      const directCost = directCostByCurrency.get(currency) ?? 0n;
-      const contribution = invoiceNet - directCost;
-      return {
-        currency,
-        laborInvoicedMinor: ledger
-          .filter(
-            (row) =>
-              row.billingStatus !== 'void' &&
-              row.currency === currency &&
-              row.streamType === 'labor',
-          )
-          .reduce((sum, row) => sum + BigInt(row.subtotalMinor), 0n)
-          .toString(),
-        expenseInvoicedMinor: ledger
-          .filter(
-            (row) =>
-              row.billingStatus !== 'void' &&
-              row.currency === currency &&
-              row.streamType === 'expense',
-          )
-          .reduce((sum, row) => sum + BigInt(row.subtotalMinor), 0n)
-          .toString(),
-        milestoneOtherInvoicedMinor: ledger
-          .filter(
-            (row) =>
-              row.billingStatus !== 'void' &&
-              row.currency === currency &&
-              !['labor', 'expense'].includes(row.streamType),
-          )
-          .reduce((sum, row) => sum + BigInt(row.subtotalMinor), 0n)
-          .toString(),
-        totalInvoicedMinor: invoiceNet.toString(),
-        taxInvoicedMinor: (invoiceTaxByCurrency.get(currency) ?? 0n).toString(),
-        grossInvoicedMinor: (invoiceGrossByCurrency.get(currency) ?? 0n).toString(),
-        collectedMinor: (collectedByCurrency.get(currency) ?? 0n).toString(),
-        outstandingMinor: ledger
-          .filter((row) => row.currency === currency)
-          .reduce((sum, row) => sum + BigInt(row.outstandingMinor), 0n)
-          .toString(),
-        workerCompensationMinor: (workerCompensationByCurrency.get(currency) ?? 0n).toString(),
-        internalLaborCostMinor: (internalLaborByCurrency.get(currency) ?? 0n).toString(),
-        travelCostMinor: (travelCostByCurrency.get(currency) ?? 0n).toString(),
-        otherDirectCostMinor: (otherCostByCurrency.get(currency) ?? 0n).toString(),
-        directCostMinor: directCost.toString(),
-        contributionMinor: contribution.toString(),
-        contributionMarginBps:
-          invoiceNet === 0n ? '0' : divideRounded(contribution * 10_000n, invoiceNet).toString(),
-      };
-    });
-    const totals =
-      totalsByCurrency.length === 1
-        ? totalsByCurrency[0]
-        : {
-            currency: 'MULTI',
-            laborInvoicedMinor: null,
-            expenseInvoicedMinor: null,
-            milestoneOtherInvoicedMinor: null,
-            totalInvoicedMinor: null,
-            taxInvoicedMinor: null,
-            grossInvoicedMinor: null,
-            collectedMinor: null,
-            outstandingMinor: null,
-            workerCompensationMinor: null,
-            internalLaborCostMinor: null,
-            travelCostMinor: null,
-            otherDirectCostMinor: null,
-            directCostMinor: null,
-            contributionMinor: null,
-            contributionMarginBps: null,
-          };
-    const sourceMismatches: Array<Record<string, string>> = [];
-    let invoiceSourceCount = 0;
-    for (const invoice of ledger)
-      for (const source of invoice.sources) {
-        invoiceSourceCount += 1;
-        let currentVersion: number | null = null;
-        let linkedInvoiceId: string | null = null;
-        if (source.source_type === 'time') {
-          const row = this.sqlite
-            .prepare('SELECT version,invoice_id FROM time_entry WHERE id=?')
-            .get(source.source_id) as { version: number; invoice_id: string | null } | undefined;
-          currentVersion = row?.version ?? null;
-          linkedInvoiceId = row?.invoice_id ?? null;
-        } else if (source.source_type === 'expense') {
-          const row = this.sqlite
-            .prepare('SELECT version,invoice_id FROM expense WHERE id=?')
-            .get(source.source_id) as { version: number; invoice_id: string | null } | undefined;
-          currentVersion = row?.version ?? null;
-          linkedInvoiceId = row?.invoice_id ?? null;
-        } else if (source.source_type === 'milestone') {
-          const row = this.sqlite
-            .prepare('SELECT version,invoice_id FROM project_milestone WHERE id=?')
-            .get(source.source_id) as { version: number; invoice_id: string | null } | undefined;
-          currentVersion = row?.version ?? null;
-          linkedInvoiceId = row?.invoice_id ?? null;
-        } else if (source.source_type === 'adjustment') {
-          const row = this.sqlite
-            .prepare('SELECT adjustment_invoice_id FROM invoice_adjustment WHERE id=?')
-            .get(source.source_id) as { adjustment_invoice_id: string } | undefined;
-          linkedInvoiceId = row?.adjustment_invoice_id ?? null;
-          currentVersion = row ? source.source_version : null;
+      for (const current of timeByWorkerProject.values())
+        for (const { rule, minutes } of current.guaranteeActualByRuleDay.values()) {
+          const topUp = Math.max(0, (rule.daily_guarantee_minutes ?? 0) - minutes);
+          if (topUp > 0)
+            current.compensationMinor += hourlyRateForMinutes(
+              money(rule.currency, BigInt(rule.rate_minor)),
+              topUp,
+            ).minorUnits;
         }
-        if (currentVersion !== source.source_version)
+      const reimbursementRows = this.sqlite
+        .prepare(
+          `SELECT e.id,e.worker_id,e.project_id,e.spent_on,e.currency,p.currency project_currency,
+                CAST(e.amount_minor AS TEXT) amount_minor,
+                CAST(e.project_currency_amount_minor AS TEXT) project_currency_amount_minor
+         FROM expense e JOIN project p ON p.id=e.project_id
+         WHERE e.spent_on BETWEEN ? AND ? AND e.approval_state IN ('approved','locked')
+           AND e.who_paid='worker'
+         ORDER BY e.worker_id,e.project_id,e.id`,
+        )
+        .all(periodStart, periodEnd) as Array<{
+        id: string;
+        worker_id: string;
+        project_id: string;
+        spent_on: string;
+        currency: V3Currency;
+        project_currency: V3Currency;
+        amount_minor: string;
+        project_currency_amount_minor: string | null;
+      }>;
+      const reimbursementByWorkerProject = new Map<string, bigint>();
+      for (const row of reimbursementRows) {
+        if (row.currency !== row.project_currency && row.project_currency_amount_minor === null)
+          throw new V3ConflictError(
+            `Expense ${row.id} is missing its authoritative project-currency projection`,
+          );
+        const legalEntityId = projectLegalEntityAt(row.project_id, row.spent_on);
+        const key = `${row.worker_id}:${row.project_id}:${legalEntityId ?? 'unassigned'}`;
+        reimbursementByWorkerProject.set(
+          key,
+          (reimbursementByWorkerProject.get(key) ?? 0n) +
+            BigInt(row.project_currency_amount_minor ?? row.amount_minor),
+        );
+      }
+      const settledRows = this.sqlite
+        .prepare(
+          `SELECT s.id,s.worker_id,s.project_id,s.compensation_rule_id,s.source_basis,
+                  CAST(s.source_amount_minor AS TEXT) source_amount_minor,
+                  s.percentage_bps,CAST(s.amount_minor AS TEXT) amount,s.currency,
+                  s.period_start,s.period_end,s.state,s.settled_at,r.version rule_version
+         FROM compensation_settlement s
+         JOIN compensation_rule r ON r.id=s.compensation_rule_id
+         WHERE period_start=? AND period_end=? AND state IN ('approved','settled')
+         ORDER BY s.worker_id,s.project_id,s.id`,
+        )
+        .all(periodStart, periodEnd) as Array<{
+        id: string;
+        worker_id: string;
+        project_id: string;
+        compensation_rule_id: string;
+        source_basis: string;
+        source_amount_minor: string;
+        percentage_bps: number | null;
+        amount: string;
+        currency: V3Currency;
+        period_start: string;
+        period_end: string;
+        state: 'approved' | 'settled';
+        settled_at: string | null;
+        rule_version: number;
+      }>;
+      const settledByWorkerProject = new Map<string, bigint>();
+      for (const row of settledRows) {
+        const key = `${row.worker_id}:${row.project_id}`;
+        settledByWorkerProject.set(
+          key,
+          (settledByWorkerProject.get(key) ?? 0n) + BigInt(row.amount),
+        );
+      }
+      const workerCostSegments = [...timeByWorkerProject.values()].map((row) => ({
+        workerId: row.workerId,
+        worker: row.worker,
+        projectId: row.projectId,
+        project: row.project,
+        legalEntityId: row.legalEntityId,
+        currency: row.currency,
+        actualApprovedMinutes: row.actualMinutes,
+        regularMinutes: row.regularMinutes,
+        standbyMinutes: row.standbyMinutes,
+        overtimeMinutes: row.overtimeMinutes,
+        travelMinutes: row.travelMinutes,
+        compensationRuleType: [...row.compensationRuleTypes].join('|') || null,
+        compensationBasis: [...row.compensationBases].join('|') || null,
+        approvedCompensationMinor: row.compensationMinor.toString(),
+        settledCompensationMinor: (row.legalEntityId ===
+        projectLegalEntityAt(row.projectId, periodEnd)
+          ? (settledByWorkerProject.get(`${row.workerId}:${row.projectId}`) ?? 0n)
+          : 0n
+        ).toString(),
+        internalLoadedLaborCostMinor: row.internalLaborCostMinor.toString(),
+        reimbursementMinor: (
+          reimbursementByWorkerProject.get(
+            `${row.workerId}:${row.projectId}:${row.legalEntityId ?? 'unassigned'}`,
+          ) ?? 0n
+        ).toString(),
+        missingCostRuleCount: row.missingCostRuleCount,
+        sourceTimeIds: row.sourceTimeIds,
+      }));
+      // The canonical Accounting Pack contract identifies one compensation and
+      // one labor-cost source per worker/project.  Keep that stable aggregate
+      // while exposing the effective-date legal-entity segments separately so
+      // a project reassignment cannot hide the point-in-time attribution.
+      const aggregateWorkerCosts = new Map<
+        string,
+        Omit<(typeof workerCostSegments)[number], 'legalEntityId'> & {
+          legalEntityId: string | null;
+          compensationRuleTypes: Set<string>;
+          compensationBases: Set<string>;
+        }
+      >();
+      for (const row of workerCostSegments) {
+        const key = `${row.workerId}:${row.projectId}`;
+        const current = aggregateWorkerCosts.get(key) ?? {
+          ...row,
+          legalEntityId: projectLegalEntityAt(row.projectId, periodEnd),
+          actualApprovedMinutes: 0,
+          regularMinutes: 0,
+          standbyMinutes: 0,
+          overtimeMinutes: 0,
+          travelMinutes: 0,
+          approvedCompensationMinor: '0',
+          settledCompensationMinor: '0',
+          internalLoadedLaborCostMinor: '0',
+          reimbursementMinor: '0',
+          missingCostRuleCount: 0,
+          sourceTimeIds: [],
+          compensationRuleTypes: new Set<string>(),
+          compensationBases: new Set<string>(),
+        };
+        current.actualApprovedMinutes += row.actualApprovedMinutes;
+        current.regularMinutes += row.regularMinutes;
+        current.standbyMinutes += row.standbyMinutes;
+        current.overtimeMinutes += row.overtimeMinutes;
+        current.travelMinutes += row.travelMinutes;
+        current.approvedCompensationMinor = (
+          BigInt(current.approvedCompensationMinor) + BigInt(row.approvedCompensationMinor)
+        ).toString();
+        current.settledCompensationMinor = (
+          BigInt(current.settledCompensationMinor) + BigInt(row.settledCompensationMinor)
+        ).toString();
+        current.internalLoadedLaborCostMinor = (
+          BigInt(current.internalLoadedLaborCostMinor) + BigInt(row.internalLoadedLaborCostMinor)
+        ).toString();
+        current.reimbursementMinor = (
+          BigInt(current.reimbursementMinor) + BigInt(row.reimbursementMinor)
+        ).toString();
+        current.missingCostRuleCount += row.missingCostRuleCount;
+        current.sourceTimeIds.push(...row.sourceTimeIds);
+        for (const value of String(row.compensationRuleType ?? '').split('|'))
+          if (value) current.compensationRuleTypes.add(value);
+        for (const value of String(row.compensationBasis ?? '').split('|'))
+          if (value) current.compensationBases.add(value);
+        aggregateWorkerCosts.set(key, current);
+      }
+      const workerCosts = [...aggregateWorkerCosts.values()].map((row) => ({
+        ...row,
+        compensationRuleType: [...row.compensationRuleTypes].join('|') || null,
+        compensationBasis: [...row.compensationBases].join('|') || null,
+      }));
+      const workerCompensationByCurrency = new Map<V3Currency, bigint>();
+      const internalLaborByCurrency = new Map<V3Currency, bigint>();
+      for (const row of workerCosts) {
+        addAmount(
+          workerCompensationByCurrency,
+          row.currency,
+          BigInt(row.approvedCompensationMinor),
+        );
+        addAmount(internalLaborByCurrency, row.currency, BigInt(row.internalLoadedLaborCostMinor));
+      }
+      const invoiceNetByCurrency = new Map<V3Currency, bigint>();
+      const invoiceTaxByCurrency = new Map<V3Currency, bigint>();
+      const invoiceGrossByCurrency = new Map<V3Currency, bigint>();
+      for (const row of ledger) {
+        if (row.billingStatus === 'void') continue;
+        addAmount(invoiceNetByCurrency, row.currency, BigInt(row.subtotalMinor));
+        addAmount(invoiceTaxByCurrency, row.currency, BigInt(row.taxMinor));
+        addAmount(invoiceGrossByCurrency, row.currency, BigInt(row.totalMinor));
+      }
+      const collectedByCurrency = new Map<V3Currency, bigint>();
+      for (const row of collections)
+        addAmount(collectedByCurrency, row.currency, BigInt(row.amountCollectedInMonthMinor));
+      const directCostByCurrency = new Map<V3Currency, bigint>();
+      for (const [currency, amount] of internalLaborByCurrency)
+        addAmount(directCostByCurrency, currency, amount);
+      for (const [currency, amount] of expenseCostByCurrency)
+        addAmount(directCostByCurrency, currency, amount);
+      const currencies = new Set<V3Currency>([
+        ...invoiceNetByCurrency.keys(),
+        ...directCostByCurrency.keys(),
+        ...collectedByCurrency.keys(),
+      ]);
+      const totalsByCurrency = [...currencies].sort().map((currency) => {
+        const invoiceNet = invoiceNetByCurrency.get(currency) ?? 0n;
+        const directCost = directCostByCurrency.get(currency) ?? 0n;
+        const contribution = invoiceNet - directCost;
+        return {
+          currency,
+          laborInvoicedMinor: ledger
+            .filter(
+              (row) =>
+                row.billingStatus !== 'void' &&
+                row.currency === currency &&
+                row.streamType === 'labor',
+            )
+            .reduce((sum, row) => sum + BigInt(row.subtotalMinor), 0n)
+            .toString(),
+          expenseInvoicedMinor: ledger
+            .filter(
+              (row) =>
+                row.billingStatus !== 'void' &&
+                row.currency === currency &&
+                row.streamType === 'expense',
+            )
+            .reduce((sum, row) => sum + BigInt(row.subtotalMinor), 0n)
+            .toString(),
+          milestoneOtherInvoicedMinor: ledger
+            .filter(
+              (row) =>
+                row.billingStatus !== 'void' &&
+                row.currency === currency &&
+                !['labor', 'expense'].includes(row.streamType),
+            )
+            .reduce((sum, row) => sum + BigInt(row.subtotalMinor), 0n)
+            .toString(),
+          totalInvoicedMinor: invoiceNet.toString(),
+          taxInvoicedMinor: (invoiceTaxByCurrency.get(currency) ?? 0n).toString(),
+          grossInvoicedMinor: (invoiceGrossByCurrency.get(currency) ?? 0n).toString(),
+          collectedMinor: (collectedByCurrency.get(currency) ?? 0n).toString(),
+          outstandingMinor: ledger
+            .filter((row) => row.currency === currency)
+            .reduce((sum, row) => sum + BigInt(row.outstandingMinor), 0n)
+            .toString(),
+          workerCompensationMinor: (workerCompensationByCurrency.get(currency) ?? 0n).toString(),
+          internalLaborCostMinor: (internalLaborByCurrency.get(currency) ?? 0n).toString(),
+          travelCostMinor: (travelCostByCurrency.get(currency) ?? 0n).toString(),
+          otherDirectCostMinor: (otherCostByCurrency.get(currency) ?? 0n).toString(),
+          directCostMinor: directCost.toString(),
+          contributionMinor: contribution.toString(),
+          contributionMarginBps:
+            invoiceNet === 0n ? '0' : divideRounded(contribution * 10_000n, invoiceNet).toString(),
+        };
+      });
+      const totalsByAccountingScope = totalsByCurrency.flatMap((currencyTotals) => {
+        const currency = currencyTotals.currency;
+        const sourceRows = [
+          ...ledger
+            .filter((row) => row.currency === currency)
+            .map((row) => row.legalEntityId ?? null),
+          ...workerCostSegments
+            .filter((row) => row.currency === currency)
+            .map((row) => (typeof row.legalEntityId === 'string' ? row.legalEntityId : null)),
+          ...expenses
+            .filter((row) => row.projectCurrency === currency)
+            .map((row) => row.legalEntityId ?? null),
+        ];
+        const entityIds = [...new Set(sourceRows)];
+        if (entityIds.length === 0) entityIds.push(null);
+        const workersForCurrency = (legalEntityId: string | null) =>
+          (workerCostSegments.length > 0 ? workerCostSegments : workerCosts).filter(
+            (row) =>
+              row.currency === currency &&
+              (typeof row.legalEntityId === 'string' ? row.legalEntityId : null) === legalEntityId,
+          );
+        const expensesForCurrency = (legalEntityId: string | null) =>
+          expenses.filter(
+            (row) => row.projectCurrency === currency && row.legalEntityId === legalEntityId,
+          );
+        const isDirectExpense = (row: (typeof expenses)[number]): boolean =>
+          row.whoPaid !== 'client' && row.billingTreatment !== 'client_direct';
+        return entityIds.map((legalEntityId) => {
+          const scopedLedger = ledger.filter(
+            (row) => row.currency === currency && row.legalEntityId === legalEntityId,
+          );
+          const live = scopedLedger.filter((row) => row.billingStatus !== 'void');
+          const workers = workersForCurrency(legalEntityId);
+          const scopedExpenses = expensesForCurrency(legalEntityId);
+          const net = live.reduce((sum, row) => sum + BigInt(row.subtotalMinor), 0n);
+          const workerCompensation = workers.reduce(
+            (sum, row) => sum + BigInt(String(row.approvedCompensationMinor ?? '0')),
+            0n,
+          );
+          const internalLabor = workers.reduce(
+            (sum, row) => sum + BigInt(String(row.internalLoadedLaborCostMinor ?? '0')),
+            0n,
+          );
+          const travelCost = scopedExpenses
+            .filter((row) => isDirectExpense(row) && travelCategories.has(row.category))
+            .reduce((sum, row) => sum + BigInt(row.projectCurrencyAmountMinor), 0n);
+          const otherDirectCost = scopedExpenses
+            .filter((row) => isDirectExpense(row) && !travelCategories.has(row.category))
+            .reduce((sum, row) => sum + BigInt(row.projectCurrencyAmountMinor), 0n);
+          const directCost = internalLabor + travelCost + otherDirectCost;
+          const contribution = net - directCost;
+          return {
+            ...currencyTotals,
+            legalEntityId,
+            laborInvoicedMinor: live
+              .filter((row) => row.streamType === 'labor')
+              .reduce((sum, row) => sum + BigInt(row.subtotalMinor), 0n)
+              .toString(),
+            expenseInvoicedMinor: live
+              .filter((row) => row.streamType === 'expense')
+              .reduce((sum, row) => sum + BigInt(row.subtotalMinor), 0n)
+              .toString(),
+            milestoneOtherInvoicedMinor: live
+              .filter((row) => !['labor', 'expense'].includes(row.streamType))
+              .reduce((sum, row) => sum + BigInt(row.subtotalMinor), 0n)
+              .toString(),
+            totalInvoicedMinor: net.toString(),
+            taxInvoicedMinor: live.reduce((sum, row) => sum + BigInt(row.taxMinor), 0n).toString(),
+            grossInvoicedMinor: live
+              .reduce((sum, row) => sum + BigInt(row.totalMinor), 0n)
+              .toString(),
+            workerCompensationMinor: workerCompensation.toString(),
+            internalLaborCostMinor: internalLabor.toString(),
+            travelCostMinor: travelCost.toString(),
+            otherDirectCostMinor: otherDirectCost.toString(),
+            directCostMinor: directCost.toString(),
+            contributionMinor: contribution.toString(),
+            collectedMinor: scopedLedger
+              .reduce((sum, row) => sum + BigInt(row.collectedMinor), 0n)
+              .toString(),
+            outstandingMinor: scopedLedger
+              .reduce((sum, row) => sum + BigInt(row.outstandingMinor), 0n)
+              .toString(),
+            contributionMarginBps:
+              net === 0n ? '0' : divideRounded(contribution * 10_000n, net).toString(),
+          };
+        });
+      });
+      const totals =
+        totalsByAccountingScope.length === 1
+          ? totalsByAccountingScope[0]
+          : {
+              currency: 'MULTI',
+              laborInvoicedMinor: null,
+              expenseInvoicedMinor: null,
+              milestoneOtherInvoicedMinor: null,
+              totalInvoicedMinor: null,
+              taxInvoicedMinor: null,
+              grossInvoicedMinor: null,
+              collectedMinor: null,
+              outstandingMinor: null,
+              workerCompensationMinor: null,
+              internalLaborCostMinor: null,
+              travelCostMinor: null,
+              otherDirectCostMinor: null,
+              directCostMinor: null,
+              contributionMinor: null,
+              contributionMarginBps: null,
+            };
+      const sourceMismatches: Array<Record<string, string>> = [];
+      let invoiceSourceCount = 0;
+      let commercialManifestCount = 0;
+      type CommercialManifestRow = {
+        source_type: string;
+        source_id: string;
+        source_version: number | null;
+        disposition: string;
+        original_minor: string | null;
+        allocated_minor: string | null;
+        remaining_minor: string | null;
+        reason_code: string;
+        source_hash: string | null;
+        locked_at: string | null;
+      };
+      const commercialManifestByInvoice = new Map<string, CommercialManifestRow[]>();
+      for (const invoice of ledger) {
+        const commercialManifest = this.sqlite
+          .prepare(
+            `SELECT source_type,source_id,source_version,disposition,
+                  CAST(original_minor AS TEXT) original_minor,
+                  CAST(allocated_minor AS TEXT) allocated_minor,
+                  CAST(remaining_minor AS TEXT) remaining_minor,
+                  reason_code,source_hash,locked_at
+           FROM invoice_commercial_source_manifest
+           WHERE invoice_id=? ORDER BY source_type,source_id`,
+          )
+          .all(invoice.invoiceId) as CommercialManifestRow[];
+        commercialManifestCount += commercialManifest.length;
+        commercialManifestByInvoice.set(invoice.invoiceId, commercialManifest);
+        const manifestBySource = new Map(
+          commercialManifest.map((row) => [`${row.source_type}:${row.source_id}`, row]),
+        );
+        if (commercialManifest.length === 0)
           sourceMismatches.push({
             invoiceId: invoice.invoiceId,
-            sourceType: source.source_type,
-            sourceId: source.source_id,
-            reason: 'source_version_mismatch',
+            sourceType: 'commercial_manifest',
+            sourceId: invoice.invoiceId,
+            reason: 'commercial_source_manifest_missing',
           });
-        if (linkedInvoiceId !== null && linkedInvoiceId !== invoice.invoiceId)
+        const allocatedManifestTotal = commercialManifest.reduce(
+          (sum, row) => sum + BigInt(row.allocated_minor ?? 0),
+          0n,
+        );
+        const invoiceSubtotal = BigInt(invoice.subtotalMinor);
+        if (allocatedManifestTotal !== (invoiceSubtotal < 0n ? -invoiceSubtotal : invoiceSubtotal))
           sourceMismatches.push({
             invoiceId: invoice.invoiceId,
-            sourceType: source.source_type,
-            sourceId: source.source_id,
-            reason: 'source_invoice_link_mismatch',
+            sourceType: 'commercial_manifest',
+            sourceId: invoice.invoiceId,
+            reason: 'commercial_allocation_total_mismatch',
           });
-        if (linkedInvoiceId === null && source.source_type !== 'adjustment')
-          sourceMismatches.push({
-            invoiceId: invoice.invoiceId,
-            sourceType: source.source_type,
-            sourceId: source.source_id,
-            reason: 'source_not_linked',
+        const invoiceLineKeys = new Set(
+          (
+            this.sqlite
+              .prepare('SELECT source_type,source_id FROM invoice_line WHERE invoice_id=?')
+              .all(invoice.invoiceId) as Array<{ source_type: string; source_id: string }>
+          ).map((line) => `${line.source_type}:${line.source_id}`),
+        );
+        const invoiceLineManifestKeys = new Set(
+          [...invoiceLineKeys].map((key) =>
+            key.startsWith('billing_adjustment:')
+              ? `minimum_top_up:${key.slice('billing_adjustment:'.length)}`
+              : key,
+          ),
+        );
+        const expectedManifestKeys = new Set<string>([
+          ...invoice.sources.map((source) => `${source.source_type}:${source.source_id}`),
+          ...invoiceLineManifestKeys,
+        ]);
+        for (const expectedKey of invoiceLineManifestKeys)
+          if (!manifestBySource.has(expectedKey)) {
+            const separator = expectedKey.indexOf(':');
+            sourceMismatches.push({
+              invoiceId: invoice.invoiceId,
+              sourceType: separator < 0 ? expectedKey : expectedKey.slice(0, separator),
+              sourceId: separator < 0 ? expectedKey : expectedKey.slice(separator + 1),
+              reason: 'commercial_source_manifest_omitted',
+            });
+          }
+        for (const manifest of commercialManifest) {
+          const sourceKey = `${manifest.source_type}:${manifest.source_id}`;
+          if (!expectedManifestKeys.has(sourceKey))
+            sourceMismatches.push({
+              invoiceId: invoice.invoiceId,
+              sourceType: manifest.source_type,
+              sourceId: manifest.source_id,
+              reason: 'commercial_source_manifest_unexpected',
+            });
+        }
+        for (const source of invoice.sources) {
+          invoiceSourceCount += 1;
+          const manifest = manifestBySource.get(`${source.source_type}:${source.source_id}`);
+          if (!manifest)
+            sourceMismatches.push({
+              invoiceId: invoice.invoiceId,
+              sourceType: source.source_type,
+              sourceId: source.source_id,
+              reason: 'commercial_source_allocation_missing',
+            });
+          else if (!manifest.locked_at || !manifest.source_hash)
+            sourceMismatches.push({
+              invoiceId: invoice.invoiceId,
+              sourceType: source.source_type,
+              sourceId: source.source_id,
+              reason: 'commercial_source_allocation_unverified',
+            });
+          let currentVersion: number | null = null;
+          let linkedInvoiceId: string | null = null;
+          if (source.source_type === 'time') {
+            const row = this.sqlite
+              .prepare('SELECT version,invoice_id FROM time_entry WHERE id=?')
+              .get(source.source_id) as { version: number; invoice_id: string | null } | undefined;
+            currentVersion = row?.version ?? null;
+            linkedInvoiceId = row?.invoice_id ?? null;
+          } else if (source.source_type === 'expense') {
+            const row = this.sqlite
+              .prepare('SELECT version,invoice_id FROM expense WHERE id=?')
+              .get(source.source_id) as { version: number; invoice_id: string | null } | undefined;
+            currentVersion = row?.version ?? null;
+            linkedInvoiceId = row?.invoice_id ?? null;
+          } else if (source.source_type === 'milestone') {
+            const row = this.sqlite
+              .prepare('SELECT version,invoice_id FROM project_milestone WHERE id=?')
+              .get(source.source_id) as { version: number; invoice_id: string | null } | undefined;
+            currentVersion = row?.version ?? null;
+            linkedInvoiceId = row?.invoice_id ?? null;
+          } else if (source.source_type === 'adjustment') {
+            const row = this.sqlite
+              .prepare('SELECT adjustment_invoice_id FROM invoice_adjustment WHERE id=?')
+              .get(source.source_id) as { adjustment_invoice_id: string } | undefined;
+            linkedInvoiceId = row?.adjustment_invoice_id ?? null;
+            currentVersion = row ? source.source_version : null;
+          }
+          if (currentVersion !== source.source_version)
+            sourceMismatches.push({
+              invoiceId: invoice.invoiceId,
+              sourceType: source.source_type,
+              sourceId: source.source_id,
+              reason: 'source_version_mismatch',
+            });
+          if (linkedInvoiceId !== null && linkedInvoiceId !== invoice.invoiceId)
+            sourceMismatches.push({
+              invoiceId: invoice.invoiceId,
+              sourceType: source.source_type,
+              sourceId: source.source_id,
+              reason: 'source_invoice_link_mismatch',
+            });
+          const intentionallyBlockedByCap =
+            manifest?.disposition === 'partially_included' || manifest?.disposition === 'blocked';
+          if (
+            linkedInvoiceId === null &&
+            source.source_type !== 'adjustment' &&
+            !intentionallyBlockedByCap
+          )
+            sourceMismatches.push({
+              invoiceId: invoice.invoiceId,
+              sourceType: source.source_type,
+              sourceId: source.source_id,
+              reason: 'source_not_linked',
+            });
+        }
+      }
+      const approvedTimeEntryCount = timeRows.length;
+      const approvedExpenseCount = expenseRows.length;
+      const invoiceRegisterNetByCurrency = amountMap(invoiceNetByCurrency);
+      const directCostByCurrencyJson = amountMap(directCostByCurrency);
+      const workerCostSourceByCurrency = new Map<V3Currency, bigint>();
+      for (const row of workerCosts)
+        addAmount(
+          workerCostSourceByCurrency,
+          row.currency,
+          BigInt(row.internalLoadedLaborCostMinor),
+        );
+      const expenseSourceCostByCurrency = new Map<V3Currency, bigint>();
+      for (const row of expenses) {
+        if (row.whoPaid === 'client' || row.billingTreatment === 'client_direct') continue;
+        addAmount(
+          expenseSourceCostByCurrency,
+          row.projectCurrency,
+          BigInt(row.projectCurrencyAmountMinor),
+        );
+      }
+      const paymentSourceByCurrency = new Map<V3Currency, bigint>();
+      for (const payment of paymentRows)
+        addAmount(paymentSourceByCurrency, payment.currency, BigInt(payment.amount_minor));
+      for (const reversal of paymentReversalRows)
+        addAmount(paymentSourceByCurrency, reversal.currency, -BigInt(reversal.amount_minor));
+      const mapEquals = (
+        left: ReadonlyMap<V3Currency, bigint>,
+        right: ReadonlyMap<V3Currency, bigint>,
+      ) => {
+        const currencies = new Set([...left.keys(), ...right.keys()]);
+        return [...currencies].every(
+          (currency) => (left.get(currency) ?? 0n) === (right.get(currency) ?? 0n),
+        );
+      };
+      const directCostSourceByCurrency = new Map<V3Currency, bigint>();
+      for (const [currency, amount] of workerCostSourceByCurrency)
+        addAmount(directCostSourceByCurrency, currency, amount);
+      for (const [currency, amount] of expenseSourceCostByCurrency)
+        addAmount(directCostSourceByCurrency, currency, amount);
+      const contributionByCurrency = new Map<V3Currency, bigint>();
+      for (const [currency, amount] of invoiceNetByCurrency)
+        contributionByCurrency.set(
+          currency,
+          amount - (directCostSourceByCurrency.get(currency) ?? 0n),
+        );
+      const ledgerContributionByCurrency = new Map<V3Currency, bigint>();
+      for (const [currency, amount] of invoiceNetByCurrency)
+        ledgerContributionByCurrency.set(
+          currency,
+          amount - (directCostByCurrency.get(currency) ?? 0n),
+        );
+      const missingCostRuleCount = workerCosts.reduce(
+        (sum, row) => sum + row.missingCostRuleCount,
+        0,
+      );
+      const laborCostReconciles =
+        missingCostRuleCount === 0 &&
+        mapEquals(workerCostSourceByCurrency, internalLaborByCurrency);
+      const expenseCostReconciles = mapEquals(expenseSourceCostByCurrency, expenseCostByCurrency);
+      const directCostReconciles = mapEquals(directCostSourceByCurrency, directCostByCurrency);
+      const paymentReconciles = mapEquals(paymentSourceByCurrency, collectedByCurrency);
+      const contributionReconciles = mapEquals(
+        contributionByCurrency,
+        ledgerContributionByCurrency,
+      );
+      type AccountingPackSourceItem = {
+        id: string;
+        itemKind: string;
+        sourceId: string;
+        itemVersion: number;
+        effectiveAt: string;
+        evidenceType: string;
+        evidenceId: string;
+        amountMinor: string | null;
+        currency: V3Currency;
+        legalEntityId: string | null;
+        payload: Record<string, unknown>;
+      };
+      const sourceItems: AccountingPackSourceItem[] = [];
+      const sourceItemKeys = new Set<string>();
+      const addSourceItem = (input: {
+        itemKind: string;
+        sourceId: string;
+        itemVersion?: number | null;
+        effectiveAt?: string | null;
+        amountMinor?: bigint | number | string | null;
+        currency: V3Currency;
+        legalEntityId?: string | null;
+        payload: Record<string, unknown>;
+      }): void => {
+        const itemVersion = input.itemVersion ?? 1;
+        if (!Number.isSafeInteger(itemVersion) || itemVersion < 1)
+          throw new V3ConflictError('Accounting Pack source item version is invalid');
+        const sourceId = input.sourceId;
+        const key = `${input.itemKind}:${sourceId}:${itemVersion}:${input.currency}`;
+        if (sourceItemKeys.has(key))
+          throw new V3ConflictError(`Duplicate Accounting Pack source item ${key}`);
+        sourceItemKeys.add(key);
+        const identity = canonicalSha256(
+          canonicalJson({
+            periodStart,
+            periodEnd,
+            currency: input.currency,
+            itemKind: input.itemKind,
+            sourceId,
+            itemVersion,
+          }),
+        ).slice(0, 48);
+        const effectiveAt = input.effectiveAt
+          ? input.effectiveAt.length === 10
+            ? `${input.effectiveAt}T00:00:00.000Z`
+            : input.effectiveAt
+          : `${periodStart}T00:00:00.000Z`;
+        const amountMinor =
+          input.amountMinor === null || input.amountMinor === undefined
+            ? null
+            : typeof input.amountMinor === 'bigint'
+              ? input.amountMinor.toString()
+              : String(input.amountMinor);
+        const evidenceTypeByKind: Readonly<Record<string, string>> = {
+          invoice: 'invoice_subject',
+          invoice_source: 'invoice_source',
+          commercial_manifest: 'observed_invoice_manifest',
+          time: 'finance_change_event',
+          expense: 'finance_change_event',
+          payment: 'payment_record',
+          payment_reversal: 'payment_reversal',
+          compensation: 'settlement_revision',
+          compensation_settlement: 'settlement_revision',
+          direct_cost: 'direct_cost_event',
+        };
+        sourceItems.push({
+          id: `accounting-pack-source-${identity}`,
+          itemKind: input.itemKind,
+          sourceId,
+          itemVersion,
+          effectiveAt,
+          evidenceType: evidenceTypeByKind[input.itemKind] ?? 'source_cut',
+          evidenceId: `accounting-pack-source-evidence-${identity}`,
+          amountMinor,
+          currency: input.currency,
+          legalEntityId: input.legalEntityId ?? null,
+          payload: input.payload,
+        });
+      };
+      const commercialSourceBusinessDates = new Map<string, string | null>();
+      const commercialSourceManifest = [...commercialManifestByInvoice.entries()]
+        .flatMap(([invoiceId, rows]) =>
+          rows.map((row) => {
+            let businessDate: string | null = null;
+            if (row.source_type === 'time')
+              businessDate =
+                (
+                  this.sqlite
+                    .prepare('SELECT work_date value FROM time_entry WHERE id=?')
+                    .get(row.source_id) as { value: string } | undefined
+                )?.value ?? null;
+            else if (row.source_type === 'expense')
+              businessDate =
+                (
+                  this.sqlite
+                    .prepare('SELECT spent_on value FROM expense WHERE id=?')
+                    .get(row.source_id) as { value: string } | undefined
+                )?.value ?? null;
+            else if (row.source_type === 'milestone')
+              businessDate =
+                (
+                  this.sqlite
+                    .prepare(
+                      'SELECT COALESCE(due_on,approved_at,created_at) value FROM project_milestone WHERE id=?',
+                    )
+                    .get(row.source_id) as { value: string } | undefined
+                )?.value ?? null;
+            else if (row.source_type === 'adjustment')
+              businessDate =
+                (
+                  this.sqlite
+                    .prepare('SELECT created_at value FROM invoice_adjustment WHERE id=?')
+                    .get(row.source_id) as { value: string } | undefined
+                )?.value ?? null;
+            else if (!['fixed_price', 'minimum_top_up'].includes(row.source_type))
+              throw new V3ConflictError(
+                `Unsupported commercial manifest source type ${row.source_type}`,
+              );
+            if (
+              businessDate === null &&
+              !['fixed_price', 'minimum_top_up'].includes(row.source_type)
+            )
+              throw new V3ConflictError(
+                `Commercial manifest source ${row.source_type}:${row.source_id} has no authoritative business date`,
+              );
+            commercialSourceBusinessDates.set(
+              `${invoiceId}\u0000${row.source_type}\u0000${row.source_id}`,
+              businessDate,
+            );
+            return {
+              invoiceId,
+              sourceType: row.source_type,
+              sourceId: row.source_id,
+              sourceVersion: row.source_version,
+              disposition: row.disposition,
+              originalMinor: row.original_minor === null ? null : String(row.original_minor),
+              allocatedMinor: row.allocated_minor === null ? null : String(row.allocated_minor),
+              remainingMinor: row.remaining_minor === null ? null : String(row.remaining_minor),
+              reasonCode: row.reason_code,
+              sourceHash: row.source_hash,
+              lockedAt: row.locked_at,
+            };
+          }),
+        )
+        .sort(
+          (left, right) =>
+            left.invoiceId.localeCompare(right.invoiceId) ||
+            left.sourceType.localeCompare(right.sourceType) ||
+            left.sourceId.localeCompare(right.sourceId),
+        );
+      for (const row of invoiceRegister)
+        addSourceItem({
+          itemKind: 'invoice',
+          sourceId: row.invoiceId,
+          itemVersion: row.version,
+          effectiveAt: row.issueDate ?? periodStart,
+          amountMinor: row.netMinor,
+          currency: row.currency,
+          legalEntityId: row.legalEntityId,
+          payload: row,
+        });
+      for (const invoice of ledger) {
+        for (const source of invoice.sources)
+          addSourceItem({
+            itemKind: 'invoice_source',
+            sourceId: `${invoice.invoiceId}:${source.source_type}:${source.source_id}`,
+            itemVersion: source.source_version,
+            // The issued link is immutable, but the source belongs to the
+            // accounting cut of its operational business date. Using the
+            // invoice issue date here would let a late-issued time/expense
+            // migrate between periods and disagree with the manifest item.
+            effectiveAt:
+              commercialSourceBusinessDates.get(
+                `${invoice.invoiceId}\u0000${source.source_type}\u0000${source.source_id}`,
+              ) ??
+              invoice.issueDate ??
+              periodStart,
+            amountMinor: source.allocated_net_minor,
+            currency: invoice.currency,
+            legalEntityId: invoice.legalEntityId,
+            payload: { invoiceId: invoice.invoiceId, ...source },
+          });
+        for (const manifest of commercialManifestByInvoice.get(invoice.invoiceId) ?? [])
+          addSourceItem({
+            itemKind: 'commercial_manifest',
+            sourceId: `${invoice.invoiceId}:${manifest.source_type}:${manifest.source_id}`,
+            itemVersion: manifest.source_version,
+            effectiveAt:
+              commercialSourceBusinessDates.get(
+                `${invoice.invoiceId}\u0000${manifest.source_type}\u0000${manifest.source_id}`,
+              ) ??
+              invoice.issueDate ??
+              periodStart,
+            amountMinor: manifest.allocated_minor,
+            currency: invoice.currency,
+            legalEntityId: invoice.legalEntityId,
+            payload: {
+              invoiceId: invoice.invoiceId,
+              sourceType: manifest.source_type,
+              sourceId: manifest.source_id,
+              sourceVersion: manifest.source_version,
+              disposition: manifest.disposition,
+              originalMinor: manifest.original_minor,
+              allocatedMinor: manifest.allocated_minor,
+              remainingMinor: manifest.remaining_minor,
+              reasonCode: manifest.reason_code,
+              sourceHash: manifest.source_hash,
+              lockedAt: manifest.locked_at,
+            },
           });
       }
-    const approvedTimeEntryCount = timeRows.length;
-    const approvedExpenseCount = expenseRows.length;
-    const invoiceRegisterNetByCurrency = amountMap(invoiceNetByCurrency);
-    const directCostByCurrencyJson = amountMap(directCostByCurrency);
-    const workerCostSourceByCurrency = new Map<V3Currency, bigint>();
-    for (const row of workerCosts)
-      addAmount(workerCostSourceByCurrency, row.currency, BigInt(row.internalLoadedLaborCostMinor));
-    const expenseSourceCostByCurrency = new Map<V3Currency, bigint>();
-    for (const row of expenses) {
-      if (row.whoPaid === 'client' || row.billingTreatment === 'client_direct') continue;
-      addAmount(
-        expenseSourceCostByCurrency,
-        row.projectCurrency,
-        BigInt(row.projectCurrencyAmountMinor),
-      );
-    }
-    const paymentSourceByCurrency = new Map<V3Currency, bigint>();
-    for (const payment of paymentRows)
-      addAmount(paymentSourceByCurrency, payment.currency, BigInt(payment.amount_minor));
-    for (const reversal of paymentReversalRows)
-      addAmount(paymentSourceByCurrency, reversal.currency, -BigInt(reversal.amount_minor));
-    const mapEquals = (
-      left: ReadonlyMap<V3Currency, bigint>,
-      right: ReadonlyMap<V3Currency, bigint>,
-    ) => {
-      const currencies = new Set([...left.keys(), ...right.keys()]);
-      return [...currencies].every(
-        (currency) => (left.get(currency) ?? 0n) === (right.get(currency) ?? 0n),
-      );
-    };
-    const directCostSourceByCurrency = new Map<V3Currency, bigint>();
-    for (const [currency, amount] of workerCostSourceByCurrency)
-      addAmount(directCostSourceByCurrency, currency, amount);
-    for (const [currency, amount] of expenseSourceCostByCurrency)
-      addAmount(directCostSourceByCurrency, currency, amount);
-    const contributionByCurrency = new Map<V3Currency, bigint>();
-    for (const [currency, amount] of invoiceNetByCurrency)
-      contributionByCurrency.set(
-        currency,
-        amount - (directCostSourceByCurrency.get(currency) ?? 0n),
-      );
-    const ledgerContributionByCurrency = new Map<V3Currency, bigint>();
-    for (const [currency, amount] of invoiceNetByCurrency)
-      ledgerContributionByCurrency.set(
-        currency,
-        amount - (directCostByCurrency.get(currency) ?? 0n),
-      );
-    const laborCostReconciles = mapEquals(workerCostSourceByCurrency, internalLaborByCurrency);
-    const expenseCostReconciles = mapEquals(expenseSourceCostByCurrency, expenseCostByCurrency);
-    const directCostReconciles = mapEquals(directCostSourceByCurrency, directCostByCurrency);
-    const paymentReconciles = mapEquals(paymentSourceByCurrency, collectedByCurrency);
-    const contributionReconciles = mapEquals(contributionByCurrency, ledgerContributionByCurrency);
-    const snapshot = {
-      periodStart,
-      periodEnd,
-      locale: normalizeReportLocale(reportLocale),
-      generatedAt: timestamp(),
-      invoiceRegister,
-      collections,
-      workerCosts,
-      expenseRegister: expenses,
-      ledger,
-      totals,
-      totalsByCurrency,
-      sourceReconciliation: {
+      for (const row of timeRows)
+        addSourceItem({
+          itemKind: 'time',
+          sourceId: row.id,
+          itemVersion: row.version,
+          effectiveAt: row.work_date,
+          amountMinor: null,
+          currency: row.project_currency,
+          legalEntityId: projectLegalEntityAt(row.project_id, row.work_date),
+          payload: row,
+        });
+      for (const row of expenses)
+        addSourceItem({
+          itemKind: 'expense',
+          sourceId: row.expenseId,
+          itemVersion: row.version,
+          effectiveAt: row.date,
+          amountMinor: row.projectCurrencyAmountMinor,
+          currency: row.projectCurrency,
+          legalEntityId: projectLegalEntityAt(row.projectId, row.date),
+          payload: row,
+        });
+      for (const payment of paymentRows)
+        addSourceItem({
+          itemKind: 'payment',
+          sourceId: payment.payment_id,
+          effectiveAt: payment.received_at,
+          amountMinor: payment.amount_minor,
+          currency: payment.currency,
+          legalEntityId:
+            ledger.find((invoice) => invoice.invoiceId === payment.invoice_id)?.legalEntityId ??
+            null,
+          payload: payment,
+        });
+      for (const reversal of paymentReversalRows)
+        addSourceItem({
+          itemKind: 'payment_reversal',
+          sourceId: reversal.reversal_id,
+          itemVersion: 1,
+          effectiveAt: reversal.effective_at,
+          amountMinor: reversal.amount_minor,
+          currency: reversal.currency,
+          legalEntityId:
+            ledger.find((invoice) => invoice.invoiceId === reversal.invoice_id)?.legalEntityId ??
+            null,
+          payload: reversal,
+        });
+      const workerCostSourceRows = workerCostSegments.length > 0 ? workerCostSegments : workerCosts;
+      for (const row of workerCostSourceRows) {
+        // A project may change legal entity inside the period.  Carry the
+        // effective-date segment in the source identity so each canonical
+        // revision can reconcile only the rows belonging to its own scope.
+        const aggregateSourceId = `${row.workerId}:${row.projectId}:${row.legalEntityId ?? 'unassigned'}`;
+        const legalEntityId = row.legalEntityId;
+        addSourceItem({
+          itemKind: 'compensation',
+          sourceId: aggregateSourceId,
+          effectiveAt: periodEnd,
+          amountMinor: row.approvedCompensationMinor,
+          currency: row.currency,
+          legalEntityId,
+          payload: row,
+        });
+        addSourceItem({
+          itemKind: 'direct_cost',
+          sourceId: `labor:${aggregateSourceId}`,
+          effectiveAt: periodEnd,
+          amountMinor: row.internalLoadedLaborCostMinor,
+          currency: row.currency,
+          legalEntityId,
+          payload: {
+            workerId: row.workerId,
+            projectId: row.projectId,
+            sourceTimeIds: row.sourceTimeIds,
+          },
+        });
+      }
+      for (const row of expenses) {
+        if (row.whoPaid === 'client' || row.billingTreatment === 'client_direct') continue;
+        addSourceItem({
+          itemKind: 'direct_cost',
+          sourceId: `expense:${row.expenseId}`,
+          effectiveAt: row.date,
+          amountMinor: row.projectCurrencyAmountMinor,
+          currency: row.projectCurrency,
+          legalEntityId: projectLegalEntityAt(row.projectId, row.date),
+          payload: {
+            expenseId: row.expenseId,
+            projectCurrency: row.projectCurrency,
+            projectCurrencyAmountMinor: row.projectCurrencyAmountMinor,
+            billingTreatment: row.billingTreatment,
+          },
+        });
+      }
+      for (const row of settledRows)
+        addSourceItem({
+          itemKind: 'compensation_settlement',
+          sourceId: row.id,
+          itemVersion: row.rule_version,
+          effectiveAt: row.period_end,
+          amountMinor: row.amount,
+          currency: row.currency,
+          legalEntityId: projectLegalEntityAt(row.project_id, row.period_end),
+          payload: row,
+        });
+      const snapshot = {
+        periodStart,
+        periodEnd,
+        locale: normalizeReportLocale(reportLocale),
+        generatedAt: timestamp(),
+        invoiceRegister,
+        collections,
+        workerCosts,
+        workerCostSegments,
+        expenseRegister: expenses,
+        ledger,
+        sourceItems,
+        commercialSourceManifest,
+        totals,
+        totalsByCurrency: totalsByAccountingScope,
+        sourceReconciliation: {
+          invoiceSourceCount,
+          commercialManifestCount,
+          sourceItemCount: sourceItems.length,
+          sourceMismatches,
+          approvedTimeEntryCount,
+          approvedExpenseCount,
+        },
+        exactReconciliation: {
+          invoiceNetByCurrency: invoiceRegisterNetByCurrency,
+          paymentByCurrency: amountMap(paymentSourceByCurrency),
+          workerCostByCurrency: amountMap(workerCostSourceByCurrency),
+          expenseCostByCurrency: amountMap(expenseSourceCostByCurrency),
+          directCostByCurrency: directCostByCurrencyJson,
+          contributionByCurrency: amountMap(contributionByCurrency),
+          missingCostRuleCount,
+        },
+      };
+      const reconciliation = {
+        invoiceRegisterGrossByCurrency: amountMap(invoiceGrossByCurrency),
+        invoiceRegisterNetByCurrency,
+        directCostByCurrency: directCostByCurrencyJson,
         invoiceSourceCount,
-        sourceMismatches,
+        commercialManifestCount,
+        sourceItemCount: sourceItems.length,
+        sourceMismatchCount: sourceMismatches.length,
         approvedTimeEntryCount,
         approvedExpenseCount,
-      },
-      exactReconciliation: {
-        invoiceNetByCurrency: invoiceRegisterNetByCurrency,
-        paymentByCurrency: amountMap(paymentSourceByCurrency),
-        workerCostByCurrency: amountMap(workerCostSourceByCurrency),
-        expenseCostByCurrency: amountMap(expenseSourceCostByCurrency),
-        directCostByCurrency: directCostByCurrencyJson,
+        missingCostRuleCount,
+        paymentCount: paymentRows.length + paymentReversalRows.length,
+        collectedInMonthByCurrency: amountMap(collectedByCurrency),
+        workerCostSourceByCurrency: amountMap(workerCostSourceByCurrency),
+        expenseCostSourceByCurrency: amountMap(expenseSourceCostByCurrency),
+        directCostSourceByCurrency: amountMap(directCostSourceByCurrency),
         contributionByCurrency: amountMap(contributionByCurrency),
-      },
-    };
-    const reconciliation = {
-      invoiceRegisterGrossByCurrency: amountMap(invoiceGrossByCurrency),
-      invoiceRegisterNetByCurrency,
-      directCostByCurrency: directCostByCurrencyJson,
-      invoiceSourceCount,
-      sourceMismatchCount: sourceMismatches.length,
-      approvedTimeEntryCount,
-      approvedExpenseCount,
-      paymentCount: paymentRows.length + paymentReversalRows.length,
-      collectedInMonthByCurrency: amountMap(collectedByCurrency),
-      workerCostSourceByCurrency: amountMap(workerCostSourceByCurrency),
-      expenseCostSourceByCurrency: amountMap(expenseSourceCostByCurrency),
-      directCostSourceByCurrency: amountMap(directCostSourceByCurrency),
-      contributionByCurrency: amountMap(contributionByCurrency),
-      checks: {
-        invoiceSources: sourceMismatches.length === 0,
-        payments: paymentReconciles,
-        workerCosts: laborCostReconciles,
-        expenses: expenseCostReconciles,
-        directCosts: directCostReconciles,
-        contribution: contributionReconciles,
-      },
-      reconciles:
-        sourceMismatches.length === 0 &&
-        invoiceSourceCount === ledger.reduce<number>((sum, row) => sum + row.sources.length, 0) &&
-        paymentReconciles &&
-        laborCostReconciles &&
-        expenseCostReconciles &&
-        directCostReconciles &&
-        contributionReconciles,
-    };
-    const id = newId();
-    const now = timestamp();
-    let storedReconciliation: Readonly<Record<string, unknown>> = reconciliation;
-    this.transaction(() => {
+        checks: {
+          invoiceSources: sourceMismatches.length === 0,
+          payments: paymentReconciles,
+          workerCosts: laborCostReconciles,
+          expenses: expenseCostReconciles,
+          directCosts: directCostReconciles,
+          contribution: contributionReconciles,
+        },
+        reconciles:
+          sourceMismatches.length === 0 &&
+          invoiceSourceCount === ledger.reduce<number>((sum, row) => sum + row.sources.length, 0) &&
+          paymentReconciles &&
+          laborCostReconciles &&
+          expenseCostReconciles &&
+          directCostReconciles &&
+          contributionReconciles,
+      };
+      const id = newId();
+      const now = timestamp();
+      let storedReconciliation: Readonly<Record<string, unknown>> = reconciliation;
       const canonicalRevision = this.createCanonicalAccountingPackMetadata(
         principal,
         snapshot,
@@ -6939,6 +8392,7 @@ export class V3Repository {
         periodStart,
         periodEnd,
         now,
+        id,
       );
       storedReconciliation = { ...reconciliation, canonicalRevision };
       this.sqlite
@@ -6973,8 +8427,8 @@ export class V3Repository {
         periodEnd,
         jobId: queued.id,
       });
+      return { id, state: 'queued', snapshot, reconciliation: storedReconciliation };
     });
-    return { id, state: 'queued', snapshot, reconciliation: storedReconciliation };
   }
 
   markAccountingPackFinal(principal: Principal, packId: string): void {
@@ -7103,6 +8557,7 @@ export class V3Repository {
     idempotencyKey: string,
   ): { jobId: string; created: boolean; state: string } {
     this.assertFinance(principal);
+    this.assertStepUp(principal);
     if (!accountingPackExportTypes.includes(exportType))
       throw new V3ValidationError('Accounting Pack export type is invalid');
     const cleanKey = requireText(idempotencyKey, 'Retry idempotency key');
@@ -7252,6 +8707,30 @@ export class V3Repository {
 
   invoiceSnapshot(principal: Principal, invoiceId: string): Readonly<Record<string, unknown>> {
     this.assertFinanceReadable(principal);
+    return this.invoiceSnapshotCore(invoiceId);
+  }
+
+  /**
+   * Read the immutable invoice snapshot for the currently claimed invoice-PDF job.
+   *
+   * The proof is checked in the same transaction as the read so a revoked actor, stale
+   * lease, or changed payload cannot be used to render a private artifact.
+   */
+  invoiceSnapshotFromJob(
+    invoiceId: string,
+    execution: FencedJobExecution,
+  ): Readonly<Record<string, unknown>> {
+    return this.transaction(() => {
+      assertFencedJobExecution(this.sqlite, execution, {
+        kind: 'invoice_pdf',
+        capability: 'artifact.invoice.render',
+        payloadTarget: { invoiceId },
+      });
+      return this.invoiceSnapshotCore(invoiceId);
+    });
+  }
+
+  private invoiceSnapshotCore(invoiceId: string): Readonly<Record<string, unknown>> {
     const invoice = this.sqlite
       .prepare('SELECT id,state,snapshot_json FROM invoice WHERE id=?')
       .get(invoiceId) as { id: string; state: string; snapshot_json: string | null } | undefined;
@@ -7268,6 +8747,24 @@ export class V3Repository {
 
   accountingPackSnapshot(principal: Principal, packId: string): Readonly<Record<string, unknown>> {
     this.assertFinanceReadable(principal);
+    return this.accountingPackSnapshotCore(packId);
+  }
+
+  accountingPackSnapshotFromJob(
+    packId: string,
+    execution: FencedJobExecution,
+  ): Readonly<Record<string, unknown>> {
+    return this.transaction(() => {
+      assertFencedJobExecution(this.sqlite, execution, {
+        kind: 'accounting_pack_artifact_render',
+        capability: 'artifact.accounting_pack.render',
+        payloadTarget: { packId },
+      });
+      return this.accountingPackSnapshotCore(packId);
+    });
+  }
+
+  private accountingPackSnapshotCore(packId: string): Readonly<Record<string, unknown>> {
     const pack = this.sqlite
       .prepare('SELECT snapshot_json FROM accounting_pack_run WHERE id=?')
       .get(packId) as { snapshot_json: string } | undefined;
@@ -7286,6 +8783,41 @@ export class V3Repository {
     this.assertStorageKey(storageKey);
     if (!/^[a-f0-9]{64}$/.test(sha256) || !Number.isSafeInteger(byteLength) || byteLength <= 0)
       throw new V3ValidationError('Invoice PDF metadata is invalid');
+    this.recordInvoicePdfCore(invoiceId, storageKey, sha256, byteLength);
+    this.audit(principal, 'invoice.pdf_ready', 'invoice', invoiceId, {
+      storageKey,
+      sha256,
+      byteLength,
+    });
+  }
+
+  /** Persist an invoice PDF from a fenced invoice-PDF execution without a user principal. */
+  recordInvoicePdfFromJob(
+    invoiceId: string,
+    storageKey: SafeStorageKey,
+    sha256: string,
+    byteLength: number,
+    execution: FencedJobExecution,
+  ): void {
+    this.transaction(() => {
+      assertFencedJobExecution(this.sqlite, execution, {
+        kind: 'invoice_pdf',
+        capability: 'artifact.invoice.render',
+        payloadTarget: { invoiceId },
+      });
+      this.assertStorageKey(storageKey);
+      if (!/^[a-f0-9]{64}$/.test(sha256) || !Number.isSafeInteger(byteLength) || byteLength <= 0)
+        throw new V3ValidationError('Invoice PDF metadata is invalid');
+      this.recordInvoicePdfCore(invoiceId, storageKey, sha256, byteLength);
+    });
+  }
+
+  private recordInvoicePdfCore(
+    invoiceId: string,
+    storageKey: SafeStorageKey,
+    sha256: string,
+    byteLength: number,
+  ): void {
     const result = this.sqlite
       .prepare(
         "UPDATE invoice SET pdf_status='ready',pdf_storage_key=?,pdf_sha256=?,pdf_byte_length=?,pdf_generated_at=?,updated_at=? WHERE id=? AND state IN ('issued','sent','partially_paid','paid','overdue','void','credited') AND (pdf_sha256 IS NULL OR pdf_sha256=?)",
@@ -7298,11 +8830,6 @@ export class V3Repository {
       if (!existing || existing.pdf_sha256 !== sha256)
         throw new V3ConflictError('Invoice PDF is already finalized with another hash');
     }
-    this.audit(principal, 'invoice.pdf_ready', 'invoice', invoiceId, {
-      storageKey,
-      sha256,
-      byteLength,
-    });
   }
 
   recordAccountingPackExport(
@@ -7315,8 +8842,59 @@ export class V3Repository {
   ): { id: string; created: boolean } {
     this.assertFinance(principal);
     this.assertStorageKey(storageKey);
-    if (!/^[a-f0-9]{64}$/.test(sha256) || !Number.isSafeInteger(byteLength) || byteLength < 0)
+    if (!/^[a-f0-9]{64}$/.test(sha256) || !Number.isSafeInteger(byteLength) || byteLength <= 0)
       throw new V3ValidationError('Accounting Pack export metadata is invalid');
+    const result = this.recordAccountingPackExportCore(
+      packId,
+      exportType,
+      storageKey,
+      sha256,
+      byteLength,
+    );
+    if (result.created)
+      this.audit(principal, 'accounting_pack.export', 'accounting_pack_run', packId, {
+        exportType,
+        storageKey,
+        sha256,
+        byteLength,
+      });
+    return result;
+  }
+
+  recordAccountingPackExportFromJob(
+    packId: string,
+    exportType: 'pdf' | 'xlsx' | 'invoice_csv' | 'expense_csv' | 'json',
+    storageKey: SafeStorageKey,
+    sha256: string,
+    byteLength: number,
+    execution: FencedJobExecution,
+  ): { id: string; created: boolean } {
+    return this.transaction(() => {
+      assertFencedJobExecution(this.sqlite, execution, {
+        kind: 'accounting_pack_artifact_render',
+        capability: 'artifact.accounting_pack.render',
+        payloadTarget: { packId },
+      });
+      this.assertStorageKey(storageKey);
+      if (!/^[a-f0-9]{64}$/.test(sha256) || !Number.isSafeInteger(byteLength) || byteLength <= 0)
+        throw new V3ValidationError('Accounting Pack export metadata is invalid');
+      return this.recordAccountingPackExportCore(
+        packId,
+        exportType,
+        storageKey,
+        sha256,
+        byteLength,
+      );
+    });
+  }
+
+  private recordAccountingPackExportCore(
+    packId: string,
+    exportType: 'pdf' | 'xlsx' | 'invoice_csv' | 'expense_csv' | 'json',
+    storageKey: SafeStorageKey,
+    sha256: string,
+    byteLength: number,
+  ): { id: string; created: boolean } {
     const existing = this.sqlite
       .prepare('SELECT id,sha256 FROM accounting_pack_export WHERE pack_run_id=? AND export_type=?')
       .get(packId, exportType) as { id: string; sha256: string } | undefined;
@@ -7338,12 +8916,6 @@ export class V3Repository {
       )
       .run(id, packId, exportType, storageKey, sha256, byteLength, timestamp());
     this.clearAccountingPackExportFailure(packId, exportType);
-    this.audit(principal, 'accounting_pack.export', 'accounting_pack_run', packId, {
-      exportType,
-      storageKey,
-      sha256,
-      byteLength,
-    });
     return { id, created: true };
   }
 
@@ -7355,6 +8927,34 @@ export class V3Repository {
     error: string,
   ): void {
     this.assertFinance(principal);
+    this.recordAccountingPackExportFailureCore(packId, exportType, error);
+    this.audit(principal, 'accounting_pack.export_failed', 'accounting_pack_run', packId, {
+      exportType,
+      error: error.trim().slice(0, 500) || 'Artifact generation failed',
+    });
+  }
+
+  recordAccountingPackExportFailureFromJob(
+    packId: string,
+    exportType: AccountingPackExportType,
+    error: string,
+    execution: FencedJobExecution,
+  ): void {
+    this.transaction(() => {
+      assertFencedJobExecution(this.sqlite, execution, {
+        kind: 'accounting_pack_artifact_render',
+        capability: 'artifact.accounting_pack.render',
+        payloadTarget: { packId },
+      });
+      this.recordAccountingPackExportFailureCore(packId, exportType, error);
+    });
+  }
+
+  private recordAccountingPackExportFailureCore(
+    packId: string,
+    exportType: AccountingPackExportType,
+    error: string,
+  ): void {
     const pack = this.sqlite
       .prepare('SELECT state,reconciliation_json FROM accounting_pack_run WHERE id=?')
       .get(packId) as { state: string; reconciliation_json: string } | undefined;
@@ -7376,10 +8976,6 @@ export class V3Repository {
         "UPDATE accounting_pack_run SET reconciliation_json=?,state=CASE WHEN state='final' THEN state ELSE 'failed' END,updated_at=? WHERE id=?",
       )
       .run(JSON.stringify(reconciliation), timestamp(), packId);
-    this.audit(principal, 'accounting_pack.export_failed', 'accounting_pack_run', packId, {
-      exportType,
-      error: failures[exportType],
-    });
   }
 
   private clearAccountingPackExportFailure(
@@ -7410,6 +9006,7 @@ export class V3Repository {
     principal: Principal,
     packId: string,
     exportType: 'pdf' | 'xlsx' | 'invoice_csv' | 'expense_csv' | 'json',
+    recoverStale = true,
   ): {
     storageKey: SafeStorageKey;
     sha256: string;
@@ -7421,6 +9018,7 @@ export class V3Repository {
     const packStatus = this.sqlite
       .prepare(
         `SELECT apr.state,apr.reconciliation_json,apr.period_start,apr.period_end,apr.created_at,
+                apr.snapshot_json,
                 (SELECT j.state FROM job j WHERE j.kind='accounting_pack_artifact_render'
                   AND json_valid(j.payload_json)
                   AND json_extract(j.payload_json,'$.packId')=apr.id
@@ -7434,21 +9032,38 @@ export class V3Repository {
           period_start: string;
           period_end: string;
           created_at: string;
+          snapshot_json: string;
           job_state: string | null;
         }
       | undefined;
     if (!packStatus) throw new V3ValidationError('Accounting Pack not found');
     if (
+      recoverStale &&
       packStatus.state !== 'final' &&
       this.accountingPackSourcesChangedSince(
         packStatus.period_start,
         packStatus.period_end,
         packStatus.created_at,
       )
-    )
-      throw new V3ConflictError(
-        'Accounting Pack source changed; create a new revision before download',
+    ) {
+      // Stale non-final bytes stay immutable. Download recovers by creating the
+      // current period revision once, then serving that revision's artifacts.
+      let snapshotLocale: unknown;
+      try {
+        snapshotLocale = (JSON.parse(packStatus.snapshot_json) as { locale?: unknown }).locale;
+      } catch {
+        snapshotLocale = undefined;
+      }
+      const refreshed = this.createAccountingPack(
+        principal,
+        packStatus.period_start,
+        packStatus.period_end,
+        normalizeReportLocale(snapshotLocale),
       );
+      if (refreshed.id !== packId)
+        return this.accountingPackExport(principal, refreshed.id, exportType, false);
+      throw new V3ConflictError(`Accounting Pack ${exportType} export is not ready`);
+    }
     const reconciliation = parseJsonRecord(packStatus.reconciliation_json);
     const failures =
       reconciliation._artifactFailures && typeof reconciliation._artifactFailures === 'object'
@@ -7671,9 +9286,7 @@ export class V3Repository {
     if (
       !document ||
       document.state !== 'committed' ||
-      document.scan_status === 'pending' ||
-      document.scan_status === 'rejected' ||
-      (scannerRequired && document.scan_status !== 'clean')
+      !scannerStatusAllowsPrivateDownload(document.scan_status, scannerRequired)
     )
       throw new V3ValidationError('Document not found');
     this.assertStorageKey(document.storage_key);
@@ -7710,16 +9323,12 @@ export class V3Repository {
     };
   }
 
-  recordDocumentScan(
-    principal: Principal,
+  recordDocumentScanFromJob(
     documentId: string,
     result: 'clean' | 'rejected',
     provider: string,
     execution: DocumentScanExecutionProof,
   ): void {
-    this.assertActive(principal);
-    if (!principal.isServiceActor)
-      throw new V3AccessDeniedError('Document scanning requires a service actor');
     if (result !== 'clean' && result !== 'rejected')
       throw new V3ValidationError('Document scan result is invalid');
     if (!provider.trim() || provider.length > 120)
@@ -7731,152 +9340,18 @@ export class V3Repository {
         (process.env.VITEST === 'true' || Boolean(process.env.VITEST_WORKER_ID));
     if (!providerIsConfigured)
       throw new V3AccessDeniedError('Scan provider is not an authorized configured service');
-    if (
-      !execution ||
-      !execution.jobId ||
-      !execution.runId ||
-      !execution.tenantId ||
-      !execution.deploymentId ||
-      execution.requiredCapability !== 'document.scan' ||
-      !Number.isSafeInteger(execution.fenceVersion) ||
-      execution.fenceVersion < 1
-    )
-      throw new V3AccessDeniedError('Document scan execution proof is required');
-
     this.transaction(() => {
-      const durable = this.sqlite
-        .prepare(
-          `SELECT j.kind,j.contract_version job_contract,j.payload_json,j.payload_sha256,
-                  j.tenant_id,j.deployment_id,j.required_capability,j.state job_state,
-                  j.active_job_run_id,j.fence_version,j.lease_until job_lease_until,
-                  r.id run_id,r.contract_version run_contract,r.kind run_kind,r.state run_state,
-                  r.tenant_id run_tenant_id,r.deployment_id run_deployment_id,
-                  r.required_capability run_capability,r.payload_sha256 run_payload_sha256,
-                  r.service_actor_id,r.service_actor_version,
-                  r.service_actor_capabilities_json,r.configured_binding_version,
-                  r.fence_version run_fence,r.lease_until run_lease_until,
-                  s.status actor_status,s.version actor_version,
-                  s.capabilities_json actor_capabilities,
-                  b.service_actor_id binding_actor_id,b.tenant_id binding_tenant_id,
-                  b.deployment_id binding_deployment_id,b.version binding_version
-           FROM job j
-           JOIN job_run r ON r.id=j.active_job_run_id AND r.id=? AND r.job_id=j.id
-           JOIN deployment_identity d
-             ON d.singleton=1 AND d.tenant_id=j.tenant_id AND d.deployment_id=j.deployment_id
-           JOIN service_actor s ON s.id=r.service_actor_id
-           JOIN deployment_service_actor_binding b
-             ON b.singleton=1 AND b.service_actor_id=s.id
-           WHERE j.id=?`,
-        )
-        .get(execution.runId, execution.jobId) as
-        | {
-            kind: string;
-            job_contract: string;
-            payload_json: string;
-            payload_sha256: string | null;
-            tenant_id: string | null;
-            deployment_id: string | null;
-            required_capability: string | null;
-            job_state: string;
-            active_job_run_id: string | null;
-            fence_version: number;
-            job_lease_until: string | null;
-            run_id: string;
-            run_contract: string | null;
-            run_kind: string | null;
-            run_state: string | null;
-            run_tenant_id: string | null;
-            run_deployment_id: string | null;
-            run_capability: string | null;
-            run_payload_sha256: string | null;
-            service_actor_id: string | null;
-            service_actor_version: number | null;
-            service_actor_capabilities_json: string | null;
-            configured_binding_version: number | null;
-            run_fence: number | null;
-            run_lease_until: string | null;
-            actor_status: string;
-            actor_version: number;
-            actor_capabilities: string;
-            binding_actor_id: string;
-            binding_tenant_id: string;
-            binding_deployment_id: string;
-            binding_version: number;
-          }
-        | undefined;
-      const now = timestamp();
-      if (
-        !durable ||
-        durable.job_contract !== 'b5-v1' ||
-        durable.run_contract !== 'b5-v1' ||
-        durable.kind !== 'document_scan' ||
-        durable.run_kind !== 'document_scan' ||
-        durable.required_capability !== 'document.scan' ||
-        durable.run_capability !== 'document.scan' ||
-        durable.job_state !== 'claimed' ||
-        durable.run_state !== 'running' ||
-        durable.active_job_run_id !== execution.runId ||
-        durable.tenant_id !== execution.tenantId ||
-        durable.deployment_id !== execution.deploymentId ||
-        durable.run_tenant_id !== execution.tenantId ||
-        durable.run_deployment_id !== execution.deploymentId ||
-        durable.binding_tenant_id !== execution.tenantId ||
-        durable.binding_deployment_id !== execution.deploymentId ||
-        durable.required_capability !== execution.requiredCapability ||
-        durable.service_actor_id !== durable.binding_actor_id ||
-        durable.actor_status !== 'active' ||
-        durable.service_actor_version !== durable.actor_version ||
-        durable.configured_binding_version !== durable.binding_version ||
-        durable.actor_capabilities !== durable.service_actor_capabilities_json ||
-        durable.payload_sha256 === null ||
-        durable.payload_sha256 !== durable.run_payload_sha256 ||
-        durable.fence_version !== execution.fenceVersion ||
-        durable.run_fence !== execution.fenceVersion ||
-        durable.job_lease_until === null ||
-        durable.run_lease_until !== durable.job_lease_until ||
-        durable.job_lease_until <= now
-      )
-        throw new V3AccessDeniedError('Document scan execution is stale or forged');
-
-      let capabilities: unknown;
-      let payload: unknown;
-      try {
-        capabilities = JSON.parse(durable.actor_capabilities);
-        payload = JSON.parse(durable.payload_json);
-      } catch {
-        throw new V3AccessDeniedError('Document scan execution is stale or forged');
-      }
-      if (
-        !Array.isArray(capabilities) ||
-        !capabilities.includes('document.scan') ||
-        createHash('sha256').update(canonicalJobJson(payload)).digest('hex') !==
-          durable.payload_sha256 ||
-        !payload ||
-        typeof payload !== 'object' ||
-        Array.isArray(payload) ||
-        (payload as Record<string, unknown>).documentId !== documentId
-      )
-        throw new V3AccessDeniedError('Document scan execution is stale or forged');
+      assertFencedJobExecution(this.sqlite, execution, {
+        kind: 'document_scan',
+        capability: 'document.scan',
+        payloadTarget: { documentId },
+      });
 
       const current = this.sqlite
         .prepare('SELECT scan_status FROM document WHERE id=?')
         .get(documentId) as { scan_status: string } | undefined;
       if (!current) throw new V3ValidationError('Document not found');
-      if (current.scan_status === result) {
-        const sameExecution = this.sqlite
-          .prepare(
-            `SELECT 1 FROM audit_event
-             WHERE action='document.scan' AND entity_type='document' AND entity_id=?
-               AND json_extract(metadata_json,'$.jobId')=?
-               AND json_extract(metadata_json,'$.jobRunId')=?
-               AND json_extract(metadata_json,'$.fenceVersion')=?
-               AND json_extract(metadata_json,'$.result')=?
-             LIMIT 1`,
-          )
-          .get(documentId, execution.jobId, execution.runId, execution.fenceVersion, result);
-        if (sameExecution) return;
-        throw new V3ConflictError('Document scan is already finalized');
-      }
+      if (current.scan_status === result) return;
       if (current.scan_status !== 'pending' && current.scan_status !== 'not_scanned')
         throw new V3ConflictError('Document scan is already finalized');
 
@@ -7889,17 +9364,6 @@ export class V3Repository {
         .run(result, changedAt, provider.trim(), state, changedAt, documentId);
       if (updated.changes !== 1)
         throw new V3ConflictError('Document scan changed while finalizing');
-      this.audit(principal, 'document.scan', 'document', documentId, {
-        result,
-        provider: provider.trim(),
-        jobId: execution.jobId,
-        jobRunId: execution.runId,
-        tenantId: execution.tenantId,
-        deploymentId: execution.deploymentId,
-        serviceActorId: durable.service_actor_id,
-        serviceCapability: execution.requiredCapability,
-        fenceVersion: execution.fenceVersion,
-      });
     });
   }
 
@@ -8276,7 +9740,8 @@ export class V3Repository {
     runAfter = timestamp(),
   ): { id: string; created: boolean } {
     const canonicalKind = kind;
-    const capability = B5_JOB_CAPABILITIES[canonicalKind];
+    const capability =
+      DURABLE_JOB_CAPABILITY_BY_KIND[canonicalKind as keyof typeof DURABLE_JOB_CAPABILITY_BY_KIND];
     if (!capability) throw new V3ValidationError(`Unregistered durable job kind: ${kind}`);
     const identity = this.sqlite
       .prepare('SELECT tenant_id,deployment_id FROM deployment_identity WHERE singleton=1')
@@ -8300,6 +9765,7 @@ export class V3Repository {
     }
     const id = newId();
     const now = timestamp();
+    const maxAttempts = canonicalKind === WORKER_STATEMENT_ARTIFACT_RENDER_JOB_KIND ? 1 : 5;
     const correlationId = createHash('sha256')
       .update(`${identity.tenant_id}:${identity.deployment_id}:${idempotencyKey}`)
       .digest('hex');
@@ -8331,7 +9797,7 @@ export class V3Repository {
         capability,
         null,
         0,
-        5,
+        maxAttempts,
         null,
       );
     return { id, created: true };
@@ -9145,9 +10611,7 @@ export class V3Repository {
     if (
       !document ||
       document.state !== 'committed' ||
-      document.scan_status === 'pending' ||
-      document.scan_status === 'rejected' ||
-      (scannerRequired && document.scan_status !== 'clean')
+      !scannerStatusAllowsPrivateDownload(document.scan_status, scannerRequired)
     )
       throw new V3ValidationError('Report attachment is not ready');
     if (
@@ -9389,8 +10853,7 @@ export class V3Repository {
         durable.binding_tenant_id !== execution.tenantId ||
         durable.binding_deployment_id !== execution.deploymentId ||
         durable.payload_sha256 !== durable.run_payload_sha256 ||
-        createHash('sha256').update(canonicalJobJson(payload)).digest('hex') !==
-          durable.payload_sha256 ||
+        jobPayloadHash(payload) !== durable.payload_sha256 ||
         durable.service_actor_id !== durable.binding_actor_id ||
         durable.service_actor_version !== durable.actor_version ||
         durable.configured_binding_version !== durable.binding_version ||

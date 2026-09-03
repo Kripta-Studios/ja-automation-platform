@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createDatabase } from '@ja/database';
+import { capabilityForJobKind, createDatabase } from '@ja/database';
 import {
   B5_TEST_DEPLOYMENT_ID,
   B5_TEST_SERVICE_CAPABILITIES,
@@ -162,7 +162,20 @@ describe('requested demo fixture implementation', () => {
         bound_by_email: 'antonny.luty@j-aautomation.com',
         version: 1,
       });
-      expect(JSON.parse(actor!.capabilities_json)).toEqual([...B5_TEST_SERVICE_CAPABILITIES]);
+      const capabilities = JSON.parse(actor!.capabilities_json) as unknown;
+      expect(capabilityForJobKind('worker_statement_artifact_render')).toBe(
+        'artifact.worker_statement.render',
+      );
+      expect(capabilities).toEqual([...B5_TEST_SERVICE_CAPABILITIES]);
+      expect(capabilities).toContain('artifact.worker_statement.render');
+      expect(
+        count(
+          `SELECT count(*) count
+             FROM service_actor s
+             JOIN user u ON u.id=s.id`,
+        ),
+        'a human user must never be reused as the service actor',
+      ).toBe(0);
       expect(count('SELECT count(*) count FROM deployment_service_actor_binding')).toBe(1);
     } finally {
       sqlite.close();

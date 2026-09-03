@@ -116,13 +116,7 @@ describe('B5 upload reservation and storage boundary', () => {
       sensitivity: 'customer_private',
     });
     expect(() =>
-      value.v3.recordDocumentScan(
-        { ...value.owner, isServiceActor: true },
-        document.id,
-        'clean',
-        'test-scanner',
-        undefined as never,
-      ),
+      value.v3.recordDocumentScanFromJob(document.id, 'clean', 'test-scanner', undefined as never),
     ).toThrow();
   });
 

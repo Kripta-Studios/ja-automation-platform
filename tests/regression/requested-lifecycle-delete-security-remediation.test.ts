@@ -42,7 +42,11 @@ describe('requested lifecycle delete and workforce write boundaries', () => {
       value.sqlite
         .prepare('SELECT id,status,ends_on FROM project_member WHERE id=?')
         .get(provisional.id),
-    ).toMatchObject({ id: provisional.id, status: 'inactive', ends_on: '2026-08-24' });
+    ).toMatchObject({
+      id: provisional.id,
+      status: 'inactive',
+      ends_on: new Date().toISOString().slice(0, 10),
+    });
 
     const overrideAssignment = value.repository.assignWorker(value.owner, {
       projectId: value.project.id,
@@ -68,7 +72,10 @@ describe('requested lifecycle delete and workforce write boundaries', () => {
       value.sqlite
         .prepare('SELECT starts_on,ends_on FROM project_member WHERE id=?')
         .get(overrideAssignment.id),
-    ).toEqual({ starts_on: '2026-08-25', ends_on: '2026-08-25' });
+    ).toEqual({
+      starts_on: '2026-08-25',
+      ends_on: new Date().toISOString().slice(0, 10),
+    });
 
     const historicalAssignment = value.sqlite
       .prepare('SELECT id FROM project_member WHERE project_id=? AND user_id=? LIMIT 1')

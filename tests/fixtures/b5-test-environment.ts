@@ -19,6 +19,7 @@ export const B5_TEST_SERVICE_CAPABILITIES = Object.freeze([
   'artifact.accounting_pack.render',
   'storage.temporary.cleanup',
   'artifact.localized_pdf.render',
+  'artifact.worker_statement.render',
   'document.scan',
   'outbox.deliver',
   'alert.dispatch',

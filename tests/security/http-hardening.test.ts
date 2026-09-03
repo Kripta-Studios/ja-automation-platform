@@ -29,4 +29,11 @@ describe('B5 HTTP hardening (RED characterization)', () => {
     expect(source).toMatch(/service-only|scanner service/i);
     expect(source).not.toContain('recordDocumentScan(');
   });
+
+  it('redacts invitation bearer tokens from application request logs', () => {
+    const source = readSource('apps/portal/src/hooks.server.ts');
+    expect(source).toContain('function requestLogPath');
+    expect(source).toContain(`${'${invitationPrefix}'}[REDACTED]`);
+    expect(source.match(/path: requestLogPath\(path\)/gu)).toHaveLength(2);
+  });
 });

@@ -57,14 +57,43 @@
         <img src={`${base}/app/logo.png`} alt="J&A Automation" />
       </a>
       <div class="login-intro">
-        <p class="portal-kicker">{t('STEP-UP AUTHENTICATION')}</p>
+        <p class="portal-kicker">{t('ACCOUNT MFA')}</p>
         <h1>{t('A quick check keeps your workspace secure.')}</h1>
         <p>{t('Enter the current code from your authenticator app to continue.')}</p>
       </div>
     </div>
   </section>
   <section class="login-panel">
+    <div class="login-panel-tools">
+      <a
+        href="https://webmail.j-aautomation.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="login-top-webmail"
+        title={t('Open corporate webmail in a new tab')}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="14"
+          height="14"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+        </svg>
+        <span>{t('Webmail')}</span>
+        <span class="webmail-btn-arrow" aria-hidden="true">↗</span>
+      </a>
+    </div>
     <form class="login-card" onsubmit={verify}>
+      <div class="login-brand mobile-brand" aria-hidden="true">
+        <img src={`${base}/app/logo.png`} alt="J&A Automation" />
+      </div>
       <div class="login-card-heading">
         <p class="portal-kicker">{t('ONE MORE STEP')}</p>
         <h2>{t('Verify your identity')}</h2>
@@ -86,6 +115,30 @@
       <button type="button" class="login-passkey" onclick={() => (backupCode = !backupCode)}>
         {backupCode ? t('Use authenticator code') : t('Use a recovery code')}
       </button>
+      <a
+        href="https://webmail.j-aautomation.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="login-webmail-btn"
+        title={t('Open corporate webmail in a new tab')}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+        </svg>
+        <span>{t('Access Company Webmail')}</span>
+        <span class="webmail-btn-arrow" aria-hidden="true">↗</span>
+      </a>
       <p class="login-status" aria-live="polite">{error}</p>
     </form>
     <p class="login-footer">J&A Automation · {t('Secure company access.')}</p>

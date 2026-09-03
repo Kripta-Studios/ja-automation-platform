@@ -16,6 +16,15 @@ export function requiredExportPeriod(url: URL): Readonly<{
   return { periodStart, periodEnd };
 }
 
+export function optionalExportPeriod(
+  url: URL,
+): Readonly<{ periodStart: string; periodEnd: string }> | null {
+  const starts = url.searchParams.getAll('periodStart');
+  const ends = url.searchParams.getAll('periodEnd');
+  if (starts.length === 0 && ends.length === 0) return null;
+  return requiredExportPeriod(url);
+}
+
 export function semanticFilenamePart(value: unknown, fallback: string): string {
   const cleaned = String(value ?? '')
     .normalize('NFKC')

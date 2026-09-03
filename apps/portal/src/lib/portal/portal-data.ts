@@ -1,6 +1,7 @@
 export type PortalRow = Record<string, string | number | boolean | string[] | null>;
 
 export type PortalData = {
+  offlineEnabled?: boolean;
   user: {
     id: string;
     name: string;
@@ -41,6 +42,10 @@ export type PortalData = {
   packs?: Array<Record<string, unknown>>;
   audit?: PortalRow[];
   legalEntities?: PortalRow[];
+  canonicalLegalEntityOptions?: PortalRow[];
+  projectLegalEntityAssignments?: PortalRow[];
+  canonicalAssignmentCommandToken?: string;
+  canonicalAuthorityAsOf?: string;
   taxProfiles?: PortalRow[];
   selectedProjectId?: string;
   periodStart?: string;

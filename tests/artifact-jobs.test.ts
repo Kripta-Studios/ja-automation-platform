@@ -21,15 +21,22 @@ describe('shared artifact job orchestration', () => {
     const temporaryUpload = join(root, 'uploads', 'temporary.bin');
     mkdirSync(join(root, 'uploads'), { recursive: true });
     writeFileSync(temporaryUpload, 'temporary');
-    const principal = { actor: 'finance-service' };
+    const execution = {
+      jobId: 'job-1',
+      runId: 'run-1',
+      tenantId: 'tenant',
+      deploymentId: 'deployment',
+      requiredCapability: 'artifact.report.render',
+      fenceVersion: 1,
+    };
     const calls: string[] = [];
     let periodLocale: string | undefined;
     const result = runArtifactJobs({
-      principal,
       documentRoot: root,
       repository: {
-        createInvoiceDraft: (actor, billingRuleId, periodStart, periodEnd) => {
-          calls.push(`draft:${actor.actor}:${billingRuleId}:${periodStart}:${periodEnd}`);
+        createInvoiceDraftFromJob: (billingRuleId, periodStart, periodEnd, proof) => {
+          expect(proof).toBe(execution);
+          calls.push(`draft:${billingRuleId}:${periodStart}:${periodEnd}`);
         },
       },
       v3: {
@@ -42,18 +49,24 @@ describe('shared artifact job orchestration', () => {
             'period_close_report',
             'temporary_upload_cleanup',
           ]);
-          handlers.auto_draft({
-            billingRuleId: 'rule-1',
-            periodStart: '2026-08-01',
-            periodEnd: '2026-08-14',
-          });
-          handlers.period_close_report({
-            projectId: 'project-1',
-            periodStart: '2026-08-01',
-            periodEnd: '2026-08-14',
-            reportLocale: 'pt',
-          });
-          handlers.document_scan({ documentId: 'document-1' });
+          handlers.auto_draft(
+            {
+              billingRuleId: 'rule-1',
+              periodStart: '2026-08-01',
+              periodEnd: '2026-08-14',
+            },
+            execution,
+          );
+          handlers.period_close_report(
+            {
+              projectId: 'project-1',
+              periodStart: '2026-08-01',
+              periodEnd: '2026-08-14',
+              reportLocale: 'pt',
+            },
+            execution,
+          );
+          handlers.document_scan({ documentId: 'document-1' }, execution);
           handlers.temporary_upload_cleanup(
             { olderThan: '2026-08-01T00:00:00.000Z' },
             {
@@ -67,14 +80,15 @@ describe('shared artifact job orchestration', () => {
           );
           return { processed: 3, failed: 0, overdueMarked: 0 };
         },
-        invoiceSnapshot: () => ({}),
-        recordInvoicePdf: () => undefined,
-        refreshPeriodReports: (_actor, input) => {
+        invoiceSnapshotFromJob: () => ({}),
+        recordInvoicePdfFromJob: () => undefined,
+        refreshPeriodReportsFromJob: (input, proof) => {
+          expect(proof).toBe(execution);
           periodLocale = input.reportLocale;
           return [];
         },
-        recordPeriodReportPdf: () => undefined,
-        accountingPackSnapshot: () => ({
+        recordPeriodReportPdfFromJob: () => undefined,
+        accountingPackSnapshotFromJob: () => ({
           periodStart: '2026-08-01',
           periodEnd: '2026-08-31',
           invoiceRegister: [],
@@ -83,7 +97,7 @@ describe('shared artifact job orchestration', () => {
           expenseRegister: [],
           totals: {},
         }),
-        recordAccountingPackExport: () => ({ id: 'export-1', created: true }),
+        recordAccountingPackExportFromJob: () => ({ id: 'export-1', created: true }),
         cleanupTemporaryUploadReservationsFromJob: (execution, olderThan, removeFile) => {
           expect(execution.requiredCapability).toBe('storage.temporary.cleanup');
           expect(olderThan).toBe('2026-08-01T00:00:00.000Z');
@@ -91,16 +105,17 @@ describe('shared artifact job orchestration', () => {
           calls.push('cleanup:1');
           return 1;
         },
-        recordDocumentScan: (actor, documentId, scanResult) => {
-          calls.push(`scan:${actor.actor}:${documentId}:${scanResult}`);
+        recordDocumentScanFromJob: (documentId, scanResult, _provider, proof) => {
+          expect(proof).toBe(execution);
+          calls.push(`scan:${documentId}:${scanResult}`);
         },
       },
     });
 
     expect(result).toEqual({ processed: 3, failed: 0, overdueMarked: 0 });
     expect(calls).toEqual([
-      'draft:finance-service:rule-1:2026-08-01:2026-08-14',
-      'scan:finance-service:document-1:clean',
+      'draft:rule-1:2026-08-01:2026-08-14',
+      'scan:document-1:clean',
       'cleanup:1',
     ]);
     expect(existsSync(temporaryUpload)).toBe(false);

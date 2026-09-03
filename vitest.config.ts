@@ -9,6 +9,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '$app/paths': resolve(process.cwd(), 'tests/stubs/app-paths.ts'),
       $lib: resolve(process.cwd(), 'apps/portal/src/lib'),
     },
   },

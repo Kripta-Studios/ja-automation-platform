@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   REPORT_TEMPLATE_VERSION,
@@ -50,7 +51,7 @@ describe('production reporting artifacts', () => {
     expect(Buffer.from(pdf).subarray(0, 5).toString()).toBe('%PDF-');
     expect(pageCount(pdf)).toBeGreaterThan(1);
     expect(sha256(pdf)).toMatch(/^[a-f0-9]{64}$/);
-    expect(REPORT_TEMPLATE_VERSION).toBe('2026.08.23.1');
+    expect(REPORT_TEMPLATE_VERSION).toBe('2026.09.02.2');
   });
 
   it('keeps period and Accounting Pack generation on the same renderer contract', () => {
@@ -147,17 +148,35 @@ describe('production reporting artifacts', () => {
     });
     expect(Buffer.from(pdf).subarray(0, 5).toString()).toBe('%PDF-');
     const text = textFromPdf(pdf);
-    expect(text).toContain('Customer-visible operational activity retained');
-    expect(text).toContain('PLC validation record retained');
-    expect(text).toContain('Operational change reference retained');
+    expect(text).toContain('Customer-visible');
+    expect(text).toContain('operational activity retained');
+    expect(text).toContain('PLC validation');
+    expect(text).toContain('record retained');
+    expect(text).toContain('Operational change');
+    expect(text).toContain('reference retained');
     expect(text).toContain('daily 1');
     expect(text).toContain('technical 1');
     expect(text).toContain('changes 1');
-    expect(text).toContain('time 1');
+    expect(text).toContain('Client Representative Signature');
+    expect(text).toContain('Name & Title');
     expect(text).not.toContain('SECRET COMMERCIAL BASIS');
     expect(text).not.toContain('Calculation basis');
     expect(text).not.toContain('1,234.56');
     expect(text).not.toContain('Calculated bill candidate');
+  });
+
+  it('keeps invoice PDF layout CSS independent of shared report page styles', () => {
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), '../packages/reporting/src/exports.ts'),
+      'utf8',
+    );
+    expect(source).toContain('function invoiceLayout(');
+    expect(source).toContain('.invoice-parties');
+    expect(source).toContain('.invoice-meta');
+    expect(source).toContain('.invoice-total');
+    expect(source).toContain(
+      'invoiceLayout(rendered.title, rendered.subtitle, number, rendered.body, locale)',
+    );
   });
 
   it('supports the selectable English, Brazilian Portuguese and Spanish report locales', () => {

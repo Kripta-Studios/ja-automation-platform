@@ -28,6 +28,9 @@ documents/
 uploads/
 data/backups/
 data/e2e-documents*/
+data/e2e-fixture-current.json.orphaned-*
+data/e2e-fixture.lock.orphaned-*
+data/tmp-debug-documents*/
 data/a5-round3-*/
 data/local-demo-documents/
 data/requested-ui-documents/
@@ -35,3 +38,5 @@ Factura EVOCON-JA-2026-001*
 J_A_Automation_EVOCON_2026-001_USD1500_first_pay.html
 .DS_Store
 Thumbs.db
+.credentials/
+scripts/tmp-*.mjs

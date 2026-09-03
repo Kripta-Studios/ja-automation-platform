@@ -1,5 +1,7 @@
 import { error, type RequestHandler } from '@sveltejs/kit';
+import { recordAuditEvent, V3AccessDeniedError } from '@ja/database';
 import { projectFinanceXlsx } from '@ja/reporting';
+import { assertRecentStepUp } from '$lib/server/private-artifact-access';
 import { isRealIsoDate } from '$lib/server/iso-date';
 import { openPortalRepository } from '$lib/server/portal-repository';
 
@@ -37,6 +39,12 @@ export const GET: RequestHandler = ({ locals, params, url }) => {
 
   const context = openPortalRepository(locals);
   try {
+    try {
+      assertRecentStepUp(context.sqlite, context.principal);
+    } catch (cause) {
+      if (cause instanceof V3AccessDeniedError) error(403, cause.message);
+      throw cause;
+    }
     const overview = context.repository.projectOverview(context.principal, projectId);
     const financial = context.v3.projectFinance(
       context.principal,
@@ -58,12 +66,36 @@ export const GET: RequestHandler = ({ locals, params, url }) => {
       financial: financial as unknown as Record<string, unknown>,
       timeEconomics: financial.timeEconomics as readonly Record<string, unknown>[],
       expenseEconomics: financial.expenseEconomics as readonly Record<string, unknown>[],
+      invoices: context.repository
+        .listInvoices(context.principal)
+        .filter((invoice) => String(invoice.project_number) === String(project.project_number)),
+      milestones: Array.isArray(overview.milestones)
+        ? (overview.milestones as unknown as Record<string, unknown>[])
+        : [],
+      locale: url.searchParams.get('locale') ?? undefined,
     });
     const body = new ArrayBuffer(bytes.byteLength);
     new Uint8Array(body).set(bytes);
     const number = safeFilenamePart(project.project_number, safeFilenamePart(projectId, 'project'));
     const period = periodStart && periodEnd ? `${periodStart}-${periodEnd}` : 'all-time';
     const filename = `ja-${number}-finance-${period}.xlsx`;
+    recordAuditEvent(
+      context.sqlite,
+      context.principal,
+      'artifact.access',
+      'document',
+      `project-finance:${projectId}:${periodStart ?? 'all-time'}:${periodEnd ?? 'all-time'}`,
+      {
+        artifactType: 'project_finance',
+        outcome: 'authorized',
+        projectId,
+        format: 'xlsx',
+        filename,
+        byteLength: bytes.byteLength,
+        periodStart: periodStart ?? null,
+        periodEnd: periodEnd ?? null,
+      },
+    );
     return new Response(body, {
       headers: {
         'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

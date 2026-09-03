@@ -83,9 +83,11 @@ when the artifact is unavailable, not ready or fails integrity checks. Invalid i
 unauthenticated request is `401`.
 
 The job runner uses kind `localized_pdf_variant_render` and capability
-`artifact.localized_pdf.render`. For local execution run `pnpm ops:jobs`; for the VPS the five-minute
-`jaautomation-jobs.timer` invokes the same leased worker. Set `JA_JOB_ACTOR_ID` to an active
-`owner_admin` or `finance_admin` service actor. The worker keeps PDFs under the private document root,
+`artifact.localized_pdf.render`. For local execution run `pnpm ops:jobs:loop` (or
+`pnpm preview:release` to start the built portal and worker together); for the VPS the default Compose
+`jobs` service keeps the same leased worker looping, and `jaautomation-jobs.timer` only restarts it if
+the container is down. Provision the active deployment singleton
+service-actor binding with the production CLI; the worker keeps PDFs under the private document root,
 rejects path/symlink escapes and verifies magic bytes, byte length and SHA-256 before publishing.
 
 ### Rebuild or recover the disposable fixture

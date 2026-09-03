@@ -53,7 +53,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
           <div className="max-w-3xl">
             <div className="flex items-center gap-3 mb-6">
               <Droplets className="text-ja-red" size={32} />
-              <p className="eyebrow text-white/70 !mb-0">{page('eyebrow')}</p>
+              <p className="eyebrow !text-white/80 !mb-0">{page('eyebrow')}</p>
             </div>
             <h1 className="heading-display mb-6">Aquarex</h1>
             <p className="text-xl lg:text-2xl text-white/90 mb-8 font-light">{page('subtitle')}</p>
@@ -197,7 +197,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
                   textAnchor="middle"
                   dominantBaseline="middle"
                   className="font-[family-name:var(--font-manrope)] font-bold text-xs"
-                  fill="#E31B23"
+                  fill="#B42318"
                 >
                   {page('diagramHmi')}
                 </text>
@@ -368,7 +368,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
           <div className="max-w-2xl mx-auto bg-white rounded-xl p-8 lg:p-12 shadow-xl">
             <div className="text-center mb-8">
               <h2 className="heading-2 mb-2">{page('datasheetHeading')}</h2>
-              <p className="text-sm text-ja-steel-500">{page('datasheetBody')}</p>
+              <p className="text-sm text-ja-steel-700">{page('datasheetBody')}</p>
             </div>
 
             <form className="space-y-4">
@@ -436,7 +436,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
                 {page('sendDatasheet')}
               </button>
 
-              <p className="text-[11px] text-ja-steel-500 text-center mt-4">
+              <p className="text-[11px] text-ja-steel-700 text-center mt-4">
                 {page('privacyNote')}
               </p>
             </form>

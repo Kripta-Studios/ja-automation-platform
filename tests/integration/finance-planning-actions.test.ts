@@ -9,6 +9,13 @@ import {
 
 const openPortalRepository = vi.fn();
 
+vi.mock('$app/server', () => ({ getRequestEvent: vi.fn() }));
+vi.mock('$app/environment', () => ({ building: false }));
+vi.mock('$lib/server/step-up', () => ({
+  confirmStepUpPassword: vi.fn(),
+  stepUpClientAddress: vi.fn(() => '127.0.0.1'),
+}));
+
 vi.mock('$lib/server/portal-repository', async (importOriginal) => {
   const original = await importOriginal<typeof import('$lib/server/portal-repository')>();
   return { ...original, openPortalRepository };

@@ -115,6 +115,7 @@ export default async function ProjectsPage({
                       'energy-process',
                       'cosmetics-packaging',
                       'general-industry',
+                      'warehouse-logistics',
                     ] as Industry[]
                   ).map((value) => (
                     <option key={value} value={value}>
@@ -127,7 +128,9 @@ export default async function ProjectsPage({
                               ? 'cosmeticsPackaging'
                               : value === 'general-industry'
                                 ? 'generalIndustry'
-                                : value,
+                                : value === 'warehouse-logistics'
+                                  ? 'warehouseLogistics'
+                                  : value,
                       )}
                     </option>
                   ))}
@@ -175,6 +178,7 @@ export default async function ProjectsPage({
                       'simulation',
                       'motion-process',
                       'commissioning',
+                      'installation',
                       'support',
                       'training-consulting',
                     ] as Capability[]
@@ -246,9 +250,9 @@ export default async function ProjectsPage({
                       {project.displayDate}
                     </span>
                   </div>
-                  <h3 className="text-lg font-semibold mb-1 group-hover:text-ja-red transition-colors">
+                  <h2 className="text-lg font-semibold mb-1 group-hover:text-ja-red transition-colors">
                     {project.client ? `${project.client} — ${project.title}` : project.title}
-                  </h3>
+                  </h2>
                   {project.location && (
                     <p className="text-xs text-ja-steel-500 mb-3">{project.location}</p>
                   )}

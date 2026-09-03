@@ -299,7 +299,7 @@ export class CustomerConformityRepository {
 
   private assertFinanceWriter(principal: Principal): void {
     this.deps.assertActive(principal);
-    if (principal.isServiceActor || !canManageBilling(principal))
+    if (!canManageBilling(principal))
       return this.deps.errors.accessDenied('Human Finance role required');
     this.deps.assertStepUp(principal);
   }

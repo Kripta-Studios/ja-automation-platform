@@ -87,9 +87,9 @@ describe('portal i18n coverage contract', () => {
     expect([...usedActionKeys].filter((key) => !catalogKeys.has(key))).toEqual([]);
     expect([...usedComponentKeys].length).toBeGreaterThan(900);
     expect([...usedActionKeys].length).toBeGreaterThan(150);
-    expect([...usedComponentKeys].every((key) => PORTAL_LITERAL_KEYS.includes(key as never))).toBe(
-      true,
-    );
+    expect(
+      [...usedComponentKeys].filter((key) => !PORTAL_LITERAL_KEYS.includes(key as never)),
+    ).toEqual([]);
     expect([...usedActionKeys].every((key) => PORTAL_ACTION_KEYS.includes(key as never))).toBe(
       true,
     );
@@ -105,6 +105,18 @@ describe('portal i18n coverage contract', () => {
         expected,
       );
     }
+  });
+
+  it('does not ship obvious English sentence residue in ES or PT-BR UI copy', () => {
+    const englishResidue =
+      /\b(?:this|your|with|from|before|after|review|fields|screen|workspace|only|and|will|must|cannot|should|available|authenticated|replace|selected|required)\b/i;
+    const failures = (['es', 'pt'] as const).flatMap((locale) =>
+      portalCatalogKeys
+        .filter((key) => !isCoverageInvariantKey(key))
+        .filter((key) => englishResidue.test(portalCatalog[locale][key]))
+        .map((key) => `${locale}:${key} => ${portalCatalog[locale][key]}`),
+    );
+    expect(failures).toEqual([]);
   });
 
   it('keeps translated controlled values connected to every supported enum domain', () => {
@@ -174,6 +186,12 @@ describe('portal i18n coverage contract', () => {
     expect(renderPortalMessage('es', 'action.error.invalid')).toBe('Los datos no son válidos.');
     expect(portalText('pt', 'action.error.forbidden')).toBe(
       'Você não tem permissão para realizar esta ação.',
+    );
+    expect(renderPortalMessage('es', 'action.error.stepUpRequired')).toBe(
+      'Confirma tu identidad para continuar.',
+    );
+    expect(renderPortalMessage('en', 'action.error.unauthenticated')).toBe(
+      'Sign in again to continue.',
     );
     expect(renderPortalMessage('es', 'action.unknown.code')).not.toBe('action.unknown.code');
     expect(renderPortalMessage('es', 'action.projects.projectUpdated')).toBe(
@@ -281,6 +299,22 @@ describe('portal i18n coverage contract', () => {
       expect(portalText('pt', key), `PT ${key}`).toBe(pt);
       expect(portalText('es', key), `ES residue ${key}`).not.toMatch(residue);
       expect(portalText('pt', key), `PT residue ${key}`).not.toMatch(residue);
+    }
+  });
+
+  it('keeps inherited report and action labels natural in ES and PT-BR', () => {
+    const expected: ReadonlyArray<readonly [string, string, string]> = [
+      ['ACTUAL TIME', 'TIEMPO REAL', 'TEMPO REAL'],
+      ['Daily report required', 'Informe diario obligatorio', 'Relatório diário obrigatório'],
+      ['PENDING REPORTS', 'INFORMES PENDIENTES', 'RELATÓRIOS PENDENTES'],
+      ['PROJECT REPORT', 'INFORME DEL PROYECTO', 'RELATÓRIO DO PROJETO'],
+      ['Record expense', 'Registrar gasto', 'Registrar despesa'],
+      ['Recorded actual time', 'Tiempo real registrado', 'Tempo real registrado'],
+      ['Save daily report', 'Guardar informe diario', 'Salvar relatório diário'],
+    ];
+    for (const [key, es, pt] of expected) {
+      expect(portalText('es', key), `ES ${key}`).toBe(es);
+      expect(portalText('pt', key), `PT ${key}`).toBe(pt);
     }
   });
 

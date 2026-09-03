@@ -7,9 +7,9 @@ Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/opt/jaautomation/current
 EnvironmentFile=/etc/jaautomation/jaautomation.env
-ExecStartPre=/usr/bin/docker compose -f deployment/compose.production.yml config --quiet
-ExecStart=/usr/bin/docker compose -f deployment/compose.production.yml up -d --build --remove-orphans
-ExecStop=/usr/bin/docker compose -f deployment/compose.production.yml down
+ExecStartPre=/usr/bin/docker compose --env-file /etc/jaautomation/jaautomation.env -f deployment/compose.production.yml config --quiet
+ExecStart=/usr/bin/docker compose --env-file /etc/jaautomation/jaautomation.env -f deployment/compose.production.yml up -d --build --remove-orphans
+ExecStop=/usr/bin/docker compose --env-file /etc/jaautomation/jaautomation.env -f deployment/compose.production.yml down
 TimeoutStartSec=180
 [Install]
 WantedBy=multi-user.target

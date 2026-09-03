@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ValidationError } from '@ja/database';
+import { AccessDeniedError, ValidationError, V3AccessDeniedError } from '@ja/database';
 import {
   actionFail,
   actionFailure,
@@ -44,6 +44,23 @@ describe('localized portal action contracts', () => {
         messageParams: {},
       },
     });
+    expect(actionFailure(new AccessDeniedError('Sign in required'))).toMatchObject({
+      status: 401,
+      data: {
+        messageKey: 'action.error.unauthenticated',
+        message: 'Sign in again to continue.',
+      },
+    });
+    expect(
+      actionFailure(new V3AccessDeniedError('Recent step-up authentication is required')),
+    ).toMatchObject({
+      status: 403,
+      data: {
+        messageKey: 'action.error.stepUpRequired',
+        message: 'Confirm your identity to continue.',
+        stepUpRequired: true,
+      },
+    });
   });
 
   it('routes repository failures through the message-key sanitizer', () => {
@@ -69,6 +86,29 @@ describe('localized portal action contracts', () => {
       ).toBeGreaterThanOrEqual(explicitResponses.length);
       expect(source, `${file} should use the typed action helpers`).toContain('actionSuccess');
     }
+  });
+
+  it('keeps invitation writes from crashing the portal when the session is missing', () => {
+    const source = readFileSync(resolve(actionRoot, 'access-actions.ts'), 'utf8');
+    expect(source).toContain('openAccessContext');
+    expect(source).toContain('confirmProtectedActionIdentity');
+    expect(source).not.toContain('confirmStepUpPassword');
+    expect(source).toMatch(/openPortalRepository\(locals\)/);
+    expect(source).toContain('return { failure: actionFailure(error) }');
+  });
+
+  it('lets a logged-in owner complete team access writes without a second identity prompt', () => {
+    const source = readFileSync(resolve(actionRoot, 'access-actions.ts'), 'utf8');
+    expect(source).toContain("event.locals.user.role !== 'owner_admin'");
+    expect(source).toMatch(
+      /updateWorkerProfile:[\s\S]*identityScope: 'workerProfile'[\s\S]*confirmProtectedActionIdentity/,
+    );
+    expect(source).toMatch(
+      /updateUserStatus:[\s\S]*identityScope: 'userStatus'[\s\S]*confirmProtectedActionIdentity/,
+    );
+    expect(source).not.toMatch(
+      /parsedId\.success \|\| !name \|\| !email \|\| !role \|\| !joinedAt/,
+    );
   });
 
   it('keeps dynamic feedback in typed params instead of interpolating user-visible copy', () => {

@@ -6,6 +6,13 @@ Requires=docker.service
 [Service]
 Type=oneshot
 WorkingDirectory=/opt/jaautomation/current
-EnvironmentFile=-/etc/jaautomation/jaautomation.env
-ExecStart=/usr/bin/docker compose --profile jobs -f deployment/compose.production.yml run --rm --no-deps jobs
+EnvironmentFile=/etc/jaautomation/jaautomation.env
+UMask=0027
+PrivateTmp=true
+NoNewPrivileges=true
+ExecStartPre=/usr/bin/test -r /etc/jaautomation/jaautomation.env
+ExecStartPre=/usr/bin/test -r /opt/jaautomation/current/deployment/compose.production.yml
+ExecStartPre=/usr/bin/docker compose --env-file /etc/jaautomation/jaautomation.env -f deployment/compose.production.yml config --quiet
+ExecStart=/usr/bin/docker compose --env-file /etc/jaautomation/jaautomation.env -f deployment/compose.production.yml up -d --no-deps jobs
+ExecStop=/usr/bin/docker compose --env-file /etc/jaautomation/jaautomation.env -f deployment/compose.production.yml stop jobs
 TimeoutStartSec=120

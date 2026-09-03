@@ -1,3 +1,10 @@
+secrets:
+  # The value is created on the VPS by the operator and is never committed or
+  # passed through the environment. Docker Compose copies it into the portal
+  # container as a read-only secret at the path consumed by the JMAP client.
+  stalwart_mail_provisioner:
+    file: /etc/jaautomation/secrets/stalwart-mail-provisioner.token
+
 services:
   site:
     build:
@@ -42,6 +49,15 @@ services:
       JA_PUBLIC_BASE_PATH: /j-aautomation
       JA_PORTAL_BASE_PATH: /j-aautomation/app
       JA_CHROMIUM_PATH: /usr/bin/chromium
+      # Keep the in-container path fixed; the value itself is supplied only
+      # by the Docker secret below, never through an env file.
+      JA_STALWART_TOKEN_FILE: /run/secrets/stalwart-mail-provisioner.token
+    secrets:
+      - source: stalwart_mail_provisioner
+        target: stalwart-mail-provisioner.token
+        uid: '10001'
+        gid: '10001'
+        mode: 0400
     ports:
       - 127.0.0.1:5100:5100
     volumes:
@@ -59,23 +75,37 @@ services:
       timeout: 5s
       retries: 3
   jobs:
-    profiles: [jobs]
     image: ja-automation-portal:${JA_RELEASE_TAG:-local}
-    env_file:
-      - path: /etc/jaautomation/jaautomation.env
-        required: false
+    restart: unless-stopped
+    # Keep the worker environment allowlisted. In particular, never inject the
+    # retired JA_JOB_ACTOR_ID from an older host environment: the authoritative
+    # actor is the deployment-scoped singleton binding stored in SQLite.
     environment:
+      JA_TENANT_ID: ${JA_TENANT_ID:?JA_TENANT_ID is required}
+      JA_DEPLOYMENT_ID: ${JA_DEPLOYMENT_ID:?JA_DEPLOYMENT_ID is required}
       JA_DATABASE_PATH: /var/lib/jaautomation/data/jaautomation.sqlite
       JA_MIGRATIONS_PATH: /app/migrations
       JA_DOCUMENT_ROOT: /var/lib/jaautomation/files
-      JA_JOB_ACTOR_ID: ${JA_JOB_ACTOR_ID:-}
       JA_CHROMIUM_PATH: /usr/bin/chromium
+      JA_MIN_FREE_BYTES: ${JA_MIN_FREE_BYTES:-1073741824}
+      JA_ACCOUNTING_PACK_REQUIRE_PDF: ${JA_ACCOUNTING_PACK_REQUIRE_PDF:-false}
+      JA_ACCOUNTING_PACK_REQUIRE_JSON: ${JA_ACCOUNTING_PACK_REQUIRE_JSON:-false}
+      JA_MALWARE_SCANNER_REQUIRED: ${JA_MALWARE_SCANNER_REQUIRED:-false}
+      JA_MALWARE_SCANNER_RESULT: ${JA_MALWARE_SCANNER_RESULT:-}
+      JA_MALWARE_SCANNER_PROVIDER: ${JA_MALWARE_SCANNER_PROVIDER:-}
+      JA_OUTBOX_WEBHOOK_URL: ${JA_OUTBOX_WEBHOOK_URL:-}
+      JA_OUTBOX_WEBHOOK_SECRET: ${JA_OUTBOX_WEBHOOK_SECRET:-}
+      JA_ALERT_WEBHOOK_URL: ${JA_ALERT_WEBHOOK_URL:-}
+      JA_ALERT_WEBHOOK_SECRET: ${JA_ALERT_WEBHOOK_SECRET:-}
+      JA_JOBS_POLL_MS: ${JA_JOBS_POLL_MS:-5000}
     volumes:
       - /var/lib/jaautomation:/var/lib/jaautomation
     read_only: true
     tmpfs: [/tmp]
     security_opt: [no-new-privileges:true]
-    command: [node, /app/deployment/jobs-run.mjs]
+    depends_on:
+      - portal
+    command: [node, /app/deployment/jobs-run.mjs, --loop]
   demo-seed:
     profiles: [tools]
     build:
@@ -89,6 +119,8 @@ services:
       JA_DATABASE_PATH: /var/lib/jaautomation/data/jaautomation.sqlite
       JA_MIGRATIONS_PATH: /workspace/migrations
       JA_DOCUMENT_ROOT: /var/lib/jaautomation/files
+      JA_TENANT_ID: ${JA_TENANT_ID:?JA_TENANT_ID is required}
+      JA_DEPLOYMENT_ID: ${JA_DEPLOYMENT_ID:?JA_DEPLOYMENT_ID is required}
       JA_FIXTURE_RESET_DOCUMENTS: ${JA_FIXTURE_RESET_DOCUMENTS:-false}
     volumes:
       - /var/lib/jaautomation:/var/lib/jaautomation
@@ -112,3 +144,21 @@ services:
     volumes:
       - /var/lib/jaautomation:/var/lib/jaautomation
     command: [node, --experimental-strip-types, apps/portal/src/cli/bootstrap-owner.ts]
+  service-actor:
+    profiles: [tools]
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.portal
+      target: tools
+    working_dir: /workspace
+    user: 10001:10001
+    env_file:
+      - path: /etc/jaautomation/jaautomation.env
+        required: false
+    environment:
+      COREPACK_HOME: /tmp/corepack
+      JA_DATABASE_PATH: /var/lib/jaautomation/data/jaautomation.sqlite
+      JA_MIGRATIONS_PATH: /workspace/migrations
+    volumes:
+      - /var/lib/jaautomation:/var/lib/jaautomation
+    entrypoint: [pnpm, --filter, '@ja/database', service-actor]

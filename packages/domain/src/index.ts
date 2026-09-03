@@ -24,7 +24,6 @@ export type Principal = Readonly<{
   role: Role;
   projectIds: ReadonlySet<string>;
   sessionId?: string;
-  isServiceActor?: boolean;
   correlationId?: string;
 }>;
 export type OwnedRecord = Readonly<{ ownerId: string; projectId: string }>;

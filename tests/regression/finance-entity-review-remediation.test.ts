@@ -3,6 +3,7 @@ import { ConflictError, ReadinessError } from '@ja/database';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -13,7 +14,12 @@ afterEach(() => {
 });
 
 function fixture(): B5LifecycleSecurityFixture {
-  const value = createB5LifecycleSecurityFixture();
+  const base = createB5LifecycleSecurityFixture();
+  const value = {
+    ...base,
+    owner: stepUpB5Principal(base.sqlite, base.owner, 'finance-entity-owner'),
+    finance: stepUpB5Principal(base.sqlite, base.finance, 'finance-entity-finance'),
+  };
   fixtures.push(value);
   // This regression suite exercises the lifecycle-aware repository contract against the
   // legacy fixture schema.  Keep the fixture's hand-built legal-entity shape aligned with the
@@ -26,6 +32,21 @@ function fixture(): B5LifecycleSecurityFixture {
       "ALTER TABLE legal_entity ADD COLUMN status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','archived'))",
     );
   return value;
+}
+
+function seedApprovedMilestone(
+  value: B5LifecycleSecurityFixture,
+  name: string,
+  dueOn: string,
+): void {
+  const milestone = value.repository.createProjectMilestone(value.owner, {
+    projectId: value.project.id,
+    name,
+    amountMinor: 10_000n,
+    dueOn,
+  });
+  value.repository.submitProjectMilestone(value.owner, milestone.id, milestone.version);
+  value.repository.reviewProjectMilestone(value.finance, milestone.id, 'approved');
 }
 
 describe('finance entity reviewer regressions', () => {
@@ -96,12 +117,13 @@ describe('finance entity reviewer regressions', () => {
     const rule = value.repository.createBillingRule(value.finance, {
       projectId: value.project.id,
       legalEntityId: entity.id,
-      streamType: 'other',
+      streamType: 'milestone',
       cadenceType: 'manual',
       taxProfileId: taxProfile.id,
       currency: 'EUR',
       effectiveFrom: '2026-01-01',
     });
+    seedApprovedMilestone(value, 'Archived entity source', '2026-08-15');
 
     expect(
       value.repository.billingReadiness(value.finance, rule.id, '2026-08-01', '2026-08-31'),
@@ -184,13 +206,12 @@ describe('finance entity reviewer regressions', () => {
     const rule = value.repository.createBillingRule(value.finance, {
       projectId: value.project.id,
       legalEntityId: entity.id,
-      streamType: 'other',
+      streamType: 'milestone',
       cadenceType: 'manual',
       taxProfileId: profile.id,
       currency: 'EUR',
       effectiveFrom: '2026-01-01',
     });
-
     expect(() =>
       value.repository.updateLegalEntity(value.owner, entity.id, { currency: 'USD' }),
     ).toThrow(ConflictError);
@@ -234,12 +255,13 @@ describe('finance entity reviewer regressions', () => {
     const rule = value.repository.createBillingRule(value.finance, {
       projectId: value.project.id,
       legalEntityId: entity.id,
-      streamType: 'other',
+      streamType: 'milestone',
       cadenceType: 'monthly',
       taxProfileId: taxProfile.id,
       currency: 'EUR',
       effectiveFrom: '2026-01-01',
     });
+    seedApprovedMilestone(value, 'Closed-period source', '2026-08-10');
 
     expect(
       value.v3.closeBillingPeriod(value.finance, rule.id, '2026-08-03', '2026-08-16').closed,

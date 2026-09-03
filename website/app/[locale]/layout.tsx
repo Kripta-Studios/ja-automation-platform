@@ -23,7 +23,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 const publicBasePath = (process.env.JA_PUBLIC_BASE_PATH ?? '/j-aautomation').replace(/\/+$/, '');
-const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.j-aautomation.com';
+const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://j-aautomation.com';
 
 export async function generateMetadata({
   params,

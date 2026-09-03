@@ -70,5 +70,20 @@ describe('B5 lifecycle policy (RED characterization)', () => {
       value.sqlite.prepare('SELECT id FROM daily_report WHERE id=?').get(created.id),
       'submitted history must still exist',
     ).toBeTruthy();
+    expect(value.repository.reportDetail(value.owner, created.id).canDelete).toBe(false);
+  });
+
+  it('offers canDelete only for never-submitted draft reports', () => {
+    const value = fixture();
+    const created = value.repository.createDailyReport(value.worker, {
+      projectId: value.project.id,
+      workDate: '2026-08-21',
+      summary: 'Draft that can still be removed',
+      tasksCompleted: 'Keep the delete control truthful',
+      downtimeMinutes: 0,
+      safetyRelated: false,
+    }) as { id: string };
+    expect(value.repository.reportDetail(value.owner, created.id).canDelete).toBe(true);
+    expect(value.repository.reportDetail(value.worker, created.id).canDelete).toBe(true);
   });
 });

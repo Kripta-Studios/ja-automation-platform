@@ -30,6 +30,7 @@ describe('Worker time UI vertical slice', () => {
     const source = readSource('apps/portal/src/lib/portal/sections/TimeSection.svelte');
 
     expect(source).toContain("{ value: 'regular', label: 'Work' }");
+    expect(source).toContain("{ value: 'overtime', label: 'Overtime' }");
     expect(source).toContain("{ value: 'travel', label: 'Travel' }");
     expect(source).toContain("{ value: 'standby', label: 'Standby' }");
     expect(source).toContain("{ value: 'commissioning', label: 'Commissioning' }");
@@ -40,7 +41,9 @@ describe('Worker time UI vertical slice', () => {
     expect(source).toContain('name="activityCode"');
     expect(source).toContain('data-entity-id={String(editRow.id)}');
     expect(source).toContain('data-version={String(editRow.version)}');
-    expect(source).not.toMatch(/<option[^>]+value="overtime"/);
+    expect(source).toContain('const filterCategories = [...primaryCategories, ...moreCategories]');
+    expect(source).toContain('bind:value={createCategory}');
+    expect(source).toContain('bind:value={editCategory}');
     expect(source).not.toMatch(/name="(?:clientRate|tax|markup|multiplier|billable)"/i);
   });
 

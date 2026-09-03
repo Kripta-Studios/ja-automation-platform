@@ -59,6 +59,17 @@ describe('Client Essential reports UI', () => {
     expect(primitives).not.toMatch(/transition\s*:\s*all/);
   });
 
+  it('fits all report tabs at phone widths without clipping their labels', () => {
+    const responsive = read('styles/portal/responsive.css');
+    const phoneRules = responsive.slice(responsive.indexOf('@media (max-width: 520px)'));
+
+    expect(phoneRules).toContain('.report-tab-list > button');
+    expect(phoneRules).toContain('flex: 1 1 0');
+    expect(phoneRules).toContain('min-width: 0');
+    expect(phoneRules).toContain('white-space: normal');
+    expect(phoneRules).not.toContain('min-width: 8rem');
+  });
+
   it('keeps Client Sign-off operational and exposes explicit text plus shape states', () => {
     const source = read('lib/portal/sections/ReportSection.svelte');
     const start = source.indexOf('data-report-tab="signoff"');

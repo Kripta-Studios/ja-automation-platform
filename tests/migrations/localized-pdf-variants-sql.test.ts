@@ -38,7 +38,15 @@ function fixture(): {
       .prepare(
         'INSERT INTO user(id,name,email,role,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',
       )
-      .run(id, id, `${id}@example.test`, role, 'active', now, now);
+      .run(
+        id,
+        id,
+        role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@example.test`,
+        role,
+        'active',
+        now,
+        now,
+      );
   }
   seedB5ServiceActorBinding(sqlite, 'owner');
   sqlite
@@ -132,7 +140,21 @@ function fixture(): {
           }
         : { exists: false, byteLength: null, contentSha256: null },
   });
-  return { sqlite, repository, owner: OWNER };
+  const sessionId = 'localized-pdf-sql-owner-session';
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+    )
+    .run(
+      sessionId,
+      'localized-pdf-sql-owner-token',
+      OWNER.userId,
+      new Date(Date.now() + 60 * 60_000).toISOString(),
+      now,
+      now,
+      now,
+    );
+  return { sqlite, repository, owner: { ...OWNER, sessionId } };
 }
 
 function enqueue(
@@ -164,7 +186,7 @@ function completeReady(
         { jobId: context.jobId, jobRunId: context.runId, leaseFence: context.fenceVersion },
         variant.currentAttemptNumber,
       );
-      return () => {
+      const finalize = () => {
         completed = repository.completeVariant(variant.variantId, {
           attemptNumber: variant.currentAttemptNumber,
           contentSha256: 'd'.repeat(64),
@@ -177,6 +199,8 @@ function completeReady(
           },
         });
       };
+      Object.assign(finalize, { afterDurableSuccess: true as const });
+      return finalize;
     },
   });
   expect(result).toMatchObject({ processed: 1, failed: 0 });

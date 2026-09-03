@@ -49,7 +49,15 @@ function seedSignedReport(sqlite: ReturnType<typeof createDatabase>['sqlite']) {
     .prepare(
       'INSERT INTO user(id,name,email,role,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',
     )
-    .run('reapproval-owner', 'Owner', 'owner@reapproval.test', 'owner_admin', 'active', now, now);
+    .run(
+      'reapproval-owner',
+      'Owner',
+      'antonny.luty@j-aautomation.com',
+      'owner_admin',
+      'active',
+      now,
+      now,
+    );
   const owner: Principal = {
     userId: 'reapproval-owner',
     role: 'owner_admin',
@@ -135,7 +143,7 @@ describe('migration 0029 period report reapproval', () => {
     const { sqlite } = createDatabase(':memory:');
     try {
       expect(sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({
-        version: 30,
+        version: 35,
       });
       expect(
         sqlite
@@ -288,7 +296,7 @@ describe('migration 0029 period report reapproval', () => {
     try {
       expect(
         upgraded.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get(),
-      ).toEqual({ version: 30 });
+      ).toEqual({ version: 35 });
       expect(
         upgraded.sqlite
           .prepare(

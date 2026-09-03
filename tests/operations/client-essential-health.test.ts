@@ -229,16 +229,50 @@ describe('Client Essential deployment contracts', () => {
     expect(caddy).toMatch(
       /handle @jaautomation_health_local[\s\S]*reverse_proxy 127\.0\.0\.1:5100/u,
     );
+    expect(caddy).toContain('log_skip /j-aautomation/app/invite/*');
     expect(compose).toContain('/j-aautomation/health/ready');
     expect(verifier).toContain('/j-aautomation/health/ready');
   });
 
   it('starts the portal/site topology through the supervised production service', () => {
     const service = readFileSync(resolve('deployment/jaautomation.service'), 'utf8');
+    const jobsService = readFileSync(resolve('deployment/jaautomation-jobs.service'), 'utf8');
+    const jobsTimer = readFileSync(resolve('deployment/jaautomation-jobs.timer'), 'utf8');
     const dockerfile = readFileSync(resolve('deployment/Dockerfile.portal'), 'utf8');
     const config = readFileSync(resolve('deployment/jaautomation.env.example'), 'utf8');
-    expect(service).toContain('docker compose -f deployment/compose.production.yml up -d');
+    const compose = readFileSync(resolve('deployment/compose.production.yml'), 'utf8');
+    expect(service).toContain(
+      'docker compose --env-file /etc/jaautomation/jaautomation.env -f deployment/compose.production.yml up -d',
+    );
+    expect(jobsService).toContain('EnvironmentFile=/etc/jaautomation/jaautomation.env');
+    expect(jobsService).not.toContain('EnvironmentFile=-/etc/jaautomation/jaautomation.env');
+    expect(jobsService).toContain(
+      'docker compose --env-file /etc/jaautomation/jaautomation.env -f deployment/compose.production.yml up -d --no-deps jobs',
+    );
+    expect(jobsService).not.toContain('--profile jobs');
+    expect(jobsService).not.toContain('run --rm --no-deps jobs');
+    expect(jobsTimer).toContain('Unit=jaautomation-jobs.service');
+    expect(jobsTimer).toContain('OnUnitActiveSec=5min');
+    expect(compose).toContain('command: [node, /app/deployment/jobs-run.mjs, --loop]');
+    expect(compose).not.toContain('profiles: [jobs]');
     expect(dockerfile).toContain('node:24.19.0-bookworm-slim');
     expect(config).toContain('JA_MIN_FREE_BYTES=1073741824');
+    expect(config).toContain('JA_JOBS_POLL_MS=5000');
+  });
+
+  it('uses the canonical production host for implicit VPS smoke checks', () => {
+    const verifier = readFileSync(resolve('deployment/scripts/verify-vps.sh'), 'utf8');
+    const deployer = readFileSync(resolve('deployment/scripts/jaautomation-zip-deploy'), 'utf8');
+
+    expect(verifier).toContain('BASE_URL=${1:-https://j-aautomation.com/j-aautomation}');
+    expect(deployer).toContain('PUBLIC_SITE_URL=https://j-aautomation.com/j-aautomation/en');
+    expect(deployer).toContain(
+      'PUBLIC_PORTAL_URL=https://j-aautomation.com/j-aautomation/app/login',
+    );
+    expect(verifier).toContain('Always-on jobs worker has no structured jobs.cycle record');
+    expect(deployer).toContain('El worker de jobs del candidato no quedó en ejecución');
+    expect(deployer).toContain('"event":"jobs.cycle"');
+    expect(verifier).not.toContain('gex-dashboard.hopto.org');
+    expect(deployer).not.toContain('gex-dashboard.hopto.org');
   });
 });

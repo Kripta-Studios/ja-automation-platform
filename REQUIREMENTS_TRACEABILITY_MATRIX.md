@@ -4,6 +4,25 @@ Historical V3/roadmap traceability baseline: 2026-08-23 against branch `codex/v3
 
 `PASS` requires concrete implementation plus relevant automated and/or browser evidence. The authoritative client-release status is maintained in `J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md`. In this historical matrix, `PARTIAL`, `FAIL`, and `OPEN` block only when the row maps directly to a non-conditional Client Essential requirement; V3.1–V3.4 expansion rows are **DEFERRED POST-CORE ROADMAP** and do not control the Client Essential verdict.
 
+## Current Client Essential release marker — 2026-08-30
+
+The detailed historical rows below remain traceability/roadmap context and are not a newer verdict
+than this marker. Independent final review has reopened CORE-01/05/07/08,
+CORE-09/11/12/13/14/15
+pending inactive-user authentication fencing, invoice-PDF IDOR remediation, adversarial Accounting
+Pack validation, an authenticated Worker Statement lifecycle journey and the Client Sign-off/UI
+rerun; `UI_PLAN.md` is temporarily `PARTIAL`. The pinned baseline gate includes integration **41/272**, unit
+**106/595**, security **24/123**, migrations **11/81**, lint, formatting, full typecheck and all three
+production builds. Browser evidence passes the UI plan at **8/8 viewports**, artifact lifecycle at
+**6/6**, and the Client Essential journey at steps **1–29** plus deployed Caddy boundary step **32**.
+
+The authoritative checklist verdict remains **NOT READY / externally blocked** on CORE-16/17 until
+an authorized production operator proves two consecutive successful automatic job-timer runs and an
+encrypted remote-copy restore drill on an isolated target with the database and issued/private
+artifacts. Offline/PWA remains `CONDITIONAL`. Historical `PARTIAL`, `FAIL`, `OPEN`, `ACTIVE` and
+`PENDING` labels below must therefore be interpreted at their dated checkpoint, not as current local
+implementation gaps.
+
 ## Client Essential crosswalk/release marker — 2026-08-24
 
 - **Authority crosswalk:** Client Essential SPEC → checklist → validated local
@@ -72,7 +91,7 @@ implementation is absent.
 | AUDIT-ART-001    | Artifact formats have independent lifecycle/failure isolation             |       P0 | PARTIAL | Accounting Pack builders now continue after a format failure and persist independent results; localized PDF variants are one per owner/locale. The final integrated durable-job and finance review remains open.                                                                                                                                                       |
 | AUDIT-ART-002    | UI/API state truthfully reflects queued/running/ready/failed              |       P0 | PARTIAL | Portal localized-PDF UI and Accounting Pack status surfaces expose queued/running/ready/failed/pending states and retry eligibility; focused route/UI tests cover the contract. Authenticated browser proof and final integrated gate remain required.                                                                                                                 |
 | AUDIT-ART-003    | Pending/failed/missing downloads return explicit non-500 semantics        |       P0 | PARTIAL | Localized-PDF download maps unauthorized/missing to `404`, pending/unavailable/integrity failures to `409`, and only streams verified ready files. Accounting Pack legacy/export routes still require complete release-gate coverage.                                                                                                                                  |
-| AUDIT-ART-004    | Normal operation automatically processes durable jobs                     |       P0 | PARTIAL | Production job runner and five-minute systemd timer process localized PDF and Accounting Pack jobs; `JA_JOB_ACTOR_ID` is required. Deployment progression/retry evidence remains part of the release gate.                                                                                                                                                             |
+| AUDIT-ART-004    | Normal operation automatically processes durable jobs                     |       P0 | PARTIAL | Production job runner and five-minute systemd timer process localized PDF and Accounting Pack jobs through the active deployment singleton service-actor binding. Deployment progression/retry evidence remains part of the release gate.                                                                                                                              |
 | AUDIT-ART-005    | Accounting Pack refresh uses immutable revisions/snapshots                |       P0 | PARTIAL | 0024 adds immutable canonical snapshot and explicit legacy bridge structures without global backfill. Final source-cut/revision upgrade evidence and finance sign-off remain required.                                                                                                                                                                                 |
 | AUDIT-ART-006    | Business artifacts use semantic filenames                                 |       P0 | PARTIAL | Localized PDF variants and Accounting Pack format jobs publish semantic, locale/period-bearing filenames. Full catalog coverage and download/browser evidence remain required.                                                                                                                                                                                         |
 | AUDIT-ART-007    | Artifact writes are atomic, hashed, and safe to retry                     |       P0 | PARTIAL | Reporting and localized-PDF workers use temp/atomic publication, collision checks, private-root/symlink guards and byte/hash verification. Final cross-format security review remains required.                                                                                                                                                                        |

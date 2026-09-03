@@ -1,4 +1,5 @@
 import { error, type RequestHandler } from '@sveltejs/kit';
+import { invoicePdf, type InvoiceTemplateSnapshot } from '@ja/reporting';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { servePrivateArtifact } from '$lib/server/private-artifact-access';
 
@@ -14,7 +15,12 @@ export const GET: RequestHandler = async ({ locals, params }) => {
       kind: 'invoice',
       id: invoiceId,
       expectedMediaType: 'application/pdf',
+      requireStepUp: true,
       loadMetadata: () => context.v3.invoicePdfMetadata(context.principal, invoiceId),
+      generateBytes: () => {
+        const snapshot = context.v3.invoiceSnapshot(context.principal, invoiceId);
+        return invoicePdf(snapshot as InvoiceTemplateSnapshot);
+      },
     });
   } finally {
     context.sqlite.close();

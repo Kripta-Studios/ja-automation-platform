@@ -26,4 +26,9 @@ export const industries: IndustryCard[] = [
     slug: 'oem-general-industry',
     imageKey: 'oemGeneral',
   },
+  {
+    id: 'warehouse-logistics',
+    slug: 'warehouse-logistics',
+    imageKey: 'warehouseLogistics',
+  },
 ];

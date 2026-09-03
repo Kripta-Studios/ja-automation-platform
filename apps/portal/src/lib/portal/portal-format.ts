@@ -10,10 +10,19 @@ export const money = (minor: unknown, currency = 'USD', locale = 'en-US'): strin
 
 export const hours = (minutes: unknown): string => `${(Number(minutes ?? 0) / 60).toFixed(1)}h`;
 
-export const categorySummary = (categories: Record<string, number>): string =>
+export type CategoryLabelFormatter = (category: string) => string;
+
+export const categorySummary = (
+  categories: Record<string, number>,
+  formatCategory?: CategoryLabelFormatter,
+): string =>
   Object.entries(categories)
     .filter(([, minutes]) => minutes > 0)
-    .map(([category, minutes]) => `${category.replaceAll('_', ' ')} ${hours(minutes)}`)
+    .map(([category, minutes]) => {
+      const fallback = category.replaceAll('_', ' ');
+      const label = formatCategory?.(category)?.trim() || fallback;
+      return `${label} ${hours(minutes)}`;
+    })
     .join(' · ');
 
 export const shiftWeek = (value: string, days: number): string =>

@@ -29,6 +29,7 @@
 
   const primaryCategories: readonly CategoryOption[] = [
     { value: 'regular', label: 'Work' },
+    { value: 'overtime', label: 'Overtime' },
     { value: 'travel', label: 'Travel' },
     { value: 'standby', label: 'Standby' },
     { value: 'commissioning', label: 'Commissioning' },
@@ -193,6 +194,7 @@
                 row.approval_state,
               )}</small
             >
+            <span class="time-record-summary">{row.activity_summary}</span>
             <span>{translate('Open record →')}</span>
           </a>
           {#if row.approval_state === 'draft' && String(row.worker_id) === data.user.id}
@@ -209,15 +211,30 @@
           {/if}
           {#if String(row.worker_id) === data.user.id && row.approval_state !== 'void'}
             <div class="time-record-actions time-destructive-actions">
-              <form method="POST" action="?/deleteTime">
-                <input type="hidden" name="id" value={row.id} />
-                <input type="hidden" name="version" value={row.version} />
-                <button type="submit" class="destructive-button">
-                  {row.approval_state === 'draft' || row.approval_state === 'needs_changes'
-                    ? translate('Delete')
-                    : translate('Void')}
-                </button>
-              </form>
+              {#if row.approval_state === 'draft'}
+                <form
+                  method="POST"
+                  action="?/deleteDraft"
+                  data-action="deleteDraft"
+                  data-record-type="time_entry"
+                  data-record-id={String(row.id)}
+                >
+                  <input type="hidden" name="recordType" value="time_entry" />
+                  <input type="hidden" name="recordId" value={row.id} />
+                  <input type="hidden" name="version" value={row.version} />
+                  <button type="submit" class="destructive-button">{translate('Delete')}</button>
+                </form>
+              {:else}
+                <form method="POST" action="?/deleteTime">
+                  <input type="hidden" name="id" value={row.id} />
+                  <input type="hidden" name="version" value={row.version} />
+                  <button type="submit" class="destructive-button">
+                    {row.approval_state === 'needs_changes'
+                      ? translate('Delete')
+                      : translate('Void')}
+                  </button>
+                </form>
+              {/if}
             </div>
           {/if}
         </article>

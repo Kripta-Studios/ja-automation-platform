@@ -34,7 +34,15 @@ function seedUser(
     .prepare(
       'INSERT INTO user(id,name,email,role,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',
     )
-    .run(id, id, `${id}@example.com`, role, 'active', timestamp, timestamp);
+    .run(
+      id,
+      id,
+      role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@example.com`,
+      role,
+      'active',
+      timestamp,
+      timestamp,
+    );
 }
 
 function stepUpFinance(
@@ -258,15 +266,8 @@ describe('V3 operational and billing workflow', () => {
     expect(pay.approvedReimbursementMinor).toBe('25000');
     expect(() => repository.workerPay(outsider, '2026-08-01', '2026-08-16')).not.toThrow();
 
-    const entity = repository.createLegalEntity(owner, {
-      code: 'JA-US',
-      legalName: 'J&A Automation LLC',
-      currency: 'USD',
-      billingAddress: 'Approved billing address',
-      companyIdentifiers: 'Approved company identifiers',
-    });
     repository.createInvoiceNumberPolicy(owner, {
-      legalEntityId: entity.id,
+      legalEntityId: canonicalLegacyEntity.id,
       prefix: 'JA-US',
       digits: 6,
       effectiveFrom: '2026-01-01',
@@ -286,7 +287,7 @@ describe('V3 operational and billing workflow', () => {
     });
     const laborRule = repository.createBillingRule(finance, {
       projectId: project.id,
-      legalEntityId: entity.id,
+      legalEntityId: canonicalLegacyEntity.id,
       streamType: 'labor',
       cadenceType: 'fourteen_day',
       anchorDate: '2026-08-03',
@@ -296,7 +297,7 @@ describe('V3 operational and billing workflow', () => {
     });
     const expenseRule = repository.createBillingRule(finance, {
       projectId: project.id,
-      legalEntityId: entity.id,
+      legalEntityId: canonicalLegacyEntity.id,
       streamType: 'expense',
       cadenceType: 'monthly',
       taxProfileId: expenseTax.id,
@@ -306,7 +307,7 @@ describe('V3 operational and billing workflow', () => {
     expect(() =>
       repository.createBillingRule(finance, {
         projectId: project.id,
-        legalEntityId: entity.id,
+        legalEntityId: canonicalLegacyEntity.id,
         streamType: 'labor',
         cadenceType: 'monthly',
         taxProfileId: laborTax.id,
@@ -365,11 +366,16 @@ describe('V3 operational and billing workflow', () => {
       .all(expenseDraft.id) as Array<{ source_id: string }>;
     expect(expenseSources.map((row) => row.source_id)).toEqual([expense.id]);
 
+    const paymentReceivedAt = (
+      sqlite.prepare('SELECT issued_at FROM invoice WHERE id=?').get(laborDraft.id) as {
+        issued_at: string;
+      }
+    ).issued_at;
     const firstPayment = repository.recordPayment(finance, {
       invoiceId: laborDraft.id,
       amountMinor: 50_000n,
       currency: 'USD',
-      receivedAt: '2026-09-01T00:00:00.000Z',
+      receivedAt: paymentReceivedAt,
       reference: 'BANK-1',
       idempotencyKey: 'payment-bank-1',
     });
@@ -378,7 +384,8 @@ describe('V3 operational and billing workflow', () => {
         invoiceId: laborDraft.id,
         amountMinor: 50_000n,
         currency: 'USD',
-        receivedAt: '2026-09-01T00:00:00.000Z',
+        receivedAt: paymentReceivedAt,
+        reference: 'BANK-1',
         idempotencyKey: 'payment-bank-1',
       }),
     ).toEqual({ id: firstPayment.id, created: false });

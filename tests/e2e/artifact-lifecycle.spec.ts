@@ -46,6 +46,14 @@ async function stepUpFinance(page: import('@playwright/test').Page): Promise<voi
   expect(response.ok(), 'Accounting mutations require a session-bound step-up').toBe(true);
 }
 
+async function stepUpOwner(page: import('@playwright/test').Page): Promise<void> {
+  const response = await page.request.post(portal('/api/step-up'), {
+    headers: { origin: new URL(page.url()).origin, referer: page.url() },
+    data: { password: e2eCredentials.owner.password },
+  });
+  expect(response.ok(), 'Account lifecycle mutations require a session-bound step-up').toBe(true);
+}
+
 function withClock<T>(iso: string, work: () => T): T {
   const realDate = globalThis.Date;
   const fixedTime = realDate.parse(iso);
@@ -267,7 +275,16 @@ test('terminal failed Accounting Pack formats expose retry metadata and never re
       | undefined;
     expect(failure?.outcome).toBe('failed_terminal');
     expect(failure?.finished_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-    expect(failure?.error_code).toMatch(/chromium|browser|pdf|executable|renderer/i);
+    expect(failure?.error_code).toBe('HANDLER_FAILED');
+    const pack = database.sqlite
+      .prepare('SELECT reconciliation_json FROM accounting_pack_run WHERE id=?')
+      .get(id) as { reconciliation_json: string } | undefined;
+    const reconciliation = JSON.parse(pack?.reconciliation_json ?? '{}') as {
+      _artifactFailures?: { pdf?: { error?: string } };
+    };
+    expect(reconciliation._artifactFailures?.pdf?.error).toMatch(
+      /chromium|browser|pdf|executable|renderer/i,
+    );
   } finally {
     database.sqlite.close();
   }
@@ -303,9 +320,23 @@ test('owner can archive and restore the deterministic client fixture', async ({
   try {
     await signIn(page, 'owner');
     await page.goto(portal(`/projects?view=clients&focus=${fixture.client.id}`));
+    await expect(page.locator('[data-client-directory]')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Clients', exact: true })).toBeVisible();
     await expect(
-      page.getByRole('heading', { name: 'Client contacts', exact: true, level: 1 }),
+      page.getByRole('button', { name: 'Add contact', exact: true }).first(),
     ).toBeVisible();
+    await expect(page.locator('[data-contact-actions]').first()).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Edit contact', exact: true }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Delete contact', exact: true }).first(),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: /begin close|close project/i })).toHaveCount(0);
+
+    // Lifecycle administration remains on the established management surface;
+    // the directory itself intentionally contains no unrelated project actions.
+    await page.goto(portal('/projects'));
 
     const client = page.locator(`[data-client-id="${fixture.client.id}"]`);
     await expect(client).toHaveCount(1);
@@ -400,10 +431,36 @@ test('owner can edit and complete the reversible project lifecycle fixture', asy
 
 test('owner archive/restore keeps the account lifecycle reversible and discoverable', async ({
   page,
-}) => {
+}, testInfo) => {
   await signIn(page, 'owner');
-  const teamRoute = portal('/projects?view=team');
-  await page.goto(teamRoute);
+  await stepUpOwner(page);
+  await page.goto(portal('/projects?view=team'));
+  await expect(page.locator('[data-team-directory]')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Team', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Create user', exact: true }).click();
+  const invitationForm = page.locator('form[action="?view=team&/createInvitation"]');
+  await invitationForm
+    .locator('input[name="email"]')
+    .fill(`ux-invite-${testInfo.project.name}@example.test`);
+  await invitationForm.locator('select[name="role"]').selectOption('worker');
+  await invitationForm.getByRole('button', { name: 'Create invitation', exact: true }).click();
+  await expect(page).toHaveURL(/view=team/);
+  await expect(page.locator('[data-invitation-result]')).toBeVisible();
+  await expect(page.locator('[data-invitation-result] a')).toHaveAttribute(
+    'href',
+    /\/app\/invite\//,
+  );
+  const visibleTarget = page.locator(`[data-worker-id="${e2eArchiveTarget.id}"]`);
+  await expect(visibleTarget).toBeVisible();
+  await expect(
+    visibleTarget.getByRole('button', { name: 'Edit team member', exact: true }),
+  ).toBeVisible();
+  await expect(
+    visibleTarget.getByRole('button', { name: 'Remove access', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: /begin close|close project/i })).toHaveCount(0);
+
+  await page.goto(portal('/projects'));
   const target = page.locator('.record-card').filter({ hasText: e2eArchiveTarget.name });
   await expect(target).toBeVisible();
   const statusForm = target.locator('form[action="?/updateUserStatus"]');

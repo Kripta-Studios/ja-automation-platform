@@ -82,8 +82,6 @@ export class PeriodReportLifecycleRepository {
 
   private assertApprover(principal: Principal, report: PeriodReportApprovalRow): void {
     this.deps.assertActive(principal);
-    if (principal.isServiceActor)
-      return this.deps.errors.accessDenied('Human period report approver required');
     if (
       principal.role !== 'owner_admin' &&
       principal.role !== 'finance_admin' &&

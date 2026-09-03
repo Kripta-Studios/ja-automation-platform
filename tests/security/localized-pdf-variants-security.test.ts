@@ -5,6 +5,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
   AccessDeniedError,
+  AccountingPackRevisionService,
   LocalizedPdfRepository,
   V3Repository,
   createDatabase,
@@ -36,6 +37,7 @@ function fixture() {
   const now = new Date().toISOString();
   for (const [id, role] of [
     ['owner', 'owner_admin'],
+    ['finance', 'finance_admin'],
     ['worker', 'worker'],
     ['pm', 'project_manager'],
     ['outsider', 'worker'],
@@ -45,7 +47,15 @@ function fixture() {
       .prepare(
         'INSERT INTO user(id,name,email,role,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',
       )
-      .run(id, id, `${id}@example.test`, role, 'active', now, now);
+      .run(
+        id,
+        id,
+        role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@example.test`,
+        role,
+        'active',
+        now,
+        now,
+      );
   }
   seedB5ServiceActorBinding(sqlite, 'owner');
   sqlite
@@ -88,6 +98,30 @@ function fixture() {
     .run('daily', 'project', 'worker', '2026-08-22', 'Private source', 'draft', now, now);
   sqlite
     .prepare(
+      `INSERT INTO invoice(
+         id,project_id,invoice_number,stream_type,state,currency,subtotal_minor,tax_minor,total_minor,
+         issued_at,created_at,updated_at,snapshot_json,tenant_id,deployment_id
+       ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    )
+    .run(
+      'invoice',
+      'project',
+      'INV-0001',
+      'labor',
+      'issued',
+      'EUR',
+      1000,
+      210,
+      1210,
+      now,
+      now,
+      now,
+      '{"total":1210,"subtotal":1000}',
+      'test-tenant',
+      'test-deployment',
+    );
+  sqlite
+    .prepare(
       'INSERT INTO project_member(id,project_id,user_id,assignment_role,starts_on,ends_on,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
     )
     .run('assignment-worker', 'project', 'worker', 'worker', '2026-01-01', '2026-12-31', now, now);
@@ -109,6 +143,7 @@ function fixture() {
         : { exists: false, byteLength: null, contentSha256: null },
   });
   const owner: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
+  const finance: Principal = { userId: 'finance', role: 'finance_admin', projectIds: new Set() };
   const worker: Principal = { userId: 'worker', role: 'worker', projectIds: new Set(['project']) };
   const pm: Principal = { userId: 'pm', role: 'project_manager', projectIds: new Set(['project']) };
   const outsider: Principal = { userId: 'outsider', role: 'worker', projectIds: new Set() };
@@ -117,13 +152,33 @@ function fixture() {
     role: 'auditor_read_only',
     projectIds: new Set(),
   };
-  return { sqlite, repository, owner, worker, pm, outsider, auditor };
+  return { sqlite, repository, owner, finance, worker, pm, outsider, auditor };
+}
+
+function stepUpPrincipal(sqlite: DatabaseSync, principal: Principal, suffix: string): Principal {
+  const now = new Date().toISOString();
+  const sessionId = `localized-pdf-security-${principal.userId}-${suffix}`;
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+    )
+    .run(
+      sessionId,
+      `${sessionId}-token`,
+      principal.userId,
+      new Date(Date.now() + 3_600_000).toISOString(),
+      now,
+      now,
+      now,
+    );
+  return { ...principal, sessionId };
 }
 
 function claimVariant(
   sqlite: DatabaseSync,
   repository: LocalizedPdfRepository,
   variant: Pick<LocalizedPdfVariant, 'variantId' | 'currentAttemptNumber'>,
+  onClaim?: (execution: LocalizedPdfExecution) => void,
 ): LocalizedPdfExecution {
   const v3 = new V3Repository(sqlite);
   let execution: LocalizedPdfExecution | undefined;
@@ -141,6 +196,7 @@ function claimVariant(
         leaseFence: context.fenceVersion,
       };
       repository.claimVariant(String(values.variantId), execution, Number(values.requestedAttempt));
+      onClaim?.(execution);
     },
   });
   expect(result).toMatchObject({ processed: 1, failed: 0 });
@@ -149,6 +205,153 @@ function claimVariant(
 }
 
 describe('localized PDF variant authorization and integrity boundary', () => {
+  it('does not let an assigned PM read a localized invoice even with a valid step-up', () => {
+    const { sqlite, repository, owner, finance, pm, auditor } = fixture();
+    try {
+      const financeWithStepUp = stepUpPrincipal(sqlite, finance, 'finance');
+      const pmWithStepUp = stepUpPrincipal(sqlite, pm, 'pm');
+      const auditorWithStepUp = stepUpPrincipal(sqlite, auditor, 'auditor');
+      const ownerWithStepUp = stepUpPrincipal(sqlite, owner, 'owner');
+      sqlite
+        .prepare(
+          `INSERT INTO legal_entity(
+             id,code,legal_name,currency,billing_address,company_identifiers,status,
+             created_at,updated_at,version
+           ) VALUES(?,?,?,?,?,?,?,?,?,1)`,
+        )
+        .run(
+          'legacy',
+          'LE-SECURITY',
+          'Security Entity',
+          'EUR',
+          'Security address',
+          'SECURITY-TAX',
+          'active',
+          new Date().toISOString(),
+          new Date().toISOString(),
+        );
+      const accountingPack = new AccountingPackRevisionService(sqlite).createCanonicalRevision(
+        financeWithStepUp,
+        {
+          periodStart: '2026-08-01',
+          periodEnd: '2026-08-31',
+          currency: 'EUR',
+          timezone: 'UTC',
+          legacyLegalEntityId: 'legacy',
+          idempotencyKey: 'security:localized-pdf:accounting-pack',
+        },
+      );
+      expect(() =>
+        repository.requestVariant(finance, {
+          ownerType: 'invoice',
+          ownerId: 'invoice',
+          locale: 'en',
+          templateVersion: 'invoice-v1',
+          generationVersion: 'renderer-1',
+        }),
+      ).toThrow('Recent step-up authentication is required');
+      expect(() =>
+        repository.requestVariant(pm, {
+          ownerType: 'invoice',
+          ownerId: 'invoice',
+          locale: 'en',
+          templateVersion: 'invoice-v1',
+          generationVersion: 'renderer-1',
+        }),
+      ).toThrow('Localized PDF administration required');
+      expect(
+        repository.listVariants(financeWithStepUp, { ownerType: 'invoice', ownerId: 'invoice' }),
+      ).toEqual([]);
+
+      const variant = repository.requestVariant(financeWithStepUp, {
+        ownerType: 'invoice',
+        ownerId: 'invoice',
+        locale: 'en',
+        templateVersion: 'invoice-v1',
+        generationVersion: 'renderer-1',
+      });
+      const execution = claimVariant(sqlite, repository, variant);
+      repository.completeVariant(variant.variantId, {
+        attemptNumber: 1,
+        contentSha256: 'f'.repeat(64),
+        byteLength: 12,
+        rendererVersion: 'renderer-1',
+        execution,
+      });
+      const accountingVariant = repository.requestVariant(financeWithStepUp, {
+        ownerType: 'accounting_pack_revision',
+        ownerId: accountingPack.revisionId,
+        locale: 'en',
+        templateVersion: 'accounting-pack-v1',
+        generationVersion: 'renderer-1',
+      });
+      const accountingExecution = claimVariant(sqlite, repository, accountingVariant);
+      repository.completeVariant(accountingVariant.variantId, {
+        attemptNumber: 1,
+        contentSha256: 'a'.repeat(64),
+        byteLength: 12,
+        rendererVersion: 'renderer-1',
+        execution: accountingExecution,
+      });
+
+      expect(() =>
+        repository.listVariants(pmWithStepUp, { ownerType: 'invoice', ownerId: 'invoice' }),
+      ).toThrow(AccessDeniedError);
+      expect(() =>
+        repository.requestVariant(pmWithStepUp, {
+          ownerType: 'invoice',
+          ownerId: 'invoice',
+          locale: 'es',
+          templateVersion: 'invoice-v1',
+          generationVersion: 'renderer-1',
+        }),
+      ).toThrow(AccessDeniedError);
+      expect(() => repository.resolveDownload(pmWithStepUp, variant.variantId)).toThrow(
+        AccessDeniedError,
+      );
+      expect(() =>
+        repository.listVariants(pmWithStepUp, {
+          ownerType: 'accounting_pack_revision',
+          ownerId: accountingPack.revisionId,
+        }),
+      ).toThrow(AccessDeniedError);
+      expect(() => repository.resolveDownload(pmWithStepUp, accountingVariant.variantId)).toThrow(
+        AccessDeniedError,
+      );
+      expect(repository.listVariants(pmWithStepUp)).toHaveLength(0);
+      expect(
+        repository.listVariants(financeWithStepUp, { ownerType: 'invoice', ownerId: 'invoice' }),
+      ).toEqual([expect.objectContaining({ variantId: variant.variantId })]);
+      expect(repository.resolveDownload(financeWithStepUp, variant.variantId).ownerId).toBe(
+        'invoice',
+      );
+      expect(repository.resolveDownload(auditorWithStepUp, variant.variantId).ownerId).toBe(
+        'invoice',
+      );
+      expect(repository.resolveDownload(ownerWithStepUp, variant.variantId).ownerId).toBe(
+        'invoice',
+      );
+      expect(
+        repository.listVariants(financeWithStepUp, {
+          ownerType: 'accounting_pack_revision',
+          ownerId: accountingPack.revisionId,
+        }),
+      ).toEqual([expect.objectContaining({ variantId: accountingVariant.variantId })]);
+      expect(
+        repository.resolveDownload(financeWithStepUp, accountingVariant.variantId).ownerId,
+      ).toBe(accountingPack.revisionId);
+      expect(
+        repository.resolveDownload(auditorWithStepUp, accountingVariant.variantId).ownerId,
+      ).toBe(accountingPack.revisionId);
+      expect(repository.resolveDownload(ownerWithStepUp, accountingVariant.variantId).ownerId).toBe(
+        accountingPack.revisionId,
+      );
+      expect(repository.listVariants(auditorWithStepUp)).toHaveLength(2);
+    } finally {
+      sqlite.close();
+    }
+  });
+
   it('prevents IDOR reads/writes while allowing the owning worker and read-only auditor', () => {
     const { sqlite, repository, owner, worker, outsider, auditor } = fixture();
     try {
@@ -500,6 +703,46 @@ describe('localized PDF variant authorization and integrity boundary', () => {
       expect(() => repository.resolveDownload(pm, internalVariant.variantId)).toThrow(
         AccessDeniedError,
       );
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it('requires the same recent step-up for retrying a financial variant', () => {
+    const { sqlite, repository, finance } = fixture();
+    try {
+      const financeWithStepUp = stepUpPrincipal(sqlite, finance, 'financial-retry');
+      const variant = repository.requestVariant(financeWithStepUp, {
+        ownerType: 'invoice',
+        ownerId: 'invoice',
+        locale: 'es',
+        templateVersion: 'invoice-v1',
+        generationVersion: 'renderer-1',
+      });
+      claimVariant(sqlite, repository, variant, (execution) => {
+        repository.failVariant(variant.variantId, {
+          attemptNumber: 1,
+          errorCode: 'RENDER_FAILED',
+          retryable: true,
+          execution,
+        });
+      });
+
+      expect(() => repository.retryVariant(finance, variant.variantId)).toThrow(
+        'Recent step-up authentication is required',
+      );
+      expect(
+        repository
+          .listVariants(financeWithStepUp, { ownerType: 'invoice', ownerId: 'invoice' })
+          .find((candidate) => candidate.variantId === variant.variantId),
+      ).toMatchObject({
+        status: 'failed',
+        currentAttemptNumber: 1,
+      });
+      expect(repository.retryVariant(financeWithStepUp, variant.variantId)).toMatchObject({
+        status: 'queued',
+        currentAttemptNumber: 2,
+      });
     } finally {
       sqlite.close();
     }

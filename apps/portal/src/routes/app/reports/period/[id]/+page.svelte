@@ -15,6 +15,7 @@
     translateControlledValue,
     type ControlledValueDomain,
   } from '$lib/i18n/controlled-values';
+  import { TableRegion } from '$lib/portal/ui';
   import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
 
   type Row = Record<string, unknown>;
@@ -396,7 +397,11 @@
         </div>
         <span>{controlled('billingStream', summary.billingModel)}</span>
       </div>
-      <div class="table-wrap">
+      <TableRegion
+        class="table-wrap report-period-table"
+        mobileMode="scroll"
+        label={t('How this report was calculated')}
+      >
         <table>
           <thead
             ><tr
@@ -420,7 +425,7 @@
             {:else}<tr><td colspan="4">{t('No calculated commercial lines.')}</td></tr>{/each}
           </tbody>
         </table>
-      </div>
+      </TableRegion>
       <p class="form-help">
         {t('Operational value')}: {money(summary.operationalRevenueCandidateMinor)} · {t('Paid')}: {money(
           summary.paidMinor,
@@ -469,7 +474,11 @@
           >
         </article>
       </div>
-      <div class="table-wrap">
+      <TableRegion
+        class="table-wrap report-period-table"
+        mobileMode="scroll"
+        label={t('Internal financial detail')}
+      >
         <table>
           <thead
             ><tr
@@ -491,7 +500,7 @@
             {:else}<tr><td colspan="7">{t('No time economics in this period.')}</td></tr>{/each}
           </tbody>
         </table>
-      </div>
+      </TableRegion>
     </section>
   {/if}
 
@@ -602,6 +611,22 @@
         >
         <button>{t('Recalculate report')}</button>
       </form>
+    </section>
+  {/if}
+
+  {#if customerAudience}
+    <section class="detail-panel customer-signoff-preview-panel">
+      <div class="signature-block">
+        <div class="signature-field">
+          <span>{t('Client Representative Signature')}</span>
+          <div class="signature-line">____________________________________</div>
+          <small>{t('Name & Title')}</small>
+        </div>
+        <div class="signature-field">
+          <span>{t('Date')}</span>
+          <div class="signature-line">__________________</div>
+        </div>
+      </div>
     </section>
   {/if}
 
@@ -801,6 +826,13 @@
     background: #e4f5f2;
   }
 
+  .customer-signoff__pdf:focus-visible,
+  .customer-signoff__form button:focus-visible,
+  .customer-signoff__invalidate summary:focus-visible {
+    outline: 3px solid #0d6070;
+    outline-offset: 2px;
+  }
+
   .customer-signoff__form {
     display: grid;
     gap: 0.9rem;
@@ -850,6 +882,12 @@
     border-color: #4ea89f;
     outline: none;
     box-shadow: 0 0 0 3px rgb(78 168 159 / 0.12);
+  }
+
+  .customer-signoff__form input:focus-visible,
+  .customer-signoff__form textarea:focus-visible {
+    outline: 3px solid #0d6070;
+    outline-offset: 2px;
   }
 
   .customer-signoff__form button {
@@ -927,6 +965,46 @@
       width: 100%;
       justify-content: center;
     }
+  }
+
+  .customer-signoff-preview-panel {
+    margin-top: 1.5rem;
+    padding: 1.75rem 2rem;
+    background: #ffffff;
+    border: 1px solid #cbdde2;
+    border-radius: 0.5rem;
+  }
+
+  .signature-block {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 3rem;
+    flex-wrap: wrap;
+  }
+
+  .signature-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .signature-field > span {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #173146;
+  }
+
+  .signature-line {
+    font-family: monospace;
+    font-size: 1rem;
+    color: #536b7b;
+    letter-spacing: 0.05em;
+  }
+
+  .signature-field > small {
+    font-size: 0.78rem;
+    color: #64748b;
   }
 
   @media (prefers-reduced-motion: reduce) {

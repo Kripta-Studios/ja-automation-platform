@@ -4,6 +4,10 @@ import type { RequestHandler } from './$types';
 
 const partitionPattern = /^[A-Za-z0-9._:-]{1,160}$/;
 
+function offlineEnabled(): boolean {
+  return process.env.JA_OFFLINE_ENABLED?.trim().toLowerCase() !== 'false';
+}
+
 function configuration(): { secret: string; tenantId: string; deploymentId: string } | null {
   const secret = process.env.JA_AUTH_SECRET?.trim();
   const tenantId = process.env.JA_TENANT_ID?.trim();
@@ -21,6 +25,11 @@ function configuration(): { secret: string; tenantId: string; deploymentId: stri
 
 export const POST: RequestHandler = async ({ locals, request }) => {
   if (!locals.user || !locals.session) return json({ valid: false }, { status: 401 });
+  if (!offlineEnabled())
+    return json(
+      { offlineEnabled: false, valid: false },
+      { status: 503, headers: { 'cache-control': 'no-store' } },
+    );
   const config = configuration();
   if (!config) return json({ valid: false }, { status: 503 });
   const body = (await request.json().catch(() => null)) as { token?: unknown } | null;

@@ -158,21 +158,32 @@
   );
 
   const projectCardRows = $derived.by((): TableCardRow[] =>
-    visibleProjects.map((project) => ({
-      id: projectId(project),
-      cells: [
-        {
-          label: translate('Project'),
-          value: `${projectNumber(project)} · ${projectName(project)}`,
-        },
-        { label: translate('Client'), value: clientLabel(project) || translate('Not assigned') },
-        { label: translate('Status'), value: statusLabel(projectStatus(project)) },
-        {
-          label: translate('Schedule'),
-          value: projectSchedule(project) || translate('Not scheduled'),
-        },
-      ],
-    })),
+    visibleProjects.map((project) => {
+      const id = projectId(project);
+      const label = `${projectNumber(project)} · ${projectName(project)}`;
+      return {
+        id,
+        cells: [
+          {
+            label: translate('Project'),
+            value: label,
+          },
+          { label: translate('Client'), value: clientLabel(project) || translate('Not assigned') },
+          { label: translate('Status'), value: statusLabel(projectStatus(project)) },
+          {
+            label: translate('Schedule'),
+            value: projectSchedule(project) || translate('Not scheduled'),
+          },
+        ],
+        ...(id
+          ? {
+              href: projectHref(project),
+              linkLabel: translate('Open project'),
+              linkAriaLabel: `${translate('Open project')}: ${label}`,
+            }
+          : {}),
+      };
+    }),
   );
 
   const showPrimaryAction = $derived(
@@ -333,6 +344,28 @@
                             </button>
                           </form>
                         {/each}
+                        {#if isOwnerOrFinance}
+                          <form
+                            method="POST"
+                            action="?/deleteProject"
+                            onsubmit={(event) => {
+                              if (
+                                !confirm(
+                                  translate(
+                                    'Delete this project? This will permanently remove it if it has no financial activity.',
+                                  ),
+                                )
+                              ) {
+                                event.preventDefault();
+                              }
+                            }}
+                          >
+                            <input type="hidden" name="projectId" value={projectId(project)} />
+                            <button class="danger" type="submit">
+                              {translate('Delete project')}
+                            </button>
+                          </form>
+                        {/if}
                       </div>
                     </details>
                   {/if}
@@ -501,7 +534,7 @@
   .project-section__filters input,
   .project-section__filters select,
   .project-section__actions input {
-    min-height: 2.6rem;
+    min-height: var(--ja-target-min, 2.75rem);
     padding: 0.55rem 0.7rem;
     border: 1px solid var(--portal-border-strong, #b8c3d1);
     border-radius: 0.5rem;
@@ -572,6 +605,9 @@
   }
 
   .project-section__actions summary {
+    min-height: var(--ja-target-min, 2.75rem);
+    display: inline-flex;
+    align-items: center;
     width: fit-content;
     padding: 0.5rem 0.65rem;
     border: 1px solid var(--portal-border-strong, #b8c3d1);
@@ -605,7 +641,7 @@
   }
 
   .project-section__actions button {
-    min-height: 2.5rem;
+    min-height: var(--ja-target-min, 2.75rem);
   }
 
   .project-section__empty span {

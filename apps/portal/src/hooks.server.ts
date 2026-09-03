@@ -1,30 +1,33 @@
 import { building } from '$app/environment';
-import { auth } from '$lib/server/auth';
+import { auth, revokeSessionsUnlessUserIsActive } from '$lib/server/auth';
 import { createDatabase } from '@ja/database';
 import { createHash, randomUUID } from 'node:crypto';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import type { Handle } from '@sveltejs/kit';
 import { documentLanguage, normalizePortalLocale, type PortalLocale } from '$lib/portal-i18n';
+import {
+  isWebmailOnlyUser,
+  webmailOnlyUserIdForEmail,
+  webmailOnlyUserIdForResetToken,
+} from '$lib/server/webmail-password';
 
-const publicBase = process.env.JA_PUBLIC_BASE_PATH ?? '/j-aautomation';
-const portalBase = process.env.JA_PORTAL_BASE_PATH ?? `${publicBase}/app`;
+function normalizeBasePath(value: string | undefined, fallback: string): string {
+  const candidate = (value?.trim() || fallback).split(/[?#]/u, 1)[0] ?? fallback;
+  const withoutOuterSlashes = candidate.replace(/^\/+|\/+$/gu, '');
+  return withoutOuterSlashes ? `/${withoutOuterSlashes}` : '';
+}
+
+const publicBase = normalizeBasePath(process.env.JA_PUBLIC_BASE_PATH, '/j-aautomation');
+const portalBase = normalizeBasePath(process.env.JA_PORTAL_BASE_PATH, `${publicBase || ''}/app`);
 const production = process.env.NODE_ENV === 'production';
 const portalCsp =
   "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo='; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'";
-
-function preferredLanguage(header: string | null): string | undefined {
-  return header
-    ?.split(',')
-    .map((entry) => entry.split(';', 1)[0]?.trim())
-    .find(Boolean);
-}
 
 function requestLocale(event: Parameters<Handle>[0]['event']): PortalLocale {
   const requested =
     event.url.searchParams.get('lang') ??
     event.cookies.get('ja.portal.locale') ??
-    event.cookies.get('ja-portal-locale') ??
-    preferredLanguage(event.request.headers.get('accept-language'));
+    event.cookies.get('ja-portal-locale');
   return normalizePortalLocale(requested);
 }
 
@@ -56,7 +59,12 @@ function applySecurityHeaders(
 ): Response {
   response.headers.set('x-correlation-id', correlationId);
   response.headers.set('x-content-type-options', 'nosniff');
-  response.headers.set('referrer-policy', 'strict-origin-when-cross-origin');
+  response.headers.set(
+    'referrer-policy',
+    path.startsWith(`${portalBase}/invite/`) || path === `${portalBase}/api/invitations/accept`
+      ? 'no-referrer'
+      : 'strict-origin-when-cross-origin',
+  );
   response.headers.set('permissions-policy', 'camera=(self), microphone=(), geolocation=()');
   response.headers.set('x-frame-options', 'DENY');
   response.headers.set('cross-origin-opener-policy', 'same-origin');
@@ -67,6 +75,54 @@ function applySecurityHeaders(
   if (isPortal && !path.endsWith('/service-worker.js') && !path.includes('/manifest.'))
     response.headers.set('cache-control', 'private, no-store');
   return response;
+}
+
+function requestLogPath(path: string): string {
+  const invitationPrefix = `${portalBase}/invite/`;
+  return path.startsWith(invitationPrefix) ? `${invitationPrefix}[REDACTED]` : path;
+}
+
+/**
+ * Keep the historical public login URL useful after the portal acquired its
+ * `/app` boundary.  The redirect is deliberately exact: API paths and any
+ * other public route must continue through the normal SvelteKit handler.
+ */
+function legacyLoginRedirect(event: Parameters<Handle>[0]['event']): Response | null {
+  const legacyPath = publicBase ? `${publicBase}/login` : '/login';
+  const canonicalPath = portalBase ? `${portalBase}/login` : '/login';
+  if (event.url.pathname !== legacyPath || legacyPath === canonicalPath) return null;
+
+  const target = new URL(canonicalPath, event.url.origin);
+  // URL.search is already encoded by the platform; assigning it preserves
+  // repeated keys and avoids interpreting user input as a redirect target.
+  target.search = event.url.search;
+  // Construct the response explicitly instead of using Response.redirect:
+  // Node's redirect helper exposes immutable headers, while the common
+  // security-header path must add the correlation and cache headers below.
+  return new Response(null, {
+    status: 307,
+    headers: { location: target.toString() },
+  });
+}
+
+/**
+ * Keep common, user-guessable portal URLs useful without creating duplicate
+ * section implementations. The match is exact so nested resources and API
+ * endpoints always continue through SvelteKit's normal authorization path.
+ */
+function canonicalPortalAliasRedirect(event: Parameters<Handle>[0]['event']): Response | null {
+  const aliases: Readonly<Record<string, Readonly<{ path: string; view?: string }>>> = {
+    [`${portalBase}/invoices`]: { path: `${portalBase}/billing` },
+    [`${portalBase}/settings`]: { path: `${portalBase}/audit` },
+    [`${portalBase}/team`]: { path: `${portalBase}/projects`, view: 'team' },
+    [`${portalBase}/clients`]: { path: `${portalBase}/projects`, view: 'clients' },
+  };
+  const alias = aliases[event.url.pathname];
+  if (!alias) return null;
+  const target = new URL(alias.path, event.url.origin);
+  target.search = event.url.search;
+  if (alias.view) target.searchParams.set('view', alias.view);
+  return new Response(null, { status: 307, headers: { location: target.toString() } });
 }
 
 function authRateLimit(event: Parameters<Handle>[0]['event']): Response | null {
@@ -91,7 +147,14 @@ function authRateLimit(event: Parameters<Handle>[0]['event']): Response | null {
       sqlite.exec('COMMIT');
       return null;
     }
-    if (row.request_count >= 10) {
+    const configuredMaximum = Number.parseInt(process.env.JA_AUTH_RATE_LIMIT_MAX ?? '', 10);
+    const maximumAttempts =
+      Number.isSafeInteger(configuredMaximum) &&
+      configuredMaximum >= 1 &&
+      configuredMaximum <= 10_000
+        ? configuredMaximum
+        : 10;
+    if (row.request_count >= maximumAttempts) {
       sqlite.exec('COMMIT');
       return new Response(JSON.stringify({ error: 'Too many authentication attempts' }), {
         status: 429,
@@ -121,6 +184,46 @@ function authRateLimit(event: Parameters<Handle>[0]['event']): Response | null {
   }
 }
 
+async function denyWebmailPasswordMutation(
+  event: Parameters<Handle>[0]['event'],
+): Promise<Response | null> {
+  const suffix = event.url.pathname.slice(`${portalBase}/api/auth`.length);
+  if (suffix === '/change-password' || suffix === '/set-password') {
+    const session = await auth.api.getSession({ headers: event.request.headers });
+    if (!session?.user?.id || !isWebmailOnlyUser(session.user.id)) return null;
+  } else if (suffix === '/request-password-reset') {
+    const body = (await event.request
+      .clone()
+      .json()
+      .catch(() => null)) as { email?: unknown } | null;
+    if (typeof body?.email !== 'string' || !webmailOnlyUserIdForEmail(body.email)) return null;
+  } else if (suffix === '/reset-password') {
+    const body = (await event.request
+      .clone()
+      .json()
+      .catch(() => null)) as { token?: unknown } | null;
+    const token =
+      typeof body?.token === 'string' ? body.token : event.url.searchParams.get('token');
+    if (!token || !webmailOnlyUserIdForResetToken(token)) return null;
+  } else return null;
+
+  return new Response(
+    suffix === '/request-password-reset'
+      ? JSON.stringify({
+          status: true,
+          message: 'If this email exists in our system, check your email for the reset link',
+        })
+      : JSON.stringify({
+          code: 'WEBMAIL_PASSWORD_MANAGED_EXTERNALLY',
+          message: 'Password changes for this account are managed by Webmail.',
+        }),
+    {
+      status: suffix === '/request-password-reset' ? 200 : 403,
+      headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
+    },
+  );
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
   const startedAt = Date.now();
   const suppliedCorrelationId = event.request.headers.get('x-correlation-id')?.trim() ?? '';
@@ -129,6 +232,10 @@ export const handle: Handle = async ({ event, resolve }) => {
     : randomUUID();
   event.locals.correlationId = correlationId;
   const path = event.url.pathname;
+  const legacyLogin = legacyLoginRedirect(event);
+  if (legacyLogin) return applySecurityHeaders(legacyLogin, false, path, correlationId);
+  const portalAlias = canonicalPortalAliasRedirect(event);
+  if (portalAlias) return applySecurityHeaders(portalAlias, true, path, correlationId);
   const isPortal = path === portalBase || path.startsWith(`${portalBase}/`);
   const isAuth = path.startsWith(`${portalBase}/api/auth/`);
   const isInvitationAccept = path === `${portalBase}/api/invitations/accept`;
@@ -175,22 +282,17 @@ export const handle: Handle = async ({ event, resolve }) => {
   ) {
     const limited = authRateLimit(event);
     if (limited) return applySecurityHeaders(limited, isPortal, path, correlationId);
+    if (isAuth) {
+      const deniedPasswordMutation = await denyWebmailPasswordMutation(event);
+      if (deniedPasswordMutation)
+        return applySecurityHeaders(deniedPasswordMutation, isPortal, path, correlationId);
+    }
   }
   if (!building && isPortal) {
     const current = await auth.api.getSession({ headers: event.request.headers });
     let currentUser: App.Locals['user'] = null;
     if (current?.session && current.user) {
-      const { sqlite } = createDatabase();
-      try {
-        currentUser =
-          (sqlite
-            .prepare(
-              "SELECT id,name,email,role,status,mfa_enrolled mfaEnrolled,mfa_required mfaRequired FROM user WHERE id=? AND status='active'",
-            )
-            .get(current.session.userId) as App.Locals['user'] | undefined) ?? null;
-      } finally {
-        sqlite.close();
-      }
+      currentUser = revokeSessionsUnlessUserIsActive(current.session.userId);
     }
     const active = currentUser !== null;
     event.locals.session = active ? (current?.session ?? null) : null;
@@ -228,7 +330,7 @@ export const handle: Handle = async ({ event, resolve }) => {
           event: 'http.request.error',
           correlationId,
           method: event.request.method,
-          path,
+          path: requestLogPath(path),
           durationMs: Date.now() - startedAt,
           error: caught instanceof Error ? caught.message : 'unknown error',
         }),
@@ -245,7 +347,7 @@ export const handle: Handle = async ({ event, resolve }) => {
         event: 'http.request',
         correlationId,
         method: event.request.method,
-        path,
+        path: requestLogPath(path),
         status: response.status,
         durationMs: Date.now() - startedAt,
         userId: event.locals.user?.id,

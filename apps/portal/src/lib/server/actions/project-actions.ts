@@ -94,6 +94,21 @@ export const projectActions = {
         throw new Error(`${name} must be an integer amount in minor units`);
       }
     };
+    const hoursToMinutes = (
+      hoursName: string,
+      minutesName: string,
+      nullable = false,
+    ): number | null | undefined => {
+      const hoursVal = text(hoursName);
+      if (hoursVal !== undefined) {
+        if (!hoursVal.trim()) return nullable ? null : undefined;
+        const parsed = Number(hoursVal);
+        if (!Number.isFinite(parsed) || parsed < 0 || parsed > 24)
+          throw new Error(`${hoursName} must be a number between 0 and 24`);
+        return Math.round(parsed * 60);
+      }
+      return integer(minutesName, nullable);
+    };
     const context = openPortalRepository(locals);
     try {
       context.repository.updateProject(context.principal, {
@@ -109,8 +124,13 @@ export const projectActions = {
         siteName: text('siteName'),
         country: text('country'),
         projectManagerId: text('projectManagerId') || null,
-        expectedMinutesPerDay: integer('expectedMinutesPerDay') ?? undefined,
-        clientDailyMinimumMinutes: integer('clientDailyMinimumMinutes', true),
+        expectedMinutesPerDay:
+          hoursToMinutes('expectedHoursPerDay', 'expectedMinutesPerDay') ?? undefined,
+        clientDailyMinimumMinutes: hoursToMinutes(
+          'clientDailyMinimumHours',
+          'clientDailyMinimumMinutes',
+          true,
+        ),
         budgetMinor: money('budgetMinor'),
         revenueBudgetMinor: money('revenueBudgetMinor'),
         poCapMinor: money('poCapMinor'),
@@ -390,6 +410,39 @@ export const projectActions = {
         reason,
       });
       return actionSuccess('action.projects.clientArchived', {}, 'Client archived');
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  deleteClient: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'projects')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const formData = await request.formData();
+    const id = formData.get('clientId')?.toString();
+    if (!id) return actionFail(400, 'action.validation.clientIdRequired', {}, 'Client ID required');
+    const context = openPortalRepository(locals);
+    try {
+      context.repository.deleteClient(context.principal, id);
+      return actionSuccess('action.projects.clientDeleted', {}, 'Client deleted');
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  deleteProject: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'projects')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const formData = await request.formData();
+    const id = formData.get('projectId')?.toString();
+    if (!id)
+      return actionFail(400, 'action.validation.projectIdRequired', {}, 'Project ID required');
+    const context = openPortalRepository(locals);
+    try {
+      context.repository.deleteProject(context.principal, id);
+      return actionSuccess('action.projects.projectDeleted', {}, 'Project deleted');
     } catch (error) {
       return actionFailure(error);
     } finally {

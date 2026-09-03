@@ -21,6 +21,7 @@ const demoServiceActorCapabilities = [
   'artifact.accounting_pack.render',
   'storage.temporary.cleanup',
   'artifact.localized_pdf.render',
+  'artifact.worker_statement.render',
   'document.scan',
   'outbox.deliver',
   'alert.dispatch',
@@ -1411,6 +1412,31 @@ const entity = repository.createLegalEntity(owner, {
   billingAddress: 'Demonstration record · not for payment',
   companyIdentifiers: 'TEST DEMO',
 });
+const canonicalEntity = v3.createCanonicalLegalEntityRevision(finance, {
+  legacyLegalEntityId: entity.id,
+  effectiveFrom: '2026-08-01',
+  legalName: 'J&A Automation · Demonstration Invoice',
+  taxIdentifier: 'TEST-DEMO-TAX',
+  registrationIdentifier: 'TEST-DEMO-REGISTRATION',
+  addressLine1: 'Demonstration record · not for payment',
+  locality: 'Detroit',
+  region: 'Michigan',
+  postalCode: '48201',
+  countryCode: 'US',
+  baseCurrency: 'USD',
+  timezone: 'UTC',
+  reason: 'Canonical legal-entity authority for deterministic Client Essential evidence',
+  idempotencyKey: 'demo:canonical-legal-entity:2026-08-01',
+});
+for (const project of [line, palletizer, recovery, support]) {
+  v3.assignCanonicalLegalEntityToProject(finance, {
+    projectId: project.id,
+    legalEntityRevisionId: canonicalEntity.revisionId,
+    effectiveFrom: '2026-08-01',
+    reason: 'Bind the deterministic project to its canonical legal-entity authority',
+    idempotencyKey: `demo:project-legal-entity:${project.id}:2026-08-01`,
+  });
+}
 repository.createInvoiceNumberPolicy(owner, {
   legalEntityId: entity.id,
   prefix: 'DEMO',
@@ -1578,113 +1604,11 @@ const periodReports = v3.refreshPeriodReports(finance, {
   reportLocale: 'en',
 });
 const accountingPack = v3.createAccountingPack(finance, '2026-08-01', '2026-08-31', 'en');
-const legacyAccountingSnapshot = accountingPack.snapshot as Record<string, unknown>;
-const legacyAccountingReconciliation = accountingPack.reconciliation as Record<string, unknown>;
-const legacyAccountingTotals = (legacyAccountingSnapshot.totals ?? {}) as Record<string, unknown>;
-const legacyNetMinor = BigInt(String(legacyAccountingTotals.totalInvoicedMinor ?? 0));
-const legacyTaxMinor = BigInt(String(legacyAccountingTotals.taxInvoicedMinor ?? 0));
-const legacyGrossMinor = BigInt(String(legacyAccountingTotals.grossInvoicedMinor ?? 0));
-const legacyCollectedMinor = BigInt(String(legacyAccountingTotals.collectedMinor ?? 0));
-const legacyOutstandingMinor = BigInt(String(legacyAccountingTotals.outstandingMinor ?? 0));
-const legacyWorkerCostMinor = BigInt(String(legacyAccountingTotals.internalLaborCostMinor ?? 0));
-const legacyDirectCostMinor = BigInt(String(legacyAccountingTotals.directCostMinor ?? 0));
-const legacyExpenseCostMinor = legacyDirectCostMinor - legacyWorkerCostMinor;
-const canonicalSourceItems = (
-  sqlite
-    .prepare(
-      `SELECT source_link_id,invoice_id,source_type,source_id,source_version,locked_at,
-              allocated_net_minor,allocated_gross_minor
-       FROM invoice_source
-       JOIN invoice ON invoice.id=invoice_source.invoice_id
-       WHERE invoice.period_start IS NOT NULL AND invoice.period_end IS NOT NULL
-         AND invoice.period_start<=? AND invoice.period_end>=?
-       ORDER BY invoice_source.source_link_id`,
-    )
-    .all('2026-08-31', '2026-08-01') as Array<{
-    source_link_id: string;
-    invoice_id: string;
-    source_type: string;
-    source_id: string;
-    source_version: number;
-    locked_at: string | null;
-    allocated_net_minor: number | null;
-    allocated_gross_minor: number | null;
-  }>
-).map((source, index) => ({
-  id: `demo-pack-source-${index + 1}`,
-  itemKind: source.source_type,
-  sourceId: source.source_id,
-  itemVersion: source.source_version,
-  effectiveAt: timestamp,
-  evidenceType: 'invoice_source',
-  evidenceId: `demo-pack-source-evidence-${index + 1}`,
-  amountMinor: source.allocated_net_minor ?? 0,
-  currency: 'USD',
-  payload: {
-    source_link_id: source.source_link_id,
-    invoice_id: source.invoice_id,
-    allocated_gross_minor: source.allocated_gross_minor,
-    locked_at: source.locked_at,
-  },
-}));
-const canonicalAccountingPack = v3.createCanonicalAccountingPackRevision(finance, {
-  periodStart: '2026-08-01',
-  periodEnd: '2026-08-31',
-  currency: 'USD',
-  // The normal Accounting Pack flow owns the canonical legal-entity snapshot and uses UTC.
-  // Explicit follow-up revisions must retain that immutable entity identity.
-  timezone: 'UTC',
-  legacyLegalEntityId: entity.id,
-  sourceItems: canonicalSourceItems,
-  snapshot: legacyAccountingSnapshot,
-  reconciliation: legacyAccountingReconciliation,
-  invoiceCount: Array.isArray(legacyAccountingSnapshot.invoiceRegister)
-    ? legacyAccountingSnapshot.invoiceRegister.length
-    : 0,
-  paymentCount: Array.isArray(legacyAccountingSnapshot.collections)
-    ? legacyAccountingSnapshot.collections.length
-    : 0,
-  workerCostCount: Array.isArray(legacyAccountingSnapshot.workerCosts)
-    ? legacyAccountingSnapshot.workerCosts.length
-    : 0,
-  expenseCount: Array.isArray(legacyAccountingSnapshot.expenseRegister)
-    ? legacyAccountingSnapshot.expenseRegister.length
-    : 0,
-  sourceItemCount: canonicalSourceItems.length,
-  invoiceSourceCount: Number(
-    (legacyAccountingSnapshot.sourceReconciliation as Record<string, unknown> | undefined)
-      ?.invoiceSourceCount ?? 0,
-  ),
-  sourceMismatchCount: Array.isArray(
-    (legacyAccountingSnapshot.sourceReconciliation as Record<string, unknown> | undefined)
-      ?.sourceMismatches,
-  )
-    ? (
-        (legacyAccountingSnapshot.sourceReconciliation as Record<string, unknown>)
-          .sourceMismatches as readonly unknown[]
-      ).length
-    : 0,
-  approvedTimeEntryCount: Number(
-    (legacyAccountingSnapshot.sourceReconciliation as Record<string, unknown> | undefined)
-      ?.approvedTimeEntryCount ?? 0,
-  ),
-  approvedExpenseCount: Number(
-    (legacyAccountingSnapshot.sourceReconciliation as Record<string, unknown> | undefined)
-      ?.approvedExpenseCount ?? 0,
-  ),
-  netMinor: legacyNetMinor,
-  taxMinor: legacyTaxMinor,
-  grossMinor: legacyGrossMinor,
-  collectedMinor: legacyCollectedMinor,
-  outstandingMinor: legacyOutstandingMinor,
-  workerCostMinor: legacyWorkerCostMinor,
-  expenseCostMinor: legacyExpenseCostMinor,
-  directCostMinor: legacyDirectCostMinor,
-  contributionMinor: legacyNetMinor - legacyDirectCostMinor,
-  idempotencyKey: 'demo:accounting-pack:2026-08-01:2026-08-31',
-  createdAt: timestamp,
-  effectiveAt: timestamp,
-});
+const canonicalRevisionMetadata = (accountingPack.reconciliation as Record<string, unknown>)
+  .canonicalRevision as { revisions?: Array<{ revisionId?: string }> } | undefined;
+const canonicalAccountingPackRevisionId = canonicalRevisionMetadata?.revisions?.[0]?.revisionId;
+if (!canonicalAccountingPackRevisionId)
+  throw new Error('Seeded Accounting Pack did not create its canonical revision');
 const closeout = repository.createProjectCloseout(owner, line.id);
 sqlite
   .prepare(
@@ -1813,7 +1737,7 @@ console.log(
       closedPeriods: [closedLaborPeriod, closedExpensePeriod],
       periodReportIds: periodReports.map((report) => report.id),
       accountingPackId: accountingPack.id,
-      canonicalAccountingPackRevisionId: canonicalAccountingPack.revisionId,
+      canonicalAccountingPackRevisionId,
       closeoutId: closeout.id,
     },
     null,

@@ -20,125 +20,116 @@ import {
   type ReportLocale,
 } from './exports.ts';
 import { runLocalizedPdfVariantJob, type LocalizedPdfJobRepository } from './localized-pdf-jobs.ts';
+import {
+  runWorkerStatementArtifactJob,
+  WORKER_STATEMENT_JOB_KIND,
+  type WorkerStatementJobRepository,
+} from './worker-statement-artifacts.ts';
 import { ensureNoSymlinkComponents } from './private-storage.ts';
 
 export type { AccountingPackExportType } from './exports.ts';
 
-export type ArtifactJobRepository<TPrincipal> = Readonly<{
-  createInvoiceDraft: (
-    principal: TPrincipal,
+export type ArtifactJobExecution = Readonly<{
+  jobId: string;
+  runId: string;
+  tenantId: string;
+  deploymentId: string;
+  requiredCapability: string;
+  fenceVersion: number;
+}>;
+
+export type ArtifactJobRepository = Readonly<{
+  createInvoiceDraftFromJob: (
     billingRuleId: string,
     periodStart: string,
     periodEnd: string,
+    execution: ArtifactJobExecution,
   ) => unknown;
 }>;
 
-export type ArtifactJobV3<TPrincipal> = Readonly<{
+export type ArtifactJobV3 = Readonly<{
   runDueJobs: (
     limit: number,
     handlers: Readonly<
-      Record<
-        string,
-        (
-          payload: unknown,
-          execution: Readonly<{
-            jobId: string;
-            runId: string;
-            tenantId: string;
-            deploymentId: string;
-            requiredCapability: string;
-            fenceVersion: number;
-          }>,
-        ) => void | (() => void)
-      >
+      Record<string, (payload: unknown, execution: ArtifactJobExecution) => void | (() => void)>
     >,
   ) => { processed: number; failed: number; overdueMarked: number };
-  invoiceSnapshot: (principal: TPrincipal, invoiceId: string) => Readonly<Record<string, unknown>>;
-  recordInvoicePdf: (
-    principal: TPrincipal,
+  invoiceSnapshotFromJob: (
+    invoiceId: string,
+    execution: ArtifactJobExecution,
+  ) => Readonly<Record<string, unknown>>;
+  recordInvoicePdfFromJob: (
     invoiceId: string,
     storageKey: string,
     sha256: string,
     byteLength: number,
+    execution: ArtifactJobExecution,
   ) => void;
-  refreshPeriodReports: (
-    principal: TPrincipal,
+  refreshPeriodReportsFromJob: (
     input: Readonly<{
       projectId: string;
       periodStart: string;
       periodEnd: string;
       reportLocale?: ReportLocale;
     }>,
+    execution: ArtifactJobExecution,
   ) => readonly {
     id: string;
     audience: 'customer' | 'internal';
+    snapshotVersion?: number;
     snapshot: Readonly<Record<string, unknown>>;
   }[];
-  recordPeriodReportPdf: (
-    principal: TPrincipal,
+  recordPeriodReportPdfFromJob: (
     reportId: string,
     storageKey: string,
     sha256: string,
     byteLength: number,
+    execution: ArtifactJobExecution,
   ) => void;
-  accountingPackSnapshot: (
-    principal: TPrincipal,
+  accountingPackSnapshotFromJob: (
     packId: string,
+    execution: ArtifactJobExecution,
   ) => Readonly<Record<string, unknown>>;
-  recordAccountingPackExport: (
-    principal: TPrincipal,
+  recordAccountingPackExportFromJob: (
     packId: string,
     exportType: 'pdf' | 'xlsx' | 'invoice_csv' | 'expense_csv' | 'json',
     storageKey: string,
     sha256: string,
     byteLength: number,
+    execution: ArtifactJobExecution,
   ) => { id: string; created: boolean };
   /**
    * Persist a failed format attempt when the database supports independent Accounting Pack
    * format statuses.  Kept optional so older adapters can still process the ready formats while
    * they roll forward to the status-aware contract.
    */
-  recordAccountingPackExportFailure?: (
-    principal: TPrincipal,
+  recordAccountingPackExportFailureFromJob?: (
     packId: string,
     exportType: AccountingPackExportType,
     error: string,
+    execution: ArtifactJobExecution,
   ) => void;
   cleanupTemporaryUploadReservationsFromJob?: (
-    execution: Readonly<{
-      jobId: string;
-      runId: string;
-      tenantId: string;
-      deploymentId: string;
-      requiredCapability: string;
-      fenceVersion: number;
-    }>,
+    execution: ArtifactJobExecution,
     olderThan: string,
     removeFile: (storageKey: string) => void,
   ) => number;
-  recordDocumentScan: (
-    principal: TPrincipal,
+  recordDocumentScanFromJob: (
     documentId: string,
     result: 'clean' | 'rejected',
     provider: string,
-    execution: Readonly<{
-      jobId: string;
-      runId: string;
-      tenantId: string;
-      deploymentId: string;
-      requiredCapability: string;
-      fenceVersion: number;
-    }>,
+    execution: ArtifactJobExecution,
   ) => void;
 }>;
 
-export type ArtifactJobContext<TPrincipal> = Readonly<{
-  repository: ArtifactJobRepository<TPrincipal>;
-  v3: ArtifactJobV3<TPrincipal>;
-  principal: TPrincipal;
+export type ArtifactJobContext = Readonly<{
+  repository: ArtifactJobRepository;
+  v3: ArtifactJobV3;
   documentRoot?: string;
   /** Optional 0023 adapter supplied by the database/application composition root. */
   localizedPdf?: LocalizedPdfJobRepository;
+  /** Optional Worker-statement artifact adapter supplied by the database/application composition root. */
+  workerStatement?: WorkerStatementJobRepository;
 }>;
 
 export type AccountingPackArtifactResult = Readonly<{
@@ -332,7 +323,7 @@ export function writeArtifact(
  * production job runner. The repository adapters stay outside this package, while all rendering,
  * storage-key, hash, and idempotency behavior remains one implementation.
  */
-export function runArtifactJobs<TPrincipal>(context: ArtifactJobContext<TPrincipal>): {
+export function runArtifactJobs(context: ArtifactJobContext): {
   processed: number;
   failed: number;
   overdueMarked: number;
@@ -354,25 +345,25 @@ export function runArtifactJobs<TPrincipal>(context: ArtifactJobContext<TPrincip
       }>,
     ) => void | (() => void)
   > = {
-    invoice_pdf: (payload) => {
+    invoice_pdf: (payload, execution) => {
       const invoiceId =
         typeof payload === 'object' && payload !== null && 'invoiceId' in payload
           ? String(payload.invoiceId)
           : '';
       if (!invoiceId) throw new Error('Invoice PDF job has no invoice id');
-      const snapshot = context.v3.invoiceSnapshot(context.principal, invoiceId);
+      const snapshot = context.v3.invoiceSnapshotFromJob(invoiceId, execution);
       const bytes = invoicePdf(snapshot as Parameters<typeof invoicePdf>[0]);
       const key = `invoices/${invoiceId}/${REPORT_TEMPLATE_VERSION}.pdf`;
       const metadata = writeArtifact(root, key, bytes);
-      context.v3.recordInvoicePdf(
-        context.principal,
+      context.v3.recordInvoicePdfFromJob(
         invoiceId,
         key,
         metadata.sha256,
         metadata.byteLength,
+        execution,
       );
     },
-    period_close_report: (payload) => {
+    period_close_report: (payload, execution) => {
       const values =
         typeof payload === 'object' && payload !== null ? (payload as Record<string, unknown>) : {};
       const projectId = String(values.projectId ?? '');
@@ -382,26 +373,37 @@ export function runArtifactJobs<TPrincipal>(context: ArtifactJobContext<TPrincip
         values.reportLocale === 'pt' || values.reportLocale === 'es' ? values.reportLocale : 'en';
       if (!projectId || !periodStart || !periodEnd)
         throw new Error('Period report job has incomplete period data');
-      const reports = context.v3.refreshPeriodReports(context.principal, {
-        projectId,
-        periodStart,
-        periodEnd,
-        reportLocale,
-      });
+      const reports = context.v3.refreshPeriodReportsFromJob(
+        {
+          projectId,
+          periodStart,
+          periodEnd,
+          reportLocale,
+        },
+        execution,
+      );
       for (const report of reports) {
         const bytes = periodReportPdf(report.snapshot as Parameters<typeof periodReportPdf>[0]);
-        const key = `reports/${report.id}/${REPORT_TEMPLATE_VERSION}.pdf`;
+        // A refreshed period snapshot is a new immutable artifact. Keep each
+        // version at a distinct key so writeArtifact's collision guard can
+        // reject accidental overwrites while retries remain idempotent.
+        const snapshotVersion = Number(report.snapshotVersion);
+        const versionSegment =
+          Number.isSafeInteger(snapshotVersion) && snapshotVersion > 0
+            ? `v${snapshotVersion}`
+            : 'v-current';
+        const key = `reports/${report.id}/${versionSegment}-${REPORT_TEMPLATE_VERSION}.pdf`;
         const metadata = writeArtifact(root, key, bytes);
-        context.v3.recordPeriodReportPdf(
-          context.principal,
+        context.v3.recordPeriodReportPdfFromJob(
           report.id,
           key,
           metadata.sha256,
           metadata.byteLength,
+          execution,
         );
       }
     },
-    auto_draft: (payload) => {
+    auto_draft: (payload, execution) => {
       const values =
         typeof payload === 'object' && payload !== null ? (payload as Record<string, unknown>) : {};
       const billingRuleId = String(values.billingRuleId ?? '');
@@ -409,19 +411,19 @@ export function runArtifactJobs<TPrincipal>(context: ArtifactJobContext<TPrincip
       const periodEnd = String(values.periodEnd ?? '');
       if (!billingRuleId || !periodStart || !periodEnd)
         throw new Error('Automatic draft job has incomplete period data');
-      context.repository.createInvoiceDraft(
-        context.principal,
+      context.repository.createInvoiceDraftFromJob(
         billingRuleId,
         periodStart,
         periodEnd,
+        execution,
       );
     },
-    accounting_pack_artifact_render: (payload) => {
+    accounting_pack_artifact_render: (payload, execution) => {
       const values =
         typeof payload === 'object' && payload !== null ? (payload as Record<string, unknown>) : {};
       const packId = String(values.packId ?? '');
       if (!packId) throw new Error('Accounting Pack job has no pack id');
-      const snapshot = context.v3.accountingPackSnapshot(context.principal, packId) as {
+      const snapshot = context.v3.accountingPackSnapshotFromJob(packId, execution) as {
         periodStart: string;
         periodEnd: string;
         invoiceRegister: readonly Record<string, unknown>[];
@@ -452,13 +454,13 @@ export function runArtifactJobs<TPrincipal>(context: ArtifactJobContext<TPrincip
           const bytes = artifact.build();
           const key = `accounting-packs/${packId}/${artifact.type}-${REPORT_TEMPLATE_VERSION}.${artifact.extension}`;
           const metadata = writeArtifact(root, key, bytes);
-          context.v3.recordAccountingPackExport(
-            context.principal,
+          context.v3.recordAccountingPackExportFromJob(
             packId,
             artifact.type,
             key,
             metadata.sha256,
             metadata.byteLength,
+            execution,
           );
           accountingPackResults.push({
             packId,
@@ -479,11 +481,11 @@ export function runArtifactJobs<TPrincipal>(context: ArtifactJobContext<TPrincip
           };
           accountingPackResults.push(failure);
           try {
-            context.v3.recordAccountingPackExportFailure?.(
-              context.principal,
+            context.v3.recordAccountingPackExportFailureFromJob?.(
               packId,
               artifact.type,
               message,
+              execution,
             );
           } catch (recordingError) {
             failures.push({
@@ -527,8 +529,7 @@ export function runArtifactJobs<TPrincipal>(context: ArtifactJobContext<TPrincip
       const result = process.env.JA_MALWARE_SCANNER_RESULT;
       if (result !== 'clean' && result !== 'rejected')
         throw new Error('Malware scanner decision is unavailable');
-      context.v3.recordDocumentScan(
-        context.principal,
+      context.v3.recordDocumentScanFromJob(
         documentId,
         result,
         process.env.JA_MALWARE_SCANNER_PROVIDER ?? 'configured-scanner',
@@ -556,9 +557,27 @@ export function runArtifactJobs<TPrincipal>(context: ArtifactJobContext<TPrincip
       });
       return result.finalize;
     };
+  if (context.workerStatement)
+    handlers[WORKER_STATEMENT_JOB_KIND] = (payload, execution) => {
+      if (!execution) throw new Error('LEASE_LOST');
+      const result = runWorkerStatementArtifactJob({
+        repository: context.workerStatement!,
+        payload,
+        execution: {
+          jobId: execution.jobId,
+          jobRunId: execution.runId,
+          leaseFence: execution.fenceVersion,
+        },
+        documentRoot: root,
+        publish: (storageKey, bytes) => writeArtifact(root, storageKey, bytes),
+        deferCompletion: true,
+      });
+      return result.finalize;
+    };
   const result = context.v3.runDueJobs(20, handlers);
   // The B5 runner first expires/requeues terminal leases. Reconcile the associated localized
   // manifest after that transaction so a stale worker cannot remain in `running` indefinitely.
   context.localizedPdf?.recoverAbandonedRunning?.();
+  context.workerStatement?.recoverAbandonedRunning?.();
   return accountingPackResults.length ? { ...result, accountingPackResults } : result;
 }

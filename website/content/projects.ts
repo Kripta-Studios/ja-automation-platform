@@ -3,6 +3,62 @@ import type { Project } from './types';
 export const projects: Project[] = [
   // ─── 2025–2026 (LinkedIn / Recent Work) ──────────────────────────────────
   {
+    id: 'amazon-sortation-line-2025',
+    slug: 'amazon-fulfillment-parcel-sortation',
+    title: 'Sortation Machinery & Automated Conveyor Installation and Programming',
+    client: 'Amazon',
+    displayDate: '2025–2026',
+    startYear: 2025,
+    endYear: 2026,
+    industry: 'warehouse-logistics',
+    capabilities: ['installation', 'commissioning', 'electrical-controls'],
+    technologies: ['Sorting Machinery', 'Conveyor Systems', 'Field Cabling', 'I/O Check'],
+    scope:
+      'Electromechanical installation, field cabling, PLC programming, and commissioning for automated material handling loops and sorting machinery in commercial distribution centers.',
+    outcome:
+      'Rapid mechanical and electrical assembly handover with optimized controls calibration and zero startup delays.',
+    featured: true,
+    source: 'new-ja-data',
+    sortWeight: 960,
+  },
+  {
+    id: 'mercadolibre-fulfillment-conveyor-2025',
+    slug: 'mercadolibre-distribution-center-conveyors',
+    title: 'Intralogistics Conveyor & Automated Sorter Machinery Integration',
+    client: 'Mercado Libre',
+    displayDate: '2025–2026',
+    startYear: 2025,
+    endYear: 2026,
+    industry: 'warehouse-logistics',
+    capabilities: ['plc-hmi-scada', 'installation', 'motion-process'],
+    technologies: ['Rockwell', 'MDR Conveyors', 'Barcode Scanners', 'Sortation Lanes'],
+    scope:
+      'Turnkey mechanical assembly, wiring, and controls programming for motorized roller conveyor (MDR) equipment, optical triggers, and automated sorting machinery in regional distribution center.',
+    outcome: 'Seamless equipment synchronization and reliable 24/7 automated machinery operation.',
+    featured: true,
+    source: 'new-ja-data',
+    sortWeight: 940,
+  },
+  {
+    id: 'shopee-hub-sorting-2025',
+    slug: 'shopee-logistics-hub-electrical-commissioning',
+    title: 'Automated Logistics Hub Machinery Assembly & Electrical Commissioning',
+    client: 'Shopee',
+    displayDate: '2025–2026',
+    startYear: 2025,
+    endYear: 2026,
+    industry: 'warehouse-logistics',
+    capabilities: ['electrical-controls', 'installation', 'commissioning'],
+    technologies: ['Field Wiring', 'Safety Interlocks', 'Sorter Controls', 'Panel Termination'],
+    scope:
+      'Control panel terminations, machine safety interlock wiring, sensor integration, and PLC startup for automated cross-docking sorting machinery.',
+    outcome:
+      'Fully compliant electrical safety certification and stable machinery ramp-up ready for peak operational demand.',
+    featured: true,
+    source: 'new-ja-data',
+    sortWeight: 920,
+  },
+  {
     id: 'fruki-bottling-expansion-2026',
     slug: 'fruki-bottling-capacity-expansion',
     title: 'High-Speed Bottling Line Installation & Format Expansion',
@@ -819,6 +875,9 @@ export const featuredProjects = projects
   .slice(0, 6);
 
 export const clientNames = [
+  'Amazon',
+  'Mercado Libre',
+  'Shopee',
   'BMW',
   'Ford',
   'Mercedes-Benz',

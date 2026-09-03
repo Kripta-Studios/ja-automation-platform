@@ -8,10 +8,12 @@
     "build": "vite build",
     "preview": "node build",
     "typecheck": "svelte-kit sync && tsc --noEmit -p tsconfig.json",
-    "jobs:run-due": "pnpm --dir ../.. jobs:build && node ../../deployment/jobs-build/jobs-run.mjs"
+    "jobs:run-due": "pnpm --dir ../.. jobs:build && node ../../deployment/jobs-build/jobs-run.mjs",
+    "mailboxes:sync": "node --experimental-transform-types src/cli/sync-mailboxes.ts"
   },
   "dependencies": {
     "@better-auth/passkey": "catalog:",
+    "@ja/billing-engine": "workspace:*",
     "@ja/database": "workspace:*",
     "@ja/domain": "workspace:*",
     "@ja/reporting": "workspace:*",

@@ -9,6 +9,7 @@ export async function Footer() {
   const t = await getTranslations('footer');
   const nav = await getTranslations('nav');
   const industries = await getTranslations('industries');
+  const capabilities = await getTranslations('capabilities');
 
   const currentYear = new Date().getFullYear();
 
@@ -22,7 +23,7 @@ export async function Footer() {
               <Image
                 src={logoImg}
                 alt={nav('logoAlt')}
-                width={160}
+                width={48}
                 height={48}
                 className="h-10 w-auto object-contain brightness-0 invert opacity-90 transition-opacity hover:opacity-100"
               />
@@ -58,6 +59,14 @@ export async function Footer() {
                   className="text-sm text-ja-steel-300 hover:text-white transition-colors"
                 >
                   {t('electricalControls')}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/capabilities/electromechanical-installation"
+                  className="text-sm text-ja-steel-300 hover:text-white transition-colors"
+                >
+                  {capabilities('installation')}
                 </Link>
               </li>
               <li>
@@ -131,6 +140,14 @@ export async function Footer() {
                   className="text-sm text-ja-steel-300 hover:text-white transition-colors"
                 >
                   {industries('oemGeneral')}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/industries/warehouse-logistics"
+                  className="text-sm text-ja-steel-300 hover:text-white transition-colors"
+                >
+                  {industries('warehouseLogistics')}
                 </Link>
               </li>
             </ul>

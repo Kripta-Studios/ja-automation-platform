@@ -251,6 +251,11 @@ const REVIEWED_B5_MIGRATION_NAMES: Readonly<Record<number, string>> = {
   28: 'client_essential_20260824',
   29: 'period_report_reapproval',
   30: 'period_report_source_binding',
+  31: 'finance_source_manifest',
+  32: 'client_essential_worker_statement_jobs',
+  33: 'client_essential_service_actor_namespace',
+  34: 'client_essential_invoice_immutability',
+  35: 'stalwart_mail_integration',
 };
 
 const MIGRATION_CONTRACT_VERSION = 'ja-migration-contract-v1';
@@ -259,7 +264,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  'dffc60f16811375a210e03fee8e733c225e736791a509e448e879d9e9bc2c316';
+  '4cfc3f0b7cff31f7da8ed741ec8d84a0505258bf78e19ed933cc7bc2f70082fb';
 
 type MigrationContractEntry = Readonly<{
   version: number;
@@ -1019,8 +1024,35 @@ export function integrityCheck(sqlite: DatabaseSync): string {
 export * from './repository.ts';
 export * from './v3-repository.ts';
 export { recordAuditEvent } from './core/audit.ts';
+export {
+  STEP_UP_WINDOW_MS,
+  assertRecentStepUp,
+  readLiveSessionStepUp,
+  type SessionStepUpProof,
+} from './core/authorization.ts';
 export * from './domains/localized-artifacts/index.ts';
 export * from './domains/accounting-pack/index.ts';
+export * from './domains/worker-statements/index.ts';
+export * from './domains/identity/index.ts';
+export {
+  DURABLE_JOB_CAPABILITY_BY_KIND,
+  DURABLE_JOB_CAPABILITIES,
+  capabilityForJobKind,
+  canonicalJobJson,
+  jobPayloadHash,
+  parseJobPayload,
+  sameJobPayloadHash,
+  type DurableJobCapability,
+  type DurableJobKind,
+} from './domains/jobs/job-contract.ts';
+export {
+  assertFencedJobExecution,
+  isCanonicalDurableJobKind,
+  type AuthorizedFencedJobExecution,
+  type FencedJobExecution,
+  type FencedJobExecutionExpectation,
+  type FencedJobPayloadTarget,
+} from './domains/jobs/execution-authorization.ts';
 export {
   runDueConfiguredDurableJobs,
   type DurableJobCompletion,

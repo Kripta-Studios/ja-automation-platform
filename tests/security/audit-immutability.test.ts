@@ -45,4 +45,26 @@ describe('B5 audit immutability/redaction', () => {
     expect(serialized).not.toContain('super-secret-token');
     expect(serialized).not.toContain('hunter2');
   });
+
+  it('redacts authorization headers, JWTs, private keys and credential-like free text', () => {
+    const jwt =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ3b3JrZXItMSIsImFkbWluIjp0cnVlfQ.VerySecretSignatureValue123';
+    const privateKey = [
+      '-----BEGIN PRIVATE KEY-----',
+      'c3VwZXItc2VjcmV0LXByaXZhdGUta2V5',
+      '-----END PRIVATE KEY-----',
+    ].join('\n');
+    const redacted = redactAuditDetails({
+      Authorization: `Bearer ${jwt}`,
+      note: `credential=${jwt}; client_secret=secret-client-value; embedded ${privateKey}`,
+      nested: { private_key: privateKey },
+    });
+    const serialized = JSON.stringify(redacted);
+
+    expect(serialized).not.toContain(jwt);
+    expect(serialized).not.toContain('secret-client-value');
+    expect(serialized).not.toContain('c3VwZXItc2VjcmV0LXByaXZhdGUta2V5');
+    expect(serialized).not.toContain('BEGIN PRIVATE KEY');
+    expect(serialized).toContain('[REDACTED]');
+  });
 });

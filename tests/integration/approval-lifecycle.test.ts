@@ -93,6 +93,68 @@ function stepUpOwner(value: B5LifecycleSecurityFixture) {
 }
 
 describe('Client Essential approval lifecycle', () => {
+  it('revalidates source-date assignment inside report and technical-change submission', () => {
+    const value = fixture();
+    const daily = value.repository.createDailyReport(value.worker, {
+      projectId: value.project.id,
+      workDate: '2026-08-20',
+      summary: 'Draft created while assigned',
+      tasksCompleted: 'Prepared the daily draft',
+      downtimeMinutes: 0,
+      safetyRelated: false,
+    });
+    const technical = value.repository.createTechnicalReport(value.worker, {
+      projectId: value.project.id,
+      reportDate: '2026-07-04',
+      systemName: 'PLC-SEC',
+      changeSummary: 'Draft technical truth',
+      safetyRelated: false,
+    });
+    const change = value.v3.createTechnicalChange(value.worker, {
+      projectId: value.project.id,
+      technicalReportId: technical.id,
+      component: 'Safety interlock',
+      changeMade: 'Prepared a guarded change',
+    });
+    value.sqlite
+      .prepare(
+        "UPDATE project_member SET ends_on='2026-06-30' WHERE project_id=? AND user_id=? AND status='active'",
+      )
+      .run(value.project.id, value.worker.userId);
+
+    expect(() =>
+      value.repository.submitReport(value.worker, 'daily', daily.id, daily.version),
+    ).toThrow(AccessDeniedError);
+    expect(() =>
+      value.repository.submitReport(value.worker, 'technical', technical.id, technical.version),
+    ).toThrow(AccessDeniedError);
+    expect(() => value.v3.submitTechnicalChange(value.worker, change.id, change.version)).toThrow(
+      /Effective project assignment required/u,
+    );
+    expect(
+      value.sqlite
+        .prepare('SELECT approval_state,version FROM daily_report WHERE id=?')
+        .get(daily.id),
+    ).toEqual({ approval_state: 'draft', version: daily.version });
+    expect(
+      value.sqlite
+        .prepare('SELECT approval_state,version FROM technical_report WHERE id=?')
+        .get(technical.id),
+    ).toEqual({ approval_state: 'draft', version: technical.version });
+    expect(
+      value.sqlite
+        .prepare('SELECT approval_state,version FROM technical_change WHERE id=?')
+        .get(change.id),
+    ).toEqual({ approval_state: 'draft', version: change.version });
+    expect(
+      value.sqlite
+        .prepare(
+          "SELECT COUNT(*) count FROM audit_event WHERE entity_id IN (?,?,?) AND action LIKE '%.submit'",
+        )
+        .get(daily.id, technical.id, change.id),
+    ).toEqual({ count: 0 });
+  });
+
   it('requires current PM can_review membership for every operational review and queue', () => {
     const value = fixture();
     const timeId = submittedTime(value);

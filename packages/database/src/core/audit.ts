@@ -1,8 +1,14 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { newId } from '@ja/domain';
 
-const auditSecretKey = /password|token|secret|api[_-]?key|access[_-]?token|refresh[_-]?token/i;
-const auditSecretText = /(bearer\s+|password\s*[:=]\s*|token\s*[:=]\s*|secret\s*[:=]\s*)[^\s,;]+/gi;
+const auditSecretKey =
+  /authorization|proxy[_-]?authorization|cookie|set[_-]?cookie|password|passphrase|credential|token|secret|api[_-]?key|private[_-]?key/i;
+const auditCredentialText =
+  /\b(authorization|proxy[_-]?authorization|password|passphrase|credential|client[_-]?secret|api[_-]?key|access[_-]?token|refresh[_-]?token|token|secret)\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi;
+const auditAuthorizationText = /\b(bearer|basic)\s+[A-Za-z0-9._~+/=-]+/gi;
+const auditJwtText = /\b[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g;
+const auditPrivateKeyText =
+  /-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY-----/g;
 const B5_AUDIT_CONTRACT_VERSION = 'B5-R4';
 
 export type AuditPrincipal = Readonly<{
@@ -10,9 +16,17 @@ export type AuditPrincipal = Readonly<{
   correlationId?: string;
 }>;
 
+function redactAuditText(value: string): string {
+  return value
+    .replace(auditPrivateKeyText, '[REDACTED]')
+    .replace(auditAuthorizationText, '$1 [REDACTED]')
+    .replace(auditCredentialText, '$1=[REDACTED]')
+    .replace(auditJwtText, '[REDACTED]');
+}
+
 export function redactAuditDetails(value: unknown): unknown {
   if (Array.isArray(value)) return value.map((item) => redactAuditDetails(item));
-  if (typeof value === 'string') return value.replace(auditSecretText, '$1[REDACTED]');
+  if (typeof value === 'string') return redactAuditText(value);
   if (value && typeof value === 'object')
     return Object.fromEntries(
       Object.entries(value).map(([key, item]) => [

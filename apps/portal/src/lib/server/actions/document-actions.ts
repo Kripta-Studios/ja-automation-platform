@@ -5,6 +5,7 @@ import {
   removePrivateFileIfPresent,
   writePrivateFileExclusive,
 } from '$lib/server/private-artifact-access';
+import { assertRegularPrivateFile } from '$lib/server/report-attachment-route';
 import { actionFail, actionFailure, actionSuccess } from './action-message';
 import {
   formObject,
@@ -111,6 +112,10 @@ export const documentActions = {
         storageFileCreated = true;
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+        // O_EXCL means another publisher won the reservation path.  Never let
+        // that collision finalize metadata until the existing regular file is
+        // independently verified against this upload's hash, length and media.
+        await assertRegularPrivateFile(root, storageKey, sha256, file.size, file.type);
       }
 
       context.v3.finalizeUpload(context.principal, reservation.reservationId, {

@@ -125,6 +125,18 @@ export function periodForCadence(
   }
 }
 
+export function lastCompletePeriodForCadence(
+  cadence: BillingCadence,
+  dateValue: string,
+  options: Readonly<{ anchorDate?: string; weekStartsOn?: number; monthlyCutoffDay?: number }> = {},
+): DateRange | null {
+  const current = periodForCadence(cadence, dateValue, options);
+  if (!current) return null;
+  if (current.end < dateValue) return current;
+  const previousDate = iso(addDays(utcDate(current.start), -1));
+  return periodForCadence(cadence, previousDate, options) ?? current;
+}
+
 export function billableMinutesForDailyMinimum(
   actualMinutes: number,
   minimumMinutes: number | null | undefined,

@@ -165,7 +165,12 @@ async function signInAt(
   await page.getByLabel('Work email').fill(credentials.email);
   await page.getByLabel('Password').fill(credentials.password);
   await page.getByRole('button', { name: 'Continue to workspace' }).click();
-  await page.waitForURL((url) => url.toString() === baseUrl || url.toString() === `${baseUrl}/`);
+  await page.waitForURL(
+    (url) =>
+      url.pathname === '/j-aautomation/app' ||
+      (url.pathname.startsWith('/j-aautomation/app/') &&
+        url.pathname !== '/j-aautomation/app/login'),
+  );
   await page.waitForLoadState('networkidle');
 }
 

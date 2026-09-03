@@ -653,16 +653,26 @@ export class WorkforceRepository {
     if (!/^\S+@\S+\.\S+$/.test(email)) throw this.deps.errors.validation('Worker email is invalid');
     // created_at is historical provenance. The legacy joinedAt form value is
     // intentionally ignored so profile editing cannot rewrite that history.
-    const timestamp = this.deps.now();
-    const result = this.deps.sqlite
-      .prepare('UPDATE user SET name=?,email=?,role=?,updated_at=? WHERE id=?')
-      .run(name, email, data.role, timestamp, workerId);
-    if (result.changes !== 1) throw this.deps.errors.conflict('Worker profile was not updated');
-    this.deps.audit(principal, 'worker.update', 'user', workerId, {
-      name,
-      email,
-      role: data.role,
-      previousRole: existing.role,
+    return this.deps.transaction(() => {
+      const timestamp = this.deps.now();
+      const result = this.deps.sqlite
+        .prepare('UPDATE user SET name=?,email=?,role=?,updated_at=? WHERE id=?')
+        .run(name, email, data.role, timestamp, workerId);
+      if (result.changes !== 1) throw this.deps.errors.conflict('Worker profile was not updated');
+
+      // The authenticated principal carries the role resolved when the session
+      // was created. Revoke every target session on a role change so a demoted
+      // Finance/Owner account cannot keep stale privileges until expiry.
+      if (existing.role !== data.role)
+        this.deps.sqlite.prepare('DELETE FROM session WHERE user_id=?').run(workerId);
+
+      this.deps.audit(principal, 'worker.update', 'user', workerId, {
+        name,
+        email,
+        role: data.role,
+        previousRole: existing.role,
+        sessionsRevoked: existing.role !== data.role,
+      });
     });
   }
 }

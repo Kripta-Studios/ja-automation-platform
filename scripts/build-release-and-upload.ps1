@@ -207,7 +207,9 @@ try {
       throw "Release archive is missing required entry: $entry"
     }
   }
-  if ($archiveEntries | Where-Object { $_ -match '(^|/)(\.git|node_modules|data|uploads|documents)(/|$)' }) {
+  $releaseRootPattern = [regex]::Escape($releaseFolder)
+  $forbiddenArchivePattern = "(^|/)(\.git|node_modules)(/|$)|^${releaseRootPattern}/(data|uploads|documents)(/|$)"
+  if ($archiveEntries | Where-Object { $_ -match $forbiddenArchivePattern }) {
     throw 'Release archive contains a forbidden repository, dependency, data, or private-file directory.'
   }
   if ($archiveEntries | Where-Object { $_ -match '(^|/)\.\.?(/|$)|\\' }) {

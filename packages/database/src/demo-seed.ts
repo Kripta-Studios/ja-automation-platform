@@ -1638,6 +1638,639 @@ syntheticPrivateDocument(
   'engineering report',
   ['Date: 2026-08-01', 'Project: P-0042', 'Confidential safety guidelines.', 'Do not distribute.'],
 );
+
+// ---------------------------------------------------------------------------
+// Real J&A Automation Clients, Projects & IMPC Invoices (Production Seed Data)
+// ---------------------------------------------------------------------------
+const realProjectCatalog = [
+  {
+    folder: '005',
+    code: 'VAL',
+    clientNumber: 'C-0005',
+    projectNumber: 'CP005',
+    clientName: 'Valiant',
+    projectName: 'Valiant',
+    timezone: 'America/Detroit',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '006',
+    code: 'RAM',
+    clientNumber: 'C-0006',
+    projectNumber: 'CP006',
+    clientName: 'RAM',
+    projectName: 'RAM',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '007',
+    code: 'MINO',
+    clientNumber: 'C-0007',
+    projectNumber: 'CP007',
+    clientName: 'Mino Automation',
+    projectName: 'Mino Automation',
+    timezone: 'America/Detroit',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '008',
+    code: 'ASC',
+    clientNumber: 'C-0008',
+    projectNumber: 'CP008',
+    clientName: 'Ascension',
+    projectName: 'Ascension',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '009',
+    code: 'KHS',
+    clientNumber: 'C-0009',
+    projectNumber: 'CP009',
+    clientName: 'KHS',
+    projectName: 'KHS',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '010',
+    code: 'WWC',
+    clientNumber: 'C-0010',
+    projectNumber: 'CP010',
+    clientName: 'WWC',
+    projectName: 'WWC',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '011',
+    code: 'INPRO',
+    clientNumber: 'C-0011',
+    projectNumber: 'CP011',
+    clientName: 'InPro',
+    projectName: 'InPro',
+    timezone: 'America/Detroit',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '012',
+    code: 'NIAG',
+    clientNumber: 'C-0012',
+    projectNumber: 'CP012',
+    clientName: 'Niagara',
+    projectName: 'Niagara',
+    timezone: 'America/New_York',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '013',
+    code: 'FORERUN',
+    clientNumber: 'C-0013',
+    projectNumber: 'CP013',
+    clientName: 'Forerunner',
+    projectName: 'Forerunner',
+    timezone: 'America/Detroit',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '014',
+    code: 'EMPACK',
+    clientNumber: 'C-0014',
+    projectNumber: 'CP014',
+    clientName: 'Empack',
+    projectName: 'Empack',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '015',
+    code: 'CAP',
+    clientNumber: 'C-0015',
+    projectNumber: 'CP015',
+    clientName: 'CAP Automation Gmbh',
+    projectName: 'CAP Automation Gmbh',
+    timezone: 'Europe/Berlin',
+    country: 'DE',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '016',
+    code: 'CASTOR',
+    clientNumber: 'C-0016',
+    projectNumber: 'CP016',
+    clientName: 'Castor Engineering',
+    projectName: 'Castor Engineering',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '017',
+    code: 'JOINER',
+    clientNumber: 'C-0017',
+    projectNumber: 'CP017',
+    clientName: 'Joiner',
+    projectName: 'Joiner',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '018',
+    code: 'SOCAPS',
+    clientNumber: 'C-0018',
+    projectNumber: 'CP018',
+    clientName: 'Socaps',
+    projectName: 'Socaps',
+    timezone: 'America/New_York',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '019',
+    code: 'PENREC',
+    clientNumber: 'C-0019',
+    projectNumber: 'CP019',
+    clientName: 'Peninsula Recycling',
+    projectName: 'Peninsula Recycling',
+    timezone: 'America/Detroit',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '020',
+    code: 'IMPC',
+    clientNumber: 'C-0020',
+    projectNumber: 'CP020',
+    clientName: 'IMPC Gmbh',
+    projectName: 'BBS Mexico',
+    poNumber: 'BBS Mexico',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Niedersachsenstr. 43, 71640 Ludwigsburg, DE',
+    billingEmail: 'field.operations@j-aautomation.com',
+    secondProject: {
+      projectNumber: 'CP020-DFW',
+      projectName: 'Junkers DFW',
+      poNumber: 'Junkers DFW',
+      timezone: 'America/Chicago',
+      country: 'US',
+    },
+    contacts: [
+      {
+        name: 'Hans Schwiedop',
+        email: 'field.operations@j-aautomation.com',
+        phone: '+49 7141 0000',
+        role: 'General Manager',
+        isPrimary: 1,
+        isBillingContact: 0,
+      },
+      {
+        name: 'Stephan Hauser',
+        email: 'field.operations@j-aautomation.com',
+        phone: '+49 7141 0001',
+        role: 'General Manager',
+        isPrimary: 0,
+        isBillingContact: 1,
+      },
+    ],
+  },
+  {
+    folder: '021',
+    code: 'BASTIAN',
+    clientNumber: 'C-0021',
+    projectNumber: 'CP021',
+    clientName: 'Bastian Solutions',
+    projectName: 'Bastian Solutions',
+    timezone: 'America/Indiana/Indianapolis',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '022',
+    code: 'ZEPPELIN',
+    clientNumber: 'C-0022',
+    projectNumber: 'CP022',
+    clientName: 'Zeppelin Systems',
+    projectName: 'Zeppelin Systems',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '023',
+    code: 'OXFORD',
+    clientNumber: 'C-0023',
+    projectNumber: 'CP023',
+    clientName: 'Oxford',
+    projectName: 'Oxford',
+    timezone: 'America/Detroit',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '024',
+    code: 'DAMON',
+    clientNumber: 'C-0024',
+    projectNumber: 'CP024',
+    clientName: 'Damon',
+    projectName: 'Damon',
+    timezone: 'America/Detroit',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+];
+
+const insertClient = sqlite.prepare(`
+  INSERT INTO client (
+    id, client_number, client_code, legal_name, display_name, status, currency,
+    timezone, billing_email, billing_address, payment_terms_days, po_reference,
+    created_at, updated_at, version
+  ) VALUES (?, ?, ?, ?, ?, 'active', 'USD', ?, ?, ?, 30, ?, ?, ?, 1)
+  ON CONFLICT(id) DO UPDATE SET
+    client_number=excluded.client_number,
+    legal_name=excluded.legal_name,
+    display_name=excluded.display_name,
+    updated_at=excluded.updated_at
+`);
+
+const insertProject = sqlite.prepare(`
+  INSERT INTO project (
+    id, project_number, name, client_id, po_number, status, billing_model,
+    currency, timezone, country, created_at, updated_at, version
+  ) VALUES (?, ?, ?, ?, ?, 'active', 'time_and_materials', 'USD', ?, ?, ?, ?, 1)
+  ON CONFLICT(id) DO UPDATE SET
+    project_number=excluded.project_number,
+    name=excluded.name,
+    updated_at=excluded.updated_at
+`);
+
+const insertSchedule = sqlite.prepare(`
+  INSERT INTO schedule (
+    id, project_id, timezone, monday_minutes, tuesday_minutes, wednesday_minutes,
+    thursday_minutes, friday_minutes, saturday_minutes, sunday_minutes, effective_from, version
+  ) VALUES (?, ?, ?, 480, 480, 480, 480, 480, 0, 0, '2026-01-01', 1)
+  ON CONFLICT(id) DO NOTHING
+`);
+
+const insertContact = sqlite.prepare(`
+  INSERT INTO client_contact (
+    id, client_id, name, email, phone, role, is_billing_contact, is_primary, created_at, updated_at, version
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+  ON CONFLICT(id) DO NOTHING
+`);
+
+let projectCp020Id = 'project-cp020-bbs-mexico';
+let projectCp020DfwId = 'project-cp020-dfw-junkers';
+
+for (const entry of realProjectCatalog) {
+  const clientId = `client-${entry.folder}-${entry.code.toLowerCase()}`;
+  const projectId = `project-${entry.projectNumber.toLowerCase()}-${entry.projectName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  if (entry.folder === '020') projectCp020Id = projectId;
+
+  insertClient.run(
+    clientId,
+    entry.clientNumber,
+    entry.code,
+    entry.clientName,
+    entry.clientName,
+    entry.timezone,
+    entry.billingEmail ?? 'field.operations@j-aautomation.com',
+    entry.billingAddress,
+    entry.poNumber ?? entry.projectName,
+    timestamp,
+    timestamp,
+  );
+
+  insertProject.run(
+    projectId,
+    entry.projectNumber,
+    entry.projectName,
+    clientId,
+    entry.poNumber ?? null,
+    entry.timezone,
+    entry.country,
+    timestamp,
+    timestamp,
+  );
+
+  insertSchedule.run(newId(), projectId, entry.timezone);
+
+  if (entry.secondProject) {
+    projectCp020DfwId = `project-${entry.secondProject.projectNumber.toLowerCase()}`;
+    insertProject.run(
+      projectCp020DfwId,
+      entry.secondProject.projectNumber,
+      entry.secondProject.projectName,
+      clientId,
+      entry.secondProject.poNumber,
+      entry.secondProject.timezone,
+      entry.secondProject.country,
+      timestamp,
+      timestamp,
+    );
+    insertSchedule.run(newId(), projectCp020DfwId, entry.secondProject.timezone);
+  }
+
+  if (entry.contacts) {
+    for (const contact of entry.contacts) {
+      insertContact.run(
+        newId(),
+        clientId,
+        contact.name,
+        contact.email,
+        contact.phone,
+        contact.role,
+        contact.isBillingContact,
+        contact.isPrimary,
+        timestamp,
+        timestamp,
+      );
+    }
+  }
+}
+
+// Keep sequence counter past C-0024 so newly created portal clients start at C-0025
+sqlite
+  .prepare(
+    "INSERT INTO number_sequence(scope,scope_id,next_value,version) VALUES('client','global',25,1) ON CONFLICT(scope,scope_id) DO UPDATE SET next_value=max(next_value,25)",
+  )
+  .run();
+
+// Real Legal Entity & IMPC Invoices
+const jaEntityId = 'legal-entity-ja-usa';
+sqlite
+  .prepare(
+    `
+    INSERT INTO legal_entity (id, code, legal_name, currency, billing_address, company_identifiers, status, created_at, updated_at, version)
+    VALUES (?, 'JA-USA', 'J&A Automation LLC', 'USD', '112 Birkshire Dr, Georgetown TX 78626', 'USA division', 'active', ?, ?, 1)
+    ON CONFLICT(id) DO UPDATE SET legal_name=excluded.legal_name
+  `,
+  )
+  .run(jaEntityId, timestamp, timestamp);
+
+const zeroTaxProfileId = 'tax-profile-zero-usd';
+sqlite
+  .prepare(
+    `
+    INSERT INTO tax_profile (id, name, currency, effective_from, status, version)
+    VALUES (?, 'Zero Tax Profile · 0%', 'USD', '2026-01-01', 'active', 1)
+    ON CONFLICT(id) DO NOTHING
+  `,
+  )
+  .run(zeroTaxProfileId);
+
+const ruleCp020LaborId = 'rule-cp020-labor';
+sqlite
+  .prepare(
+    `
+    INSERT INTO billing_rule (id, project_id, legal_entity_id, tax_profile_id, stream_type, template_id, cadence_type, currency, enabled, effective_from, grouping_mode, created_at, updated_at, version)
+    VALUES (?, ?, ?, ?, 'labor', 'labor-detailed', 'monthly', 'USD', 1, '2026-01-01', 'summary', ?, ?, 1)
+    ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at
+  `,
+  )
+  .run(ruleCp020LaborId, projectCp020Id, jaEntityId, zeroTaxProfileId, timestamp, timestamp);
+
+const ruleCp020ExpenseId = 'rule-cp020-expense';
+sqlite
+  .prepare(
+    `
+    INSERT INTO billing_rule (id, project_id, legal_entity_id, tax_profile_id, stream_type, template_id, cadence_type, currency, enabled, effective_from, grouping_mode, created_at, updated_at, version)
+    VALUES (?, ?, ?, ?, 'expense', 'expenses-detailed', 'monthly', 'USD', 1, '2026-01-01', 'summary', ?, ?, 1)
+    ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at
+  `,
+  )
+  .run(ruleCp020ExpenseId, projectCp020Id, jaEntityId, zeroTaxProfileId, timestamp, timestamp);
+
+const defaultCompany = {
+  name: 'J&A Automation LLC',
+  division: 'USA division',
+  phone: '+1 (864) 208 4684',
+  address: '112 Birkshire Dr, Georgetown TX 78626',
+  email: 'field.operations@j-aautomation.com',
+  website: 'www.j-aautomation.com',
+};
+
+const defaultTerms = {
+  bankSwiftNumber: 'WFBIUS6S',
+  bankAccountNumber: '8769915615',
+  bankName: 'Wells Fargo Bank',
+  beneficiary: 'J&A Automation LLC',
+  pastDueNotice:
+    'Past Due account subject to service charge of 1.5% per month and/or maximum permitted by law',
+};
+
+// 1. Invoice CP020-013 (Labor Detailed - 8 workers)
+const invoiceCp020_013Id = 'invoice-cp020-013';
+const inv013Lines = [
+  { description: 'Gabriel Hours CW31 and CW32', num: 263, den: 2, rate: 7000, subtotal: 920500 },
+  { description: 'Maico Hours CW31 and CW32', num: 263, den: 2, rate: 5500, subtotal: 723250 },
+  { description: 'Victor Hours CW31 and CW32', num: 543, den: 4, rate: 5500, subtotal: 746625 },
+  { description: 'Andrew Hours CW31 and CW32', num: 673, den: 5, rate: 5500, subtotal: 740300 },
+  { description: 'Lucas Hours CW31 and CW32', num: 1261, den: 10, rate: 5500, subtotal: 693550 },
+  { description: 'Luiz Hours CW31 and CW32', num: 130, den: 1, rate: 5500, subtotal: 715000 },
+  { description: 'Fernando Hours CW31 and CW32', num: 139, den: 1, rate: 5500, subtotal: 764500 },
+  { description: 'Alejandro Hours CW31 and CW32', num: 80, den: 1, rate: 5500, subtotal: 440000 },
+];
+
+const inv013Snapshot = {
+  template: { id: 'labor-detailed', version: 1 },
+  number: 'CP020-013',
+  invoiceNumber: 'CP020-013',
+  purchaseNo: 'BBS Mexico',
+  issueDate: '8/10/2026',
+  dueDate: '9/10/2026',
+  currency: 'USD',
+  companyInfo: defaultCompany,
+  termsAndInstructions: defaultTerms,
+  discountMinor: '0',
+  legalEntity: {
+    legalName: 'J&A Automation LLC',
+    billingAddress: '112 Birkshire Dr, Georgetown TX 78626',
+  },
+  client: {
+    legalName: 'IMPC Gmbh',
+    contact: { name: 'Hans Schwiedop' },
+    billingAddress: 'Niedersachsenstr. 43, 71640 Ludwigsburg, DE',
+    billingEmail: 'field.operations@j-aautomation.com',
+  },
+  project: { number: 'CP020', name: 'BBS Mexico', poNumber: 'BBS Mexico' },
+  calculation: { currency: 'USD', subtotalMinor: '5743725', taxMinor: '0', totalMinor: '5743725' },
+  lines: inv013Lines.map((l) => ({
+    description: l.description,
+    quantity_numerator: l.num,
+    quantity_denominator: l.den,
+    qty: (l.num / l.den).toFixed(2),
+    quantity: (l.num / l.den).toFixed(2),
+    hours: (l.num / l.den).toFixed(2),
+    unit_price_minor: l.rate.toString(),
+    subtotal_minor: l.subtotal.toString(),
+    amount_minor: l.subtotal.toString(),
+  })),
+  updatedAt: timestamp,
+};
+
+sqlite
+  .prepare(
+    `
+    INSERT INTO invoice (
+      id, project_id, billing_rule_id, invoice_number, stream_type, state, currency,
+      subtotal_minor, tax_minor, total_minor, period_start, period_end, issued_at,
+      snapshot_json, created_at, updated_at, version
+    ) VALUES (?, ?, ?, 'CP020-013', 'labor', 'draft', 'USD', 5743725, 0, 5743725, '2026-08-01', '2026-08-14', '2026-08-10T12:00:00.000Z', ?, ?, ?, 1)
+    ON CONFLICT(id) DO UPDATE SET
+      invoice_number=excluded.invoice_number,
+      subtotal_minor=excluded.subtotal_minor,
+      total_minor=excluded.total_minor,
+      snapshot_json=excluded.snapshot_json,
+      updated_at=excluded.updated_at
+  `,
+  )
+  .run(
+    invoiceCp020_013Id,
+    projectCp020Id,
+    ruleCp020LaborId,
+    JSON.stringify(inv013Snapshot),
+    timestamp,
+    timestamp,
+  );
+
+sqlite.prepare('DELETE FROM invoice_line WHERE invoice_id=?').run(invoiceCp020_013Id);
+for (const line of inv013Lines) {
+  sqlite
+    .prepare(
+      `
+      INSERT INTO invoice_line (
+        id, invoice_id, description, quantity_numerator, quantity_denominator,
+        unit_price_minor, subtotal_minor, source_type, source_id, snapshot_json, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'time', ?, ?, ?)
+    `,
+    )
+    .run(
+      newId(),
+      invoiceCp020_013Id,
+      line.description,
+      line.num,
+      line.den,
+      line.rate,
+      line.subtotal,
+      newId(),
+      JSON.stringify(line),
+      timestamp,
+    );
+}
+
+// 2. Invoice CP020-014 (Expenses & Josafa Labor Detailed)
+const invoiceCp020_014Id = 'invoice-cp020-014';
+const inv014Lines = [
+  { description: 'Josafa Hours', num: 13737, den: 100, rate: 5000, subtotal: 686850 },
+  { description: 'Flight', num: 1, den: 1, rate: 165503, subtotal: 165503 },
+  { description: 'Uber', num: 1, den: 1, rate: 18652, subtotal: 18652 },
+  { description: 'Luggage', num: 1, den: 1, rate: 6508, subtotal: 6508 },
+  { description: 'Hotel', num: 1, den: 1, rate: 165662, subtotal: 165662 },
+  { description: 'Car rental', num: 1, den: 1, rate: 162016, subtotal: 162016 },
+  { description: 'Fuel', num: 1, den: 1, rate: 11140, subtotal: 11140 },
+  { description: 'Per diem', num: 25, den: 1, rate: 4800, subtotal: 120000 },
+];
+
+const inv014Snapshot = {
+  template: { id: 'expenses-detailed', version: 1 },
+  number: 'CP020-014',
+  invoiceNumber: 'CP020-014',
+  purchaseNo: 'Junkers DFW',
+  issueDate: '8/14/2026',
+  dueDate: '9/14/2026',
+  currency: 'USD',
+  companyInfo: defaultCompany,
+  termsAndInstructions: defaultTerms,
+  discountMinor: '0',
+  legalEntity: {
+    legalName: 'J&A Automation LLC',
+    billingAddress: '112 Birkshire Dr, Georgetown TX 78626',
+  },
+  client: {
+    legalName: 'IMPC Gmbh',
+    contact: { name: 'Stephan Hauser' },
+    billingAddress: 'Niedersachsenstr. 43, 71640 Ludwigsburg, DE',
+    billingEmail: 'field.operations@j-aautomation.com',
+  },
+  project: { number: 'CP020', name: 'BBS Mexico', poNumber: 'Junkers DFW' },
+  calculation: { currency: 'USD', subtotalMinor: '1336331', taxMinor: '0', totalMinor: '1336331' },
+  lines: inv014Lines.map((l) => ({
+    description: l.description,
+    quantity_numerator: l.num,
+    quantity_denominator: l.den,
+    qty: (l.num / l.den).toFixed(2),
+    quantity: (l.num / l.den).toFixed(2),
+    hours: (l.num / l.den).toFixed(2),
+    unit_price_minor: l.rate.toString(),
+    subtotal_minor: l.subtotal.toString(),
+    amount_minor: l.subtotal.toString(),
+  })),
+  updatedAt: timestamp,
+};
+
+sqlite
+  .prepare(
+    `
+    INSERT INTO invoice (
+      id, project_id, billing_rule_id, invoice_number, stream_type, state, currency,
+      subtotal_minor, tax_minor, total_minor, period_start, period_end, issued_at,
+      snapshot_json, created_at, updated_at, version
+    ) VALUES (?, ?, ?, 'CP020-014', 'expense', 'draft', 'USD', 1336331, 0, 1336331, '2026-08-01', '2026-08-14', '2026-08-14T12:00:00.000Z', ?, ?, ?, 1)
+    ON CONFLICT(id) DO UPDATE SET
+      invoice_number=excluded.invoice_number,
+      subtotal_minor=excluded.subtotal_minor,
+      total_minor=excluded.total_minor,
+      snapshot_json=excluded.snapshot_json,
+      updated_at=excluded.updated_at
+  `,
+  )
+  .run(
+    invoiceCp020_014Id,
+    projectCp020Id,
+    ruleCp020ExpenseId,
+    JSON.stringify(inv014Snapshot),
+    timestamp,
+    timestamp,
+  );
+
+sqlite.prepare('DELETE FROM invoice_line WHERE invoice_id=?').run(invoiceCp020_014Id);
+for (const line of inv014Lines) {
+  sqlite
+    .prepare(
+      `
+      INSERT INTO invoice_line (
+        id, invoice_id, description, quantity_numerator, quantity_denominator,
+        unit_price_minor, subtotal_minor, source_type, source_id, snapshot_json, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'expense', ?, ?, ?)
+    `,
+    )
+    .run(
+      newId(),
+      invoiceCp020_014Id,
+      line.description,
+      line.num,
+      line.den,
+      line.rate,
+      line.subtotal,
+      newId(),
+      JSON.stringify(line),
+      timestamp,
+    );
+}
+
 console.log(
   JSON.stringify(
     {

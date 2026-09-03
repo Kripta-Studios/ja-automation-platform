@@ -54,10 +54,10 @@ export const financeActions = {
     if (params.section !== 'finance')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const form = await formObject(request);
-    // `expensePreset` is a UI-only control that synchronizes the two canonical
-    // treatment fields. Never pass that convenience value across the strict
-    // domain schema boundary.
+    // These are UI-only controls that synchronize canonical fields. Never pass
+    // convenience values across the strict domain schema boundary.
     delete form.expensePreset;
+    delete form.taxPercent;
     const parsed = expenseCommercialClassificationInputSchema.safeParse(form);
     if (!parsed.success)
       return actionFail(
@@ -320,7 +320,12 @@ export const financeActions = {
       });
     const context = openPortalRepository(locals);
     try {
-      context.v3.createClientLaborRate(context.principal, parsed.data);
+      context.v3.createClientLaborRate(context.principal, {
+        ...parsed.data,
+        workerId: parsed.data.workerId || undefined,
+        category: parsed.data.category || undefined,
+        effectiveTo: parsed.data.effectiveTo || undefined,
+      });
       return actionSuccess('action.finance.clientLaborRateSaved', {}, 'Client labor rate saved');
     } catch (error) {
       return actionFailure(error);

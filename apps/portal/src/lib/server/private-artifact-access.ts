@@ -96,7 +96,7 @@ function serverError(): Response {
   return json({ error: 'Private artifact is unavailable' }, { status: 500 });
 }
 
-class PrivateArtifactPathIntegrityError extends Error {}
+export class PrivateArtifactPathIntegrityError extends Error {}
 
 function isSafeIdentifier(value: string): boolean {
   return (
@@ -280,7 +280,9 @@ async function assertNoSymlinkParents(root: string, directory: string): Promise<
     cursor = resolve(cursor, component);
     const stats = await lstat(cursor);
     if (stats.isSymbolicLink() || !stats.isDirectory())
-      throw new Error('Private artifact parent must be a real directory');
+      throw new PrivateArtifactPathIntegrityError(
+        'Private artifact parent must be a real directory',
+      );
   }
 }
 
@@ -387,6 +389,18 @@ async function openDirectoryDescriptor(
     return current;
   } catch (error) {
     await current?.close().catch(() => undefined);
+    // Kernel-specific no-follow failures must not bubble through a portal
+    // action/route as filesystem implementation details. The same normalized
+    // domain error is used for a symlink, non-directory or unreadable parent.
+    if (
+      isErrno(error, 'ELOOP') ||
+      isErrno(error, 'ENOTDIR') ||
+      isErrno(error, 'EPERM') ||
+      isErrno(error, 'EACCES')
+    )
+      throw new PrivateArtifactPathIntegrityError(
+        'Private artifact parent must be a real directory',
+      );
     throw error;
   }
 }
@@ -423,7 +437,9 @@ async function ensurePrivateStorageDirectory(root: string, directory: string): P
       stats = await lstat(cursor);
     }
     if (stats.isSymbolicLink() || !stats.isDirectory())
-      throw new Error('Private artifact storage parent must be a real directory');
+      throw new PrivateArtifactPathIntegrityError(
+        'Private artifact storage parent must be a real directory',
+      );
   }
 
   // Re-check the complete path after creation, including the root itself.
@@ -730,7 +746,11 @@ export function privateDocumentResponse(
       'content-length': String(body.byteLength),
       'content-disposition': contentDispositionFilename(metadata.filename, disposition),
       'cache-control': 'private, no-store',
+      pragma: 'no-cache',
+      expires: '0',
       'x-content-type-options': 'nosniff',
+      'cross-origin-resource-policy': 'same-origin',
+      'content-security-policy': 'sandbox',
       'x-document-sensitive': String(metadata.sensitive),
     },
   });
@@ -1021,7 +1041,9 @@ export async function servePrivateArtifact(
     if (
       cause instanceof PrivateArtifactPathIntegrityError ||
       isErrno(cause, 'ELOOP') ||
-      isErrno(cause, 'EPERM')
+      isErrno(cause, 'ENOTDIR') ||
+      isErrno(cause, 'EPERM') ||
+      isErrno(cause, 'EACCES')
     ) {
       recordAccessAuditBestEffort(options.sqlite, options.principal, subject, 'integrity', {
         reason: 'symlink_or_reparse_path',

@@ -3,39 +3,46 @@
 This is the operator runbook and current deployment record for J&A Automation on the Hetzner VPS.
 The supported architecture remains Ubuntu 24.04, Docker Compose and Caddy: Caddy is the only
 Internet-facing web proxy, while the site and portal bind to loopback. The production environment
-uses Better Auth with MFA. When the live Stalwart integration is enabled, every current mailbox is
-also a portal identity (the canonical `antonny.luty` identity is the sole `owner_admin`; all other
-mail-linked identities start as `worker`). Do not run the demo seed or expose the application ports
-directly.
+uses Better Auth with optional MFA. When the live Stalwart integration is enabled, every current
+mailbox is also a portal identity (the canonical `antonny.luty` identity is the sole `owner_admin`;
+all other mail-linked identities start as `worker`). Do not run the demo seed or expose the
+application ports directly.
 
-Last live verification recorded here: **2026-08-28**. Facts labelled **verified** below came from
+Last live verification recorded here: **2026-09-03**. Facts labelled **verified** below came from
 read-only VPS/HTTPS checks. Facts labelled **transition summary** come from
 `.credentials/SUMMARY_EMAIL_DEPLOYMENT.md` (the mail summary is dated 2026-08-26) and must not be
-treated as a fresh acceptance test. This documentation pass did not change VPS, DNS, Caddy,
-systemd, mailbox or backup state. **Pending** items remain release blockers.
+treated as a fresh acceptance test. Verification removed eight obsolete auto-remove job containers
+from earlier releases after confirming that they were one-off workers with no private container
+storage; it did not change application data, DNS, Caddy, Stalwart, mailboxes or backup state.
+**Pending** items remain release blockers except the explicitly Owner-waived, off-site continuity
+improvement described below.
 
 ## Current live state
 
-| Area                            | 2026-08-28 observed state                                                                                         | Evidence/status                                                                  |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| VPS host                        | Hetzner VPS, Ubuntu 24.04.4 LTS, IPv4 `91.99.90.39`                                                               | **Verified**                                                                     |
-| Canonical public root           | `https://j-aautomation.com/` routes to `/j-aautomation/en`                                                        | **Verified**                                                                     |
-| Localized public site           | `/j-aautomation/en`, `/j-aautomation/es` and `/j-aautomation/pt` return HTTP 200                                  | **Verified**                                                                     |
-| Portal entry point              | `https://j-aautomation.com/j-aautomation/app/login`                                                               | **Verified deployed entry point**                                                |
-| Compatibility app host          | `https://app.j-aautomation.com/` redirects to the canonical deployment                                            | **Verified**                                                                     |
-| Site listener                   | `127.0.0.1:5101`                                                                                                  | **Verified**                                                                     |
-| Portal/API listener             | `127.0.0.1:5100`                                                                                                  | **Verified**                                                                     |
-| Public health paths             | External `/j-aautomation/health/*` returns HTTP 404                                                               | **Verified and intentional**; use loopback readiness for monitoring              |
-| Active release                  | `/opt/jaautomation/current` points at the active release; observed release/hash prefix is `894f…`                 | **Verified**; use the full server manifest for exact release sign-off            |
-| Caddy                           | Configuration validation succeeded                                                                                | **Verified**                                                                     |
-| Mail service inventory          | Stalwart on `mx1.j-aautomation.com`, with `webmail-new`; ports 25, 465, 587 and 993 are the public mail listeners | **Verified inventory**; mailbox cutover is separate                              |
-| Local backup timer              | Last recorded `jaautomation-backup.service` is `Result=success`                                                   | **Verified**; this does not prove off-site recovery                              |
-| Jobs                            | `jaautomation-jobs.timer` is active, but the latest `jaautomation-jobs.service` is `Result=exit-code`             | **Verified failure**; jobs are not production-ready until the service is healthy |
-| Separate-host continuity backup | Remote replication and restore drill                                                                              | **Pending**                                                                      |
+| Area                            | 2026-09-03 observed state                                                                                                                                                                                                         | Evidence/status                                                               |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| VPS host                        | Hetzner VPS, Ubuntu 24.04.4 LTS, IPv4 `91.99.90.39`                                                                                                                                                                               | **Verified**                                                                  |
+| Canonical public root           | `https://j-aautomation.com/` routes to `/j-aautomation/en`                                                                                                                                                                        | **Verified**                                                                  |
+| Localized public site           | `/j-aautomation/en`, `/j-aautomation/es` and `/j-aautomation/pt` return HTTP 200                                                                                                                                                  | **Verified**                                                                  |
+| Portal entry point              | `https://j-aautomation.com/j-aautomation/app/login`                                                                                                                                                                               | **Verified deployed entry point**                                             |
+| Compatibility app host          | `https://app.j-aautomation.com/` redirects to the canonical deployment                                                                                                                                                            | **Verified**                                                                  |
+| Site listener                   | `127.0.0.1:5101`                                                                                                                                                                                                                  | **Verified**                                                                  |
+| Portal/API listener             | `127.0.0.1:5100`                                                                                                                                                                                                                  | **Verified**                                                                  |
+| Public health paths             | External `/j-aautomation/health/*` returns HTTP 404                                                                                                                                                                               | **Verified and intentional**; use loopback readiness for monitoring           |
+| Active release                  | `/opt/jaautomation/current` points at immutable release directory `ja-automation-cff80fe…`; its manifest identifies logical release `jaautomation-release-20260903-3d87690` and commit `3d87690f48053426d103f89894a078118ccade35` | **Verified** against `RELEASE-BUILD.txt`                                      |
+| Caddy                           | Configuration validation succeeded                                                                                                                                                                                                | **Verified**                                                                  |
+| Mail service inventory          | Stalwart on `mx1.j-aautomation.com`, with `webmail-new`; ports 25, 465, 587 and 993 are the public mail listeners                                                                                                                 | **Verified inventory**; mailbox cutover is separate                           |
+| Portal–Stalwart directory       | Restricted token is mounted and 96 active mail identities are linked (one Owner and 95 Workers)                                                                                                                                   | **Verified aggregate**; Owner role/project-assignment smoke pending           |
+| Application outbox              | Delivery webhook URL/secret are not configured; no application outbox delivery is proven                                                                                                                                          | **Pending**                                                                   |
+| Local backup timer              | Last recorded `jaautomation-backup.service` is `Result=success`                                                                                                                                                                   | **Verified**; this does not prove off-site recovery                           |
+| Jobs                            | The supervised `deployment-jobs-1` worker is running with zero restarts; the watchdog timer is active and the latest service result is `success`                                                                                  | **Verified**; recent `jobs.cycle` events contain no runner errors             |
+| Separate-host continuity backup | Remote replication and restore drill                                                                                                                                                                                              | **Pending, non-blocking post-release improvement by Owner waiver 2026-09-04** |
+| Contractual UAT                 | ANEXO D web/content/form/mail evidence and approver sign-off                                                                                                                                                                      | **Pending**                                                                   |
 
-The job-service failure and the missing external continuity evidence keep the deployment below the
-Client Essential release bar. A successful local backup timer run must not be reported as a
-successful disaster-recovery test.
+Separate-host continuity is a recommended post-release improvement but does not control the Client
+Ready verdict, by explicit Owner waiver on 2026-09-04. A successful local backup timer run must still
+not be reported as a successful off-site disaster-recovery test. Local online backup, verified rollback
+material and the pre-release backup procedure below remain mandatory deployment controls.
 
 The checked-in ZIP deployer and VPS verifier now default to the canonical `j-aautomation.com`
 deployment. The installed host-side deployer must receive this reviewed version in the next release;
@@ -474,12 +481,11 @@ ports 5100/5101 directly. Apply only reviewed additive migrations.
 The production configuration contract is explicit: keep `JA_OFFLINE_ENABLED=false` for this
 go-live, and keep malware scanning disabled with `JA_MALWARE_SCANNER_REQUIRED=false` plus empty
 scanner URL/result/provider values so uploaded documents remain truthfully `not_scanned`. The
-production examples set `JA_BACKUP_REMOTE_ENABLED=true` as a fail-closed continuity requirement;
-do not install that example unchanged. Before starting the backup timer, configure the separate
-SSH host, user, key, encryption key, namespace and retention values. If the separate host is not
-available during the transition, explicitly set `JA_BACKUP_REMOTE_ENABLED=false` to preserve the
-local backup while recording continuity as **pending**; an incomplete remote configuration is a
-blocked state, never a successful recovery gate.
+production examples may set `JA_BACKUP_REMOTE_ENABLED=true` when separate-host replication is
+configured. Before enabling it, configure the separate SSH host, user, key, encryption key, namespace
+and retention values. Under the Owner's waiver, `JA_BACKUP_REMOTE_ENABLED=false` preserves the mandatory
+local backup and rollback baseline while recording off-site continuity as **pending**; incomplete remote
+configuration is never a successful recovery claim.
 
 Before a release switch, retain the previous release target, one tested rollback image and one
 verified local backup. Caddy must pass validation before it is reloaded. The deployment scripts
@@ -716,10 +722,11 @@ sudo journalctl -u jaautomation-backup.service -n 200 --no-pager
 ```
 
 The last recorded local backup result is `Result=success`. Separate-host encrypted replication and an
-isolated restore drill remain **pending**. The Client Essential recovery gate requires a separately
-administered SSH destination, a complete encrypted upload with a completion marker/hash, retention
-verification and a restore from the remote copy. Until that evidence exists, the system has local
-backup evidence only and must not be called continuity-ready.
+isolated restore drill remain **pending**. By the Owner's 2026-09-04 waiver, they are a nonblocking
+post-release improvement rather than a Client Ready gate. A separately administered SSH destination,
+complete encrypted upload with completion marker/hash, retention verification and remote restore remain
+the target continuity standard; until then, the system has local backup evidence only and must not be
+called off-site continuity-ready. Local backup and rollback controls remain mandatory.
 
 ### Encrypted remote-copy and restore procedure
 
@@ -730,7 +737,8 @@ shell history or logs. Required remote settings are `JA_BACKUP_REMOTE_ENABLED=tr
 `JA_BACKUP_REMOTE_HOST`, `JA_BACKUP_REMOTE_USER`, `JA_BACKUP_REMOTE_PORT`, `JA_BACKUP_SSH_KEY`,
 `JA_BACKUP_ENCRYPTION_KEY`, `JA_BACKUP_REMOTE_NAMESPACE`, `JA_BACKUP_REMOTE_ROOT` (absolute but not
 `/`) and `JA_BACKUP_REMOTE_RETENTION_DAYS` (at least 30). An incomplete enabled configuration must
-remain **BLOCKED**; set it disabled only while recording off-site recovery as pending.
+remain **pending**; set it disabled only while recording off-site recovery as the Owner-waived
+post-release improvement.
 
 Check configuration and key availability without transferring data. The shell loads the protected
 environment without echoing it:
@@ -778,7 +786,8 @@ Record the structured `PASS` result, backup ID, completion-marker/hash verificat
 SQLite `integrity_check` and foreign-key result, issued-invoice snapshot equality, at least two
 private artifact hashes/byte lengths, and RPO/RTO timings. Execute the drill on a separate host or
 isolated environment without access to live storage. A local fixture (`ops:backup:test`,
-`ops:restore-test` or `test:continuity`) validates mechanics only and cannot close this gate.
+`ops:restore-test` or `test:continuity`) validates mandatory local recovery mechanics only; it does not
+establish the Owner-waived off-site continuity evidence.
 
 See [BACKUP_RESTORE.md](BACKUP_RESTORE.md) for the staged local restore procedure and
 [deployment/README_VPS.md](../deployment/README_VPS.md) for the supported host integration.
@@ -801,9 +810,10 @@ sudo docker compose --env-file /etc/jaautomation/jaautomation.env \
   bootstrap-owner
 ```
 
-The canonical owner signs in at `/j-aautomation/app/login` and enrolls MFA. Once the live mail
-integration is healthy, run the idempotent reconciliation described in **Initial reconciliation
-and default roles** so all current Stalwart mailboxes receive portal access as `worker`, while
+The canonical owner signs in at `/j-aautomation/app/login`; MFA is optional and may be enrolled from
+account security settings. Once the live mail integration is healthy, run the idempotent
+reconciliation described in **Initial reconciliation and default roles** so all current Stalwart
+mailboxes receive portal access as `worker`, while
 `antonny.luty@j-aautomation.com` remains the sole `owner_admin`. Invitations remain available for
 non-mail-linked identities. No shared account, passwordless role switch or production demo seed is
 supported.
@@ -899,7 +909,9 @@ mail-service inventory must not be described as full contractual acceptance or `
 - [BACKUP_RESTORE.md](BACKUP_RESTORE.md) — local backup and staged restore.
 - [SHOWCASE_ACCESS.md](SHOWCASE_ACCESS.md) — invite-only access and first-owner operations.
 
-The deployed website routes and Caddy boundary are live, but the job-service failure and external
-continuity backup are still open. Deployment, a successful local backup, or a passing Caddy
-configuration alone does not change the Client Essential checklist verdict; release status must be
-based on the checklist and its executable finance, security, browser and recovery evidence.
+The deployed website routes, Caddy boundary and durable jobs worker are live, but contractual
+acceptance evidence is still open. Separate-host continuity remains a recommended, non-blocking
+post-release improvement by Owner waiver dated 2026-09-04. Deployment, a successful local backup, or
+a passing Caddy configuration alone does not change the Client Essential checklist verdict; release
+status must be based on the checklist and its executable finance, security, browser and local-recovery
+evidence.

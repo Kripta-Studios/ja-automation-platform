@@ -450,8 +450,11 @@
 }
 
 .project-progress-link {
+  align-items: center;
   color: inherit;
+  display: inline-flex;
   font-weight: 500;
+  min-height: var(--ja-target-min, 2.75rem);
   text-decoration: none;
 }
 

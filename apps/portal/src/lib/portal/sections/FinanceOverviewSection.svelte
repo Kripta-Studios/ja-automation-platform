@@ -134,14 +134,14 @@
     return 'ok';
   }
 
-  function barWidth(valueToFormat: unknown): string {
+  function progressValue(valueToFormat: unknown): string {
     const raw = String(valueToFormat ?? '').trim();
-    if (!/^\d+$/.test(raw)) return '0%';
+    if (!/^\d+$/.test(raw)) return '0';
     const digits = BigInt(raw);
     const capped = digits > 10000n ? 10000n : digits;
     const whole = capped / 100n;
     const fraction = (capped % 100n).toString().padStart(2, '0');
-    return `${whole}.${fraction}%`;
+    return `${whole}.${fraction}`;
   }
 
   function paginate<T>(rows: readonly T[], page: number): T[] {
@@ -165,6 +165,11 @@
       { label: '10%', bps: '1000' },
       { label: '21%', bps: '2100' },
     ];
+  }
+
+  function expenseTaxBps(row: Row | Record<string, unknown>): string {
+    const taxBps = value(row, 'taxBps', 'tax_bps');
+    return taxPercentOptions().some((option) => option.bps === taxBps) ? taxBps : '0';
   }
 
   function syncTaxBps(event: Event): void {
@@ -737,13 +742,14 @@
               /
               {displayHours(finance.plannedMinutes)}
             </strong>
-            <div
+            <progress
               class="finance-overview__progress"
               data-tone={consumptionTone(finance.hoursConsumedBps)}
               aria-label={translate('Hours consumed')}
-            >
-              <span style:width={barWidth(finance.hoursConsumedBps)}></span>
-            </div>
+              aria-valuetext={`${displayBps(finance.hoursConsumedBps)} ${translate('Hours consumed')}`}
+              max={100}
+              value={progressValue(finance.hoursConsumedBps)}
+            ></progress>
             <small>{displayBps(finance.hoursConsumedBps)} {translate('Hours consumed')}</small>
           </article>
         </div>
@@ -795,12 +801,13 @@
             <article class="finance-overview__metric" data-metric="travel-budget-used">
               <span>{translate('Travel budget used')}</span>
               <strong>{displayBps(finance.travelBudgetConsumedBps)}</strong>
-              <div
+              <progress
                 class="finance-overview__progress"
                 data-tone={consumptionTone(finance.travelBudgetConsumedBps)}
-              >
-                <span style:width={barWidth(finance.travelBudgetConsumedBps)}></span>
-              </div>
+                aria-label={translate('Travel budget used')}
+                max={100}
+                value={progressValue(finance.travelBudgetConsumedBps)}
+              ></progress>
             </article>
           </div>
           <details class="finance-overview__projection-details">
@@ -1348,12 +1355,16 @@
                       </label>
                       <label>
                         <span>{translate('Tax rate')}</span>
-                        <select name="taxPercent" onchange={syncTaxBps}>
+                        <select
+                          name="taxPercent"
+                          value={expenseTaxBps(expense)}
+                          onchange={syncTaxBps}
+                        >
                           {#each taxPercentOptions() as option}
                             <option value={option.bps}>{option.label}</option>
                           {/each}
                         </select>
-                        <input name="taxBps" type="hidden" value="0" />
+                        <input name="taxBps" type="hidden" value={expenseTaxBps(expense)} />
                         <small>{translate('0% allowed')}</small>
                       </label>
                       <label>
@@ -1738,13 +1749,13 @@
     letter-spacing: -0.03em;
   }
 
-  .finance-overview__margin-tag {
+  .finance-overview__hero-card .finance-overview__margin-tag {
     display: inline-flex;
     width: fit-content;
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
     background: #d7f4e4;
-    color: #17663a;
+    color: #14532d;
     font-size: 0.78rem;
     font-weight: 800;
     text-transform: none;
@@ -1774,24 +1785,43 @@
   }
 
   .finance-overview__progress {
+    display: block;
+    width: 100%;
     height: 0.45rem;
+    appearance: none;
     overflow: hidden;
+    border: 0;
     border-radius: 999px;
     background: var(--portal-wash, #eef2f5);
   }
 
-  .finance-overview__progress span {
-    display: block;
-    height: 100%;
+  .finance-overview__progress::-webkit-progress-bar {
+    background: var(--portal-wash, #eef2f5);
+  }
+
+  .finance-overview__progress::-webkit-progress-value {
     border-radius: inherit;
     background: #0f766e;
   }
 
-  .finance-overview__progress[data-tone='warning'] span {
+  .finance-overview__progress::-moz-progress-bar {
+    border-radius: inherit;
+    background: #0f766e;
+  }
+
+  .finance-overview__progress[data-tone='warning']::-webkit-progress-value {
     background: #b7791f;
   }
 
-  .finance-overview__progress[data-tone='danger'] span {
+  .finance-overview__progress[data-tone='warning']::-moz-progress-bar {
+    background: #b7791f;
+  }
+
+  .finance-overview__progress[data-tone='danger']::-webkit-progress-value {
+    background: #b42318;
+  }
+
+  .finance-overview__progress[data-tone='danger']::-moz-progress-bar {
     background: #b42318;
   }
 

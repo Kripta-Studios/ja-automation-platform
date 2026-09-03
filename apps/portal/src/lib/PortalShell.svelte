@@ -1582,7 +1582,10 @@
               {#each data.settlements ?? [] as settlement}
                 <tr>
                   <td>
-                    <a href="{base}/app/projects/{String(settlement.projectId ?? '')}">
+                    <a
+                      class="project-progress-link"
+                      href="{base}/app/projects/{String(settlement.projectId ?? '')}"
+                    >
                       {String(settlement.projectNumber ?? '—')} · {String(
                         settlement.periodStart ?? '—',
                       )} → {String(settlement.periodEnd ?? '—')}

@@ -117,7 +117,12 @@ type InvoiceListSourceRow = Readonly<{
   pdf_status: string;
   pdf_generated_at: string | null;
   voided: number;
+  client_code: string | null;
+  client_number: string;
+  client_name: string;
   project_number: string;
+  cost_center_code: string | null;
+  po_number: string | null;
   [key: string]: unknown;
 }>;
 
@@ -7336,7 +7341,7 @@ export class PortalRepository {
       throw new AccessDeniedError('Finance role required');
     const invoices = this.sqlite
       .prepare(
-        "SELECT i.id,i.invoice_number,i.stream_type,i.state,i.currency,i.total_minor,i.period_start,i.period_end,i.planned_issue_on,i.expected_collection_on,i.issued_at,i.version,i.pdf_status,i.pdf_generated_at,EXISTS(SELECT 1 FROM invoice_event e WHERE e.invoice_id=i.id AND e.event_type='void') voided,p.project_number FROM invoice i JOIN project p ON p.id=i.project_id ORDER BY i.created_at DESC",
+        "SELECT i.id,i.invoice_number,i.stream_type,i.state,i.currency,i.total_minor,i.period_start,i.period_end,i.planned_issue_on,i.expected_collection_on,i.issued_at,i.version,i.pdf_status,i.pdf_generated_at,EXISTS(SELECT 1 FROM invoice_event e WHERE e.invoice_id=i.id AND e.event_type='void') voided,c.client_code,c.client_number,c.display_name client_name,p.project_number,p.cost_center_code,p.po_number FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id ORDER BY i.created_at DESC",
       )
       .all() as InvoiceListSourceRow[];
     return invoices.map((invoice) => {

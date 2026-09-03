@@ -217,8 +217,12 @@
             value: invoiceTitle(invoice),
           },
           {
+            label: translate('Client'),
+            value: invoiceClientIdentity(invoice),
+          },
+          {
             label: translate('Project'),
-            value: rowValue(invoice, 'project_number', 'projectNumber') || '—',
+            value: invoiceProjectIdentity(invoice) || '—',
           },
           {
             label: translate('Amount'),
@@ -390,6 +394,26 @@
     const name = rowValue(project, 'name', 'project_name', 'projectName');
     const currency = rowValue(project, 'currency');
     return [number, name, currency ? `(${currency})` : ''].filter(Boolean).join(' — ');
+  }
+
+  function invoiceClientIdentity(invoice: Row): string {
+    const code = rowValue(invoice, 'client_code', 'clientCode');
+    const number = rowValue(invoice, 'client_number', 'clientNumber');
+    const name = rowValue(invoice, 'client_name', 'clientName');
+    return [code, number, name].filter(Boolean).join(' · ') || '—';
+  }
+
+  function invoiceProjectIdentity(invoice: Row): string {
+    const projectNumber = rowValue(invoice, 'project_number', 'projectNumber');
+    const costCenter = rowValue(invoice, 'cost_center_code', 'costCenterCode');
+    const poNumber = rowValue(invoice, 'po_number', 'poNumber');
+    return [
+      projectNumber,
+      costCenter ? `${translate('Cost center')}: ${costCenter}` : '',
+      poNumber ? `PO: ${poNumber}` : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
   }
 
   function invoiceCurrency(invoice: Row): string {
@@ -1205,6 +1229,7 @@
               <thead>
                 <tr>
                   <th scope="col">{translate('Invoice')}</th>
+                  <th scope="col">{translate('Client')}</th>
                   <th scope="col">{translate('Project')}</th>
                   <th scope="col">{translate('Dates')}</th>
                   <th scope="col">{translate('Amount')}</th>
@@ -1231,7 +1256,8 @@
                         <strong>{invoiceTitle(invoice)}</strong>
                       </a>
                     </td>
-                    <td>{rowValue(invoice, 'project_number', 'projectNumber') || '—'}</td>
+                    <td>{invoiceClientIdentity(invoice)}</td>
+                    <td>{invoiceProjectIdentity(invoice) || '—'}</td>
                     <td>
                       {dateValue(rowValue(invoice, 'issued_at', 'issuedAt'))}
                       /
@@ -2075,6 +2101,10 @@
   .billing-section__summary-card small {
     color: var(--portal-muted, #64748b);
     font-size: 0.78rem;
+  }
+
+  .billing-section__summary-card--active span {
+    color: var(--portal-ink, #16202a);
   }
 
   .billing-section__summary-card strong {

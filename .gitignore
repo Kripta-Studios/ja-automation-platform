@@ -24,7 +24,7 @@ jaautomation-release-*.zip.sha256
 *.db-*
 *.sqlite
 *.sqlite-*
-documents/
+/documents/
 uploads/
 data/backups/
 data/e2e-documents*/

@@ -197,7 +197,8 @@ async function expectInvoiceIdentifiers(page: Page): Promise<void> {
     .first();
   await expect(row).toBeVisible();
   await expect(row).toContainText(seeded.project.projectNumber);
-  await expect(row).toContainText(/Northline Mobility|DEMO-PO-24017|Cost center|USD/i);
+  await expect(row).toContainText('Northline Mobility');
+  await expect(row).toContainText('DEMO-PO-24017');
 }
 
 async function expectPrivateFinanceDenied(page: Page, role: 'worker' | 'manager'): Promise<void> {
@@ -373,8 +374,10 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await form.locator('input[name="timezone"]').fill('America/New_York');
         await form.locator('input[name="startDate"]').fill('2026-08-01');
         await form.locator('input[name="plannedEndDate"]').fill('2026-12-31');
-        await form.locator('input[name="expectedMinutesPerDay"]').fill('600');
-        await form.locator('input[name="clientDailyMinimumMinutes"]').fill('540');
+        // Project configuration expresses daily controls in hours; the action
+        // boundary converts them to the canonical persisted minute values.
+        await form.locator('input[name="expectedHoursPerDay"]').fill('10');
+        await form.locator('input[name="clientDailyMinimumHours"]').fill('9');
         await form.locator('select[name="budgetType"]').selectOption('combined');
         await form.locator('input[name="revenueBudgetMinor"]').fill('1500000');
         await form.locator('input[name="poCapMinor"]').fill('1800000');
@@ -403,15 +406,15 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await page.locator('[data-project-edit-cta]').click();
         const form = page.locator('form.project-edit-form');
         await expect(form).toBeVisible();
-        await form.locator('input[name="expectedMinutesPerDay"]').fill('720');
-        await form.locator('input[name="clientDailyMinimumMinutes"]').fill('600');
+        await form.locator('input[name="expectedHoursPerDay"]').fill('12');
+        await form.locator('input[name="clientDailyMinimumHours"]').fill('10');
         await form.locator('input[name="plannedMinutes"]').fill('86400');
         await form.getByRole('button', { name: 'Save project', exact: true }).click();
         await expectActionMessage(page, /project|updated|saved/i);
         await page.locator('[data-project-edit-cta]').click();
         const saved = page.locator('form.project-edit-form:visible');
-        await expect(saved.locator('input[name="expectedMinutesPerDay"]')).toHaveValue('720');
-        await expect(saved.locator('input[name="clientDailyMinimumMinutes"]')).toHaveValue('600');
+        await expect(saved.locator('input[name="expectedHoursPerDay"]')).toHaveValue('12');
+        await expect(saved.locator('input[name="clientDailyMinimumHours"]')).toHaveValue('10');
       },
       failures,
       page,
@@ -494,6 +497,12 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await stepUp(page, 'finance');
         await policy.getByRole('button', { name: 'Save project policy', exact: true }).click();
         await expectActionMessage(page, /policy|saved|updated/i);
+        // Native form actions replace the query string with the action name.
+        // Restore the scoped commercial workspace before inspecting its forms.
+        await navigate(
+          page,
+          `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
+        );
         await expect(page.locator('form[action="?/createCompensationRule"]')).toBeVisible();
         await expect(page.locator('form[action="?/createInternalCostRule"]')).toBeVisible();
         await expect(page.locator('form[action="?/createClientLaborRate"]')).toBeVisible();
@@ -525,29 +534,42 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
         const clientRate = page.locator('form[action="?/createClientLaborRate"]');
-        await selectOptionContaining(
-          clientRate.locator('select[name="workerId"]'),
-          seeded.worker.name,
-        );
+        const existingClientRates = await page
+          .locator('[aria-label="Client labor rates"] .record-list-item')
+          .count();
+        // The default visible choice is "All assigned workers", which
+        // intentionally covers the UAT worker through project assignment.
         await clientRate.locator('input[name="category"]').fill('regular');
         await clientRate.locator('select[name="currency"]').selectOption('USD');
-        await clientRate.locator('input[name="hourlyRateMinor"]').fill('15000');
+        await clientRate.locator('input[data-minor-target="hourlyRateMinor"]').fill('150.00');
         await clientRate.locator('input[name="effectiveFrom"]').fill('2026-08-01');
         await stepUp(page, 'finance');
         await clientRate.getByRole('button', { name: 'Save client rate', exact: true }).click();
-        await expectActionMessage(page, /client.*rate.*saved/i);
+        await navigate(
+          page,
+          `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
+        );
+        await expect(
+          page.locator('[aria-label="Client labor rates"] .record-list-item'),
+        ).toHaveCount(existingClientRates + 1);
 
         const internalCost = page.locator('form[action="?/createInternalCostRule"]');
-        await selectOptionContaining(
-          internalCost.locator('select[name="workerId"]'),
-          seeded.worker.name,
-        );
+        const existingInternalCosts = await page
+          .locator('[aria-label="Internal cost rules"] .record-list-item')
+          .count();
+        await selectFirstValue(internalCost.locator('select[name="workerId"]'));
         await internalCost.locator('select[name="currency"]').selectOption('USD');
-        await internalCost.locator('input[name="hourlyRateMinor"]').fill('6500');
+        await internalCost.locator('input[data-minor-target="hourlyRateMinor"]').fill('65.00');
         await internalCost.locator('input[name="effectiveFrom"]').fill('2026-08-01');
         await stepUp(page, 'finance');
         await internalCost.getByRole('button', { name: 'Save internal cost', exact: true }).click();
-        await expectActionMessage(page, /internal.*cost.*saved/i);
+        await navigate(
+          page,
+          `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
+        );
+        await expect(
+          page.locator('[aria-label="Internal cost rules"] .record-list-item'),
+        ).toHaveCount(existingInternalCosts + 1);
       },
       failures,
       page,
@@ -564,21 +586,24 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
         const form = page.locator('form[action="?/createCompensationRule"]').first();
-        await selectOptionContaining(form.locator('select[name="workerId"]'), seeded.worker.name);
+        await selectFirstValue(form.locator('select[name="workerId"]'));
         await form.locator('select[name="projectId"]').selectOption(uatProjectId);
         await form
           .locator('select[name="ruleType"]')
           .selectOption('PercentageOfEligibleClientLabor');
-        await form.locator('input[name="rateMinor"]').fill('0');
-        await form.locator('input[name="percentageBps"]').fill('5500');
+        await form.locator('input[data-minor-target="rateMinor"]').fill('0.00');
+        await form.locator('input[data-bps-target="percentageBps"]').fill('55');
         await form.locator('input[name="effectiveFrom"]').fill('2026-08-01');
         await stepUp(page, 'finance');
         await form.getByRole('button', { name: 'Save compensation rule', exact: true }).click();
-        await expectActionMessage(page, /compensation|rule|saved|created/i);
+        await navigate(
+          page,
+          `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
+        );
         await expect(
           page
             .locator('[aria-label="Compensation rules"] .record-list-item')
-            .filter({ hasText: seeded.worker.name })
+            .filter({ hasText: 'PercentageOfEligibleClientLabor' })
             .first(),
         ).toContainText('PercentageOfEligibleClientLabor');
       },
@@ -978,7 +1003,11 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await expect(page.locator('[data-finance-actual]')).toBeVisible();
         await expect(page.locator('[data-finance-expected]')).toBeVisible();
         await expect(page.getByText('Direct Project Result', { exact: true })).toBeVisible();
-        await expect(page.getByText('Contribution', { exact: true }).first()).toBeVisible();
+        await expect(
+          page
+            .locator('[data-finance-actual]')
+            .getByText(/Contribution after approved direct cost/u),
+        ).toBeVisible();
         await expect(page.getByText(/Expected|Actual/).first()).toBeVisible();
       },
       failures,
@@ -1018,7 +1047,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         const expenseId = await classification.locator('input[name="expenseId"]').inputValue();
         expect(expenseId).toMatch(/^[0-9a-f-]{36}$/i);
         await classification.locator('select[name="expensePreset"]').selectOption('all_in');
-        await classification.locator('input[name="taxBps"]').fill('0');
+        await classification.locator('select[name="taxPercent"]').selectOption('0');
         await classification
           .locator('textarea[name="reason"]')
           .fill('Client Essential all-in expense classification.');
@@ -1026,7 +1055,10 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await classification
           .getByRole('button', { name: 'Save Finance classification', exact: true })
           .click();
-        await expectActionMessage(page, /finance expense classified/i);
+        await navigate(
+          page,
+          `/finance?view=commercial&project=${encodeURIComponent(seeded.project.id)}`,
+        );
         await expect(page.locator(`[data-finance-expense-id="${expenseId}"]`)).toContainText(
           'Classified',
         );
@@ -1053,7 +1085,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await classification
           .locator('select[name="expensePreset"]')
           .selectOption('reimbursable_at_cost');
-        await classification.locator('input[name="taxBps"]').fill('0');
+        await classification.locator('select[name="taxPercent"]').selectOption('0');
         await classification
           .locator('textarea[name="reason"]')
           .fill('Client Essential reimbursable expense classification.');
@@ -1061,7 +1093,10 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await classification
           .getByRole('button', { name: 'Save Finance classification', exact: true })
           .click();
-        await expectActionMessage(page, /finance expense classified/i);
+        await navigate(
+          page,
+          `/finance?view=commercial&project=${encodeURIComponent(seeded.project.id)}`,
+        );
         await expect(
           page.getByText('Expected client recovery', { exact: true }).first(),
         ).toBeVisible();
@@ -1170,6 +1205,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await navigate(page, '/billing');
         if (!issuedInvoiceId) throw new Error('BLOCKED by step 23: no issued invoice identity');
         const issued = await openInvoiceManage(page, issuedInvoiceId);
+        await issued.locator('summary').filter({ hasText: 'Record payment' }).click();
         const paymentForm = issued.locator('form[action="?/recordPayment"]');
         await expect(paymentForm).toBeVisible();
         await paymentForm.locator('input[name="amount"]').fill('1.00');
@@ -1199,8 +1235,13 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await expect(
           page.getByRole('heading', { name: 'Collections / Ledger', exact: true }).first(),
         ).toBeVisible();
-        await expect(page.getByRole('table').first()).toBeVisible();
-        await expect(page.getByText('Contribution', { exact: true }).first()).toBeVisible();
+        const ledger = page.getByRole('table', {
+          name: 'Master Invoice / Cost / Collection Ledger',
+        });
+        await expect(ledger).toBeVisible();
+        await expect(
+          ledger.getByRole('columnheader', { name: 'Contribution', exact: true }),
+        ).toBeVisible();
         await expect(page.getByText(/Collected|Outstanding|Payment/i).first()).toBeVisible();
       },
       failures,

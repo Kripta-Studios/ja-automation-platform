@@ -234,6 +234,12 @@ describe('Client Essential CORE-02/09/11 identifiers and planned-versus-actual d
   it('keeps invoice planned issue and expected collection dates separate from actual issue and payment dates', () => {
     const value = fixture();
     const invoiceId = seedInvoice(value);
+    value.sqlite
+      .prepare(`UPDATE client SET client_code=?, po_reference=? WHERE id=?`)
+      .run('CE-CLIENT-001', 'CLIENT-PO-IGNORED-WHEN-PROJECT-PO-EXISTS', value.client.id);
+    value.sqlite
+      .prepare(`UPDATE project SET cost_center_code=?, po_number=? WHERE id=?`)
+      .run('CC-ESSENTIAL-001', 'PROJECT-PO-001', value.project.id);
     const finance = stepUpB5Principal(value.sqlite, value.finance, 'invoice-planning');
 
     const result = command<Record<string, unknown>>(
@@ -273,6 +279,12 @@ describe('Client Essential CORE-02/09/11 identifiers and planned-versus-actual d
           planned_issue_on: '2026-09-10',
           expected_collection_on: '2026-10-10',
           issued_at: null,
+          client_code: 'CE-CLIENT-001',
+          client_number: expect.any(String),
+          client_name: expect.any(String),
+          project_number: expect.any(String),
+          cost_center_code: 'CC-ESSENTIAL-001',
+          po_number: 'PROJECT-PO-001',
         }),
       ]),
     );
@@ -285,6 +297,27 @@ describe('Client Essential CORE-02/09/11 identifiers and planned-versus-actual d
         expectedVersion: 2,
       } satisfies InvoicePlanningInput),
     ).toThrow(AccessDeniedError);
+  });
+
+  it('normalizes the unscoped client labor-rate form fields before its optional foreign keys persist', () => {
+    const value = fixture();
+    const finance = stepUpB5Principal(value.sqlite, value.finance, 'unscoped-client-rate');
+
+    const result = value.v3.createClientLaborRate(finance, {
+      projectId: value.project.id,
+      workerId: '',
+      category: '',
+      currency: 'EUR',
+      hourlyRateMinor: 15_000n,
+      effectiveFrom: '2026-08-01',
+      effectiveTo: '',
+    });
+
+    expect(
+      value.sqlite
+        .prepare('SELECT worker_id,category,effective_to FROM client_labor_rate WHERE id=?')
+        .get(result.id),
+    ).toEqual({ worker_id: null, category: null, effective_to: null });
   });
 
   it('keeps expected worker payment dates independent from compensation settlement actuals and scopes the projection', () => {

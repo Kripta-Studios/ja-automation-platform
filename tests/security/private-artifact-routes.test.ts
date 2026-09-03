@@ -71,7 +71,7 @@ function pdfBytes(): Buffer {
 }
 
 function installFile(root: string, storageKey: string, bytes: Buffer): void {
-  const target = join(root, storageKey.replaceAll('/', '\\'));
+  const target = join(root, ...storageKey.split('/'));
   mkdirSync(join(target, '..'), { recursive: true });
   writeFileSync(target, bytes);
 }
@@ -242,6 +242,11 @@ describe('legacy private artifact download boundary', () => {
       }),
     });
     expect(response.status).toBe(409);
+    expect(
+      value.sqlite
+        .prepare("SELECT count(*) AS count FROM audit_event WHERE action='artifact.access'")
+        .get(),
+    ).toEqual({ count: 1 });
   });
 
   it('serves generated snapshot bytes instead of the stored file', async () => {

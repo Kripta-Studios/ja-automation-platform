@@ -25,7 +25,9 @@ function failureResponse(cause: unknown): Response {
     cause &&
     typeof cause === 'object' &&
     'code' in cause &&
-    ['ENOENT', 'ELOOP', 'EPERM'].includes(String((cause as { code?: unknown }).code))
+    ['ENOENT', 'ELOOP', 'ENOTDIR', 'EPERM', 'EACCES'].includes(
+      String((cause as { code?: unknown }).code),
+    )
   )
     return json({ error: 'Report attachment is unavailable' }, { status: 409 });
   const failure = actionFailure(cause);
@@ -42,8 +44,9 @@ export const GET: RequestHandler = async ({ locals, params }) => {
   const context = openPortalRepository(locals);
   try {
     const reportType = reportAttachmentTypeForId(context.sqlite, params.id);
-    // v3 performs report-aware RBAC, scanner-state fencing, project scoping,
-    // and records the access audit before this route touches the filesystem.
+    // v3 performs report-aware RBAC, scanner-state fencing and project scoping
+    // before the filesystem read. The successful-download audit is written only
+    // after descriptor-safe integrity verification below.
     const metadata = context.v3.authorizeReportAttachment(
       context.principal,
       reportType,
@@ -56,6 +59,12 @@ export const GET: RequestHandler = async ({ locals, params }) => {
       metadata.sha256,
       metadata.byteLength,
       metadata.mediaType,
+    );
+    context.v3.recordReportAttachmentDownload(
+      context.principal,
+      reportType,
+      params.id,
+      params.documentId,
     );
     return new Response(bytes.buffer as ArrayBuffer, {
       headers: {

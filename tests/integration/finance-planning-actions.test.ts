@@ -149,6 +149,60 @@ describe('Finance-only expense classification and planning action contracts', ()
     expect(value.sqlite.close).toHaveBeenCalledOnce();
   });
 
+  it('removes the visible tax selector while retaining its canonical tax basis points', async () => {
+    const classifyExpenseCommercially = vi.fn(() => ({
+      id: 'classification-tax-selector',
+      version: 3,
+      classificationState: 'classified',
+    }));
+    const value = context({ repository: { classifyExpenseCommercially } });
+    openPortalRepository.mockReturnValue(value);
+
+    const result = await financeActions.classifyExpenseCommercially(
+      event('classifyExpenseCommercially', { ...classificationForm, taxPercent: '0' }),
+    );
+
+    expect(result).toMatchObject({ success: true });
+    expect(classifyExpenseCommercially).toHaveBeenCalledWith(value.principal, {
+      expenseId,
+      expectedVersion: 2,
+      clientTreatment: 'reimbursable',
+      billingTreatment: 'reimbursable_at_cost',
+      markupBps: 0,
+      taxBps: 0,
+      reason: classificationForm.reason,
+      idempotencyKey: classificationForm.idempotencyKey,
+    });
+  });
+
+  it.each([400, 1000, 2100])(
+    'preserves %i canonical tax basis points across Finance edit/resubmit',
+    async (taxBps) => {
+      const classifyExpenseCommercially = vi.fn(() => ({
+        id: `classification-tax-${taxBps}`,
+        version: 3,
+        classificationState: 'classified',
+      }));
+      const value = context({ repository: { classifyExpenseCommercially } });
+      openPortalRepository.mockReturnValue(value);
+
+      const result = await financeActions.classifyExpenseCommercially(
+        event('classifyExpenseCommercially', {
+          ...classificationForm,
+          taxPercent: String(taxBps),
+          taxBps: String(taxBps),
+          idempotencyKey: `expense-classification-tax-${taxBps}`,
+        }),
+      );
+
+      expect(result).toMatchObject({ success: true });
+      expect(classifyExpenseCommercially).toHaveBeenCalledWith(
+        value.principal,
+        expect.objectContaining({ taxBps }),
+      );
+    },
+  );
+
   it.each(['project_manager', 'worker'] as const)(
     'returns a forbidden result when the domain rejects a forged %s classification',
     async (role) => {

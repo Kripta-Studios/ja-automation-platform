@@ -1136,10 +1136,16 @@ export class V3Repository {
     this.assertFinance(principal);
     this.assertStepUp(principal);
     this.assertProjectAccess(principal, input.projectId);
+    // Browser forms intentionally represent the unscoped "All assigned
+    // workers" choice and optional fields as empty strings. Normalize at the
+    // domain boundary so an optional foreign key is never persisted as ''.
+    const workerId = input.workerId?.trim() || null;
+    const category = input.category?.trim() || null;
+    const effectiveTo = input.effectiveTo?.trim() || null;
     requireDate(input.effectiveFrom, 'Effective date');
-    if (input.effectiveTo) {
-      requireDate(input.effectiveTo, 'End date');
-      if (input.effectiveTo < input.effectiveFrom)
+    if (effectiveTo) {
+      requireDate(effectiveTo, 'End date');
+      if (effectiveTo < input.effectiveFrom)
         throw new V3ValidationError('End date must follow the effective date');
     }
     if (input.hourlyRateMinor < 0n) throw new V3ValidationError('Client rate cannot be negative');
@@ -1170,12 +1176,12 @@ export class V3Repository {
       .run(
         id,
         input.projectId,
-        input.workerId ?? null,
-        input.category ?? null,
+        workerId,
+        category,
         input.currency,
         sqliteInteger(input.hourlyRateMinor, 'Client rate'),
         input.effectiveFrom,
-        input.effectiveTo ?? null,
+        effectiveTo,
         now,
         now,
         'hourly',
@@ -1189,8 +1195,8 @@ export class V3Repository {
       );
     this.audit(principal, 'client_rate.create', 'client_labor_rate', id, {
       projectId: input.projectId,
-      workerId: input.workerId ?? null,
-      category: input.category ?? null,
+      workerId,
+      category,
     });
     return { id };
   }
@@ -9307,12 +9313,6 @@ export class V3Repository {
     }
     if (!allowed) throw new V3AccessDeniedError('Document access denied');
     const sensitive = document.sensitive === 1 || document.sensitivity !== 'public';
-    this.sqlite
-      .prepare(
-        'INSERT INTO document_access_event(id,document_id,user_id,action,occurred_at) VALUES(?,?,?,?,?)',
-      )
-      .run(newId(), document.id, principal.userId, 'download', timestamp());
-    this.audit(principal, 'document.download', 'document', document.id, { sensitive });
     return {
       storageKey: document.storage_key,
       filename: document.safe_filename ?? document.original_filename ?? 'document',
@@ -9321,6 +9321,18 @@ export class V3Repository {
       sha256: document.sha256,
       byteLength: document.byte_length,
     };
+  }
+
+  recordDocumentDownload(principal: Principal, documentId: string): void {
+    const document = this.authorizeDocument(principal, documentId);
+    this.sqlite
+      .prepare(
+        'INSERT INTO document_access_event(id,document_id,user_id,action,occurred_at) VALUES(?,?,?,?,?)',
+      )
+      .run(newId(), documentId, principal.userId, 'download', timestamp());
+    this.audit(principal, 'document.download', 'document', documentId, {
+      sensitive: document.sensitive,
+    });
   }
 
   recordDocumentScanFromJob(
@@ -10622,17 +10634,6 @@ export class V3Repository {
       throw new V3ConflictError('Report attachment integrity metadata is invalid');
     this.assertStorageKey(document.storage_key);
     const sensitive = document.sensitive === 1 || document.sensitivity !== 'public';
-    this.sqlite
-      .prepare(
-        'INSERT INTO document_access_event(id,document_id,user_id,action,occurred_at) VALUES(?,?,?,?,?)',
-      )
-      .run(newId(), documentId, principal.userId, 'download', timestamp());
-    this.audit(principal, 'document.download', 'document', documentId, {
-      reportType,
-      reportId,
-      attachmentKind: document.attachment_kind,
-      sensitive,
-    });
     return {
       storageKey: document.storage_key,
       filename: document.safe_filename ?? document.original_filename ?? 'attachment',
@@ -10642,6 +10643,26 @@ export class V3Repository {
       byteLength: document.byte_length,
       attachmentKind: document.attachment_kind,
     };
+  }
+
+  recordReportAttachmentDownload(
+    principal: Principal,
+    reportType: ReportAttachmentType,
+    reportId: string,
+    documentId: string,
+  ): void {
+    const document = this.authorizeReportAttachment(principal, reportType, reportId, documentId);
+    this.sqlite
+      .prepare(
+        'INSERT INTO document_access_event(id,document_id,user_id,action,occurred_at) VALUES(?,?,?,?,?)',
+      )
+      .run(newId(), documentId, principal.userId, 'download', timestamp());
+    this.audit(principal, 'document.download', 'document', documentId, {
+      reportType,
+      reportId,
+      attachmentKind: document.attachmentKind,
+      sensitive: document.sensitive,
+    });
   }
 
   reserveUpload(

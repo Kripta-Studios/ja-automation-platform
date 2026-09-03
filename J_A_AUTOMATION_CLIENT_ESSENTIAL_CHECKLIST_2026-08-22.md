@@ -16,7 +16,40 @@ The requirements clarified directly with J&A on 2026-08-24 are release-authorita
 
 Audit classifications used below: `PASS`, `PARTIAL`, `FAIL`, `BLOCKED`, `CONDITIONAL`, `DEFERRED`. `PASS` requires executable evidence, not code presence.
 
-## Repository-grounded audit snapshot — 2026-09-01
+## Candidate qualification update — 2026-09-04
+
+**Verdict: BLOCKED — not `CLIENT READY`.** Qualification began at clean candidate
+`3d87690f48053426d103f89894a078118ccade35` on branch
+`codex/v3-production-completion-orchestrated-20260819`; migration
+`0035_stalwart_mail_integration.sql` remains latest. The initial clean run exposed local defects. The
+final results below are from the explicitly authorized, uncommitted remediation worktree derived from
+that SHA, not an untouched clean commit. No commit or deployment occurred.
+
+Pinned Node was `v24.19.0`, Corepack pnpm `11.22.0`; every gate used the pinned runtime and
+`corepack pnpm --config.verify-deps-before-run=warn`. No install, purge, dependency, production service,
+database, config, mail, DNS, or container mutation occurred. Final free disk was 6.6 GiB.
+
+| Gate                           | Result                                                                                                |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| Format, lint, typecheck        | **PASS** — final post-remediation rerun; 10 workspace typechecks.                                     |
+| Unit                           | **PASS** — final post-remediation rerun; 119 files / 708 tests.                                       |
+| Integration                    | **PASS** — final post-remediation rerun; 51 files / 358 tests.                                        |
+| Security                       | **PASS** — final post-remediation rerun; 29 files / 177 tests.                                        |
+| Migrations                     | **PASS** — 11 files / 84 tests.                                                                       |
+| Reporting, invariants, offline | **PASS** — 1/5, 1/1, and 3/8 respectively.                                                            |
+| Continuity local drill         | **PASS** — 1 file / 16 tests; does not prove remote restore.                                          |
+| Site, Portal, jobs builds      | **PASS** — Site generated 255 pages; Portal used disposable environment paths; jobs bundle built.     |
+| Client Essential 32-step       | **PARTIAL** — steps 1–29 and 32 pass; only 30–31 intentionally block on external operations evidence. |
+| 360/390/768/1440 matrix        | **PASS** — 20/20 role/viewport combinations.                                                          |
+
+The journey reports exactly two deliberate external failures: step 30 automatic-jobs evidence and step
+31 offsite backup/restore evidence. The Owner explicitly waived separate-host/off-site continuity as a
+nonblocking post-release improvement on 2026-09-04; step 31 therefore remains useful operational evidence
+but is not a release blocker. Deployment verification, live form/mail delivery and customer/ANEXO D UAT
+remain unproven and therefore cannot be marked `PASS`. See
+`docs/CLIENT_READY_EVIDENCE_20260903.md` for commands and redacted details.
+
+## Repository-grounded audit snapshot — 2026-09-01 (historical; not revalidated above)
 
 **Current audit verdict: NOT READY pending final independent review and external acceptance.** The current
 candidate closes the previously reproducible local product defects: the normal Finance flow assigns a
@@ -57,7 +90,7 @@ deferred post-go-live and does not control the release verdict.
 | CORE-14 Responsive/accessibility      | PARTIAL      | Contrast/input/i18n/toast remediations compile and UI regressions pass **6/37**. The fresh 360/390/768/1440 browser matrix is **93 pass / 10 intentional skips / 9 fail** in three repeated contracts; fixes and an integrated axe/keyboard/overflow rerun are active.                                                                                                                                                                 |
 | CORE-15 Private files/security/audit  | PASS (local) | Current private artifact, IDOR, origin, audit and inactive-user coverage passes **25/144**, including Worker/PM/Finance/Owner/inactive boundaries; independent security review returned APPROVED. Final release rerun remains mandatory after candidate freeze.                                                                                                                                                                        |
 | CORE-16 Durable jobs                  | BLOCKED      | Durable queued/running/ready/failed/retry semantics, deployment-scoped service-actor code and no normal-user processing path have focused evidence. This worktree now starts an always-on looping Compose jobs worker with the portal (`--loop`, default stack, `restart: unless-stopped`); `jaautomation-jobs.timer` is only a watchdog. Privileged VPS diagnosis and two consecutive automatic `jobs.cycle` records remain required. |
-| CORE-17 Deployment/health/backup      | BLOCKED      | Pinned Node 24 typecheck/build, continuity **16/16**, local backup/restore and issued/private-artifact drills pass. Separate encrypted-host replication plus an isolated restore of database and issued/private artifacts, and final live Caddy/DNS/form/email evidence, require authorized production/provider access.                                                                                                                |
+| CORE-17 Deployment/health/backup      | BLOCKED      | Pinned Node 24 typecheck/build, continuity **16/16**, local backup/restore and issued/private-artifact drills pass. The Owner waived separate-host continuity as a nonblocking post-release improvement on 2026-09-04; local backup/rollback remain mandatory. Final deployment plus live Caddy/form/email evidence still require production verification.                                                                             |
 | Offline/PWA                           | DEFERRED     | J&A confirmed on 2026-09-01 that offline capture is not required for Client Essential go-live. Existing code remains covered as a non-blocking regression; expansion moves post-go-live.                                                                                                                                                                                                                                               |
 | V3.1–V3.4 expansion                   | DEFERRED     | Industrial platform, generic ERP/business, broad integrations and ML/data-readiness remain post-core roadmap and do not control `CLIENT READY`.                                                                                                                                                                                                                                                                                        |
 
@@ -392,7 +425,7 @@ CORE ni el DoD final en `PASS` mientras falten las pruebas integradas y autentic
 
 The release can be called **CLIENT READY** only when all of these pass:
 
-Las casillas locales se cierran con los gates y journeys de 2026-08-30. Las tres casillas operativas
+Las casillas locales se cierran con los gates y journeys de 2026-08-30. Las dos casillas operativas
 siguen abiertas deliberadamente: no se sustituyen con mocks ni con evidencia local.
 
 - [x] Owner can invite and manage users.
@@ -421,7 +454,7 @@ siguen abiertas deliberadamente: no se sustituyen con mocks ni con evidencia loc
 - [x] RBAC/privacy/IDOR tests pass.
 - [x] Private uploads/downloads are safe.
 - [x] Approved/finalized history is non-destructive.
-- [ ] Backup/restore drill passes.
+- [x] Local backup/restore drill passes; separate-host continuity is a non-blocking post-release improvement by Owner waiver dated 2026-09-04.
 - [ ] Production build/deployment behind Caddy works.
 - [x] No core business flow requires a spreadsheet as the system of record.
 - [x] Project reference hours are configurable (for example 10/12/14), never become real worked

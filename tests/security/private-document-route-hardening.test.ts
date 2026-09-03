@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { privateDocumentResponse } from '../../apps/portal/src/lib/server/private-artifact-access.js';
 import { assertRegularPrivateFile } from '../../apps/portal/src/lib/server/report-attachment-route.js';
 const roots: string[] = [];
 
@@ -63,9 +64,38 @@ describe('generic private document download hardening', () => {
   });
 
   it('routes the legacy download through the descriptor-safe reader and shared private headers', () => {
-    const route = readFileSync('apps/portal/src/routes/app/documents/[id]/+server.ts', 'utf8');
-    expect(route).toContain('assertRegularPrivateFile');
-    expect(route).toContain('privateDocumentResponse');
-    expect(route).not.toMatch(/\breadFile\s*\(/u);
+    for (const path of [
+      'apps/portal/src/routes/app/documents/[id]/+server.ts',
+      'apps/portal/src/routes/app/api/documents/[id]/+server.ts',
+    ]) {
+      const route = readFileSync(path, 'utf8');
+      expect(route).toContain('assertRegularPrivateFile');
+      expect(route).toContain('privateDocumentResponse');
+      expect(route).toContain("url.searchParams.get('view') === '1' ? 'inline' : 'attachment'");
+      expect(route.indexOf('assertRegularPrivateFile')).toBeLessThan(
+        route.indexOf('recordDocumentDownload'),
+      );
+      expect(route).not.toMatch(/\breadFile\s*\(/u);
+    }
+  });
+
+  it('defaults generic document responses to attachment and permits explicit inline view', () => {
+    const metadata = { mediaType: 'application/pdf', filename: 'private.pdf', sensitive: true };
+    expect(
+      privateDocumentResponse(pdfBytes(), metadata).headers.get('content-disposition'),
+    ).toMatch(/^attachment;/u);
+    expect(
+      privateDocumentResponse(pdfBytes(), metadata, 'inline').headers.get('content-disposition'),
+    ).toMatch(/^inline;/u);
+  });
+
+  it('records report attachment download only after descriptor-safe verification', () => {
+    const route = readFileSync(
+      'apps/portal/src/routes/app/api/reports/[id]/attachments/[documentId]/+server.ts',
+      'utf8',
+    );
+    expect(route.indexOf('assertRegularPrivateFile')).toBeLessThan(
+      route.indexOf('recordReportAttachmentDownload'),
+    );
   });
 });

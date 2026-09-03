@@ -9,7 +9,10 @@ import {
   type ReportAttachmentType,
 } from '@ja/database';
 import type { DatabaseSync } from 'node:sqlite';
-import { readPrivateFileNoFollow } from './private-artifact-access';
+import {
+  PrivateArtifactPathIntegrityError,
+  readPrivateFileNoFollow,
+} from './private-artifact-access';
 
 /** The only report attachment kinds exposed by the report-detail surface. */
 export const reportAttachmentKindSchema = z.enum([
@@ -270,7 +273,18 @@ export async function assertRegularPrivateFile(
   try {
     bytes = new Uint8Array(await readPrivateFileNoFollow(root, storageKey));
   } catch (error) {
-    if (error instanceof Error && /regular file|symlink|non-regular file/u.test(error.message))
+    const code =
+      error && typeof error === 'object' && 'code' in error
+        ? String((error as { code?: unknown }).code)
+        : undefined;
+    if (
+      code === 'ELOOP' ||
+      code === 'ENOTDIR' ||
+      code === 'EPERM' ||
+      code === 'EACCES' ||
+      error instanceof PrivateArtifactPathIntegrityError ||
+      (error instanceof Error && /regular file|symlink|non-regular file/u.test(error.message))
+    )
       throw new V3ConflictError('Attachment is unavailable');
     throw error;
   }

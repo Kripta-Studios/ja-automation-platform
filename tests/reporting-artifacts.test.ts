@@ -149,7 +149,10 @@ describe('production reporting artifacts', () => {
     expect(Buffer.from(pdf).subarray(0, 5).toString()).toBe('%PDF-');
     const text = textFromPdf(pdf);
     expect(text).toContain('Customer-visible');
-    expect(text).toContain('operational activity retained');
+    // pdftotext preserves the table's status/date column between these two
+    // words; assert the customer-visible source content without coupling the
+    // privacy contract to a particular text-extraction column order.
+    expect(text).toMatch(/operational activity[\s\S]*retained/u);
     expect(text).toContain('PLC validation');
     expect(text).toContain('record retained');
     expect(text).toContain('Operational change');

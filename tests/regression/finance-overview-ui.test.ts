@@ -39,6 +39,14 @@ describe('Finance Overview section architecture', () => {
     expect(component).toContain('Only append-only payment events count as collected');
   });
 
+  it('preserves canonical nonzero expense tax when finance reopens classification', () => {
+    const component = source();
+
+    expect(component).toContain("value(row, 'taxBps', 'tax_bps')");
+    expect(component).toContain('value={expenseTaxBps(expense)}');
+    expect(component).not.toContain('<input name="taxBps" type="hidden" value="0"');
+  });
+
   it('does not present an incomplete canonical projection as ready', () => {
     const component = source();
 

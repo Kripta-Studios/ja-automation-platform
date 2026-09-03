@@ -35,10 +35,22 @@ export class StalwartUnavailableError extends Error {
   }
 }
 
+export class StalwartOperationRejectedError extends Error {
+  constructor(
+    public readonly operation: 'create' | 'update' | 'destroy',
+    public readonly rejectionType: string,
+    public readonly properties: readonly string[],
+  ) {
+    super(`STALWART_${operation.toUpperCase()}_REJECTED_${rejectionType}`);
+    this.name = 'StalwartOperationRejectedError';
+  }
+}
+
 export type StalwartClientOptions = Readonly<{
   url: string;
   token: string;
   domain: string;
+  excludedUsernames?: readonly string[];
   fetch?: Fetch;
 }>;
 
@@ -57,12 +69,18 @@ function quotaFrom(value: unknown): number | null {
 
 export class StalwartClient {
   private readonly fetcher: Fetch;
+  private readonly excludedUsernames: ReadonlySet<string>;
 
   constructor(private readonly options: StalwartClientOptions) {
     if (!/^https:\/\//u.test(options.url) && process.env.NODE_ENV === 'production')
       throw new Error('STALWART_JMAP_TLS_REQUIRED');
     if (!options.token.trim()) throw new Error('STALWART_TOKEN_REQUIRED');
     this.fetcher = options.fetch ?? globalThis.fetch;
+    this.excludedUsernames = new Set(
+      (options.excludedUsernames ?? [])
+        .map((username) => username.trim().toLowerCase())
+        .filter(Boolean),
+    );
   }
 
   private async call(methodCalls: readonly JmapTuple[]): Promise<JmapTuple[]> {
@@ -107,17 +125,13 @@ export class StalwartClient {
 
   async resolveDomainId(): Promise<string> {
     const query = await this.call([
-      [
-        'x:Domain/query',
-        { accountId: '', filter: { name: this.options.domain }, limit: 2 },
-        'domain-query',
-      ],
+      ['x:Domain/query', { filter: { name: this.options.domain }, limit: 2 }, 'domain-query'],
     ]);
     const ids = this.result(query, 'x:Domain/query', 'domain-query').ids;
     if (!Array.isArray(ids) || ids.length !== 1 || typeof ids[0] !== 'string')
       throw new StalwartUnavailableError('STALWART_DOMAIN_NOT_UNIQUE');
     const get = await this.call([
-      ['x:Domain/get', { accountId: '', ids: [ids[0]], properties: ['id', 'name'] }, 'domain-get'],
+      ['x:Domain/get', { ids: [ids[0]], properties: ['id', 'name'] }, 'domain-get'],
     ]);
     const list = this.result(get, 'x:Domain/get', 'domain-get').list;
     const domain = Array.isArray(list)
@@ -136,7 +150,7 @@ export class StalwartClient {
       const responses = await this.call([
         [
           'x:Account/query',
-          { accountId: '', filter: { domainId }, position, limit: 250, calculateTotal: true },
+          { filter: { domainId }, position, limit: 250, calculateTotal: true },
           'account-query',
         ],
       ]);
@@ -151,7 +165,7 @@ export class StalwartClient {
     }
     if (ids.length === 0) return [];
     const responses = await this.call([
-      ['x:Account/get', { accountId: '', ids, properties: [...ACCOUNT_PROPERTIES] }, 'account-get'],
+      ['x:Account/get', { ids, properties: [...ACCOUNT_PROPERTIES] }, 'account-get'],
     ]);
     const list = this.result(responses, 'x:Account/get', 'account-get').list;
     if (!Array.isArray(list)) throw new StalwartUnavailableError('STALWART_ACCOUNTS_INVALID');
@@ -160,6 +174,7 @@ export class StalwartClient {
       const accountType = text(account['@type']);
       if (accountType && accountType !== 'User') return [];
       const username = text(account.name).trim().toLowerCase();
+      if (this.excludedUsernames.has(username)) return [];
       const email = (
         text(account.emailAddress) || `${username}@${this.options.domain}`
       ).toLowerCase();
@@ -192,7 +207,6 @@ export class StalwartClient {
       [
         'x:Account/set',
         {
-          accountId: '',
           create: {
             [createId]: {
               '@type': 'User',
@@ -217,7 +231,32 @@ export class StalwartClient {
       createId
     ];
     const id = text(created?.id);
-    if (!id) throw new StalwartUnavailableError('STALWART_CREATE_NOT_CONFIRMED');
+    if (!id) {
+      const rejected = (result.notCreated as Record<string, Record<string, unknown>> | undefined)?.[
+        createId
+      ];
+      if (rejected) {
+        const rawType = text(rejected.type);
+        const rejectionType = /^[a-zA-Z0-9_-]{1,64}$/u.test(rawType) ? rawType : 'unknown';
+        const properties = Array.isArray(rejected.properties)
+          ? rejected.properties
+              .filter(
+                (property): property is string =>
+                  typeof property === 'string' && /^[a-zA-Z0-9_.\/-]{1,64}$/u.test(property),
+              )
+              .slice(0, 12)
+          : [];
+        console.error(
+          JSON.stringify({
+            event: 'stalwart.account.create_rejected',
+            rejectionType,
+            properties,
+          }),
+        );
+        throw new StalwartOperationRejectedError('create', rejectionType, properties);
+      }
+      throw new StalwartUnavailableError('STALWART_CREATE_NOT_CONFIRMED');
+    }
     return {
       id,
       username: input.username,
@@ -234,7 +273,6 @@ export class StalwartClient {
       [
         'x:Account/set',
         {
-          accountId: '',
           update: {
             // Patch only the primary password. Replacing the complete
             // credentials object could erase Stalwart-managed app passwords.
@@ -257,7 +295,7 @@ export class StalwartClient {
 
   async destroyMailbox(stalwartAccountId: string): Promise<void> {
     const responses = await this.call([
-      ['x:Account/set', { accountId: '', destroy: [stalwartAccountId] }, 'account-destroy'],
+      ['x:Account/set', { destroy: [stalwartAccountId] }, 'account-destroy'],
     ]);
     const result = this.result(responses, 'x:Account/set', 'account-destroy');
     if (!Array.isArray(result.destroyed) || !result.destroyed.includes(stalwartAccountId))
@@ -286,5 +324,9 @@ export async function createConfiguredStalwartClient(
     url,
     token,
     domain: environment.JA_STALWART_DOMAIN?.trim().toLowerCase() || 'j-aautomation.com',
+    excludedUsernames: (environment.JA_STALWART_EXCLUDED_USERNAMES ?? '')
+      .split(',')
+      .map((username) => username.trim().toLowerCase())
+      .filter(Boolean),
   });
 }

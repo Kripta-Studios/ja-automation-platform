@@ -3,6 +3,7 @@ import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess } from './action-message';
 import { formObject, type PortalActionEvent } from '$lib/server/action-utils';
 import { MailIdentityRepository } from '@ja/database';
+import { StalwartOperationRejectedError } from '$lib/server/stalwart-client';
 
 type IdentityScope = 'invitation' | 'workerProfile' | 'userStatus';
 type IdentityContext = Readonly<{
@@ -278,7 +279,8 @@ export const accessActions = {
     const identityFailure = confirmProtectedActionIdentity(event);
     if (identityFailure) return identityFailure;
 
-    const { createMailboxAccount } = await import('$lib/server/mail-directory');
+    const { createMailboxAccount, MailboxSagaPartialFailureError } =
+      await import('$lib/server/mail-directory');
     const opened = openAccessContext(locals);
     if ('failure' in opened) return opened.failure;
     try {
@@ -296,6 +298,77 @@ export const accessActions = {
         `Mailbox ${created.email} created successfully.`,
       );
     } catch (error) {
+      if (error instanceof MailboxSagaPartialFailureError && error.externalOutcome === 'created')
+        return actionFail(
+          409,
+          'action.access.mailbox.createdLinkPending',
+          {},
+          'The mailbox was created in Stalwart, but its portal link is pending. Retry the same creation to finish linking it; a second mailbox will not be created.',
+        );
+      if (error instanceof StalwartOperationRejectedError && error.operation === 'create') {
+        const isPasswordRejection = error.properties.some((property) =>
+          property.toLowerCase().includes('secret'),
+        );
+        const isQuotaRejection = error.properties.some((property) =>
+          property.toLowerCase().includes('quota'),
+        );
+        const message =
+          error.rejectionType === 'alreadyExists' || error.rejectionType === 'primaryKeyViolation'
+            ? {
+                key: 'action.access.mailbox.aliasExists' as const,
+                text: 'That mailbox alias already exists in Stalwart.',
+              }
+            : error.rejectionType === 'forbidden'
+              ? {
+                  key: 'action.access.mailbox.permissionDenied' as const,
+                  text: 'The portal service key cannot create this Stalwart account or grant its mailbox permissions.',
+                }
+              : error.rejectionType === 'invalidProperties' && isPasswordRejection
+                ? {
+                    key: 'action.access.mailbox.passwordRejected' as const,
+                    text: 'Stalwart rejected the password. Use a unique strong password of at least 16 characters.',
+                  }
+                : error.rejectionType === 'invalidProperties' && isQuotaRejection
+                  ? {
+                      key: 'action.access.mailbox.invalidQuota' as const,
+                      text: 'Stalwart rejected the mailbox quota.',
+                    }
+                  : {
+                      key: 'action.access.mailbox.rejected' as const,
+                      text: `Stalwart rejected the account creation (${error.rejectionType}).`,
+                    };
+        return actionFail(400, message.key, { reason: error.rejectionType }, message.text);
+      }
+      if (error instanceof Error) {
+        const knownFailure = {
+          MAILBOX_ALIAS_INVALID: [
+            'action.access.mailbox.invalidAlias',
+            'Use an alias of 2–64 lowercase letters, numbers, dots, underscores or hyphens.',
+          ],
+          MAILBOX_PASSWORD_INVALID: [
+            'action.access.mailbox.invalidPassword',
+            'Use a password of 12–128 characters without line breaks.',
+          ],
+          MAILBOX_QUOTA_INVALID: [
+            'action.access.mailbox.invalidQuota',
+            'Enter a valid mailbox quota.',
+          ],
+          PORTAL_USER_INACTIVE: [
+            'action.access.mailbox.userInactive',
+            'A portal user with this email is archived. Restore it explicitly before linking this mailbox.',
+          ],
+          MAIL_IDENTITY_COLLISION: [
+            'action.access.mailbox.identityCollision',
+            'This mailbox conflicts with an existing portal identity and was not linked.',
+          ],
+          MAIL_IDENTITY_RELINK_REQUIRES_EXPLICIT_ACTION: [
+            'action.access.mailbox.relinkRequired',
+            'This email was linked to a different Stalwart account. An explicit relink is required.',
+          ],
+        }[error.message];
+        if (knownFailure)
+          return actionFail(409, knownFailure[0] as `action.${string}`, {}, knownFailure[1]);
+      }
       return withIdentityContext(error, { identityScope: 'userStatus' });
     } finally {
       opened.context.sqlite.close();

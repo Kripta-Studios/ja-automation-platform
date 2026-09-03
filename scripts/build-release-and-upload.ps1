@@ -90,6 +90,9 @@ try {
 
   Invoke-PinnedPnpm @('install', '--frozen-lockfile')
   if (-not $SkipQualityGates) {
+    # A clean clone has no generated Next.js declarations. Generate them before
+    # the recursive typecheck so static image and route imports resolve.
+    Invoke-PinnedPnpm @('--filter', '@ja/site', 'exec', 'next', 'typegen')
     # Do not gate a deployable release on repo-wide hygiene checks. HEAD contains
     # tracked orchestration/traces/scratch artifacts outside the release archive;
     # typechecking and the three production builds below remain blocking gates.

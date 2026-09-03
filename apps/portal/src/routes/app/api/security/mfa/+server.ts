@@ -308,8 +308,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         database.sqlite.close();
       }
     })();
-    if (before.mfaRequired === 1)
-      return json({ error: 'Your organization requires MFA' }, { status: 403 });
     const disableResult = await auth.api.disableTwoFactor(
       managedMfaCall({ body: { password: passwordValue }, headers, returnHeaders: true }),
     );
@@ -321,7 +319,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         { method: 'totp', sessionId, outcome: 'disabled' },
         (sqlite, updatedAt) => {
           const changed = sqlite
-            .prepare('UPDATE user SET mfa_enrolled=0,updated_at=?,version=version+1 WHERE id=?')
+            .prepare(
+              'UPDATE user SET mfa_enrolled=0,mfa_required=0,updated_at=?,version=version+1 WHERE id=?',
+            )
             .run(updatedAt, userId);
           if (Number(changed.changes) !== 1) throw new Error('MFA_PROJECTION_UPDATE_FAILED');
         },

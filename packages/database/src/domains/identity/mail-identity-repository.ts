@@ -175,7 +175,7 @@ export class MailIdentityRepository {
               `INSERT INTO user(
                  id,name,email,email_verified,role,status,mfa_enrolled,mfa_required,
                  created_at,updated_at,version
-               ) VALUES(?,?,?,1,?,'active',0,1,?,?,1)`,
+               ) VALUES(?,?,?,1,?,'active',0,0,?,?,1)`,
             )
             .run(
               userId,
@@ -200,13 +200,13 @@ export class MailIdentityRepository {
           const mustUpdate =
             (isOwner && (existing.status !== 'active' || existing.role !== 'owner_admin')) ||
             (!isOwner && auditAction === 'mailbox.provision' && existing.role !== nextRole) ||
-            existing.mfa_required !== 1;
+            existing.mfa_required !== 0;
           if (mustUpdate) {
             if (!isOwner && existing.status !== 'active') throw new Error('PORTAL_USER_INACTIVE');
             this.sqlite
               .prepare(
                 `UPDATE user SET role=?,status=CASE WHEN lower(email)=? THEN 'active' ELSE status END,
-                   email_verified=1,mfa_required=1,offboarded_at=CASE WHEN lower(email)=? THEN NULL ELSE offboarded_at END,
+                   email_verified=1,mfa_required=0,offboarded_at=CASE WHEN lower(email)=? THEN NULL ELSE offboarded_at END,
                    updated_at=?,version=version+1 WHERE id=?`,
               )
               .run(nextRole, CANONICAL_OWNER_EMAIL, CANONICAL_OWNER_EMAIL, now, userId);
@@ -237,12 +237,19 @@ export class MailIdentityRepository {
         if (collision.some((row) => row.user_id !== userId))
           throw new Error('MAIL_IDENTITY_COLLISION');
         const existingIdentity = this.sqlite
-          .prepare('SELECT stalwart_account_id,email FROM mail_identity WHERE user_id=?')
-          .get(userId) as { stalwart_account_id: string; email: string } | undefined;
+          .prepare('SELECT stalwart_account_id,email,status FROM mail_identity WHERE user_id=?')
+          .get(userId) as
+          | { stalwart_account_id: string; email: string; status: 'active' | 'archived' }
+          | undefined;
+        const mayRelinkArchivedIdentity =
+          auditAction === 'mailbox.provision' &&
+          existingIdentity?.status === 'archived' &&
+          existingIdentity.email === email;
         if (
           existingIdentity &&
           (existingIdentity.stalwart_account_id !== mailbox.stalwartAccountId ||
-            existingIdentity.email !== email)
+            existingIdentity.email !== email) &&
+          !mayRelinkArchivedIdentity
         )
           throw new Error('MAIL_IDENTITY_RELINK_REQUIRES_EXPLICIT_ACTION');
         this.sqlite

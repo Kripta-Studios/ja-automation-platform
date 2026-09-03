@@ -216,8 +216,12 @@ describe('portal i18n coverage contract', () => {
 
     const EnglishResidue =
       /\b(?:the|and|from|with|this|that|your|every|run|confidence|before|after|only|available|field|work|workspace|daily|action|report|project|worker|record|change|save|delete|source|read|write|verify|continue|sign|secure|password|identity|server|summary|history|details|contains|retained|stream|drafts|customer|copy|update|create|archive|confirm|return|print|generate|preview|language|optional|linked|flag|system|machine|station|line|equipment|tasks|completed|minutes|start|end|date|email|name|description|amount|currency|quantity|period|category|type|basis|unassigned|protected|pending|rejected|issued|paid|overdue|queued|running|ready|failed|blocked|preferred|travel|materials|accommodation|meals|invoice|accounting|document|milestone|labor|processing|locked|suspended|offboarded|paused|closing|restore|credited|quarantined|clean|offline|support|what|why|one|immediately|production|credentials|company|due|workforce|capabilities|scope|through|week|time)\b/i;
+    const requiredControlTokens = new Set([
+      'Type DELETE, followed by a space and the exact email shown below, to confirm deletion',
+    ]);
     const residues = coverageKeys
       .filter((key) => !INVARIANT_TRANSLATION_KEYS.has(key) && !isCoverageInvariantKey(key))
+      .filter((key) => !requiredControlTokens.has(key))
       .filter(
         (key) =>
           EnglishResidue.test(portalCatalog.es[key]) || EnglishResidue.test(portalCatalog.pt[key]),

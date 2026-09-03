@@ -8,8 +8,8 @@ The deployment does not run a seed, does not use `drizzle-kit push`, and does no
 invoice issue or send. The scheduled jobs may create drafts, PDFs, reports and Accounting Pack
 artifacts, but external delivery is handled only by the configured signed outbox adapter.
 
-The supported deployment uses Better Auth sessions with MFA. The first owner is provisioned once by
-the operator; when the live Stalwart integration is enabled, the current mailboxes are idempotently
+The supported deployment uses Better Auth sessions with optional user-managed MFA. The first owner
+is provisioned once by the operator; when the live Stalwart integration is enabled, the current mailboxes are idempotently
 linked to portal identities as `worker`, except the canonical `antonny.luty@j-aautomation.com`,
 which is always the sole `owner_admin`. Invitations remain available for identities without a
 mailbox. No seed, shared account or passwordless role switch is enabled. See
@@ -55,9 +55,13 @@ is in [docs/DEPLOYMENT_VPS.md](../docs/DEPLOYMENT_VPS.md).
    mail, set `JA_MAIL_AUTH_ENABLED=true`, `JA_IMAP_HOST=mx1.j-aautomation.com`,
    `JA_IMAP_PORT=993`, `JA_IMAP_SERVERNAME=mx1.j-aautomation.com`,
    `JA_IMAP_TLS_REJECT_UNAUTHORIZED=true`, `JA_STALWART_JMAP_URL=https://mx1.j-aautomation.com/jmap`,
-   `JA_STALWART_DOMAIN=j-aautomation.com` and
+   `JA_STALWART_DOMAIN=j-aautomation.com`,
+   `JA_STALWART_EXCLUDED_USERNAMES=jaautomation-provisioner` and
    `JA_STALWART_TOKEN_FILE=/run/secrets/stalwart-mail-provisioner.token`.
-5. Create the dedicated least-privilege Stalwart service key interactively at
+5. Create the dedicated `jaautomation-provisioner@j-aautomation.com` non-human User account with
+   Tenant `None`, built-in role `User`, account permissions set to **Merge** plus the seven
+   domain/account management permissions documented in the main runbook, and an API key set to
+   **Inherit**. Install that key interactively at
    `/etc/jaautomation/secrets/stalwart-mail-provisioner.token`, owned by `root:10001` and mode
    `0640` or stricter. Never place the key or an administrator password in the environment, CLI,
    release archive or repository. See the detailed preflight and permission list in

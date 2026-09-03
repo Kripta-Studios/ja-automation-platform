@@ -56,7 +56,7 @@ beforeAll(() => {
   database.sqlite
     .prepare(
       `INSERT INTO user(id,name,email,email_verified,role,status,mfa_enrolled,mfa_required,created_at,updated_at,version)
-     VALUES(?,?,?,1,'owner_admin','active',0,1,?,?,1)`,
+     VALUES(?,?,?,1,'owner_admin','active',0,0,?,?,1)`,
     )
     .run(ownerId, 'Antonny Luty', 'antonny.luty@j-aautomation.com', now, now);
   database.sqlite
@@ -73,7 +73,7 @@ beforeAll(() => {
       'owner-session',
       'owner-token',
       ownerId,
-      new Date(Date.now() + 60_000).toISOString(),
+      new Date(Date.now() + 10 * 60_000).toISOString(),
       now,
       now,
       now,
@@ -103,12 +103,12 @@ describe('live Stalwart mail directory provisioning', () => {
       .prepare('SELECT email,role,status,mfa_required FROM user ORDER BY email')
       .all();
     expect(users).toEqual([
-      { email: 'ana.silva@j-aautomation.com', role: 'worker', status: 'active', mfa_required: 1 },
+      { email: 'ana.silva@j-aautomation.com', role: 'worker', status: 'active', mfa_required: 0 },
       {
         email: 'antonny.luty@j-aautomation.com',
         role: 'owner_admin',
         status: 'active',
-        mfa_required: 1,
+        mfa_required: 0,
       },
     ]);
     expect(
@@ -144,7 +144,7 @@ describe('live Stalwart mail directory provisioning', () => {
     ).rejects.toThrow('MAILBOX_NOT_FOUND_IN_STALWART');
   });
 
-  it('preserves an explicit non-worker role while enforcing bootstrap security flags', async () => {
+  it('preserves an explicit non-worker role while keeping MFA optional', async () => {
     database.sqlite
       .prepare(
         "UPDATE user SET role='project_manager',mfa_required=0 WHERE email='ana.silva@j-aautomation.com'",
@@ -155,7 +155,7 @@ describe('live Stalwart mail directory provisioning', () => {
       database.sqlite
         .prepare("SELECT role,mfa_required FROM user WHERE email='ana.silva@j-aautomation.com'")
         .get(),
-    ).toEqual({ role: 'project_manager', mfa_required: 1 });
+    ).toEqual({ role: 'project_manager', mfa_required: 0 });
   });
 
   it('assigns a unique non-Webmail surrogate to every delegated worker', async () => {
@@ -250,6 +250,7 @@ describe('live Stalwart mail directory provisioning', () => {
 
   it('does not reactivate a portal link archived by an explicit Owner action', async () => {
     const original = mailboxes[1]!;
+    const recreated = { ...original, id: 'stalwart-explicitly-recreated' };
     const archivedAt = new Date().toISOString();
     database.sqlite
       .prepare("UPDATE mail_identity SET status='archived',archived_at=? WHERE email=?")
@@ -264,10 +265,28 @@ describe('live Stalwart mail directory provisioning', () => {
       expect(
         database.sqlite.prepare('SELECT role,status FROM user WHERE email=?').get(original.email),
       ).toEqual({ role: 'project_manager', status: 'active' });
+
+      mailboxes.splice(1, 1, recreated);
+      await provisionMailboxUsers(
+        database.sqlite,
+        principal,
+        { emails: [recreated.email], role: 'worker' },
+        { stalwart },
+      );
+      expect(
+        database.sqlite
+          .prepare(
+            'SELECT stalwart_account_id stalwartAccountId,status FROM mail_identity WHERE email=?',
+          )
+          .get(recreated.email),
+      ).toEqual({ stalwartAccountId: recreated.id, status: 'active' });
     } finally {
+      mailboxes.splice(1, 1, original);
       database.sqlite
-        .prepare("UPDATE mail_identity SET status='active',archived_at=NULL WHERE email=?")
-        .run(original.email);
+        .prepare(
+          "UPDATE mail_identity SET stalwart_account_id=?,status='active',archived_at=NULL WHERE email=?",
+        )
+        .run(original.id, original.email);
     }
   });
 

@@ -201,6 +201,7 @@ JA_IMAP_TIMEOUT_MS=4000
 JA_IMAP_TLS_REJECT_UNAUTHORIZED=true
 JA_STALWART_JMAP_URL=https://mx1.j-aautomation.com/jmap
 JA_STALWART_DOMAIN=j-aautomation.com
+JA_STALWART_EXCLUDED_USERNAMES=jaautomation-provisioner
 JA_STALWART_TOKEN_FILE=/run/secrets/stalwart-mail-provisioner.token
 ```
 
@@ -212,6 +213,8 @@ Stalwart cannot be reached. The portal must never silently show an old/static ac
 
 Run the following as an authorized root/operator before installing or upgrading the release. These
 checks print paths and status only; they do not print the key, a password, hashes or mailbox data.
+An operator using `sudo` must first open a root login shell with `sudo -i` and run the complete
+block there; the initial UID check deliberately fails if privilege elevation was skipped.
 
 ```bash
 set -euo pipefail
@@ -254,16 +257,12 @@ intentionally fails closed if the required secret source is absent.
 
 ### Stalwart service principal and API key
 
-Create a dedicated non-human Stalwart service principal/API key in the Stalwart WebAdmin for the
-portal integration. Use the WebAdmin's API-key/principal management page for this installed
-version and record only the principal name, creation time and rotation owner in the operator's
-secret inventory. Do not reuse the Stalwart administrator credential or a personal key.
-
-The key's allowlist must be exactly the capabilities required by the Owner-controlled mailbox
-workflow:
+Create a dedicated non-human **User Account** named `jaautomation-provisioner` in the
+`j-aautomation.com` domain. Leave Tenant as `None`, assign only the built-in `User` role and do
+not add it to groups. On the account, set permission handling to **Merge** and add exactly these
+seven management capabilities:
 
 ```text
-authenticate
 sysDomainGet
 sysDomainQuery
 sysAccountGet
@@ -272,6 +271,19 @@ sysAccountCreate
 sysAccountUpdate
 sysAccountDestroy
 ```
+
+The effective `authenticate` capability is inherited from the built-in `User` role. Do not change
+the account permission mode to **Replace**: on Stalwart `0.16.19`, a key that can invoke
+`sysAccountCreate` but cannot grant the default User capabilities may list accounts successfully
+while account creation fails as unauthorized. Under the service account, create its API key with
+permission handling set to **Inherit**. Record only the principal/key description, creation time
+and rotation owner in the operator's secret inventory. Do not reuse an administrator account,
+administrator-owned API key or personal credential.
+
+Set `JA_STALWART_EXCLUDED_USERNAMES=jaautomation-provisioner` so the non-human principal never
+appears as an available mailbox. A temporary password may be used only to enter the service
+account and create its API key; remove that Password credential after the new API key has passed
+the portal read/create smoke test. Removing the password does not revoke the API key.
 
 Scope it to `j-aautomation.com` if the Stalwart installation supports resource/domain scoping;
 otherwise the application must enforce the domain on every request and reject any other domain or
@@ -283,9 +295,10 @@ UI, the key may be issued without `sysAccountDestroy` until that feature is revi
 delete later requires a key rotation or capability update and a fresh smoke test.
 
 After generating the key, install it through the protected file procedure above. Rotate by creating
-a replacement key first, replacing the file interactively, restarting only the portal service,
-checking the authenticated Owner directory flow, and revoking the old key in Stalwart. Never
-delete the old key before the replacement has been tested, and never print either value.
+a replacement key first, replacing the file interactively, recreating only the portal container,
+checking the authenticated Owner directory read and a uniquely named disposable create flow, and
+then revoking the old key in Stalwart. Never restart Stalwart for a portal-key change, never delete
+the old key before the replacement has been tested, and never print either value.
 
 ### Fresh install and upgrade sequence
 
@@ -416,11 +429,12 @@ failed JMAP write must not be reported as success.
 Use a real Owner account and one non-Owner mailbox selected for the test. Capture timestamps,
 release SHA, HTTP status and redacted UI results only:
 
-1. Sign in at `https://j-aautomation.com/j-aautomation/app/login` as
-   `antonny.luty@j-aautomation.com` with the existing demo password `antonny.luty`; confirm the
-   normal Better Auth session and MFA policy still apply.
+1. Sign in at `https://j-aautomation.com/j-aautomation/app/login` as the canonical Owner using an
+   existing authorized credential. Confirm the normal Better Auth session succeeds and that MFA
+   enrollment remains optional unless the user explicitly enables it. Never put a real or example
+   production password in this runbook.
 2. Sign out, then sign in as the same Owner with the real Webmail password; confirm IMAPS fallback
-   succeeds and the local demo password still remains valid. Do not record the password.
+   succeeds. Do not record the password.
 3. In Projects → Team → Buzones, confirm the live account count and aliases match the current
    Stalwart directory without exposing credentials. Select two non-Owner accounts, provision them
    as `worker`, refresh and confirm both appear in worker/project assignment selectors.
@@ -563,10 +577,9 @@ sudo journalctl -u jaautomation-backup.service -n 100 --no-pager
 df -h /
 ```
 
-The current jobs status is a known open incident: the timer is active but the last service result
-is `exit-code`. Do not hide that result with a manual portal action or report the job pipeline as
-healthy until the service actor/binding, logs, queued work and two consecutive timer runs have
-been verified.
+Do not report the job pipeline as healthy until the timer is active, the latest service result is
+`success`, recent `jobs.cycle` events contain no errors and two consecutive timer runs have been
+verified.
 
 The transition summary contains no jobs-service, `JA_JOB_ACTOR_ID`, service-actor or binding
 evidence, and the current read-only SSH account cannot inspect the systemd journal or

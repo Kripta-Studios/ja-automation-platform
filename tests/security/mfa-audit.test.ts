@@ -199,6 +199,39 @@ describe('MFA canonical audit boundary', () => {
     });
   });
 
+  it('allows a legacy required-MFA identity to disable MFA and clears the stale requirement', async () => {
+    const database = createDatabase();
+    try {
+      database.sqlite
+        .prepare("UPDATE user SET mfa_enrolled=1,mfa_required=1 WHERE id='owner'")
+        .run();
+    } finally {
+      database.sqlite.close();
+    }
+    authMocks.disableTwoFactor.mockImplementation(async () => {
+      const opened = createDatabase();
+      try {
+        opened.sqlite.prepare("UPDATE user SET two_factor_enabled=0 WHERE id='owner'").run();
+        opened.sqlite.prepare("DELETE FROM two_factor WHERE user_id='owner'").run();
+      } finally {
+        opened.sqlite.close();
+      }
+      return { status: true };
+    });
+
+    const response = await POST(event('disable', { password: 'a-strong-password' }));
+
+    expect(response.status).toBe(200);
+    const opened = createDatabase();
+    try {
+      expect(
+        opened.sqlite.prepare("SELECT mfa_enrolled,mfa_required FROM user WHERE id='owner'").get(),
+      ).toMatchObject({ mfa_enrolled: 0, mfa_required: 0 });
+    } finally {
+      opened.sqlite.close();
+    }
+  });
+
   it('restores Better Auth and local projections when setup audit fails', async () => {
     authMocks.enableTwoFactor.mockImplementation(async () => {
       const database = createDatabase();

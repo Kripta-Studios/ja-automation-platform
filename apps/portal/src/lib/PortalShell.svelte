@@ -3235,7 +3235,7 @@
             </div>
             <p class="form-help">
               {translate(
-                'Production accounts require a second factor. Enabling MFA returns the setup URI and one-time recovery codes; store them in an approved password manager.',
+                'MFA is optional. Enabling it returns the setup URI and one-time recovery codes; store them in an approved password manager.',
               )}
             </p>
             <label
@@ -3251,7 +3251,7 @@
               <button type="button" onclick={() => toggleMfa('enable')}
                 >{translate('Enable MFA')}</button
               >
-              {#if data.user.mfaEnrolled && !data.user.mfaRequired}<button
+              {#if data.user.mfaEnrolled}<button
                   type="button"
                   class="secondary"
                   onclick={() => toggleMfa('disable')}>{translate('Disable MFA')}</button

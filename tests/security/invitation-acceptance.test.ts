@@ -163,7 +163,7 @@ describe('Client Essential invitation acceptance', () => {
     expect(authMocks.signUpEmail).not.toHaveBeenCalled();
   });
 
-  it('activates only the returned invited identity, finalizes once, requires MFA, and audits as system', async () => {
+  it('activates only the returned invited identity, finalizes once, keeps MFA optional, and audits as system', async () => {
     seedInvitation({ role: 'finance_admin' });
     authMocks.signUpEmail.mockImplementationOnce(async ({ body }) => {
       expect(body).toEqual({ name: 'Invited User', email, password });
@@ -184,7 +184,7 @@ describe('Client Essential invitation acceptance', () => {
         role: 'finance_admin',
         status: 'active',
         email_verified: 1,
-        mfa_required: 1,
+        mfa_required: 0,
         version: 2,
       });
       const invitation = sqlite

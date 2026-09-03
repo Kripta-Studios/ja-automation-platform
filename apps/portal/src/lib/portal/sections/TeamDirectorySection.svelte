@@ -1,7 +1,8 @@
 <script lang="ts">
   import { enhance, type ActionResult, type SubmitFunction } from '$app/forms';
   import { base } from '$app/paths';
-  import { SvelteMap, SvelteSet } from 'svelte/reactivity';
+  import { page } from '$app/stores';
+  import { SvelteSet } from 'svelte/reactivity';
   import { ResponsiveSheet, SectionCard, StatusBadge, formValidation } from '../ui';
   import type { PortalRow } from '../portal-data';
 
@@ -58,7 +59,9 @@
     controlledValue,
   }: TeamDirectoryProps = $props();
 
-  let activeTab = $state<'specialists' | 'mailboxes'>('specialists');
+  let activeTab = $derived<'specialists' | 'mailboxes'>(
+    $page.url.searchParams.get('directory') === 'mailboxes' ? 'mailboxes' : 'specialists',
+  );
   let search = $state('');
   let showAll = $state(false);
   let editingWorkerId = $state<string | null>(null);
@@ -70,7 +73,9 @@
   let creatingMailbox = $state(false);
   let filterProvisioned = $state<'all' | 'available' | 'provisioned'>('all');
   let identityPassword = $state('');
-  const externalCommandKeys = new SvelteMap<string, string>();
+  // These keys do not drive UI state. Keeping the cache non-reactive also avoids
+  // mutating reactive state while mailbox forms are being rendered.
+  const externalCommandKeys: Record<string, string> = {};
 
   type MailboxActionStatus = 'idle' | 'pending' | 'success' | 'error';
   type MailboxActionState = { status: MailboxActionStatus; action: string; message: string };
@@ -289,10 +294,10 @@
 
   function externalCommandKey(action: string, target: string): string {
     const key = `${action}:${target}`;
-    const existing = externalCommandKeys.get(key);
+    const existing = externalCommandKeys[key];
     if (existing) return existing;
     const created = globalThis.crypto.randomUUID();
-    externalCommandKeys.set(key, created);
+    externalCommandKeys[key] = created;
     return created;
   }
 
@@ -316,6 +321,10 @@
     if (result.type === 'redirect') return translate('Mailbox operation completed.');
     if (result.data && typeof result.data === 'object') {
       const data = result.data as Record<string, unknown>;
+      if (typeof data.messageKey === 'string') {
+        const localized = translate(data.messageKey);
+        if (localized !== data.messageKey) return localized;
+      }
       if (typeof data.message === 'string' && data.message.trim()) return data.message;
     }
     return result.type === 'success'
@@ -332,7 +341,7 @@
           action === 'createMailboxAccount'
             ? 'new'
             : String(new FormData(formElement).get('stalwartAccountId') ?? 'new');
-        externalCommandKeys.delete(`${action}:${target || 'new'}`);
+        delete externalCommandKeys[`${action}:${target || 'new'}`];
         mailboxAction = { status: 'success', action, message: actionMessage(result) };
         if (action === 'createMailboxAccount' || action === 'updateMailboxPassword')
           formElement.reset();
@@ -411,9 +420,9 @@
 
   {#if canManageMailboxDirectory}
     <div class="team-directory__tabs" role="tablist" aria-label={translate('Team directory views')}>
-      <button
+      <a
         id="team-tab-specialists"
-        type="button"
+        href="?view=team&directory=specialists"
         role="tab"
         aria-selected={activeTab === 'specialists'}
         aria-controls={activeTab === 'specialists' ? 'team-panel-specialists' : undefined}
@@ -426,10 +435,10 @@
         <span>{translate('Specialists')}</span><span class="team-directory__tab-count"
           >{visibleWorkers.length}</span
         >
-      </button>
-      <button
+      </a>
+      <a
         id="team-tab-mailboxes"
-        type="button"
+        href="?view=team&directory=mailboxes"
         role="tab"
         aria-selected={activeTab === 'mailboxes'}
         aria-controls={activeTab === 'mailboxes' ? 'team-panel-mailboxes' : undefined}
@@ -443,7 +452,7 @@
           class="team-directory__tab-count"
           aria-label={translate('Mailbox count')}>{mailboxCountLabel}</span
         >
-      </button>
+      </a>
     </div>
   {/if}
 
@@ -946,6 +955,29 @@
               {@const email = mailboxEmail(mailbox)}
               {@const accountId = stalwartAccountId(mailbox)}
               {@const fieldKey = `${idPrefix}-${mailboxUsername(mailbox)}`}
+              {#if mailboxIsEligible(mailbox)}
+                <form
+                  method="POST"
+                  action="?view=team&/provisionMailboxUsers"
+                  class="team-directory__inline-provision"
+                  data-mailbox-action="provisionMailboxUsers"
+                  use:enhance={enhanceMailboxForm}
+                  use:formValidation
+                >
+                  <input type="hidden" name="emails" value={email} />
+                  <input type="hidden" name="role" value="worker" />
+                  <button
+                    type="submit"
+                    class="team-directory__action"
+                    disabled={mailboxAction.status === 'pending'}
+                  >
+                    {mailboxAction.status === 'pending' &&
+                    mailboxAction.action === 'provisionMailboxUsers'
+                      ? translate('Activating…')
+                      : translate('Activate in portal')}
+                  </button>
+                </form>
+              {/if}
               <details class="team-directory__mailbox-management">
                 <summary class="team-directory__action team-directory__action--quiet"
                   >{translate('Manage mailbox')}</summary
@@ -1209,7 +1241,9 @@
                           minlength="5"
                           required
                         ></textarea><label for={`mailbox-delete-confirm-${fieldKey}`}
-                          >{translate('Type the exact email to confirm deletion')}</label
+                          >{translate(
+                            'Type DELETE, followed by a space and the exact email shown below, to confirm deletion',
+                          )}</label
                         ><input
                           id={`mailbox-delete-confirm-${fieldKey}`}
                           name="confirmation"
@@ -1523,6 +1557,7 @@
     color: var(--portal-muted, #64748b);
     font: inherit;
     font-weight: 800;
+    text-decoration: none;
     cursor: pointer;
   }
   .team-directory__tab:hover,

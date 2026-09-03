@@ -151,7 +151,7 @@ describe('real Better Auth invitation acceptance', () => {
         role: 'worker',
         status: 'active',
         email_verified: 1,
-        mfa_required: 1,
+        mfa_required: 0,
       });
       expect(
         sqlite.prepare('SELECT used_at FROM invitation WHERE id=?').get(fixture.invitationId),

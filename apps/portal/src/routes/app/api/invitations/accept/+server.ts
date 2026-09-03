@@ -208,9 +208,9 @@ export const POST: RequestHandler = async ({ request }) => {
         const now = new Date().toISOString();
         const updated = database.sqlite
           .prepare(
-            "UPDATE user SET status='active',role=?,email_verified=1,mfa_required=CASE WHEN ? IN ('owner_admin','finance_admin','project_manager','worker') THEN 1 ELSE 0 END,updated_at=?,version=version+1 WHERE id=? AND status='invited' AND lower(email)=lower(?)",
+            "UPDATE user SET status='active',role=?,email_verified=1,mfa_required=0,updated_at=?,version=version+1 WHERE id=? AND status='invited' AND lower(email)=lower(?)",
           )
-          .run(invitation.role, invitation.role, now, result.user.id, invitation.email);
+          .run(invitation.role, now, result.user.id, invitation.email);
         if (updated.changes !== 1) throw new Error('INVITATION_ACTIVATION_FAILED');
 
         const finalized = database.sqlite

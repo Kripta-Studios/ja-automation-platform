@@ -1074,11 +1074,55 @@ function titleCase(value: string): string {
  * validation messages without exposing an English fallback to users.
  */
 const actionExact: Record<string, readonly [string, string]> = {
+  'action.access.mailbox.aliasExists': [
+    'Ese alias de correo ya existe en Stalwart.',
+    'Esse alias de e-mail já existe no Stalwart.',
+  ],
   'action.access.mailbox.created': ['Buzón creado.', 'Caixa de correio criada.'],
+  'action.access.mailbox.createdLinkPending': [
+    'El buzón se creó en Stalwart, pero falta vincularlo al portal. Repite la misma creación para completar el vínculo; no se creará otro buzón.',
+    'A caixa de correio foi criada no Stalwart, mas falta vinculá-la ao portal. Repita a mesma criação para concluir o vínculo; outra caixa não será criada.',
+  ],
   'action.access.mailbox.destroyed': ['Buzón eliminado.', 'Caixa de correio excluída.'],
+  'action.access.mailbox.identityCollision': [
+    'Este buzón entra en conflicto con una identidad existente del portal y no se vinculó.',
+    'Esta caixa de correio entra em conflito com uma identidade existente do portal e não foi vinculada.',
+  ],
+  'action.access.mailbox.invalidAlias': [
+    'Usa un alias de 2 a 64 letras minúsculas, números, puntos, guiones bajos o guiones.',
+    'Use um alias de 2 a 64 letras minúsculas, números, pontos, sublinhados ou hífens.',
+  ],
+  'action.access.mailbox.invalidPassword': [
+    'Usa una contraseña de 12 a 128 caracteres sin saltos de línea.',
+    'Use uma senha de 12 a 128 caracteres sem quebras de linha.',
+  ],
+  'action.access.mailbox.invalidQuota': [
+    'Introduce una cuota de buzón válida.',
+    'Informe uma cota de caixa de correio válida.',
+  ],
   'action.access.mailbox.passwordUpdated': [
     'Contraseña de Webmail actualizada.',
     'Senha do Webmail atualizada.',
+  ],
+  'action.access.mailbox.passwordRejected': [
+    'Stalwart rechazó la contraseña. Usa una contraseña única y fuerte de al menos 16 caracteres.',
+    'O Stalwart rejeitou a senha. Use uma senha exclusiva e forte com pelo menos 16 caracteres.',
+  ],
+  'action.access.mailbox.permissionDenied': [
+    'La clave de servicio del portal no puede crear esta cuenta de Stalwart o conceder sus permisos de buzón.',
+    'A chave de serviço do portal não pode criar esta conta do Stalwart ou conceder suas permissões de caixa de correio.',
+  ],
+  'action.access.mailbox.rejected': [
+    'Stalwart rechazó la creación de la cuenta.',
+    'O Stalwart rejeitou a criação da conta.',
+  ],
+  'action.access.mailbox.relinkRequired': [
+    'Este correo estaba vinculado a otra cuenta de Stalwart. Se necesita una revinculación explícita.',
+    'Este e-mail estava vinculado a outra conta do Stalwart. É necessária uma revinculação explícita.',
+  ],
+  'action.access.mailbox.userInactive': [
+    'Ya existe un usuario archivado con este correo. Restáuralo explícitamente antes de vincular el buzón.',
+    'Já existe um usuário arquivado com este e-mail. Restaure-o explicitamente antes de vincular a caixa.',
   ],
   'action.access.mailboxes.provisioned': [
     'Buzones incorporados al portal.',

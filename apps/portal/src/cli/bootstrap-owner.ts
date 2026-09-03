@@ -72,7 +72,7 @@ try {
     .prepare(
       `INSERT INTO user(
          id,name,email,email_verified,role,status,mfa_enrolled,mfa_required,created_at,updated_at,version
-       ) VALUES(?,?,?,1,'owner_admin','active',0,1,?,?,1)`,
+       ) VALUES(?,?,?,1,'owner_admin','active',0,0,?,?,1)`,
     )
     .run(userId, name, email, now, now);
   database.sqlite
@@ -84,7 +84,7 @@ try {
     .run(randomUUID(), 'local:credential', userId, 'credential', userId, passwordHash, now, now);
   recordAuditEvent(database.sqlite, null, 'user.bootstrap', 'user', userId, {
     role: 'owner_admin',
-    mfaRequired: true,
+    mfaRequired: false,
     reason: 'Initial owner account provisioned by an operator.',
     source: 'bootstrap-cli',
   });
@@ -101,5 +101,5 @@ try {
 }
 
 console.log(
-  `Owner account created for ${email}. Sign in at ${process.env.JA_PORTAL_BASE_PATH ?? '/j-aautomation/app'}/login and enroll MFA before inviting other users.`,
+  `Owner account created for ${email}. Sign in at ${process.env.JA_PORTAL_BASE_PATH ?? '/j-aautomation/app'}/login. MFA can be enabled optionally from the profile.`,
 );

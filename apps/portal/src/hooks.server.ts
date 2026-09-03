@@ -297,23 +297,6 @@ export const handle: Handle = async ({ event, resolve }) => {
     const active = currentUser !== null;
     event.locals.session = active ? (current?.session ?? null) : null;
     event.locals.user = currentUser;
-    if (
-      active &&
-      production &&
-      currentUser?.mfaRequired &&
-      !currentUser?.mfaEnrolled &&
-      !path.endsWith('/profile') &&
-      !path.startsWith(`${portalBase}/api/security/mfa`)
-    )
-      return applySecurityHeaders(
-        new Response('MFA enrollment is required for this account', {
-          status: 403,
-          headers: { 'cache-control': 'no-store' },
-        }),
-        true,
-        path,
-        correlationId,
-      );
   } else {
     event.locals.session = null;
     event.locals.user = null;

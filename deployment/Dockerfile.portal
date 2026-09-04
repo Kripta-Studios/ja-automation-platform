@@ -33,7 +33,11 @@ FROM build AS tools
 
 FROM node:24.19.0-bookworm-slim
 ENV NODE_ENV=production PORT=5100 HOST=127.0.0.1
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates chromium && rm -rf /var/lib/apt/lists/* && useradd --system --uid 10001 --create-home jaautomation
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates chromium \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd --gid 10001 jaautomation \
+ && useradd --system --uid 10001 --gid 10001 --create-home jaautomation
 WORKDIR /app
 COPY --from=build --chown=jaautomation:jaautomation /portal ./
 COPY --from=build --chown=jaautomation:jaautomation /workspace/migrations ./migrations

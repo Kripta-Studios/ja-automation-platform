@@ -254,10 +254,12 @@ docker compose --env-file /etc/jaautomation/jaautomation.env \
 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 ```
 
-The expected host token ownership is `root:10001` (numeric group is acceptable) with mode `0640`
-or stricter. The container-side Compose secret is mounted with mode `0400` for UID `10001`.
+The expected host secret ownership is `root:10001` (numeric group is acceptable) with mode `0640`
+or stricter. The portal image fixes both its runtime UID and primary GID to `10001`; do not allow a
+distribution-assigned group ID to drift from that contract. Compose implementations may ignore
+secret-level `uid`, `gid` and `mode`, so host ownership remains authoritative.
 If the numeric group does not exist on the host, create/use a dedicated non-login group with the
-same numeric GID that the portal container uses; do not make the token world-readable. The
+same numeric GID that the portal container uses; do not make either secret world-readable. The
 operator may create the directory and edit the generated key interactively as follows:
 
 ```bash

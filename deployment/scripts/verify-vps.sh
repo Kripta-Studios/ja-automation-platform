@@ -94,6 +94,12 @@ if ! "$NODE24" --input-type=module -e '
 fi
 
 "${compose[@]}" ps
+"${compose[@]}" exec -T portal sh -lc '
+  test "$(id -u)" = 10001
+  test "$(id -g)" = 10001
+  test -r "$JA_STALWART_TOKEN_FILE" && test -s "$JA_STALWART_TOKEN_FILE"
+  test -r "$JA_SMTP_PASSWORD_FILE" && test -s "$JA_SMTP_PASSWORD_FILE"
+' || die 'The portal UID/GID or mounted mail secret permissions are invalid.'
 curl --fail --silent --show-error http://127.0.0.1:5101/j-aautomation/en >/dev/null
 curl --fail --silent --show-error http://127.0.0.1:5100/j-aautomation/app/api/health
 curl --fail --silent --show-error http://127.0.0.1:5100/j-aautomation/health/ready >/dev/null

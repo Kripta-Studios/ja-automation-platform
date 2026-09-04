@@ -184,6 +184,7 @@ portal container uses the following boundaries:
 | ------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | List/create/update/destroy mailbox accounts | `https://mx1.j-aautomation.com/jmap`       | Use JMAP `x:Account/query`, `x:Account/get` and `x:Account/set` with the restricted service key. Request only non-secret account fields; never request `credentials`. |
 | Verify a Webmail password                   | `mx1.j-aautomation.com:993` (IMAPS/TLS)    | Stalwart validates the stored hash natively, including the existing heterogeneous crypt formats. The portal never imports or derives a copy of that hash.             |
+| Deliver portal email                        | `mx1.j-aautomation.com:587` (STARTTLS)     | Authenticate as the dedicated non-human `no-reply` account. Never inject production mail anonymously through port 25 or reuse an administrator/personal credential.   |
 | Portal identity, role, status and audit     | SQLite under `/var/lib/jaautomation/data/` | Store only the Stalwart account ID/email link and portal authorization state. Issued financial/history rows remain untouched when a portal identity is offboarded.    |
 
 The path `/jmap` is intentional for this installed Stalwart `0.16.19` runtime. Some newer Stalwart
@@ -214,6 +215,9 @@ JA_STALWART_JMAP_URL=https://mx1.j-aautomation.com/jmap
 JA_STALWART_DOMAIN=j-aautomation.com
 JA_STALWART_EXCLUDED_USERNAMES=jaautomation-provisioner
 JA_STALWART_TOKEN_FILE=/run/secrets/stalwart-mail-provisioner.token
+JA_SMTP_URL=smtp://mx1.j-aautomation.com:587
+JA_SMTP_USERNAME=no-reply@j-aautomation.com
+JA_SMTP_FROM=no-reply@j-aautomation.com
 ```
 
 There is no static or fixture fallback at runtime. Local automated tests inject an in-memory
@@ -237,8 +241,12 @@ systemctl is-active --quiet stalwart.service
 test -r /etc/jaautomation/jaautomation.env
 test -r /etc/jaautomation/secrets/stalwart-mail-provisioner.token
 test -s /etc/jaautomation/secrets/stalwart-mail-provisioner.token
+test -r /etc/jaautomation/secrets/stalwart-smtp-submission.password
+test -s /etc/jaautomation/secrets/stalwart-smtp-submission.password
 stat -c 'token-file %u:%g mode=%a path=%n' \
   /etc/jaautomation/secrets/stalwart-mail-provisioner.token
+stat -c 'smtp-password-file %u:%g mode=%a path=%n' \
+  /etc/jaautomation/secrets/stalwart-smtp-submission.password
 ss -ltn | awk '$4 ~ /:993$/ { found=1 } END { exit(found ? 0 : 1) }'
 cd /opt/jaautomation/current
 docker compose --env-file /etc/jaautomation/jaautomation.env \
@@ -257,14 +265,19 @@ install -d -o root -g 10001 -m 0750 /etc/jaautomation/secrets
 sudoedit /etc/jaautomation/secrets/stalwart-mail-provisioner.token
 chown root:10001 /etc/jaautomation/secrets/stalwart-mail-provisioner.token
 chmod 0640 /etc/jaautomation/secrets/stalwart-mail-provisioner.token
+sudoedit /etc/jaautomation/secrets/stalwart-smtp-submission.password
+chown root:10001 /etc/jaautomation/secrets/stalwart-smtp-submission.password
+chmod 0640 /etc/jaautomation/secrets/stalwart-smtp-submission.password
 stat -c 'token-file %u:%g mode=%a path=%n' \
   /etc/jaautomation/secrets/stalwart-mail-provisioner.token
+stat -c 'smtp-password-file %u:%g mode=%a path=%n' \
+  /etc/jaautomation/secrets/stalwart-smtp-submission.password
 ```
 
 Do not place the value in shell history, a `docker compose -e` argument, `/etc/jaautomation/jaautomation.env`,
 the release archive or this runbook. `sudoedit` opens the file without putting its contents in the
-command line. The token file must exist before `docker compose up`; the production Compose stack
-intentionally fails closed if the required secret source is absent.
+command line. Both secret files must exist before `docker compose up`; the production Compose
+stack intentionally fails closed if either required secret source is absent.
 
 ### Stalwart service principal and API key
 
@@ -310,6 +323,21 @@ a replacement key first, replacing the file interactively, recreating only the p
 checking the authenticated Owner directory read and a uniquely named disposable create flow, and
 then revoking the old key in Stalwart. Never restart Stalwart for a portal-key change, never delete
 the old key before the replacement has been tested, and never print either value.
+
+### Stalwart SMTP submission principal
+
+Create a separate non-human **User Account** named `no-reply` in `j-aautomation.com`. Leave Tenant
+as `None`, do not assign an administrator role or group, and restrict its effective permissions to
+`authenticate` (`Sign in to the server`) and `email-send` (`Email: Send emails`). Install its
+exclusive password through `/etc/jaautomation/secrets/stalwart-smtp-submission.password`; never
+reuse the directory provisioner's API key, an administrator credential or a personal mailbox
+password. The portal authenticates only after certificate-validated STARTTLS on port 587 and
+requires `JA_SMTP_FROM` to equal `JA_SMTP_USERNAME`.
+
+Credential rotation requires creating/testing a replacement password first, atomically replacing
+the protected host file, recreating only the portal container and sending a controlled message to
+an authorized test mailbox. No Stalwart restart is required. Confirm inbox placement and retain
+only redacted authentication results; never retain full headers or the credential in evidence.
 
 ### Fresh install and upgrade sequence
 
@@ -469,6 +497,7 @@ unresolved Owner guard is a release blocker.
 ```text
 /etc/jaautomation/jaautomation.env       mode 0600, root-owned
 /etc/jaautomation/secrets/stalwart-mail-provisioner.token  root:10001, mode 0640 or stricter
+/etc/jaautomation/secrets/stalwart-smtp-submission.password  root:10001, mode 0640
 /var/lib/jaautomation/data/              SQLite database and WAL
 /var/lib/jaautomation/files/             private receipts, reports, invoices and exports
 /var/backups/jaautomation/               online backups and manifests

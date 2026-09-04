@@ -19,6 +19,8 @@ import {
 import { installB5TestDeploymentIdentity } from '../fixtures/b5-test-environment.js';
 
 const roots: string[] = [];
+const smtpUsername = 'no-reply@j-aautomation.com';
+const smtpPassword = 'test-only-password-with-adequate-length';
 let restoreDeploymentIdentity: (() => void) | undefined;
 beforeAll(() => {
   restoreDeploymentIdentity = installB5TestDeploymentIdentity();
@@ -69,6 +71,8 @@ const startTestSmtp = async (
   });
   let acceptedMessages = 0;
   let maximumDataLineBytes = 0;
+  let currentMessage: string[] = [];
+  let lastMessage: string[] = [];
   const server = net.createServer((plain) => {
     let secure = false;
     let dataMode = false;
@@ -86,18 +90,26 @@ const startTestSmtp = async (
             if (line === '.') {
               dataMode = false;
               acceptedMessages += 1;
+              lastMessage = currentMessage;
+              currentMessage = [];
               if (options.closeAfterData) socket.end('250 2.0.0 queued\r\n');
               else socket.write('250 2.0.0 queued\r\n');
             } else {
               maximumDataLineBytes = Math.max(maximumDataLineBytes, Buffer.byteLength(line));
+              currentMessage.push(line);
             }
             continue;
           }
           const command = line.toUpperCase();
           if (command.startsWith('EHLO '))
-            socket.write(secure ? '250 localhost\r\n' : '250-localhost\r\n250 STARTTLS\r\n', () => {
-              if (secure && options.closeAfterSecureHello) socket.destroy();
-            });
+            socket.write(
+              secure
+                ? '250-localhost\r\n250-AUTH PLAIN LOGIN\r\n250 8BITMIME\r\n'
+                : '250-localhost\r\n250 STARTTLS\r\n',
+              () => {
+                if (secure && options.closeAfterSecureHello) socket.destroy();
+              },
+            );
           else if (command === 'STARTTLS') {
             socket.write('220 2.0.0 ready\r\n', () => {
               socket.off('data', onData);
@@ -106,6 +118,15 @@ const startTestSmtp = async (
               secure = true;
               attach(new tls.TLSSocket(socket, { isServer: true, secureContext }));
             });
+          } else if (command.startsWith('AUTH PLAIN ')) {
+            const supplied = Buffer.from(line.slice('AUTH PLAIN '.length), 'base64').toString(
+              'utf8',
+            );
+            socket.write(
+              supplied === `\0${smtpUsername}\0${smtpPassword}`
+                ? '235 2.7.0 authenticated\r\n'
+                : '535 5.7.8 invalid credentials\r\n',
+            );
           } else if (command.startsWith('MAIL FROM:') || command.startsWith('RCPT TO:'))
             socket.write('250 2.1.0 accepted\r\n');
           else if (command === 'DATA') {
@@ -131,6 +152,7 @@ const startTestSmtp = async (
     port: address.port,
     acceptedMessages: () => acceptedMessages,
     maximumDataLineBytes: () => maximumDataLineBytes,
+    lastMessage: () => lastMessage.join('\r\n'),
     close: () => new Promise<void>((resolve) => server.close(() => resolve())),
   };
 };
@@ -371,12 +393,43 @@ describe('signed outbox mail delivery', () => {
         },
         {
           smtpUrl: `smtp://127.0.0.1:${smtp.port}`,
+          username: smtpUsername,
+          password: smtpPassword,
           rejectUnauthorized: false,
           timeoutMs: 2_000,
         },
       );
       expect(smtp.acceptedMessages()).toBe(1);
       expect(smtp.maximumDataLineBytes()).toBeLessThanOrEqual(998);
+      expect(smtp.lastMessage()).toContain('Subject: Maximum form submission');
+      expect(smtp.lastMessage()).toContain('Content-Transfer-Encoding: quoted-printable');
+      expect(smtp.lastMessage()).not.toContain('Subject: =?UTF-8?B?');
+    } finally {
+      await smtp.close();
+    }
+  });
+
+  it('fails closed when authenticated SMTP submission credentials are invalid', async () => {
+    const smtp = await startTestSmtp();
+    try {
+      await expect(
+        sendStalwartMail(
+          {
+            recipient: 'worker@j-aautomation.com',
+            subject: 'Rejected authentication',
+            body: 'Must not be accepted',
+            messageId: '<rejected-auth@j-aautomation.com>',
+          },
+          {
+            smtpUrl: `smtp://127.0.0.1:${smtp.port}`,
+            username: smtpUsername,
+            password: 'wrong-test-password',
+            rejectUnauthorized: false,
+            timeoutMs: 2_000,
+          },
+        ),
+      ).rejects.toThrow(/SMTP/u);
+      expect(smtp.acceptedMessages()).toBe(0);
     } finally {
       await smtp.close();
     }
@@ -395,6 +448,8 @@ describe('signed outbox mail delivery', () => {
           },
           {
             smtpUrl: `smtp://127.0.0.1:${smtp.port}`,
+            username: smtpUsername,
+            password: smtpPassword,
             rejectUnauthorized: false,
             timeoutMs: 100,
           },
@@ -419,6 +474,8 @@ describe('signed outbox mail delivery', () => {
           },
           {
             smtpUrl: `smtp://127.0.0.1:${smtp.port}`,
+            username: smtpUsername,
+            password: smtpPassword,
             rejectUnauthorized: false,
             timeoutMs: 2_000,
           },
@@ -443,6 +500,8 @@ describe('signed outbox mail delivery', () => {
           },
           {
             smtpUrl: `smtp://127.0.0.1:${smtp.port}`,
+            username: smtpUsername,
+            password: smtpPassword,
             rejectUnauthorized: false,
             timeoutMs: 2_000,
           },

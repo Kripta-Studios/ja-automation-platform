@@ -26,6 +26,8 @@ mailbox. No seed, shared account or passwordless role switch is enabled. See
 - `scripts/install-vps.sh` — explicit host integration; review it before running with `sudo`.
 - `scripts/verify-vps.sh` — local/HTTPS liveness, readiness and routing checks.
 - `secrets/stalwart_mail_provisioner` in Compose — read-only JMAP API key mounted only in `portal`.
+- `secrets/stalwart_smtp_submission` in Compose — exclusive non-human SMTP submission password,
+  mounted read-only only in `portal`; never reuse an administrator or personal credential.
 
 ## Host layout
 
@@ -222,14 +224,20 @@ must be generated directly on the host and must never be committed or printed):
 JA_OUTBOX_WEBHOOK_URL=https://j-aautomation.com/j-aautomation/app/api/internal/outbox-delivery
 JA_OUTBOX_WEBHOOK_SECRET=<at-least-32-random-bytes>
 JA_OUTBOX_CUTOVER_AT=<exact-current-UTC-ISO-timestamp>
-JA_SMTP_URL=smtp://mx1.j-aautomation.com:25
+JA_SMTP_URL=smtp://mx1.j-aautomation.com:587
+JA_SMTP_USERNAME=no-reply@j-aautomation.com
 JA_SMTP_FROM=no-reply@j-aautomation.com
 JA_FORM_RECIPIENT=antonny.luty@j-aautomation.com
 ```
 
-The SMTP hop is restricted in code to the local Stalwart service on port 25, requires STARTTLS with
-certificate validation, and permits only `@j-aautomation.com` envelope addresses. It does not use,
-read or modify Stalwart administrator credentials. Before enabling a previously disconnected
+Create `/etc/jaautomation/secrets/stalwart-smtp-submission.password` directly on the host as
+`root:10001` mode `0640`. It must contain only the exclusive credential for the non-human
+`no-reply@j-aautomation.com` account; Compose mounts it read-only at
+`/run/secrets/stalwart-smtp-submission.password`, and the credential must never be placed in the env
+file. The SMTP hop is restricted in code to authenticated submission through the local Stalwart
+service on port 587, requires STARTTLS with certificate validation, requires the envelope sender to
+match the authenticated corporate account, and fails closed if authentication is unavailable. It
+does not use, read or modify Stalwart administrator credentials. Before enabling a previously disconnected
 outbox, set `JA_OUTBOX_CUTOVER_AT` to the approved enablement instant. The ZIP deployer first creates
 and verifies its normal application backup, then runs `quarantine-outbox-backlog.mjs`: it reports
 aggregate counts by topic, marks every still-pending pre-cutover row with

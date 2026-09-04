@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { createDatabase } from '@ja/database';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import {
@@ -45,8 +46,13 @@ export const POST: RequestHandler = async ({ request }) => {
     const claim = claimOutboxDelivery(sqlite, parsed, claimId);
     if (claim === 'already-delivered') return new Response(null, { status: 204 });
     claimed = true;
+    const passwordFile = process.env.JA_SMTP_PASSWORD_FILE;
+    if (!passwordFile) throw new Error('SMTP password file is unavailable');
+    const smtpPassword = (await readFile(passwordFile, 'utf8')).trim();
     await sendStalwartMail(delivery, {
       smtpUrl: process.env.JA_SMTP_URL,
+      username: process.env.JA_SMTP_USERNAME,
+      password: smtpPassword,
       from: process.env.JA_SMTP_FROM,
     });
     markOutboxDelivered(sqlite, parsed, claimId);

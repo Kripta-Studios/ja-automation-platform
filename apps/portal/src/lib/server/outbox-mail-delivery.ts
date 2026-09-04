@@ -299,19 +299,54 @@ const writeLine = (socket: SmtpSocket, line: string): Promise<void> =>
     });
   });
 
-const normalizeMessageBody = (value: string): string =>
-  Buffer.from(value.replace(/\r\n|\r/gu, '\n'), 'utf8')
-    .toString('base64')
-    .match(/.{1,76}/gu)
-    ?.join('\r\n') ?? '';
+const quotedPrintableBody = (value: string): string =>
+  value
+    .replace(/\r\n|\r/gu, '\n')
+    .split('\n')
+    .flatMap((line) => {
+      const tokens = [...Buffer.from(line, 'utf8')].map((byte) =>
+        (byte >= 33 && byte <= 60) || (byte >= 62 && byte <= 126)
+          ? String.fromCharCode(byte)
+          : `=${byte.toString(16).toUpperCase().padStart(2, '0')}`,
+      );
+      if (tokens.length === 0) return [''];
+      const encoded: string[] = [];
+      let current = '';
+      for (const token of tokens) {
+        if (current.length + token.length > 75) {
+          encoded.push(`${current}=`);
+          current = '';
+        }
+        current += token;
+      }
+      encoded.push(current);
+      return encoded;
+    })
+    .map((line) => (line.startsWith('.') ? `.${line}` : line))
+    .join('\r\n');
 
 const encodedSubject = (value: string): string =>
-  `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;
+  /^[\x20-\x7E]+$/u.test(value)
+    ? value
+    : `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;
+
+const smtpCredential = (value: string | undefined, field: string, maximum: number): string => {
+  if (
+    !value ||
+    Buffer.byteLength(value, 'utf8') < 16 ||
+    value.length > maximum ||
+    /[\0\r\n]/u.test(value)
+  )
+    throw new Error(`${field} is required`);
+  return value;
+};
 
 export const sendStalwartMail = async (
   delivery: MailDelivery,
   options: Readonly<{
     smtpUrl: string | undefined;
+    username?: string | undefined;
+    password?: string | undefined;
     from?: string | undefined;
     rejectUnauthorized?: boolean | undefined;
     timeoutMs?: number | undefined;
@@ -330,14 +365,17 @@ export const sendStalwartMail = async (
     throw new Error('JA_SMTP_URL must be an uncredentialed smtp:// host URL');
   if (!['mx1.j-aautomation.com', '127.0.0.1', 'localhost'].includes(url.hostname))
     throw new Error('JA_SMTP_URL must target the local Stalwart service');
-  const port = url.port ? Number(url.port) : 25;
-  if (port !== 25 && options.rejectUnauthorized !== false)
-    throw new Error('Local Stalwart delivery must use SMTP port 25');
+  const port = url.port ? Number(url.port) : 587;
+  if (port !== 587 && options.rejectUnauthorized !== false)
+    throw new Error('Local Stalwart submission must use SMTP port 587');
   const timeoutMs = options.timeoutMs ?? SMTP_TIMEOUT_MS;
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 60_000)
     throw new Error('Invalid SMTP timeout');
   const recipient = corporateAddress(delivery.recipient, 'recipient');
   const from = corporateAddress(options.from ?? 'no-reply@j-aautomation.com', 'sender');
+  const username = corporateAddress(options.username, 'SMTP username');
+  const password = smtpCredential(options.password, 'SMTP password', 4_096);
+  if (from !== username) throw new Error('SMTP sender must match the authenticated account');
   const socketRef: { current: SmtpSocket } = {
     current: net.connect({ host: url.hostname, port }),
   };
@@ -391,7 +429,12 @@ export const sendStalwartMail = async (
     });
     reader.attach(socketRef.current);
     await writeLine(socketRef.current, 'EHLO portal.j-aautomation.com');
-    await expectCode(reader, [250]);
+    const secureHello = await expectCode(reader, [250]);
+    if (!secureHello.lines.some((line) => /^250[ -]AUTH(?:\s|$)/iu.test(line)))
+      throw new Error('Local Stalwart SMTP does not advertise authentication');
+    const authentication = Buffer.from(`\0${username}\0${password}`, 'utf8').toString('base64');
+    await writeLine(socketRef.current, `AUTH PLAIN ${authentication}`);
+    await expectCode(reader, [235]);
     await writeLine(socketRef.current, `MAIL FROM:<${from}>`);
     await expectCode(reader, [250]);
     await writeLine(socketRef.current, `RCPT TO:<${recipient}>`);
@@ -406,9 +449,9 @@ export const sendStalwartMail = async (
       `Subject: ${encodedSubject(delivery.subject)}`,
       'MIME-Version: 1.0',
       'Content-Type: text/plain; charset=UTF-8',
-      'Content-Transfer-Encoding: base64',
+      'Content-Transfer-Encoding: quoted-printable',
       '',
-      normalizeMessageBody(delivery.body),
+      quotedPrintableBody(delivery.body),
     ].join('\r\n');
     await writeLine(socketRef.current, `${message}\r\n.`);
     await expectCode(reader, [250]);

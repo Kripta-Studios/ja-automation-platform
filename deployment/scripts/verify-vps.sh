@@ -7,6 +7,7 @@ ENV_FILE=/etc/jaautomation/jaautomation.env
 COMPOSE_FILE=/opt/jaautomation/current/deployment/compose.production.yml
 NODE24=/opt/jaautomation/runtime/node/bin/node
 DATABASE_PATH=/var/lib/jaautomation/data/jaautomation.sqlite
+SMTP_PASSWORD_FILE=/etc/jaautomation/secrets/stalwart-smtp-submission.password
 
 die() {
   printf 'ERROR: %s\n' "$*" >&2
@@ -20,6 +21,9 @@ die() {
 [[ -r "$COMPOSE_FILE" ]] || die "$COMPOSE_FILE is not readable"
 [[ -x "$NODE24" ]] || die "Pinned Node 24 runtime is missing at $NODE24"
 [[ "$($NODE24 --version)" == 'v24.19.0' ]] || die 'The VPS jobs verifier requires Node v24.19.0'
+[[ -s "$SMTP_PASSWORD_FILE" ]] || die 'The SMTP submission password file is missing or empty.'
+[[ "$(stat -c '%u:%g:%a' "$SMTP_PASSWORD_FILE")" == '0:10001:640' ]] ||
+  die 'The SMTP submission password file must be root:10001 with mode 0640.'
 
 compose=(
   docker compose
@@ -42,6 +46,8 @@ if ! "$NODE24" --input-type=module -e '
     "JA_BACKUP_ENCRYPTION_KEY",
     "JA_BACKUP_SSH_KEY",
     "JA_SMTP_URL",
+    "JA_SMTP_USERNAME",
+    "JA_SMTP_PASSWORD_FILE",
   ];
   const leaked = forbidden.filter((name) => Object.hasOwn(environment, name));
   if (leaked.length) {
@@ -58,10 +64,17 @@ if ! "$NODE24" --input-type=module -e '
     Buffer.byteLength(environment.JA_OUTBOX_WEBHOOK_SECRET, "utf8") < 32
   )
     missingDelivery.push("JA_OUTBOX_WEBHOOK_SECRET");
-  if (portalEnvironment.JA_SMTP_URL !== "smtp://mx1.j-aautomation.com:25")
+  if (portalEnvironment.JA_SMTP_URL !== "smtp://mx1.j-aautomation.com:587")
     missingDelivery.push("JA_SMTP_URL");
-  if (!/@j-aautomation\.com$/u.test(portalEnvironment.JA_SMTP_FROM ?? ""))
+  if (portalEnvironment.JA_SMTP_USERNAME !== "no-reply@j-aautomation.com")
+    missingDelivery.push("JA_SMTP_USERNAME");
+  if (portalEnvironment.JA_SMTP_FROM !== portalEnvironment.JA_SMTP_USERNAME)
     missingDelivery.push("JA_SMTP_FROM");
+  if (
+    portalEnvironment.JA_SMTP_PASSWORD_FILE !==
+    "/run/secrets/stalwart-smtp-submission.password"
+  )
+    missingDelivery.push("JA_SMTP_PASSWORD_FILE");
   if (!/@j-aautomation\.com$/u.test(portalEnvironment.JA_FORM_RECIPIENT ?? ""))
     missingDelivery.push("JA_FORM_RECIPIENT");
   const cutoverAt = portalEnvironment.JA_OUTBOX_CUTOVER_AT;

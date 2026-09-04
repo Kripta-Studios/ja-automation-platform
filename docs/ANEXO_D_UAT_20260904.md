@@ -35,6 +35,7 @@ Evidencia protegida en el VPS:
 - `/var/log/jaautomation-client-ready-mail-evidence.json`
 - `/var/log/jaautomation-client-ready-mail-acceptance-20260904.json`
 - `/var/log/jaautomation-client-ready-pdf-recovery-20260904.json`
+- `/var/log/jaautomation-dkim-preflight-20260904.json`
 - `/var/log/jaautomation-anexo-d-preflight-evidence.json`
 - `/var/log/jaautomation-uat-visual-20260904-85a407c/SHA256SUMS`
 
@@ -67,9 +68,13 @@ a las 11:11 Europe/Madrid.
 ### DNS y autenticación del remitente
 
 El preflight autoritativo del 2026-09-04 observó MX hacia `mx1.j-aautomation.com`, SPF
-`v=spf1 a mx ~all`, DMARC `p=none`, autodiscover, autoconfig y SRV de Submission/IMAPS. El PTR sigue
-siendo el nombre genérico de Hetzner y no está alineado con `mx1.j-aautomation.com`; los selectores
-DKIM públicos habituales consultados no identificaron el selector autoritativo.
+`v=spf1 a mx ~all`, DMARC `p=none`, autodiscover, autoconfig y SRV de Submission/IMAPS. Stalwart
+declara gestión DKIM `Automatic`, habilita RSA-SHA256 y Ed25519-SHA256, y usa la plantilla de selector
+`v{version}-{algorithm}-{date-%Y%m%d}`. La clave restringida del portal devuelve `forbidden` al
+enumerar objetos de firma DKIM, que es el resultado correcto para su alcance de mínimo privilegio;
+no se ampliaron sus permisos. El PTR sigue siendo el nombre genérico de Hetzner y no está alineado
+con `mx1.j-aautomation.com`. Esta configuración no identifica por sí sola el selector generado ni
+demuestra su TXT público o una firma recibida externamente.
 
 - [ ] Selector DKIM autoritativo identificado y su TXT verificado.
 - [ ] Firma DKIM validada en un mensaje recibido externamente.
@@ -77,6 +82,9 @@ DKIM públicos habituales consultados no identificaron el selector autoritativo.
 - [ ] SPF y DMARC revisados y aceptados para go-live.
 
 Selector DKIM: `[pendiente]` Resultado: `[pendiente]`
+
+Referencia redacted del preflight:
+`/var/log/jaautomation-dkim-preflight-20260904.json` (`root:root`, modo `0600`).
 
 ### Envío y recepción externos
 

@@ -67,8 +67,13 @@ remain unproven, so the overall verdict cannot be marked `PASS`. See
 The current redacted acceptance evidence is
 `/var/log/jaautomation-client-ready-mail-acceptance-20260904.json` (`root:root`, mode `0600`). The
 post-deployment localized-PDF recovery and container-cleanup evidence is
-`/var/log/jaautomation-client-ready-pdf-recovery-20260904.json` (`root:root`, mode `0600`). The
-ready-to-sign human acceptance record is `docs/ANEXO_D_UAT_20260904.md`.
+`/var/log/jaautomation-client-ready-pdf-recovery-20260904.json` (`root:root`, mode `0600`).
+redacted DKIM/DNS preflight is `/var/log/jaautomation-dkim-preflight-20260904.json` (`root:root`,
+mode `0600`): Stalwart reports automatic DKIM management with RSA-SHA256 and Ed25519-SHA256 and the
+configured selector template, while the least-privilege portal key correctly receives `forbidden`
+when attempting to enumerate DKIM-signature objects. This proves the domain configuration without
+expanding portal authority; it does not prove the generated selector TXT or an externally received
+DKIM signature. The ready-to-sign human acceptance record is `docs/ANEXO_D_UAT_20260904.md`.
 
 ## Repository-grounded audit snapshot — 2026-09-01 (historical; not revalidated above)
 

@@ -18,6 +18,15 @@ completed without a failed outbox event, and the designated operator confirmed r
 `migration-test@j-aautomation.com` mailbox in **Inbox**, not Junk. The redacted acceptance record is
 `/var/log/jaautomation-client-ready-mail-acceptance-20260904.json` (`root:root`, mode `0600`).
 
+A subsequent read-only DKIM preflight confirmed that the production domain uses Stalwart's automatic
+DKIM management with both RSA-SHA256 and Ed25519-SHA256 enabled and selector template
+`v{version}-{algorithm}-{date-%Y%m%d}`. The restricted portal service key correctly cannot enumerate
+DKIM-signature objects (`forbidden`), so its permissions were not broadened for audit convenience.
+The current public records still show MX `mx1.j-aautomation.com`, SPF `v=spf1 a mx ~all`, DMARC
+`p=none`, and a generic Hetzner PTR rather than the mail hostname. The redacted evidence is
+`/var/log/jaautomation-dkim-preflight-20260904.json` (`root:root`, mode `0600`). Generated selector
+TXT and an externally received DKIM signature remain human/operator acceptance gates.
+
 The final production correction reconciles localized-PDF variants whose durable job has exhausted all
 five retries. Two historical variants moved from stale `running` to truthful `failed`/retryable state,
 with two immutable fenced attempt records. Production remained on schema 35 with `integrity_check=ok`,

@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   AccessDeniedError,
   ConflictError,
@@ -792,6 +792,83 @@ describe('localized PDF variants', () => {
       expect(repository.retryVariant(owner, variant.variantId).currentAttemptNumber).toBe(2);
     } finally {
       sqlite.close();
+    }
+  });
+
+  it('reconciles a running variant after its durable job exhausts all retries', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-22T12:00:00.000Z'));
+    const { sqlite, repository, owner } = fixture();
+    try {
+      const variant = repository.requestVariant(owner, {
+        ownerType: 'daily_report',
+        ownerId: 'daily',
+        locale: 'es',
+        templateVersion: 'daily-v1',
+        generationVersion: 'renderer-1',
+      });
+      const v3 = new V3Repository(sqlite);
+      let claimedExecution: LocalizedPdfExecution | undefined;
+      v3.enqueueJob(
+        'localized_pdf_variant_render',
+        `test-dead-letter-localized-pdf:${variant.variantId}:attempt:1`,
+        { variantId: variant.variantId, requestedAttempt: 1 },
+      );
+
+      for (let attempt = 1; attempt <= 5; attempt += 1) {
+        const result = v3.runDueJobs(1, {
+          localized_pdf_variant_render: (_payload, context) => {
+            if (attempt === 1) {
+              claimedExecution = {
+                jobId: context.jobId,
+                jobRunId: context.runId,
+                leaseFence: context.fenceVersion,
+              };
+              repository.claimVariant(variant.variantId, claimedExecution, 1);
+            }
+            throw new Error('HANDLER_FAILED');
+          },
+        });
+        expect(result).toMatchObject({ processed: 0, failed: 1 });
+        if (attempt < 5) vi.advanceTimersByTime(6 * 60 * 1000);
+      }
+
+      if (!claimedExecution) throw new Error('First durable attempt did not claim the variant');
+      expect(
+        sqlite.prepare('SELECT state,attempts FROM job WHERE id=?').get(claimedExecution.jobId),
+      ).toEqual({ state: 'dead_letter', attempts: 5 });
+      expect(
+        sqlite
+          .prepare('SELECT status FROM localized_pdf_variant WHERE variant_id=?')
+          .get(variant.variantId),
+      ).toEqual({ status: 'running' });
+
+      vi.advanceTimersByTime(60 * 60 * 1000);
+      const recovered = repository.recoverAbandonedRunning(new Date(), 5 * 60 * 1000);
+      expect(recovered).toHaveLength(1);
+      expect(recovered[0]).toMatchObject({
+        status: 'failed',
+        errorCode: 'DURABLE_JOB_DEAD_LETTER',
+        retryable: true,
+      });
+      expect(
+        sqlite
+          .prepare(
+            `SELECT job_id,job_run_id,lease_fence,outcome,failure_class
+             FROM localized_pdf_variant_attempt WHERE variant_id=?`,
+          )
+          .get(variant.variantId),
+      ).toEqual({
+        job_id: claimedExecution.jobId,
+        job_run_id: claimedExecution.jobRunId,
+        lease_fence: claimedExecution.leaseFence,
+        outcome: 'failed',
+        failure_class: 'durable_job_dead_letter',
+      });
+      expect(repository.retryVariant(owner, variant.variantId).currentAttemptNumber).toBe(2);
+    } finally {
+      sqlite.close();
+      vi.useRealTimers();
     }
   });
 

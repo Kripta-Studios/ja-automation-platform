@@ -1763,36 +1763,50 @@ export class LocalizedPdfRepository {
     return this.transaction(() => {
       const rows = this.sqlite
         .prepare(
-          `SELECT v.*,r.state durable_run_state FROM localized_pdf_variant v
+          `SELECT v.*,r.state durable_run_state,j.state durable_job_state FROM localized_pdf_variant v
+           JOIN job j ON j.id=v.claimed_job_id
            JOIN job_run r ON r.id=v.claimed_job_run_id AND r.job_id=v.claimed_job_id
+           LEFT JOIN job_run terminal_r
+             ON terminal_r.id=j.active_job_run_id AND terminal_r.job_id=j.id
            WHERE v.status='running' AND v.started_at IS NOT NULL AND v.started_at<=?
              AND (
                (r.state='lease_expired' AND r.outcome='retry_scheduled' AND r.error_code='LEASE_LOST') OR
-               (r.state='succeeded' AND r.outcome='succeeded' AND r.finished_at IS NOT NULL)
+               (r.state='succeeded' AND r.outcome='succeeded' AND r.finished_at IS NOT NULL) OR
+               (j.state='dead_letter' AND r.finished_at IS NOT NULL AND
+                terminal_r.state='failed' AND terminal_r.outcome='failed_terminal' AND
+                terminal_r.finished_at IS NOT NULL)
              )
            ORDER BY v.started_at,v.variant_id`,
         )
         .all(cutoff) as Array<
-        LocalizedPdfRow & { durable_run_state: 'lease_expired' | 'succeeded' }
+        LocalizedPdfRow & {
+          durable_run_state: 'failed' | 'lease_expired' | 'succeeded';
+          durable_job_state: 'dead_letter' | 'queued' | 'claimed' | 'succeeded';
+        }
       >;
       const recovered: LocalizedPdfVariant[] = [];
       for (const row of rows) {
         const execution = executionFromRow(row);
+        const deadLetter = row.durable_job_state === 'dead_letter';
         const leaseExpired = row.durable_run_state === 'lease_expired';
+        const errorCode = deadLetter
+          ? 'DURABLE_JOB_DEAD_LETTER'
+          : leaseExpired
+            ? 'LEASE_EXPIRED'
+            : 'FINALIZATION_INTERRUPTED';
+        const failureClass = deadLetter
+          ? 'durable_job_dead_letter'
+          : leaseExpired
+            ? 'lease_expired'
+            : 'finalization_interrupted';
         const failure: LocalizedPdfFailure = {
           attemptNumber: row.current_attempt_number,
-          errorCode: leaseExpired ? 'LEASE_EXPIRED' : 'FINALIZATION_INTERRUPTED',
+          errorCode,
           retryable: true,
-          failureClass: leaseExpired ? 'lease_expired' : 'finalization_interrupted',
+          failureClass,
           execution,
         };
-        this.insertAttempt(
-          row,
-          failure,
-          'failed',
-          leaseExpired ? 'lease_expired' : 'finalization_interrupted',
-          execution,
-        );
+        this.insertAttempt(row, failure, 'failed', failureClass, execution);
         const finishedAt = now();
         const changed = this.sqlite
           .prepare(
@@ -1803,7 +1817,7 @@ export class LocalizedPdfRepository {
                AND claimed_job_id=? AND claimed_job_run_id=? AND claimed_lease_fence=?`,
           )
           .run(
-            leaseExpired ? 'LEASE_EXPIRED' : 'FINALIZATION_INTERRUPTED',
+            errorCode,
             finishedAt,
             finishedAt,
             row.variant_id,

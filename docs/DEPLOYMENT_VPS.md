@@ -140,16 +140,20 @@ Stalwart administration remains on `127.0.0.1:8080`; it is not a public administ
 summary reports that the four mail ports were reachable externally and port 8080 was closed, but
 mailbox migration and final DNS cutover still require their own acceptance evidence.
 
-Until all mailboxes have been recreated, synchronized and validated, the production MX guard is:
+The original migration guard documented for the pre-cutover state was:
 
 ```dns
 MX j-aautomation.com 0 mail.j-aautomation.com
 A  mail.j-aautomation.com 162.241.203.71
 ```
 
-HostGator remains the source of truth for incoming mail during this transition. **Do not change the
-MX, remove `mail.j-aautomation.com`, replace the root SPF, or cancel HostGator** until the staged
-mailbox migration is complete. The planned sequence is:
+That guard is historical. A read-only DNS preflight on 2026-09-04 observed MX
+`mx1.j-aautomation.com`, `mail` and `mx1` resolving to the VPS, SPF and `p=none` DMARC records,
+autodiscover/autoconfig aliases, and Submission/IMAPS SRV records. No DNS record was changed during
+the application release. The same preflight found the VPS PTR still using its generic Hetzner name;
+the authoritative DKIM selector was not available in the application runbook. Do not infer full D.3
+acceptance from this snapshot or make further DNS/HostGator changes without the Owner's explicit mail
+migration decision. The planned migration sequence remains:
 
 1. inventory the 93 accounts and 2 forwarders;
 2. create and initially synchronize the Stalwart mailboxes;
@@ -158,7 +162,7 @@ mailbox migration is complete. The planned sequence is:
 5. run the final synchronization and validate real client send/receive behavior;
 6. retain HostGator through the agreed safety period before retirement.
 
-The summary also reports Amazon SES Frankfurt (`eu-central-1`) as the outbound relay, with the
+The historical summary also reports Amazon SES Frankfurt (`eu-central-1`) as the outbound relay, with the
 domain identity, Easy DKIM, custom MAIL FROM and `p=none` DMARC configuration in place. No SMTP,
 Stalwart or application credentials belong in this repository or this runbook. The final SES
 production approval, PTR alignment, mailbox migration, final SPF, autodiscover/autoconfig/SRV and
@@ -901,10 +905,13 @@ inventory retained above is a transition summary, not D.3 acceptance. Keep only 
 checklist, DNS query output, timestamps and message IDs; never place passwords, private keys, API
 tokens or full message contents in the repository or runbook.
 
-Application notification acceptance by Stalwart is proven, but end-recipient mailbox confirmation,
-the remaining D.1/D.3 evidence and responsible J&A/EVOCON signatures are still **PENDING**. Public
-routing, Caddy validation, a successful local backup, or mail-service queue acceptance alone must not
-be described as full contractual acceptance or `CLIENT READY`.
+Application notification acceptance by Stalwart is proven, as are the public D.1 route matrix and TLS
+handshakes on ports 25/465/587/993. Protected redacted preflight evidence is retained at
+`/var/log/jaautomation-anexo-d-preflight-evidence.json`. End-recipient mailbox confirmation,
+authoritative DKIM/PTR and external send/receive validation, content approval, Owner smoke and the
+responsible J&A/EVOCON signatures are still **PENDING**. Public routing, Caddy validation, a successful
+local backup, or mail-service queue acceptance alone must not be described as full contractual
+acceptance or `CLIENT READY`.
 
 ## References and release decision
 

@@ -18,8 +18,9 @@ Audit classifications used below: `PASS`, `PARTIAL`, `FAIL`, `BLOCKED`, `CONDITI
 
 ## Candidate qualification update — 2026-09-04
 
-**Verdict: BLOCKED — not `CLIENT READY`, solely pending human mailbox-receipt confirmation and signed
-ANEXO D UAT, including the Owner role/project-assignment smoke.** The application-to-Stalwart path is
+**Verdict: BLOCKED — not `CLIENT READY`, solely pending the human/external ANEXO D acceptance:
+mailbox-receipt confirmation, authoritative DKIM/PTR and external send/receive validation, localized
+content approval, the Owner role/project-assignment smoke, and responsible approver signatures.** The application-to-Stalwart path is
 now proven in production: a real contact submission returned HTTP `202`, Stalwart accepted the SMTP
 message and the durable inquiry/outbox state became `delivered`. The reviewed application release was
 committed, published and deployed on 2026-09-04 from
@@ -468,7 +469,9 @@ aceptación contractual ANEXO D se mantienen como gates externos separados y no 
 - [x] Production build/deployment behind Caddy works.
 - [x] A real production contact submission reaches the signed internal adapter and is accepted by
       Stalwart over validated STARTTLS, with durable `delivered` state and no replay of the legacy backlog.
-- [ ] Antonny confirms receipt of that acceptance message in the agreed mailbox and signs ANEXO D UAT.
+- [ ] Antonny confirms receipt of that acceptance message in the agreed mailbox; the responsible
+      operators verify authoritative DKIM/PTR and external send/receive; J&A approves localized
+      content, completes the Owner role/project-assignment smoke, and the approvers sign ANEXO D UAT.
 - [x] No core business flow requires a spreadsheet as the system of record.
 - [x] Project reference hours are configurable (for example 10/12/14), never become real worked
       hours, and remain independent from minimum billable hours and worker compensation.

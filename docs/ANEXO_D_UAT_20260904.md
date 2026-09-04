@@ -1,9 +1,12 @@
 # ANEXO D — Client Ready UAT
 
-Fecha de preparación: 2026-09-04  
-Rama: `codex/v3-production-completion-orchestrated-20260819`  
-Release ejecutable: `297ff28e75283d8f93d3e91127d00802ba113a49`  
-SHA-256 del ZIP desplegado: `89cce4a82b6e7a95a2c70110245488072bc8acf8487b96cd47d2e314d1236a44`
+Fecha de preparación: 2026-09-04
+
+Rama: `codex/v3-production-completion-orchestrated-20260819`
+
+Release ejecutable: `85a407ce06bd7c2fe98c63ebb669328eae04ad94`
+
+SHA-256 del ZIP desplegado: `329148440609fdd1eaa62e804dfa083a3d5efadd44e30229a9dcf4ef10b99765`
 
 Este documento registra la aceptación humana y externa que no puede ser sustituida por pruebas
 automatizadas. No adjuntar contraseñas, tokens, hashes de credenciales, cabeceras de autorización,
@@ -14,7 +17,9 @@ respuestas JMAP completas ni contenido privado de correo.
 - [x] Web pública, portal y health: HTTP 200; readiness privada externa: HTTP 404.
 - [x] Rutas EN/ES/PT de Home, Contact y Careers: HTTP 200.
 - [x] Formulario real de Contact: HTTP 202.
-- [x] Evento del formulario aceptado por Stalwart y persistido como `delivered`.
+- [x] Evento del formulario aceptado mediante STARTTLS Submission autenticado y persistido como
+      `delivered`.
+- [x] Recepción confirmada por el operador en `migration-test@j-aautomation.com`, con ubicación Inbox.
 - [x] STARTTLS/TLS válido en SMTP 25, SMTPS 465, Submission 587 e IMAPS 993.
 - [x] SQLite schema 35, `integrity_check=ok`, cero violaciones FK y un único Owner activo.
 - [x] Jobs automáticos, timers, Caddy, portal, site, Stalwart y Roundcube operativos.
@@ -26,7 +31,9 @@ Evidencia protegida en el VPS:
 
 - `/var/log/jaautomation-client-essential-operations-evidence.json`
 - `/var/log/jaautomation-client-ready-mail-evidence.json`
+- `/var/log/jaautomation-client-ready-mail-acceptance-20260904.json`
 - `/var/log/jaautomation-anexo-d-preflight-evidence.json`
+- `/var/log/jaautomation-uat-visual-20260904-85a407c/SHA256SUMS`
 
 ## D.1 — Aceptación de web y contenido
 
@@ -36,33 +43,37 @@ secciones legales, además de las versiones EN/ES/PT.
 
 - [ ] Contenido e imágenes aprobados por J&A.
 - [ ] Navegación, formularios y textos localizados aprobados por J&A.
-- [ ] Evidencia visual o referencia al paquete de capturas/trace adjunta.
+- [x] Evidencia visual técnica adjunta: 124 capturas del sitio desplegado en EN/ES/PT a 360, 390,
+      768 y 1440 px, más login del portal; manifiesto en
+      `/var/log/jaautomation-uat-visual-20260904-85a407c/SHA256SUMS`.
 
-Observaciones o referencia de evidencia: ************************\_************************
+Observaciones o referencia de evidencia: `[pendiente de aprobación J&A]`
 
 ## D.3 — Aceptación de correo
 
 ### Recepción de la notificación de aplicación
 
-Buscar en el buzón acordado el mensaje de prueba con asunto `New website contact request`, generado
-el 2026-09-04 aproximadamente a las 03:45 Europe/Madrid.
+Se usó el buzón de aceptación `migration-test@j-aautomation.com` conforme a la instrucción del Owner.
+El mensaje de prueba con asunto `New website contact request` se generó el 2026-09-04 aproximadamente
+a las 11:11 Europe/Madrid.
 
-- [ ] Antonny confirma que el mensaje llegó al buzón esperado.
-- Fecha/hora observada: ********\_\_\_\_********
-- Identificador no secreto o referencia redacted: ********\_\_\_\_********
+- [x] El operador confirma que el mensaje llegó al buzón esperado y quedó en Inbox, no Junk.
+- Fecha/hora observada: 2026-09-04; la hora exacta mostrada por Webmail no se registró.
+- Referencia redacted: `/var/log/jaautomation-client-ready-mail-acceptance-20260904.json`.
 
 ### DNS y autenticación del remitente
 
-El preflight ya observó MX hacia `mx1.j-aautomation.com`, SPF, DMARC `p=none`, autodiscover,
-autoconfig y SRV de Submission/IMAPS. El PTR observado seguía siendo el nombre genérico de Hetzner y
-el selector DKIM autoritativo no estaba documentado.
+El preflight autoritativo del 2026-09-04 observó MX hacia `mx1.j-aautomation.com`, SPF
+`v=spf1 a mx ~all`, DMARC `p=none`, autodiscover, autoconfig y SRV de Submission/IMAPS. El PTR sigue
+siendo el nombre genérico de Hetzner y no está alineado con `mx1.j-aautomation.com`; los selectores
+DKIM públicos habituales consultados no identificaron el selector autoritativo.
 
 - [ ] Selector DKIM autoritativo identificado y su TXT verificado.
 - [ ] Firma DKIM validada en un mensaje recibido externamente.
 - [ ] PTR alineado con el hostname de correo aprobado, o excepción formalmente aceptada.
 - [ ] SPF y DMARC revisados y aceptados para go-live.
 
-Selector DKIM: ********\_\_\_\_******** Resultado: ********\_\_\_\_********
+Selector DKIM: `[pendiente]` Resultado: `[pendiente]`
 
 ### Envío y recepción externos
 
@@ -73,7 +84,7 @@ registrar solo dirección redacted, fecha/hora, resultado e identificador no sec
 - [ ] Respuesta desde el proveedor externo recibida correctamente en J&A Webmail.
 - [ ] Alias/forwarders e histórico migrado validados conforme al alcance contractual acordado.
 
-Referencia de envío: ********\_\_\_\_******** Referencia de recepción: ********\_\_\_\_********
+Referencia de envío: `[pendiente]` Referencia de recepción: `[pendiente]`
 
 ## Owner smoke — portal y asignaciones
 
@@ -85,7 +96,7 @@ Antonny debe iniciar sesión con su cuenta real, sin compartir la contraseña, y
 - [ ] Una asignación de prueba puede revisarse o realizarse según el procedimiento acordado.
 - [ ] El directorio de buzones carga y las acciones autorizadas muestran mensajes comprensibles.
 
-Observaciones: ************************************\_\_************************************
+Observaciones: `[pendiente del smoke del Owner]`
 
 ## Decisión y firmas
 
@@ -93,14 +104,14 @@ Observaciones: ************************************\_\_*************************
 - [ ] J&A/EVOCON acepta D.3.
 - [ ] Los aprobadores declaran el release `CLIENT READY`.
 
-Nombre y cargo — J&A: ****************\_\_\_\_**************** Fecha: ********\_\_\_\_********
+Nombre y cargo — J&A: `[pendiente]` Fecha: `[pendiente]`
 
-Firma — J&A: ************************************\_\_\_************************************
+Firma — J&A: `[pendiente]`
 
-Nombre y cargo — EVOCON/segundo aprobador, si aplica: ****************\_****************
+Nombre y cargo — EVOCON/segundo aprobador, si aplica: `[pendiente]`
 
-Firma: ************************\_\_\_\_************************ Fecha: ********\_\_\_\_********
+Firma: `[pendiente]` Fecha: `[pendiente]`
 
 Decisión final: `ACEPTADO / RECHAZADO / ACEPTADO CON OBSERVACIONES`
 
-Observaciones finales: ********************************\_\_********************************
+Observaciones finales: `[pendiente]`

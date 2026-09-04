@@ -2,14 +2,21 @@
 
 ## Status
 
-**BLOCKED — not `CLIENT READY`, solely pending real form/mail delivery and signed ANEXO D UAT,
-including the Owner role/project-assignment smoke.**
+**BLOCKED — not `CLIENT READY`, solely pending the remaining external mail/DNS validation and signed
+ANEXO D UAT, including localized-content approval and the Owner role/project-assignment smoke.**
 
 The reviewed application candidate was committed, published and deployed on 2026-09-04 from branch
-`codex/v3-production-completion-orchestrated-20260819`; the latest numbered migration is
+`codex/v3-production-completion-orchestrated-20260819` at commit
+`85a407ce06bd7c2fe98c63ebb669328eae04ad94`; the latest numbered migration is
 `0035_stalwart_mail_integration.sql`. The deployed immutable release passed migration, Caddy, internal
 and public health, Stalwart/IMAPS, database integrity and automatic-jobs verification. The later
 acceptance-contract correction makes the Owner's continuity waiver executable and fail-closed.
+
+The production contact acceptance was then repeated through a dedicated non-human Stalwart submission
+account using authenticated STARTTLS on port `587`. The request returned HTTP `202`, durable delivery
+completed without a failed outbox event, and the designated operator confirmed receipt in the agreed
+`migration-test@j-aautomation.com` mailbox in **Inbox**, not Junk. The redacted acceptance record is
+`/var/log/jaautomation-client-ready-mail-acceptance-20260904.json` (`root:root`, mode `0600`).
 
 ## Runtime and safety preflight
 
@@ -42,8 +49,8 @@ post-remediation typecheck, lint, format and browser build/journey below.
 
 | Command                            | Exit | Evidence                                                                                                     |
 | ---------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------ |
-| `run test:unit`                    | 0    | 121 files / 722 tests passed.                                                                                |
-| `run test:integration`             | 0    | 51 files / 358 tests passed.                                                                                 |
+| `run test:unit`                    | 0    | 122 files / 725 tests passed.                                                                                |
+| `run test:integration`             | 0    | 52 files / 369 tests passed.                                                                                 |
 | `run test:security`                | 0    | 29 files / 177 tests passed.                                                                                 |
 | `exec vitest run tests/migrations` | 0    | 11 files / 84 tests passed.                                                                                  |
 | `run test:reporting`               | 0    | 1 file / 5 tests passed.                                                                                     |
@@ -110,7 +117,9 @@ was also rerun with the live Caddy base URL and protected VPS operations evidenc
 ## External gates still blocked
 
 Direct production evidence now exists for two automatic job cycles, the active release behind live
-Caddy, SQLite integrity, local backup/rollback, portal secret readability, Stalwart 0.16.19 and TLS
-IMAPS. Real form/mail delivery and customer/ANEXO D UAT remain `BLOCKED` and are not simulated by local
-fixtures. Separate-host encrypted backup remains unproven but, by the Owner's 2026-09-04 waiver, does
+Caddy, SQLite integrity, local backup/rollback, portal secret readability, Stalwart 0.16.19, TLS IMAPS,
+authenticated SMTP Submission, durable form delivery and human-confirmed Inbox placement. The remaining
+external gates are authoritative DKIM/PTR disposition, bidirectional mail with an external provider,
+localized-content approval, the canonical Owner role/project-assignment smoke and responsible ANEXO D
+signatures. Separate-host encrypted backup remains unproven but, by the Owner's 2026-09-04 waiver, does
 not control the Client Ready verdict.

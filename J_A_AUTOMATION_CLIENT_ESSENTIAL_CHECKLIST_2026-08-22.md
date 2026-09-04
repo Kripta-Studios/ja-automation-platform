@@ -18,14 +18,16 @@ Audit classifications used below: `PASS`, `PARTIAL`, `FAIL`, `BLOCKED`, `CONDITI
 
 ## Candidate qualification update — 2026-09-04
 
-**Verdict: BLOCKED — not `CLIENT READY`, solely pending the human/external ANEXO D acceptance:
-mailbox-receipt confirmation, authoritative DKIM/PTR and external send/receive validation, localized
-content approval, the Owner role/project-assignment smoke, and responsible approver signatures.** The application-to-Stalwart path is
-now proven in production: a real contact submission returned HTTP `202`, Stalwart accepted the SMTP
-message and the durable inquiry/outbox state became `delivered`. The reviewed application release was
-committed, published and deployed on 2026-09-04 from
-branch `codex/v3-production-completion-orchestrated-20260819` at commit
-`297ff28e75283d8f93d3e91127d00802ba113a49`; migration
+**Verdict: BLOCKED — not `CLIENT READY`, solely pending the remaining human/external ANEXO D
+acceptance: authoritative DKIM/PTR and external send/receive validation, localized content approval,
+the Owner role/project-assignment smoke, and responsible approver signatures.** The
+application-to-Stalwart path is proven in production: a real contact submission returned HTTP `202`,
+Stalwart accepted the message through authenticated STARTTLS Submission on port `587`, the durable
+inquiry/outbox state became `delivered`, and the designated operator confirmed that the acceptance
+message reached the agreed `migration-test@j-aautomation.com` mailbox in **Inbox**, not Junk. The
+reviewed application release was committed, published and deployed on 2026-09-04 from branch
+`codex/v3-production-completion-orchestrated-20260819` at commit
+`85a407ce06bd7c2fe98c63ebb669328eae04ad94`; migration
 `0035_stalwart_mail_integration.sql` remains latest. The active immutable release, Caddy routing,
 production database, Stalwart integration and automatic jobs were verified on the VPS. The subsequent
 acceptance-contract correction records the Owner's explicit separate-host continuity waiver without
@@ -37,28 +39,31 @@ production backup, image build, additive migration, atomic activation, unit inst
 checks. It did not alter Stalwart data, accounts, passwords, hashes or DNS. Post-deployment free disk
 was 27 GiB.
 
-| Gate                           | Result                                                                                                             |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| Format, lint, typecheck        | **PASS** — final post-remediation rerun; 10 workspace typechecks.                                                  |
-| Unit                           | **PASS** — final post-remediation rerun; 122 files / 725 tests.                                                    |
-| Integration                    | **PASS** — final post-remediation rerun; 51 files / 358 tests.                                                     |
-| Security                       | **PASS** — final post-remediation rerun; 29 files / 177 tests.                                                     |
-| Migrations                     | **PASS** — 11 files / 84 tests.                                                                                    |
-| Reporting, invariants, offline | **PASS** — 1/5, 1/1, and 3/8 respectively.                                                                         |
-| Continuity local drill         | **PASS** — 1 file / 16 tests; does not prove remote restore.                                                       |
-| Site, Portal, jobs builds      | **PASS** — Site generated 255 pages; Portal used disposable environment paths; jobs bundle built.                  |
-| Client Essential 32-step       | **PASS** — 32/32 with fresh, identity-bound production evidence; Owner waiver is explicit and fail-closed.         |
-| 360/390/768/1440 matrix        | **PASS** — 20/20 role/viewport combinations.                                                                       |
-| Production form/mail adapter   | **PASS** — signed internal route, SMTP STARTTLS queue acceptance and durable delivery; 3 files / 24 focused tests. |
+| Gate                           | Result                                                                                                                |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Format, lint, typecheck        | **PASS** — final post-remediation rerun; 10 workspace typechecks.                                                     |
+| Unit                           | **PASS** — final post-remediation rerun; 122 files / 725 tests.                                                       |
+| Integration                    | **PASS** — final post-remediation rerun; 52 files / 369 tests.                                                        |
+| Security                       | **PASS** — final post-remediation rerun; 29 files / 177 tests.                                                        |
+| Migrations                     | **PASS** — 11 files / 84 tests.                                                                                       |
+| Reporting, invariants, offline | **PASS** — 1/5, 1/1, and 3/8 respectively.                                                                            |
+| Continuity local drill         | **PASS** — 1 file / 16 tests; does not prove remote restore.                                                          |
+| Site, Portal, jobs builds      | **PASS** — Site generated 255 pages; Portal used disposable environment paths; jobs bundle built.                     |
+| Client Essential 32-step       | **PASS** — 32/32 with fresh, identity-bound production evidence; Owner waiver is explicit and fail-closed.            |
+| 360/390/768/1440 matrix        | **PASS** — 20/20 role/viewport combinations.                                                                          |
+| Production form/mail adapter   | **PASS** — authenticated STARTTLS Submission, durable delivery and human-confirmed Inbox placement; 11 focused tests. |
 
 The journey now consumes the protected production evidence file and passes all 32 steps. Step 30 is
 backed by two distinct automatic `jobs.cycle` records with zero failures. Step 31 accepts either complete
 separate-host continuity or a strict Owner waiver that also proves a successful local backup and retained
 rollback images; missing or informal waiver data still fails closed. The protected redacted evidence
 is `/var/log/jaautomation-client-ready-mail-evidence.json` (`root:root`, mode `0600`). End-recipient
-mailbox confirmation and customer/ANEXO D UAT remain unproven and therefore the overall verdict cannot
-be marked `PASS`. See `docs/CLIENT_READY_EVIDENCE_20260903.md` for commands and redacted details.
-The ready-to-sign human acceptance record is `docs/ANEXO_D_UAT_20260904.md`.
+mailbox confirmation is now proven; the remaining external DNS/mail checks and customer/ANEXO D UAT
+remain unproven, so the overall verdict cannot be marked `PASS`. See
+`docs/CLIENT_READY_EVIDENCE_20260903.md` for commands and redacted details.
+The current redacted acceptance evidence is
+`/var/log/jaautomation-client-ready-mail-acceptance-20260904.json` (`root:root`, mode `0600`). The
+ready-to-sign human acceptance record is `docs/ANEXO_D_UAT_20260904.md`.
 
 ## Repository-grounded audit snapshot — 2026-09-01 (historical; not revalidated above)
 
@@ -470,9 +475,11 @@ aceptación contractual ANEXO D se mantienen como gates externos separados y no 
 - [x] Production build/deployment behind Caddy works.
 - [x] A real production contact submission reaches the signed internal adapter and is accepted by
       Stalwart over validated STARTTLS, with durable `delivered` state and no replay of the legacy backlog.
-- [ ] Antonny confirms receipt of that acceptance message in the agreed mailbox; the responsible
-      operators verify authoritative DKIM/PTR and external send/receive; J&A approves localized
-      content, completes the Owner role/project-assignment smoke, and the approvers sign ANEXO D UAT.
+- [x] The designated operator confirms receipt of the production acceptance message in the agreed
+      `migration-test@j-aautomation.com` mailbox with Inbox placement.
+- [ ] The responsible operators verify authoritative DKIM/PTR and external send/receive; J&A approves
+      localized content, completes the Owner role/project-assignment smoke, and the approvers sign
+      ANEXO D UAT.
 - [x] No core business flow requires a spreadsheet as the system of record.
 - [x] Project reference hours are configurable (for example 10/12/14), never become real worked
       hours, and remain independent from minimum billable hours and worker compensation.
@@ -509,7 +516,8 @@ When this section is fully checked, deferred roadmap items must not prevent the 
 - [x] Additive migration 0035 and its pinned migration contract pass fresh/populated upgrade tests;
       focused auth, JMAP, directory, UI and RBAC suite passes 62 tests, and the portal production
       build succeeds with an isolated deployment identity.
-- [ ] VPS-only acceptance is partially complete: the restricted Stalwart token is installed, the
-      release is deployed, initial reconciliation is complete, and IMAPS/JMAP pass. Antonny's
+- [ ] VPS-only acceptance is partially complete: the restricted Stalwart token and authenticated SMTP
+      Submission secret are installed, the release is deployed, initial reconciliation is complete,
+      IMAPS/JMAP pass, and the production acceptance message reached Inbox. Antonny's
       role/project-assignment smoke from `docs/DEPLOYMENT_VPS.md` remains part of signed UAT; do not
       expose passwords, tokens or hashes while capturing it.

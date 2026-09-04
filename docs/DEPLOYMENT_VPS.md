@@ -870,6 +870,10 @@ test evidence. Keep each result dated, tied to the reviewed release SHA, and att
 responsible J&A/EVOCON approver. A route returning HTTP 200 or a source inspection is not a signed
 acceptance.
 
+Use [`ANEXO_D_UAT_20260904.md`](ANEXO_D_UAT_20260904.md) as the prepared acceptance record for the
+deployed candidate. Its signature fields are intentionally blank until the responsible humans perform
+the listed checks.
+
 ### D.1 Web corporativa
 
 Run the public reachability and Caddy-boundary checks without credentials or state changes:

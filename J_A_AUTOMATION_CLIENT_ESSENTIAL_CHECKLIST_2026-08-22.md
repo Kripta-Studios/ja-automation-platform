@@ -58,6 +58,7 @@ rollback images; missing or informal waiver data still fails closed. The protect
 is `/var/log/jaautomation-client-ready-mail-evidence.json` (`root:root`, mode `0600`). End-recipient
 mailbox confirmation and customer/ANEXO D UAT remain unproven and therefore the overall verdict cannot
 be marked `PASS`. See `docs/CLIENT_READY_EVIDENCE_20260903.md` for commands and redacted details.
+The ready-to-sign human acceptance record is `docs/ANEXO_D_UAT_20260904.md`.
 
 ## Repository-grounded audit snapshot — 2026-09-01 (historical; not revalidated above)
 

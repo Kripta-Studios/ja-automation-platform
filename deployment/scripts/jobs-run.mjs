@@ -312,13 +312,16 @@ async function runCycle() {
               method: 'POST',
               headers: {
                 'content-type': 'application/json',
+                origin: new URL(webhookUrl).origin,
                 'user-agent': 'jaautomation-outbox/3',
                 'x-ja-event-id': event.id,
                 'x-ja-idempotency-key': event.idempotencyKey,
                 'x-ja-signature': `sha256=${signature}`,
               },
               body,
-              signal: AbortSignal.timeout(15_000),
+              // The portal enforces a 15-second total SMTP deadline. Leave
+              // enough time for its durable acknowledgement to reach us.
+              signal: AbortSignal.timeout(30_000),
             });
             if (!response.ok) throw new Error(`Outbox webhook returned HTTP ${response.status}`);
           });

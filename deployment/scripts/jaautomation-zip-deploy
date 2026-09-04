@@ -143,6 +143,7 @@ release_shape_is_valid() {
   [[ -f "$root/deployment/Dockerfile.portal" ]] || return 1
   [[ -f "$root/deployment/Caddyfile.snippet" ]] || return 1
   [[ -f "$root/deployment/scripts/backup.mjs" ]] || return 1
+  [[ -f "$root/deployment/scripts/quarantine-outbox-backlog.mjs" ]] || return 1
   [[ -f "$root/deployment/scripts/continuity-backup.mjs" ]] || return 1
   [[ -f "$root/deployment/scripts/jobs-run.mjs" ]] || return 1
   [[ -f "$root/deployment/jaautomation-jobs.service" ]] || return 1
@@ -471,6 +472,8 @@ process_archive() (
   local old_backup_timer_present=0
   local old_backup_timer_enabled=0
   local old_backup_timer_active=0
+  local backup_output=''
+  local backup_dir=''
 
   on_exit() {
     local status=$?
@@ -589,16 +592,6 @@ process_archive() (
   timestamp=$(date -u +%Y%m%d%H%M%S)
   new_tag="zip-${sha:0:32}"
 
-  if [[ -f "$DB_PATH" && -f "$old_release/deployment/scripts/backup.mjs" ]]; then
-    log 'Creando backup online antes del reemplazo'
-    env \
-      JA_DATABASE_PATH="$DB_PATH" \
-      JA_DOCUMENT_ROOT="$DOCUMENT_ROOT" \
-      JA_BACKUP_ROOT="$BACKUP_ROOT" \
-      JA_BACKUP_RETENTION_DAYS=30 \
-      "$NODE" "$old_release/deployment/scripts/backup.mjs"
-  fi
-
   log "Validando Compose del nuevo release ($new_tag)"
   compose "$release_dir" "$new_tag" config --quiet
   log 'Validando las units de jobs incluidas en el nuevo release'
@@ -633,6 +626,34 @@ process_archive() (
   if [[ "$old_jobs_timer_present" -eq 1 ]]; then
     systemctl stop jaautomation-jobs.timer
   fi
+  systemctl stop jaautomation-jobs.service >/dev/null 2>&1 || true
+  compose "$old_release" "$old_tag" stop jobs
+  local old_jobs_running
+  old_jobs_running=$(compose "$old_release" "$old_tag" ps --status running -q jobs)
+  [[ -z "$old_jobs_running" ]] || die 'El worker anterior sigue activo durante el corte'
+
+  [[ -f "$DB_PATH" ]] || die 'La base de datos de producción no está disponible para el backup previo'
+  [[ -f "$old_release/deployment/scripts/backup.mjs" ]] \
+    || die 'El release activo no contiene el backup online requerido'
+  log 'Creando backup online antes del reemplazo'
+  backup_output=$(env \
+    JA_DATABASE_PATH="$DB_PATH" \
+    JA_DOCUMENT_ROOT="$DOCUMENT_ROOT" \
+    JA_BACKUP_ROOT="$BACKUP_ROOT" \
+    JA_BACKUP_RETENTION_DAYS=30 \
+    "$NODE" "$old_release/deployment/scripts/backup.mjs")
+  log "$backup_output"
+  backup_dir=$(sed -n 's/^backup=\([^ ]*\) .*/\1/p' <<<"$backup_output")
+  [[ -n "$backup_dir" && -d "$backup_dir" ]] \
+    || die 'El backup previo no devolvió un directorio verificable'
+
+  log 'Clasificando y aislando el backlog anterior al corte de entrega'
+  "$NODE" "$release_dir/deployment/scripts/quarantine-outbox-backlog.mjs" \
+    --database="$DB_PATH" \
+    --backup-dir="$backup_dir" \
+    --env-file="$ENV_FILE" \
+    --apply
+
   if [[ "$old_backup_timer_present" -eq 1 ]]; then
     systemctl stop jaautomation-backup.timer
   fi

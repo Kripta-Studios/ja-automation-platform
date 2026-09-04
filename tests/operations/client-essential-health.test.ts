@@ -217,6 +217,7 @@ describe('Client Essential deployment contracts', () => {
     const caddy = readFileSync(resolve('deployment/Caddyfile.snippet'), 'utf8');
     const compose = readFileSync(resolve('deployment/compose.production.yml'), 'utf8');
     const verifier = readFileSync(resolve('deployment/scripts/verify-vps.sh'), 'utf8');
+    const deployer = readFileSync(resolve('deployment/scripts/jaautomation-zip-deploy'), 'utf8');
 
     expect(route).toContain('cache-control');
     expect(route).toContain('cachedOperationalReadiness');
@@ -230,8 +231,21 @@ describe('Client Essential deployment contracts', () => {
       /handle @jaautomation_health_local[\s\S]*reverse_proxy 127\.0\.0\.1:5100/u,
     );
     expect(caddy).toContain('log_skip /j-aautomation/app/invite/*');
+    expect(caddy).toMatch(
+      /handle \/j-aautomation\/app\/api\/internal\/outbox-delivery[\s\S]*max_size 256KB[\s\S]*reverse_proxy 127\.0\.0\.1:5100/u,
+    );
     expect(compose).toContain('/j-aautomation/health/ready');
     expect(verifier).toContain('/j-aautomation/health/ready');
+    expect(verifier).toContain('/app/api/internal/outbox-delivery');
+    expect(verifier).toContain('outbox_probe_status');
+    expect(verifier).toContain('JA_OUTBOX_CUTOVER_AT');
+    expect(deployer).toContain('quarantine-outbox-backlog.mjs');
+    expect(deployer).toContain('compose "$old_release" "$old_tag" stop jobs');
+    expect(deployer).toContain('[[ -f "$root/deployment/scripts/quarantine-outbox-backlog.mjs" ]]');
+    expect(deployer).toContain('--backup-dir="$backup_dir"');
+    expect(deployer.indexOf('backup.mjs')).toBeLessThan(
+      deployer.indexOf('quarantine-outbox-backlog.mjs'),
+    );
   });
 
   it('starts the portal/site topology through the supervised production service', () => {

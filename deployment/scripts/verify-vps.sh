@@ -33,7 +33,9 @@ if ! "$NODE24" --input-type=module -e '
   let input = "";
   process.stdin.setEncoding("utf8");
   for await (const chunk of process.stdin) input += chunk;
-  const environment = JSON.parse(input)?.services?.jobs?.environment ?? {};
+  const services = JSON.parse(input)?.services ?? {};
+  const environment = services.jobs?.environment ?? {};
+  const portalEnvironment = services.portal?.environment ?? {};
   const forbidden = [
     "JA_JOB_ACTOR_ID",
     "JA_AUTH_SECRET",
@@ -46,8 +48,36 @@ if ! "$NODE24" --input-type=module -e '
     console.error(`forbidden jobs environment names: ${leaked.join(",")}`);
     process.exit(1);
   }
+  const expectedWebhook =
+    "https://j-aautomation.com/j-aautomation/app/api/internal/outbox-delivery";
+  const missingDelivery = [];
+  if (environment.JA_OUTBOX_WEBHOOK_URL !== expectedWebhook)
+    missingDelivery.push("JA_OUTBOX_WEBHOOK_URL");
+  if (
+    typeof environment.JA_OUTBOX_WEBHOOK_SECRET !== "string" ||
+    Buffer.byteLength(environment.JA_OUTBOX_WEBHOOK_SECRET, "utf8") < 32
+  )
+    missingDelivery.push("JA_OUTBOX_WEBHOOK_SECRET");
+  if (portalEnvironment.JA_SMTP_URL !== "smtp://mx1.j-aautomation.com:25")
+    missingDelivery.push("JA_SMTP_URL");
+  if (!/@j-aautomation\.com$/u.test(portalEnvironment.JA_SMTP_FROM ?? ""))
+    missingDelivery.push("JA_SMTP_FROM");
+  if (!/@j-aautomation\.com$/u.test(portalEnvironment.JA_FORM_RECIPIENT ?? ""))
+    missingDelivery.push("JA_FORM_RECIPIENT");
+  const cutoverAt = portalEnvironment.JA_OUTBOX_CUTOVER_AT;
+  if (
+    typeof cutoverAt !== "string" ||
+    !Number.isFinite(Date.parse(cutoverAt)) ||
+    new Date(Date.parse(cutoverAt)).toISOString() !== cutoverAt ||
+    Date.parse(cutoverAt) > Date.now()
+  )
+    missingDelivery.push("JA_OUTBOX_CUTOVER_AT");
+  if (missingDelivery.length) {
+    console.error(`missing or invalid mail delivery settings: ${missingDelivery.join(",")}`);
+    process.exit(1);
+  }
 ' <<<"$rendered_compose_json"; then
-  die 'A forbidden host secret or the retired JA_JOB_ACTOR_ID leaked into the jobs container.'
+  die 'Jobs isolation or the built-in mail delivery configuration is invalid.'
 fi
 
 "${compose[@]}" ps
@@ -56,6 +86,13 @@ curl --fail --silent --show-error http://127.0.0.1:5100/j-aautomation/app/api/he
 curl --fail --silent --show-error http://127.0.0.1:5100/j-aautomation/health/ready >/dev/null
 curl --fail --silent --show-error "$BASE_URL/en/" >/dev/null
 curl --fail --silent --show-error "$BASE_URL/app/login" >/dev/null
+outbox_probe_status=$(
+  curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+    --request POST --header 'origin: https://j-aautomation.com' \
+    --header 'content-type: application/json' --data '{}' \
+    "$BASE_URL/app/api/internal/outbox-delivery"
+)
+[[ "$outbox_probe_status" == '401' ]] || die 'The signed outbox delivery endpoint did not fail closed.'
 
 systemctl is-active --quiet jaautomation-jobs.timer || die 'jaautomation-jobs.timer is not active'
 systemctl is-enabled --quiet jaautomation-jobs.timer || die 'jaautomation-jobs.timer is not enabled'

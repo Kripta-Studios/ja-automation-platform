@@ -211,6 +211,33 @@ attempts, last error and terminal-failure state. Configure both
 must deduplicate `x-ja-idempotency-key` and verify `x-ja-signature` (`sha256=<HMAC-SHA256>`). If the
 adapter is absent or rejects a request, the event is not marked delivered.
 
+The supported single-VPS Client Essential deployment includes that adapter at
+`https://j-aautomation.com/j-aautomation/app/api/internal/outbox-delivery`. It verifies the exact
+request body with the same `JA_OUTBOX_WEBHOOK_SECRET`, matches the signed identifiers to the
+persisted outbox row, rejects non-corporate recipients, and acknowledges the row durably after
+Stalwart accepts the message. Configure the portal-side delivery settings as follows (the secret
+must be generated directly on the host and must never be committed or printed):
+
+```dotenv
+JA_OUTBOX_WEBHOOK_URL=https://j-aautomation.com/j-aautomation/app/api/internal/outbox-delivery
+JA_OUTBOX_WEBHOOK_SECRET=<at-least-32-random-bytes>
+JA_OUTBOX_CUTOVER_AT=<exact-current-UTC-ISO-timestamp>
+JA_SMTP_URL=smtp://mx1.j-aautomation.com:25
+JA_SMTP_FROM=no-reply@j-aautomation.com
+JA_FORM_RECIPIENT=antonny.luty@j-aautomation.com
+```
+
+The SMTP hop is restricted in code to the local Stalwart service on port 25, requires STARTTLS with
+certificate validation, and permits only `@j-aautomation.com` envelope addresses. It does not use,
+read or modify Stalwart administrator credentials. Before enabling a previously disconnected
+outbox, set `JA_OUTBOX_CUTOVER_AT` to the approved enablement instant. The ZIP deployer first creates
+and verifies its normal application backup, then runs `quarantine-outbox-backlog.mjs`: it reports
+aggregate counts by topic, marks every still-pending pre-cutover row with
+`PRE_CUTOVER_QUARANTINED`, rejects unsupported post-cutover topics and verifies that no old pending
+row remains before Docker starts the candidate jobs service. It never reads or prints an event
+payload. A real post-cutover contact/career/support submission and receipt in the agreed mailbox
+remain required acceptance evidence.
+
 The same worker renders localized PDFs through the `localized_pdf_variant_render` job and
 `artifact.localized_pdf.render` capability. It supports `en-US`, `es-ES` and `pt-BR` variants for
 invoice, period-report, Accounting Pack, Daily Field Report and PLC / Technical Report sources. Each

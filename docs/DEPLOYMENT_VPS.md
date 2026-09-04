@@ -8,7 +8,7 @@ mailbox is also a portal identity (the canonical `antonny.luty` identity is the 
 all other mail-linked identities start as `worker`). Do not run the demo seed or expose the
 application ports directly.
 
-Last live verification recorded here: **2026-09-03**. Facts labelled **verified** below came from
+Last live verification recorded here: **2026-09-04**. Facts labelled **verified** below came from
 read-only VPS/HTTPS checks. Facts labelled **transition summary** come from
 `.credentials/SUMMARY_EMAIL_DEPLOYMENT.md` (the mail summary is dated 2026-08-26) and must not be
 treated as a fresh acceptance test. Verification removed eight obsolete auto-remove job containers
@@ -19,25 +19,25 @@ improvement described below.
 
 ## Current live state
 
-| Area                            | 2026-09-03 observed state                                                                                                                                                                                                         | Evidence/status                                                               |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| VPS host                        | Hetzner VPS, Ubuntu 24.04.4 LTS, IPv4 `91.99.90.39`                                                                                                                                                                               | **Verified**                                                                  |
-| Canonical public root           | `https://j-aautomation.com/` routes to `/j-aautomation/en`                                                                                                                                                                        | **Verified**                                                                  |
-| Localized public site           | `/j-aautomation/en`, `/j-aautomation/es` and `/j-aautomation/pt` return HTTP 200                                                                                                                                                  | **Verified**                                                                  |
-| Portal entry point              | `https://j-aautomation.com/j-aautomation/app/login`                                                                                                                                                                               | **Verified deployed entry point**                                             |
-| Compatibility app host          | `https://app.j-aautomation.com/` redirects to the canonical deployment                                                                                                                                                            | **Verified**                                                                  |
-| Site listener                   | `127.0.0.1:5101`                                                                                                                                                                                                                  | **Verified**                                                                  |
-| Portal/API listener             | `127.0.0.1:5100`                                                                                                                                                                                                                  | **Verified**                                                                  |
-| Public health paths             | External `/j-aautomation/health/*` returns HTTP 404                                                                                                                                                                               | **Verified and intentional**; use loopback readiness for monitoring           |
-| Active release                  | `/opt/jaautomation/current` points at immutable release directory `ja-automation-cff80fe…`; its manifest identifies logical release `jaautomation-release-20260903-3d87690` and commit `3d87690f48053426d103f89894a078118ccade35` | **Verified** against `RELEASE-BUILD.txt`                                      |
-| Caddy                           | Configuration validation succeeded                                                                                                                                                                                                | **Verified**                                                                  |
-| Mail service inventory          | Stalwart on `mx1.j-aautomation.com`, with `webmail-new`; ports 25, 465, 587 and 993 are the public mail listeners                                                                                                                 | **Verified inventory**; mailbox cutover is separate                           |
-| Portal–Stalwart directory       | Restricted token is mounted and 96 active mail identities are linked (one Owner and 95 Workers)                                                                                                                                   | **Verified aggregate**; Owner role/project-assignment smoke pending           |
-| Application outbox              | Delivery webhook URL/secret are not configured; no application outbox delivery is proven                                                                                                                                          | **Pending**                                                                   |
-| Local backup timer              | Last recorded `jaautomation-backup.service` is `Result=success`                                                                                                                                                                   | **Verified**; this does not prove off-site recovery                           |
-| Jobs                            | The supervised `deployment-jobs-1` worker is running with zero restarts; the watchdog timer is active and the latest service result is `success`                                                                                  | **Verified**; recent `jobs.cycle` events contain no runner errors             |
-| Separate-host continuity backup | Remote replication and restore drill                                                                                                                                                                                              | **Pending, non-blocking post-release improvement by Owner waiver 2026-09-04** |
-| Contractual UAT                 | ANEXO D web/content/form/mail evidence and approver sign-off                                                                                                                                                                      | **Pending**                                                                   |
+| Area                            | 2026-09-04 observed state                                                                                                                                            | Evidence/status                                                               |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| VPS host                        | Hetzner VPS, Ubuntu 24.04.4 LTS, IPv4 `91.99.90.39`                                                                                                                  | **Verified**                                                                  |
+| Canonical public root           | `https://j-aautomation.com/` routes to `/j-aautomation/en`                                                                                                           | **Verified**                                                                  |
+| Localized public site           | `/j-aautomation/en`, `/j-aautomation/es` and `/j-aautomation/pt` return HTTP 200                                                                                     | **Verified**                                                                  |
+| Portal entry point              | `https://j-aautomation.com/j-aautomation/app/login`                                                                                                                  | **Verified deployed entry point**                                             |
+| Compatibility app host          | `https://app.j-aautomation.com/` redirects to the canonical deployment                                                                                               | **Verified**                                                                  |
+| Site listener                   | `127.0.0.1:5101`                                                                                                                                                     | **Verified**                                                                  |
+| Portal/API listener             | `127.0.0.1:5100`                                                                                                                                                     | **Verified**                                                                  |
+| Public health paths             | External `/j-aautomation/health/*` returns HTTP 404                                                                                                                  | **Verified and intentional**; use loopback readiness for monitoring           |
+| Active release                  | `/opt/jaautomation/current` points at an immutable, manifest-verified release directory; the exact release/commit is recorded in `RELEASE-BUILD.txt`                 | **Verified** after atomic deployment on 2026-09-04                            |
+| Caddy                           | Configuration validation succeeded                                                                                                                                   | **Verified**                                                                  |
+| Mail service inventory          | Stalwart on `mx1.j-aautomation.com`, with `webmail-new`; ports 25, 465, 587 and 993 are the public mail listeners                                                    | **Verified inventory**; mailbox cutover is separate                           |
+| Portal–Stalwart directory       | Restricted token is mounted and 96 active mail identities are linked (one Owner and 95 Workers)                                                                      | **Verified aggregate**; Owner role/project-assignment smoke pending           |
+| Application outbox              | Delivery webhook URL/secret are not configured; 69 events exist, with 0 delivered, 35 pending and 34 terminally failed                                               | **Pending**; do not blindly redrive terminal events                           |
+| Local backup timer              | Last recorded `jaautomation-backup.service` is `Result=success`                                                                                                      | **Verified**; this does not prove off-site recovery                           |
+| Jobs                            | The supervised `deployment-jobs-1` worker is running with zero restarts; the watchdog timer is active and two distinct automatic cycles completed with zero failures | **Verified**; protected two-run evidence is retained under `/var/log`         |
+| Separate-host continuity backup | Remote replication and restore drill                                                                                                                                 | **Pending, non-blocking post-release improvement by Owner waiver 2026-09-04** |
+| Contractual UAT                 | ANEXO D web/content/form/mail evidence and approver sign-off                                                                                                         | **Pending**                                                                   |
 
 Separate-host continuity is a recommended post-release improvement but does not control the Client
 Ready verdict, by explicit Owner waiver on 2026-09-04. A successful local backup timer run must still
@@ -688,7 +688,8 @@ container. For each one record the docker log line, the jobs container `running`
 queue/run state transition (`queued` → `claimed`/`running` → `succeeded` or an
 explicit retryable/terminal failure). A queued row, an active timer, or two manual starts is not
 CORE-16 evidence. Preserve failure and retry metadata; do not clear the queue manually. The current
-live record remains **OPEN** until those two automatic cycles are attached to the release evidence.
+live record is **VERIFIED**: two automatic cycles with zero failures are retained in the protected
+`/var/log/jaautomation-jobs-two-runs.log` release evidence.
 
 ## Rollback and incident-safe handling
 
@@ -884,9 +885,9 @@ test "$(curl -sS -o /dev/null -w '%{http_code}' "$BASE_URL/j-aautomation/health/
 Attach screenshots or trace evidence at 360/390/768/1440, the three localized URLs, and confirmation
 that the agreed Home, Capabilities/Services, Industries, Projects, Aquarex, About, Careers, Contact,
 Employee Portal and legal sections render with the approved J&A content/images. Attach
-contact/support/career form outcomes with non-secret message IDs. The 2026-08-28 browser checkpoint
-proves local steps 1–29 and the deployed routing assertions in step 32; it does not by itself prove
-D.1 content approval or form delivery. Until those artifacts and approval exist, D.1 remains
+contact/support/career form outcomes with non-secret message IDs. The 2026-09-04 browser checkpoint
+proves all 32 technical/operational steps with protected VPS evidence; it does not by itself prove D.1
+content approval or form delivery. Until those artifacts and approval exist, D.1 remains
 **PENDING**.
 
 ### D.3 Migración de correo

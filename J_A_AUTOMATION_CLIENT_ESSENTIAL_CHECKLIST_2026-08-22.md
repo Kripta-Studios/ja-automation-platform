@@ -18,35 +18,39 @@ Audit classifications used below: `PASS`, `PARTIAL`, `FAIL`, `BLOCKED`, `CONDITI
 
 ## Candidate qualification update — 2026-09-04
 
-**Verdict: BLOCKED — not `CLIENT READY`.** Qualification began at clean candidate
-`3d87690f48053426d103f89894a078118ccade35` on branch
-`codex/v3-production-completion-orchestrated-20260819`; migration
-`0035_stalwart_mail_integration.sql` remains latest. The initial clean run exposed local defects. The
-final results below are from the explicitly authorized, uncommitted remediation worktree derived from
-that SHA, not an untouched clean commit. No commit or deployment occurred.
+**Verdict: BLOCKED — not `CLIENT READY`, solely pending real form/mail delivery and signed ANEXO D
+UAT, including the Owner role/project-assignment smoke.** The reviewed application release was
+committed, published and deployed on 2026-09-04 from
+branch `codex/v3-production-completion-orchestrated-20260819`; migration
+`0035_stalwart_mail_integration.sql` remains latest. The active immutable release, Caddy routing,
+production database, Stalwart integration and automatic jobs were verified on the VPS. The subsequent
+acceptance-contract correction records the Owner's explicit separate-host continuity waiver without
+weakening the mandatory local backup and rollback safeguards.
 
-Pinned Node was `v24.19.0`, Corepack pnpm `11.22.0`; every gate used the pinned runtime and
-`corepack pnpm --config.verify-deps-before-run=warn`. No install, purge, dependency, production service,
-database, config, mail, DNS, or container mutation occurred. Final free disk was 6.6 GiB.
+Pinned Node was `v24.19.0`, Corepack pnpm `11.22.0`; every repository gate used the pinned runtime and
+`corepack pnpm --config.verify-deps-before-run=warn`. The reviewed deployer performed the authorized
+production backup, image build, additive migration, atomic activation, unit installation and health
+checks. It did not alter Stalwart data, accounts, passwords, hashes or DNS. Post-deployment free disk
+was 27 GiB.
 
-| Gate                           | Result                                                                                                |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| Format, lint, typecheck        | **PASS** — final post-remediation rerun; 10 workspace typechecks.                                     |
-| Unit                           | **PASS** — final post-remediation rerun; 119 files / 708 tests.                                       |
-| Integration                    | **PASS** — final post-remediation rerun; 51 files / 358 tests.                                        |
-| Security                       | **PASS** — final post-remediation rerun; 29 files / 177 tests.                                        |
-| Migrations                     | **PASS** — 11 files / 84 tests.                                                                       |
-| Reporting, invariants, offline | **PASS** — 1/5, 1/1, and 3/8 respectively.                                                            |
-| Continuity local drill         | **PASS** — 1 file / 16 tests; does not prove remote restore.                                          |
-| Site, Portal, jobs builds      | **PASS** — Site generated 255 pages; Portal used disposable environment paths; jobs bundle built.     |
-| Client Essential 32-step       | **PARTIAL** — steps 1–29 and 32 pass; only 30–31 intentionally block on external operations evidence. |
-| 360/390/768/1440 matrix        | **PASS** — 20/20 role/viewport combinations.                                                          |
+| Gate                           | Result                                                                                                     |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Format, lint, typecheck        | **PASS** — final post-remediation rerun; 10 workspace typechecks.                                          |
+| Unit                           | **PASS** — final post-remediation rerun; 121 files / 722 tests.                                            |
+| Integration                    | **PASS** — final post-remediation rerun; 51 files / 358 tests.                                             |
+| Security                       | **PASS** — final post-remediation rerun; 29 files / 177 tests.                                             |
+| Migrations                     | **PASS** — 11 files / 84 tests.                                                                            |
+| Reporting, invariants, offline | **PASS** — 1/5, 1/1, and 3/8 respectively.                                                                 |
+| Continuity local drill         | **PASS** — 1 file / 16 tests; does not prove remote restore.                                               |
+| Site, Portal, jobs builds      | **PASS** — Site generated 255 pages; Portal used disposable environment paths; jobs bundle built.          |
+| Client Essential 32-step       | **PASS** — 32/32 with fresh, identity-bound production evidence; Owner waiver is explicit and fail-closed. |
+| 360/390/768/1440 matrix        | **PASS** — 20/20 role/viewport combinations.                                                               |
 
-The journey reports exactly two deliberate external failures: step 30 automatic-jobs evidence and step
-31 offsite backup/restore evidence. The Owner explicitly waived separate-host/off-site continuity as a
-nonblocking post-release improvement on 2026-09-04; step 31 therefore remains useful operational evidence
-but is not a release blocker. Deployment verification, live form/mail delivery and customer/ANEXO D UAT
-remain unproven and therefore cannot be marked `PASS`. See
+The journey now consumes the protected production evidence file and passes all 32 steps. Step 30 is
+backed by two distinct automatic `jobs.cycle` records with zero failures. Step 31 accepts either complete
+separate-host continuity or a strict Owner waiver that also proves a successful local backup and retained
+rollback images; missing or informal waiver data still fails closed. Live form/mail delivery and
+customer/ANEXO D UAT remain unproven and therefore cannot be marked `PASS`. See
 `docs/CLIENT_READY_EVIDENCE_20260903.md` for commands and redacted details.
 
 ## Repository-grounded audit snapshot — 2026-09-01 (historical; not revalidated above)
@@ -292,7 +296,7 @@ CORE ni el DoD final en `PASS` mientras falten las pruebas integradas y autentic
 - ✅ Issued invoice snapshot/PDF is immutable.
 - ✅ Void/Credit/Adjustment correction path.
 - ✅ Labor and expense tax profiles remain independent.
-- 🟨 Normal workflow does not require manual “process jobs”; automatic runner evidence remains open.
+- ✅ Normal workflow does not require manual “process jobs”; two consecutive production cycles passed.
 - ✅ One reusable renderer provides the five controlled business layouts.
 - ⏭ Automatic invoice send by default.
 - ⏭ Jurisdiction-specific statutory tax engine.
@@ -358,11 +362,11 @@ CORE ni el DoD final en `PASS` mientras falten las pruebas integradas y autentic
 
 # O. Background jobs
 
-- 🟨 Durable job/timer foundations exist.
-- 🟨 Production runner automatically advances normal report/invoice/export jobs.
-- 🟨 Money-related jobs are idempotent.
-- 🟨 Failed generation is visible and retryable.
-- 🟨 No hidden user dependency on manual processing; final runtime proof remains open.
+- ✅ Durable job/timer foundations exist.
+- ✅ Production runner automatically advances normal report/invoice/export jobs.
+- ✅ Money-related jobs are idempotent.
+- ✅ Failed generation is visible and retryable.
+- ✅ No hidden user dependency on manual processing; production runtime proof passed.
 - ⏭ Generic Job Center.
 - ⏭ Distributed scheduler/message broker/Redis.
 
@@ -378,13 +382,13 @@ CORE ni el DoD final en `PASS` mientras falten las pruebas integradas y autentic
 
 # Q. Deployment, operations and recovery
 
-- 🟨 Existing Docker/Caddy/systemd/deployment foundations should be preserved.
+- ✅ Existing Docker/Caddy/systemd/deployment foundations are preserved and production-verified.
 - ✅ Node 24 pinned production build.
-- ⬜ Portal and website start automatically.
+- ✅ Portal and website start automatically.
 - ✅ Safe DB migration at deployment.
 - ✅ Basic health endpoint without sensitive detail.
 - ✅ Disk/storage sanity check.
-- ⬜ Scheduled backup.
+- ✅ Scheduled local backup.
 - ✅ Restore runbook.
 - ✅ One successful restore drill including issued/private artifacts.
 - ⏭ Ten-dimension Operations Health dashboard.
@@ -425,8 +429,9 @@ CORE ni el DoD final en `PASS` mientras falten las pruebas integradas y autentic
 
 The release can be called **CLIENT READY** only when all of these pass:
 
-Las casillas locales se cierran con los gates y journeys de 2026-08-30. Las dos casillas operativas
-siguen abiertas deliberadamente: no se sustituyen con mocks ni con evidencia local.
+Las casillas técnicas y operativas se cierran con los gates, el despliegue real y la evidencia protegida
+del VPS. La entrega real de formularios/correo y la aceptación contractual ANEXO D se mantienen como
+gates externos separados y no se sustituyen con mocks.
 
 - [x] Owner can invite and manage users.
 - [x] Admin can create/edit/archive/restore a client.
@@ -449,13 +454,13 @@ siguen abiertas deliberadamente: no se sustituyen con mocks ni con evidencia loc
 - [x] Invoice/Cost/Collection ledger is correct.
 - [x] Monthly Accounting/Finance export reconciles.
 - [x] Export pending/failure/retry semantics are truthful.
-- [ ] Normal jobs run automatically.
+- [x] Normal jobs run automatically.
 - [x] Core flows work on phone/tablet/desktop.
 - [x] RBAC/privacy/IDOR tests pass.
 - [x] Private uploads/downloads are safe.
 - [x] Approved/finalized history is non-destructive.
 - [x] Local backup/restore drill passes; separate-host continuity is a non-blocking post-release improvement by Owner waiver dated 2026-09-04.
-- [ ] Production build/deployment behind Caddy works.
+- [x] Production build/deployment behind Caddy works.
 - [x] No core business flow requires a spreadsheet as the system of record.
 - [x] Project reference hours are configurable (for example 10/12/14), never become real worked
       hours, and remain independent from minimum billable hours and worker compensation.
@@ -492,6 +497,7 @@ When this section is fully checked, deferred roadmap items must not prevent the 
 - [x] Additive migration 0035 and its pinned migration contract pass fresh/populated upgrade tests;
       focused auth, JMAP, directory, UI and RBAC suite passes 62 tests, and the portal production
       build succeeds with an isolated deployment identity.
-- [ ] VPS-only acceptance remains: install the restricted Stalwart API token, deploy, run Antonny's
-      initial live reconciliation, and execute the IMAPS/JMAP/role/project-assignment smoke journey
-      from `docs/DEPLOYMENT_VPS.md` without exposing passwords, tokens or hashes.
+- [ ] VPS-only acceptance is partially complete: the restricted Stalwart token is installed, the
+      release is deployed, initial reconciliation is complete, and IMAPS/JMAP pass. Antonny's
+      role/project-assignment smoke from `docs/DEPLOYMENT_VPS.md` remains part of signed UAT; do not
+      expose passwords, tokens or hashes while capturing it.

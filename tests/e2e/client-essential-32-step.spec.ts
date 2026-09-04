@@ -245,9 +245,21 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
               },
               continuity: {
                 status: operationsEvidencePreflight.evidence.continuity.status,
-                remoteCopy: operationsEvidencePreflight.evidence.continuity.remoteCopy,
-                encrypted: operationsEvidencePreflight.evidence.continuity.encrypted,
-                restoreDrill: operationsEvidencePreflight.evidence.continuity.restoreDrill.status,
+                ...(operationsEvidencePreflight.evidence.continuity.status === 'PASS'
+                  ? {
+                      remoteCopy: operationsEvidencePreflight.evidence.continuity.remoteCopy,
+                      encrypted: operationsEvidencePreflight.evidence.continuity.encrypted,
+                      restoreDrill:
+                        operationsEvidencePreflight.evidence.continuity.restoreDrill.status,
+                    }
+                  : {
+                      releaseBlocking:
+                        operationsEvidencePreflight.evidence.continuity.releaseBlocking,
+                      waivedBy: operationsEvidencePreflight.evidence.continuity.waivedBy,
+                      localBackup:
+                        operationsEvidencePreflight.evidence.continuity.localBackup.status,
+                      rollback: operationsEvidencePreflight.evidence.continuity.rollback.status,
+                    }),
               },
             }
           : {
@@ -1390,10 +1402,16 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await signInFresh(page, 'owner');
         const response = await page.request.get('http://127.0.0.1:4174/j-aautomation/health/ready');
         expect(response.status()).toBe(200);
-        expect(evidence.continuity.status).toBe('PASS');
-        expect(evidence.continuity.remoteCopy).toBe(true);
-        expect(evidence.continuity.encrypted).toBe(true);
-        expect(evidence.continuity.restoreDrill.status).toBe('PASS');
+        if (evidence.continuity.status === 'PASS') {
+          expect(evidence.continuity.remoteCopy).toBe(true);
+          expect(evidence.continuity.encrypted).toBe(true);
+          expect(evidence.continuity.restoreDrill.status).toBe('PASS');
+        } else {
+          expect(evidence.continuity.releaseBlocking).toBe(false);
+          expect(evidence.continuity.waivedBy).toBe('owner');
+          expect(evidence.continuity.localBackup.status).toBe('PASS');
+          expect(evidence.continuity.rollback.status).toBe('PASS');
+        }
       },
       failures,
       page,
@@ -1452,10 +1470,21 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
                   },
                   continuity: {
                     status: operationsEvidencePreflight.evidence.continuity.status,
-                    remoteCopy: operationsEvidencePreflight.evidence.continuity.remoteCopy,
-                    encrypted: operationsEvidencePreflight.evidence.continuity.encrypted,
-                    restoreDrill:
-                      operationsEvidencePreflight.evidence.continuity.restoreDrill.status,
+                    ...(operationsEvidencePreflight.evidence.continuity.status === 'PASS'
+                      ? {
+                          remoteCopy: operationsEvidencePreflight.evidence.continuity.remoteCopy,
+                          encrypted: operationsEvidencePreflight.evidence.continuity.encrypted,
+                          restoreDrill:
+                            operationsEvidencePreflight.evidence.continuity.restoreDrill.status,
+                        }
+                      : {
+                          releaseBlocking:
+                            operationsEvidencePreflight.evidence.continuity.releaseBlocking,
+                          waivedBy: operationsEvidencePreflight.evidence.continuity.waivedBy,
+                          localBackup:
+                            operationsEvidencePreflight.evidence.continuity.localBackup.status,
+                          rollback: operationsEvidencePreflight.evidence.continuity.rollback.status,
+                        }),
                   },
                 }
               : {

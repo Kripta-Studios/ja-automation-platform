@@ -987,7 +987,11 @@ Required:
 - DB integrity;
 - production build;
 - essential E2E journeys;
-- backup/restore drill.
+- real contact/career/application-mail delivery with non-secret provider evidence;
+- signed ANEXO D UAT, including the Owner role/project-assignment smoke;
+- local backup/restore drill; separate-host continuity may be recorded as a nonblocking improvement
+  only when the Owner explicitly waives it and the acceptance evidence still proves local backup and
+  rollback.
 
 No known critical product RED may remain in the 32-step acceptance flow.
 
@@ -1004,7 +1008,11 @@ The release is **CLIENT READY** when:
 - issued financial history is immutable;
 - automatic jobs work;
 - mobile and desktop core workflows are usable;
-- backup/restore is proven;
+- real form and application-mail delivery is proven;
+- ANEXO D UAT, including the Owner role/project-assignment smoke, is signed by the responsible
+  approvers;
+- local backup/restore and rollback are proven; separately hosted continuity is nonblocking under the
+  Owner waiver recorded on 2026-09-04;
 - no essential flow requires Excel as the source of truth.
 
 The release is **not blocked** by deferred V3.2/V3.3/V3.4 roadmap capabilities.

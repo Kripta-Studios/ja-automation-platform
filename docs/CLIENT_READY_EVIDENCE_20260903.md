@@ -2,18 +2,20 @@
 
 ## Status
 
-**BLOCKED — not `CLIENT READY`.**
+**BLOCKED — not `CLIENT READY`, solely pending real form/mail delivery and signed ANEXO D UAT,
+including the Owner role/project-assignment smoke.**
 
-Qualification began at candidate `3d87690f48053426d103f89894a078118ccade35` on branch
+The reviewed application candidate was committed, published and deployed on 2026-09-04 from branch
 `codex/v3-production-completion-orchestrated-20260819`; the latest numbered migration is
-`0035_stalwart_mail_integration.sql`. The initial clean-candidate run exposed executable local defects.
-The final evidence below is for the explicitly authorized, uncommitted remediation worktree derived
-from that SHA, not an assertion that the untouched commit now passes. No commit or deployment occurred.
+`0035_stalwart_mail_integration.sql`. The deployed immutable release passed migration, Caddy, internal
+and public health, Stalwart/IMAPS, database integrity and automatic-jobs verification. The later
+acceptance-contract correction makes the Owner's continuity waiver executable and fail-closed.
 
 ## Runtime and safety preflight
 
-Observed worker profile: `gpt-5.6-terra`, high reasoning effort; unrestricted filesystem and disabled
-approval sandbox profile. No production database, config, mail, DNS, service, or container was changed.
+The release was installed through the reviewed root deployer. It performed an online local backup,
+rebuilt the production images, ran the additive migration and atomically switched the release. It did
+not change Stalwart data/accounts, credentials, mail content or DNS.
 
 ```sh
 PATH=/opt/jaautomation/runtime/node/bin:$PATH node --version
@@ -40,7 +42,7 @@ post-remediation typecheck, lint, format and browser build/journey below.
 
 | Command                            | Exit | Evidence                                                                                                     |
 | ---------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------ |
-| `run test:unit`                    | 0    | 119 files / 708 tests passed.                                                                                |
+| `run test:unit`                    | 0    | 121 files / 722 tests passed.                                                                                |
 | `run test:integration`             | 0    | 51 files / 358 tests passed.                                                                                 |
 | `run test:security`                | 0    | 29 files / 177 tests passed.                                                                                 |
 | `exec vitest run tests/migrations` | 0    | 11 files / 84 tests passed.                                                                                  |
@@ -69,16 +71,13 @@ pnpm exec playwright test tests/e2e/ui-multirole-accessibility-matrix.spec.ts \
   --project=phone-360 --project=phone-390 --project=tablet-768 --project=desktop --reporter=line
 ```
 
-The 32-step command exits 1 intentionally because its final aggregate assertion retains unavailable
-external proof as failures. Its actual result is local **PASS for steps 1–29 and 32**, with exactly:
-
-- Step 30 `automatic-jobs`: `OPERATIONS_EVIDENCE_MISSING` for automatic production job evidence.
-- Step 31 `continuity-backup`: `OPERATIONS_EVIDENCE_MISSING` for separate-host encrypted backup and
-  isolated restore evidence.
-
-The Owner explicitly waived separate-host/off-site continuity as a nonblocking post-release improvement on
-2026-09-04. Step 31 remains a truthful advisory failure, not a release blocker.
-The verified local online backup and isolated restore drill remain part of the deployment safety baseline.
+The 32-step command exits 0: **32/32 PASS** in 2.2 minutes. It consumed a protected,
+deployment-identity-bound evidence file (`root:root`, mode `0600`) captured on the VPS. Step 30 proves
+two distinct automatic `jobs.cycle` records with zero failures and no manual queue processing. Step 31
+accepts the Owner's explicit 2026-09-04 separate-host continuity waiver only because the same
+digest-bound contract also proves a successful local backup and retained rollback images. Missing,
+stale, cross-deployment, digest-mismatched, non-Owner or safeguard-free waiver evidence remains a hard
+failure. The original full remote-copy contract continues to pass unchanged when supplied.
 
 The responsive/accessibility matrix exits 0: **20/20** role/viewport combinations pass at 360, 390,
 768, and 1440 px. This rerun verifies axe, keyboard, overflow, reduced-motion, CSP runtime behavior,
@@ -93,8 +92,7 @@ invoice identity assertion semantics. Focused final evidence is **4 files / 29 t
 `private-artifact-routes`; it includes 400/1000/2100 canonical tax-BPS resubmits and truthful download
 audit ordering. The complete unit, integration, security and migration suites, the 6-file/30-test
 supporting gate, typecheck, lint and format/diff checks were rerun after this delta. The 32-step journey
-was also rerun with the live Caddy base URL: steps 1–29 and 32 pass; only the expected operations-evidence
-markers at steps 30–31 remain.
+was also rerun with the live Caddy base URL and protected VPS operations evidence: all 32 steps pass.
 
 ## Earlier remediations proven by the final gates
 
@@ -111,8 +109,8 @@ markers at steps 30–31 remain.
 
 ## External gates still blocked
 
-No direct candidate evidence exists yet for two automatic production job cycles, the new release running
-behind live Caddy, real form/mail delivery, or customer/ANEXO D UAT. These remain `BLOCKED` and are not
-simulated by local fixtures. Separate-host encrypted backup and restore remain unproven but, by the
-Owner's 2026-09-04 waiver, no longer control the Client Ready verdict; local backup and rollback remain
-mandatory deployment controls.
+Direct production evidence now exists for two automatic job cycles, the active release behind live
+Caddy, SQLite integrity, local backup/rollback, portal secret readability, Stalwart 0.16.19 and TLS
+IMAPS. Real form/mail delivery and customer/ANEXO D UAT remain `BLOCKED` and are not simulated by local
+fixtures. Separate-host encrypted backup remains unproven but, by the Owner's 2026-09-04 waiver, does
+not control the Client Ready verdict.

@@ -341,7 +341,8 @@ export const CLIENT_ESSENTIAL_32_STEPS = Object.freeze([
   {
     number: 31,
     requirement: 'CORE-17',
-    title: 'Backup/restore reproduces database and private artifacts',
+    title:
+      'Continuity is proven or explicitly waived by the Owner without weakening local safeguards',
     role: 'system',
     route: '/health/ready',
     mutation: false,
@@ -397,6 +398,23 @@ type OperationsRunEvidence = Readonly<{
   completedAt: string;
 }>;
 
+type ContinuityPassEvidence = Readonly<{
+  status: 'PASS';
+  remoteCopy: true;
+  encrypted: true;
+  restoreDrill: Readonly<{ status: 'PASS'; completedAt: string }>;
+}>;
+
+type ContinuityWaiverEvidence = Readonly<{
+  status: 'WAIVED';
+  releaseBlocking: false;
+  waivedBy: 'owner';
+  waivedAt: string;
+  reason: string;
+  localBackup: Readonly<{ status: 'PASS'; completedAt: string }>;
+  rollback: Readonly<{ status: 'PASS'; verifiedAt: string }>;
+}>;
+
 export type ClientEssentialOperationsEvidence = Readonly<{
   schema: typeof CLIENT_ESSENTIAL_OPERATIONS_EVIDENCE_SCHEMA;
   schemaVersion: 1;
@@ -410,12 +428,7 @@ export type ClientEssentialOperationsEvidence = Readonly<{
     manualProcessing: false;
     runs: readonly [OperationsRunEvidence, OperationsRunEvidence, ...OperationsRunEvidence[]];
   }>;
-  continuity: Readonly<{
-    status: 'PASS';
-    remoteCopy: true;
-    encrypted: true;
-    restoreDrill: Readonly<{ status: 'PASS'; completedAt: string }>;
-  }>;
+  continuity: ContinuityPassEvidence | ContinuityWaiverEvidence;
   expiresAt?: string;
 }>;
 
@@ -535,6 +548,10 @@ function statusPass(value: unknown): boolean {
   );
 }
 
+function statusWaived(value: unknown): boolean {
+  return typeof value === 'string' && /^waived$/iu.test(value);
+}
+
 function booleanAlias(value: JsonObject, ...keys: string[]): boolean | undefined {
   for (const key of keys) {
     if (typeof value[key] === 'boolean') return value[key] as boolean;
@@ -632,13 +649,83 @@ function normalizeJobs(value: unknown, now: number): ClientEssentialOperationsEv
 function normalizeContinuity(
   value: unknown,
   now: number,
+  maxAgeMs: number,
 ): ClientEssentialOperationsEvidence['continuity'] {
   if (!isObject(value))
     throw new OperationsEvidenceError(
       'OPERATIONS_EVIDENCE_CONTINUITY_INVALID',
       'continuity is required',
     );
-  if (!statusPass(value.status ?? value.result ?? value.outcome ?? value.state))
+  const rawStatus = value.status ?? value.result ?? value.outcome ?? value.state;
+  if (statusWaived(rawStatus)) {
+    if (value.releaseBlocking !== false)
+      throw new OperationsEvidenceError(
+        'OPERATIONS_EVIDENCE_CONTINUITY_INVALID',
+        'waived continuity must explicitly set releaseBlocking=false',
+      );
+    if (value.waivedBy !== 'owner')
+      throw new OperationsEvidenceError(
+        'OPERATIONS_EVIDENCE_CONTINUITY_INVALID',
+        'waived continuity must be authorized by the owner',
+      );
+    const waivedAt = parseTimestamp(value.waivedAt, 'continuity.waivedAt', now);
+    if (now - Date.parse(waivedAt) > maxAgeMs)
+      throw new OperationsEvidenceError(
+        'OPERATIONS_EVIDENCE_STALE',
+        'continuity.waivedAt is outside the evidence freshness window',
+      );
+    const reason = requiredString(value.reason, 'continuity.reason');
+    const localBackup = objectAlias(value, 'localBackup');
+    if (
+      !localBackup ||
+      !statusPass(
+        localBackup.status ?? localBackup.result ?? localBackup.outcome ?? localBackup.state,
+      )
+    )
+      throw new OperationsEvidenceError(
+        'OPERATIONS_EVIDENCE_CONTINUITY_INVALID',
+        'waived continuity must retain a successful local backup',
+      );
+    const localBackupCompletedAt = parseTimestamp(
+      localBackup.completedAt ?? localBackup.finishedAt ?? localBackup.endedAt,
+      'continuity.localBackup.completedAt',
+      now,
+    );
+    if (now - Date.parse(localBackupCompletedAt) > maxAgeMs)
+      throw new OperationsEvidenceError(
+        'OPERATIONS_EVIDENCE_STALE',
+        'continuity.localBackup.completedAt is outside the evidence freshness window',
+      );
+    const rollback = objectAlias(value, 'rollback');
+    if (
+      !rollback ||
+      !statusPass(rollback.status ?? rollback.result ?? rollback.outcome ?? rollback.state)
+    )
+      throw new OperationsEvidenceError(
+        'OPERATIONS_EVIDENCE_CONTINUITY_INVALID',
+        'waived continuity must retain verified rollback material',
+      );
+    const rollbackVerifiedAt = parseTimestamp(
+      rollback.verifiedAt ?? rollback.completedAt ?? rollback.finishedAt,
+      'continuity.rollback.verifiedAt',
+      now,
+    );
+    if (now - Date.parse(rollbackVerifiedAt) > maxAgeMs)
+      throw new OperationsEvidenceError(
+        'OPERATIONS_EVIDENCE_STALE',
+        'continuity.rollback.verifiedAt is outside the evidence freshness window',
+      );
+    return {
+      status: 'WAIVED',
+      releaseBlocking: false,
+      waivedBy: 'owner',
+      waivedAt,
+      reason,
+      localBackup: { status: 'PASS', completedAt: localBackupCompletedAt },
+      rollback: { status: 'PASS', verifiedAt: rollbackVerifiedAt },
+    };
+  }
+  if (!statusPass(rawStatus))
     throw new OperationsEvidenceError(
       'OPERATIONS_EVIDENCE_CONTINUITY_INVALID',
       'continuity must have a successful overall status',
@@ -732,6 +819,19 @@ export function parseClientEssentialOperationsEvidence(
     throw new OperationsEvidenceError('OPERATIONS_EVIDENCE_STALE', 'Evidence has expired');
   const tenantId = requiredString(value.tenantId, 'tenantId');
   const deploymentId = requiredString(value.deploymentId, 'deploymentId');
+  const continuityRequestsWaiver =
+    isObject(value.continuity) &&
+    statusWaived(
+      value.continuity.status ??
+        value.continuity.result ??
+        value.continuity.outcome ??
+        value.continuity.state,
+    );
+  if (continuityRequestsWaiver && (!options.expectedTenantId || !options.expectedDeploymentId))
+    throw new OperationsEvidenceError(
+      'OPERATIONS_EVIDENCE_IDENTITY_MISMATCH',
+      'Owner-waived continuity evidence requires an expected tenant and deployment identity',
+    );
   if (options.expectedTenantId && tenantId !== options.expectedTenantId)
     throw new OperationsEvidenceError(
       'OPERATIONS_EVIDENCE_IDENTITY_MISMATCH',
@@ -768,7 +868,7 @@ export function parseClientEssentialOperationsEvidence(
     deploymentId,
     sha256: suppliedSha256,
     jobs: normalizeJobs(value.jobs, now),
-    continuity: normalizeContinuity(value.continuity, now),
+    continuity: normalizeContinuity(value.continuity, now, maxAgeMs),
     ...(expiresAt ? { expiresAt } : {}),
   };
 }

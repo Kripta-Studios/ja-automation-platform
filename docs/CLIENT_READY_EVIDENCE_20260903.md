@@ -7,7 +7,7 @@ ANEXO D UAT, including localized-content approval and the Owner role/project-ass
 
 The reviewed application candidate was committed, published and deployed on 2026-09-04 from branch
 `codex/v3-production-completion-orchestrated-20260819` at commit
-`85a407ce06bd7c2fe98c63ebb669328eae04ad94`; the latest numbered migration is
+`8d02bd5e32032e26895d3f5a5260620e3935ba6d`; the latest numbered migration is
 `0035_stalwart_mail_integration.sql`. The deployed immutable release passed migration, Caddy, internal
 and public health, Stalwart/IMAPS, database integrity and automatic-jobs verification. The later
 acceptance-contract correction makes the Owner's continuity waiver executable and fail-closed.
@@ -17,6 +17,12 @@ account using authenticated STARTTLS on port `587`. The request returned HTTP `2
 completed without a failed outbox event, and the designated operator confirmed receipt in the agreed
 `migration-test@j-aautomation.com` mailbox in **Inbox**, not Junk. The redacted acceptance record is
 `/var/log/jaautomation-client-ready-mail-acceptance-20260904.json` (`root:root`, mode `0600`).
+
+The final production correction reconciles localized-PDF variants whose durable job has exhausted all
+five retries. Two historical variants moved from stale `running` to truthful `failed`/retryable state,
+with two immutable fenced attempt records. Production remained on schema 35 with `integrity_check=ok`,
+zero foreign-key violations and exactly one expected active Owner. Evidence is protected at
+`/var/log/jaautomation-client-ready-pdf-recovery-20260904.json` (`root:root`, mode `0600`).
 
 ## Runtime and safety preflight
 
@@ -50,7 +56,7 @@ post-remediation typecheck, lint, format and browser build/journey below.
 | Command                            | Exit | Evidence                                                                                                     |
 | ---------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------ |
 | `run test:unit`                    | 0    | 122 files / 725 tests passed.                                                                                |
-| `run test:integration`             | 0    | 52 files / 369 tests passed.                                                                                 |
+| `run test:integration`             | 0    | 52 files / 370 tests passed.                                                                                 |
 | `run test:security`                | 0    | 29 files / 177 tests passed.                                                                                 |
 | `exec vitest run tests/migrations` | 0    | 11 files / 84 tests passed.                                                                                  |
 | `run test:reporting`               | 0    | 1 file / 5 tests passed.                                                                                     |

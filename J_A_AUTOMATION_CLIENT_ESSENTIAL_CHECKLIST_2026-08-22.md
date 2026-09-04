@@ -27,7 +27,7 @@ inquiry/outbox state became `delivered`, and the designated operator confirmed t
 message reached the agreed `migration-test@j-aautomation.com` mailbox in **Inbox**, not Junk. The
 reviewed application release was committed, published and deployed on 2026-09-04 from branch
 `codex/v3-production-completion-orchestrated-20260819` at commit
-`85a407ce06bd7c2fe98c63ebb669328eae04ad94`; migration
+`8d02bd5e32032e26895d3f5a5260620e3935ba6d`; migration
 `0035_stalwart_mail_integration.sql` remains latest. The active immutable release, Caddy routing,
 production database, Stalwart integration and automatic jobs were verified on the VPS. The subsequent
 acceptance-contract correction records the Owner's explicit separate-host continuity waiver without
@@ -36,14 +36,17 @@ weakening the mandatory local backup and rollback safeguards.
 Pinned Node was `v24.19.0`, Corepack pnpm `11.22.0`; every repository gate used the pinned runtime and
 `corepack pnpm --config.verify-deps-before-run=warn`. The reviewed deployer performed the authorized
 production backup, image build, additive migration, atomic activation, unit installation and health
-checks. It did not alter Stalwart data, accounts, passwords, hashes or DNS. Post-deployment free disk
-was 27 GiB.
+checks. It did not alter Stalwart data, accounts, passwords, hashes or DNS. The final release also
+reconciles durable localized-PDF jobs that exhausted all retries so their UI state becomes truthfully
+`failed` and retryable instead of remaining `running`; two historical production variants were recovered
+with immutable attempt evidence. Post-cleanup free disk was 42 GiB while the active images and immediate
+rollback pair remained retained.
 
 | Gate                           | Result                                                                                                                |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
 | Format, lint, typecheck        | **PASS** — final post-remediation rerun; 10 workspace typechecks.                                                     |
 | Unit                           | **PASS** — final post-remediation rerun; 122 files / 725 tests.                                                       |
-| Integration                    | **PASS** — final post-remediation rerun; 52 files / 369 tests.                                                        |
+| Integration                    | **PASS** — final post-remediation rerun; 52 files / 370 tests.                                                        |
 | Security                       | **PASS** — final post-remediation rerun; 29 files / 177 tests.                                                        |
 | Migrations                     | **PASS** — 11 files / 84 tests.                                                                                       |
 | Reporting, invariants, offline | **PASS** — 1/5, 1/1, and 3/8 respectively.                                                                            |
@@ -63,6 +66,8 @@ remain unproven, so the overall verdict cannot be marked `PASS`. See
 `docs/CLIENT_READY_EVIDENCE_20260903.md` for commands and redacted details.
 The current redacted acceptance evidence is
 `/var/log/jaautomation-client-ready-mail-acceptance-20260904.json` (`root:root`, mode `0600`). The
+post-deployment localized-PDF recovery and container-cleanup evidence is
+`/var/log/jaautomation-client-ready-pdf-recovery-20260904.json` (`root:root`, mode `0600`). The
 ready-to-sign human acceptance record is `docs/ANEXO_D_UAT_20260904.md`.
 
 ## Repository-grounded audit snapshot — 2026-09-01 (historical; not revalidated above)

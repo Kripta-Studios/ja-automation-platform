@@ -4,9 +4,9 @@ Fecha de preparación: 2026-09-04
 
 Rama: `codex/v3-production-completion-orchestrated-20260819`
 
-Release ejecutable: `85a407ce06bd7c2fe98c63ebb669328eae04ad94`
+Release ejecutable: `8d02bd5e32032e26895d3f5a5260620e3935ba6d`
 
-SHA-256 del ZIP desplegado: `329148440609fdd1eaa62e804dfa083a3d5efadd44e30229a9dcf4ef10b99765`
+SHA-256 del ZIP desplegado: `63c13b1d28ef9c29166e2a16dee592e639e374084a14ddebcb8d5dae6e9431a7`
 
 Este documento registra la aceptación humana y externa que no puede ser sustituida por pruebas
 automatizadas. No adjuntar contraseñas, tokens, hashes de credenciales, cabeceras de autorización,
@@ -22,6 +22,8 @@ respuestas JMAP completas ni contenido privado de correo.
 - [x] Recepción confirmada por el operador en `migration-test@j-aautomation.com`, con ubicación Inbox.
 - [x] STARTTLS/TLS válido en SMTP 25, SMTPS 465, Submission 587 e IMAPS 993.
 - [x] SQLite schema 35, `integrity_check=ok`, cero violaciones FK y un único Owner activo.
+- [x] Dos PDFs localizados históricos atascados fueron reconciliados a `failed` reintentable, con
+      intentos durables inmutables; no quedan variantes en estado `running`.
 - [x] Jobs automáticos, timers, Caddy, portal, site, Stalwart y Roundcube operativos.
 - [x] Backlog anterior al corte aislado sin reenvío masivo.
 - [x] Backup local previo y material de rollback verificados.
@@ -32,6 +34,7 @@ Evidencia protegida en el VPS:
 - `/var/log/jaautomation-client-essential-operations-evidence.json`
 - `/var/log/jaautomation-client-ready-mail-evidence.json`
 - `/var/log/jaautomation-client-ready-mail-acceptance-20260904.json`
+- `/var/log/jaautomation-client-ready-pdf-recovery-20260904.json`
 - `/var/log/jaautomation-anexo-d-preflight-evidence.json`
 - `/var/log/jaautomation-uat-visual-20260904-85a407c/SHA256SUMS`
 

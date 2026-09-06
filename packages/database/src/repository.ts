@@ -3102,7 +3102,7 @@ export class PortalRepository {
     const timestamp = now();
     const result = this.sqlite
       .prepare(
-        "UPDATE expense SET approval_state='submitted',submitted_at=?,updated_at=?,version=version+1 WHERE id=? AND worker_id=? AND approval_state IN ('draft','needs_changes') AND version=? AND invoice_id IS NULL AND (receipt_required=0 OR receipt_document_id IS NOT NULL)",
+        "UPDATE expense SET approval_state='submitted',submitted_at=?,updated_at=?,version=version+1 WHERE id=? AND worker_id=? AND approval_state='draft' AND version=? AND invoice_id IS NULL AND (receipt_required=0 OR receipt_document_id IS NOT NULL)",
       )
       .run(timestamp, timestamp, id, principal.userId, baseVersion);
     if (result.changes !== 1)
@@ -3154,7 +3154,7 @@ export class PortalRepository {
     if (
       current.invoice_id ||
       current.billing_state !== 'unlocked' ||
-      !['draft', 'needs_changes'].includes(current.approval_state)
+      current.approval_state !== 'draft'
     )
       throw new ConflictError('Only an unlocked editable expense draft can change');
     if (input.spentOn) {

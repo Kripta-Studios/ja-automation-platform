@@ -524,31 +524,6 @@ describe('Client Essential approval lifecycle', () => {
     value.repository.operationalApproveTime(
       value.manager,
       correction.correctionId,
-      'needs_changes',
-      'Clarify the corrected duration before settlement',
-    );
-    expect(() =>
-      value.v3.settleCompensation(finance, {
-        workerId: value.worker.userId,
-        projectId: value.project.id,
-        periodStart: '2026-08-01',
-        periodEnd: '2026-08-31',
-      }),
-    ).toThrow(/active time correction/i);
-    expect(
-      value.sqlite.prepare('SELECT count(*) count FROM compensation_settlement').get(),
-    ).toEqual({ count: 0 });
-    expect(
-      value.repository.updateTimeEntry(value.worker, {
-        id: correction.correctionId,
-        version: 3,
-        minutes: 540,
-      }),
-    ).toEqual({ id: correction.correctionId, version: 4 });
-    value.repository.submitTime(value.worker, correction.correctionId, 4);
-    value.repository.operationalApproveTime(
-      value.manager,
-      correction.correctionId,
       'rejected',
       'The original record remains correct',
     );
@@ -572,6 +547,44 @@ describe('Client Essential approval lifecycle', () => {
     ).toEqual([
       expect.objectContaining({ amountMinor: '60000', sourceAmountMinor: '600', state: 'settled' }),
     ]);
+
+    const held = fixture();
+    const heldFinance = authenticatedFinance(held);
+    held.v3.createCompensationRule(heldFinance, {
+      workerId: held.worker.userId,
+      projectId: held.project.id,
+      currency: 'EUR',
+      ruleType: 'Hourly',
+      rateMinor: 6_000n,
+      effectiveFrom: '2026-08-01',
+    });
+    const heldOriginalId = submittedTime(held);
+    held.repository.operationalApproveTime(held.manager, heldOriginalId, 'approved');
+    const heldCorrection = held.repository.createCorrectionDraft(held.worker, {
+      recordType: 'time_entry',
+      originalId: heldOriginalId,
+      requestId: 'compensation-needs-changes-hold',
+      reason: 'Correction requires reviewer clarification',
+      patch: { minutes: 540 },
+    });
+    held.repository.submitTime(held.worker, heldCorrection.correctionId, 1);
+    held.repository.operationalApproveTime(
+      held.manager,
+      heldCorrection.correctionId,
+      'needs_changes',
+      'Clarify the corrected duration before settlement',
+    );
+    expect(() =>
+      held.v3.settleCompensation(heldFinance, {
+        workerId: held.worker.userId,
+        projectId: held.project.id,
+        periodStart: '2026-08-01',
+        periodEnd: '2026-08-31',
+      }),
+    ).toThrow(/active time correction/i);
+    expect(held.sqlite.prepare('SELECT count(*) count FROM compensation_settlement').get()).toEqual(
+      { count: 0 },
+    );
   });
 
   it('keeps an approved worker expense effective until its correction is approved', () => {
@@ -612,23 +625,6 @@ describe('Client Essential approval lifecycle', () => {
     value.repository.operationalApproveExpense(
       value.manager,
       correction.correctionId,
-      'needs_changes',
-      'Clarify the corrected amount before reimbursement',
-    );
-    expect(statement().map((row) => row.id)).toEqual([original.id]);
-    expect(value.v3.listReimbursementQueue(value.finance, value.project.id)).toEqual([]);
-    expect(
-      value.repository.updateExpense(value.worker, {
-        id: correction.correctionId,
-        version: 3,
-        amountMinor: 12_500n,
-      }),
-    ).toEqual({ id: correction.correctionId, version: 4 });
-    value.repository.submitExpense(value.worker, correction.correctionId, 4);
-
-    value.repository.operationalApproveExpense(
-      value.manager,
-      correction.correctionId,
       'rejected',
       'Original receipt remains authoritative',
     );
@@ -656,6 +652,41 @@ describe('Client Essential approval lifecycle', () => {
     value.repository.submitExpense(value.worker, retry.correctionId, 1);
     value.repository.operationalApproveExpense(value.manager, retry.correctionId, 'approved');
     expect(statement().map((row) => row.id)).toEqual([retry.correctionId]);
+
+    const held = fixture();
+    const heldOriginal = held.repository.createExpense(held.worker, {
+      projectId: held.project.id,
+      spentOn: '2026-08-20',
+      vendor: 'Held original worker-paid hotel',
+      category: 'hotel',
+      description: 'Held original expense source',
+      currency: 'EUR',
+      amountMinor: 10_000n,
+      whoPaid: 'worker',
+      receiptRequired: false,
+    });
+    held.repository.submitExpense(held.worker, heldOriginal.id, heldOriginal.version);
+    held.repository.operationalApproveExpense(held.manager, heldOriginal.id, 'approved');
+    const heldCorrection = held.repository.createCorrectionDraft(held.worker, {
+      recordType: 'expense',
+      originalId: heldOriginal.id,
+      requestId: 'expense-needs-changes-hold',
+      reason: 'Expense correction requires clarification',
+      patch: { amountMinor: 12_500 },
+    });
+    held.repository.submitExpense(held.worker, heldCorrection.correctionId, 1);
+    held.repository.operationalApproveExpense(
+      held.manager,
+      heldCorrection.correctionId,
+      'needs_changes',
+      'Clarify the corrected amount before reimbursement',
+    );
+    expect(
+      held.repository
+        .listWorkerStatementExpenses(held.worker, '2026-08-20', '2026-08-20')
+        .map((row) => row.id),
+    ).toEqual([heldOriginal.id]);
+    expect(held.v3.listReimbursementQueue(held.finance, held.project.id)).toEqual([]);
   });
 
   it('keeps approved daily and technical report truth, including technical-change detail, until a correction is approved', () => {

@@ -13,6 +13,8 @@ import {
   technicalReportPdf,
   translateCalculationBasis,
   translateReportMetric,
+  workerStatementPdf,
+  type WorkerStatementSnapshot,
 } from '@ja/reporting';
 
 type Locale = 'en' | 'es' | 'pt-BR';
@@ -296,6 +298,123 @@ const technicalSnapshot = (locale: Locale) => ({
   ],
 });
 
+const workerStatementSnapshot = (
+  locale: Locale,
+  profile: 'empty' | 'ordinary' | 'long' = 'ordinary',
+): WorkerStatementSnapshot => {
+  const activities =
+    profile === 'empty'
+      ? []
+      : Array.from({ length: profile === 'long' ? 90 : 1 }, (_, index) => ({
+          id: `time-${index + 1}`,
+          projectNumber: 'P-1',
+          projectName: 'Line',
+          date: '2026-08-12',
+          category: index % 2 === 0 ? 'regular' : 'overtime',
+          activitySummary:
+            profile === 'long'
+              ? `Commissioning activity ${index + 1}: validated sequence, interlocks and handover notes.`
+              : 'Validated sequence, interlocks and handover notes.',
+          actualMinutes: 60,
+          approvalState: 'approved',
+        }));
+  return {
+    locale,
+    worker: { id: 'worker-1', name: 'Álex Worker' },
+    periodStart: '2026-08-01',
+    periodEnd: '2026-08-31',
+    currency: 'USD',
+    approvedMinutes: activities.length * 60,
+    pendingMinutes: 30,
+    estimatedApprovedMinor: '101000',
+    estimatedPendingMinor: '2500',
+    approvedReimbursementMinor: '12345',
+    pendingReimbursementMinor: '0',
+    missingCompensationRules: 0,
+    activities,
+    settlements:
+      profile === 'empty'
+        ? []
+        : [
+            {
+              id: 'settlement-1',
+              projectNumber: 'P-1',
+              projectName: 'Line',
+              periodStart: '2026-08-01',
+              periodEnd: '2026-08-31',
+              amountMinor: '101000',
+              currency: 'USD',
+              state: 'scheduled',
+              expectedPaymentOn: '2026-09-10',
+              settledAt: null,
+            },
+          ],
+    expenses:
+      profile === 'empty'
+        ? []
+        : [
+            {
+              id: 'expense-1',
+              projectNumber: 'P-1',
+              spentOn: '2026-08-12',
+              vendor: 'Viagens São José',
+              category: 'travel',
+              reimbursementAmountMinor: '12345',
+              currency: 'USD',
+              approvalState: 'approved',
+              reimbursementState: 'reimbursed',
+              expectedReimbursementOn: '2026-09-10',
+              reimbursedAt: '2026-09-11T12:00:00.000Z',
+            },
+          ],
+  };
+};
+
+const workerCopy = {
+  en: {
+    title: 'Worker compensation statement',
+    titleParts: ['Worker', 'statement'],
+    approved: 'Approved compensation',
+    activity: 'Own activity',
+    scheduled: 'Scheduled',
+    scheduledFragment: 'Schedule',
+    reimbursed: 'Reimbursed',
+    reimbursedFragment: 'Reimburse',
+    noActivity: 'No activity in this period.',
+    noSettlements: 'No settlements in this period.',
+    noExpenses: 'No reimbursable expenses in this period.',
+    money: '$1,010.00',
+  },
+  es: {
+    title: 'Estado de compensación del trabajador',
+    titleParts: ['Estado', 'trabajador'],
+    approved: 'Compensación aprobada',
+    activity: 'Actividad propia',
+    scheduled: 'Programado',
+    scheduledFragment: 'Programa',
+    reimbursed: 'Reembolsado',
+    reimbursedFragment: 'Reembolsa',
+    noActivity: 'No hay actividad en este período.',
+    noSettlements: 'No hay pagos en este período.',
+    noExpenses: 'No hay gastos reembolsables en este período.',
+    money: '1.010,00 US$',
+  },
+  'pt-BR': {
+    title: 'Extrato de remuneração do trabalhador',
+    titleParts: ['Extrato', 'trabalhador'],
+    approved: 'Remuneração aprovada',
+    activity: 'Atividade própria',
+    scheduled: 'Agendado',
+    scheduledFragment: 'Agenda',
+    reimbursed: 'Reembolsado',
+    reimbursedFragment: 'Reembols',
+    noActivity: 'Nenhuma atividade neste período.',
+    noSettlements: 'Nenhum pagamento neste período.',
+    noExpenses: 'Nenhuma despesa reembolsável neste período.',
+    money: 'US$ 1.010,00',
+  },
+} as const;
+
 describe('localized report PDF renderers', () => {
   it('normalizes full locale aliases while retaining the internal pt code', () => {
     expect(normalizeReportLocale('en-US')).toBe('en');
@@ -361,6 +480,47 @@ describe('localized report PDF renderers', () => {
         for (const residue of englishControlledResidue)
           expect(containsPdfCopy(text, residue)).toBe(false);
     }
+  });
+
+  it.each(locales)('renders an ordinary Worker Statement in %s', (locale) => {
+    const text = expectPdf(workerStatementPdf(workerStatementSnapshot(locale)));
+    const expected = workerCopy[locale];
+    for (const part of expected.titleParts) expect(containsPdfCopy(text, part)).toBe(true);
+    expect(containsPdfCopy(text, expected.approved)).toBe(true);
+    expect(containsPdfCopy(text, expected.activity)).toBe(true);
+    // Narrow PDF columns can place adjacent-column text between a wrapped
+    // status stem and its final letter in pdftotext output.
+    expect(containsPdfCopy(text, expected.scheduledFragment)).toBe(true);
+    expect(containsPdfCopy(text, expected.reimbursedFragment)).toBe(true);
+    expect(containsPdfCopy(text, expected.money)).toBe(true);
+    expect(text).not.toContain('2026-08-12');
+    if (locale !== 'en') {
+      for (const residue of [
+        'Worker compensation statement',
+        'Approved compensation',
+        'Own activity',
+        'Expected payment',
+        'Payment status',
+      ])
+        expect(containsPdfCopy(text, residue)).toBe(false);
+    }
+  });
+
+  it.each(locales)('renders an empty Worker Statement in %s', (locale) => {
+    const text = expectPdf(workerStatementPdf(workerStatementSnapshot(locale, 'empty')));
+    const expected = workerCopy[locale];
+    expect(containsPdfCopy(text, expected.noActivity)).toBe(true);
+    expect(containsPdfCopy(text, expected.noSettlements)).toBe(true);
+    expect(containsPdfCopy(text, expected.noExpenses)).toBe(true);
+  });
+
+  it.each(locales)('renders a long multipage Worker Statement in %s', (locale) => {
+    const pdf = workerStatementPdf(workerStatementSnapshot(locale, 'long'));
+    expect(pageCount(pdf)).toBeGreaterThan(1);
+    const text = expectPdf(pdf);
+    for (const part of workerCopy[locale].titleParts)
+      expect(containsPdfCopy(text, part)).toBe(true);
+    expect(containsPdfCopy(text, '90:')).toBe(true);
   });
 
   it('renders repeated identical snapshots to byte-identical PDF artifacts', () => {

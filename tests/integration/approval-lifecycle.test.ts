@@ -348,6 +348,91 @@ describe('Client Essential approval lifecycle', () => {
     });
   });
 
+  it('keeps an approved time source effective until its correction is approved, then permits a rejected retry', () => {
+    const value = fixture();
+    const originalId = submittedTime(value);
+    value.repository.operationalApproveTime(value.manager, originalId, 'approved');
+
+    expect(value.v3.workerPay(value.worker, '2026-08-20', '2026-08-20')).toMatchObject({
+      approvedMinutes: 600,
+      pendingMinutes: 0,
+    });
+
+    const correction = value.repository.createCorrectionDraft(value.worker, {
+      recordType: 'time_entry',
+      originalId,
+      requestId: 'time-correction-effective-source-draft',
+      reason: 'Correct the approved shift minutes without hiding history',
+      patch: { minutes: 540 },
+    });
+
+    // A draft correction is input under review, not yet a replacement of approved truth.
+    expect(value.v3.workerPay(value.worker, '2026-08-20', '2026-08-20')).toMatchObject({
+      approvedMinutes: 600,
+      pendingMinutes: 0,
+    });
+    expect(
+      value.v3.projectFinance(value.finance, value.project.id, '2026-08-20', '2026-08-20'),
+    ).toMatchObject({ actualMinutes: 600 });
+    expect(
+      value.repository
+        .listWorkerStatementTime(value.worker, '2026-08-20', '2026-08-20')
+        .map((row) => row.id),
+    ).toEqual([originalId]);
+    value.repository.submitTime(value.worker, correction.correctionId, 1);
+    expect(value.v3.workerPay(value.worker, '2026-08-20', '2026-08-20')).toMatchObject({
+      approvedMinutes: 600,
+      pendingMinutes: 0,
+    });
+
+    value.repository.operationalApproveTime(
+      value.manager,
+      correction.correctionId,
+      'rejected',
+      'Original approved time remains the effective source',
+    );
+    expect(value.v3.workerPay(value.worker, '2026-08-20', '2026-08-20')).toMatchObject({
+      approvedMinutes: 600,
+      pendingMinutes: 0,
+    });
+    expect(
+      value.repository.listTimeForScope(value.worker).find((row) => row.id === originalId),
+    ).toMatchObject({ id: originalId, approval_state: 'approved' });
+    expect(
+      value.repository.listApprovalQueue(value.manager).find((row) => row.id === originalId),
+    ).toMatchObject({ id: originalId, review_stage: 'correction' });
+    expect(
+      value.repository.listApprovalQueue(value.finance).find((row) => row.id === originalId),
+    ).toMatchObject({ id: originalId, review_stage: 'finance' });
+    expect(
+      value.sqlite
+        .prepare(
+          "SELECT count(*) count FROM approval_event WHERE entity_type='time' AND entity_id=?",
+        )
+        .get(correction.correctionId),
+    ).toEqual({ count: 1 });
+
+    let retry!: { correctionId: string };
+    expect(() => {
+      retry = value.repository.createCorrectionDraft(value.worker, {
+        recordType: 'time_entry',
+        originalId,
+        requestId: 'time-correction-effective-source-retry',
+        reason: 'Retry with corrected approved shift minutes',
+        patch: { minutes: 570 },
+      });
+    }).not.toThrow();
+    value.repository.submitTime(value.worker, retry.correctionId, 1);
+    value.repository.operationalApproveTime(value.manager, retry.correctionId, 'approved');
+    expect(value.v3.workerPay(value.worker, '2026-08-20', '2026-08-20')).toMatchObject({
+      approvedMinutes: 570,
+      pendingMinutes: 0,
+    });
+    expect(
+      value.repository.listApprovalQueue(value.manager).find((row) => row.id === originalId),
+    ).toBeUndefined();
+  });
+
   it('rejects unauthorized Owner override and immutable locked sources', () => {
     const value = fixture();
     const timeId = submittedTime(value);

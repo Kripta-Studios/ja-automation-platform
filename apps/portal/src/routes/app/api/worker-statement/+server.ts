@@ -8,12 +8,14 @@ import {
   V3ValidationError,
 } from '@ja/database';
 import { WORKER_STATEMENT_JOB_KIND } from '@ja/reporting';
+import { reportLocaleSchema } from '@ja/schemas';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { requiredExportPeriod } from '$lib/server/report-export-request';
 import {
   artifactDownloadLocation,
   buildWorkerStatementSnapshot,
   publicWorkerStatementStatus,
+  workerStatementArtifactLocale,
   workerStatementRepository,
   workerStatementRequestInput,
 } from './worker-statement-api';
@@ -49,15 +51,20 @@ export const GET: RequestHandler = ({ locals, url }) => {
   if (locals.user.role !== 'worker')
     return json({ error: 'Worker role required' }, { status: 403 });
   const artifactId = url.searchParams.get('artifactId')?.trim();
+  const localeResult = reportLocaleSchema.safeParse(url.searchParams.get('locale') ?? 'en');
+  if (!localeResult.success)
+    return json({ error: 'locale must be en, es, or pt' }, { status: 400 });
   const context = openPortalRepository(locals);
   try {
     const repository = workerStatementRepository(context.sqlite);
     const artifacts = artifactId
       ? [repository.getWorkerStatementArtifact(context.principal, artifactId)]
-      : repository.listWorkerStatementArtifacts(context.principal, {
-          periodStart: url.searchParams.get('periodStart') ?? undefined,
-          periodEnd: url.searchParams.get('periodEnd') ?? undefined,
-        });
+      : repository
+          .listWorkerStatementArtifacts(context.principal, {
+            periodStart: url.searchParams.get('periodStart') ?? undefined,
+            periodEnd: url.searchParams.get('periodEnd') ?? undefined,
+          })
+          .filter((artifact) => workerStatementArtifactLocale(artifact) === localeResult.data);
     return json(
       {
         artifacts: artifacts.map(publicWorkerStatementStatus),
@@ -106,6 +113,9 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
     return json({ error: 'refresh must be boolean' }, { status: 400 });
   if (values.requestKey !== undefined && typeof values.requestKey !== 'string')
     return json({ error: 'requestKey must be a string' }, { status: 400 });
+  const localeResult = reportLocaleSchema.safeParse(values.locale ?? 'en');
+  if (!localeResult.success)
+    return json({ error: 'locale must be en, es, or pt' }, { status: 400 });
 
   const context = openPortalRepository(locals);
   try {
@@ -114,6 +124,7 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
       { id: context.principal.userId, name: locals.user.name },
       period.periodStart,
       period.periodEnd,
+      localeResult.data,
     );
     const jobs = new Map<string, { id: string; created: boolean }>();
     const repository = workerStatementRepository(context.sqlite);

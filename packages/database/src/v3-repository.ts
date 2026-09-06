@@ -2181,7 +2181,21 @@ export class V3Repository {
          FROM time_entry t JOIN project p ON p.id=t.project_id
          WHERE t.project_id=? AND t.worker_id=? AND t.work_date BETWEEN ? AND ?
            AND t.approval_state IN ('approved','locked')
-           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id)
+           AND NOT EXISTS (
+             SELECT 1
+               FROM record_correction_link rcl
+               JOIN time_entry correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
+                AND correction.approval_state IN ('draft','submitted')
+           )
+           AND NOT EXISTS (
+             SELECT 1
+               FROM record_correction_link rcl
+               JOIN time_entry correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='time_entry'
+                AND ((rcl.original_id=t.id AND correction.approval_state='approved')
+                  OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+           )
          ORDER BY t.work_date,t.id`,
         )
         .all(input.projectId, input.workerId, input.periodStart, input.periodEnd) as TimeRow[];
@@ -2715,7 +2729,14 @@ export class V3Repository {
                  AND (pm.ends_on IS NULL OR pm.ends_on>=t.work_date)
             )
             AND t.approval_state NOT IN ('rejected','void')
-            AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id)
+            AND NOT EXISTS (
+              SELECT 1
+                FROM record_correction_link rcl
+                JOIN time_entry correction ON correction.id=rcl.correction_id
+               WHERE rcl.record_type='time_entry'
+                 AND ((rcl.original_id=t.id AND correction.approval_state='approved')
+                   OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+            )
           ORDER BY t.work_date,t.id`,
       )
       .all(principal.userId, periodStart, periodEnd) as TimeRow[];
@@ -3045,7 +3066,14 @@ export class V3Repository {
          JOIN user u ON u.id=t.worker_id
          WHERE t.project_id=? AND t.work_date BETWEEN ? AND ?
            AND t.approval_state NOT IN ('rejected','void')
-           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id)
+           AND NOT EXISTS (
+             SELECT 1
+               FROM record_correction_link rcl
+               JOIN time_entry correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='time_entry'
+                AND ((rcl.original_id=t.id AND correction.approval_state='approved')
+                  OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+           )
          ORDER BY t.work_date,t.worker_id,COALESCE(t.start_time,t.created_at),t.id`,
       )
       .all(projectId, start, end) as Array<TimeRow & { worker_name: string }>;
@@ -5436,13 +5464,45 @@ export class V3Repository {
     if (!rule.tax_profile_id) reasons.push({ code: 'missing_tax_profile' });
     if (!rule.legal_entity_id) reasons.push({ code: 'missing_legal_entity' });
     if (rule.stream_type === 'labor') {
+      const activeCorrections = this.sqlite
+        .prepare(
+          `SELECT rcl.correction_id id
+             FROM record_correction_link rcl
+             JOIN time_entry original ON original.id=rcl.original_id
+             JOIN time_entry correction ON correction.id=rcl.correction_id
+            WHERE rcl.record_type='time_entry' AND original.project_id=?
+              AND original.work_date BETWEEN ? AND ?
+              AND correction.approval_state IN ('draft','submitted')`,
+        )
+        .all(rule.project_id, periodStart, periodEnd) as Array<{ id: string }>;
+      reasons.push(
+        ...activeCorrections.map((correction) => ({
+          code: 'pending_time_correction',
+          sourceId: correction.id,
+        })),
+      );
       const rows = this.sqlite
         .prepare(
           `SELECT id,worker_id,category,activity_code,work_date,approval_state,billability_state
            FROM time_entry
            WHERE project_id=? AND work_date BETWEEN ? AND ? AND invoice_id IS NULL
              AND approval_state NOT IN ('rejected','void')
-             AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id)`,
+             AND NOT EXISTS (
+               SELECT 1
+                 FROM record_correction_link rcl
+                 JOIN time_entry correction ON correction.id=rcl.correction_id
+                WHERE rcl.record_type='time_entry'
+                  AND rcl.original_id=time_entry.id
+                  AND correction.approval_state IN ('draft','submitted')
+             )
+             AND NOT EXISTS (
+               SELECT 1
+                 FROM record_correction_link rcl
+                 JOIN time_entry correction ON correction.id=rcl.correction_id
+                WHERE rcl.record_type='time_entry'
+                  AND ((rcl.original_id=time_entry.id AND correction.approval_state='approved')
+                    OR (rcl.correction_id=time_entry.id AND correction.approval_state<>'approved'))
+             )`,
         )
         .all(rule.project_id, periodStart, periodEnd) as Array<{
         id: string;
@@ -5499,7 +5559,21 @@ export class V3Repository {
              FROM time_entry t
              WHERE t.project_id=? AND t.work_date BETWEEN ? AND ?
                AND t.approval_state NOT IN ('rejected','void')
-               AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id)
+               AND NOT EXISTS (
+                 SELECT 1
+                   FROM record_correction_link rcl
+                   JOIN time_entry correction ON correction.id=rcl.correction_id
+                  WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
+                    AND correction.approval_state IN ('draft','submitted')
+               )
+               AND NOT EXISTS (
+                 SELECT 1
+                   FROM record_correction_link rcl
+                   JOIN time_entry correction ON correction.id=rcl.correction_id
+                  WHERE rcl.record_type='time_entry'
+                    AND ((rcl.original_id=t.id AND correction.approval_state='approved')
+                      OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+               )
                AND NOT EXISTS (
                  SELECT 1 FROM daily_report d
                  WHERE d.project_id=t.project_id AND d.work_date=t.work_date
@@ -5643,7 +5717,13 @@ export class V3Repository {
              WHERE project_id=? AND work_date BETWEEN ? AND ?
                AND approval_state IN ('approved','locked') AND billability_state='billable'
                AND invoice_id IS NULL
-               AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id)
+               AND NOT EXISTS (
+                 SELECT 1
+                   FROM record_correction_link rcl
+                   JOIN time_entry correction ON correction.id=rcl.correction_id
+                  WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id
+                    AND correction.approval_state IN ('draft','submitted','approved')
+               )
                AND NOT (
                  category='travel' AND COALESCE((
                    SELECT pcp.travel_client_billable
@@ -5908,7 +5988,14 @@ export class V3Repository {
           `SELECT t.id,t.version,t.work_date,t.category,t.minutes,t.activity_summary,t.approval_state,u.name worker_name
            FROM time_entry t JOIN user u ON u.id=t.worker_id
            WHERE t.project_id=? AND t.work_date BETWEEN ? AND ?
-             AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id)
+             AND NOT EXISTS (
+               SELECT 1
+                 FROM record_correction_link rcl
+                 JOIN time_entry correction ON correction.id=rcl.correction_id
+                WHERE rcl.record_type='time_entry'
+                  AND ((rcl.original_id=t.id AND correction.approval_state='approved')
+                    OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+             )
            ORDER BY t.work_date,t.id`,
         )
         .all(input.projectId, input.periodStart, input.periodEnd) as Array<{
@@ -7366,7 +7453,14 @@ export class V3Repository {
                 p.currency project_currency
          FROM time_entry t JOIN user u ON u.id=t.worker_id JOIN project p ON p.id=t.project_id
          WHERE t.work_date BETWEEN ? AND ? AND t.approval_state IN ('approved','locked')
-           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id)
+           AND NOT EXISTS (
+             SELECT 1
+               FROM record_correction_link rcl
+               JOIN time_entry correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='time_entry'
+                AND ((rcl.original_id=t.id AND correction.approval_state='approved')
+                  OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+           )
          ORDER BY t.work_date,t.id`,
         )
         .all(periodStart, periodEnd) as Array<{

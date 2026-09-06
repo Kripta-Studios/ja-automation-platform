@@ -464,6 +464,106 @@ const es: ReportCopy = {
 
 export const reportCopy: Record<ReportLocale, ReportCopy> = { en, pt, es };
 
+export type WorkerStatementCopy = Readonly<{
+  title: string;
+  approvedCompensation: string;
+  pendingCompensation: string;
+  approvedReimbursements: string;
+  pendingReimbursements: string;
+  pendingHours: string;
+  ownActivity: string;
+  activity: string;
+  approval: string;
+  estimatedPay: string;
+  noActivity: string;
+  settlements: string;
+  period: string;
+  expectedPayment: string;
+  settled: string;
+  noSettlements: string;
+  ownReimbursableExpenses: string;
+  paymentStatus: string;
+  expectedReimbursement: string;
+  reimbursed: string;
+  noReimbursableExpenses: string;
+}>;
+
+const workerStatements: Record<ReportLocale, WorkerStatementCopy> = {
+  en: {
+    title: 'Worker compensation statement',
+    approvedCompensation: 'Approved compensation',
+    pendingCompensation: 'Pending compensation',
+    approvedReimbursements: 'Approved reimbursements',
+    pendingReimbursements: 'Pending reimbursements',
+    pendingHours: 'Pending hours',
+    ownActivity: 'Own activity',
+    activity: 'Activity',
+    approval: 'Approval',
+    estimatedPay: 'Estimated pay',
+    noActivity: 'No activity in this period.',
+    settlements: 'Settlements',
+    period: 'Period',
+    expectedPayment: 'Expected payment',
+    settled: 'Settled',
+    noSettlements: 'No settlements in this period.',
+    ownReimbursableExpenses: 'Own reimbursable expenses',
+    paymentStatus: 'Payment status',
+    expectedReimbursement: 'Expected reimbursement',
+    reimbursed: 'Reimbursed',
+    noReimbursableExpenses: 'No reimbursable expenses in this period.',
+  },
+  pt: {
+    title: 'Extrato de remuneração do trabalhador',
+    approvedCompensation: 'Remuneração aprovada',
+    pendingCompensation: 'Remuneração pendente',
+    approvedReimbursements: 'Reembolsos aprovados',
+    pendingReimbursements: 'Reembolsos pendentes',
+    pendingHours: 'Horas pendentes',
+    ownActivity: 'Atividade própria',
+    activity: 'Atividade',
+    approval: 'Aprovação',
+    estimatedPay: 'Pagamento estimado',
+    noActivity: 'Nenhuma atividade neste período.',
+    settlements: 'Pagamentos',
+    period: 'Período',
+    expectedPayment: 'Pagamento previsto',
+    settled: 'Pago em',
+    noSettlements: 'Nenhum pagamento neste período.',
+    ownReimbursableExpenses: 'Despesas próprias reembolsáveis',
+    paymentStatus: 'Status do pagamento',
+    expectedReimbursement: 'Reembolso previsto',
+    reimbursed: 'Reembolsado em',
+    noReimbursableExpenses: 'Nenhuma despesa reembolsável neste período.',
+  },
+  es: {
+    title: 'Estado de compensación del trabajador',
+    approvedCompensation: 'Compensación aprobada',
+    pendingCompensation: 'Compensación pendiente',
+    approvedReimbursements: 'Reembolsos aprobados',
+    pendingReimbursements: 'Reembolsos pendientes',
+    pendingHours: 'Horas pendientes',
+    ownActivity: 'Actividad propia',
+    activity: 'Actividad',
+    approval: 'Aprobación',
+    estimatedPay: 'Pago estimado',
+    noActivity: 'No hay actividad en este período.',
+    settlements: 'Pagos',
+    period: 'Período',
+    expectedPayment: 'Pago previsto',
+    settled: 'Pagado el',
+    noSettlements: 'No hay pagos en este período.',
+    ownReimbursableExpenses: 'Gastos propios reembolsables',
+    paymentStatus: 'Estado del pago',
+    expectedReimbursement: 'Reembolso previsto',
+    reimbursed: 'Reembolsado el',
+    noReimbursableExpenses: 'No hay gastos reembolsables en este período.',
+  },
+};
+
+export function workerStatementCopy(locale: ReportLocaleInput): WorkerStatementCopy {
+  return workerStatements[normalizeReportLocale(locale)];
+}
+
 const keyOf = (value: unknown): string =>
   String(value ?? '')
     .trim()
@@ -488,6 +588,13 @@ const statuses: Record<ReportLocale, Record<string, string>> = {
     running: 'Generating',
     ready: 'Ready',
     failed: 'Failed',
+    pending: 'Pending',
+    complete: 'Complete',
+    incomplete: 'Incomplete',
+    scheduled: 'Scheduled',
+    settled: 'Settled',
+    paid: 'Paid',
+    reimbursed: 'Reimbursed',
   },
   pt: {
     draft: 'Rascunho',
@@ -503,6 +610,13 @@ const statuses: Record<ReportLocale, Record<string, string>> = {
     running: 'Gerando',
     ready: 'Pronto',
     failed: 'Falhou',
+    pending: 'Pendente',
+    complete: 'Completo',
+    incomplete: 'Incompleto',
+    scheduled: 'Agendado',
+    settled: 'Pago',
+    paid: 'Pago',
+    reimbursed: 'Reembolsado',
   },
   es: {
     draft: 'Borrador',
@@ -518,6 +632,13 @@ const statuses: Record<ReportLocale, Record<string, string>> = {
     running: 'Generando',
     ready: 'Listo',
     failed: 'Fallido',
+    pending: 'Pendiente',
+    complete: 'Completo',
+    incomplete: 'Incompleto',
+    scheduled: 'Programado',
+    settled: 'Pagado',
+    paid: 'Pagado',
+    reimbursed: 'Reembolsado',
   },
 };
 
@@ -525,6 +646,21 @@ const statuses: Record<ReportLocale, Record<string, string>> = {
 export function translateReportStatus(value: unknown, locale: ReportLocaleInput): string {
   const key = keyOf(value);
   return statuses[normalizeReportLocale(locale)][key] ?? String(value ?? '');
+}
+
+const workerStatementCategories: Record<ReportLocale, Record<string, string>> = {
+  en: { regular: 'Regular', overtime: 'Overtime', travel: 'Travel', standby: 'Standby' },
+  pt: { regular: 'Regular', overtime: 'Hora extra', travel: 'Viagem', standby: 'Espera' },
+  es: { regular: 'Regular', overtime: 'Horas extra', travel: 'Viaje', standby: 'Espera' },
+};
+
+/** Translate controlled worker activity categories; configured free text remains intact. */
+export function translateWorkerStatementCategory(
+  value: unknown,
+  locale: ReportLocaleInput,
+): string {
+  const key = keyOf(value);
+  return workerStatementCategories[normalizeReportLocale(locale)][key] ?? String(value ?? '');
 }
 
 const metricLabels: Record<ReportLocale, Record<string, string>> = {

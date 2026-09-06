@@ -16,6 +16,8 @@ import {
 import type { Principal } from '@ja/domain';
 import {
   REPORT_TEMPLATE_VERSION,
+  normalizeReportLocale,
+  type ReportLocale,
   type WorkerStatementSnapshot,
   workerStatementGenerationVersion,
 } from '@ja/reporting';
@@ -192,6 +194,7 @@ export function buildWorkerStatementSnapshot(
   worker: Readonly<{ id: string; name: string }>,
   periodStart: string,
   periodEnd: string,
+  locale: ReportLocale = 'en',
 ): WorkerStatementSnapshot {
   if (context.principal.userId !== worker.id || context.principal.role !== 'worker')
     throw new AccessDeniedError('Worker statement access denied');
@@ -214,6 +217,7 @@ export function buildWorkerStatementSnapshot(
       periodEnd,
     );
     const snapshot: WorkerStatementSnapshot = {
+      locale: normalizeReportLocale(locale),
       worker,
       periodStart,
       periodEnd,
@@ -327,7 +331,17 @@ export function publicWorkerStatementStatus(artifact: WorkerStatementArtifact) {
     startedAt: artifact.startedAt,
     finishedAt: artifact.finishedAt,
     updatedAt: artifact.updatedAt,
+    locale: workerStatementArtifactLocale(artifact),
   };
+}
+
+export function workerStatementArtifactLocale(artifact: WorkerStatementArtifact): ReportLocale {
+  try {
+    const snapshot = JSON.parse(artifact.snapshotJson) as { locale?: unknown };
+    return normalizeReportLocale(snapshot.locale);
+  } catch {
+    return 'en';
+  }
 }
 
 export function artifactDownloadLocation(url: URL, artifactId: string): string {

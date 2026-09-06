@@ -135,6 +135,7 @@
     format: WorkerStatementFormat;
     status: WorkerStatementStatus;
     errorCode?: string | null;
+    locale: PortalLocale;
   };
   let workerStatementArtifacts = $state<WorkerStatementArtifact[]>([]);
   let workerStatementBusy = $state(false);
@@ -536,6 +537,7 @@
       return (
         typeof candidate.artifactId === 'string' &&
         (candidate.format === 'pdf' || candidate.format === 'csv') &&
+        (candidate.locale === 'en' || candidate.locale === 'es' || candidate.locale === 'pt') &&
         (candidate.status === 'queued' ||
           candidate.status === 'running' ||
           candidate.status === 'ready' ||
@@ -545,13 +547,18 @@
   }
 
   function workerStatementArtifact(format: WorkerStatementFormat): WorkerStatementArtifact | null {
-    return workerStatementArtifacts.find((artifact) => artifact.format === format) ?? null;
+    return (
+      workerStatementArtifacts.find(
+        (artifact) => artifact.format === format && artifact.locale === locale,
+      ) ?? null
+    );
   }
 
   async function loadWorkerStatementArtifacts(): Promise<boolean> {
     const query = new URLSearchParams({
       periodStart: data.periodStart,
       periodEnd: data.periodEnd,
+      locale,
     });
     const response = await fetch(`${base}/app/api/worker-statement?${query.toString()}`, {
       headers: { accept: 'application/json' },
@@ -608,6 +615,7 @@
         body: JSON.stringify({
           periodStart: data.periodStart,
           periodEnd: data.periodEnd,
+          locale,
           refresh: workerStatementArtifacts.length > 0,
         }),
       });

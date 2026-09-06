@@ -1641,7 +1641,14 @@ function validateAuthoritativeSourceItems(
            FROM time_entry t JOIN project p ON p.id=t.project_id
           WHERE t.work_date BETWEEN ? AND ?
             AND t.approval_state IN ('approved','locked','final')
-            AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id)`,
+            AND NOT EXISTS (
+              SELECT 1
+                FROM record_correction_link rcl
+                JOIN time_entry correction ON correction.id=rcl.correction_id
+               WHERE rcl.record_type='time_entry'
+                 AND ((rcl.original_id=t.id AND correction.approval_state='approved')
+                   OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+            )`,
       )
       .all(periodStart, periodEnd) as TimeAuthorityRow[]
   )

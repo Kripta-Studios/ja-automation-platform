@@ -1497,7 +1497,7 @@ export class PortalRepository {
     const timestamp = now();
     const result = this.sqlite
       .prepare(
-        "UPDATE time_entry SET billability_state=?,finance_approved_by=?,finance_approved_at=?,updated_at=?,version=version+1 WHERE id=? AND approval_state='approved' AND invoice_id IS NULL AND billing_status='unlocked' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id)",
+        "UPDATE time_entry SET billability_state=?,finance_approved_by=?,finance_approved_at=?,updated_at=?,version=version+1 WHERE id=? AND approval_state='approved' AND invoice_id IS NULL AND billing_status='unlocked' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id AND correction.approval_state<>'rejected')",
       )
       .run(billable ? 'billable' : 'non_billable', principal.userId, timestamp, timestamp, id);
     if (result.changes !== 1) throw new ConflictError('Approved unlocked time required');
@@ -2313,7 +2313,12 @@ export class PortalRepository {
       if (
         this.sqlite
           .prepare(
-            'SELECT 1 FROM record_correction_link WHERE record_type=? AND original_id=? LIMIT 1',
+            `SELECT 1
+               FROM record_correction_link rcl
+               JOIN ${table} correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type=? AND rcl.original_id=?
+                AND correction.approval_state<>'rejected'
+              LIMIT 1`,
           )
           .get(input.recordType, input.originalId)
       )
@@ -3723,7 +3728,21 @@ export class PortalRepository {
          FROM time_entry
          WHERE project_id=? AND work_date BETWEEN ? AND ?
            AND approval_state NOT IN ('rejected','void')
-           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id)
+           AND NOT EXISTS (
+             SELECT 1
+               FROM record_correction_link rcl
+               JOIN time_entry correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id
+                AND correction.approval_state IN ('draft','submitted')
+           )
+           AND NOT EXISTS (
+             SELECT 1
+               FROM record_correction_link rcl
+               JOIN time_entry correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='time_entry'
+                AND ((rcl.original_id=time_entry.id AND correction.approval_state='approved')
+                  OR (rcl.correction_id=time_entry.id AND correction.approval_state<>'approved'))
+           )
          ORDER BY work_date,worker_id,COALESCE(start_time,created_at),id`,
       )
       .all(projectId, periodStart, periodEnd) as BillingTimeRow[];
@@ -6331,7 +6350,7 @@ export class PortalRepository {
       .get(...projectFilter) as { count: number };
     const hours = this.sqlite
       .prepare(
-        `SELECT COALESCE(sum(t.minutes),0) minutes FROM time_entry t JOIN project p ON p.id=t.project_id${where}${where ? ' AND' : ' WHERE'} t.approval_state IN ('submitted','approved','locked') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id)`,
+        `SELECT COALESCE(sum(t.minutes),0) minutes FROM time_entry t JOIN project p ON p.id=t.project_id${where}${where ? ' AND' : ' WHERE'} t.approval_state IN ('submitted','approved','locked') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id WHERE rcl.record_type='time_entry' AND ((rcl.original_id=t.id AND correction.approval_state='approved') OR (rcl.correction_id=t.id AND correction.approval_state<>'approved')))`,
       )
       .get(...projectFilter) as { minutes: number };
     const reports = this.sqlite
@@ -6392,8 +6411,12 @@ export class PortalRepository {
         `SELECT category,sum(minutes) minutes FROM time_entry
          WHERE project_id=?${ownOnly ? ' AND worker_id=?' : ''}
            AND NOT EXISTS (
-             SELECT 1 FROM record_correction_link rcl
-              WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id
+             SELECT 1
+               FROM record_correction_link rcl
+               JOIN time_entry correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='time_entry'
+                AND ((rcl.original_id=time_entry.id AND correction.approval_state='approved')
+                  OR (rcl.correction_id=time_entry.id AND correction.approval_state<>'approved'))
            )
          GROUP BY category ORDER BY category`,
       )
@@ -6444,8 +6467,12 @@ export class PortalRepository {
         `SELECT COALESCE(sum(minutes),0) minutes FROM time_entry
          WHERE project_id=?${ownOnly ? ' AND worker_id=?' : ''}
            AND NOT EXISTS (
-             SELECT 1 FROM record_correction_link rcl
-              WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id
+             SELECT 1
+               FROM record_correction_link rcl
+               JOIN time_entry correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='time_entry'
+                AND ((rcl.original_id=time_entry.id AND correction.approval_state='approved')
+                  OR (rcl.correction_id=time_entry.id AND correction.approval_state<>'approved'))
            )`,
       )
       .get(...(ownOnly ? [projectId, principal.userId] : [projectId])) as { minutes: number };
@@ -7365,7 +7392,14 @@ export class PortalRepository {
          WHERE t.worker_id=?
            AND t.work_date>=? AND t.work_date<=?
            AND t.approval_state NOT IN ('rejected','void')
-           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id)
+           AND NOT EXISTS (
+             SELECT 1
+               FROM record_correction_link rcl
+               JOIN time_entry correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='time_entry'
+                AND ((rcl.original_id=t.id AND correction.approval_state='approved')
+                  OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+           )
            AND EXISTS (
              SELECT 1
              FROM project_member pm_scope
@@ -7429,11 +7463,64 @@ export class PortalRepository {
         principal.role === 'owner_admin'
           ? "SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'operational' review_stage FROM time_entry WHERE approval_state='submitted' UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'operational' FROM expense WHERE approval_state='submitted' UNION ALL SELECT 'daily',id,project_id,worker_id,work_date,0,approval_state,'report' FROM daily_report WHERE approval_state='submitted' UNION ALL SELECT 'technical',id,project_id,author_id,report_date,0,approval_state,'report' FROM technical_report WHERE approval_state='submitted' UNION ALL SELECT 'time',id,project_id,worker_id,work_date,minutes,approval_state,'owner_override' FROM time_entry WHERE approval_state='approved' AND invoice_id IS NULL AND billing_status='unlocked' AND billing_lock_id IS NULL AND locked_at IS NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'owner_override' FROM expense WHERE approval_state='approved' AND invoice_id IS NULL AND billing_state='unlocked' AND billing_lock_id IS NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) UNION ALL SELECT 'daily',d.id,d.project_id,d.worker_id,d.work_date,0,d.approval_state,'owner_override' FROM daily_report d WHERE d.approval_state='approved' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='daily_report' AND rcl.original_id=d.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='daily_report' AND rs.source_id=d.id AND pr.state='final') UNION ALL SELECT 'technical',t.id,t.project_id,t.author_id,t.report_date,0,t.approval_state,'owner_override' FROM technical_report t WHERE t.approval_state='approved' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='technical_report' AND rcl.original_id=t.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='technical_report' AND rs.source_id=t.id AND pr.state='final') UNION ALL "
           : '';
-      return this.sqlite
+      const queued = this.sqlite
         .prepare(
           `${operational}SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'finance' review_stage FROM time_entry WHERE approval_state='approved' AND billability_state='pending' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'finance' FROM expense WHERE approval_state='approved' AND finance_approved_at IS NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) ORDER BY date`,
         )
         .all();
+      if (principal.role === 'finance_admin') {
+        const retryableTime = this.sqlite
+          .prepare(
+            `SELECT 'time' type,t.id,t.project_id,t.worker_id,t.work_date date,t.minutes amount,
+                    t.approval_state,'finance' review_stage
+               FROM time_entry t
+              WHERE t.approval_state='approved' AND t.billability_state='pending'
+                AND EXISTS (
+                  SELECT 1
+                    FROM record_correction_link rcl
+                    JOIN time_entry correction ON correction.id=rcl.correction_id
+                   WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
+                     AND correction.approval_state='rejected'
+                )
+                AND NOT EXISTS (
+                  SELECT 1
+                    FROM record_correction_link rcl
+                    JOIN time_entry correction ON correction.id=rcl.correction_id
+                   WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
+                     AND correction.approval_state<>'rejected'
+                )`,
+          )
+          .all();
+        return [...queued, ...retryableTime].sort((left, right) =>
+          String(left.date).localeCompare(String(right.date)),
+        );
+      }
+      const retryableTime = this.sqlite
+        .prepare(
+          `SELECT 'time' type,t.id,t.project_id,t.worker_id,t.work_date date,t.minutes amount,
+                  t.approval_state,'owner_override' review_stage
+             FROM time_entry t
+            WHERE t.approval_state='approved' AND t.invoice_id IS NULL
+              AND t.billing_status='unlocked' AND t.billing_lock_id IS NULL AND t.locked_at IS NULL
+              AND EXISTS (
+                SELECT 1
+                  FROM record_correction_link rcl
+                  JOIN time_entry correction ON correction.id=rcl.correction_id
+                 WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
+                   AND correction.approval_state='rejected'
+              )
+              AND NOT EXISTS (
+                SELECT 1
+                  FROM record_correction_link rcl
+                  JOIN time_entry correction ON correction.id=rcl.correction_id
+                 WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
+                   AND correction.approval_state<>'rejected'
+              )`,
+        )
+        .all();
+      return [...queued, ...retryableTime].sort((left, right) =>
+        String(left.date).localeCompare(String(right.date)),
+      );
     }
     if (principal.role !== 'project_manager')
       throw new AccessDeniedError('Project review required');
@@ -7452,11 +7539,38 @@ export class PortalRepository {
       .filter((projectId) => principal.projectIds.has(projectId));
     if (ids.length === 0) return [];
     const placeholders = ids.map(() => '?').join(',');
-    return this.sqlite
+    const queued = this.sqlite
       .prepare(
         `SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'operational' review_stage FROM time_entry WHERE approval_state='submitted' AND project_id IN (${placeholders}) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'operational' FROM expense WHERE approval_state='submitted' AND project_id IN (${placeholders}) UNION ALL SELECT 'daily',id,project_id,worker_id,work_date,0,approval_state,'report' FROM daily_report WHERE approval_state='submitted' AND project_id IN (${placeholders}) UNION ALL SELECT 'technical',id,project_id,author_id,report_date,0,approval_state,'report' FROM technical_report WHERE approval_state='submitted' AND project_id IN (${placeholders}) UNION ALL SELECT 'time',id,project_id,worker_id,work_date,minutes,approval_state,'correction' FROM time_entry WHERE approval_state='approved' AND invoice_id IS NULL AND billing_status='unlocked' AND billing_lock_id IS NULL AND locked_at IS NULL AND project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'correction' FROM expense WHERE approval_state='approved' AND invoice_id IS NULL AND billing_state='unlocked' AND billing_lock_id IS NULL AND project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) UNION ALL SELECT 'daily',d.id,d.project_id,d.worker_id,d.work_date,0,d.approval_state,'correction' FROM daily_report d WHERE d.approval_state='approved' AND d.project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='daily_report' AND rcl.original_id=d.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='daily_report' AND rs.source_id=d.id AND pr.state='final') UNION ALL SELECT 'technical',t.id,t.project_id,t.author_id,t.report_date,0,t.approval_state,'correction' FROM technical_report t WHERE t.approval_state='approved' AND t.project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='technical_report' AND rcl.original_id=t.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='technical_report' AND rs.source_id=t.id AND pr.state='final') ORDER BY date`,
       )
       .all(...ids, ...ids, ...ids, ...ids, ...ids, ...ids, ...ids, ...ids);
+    const retryableTime = this.sqlite
+      .prepare(
+        `SELECT 'time' type,t.id,t.project_id,t.worker_id,t.work_date date,t.minutes amount,
+                t.approval_state,'correction' review_stage
+           FROM time_entry t
+          WHERE t.approval_state='approved' AND t.invoice_id IS NULL
+            AND t.billing_status='unlocked' AND t.billing_lock_id IS NULL AND t.locked_at IS NULL
+            AND t.project_id IN (${placeholders})
+            AND EXISTS (
+              SELECT 1
+                FROM record_correction_link rcl
+                JOIN time_entry correction ON correction.id=rcl.correction_id
+               WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
+                 AND correction.approval_state='rejected'
+            )
+            AND NOT EXISTS (
+              SELECT 1
+                FROM record_correction_link rcl
+                JOIN time_entry correction ON correction.id=rcl.correction_id
+               WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
+                 AND correction.approval_state<>'rejected'
+            )`,
+      )
+      .all(...ids);
+    return [...queued, ...retryableTime].sort((left, right) =>
+      String(left.date).localeCompare(String(right.date)),
+    );
   }
 
   listInvoices(principal: Principal): readonly InvoiceListRow[] {

@@ -101,8 +101,11 @@ export {
   translateReportBoolean,
   translateReportMetric,
   translateReportStatus,
+  translateWorkerStatementCategory,
+  workerStatementCopy,
   type ReportLocaleInput,
   type ReportCopy,
+  type WorkerStatementCopy,
 } from './report-i18n.ts';
 export function periodReadiness(input: {
   closed: boolean;

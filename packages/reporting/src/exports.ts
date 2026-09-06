@@ -16,6 +16,8 @@ import {
   translateReportBoolean,
   translateReportMetric,
   translateReportStatus,
+  translateWorkerStatementCategory,
+  workerStatementCopy,
   type ReportLocale,
 } from './report-i18n.ts';
 
@@ -1418,6 +1420,7 @@ function projectFinanceAlertRows(finance: Readonly<Record<string, unknown>>): re
 }
 
 export type WorkerStatementSnapshot = Readonly<{
+  locale?: ReportLocale | string;
   worker: Readonly<{ id: string; name: string }>;
   periodStart: string;
   periodEnd: string;
@@ -1614,6 +1617,9 @@ export function workerStatementCsv(snapshot: WorkerStatementSnapshot): Uint8Arra
 }
 
 export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Array {
+  const locale = normalizeLocale(snapshot.locale);
+  const copy = workerStatementCopy(locale);
+  const common = localizedCopy[locale];
   const activityCompensation = workerActivityCompensation(snapshot);
   const activityHoursTotal = sumFiniteNumbers(
     snapshot.activities.map((activity) => activity.actualMinutes),
@@ -1624,14 +1630,14 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
     snapshot.expenses.map((row) => row.reimbursementAmountMinor),
   );
   const summary = [
-    ['Approved compensation', snapshot.estimatedApprovedMinor],
-    ['Pending compensation', snapshot.estimatedPendingMinor],
-    ['Approved reimbursements', snapshot.approvedReimbursementMinor],
-    ['Pending reimbursements', snapshot.pendingReimbursementMinor],
+    [copy.approvedCompensation, snapshot.estimatedApprovedMinor],
+    [copy.pendingCompensation, snapshot.estimatedPendingMinor],
+    [copy.approvedReimbursements, snapshot.approvedReimbursementMinor],
+    [copy.pendingReimbursements, snapshot.pendingReimbursementMinor],
   ]
     .map(
       ([label, amount]) =>
-        `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${moneyText(snapshot.currency, amount, 'en')}</strong></div>`,
+        `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${moneyText(snapshot.currency, amount, locale)}</strong></div>`,
     )
     .join('');
   const activityRows = snapshot.activities.map((row, index) => {
@@ -1641,13 +1647,13 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
       row.projectName ||
       '—';
     return [
-      row.date ?? '—',
+      formatReportDate(row.date, locale) || '—',
       project,
-      row.category ?? '—',
+      translateWorkerStatementCategory(row.category, locale) || '—',
       row.activitySummary ?? '—',
       minutesAsHours(row.actualMinutes) || String(row.actualMinutes ?? '—'),
-      row.approvalState ?? '—',
-      exactMoneyText(snapshot.currency, activityCompensation[index] ?? 0n, 'en'),
+      translateReportStatus(row.approvalState, locale) || '—',
+      exactMoneyText(snapshot.currency, activityCompensation[index] ?? 0n, locale),
     ];
   });
   const settlementRows = snapshot.settlements.map((row) => {
@@ -1658,41 +1664,41 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
       '—';
     const period =
       row.periodStart && row.periodEnd
-        ? `${row.periodStart} → ${row.periodEnd}`
-        : row.periodStart ||
-          row.periodEnd ||
+        ? `${formatReportDate(row.periodStart, locale)} → ${formatReportDate(row.periodEnd, locale)}`
+        : formatReportDate(row.periodStart, locale) ||
+          formatReportDate(row.periodEnd, locale) ||
           (snapshot.periodStart && snapshot.periodEnd
-            ? `${snapshot.periodStart} → ${snapshot.periodEnd}`
+            ? `${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`
             : '—');
     const currency = row.currency || snapshot.currency || 'USD';
     return [
       project,
       period,
-      row.state ?? '—',
-      row.expectedPaymentOn ?? '—',
-      row.settledAt ?? '—',
-      exactMoneyText(currency, row.amountMinor, 'en'),
+      translateReportStatus(row.state, locale) || '—',
+      formatReportDate(row.expectedPaymentOn, locale) || '—',
+      formatReportDate(row.settledAt, locale) || '—',
+      exactMoneyText(currency, row.amountMinor, locale),
     ];
   });
   const expenseRows = snapshot.expenses.map((row) => [
-    row.spentOn ?? row.date ?? '—',
+    formatReportDate(row.spentOn ?? row.date, locale) || '—',
     row.projectNumber ?? row.project ?? '—',
     row.vendor ?? '—',
-    row.reimbursementState ?? row.status ?? '—',
-    row.expectedReimbursementOn ?? '—',
-    row.reimbursedAt ?? '—',
+    translateReportStatus(row.reimbursementState ?? row.status, locale) || '—',
+    formatReportDate(row.expectedReimbursementOn, locale) || '—',
+    formatReportDate(row.reimbursedAt, locale) || '—',
     exactMoneyText(
       row.currency || snapshot.currency,
       row.reimbursementAmountMinor ?? row.amountMinor,
-      'en',
+      locale,
     ),
   ]);
   return renderHtmlToPdf(
     layout(
-      'Worker compensation statement',
-      `${snapshot.worker.name} · ${snapshot.periodStart} → ${snapshot.periodEnd}`,
-      `<section class="grid">${summary}</section><p class="muted">Approved hours: ${htmlEscape(minutesAsHours(snapshot.approvedMinutes) || snapshot.approvedMinutes)} · Pending hours: ${htmlEscape(minutesAsHours(snapshot.pendingMinutes) || snapshot.pendingMinutes)}</p><h2>Own activity</h2>${htmlTable(['Date', 'Project', 'Category', 'Activity', 'Hours', 'Approval', 'Estimated pay'], activityRows, 'No activity in this period.', { amountIndexes: [6], footer: activityRows.length ? ['Total', '', '', '', minutesAsHours(activityHoursTotal) || String(activityHoursTotal), '', exactMoneyText(snapshot.currency, activityAmountTotal, 'en')] : undefined })}<h2>Settlements</h2>${htmlTable(['Project', 'Period', 'Status', 'Expected payment', 'Settled', 'Amount'], settlementRows, 'No settlements in this period.', { amountIndexes: [5], footer: settlementRows.length ? ['Total', '', '', '', '', exactMoneyText(snapshot.currency, settlementAmountTotal, 'en')] : undefined })}<h2>Own reimbursable expenses</h2>${htmlTable(['Date', 'Project', 'Vendor', 'Payment status', 'Expected reimbursement', 'Reimbursed', 'Amount'], expenseRows, 'No reimbursable expenses in this period.', { amountIndexes: [6], footer: expenseRows.length ? ['Total', '', '', '', '', '', exactMoneyText(snapshot.currency, expenseAmountTotal, 'en')] : undefined })}`,
-      'en',
+      copy.title,
+      `${snapshot.worker.name} · ${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
+      `<section class="grid">${summary}</section><p class="muted">${htmlEscape(common.approvedHours)}: ${htmlEscape(minutesAsHours(snapshot.approvedMinutes) || snapshot.approvedMinutes)} · ${htmlEscape(copy.pendingHours)}: ${htmlEscape(minutesAsHours(snapshot.pendingMinutes) || snapshot.pendingMinutes)}</p><h2>${htmlEscape(copy.ownActivity)}</h2>${htmlTable([common.date, common.project, common.type, copy.activity, common.hours, copy.approval, copy.estimatedPay], activityRows, copy.noActivity, { amountIndexes: [6], footer: activityRows.length ? [common.total, '', '', '', minutesAsHours(activityHoursTotal) || String(activityHoursTotal), '', exactMoneyText(snapshot.currency, activityAmountTotal, locale)] : undefined })}<h2>${htmlEscape(copy.settlements)}</h2>${htmlTable([common.project, copy.period, common.status, copy.expectedPayment, copy.settled, common.amount], settlementRows, copy.noSettlements, { amountIndexes: [5], footer: settlementRows.length ? [common.total, '', '', '', '', exactMoneyText(snapshot.currency, settlementAmountTotal, locale)] : undefined })}<h2>${htmlEscape(copy.ownReimbursableExpenses)}</h2>${htmlTable([common.date, common.project, common.vendor, copy.paymentStatus, copy.expectedReimbursement, copy.reimbursed, common.amount], expenseRows, copy.noReimbursableExpenses, { amountIndexes: [6], footer: expenseRows.length ? [common.total, '', '', '', '', '', exactMoneyText(snapshot.currency, expenseAmountTotal, locale)] : undefined })}`,
+      locale,
     ),
   );
 }

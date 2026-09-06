@@ -310,6 +310,7 @@ async function requestWorkerStatement(role: Role, query: string): Promise<Respon
     body: JSON.stringify({
       periodStart: url.searchParams.get('periodStart'),
       periodEnd: url.searchParams.get('periodEnd'),
+      locale: url.searchParams.get('locale') ?? 'en',
       requestKey: `reporting-${role}-${Date.now()}`,
     }),
   });
@@ -482,7 +483,41 @@ describe('Client Essential private report routes', () => {
     expect(row.snapshot_json).not.toContain('OTHER-WORKER-SECRET');
     expect(row.snapshot_json).not.toContain('2026-09-20');
     expect(row.snapshot_json).not.toContain('99999');
+    expect(JSON.parse(row.snapshot_json)).toMatchObject({ locale: 'en' });
     database.sqlite.close();
+  });
+
+  it('binds a supported locale into the immutable Worker Statement and rejects invalid locales', async () => {
+    const localized = await requestWorkerStatement(
+      'worker',
+      'periodStart=2026-08-01&periodEnd=2026-08-31&locale=es',
+    );
+    expect(localized.status).toBe(202);
+    const database = createDatabase();
+    const snapshots = database.sqlite
+      .prepare('SELECT snapshot_json FROM worker_statement_artifact ORDER BY requested_at DESC')
+      .all() as Array<{ snapshot_json: string }>;
+    expect(snapshots.length).toBeGreaterThanOrEqual(2);
+    for (const row of snapshots.slice(0, 2))
+      expect(JSON.parse(row.snapshot_json)).toMatchObject({ locale: 'es' });
+    database.sqlite.close();
+
+    const url = new URL('http://localhost/app/api/worker-statement');
+    const invalid = await workerStatementRequestPost({
+      ...event('worker', 'worker', 'csv'),
+      url,
+      request: new Request(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          periodStart: '2026-08-01',
+          periodEnd: '2026-08-31',
+          locale: 'fr',
+        }),
+      }),
+    } as never);
+    expect(invalid.status).toBe(400);
+    await expect(invalid.json()).resolves.toMatchObject({ error: 'locale must be en, es, or pt' });
   });
 
   it('allows Finance and Owner ledger exports while denying PM, worker and anonymous users', () => {

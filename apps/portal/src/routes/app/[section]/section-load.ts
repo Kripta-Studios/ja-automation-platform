@@ -42,6 +42,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
     error(403, 'Finance access required');
   if (section === 'audit' && !['owner_admin', 'auditor_read_only'].includes(locals.user.role ?? ''))
     error(403, 'Audit access required');
+  if (
+    section === 'approvals' &&
+    !['owner_admin', 'project_manager', 'finance_admin'].includes(locals.user.role ?? '')
+  )
+    error(403, 'Approval access required');
   const context = openPortalRepository(locals);
   try {
     const searchQuery = url.searchParams.get('q')?.trim() ?? '';

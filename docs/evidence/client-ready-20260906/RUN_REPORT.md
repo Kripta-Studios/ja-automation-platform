@@ -1,5 +1,15 @@
 # Client Essential execution report — 2026-09-06
 
+## Current manual-browser addendum — superseding status
+
+- State: `IMPLEMENTATION_IN_PROGRESS`. The current repository HEAD is `719cbc7190f0055d2f0fe604e1dc9c7e77bc221e`; the deployed application remains `2058db24ca4d5d6b3f66bde11b6230e271a2d06c` (`2058db2`).
+- The worktree is intentionally dirty with the local, uncommitted Worker/Auditor Approvals authorization correction and regression, plus the detailed English Owner/Worker manual scripts, sanitized screenshots, PDFs and browser evidence. None of those local changes has been deployed.
+- `manual-browser/RUN.json` is an aggregated live/read-only evidence record with 68 hash-verified screenshots. The regenerated detailed A4 manuals are Owner 65 pages (`b94df2994fe39bbd18424010096b2eb2820a509e32a6e17160afa931cf62eca5`) and Worker 24 pages (`e9ae233c0da6a08012259d875d83d0523f9321800eacbb2b0b9e8c6c1f04b5bd`); the example copies are byte-identical to their manuals copies. Nimbus Roman/Nimbus Mono typography is embedded and the document date is 6 September 2026. The coordinator rendered and visually inspected all 89 current final pages in six contact sheets after the final screenshot and evidence-inventory redaction; the fresh independent review returned `SHIP`.
+- The narrow approvals regression passes 3/3 and the current dirty-tree `@ja/portal` typecheck passes. Browser evidence confirms Worker confidentiality by role UI, protected-route results and sanitized DTO-key inspection. The deployed Worker `/app/approvals` result remains a 500; the local, not-deployed source correction yields a controlled 403 before repository access.
+- Historical MFA incident: an earlier automation attempt returned a visible failure. No enrollment completion occurred; later read-only Profile checks observed `Not enabled` for both roles. No further security control was activated.
+- The earlier three four-page employee-manual pack below is historical and superseded for these English Owner/Worker guides.
+- Four final-pass reviews returned `FIX_FIRST`: first for one remaining financial metric, incomplete evidence uniqueness/authorization validation and missing dirty-tree typecheck notation; then for additional live operational values visible in screenshots; then for one site/shift value retained in evidence inventories and report-form captures; finally for value-backed accessible labels and live count suffixes in the PDF control tables. Those defects were corrected offline with systematic value-region and semantic inventory redaction. A fresh, read-only reviewer then returned `SHIP`; its before/after status, binary-diff and scoped file manifests were identical. Owner/legal/tax acceptance remains pending.
+
 ## Decision and identity
 
 - State: `TECHNICALLY_VERIFIED_AWAITING_OWNER`

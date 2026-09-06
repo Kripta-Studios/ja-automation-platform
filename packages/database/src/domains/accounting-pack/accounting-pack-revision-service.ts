@@ -1725,7 +1725,14 @@ function validateAuthoritativeSourceItems(
            FROM expense e JOIN project p ON p.id=e.project_id
           WHERE e.spent_on BETWEEN ? AND ?
             AND e.approval_state IN ('approved','locked','final')
-            AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=e.id)`,
+            AND NOT EXISTS (
+              SELECT 1
+                FROM record_correction_link rcl
+                JOIN expense correction ON correction.id=rcl.correction_id
+               WHERE rcl.record_type='expense'
+                 AND ((rcl.original_id=e.id AND correction.approval_state='approved')
+                   OR (rcl.correction_id=e.id AND correction.approval_state<>'approved'))
+            )`,
       )
       .all(periodStart, periodEnd) as DbRow[]
   ).filter(

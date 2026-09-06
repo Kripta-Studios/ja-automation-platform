@@ -281,7 +281,7 @@ export class TimeEntryRepository {
       if (
         !current ||
         current.worker_id !== principal.userId ||
-        current.approval_state !== 'draft' ||
+        !['draft', 'needs_changes'].includes(current.approval_state) ||
         current.invoice_id !== null ||
         current.version !== baseVersion
       )
@@ -305,7 +305,7 @@ export class TimeEntryRepository {
       const result = this.deps.sqlite
         .prepare(
           `UPDATE time_entry SET approval_state='submitted',submitted_at=?,updated_at=?,version=version+1
-             WHERE id=? AND worker_id=? AND approval_state='draft' AND version=? AND invoice_id IS NULL`,
+             WHERE id=? AND worker_id=? AND approval_state IN ('draft','needs_changes') AND version=? AND invoice_id IS NULL`,
         )
         .run(timestamp, timestamp, id, principal.userId, baseVersion);
       if (result.changes !== 1)
@@ -347,9 +347,9 @@ export class TimeEntryRepository {
       if (
         current.invoice_id ||
         current.billing_status !== 'unlocked' ||
-        current.approval_state !== 'draft'
+        !['draft', 'needs_changes'].includes(current.approval_state)
       )
-        throw this.deps.errors.conflict('Only an unlocked never-submitted time draft can change');
+        throw this.deps.errors.conflict('Only an unlocked editable time entry can change');
       const workDate = input.workDate ?? current.work_date;
       this.assertEffectiveMembership(principal, current.project_id, current.worker_id, workDate);
       if (input.workDate !== undefined) this.deps.assertDate(input.workDate, 'Work date');

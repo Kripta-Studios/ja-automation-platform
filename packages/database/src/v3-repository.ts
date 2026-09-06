@@ -2174,6 +2174,25 @@ export class V3Repository {
     // must wait for this transaction rather than changing the effective rate
     // between calculation and persistence.
     return this.transaction(() => {
+      const activeCorrection = this.sqlite
+        .prepare(
+          `SELECT rcl.correction_id
+             FROM record_correction_link rcl
+             JOIN time_entry original ON original.id=rcl.original_id
+             JOIN time_entry correction ON correction.id=rcl.correction_id
+            WHERE rcl.record_type='time_entry'
+              AND original.project_id=? AND original.worker_id=?
+              AND original.work_date BETWEEN ? AND ?
+              AND correction.approval_state IN ('draft','submitted','needs_changes')
+            LIMIT 1`,
+        )
+        .get(input.projectId, input.workerId, input.periodStart, input.periodEnd) as
+        | { correction_id: string }
+        | undefined;
+      if (activeCorrection)
+        throw new V3ConflictError(
+          `Active time correction ${activeCorrection.correction_id} blocks compensation settlement`,
+        );
       const sourceRows = this.sqlite
         .prepare(
           `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
@@ -2186,7 +2205,7 @@ export class V3Repository {
                FROM record_correction_link rcl
                JOIN time_entry correction ON correction.id=rcl.correction_id
               WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
-                AND correction.approval_state IN ('draft','submitted')
+                AND correction.approval_state IN ('draft','submitted','needs_changes')
            )
            AND NOT EXISTS (
              SELECT 1
@@ -2682,7 +2701,21 @@ export class V3Repository {
          JOIN project p ON p.id=e.project_id
          JOIN user u ON u.id=e.worker_id
          WHERE e.who_paid='worker' AND e.approval_state IN ('approved','locked')
-           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=e.id)
+           AND NOT EXISTS (
+             SELECT 1
+               FROM record_correction_link rcl
+               JOIN expense correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='expense'
+                AND ((rcl.original_id=e.id AND correction.approval_state='approved')
+                  OR (rcl.correction_id=e.id AND correction.approval_state<>'approved'))
+           )
+           AND NOT EXISTS (
+             SELECT 1
+               FROM record_correction_link rcl
+               JOIN expense correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='expense' AND rcl.original_id=e.id
+                AND correction.approval_state IN ('draft','submitted','needs_changes')
+           )
            ${projectId ? 'AND e.project_id=?' : ''}
          ORDER BY e.spent_on DESC,e.id`,
       )
@@ -2923,7 +2956,14 @@ export class V3Repository {
          FROM expense e JOIN project p ON p.id=e.project_id
          WHERE e.worker_id=? AND e.spent_on BETWEEN ? AND ? AND e.who_paid='worker'
            AND e.approval_state NOT IN ('rejected','void')
-           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=e.id)
+           AND NOT EXISTS (
+             SELECT 1
+               FROM record_correction_link rcl
+               JOIN expense correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='expense'
+                AND ((rcl.original_id=e.id AND correction.approval_state='approved')
+                  OR (rcl.correction_id=e.id AND correction.approval_state<>'approved'))
+           )
            AND EXISTS (
              SELECT 1 FROM project_member pm
              WHERE pm.project_id=e.project_id AND pm.user_id=e.worker_id
@@ -3502,7 +3542,14 @@ export class V3Repository {
          FROM expense e JOIN user u ON u.id=e.worker_id
          WHERE e.project_id=? AND e.spent_on BETWEEN ? AND ?
            AND e.approval_state NOT IN ('rejected','void')
-           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=e.id)`,
+           AND NOT EXISTS (
+             SELECT 1
+               FROM record_correction_link rcl
+               JOIN expense correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='expense'
+                AND ((rcl.original_id=e.id AND correction.approval_state='approved')
+                  OR (rcl.correction_id=e.id AND correction.approval_state<>'approved'))
+           )`,
       )
       .all(projectId, start, end) as Array<{
       id: string;
@@ -5310,7 +5357,7 @@ export class V3Repository {
     return this.transaction(() => {
       const expense = this.sqlite
         .prepare(
-          "SELECT id,worker_id,CAST(amount_minor AS TEXT) amount_minor,CAST(reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,reimbursement_state,reimbursement_reference FROM expense WHERE id=? AND approval_state IN ('approved','locked') AND who_paid='worker' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id)",
+          "SELECT id,worker_id,CAST(amount_minor AS TEXT) amount_minor,CAST(reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,reimbursement_state,reimbursement_reference FROM expense WHERE id=? AND approval_state IN ('approved','locked') AND who_paid='worker' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=expense.id AND correction.approval_state<>'rejected')",
         )
         .get(input.expenseId) as
         | {
@@ -5472,7 +5519,7 @@ export class V3Repository {
              JOIN time_entry correction ON correction.id=rcl.correction_id
             WHERE rcl.record_type='time_entry' AND original.project_id=?
               AND original.work_date BETWEEN ? AND ?
-              AND correction.approval_state IN ('draft','submitted')`,
+              AND correction.approval_state IN ('draft','submitted','needs_changes')`,
         )
         .all(rule.project_id, periodStart, periodEnd) as Array<{ id: string }>;
       reasons.push(
@@ -5493,7 +5540,7 @@ export class V3Repository {
                  JOIN time_entry correction ON correction.id=rcl.correction_id
                 WHERE rcl.record_type='time_entry'
                   AND rcl.original_id=time_entry.id
-                  AND correction.approval_state IN ('draft','submitted')
+                  AND correction.approval_state IN ('draft','submitted','needs_changes')
              )
              AND NOT EXISTS (
                SELECT 1
@@ -5553,6 +5600,23 @@ export class V3Repository {
         }
       }
       if (rule.daily_report_required === 1) {
+        const activeDailyCorrections = this.sqlite
+          .prepare(
+            `SELECT rcl.correction_id id
+               FROM record_correction_link rcl
+               JOIN daily_report original ON original.id=rcl.original_id
+               JOIN daily_report correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='daily_report' AND original.project_id=?
+                AND original.work_date BETWEEN ? AND ?
+                AND correction.approval_state IN ('draft','submitted','needs_changes')`,
+          )
+          .all(rule.project_id, periodStart, periodEnd) as Array<{ id: string }>;
+        reasons.push(
+          ...activeDailyCorrections.map((correction) => ({
+            code: 'pending_daily_report_correction',
+            sourceId: correction.id,
+          })),
+        );
         const missing = this.sqlite
           .prepare(
             `SELECT DISTINCT t.work_date
@@ -5564,7 +5628,7 @@ export class V3Repository {
                    FROM record_correction_link rcl
                    JOIN time_entry correction ON correction.id=rcl.correction_id
                   WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
-                    AND correction.approval_state IN ('draft','submitted')
+                    AND correction.approval_state IN ('draft','submitted','needs_changes')
                )
                AND NOT EXISTS (
                  SELECT 1
@@ -5578,7 +5642,14 @@ export class V3Repository {
                  SELECT 1 FROM daily_report d
                  WHERE d.project_id=t.project_id AND d.work_date=t.work_date
                    AND d.approval_state IN ('approved','locked')
-                   AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='daily_report' AND rcl.original_id=d.id)
+                   AND NOT EXISTS (
+                     SELECT 1
+                       FROM record_correction_link rcl
+                       JOIN daily_report correction ON correction.id=rcl.correction_id
+                      WHERE rcl.record_type='daily_report'
+                        AND ((rcl.original_id=d.id AND correction.approval_state='approved')
+                          OR (rcl.correction_id=d.id AND correction.approval_state<>'approved'))
+                   )
                )
              ORDER BY t.work_date`,
           )
@@ -5591,6 +5662,26 @@ export class V3Repository {
         );
       }
       if (rule.technical_reporting_required === 1) {
+        const activeTechnicalCorrections = this.sqlite
+          .prepare(
+            `SELECT rcl.correction_id id
+               FROM record_correction_link rcl
+               JOIN technical_report original ON original.id=rcl.original_id
+               JOIN technical_report correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='technical_report' AND original.project_id=?
+                AND length(original.report_date)=10
+                AND original.report_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+                AND date(original.report_date)=original.report_date
+                AND original.report_date BETWEEN ? AND ?
+                AND correction.approval_state IN ('draft','submitted','needs_changes')`,
+          )
+          .all(rule.project_id, periodStart, periodEnd) as Array<{ id: string }>;
+        reasons.push(
+          ...activeTechnicalCorrections.map((correction) => ({
+            code: 'pending_technical_report_correction',
+            sourceId: correction.id,
+          })),
+        );
         const missing = this.sqlite
           .prepare(
             `SELECT ? id WHERE NOT EXISTS (
@@ -5601,7 +5692,14 @@ export class V3Repository {
                  AND date(t.report_date)=t.report_date
                  AND t.report_date BETWEEN ? AND ?
                  AND t.approval_state IN ('approved','locked')
-                 AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='technical_report' AND rcl.original_id=t.id)
+                 AND NOT EXISTS (
+                   SELECT 1
+                     FROM record_correction_link rcl
+                     JOIN technical_report correction ON correction.id=rcl.correction_id
+                    WHERE rcl.record_type='technical_report'
+                      AND ((rcl.original_id=t.id AND correction.approval_state='approved')
+                        OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+                 )
              )`,
           )
           .get(
@@ -5615,9 +5713,26 @@ export class V3Repository {
       }
     }
     if (rule.stream_type === 'expense') {
+      const activeCorrections = this.sqlite
+        .prepare(
+          `SELECT rcl.correction_id id
+             FROM record_correction_link rcl
+             JOIN expense original ON original.id=rcl.original_id
+             JOIN expense correction ON correction.id=rcl.correction_id
+            WHERE rcl.record_type='expense' AND original.project_id=?
+              AND original.spent_on BETWEEN ? AND ?
+              AND correction.approval_state IN ('draft','submitted','needs_changes')`,
+        )
+        .all(rule.project_id, periodStart, periodEnd) as Array<{ id: string }>;
+      reasons.push(
+        ...activeCorrections.map((correction) => ({
+          code: 'pending_expense_correction',
+          sourceId: correction.id,
+        })),
+      );
       const rows = this.sqlite
         .prepare(
-          "SELECT id,currency,CAST(project_currency_amount_minor AS TEXT) project_currency_amount_minor,CAST(billing_amount_minor AS TEXT) billing_amount_minor,approval_state,finance_approved_at,receipt_required,receipt_document_id FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND invoice_id IS NULL AND approval_state NOT IN ('rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem'))",
+          "SELECT id,currency,CAST(project_currency_amount_minor AS TEXT) project_currency_amount_minor,CAST(billing_amount_minor AS TEXT) billing_amount_minor,approval_state,finance_approved_at,receipt_required,receipt_document_id FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND invoice_id IS NULL AND approval_state NOT IN ('rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=expense.id AND correction.approval_state IN ('draft','submitted','needs_changes')) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=expense.id AND correction.approval_state='approved') OR (rcl.correction_id=expense.id AND correction.approval_state<>'approved'))) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem'))",
         )
         .all(rule.project_id, periodStart, periodEnd) as Array<{
         id: string;
@@ -5739,7 +5854,7 @@ export class V3Repository {
       if (rule.stream_type === 'expense')
         this.sqlite
           .prepare(
-            "UPDATE expense SET billing_state='locked',billing_lock_id=?,updated_at=?,version=version+1 WHERE project_id=? AND spent_on BETWEEN ? AND ? AND approval_state='approved' AND finance_approved_at IS NOT NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem')) AND invoice_id IS NULL",
+            "UPDATE expense SET billing_state='locked',billing_lock_id=?,updated_at=?,version=version+1 WHERE project_id=? AND spent_on BETWEEN ? AND ? AND approval_state='approved' AND finance_approved_at IS NOT NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=expense.id AND correction.approval_state IN ('draft','submitted','needs_changes','approved')) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem')) AND invoice_id IS NULL",
           )
           .run(lockId, now, rule.project_id, periodStart, periodEnd);
       // A finance user may prepare a draft before the explicit period close.
@@ -5919,7 +6034,14 @@ export class V3Repository {
           `SELECT d.id,d.work_date,d.summary,d.safety_related,d.approval_state,u.name worker_name
            FROM daily_report d JOIN user u ON u.id=d.worker_id
            WHERE d.project_id=? AND d.work_date BETWEEN ? AND ?
-             AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='daily_report' AND rcl.original_id=d.id)
+             AND NOT EXISTS (
+               SELECT 1
+                 FROM record_correction_link rcl
+                 JOIN daily_report correction ON correction.id=rcl.correction_id
+                WHERE rcl.record_type='daily_report'
+                  AND ((rcl.original_id=d.id AND correction.approval_state='approved')
+                    OR (rcl.correction_id=d.id AND correction.approval_state<>'approved'))
+             )
            ORDER BY d.work_date,d.id`,
         )
         .all(input.projectId, input.periodStart, input.periodEnd) as Array<{
@@ -5941,7 +6063,14 @@ export class V3Repository {
              AND tr.report_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
              AND date(tr.report_date)=tr.report_date
              AND tr.report_date BETWEEN ? AND ?
-             AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='technical_report' AND rcl.original_id=tr.id)
+             AND NOT EXISTS (
+               SELECT 1
+                 FROM record_correction_link rcl
+                 JOIN technical_report correction ON correction.id=rcl.correction_id
+                WHERE rcl.record_type='technical_report'
+                  AND ((rcl.original_id=tr.id AND correction.approval_state='approved')
+                    OR (rcl.correction_id=tr.id AND correction.approval_state<>'approved'))
+             )
            ORDER BY tr.report_date,tr.id`,
         )
         .all(input.projectId, input.periodStart, input.periodEnd) as Array<{
@@ -5976,9 +6105,12 @@ export class V3Repository {
              AND date(tr.report_date)=tr.report_date
              AND tr.report_date BETWEEN ? AND ?
              AND NOT EXISTS (
-               SELECT 1 FROM record_correction_link correction
-                WHERE correction.record_type='technical_report'
-                  AND correction.original_id=tr.id
+               SELECT 1
+                 FROM record_correction_link rcl
+                 JOIN technical_report correction ON correction.id=rcl.correction_id
+                WHERE rcl.record_type='technical_report'
+                  AND ((rcl.original_id=tr.id AND correction.approval_state='approved')
+                    OR (rcl.correction_id=tr.id AND correction.approval_state<>'approved'))
              )
            ORDER BY tr.report_date,tc.id`,
         )
@@ -6018,7 +6150,14 @@ export class V3Repository {
                   e.approval_state,e.receipt_document_id,e.billing_state,u.name worker_name
            FROM expense e JOIN user u ON u.id=e.worker_id
            WHERE e.project_id=? AND e.spent_on BETWEEN ? AND ?
-             AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=e.id)
+             AND NOT EXISTS (
+               SELECT 1
+                 FROM record_correction_link rcl
+                 JOIN expense correction ON correction.id=rcl.correction_id
+                WHERE rcl.record_type='expense'
+                  AND ((rcl.original_id=e.id AND correction.approval_state='approved')
+                    OR (rcl.correction_id=e.id AND correction.approval_state<>'approved'))
+             )
            ORDER BY e.spent_on,e.id`,
         )
         .all(input.projectId, input.periodStart, input.periodEnd) as Array<Record<string, unknown>>;
@@ -7357,7 +7496,14 @@ export class V3Repository {
                 e.invoice_id,p.project_number,p.currency project_currency,u.name worker_name
          FROM expense e JOIN project p ON p.id=e.project_id JOIN user u ON u.id=e.worker_id
          WHERE e.spent_on BETWEEN ? AND ? AND e.approval_state IN ('approved','locked')
-           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=e.id)
+           AND NOT EXISTS (
+             SELECT 1
+               FROM record_correction_link rcl
+               JOIN expense correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='expense'
+                AND ((rcl.original_id=e.id AND correction.approval_state='approved')
+                  OR (rcl.correction_id=e.id AND correction.approval_state<>'approved'))
+           )
          ORDER BY e.spent_on,e.id`,
         )
         .all(periodStart, periodEnd) as Array<{
@@ -7640,8 +7786,12 @@ export class V3Repository {
          WHERE e.spent_on BETWEEN ? AND ? AND e.approval_state IN ('approved','locked')
            AND e.who_paid='worker'
            AND NOT EXISTS (
-             SELECT 1 FROM record_correction_link rcl
-              WHERE rcl.record_type='expense' AND rcl.original_id=e.id
+             SELECT 1
+               FROM record_correction_link rcl
+               JOIN expense correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='expense'
+                AND ((rcl.original_id=e.id AND correction.approval_state='approved')
+                  OR (rcl.correction_id=e.id AND correction.approval_state<>'approved'))
            )
          ORDER BY e.worker_id,e.project_id,e.id`,
         )

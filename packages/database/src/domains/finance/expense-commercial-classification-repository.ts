@@ -269,7 +269,7 @@ export class ExpenseCommercialClassificationRepository {
       if (
         this.deps.sqlite
           .prepare(
-            "SELECT 1 FROM record_correction_link WHERE record_type='expense' AND original_id=? LIMIT 1",
+            "SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=? AND correction.approval_state<>'rejected' LIMIT 1",
           )
           .get(normalized.expenseId)
       )

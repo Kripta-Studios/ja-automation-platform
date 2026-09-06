@@ -2556,6 +2556,48 @@ export class PortalRepository {
           `INSERT INTO ${table}(${columns.join(',')}) VALUES(${columns.map(() => '?').join(',')})`,
         )
         .run(...values);
+      if (input.recordType === 'technical_report') {
+        // A technical-report correction is a new versioned parent. Its child changes
+        // are immutable operational history, so copy them to the new parent rather
+        // than re-parenting the approved records. The per-child audit event is the
+        // explicit lineage between both versions and the enclosing transaction makes
+        // creation replay-safe: an idempotent replay returns before this point.
+        const technicalChangeColumns = (
+          this.sqlite.prepare('PRAGMA table_info(technical_change)').all() as Array<{
+            name: string;
+          }>
+        ).map((column) => column.name);
+        const originalChanges = this.sqlite
+          .prepare('SELECT * FROM technical_change WHERE technical_report_id=? ORDER BY id')
+          .all(input.originalId) as Array<Record<string, unknown>>;
+        for (const originalChange of originalChanges) {
+          const technicalChangeId = newId();
+          const technicalChangeValues = technicalChangeColumns.map((column) => {
+            if (column === 'id') return technicalChangeId;
+            if (column === 'technical_report_id') return correctionId;
+            if (column === 'version') return 1;
+            if (column === 'created_at' || column === 'updated_at') return timestamp;
+            const value = originalChange[column];
+            return value === null ||
+              typeof value === 'string' ||
+              typeof value === 'number' ||
+              typeof value === 'bigint'
+              ? value
+              : null;
+          });
+          this.sqlite
+            .prepare(
+              `INSERT INTO technical_change(${technicalChangeColumns.join(',')}) VALUES(${technicalChangeColumns.map(() => '?').join(',')})`,
+            )
+            .run(...technicalChangeValues);
+          this.audit(principal, 'technical_change.create', 'technical_change', technicalChangeId, {
+            correctionClone: true,
+            originalTechnicalChangeId: String(originalChange.id),
+            originalTechnicalReportId: input.originalId,
+            correctionTechnicalReportId: correctionId,
+          });
+        }
+      }
       const linkId = newId();
       this.sqlite
         .prepare(
@@ -3060,7 +3102,7 @@ export class PortalRepository {
     const timestamp = now();
     const result = this.sqlite
       .prepare(
-        "UPDATE expense SET approval_state='submitted',submitted_at=?,updated_at=?,version=version+1 WHERE id=? AND worker_id=? AND approval_state='draft' AND version=? AND invoice_id IS NULL AND (receipt_required=0 OR receipt_document_id IS NOT NULL)",
+        "UPDATE expense SET approval_state='submitted',submitted_at=?,updated_at=?,version=version+1 WHERE id=? AND worker_id=? AND approval_state IN ('draft','needs_changes') AND version=? AND invoice_id IS NULL AND (receipt_required=0 OR receipt_document_id IS NOT NULL)",
       )
       .run(timestamp, timestamp, id, principal.userId, baseVersion);
     if (result.changes !== 1)
@@ -3112,7 +3154,7 @@ export class PortalRepository {
     if (
       current.invoice_id ||
       current.billing_state !== 'unlocked' ||
-      current.approval_state !== 'draft'
+      !['draft', 'needs_changes'].includes(current.approval_state)
     )
       throw new ConflictError('Only an unlocked editable expense draft can change');
     if (input.spentOn) {
@@ -3181,7 +3223,7 @@ export class PortalRepository {
     if (
       this.sqlite
         .prepare(
-          "SELECT 1 FROM record_correction_link WHERE record_type='expense' AND original_id=? LIMIT 1",
+          "SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=? AND correction.approval_state<>'rejected' LIMIT 1",
         )
         .get(input.expenseId)
     )
@@ -3245,7 +3287,7 @@ export class PortalRepository {
     const timestamp = now();
     const result = this.sqlite
       .prepare(
-        "UPDATE expense SET finance_approved_by=?,finance_approved_at=?,updated_at=?,version=version+1 WHERE id=? AND approval_state='approved' AND invoice_id IS NULL AND billing_state='unlocked' AND commercial_classification_state='classified' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id)",
+        "UPDATE expense SET finance_approved_by=?,finance_approved_at=?,updated_at=?,version=version+1 WHERE id=? AND approval_state='approved' AND invoice_id IS NULL AND billing_state='unlocked' AND commercial_classification_state='classified' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=expense.id AND correction.approval_state<>'rejected')",
       )
       .run(principal.userId, timestamp, timestamp, id);
     if (result.changes !== 1)
@@ -3733,7 +3775,7 @@ export class PortalRepository {
                FROM record_correction_link rcl
                JOIN time_entry correction ON correction.id=rcl.correction_id
               WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id
-                AND correction.approval_state IN ('draft','submitted')
+                AND correction.approval_state IN ('draft','submitted','needs_changes')
            )
            AND NOT EXISTS (
              SELECT 1
@@ -3987,7 +4029,7 @@ export class PortalRepository {
     } else if (rule.stream_type === 'expense') {
       const pending = this.sqlite
         .prepare(
-          "SELECT id FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND invoice_id IS NULL AND approval_state NOT IN ('rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem')) AND (approval_state!='approved' OR finance_approved_at IS NULL)",
+          "SELECT id FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND invoice_id IS NULL AND approval_state NOT IN ('rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=expense.id AND correction.approval_state='approved') OR (rcl.correction_id=expense.id AND correction.approval_state<>'approved'))) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem')) AND (approval_state!='approved' OR finance_approved_at IS NULL)",
         )
         .all(rule.project_id, periodStart, periodEnd) as Array<{ id: string }>;
       reasons.push(
@@ -4335,7 +4377,7 @@ export class PortalRepository {
       } else if (rule.stream_type === 'expense') {
         const rows = this.sqlite
           .prepare(
-            "SELECT id,spent_on,vendor,category,description,currency,amount_minor,project_currency_amount_minor,billing_amount_minor,billing_treatment,commercial_classification_state,version FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND approval_state='approved' AND finance_approved_at IS NOT NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem')) AND billing_state IN ('unlocked','locked') AND invoice_id IS NULL ORDER BY spent_on,id",
+            "SELECT id,spent_on,vendor,category,description,currency,amount_minor,project_currency_amount_minor,billing_amount_minor,billing_treatment,commercial_classification_state,version FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND approval_state='approved' AND finance_approved_at IS NOT NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=expense.id AND correction.approval_state='approved') OR (rcl.correction_id=expense.id AND correction.approval_state<>'approved'))) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem')) AND billing_state IN ('unlocked','locked') AND invoice_id IS NULL ORDER BY spent_on,id",
           )
           .all(rule.project_id, periodStart, periodEnd) as Array<{
           id: string;
@@ -6156,7 +6198,7 @@ export class PortalRepository {
          FROM expense e JOIN project p ON p.id=e.project_id
          WHERE e.worker_id=? AND e.spent_on BETWEEN ? AND ? AND e.who_paid='worker'
            AND e.approval_state NOT IN ('rejected','void')
-           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=e.id)`,
+           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=e.id AND correction.approval_state='approved') OR (rcl.correction_id=e.id AND correction.approval_state<>'approved')))`,
       )
       .all(principal.userId, periodStart, periodEnd) as Array<{
       approval_state: string;
@@ -6247,7 +6289,7 @@ export class PortalRepository {
     }
     const expenses = this.sqlite
       .prepare(
-        "SELECT id,amount_minor,project_currency_amount_minor,billing_amount_minor,currency,client_treatment,billing_treatment,who_paid,commercial_classification_state FROM expense WHERE project_id=? AND approval_state='approved' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id)",
+        "SELECT id,amount_minor,project_currency_amount_minor,billing_amount_minor,currency,client_treatment,billing_treatment,who_paid,commercial_classification_state FROM expense WHERE project_id=? AND approval_state='approved' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=expense.id AND correction.approval_state='approved') OR (rcl.correction_id=expense.id AND correction.approval_state<>'approved')))",
       )
       .all(projectId) as Array<{
       id: string;
@@ -6360,7 +6402,7 @@ export class PortalRepository {
       .get(...projectFilter, ...projectFilter) as { count: number };
     const expenses = this.sqlite
       .prepare(
-        `SELECT COALESCE(sum(e.amount_minor),0) minor FROM expense e JOIN project p ON p.id=e.project_id${where}${where ? ' AND' : ' WHERE'} NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=e.id)`,
+        `SELECT COALESCE(sum(e.amount_minor),0) minor FROM expense e JOIN project p ON p.id=e.project_id${where}${where ? ' AND' : ' WHERE'} NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=e.id AND correction.approval_state='approved') OR (rcl.correction_id=e.id AND correction.approval_state<>'approved')))`,
       )
       .get(...projectFilter) as { minor: number };
     const invoices = this.sqlite
@@ -7219,9 +7261,11 @@ export class PortalRepository {
       const expense = this.sqlite
         .prepare(
           `SELECT id,version,invoice_id,billing_state,billing_lock_id,reimbursed_at,
-                  EXISTS(SELECT 1 FROM record_correction_link correction
-                          WHERE correction.record_type='expense'
-                            AND correction.original_id=expense.id) superseded
+                  EXISTS(SELECT 1 FROM record_correction_link rcl
+                          JOIN expense correction ON correction.id=rcl.correction_id
+                          WHERE rcl.record_type='expense'
+                            AND rcl.original_id=expense.id
+                            AND correction.approval_state<>'rejected') superseded
            FROM expense WHERE id=?`,
         )
         .get(input.expenseId) as
@@ -7247,9 +7291,11 @@ export class PortalRepository {
            SET expected_reimbursement_on=?,expected_recovery_on=?,updated_at=?,version=version+1
            WHERE id=? AND version=? AND invoice_id IS NULL
              AND billing_state='unlocked' AND billing_lock_id IS NULL AND reimbursed_at IS NULL
-             AND NOT EXISTS(SELECT 1 FROM record_correction_link correction
-                             WHERE correction.record_type='expense'
-                               AND correction.original_id=expense.id)`,
+             AND NOT EXISTS(SELECT 1 FROM record_correction_link rcl
+                             JOIN expense correction ON correction.id=rcl.correction_id
+                             WHERE rcl.record_type='expense'
+                               AND rcl.original_id=expense.id
+                               AND correction.approval_state<>'rejected')`,
         )
         .run(
           input.expectedReimbursementOn,
@@ -7317,7 +7363,14 @@ export class PortalRepository {
            AND e.spent_on>=? AND e.spent_on<=?
            AND e.who_paid='worker'
            AND e.approval_state NOT IN ('rejected','void')
-           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=e.id)
+           AND NOT EXISTS (
+             SELECT 1
+               FROM record_correction_link rcl
+               JOIN expense correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='expense'
+                AND ((rcl.original_id=e.id AND correction.approval_state='approved')
+                  OR (rcl.correction_id=e.id AND correction.approval_state<>'approved'))
+           )
            AND COALESCE(e.reimbursement_state,'pending') NOT IN ('rejected','void')
            AND EXISTS (
              SELECT 1
@@ -7491,7 +7544,29 @@ export class PortalRepository {
                 )`,
           )
           .all();
-        return [...queued, ...retryableTime].sort((left, right) =>
+        const retryableExpense = this.sqlite
+          .prepare(
+            `SELECT 'expense' type,e.id,e.project_id,e.worker_id,e.spent_on date,e.amount_minor amount,
+                    e.approval_state,'finance' review_stage
+               FROM expense e
+              WHERE e.approval_state='approved' AND e.finance_approved_at IS NULL
+                AND EXISTS (
+                  SELECT 1
+                    FROM record_correction_link rcl
+                    JOIN expense correction ON correction.id=rcl.correction_id
+                   WHERE rcl.record_type='expense' AND rcl.original_id=e.id
+                     AND correction.approval_state='rejected'
+                )
+                AND NOT EXISTS (
+                  SELECT 1
+                    FROM record_correction_link rcl
+                    JOIN expense correction ON correction.id=rcl.correction_id
+                   WHERE rcl.record_type='expense' AND rcl.original_id=e.id
+                     AND correction.approval_state<>'rejected'
+                )`,
+          )
+          .all();
+        return [...queued, ...retryableTime, ...retryableExpense].sort((left, right) =>
           String(left.date).localeCompare(String(right.date)),
         );
       }
@@ -7518,7 +7593,30 @@ export class PortalRepository {
               )`,
         )
         .all();
-      return [...queued, ...retryableTime].sort((left, right) =>
+      const retryableExpense = this.sqlite
+        .prepare(
+          `SELECT 'expense' type,e.id,e.project_id,e.worker_id,e.spent_on date,e.amount_minor amount,
+                  e.approval_state,'owner_override' review_stage
+             FROM expense e
+            WHERE e.approval_state='approved' AND e.invoice_id IS NULL
+              AND e.billing_state='unlocked' AND e.billing_lock_id IS NULL
+              AND EXISTS (
+                SELECT 1
+                  FROM record_correction_link rcl
+                  JOIN expense correction ON correction.id=rcl.correction_id
+                 WHERE rcl.record_type='expense' AND rcl.original_id=e.id
+                   AND correction.approval_state='rejected'
+              )
+              AND NOT EXISTS (
+                SELECT 1
+                  FROM record_correction_link rcl
+                  JOIN expense correction ON correction.id=rcl.correction_id
+                 WHERE rcl.record_type='expense' AND rcl.original_id=e.id
+                   AND correction.approval_state<>'rejected'
+              )`,
+        )
+        .all();
+      return [...queued, ...retryableTime, ...retryableExpense].sort((left, right) =>
         String(left.date).localeCompare(String(right.date)),
       );
     }
@@ -7568,7 +7666,31 @@ export class PortalRepository {
             )`,
       )
       .all(...ids);
-    return [...queued, ...retryableTime].sort((left, right) =>
+    const retryableExpense = this.sqlite
+      .prepare(
+        `SELECT 'expense' type,e.id,e.project_id,e.worker_id,e.spent_on date,e.amount_minor amount,
+                e.approval_state,'correction' review_stage
+           FROM expense e
+          WHERE e.approval_state='approved' AND e.invoice_id IS NULL
+            AND e.billing_state='unlocked' AND e.billing_lock_id IS NULL
+            AND e.project_id IN (${placeholders})
+            AND EXISTS (
+              SELECT 1
+                FROM record_correction_link rcl
+                JOIN expense correction ON correction.id=rcl.correction_id
+               WHERE rcl.record_type='expense' AND rcl.original_id=e.id
+                 AND correction.approval_state='rejected'
+            )
+            AND NOT EXISTS (
+              SELECT 1
+                FROM record_correction_link rcl
+                JOIN expense correction ON correction.id=rcl.correction_id
+               WHERE rcl.record_type='expense' AND rcl.original_id=e.id
+                 AND correction.approval_state<>'rejected'
+            )`,
+      )
+      .all(...ids);
+    return [...queued, ...retryableTime, ...retryableExpense].sort((left, right) =>
       String(left.date).localeCompare(String(right.date)),
     );
   }

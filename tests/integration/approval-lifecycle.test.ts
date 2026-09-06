@@ -91,6 +91,51 @@ function authenticatedOwner(value: B5LifecycleSecurityFixture) {
   return { ...value.owner, sessionId: 'approval-owner-session' };
 }
 
+function authenticatedFinance(value: B5LifecycleSecurityFixture) {
+  const timestamp = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + 3_600_000).toISOString();
+  value.sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
+    )
+    .run(
+      'approval-finance-session',
+      'approval-finance-token',
+      value.finance.userId,
+      expiresAt,
+      timestamp,
+      timestamp,
+    );
+  return { ...value.finance, sessionId: 'approval-finance-session' };
+}
+
+function seedRefreshablePeriodReports(value: B5LifecycleSecurityFixture) {
+  const timestamp = new Date().toISOString();
+  for (const audience of ['internal', 'customer'] as const) {
+    value.sqlite
+      .prepare(
+        `INSERT INTO period_report(
+           id,project_id,period_start,period_end,audience,report_type,state,snapshot_json,
+           snapshot_version,created_by,created_at,updated_at
+         ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+      )
+      .run(
+        `approval-lifecycle-${audience}-period-report`,
+        value.project.id,
+        '2026-08-01',
+        '2026-08-31',
+        audience,
+        'periodic',
+        'draft',
+        '{}',
+        1,
+        value.finance.userId,
+        timestamp,
+        timestamp,
+      );
+  }
+}
+
 describe('Client Essential approval lifecycle', () => {
   it('revalidates source-date assignment inside report and technical-change submission', () => {
     const value = fixture();
@@ -431,6 +476,416 @@ describe('Client Essential approval lifecycle', () => {
     expect(
       value.repository.listApprovalQueue(value.manager).find((row) => row.id === originalId),
     ).toBeUndefined();
+  });
+
+  it('holds the entire compensation period while a time correction is active', () => {
+    const value = fixture();
+    const finance = authenticatedFinance(value);
+    value.v3.createCompensationRule(finance, {
+      workerId: value.worker.userId,
+      projectId: value.project.id,
+      currency: 'EUR',
+      ruleType: 'Hourly',
+      rateMinor: 6_000n,
+      effectiveFrom: '2026-08-01',
+    });
+    const originalId = submittedTime(value);
+    const second = value.repository.createTimeEntry(value.worker, {
+      projectId: value.project.id,
+      workDate: '2026-08-20',
+      category: 'regular',
+      minutes: 60,
+      summary: 'Second approved period source',
+    });
+    value.repository.submitTime(value.worker, second.id, second.version);
+    value.repository.operationalApproveTime(value.manager, originalId, 'approved');
+    value.repository.operationalApproveTime(value.manager, second.id, 'approved');
+
+    const correction = value.repository.createCorrectionDraft(value.worker, {
+      recordType: 'time_entry',
+      originalId,
+      requestId: 'compensation-period-correction-draft',
+      reason: 'Correct the first approved source before settlement',
+      patch: { minutes: 540 },
+    });
+    expect(() =>
+      value.v3.settleCompensation(finance, {
+        workerId: value.worker.userId,
+        projectId: value.project.id,
+        periodStart: '2026-08-01',
+        periodEnd: '2026-08-31',
+      }),
+    ).toThrow(/active time correction/i);
+    expect(
+      value.sqlite.prepare('SELECT count(*) count FROM compensation_settlement').get(),
+    ).toEqual({ count: 0 });
+
+    value.repository.submitTime(value.worker, correction.correctionId, 1);
+    value.repository.operationalApproveTime(
+      value.manager,
+      correction.correctionId,
+      'needs_changes',
+      'Clarify the corrected duration before settlement',
+    );
+    expect(() =>
+      value.v3.settleCompensation(finance, {
+        workerId: value.worker.userId,
+        projectId: value.project.id,
+        periodStart: '2026-08-01',
+        periodEnd: '2026-08-31',
+      }),
+    ).toThrow(/active time correction/i);
+    expect(
+      value.sqlite.prepare('SELECT count(*) count FROM compensation_settlement').get(),
+    ).toEqual({ count: 0 });
+    expect(
+      value.repository.updateTimeEntry(value.worker, {
+        id: correction.correctionId,
+        version: 3,
+        minutes: 540,
+      }),
+    ).toEqual({ id: correction.correctionId, version: 4 });
+    value.repository.submitTime(value.worker, correction.correctionId, 4);
+    value.repository.operationalApproveTime(
+      value.manager,
+      correction.correctionId,
+      'rejected',
+      'The original record remains correct',
+    );
+    const retry = value.repository.createCorrectionDraft(value.worker, {
+      recordType: 'time_entry',
+      originalId,
+      requestId: 'compensation-period-correction-retry',
+      reason: 'Retry with the corrected first source',
+      patch: { minutes: 540 },
+    });
+    value.repository.submitTime(value.worker, retry.correctionId, 1);
+    value.repository.operationalApproveTime(value.manager, retry.correctionId, 'approved');
+
+    expect(
+      value.v3.settleCompensation(finance, {
+        workerId: value.worker.userId,
+        projectId: value.project.id,
+        periodStart: '2026-08-01',
+        periodEnd: '2026-08-31',
+      }),
+    ).toEqual([
+      expect.objectContaining({ amountMinor: '60000', sourceAmountMinor: '600', state: 'settled' }),
+    ]);
+  });
+
+  it('keeps an approved worker expense effective until its correction is approved', () => {
+    const value = fixture();
+    const original = value.repository.createExpense(value.worker, {
+      projectId: value.project.id,
+      spentOn: '2026-08-20',
+      vendor: 'Original worker-paid hotel',
+      category: 'hotel',
+      description: 'Original expense source',
+      currency: 'EUR',
+      amountMinor: 10_000n,
+      whoPaid: 'worker',
+      receiptRequired: false,
+    });
+    value.repository.submitExpense(value.worker, original.id, original.version);
+    value.repository.operationalApproveExpense(value.manager, original.id, 'approved');
+    const statement = () =>
+      value.repository.listWorkerStatementExpenses(value.worker, '2026-08-20', '2026-08-20');
+    expect(statement().map((row) => row.id)).toEqual([original.id]);
+    expect(
+      value.v3.listReimbursementQueue(value.finance, value.project.id).map((row) => row.id),
+    ).toEqual([original.id]);
+
+    const correction = value.repository.createCorrectionDraft(value.worker, {
+      recordType: 'expense',
+      originalId: original.id,
+      requestId: 'expense-effective-source-draft',
+      reason: 'Correct the worker-paid receipt amount',
+      patch: { amountMinor: 12_500 },
+    });
+    expect(statement().map((row) => row.id)).toEqual([original.id]);
+    expect(value.v3.listReimbursementQueue(value.finance, value.project.id)).toEqual([]);
+    value.repository.submitExpense(value.worker, correction.correctionId, 1);
+    expect(statement().map((row) => row.id)).toEqual([original.id]);
+    expect(value.v3.listReimbursementQueue(value.finance, value.project.id)).toEqual([]);
+
+    value.repository.operationalApproveExpense(
+      value.manager,
+      correction.correctionId,
+      'needs_changes',
+      'Clarify the corrected amount before reimbursement',
+    );
+    expect(statement().map((row) => row.id)).toEqual([original.id]);
+    expect(value.v3.listReimbursementQueue(value.finance, value.project.id)).toEqual([]);
+    expect(
+      value.repository.updateExpense(value.worker, {
+        id: correction.correctionId,
+        version: 3,
+        amountMinor: 12_500n,
+      }),
+    ).toEqual({ id: correction.correctionId, version: 4 });
+    value.repository.submitExpense(value.worker, correction.correctionId, 4);
+
+    value.repository.operationalApproveExpense(
+      value.manager,
+      correction.correctionId,
+      'rejected',
+      'Original receipt remains authoritative',
+    );
+    expect(statement().map((row) => row.id)).toEqual([original.id]);
+    expect(
+      value.v3.listReimbursementQueue(value.finance, value.project.id).map((row) => row.id),
+    ).toEqual([original.id]);
+    expect(
+      value.repository
+        .listApprovalQueue(value.manager)
+        .find((row) => row.id === original.id && row.type === 'expense'),
+    ).toMatchObject({ id: original.id, review_stage: 'correction' });
+    expect(
+      value.repository
+        .listApprovalQueue(value.finance)
+        .find((row) => row.id === original.id && row.type === 'expense'),
+    ).toMatchObject({ id: original.id, review_stage: 'finance' });
+    const retry = value.repository.createCorrectionDraft(value.worker, {
+      recordType: 'expense',
+      originalId: original.id,
+      requestId: 'expense-effective-source-retry',
+      reason: 'Retry with corrected receipt amount',
+      patch: { amountMinor: 12_500 },
+    });
+    value.repository.submitExpense(value.worker, retry.correctionId, 1);
+    value.repository.operationalApproveExpense(value.manager, retry.correctionId, 'approved');
+    expect(statement().map((row) => row.id)).toEqual([retry.correctionId]);
+  });
+
+  it('keeps approved daily and technical report truth, including technical-change detail, until a correction is approved', () => {
+    const value = fixture();
+    const finance = authenticatedFinance(value);
+    seedRefreshablePeriodReports(value);
+    const timeId = submittedTime(value);
+    const dailyId = submittedDaily(value);
+    const technical = value.repository.createTechnicalReport(value.worker, {
+      projectId: value.project.id,
+      reportDate: '2026-08-20',
+      systemName: 'PLC-Report-Correction',
+      changeSummary: 'Original technical report truth',
+      safetyRelated: false,
+    });
+    value.repository.submitReport(value.worker, 'technical', technical.id, technical.version);
+    value.repository.operationalApproveTime(value.manager, timeId, 'approved');
+    value.repository.reviewReport(value.manager, 'daily', dailyId, 'approved');
+    value.repository.reviewReport(value.manager, 'technical', technical.id, 'approved');
+    value.sqlite
+      .prepare(
+        'UPDATE project SET daily_report_required=1,technical_reporting_required=1 WHERE id=?',
+      )
+      .run(value.project.id);
+    const legalEntity = value.repository.createLegalEntity(value.owner, {
+      code: 'DTRC',
+      legalName: 'Daily technical correction test entity',
+      currency: 'EUR',
+      billingAddress: 'Test street 1',
+      companyIdentifiers: 'DTRC-1',
+    });
+    const taxProfile = value.repository.createTaxProfile(finance, {
+      name: 'Daily technical correction tax',
+      currency: 'EUR',
+      effectiveFrom: '2026-01-01',
+      components: [{ name: 'Zero', basisPoints: 0 }],
+    });
+    const billingRule = value.repository.createBillingRule(finance, {
+      projectId: value.project.id,
+      legalEntityId: legalEntity.id,
+      streamType: 'labor',
+      cadenceType: 'custom',
+      taxProfileId: taxProfile.id,
+      currency: 'EUR',
+      effectiveFrom: '2026-01-01',
+    });
+    const originalChange = value.v3.createTechnicalChange(value.worker, {
+      projectId: value.project.id,
+      technicalReportId: technical.id,
+      component: 'Original safety interlock',
+      changeMade: 'Original child detail must remain traceable',
+      reason: 'Initial controlled technical change',
+      productionImpact: 'No production impact',
+      validation: 'Functional test passed',
+      validationResult: 'Passed',
+      rollbackInformation: 'Restore original interlock logic',
+    });
+    value.v3.submitTechnicalChange(value.worker, originalChange.id, originalChange.version);
+    value.v3.reviewTechnicalChange(value.manager, originalChange.id, 'approved');
+
+    const snapshot = () => {
+      const refreshed = value.v3.refreshPeriodReports(finance, {
+        projectId: value.project.id,
+        periodStart: '2026-08-01',
+        periodEnd: '2026-08-31',
+      });
+      return refreshed.find((report) => report.audience === 'internal')!.snapshot as {
+        dailyReports: Array<{ id: string; summary: string }>;
+        technicalReports: Array<{ id: string; change_summary: string }>;
+        technicalChanges: Array<{
+          id: string;
+          technical_report_id: string;
+          component: string;
+          change_made: string;
+        }>;
+      };
+    };
+
+    expect(snapshot()).toMatchObject({
+      dailyReports: [expect.objectContaining({ id: dailyId, summary: 'Daily operational truth' })],
+      technicalReports: [
+        expect.objectContaining({
+          id: technical.id,
+          change_summary: 'Original technical report truth',
+        }),
+      ],
+      technicalChanges: [
+        expect.objectContaining({
+          id: originalChange.id,
+          technical_report_id: technical.id,
+          component: 'Original safety interlock',
+        }),
+      ],
+    });
+
+    const dailyCorrection = value.repository.createCorrectionDraft(value.worker, {
+      recordType: 'daily_report',
+      originalId: dailyId,
+      requestId: 'daily-report-effective-source-draft',
+      reason: 'Clarify the approved daily operational summary',
+      patch: { summary: 'Corrected daily report truth' },
+    });
+    const technicalCorrection = value.repository.createCorrectionDraft(value.worker, {
+      recordType: 'technical_report',
+      originalId: technical.id,
+      requestId: 'technical-report-effective-source-draft',
+      reason: 'Clarify the approved technical report summary',
+      patch: { changeSummary: 'Corrected technical report truth' },
+    });
+
+    // Draft, submitted, and returned reports are not a replacement for approved truth.
+    expect(snapshot()).toMatchObject({
+      dailyReports: [expect.objectContaining({ id: dailyId, summary: 'Daily operational truth' })],
+      technicalReports: [
+        expect.objectContaining({
+          id: technical.id,
+          change_summary: 'Original technical report truth',
+        }),
+      ],
+      technicalChanges: [expect.objectContaining({ id: originalChange.id })],
+    });
+    expect(
+      value.v3
+        .billingReadiness(finance, billingRule.id, '2026-08-01', '2026-08-31')
+        .reasons.map((reason) => reason.code),
+    ).toEqual(
+      expect.arrayContaining([
+        'pending_daily_report_correction',
+        'pending_technical_report_correction',
+      ]),
+    );
+    expect(
+      value.v3
+        .billingReadiness(finance, billingRule.id, '2026-08-01', '2026-08-31')
+        .reasons.map((reason) => reason.code),
+    ).not.toEqual(
+      expect.arrayContaining([
+        'missing_approved_daily_report',
+        'missing_approved_technical_report',
+      ]),
+    );
+    const clonedChanges = value.sqlite
+      .prepare(
+        `SELECT id,technical_report_id,component,change_made,approval_state,version
+           FROM technical_change WHERE technical_report_id=? ORDER BY id`,
+      )
+      .all(technicalCorrection.correctionId) as Array<{
+      id: string;
+      technical_report_id: string;
+      component: string;
+      change_made: string;
+      approval_state: string;
+      version: number;
+    }>;
+    expect(clonedChanges).toEqual([
+      expect.objectContaining({
+        technical_report_id: technicalCorrection.correctionId,
+        component: 'Original safety interlock',
+        change_made: 'Original child detail must remain traceable',
+        approval_state: 'approved',
+        version: 1,
+      }),
+    ]);
+    expect(clonedChanges[0]!.id).not.toBe(originalChange.id);
+    expect(
+      value.sqlite
+        .prepare(
+          `SELECT count(*) count FROM audit_event
+            WHERE action='technical_change.create' AND entity_id=?
+              AND details_json LIKE '%\"correctionClone\":true%'`,
+        )
+        .get(clonedChanges[0]!.id),
+    ).toEqual({ count: 1 });
+    value.repository.submitReport(value.worker, 'daily', dailyCorrection.correctionId, 1);
+    value.repository.submitReport(value.worker, 'technical', technicalCorrection.correctionId, 1);
+    value.repository.reviewReport(
+      value.manager,
+      'daily',
+      dailyCorrection.correctionId,
+      'needs_changes',
+      'Please retain the original wording until the correction is complete',
+    );
+    value.repository.reviewReport(
+      value.manager,
+      'technical',
+      technicalCorrection.correctionId,
+      'needs_changes',
+      'Please retain the original technical source until the correction is complete',
+    );
+    expect(snapshot()).toMatchObject({
+      dailyReports: [expect.objectContaining({ id: dailyId, summary: 'Daily operational truth' })],
+      technicalReports: [
+        expect.objectContaining({
+          id: technical.id,
+          change_summary: 'Original technical report truth',
+        }),
+      ],
+      technicalChanges: [expect.objectContaining({ id: originalChange.id })],
+    });
+
+    value.repository.submitReport(value.worker, 'daily', dailyCorrection.correctionId, 3);
+    value.repository.submitReport(value.worker, 'technical', technicalCorrection.correctionId, 3);
+    value.repository.reviewReport(value.manager, 'daily', dailyCorrection.correctionId, 'approved');
+    value.repository.reviewReport(
+      value.manager,
+      'technical',
+      technicalCorrection.correctionId,
+      'approved',
+    );
+
+    const approved = snapshot();
+    expect(approved.dailyReports).toEqual([
+      expect.objectContaining({
+        id: dailyCorrection.correctionId,
+        summary: 'Corrected daily report truth',
+      }),
+    ]);
+    expect(approved.technicalReports).toEqual([
+      expect.objectContaining({
+        id: technicalCorrection.correctionId,
+        change_summary: 'Corrected technical report truth',
+      }),
+    ]);
+    expect(approved.technicalChanges).toEqual([
+      expect.objectContaining({
+        technical_report_id: technicalCorrection.correctionId,
+        component: 'Original safety interlock',
+        change_made: 'Original child detail must remain traceable',
+      }),
+    ]);
   });
 
   it('rejects unauthorized Owner override and immutable locked sources', () => {

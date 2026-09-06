@@ -741,8 +741,23 @@ function metricValue(key: string, value: unknown, currency: unknown, locale: Rep
 export function accountingPackCsv(
   snapshot: Readonly<{ invoiceRegister: readonly Row[] }>,
 ): Uint8Array {
+  const columns = snapshot.invoiceRegister.length
+    ? undefined
+    : [
+        'invoiceNumber',
+        'client',
+        'projectNumber',
+        'streamType',
+        'issueDate',
+        'dueDate',
+        'currency',
+        'version',
+        'netMinor',
+        'taxMinor',
+        'grossMinor',
+      ];
   return new TextEncoder().encode(
-    toCsv(snapshot.invoiceRegister, undefined, {
+    toCsv(snapshot.invoiceRegister, columns, {
       numericColumns: ['version', 'netMinor', 'taxMinor', 'grossMinor'],
     }),
   );
@@ -2034,16 +2049,35 @@ export function accountingPackArtifactBuilders(
       extension: 'csv',
       build: () =>
         new TextEncoder().encode(
-          toCsv(normalized.expenseRegister, undefined, {
-            numericColumns: [
-              'version',
-              'amountMinor',
-              'taxMinor',
-              'grossMinor',
-              'projectCurrencyAmountMinor',
-              'billingAmountMinor',
-            ],
-          }),
+          toCsv(
+            normalized.expenseRegister,
+            normalized.expenseRegister.length
+              ? undefined
+              : [
+                  'date',
+                  'worker',
+                  'projectNumber',
+                  'vendor',
+                  'category',
+                  'currency',
+                  'projectCurrency',
+                  'amountMinor',
+                  'taxMinor',
+                  'grossMinor',
+                  'projectCurrencyAmountMinor',
+                  'billingAmountMinor',
+                ],
+            {
+              numericColumns: [
+                'version',
+                'amountMinor',
+                'taxMinor',
+                'grossMinor',
+                'projectCurrencyAmountMinor',
+                'billingAmountMinor',
+              ],
+            },
+          ),
         ),
     },
     {

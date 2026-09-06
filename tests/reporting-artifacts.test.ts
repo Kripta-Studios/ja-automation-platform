@@ -93,6 +93,26 @@ describe('production reporting artifacts', () => {
     }
   });
 
+  it('keeps machine-readable Accounting Pack CSV schemas when the registers are empty', () => {
+    const artifacts = accountingPackArtifacts({
+      periodStart: '2026-08-01',
+      periodEnd: '2026-08-31',
+      invoiceRegister: [],
+      collections: [],
+      workerCosts: [],
+      expenseRegister: [],
+      totals: { currency: 'USD', revenueMinor: '0', costMinor: '0' },
+    });
+    const invoiceCsv = artifacts.find((artifact) => artifact.type === 'invoice_csv');
+    const expenseCsv = artifacts.find((artifact) => artifact.type === 'expense_csv');
+    expect(new TextDecoder().decode(invoiceCsv?.bytes)).toContain(
+      'invoiceNumber,client,projectNumber,streamType',
+    );
+    expect(new TextDecoder().decode(expenseCsv?.bytes)).toContain(
+      'date,worker,projectNumber,vendor,category',
+    );
+  });
+
   it('omits commercial calculation and money sections from customer period PDFs while retaining operational records', () => {
     const pdf = periodReportPdf({
       project: { number: 'C-0001-P-001', name: 'Commissioning', clientName: 'Client' },

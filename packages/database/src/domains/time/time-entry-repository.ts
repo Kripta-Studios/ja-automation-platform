@@ -389,7 +389,7 @@ export class TimeEntryRepository {
             start_time=COALESCE(?,start_time),end_time=COALESCE(?,end_time),
             break_minutes=COALESCE(?,break_minutes),updated_at=?,version=version+1
            WHERE id=? AND worker_id=? AND version=? AND invoice_id IS NULL AND billing_status='unlocked'
-             AND approval_state IN ('draft','needs_changes')`,
+             AND approval_state='draft'`,
         )
         .run(
           input.workDate ?? null,

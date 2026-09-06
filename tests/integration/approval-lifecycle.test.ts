@@ -462,11 +462,21 @@ describe('Client Essential approval lifecycle', () => {
       retry = value.repository.createCorrectionDraft(value.worker, {
         recordType: 'time_entry',
         originalId,
-        requestId: 'time-correction-effective-source-retry',
+        requestId: 'time-correction-effective-source-draft',
         reason: 'Retry with corrected approved shift minutes',
         patch: { minutes: 570 },
       });
     }).not.toThrow();
+    expect(retry.correctionId).not.toBe(correction.correctionId);
+    expect(
+      value.repository.createCorrectionDraft(value.worker, {
+        recordType: 'time_entry',
+        originalId,
+        requestId: 'time-correction-effective-source-draft',
+        reason: 'Retry with corrected approved shift minutes',
+        patch: { minutes: 570 },
+      }),
+    ).toMatchObject({ correctionId: retry.correctionId, replayed: true });
     value.repository.submitTime(value.worker, retry.correctionId, 1);
     value.repository.operationalApproveTime(value.manager, retry.correctionId, 'approved');
     expect(value.v3.workerPay(value.worker, '2026-08-20', '2026-08-20')).toMatchObject({
@@ -585,6 +595,43 @@ describe('Client Essential approval lifecycle', () => {
     expect(held.sqlite.prepare('SELECT count(*) count FROM compensation_settlement').get()).toEqual(
       { count: 0 },
     );
+    const heldRetry = held.repository.createCorrectionDraft(held.worker, {
+      recordType: 'time_entry',
+      originalId: heldCorrection.correctionId,
+      requestId: `time-returned-correction-${heldCorrection.correctionId}`,
+      reason: 'Clarified duration in an append-only retry',
+      patch: { minutes: 570 },
+    });
+    held.repository.submitTime(held.worker, heldRetry.correctionId, 1);
+    held.repository.operationalApproveTime(held.manager, heldRetry.correctionId, 'approved');
+    expect(
+      held.sqlite
+        .prepare('SELECT approval_state FROM time_entry WHERE id=?')
+        .get(heldCorrection.correctionId),
+    ).toEqual({ approval_state: 'rejected' });
+    expect(
+      held.sqlite
+        .prepare(
+          `SELECT original_id,correction_id FROM record_correction_link
+            WHERE correction_id IN (?,?) ORDER BY correction_id`,
+        )
+        .all(heldCorrection.correctionId, heldRetry.correctionId),
+    ).toEqual(
+      [
+        { original_id: heldOriginalId, correction_id: heldCorrection.correctionId },
+        { original_id: heldOriginalId, correction_id: heldRetry.correctionId },
+      ].sort((left, right) => left.correction_id.localeCompare(right.correction_id)),
+    );
+    expect(
+      held.v3.settleCompensation(heldFinance, {
+        workerId: held.worker.userId,
+        projectId: held.project.id,
+        periodStart: '2026-08-01',
+        periodEnd: '2026-08-31',
+      }),
+    ).toEqual([
+      expect.objectContaining({ amountMinor: '57000', sourceAmountMinor: '570', state: 'settled' }),
+    ]);
   });
 
   it('keeps an approved worker expense effective until its correction is approved', () => {
@@ -645,10 +692,20 @@ describe('Client Essential approval lifecycle', () => {
     const retry = value.repository.createCorrectionDraft(value.worker, {
       recordType: 'expense',
       originalId: original.id,
-      requestId: 'expense-effective-source-retry',
+      requestId: 'expense-effective-source-draft',
       reason: 'Retry with corrected receipt amount',
       patch: { amountMinor: 12_500 },
     });
+    expect(retry.correctionId).not.toBe(correction.correctionId);
+    expect(
+      value.repository.createCorrectionDraft(value.worker, {
+        recordType: 'expense',
+        originalId: original.id,
+        requestId: 'expense-effective-source-draft',
+        reason: 'Retry with corrected receipt amount',
+        patch: { amountMinor: 12_500 },
+      }),
+    ).toMatchObject({ correctionId: retry.correctionId, replayed: true });
     value.repository.submitExpense(value.worker, retry.correctionId, 1);
     value.repository.operationalApproveExpense(value.manager, retry.correctionId, 'approved');
     expect(statement().map((row) => row.id)).toEqual([retry.correctionId]);
@@ -687,6 +744,41 @@ describe('Client Essential approval lifecycle', () => {
         .map((row) => row.id),
     ).toEqual([heldOriginal.id]);
     expect(held.v3.listReimbursementQueue(held.finance, held.project.id)).toEqual([]);
+    const heldRetry = held.repository.createCorrectionDraft(held.worker, {
+      recordType: 'expense',
+      originalId: heldCorrection.correctionId,
+      requestId: `expense-correction-${heldCorrection.correctionId}`,
+      reason: 'Clarified amount in an append-only retry',
+      patch: { amountMinor: 13_000 },
+    });
+    held.repository.submitExpense(held.worker, heldRetry.correctionId, 1);
+    held.repository.operationalApproveExpense(held.manager, heldRetry.correctionId, 'approved');
+    expect(
+      held.sqlite
+        .prepare('SELECT approval_state FROM expense WHERE id=?')
+        .get(heldCorrection.correctionId),
+    ).toEqual({ approval_state: 'rejected' });
+    expect(
+      held.sqlite
+        .prepare(
+          `SELECT original_id,correction_id FROM record_correction_link
+            WHERE correction_id IN (?,?) ORDER BY correction_id`,
+        )
+        .all(heldCorrection.correctionId, heldRetry.correctionId),
+    ).toEqual(
+      [
+        { original_id: heldOriginal.id, correction_id: heldCorrection.correctionId },
+        { original_id: heldOriginal.id, correction_id: heldRetry.correctionId },
+      ].sort((left, right) => left.correction_id.localeCompare(right.correction_id)),
+    );
+    expect(
+      held.repository
+        .listWorkerStatementExpenses(held.worker, '2026-08-20', '2026-08-20')
+        .map((row) => row.id),
+    ).toEqual([heldRetry.correctionId]);
+    expect(
+      held.v3.listReimbursementQueue(held.finance, held.project.id).map((row) => row.id),
+    ).toEqual([heldRetry.correctionId]);
   });
 
   it('keeps approved daily and technical report truth, including technical-change detail, until a correction is approved', () => {

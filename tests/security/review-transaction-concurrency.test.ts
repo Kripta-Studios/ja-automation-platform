@@ -1,4 +1,5 @@
-import type { DatabaseSync } from 'node:sqlite';
+import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import {
   AccessDeniedError,
   ConflictError,
@@ -150,6 +151,93 @@ function expectNoReviewSideEffects(
 }
 
 describe('review authorization and state are committed atomically', () => {
+  it('keeps an expense immutable when a second connection returns it before the edit transaction', () => {
+    const value = fixture();
+    const expense = value.repository.createExpense(value.worker, {
+      projectId: value.project.id,
+      spentOn: '2026-08-20',
+      vendor: 'Concurrency hotel',
+      category: 'hotel',
+      description: 'Expense update race fixture',
+      currency: 'EUR',
+      amountMinor: 10_000n,
+      whoPaid: 'worker',
+      receiptRequired: false,
+    });
+    const second = new DatabaseSync(join(value.directory, 'app.db'));
+    second.exec('PRAGMA busy_timeout=5000');
+    let interleaved = false;
+    const sqlite = new Proxy(value.sqlite, {
+      get(target, property) {
+        if (property === 'exec') {
+          return (sql: string): void => {
+            if (!interleaved && /^BEGIN IMMEDIATE\b/u.test(sql.trim())) {
+              interleaved = true;
+              second
+                .prepare(
+                  "UPDATE expense SET approval_state='needs_changes',version=version+1 WHERE id=? AND approval_state='draft'",
+                )
+                .run(expense.id);
+            }
+            target.exec(sql);
+          };
+        }
+        const member = Reflect.get(target, property, target) as unknown;
+        return typeof member === 'function' ? member.bind(target) : member;
+      },
+    }) as DatabaseSync;
+    const repository = new PortalRepository(sqlite);
+    try {
+      expect(() =>
+        repository.updateExpense(value.worker, {
+          id: expense.id,
+          version: expense.version + 1,
+          description: 'Must not overwrite returned review history',
+        }),
+      ).toThrow(ConflictError);
+    } finally {
+      second.close();
+    }
+    expect(interleaved).toBe(true);
+    expect(
+      value.sqlite
+        .prepare('SELECT approval_state,version,description FROM expense WHERE id=?')
+        .get(expense.id),
+    ).toEqual({
+      approval_state: 'needs_changes',
+      version: expense.version + 1,
+      description: 'Expense update race fixture',
+    });
+  });
+
+  it('rejects a matching future version when the expense is already reviewer-returned', () => {
+    const value = fixture();
+    const expense = value.repository.createExpense(value.worker, {
+      projectId: value.project.id,
+      spentOn: '2026-08-20',
+      vendor: 'Immutable hotel',
+      category: 'hotel',
+      description: 'Reviewed expense history',
+      currency: 'EUR',
+      amountMinor: 10_000n,
+      whoPaid: 'worker',
+      receiptRequired: false,
+    });
+    value.sqlite
+      .prepare("UPDATE expense SET approval_state='needs_changes',version=99 WHERE id=?")
+      .run(expense.id);
+    expect(() =>
+      value.repository.updateExpense(value.worker, {
+        id: expense.id,
+        version: 99,
+        description: 'Forbidden reviewed mutation',
+      }),
+    ).toThrow(ConflictError);
+    expect(
+      value.sqlite.prepare('SELECT description FROM expense WHERE id=?').get(expense.id),
+    ).toEqual({ description: 'Reviewed expense history' });
+  });
+
   it.each(['report', 'milestone', 'technical_change'] as const)(
     'rejects %s review when PM authority is revoked immediately before the write transaction',
     (kind) => {

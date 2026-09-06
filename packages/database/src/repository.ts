@@ -2280,6 +2280,16 @@ export class PortalRepository {
         .prepare(`SELECT * FROM ${table} WHERE id=?`)
         .get(input.originalId) as Record<string, unknown> | undefined;
       if (!original) throw new ValidationError('Original record not found');
+      const identity = this.deploymentIdentity();
+      const parentLink = this.sqlite
+        .prepare(
+          `SELECT original_id FROM record_correction_link
+            WHERE tenant_id=? AND record_type=? AND correction_id=?`,
+        )
+        .get(identity.tenantId, input.recordType, input.originalId) as
+        | { original_id: string }
+        | undefined;
+      const canonicalOriginalId = parentLink?.original_id ?? input.originalId;
       const projectId = String(original.project_id ?? '');
       const ownerId = String(original.worker_id ?? original.author_id ?? '');
       const objectDate = String(
@@ -2296,31 +2306,43 @@ export class PortalRepository {
         !(principal.role === 'project_manager' && principal.projectIds.has(projectId))
       )
         throw new AccessDeniedError('Correction access required');
-      const identity = this.deploymentIdentity();
-      const prior = this.sqlite
+      const attempts = this.sqlite
         .prepare(
-          `SELECT correction_id,request_payload_sha256 FROM record_correction_link
-           WHERE tenant_id=? AND record_type=? AND original_id=? AND request_id=?`,
+          `SELECT rcl.correction_id,rcl.request_id,rcl.request_payload_sha256,
+                  correction.approval_state
+             FROM record_correction_link rcl
+             JOIN ${table} correction ON correction.id=rcl.correction_id
+            WHERE rcl.tenant_id=? AND rcl.record_type=? AND rcl.original_id=?`,
         )
-        .get(identity.tenantId, input.recordType, input.originalId, input.requestId) as
-        | { correction_id: string; request_payload_sha256: string }
-        | undefined;
-      if (prior) {
+        .all(identity.tenantId, input.recordType, canonicalOriginalId) as Array<{
+        correction_id: string;
+        request_id: string;
+        request_payload_sha256: string;
+        approval_state: string;
+      }>;
+      const logicalAttempts = attempts
+        .map((attempt) => {
+          if (attempt.request_id === input.requestId) return { ...attempt, retry: 0 };
+          const prefix = `${input.requestId}:retry:`;
+          if (!attempt.request_id.startsWith(prefix)) return undefined;
+          const retry = Number(attempt.request_id.slice(prefix.length));
+          return Number.isSafeInteger(retry) && retry > 0 ? { ...attempt, retry } : undefined;
+        })
+        .filter((attempt): attempt is NonNullable<typeof attempt> => attempt !== undefined)
+        .sort((left, right) => right.retry - left.retry);
+      const prior = logicalAttempts[0];
+      if (prior && prior.approval_state !== 'rejected') {
         if (prior.request_payload_sha256 !== payloadHash)
           throw new ConflictError('Correction request payload conflicts with prior replay');
         return { id: prior.correction_id, correctionId: prior.correction_id, replayed: true };
       }
+      const activeCorrections = attempts.filter((attempt) => attempt.approval_state !== 'rejected');
+      const retryingReturnedCorrection =
+        parentLink !== undefined && String(original.approval_state) === 'needs_changes';
       if (
-        this.sqlite
-          .prepare(
-            `SELECT 1
-               FROM record_correction_link rcl
-               JOIN ${table} correction ON correction.id=rcl.correction_id
-              WHERE rcl.record_type=? AND rcl.original_id=?
-                AND correction.approval_state<>'rejected'
-              LIMIT 1`,
-          )
-          .get(input.recordType, input.originalId)
+        activeCorrections.some(
+          (attempt) => !retryingReturnedCorrection || attempt.correction_id !== input.originalId,
+        )
       )
         throw new ConflictError('A correction draft already exists for this original record');
       const correctionEligible =
@@ -2331,7 +2353,9 @@ export class PortalRepository {
         throw new ConflictError(
           input.recordType === 'time_entry'
             ? 'Only approved or reviewer-returned time can create a correction draft'
-            : 'Only approved records can create a correction draft',
+            : input.recordType === 'expense'
+              ? 'Only approved or reviewer-returned expenses can create a correction draft'
+              : 'Only approved records can create a correction draft',
         );
       if (
         original.invoice_id ||
@@ -2367,6 +2391,30 @@ export class PortalRepository {
 
       const correctionId = newId();
       const timestamp = now();
+      if (retryingReturnedCorrection) {
+        const superseded = this.sqlite
+          .prepare(
+            `UPDATE ${table} SET approval_state='rejected',updated_at=?,version=version+1
+              WHERE id=? AND approval_state='needs_changes'`,
+          )
+          .run(timestamp, input.originalId);
+        if (superseded.changes !== 1)
+          throw new ConflictError('Returned correction changed before retry creation');
+        this.sqlite
+          .prepare(
+            'INSERT INTO approval_event(id,entity_type,entity_id,from_state,to_state,actor_id,reason,occurred_at) VALUES(?,?,?,?,?,?,?,?)',
+          )
+          .run(
+            newId(),
+            input.recordType === 'time_entry' ? 'time' : 'expense',
+            input.originalId,
+            'needs_changes',
+            'rejected',
+            principal.userId,
+            `Superseded by append-only correction retry ${correctionId}`,
+            timestamp,
+          );
+      }
       const columns = (
         this.sqlite.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>
       ).map((column) => column.name);
@@ -2599,6 +2647,9 @@ export class PortalRepository {
         }
       }
       const linkId = newId();
+      const storedRequestId = prior
+        ? `${input.requestId}:retry:${Math.max(...logicalAttempts.map((attempt) => attempt.retry)) + 1}`
+        : input.requestId;
       this.sqlite
         .prepare(
           `INSERT INTO record_correction_link(
@@ -2610,9 +2661,9 @@ export class PortalRepository {
           linkId,
           identity.tenantId,
           input.recordType,
-          input.originalId,
+          canonicalOriginalId,
           correctionId,
-          input.requestId,
+          storedRequestId,
           payloadHash,
           principal.userId,
           reason,
@@ -2621,11 +2672,13 @@ export class PortalRepository {
         );
       this.audit(principal, 'correction.create', input.recordType, correctionId, {
         projectId,
-        originalId: input.originalId,
+        originalId: canonicalOriginalId,
+        requestedOriginalId: input.originalId,
+        storedRequestId,
         reason,
         ownerOverride,
       });
-      return { id: correctionId, correctionId, originalId: input.originalId, version: 1 };
+      return { id: correctionId, correctionId, originalId: canonicalOriginalId, version: 1 };
     });
   }
 
@@ -3126,94 +3179,99 @@ export class PortalRepository {
     }>,
   ) {
     this.assertActive(principal);
-    const current = this.sqlite
-      .prepare(
-        `SELECT project_id,worker_id,spent_on,approval_state,invoice_id,billing_state,receipt_required
-         FROM expense WHERE id=?`,
-      )
-      .get(input.id) as
-      | {
-          project_id: string;
-          worker_id: string;
-          spent_on: string;
-          approval_state: string;
-          invoice_id: string | null;
-          billing_state: string;
-          receipt_required: number;
-        }
-      | undefined;
-    if (!current) throw new ValidationError('Expense not found');
-    this.assertProjectObjectAccess(
-      principal,
-      current.project_id,
-      String(current.spent_on),
-      current.worker_id,
-    );
-    if (current.worker_id !== principal.userId)
-      throw new AccessDeniedError('Expense ownership required');
-    if (
-      current.invoice_id ||
-      current.billing_state !== 'unlocked' ||
-      current.approval_state !== 'draft'
-    )
-      throw new ConflictError('Only an unlocked editable expense draft can change');
-    if (input.spentOn) {
-      assertDate(input.spentOn, 'Expense date');
+    return this.transaction(() => {
+      const current = this.sqlite
+        .prepare(
+          `SELECT project_id,worker_id,spent_on,approval_state,invoice_id,billing_state,receipt_required,version
+           FROM expense WHERE id=?`,
+        )
+        .get(input.id) as
+        | {
+            project_id: string;
+            worker_id: string;
+            spent_on: string;
+            approval_state: string;
+            invoice_id: string | null;
+            billing_state: string;
+            receipt_required: number;
+            version: number;
+          }
+        | undefined;
+      if (!current) throw new ValidationError('Expense not found');
       this.assertProjectObjectAccess(
         principal,
         current.project_id,
-        input.spentOn,
+        String(current.spent_on),
         current.worker_id,
       );
-    }
-    if (input.amountMinor !== undefined && input.amountMinor <= 0n)
-      throw new ValidationError('Expense amount must be positive');
-    if (input.receiptDocumentId) {
-      const receipt = this.sqlite
-        .prepare("SELECT project_id FROM document WHERE id=? AND owner_id=? AND state='committed'")
-        .get(input.receiptDocumentId, principal.userId);
-      if (!receipt) throw new AccessDeniedError('Committed owned receipt required');
+      if (current.worker_id !== principal.userId)
+        throw new AccessDeniedError('Expense ownership required');
       if (
-        String((receipt as { project_id: string | null }).project_id ?? '') !== current.project_id
+        current.invoice_id ||
+        current.billing_state !== 'unlocked' ||
+        current.approval_state !== 'draft'
       )
-        throw new AccessDeniedError('Receipt must belong to the expense project');
-    }
-    const amountMinor = input.amountMinor === undefined ? null : safeInteger(input.amountMinor);
-    const result = this.sqlite
-      .prepare(
-        `UPDATE expense SET spent_on=COALESCE(?,spent_on),vendor=COALESCE(?,vendor),
-          category=COALESCE(?,category),description=COALESCE(?,description),
-          amount_minor=COALESCE(?,amount_minor),
-          reimbursement_amount_minor=CASE
-            WHEN ? IS NULL THEN reimbursement_amount_minor
-            WHEN who_paid='worker'
-              AND currency=(SELECT currency FROM project WHERE id=expense.project_id)
-              THEN ?
-            ELSE NULL
-          END,
-          payment_method=COALESCE(?,payment_method),
-          receipt_document_id=COALESCE(?,receipt_document_id),updated_at=?,version=version+1
-         WHERE id=? AND worker_id=? AND version=? AND invoice_id IS NULL AND billing_state='unlocked'
-           AND approval_state IN ('draft','needs_changes')`,
-      )
-      .run(
-        input.spentOn ?? null,
-        input.vendor?.trim() || null,
-        input.category?.trim() || null,
-        input.description?.trim() || null,
-        amountMinor,
-        amountMinor,
-        amountMinor,
-        input.paymentMethod?.trim() || null,
-        input.receiptDocumentId ?? null,
-        now(),
-        input.id,
-        principal.userId,
-        input.version,
-      );
-    if (result.changes !== 1) throw new ConflictError('Expense changed or cannot be edited');
-    this.audit(principal, 'expense.update', 'expense', input.id, { version: input.version });
-    return { id: input.id, version: input.version + 1 };
+        throw new ConflictError('Only an unlocked editable expense draft can change');
+      if (input.spentOn) {
+        assertDate(input.spentOn, 'Expense date');
+        this.assertProjectObjectAccess(
+          principal,
+          current.project_id,
+          input.spentOn,
+          current.worker_id,
+        );
+      }
+      if (input.amountMinor !== undefined && input.amountMinor <= 0n)
+        throw new ValidationError('Expense amount must be positive');
+      if (input.receiptDocumentId) {
+        const receipt = this.sqlite
+          .prepare(
+            "SELECT project_id FROM document WHERE id=? AND owner_id=? AND state='committed'",
+          )
+          .get(input.receiptDocumentId, principal.userId);
+        if (!receipt) throw new AccessDeniedError('Committed owned receipt required');
+        if (
+          String((receipt as { project_id: string | null }).project_id ?? '') !== current.project_id
+        )
+          throw new AccessDeniedError('Receipt must belong to the expense project');
+      }
+      const amountMinor = input.amountMinor === undefined ? null : safeInteger(input.amountMinor);
+      const result = this.sqlite
+        .prepare(
+          `UPDATE expense SET spent_on=COALESCE(?,spent_on),vendor=COALESCE(?,vendor),
+            category=COALESCE(?,category),description=COALESCE(?,description),
+            amount_minor=COALESCE(?,amount_minor),
+            reimbursement_amount_minor=CASE
+              WHEN ? IS NULL THEN reimbursement_amount_minor
+              WHEN who_paid='worker'
+                AND currency=(SELECT currency FROM project WHERE id=expense.project_id)
+                THEN ?
+              ELSE NULL
+            END,
+            payment_method=COALESCE(?,payment_method),
+            receipt_document_id=COALESCE(?,receipt_document_id),updated_at=?,version=version+1
+           WHERE id=? AND worker_id=? AND version=? AND invoice_id IS NULL AND billing_state='unlocked'
+             AND approval_state='draft'`,
+        )
+        .run(
+          input.spentOn ?? null,
+          input.vendor?.trim() || null,
+          input.category?.trim() || null,
+          input.description?.trim() || null,
+          amountMinor,
+          amountMinor,
+          amountMinor,
+          input.paymentMethod?.trim() || null,
+          input.receiptDocumentId ?? null,
+          now(),
+          input.id,
+          principal.userId,
+          input.version,
+        );
+      if (result.changes !== 1) throw new ConflictError('Expense changed or cannot be edited');
+      this.audit(principal, 'expense.update', 'expense', input.id, { version: input.version });
+      return { id: input.id, version: input.version + 1 };
+    });
   }
 
   classifyExpenseCommercially(

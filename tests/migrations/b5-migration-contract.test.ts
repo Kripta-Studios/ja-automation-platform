@@ -370,7 +370,7 @@ const EXPECTED_PROJECTIONS: Record<string, { rowCount: number; sha256: string }>
     sha256: '1b4d05f536d30146c62eaeb83cd3a3f4d698c829fa11675f0c80aeeb0600a0e2',
   },
 };
-const EXPECTED_MANIFEST_SHA256 = '2add75287127d19f581b54f4933444796f3ced6d9d7e29a3209a38bfad310500';
+const EXPECTED_MANIFEST_SHA256 = 'c0d964f6b80e9c6a3dc44a4295448ed859f2fc85d602d473897f28294b18c689';
 const EXPECTED_MIGRATION_HASHES: Record<string, string> = {
   '0019_lifecycle_security.sql': '93a56b070237e6be436ff1b0b2ae3bf3a78767bdef58f03619f634520dac1b8c',
   '0020_finance_v2.sql': '21c8e230e98c71d96dbf790284ed56fa6d417638443d17e0ccd9b580655824db',
@@ -404,7 +404,7 @@ const EXPECTED_MIGRATION_HASHES: Record<string, string> = {
   '0035_stalwart_mail_integration.sql':
     '84204bde235a19071599a36eae9db9d8d4295cadd59445ec1892bfece0b87b20',
   '0036_time_returned_correction.sql':
-    '4e86a43314815000823957708a2dcf4da11c58affd7769e71d7a6c97ddb80268',
+    '4c89d1b06c5b4f4de31d466f7a97077ba982b610c9695950bf531dfb317d6719',
   '0037_production_mfa_enforcement.sql':
     '7a47d856d87fb1aaf29407630a2e16e6eb5829cf7f007d78a10817a4a61b7137',
   '0038_customer_conformity_evidence_attachment.sql':

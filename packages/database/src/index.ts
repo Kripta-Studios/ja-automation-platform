@@ -277,7 +277,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  '2add75287127d19f581b54f4933444796f3ced6d9d7e29a3209a38bfad310500';
+  'c0d964f6b80e9c6a3dc44a4295448ed859f2fc85d602d473897f28294b18c689';
 
 type MigrationContractEntry = Readonly<{
   version: number;

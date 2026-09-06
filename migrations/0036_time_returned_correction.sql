@@ -1,6 +1,6 @@
--- Returned time is immutable review history.  A worker may only make a new
--- draft correction from a reviewer-returned (needs_changes) time entry; the
--- original row and its review reason remain intact.
+-- Returned time and expense rows are immutable review history. A worker may
+-- only make a new draft correction from reviewer-returned (needs_changes)
+-- operational input; the returned row and its review reason remain intact.
 
 DROP TRIGGER correction_link_subject_guard;
 CREATE TRIGGER correction_link_subject_guard BEFORE INSERT ON record_correction_link WHEN
@@ -20,7 +20,7 @@ CREATE TRIGGER correction_link_subject_guard BEFORE INSERT ON record_correction_
     )
   )) OR
   (NEW.record_type='expense' AND (
-    NOT EXISTS(SELECT 1 FROM expense WHERE id=NEW.original_id AND (approval_state IN ('approved','locked') OR billing_state='locked' OR billing_lock_id IS NOT NULL)) OR
+    NOT EXISTS(SELECT 1 FROM expense WHERE id=NEW.original_id AND (approval_state IN ('approved','locked','needs_changes') OR billing_state='locked' OR billing_lock_id IS NOT NULL)) OR
     NOT EXISTS(SELECT 1 FROM expense WHERE id=NEW.correction_id AND approval_state='draft' AND invoice_id IS NULL AND COALESCE(billing_state,'unlocked')='unlocked' AND billing_lock_id IS NULL) OR
     NOT EXISTS(
       SELECT 1 FROM expense original

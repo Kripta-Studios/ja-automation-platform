@@ -23,6 +23,17 @@ function fixture(): B5LifecycleSecurityFixture {
 }
 
 describe('Client Essential CORE-02 clients, projects and assignments', () => {
+  it('rejects calendar-rollover dates at workforce assignment boundaries', () => {
+    const value = fixture();
+    expect(() =>
+      value.repository.assignWorker(value.owner, {
+        projectId: value.project.id,
+        workerId: 'b5-outsider',
+        startsOn: '2026-02-30',
+      }),
+    ).toThrow(ValidationError);
+  });
+
   it('requires minimum bill-to data for new clients and persists the controlled fields', () => {
     const value = fixture();
 

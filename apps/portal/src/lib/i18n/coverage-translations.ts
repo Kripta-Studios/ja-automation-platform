@@ -630,19 +630,14 @@ const extraExact: Record<string, readonly [string, string]> = {
     'El acceso con clave de acceso se canceló o no está disponible.',
     'O login com chave de acesso foi cancelado ou está indisponível.',
   ],
-  'Production accounts require a second factor. Enabling MFA returns the setup URI and one-time recovery codes; store them in an approved password manager.':
-    [
-      'Las cuentas de producción requieren un segundo factor. Activar MFA devuelve la URI de configuración y códigos de recuperación de un solo uso; guárdalos en un gestor de contraseñas aprobado.',
-      'As contas de produção exigem um segundo fator. Ativar MFA retorna a URI de configuração e códigos de recuperação de uso único; guarde-os em um gerenciador de senhas aprovado.',
-    ],
   'Projects cannot be hard-deleted to preserve financial history and audit logs. Use Archived to remove a project from active operational views.':
     [
       'Los proyectos no se pueden eliminar físicamente para conservar el historial financiero y los registros de auditoría. Usa Archivado para quitar un proyecto de las vistas operativas activas.',
       'Projetos não podem ser excluídos permanentemente para preservar o histórico financeiro e os registros de auditoria. Use Arquivado para remover um projeto das visões operacionais ativas.',
     ],
-  'Protected by secure sessions, rate limits and multi-factor authentication.': [
-    'Protegido por sesiones seguras, límites de frecuencia y autenticación multifactor.',
-    'Protegido por sessões seguras, limites de frequência e autenticação multifator.',
+  'Protected by secure sessions and rate limits. Optional MFA is available in your profile.': [
+    'Protegido por sesiones seguras y límites de frecuencia. MFA opcional está disponible en tu perfil.',
+    'Protegido por sessões seguras e limites de frequência. A MFA opcional está disponível no seu perfil.',
   ],
   'Rates are effective-dated and resolved by assignment, category, activity, and project scope.': [
     'Las tarifas tienen fecha de vigencia y se resuelven por asignación, categoría, actividad y ámbito del proyecto.',
@@ -914,7 +909,6 @@ const extraExact: Record<string, readonly [string, string]> = {
   'Privacy boundary': ['Límite de privacidad', 'Limite de privacidade'],
   'Problems found': ['Problemas encontrados', 'Problemas encontrados'],
   'Production impact': ['Impacto en producción', 'Impacto em produção'],
-  'STEP-UP AUTHENTICATION': ['AUTENTICACIÓN REFORZADA', 'AUTENTICAÇÃO REFORÇADA'],
   'Needs changes': ['Necesita cambios', 'Precisa de alterações'],
   Final: ['Finalizado', 'Finalizado'],
   Archived: ['Archivado', 'Arquivado'],
@@ -1161,10 +1155,6 @@ const actionExact: Record<string, readonly [string, string]> = {
   'action.error.forbidden': [
     'No tienes permiso para realizar esta acción.',
     'Você não tem permissão para realizar esta ação.',
-  ],
-  'action.error.stepUpRequired': [
-    'Confirma tu identidad para continuar.',
-    'Confirme sua identidade para continuar.',
   ],
   'action.error.unauthenticated': [
     'Vuelve a iniciar sesión para continuar.',
@@ -1505,6 +1495,10 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Conformidad del cliente registrada.',
     'Conformidade do cliente registrada.',
   ],
+  'action.reports.customerSignoffEvidenceAttached': [
+    'Evidencia de copia firmada adjuntada a la conformidad histórica.',
+    'Evidência de cópia assinada anexada à conformidade histórica.',
+  ],
   'action.validation.periodReportApproval': [
     'Se requiere una vinculación válida con la instantánea del informe del período.',
     'É necessário um vínculo válido com o instantâneo do relatório do período.',
@@ -1780,6 +1774,8 @@ function englishActionMessage(key: string): string {
     'action.reports.periodReportApproved': 'Period report approved.',
     'action.reports.periodReportAlreadyApproved': 'Period report was already approved.',
     'action.reports.customerSignoffRecorded': 'Customer conformity recorded.',
+    'action.reports.customerSignoffEvidenceAttached':
+      'Signed-copy evidence attached to the historical conformity.',
     'action.reports.customerSignoffInvalidated': 'Customer conformity invalidated.',
     'action.validation.periodReportApproval': 'A valid period report snapshot binding is required.',
     'action.validation.customerSignoff': 'Customer conformity details are required.',
@@ -1794,7 +1790,6 @@ function englishActionMessage(key: string): string {
   if (exactEnglish[key]) return exactEnglish[key];
   if (suffix === 'error.invalid') return 'The submitted values are invalid.';
   if (suffix === 'error.forbidden') return 'You do not have permission to perform this action.';
-  if (suffix === 'error.stepUpRequired') return 'Confirm your identity to continue.';
   if (suffix === 'error.unauthenticated') return 'Sign in again to continue.';
   if (suffix === 'error.conflict') return 'This action conflicts with the current record state.';
   if (suffix === 'error.unavailable')

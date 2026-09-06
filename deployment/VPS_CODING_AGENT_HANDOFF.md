@@ -2,7 +2,9 @@
 
 Use this message only after the release operator has supplied the archive path and SHA-256. The
 portal has one access model: invitation-only Better Auth sessions. Do not create or restore a
-passwordless showcase account.
+passwordless showcase account. MFA is optional for every role and operation; it is a voluntary
+Better Auth sign-in factor for users who enroll, and step-up authentication is not used. The local
+account MFA facade has no password field and raw Better Auth MFA management endpoints are blocked.
 
 The release operator places the archive at `/home/kripta/<release-archive>.zip`; verify it in that
 location before extracting. The archive is source-only and intentionally contains no database,
@@ -68,8 +70,9 @@ sudo bash deployment/scripts/verify-vps.sh https://example.invalid/j-aautomation
 Final smoke test:
 - Open /j-aautomation/app/login.
 - Sign in with the operator-provisioned owner credentials.
-- Complete MFA enrollment and verify the dashboard, Projects, Planning, Reports, Expenses,
-  Documents, Billing, Finance and Audit authorization boundaries.
+- Optionally enroll MFA from account security (do not treat enrollment as a prerequisite), then
+  verify the dashboard, Projects, Planning, Reports, Expenses, Documents, Billing, Finance and Audit
+  authorization boundaries.
 - Invite a second account from Projects → Team and verify the single-use activation flow.
 - Verify the public `/j-aautomation/en`, `/pt`, and `/es` routes, public forms, and that existing
   NexIA/EVOCON routes still respond. From the VPS itself, verify the loopback-only portal
@@ -84,5 +87,6 @@ health checks, restore the previous `current` symlink and tagged images, leave t
 volume untouched, and report the failed check before retrying.
 ```
 
-The first owner must enroll MFA before inviting other users. The owner then manages all additional
-accounts through the portal; fixture data and fixture credentials are limited to isolated tests.
+The first owner may enroll MFA after sign-in but does not have to do so before inviting other users.
+The owner then manages all additional accounts through the portal; fixture data and fixture
+credentials are limited to isolated tests. No step-up authentication is required or available.

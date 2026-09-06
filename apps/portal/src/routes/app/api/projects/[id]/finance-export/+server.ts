@@ -1,7 +1,6 @@
 import { error, type RequestHandler } from '@sveltejs/kit';
-import { recordAuditEvent, V3AccessDeniedError } from '@ja/database';
+import { recordAuditEvent } from '@ja/database';
 import { projectFinanceXlsx } from '@ja/reporting';
-import { assertRecentStepUp } from '$lib/server/private-artifact-access';
 import { isRealIsoDate } from '$lib/server/iso-date';
 import { openPortalRepository } from '$lib/server/portal-repository';
 
@@ -39,12 +38,6 @@ export const GET: RequestHandler = ({ locals, params, url }) => {
 
   const context = openPortalRepository(locals);
   try {
-    try {
-      assertRecentStepUp(context.sqlite, context.principal);
-    } catch (cause) {
-      if (cause instanceof V3AccessDeniedError) error(403, cause.message);
-      throw cause;
-    }
     const overview = context.repository.projectOverview(context.principal, projectId);
     const financial = context.v3.projectFinance(
       context.principal,

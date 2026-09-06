@@ -1,6 +1,5 @@
 <script lang="ts">
   import { enhance, type ActionResult, type SubmitFunction } from '$app/forms';
-  import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { SvelteSet } from 'svelte/reactivity';
   import { ResponsiveSheet, SectionCard, StatusBadge, formValidation } from '../ui';
@@ -72,7 +71,6 @@
   let targetProvisionRole = $state<'worker' | 'project_manager' | 'finance_admin'>('worker');
   let creatingMailbox = $state(false);
   let filterProvisioned = $state<'all' | 'available' | 'provisioned'>('all');
-  let identityPassword = $state('');
   // These keys do not drive UI state. Keeping the cache non-reactive also avoids
   // mutating reactive state while mailbox forms are being rendered.
   const externalCommandKeys: Record<string, string> = {};
@@ -353,43 +351,6 @@
       await update();
     };
   };
-
-  async function confirmMailboxIdentity(event: SubmitEvent): Promise<void> {
-    event.preventDefault();
-    if (!identityPassword) return;
-    mailboxAction = {
-      status: 'pending',
-      action: 'stepUp',
-      message: translate('Confirming identity…'),
-    };
-    try {
-      const response = await fetch(`${base}/app/api/step-up`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ password: identityPassword }),
-      });
-      identityPassword = '';
-      mailboxAction = response.ok
-        ? {
-            status: 'success',
-            action: 'stepUp',
-            message: translate('Identity confirmed for protected actions for 10 minutes.'),
-          }
-        : {
-            status: 'error',
-            action: 'stepUp',
-            message: translate('Identity confirmation failed.'),
-          };
-    } catch {
-      identityPassword = '';
-      mailboxAction = {
-        status: 'error',
-        action: 'stepUp',
-        message: translate('Identity confirmation failed.'),
-      };
-    }
-  }
 
   function handleDirectoryTabKeydown(event: KeyboardEvent): void {
     let next: 'specialists' | 'mailboxes' | null = null;
@@ -818,24 +779,6 @@
         >
       </div>
       <div class="team-directory__protected-toolbar">
-        <form class="team-directory__step-up" onsubmit={confirmMailboxIdentity}>
-          <label for="mailbox-owner-password">{translate('Confirm Owner password')}</label>
-          <input
-            id="mailbox-owner-password"
-            type="password"
-            autocomplete="current-password"
-            maxlength="128"
-            bind:value={identityPassword}
-            required
-          />
-          <button
-            type="submit"
-            class="team-directory__action"
-            disabled={mailboxAction.status === 'pending'}
-          >
-            {translate('Unlock protected actions')}
-          </button>
-        </form>
         <form
           method="POST"
           action="?view=team&/bootstrapMailboxUsers"
@@ -1503,8 +1446,7 @@
     margin: 0.35rem 0 0;
     color: var(--portal-muted, #526174);
   }
-  .team-directory__protected-toolbar,
-  .team-directory__step-up {
+  .team-directory__protected-toolbar {
     display: flex;
     align-items: end;
     gap: 0.75rem;
@@ -1516,18 +1458,6 @@
     border: 1px solid var(--portal-border, #d7dee8);
     border-radius: 0.65rem;
     background: var(--portal-wash, #f4f7fa);
-  }
-  .team-directory__step-up label {
-    color: var(--portal-muted, #526174);
-    font-size: 0.82rem;
-    font-weight: 700;
-  }
-  .team-directory__step-up input {
-    min-height: 2.75rem;
-    border: 1px solid var(--portal-border, #cbd5e1);
-    border-radius: 0.5rem;
-    padding: 0.55rem 0.7rem;
-    background: #fff;
   }
   .team-directory__count {
     display: grid;
@@ -2183,14 +2113,12 @@
     .team-directory__mailbox-toolbar {
       grid-template-columns: 1fr;
     }
-    .team-directory__protected-toolbar,
-    .team-directory__step-up {
+    .team-directory__protected-toolbar {
       align-items: stretch;
       flex-direction: column;
     }
     .team-directory__protected-toolbar form,
-    .team-directory__protected-toolbar button,
-    .team-directory__step-up input {
+    .team-directory__protected-toolbar button {
       width: 100%;
     }
     .team-directory__create-form .team-directory__create-explainer,

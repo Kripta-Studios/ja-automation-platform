@@ -3,7 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { newId, type Principal, type Role } from '@ja/domain';
 import { AccessDeniedError, ConflictError, ValidationError } from '../../repository.ts';
 import { recordAuditEvent } from '../../core/audit.ts';
-import { assertRecentStepUp } from '../../core/authorization.ts';
+import { assertLiveSession } from '../../core/authorization.ts';
 import { assertSafeStorageKey, isSafeStorageKey } from '../../core/storage-key.ts';
 import { runImmediateTransaction } from '../../core/transaction.ts';
 
@@ -236,7 +236,7 @@ const FINANCE_OWNER_TYPES: readonly LocalizedPdfOwnerType[] = [
   'period_report_revision',
   'accounting_pack_revision',
 ];
-const STEP_UP_OWNER_TYPES: readonly LocalizedPdfOwnerType[] = [
+const SESSION_REQUIRED_OWNER_TYPES: readonly LocalizedPdfOwnerType[] = [
   'invoice',
   'accounting_pack_revision',
 ];
@@ -968,7 +968,7 @@ export class LocalizedPdfRepository {
     return this.transaction(() => {
       const owner = this.deriveOwner({ ownerType, ownerId: input.ownerId });
       this.assertWritable(principal, owner);
-      this.assertOwnerStepUp(principal, owner);
+      this.assertOwnerLiveSession(principal, owner);
       if (requestKey) {
         const existing = this.sqlite
           .prepare(
@@ -1110,7 +1110,7 @@ export class LocalizedPdfRepository {
       const row = this.row(variantId);
       const owner = this.ownerForVariant(row);
       this.assertWritable(principal, owner);
-      this.assertOwnerStepUp(principal, owner);
+      this.assertOwnerLiveSession(principal, owner);
       if (row.status !== 'failed') throw new ConflictError('Only failed variants can be retried');
       if (row.retryable !== 1) throw new ConflictError('Localized PDF failure is not retryable');
       if (row.current_attempt_number >= row.max_attempts)
@@ -1663,12 +1663,9 @@ export class LocalizedPdfRepository {
     );
   }
 
-  private assertDownloadStepUp(principal: Principal): void {
-    assertRecentStepUp(this.sqlite, principal, AccessDeniedError);
-  }
-
-  private assertOwnerStepUp(principal: Principal, owner: DerivedOwner): void {
-    if (STEP_UP_OWNER_TYPES.includes(owner.ownerType)) this.assertDownloadStepUp(principal);
+  private assertOwnerLiveSession(principal: Principal, owner: DerivedOwner): void {
+    if (SESSION_REQUIRED_OWNER_TYPES.includes(owner.ownerType))
+      assertLiveSession(this.sqlite, principal, AccessDeniedError);
   }
 
   /** Validate the immutable attempt's exact B5 execution before allowing a download. */
@@ -1846,13 +1843,7 @@ export class LocalizedPdfRepository {
       const row = this.row(variantId);
       const owner = this.ownerForVariant(row);
       this.assertReadable(principal, owner);
-      try {
-        this.assertOwnerStepUp(principal, owner);
-      } catch (error) {
-        if (!(error instanceof AccessDeniedError)) throw error;
-        this.recordArtifactAccessAudit(principal, row, owner, 'blocked', 'step_up_required');
-        return { kind: 'blocked', error };
-      }
+      this.assertOwnerLiveSession(principal, owner);
       if (row.status !== 'ready') {
         this.recordArtifactAccessAudit(
           principal,

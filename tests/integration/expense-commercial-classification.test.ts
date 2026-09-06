@@ -84,19 +84,18 @@ function operationalExpenseInput(value: B5LifecycleSecurityFixture): Record<stri
   };
 }
 
-function stepUpFinance(value: B5LifecycleSecurityFixture): Principal {
+function authenticatedFinance(value: B5LifecycleSecurityFixture): Principal {
   const now = new Date().toISOString();
   const expiresAt = new Date(Date.now() + 3_600_000).toISOString();
   value.sqlite
     .prepare(
-      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
     )
     .run(
       'expense-classification-session',
       'expense-classification-token',
       value.finance.userId,
       expiresAt,
-      now,
       now,
       now,
     );
@@ -391,11 +390,11 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
     expect(workerDetail.expected_reimbursement_on).toBe('2026-09-05');
   });
 
-  it('allows only stepped-up Finance/Admin to classify with an expected version and reason, append a revision, and reject stale writes', () => {
+  it('allows only authenticated Finance/Admin to classify with an expected version and reason, append a revision, and reject stale writes', () => {
     const value = expenseFixture();
     const repository = expenseContract(value);
     const created = repository.createExpense(value.worker, operationalExpenseInput(value));
-    const finance = stepUpFinance(value);
+    const finance = authenticatedFinance(value);
     const authority = canonicalAuthority(value, finance, 'wp03:expense-classification:happy');
     expect(authority.revisionId).toMatch(/\S/u);
     expect(
@@ -403,6 +402,19 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
         .prepare('SELECT COUNT(*) AS count FROM billing_rule WHERE project_id=?')
         .get(value.project.id),
     ).toEqual({ count: 0 });
+
+    expect(() =>
+      repository.classifyExpenseCommercially(value.finance, {
+        expenseId: created.id,
+        expectedVersion: created.version,
+        clientTreatment: 'reimbursable',
+        billingTreatment: 'reimbursable_at_cost',
+        markupBps: 0,
+        taxBps: 0,
+        reason: 'A finance role without a live session must not classify expenses',
+        idempotencyKey: 'wp03:expense-classification:no-session',
+      }),
+    ).toThrow(AccessDeniedError);
 
     expect(() =>
       repository.classifyExpenseCommercially(value.worker, {
@@ -523,7 +535,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
     const value = expenseFixture();
     const repository = expenseContract(value);
     const created = repository.createExpense(value.worker, operationalExpenseInput(value));
-    const finance = stepUpFinance(value);
+    const finance = authenticatedFinance(value);
     canonicalAuthority(value, finance, 'wp03:expense-classification:derived-values');
     value.sqlite
       .prepare(
@@ -573,7 +585,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
   it('rejects contradictory treatment pairs and markup outside marked-up reimbursement', () => {
     const value = expenseFixture();
     const repository = expenseContract(value);
-    const finance = stepUpFinance(value);
+    const finance = authenticatedFinance(value);
     canonicalAuthority(value, finance, 'wp03:expense-classification:pair-validation');
 
     const invalid = [
@@ -603,7 +615,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
   it('uses exact same-currency marked-up projections in project finance and invoice billing', () => {
     const value = expenseFixture();
     const repository = expenseContract(value);
-    const finance = stepUpFinance(value);
+    const finance = authenticatedFinance(value);
     canonicalAuthority(value, finance, 'wp03:expense-classification:markup-billing');
     const created = repository.createExpense(value.worker, operationalExpenseInput(value));
     const classified = repository.classifyExpenseCommercially(finance, {
@@ -683,7 +695,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
   it('excludes foreign-currency classified expense money and blocks billing without conversion', () => {
     const value = expenseFixture();
     const repository = expenseContract(value);
-    const finance = stepUpFinance(value);
+    const finance = authenticatedFinance(value);
     canonicalAuthority(value, finance, 'wp03:expense-classification:foreign-fail-closed');
     const created = repository.createExpense(value.worker, {
       ...operationalExpenseInput(value),
@@ -834,15 +846,36 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
   it('fails closed for an approved unclassified foreign expense instead of treating source minor units as project currency', () => {
     const value = expenseFixture();
     const repository = expenseContract(value);
-    const finance = stepUpFinance(value);
+    const finance = authenticatedFinance(value);
+    canonicalAuthority(value, finance, 'wp03:expense-classification:unclassified-foreign');
     const created = repository.createExpense(value.worker, {
       ...operationalExpenseInput(value),
       currency: 'USD',
       amountMinor: 20_001n,
     });
-    repository.submitExpense(value.worker, created.id, created.version);
+    const classified = repository.classifyExpenseCommercially(finance, {
+      expenseId: created.id,
+      expectedVersion: created.version,
+      clientTreatment: 'reimbursable',
+      billingTreatment: 'reimbursable_at_cost',
+      markupBps: 0,
+      taxBps: 0,
+      reason: 'Establish the source before simulating legacy unclassified truth',
+      idempotencyKey: 'wp03:expense-classification:unclassified-foreign:v1',
+    });
+    repository.submitExpense(value.worker, created.id, classified.version);
     repository.operationalApproveExpense(value.manager, created.id, 'approved');
     value.repository.financeApproveExpense(finance, created.id);
+    value.sqlite
+      .prepare(
+        `UPDATE expense
+            SET commercial_classification_state='unclassified',
+                markup_bps=NULL,
+                tax_amount_minor=NULL,project_currency_amount_minor=NULL,
+                billing_amount_minor=NULL,fx_rate_bps=NULL
+          WHERE id=?`,
+      )
+      .run(created.id);
 
     expect(value.repository.projectFinance(finance, value.project.id)).toMatchObject({
       state: 'incomplete',
@@ -913,7 +946,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
   it('does not let a rejected foreign expense poison valid EUR Worker Pay', () => {
     const value = expenseFixture();
     const repository = expenseContract(value);
-    value.v3.createCompensationRule(stepUpFinance(value), {
+    value.v3.createCompensationRule(authenticatedFinance(value), {
       workerId: value.worker.userId,
       projectId: value.project.id,
       currency: 'EUR',
@@ -959,7 +992,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
     const value = expenseFixture();
     const repository = expenseContract(value);
     const created = repository.createExpense(value.worker, operationalExpenseInput(value));
-    const finance = stepUpFinance(value);
+    const finance = authenticatedFinance(value);
     canonicalAuthority(value, finance, 'wp03:expense-classification:closed-period');
     const classified = repository.classifyExpenseCommercially(finance, {
       expenseId: created.id,
@@ -1044,7 +1077,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
     const value = expenseFixture();
     const repository = expenseContract(value);
     const created = repository.createExpense(value.worker, operationalExpenseInput(value));
-    const finance = stepUpFinance(value);
+    const finance = authenticatedFinance(value);
     const beforeState = value.sqlite
       .prepare(
         `SELECT version,commercial_classification_state,client_treatment,billing_treatment,

@@ -2003,7 +2003,7 @@ describe('B5 cross-migration hardening SQL', () => {
             version: number;
           }
         ).version,
-      ).toBe(35);
+      ).toBe(39);
       expect(
         migrated.prepare('SELECT legal_name FROM client WHERE id=?').get('xm-legacy-client'),
       ).toEqual({

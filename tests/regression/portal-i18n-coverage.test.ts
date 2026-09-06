@@ -187,9 +187,6 @@ describe('portal i18n coverage contract', () => {
     expect(portalText('pt', 'action.error.forbidden')).toBe(
       'Você não tem permissão para realizar esta ação.',
     );
-    expect(renderPortalMessage('es', 'action.error.stepUpRequired')).toBe(
-      'Confirma tu identidad para continuar.',
-    );
     expect(renderPortalMessage('en', 'action.error.unauthenticated')).toBe(
       'Sign in again to continue.',
     );

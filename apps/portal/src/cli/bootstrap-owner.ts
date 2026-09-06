@@ -101,5 +101,5 @@ try {
 }
 
 console.log(
-  `Owner account created for ${email}. Sign in at ${process.env.JA_PORTAL_BASE_PATH ?? '/j-aautomation/app'}/login. MFA can be enabled optionally from the profile.`,
+  `Owner account created for ${email}. Sign in at ${process.env.JA_PORTAL_BASE_PATH ?? '/j-aautomation/app'}/login. MFA is optional.`,
 );

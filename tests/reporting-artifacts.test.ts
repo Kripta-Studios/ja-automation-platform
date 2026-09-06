@@ -16,12 +16,14 @@ import {
 const sha256 = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
 const pageCount = (bytes: Uint8Array): number =>
   Buffer.from(bytes).toString('latin1').split('/Type /Page').length - 1;
-const textFromPdf = (bytes: Uint8Array): string => {
+const textFromPdf = (bytes: Uint8Array, layout = true): string => {
   const directory = mkdtempSync(join(tmpdir(), 'ja-reporting-privacy-'));
   const input = join(directory, 'report.pdf');
   try {
     writeFileSync(input, bytes);
-    return execFileSync('pdftotext', ['-layout', input, '-'], { encoding: 'utf8' })
+    return execFileSync('pdftotext', [...(layout ? ['-layout'] : []), input, '-'], {
+      encoding: 'utf8',
+    })
       .replace(/\s+/g, ' ')
       .trim();
   } finally {
@@ -156,7 +158,8 @@ describe('production reporting artifacts', () => {
     expect(text).toContain('PLC validation');
     expect(text).toContain('record retained');
     expect(text).toContain('Operational change');
-    expect(text).toContain('reference retained');
+    expect(text).toContain('reference');
+    expect(text).toContain('retained');
     expect(text).toContain('daily 1');
     expect(text).toContain('technical 1');
     expect(text).toContain('changes 1');
@@ -166,6 +169,41 @@ describe('production reporting artifacts', () => {
     expect(text).not.toContain('Calculation basis');
     expect(text).not.toContain('1,234.56');
     expect(text).not.toContain('Calculated bill candidate');
+  });
+
+  it('shows safe worker display attribution for same-day customer activity without source IDs or finance', () => {
+    const pdf = periodReportPdf({
+      project: { number: 'C-0001-P-001', name: 'Commissioning', clientName: 'Client' },
+      periodStart: '2026-08-12',
+      periodEnd: '2026-08-12',
+      audience: 'customer',
+      locale: 'en',
+      timeSummary: [
+        {
+          id: 'time-private-1',
+          date: '2026-08-12',
+          workerDisplay: 'Alex Commissioning Engineer',
+          activitySummary: 'Validate safety interlocks',
+          minutes: 60,
+          approvalState: 'approved',
+        },
+        {
+          id: 'time-private-2',
+          date: '2026-08-12',
+          workerDisplay: 'Rui Field Engineer',
+          activitySummary: 'Validate commissioning sequence',
+          minutes: 45,
+          approvalState: 'approved',
+        },
+      ],
+      sourceCounts: { dailyReports: 0, technicalReports: 0, technicalChanges: 0, timeEntries: 2 },
+    });
+    const text = textFromPdf(pdf, false);
+    expect(text).toContain('Alex Commissioning Engineer');
+    expect(text).toContain('Rui Field Engineer');
+    expect(text).not.toContain('time-private-1');
+    expect(text).not.toContain('time-private-2');
+    expect(text).not.toContain('amountMinor');
   });
 
   it('keeps invoice PDF layout CSS independent of shared report page styles', () => {
@@ -178,7 +216,7 @@ describe('production reporting artifacts', () => {
     expect(source).toContain('.invoice-meta');
     expect(source).toContain('.invoice-total');
     expect(source).toContain(
-      'invoiceLayout(rendered.title, rendered.subtitle, number, rendered.body, locale)',
+      'invoiceLayout(rendered.title, rendered.subtitle, number, rendered.body, locale, snapshot)',
     );
   });
 

@@ -58,7 +58,8 @@ pnpm dev:portal -- --host 127.0.0.1 --port 5174
 The portal opens at `http://localhost:5174/j-aautomation/app/login`. The public website includes an
 Employee Portal login button in the header, mobile menu and footer. The portal always uses the
 Better Auth credential/passkey session flow; there is no passwordless role switch or public
-registration.
+registration. MFA is optional for every role and operation: only a user who voluntarily enrolled
+receives an MFA sign-in challenge, and no action uses step-up authentication.
 
 A production-mode local preview keeps the jobs worker looping with the built portal, so queued PDFs
 and exports do not sit in `queued` until a manual cycle:
@@ -86,8 +87,9 @@ must never be reused in production.
 
 For a fresh non-fixture database, provision the first owner account once with
 `pnpm portal:bootstrap-owner`. Supply `JA_BOOTSTRAP_EMAIL` and `JA_BOOTSTRAP_NAME`; the command
-prompts for the password without echoing it, requires MFA enrollment on first access, and lets the
-owner invite the rest of the team from the portal.
+prompts for the password without echoing it, and lets the owner optionally enroll MFA from account
+security after signing in before inviting the rest of the team from the portal. MFA enrollment is
+never a first-access requirement.
 
 Start the public website in another terminal:
 
@@ -253,7 +255,9 @@ Follow [deployment/README_VPS.md](deployment/README_VPS.md). Caddy proxies the N
 `127.0.0.1:5101` and the SvelteKit portal to `127.0.0.1:5100`.
 
 For production access, use [docs/SHOWCASE_ACCESS.md](docs/SHOWCASE_ACCESS.md) as the portal access
-and first-owner runbook. It contains no passwordless or shared account procedure.
+and first-owner runbook. It contains no passwordless or shared account procedure. The account MFA
+settings endpoint is the only management facade; raw Better Auth MFA management endpoints are
+closed, and no step-up authentication is used.
 
 Public-site-only releases contain the `website/` source, exact workspace manifests, the site
 Dockerfile and a verified standalone build. The site Dockerfile prepares a production dependency

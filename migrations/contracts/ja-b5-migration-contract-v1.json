@@ -312,6 +312,66 @@
       "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
       "preProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56",
       "postProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56"
+    },
+    {
+      "version": 36,
+      "canonicalName": "time_returned_correction",
+      "file": "0036_time_returned_correction.sql",
+      "sha256": "4e86a43314815000823957708a2dcf4da11c58affd7769e71d7a6c97ddb80268",
+      "descriptor": "J&A B5 migration 36 time_returned_correction",
+      "descriptorSha256": "7b3b78a7b0b7e964bcf1ff09b7efb99e0fae380587814a4862e7a2723f975aa3",
+      "projectionSha256": "dc0322e062bffce4ae3385824c2ed892c90e61448387a42a8f7f38fec5f3c029",
+      "vectorSha256": "50edeb65da312ca546cc00a385998e3381bad4b5ba1b59fdde3c3b8e7849c6dc",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56",
+      "postProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56"
+    },
+    {
+      "version": 37,
+      "canonicalName": "production_mfa_enforcement",
+      "file": "0037_production_mfa_enforcement.sql",
+      "sha256": "7a47d856d87fb1aaf29407630a2e16e6eb5829cf7f007d78a10817a4a61b7137",
+      "descriptor": "J&A B5 migration 37 production_mfa_enforcement",
+      "descriptorSha256": "0a623934b4f1a050f639b50ecad49196bd35272a2435432a282a434ee8838fbf",
+      "projectionSha256": "dc0322e062bffce4ae3385824c2ed892c90e61448387a42a8f7f38fec5f3c029",
+      "vectorSha256": "50edeb65da312ca546cc00a385998e3381bad4b5ba1b59fdde3c3b8e7849c6dc",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56",
+      "postProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56"
+    },
+    {
+      "version": 38,
+      "canonicalName": "customer_conformity_evidence_attachment",
+      "file": "0038_customer_conformity_evidence_attachment.sql",
+      "sha256": "dac4743859d1218d5aeb28e4276b0b7bc406f4fb19a1965e908489c89130563b",
+      "descriptor": "J&A B5 migration 38 customer_conformity_evidence_attachment",
+      "descriptorSha256": "82cf4e7d8f8288dfdb673bc2f4d7f78cc1c2913b78ff5c86b3642ecf6f46a0a2",
+      "projectionSha256": "dc0322e062bffce4ae3385824c2ed892c90e61448387a42a8f7f38fec5f3c029",
+      "vectorSha256": "50edeb65da312ca546cc00a385998e3381bad4b5ba1b59fdde3c3b8e7849c6dc",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56",
+      "postProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56"
+    },
+    {
+      "version": 39,
+      "canonicalName": "mfa_optional_policy",
+      "file": "0039_mfa_optional_policy.sql",
+      "sha256": "fa16e3dea4c7822fba1c3f41c72396c9f5d616e3614eda5da280664c42cee5c4",
+      "descriptor": "J&A B5 migration 39 mfa_optional_policy",
+      "descriptorSha256": "23e0f2ff041fecf1b5df034acdac3109c32584f9029faf23569669d7bccee472",
+      "projectionSha256": "dc0322e062bffce4ae3385824c2ed892c90e61448387a42a8f7f38fec5f3c029",
+      "vectorSha256": "50edeb65da312ca546cc00a385998e3381bad4b5ba1b59fdde3c3b8e7849c6dc",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56",
+      "postProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56"
     }
   ]
 }

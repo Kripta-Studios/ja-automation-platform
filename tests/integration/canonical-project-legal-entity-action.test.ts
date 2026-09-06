@@ -111,9 +111,9 @@ describe('canonical project legal-entity Finance action', () => {
     expect(value.sqlite.close).toHaveBeenCalledOnce();
   });
 
-  it('returns step-up-required without creating an assignment', async () => {
+  it('returns forbidden without creating an assignment when authorization fails', async () => {
     const assign = vi.fn(() => {
-      throw new V3AccessDeniedError('Recent step-up authentication is required');
+      throw new V3AccessDeniedError('Finance role required');
     });
     const value = context('owner_admin', assign);
     openPortalRepository.mockReturnValue(value);
@@ -124,8 +124,7 @@ describe('canonical project legal-entity Finance action', () => {
       status: 403,
       data: {
         success: false,
-        messageKey: 'action.error.stepUpRequired',
-        stepUpRequired: true,
+        messageKey: 'action.error.forbidden',
       },
     });
     expect(assign).toHaveBeenCalledOnce();

@@ -218,14 +218,6 @@ export async function Footer() {
             <ul className="space-y-2.5">
               <li>
                 <a
-                  href={`tel:${contact.usPhone.replace(/[^\d+]/g, '')}`}
-                  className="text-sm text-ja-steel-300 hover:text-white transition-colors"
-                >
-                  {contact.usPhone}
-                </a>
-              </li>
-              <li>
-                <a
                   href={`mailto:${contact.email}`}
                   className="text-sm text-ja-steel-300 hover:text-white transition-colors"
                 >

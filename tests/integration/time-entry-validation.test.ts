@@ -2,13 +2,14 @@ import { DatabaseSync } from 'node:sqlite';
 import { join } from 'node:path';
 import { Worker } from 'node:worker_threads';
 import { afterEach, describe, expect, it } from 'vitest';
-import { AccessDeniedError, ValidationError } from '@ja/database';
+import { AccessDeniedError, ValidationError, V3ValidationError } from '@ja/database';
 import type { Principal } from '@ja/domain';
 import { TimeEntryRepository } from '../../packages/database/src/domains/time/time-entry-repository.ts';
 import { runImmediateTransaction } from '../../packages/database/src/core/transaction.ts';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -61,12 +62,18 @@ function setInterval(
   });
 }
 
-function timeDomain(sqlite: DatabaseSync, audit: (principal: Principal) => void = () => {}) {
+function timeDomain(
+  sqlite: DatabaseSync,
+  audit: (principal: Principal) => void = () => {},
+  transaction: <T>(work: () => T) => T = (work) =>
+    runImmediateTransaction(sqlite, 'time-validation-test', work),
+) {
   return new TimeEntryRepository({
     sqlite,
-    transaction: (work) => runImmediateTransaction(sqlite, 'time-validation-test', work),
+    transaction,
     assertActive: () => {},
     assertReadable: () => {},
+    assertCanReview: () => {},
     audit,
     assertDate: (value, field) => {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new ValidationError(`${field} is invalid`);
@@ -448,7 +455,7 @@ describe('Client Essential time-entry validation', () => {
     ).toEqual({ count: 3 });
   });
 
-  it('rolls back a void mutation when its audit write fails', () => {
+  it('rolls back a draft deletion when its audit write fails', () => {
     const value = fixture();
     const domain = timeDomain(value.sqlite);
     const entry = domain.createTimeEntry(value.worker, {
@@ -458,9 +465,6 @@ describe('Client Essential time-entry validation', () => {
       minutes: 60,
       summary: 'Audit rollback',
     });
-    value.sqlite
-      .prepare("UPDATE time_entry SET approval_state='submitted' WHERE id=?")
-      .run(entry.id);
     const failingDomain = timeDomain(value.sqlite, () => {
       throw new Error('AUDIT_FAILURE');
     });
@@ -472,7 +476,154 @@ describe('Client Essential time-entry validation', () => {
       value.sqlite
         .prepare('SELECT approval_state,version FROM time_entry WHERE id=?')
         .get(entry.id),
-    ).toEqual({ approval_state: 'submitted', version: 1 });
+    ).toEqual({ approval_state: 'draft', version: 1 });
+  });
+
+  it('rejects impossible ISO calendar dates and reversed billing periods at repository boundaries', () => {
+    const value = fixture();
+    expect(() =>
+      value.repository.createTimeEntry(value.worker, {
+        projectId: value.project.id,
+        workDate: '2026-02-30',
+        category: 'regular',
+        minutes: 60,
+        summary: 'Invalid normalized date must not persist',
+      }),
+    ).toThrow(ValidationError);
+    expect(value.sqlite.prepare('SELECT count(*) AS count FROM time_entry').get()).toEqual({
+      count: 0,
+    });
+    expect(() =>
+      value.repository.billingReadiness(
+        value.finance,
+        'missing-billing-rule',
+        '2026-02-30',
+        '2026-03-01',
+      ),
+    ).toThrow(ValidationError);
+    expect(() =>
+      value.repository.billingReadiness(
+        value.finance,
+        'missing-billing-rule',
+        '2026-03-01',
+        '2026-02-28',
+      ),
+    ).toThrow(/period end must follow start/i);
+  });
+
+  it('rejects reversed and cadence-mismatched V3 close ranges before any close-side writes', () => {
+    const value = fixture();
+    const finance = stepUpB5Principal(value.sqlite, value.finance, 'v3-close-range');
+    const legalEntity = value.repository.createLegalEntity(value.owner, {
+      code: 'RNG',
+      legalName: 'Range validation entity',
+      currency: 'EUR',
+      billingAddress: 'Range validation address',
+      companyIdentifiers: 'RNG-1',
+    });
+    const taxProfile = value.repository.createTaxProfile(finance, {
+      name: 'Range validation tax',
+      currency: 'EUR',
+      effectiveFrom: '2026-01-01',
+      components: [{ name: 'Zero', basisPoints: 0 }],
+    });
+    const rule = value.repository.createBillingRule(finance, {
+      projectId: value.project.id,
+      legalEntityId: legalEntity.id,
+      streamType: 'labor',
+      cadenceType: 'weekly',
+      taxProfileId: taxProfile.id,
+      currency: 'EUR',
+      effectiveFrom: '2026-01-01',
+    });
+    const writeCounts = () =>
+      value.sqlite
+        .prepare(
+          `SELECT
+             (SELECT count(*) FROM billing_period) billing_periods,
+             (SELECT count(*) FROM billing_lock) billing_locks,
+             (SELECT count(*) FROM period_report) period_reports,
+             (SELECT count(*) FROM job) jobs,
+             (SELECT count(*) FROM audit_event) audits`,
+        )
+        .get();
+    const before = writeCounts();
+    expect(() => value.v3.closeBillingPeriod(finance, rule.id, '2026-08-09', '2026-08-03')).toThrow(
+      V3ValidationError,
+    );
+    expect(() => value.v3.closeBillingPeriod(finance, rule.id, '2026-08-04', '2026-08-10')).toThrow(
+      /configured cadence/i,
+    );
+    expect(writeCounts()).toEqual(before);
+
+    expect(() => value.v3.workerPay(value.worker, '2026-08-09', '2026-08-03')).toThrow(
+      V3ValidationError,
+    );
+    expect(() =>
+      value.v3.projectFinance(finance, value.project.id, '2026-08-09', '2026-08-03'),
+    ).toThrow(V3ValidationError);
+    expect(() => value.v3.financePortfolio(finance, '2026-08-09', '2026-08-03')).toThrow(
+      V3ValidationError,
+    );
+    expect(() => value.v3.listCompensationSettlements(finance, '2026-08-09', '2026-08-03')).toThrow(
+      V3ValidationError,
+    );
+  });
+
+  it('uses two DatabaseSync connections to reject a stale approval interleaving without an event', () => {
+    const value = fixture();
+    const domain = timeDomain(value.sqlite);
+    const entry = domain.createTimeEntry(value.worker, {
+      projectId: value.project.id,
+      workDate: '2026-08-20',
+      category: 'regular',
+      minutes: 60,
+      summary: 'Approval interleaving fixture',
+    });
+    domain.submitTime(value.worker, entry.id, entry.version);
+    const second = openSecondConnection(value);
+    let interleaved = false;
+    let approvalAuditCalls = 0;
+    const racingDomain = timeDomain(
+      value.sqlite,
+      () => {
+        approvalAuditCalls += 1;
+      },
+      (work) => {
+        // This hook runs after the legacy implementation's pre-transaction
+        // read, but before it acquires BEGIN IMMEDIATE. The second real SQLite
+        // connection deterministically wins that window.
+        if (!interleaved) {
+          interleaved = true;
+          second
+            .prepare(
+              "UPDATE time_entry SET approval_state='needs_changes',version=version+1 WHERE id=? AND approval_state='submitted'",
+            )
+            .run(entry.id);
+        }
+        return runImmediateTransaction(value.sqlite, 'approval-interleaving-test', work);
+      },
+    );
+    try {
+      expect(() =>
+        racingDomain.operationalApproveTime(value.manager, entry.id, 'approved'),
+      ).toThrow(/not submitted|changed/i);
+    } finally {
+      second.close();
+    }
+    expect(
+      value.sqlite
+        .prepare('SELECT approval_state,version FROM time_entry WHERE id=?')
+        .get(entry.id),
+    ).toEqual({ approval_state: 'needs_changes', version: 3 });
+    expect(
+      value.sqlite
+        .prepare(
+          "SELECT count(*) AS count FROM approval_event WHERE entity_type='time' AND entity_id=?",
+        )
+        .get(entry.id),
+    ).toEqual({ count: 0 });
+    expect(approvalAuditCalls).toBe(0);
   });
 
   it('uses genuine cross-thread contention so aggregate-conflicting creates cannot both succeed', async () => {

@@ -168,7 +168,11 @@ function fixture() {
   return { sqlite, repository, owner, finance, worker };
 }
 
-function stepUpPrincipal(sqlite: DatabaseSync, principal: Principal, suffix: string): Principal {
+function liveSessionPrincipal(
+  sqlite: DatabaseSync,
+  principal: Principal,
+  suffix: string,
+): Principal {
   const timestamp = new Date().toISOString();
   const sessionId = `localized-pdf-${principal.userId}-${suffix}`;
   sqlite
@@ -182,7 +186,7 @@ function stepUpPrincipal(sqlite: DatabaseSync, principal: Principal, suffix: str
       new Date(Date.now() + 60 * 60_000).toISOString(),
       timestamp,
       timestamp,
-      timestamp,
+      null,
     );
   return { ...principal, sessionId };
 }
@@ -328,7 +332,7 @@ describe('localized PDF variants', () => {
             version: number;
           }
         ).version,
-      ).toBe(35);
+      ).toBe(39);
     } finally {
       sqlite.close();
     }
@@ -453,7 +457,7 @@ describe('localized PDF variants', () => {
           new Date(Date.now() + 60 * 60_000).toISOString(),
           now,
           now,
-          now,
+          null,
         );
       expect(() =>
         repository.resolveDownload(
@@ -470,7 +474,7 @@ describe('localized PDF variants', () => {
   it('coexists in en/es/pt, derives a canonical snapshot, and is idempotent per identity', () => {
     const { sqlite, repository, finance, worker } = fixture();
     try {
-      const financeWithStepUp = stepUpPrincipal(sqlite, finance, 'coexistence');
+      const financeWithStepUp = liveSessionPrincipal(sqlite, finance, 'coexistence');
       // Issued planning/cash-flow dates are part of the immutable historical
       // invoice record after migration 0034. Localized rendering must consume
       // the sealed row rather than mutating it as test setup.
@@ -960,7 +964,7 @@ describe('localized PDF variants', () => {
     }
   });
 
-  it('requires the current session step-up and records blocked access without leaking the artifact', () => {
+  it('authorizes a localized artifact by role without a second-password prerequisite', () => {
     const previousNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
     const { sqlite, repository, owner } = fixture();
@@ -980,7 +984,7 @@ describe('localized PDF variants', () => {
           now,
         );
       const sessionOwner: Principal = { ...owner, sessionId: 'owner-download-session' };
-      const requestOwner = stepUpPrincipal(sqlite, owner, 'request');
+      const requestOwner = liveSessionPrincipal(sqlite, owner, 'request');
       const variant = repository.requestVariant(requestOwner, {
         ownerType: 'invoice',
         ownerId: 'invoice',
@@ -998,36 +1002,8 @@ describe('localized PDF variants', () => {
       });
 
       expect(() => repository.resolveDownload(sessionOwner, variant.variantId)).toThrow(
-        AccessDeniedError,
+        /Live authenticated session required/u,
       );
-      expect(
-        sqlite
-          .prepare(
-            "SELECT action,entity_type,entity_id,details_json FROM audit_event WHERE action='artifact.access' ORDER BY rowid DESC LIMIT 1",
-          )
-          .get(),
-      ).toMatchObject({
-        action: 'artifact.access',
-        entity_type: 'invoice',
-        entity_id: 'invoice',
-      });
-      const blockedDetails = JSON.parse(
-        (
-          sqlite
-            .prepare(
-              "SELECT details_json FROM audit_event WHERE action='artifact.access' ORDER BY rowid DESC LIMIT 1",
-            )
-            .get() as { details_json: string }
-        ).details_json,
-      ) as Record<string, unknown>;
-      expect(blockedDetails).toMatchObject({
-        variantId: variant.variantId,
-        locale: 'en',
-        localeTag: 'en-US',
-        outcome: 'blocked',
-        reason: 'step_up_required',
-      });
-
       sqlite
         .prepare('UPDATE session SET expires_at=? WHERE id=?')
         .run(future, sessionOwner.sessionId);

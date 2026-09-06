@@ -432,12 +432,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               {contact.email}
             </a>
             <a
-              href={`tel:${contact.usPhone.replace(/[^\d+]/g, '')}`}
-              className="text-ja-steel-300 hover:text-white transition-colors"
-            >
-              {contact.usPhone}
-            </a>
-            <a
               href={contact.linkedinUrl}
               target="_blank"
               rel="noreferrer"

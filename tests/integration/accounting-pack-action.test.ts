@@ -12,6 +12,7 @@ const { billingActions } =
   await import('../../apps/portal/src/lib/server/actions/billing-actions.ts');
 
 const directories: string[] = [];
+const fixtureSentinel = '550e8400-e29b-41d4-a716-446655440000';
 
 afterEach(() => {
   for (const directory of directories.splice(0))
@@ -20,6 +21,7 @@ afterEach(() => {
   delete process.env.JA_DOCUMENT_ROOT;
   delete process.env.JA_TENANT_ID;
   delete process.env.JA_DEPLOYMENT_ID;
+  delete process.env.JA_FIXTURE_SENTINEL;
 });
 
 function seedDemoDatabase(): Readonly<{
@@ -32,12 +34,13 @@ function seedDemoDatabase(): Readonly<{
   const directory = mkdtempSync(join(tmpdir(), 'ja-accounting-pack-action-'));
   directories.push(directory);
   const databasePath = join(directory, 'app.db');
-  const documentRoot = join(directory, 'documents');
+  const documentRoot = join(directory, `documents-${fixtureSentinel}`);
   process.env.JA_DATABASE_PATH = databasePath;
   process.env.JA_DOCUMENT_ROOT = documentRoot;
-  process.env.JA_TENANT_ID = 'test-tenant';
-  process.env.JA_DEPLOYMENT_ID = 'test-deployment';
+  process.env.JA_TENANT_ID = 'e2e-client-essential-tenant';
+  process.env.JA_DEPLOYMENT_ID = 'e2e-client-essential-deployment';
   process.env.JA_MIGRATIONS_PATH = resolve('migrations');
+  process.env.JA_FIXTURE_SENTINEL = fixtureSentinel;
   execFileSync(
     process.execPath,
     ['--experimental-strip-types', resolve('packages/database/src/demo-seed.ts')],
@@ -65,9 +68,7 @@ function seedDemoDatabase(): Readonly<{
       status: 'active';
     };
     const financeSession = sqlite
-      .prepare(
-        'SELECT id FROM session WHERE user_id=? AND step_up_at IS NOT NULL ORDER BY created_at DESC LIMIT 1',
-      )
+      .prepare('SELECT id FROM session WHERE user_id=? ORDER BY created_at DESC LIMIT 1')
       .get(finance.id) as { id: string };
     const worker = sqlite
       .prepare(
@@ -100,12 +101,8 @@ function seedDemoDatabase(): Readonly<{
         );
     }
     sqlite
-      .prepare('UPDATE session SET step_up_at=?,expires_at=? WHERE id=?')
-      .run(
-        new Date().toISOString(),
-        new Date(Date.now() + 60 * 60_000).toISOString(),
-        financeSession.id,
-      );
+      .prepare('UPDATE session SET expires_at=? WHERE id=?')
+      .run(new Date(Date.now() + 60 * 60_000).toISOString(), financeSession.id);
     sqlite
       .prepare('UPDATE session SET step_up_at=NULL,expires_at=? WHERE id=?')
       .run(new Date(Date.now() + 60 * 60_000).toISOString(), workerSessionId);
@@ -207,7 +204,7 @@ describe('Accounting Pack action boundary', () => {
     });
   });
 
-  it('creates no pack, job, or success audit for invalid periods or denied principals', async () => {
+  it('rejects invalid periods, expired sessions and denied roles', async () => {
     const seeded = seedDemoDatabase();
     const before = countWrites(seeded.databasePath);
 
@@ -246,7 +243,7 @@ describe('Accounting Pack action boundary', () => {
     );
     expect(expiredSession).toMatchObject({
       status: 403,
-      data: { success: false, stepUpRequired: true },
+      data: { success: false, messageKey: 'action.error.forbidden' },
     });
 
     const unauthorized = await billingActions.createAccountingPack(
@@ -260,9 +257,6 @@ describe('Accounting Pack action boundary', () => {
       status: 403,
       data: { success: false },
     });
-    expect((unauthorized as { data?: { stepUpRequired?: unknown } }).data?.stepUpRequired).not.toBe(
-      true,
-    );
     expect(countWrites(seeded.databasePath)).toEqual(before);
   });
 });

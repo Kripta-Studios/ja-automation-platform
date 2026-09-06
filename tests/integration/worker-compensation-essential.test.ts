@@ -8,7 +8,6 @@ import {
   installB5TestDeploymentIdentity,
   seedB5ServiceActorBinding,
 } from '../fixtures/b5-test-environment.js';
-import { stepUpB5Principal } from '../fixtures/b5-lifecycle-security-fixture.js';
 
 const directories: string[] = [];
 const databases: Array<ReturnType<typeof createDatabase>['sqlite']> = [];
@@ -47,6 +46,28 @@ function seedUser(
     );
 }
 
+function authenticatedPrincipal(
+  sqlite: ReturnType<typeof createDatabase>['sqlite'],
+  principal: Principal,
+  suffix: string,
+): Principal {
+  const now = new Date().toISOString();
+  const sessionId = `worker-compensation-session-${principal.userId}-${suffix}`;
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
+    )
+    .run(
+      sessionId,
+      `${sessionId}-token`,
+      principal.userId,
+      new Date(Date.now() + 3_600_000).toISOString(),
+      now,
+      now,
+    );
+  return { ...principal, sessionId };
+}
+
 type CompensationFixture = Readonly<{
   sqlite: ReturnType<typeof createDatabase>['sqlite'];
   repository: PortalRepository;
@@ -72,7 +93,7 @@ function fixture(): CompensationFixture {
   seedUser(sqlite, 'other-worker', 'worker');
   seedB5ServiceActorBinding(sqlite, 'owner');
   const owner: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
-  const finance = stepUpB5Principal(
+  const finance = authenticatedPrincipal(
     sqlite,
     { userId: 'finance', role: 'finance_admin', projectIds: new Set() } satisfies Principal,
     'worker-compensation',
@@ -118,6 +139,39 @@ function addProject(value: CompensationFixture, name: string) {
   value.manager.projectIds.add(project.id);
   value.worker.projectIds.add(project.id);
   return project;
+}
+
+function bindCanonicalExpenseAuthority(value: CompensationFixture, projectId: string): void {
+  const legacy = value.repository.createLegalEntity(value.owner, {
+    code: 'COMP-REIMBURSEMENT',
+    legalName: 'Compensation Reimbursement Entity',
+    currency: 'USD',
+    billingAddress: '100 Compensation Way',
+    companyIdentifiers: 'COMP-REIMBURSEMENT-TAX',
+  });
+  const revision = value.v3.createCanonicalLegalEntityRevision(value.finance, {
+    legacyLegalEntityId: legacy.id,
+    effectiveFrom: '2026-01-01',
+    legalName: 'Compensation Reimbursement Entity S.L.',
+    taxIdentifier: 'COMP-REIMBURSEMENT-TAX',
+    registrationIdentifier: 'COMP-REIMBURSEMENT-REG',
+    addressLine1: '100 Compensation Way',
+    locality: 'Madrid',
+    region: 'Madrid',
+    postalCode: '28001',
+    countryCode: 'ES',
+    baseCurrency: 'USD',
+    timezone: 'UTC',
+    reason: 'Bind reimbursement fixture to canonical expense authority',
+    idempotencyKey: 'worker-compensation:canonical-entity:revision',
+  });
+  value.v3.assignCanonicalLegalEntityToProject(value.finance, {
+    projectId,
+    legalEntityRevisionId: revision.revisionId,
+    effectiveFrom: '2026-01-01',
+    reason: 'Bind reimbursement fixture project to canonical expense authority',
+    idempotencyKey: 'worker-compensation:canonical-entity:assignment',
+  });
 }
 
 function approvedTime(
@@ -297,11 +351,20 @@ describe('Client Essential worker compensation truth', () => {
       currency: 'USD',
       amountMinor: 12_345n,
       whoPaid: 'worker',
-      clientTreatment: 'reimbursable',
-      billingTreatment: 'reimbursable_at_cost',
       receiptRequired: false,
     });
-    value.repository.submitExpense(value.worker, expense.id, expense.version);
+    bindCanonicalExpenseAuthority(value, project.id);
+    const classified = value.repository.classifyExpenseCommercially(value.finance, {
+      expenseId: expense.id,
+      expectedVersion: expense.version,
+      clientTreatment: 'reimbursable',
+      billingTreatment: 'reimbursable_at_cost',
+      markupBps: 0,
+      taxBps: 0,
+      reason: 'Classify the approved reimbursement source at cost',
+      idempotencyKey: 'worker-compensation:expense-classification:v1',
+    });
+    value.repository.submitExpense(value.worker, expense.id, classified.version);
     value.repository.operationalApproveExpense(value.manager, expense.id, 'approved');
     value.repository.financeApproveExpense(value.finance, expense.id);
 

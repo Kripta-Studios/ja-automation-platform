@@ -678,6 +678,10 @@ export class WorkforceRepository {
 }
 
 function assertDate(value: string, field: string, validation: ErrorFactory): void {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00Z`)))
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(value);
+  const date = match
+    ? new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])))
+    : null;
+  if (!date || date.toISOString().slice(0, 10) !== value)
     throw validation(`${field} must be an ISO date`);
 }

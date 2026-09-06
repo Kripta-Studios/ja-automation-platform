@@ -5,19 +5,20 @@ import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { capabilityForJobKind, createDatabase } from '@ja/database';
 import {
-  B5_TEST_DEPLOYMENT_ID,
   B5_TEST_SERVICE_CAPABILITIES,
-  B5_TEST_TENANT_ID,
   installB5TestDeploymentIdentity,
 } from '../fixtures/b5-test-environment.js';
 
 type DemoRun = { root: string; databasePath: string };
+const fixtureSentinel = '550e8400-e29b-41d4-a716-446655440000';
 
 const runs: DemoRun[] = [];
 const restoreDeploymentIdentities: (() => void)[] = [];
 
 beforeEach(() => {
   restoreDeploymentIdentities.push(installB5TestDeploymentIdentity());
+  process.env.JA_TENANT_ID = 'e2e-client-essential-tenant';
+  process.env.JA_DEPLOYMENT_ID = 'e2e-client-essential-deployment';
 });
 
 afterEach(() => {
@@ -28,7 +29,7 @@ afterEach(() => {
 function runDemoSeed(): DemoRun {
   const root = mkdtempSync(join(tmpdir(), 'ja-demo-fixtures-implementation-'));
   const databasePath = join(root, 'demo.db');
-  const documentRoot = join(root, 'documents');
+  const documentRoot = join(root, `documents-${fixtureSentinel}`);
   const output = execFileSync(
     process.execPath,
     ['--experimental-strip-types', resolve(process.cwd(), 'packages/database/src/demo-seed.ts')],
@@ -38,10 +39,11 @@ function runDemoSeed(): DemoRun {
         ...process.env,
         JA_DATABASE_PATH: databasePath,
         JA_DOCUMENT_ROOT: documentRoot,
-        JA_TENANT_ID: B5_TEST_TENANT_ID,
-        JA_DEPLOYMENT_ID: B5_TEST_DEPLOYMENT_ID,
+        JA_TENANT_ID: 'e2e-client-essential-tenant',
+        JA_DEPLOYMENT_ID: 'e2e-client-essential-deployment',
         JA_DEMO_SEED_PRESERVE_DB: 'false',
         JA_FIXTURE_RESET_DOCUMENTS: 'true',
+        JA_FIXTURE_SENTINEL: fixtureSentinel,
       },
       encoding: 'utf8',
       maxBuffer: 2 * 1024 * 1024,
@@ -83,17 +85,15 @@ describe('requested demo fixture implementation', () => {
         count(
           `SELECT count(*) count FROM finance_command
             WHERE (operation LIKE 'accounting_pack%' OR operation LIKE 'legal_entity_revision%')
-              AND (step_up_verified_at IS NULL OR step_up_expires_at IS NULL)`,
+              AND (step_up_verified_at IS NOT NULL OR step_up_expires_at IS NOT NULL)`,
         ),
       ).toBe(0);
       expect(
         count(
-          `SELECT count(*) count FROM session
-             JOIN user ON user.id=session.user_id
-            WHERE user.role='finance_admin' AND user.status='active'
-              AND session.step_up_at IS NOT NULL AND session.expires_at>session.step_up_at`,
+          `SELECT count(*) count FROM user
+            WHERE status='active' AND mfa_required<>0`,
         ),
-      ).toBeGreaterThanOrEqual(1);
+      ).toBe(0);
       expect(
         count(
           "SELECT count(*) count FROM technical_report WHERE report_date_provenance='native' AND report_date IS NOT NULL",
@@ -152,14 +152,14 @@ describe('requested demo fixture implementation', () => {
         id: 'demo-client-essential-service-actor',
         name: 'Client Essential demo service actor',
         status: 'active',
-        tenant_id: identity.tenant_id,
-        deployment_id: identity.deployment_id,
+        tenant_id: 'e2e-client-essential-tenant',
+        deployment_id: 'e2e-client-essential-deployment',
         singleton: 1,
-        binding_tenant_id: identity.tenant_id,
-        binding_deployment_id: identity.deployment_id,
+        binding_tenant_id: 'e2e-client-essential-tenant',
+        binding_deployment_id: 'e2e-client-essential-deployment',
         service_actor_id: 'demo-client-essential-service-actor',
         bound_by_role: 'owner_admin',
-        bound_by_email: 'antonny.luty@j-aautomation.com',
+        bound_by_email: 'owner@demo.jaautomation.test',
         version: 1,
       });
       const capabilities = JSON.parse(actor!.capabilities_json) as unknown;

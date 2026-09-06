@@ -3,7 +3,6 @@ import { overtimeRate, type OvertimeMethod } from '@ja/billing-engine';
 import { canManageBilling, type Principal } from '@ja/domain';
 import { applyBasisPoints, hourlyRateForMinutes, money, type Currency } from '@ja/money';
 import { runImmediateTransaction } from '../../core/transaction.ts';
-import { readLiveSessionStepUp } from '../../core/authorization.ts';
 import { canonicalJson as canonicalJsonValue, sha256 } from '../../core/canonical-json.ts';
 import {
   ensureCommand as writeFinanceCommand,
@@ -141,10 +140,6 @@ export class AccountingPackRevisionError extends Error {}
 
 type Deployment = Readonly<{ tenantId: string; deploymentId: string }>;
 type DbRow = Record<string, unknown>;
-type StepUpProof = Readonly<{
-  stepUpVerifiedAt: string;
-  stepUpExpiresAt: string;
-}>;
 
 const CONTRACT_VERSION = 'B5-R4';
 const SNAPSHOT_SCHEMA_VERSION = 'accounting-pack-snapshot-v1';
@@ -285,23 +280,13 @@ function assertDeployment(sqlite: DatabaseSync, input: AccountingPackSnapshotInp
   return { tenantId: deployment.tenant_id, deploymentId: deployment.deployment_id };
 }
 
-function assertStepUpProof(sqlite: DatabaseSync, principal: Principal): StepUpProof {
-  const proof = readLiveSessionStepUp(sqlite, principal);
-  if (!proof) throw new AccountingPackRevisionError('Recent step-up authentication is required');
-  return {
-    stepUpVerifiedAt: proof.verifiedAt,
-    stepUpExpiresAt: proof.expiresAt,
-  };
-}
-
-function assertPrincipal(sqlite: DatabaseSync, principal: Principal): StepUpProof {
+function assertPrincipal(sqlite: DatabaseSync, principal: Principal): void {
   if (!canManageBilling(principal)) throw new AccountingPackRevisionError('Finance role required');
   const user = sqlite.prepare('SELECT status FROM user WHERE id=?').get(principal.userId) as
     | { status: string }
     | undefined;
   if (!user || user.status !== 'active')
     throw new AccountingPackRevisionError('Active finance principal required');
-  return assertStepUpProof(sqlite, principal);
 }
 
 function rowValue<T>(row: DbRow | undefined, key: string): T | undefined {
@@ -367,22 +352,13 @@ function ensureCommand(
     createdAt: string;
   }>,
 ): Command {
-  const proof = assertStepUpProof(sqlite, principal);
   return writeFinanceCommand(
     sqlite,
     deployment,
     principal,
     {
       ...descriptor,
-      payload: {
-        ...asObject(descriptor.payload),
-        step_up_proof: {
-          verified_at: proof.stepUpVerifiedAt,
-          expires_at: proof.stepUpExpiresAt,
-        },
-      },
-      stepUpVerifiedAt: proof.stepUpVerifiedAt,
-      stepUpExpiresAt: proof.stepUpExpiresAt,
+      payload: asObject(descriptor.payload),
     } satisfies FinanceCommandInput,
     accountingPackError,
   );
@@ -1664,7 +1640,8 @@ function validateAuthoritativeSourceItems(
                 t.project_timezone source_timezone,p.currency project_currency
            FROM time_entry t JOIN project p ON p.id=t.project_id
           WHERE t.work_date BETWEEN ? AND ?
-            AND t.approval_state IN ('approved','locked','final')`,
+            AND t.approval_state IN ('approved','locked','final')
+            AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id)`,
       )
       .all(periodStart, periodEnd) as TimeAuthorityRow[]
   )
@@ -1740,7 +1717,8 @@ function validateAuthoritativeSourceItems(
                 COALESCE(e.billing_treatment,e.client_treatment) treatment,p.currency project_currency
            FROM expense e JOIN project p ON p.id=e.project_id
           WHERE e.spent_on BETWEEN ? AND ?
-            AND e.approval_state IN ('approved','locked','final')`,
+            AND e.approval_state IN ('approved','locked','final')
+            AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=e.id)`,
       )
       .all(periodStart, periodEnd) as DbRow[]
   ).filter(

@@ -316,6 +316,59 @@ describe('inactive Better Auth session boundary', () => {
     expect(response.headers.get('set-cookie')).toContain('ja_portal.session_token=');
   });
 
+  it('blocks the raw Better Auth MFA disable endpoint and preserves the optional projection', async () => {
+    const login = await signIn(users.active.email);
+    const sessionCookie = cookieFrom(login, 'ja_portal.session_token');
+    const database = createDatabase(databasePath);
+    try {
+      const now = new Date().toISOString();
+      database.sqlite
+        .prepare(
+          'UPDATE user SET two_factor_enabled=1,mfa_enrolled=1,mfa_required=1,updated_at=? WHERE id=?',
+        )
+        .run(now, users.active.id);
+      database.sqlite
+        .prepare(
+          `INSERT INTO two_factor(
+             id,secret,backup_codes,user_id,verified,failed_verification_count,locked_until
+           ) VALUES(?,?,?,?,1,0,NULL)`,
+        )
+        .run('active-native-disable-factor', 'secret-before', 'codes-before', users.active.id);
+    } finally {
+      database.sqlite.close();
+    }
+
+    const response = await auth.handler(
+      new Request('http://localhost:5173/j-aautomation/app/api/auth/two-factor/disable', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          origin: 'http://localhost:5173',
+          cookie: sessionCookie,
+        },
+        body: JSON.stringify({}),
+      }),
+    );
+    expect(response.status).toBe(403);
+    await expect(response.clone().json()).resolves.toMatchObject({
+      code: 'MFA_MANAGEMENT_FACADE_REQUIRED',
+    });
+
+    const after = createDatabase(databasePath);
+    try {
+      expect(
+        after.sqlite
+          .prepare('SELECT two_factor_enabled,mfa_enrolled,mfa_required FROM user WHERE id=?')
+          .get(users.active.id),
+      ).toEqual({ two_factor_enabled: 1, mfa_enrolled: 1, mfa_required: 1 });
+      expect(
+        after.sqlite.prepare('SELECT 1 FROM two_factor WHERE user_id=?').get(users.active.id),
+      ).toBeTruthy();
+    } finally {
+      after.sqlite.close();
+    }
+  });
+
   it('accepts only a cryptographically valid active passkey assertion and records its mutation', async () => {
     const response = await signedPasskeyAssertion();
     const body = await response.clone().json();
@@ -471,9 +524,7 @@ describe('inactive Better Auth session boundary', () => {
       }),
     );
     expect([401, 403]).toContain(response.status);
-    expect(response.headers.get('set-cookie') ?? '').toContain(
-      'ja_portal.session_token=; Max-Age=0',
-    );
+    expect(response.headers.get('set-cookie') ?? '').not.toContain('session_token=');
 
     const restore = createDatabase(databasePath);
     try {
@@ -617,6 +668,13 @@ describe('inactive Better Auth session boundary', () => {
       expect(response.headers.get('set-cookie') ?? '').not.toContain('session_token=');
       expect(JSON.parse(await response.text())).toEqual(expectedBody);
     };
+    const expectRawMfaManagementBlocked = async (response: Response): Promise<void> => {
+      expect(response.status).toBe(403);
+      expect(response.headers.get('set-cookie') ?? '').not.toContain('session_token=');
+      expect(JSON.parse(await response.text())).toMatchObject({
+        code: 'MFA_MANAGEMENT_FACADE_REQUIRED',
+      });
+    };
 
     await expectSuspendedFailure(
       await auth.handler(
@@ -626,7 +684,7 @@ describe('inactive Better Auth session boundary', () => {
         ),
       ),
     );
-    await expectSuspendedFailure(
+    await expectRawMfaManagementBlocked(
       await auth.handler(
         new Request(
           'http://localhost:5173/j-aautomation/app/api/auth/two-factor/generate-backup-codes',
@@ -637,7 +695,7 @@ describe('inactive Better Auth session boundary', () => {
               origin: 'http://localhost:5173',
               cookie: sessionCookie,
             },
-            body: JSON.stringify({ password }),
+            body: JSON.stringify({}),
           },
         ),
       ),
@@ -672,11 +730,8 @@ describe('inactive Better Auth session boundary', () => {
         }),
       ),
     );
-    for (const [path, body] of [
-      ['/two-factor/enable', { password }],
-      ['/two-factor/disable', { password }],
-    ] as const) {
-      await expectSuspendedFailure(
+    for (const path of ['/two-factor/enable', '/two-factor/disable'] as const) {
+      await expectRawMfaManagementBlocked(
         await auth.handler(
           new Request(`http://localhost:5173/j-aautomation/app/api/auth${path}`, {
             method: 'POST',
@@ -685,7 +740,7 @@ describe('inactive Better Auth session boundary', () => {
               origin: 'http://localhost:5173',
               cookie: sessionCookie,
             },
-            body: JSON.stringify(body),
+            body: JSON.stringify({}),
           }),
         ),
       );

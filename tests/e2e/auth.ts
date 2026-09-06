@@ -1,24 +1,31 @@
 import { hashPassword } from 'better-auth/crypto';
 import { createDatabase } from '@ja/database';
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
+import { e2eFixtureToken } from './environment.js';
 
 // These credentials exist only in the disposable E2E database. They exercise
-// the same Better Auth credential flow used by a real invited account; they are
-// never shown in the portal and are not valid production credentials.
+// the same Better Auth credential flow used by a real invited account; secrets
+// are derived from this run's opaque fixture token, never from an email/local-part.
+function e2eSecret(role: string): string {
+  return createHmac('sha256', e2eFixtureToken)
+    .update(`ja-e2e-credential:${role}:v2`)
+    .digest('base64url');
+}
+
 export const e2eCredentials = {
-  owner: { email: 'antonny.luty@j-aautomation.com', password: 'antonny.luty' },
-  finance: { email: 'finance@demo.jaautomation.local', password: 'finance' },
-  auditor: { email: 'auditor@demo.jaautomation.local', password: 'auditor' },
-  manager: { email: 'pm@demo.jaautomation.local', password: 'pm' },
-  worker: { email: 'worker@demo.jaautomation.local', password: 'worker' },
-  worker2: { email: 'rafael@demo.jaautomation.local', password: 'rafael' },
+  owner: { email: 'owner@demo.jaautomation.test', password: e2eSecret('owner') },
+  finance: { email: 'finance@demo.jaautomation.test', password: e2eSecret('finance') },
+  auditor: { email: 'auditor@demo.jaautomation.test', password: e2eSecret('auditor') },
+  manager: { email: 'pm@demo.jaautomation.test', password: e2eSecret('manager') },
+  worker: { email: 'worker@demo.jaautomation.test', password: e2eSecret('worker') },
+  worker2: { email: 'rafael@demo.jaautomation.test', password: e2eSecret('worker2') },
 } as const;
 
 export const e2eArchiveTarget = {
   id: '00000000-0000-4000-8000-000000000001',
   name: 'Archive Target',
-  email: 'archive-target@demo.jaautomation.local',
+  email: 'archive-target@demo.jaautomation.test',
 } as const;
 
 // These rows are disposable lifecycle fixtures. Each Playwright project gets a
@@ -53,7 +60,7 @@ function makeE2ELifecycleFixture(projectName: string, index: number) {
       displayName: `Lifecycle Client · ${projectName}`,
       currency: 'USD',
       timezone: 'America/New_York',
-      billingEmail: `lifecycle-client-${projectName}@demo.jaautomation.local`,
+      billingEmail: `lifecycle-client-${projectName}@demo.jaautomation.test`,
       paymentTermsDays: 30,
     },
     project: {

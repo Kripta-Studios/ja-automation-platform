@@ -7,6 +7,7 @@ type ErrorFactory = (message: string) => never;
 
 export type CustomerConformityInput = Readonly<{
   periodReportId: string;
+  signatureDocumentId: string;
   signerName: string;
   signerIdentity?: string;
   signedAt: string;
@@ -21,9 +22,12 @@ export type CustomerConformity = Readonly<{
   reportPdfStorageKey: string;
   reportPdfSha256: string;
   reportPdfByteLength: number;
+  signatureDocumentId: string | null;
+  signatureEvidenceStatus: 'verified' | 'missing' | 'unavailable';
   signerName: string;
   signerIdentity: string | null;
   signedAt: string;
+  verifiedAt: string;
   status: 'active' | 'invalidated';
 }>;
 
@@ -33,6 +37,8 @@ export type CustomerConformitySafeView = Readonly<{
   signerName: string;
   signerIdentity: string | null;
   signedAt: string;
+  verifiedAt: string;
+  signatureEvidenceStatus: 'verified' | 'missing' | 'unavailable';
   status: 'active' | 'invalidated';
 }>;
 
@@ -47,7 +53,7 @@ type CustomerConformityRepositoryDependencies = Readonly<{
   transaction: <T>(work: () => T) => T;
   assertActive: (principal: Principal) => void;
   assertProjectAccess: (principal: Principal, projectId: string, allowAuditor?: boolean) => void;
-  assertStepUp: (principal: Principal) => void;
+  assertLiveSession: (principal: Principal) => void;
   audit: (
     principal: Principal,
     action: string,
@@ -76,10 +82,32 @@ type CustomerConformityRow = Readonly<{
   signer_name: string;
   signer_identity: string | null;
   signed_at: string;
+  created_at: string;
+  legacy_signature_document_id: string | null;
+  signature_document_id: string | null;
   invalidated_at: string | null;
 }>;
 
 const CUSTOMER_PRIVACY_VERSION = '2026.08.24.customer-period-safe-v1';
+const CUSTOMER_SIGNOFF_EVIDENCE_BINDING_KIND = 'customer_signoff_evidence_binding_v1';
+
+function signatureEvidenceMatchesReport(
+  description: string | null,
+  report: Readonly<{ id: string; snapshotVersion: number; snapshotSha256: string }>,
+): boolean {
+  if (!description) return false;
+  try {
+    const value = JSON.parse(description) as Record<string, unknown>;
+    return (
+      value.kind === CUSTOMER_SIGNOFF_EVIDENCE_BINDING_KIND &&
+      value.periodReportId === report.id &&
+      value.snapshotVersion === report.snapshotVersion &&
+      value.snapshotSha256 === report.snapshotSha256
+    );
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Customer period reports are a deliberately closed projection.  Keep the
@@ -105,11 +133,21 @@ const CUSTOMER_SNAPSHOT_FIELDS = Object.freeze({
     'customerPrivacyVersion',
   ],
   project: ['id', 'number', 'name', 'clientNumber', 'clientName'],
-  dailyReport: ['id', 'date', 'summary', 'safetyRelated', 'approvalState'],
-  timeSummary: ['id', 'version', 'date', 'category', 'minutes', 'activitySummary', 'approvalState'],
+  dailyReport: ['id', 'date', 'workerDisplay', 'summary', 'safetyRelated', 'approvalState'],
+  timeSummary: [
+    'id',
+    'version',
+    'date',
+    'workerDisplay',
+    'category',
+    'minutes',
+    'activitySummary',
+    'approvalState',
+  ],
   technicalReport: [
     'id',
     'date',
+    'workerDisplay',
     'system',
     'site',
     'area',
@@ -124,6 +162,7 @@ const CUSTOMER_SNAPSHOT_FIELDS = Object.freeze({
   technicalChange: [
     'id',
     'date',
+    'workerDisplay',
     'component',
     'changeMade',
     'productionImpact',
@@ -262,7 +301,10 @@ function isIsoTimestamp(value: string): boolean {
   return !Number.isNaN(parsed.valueOf()) && parsed.toISOString() === value;
 }
 
-function mapConformity(row: CustomerConformityRow): CustomerConformity {
+function mapConformity(
+  row: CustomerConformityRow,
+  signatureEvidenceStatus: CustomerConformity['signatureEvidenceStatus'],
+): CustomerConformity {
   return {
     id: row.id,
     periodReportId: row.period_report_id,
@@ -272,20 +314,28 @@ function mapConformity(row: CustomerConformityRow): CustomerConformity {
     reportPdfStorageKey: row.report_pdf_storage_key,
     reportPdfSha256: row.report_pdf_sha256,
     reportPdfByteLength: row.report_pdf_byte_length,
+    signatureDocumentId: row.signature_document_id,
+    signatureEvidenceStatus,
     signerName: row.signer_name,
     signerIdentity: row.signer_identity,
     signedAt: row.signed_at,
+    verifiedAt: row.created_at,
     status: row.invalidated_at === null ? 'active' : 'invalidated',
   };
 }
 
-function mapSafeConformity(row: CustomerConformityRow): CustomerConformitySafeView {
+function mapSafeConformity(
+  row: CustomerConformityRow,
+  signatureEvidenceStatus: CustomerConformitySafeView['signatureEvidenceStatus'],
+): CustomerConformitySafeView {
   return {
     id: row.id,
     periodReportId: row.period_report_id,
     signerName: row.signer_name,
     signerIdentity: row.signer_identity,
     signedAt: row.signed_at,
+    verifiedAt: row.created_at,
+    signatureEvidenceStatus,
     status: row.invalidated_at === null ? 'active' : 'invalidated',
   };
 }
@@ -301,12 +351,14 @@ export class CustomerConformityRepository {
     this.deps.assertActive(principal);
     if (!canManageBilling(principal))
       return this.deps.errors.accessDenied('Human Finance role required');
-    this.deps.assertStepUp(principal);
+    this.deps.assertLiveSession(principal);
   }
 
   private assertInput(input: CustomerConformityInput): void {
     if (typeof input.periodReportId !== 'string' || !input.periodReportId.trim())
       return this.deps.errors.validation('Period report id is required');
+    if (typeof input.signatureDocumentId !== 'string' || !input.signatureDocumentId.trim())
+      return this.deps.errors.validation('Verified signed PDF evidence is required');
     if (typeof input.signerName !== 'string' || !input.signerName.trim())
       return this.deps.errors.validation('Signer name is required');
     if (input.signerName.trim().length > 200)
@@ -315,6 +367,63 @@ export class CustomerConformityRepository {
       return this.deps.errors.validation('Signer identity is too long');
     if (!isIsoTimestamp(input.signedAt))
       return this.deps.errors.validation('Signed timestamp is invalid');
+    if (Date.parse(input.signedAt) > Date.parse(this.deps.now()) + 5 * 60_000)
+      return this.deps.errors.validation('Signed timestamp cannot be materially in the future');
+  }
+
+  private signatureEvidenceStatus(
+    row: CustomerConformityRow,
+  ): CustomerConformity['signatureEvidenceStatus'] {
+    if (!row.signature_document_id) return 'missing';
+    const document = this.deps.sqlite
+      .prepare(
+        `SELECT project_id,state,scan_status,artifact_type,sensitivity,media_type,
+                storage_key,sha256,byte_length,description
+           FROM document WHERE id=?`,
+      )
+      .get(row.signature_document_id) as
+      | {
+          project_id: string | null;
+          state: string;
+          scan_status: string | null;
+          artifact_type: string | null;
+          sensitivity: string | null;
+          media_type: string;
+          storage_key: string;
+          sha256: string;
+          byte_length: number;
+          description: string | null;
+        }
+      | undefined;
+    if (
+      !document ||
+      document.project_id !== row.project_id ||
+      document.state !== 'committed' ||
+      (document.scan_status !== 'clean' && document.scan_status !== 'not_scanned') ||
+      document.artifact_type !== 'customer_signoff_evidence' ||
+      !['customer_private', 'sensitive'].includes(document.sensitivity ?? '') ||
+      document.media_type !== 'application/pdf' ||
+      !/^[a-f0-9]{64}$/u.test(document.sha256) ||
+      !Number.isSafeInteger(document.byte_length) ||
+      document.byte_length <= 0 ||
+      !signatureEvidenceMatchesReport(document.description, {
+        id: row.period_report_id,
+        snapshotVersion: row.snapshot_version,
+        snapshotSha256: row.snapshot_sha256,
+      })
+    )
+      return 'unavailable';
+    try {
+      verifyPrivatePdfArtifact({
+        storageKey: document.storage_key,
+        sha256: document.sha256,
+        byteLength: document.byte_length,
+        requiredPrefix: 'uploads/',
+      });
+      return 'verified';
+    } catch {
+      return 'unavailable';
+    }
   }
 
   private selectRow(conformityId: string): CustomerConformityRow | undefined {
@@ -322,10 +431,15 @@ export class CustomerConformityRepository {
       .prepare(
         `SELECT c.id,c.period_report_id,r.project_id,c.snapshot_version,c.snapshot_sha256,
                 c.snapshot_json,c.report_pdf_storage_key,c.report_pdf_sha256,
-                c.report_pdf_byte_length,c.signer_name,c.signer_identity,c.signed_at,
+                c.report_pdf_byte_length,c.signer_name,c.signer_identity,c.signed_at,c.created_at,
+                c.signature_document_id legacy_signature_document_id,
+                COALESCE(c.signature_document_id,attachment.signature_document_id)
+                  signature_document_id,
                 invalidation.occurred_at invalidated_at
          FROM customer_conformity c
          JOIN period_report r ON r.id=c.period_report_id
+         LEFT JOIN customer_conformity_evidence_attachment attachment
+           ON attachment.conformity_id=c.id
          LEFT JOIN customer_conformity_invalidation invalidation
            ON invalidation.conformity_id=c.id
          WHERE c.id=?`,
@@ -439,6 +553,76 @@ export class CustomerConformityRepository {
           'Customer period report PDF artifact is not authorized and ready',
         );
 
+      // This is a separate, private signed-copy artifact.  It is deliberately
+      // not inferred from signer metadata or from the rendered report PDF.
+      const signatureDocument = this.deps.sqlite
+        .prepare(
+          `SELECT id,project_id,state,scan_status,artifact_type,sensitivity,media_type,
+                  storage_key,sha256,byte_length,description
+             FROM document WHERE id=?`,
+        )
+        .get(input.signatureDocumentId.trim()) as
+        | {
+            id: string;
+            project_id: string | null;
+            state: string;
+            scan_status: string | null;
+            artifact_type: string | null;
+            sensitivity: string | null;
+            media_type: string;
+            storage_key: string;
+            sha256: string;
+            byte_length: number;
+            description: string | null;
+          }
+        | undefined;
+      if (
+        !signatureDocument ||
+        signatureDocument.project_id !== report.project_id ||
+        signatureDocument.state !== 'committed' ||
+        (signatureDocument.scan_status !== 'clean' &&
+          signatureDocument.scan_status !== 'not_scanned') ||
+        signatureDocument.artifact_type !== 'customer_signoff_evidence' ||
+        !['customer_private', 'sensitive'].includes(signatureDocument.sensitivity ?? '') ||
+        signatureDocument.media_type !== 'application/pdf' ||
+        !/^[a-f0-9]{64}$/u.test(signatureDocument.sha256) ||
+        !Number.isSafeInteger(signatureDocument.byte_length) ||
+        signatureDocument.byte_length <= 0 ||
+        !signatureEvidenceMatchesReport(signatureDocument.description, {
+          id: report.id,
+          snapshotVersion: report.snapshot_version,
+          snapshotSha256: report.snapshot_sha256,
+        })
+      )
+        return this.deps.errors.conflict(
+          'Verified signed PDF evidence is missing, unavailable, or belongs to another project',
+        );
+      try {
+        verifyPrivatePdfArtifact({
+          storageKey: signatureDocument.storage_key,
+          sha256: signatureDocument.sha256,
+          byteLength: signatureDocument.byte_length,
+          requiredPrefix: 'uploads/',
+        });
+      } catch {
+        return this.deps.errors.conflict(
+          'Verified signed PDF evidence failed integrity verification',
+        );
+      }
+
+      const alreadyUsed = this.deps.sqlite
+        .prepare(
+          `SELECT 1 FROM customer_conformity WHERE signature_document_id=?
+           UNION ALL
+           SELECT 1 FROM customer_conformity_evidence_attachment WHERE signature_document_id=?
+           LIMIT 1`,
+        )
+        .get(signatureDocument.id, signatureDocument.id);
+      if (alreadyUsed)
+        return this.deps.errors.conflict(
+          'Verified signed PDF evidence is already bound to another conformity',
+        );
+
       const active = this.deps.sqlite
         .prepare(
           `SELECT c.id FROM customer_conformity c
@@ -478,7 +662,7 @@ export class CustomerConformityRepository {
             input.signerName.trim(),
             input.signerIdentity?.trim() || null,
             input.signedAt,
-            null,
+            signatureDocument.id,
             principal.userId,
             createdAt,
           );
@@ -497,11 +681,154 @@ export class CustomerConformityRepository {
         reportPdfStorageKey: report.pdf_storage_key,
         reportPdfSha256: report.pdf_sha256,
         reportPdfByteLength: report.pdf_byte_length,
+        signatureDocumentId: signatureDocument.id,
+        signatureDocumentSha256: signatureDocument.sha256,
+        evidenceVerifiedAt: createdAt,
+        evidenceVerifiedBy: principal.userId,
         signerName: input.signerName.trim(),
         signerIdentity: input.signerIdentity?.trim() || null,
         signedAt: input.signedAt,
       });
-      return mapConformity(created);
+      return mapConformity(created, 'verified');
+    });
+  }
+
+  attachLegacyCustomerConformityEvidence(
+    principal: Principal,
+    input: Readonly<{
+      expectedPeriodReportId: string;
+      conformityId: string;
+      signatureDocumentId: string;
+      reason: string;
+    }>,
+  ): CustomerConformity {
+    this.assertFinanceWriter(principal);
+    if (typeof input.expectedPeriodReportId !== 'string' || !input.expectedPeriodReportId.trim())
+      return this.deps.errors.validation('Expected period report id is required');
+    if (typeof input.conformityId !== 'string' || !input.conformityId.trim())
+      return this.deps.errors.validation('Customer conformity id is required');
+    if (typeof input.signatureDocumentId !== 'string' || !input.signatureDocumentId.trim())
+      return this.deps.errors.validation('Verified signed PDF evidence is required');
+    if (
+      typeof input.reason !== 'string' ||
+      !input.reason.trim() ||
+      input.reason.trim().length > 2000
+    )
+      return this.deps.errors.validation('Evidence attachment reason is required');
+    return this.deps.transaction(() => {
+      const row = this.selectRow(input.conformityId);
+      if (!row) return this.deps.errors.validation('Customer conformity not found');
+      if (row.period_report_id !== input.expectedPeriodReportId.trim())
+        return this.deps.errors.conflict(
+          'Customer conformity does not belong to the requested period report',
+        );
+      this.deps.assertProjectAccess(principal, row.project_id, true);
+      if (row.invalidated_at !== null)
+        return this.deps.errors.conflict('Invalidated customer conformity cannot receive evidence');
+      if (row.legacy_signature_document_id !== null || row.signature_document_id !== null)
+        return this.deps.errors.conflict('Customer conformity already has signed-copy evidence');
+      const document = this.deps.sqlite
+        .prepare(
+          `SELECT id,project_id,state,scan_status,artifact_type,sensitivity,media_type,
+                  storage_key,sha256,byte_length,description FROM document WHERE id=?`,
+        )
+        .get(input.signatureDocumentId.trim()) as
+        | {
+            id: string;
+            project_id: string | null;
+            state: string;
+            scan_status: string | null;
+            artifact_type: string | null;
+            sensitivity: string | null;
+            media_type: string;
+            storage_key: string;
+            sha256: string;
+            byte_length: number;
+            description: string | null;
+          }
+        | undefined;
+      if (
+        !document ||
+        document.project_id !== row.project_id ||
+        document.state !== 'committed' ||
+        (document.scan_status !== 'clean' && document.scan_status !== 'not_scanned') ||
+        document.artifact_type !== 'customer_signoff_evidence' ||
+        !['customer_private', 'sensitive'].includes(document.sensitivity ?? '') ||
+        document.media_type !== 'application/pdf' ||
+        !/^[a-f0-9]{64}$/u.test(document.sha256) ||
+        !Number.isSafeInteger(document.byte_length) ||
+        document.byte_length <= 0 ||
+        !signatureEvidenceMatchesReport(document.description, {
+          id: row.period_report_id,
+          snapshotVersion: row.snapshot_version,
+          snapshotSha256: row.snapshot_sha256,
+        })
+      )
+        return this.deps.errors.conflict('Verified signed PDF evidence is unavailable');
+      try {
+        verifyPrivatePdfArtifact({
+          storageKey: document.storage_key,
+          sha256: document.sha256,
+          byteLength: document.byte_length,
+          requiredPrefix: 'uploads/',
+        });
+      } catch {
+        return this.deps.errors.conflict(
+          'Verified signed PDF evidence failed integrity verification',
+        );
+      }
+      const alreadyUsed = this.deps.sqlite
+        .prepare(
+          `SELECT 1 FROM customer_conformity WHERE signature_document_id=?
+           UNION ALL
+           SELECT 1 FROM customer_conformity_evidence_attachment WHERE signature_document_id=?
+           LIMIT 1`,
+        )
+        .get(document.id, document.id);
+      if (alreadyUsed)
+        return this.deps.errors.conflict(
+          'Verified signed PDF evidence is already bound to another conformity',
+        );
+      const id = newId();
+      const attachedAt = this.deps.now();
+      try {
+        this.deps.sqlite
+          .prepare(
+            `INSERT INTO customer_conformity_evidence_attachment(
+               id,conformity_id,signature_document_id,attached_by,attached_at,reason
+             ) VALUES(?,?,?,?,?,?)`,
+          )
+          .run(id, row.id, document.id, principal.userId, attachedAt, input.reason.trim());
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          /attachment|constraint|immutable|evidence/iu.test(error.message)
+        )
+          return this.deps.errors.conflict(
+            'Customer conformity evidence changed or already exists',
+          );
+        throw error;
+      }
+      this.deps.audit(
+        principal,
+        'customer_conformity.evidence_attach',
+        'customer_conformity_evidence_attachment',
+        id,
+        {
+          conformityId: row.id,
+          periodReportId: row.period_report_id,
+          projectId: row.project_id,
+          signatureDocumentId: document.id,
+          signatureDocumentSha256: document.sha256,
+          evidenceVerifiedAt: attachedAt,
+          evidenceVerifiedBy: principal.userId,
+          reason: input.reason.trim(),
+        },
+      );
+      const attached = this.selectRow(row.id);
+      if (!attached)
+        return this.deps.errors.conflict('Customer conformity evidence was not attached');
+      return mapConformity(attached, 'verified');
     });
   }
 
@@ -518,7 +845,10 @@ export class CustomerConformityRepository {
       return this.deps.errors.accessDenied('Customer conformity access denied');
     const full = canManageBilling(principal);
     this.deps.assertProjectAccess(principal, row.project_id, true);
-    return full ? mapConformity(row) : mapSafeConformity(row);
+    const signatureEvidenceStatus = this.signatureEvidenceStatus(row);
+    return full
+      ? mapConformity(row, signatureEvidenceStatus)
+      : mapSafeConformity(row, signatureEvidenceStatus);
   }
 
   getCustomerConformityForPeriodReport(
@@ -549,7 +879,10 @@ export class CustomerConformityRepository {
     if (!selected) return null;
     const row = this.selectRow(selected.id);
     if (!row) return this.deps.errors.conflict('Customer conformity record is incomplete');
-    return canManageBilling(principal) ? mapConformity(row) : mapSafeConformity(row);
+    const signatureEvidenceStatus = this.signatureEvidenceStatus(row);
+    return canManageBilling(principal)
+      ? mapConformity(row, signatureEvidenceStatus)
+      : mapSafeConformity(row, signatureEvidenceStatus);
   }
 
   invalidateCustomerConformity(

@@ -87,6 +87,12 @@ afterAll(() => {
 });
 
 describe('live Stalwart mail directory provisioning', () => {
+  it('rejects mailbox mutations without the Owner live session', async () => {
+    await expect(
+      bootstrapMailboxUsers(database.sqlite, { ...principal, sessionId: undefined }, { stalwart }),
+    ).rejects.toThrow('Live authenticated session required');
+  });
+
   it('lists only the safe mailbox projection and portal status', async () => {
     const list = await listMailboxAccounts(database.sqlite, { stalwart });
     expect(list).toHaveLength(2);
@@ -118,6 +124,11 @@ describe('live Stalwart mail directory provisioning', () => {
     ).toEqual({ password: ownerPassword });
     expect(
       database.sqlite
+        .prepare('SELECT id FROM session WHERE id=? AND user_id=?')
+        .get('owner-session', ownerId),
+    ).toEqual({ id: 'owner-session' });
+    expect(
+      database.sqlite
         .prepare(
           "SELECT issuer,account_id,provider_id,password FROM account WHERE user_id=(SELECT id FROM user WHERE email='ana.silva@j-aautomation.com')",
         )
@@ -144,7 +155,7 @@ describe('live Stalwart mail directory provisioning', () => {
     ).rejects.toThrow('MAILBOX_NOT_FOUND_IN_STALWART');
   });
 
-  it('preserves an explicit non-worker role while keeping MFA optional', async () => {
+  it('preserves an explicit non-worker role while enforcing MFA', async () => {
     database.sqlite
       .prepare(
         "UPDATE user SET role='project_manager',mfa_required=0 WHERE email='ana.silva@j-aautomation.com'",
@@ -299,10 +310,10 @@ describe('live Stalwart mail directory provisioning', () => {
            VALUES('noncanonical-owner','Other Owner','other.owner@j-aautomation.com',1,'owner_admin','active',?,?)`,
         )
         .run(now, now),
-    ).toThrow('only canonical Antonny may be owner_admin');
+    ).toThrow('only the designated deployment Owner may be owner_admin');
     expect(() =>
       database.sqlite.prepare("UPDATE user SET role='worker' WHERE id=?").run(ownerId),
-    ).toThrow('canonical Owner is immutable');
+    ).toThrow('designated Owner is immutable');
   });
 
   it('replays a completed create command without creating a second mailbox', async () => {

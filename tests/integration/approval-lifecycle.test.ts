@@ -73,19 +73,18 @@ function submittedTechnical(value: B5LifecycleSecurityFixture): string {
   return report.id;
 }
 
-function stepUpOwner(value: B5LifecycleSecurityFixture) {
+function authenticatedOwner(value: B5LifecycleSecurityFixture) {
   const timestamp = new Date().toISOString();
   const expiresAt = new Date(Date.now() + 3_600_000).toISOString();
   value.sqlite
     .prepare(
-      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
     )
     .run(
       'approval-owner-session',
       'approval-owner-token',
       value.owner.userId,
       expiresAt,
-      timestamp,
       timestamp,
       timestamp,
     );
@@ -263,7 +262,7 @@ describe('Client Essential approval lifecycle', () => {
     ).toMatchObject({ date: '2026-07-04' });
   });
 
-  it('creates PM and step-up Owner correction drafts without changing approved originals', () => {
+  it('creates PM and Owner correction drafts without changing approved originals', () => {
     const value = fixture();
     const timeId = submittedTime(value);
     const dailyId = submittedDaily(value);
@@ -278,13 +277,6 @@ describe('Client Essential approval lifecycle', () => {
       value.repository.listApprovalQueue(value.owner).find((row) => row.id === dailyId),
     ).toMatchObject({ review_stage: 'owner_override', date: '2026-08-20' });
 
-    const correction = value.repository.createCorrectionDraft(value.manager, {
-      recordType: 'time_entry',
-      originalId: timeId,
-      requestId: 'approval-pm-correction-time',
-      reason: 'Correct approved shift allocation',
-      patch: { minutes: 540 },
-    });
     expect(() =>
       value.repository.createCorrectionDraft(value.manager, {
         recordType: 'time_entry',
@@ -294,7 +286,14 @@ describe('Client Essential approval lifecycle', () => {
         patch: { client_rate_minor: 999_999 },
       }),
     ).toThrow(ValidationError);
-    const owner = stepUpOwner(value);
+    const correction = value.repository.createCorrectionDraft(value.manager, {
+      recordType: 'time_entry',
+      originalId: timeId,
+      requestId: 'approval-pm-correction-time',
+      reason: 'Correct approved shift allocation',
+      patch: { minutes: 540 },
+    });
+    const owner = authenticatedOwner(value);
     expect(() =>
       value.repository.createCorrectionDraft(owner, {
         recordType: 'daily_report',
@@ -349,7 +348,7 @@ describe('Client Essential approval lifecycle', () => {
     });
   });
 
-  it('rejects unauthorized or non-step-up Owner override and immutable locked sources', () => {
+  it('rejects unauthorized Owner override and immutable locked sources', () => {
     const value = fixture();
     const timeId = submittedTime(value);
     const expenseId = submittedExpense(value);
@@ -375,7 +374,7 @@ describe('Client Essential approval lifecycle', () => {
         AccessDeniedError,
       );
 
-      const owner = stepUpOwner(value);
+      const owner = authenticatedOwner(value);
       value.sqlite
         .prepare("UPDATE time_entry SET billing_status='locked',locked_at=?,locked_by=? WHERE id=?")
         .run(new Date().toISOString(), owner.userId, timeId);

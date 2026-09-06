@@ -194,6 +194,10 @@ export const auth = betterAuth({
     twoFactor({
       issuer: 'J&A Automation',
       twoFactorTable: 'two_factor',
+      // MFA is an account-holder option, never a fresh-login or password
+      // step-up gate. An already authenticated live session may enroll or
+      // remove its own factor.
+      allowPasswordless: true,
       // Keep Better Auth's camelCase model keys aligned with the reviewed
       // snake_case SQLite schema. Without these mappings the adapter attempts
       // to write columns such as `twoFactorEnabled` on a production database.

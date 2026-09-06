@@ -1,11 +1,9 @@
 import { error, type RequestHandler } from '@sveltejs/kit';
-import { V3AccessDeniedError } from '@ja/database';
 import {
   invoiceCollectionLedgerCsv,
   invoiceCollectionLedgerXlsx,
   type InvoiceCollectionLedgerRow,
 } from '@ja/reporting';
-import { assertRecentStepUp } from '$lib/server/private-artifact-access';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { optionalExportPeriod } from '$lib/server/report-export-request';
 import { sensitiveExportResponse } from '$lib/server/sensitive-export-response';
@@ -20,12 +18,6 @@ export const GET: RequestHandler = ({ locals, params, url }) => {
   const period = optionalExportPeriod(url);
   const context = openPortalRepository(locals);
   try {
-    try {
-      assertRecentStepUp(context.sqlite, context.principal);
-    } catch (cause) {
-      if (cause instanceof V3AccessDeniedError) error(403, cause.message);
-      throw cause;
-    }
     // masterLedger is the accepted exact-money/reversal-aware query contract;
     // it independently re-checks Finance/Owner authorization on this request.
     // The on-screen ledger is unfiltered; only apply an issue-date window when

@@ -180,8 +180,6 @@ export type FinanceCommandInput = Readonly<{
   evidenceNamespace?: string;
   evidenceIdPrefix?: string;
   commandIdPrefix?: string;
-  stepUpVerifiedAt?: string | null;
-  stepUpExpiresAt?: string | null;
 }>;
 
 /**
@@ -199,8 +197,6 @@ export function ensureCommand(
   const evidenceNamespace = descriptor.evidenceNamespace ?? 'accounting-pack';
   const evidenceIdPrefix = descriptor.evidenceIdPrefix ?? 'fp';
   const commandIdPrefix = descriptor.commandIdPrefix ?? 'fp-cmd';
-  const stepUpVerifiedAt = descriptor.stepUpVerifiedAt ?? null;
-  const stepUpExpiresAt = descriptor.stepUpExpiresAt ?? null;
   const payloadHash = sha256(canonicalJson(descriptor.payload, fail));
   const sessionHash = sha256(principal.sessionId ?? `accounting-pack:${principal.userId}`);
   const requestBytes = Buffer.from(
@@ -295,12 +291,6 @@ export function ensureCommand(
       return fail('Finance command amount is not idempotent');
     if (rowValue<string | null>(existing, 'currency') !== (descriptor.currency ?? null))
       return fail('Finance command currency is not idempotent');
-    if (
-      (stepUpVerifiedAt !== null || stepUpExpiresAt !== null) &&
-      (!rowValue<string | null>(existing, 'step_up_verified_at') ||
-        !rowValue<string | null>(existing, 'step_up_expires_at'))
-    )
-      return fail('Finance command step-up proof is not idempotent');
     return {
       commandId: String(existing.command_id),
       requestHash,
@@ -332,8 +322,8 @@ export function ensureCommand(
       descriptor.currency ?? null,
       payloadHash,
       sessionHash,
-      stepUpVerifiedAt,
-      stepUpExpiresAt,
+      null,
+      null,
       null,
       null,
       'completed',

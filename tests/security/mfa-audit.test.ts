@@ -8,7 +8,6 @@ import { installB5TestDeploymentIdentity } from '../fixtures/b5-test-environment
 const authMocks = vi.hoisted(() => ({
   enableTwoFactor: vi.fn(),
   verifyTOTP: vi.fn(),
-  disableTwoFactor: vi.fn(),
 }));
 const auditMocks = vi.hoisted(() => ({
   assertAuthAuditReady: vi.fn(),
@@ -123,7 +122,6 @@ beforeEach(() => {
   seedUser();
   authMocks.enableTwoFactor.mockReset();
   authMocks.verifyTOTP.mockReset();
-  authMocks.disableTwoFactor.mockReset();
   auditMocks.assertAuthAuditReady.mockReset();
   auditMocks.recordAuthAudit.mockReset();
 });
@@ -170,21 +168,10 @@ describe('MFA canonical audit boundary', () => {
         database.sqlite.close();
       }
     });
-    authMocks.disableTwoFactor.mockImplementation(async () => {
-      const database = createDatabase();
-      try {
-        database.sqlite.prepare(`UPDATE user SET two_factor_enabled=0 WHERE id='owner'`).run();
-        database.sqlite.prepare(`DELETE FROM two_factor WHERE user_id='owner'`).run();
-      } finally {
-        database.sqlite.close();
-      }
-      return { status: true };
-    });
-
-    const enableResponse = await POST(event('enable', { password: 'a-strong-password' }));
+    const enableResponse = await POST(event('enable', {}));
     expect(enableResponse.status).toBe(200);
     expect((await POST(event('verify', { code: '123456' }))).status).toBe(200);
-    expect((await POST(event('disable', { password: 'a-strong-password' }))).status).toBe(200);
+    expect((await POST(event('disable', {}))).status).toBe(200);
 
     expect(auditMocks.recordAuthAudit).toHaveBeenCalledTimes(3);
     expect(auditMocks.recordAuthAudit.mock.calls.map(([record]) => record.action)).toEqual([
@@ -199,7 +186,7 @@ describe('MFA canonical audit boundary', () => {
     });
   });
 
-  it('allows a legacy required-MFA identity to disable MFA and clears the stale requirement', async () => {
+  it('allows disable for a legacy required-MFA identity and clears the obsolete policy', async () => {
     const database = createDatabase();
     try {
       database.sqlite
@@ -208,18 +195,7 @@ describe('MFA canonical audit boundary', () => {
     } finally {
       database.sqlite.close();
     }
-    authMocks.disableTwoFactor.mockImplementation(async () => {
-      const opened = createDatabase();
-      try {
-        opened.sqlite.prepare("UPDATE user SET two_factor_enabled=0 WHERE id='owner'").run();
-        opened.sqlite.prepare("DELETE FROM two_factor WHERE user_id='owner'").run();
-      } finally {
-        opened.sqlite.close();
-      }
-      return { status: true };
-    });
-
-    const response = await POST(event('disable', { password: 'a-strong-password' }));
+    const response = await POST(event('disable', {}));
 
     expect(response.status).toBe(200);
     const opened = createDatabase();
@@ -227,9 +203,36 @@ describe('MFA canonical audit boundary', () => {
       expect(
         opened.sqlite.prepare("SELECT mfa_enrolled,mfa_required FROM user WHERE id='owner'").get(),
       ).toMatchObject({ mfa_enrolled: 0, mfa_required: 0 });
+      expect(
+        opened.sqlite.prepare("SELECT id FROM two_factor WHERE user_id='owner'").get(),
+      ).toBeUndefined();
     } finally {
       opened.sqlite.close();
     }
+  });
+
+  it('uses the passwordless Better Auth setup contract and rejects another enable after enrollment', async () => {
+    authMocks.enableTwoFactor.mockResolvedValue({
+      totpURI: 'otpauth://totp/J&A:owner',
+      backupCodes: ['one-time-code'],
+    });
+    expect((await POST(event('enable', {}))).status).toBe(200);
+    expect(authMocks.enableTwoFactor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: { method: 'totp', issuer: 'J&A Automation' },
+      }),
+    );
+
+    const database = createDatabase();
+    try {
+      database.sqlite.prepare("UPDATE user SET mfa_enrolled=1 WHERE id='owner'").run();
+      database.sqlite.prepare("UPDATE two_factor SET verified=1 WHERE user_id='owner'").run();
+    } finally {
+      database.sqlite.close();
+    }
+    const response = await POST(event('enable', {}));
+    expect(response.status).toBe(409);
+    expect(authMocks.enableTwoFactor).toHaveBeenCalledTimes(1);
   });
 
   it('restores Better Auth and local projections when setup audit fails', async () => {
@@ -255,7 +258,7 @@ describe('MFA canonical audit boundary', () => {
       throw new auditMocks.AuthAuditFailure('AUTH_AUDIT_WRITE_FAILED');
     });
 
-    const response = await POST(event('enable', { password: 'a-strong-password' }));
+    const response = await POST(event('enable', {}));
     expect(response.status).toBe(503);
     expect(readIdentity()).toMatchObject({
       mfa_enrolled: 0,
@@ -291,22 +294,12 @@ describe('MFA canonical audit boundary', () => {
     });
   });
 
-  it('restores a disabled authenticator when the disable audit fails', async () => {
-    authMocks.disableTwoFactor.mockImplementation(async () => {
-      const database = createDatabase();
-      try {
-        database.sqlite.prepare(`UPDATE user SET two_factor_enabled=0 WHERE id='owner'`).run();
-        database.sqlite.prepare(`DELETE FROM two_factor WHERE user_id='owner'`).run();
-      } finally {
-        database.sqlite.close();
-      }
-      return { status: true };
-    });
+  it('rolls back a transactional disable when the audit fails', async () => {
     auditMocks.recordAuthAudit.mockImplementation(() => {
       throw new auditMocks.AuthAuditFailure('AUTH_AUDIT_WRITE_FAILED');
     });
 
-    const response = await POST(event('disable', { password: 'a-strong-password' }));
+    const response = await POST(event('disable', {}));
     expect(response.status).toBe(503);
     expect(readIdentity()).toMatchObject({
       mfa_enrolled: 0,

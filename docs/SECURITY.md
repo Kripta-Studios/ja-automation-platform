@@ -2,8 +2,15 @@
 
 - Production users are invite-only. Sessions are cookie-based, secure in production, revocable and
   checked against active user status on protected requests.
-- Password, TOTP and passkey authentication are available. Production MFA enrollment and step-up
-  checks protect sensitive finance, invoice, payment, numbering and accounting actions.
+- Password, TOTP and passkey authentication are available through Better Auth. MFA is optional for
+  every role and operation: an MFA sign-in challenge is shown only to a user who voluntarily enrolled
+  a factor. No finance, invoice, payment, numbering, accounting or destructive action uses step-up
+  authentication.
+- The local account MFA facade (`/j-aautomation/app/api/security/mfa`) owns optional enrollment,
+  verification and transactional disable without a password field. Raw Better Auth MFA management
+  endpoints (`enable`, `disable` and `generate-backup-codes`) are blocked so they cannot bypass the
+  reviewed audit boundary; enrolled users still complete sign-in through Better Auth's native MFA
+  challenge and TOTP/backup-code verification endpoints.
 - Every protected server query applies role, project membership and ownership checks. Route/UI hiding
   is not used as authorization. Workers are restricted to their own time, expenses, reports,
   documents and compensation; finance fields are removed at the repository boundary.

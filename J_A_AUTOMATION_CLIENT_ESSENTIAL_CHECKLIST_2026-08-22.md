@@ -6,6 +6,16 @@
 **Client validation update:** 2026-08-24
 The requirements clarified directly with J&A on 2026-08-24 are release-authoritative. Existing PASS/PARTIAL evidence must be revalidated where these clarifications materially change the behavior; no prior PASS may be assumed to prove a newly clarified rule.
 
+## Current candidate policy update — 2026-09-06
+
+The requester's current implementation instruction supersedes the older internal step-up design:
+MFA is optional for every user and operation, and the application has no step-up authentication.
+Authorization continues to rely on an active session, role and object scope, CSRF/session controls,
+idempotency and append-only audit. Historical schema columns and older evidence prose are retained
+only for additive migration/history compatibility and are not active authentication gates. The
+supplied principal contract still states a conflicting mandatory-MFA requirement; that conflict is
+recorded as an external acceptance blocker and is not silently waived by this checklist.
+
 ## Legend
 
 - ✅ Implemented/proven enough for this reduced release scope.
@@ -225,7 +235,7 @@ deferred post-go-live and does not control the release verdict.
 - ✅ Auth/security, cross-role and MFA/audit evidence pass the current gates.
 - ✅ Invitation-only production user activation lifecycle works (independently security-reviewed; 20 focused tests PASS).
 - ✅ Owner/Admin, Finance, PM and Worker permissions are enforced server-side; PM approval/queue scope is bound to active membership plus `can_review=1`.
-- ✅ Assignment-effective access, Worker/PM commercial redaction, step-up foundations, IDOR controls and service/background actor fencing have focused evidence.
+- ✅ Assignment-effective access, Worker/PM commercial redaction, live-session validation, IDOR controls and service/background actor fencing have focused evidence; MFA is optional and no operation uses step-up authentication.
 - ✅ The current security gate, independent remediation review and authenticated journeys pass.
 
 # D. Clients, projects and assignments
@@ -285,7 +295,7 @@ deferred post-go-live and does not control the release verdict.
 - ✅ Time, expense, Daily and PLC/technical approval operations enforce active membership plus `can_review=1` and pass authenticated PM evidence.
 - ✅ Finance billability/classification approval exists with Finance/Admin authority and passes the acceptance journey.
 - ✅ Reject/reopen/correct requires typed fields/reason and preserves immutable original truth with audit.
-- ✅ Owner override requires step-up and reason.
+- ✅ Owner override requires an active authorized Owner session and a nonblank audited reason; it does not use step-up authentication.
 - ✅ Authenticated PM/Finance browser evidence and independent security approval pass.
 - ⏭ Dedicated universal Approval Center if domain-level approval screens are sufficient.
 - ⏭ Bulk approval framework until real volume justifies it.
@@ -516,7 +526,7 @@ When this section is fully checked, deferred roadmap items must not prevent the 
       verification to IMAPS; linked workers use IMAPS without storing or caching their Webmail
       passwords.
 - [x] Mailbox create, role change, portal offboarding, password rotation and mailbox destruction are
-      canonical-Owner-only, require recent password step-up, revoke affected sessions and append
+      canonical-Owner-only, require an active authorized Owner session, revoke affected sessions and append
       redacted audit evidence. Portal offboarding preserves history and is separate from Stalwart
       mailbox destruction.
 - [x] Reconciliation is non-destructive: a mailbox absent from a live Stalwart read does not

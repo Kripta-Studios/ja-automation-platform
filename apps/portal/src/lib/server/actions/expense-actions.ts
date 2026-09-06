@@ -260,6 +260,8 @@ export const expenseActions = {
       context.sqlite.close();
     }
   },
+  // Legacy form endpoint retained for route compatibility. The repository now
+  // accepts only never-submitted drafts; reviewed records must use correction.
   deleteExpense: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'expenses' && params.section !== 'approvals')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
@@ -269,7 +271,7 @@ export const expenseActions = {
     const context = openPortalRepository(locals);
     try {
       context.repository.deleteExpense(context.principal, parsed.data.id, parsed.data.version);
-      return actionSuccess('action.expense.removedOrVoided', {}, 'Expense entry removed/voided');
+      return actionSuccess('action.reports.draftDeleted', {}, 'Expense draft deleted');
     } catch (error) {
       return actionFailure(error);
     } finally {

@@ -145,6 +145,33 @@ describe('invoice lifecycle coverage', () => {
       '2026-08-01',
       '2026-08-31',
     );
+    expect(
+      (
+        repository.invoicePreview(finance, original.id).invoice as {
+          company_info: Record<string, unknown>;
+        }
+      ).company_info,
+    ).not.toHaveProperty('phone');
+    // A stored historical/custom snapshot remains authoritative; only the
+    // unsafe fallback for newly generated previews is removed.
+    const originalSnapshot = (
+      sqlite.prepare('SELECT snapshot_json FROM invoice WHERE id=?').get(original.id) as {
+        snapshot_json: string;
+      }
+    ).snapshot_json;
+    sqlite
+      .prepare('UPDATE invoice SET snapshot_json=? WHERE id=?')
+      .run(JSON.stringify({ companyInfo: { phone: '+34 900 000 000' } }), original.id);
+    expect(
+      (
+        repository.invoicePreview(finance, original.id).invoice as {
+          company_info: Record<string, unknown>;
+        }
+      ).company_info,
+    ).toMatchObject({ phone: '+34 900 000 000' });
+    sqlite
+      .prepare('UPDATE invoice SET snapshot_json=? WHERE id=?')
+      .run(originalSnapshot, original.id);
     repository.approveInvoiceDraft(finance, original.id);
     const issued = repository.issueInvoice(finance, original.id, 'es');
     expect(issued.issued).toBe(true);

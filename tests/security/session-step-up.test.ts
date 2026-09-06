@@ -30,10 +30,10 @@ afterEach(() => {
   for (const restore of restoreDeploymentIdentities.splice(0).reverse()) restore();
 });
 
-describe('session-bound step-up authentication', () => {
-  it('authorizes each live finance session without a second password confirmation', () => {
+describe('session and role authorization without operation-specific MFA', () => {
+  it('authorizes each live finance session without an operation-specific MFA challenge', () => {
     process.env.NODE_ENV = 'production';
-    const directory = mkdtempSync(join(tmpdir(), 'ja-step-up-'));
+    const directory = mkdtempSync(join(tmpdir(), 'ja-session-authorization-'));
     directories.push(directory);
     const { sqlite } = createDatabase(join(directory, 'app.db'));
     databases.push(sqlite);
@@ -52,9 +52,9 @@ describe('session-bound step-up authentication', () => {
       .run(now, now);
     sqlite
       .prepare(
-        'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+        'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
       )
-      .run('session-a', 'token-a', 'finance', future, now, now, now);
+      .run('session-a', 'token-a', 'finance', future, now, now);
     sqlite
       .prepare(
         'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
@@ -103,9 +103,9 @@ describe('session-bound step-up authentication', () => {
       .run(now, now);
     sqlite
       .prepare(
-        'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+        'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
       )
-      .run('owner-session', 'owner-token', 'owner', future, now, now, now);
+      .run('owner-session', 'owner-token', 'owner', future, now, now);
     sqlite
       .prepare(
         'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
@@ -126,7 +126,7 @@ describe('session-bound step-up authentication', () => {
     ).toBeUndefined();
   });
 
-  it('treats a live owner session as stepped-up for the whole login', () => {
+  it('does not add a second-password prerequisite to an authorized owner command', () => {
     process.env.NODE_ENV = 'production';
     const directory = mkdtempSync(join(tmpdir(), 'ja-owner-session-privilege-'));
     directories.push(directory);
@@ -147,9 +147,9 @@ describe('session-bound step-up authentication', () => {
       .run(now, now);
     sqlite
       .prepare(
-        'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+        'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
       )
-      .run('owner-session', 'owner-token', 'owner', future, now, now, null);
+      .run('owner-session', 'owner-token', 'owner', future, now, now);
     const owner: Principal = {
       userId: 'owner',
       role: 'owner_admin',
@@ -166,7 +166,7 @@ describe('session-bound step-up authentication', () => {
         'worker',
         'active',
       ),
-    ).toThrow(/Recent step-up authentication is required/i);
+    ).toThrow(/Live authenticated session required/i);
   });
 
   it('authorizes an owner login by session token without a second password confirmation', () => {
@@ -185,9 +185,9 @@ describe('session-bound step-up authentication', () => {
       .run(now, now);
     sqlite
       .prepare(
-        'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+        'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
       )
-      .run('owner-session', 'owner-cookie-token', 'owner', future, now, now, null);
+      .run('owner-session', 'owner-cookie-token', 'owner', future, now, now);
     const ownerByToken: Principal = {
       userId: 'owner',
       role: 'owner_admin',

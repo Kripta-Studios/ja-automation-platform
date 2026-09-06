@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { weeklyView, type WeeklyProjectSchedule } from '$lib/server/portal-week';
+import { mondayOf, weeklyView, type WeeklyProjectSchedule } from '$lib/server/portal-week';
 
 const schedule = (overrides: Partial<WeeklyProjectSchedule> = {}): WeeklyProjectSchedule => ({
   project_id: 'project-a',
@@ -16,6 +16,10 @@ const schedule = (overrides: Partial<WeeklyProjectSchedule> = {}): WeeklyProject
 });
 
 describe('Worker weekly planning projection', () => {
+  it('does not normalize an impossible week query into a different calendar date', () => {
+    expect(mondayOf('2026-02-30')).toBe(mondayOf(null));
+  });
+
   it('does not fabricate a target when no effective schedule is available', () => {
     const view = weeklyView(
       [

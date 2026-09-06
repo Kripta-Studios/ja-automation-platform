@@ -65,15 +65,13 @@ export function actionFailure(error: unknown): FailureResult {
     // result; their details remain server-side only.
     result = { status: 500, data: { success: false } };
   }
-  const stepUpRequired = result.data?.stepUpRequired === true;
   const readinessReasons = Array.isArray(result.data?.reasons) ? result.data.reasons : [];
   const readinessKey =
     result.status === 409 && readinessReasons.length > 0
       ? billingReadinessMessageKey((readinessReasons[0] as { code?: string } | undefined)?.code)
       : null;
-  const messageKey: ActionMessageKey = stepUpRequired
-    ? 'action.error.stepUpRequired'
-    : result.status === 401
+  const messageKey: ActionMessageKey =
+    result.status === 401
       ? 'action.error.unauthenticated'
       : result.status === 403
         ? 'action.error.forbidden'
@@ -84,9 +82,8 @@ export function actionFailure(error: unknown): FailureResult {
             : result.status === 400
               ? 'action.error.invalid'
               : 'action.error.unavailable';
-  const legacyMessage = stepUpRequired
-    ? 'Confirm your identity to continue.'
-    : result.status === 401
+  const legacyMessage =
+    result.status === 401
       ? 'Sign in again to continue.'
       : result.status === 403
         ? 'You do not have permission to perform this action.'

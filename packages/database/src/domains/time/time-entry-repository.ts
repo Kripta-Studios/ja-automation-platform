@@ -281,7 +281,7 @@ export class TimeEntryRepository {
       if (
         !current ||
         current.worker_id !== principal.userId ||
-        (current.approval_state !== 'draft' && current.approval_state !== 'needs_changes') ||
+        current.approval_state !== 'draft' ||
         current.invoice_id !== null ||
         current.version !== baseVersion
       )
@@ -304,7 +304,8 @@ export class TimeEntryRepository {
       const timestamp = this.deps.now();
       const result = this.deps.sqlite
         .prepare(
-          "UPDATE time_entry SET approval_state='submitted',submitted_at=?,updated_at=?,version=version+1 WHERE id=? AND worker_id=? AND approval_state IN ('draft','needs_changes') AND version=? AND invoice_id IS NULL",
+          `UPDATE time_entry SET approval_state='submitted',submitted_at=?,updated_at=?,version=version+1
+             WHERE id=? AND worker_id=? AND approval_state='draft' AND version=? AND invoice_id IS NULL`,
         )
         .run(timestamp, timestamp, id, principal.userId, baseVersion);
       if (result.changes !== 1)
@@ -346,9 +347,9 @@ export class TimeEntryRepository {
       if (
         current.invoice_id ||
         current.billing_status !== 'unlocked' ||
-        !['draft', 'needs_changes'].includes(current.approval_state)
+        current.approval_state !== 'draft'
       )
-        throw this.deps.errors.conflict('Only an unlocked editable time draft can change');
+        throw this.deps.errors.conflict('Only an unlocked never-submitted time draft can change');
       const workDate = input.workDate ?? current.work_date;
       this.assertEffectiveMembership(principal, current.project_id, current.worker_id, workDate);
       if (input.workDate !== undefined) this.deps.assertDate(input.workDate, 'Work date');
@@ -448,8 +449,15 @@ export class TimeEntryRepository {
         throw this.deps.errors.conflict(
           'Locked or invoiced time is immutable and cannot be voided',
         );
+      const correctionLink = this.deps.sqlite
+        .prepare(
+          "SELECT 1 FROM record_correction_link WHERE record_type='time_entry' AND correction_id=? LIMIT 1",
+        )
+        .get(id);
+      if (correctionLink)
+        throw this.deps.errors.conflict('Correction drafts are immutable and cannot be deleted');
 
-      if (current.approval_state === 'draft' || current.approval_state === 'needs_changes') {
+      if (current.approval_state === 'draft') {
         const result = this.deps.sqlite
           .prepare(
             "DELETE FROM time_entry WHERE id=? AND version=? AND invoice_id IS NULL AND billing_status='unlocked' AND billing_lock_id IS NULL",
@@ -459,15 +467,13 @@ export class TimeEntryRepository {
           throw this.deps.errors.conflict('Time entry changed or cannot be deleted');
         this.deps.audit(principal, 'time.delete', 'time_entry', id, { version });
       } else {
-        const timestamp = this.deps.now();
-        const result = this.deps.sqlite
-          .prepare(
-            "UPDATE time_entry SET approval_state='void',updated_at=?,version=version+1 WHERE id=? AND version=? AND invoice_id IS NULL AND billing_status='unlocked' AND billing_lock_id IS NULL",
-          )
-          .run(timestamp, id, version);
-        if (result.changes !== 1)
-          throw this.deps.errors.conflict('Time entry changed or cannot be voided');
-        this.deps.audit(principal, 'time.void', 'time_entry', id, { version });
+        // Any returned/submitted/approved time is already review history. It cannot be
+        // silently removed by the worker's generic delete/void command; an
+        // approved record uses PortalRepository's versioned correction-draft
+        // lifecycle, and a submitted one must first be returned by review.
+        throw this.deps.errors.conflict(
+          'Returned, submitted, or approved time requires the reviewed correction path',
+        );
       }
       return { success: true };
     });
@@ -480,21 +486,24 @@ export class TimeEntryRepository {
     reason?: string,
   ) {
     this.deps.assertActive(principal);
-    const row = this.deps.sqlite
-      .prepare('SELECT project_id,approval_state FROM time_entry WHERE id=?')
-      .get(id) as { project_id: string; approval_state: string } | undefined;
-    if (!row) throw this.deps.errors.validation('Time entry not found');
-    this.deps.assertCanReview(principal, row.project_id);
-    if (row.approval_state !== 'submitted')
-      throw this.deps.errors.conflict('Time entry is not submitted');
     const reviewReason = reason?.trim() || undefined;
     if (decision !== 'approved' && !reviewReason)
       throw this.deps.errors.validation('A reason is required');
-    const timestamp = this.deps.now();
     this.deps.transaction(() => {
-      this.deps.sqlite
+      // The project/state/version read must occur after BEGIN IMMEDIATE. A
+      // separate SQLite connection can otherwise change a submitted row in
+      // the pre-transaction window and leave a stale approval event/audit.
+      const row = this.deps.sqlite
+        .prepare('SELECT project_id,approval_state,version FROM time_entry WHERE id=?')
+        .get(id) as { project_id: string; approval_state: string; version: number } | undefined;
+      if (!row) throw this.deps.errors.validation('Time entry not found');
+      this.deps.assertCanReview(principal, row.project_id);
+      if (row.approval_state !== 'submitted')
+        throw this.deps.errors.conflict('Time entry is not submitted');
+      const timestamp = this.deps.now();
+      const result = this.deps.sqlite
         .prepare(
-          'UPDATE time_entry SET approval_state=?,approved_by=?,approved_at=?,updated_at=?,version=version+1 WHERE id=?',
+          "UPDATE time_entry SET approval_state=?,approved_by=?,approved_at=?,updated_at=?,version=version+1 WHERE id=? AND approval_state='submitted' AND version=?",
         )
         .run(
           decision,
@@ -502,7 +511,10 @@ export class TimeEntryRepository {
           decision === 'approved' ? timestamp : null,
           timestamp,
           id,
+          row.version,
         );
+      if (result.changes !== 1)
+        throw this.deps.errors.conflict('Time entry changed or is not submitted');
       this.deps.sqlite
         .prepare(
           'INSERT INTO approval_event(id,entity_type,entity_id,from_state,to_state,actor_id,reason,occurred_at) VALUES(?,?,?,?,?,?,?,?)',

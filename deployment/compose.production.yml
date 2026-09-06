@@ -46,6 +46,9 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: 5100
+      # Signed customer PDFs are capped at 20 MB by the route. Leave explicit
+      # multipart framing headroom at the adapter boundary.
+      BODY_SIZE_LIMIT: 24M
       JA_DATABASE_PATH: /var/lib/jaautomation/data/jaautomation.sqlite
       JA_MIGRATIONS_PATH: /app/migrations
       JA_DOCUMENT_ROOT: /var/lib/jaautomation/files

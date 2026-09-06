@@ -578,7 +578,7 @@ describe('B5 migration adversarial SQL contract', () => {
     }
   });
 
-  it('requires an approved/locked original and a draft correction', () => {
+  it('requires an approved or reviewer-returned time original and a draft correction', () => {
     const value = fixture();
     const original = value.repository.createTimeEntry(value.worker, {
       projectId: value.project.id,
@@ -639,6 +639,50 @@ describe('B5 migration adversarial SQL contract', () => {
           'Correct approved original',
           new Date().toISOString(),
           'valid-correction-correlation',
+        ),
+    ).not.toThrow();
+
+    const returnedOriginal = value.repository.createTimeEntry(value.worker, {
+      projectId: value.project.id,
+      workDate: '2026-08-01',
+      category: 'regular',
+      minutes: 15,
+      summary: 'Reviewer returned original',
+    }) as { id: string; version: number };
+    const returnedCorrection = value.repository.createTimeEntry(value.worker, {
+      projectId: value.project.id,
+      workDate: '2026-08-01',
+      category: 'regular',
+      minutes: 15,
+      summary: 'Returned correction draft',
+    }) as { id: string };
+    value.repository.submitTime(value.worker, returnedOriginal.id, returnedOriginal.version);
+    value.repository.operationalApproveTime(
+      value.manager,
+      returnedOriginal.id,
+      'needs_changes',
+      'Correct the recorded activity',
+    );
+    expect(() =>
+      value.sqlite
+        .prepare(
+          `INSERT INTO record_correction_link(
+            id,tenant_id,record_type,original_id,correction_id,request_id,request_payload_sha256,
+            actor_user_id,reason,created_at,correlation_id
+          ) VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          'returned-correction-link',
+          'test-tenant',
+          'time_entry',
+          returnedOriginal.id,
+          returnedCorrection.id,
+          'returned-request',
+          hash(),
+          'b5-worker',
+          'Correct reviewer-returned original',
+          new Date().toISOString(),
+          'returned-correction-correlation',
         ),
     ).not.toThrow();
   });

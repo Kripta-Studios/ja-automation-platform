@@ -38,22 +38,6 @@ function periodFor(
   return { start, end, yearMonth: start.slice(0, 7) };
 }
 
-async function stepUpFinance(page: import('@playwright/test').Page): Promise<void> {
-  const response = await page.request.post(portal('/api/step-up'), {
-    headers: { origin: new URL(page.url()).origin, referer: page.url() },
-    data: { password: e2eCredentials.finance.password },
-  });
-  expect(response.ok(), 'Accounting mutations require a session-bound step-up').toBe(true);
-}
-
-async function stepUpOwner(page: import('@playwright/test').Page): Promise<void> {
-  const response = await page.request.post(portal('/api/step-up'), {
-    headers: { origin: new URL(page.url()).origin, referer: page.url() },
-    data: { password: e2eCredentials.owner.password },
-  });
-  expect(response.ok(), 'Account lifecycle mutations require a session-bound step-up').toBe(true);
-}
-
 function withClock<T>(iso: string, work: () => T): T {
   const realDate = globalThis.Date;
   const fixedTime = realDate.parse(iso);
@@ -181,7 +165,6 @@ test('Accounting Pack creation is queued and a pending format never becomes an H
   page,
 }, testInfo) => {
   await signIn(page, 'finance');
-  await stepUpFinance(page);
   const period = periodFor(testInfo, 0);
   const { start: periodStart, end: periodEnd } = period;
   const { id, row } = await createPack(page, periodStart, periodEnd);
@@ -202,7 +185,6 @@ test('processed Accounting Pack formats download independently with business fil
   page,
 }, testInfo) => {
   await signIn(page, 'finance');
-  await stepUpFinance(page);
   const period = periodFor(testInfo, 1);
   const { start: periodStart, end: periodEnd, yearMonth } = period;
   const { id } = await createPack(page, periodStart, periodEnd);
@@ -230,7 +212,6 @@ test('terminal failed Accounting Pack formats expose retry metadata and never re
   page,
 }, testInfo) => {
   await signIn(page, 'finance');
-  await stepUpFinance(page);
   const period = periodFor(testInfo, 2);
   const { start: periodStart, end: periodEnd } = period;
   const { id, row } = await createPack(page, periodStart, periodEnd);
@@ -433,7 +414,6 @@ test('owner archive/restore keeps the account lifecycle reversible and discovera
   page,
 }, testInfo) => {
   await signIn(page, 'owner');
-  await stepUpOwner(page);
   await page.goto(portal('/projects?view=team'));
   await expect(page.locator('[data-team-directory]')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Team', exact: true })).toBeVisible();

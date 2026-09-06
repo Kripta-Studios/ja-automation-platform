@@ -117,6 +117,23 @@ describe('controlled invoice template registry', () => {
     expect(rendered.body).toContain('Not provided');
   });
 
+  it('never invents remittance instructions when a future invoice snapshot omits them', () => {
+    const snapshot = {
+      ...baseSnapshot('labor-detailed'),
+      legalEntity: undefined,
+      termsAndInstructions: undefined,
+    };
+    const rendered = renderInvoiceTemplate(snapshot);
+    expect(rendered.body).not.toContain('WFBIUS6S');
+    expect(rendered.body).not.toContain('8769915615');
+    expect(rendered.body).not.toContain('Wells Fargo Bank');
+    expect(rendered.body).toContain('Not provided');
+    const pdf = pdfText(invoicePdf(snapshot));
+    expect(pdf).not.toContain('+1 (864) 208 4684');
+    expect(pdf).not.toContain('112 Birkshire Dr');
+    expect(pdf).not.toContain('field.operations@j-aautomation.com');
+  });
+
   it('emits structured party, metadata and total blocks for the PDF stylesheet', () => {
     const rendered = renderInvoiceTemplate(baseSnapshot('labor-detailed'));
     expect(rendered.body).toContain('class="invoice-parties"');

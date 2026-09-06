@@ -9,7 +9,7 @@ import {
   recordAuthAudit,
 } from '$lib/server/auth-audit';
 
-type MfaBody = { action?: unknown; password?: unknown; code?: unknown };
+type MfaBody = { action?: unknown; code?: unknown };
 type Sqlite = ReturnType<typeof createDatabase>['sqlite'];
 
 function managedMfaCall<T extends Record<string, unknown>>(
@@ -197,16 +197,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   if (!locals.user || !locals.session) return json({ error: 'Unauthorized' }, { status: 401 });
   const body = (await request.json().catch(() => null)) as MfaBody | null;
   const action = body?.action;
-  const password = body?.password;
-  const passwordValue = typeof password === 'string' ? password : undefined;
   const codeValue = typeof body?.code === 'string' ? body.code : undefined;
   if (action !== 'enable' && action !== 'verify' && action !== 'disable')
     return json({ error: 'A valid MFA action is required' }, { status: 400 });
-  if (
-    (action === 'enable' || action === 'disable') &&
-    (!passwordValue || passwordValue.length < 12)
-  )
-    return json({ error: 'A valid password is required' }, { status: 400 });
   if (action === 'verify' && (!codeValue || !/^\d{6}$/.test(codeValue)))
     return json({ error: 'Enter the six-digit authenticator code' }, { status: 400 });
 
@@ -224,9 +217,14 @@ export const POST: RequestHandler = async ({ locals, request }) => {
           database.sqlite.close();
         }
       })();
+      // A verified factor is not safely rotatable through setup. Keep the
+      // existing recovery material intact; unfinished setup remains retryable
+      // because its factor has not been verified/enrolled yet.
+      if (before.mfaEnrolled || before.twoFactor?.verified)
+        return json({ error: 'MFA is already enrolled for this account' }, { status: 409 });
       const result = await auth.api.enableTwoFactor(
         managedMfaCall({
-          body: { password: passwordValue, method: 'totp', issuer: 'J&A Automation' },
+          body: { method: 'totp', issuer: 'J&A Automation' },
           headers,
           returnHeaders: true,
         }),
@@ -300,39 +298,24 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     }
 
     assertAuthAuditReady([AUTH_AUDIT_ACTIONS.mfaDisable]);
-    const before = (() => {
-      const database = createDatabase();
-      try {
-        return snapshot(database.sqlite, userId);
-      } finally {
-        database.sqlite.close();
-      }
-    })();
-    const disableResult = await auth.api.disableTwoFactor(
-      managedMfaCall({ body: { password: passwordValue }, headers, returnHeaders: true }),
+    commitProjectionAndAudit(
+      userId,
+      AUTH_AUDIT_ACTIONS.mfaDisable,
+      { method: 'totp', sessionId, outcome: 'disabled' },
+      (sqlite, updatedAt) => {
+        sqlite.prepare('DELETE FROM two_factor WHERE user_id=?').run(userId);
+        const changed = sqlite
+          .prepare(
+            `UPDATE user
+                SET two_factor_enabled=0,mfa_enrolled=0,mfa_required=0,
+                    updated_at=?,version=version+1
+              WHERE id=?`,
+          )
+          .run(updatedAt, userId);
+        if (Number(changed.changes) !== 1) throw new Error('MFA_PROJECTION_UPDATE_FAILED');
+      },
     );
-    const authResult = unwrapBetterAuthResult(disableResult);
-    try {
-      commitProjectionAndAudit(
-        userId,
-        AUTH_AUDIT_ACTIONS.mfaDisable,
-        { method: 'totp', sessionId, outcome: 'disabled' },
-        (sqlite, updatedAt) => {
-          const changed = sqlite
-            .prepare(
-              'UPDATE user SET mfa_enrolled=0,mfa_required=0,updated_at=?,version=version+1 WHERE id=?',
-            )
-            .run(updatedAt, userId);
-          if (Number(changed.changes) !== 1) throw new Error('MFA_PROJECTION_UPDATE_FAILED');
-        },
-      );
-    } catch (error) {
-      compensateOrFail(userId, before, error);
-    }
-    return json(
-      { enabled: false },
-      authResult.headers ? { headers: authResult.headers } : undefined,
-    );
+    return json({ enabled: false });
   } catch (error) {
     const auditFailure = error instanceof AuthAuditFailure;
     console.error(

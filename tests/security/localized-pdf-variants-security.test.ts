@@ -155,7 +155,11 @@ function fixture() {
   return { sqlite, repository, owner, finance, worker, pm, outsider, auditor };
 }
 
-function stepUpPrincipal(sqlite: DatabaseSync, principal: Principal, suffix: string): Principal {
+function liveSessionPrincipal(
+  sqlite: DatabaseSync,
+  principal: Principal,
+  suffix: string,
+): Principal {
   const now = new Date().toISOString();
   const sessionId = `localized-pdf-security-${principal.userId}-${suffix}`;
   sqlite
@@ -169,7 +173,7 @@ function stepUpPrincipal(sqlite: DatabaseSync, principal: Principal, suffix: str
       new Date(Date.now() + 3_600_000).toISOString(),
       now,
       now,
-      now,
+      null,
     );
   return { ...principal, sessionId };
 }
@@ -205,13 +209,13 @@ function claimVariant(
 }
 
 describe('localized PDF variant authorization and integrity boundary', () => {
-  it('does not let an assigned PM read a localized invoice even with a valid step-up', () => {
+  it('does not let an assigned PM read a localized invoice even with a live session', () => {
     const { sqlite, repository, owner, finance, pm, auditor } = fixture();
     try {
-      const financeWithStepUp = stepUpPrincipal(sqlite, finance, 'finance');
-      const pmWithStepUp = stepUpPrincipal(sqlite, pm, 'pm');
-      const auditorWithStepUp = stepUpPrincipal(sqlite, auditor, 'auditor');
-      const ownerWithStepUp = stepUpPrincipal(sqlite, owner, 'owner');
+      const financeWithStepUp = liveSessionPrincipal(sqlite, finance, 'finance');
+      const pmWithStepUp = liveSessionPrincipal(sqlite, pm, 'pm');
+      const auditorWithStepUp = liveSessionPrincipal(sqlite, auditor, 'auditor');
+      const ownerWithStepUp = liveSessionPrincipal(sqlite, owner, 'owner');
       sqlite
         .prepare(
           `INSERT INTO legal_entity(
@@ -241,15 +245,6 @@ describe('localized PDF variant authorization and integrity boundary', () => {
           idempotencyKey: 'security:localized-pdf:accounting-pack',
         },
       );
-      expect(() =>
-        repository.requestVariant(finance, {
-          ownerType: 'invoice',
-          ownerId: 'invoice',
-          locale: 'en',
-          templateVersion: 'invoice-v1',
-          generationVersion: 'renderer-1',
-        }),
-      ).toThrow('Recent step-up authentication is required');
       expect(() =>
         repository.requestVariant(pm, {
           ownerType: 'invoice',
@@ -708,10 +703,10 @@ describe('localized PDF variant authorization and integrity boundary', () => {
     }
   });
 
-  it('requires the same recent step-up for retrying a financial variant', () => {
+  it('retries a financial variant without a second-password prerequisite', () => {
     const { sqlite, repository, finance } = fixture();
     try {
-      const financeWithStepUp = stepUpPrincipal(sqlite, finance, 'financial-retry');
+      const financeWithStepUp = liveSessionPrincipal(sqlite, finance, 'financial-retry');
       const variant = repository.requestVariant(financeWithStepUp, {
         ownerType: 'invoice',
         ownerId: 'invoice',
@@ -728,9 +723,6 @@ describe('localized PDF variant authorization and integrity boundary', () => {
         });
       });
 
-      expect(() => repository.retryVariant(finance, variant.variantId)).toThrow(
-        'Recent step-up authentication is required',
-      );
       expect(
         repository
           .listVariants(financeWithStepUp, { ownerType: 'invoice', ownerId: 'invoice' })

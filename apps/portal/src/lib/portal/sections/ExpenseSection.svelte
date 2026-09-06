@@ -240,7 +240,7 @@
             </div>
             {#if String(row.worker_id) === data.user.id}
               <div class="expense-record-actions">
-                {#if row.approval_state === 'draft' || row.approval_state === 'needs_changes'}
+                {#if row.approval_state === 'draft'}
                   <button type="button" class="secondary-button" onclick={() => openEdit(row)}>
                     {translate('Edit')}
                   </button>
@@ -250,32 +250,39 @@
                     <button type="submit">{translate('Submit')}</button>
                   </form>
                 {/if}
-                {#if row.approval_state !== 'void'}
-                  {#if row.approval_state === 'draft'}
-                    <form
-                      method="POST"
-                      action="?/deleteDraft"
-                      data-action="deleteDraft"
-                      data-record-type="expense"
-                      data-record-id={String(row.id)}
-                    >
-                      <input type="hidden" name="recordType" value="expense" />
-                      <input type="hidden" name="recordId" value={row.id} />
-                      <input type="hidden" name="version" value={row.version} />
-                      <button type="submit" class="destructive-button">{translate('Delete')}</button
-                      >
-                    </form>
-                  {:else}
-                    <form method="POST" action="?/deleteExpense">
-                      <input type="hidden" name="id" value={row.id} />
-                      <input type="hidden" name="version" value={row.version} />
-                      <button type="submit" class="destructive-button">
-                        {row.approval_state === 'needs_changes'
-                          ? translate('Delete')
-                          : translate('Void')}
-                      </button>
-                    </form>
-                  {/if}
+                {#if row.approval_state === 'draft'}
+                  <form
+                    method="POST"
+                    action="?/deleteDraft"
+                    data-action="deleteDraft"
+                    data-record-type="expense"
+                    data-record-id={String(row.id)}
+                  >
+                    <input type="hidden" name="recordType" value="expense" />
+                    <input type="hidden" name="recordId" value={row.id} />
+                    <input type="hidden" name="version" value={row.version} />
+                    <button type="submit" class="destructive-button">{translate('Delete')}</button>
+                  </form>
+                {/if}
+                {#if (row.approval_state === 'needs_changes' || row.approval_state === 'approved') && String(row.worker_id) === data.user.id}
+                  <form
+                    class="expense-record-actions"
+                    method="POST"
+                    action="?/createCorrectionDraft"
+                  >
+                    <input type="hidden" name="recordType" value="expense" />
+                    <input type="hidden" name="originalId" value={row.id} />
+                    <input
+                      type="hidden"
+                      name="requestId"
+                      value={`expense-correction-${String(row.id)}`}
+                    />
+                    <label>
+                      <span>{translate('Correction reason')}</span>
+                      <input name="reason" minlength="3" required />
+                    </label>
+                    <button type="submit">{translate('Create corrected draft')}</button>
+                  </form>
                 {/if}
               </div>
             {/if}

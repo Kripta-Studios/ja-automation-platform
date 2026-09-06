@@ -1,10 +1,10 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { lstatSync, readFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
-import { expect, test, type APIResponse, type Page } from '@playwright/test';
+import { expect, test, type APIResponse } from '@playwright/test';
 import { createDatabase, V3Repository, WorkerStatementRepository } from '@ja/database';
 import { runArtifactJobs } from '@ja/reporting';
-import { e2eCredentials, portal, signIn } from './auth.js';
+import { portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
 
 const PERIOD_START = '2026-08-01';
@@ -224,16 +224,6 @@ function readWorkerStatementRun(jobId: string): Readonly<{
   }
 }
 
-async function stepUpWorker(page: Page): Promise<void> {
-  const response = await page.request.post(portal('/api/step-up'), {
-    headers: { origin: new URL(page.url()).origin, referer: page.url() },
-    data: { password: e2eCredentials.worker.password },
-  });
-  expect(response.ok(), 'Worker private artifact download requires a session-bound step-up').toBe(
-    true,
-  );
-}
-
 async function jsonBody<T>(response: APIResponse): Promise<T> {
   return (await response.json()) as T;
 }
@@ -365,7 +355,6 @@ test('Worker statement durable lifecycle is queued, service-rendered, private an
     return { api: artifact, persisted };
   });
 
-  await stepUpWorker(page);
   for (const { api, persisted } of persistedArtifacts) {
     const downloadResponse = await page.request.get(
       portal(`/api/worker-statement/artifacts/${encodeURIComponent(api.artifactId)}/download`),

@@ -209,11 +209,7 @@ describe('Finance-only expense classification and planning action contracts', ()
       const value = context({
         repository: {
           classifyExpenseCommercially: vi.fn(() => {
-            throw new AccessDeniedError(
-              role === 'project_manager'
-                ? 'Finance role required'
-                : 'Recent step-up authentication is required',
-            );
+            throw new AccessDeniedError('Finance role required');
           }),
         },
         principal: { userId: `${role}-1`, role, projectIds: new Set<string>() },

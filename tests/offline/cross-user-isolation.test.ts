@@ -93,8 +93,8 @@ async function startPortal(): Promise<string> {
         JA_FIXTURE_RESET_DOCUMENTS: 'false',
         JA_DEMO_SEED_PRESERVE_DB: 'true',
         JA_AUTH_SECRET: 'offline-isolation-test-secret',
-        JA_TENANT_ID: 'offline-isolation-tenant',
-        JA_DEPLOYMENT_ID: 'offline-isolation-deployment',
+        JA_TENANT_ID: 'e2e-client-essential-tenant',
+        JA_DEPLOYMENT_ID: 'e2e-client-essential-deployment',
         JA_PUBLIC_BASE_PATH: '/j-aautomation',
         JA_PORTAL_BASE_PATH: '/j-aautomation/app',
       },
@@ -103,8 +103,8 @@ async function startPortal(): Promise<string> {
   );
   const previousTenantId = process.env.JA_TENANT_ID;
   const previousDeploymentId = process.env.JA_DEPLOYMENT_ID;
-  process.env.JA_TENANT_ID = 'offline-isolation-tenant';
-  process.env.JA_DEPLOYMENT_ID = 'offline-isolation-deployment';
+  process.env.JA_TENANT_ID = 'e2e-client-essential-tenant';
+  process.env.JA_DEPLOYMENT_ID = 'e2e-client-essential-deployment';
   try {
     await seedE2ECredentialAccounts(databasePath);
   } finally {
@@ -135,8 +135,8 @@ async function startPortal(): Promise<string> {
         JA_DOCUMENT_ROOT: documentRoot,
         JA_FIXTURE_RESET_DOCUMENTS: 'false',
         JA_AUTH_SECRET: 'offline-isolation-test-secret',
-        JA_TENANT_ID: 'offline-isolation-tenant',
-        JA_DEPLOYMENT_ID: 'offline-isolation-deployment',
+        JA_TENANT_ID: 'e2e-client-essential-tenant',
+        JA_DEPLOYMENT_ID: 'e2e-client-essential-deployment',
         JA_PUBLIC_BASE_PATH: '/j-aautomation',
         JA_PORTAL_BASE_PATH: '/j-aautomation/app',
         HOST: '127.0.0.1',

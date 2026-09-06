@@ -3,6 +3,9 @@
 This document supplements the canonical [VPS deployment runbook](DEPLOYMENT_VPS.md) and the
 [release ZIP workflow](RELEASE_ZIP_DEPLOY.md). Use those documents for the complete safety and
 rollback contract. This hotfix is code-only: the expected maximum `schema_migration` remains `35`.
+The current 2026-09-06 security policy applies: MFA is optional for every role and operation, and
+step-up authentication is not used. Historical wording elsewhere in this record is not an active
+requirement.
 
 ## Included behavior
 
@@ -134,6 +137,7 @@ Record only redacted release, migration, service, HTTP and count evidence:
 - creating a uniquely named disposable mailbox either succeeds or returns a safe specific reason;
 - sign-in works without mandatory MFA enrollment unless that user opted into MFA.
 
-Do not synchronize by impersonating the Owner. Antonny must perform Owner step-up and any bulk
-mailbox reconciliation from Projects → Team → Mailboxes. Never include tokens, passwords, hashes,
+Do not synchronize by impersonating the Owner. Antonny must perform any bulk mailbox reconciliation
+from Projects → Team → Mailboxes from an active authenticated Owner session; no step-up
+authentication is used. Never include tokens, passwords, hashes,
 authorization headers or full JMAP responses in the deployment report.

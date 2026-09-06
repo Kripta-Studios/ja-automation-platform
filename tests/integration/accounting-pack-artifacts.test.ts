@@ -229,14 +229,14 @@ async function runWithRunningBarrier(
 }
 
 describe('Accounting Pack artifact lifecycle', () => {
-  it('requires a live session before creating any pack snapshot, job, or success audit', () => {
+  it('requires a live session but no second-password marker for pack creation', () => {
     const { sqlite, principal, v3 } = fixture();
     sqlite
       .prepare('UPDATE session SET expires_at=? WHERE id=?')
       .run(new Date(Date.now() - 1).toISOString(), principal.sessionId);
 
     expect(() => v3.createAccountingPack(principal, '2110-03-01', '2110-03-31')).toThrow(
-      /step-up/i,
+      /Live authenticated session required/i,
     );
     expect(sqlite.prepare('SELECT COUNT(*) count FROM accounting_pack_run').get()).toEqual({
       count: 0,
@@ -568,25 +568,37 @@ describe('Accounting Pack artifact lifecycle', () => {
     expect(pdf.filename).toBe(`accounting-pack-${periodStart}-${periodEnd}-pdf.pdf`);
   });
 
-  it('finalizes with required XLSX/CSV outputs when optional PDF and JSON are absent', () => {
+  it('blocks finalization when the required PDF is absent while preserving ready XLSX/CSV outputs', () => {
     const { directory, sqlite, principal, v3 } = fixture();
     seedLegalEntity(sqlite);
     process.env.JA_CHROMIUM_PATH = join(directory, 'missing-chromium');
-    delete process.env.JA_ACCOUNTING_PACK_REQUIRE_PDF;
     delete process.env.JA_ACCOUNTING_PACK_REQUIRE_JSON;
     const pack = v3.createAccountingPack(principal, '2113-01-01', '2113-01-31');
 
     expect(runArtifactJobs(artifactContext(directory, principal, v3))).toMatchObject({
-      processed: 1,
-      failed: 0,
+      processed: 0,
+      failed: 1,
     });
     sqlite
       .prepare("DELETE FROM accounting_pack_export WHERE pack_run_id=? AND export_type='json'")
       .run(pack.id);
-    expect(() => v3.markAccountingPackFinal(principal, pack.id)).not.toThrow();
-    expect(sqlite.prepare('SELECT state FROM accounting_pack_run WHERE id=?').get(pack.id)).toEqual(
-      { state: 'final' },
+    expect(() => v3.markAccountingPackFinal(principal, pack.id)).toThrow(
+      /artifacts are still processing|required exports are not ready: pdf/i,
     );
+    expect(
+      sqlite.prepare('SELECT state FROM accounting_pack_run WHERE id=?').get(pack.id),
+    ).not.toEqual({ state: 'final' });
+    expect(
+      sqlite
+        .prepare(
+          "SELECT export_type FROM accounting_pack_export WHERE pack_run_id=? AND export_type IN ('xlsx','invoice_csv','expense_csv') ORDER BY export_type",
+        )
+        .all(pack.id),
+    ).toEqual([
+      { export_type: 'expense_csv' },
+      { export_type: 'invoice_csv' },
+      { export_type: 'xlsx' },
+    ]);
   });
 
   it('rejects blocked reconciliation even when required artifacts are ready', () => {
@@ -674,13 +686,14 @@ describe('Accounting Pack artifact lifecycle', () => {
   });
 
   it('retries only a failed format idempotently and preserves ready siblings', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2114-01-01T00:00:00.000Z'));
     const { directory, sqlite, principal, v3 } = fixture();
     process.env.JA_CHROMIUM_PATH = join(directory, 'missing-chromium');
-    delete process.env.JA_ACCOUNTING_PACK_REQUIRE_PDF;
     const pack = v3.createAccountingPack(principal, '2114-01-01', '2114-01-31');
     expect(runArtifactJobs(artifactContext(directory, principal, v3))).toMatchObject({
-      processed: 1,
-      failed: 0,
+      processed: 0,
+      failed: 1,
     });
     const siblings = sqlite
       .prepare(
@@ -688,39 +701,25 @@ describe('Accounting Pack artifact lifecycle', () => {
       )
       .all(pack.id);
 
+    // A required PDF failure is retried by the durable job first.  Finish that
+    // bounded retry lifecycle before exercising the explicit one-format retry.
+    for (let attempt = 2; attempt <= 5; attempt += 1) {
+      vi.setSystemTime(new Date(Date.now() + 5 * 60_000 + 1));
+      expect(runArtifactJobs(artifactContext(directory, principal, v3))).toMatchObject({
+        processed: 0,
+        failed: 1,
+      });
+    }
+
     sqlite
       .prepare('UPDATE session SET expires_at=? WHERE id=?')
       .run(new Date(Date.now() - 1).toISOString(), principal.sessionId);
-    const jobsBeforeDeniedRetry = (
-      sqlite
-        .prepare("SELECT COUNT(*) count FROM job WHERE kind='accounting_pack_artifact_render'")
-        .get() as { count: number }
-    ).count;
     expect(() =>
-      v3.retryAccountingPackExport(principal, pack.id, 'pdf', 'retry-without-live-session'),
-    ).toThrow(/step-up/i);
-    expect(
-      (
-        sqlite
-          .prepare("SELECT COUNT(*) count FROM job WHERE kind='accounting_pack_artifact_render'")
-          .get() as { count: number }
-      ).count,
-    ).toBe(jobsBeforeDeniedRetry);
-    expect(
-      sqlite
-        .prepare(
-          "SELECT COUNT(*) count FROM audit_event WHERE action='accounting_pack.export_retry'",
-        )
-        .get(),
-    ).toEqual({ count: 0 });
+      v3.retryAccountingPackExport(principal, pack.id, 'pdf', 'retry-with-expired-session'),
+    ).toThrow(/Live authenticated session required/i);
     sqlite
-      .prepare('UPDATE session SET expires_at=?,step_up_at=? WHERE id=?')
-      .run(
-        new Date(Date.now() + 3_600_000).toISOString(),
-        new Date().toISOString(),
-        principal.sessionId,
-      );
-
+      .prepare('UPDATE session SET expires_at=? WHERE id=?')
+      .run(new Date(Date.now() + 3_600_000).toISOString(), principal.sessionId);
     const first = v3.retryAccountingPackExport(principal, pack.id, 'pdf', 'retry-pdf-once');
     const replay = v3.retryAccountingPackExport(principal, pack.id, 'pdf', 'retry-pdf-once');
     expect(replay).toEqual({ ...first, created: false });

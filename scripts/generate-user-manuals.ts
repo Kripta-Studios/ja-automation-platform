@@ -363,7 +363,7 @@ function buildOwnerHtml(): string {
   <div class="page-break">
     <h1>Table of Contents</h1>
     <div class="toc-item"><span class="toc-title">1. Executive Overview, Architecture &amp; Role Privilege Matrix</span><span class="toc-page">Page 3</span></div>
-    <div class="toc-item"><span class="toc-title">2. Secure Authentication, Passkeys &amp; Step-Up Security (CORE-01)</span><span class="toc-page">Page 4</span></div>
+    <div class="toc-item"><span class="toc-title">2. Secure Authentication, Passkeys &amp; Optional MFA (CORE-01)</span><span class="toc-page">Page 4</span></div>
     <div class="toc-item"><span class="toc-title">3. Client Directory: Inputs, Contacts &amp; Deletion Lifecycle (CORE-02)</span><span class="toc-page">Page 5</span></div>
     <div class="toc-item"><span class="toc-title">4. Projects Master &amp; Commercial Billing Models (CORE-02 &amp; CORE-03)</span><span class="toc-page">Page 6</span></div>
     <div class="toc-item"><span class="toc-title">5. Decimal Hours, Budgets &amp; Project Lifecycle Controls</span><span class="toc-page">Page 7</span></div>
@@ -538,7 +538,7 @@ function buildOwnerHtml(): string {
 
   <!-- CHAPTER 2: AUTH & ROLES (PAGE 4) -->
   <div class="page-break">
-    <h1>2. Secure Authentication, Passkeys &amp; Step-Up Security (CORE-01)</h1>
+    <h1>2. Secure Authentication, Passkeys &amp; Optional MFA (CORE-01)</h1>
     <p>The platform implements strict server-side Role-Based Access Control (RBAC) with invitation-only user provisioning, session controls, and cryptographic multi-factor authentication (MFA).</p>
 
     <div class="figure no-break">
@@ -591,7 +591,7 @@ function buildOwnerHtml(): string {
     </table>
 
     <div class="callout security">
-      <strong>Step-Up Security Invariant:</strong> High-privilege actions (issuing invoices, recording payments, modifying commercial rate cards, or downloading accounting close packs) enforce step-up authentication to protect against session hijacking.
+      <strong>Authentication policy:</strong> High-privilege actions require an active authorized session and the correct role. MFA is available as an optional account security setting; the application does not require mid-session password re-authentication.
     </div>
   </div>
 
@@ -1423,7 +1423,7 @@ function buildOwnerHtml(): string {
         <tr>
           <td><strong>Banking Details</strong></td>
           <td><span class="badge-db">invoice.banking_details</span></td>
-          <td>Remittance info: Wells Fargo Bank, Swift: <code>WFBIUS6S</code>, Account: <code>8769915615</code>.</td>
+          <td>Remittance information comes only from the approved invoice snapshot; missing values remain visibly unconfigured.</td>
         </tr>
         <tr>
           <td><span class="badge-btn">Finalize &amp; Issue</span></td>

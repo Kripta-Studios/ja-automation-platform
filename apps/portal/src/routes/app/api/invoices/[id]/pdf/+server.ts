@@ -15,7 +15,6 @@ export const GET: RequestHandler = async ({ locals, params }) => {
       kind: 'invoice',
       id: invoiceId,
       expectedMediaType: 'application/pdf',
-      requireStepUp: true,
       loadMetadata: () => context.v3.invoicePdfMetadata(context.principal, invoiceId),
       generateBytes: () => {
         const snapshot = context.v3.invoiceSnapshot(context.principal, invoiceId);

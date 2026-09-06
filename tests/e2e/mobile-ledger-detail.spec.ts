@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { e2eCredentials, portal, signIn } from './auth.js';
+import { portal, signIn } from './auth.js';
 
 const partialPaymentReferencePrefix = 'Responsive ledger partial payment';
 const partialReversalReasonPrefix = 'Responsive ledger partial reversal';
@@ -68,14 +68,6 @@ async function paymentReceivedDate(payment: Locator): Promise<string> {
   return dateInputValue(displayedDetails, 'payment received');
 }
 
-async function stepUpFinance(page: Page): Promise<void> {
-  const response = await page.request.post(portal('/api/step-up'), {
-    headers: { origin: new URL(page.url()).origin, referer: page.url() },
-    data: { password: e2eCredentials.finance.password },
-  });
-  expect(response.ok(), 'the payment/reversal helper requires a real Finance step-up').toBe(true);
-}
-
 function paymentHistory(row: Locator): Locator {
   return row.locator('details.billing-section__payment-history');
 }
@@ -114,7 +106,6 @@ async function ensurePartialPaymentAndReversal(
   const paymentReference = `${partialPaymentReferencePrefix} · ${viewportWidth}px`;
   const reversalReason = `${partialReversalReasonPrefix} · ${viewportWidth}px`;
   await page.goto(portal('/billing'), { waitUntil: 'networkidle' });
-  await stepUpFinance(page);
 
   const invoiceRow = page
     .locator('tr[data-invoice-row][data-invoice-issued-on]:not([data-invoice-issued-on=""])')
@@ -205,7 +196,6 @@ async function ensurePartialPaymentAndReversal(
       'the payment must retain a positive reversible balance',
     ).toBeGreaterThanOrEqual(2n);
     const reversalMinor = maximumMinor / 2n;
-    await stepUpFinance(page);
     await reversalForm.locator('input[name="amount"]').fill(minorToDecimal(reversalMinor));
     await reversalForm.locator('input[name="effectiveOn"]').fill(paymentReceivedOn);
     await reversalForm.locator('input[name="reason"]').fill(reversalReason);

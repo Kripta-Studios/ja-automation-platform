@@ -61,7 +61,7 @@ export const GET: RequestHandler = ({ locals, params }) => {
     const repository = workerStatementRepository(context.sqlite);
     // Authorization, durable-run provenance and DB metadata verification all
     // happen before the final private-file read. Own-worker statement downloads
-    // do not require step-up; the projection is already worker-safe.
+    // The projection is already worker-safe; ordinary session and scope checks apply.
     const metadata = repository.resolveWorkerStatementDownload(context.principal, artifactId);
     let bytes: Buffer;
     try {

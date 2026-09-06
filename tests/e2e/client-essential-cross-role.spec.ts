@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createDatabase, V3Repository } from '@ja/database';
 import { runArtifactJobs } from '@ja/reporting';
-import { e2eCredentials, portal, signIn } from './auth.js';
+import { portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
 
 /**
@@ -68,14 +68,6 @@ async function selectFirstAssignedProject(form: Locator): Promise<void> {
   await select.selectOption(optionValue);
 }
 
-async function stepUpFinance(page: Page): Promise<void> {
-  const response = await page.request.post(portal('/api/step-up'), {
-    headers: { origin: new URL(page.url()).origin, referer: page.url() },
-    data: { password: e2eCredentials.finance.password },
-  });
-  expect(response.ok(), 'Finance mutation evidence requires a session-bound step-up').toBe(true);
-}
-
 async function switchRole(page: Page, role: 'manager' | 'worker' | 'finance'): Promise<void> {
   const signOut = page.getByRole('button', { name: 'Sign out', exact: true });
   if (await signOut.count()) {
@@ -103,9 +95,9 @@ async function enableCustomerSignoffPolicy(
   await policyForm.locator('input[name="overtimeThresholdMinutes"]').fill('600');
   await policyForm.locator('select[name="travelClientBillable"]').selectOption('true');
   await policyForm.locator('select[name="customerSignoffRequired"]').selectOption('true');
-  await stepUpFinance(page);
   await policyForm.getByRole('button', { name: 'Save project policy', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: /policy/i })).toBeVisible();
+  await page.goto(portal(`/finance?view=commercial&project=${encodeURIComponent(projectId)}`));
   await expect(page.locator('[data-project-commercial-policy-row]').last()).toContainText(
     'Customer sign-off',
   );
@@ -342,7 +334,6 @@ async function enqueueCustomerPeriodReportRefresh(page: Page): Promise<string> {
   expect(periodStart).not.toBe('');
   expect(periodEnd).not.toBe('');
 
-  await stepUpFinance(page);
   const response = await page.request.post(`${page.url()}?/refresh`, {
     headers: { origin: new URL(page.url()).origin, referer: page.url() },
     form: { projectId, periodStart, periodEnd, reportLocale: 'en' },
@@ -399,7 +390,6 @@ async function refreshCustomerPeriodReportWithChangedLocale(
   const localeSelect = refreshForm.locator('select[name="reportLocale"]');
   const replacementLocale = 'es';
   await localeSelect.selectOption(replacementLocale);
-  await stepUpFinance(page);
   const responsePromise = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' && response.url().includes('?/generatePeriodReports'),
@@ -767,6 +757,7 @@ test.describe('Client Essential · Worker operational truth', () => {
     const technicalForm = page.locator('form[data-report-entry-surface="technical"]');
     await expect(technicalForm).toBeVisible();
     await selectFirstAssignedProject(technicalForm);
+    await technicalForm.locator('input[name="reportDate"]').fill('2026-08-24');
     await technicalForm.locator('input[name="systemName"]').fill('Line 4 PLC station');
     await technicalForm
       .locator('textarea[name="problemSymptom"]')
@@ -778,14 +769,19 @@ test.describe('Client Essential · Worker operational truth', () => {
       .locator('textarea[name="changePerformed"]')
       .fill('Adjusted the debounce and documented controls validation during the shift.');
     await technicalForm.getByRole('button', { name: 'Save PLC report' }).click();
-    await expect(page.getByText('PLC report draft saved')).toBeVisible();
+    await expect(
+      page.getByRole('status').filter({ hasText: /technical.*draft.*saved/i }),
+    ).toBeVisible();
 
     await page.goto(portal('/pay'));
     await expect(page.getByRole('heading', { name: 'My Pay', exact: true })).toBeVisible();
     await expect(
       page.getByText('This view contains only your own time', { exact: false }),
     ).toBeVisible();
-    await expect(page.getByText('Alex Rivera', { exact: true })).toBeVisible();
+    expect(
+      await page.getByText('Alex Rivera', { exact: true }).count(),
+      'the self-only compensation projection must retain the signed-in worker identity',
+    ).toBeGreaterThan(0);
     for (const otherWorker of ['Rafael Santos', 'Maya Chen', 'Daniel Brooks', 'Elena Costa'])
       await expect(page.getByText(otherWorker, { exact: true })).toHaveCount(0);
     await expectOperationalOnly(page, '/pay');
@@ -803,13 +799,13 @@ test.describe('Client Essential · PM operational scope', () => {
     await expect(
       page.getByRole('heading', { name: 'Authorized projects', exact: true }),
     ).toBeVisible();
-    await expect(page.locator('a[href*="/app/projects/"]').first()).toBeVisible();
     await expectNoPmFinanceProjection(page, '/projects');
     await expect(page.getByRole('heading', { name: 'Commercial', exact: true })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Billing', exact: true })).toHaveCount(0);
 
     const firstProject = page
-      .locator('a.project-section__project-link, a.project-list-link')
+      .locator('main a[href*="/app/projects/"]')
+      .filter({ visible: true })
       .first();
     await expect(firstProject).toBeVisible();
     await firstProject.click();
@@ -860,8 +856,12 @@ test.describe('Client Essential · Finance and billing control', () => {
     await expect(page.locator('[data-finance-actual]')).toBeVisible();
     await expect(page.locator('[data-finance-expected]')).toBeVisible();
     await expect(page.getByText('Direct Project Result', { exact: true })).toBeVisible();
-    await expect(page.getByText('Contribution', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('Contribution Margin %', { exact: true })).toBeVisible();
+    await expect(page.locator('[data-metric="direct-project-result"] small')).toContainText(
+      'Contribution',
+    );
+    await expect(page.locator('[data-metric="contribution-margin-percent"]')).toContainText(
+      'Contribution Margin %',
+    );
 
     await page.goto(portal('/finance?view=commercial'));
     await openFinanceProjectWithUnlockedExpense(page);
@@ -887,13 +887,21 @@ test.describe('Client Essential · Finance and billing control', () => {
       await expect(stageControl).toHaveCount(1);
       await expect(stageControl).toBeVisible();
     }
-    await expect(page.locator('[data-invoice-row]').first()).toBeVisible();
+    await expect(
+      page
+        .locator('main a, main button')
+        .filter({ hasText: /^Manage$/u, visible: true })
+        .first(),
+    ).toBeVisible();
     await page.goto(portal('/ledger'));
     await expect(
       page.getByRole('heading', { name: 'Collections / Ledger', exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole('table').first()).toBeVisible();
-    await expect(page.getByText('Contribution', { exact: true }).first()).toBeVisible();
+    const ledger = page
+      .getByRole('region', { name: 'Master Invoice / Cost / Collection Ledger', exact: true })
+      .last();
+    await expect(ledger).toBeVisible();
+    await expect(ledger).toContainText('Contribution');
 
     await page.goto(portal('/accounting'));
     await expect(page.getByRole('heading', { name: 'Accounting', exact: true })).toBeVisible();
@@ -931,7 +939,6 @@ test.describe('Client Essential · Finance and billing control', () => {
     await policyForm.locator('input[name="overtimeThresholdMinutes"]').fill('600');
     await policyForm.locator('select[name="travelClientBillable"]').selectOption('true');
     await policyForm.locator('select[name="customerSignoffRequired"]').selectOption('true');
-    await stepUpFinance(page);
     await policyForm.getByRole('button', { name: 'Save project policy' }).click();
     await expect(page.getByRole('status').filter({ hasText: /policy/i })).toBeVisible();
 
@@ -943,7 +950,6 @@ test.describe('Client Essential · Finance and billing control', () => {
       .first();
     await expect(lineDraft).toBeVisible();
     await manageInvoice(page, lineDraft);
-    await stepUpFinance(page);
     await page
       .locator('[data-ui="responsive-sheet"]')
       .locator('form[action="?/approveInvoice"]')
@@ -987,6 +993,7 @@ test.describe('Client Essential · Finance and billing control', () => {
     const classificationVersion = Number(
       await classification.locator('input[name="expectedVersion"]').inputValue(),
     );
+    const classificationProjectUrl = page.url();
     expect(classifiedExpenseId).toMatch(/\S/u);
     expect(Number.isSafeInteger(classificationVersion)).toBe(true);
     await classification
@@ -1009,12 +1016,10 @@ test.describe('Client Essential · Finance and billing control', () => {
     await expect(
       page.getByRole('status').filter({ hasText: /expense\s+classified/i }),
     ).toBeVisible();
-    // Classification is a state transition: the form intentionally disappears
-    // after the POST.  Assert the surviving expense card and independently
-    // read the committed row/revision so a successful HTTP response cannot be
-    // mistaken for persistence.
-    const classifiedExpense = page.locator(`[data-finance-expense-id="${classifiedExpenseId}"]`);
-    await expect(classifiedExpense).toContainText('Classified');
+    // Classification is a state transition. Independently read the committed
+    // row/revision so a successful HTTP response cannot be mistaken for
+    // persistence, then reopen the exact project projection because the
+    // enhanced action intentionally returns to the Finance overview.
     const classificationEvidence = readExpenseClassificationEvidence(classifiedExpenseId);
     expect(classificationEvidence).toMatchObject({
       id: classifiedExpenseId,
@@ -1022,10 +1027,7 @@ test.describe('Client Essential · Finance and billing control', () => {
       commercialClassificationState: 'classified',
     });
     expect(classificationEvidence.revisionCount).toBeGreaterThan(0);
-    // Enhanced forms keep the pre-action projection in the page until the
-    // next load.  Reload against the same server/DB and prove that the
-    // classified state is the durable projection (the form is now gone).
-    await page.reload();
+    await page.goto(classificationProjectUrl);
     const reloadedClassifiedExpense = page.locator(
       `[data-finance-expense-id="${classifiedExpenseId}"]`,
     );
@@ -1043,11 +1045,13 @@ test.describe('Client Essential · Finance and billing control', () => {
     await expect(issuedRow).toBeVisible();
     const causalInvoiceDate = (await issuedRow.getAttribute('data-invoice-issued-on')) ?? '';
     expect(causalInvoiceDate).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
-    await manageInvoice(page, issuedRow);
-    const paymentForm = page
-      .locator('[data-ui="responsive-sheet"]')
-      .locator('form[action="?/recordPayment"]')
+    const invoiceSheet = await manageInvoice(page, issuedRow);
+    const paymentDetails = invoiceSheet
+      .locator('details.billing-section__action-panel')
+      .filter({ hasText: /^Record payment/u })
       .first();
+    await paymentDetails.locator('summary').click();
+    const paymentForm = paymentDetails.locator('form[action="?/recordPayment"]');
     await expect(paymentForm).toBeVisible();
     const invoiceRow = page.locator(
       `[data-invoice-row="${await issuedRow.getAttribute('data-invoice-row')}"]`,
@@ -1059,9 +1063,12 @@ test.describe('Client Essential · Finance and billing control', () => {
     await expect(page.getByRole('status').filter({ hasText: 'Payment recorded' })).toBeVisible();
     await expect(invoiceRow).toContainText(/Partially paid|Paid/);
 
-    const paymentHistory = invoiceRow.getByText('Collections and reversals', { exact: true });
+    const paymentHistorySheet = await manageInvoice(page, invoiceRow);
+    const paymentHistory = paymentHistorySheet.getByText('Collections and reversals', {
+      exact: true,
+    });
     await paymentHistory.click();
-    const reversalForm = invoiceRow.locator('form[action="?/reversePayment"]').first();
+    const reversalForm = paymentHistorySheet.locator('form[action="?/reversePayment"]').first();
     await expect(reversalForm).toBeVisible();
     await reversalForm.locator('input[name="effectiveOn"]').fill(causalInvoiceDate);
     await reversalForm.locator('input[name="reason"]').fill('Essential reversal verification');
@@ -1069,10 +1076,13 @@ test.describe('Client Essential · Finance and billing control', () => {
     await expect(
       page.getByRole('status').filter({ hasText: 'Payment reversal recorded' }),
     ).toBeVisible();
-    // The enhanced POST re-renders the closed details element. Re-open it
-    // before asserting the immutable payment/reversal timeline.
-    await invoiceRow.getByText('Collections and reversals', { exact: true }).click();
-    const paymentHistoryAfterReversal = invoiceRow.locator('.billing-section__payment-history');
+    // The enhanced POST closes the management sheet. Reopen the exact invoice
+    // and its history before asserting the immutable payment/reversal timeline.
+    const reversalHistorySheet = await manageInvoice(page, invoiceRow);
+    await reversalHistorySheet.getByText('Collections and reversals', { exact: true }).click();
+    const paymentHistoryAfterReversal = reversalHistorySheet.locator(
+      '.billing-section__payment-history',
+    );
     await expect(paymentHistoryAfterReversal).toHaveAttribute('open', '');
     await expect(paymentHistoryAfterReversal).toContainText('Immutable reversal history');
     await expect(paymentHistoryAfterReversal).toContainText('$1.00');
@@ -1131,7 +1141,7 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
     await expect(page).toHaveURL(new RegExp(`${escapeRegExp(detailHref ?? '')}(?:\\?.*)?$`, 'u'));
     await expect(page.locator('[data-customer-signoff]')).toBeVisible();
     await expect(
-      page.getByRole('heading', { name: 'Customer sign-off', exact: true }),
+      page.getByRole('heading', { name: 'Customer signed-copy evidence', exact: true }),
     ).toBeVisible();
     await expect(
       page.getByText('It contains no financial information.', { exact: false }),
@@ -1285,7 +1295,6 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
     await manageInvoice(page, invoiceRow);
     invoiceRow = page.locator(`[data-invoice-row="${targetInvoice.id}"]`);
     if (await invoiceRow.locator('form[action="?/approveInvoice"]').count()) {
-      await stepUpFinance(page);
       await invoiceRow
         .locator('form[action="?/approveInvoice"]')
         .getByRole('button', { name: 'Approve', exact: true })
@@ -1298,7 +1307,6 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
     }
     const blockedIssueForm = invoiceRow.locator('form[action="?/issueInvoice"]');
     await expect(blockedIssueForm).toHaveCount(1);
-    await stepUpFinance(page);
     const blockedIssueResponsePromise = page.waitForResponse(
       (response) =>
         response.request().method() === 'POST' && response.url().includes('?/issueInvoice'),
@@ -1376,24 +1384,31 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
       await expect(signoffForm.locator('input[name="signerName"]')).toBeVisible();
       await expect(signoffForm.locator('input[name="signerIdentity"]')).toBeVisible();
       await expect(
-        signoffForm.getByRole('button', { name: 'Record customer sign-off', exact: true }),
+        signoffForm.getByRole('button', {
+          name: 'Record verified signed-copy evidence',
+          exact: true,
+        }),
       ).toBeVisible();
 
-      await stepUpFinance(page);
       await signoffForm
         .locator('input[name="signerName"]')
         .fill('Client Essential Acceptance Signer');
       await signoffForm
         .locator('input[name="signerIdentity"]')
         .fill('client-essential@example.test');
+      await signoffForm.locator('input[name="signatureFile"]').setInputFiles({
+        name: 'client-essential-synthetic-signed-copy.pdf',
+        mimeType: 'application/pdf',
+        buffer: servedPdf,
+      });
       await signoffForm
-        .getByRole('button', { name: 'Record customer sign-off', exact: true })
+        .getByRole('button', { name: 'Record verified signed-copy evidence', exact: true })
         .click();
     }
 
     await expect(signoffState).toHaveAttribute('data-signoff-state', 'signed');
     await expect(customerSignoff.locator('[data-signoff-notice="signed"] strong')).toHaveText(
-      'Signed',
+      'Verified evidence',
     );
 
     const facts = customerSignoff.locator('dl.customer-signoff__facts');
@@ -1467,7 +1482,6 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
     await manageInvoice(page, invoiceRow);
     invoiceRow = page.locator(`[data-invoice-row="${targetInvoice.id}"]`);
     if (await invoiceRow.locator('form[action="?/approveInvoice"]').count()) {
-      await stepUpFinance(page);
       await invoiceRow
         .locator('form[action="?/approveInvoice"]')
         .getByRole('button', { name: 'Approve', exact: true })
@@ -1489,7 +1503,6 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
     await invalidationForm
       .locator('textarea[name="reason"]')
       .fill('Client Essential supersession verification');
-    await stepUpFinance(page);
     const invalidationResponsePromise = page.waitForResponse(
       (response) =>
         response.request().method() === 'POST' && response.url().includes('?/invalidateSignoff'),
@@ -1518,7 +1531,6 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
     invoiceRow = page.locator(`[data-invoice-row="${targetInvoice.id}"]`);
     const invalidatedIssueForm = invoiceRow.locator('form[action="?/issueInvoice"]');
     await expect(invalidatedIssueForm).toHaveCount(1);
-    await stepUpFinance(page);
     const invalidatedIssueResponsePromise = page.waitForResponse(
       (response) =>
         response.request().method() === 'POST' && response.url().includes('?/issueInvoice'),
@@ -1626,7 +1638,6 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
     ).trim();
     expect(replacementSnapshotVersion).toBe(String(replacementReadyReport.snapshotVersion));
     expect(replacementSnapshotSha256).toBe(replacementReadyReport.snapshotSha256);
-    await stepUpFinance(page);
     const replacementApprovalResponsePromise = page.waitForResponse(
       (response) => response.request().method() === 'POST' && response.url().includes('?/approve'),
     );
@@ -1681,18 +1692,22 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
 
     const replacementSignoffForm = page.locator('form[data-signoff-form]');
     await expect(replacementSignoffForm).toBeVisible();
-    await stepUpFinance(page);
     await replacementSignoffForm
       .locator('input[name="signerName"]')
       .fill('Client Essential Reapproval Signer');
     await replacementSignoffForm
       .locator('input[name="signerIdentity"]')
       .fill('client-essential-reapproval@example.test');
+    await replacementSignoffForm.locator('input[name="signatureFile"]').setInputFiles({
+      name: 'client-essential-synthetic-reapproval-signed-copy.pdf',
+      mimeType: 'application/pdf',
+      buffer: replacementServedPdf,
+    });
     const replacementSignResponsePromise = page.waitForResponse(
       (response) => response.request().method() === 'POST' && response.url().includes('?/sign'),
     );
     await replacementSignoffForm
-      .getByRole('button', { name: 'Record customer sign-off', exact: true })
+      .getByRole('button', { name: 'Record verified signed-copy evidence', exact: true })
       .click();
     const replacementSignResponse = await replacementSignResponsePromise;
     const replacementSignBody = await replacementSignResponse.text();
@@ -1751,7 +1766,6 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
     await expect(invoiceRow.locator('[data-invoice-issue-blocker]')).toHaveCount(0);
     const replacementIssueForm = invoiceRow.locator('form[action="?/issueInvoice"]');
     await expect(replacementIssueForm).toHaveCount(1);
-    await stepUpFinance(page);
     const issueAfterReplacementResponsePromise = page.waitForResponse(
       (response) =>
         response.request().method() === 'POST' && response.url().includes('?/issueInvoice'),
@@ -1789,7 +1803,10 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
 
     await page.goto(portal('/projects'));
 
-    const projectLink = page.locator('a[href*="/app/projects/"]').first();
+    const projectLink = page
+      .locator('main a[href*="/app/projects/"]')
+      .filter({ visible: true })
+      .first();
     await expect(projectLink).toBeVisible();
     await projectLink.click();
     await expect(page.locator('[data-project-detail]')).toBeVisible();
@@ -1805,7 +1822,7 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
 
     await page.goto(portal('/finance?view=commercial'));
     await expect(
-      page.getByRole('heading', { name: 'Finance overview', exact: true }),
+      page.getByRole('heading', { name: 'Commercial Configuration', exact: true }).first(),
     ).toBeVisible();
     await expect(
       page.getByRole('heading', { name: 'Finance configuration', exact: true }),

@@ -150,7 +150,6 @@
     | 'remove-assignment';
   let projectWorkflow = $state<ProjectWorkflow | null>(null);
   let passkeyName = $state('');
-  let mfaPassword = $state('');
   let mfaCode = $state('');
   let mfaSetupUri = $state('');
   let mfaBackupCodes = $state<string[]>([]);
@@ -162,8 +161,6 @@
   });
   const translate = (value: string): string => {
     switch (value) {
-      case 'Step-up authentication is active for the next 10 minutes.':
-        return portalText(locale, 'Step-up authentication is active for the next 10 minutes.');
       case 'Password verification failed.':
         return portalText(locale, 'Password verification failed.');
       case 'Passkey registration was not completed.':
@@ -216,10 +213,6 @@
   type ActionResultWithMessageKey = ActionResult & {
     messageKey?: unknown;
     messageParams?: unknown;
-    stepUpRequired?: unknown;
-    identityScope?: unknown;
-    workerId?: unknown;
-    userId?: unknown;
   };
   type SearchGroupKey = 'projects' | 'invoices' | 'specialists' | 'clients' | 'other';
   type SearchGroup = { key: SearchGroupKey; label: string; rows: Row[] };
@@ -250,19 +243,6 @@
   const securityAdmin: readonly NavItem[] = $derived(roleNavigation.security);
   const currentView = $derived($page.url.searchParams.get('view') ?? '');
   const currentTitle = $derived(portalTitleFor(data.section, currentView));
-  const formIdentity = $derived.by(() => {
-    const result = form as ActionResultWithMessageKey | undefined;
-    const stepUpRequired = Boolean(result?.stepUpRequired);
-    const identityScope = typeof result?.identityScope === 'string' ? result.identityScope : '';
-    const workerId = typeof result?.workerId === 'string' ? result.workerId : '';
-    const userId = typeof result?.userId === 'string' ? result.userId : '';
-    return {
-      invitationNeedsIdentity: stepUpRequired && identityScope === 'invitation',
-      profileNeedsIdentity: stepUpRequired && identityScope === 'workerProfile',
-      statusNeedsIdentity: stepUpRequired && identityScope === 'userStatus',
-      identityWorkerId: workerId || userId,
-    };
-  });
   const actionFeedback = $derived(actionMessage(form));
   const invitationPath = $derived.by(() => {
     const result = form as ActionResultWithMessageKey | undefined;
@@ -764,7 +744,7 @@
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         action,
-        ...(action === 'verify' ? { code: mfaCode } : { password: mfaPassword }),
+        ...(action === 'verify' ? { code: mfaCode } : {}),
       }),
     });
     const result = (await response.json().catch(() => ({}))) as {
@@ -783,7 +763,6 @@
           : 'MFA setup started.'
       : 'MFA could not be updated.';
     if (response.ok) {
-      mfaPassword = '';
       if (action === 'enable') {
         mfaSetupUri = result.totpURI ?? '';
         mfaBackupCodes = result.backupCodes ?? [];
@@ -2662,7 +2641,7 @@
                 </div>
                 {#if data.user.role === 'owner_admin'}
                   <div class="worker-actions">
-                    <details open={formIdentity.identityWorkerId === worker.id || undefined}>
+                    <details>
                       <summary class="worker-manage-toggle">{translate('Manage worker')}</summary>
                       <div class="worker-manage-panel">
                         <form
@@ -3241,19 +3220,10 @@
                 'MFA is optional. Enabling it returns the setup URI and one-time recovery codes; store them in an approved password manager.',
               )}
             </p>
-            <label
-              >{translate('Confirm with password')}<input
-                type="password"
-                bind:value={mfaPassword}
-                minlength="12"
-                autocomplete="current-password"
-                required
-              /></label
-            >
             <div class="inline-actions">
-              <button type="button" onclick={() => toggleMfa('enable')}
-                >{translate('Enable MFA')}</button
-              >
+              {#if !data.user.mfaEnrolled}<button type="button" onclick={() => toggleMfa('enable')}
+                  >{translate('Enable MFA')}</button
+                >{/if}
               {#if data.user.mfaEnrolled}<button
                   type="button"
                   class="secondary"

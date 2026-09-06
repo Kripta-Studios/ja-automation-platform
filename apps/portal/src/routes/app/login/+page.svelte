@@ -216,7 +216,9 @@
       </p>
       <p class="login-security">
         <span aria-hidden="true">◆</span>
-        {t('Protected by secure sessions, rate limits and multi-factor authentication.')}
+        {t(
+          'Protected by secure sessions and rate limits. Optional MFA is available in your profile.',
+        )}
       </p>
       <p class="login-access-note">
         {t(

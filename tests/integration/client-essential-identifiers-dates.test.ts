@@ -446,83 +446,13 @@ describe('Client Essential CORE-02/09/11 identifiers and planned-versus-actual d
     ).toThrow(AccessDeniedError);
   });
 
-  it('requires a fresh production step-up for Finance planning mutations', () => {
+  it('authorizes Finance planning mutations without a second-password prerequisite', () => {
     const value = fixture();
     const invoiceId = seedInvoice(value);
     const expenseId = seedExpense(value);
     const settlementId = seedSettlement(value);
     vi.stubEnv('NODE_ENV', 'production');
-    const auditBefore = (
-      value.sqlite.prepare('SELECT COUNT(*) count FROM audit_event').get() as { count: number }
-    ).count;
-
-    expect(() =>
-      command(value.repository, 'setInvoicePlanningDates', value.finance, {
-        invoiceId,
-        plannedIssueOn: '2026-09-10',
-        expectedCollectionOn: '2026-10-10',
-        expectedVersion: 1,
-      }),
-    ).toThrow(AccessDeniedError);
-    expect(() =>
-      command(value.repository, 'setExpensePlanningDates', value.finance, {
-        expenseId,
-        expectedReimbursementOn: '2026-09-05',
-        expectedRecoveryOn: '2026-09-20',
-        expectedVersion: 1,
-      }),
-    ).toThrow(AccessDeniedError);
-    expect(() =>
-      command(value.v3, 'setCompensationSettlementExpectedPaymentOn', value.finance, {
-        settlementId,
-        expectedPaymentOn: '2026-09-05',
-      }),
-    ).toThrow(/step-up/u);
-    expect(() =>
-      value.v3.refreshPeriodReports(value.finance, {
-        projectId: value.project.id,
-        periodStart: '2026-08-01',
-        periodEnd: '2026-08-31',
-      }),
-    ).toThrow(/step-up/u);
-    expect(
-      value.sqlite
-        .prepare('SELECT planned_issue_on,version FROM invoice WHERE id=?')
-        .get(invoiceId),
-    ).toEqual({ planned_issue_on: null, version: 1 });
-    expect(
-      value.sqlite
-        .prepare('SELECT expected_reimbursement_on,version FROM expense WHERE id=?')
-        .get(expenseId),
-    ).toEqual({ expected_reimbursement_on: null, version: 1 });
-    expect(
-      value.sqlite
-        .prepare('SELECT expected_payment_on FROM compensation_settlement WHERE id=?')
-        .get(settlementId),
-    ).toEqual({ expected_payment_on: null });
-    expect(value.sqlite.prepare('SELECT COUNT(*) count FROM period_report').get()).toEqual({
-      count: 0,
-    });
-    expect(
-      (value.sqlite.prepare('SELECT COUNT(*) count FROM audit_event').get() as { count: number })
-        .count,
-    ).toBe(auditBefore);
-
-    const timestamp = new Date().toISOString();
-    value.sqlite
-      .prepare(
-        'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
-      )
-      .run(
-        'planning-step-up-session',
-        'planning-step-up-token',
-        value.finance.userId,
-        new Date(Date.now() + 3_600_000).toISOString(),
-        timestamp,
-        timestamp,
-        timestamp,
-      );
-    const steppedFinance = { ...value.finance, sessionId: 'planning-step-up-session' };
+    const steppedFinance = stepUpB5Principal(value.sqlite, value.finance, 'planning-session');
     expect(
       command(value.repository, 'setInvoicePlanningDates', steppedFinance, {
         invoiceId,
@@ -531,6 +461,20 @@ describe('Client Essential CORE-02/09/11 identifiers and planned-versus-actual d
         expectedVersion: 1,
       }),
     ).toMatchObject({ invoiceId, plannedIssueOn: '2026-09-10' });
+    expect(
+      command(value.repository, 'setExpensePlanningDates', steppedFinance, {
+        expenseId,
+        expectedReimbursementOn: '2026-09-05',
+        expectedRecoveryOn: '2026-09-20',
+        expectedVersion: 1,
+      }),
+    ).toMatchObject({ expenseId, expectedReimbursementOn: '2026-09-05' });
+    expect(
+      command(value.v3, 'setCompensationSettlementExpectedPaymentOn', steppedFinance, {
+        settlementId,
+        expectedPaymentOn: '2026-09-05',
+      }),
+    ).toMatchObject({ settlementId, expectedPaymentOn: '2026-09-05' });
     expect(
       value.v3.refreshPeriodReports(steppedFinance, {
         projectId: value.project.id,

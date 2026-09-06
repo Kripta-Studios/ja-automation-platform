@@ -1,8 +1,14 @@
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
 
+const isIsoCalendarDate = (value: string): boolean => {
+  if (!isoDatePattern.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
+};
+
 export const mondayOf = (value: string | null): string => {
   const candidate =
-    value && isoDatePattern.test(value) ? value : new Date().toISOString().slice(0, 10);
+    value && isIsoCalendarDate(value) ? value : new Date().toISOString().slice(0, 10);
   const date = new Date(`${candidate}T00:00:00.000Z`);
   if (Number.isNaN(date.valueOf())) return mondayOf(null);
   const distance = (date.getUTCDay() + 6) % 7;

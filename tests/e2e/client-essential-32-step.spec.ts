@@ -9,7 +9,7 @@ import {
   preflightClientEssentialOperationsEvidence,
   readSeededBusinessRows,
   signInFresh,
-  stepUp,
+  assertRoleSession,
   type SeededBusinessRows,
   uatArtifactFile,
 } from '../fixtures/client-essential-32-step-fixture.js';
@@ -53,7 +53,10 @@ async function openInvoiceManage(page: Page, invoiceId: string): Promise<Locator
 }
 
 async function openExpenseClassify(page: Page, index = 0): Promise<Locator> {
-  await page.getByRole('button', { name: 'Classify', exact: true }).nth(index).click();
+  await page
+    .getByRole('button', { name: /^(?:Classify|Review)$/ })
+    .nth(index)
+    .click();
   const classification = page.locator('[data-finance-expense-classification]').first();
   await expect(classification).toBeVisible();
   return classification;
@@ -279,6 +282,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
     let uatProjectId = '';
     let uatProjectPath = '';
     let uatTimeEntryId = '';
+    const uatExpenseIds: string[] = [];
     let uatLaborBillingRuleId = '';
     let issuedInvoiceId = '';
     let createdTimeSummary = 'Client Essential UAT actual time';
@@ -297,7 +301,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
       1,
       async () => {
         await signInFresh(page, 'owner');
-        await navigate(page, '/projects?view=team');
+        await navigate(page, '/projects?view=team&directory=specialists');
         await expect(page.getByRole('button', { name: 'Create user', exact: true })).toBeVisible();
         const invitations = [
           [fixture.mutation.workerEmail, 'worker'],
@@ -305,13 +309,15 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           [fixture.mutation.financeEmail, 'finance_admin'],
         ] as const;
         for (const [email, role] of invitations) {
-          await page.goto(portal('/projects?view=team'), { waitUntil: 'networkidle' });
+          await page.goto(portal('/projects?view=team&directory=specialists'), {
+            waitUntil: 'networkidle',
+          });
           await page.getByRole('button', { name: 'Create user', exact: true }).click();
           const form = page.locator('form[action="?view=team&/createInvitation"]');
           await expect(form).toBeVisible();
           await form.locator('input[name="email"]').fill(email);
           await form.locator('select[name="role"]').selectOption(role);
-          await stepUp(page, 'owner');
+          await assertRoleSession(page, 'owner');
           await form.getByRole('button', { name: 'Create invitation', exact: true }).click();
           await expectActionMessage(page, /invite|created/i);
         }
@@ -506,7 +512,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await policy.locator('input[name="overtimeThresholdMinutes"]').fill('480');
         await policy.locator('select[name="travelClientBillable"]').selectOption('true');
         await policy.locator('select[name="customerSignoffRequired"]').selectOption('false');
-        await stepUp(page, 'finance');
+        await assertRoleSession(page, 'finance');
         await policy.getByRole('button', { name: 'Save project policy', exact: true }).click();
         await expectActionMessage(page, /policy|saved|updated/i);
         // Native form actions replace the query string with the action name.
@@ -531,7 +537,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await issuingAuthority
           .locator('textarea[name="reason"]')
           .fill('Bind the Client Essential UAT project to the reviewed issuing authority.');
-        await stepUp(page, 'finance');
+        await assertRoleSession(page, 'finance');
         await submitAction(page, 'assignProjectLegalEntity', () =>
           issuingAuthority
             .getByRole('button', { name: 'Save issuing authority', exact: true })
@@ -555,7 +561,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await clientRate.locator('select[name="currency"]').selectOption('USD');
         await clientRate.locator('input[data-minor-target="hourlyRateMinor"]').fill('150.00');
         await clientRate.locator('input[name="effectiveFrom"]').fill('2026-08-01');
-        await stepUp(page, 'finance');
+        await assertRoleSession(page, 'finance');
         await clientRate.getByRole('button', { name: 'Save client rate', exact: true }).click();
         await navigate(
           page,
@@ -573,7 +579,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await internalCost.locator('select[name="currency"]').selectOption('USD');
         await internalCost.locator('input[data-minor-target="hourlyRateMinor"]').fill('65.00');
         await internalCost.locator('input[name="effectiveFrom"]').fill('2026-08-01');
-        await stepUp(page, 'finance');
+        await assertRoleSession(page, 'finance');
         await internalCost.getByRole('button', { name: 'Save internal cost', exact: true }).click();
         await navigate(
           page,
@@ -606,7 +612,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await form.locator('input[data-minor-target="rateMinor"]').fill('0.00');
         await form.locator('input[data-bps-target="percentageBps"]').fill('55');
         await form.locator('input[name="effectiveFrom"]').fill('2026-08-01');
-        await stepUp(page, 'finance');
+        await assertRoleSession(page, 'finance');
         await form.getByRole('button', { name: 'Save compensation rule', exact: true }).click();
         await navigate(
           page,
@@ -696,7 +702,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           await form.locator('select[name="templateId"]').selectOption(templateId);
           await form.locator('input[name="paymentTermsDays"]').fill('30');
           await form.locator('input[name="poNumberOverride"]').fill(fixture.mutation.purchaseOrder);
-          await stepUp(page, 'finance');
+          await assertRoleSession(page, 'finance');
           await form.getByRole('button', { name: 'Save billing stream', exact: true }).click();
           await expectActionMessage(page, /billing stream|saved|created/i);
           await page.getByRole('tab', { name: 'Billing streams', exact: true }).click();
@@ -933,39 +939,57 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         if (!uatProjectId) throw new Error('BLOCKED by step 3: no UAT expense project');
         await page.setViewportSize({ width: 390, height: 844 });
         await signInFresh(page, 'worker');
-        await navigate(page, '/expenses');
-        await page.locator('[data-expense-primary-cta]').click();
-        const form = page.locator('form[data-expense-entry-surface]').first();
-        await selectOptionContaining(
-          form.locator('select[name="projectId"]'),
-          fixture.mutation.projectName,
+        const createAndSubmitExpense = async (
+          vendor: string,
+          amount: string,
+          category: 'hotel' | 'meals',
+          receiptFile: string,
+        ) => {
+          await navigate(page, '/expenses');
+          await page.locator('[data-expense-primary-cta]').click();
+          const form = page.locator('form[data-expense-entry-surface]').first();
+          await selectOptionContaining(
+            form.locator('select[name="projectId"]'),
+            fixture.mutation.projectName,
+          );
+          await form.locator('input[name="spentOn"]').fill(date);
+          await form.locator('select[name="category"]').selectOption(category);
+          await form.locator('input[name="vendor"]').fill(vendor);
+          await form.locator('input[name="amount"]').fill(amount);
+          await form.locator('select[name="currency"]').selectOption('USD');
+          await form.locator('select[name="whoPaid"]').selectOption('worker');
+          await form
+            .locator('textarea[name="description"]')
+            .fill('Receipt captured in the UAT expense flow.');
+          await form.locator('input[name="paymentMethod"]').fill('Cash');
+          await form.locator('input[name="receipt"]').setInputFiles(uatArtifactFile(receiptFile));
+          await form.getByRole('button', { name: 'Save draft', exact: true }).click();
+          await expectActionMessage(page, /expense draft saved/i);
+          await navigate(page, '/expenses');
+          const row = page.locator('[data-expense-record]').filter({ hasText: vendor }).first();
+          await expect(row).toBeVisible();
+          const href = await row.locator('a').first().getAttribute('href');
+          const expenseId = href?.split('/').filter(Boolean).pop() ?? '';
+          expect(expenseId).toMatch(/^[0-9a-f-]{36}$/i);
+          uatExpenseIds.push(expenseId);
+          await row
+            .locator('form[action="?/submitExpense"]')
+            .getByRole('button', { name: 'Submit', exact: true })
+            .click();
+          await expectActionMessage(page, /expense submitted|submitted/i);
+        };
+        await createAndSubmitExpense(
+          'Client Essential UAT all-in receipt',
+          '24.50',
+          'hotel',
+          'client-essential-uat-receipt.jpg',
         );
-        await form.locator('input[name="spentOn"]').fill(date);
-        await form.locator('select[name="category"]').selectOption('hotel');
-        await form.locator('input[name="vendor"]').fill('Client Essential UAT receipt');
-        await form.locator('input[name="amount"]').fill('24.50');
-        await form.locator('select[name="currency"]').selectOption('USD');
-        await form.locator('select[name="whoPaid"]').selectOption('worker');
-        await form
-          .locator('textarea[name="description"]')
-          .fill('Receipt captured in the UAT expense flow.');
-        await form.locator('input[name="paymentMethod"]').fill('Cash');
-        await form
-          .locator('input[name="receipt"]')
-          .setInputFiles(uatArtifactFile('client-essential-uat-receipt.jpg'));
-        await form.getByRole('button', { name: 'Save draft', exact: true }).click();
-        await expectActionMessage(page, /expense draft saved/i);
-        await navigate(page, '/expenses');
-        const row = page
-          .locator('[data-expense-record]')
-          .filter({ hasText: 'Client Essential UAT receipt' })
-          .first();
-        await expect(row).toBeVisible();
-        await row
-          .locator('form[action="?/submitExpense"]')
-          .getByRole('button', { name: 'Submit', exact: true })
-          .click();
-        await expectActionMessage(page, /expense submitted|submitted/i);
+        await createAndSubmitExpense(
+          'Client Essential UAT reimbursable receipt',
+          '18.75',
+          'meals',
+          'client-essential-uat-expense-receipt.pdf',
+        );
       },
       failures,
       page,
@@ -979,7 +1003,25 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await signInFresh(page, 'manager');
         await navigate(page, '/approvals');
         await expect(page.getByRole('heading', { name: 'Approvals', exact: true })).toBeVisible();
+        // Each approval refreshes the route data and resets the local domain
+        // state to Time. Remount and explicitly reopen Expenses for every row;
+        // the tab's accessible name includes its live count.
+        for (const expenseId of uatExpenseIds) {
+          await navigate(page, '/projects');
+          await navigate(page, '/approvals');
+          await page.getByRole('tab', { name: /^Expenses\b/ }).click();
+          const expenseRow = page.locator(`[data-approval-row="${expenseId}"]`);
+          await expect(expenseRow).toBeVisible();
+          await expenseRow
+            .locator('form[action="?/approveRecord"]')
+            .first()
+            .getByRole('button', { name: 'Approve', exact: true })
+            .click();
+          await expectActionMessage(page, /approval|approved|recorded/i);
+        }
         if (!uatTimeEntryId) throw new Error('BLOCKED by step 12: no time entry identity');
+        await navigate(page, '/projects');
+        await navigate(page, '/approvals');
         const row = page.locator(`[data-approval-row="${uatTimeEntryId}"]`);
         await expect(row).toBeVisible();
         const approve = row.locator('form[action="?/approveRecord"]').first();
@@ -1002,7 +1044,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         const financeReview = page.locator(`[data-finance-review-row="${uatTimeEntryId}"]`);
         await expect(financeReview).toBeVisible();
         await financeReview.locator('select[name="billable"]').selectOption('yes');
-        await stepUp(page, 'finance');
+        await assertRoleSession(page, 'finance');
         await financeReview
           .getByRole('button', { name: 'Record Finance review', exact: true })
           .click();
@@ -1063,7 +1105,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await classification
           .locator('textarea[name="reason"]')
           .fill('Client Essential all-in expense classification.');
-        await stepUp(page, 'finance');
+        await assertRoleSession(page, 'finance');
         await classification
           .getByRole('button', { name: 'Save Finance classification', exact: true })
           .click();
@@ -1088,12 +1130,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           page,
           `/finance?view=commercial&project=${encodeURIComponent(seeded.project.id)}`,
         );
-        const classifications = page.locator('[data-finance-expense-id]');
-        if ((await classifications.count()) < 2)
-          throw new Error(
-            'The deterministic fixture has fewer than two unlocked expenses for separate treatment',
-          );
-        const classification = await openExpenseClassify(page, 1);
+        const classification = await openExpenseClassify(page);
         await classification
           .locator('select[name="expensePreset"]')
           .selectOption('reimbursable_at_cost');
@@ -1101,7 +1138,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await classification
           .locator('textarea[name="reason"]')
           .fill('Client Essential reimbursable expense classification.');
-        await stepUp(page, 'finance');
+        await assertRoleSession(page, 'finance');
         await classification
           .getByRole('button', { name: 'Save Finance classification', exact: true })
           .click();
@@ -1134,7 +1171,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await form.locator('input[name="periodStart"]').fill(seededPeriod.start);
         await form.locator('input[name="periodEnd"]').fill(seededPeriod.end);
         await form.locator('select[name="reportLocale"]').selectOption('en');
-        await stepUp(page, 'finance');
+        await assertRoleSession(page, 'finance');
         await form.getByRole('button', { name: 'Refresh reports', exact: true }).click();
         await expectActionMessage(page, /period reports|queued|refreshed/i);
         await page.getByRole('tab', { name: 'Client Sign-off', exact: true }).click();
@@ -1166,7 +1203,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         const createDraft = rule.locator('form[action="?/createDraft"]');
         await createDraft.locator('input[name="periodStart"]').fill('2026-08-24');
         await createDraft.locator('input[name="periodEnd"]').fill('2026-08-30');
-        await stepUp(page, 'finance');
+        await assertRoleSession(page, 'finance');
         await submitAction(page, 'createDraft', () =>
           createDraft.getByRole('button', { name: 'Create invoice draft', exact: true }).click(),
         );
@@ -1183,7 +1220,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         issuedInvoiceId = createdInvoiceId;
         expect(issuedInvoiceId).toMatch(/^[0-9a-f-]{36}$/i);
         const draft = await openInvoiceManage(page, issuedInvoiceId);
-        await stepUp(page, 'finance');
+        await assertRoleSession(page, 'finance');
         await draft
           .locator('form[action="?/approveInvoice"]')
           .getByRole('button', { name: 'Approve', exact: true })
@@ -1193,7 +1230,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         const issueable = await openInvoiceManage(page, issuedInvoiceId);
         const issue = issueable.locator('form[action="?/issueInvoice"]');
         await expect(issue).toBeVisible();
-        await stepUp(page, 'finance');
+        await assertRoleSession(page, 'finance');
         await submitAction(page, 'issueInvoice', () =>
           issue.getByRole('button', { name: 'Issue invoice', exact: true }).click(),
         );
@@ -1227,7 +1264,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await paymentForm
           .locator('input[name="reference"]')
           .fill('Client Essential UAT partial collection');
-        await stepUp(page, 'finance');
+        await assertRoleSession(page, 'finance');
         await paymentForm.getByRole('button', { name: 'Record payment', exact: true }).click();
         await expectActionMessage(page, /payment recorded|recorded/i);
         await expect(page.locator(`tr[data-invoice-row="${issuedInvoiceId}"]`)).toContainText(
@@ -1271,7 +1308,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await form.locator('input[name="periodStart"]').fill(seededPeriod.start);
         await form.locator('input[name="periodEnd"]').fill(seededPeriod.end);
         await form.locator('select[name="reportLocale"]').selectOption('en');
-        await stepUp(page, 'finance');
+        await assertRoleSession(page, 'finance');
         await submitAction(page, 'createAccountingPack', () =>
           form.getByRole('button', { name: 'Generate pack', exact: true }).click(),
         );

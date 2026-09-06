@@ -110,6 +110,30 @@ export const customerConformityInvalidations = sqliteTable(
   ],
 );
 
+/** One append-only private-evidence attachment for a legacy NULL-evidence conformity. */
+export const customerConformityEvidenceAttachments = sqliteTable(
+  'customer_conformity_evidence_attachment',
+  {
+    id: text('id').primaryKey(),
+    conformityId: text('conformity_id')
+      .notNull()
+      .unique()
+      .references(() => customerConformities.id, { onUpdate: 'restrict', onDelete: 'restrict' }),
+    signatureDocumentId: text('signature_document_id')
+      .notNull()
+      .unique()
+      .references(() => documents.id, { onUpdate: 'restrict', onDelete: 'restrict' }),
+    attachedBy: text('attached_by')
+      .notNull()
+      .references(() => users.id, { onUpdate: 'restrict', onDelete: 'restrict' }),
+    attachedAt: text('attached_at').notNull(),
+    reason: text('reason').notNull(),
+  },
+  (table) => [
+    index('customer_conformity_evidence_attachment_document_idx').on(table.signatureDocumentId),
+  ],
+);
+
 export const reportSources = sqliteTable('report_source', {
   reportId: text('report_id').notNull(),
   sourceType: text('source_type').notNull(),

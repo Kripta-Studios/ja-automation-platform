@@ -4,6 +4,7 @@
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import TimesheetPanel from './TimesheetPanel.svelte';
+  import { canDeleteTimeDraft } from './time-entry-actions';
 
   let {
     data,
@@ -87,6 +88,10 @@
     editTimeId = null;
     createCategory = 'regular';
     editCategory = 'regular';
+  }
+
+  function canDelete(row: Row): boolean {
+    return canDeleteTimeDraft(row, data.user.id);
   }
 </script>
 
@@ -209,32 +214,36 @@
               </form>
             </div>
           {/if}
-          {#if String(row.worker_id) === data.user.id && row.approval_state !== 'void'}
+          {#if row.approval_state === 'needs_changes' && String(row.worker_id) === data.user.id}
+            <form class="time-record-actions" method="POST" action="?/createCorrectionDraft">
+              <input type="hidden" name="recordType" value="time_entry" />
+              <input type="hidden" name="originalId" value={row.id} />
+              <input
+                type="hidden"
+                name="requestId"
+                value={`time-returned-correction-${String(row.id)}`}
+              />
+              <label>
+                <span>{translate('Correction reason')}</span>
+                <input name="reason" minlength="3" required />
+              </label>
+              <button type="submit">{translate('Create corrected draft')}</button>
+            </form>
+          {/if}
+          {#if canDelete(row)}
             <div class="time-record-actions time-destructive-actions">
-              {#if row.approval_state === 'draft'}
-                <form
-                  method="POST"
-                  action="?/deleteDraft"
-                  data-action="deleteDraft"
-                  data-record-type="time_entry"
-                  data-record-id={String(row.id)}
-                >
-                  <input type="hidden" name="recordType" value="time_entry" />
-                  <input type="hidden" name="recordId" value={row.id} />
-                  <input type="hidden" name="version" value={row.version} />
-                  <button type="submit" class="destructive-button">{translate('Delete')}</button>
-                </form>
-              {:else}
-                <form method="POST" action="?/deleteTime">
-                  <input type="hidden" name="id" value={row.id} />
-                  <input type="hidden" name="version" value={row.version} />
-                  <button type="submit" class="destructive-button">
-                    {row.approval_state === 'needs_changes'
-                      ? translate('Delete')
-                      : translate('Void')}
-                  </button>
-                </form>
-              {/if}
+              <form
+                method="POST"
+                action="?/deleteDraft"
+                data-action="deleteDraft"
+                data-record-type="time_entry"
+                data-record-id={String(row.id)}
+              >
+                <input type="hidden" name="recordType" value="time_entry" />
+                <input type="hidden" name="recordId" value={row.id} />
+                <input type="hidden" name="version" value={row.version} />
+                <button type="submit" class="destructive-button">{translate('Delete')}</button>
+              </form>
             </div>
           {/if}
         </article>

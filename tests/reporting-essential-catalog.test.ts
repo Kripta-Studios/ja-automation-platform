@@ -127,12 +127,20 @@ const ledger: readonly InvoiceCollectionLedgerRow[] = [
     payments: [
       {
         id: 'payment-a',
+        paymentDate: '2026-08-20T09:30:00.000Z',
         grossAmountMinor: '8000',
         reversedMinor: '3000',
         netAmountMinor: '5000',
       },
     ],
-    paymentReversals: [{ id: 'reversal-a', originalPaymentId: 'payment-a', amountMinor: '3000' }],
+    paymentReversals: [
+      {
+        id: 'reversal-a',
+        originalPaymentId: 'payment-a',
+        paymentDate: '2026-08-21T10:00:00.000Z',
+        amountMinor: '3000',
+      },
+    ],
   },
   {
     invoiceId: 'invoice-void',
@@ -211,6 +219,11 @@ describe('Client Essential report-family serializers', () => {
     expect(ledgerSheet).toContain('r="AA2"');
     expect(files.get('xl/worksheets/sheet2.xml')?.toString()).toContain('payment-a');
     expect(files.get('xl/worksheets/sheet3.xml')?.toString()).toContain('reversal-a');
+    expect(files.get('xl/worksheets/sheet2.xml')?.toString()).toMatch(/s="1"><v>\d+<\/v>/u);
+    expect(files.get('xl/worksheets/sheet3.xml')?.toString()).toMatch(/s="1"><v>\d+<\/v>/u);
+    expect(ledgerSheet).toMatch(/s="1"><v>\d+<\/v><\/c>/u);
+    expect(ledgerSheet).toContain('<v>80</v>');
+    expect(ledgerSheet).toContain('<is><t>8000</t></is>');
   });
 
   it('uses the native technical report date before creation timestamps', () => {

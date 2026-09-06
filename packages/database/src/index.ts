@@ -15,6 +15,8 @@ import { DatabaseSync } from 'node:sqlite';
 type DeploymentIdentity = Readonly<{ tenantId: string; deploymentId: string }>;
 
 const DEPLOYMENT_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{2,63}$/;
+const RESERVED_E2E_TENANT_ID = 'e2e-client-essential-tenant';
+const RESERVED_E2E_DEPLOYMENT_ID = 'e2e-client-essential-deployment';
 
 function resolveRequiredDeploymentIdentity(): DeploymentIdentity {
   const read = (name: 'JA_TENANT_ID' | 'JA_DEPLOYMENT_ID'): string => {
@@ -24,7 +26,14 @@ function resolveRequiredDeploymentIdentity(): DeploymentIdentity {
     }
     return value;
   };
-  return { tenantId: read('JA_TENANT_ID'), deploymentId: read('JA_DEPLOYMENT_ID') };
+  const identity = { tenantId: read('JA_TENANT_ID'), deploymentId: read('JA_DEPLOYMENT_ID') };
+  if (
+    process.env.NODE_ENV === 'production' &&
+    identity.tenantId === RESERVED_E2E_TENANT_ID &&
+    identity.deploymentId === RESERVED_E2E_DEPLOYMENT_ID
+  )
+    throw new Error('Reserved E2E deployment identity cannot be used in production');
+  return identity;
 }
 
 export function deploymentIdentityFromEnvironment(): DeploymentIdentity {
@@ -256,6 +265,10 @@ const REVIEWED_B5_MIGRATION_NAMES: Readonly<Record<number, string>> = {
   33: 'client_essential_service_actor_namespace',
   34: 'client_essential_invoice_immutability',
   35: 'stalwart_mail_integration',
+  36: 'time_returned_correction',
+  37: 'production_mfa_enforcement',
+  38: 'customer_conformity_evidence_attachment',
+  39: 'mfa_optional_policy',
 };
 
 const MIGRATION_CONTRACT_VERSION = 'ja-migration-contract-v1';
@@ -264,7 +277,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  '4cfc3f0b7cff31f7da8ed741ec8d84a0505258bf78e19ed933cc7bc2f70082fb';
+  '2add75287127d19f581b54f4933444796f3ced6d9d7e29a3209a38bfad310500';
 
 type MigrationContractEntry = Readonly<{
   version: number;
@@ -1024,12 +1037,7 @@ export function integrityCheck(sqlite: DatabaseSync): string {
 export * from './repository.ts';
 export * from './v3-repository.ts';
 export { recordAuditEvent } from './core/audit.ts';
-export {
-  STEP_UP_WINDOW_MS,
-  assertRecentStepUp,
-  readLiveSessionStepUp,
-  type SessionStepUpProof,
-} from './core/authorization.ts';
+export { assertLiveSession } from './core/authorization.ts';
 export * from './domains/localized-artifacts/index.ts';
 export * from './domains/accounting-pack/index.ts';
 export * from './domains/worker-statements/index.ts';

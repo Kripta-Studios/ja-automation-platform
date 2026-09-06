@@ -390,10 +390,8 @@ describe('AccountingPackRevisionService', () => {
         )
         .all() as Array<{ step_up_verified_at: string | null; step_up_expires_at: string | null }>;
       expect(commands).toHaveLength(3);
-      expect(
-        commands.every((command) => command.step_up_verified_at === '2026-08-18T12:00:00.000Z'),
-      ).toBe(true);
-      expect(commands.every((command) => command.step_up_expires_at !== null)).toBe(true);
+      expect(commands.every((command) => command.step_up_verified_at === null)).toBe(true);
+      expect(commands.every((command) => command.step_up_expires_at === null)).toBe(true);
     } finally {
       sqlite.close();
     }
@@ -2951,34 +2949,16 @@ describe('AccountingPackRevisionService', () => {
     }
   });
 
-  it('requires a valid unexpired human session step-up before any immutable write', () => {
-    const { sqlite, service, basePrincipal, principal, sessionId } = fixture();
+  it('does not use the session step-up marker for immutable writes', () => {
+    const { sqlite, service, basePrincipal } = fixture();
     try {
-      expect(() => service.createCanonicalRevision(basePrincipal, input())).toThrow(
-        /Recent step-up authentication is required/u,
-      );
-
-      sqlite
-        .prepare('UPDATE session SET step_up_at=? WHERE id=?')
-        .run(new Date(Date.now() - 10 * 60_000 - 1).toISOString(), sessionId);
-      expect(() => service.createCanonicalRevision(principal, input())).not.toThrow();
-
-      sqlite
-        .prepare('UPDATE session SET expires_at=? WHERE id=?')
-        .run(new Date(Date.now() - 1).toISOString(), sessionId);
-      expect(() =>
-        service.createCanonicalRevision(principal, {
-          ...input(),
-          periodStart: '2026-03-01',
-          periodEnd: '2026-04-01',
-        }),
-      ).toThrow(/Recent step-up authentication is required/u);
+      expect(() => service.createCanonicalRevision(basePrincipal, input())).not.toThrow();
     } finally {
       sqlite.close();
     }
   });
 
-  it('keeps the same live-session proof when step_up_at later changes', () => {
+  it('keeps historical command evidence unchanged when a legacy step_up_at value changes', () => {
     const { sqlite, service, principal, sessionId } = fixture();
     try {
       service.createCanonicalRevision(principal, input());

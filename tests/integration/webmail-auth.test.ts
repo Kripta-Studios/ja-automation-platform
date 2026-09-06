@@ -42,7 +42,7 @@ const { auth } = await import('../../apps/portal/src/lib/server/auth.js');
 const owner = { id: randomUUID(), email: 'antonny.luty@j-aautomation.com' };
 const worker = { id: randomUUID(), email: 'worker.mail@j-aautomation.com' };
 const unlinked = { id: randomUUID(), email: 'unlinked@j-aautomation.com' };
-const ownerDemoPassword = 'antonny.luty';
+const ownerDemoPassword = randomUUID();
 liveMailboxes.push(
   { id: `stalwart-${owner.id}`, email: owner.email },
   { id: `stalwart-${worker.id}`, email: worker.email },

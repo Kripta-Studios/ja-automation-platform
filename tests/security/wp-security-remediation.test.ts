@@ -4,12 +4,8 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Principal } from '@ja/domain';
-import { createDatabase, V3AccessDeniedError } from '@ja/database';
-import { assertRecentStepUp as assertCoreRecentStepUp } from '../../packages/database/src/core/authorization.js';
-import {
-  assertRecentStepUp,
-  servePrivateArtifact,
-} from '../../apps/portal/src/lib/server/private-artifact-access.js';
+import { createDatabase } from '@ja/database';
+import { servePrivateArtifact } from '../../apps/portal/src/lib/server/private-artifact-access.js';
 import { sensitiveExportResponse } from '../../apps/portal/src/lib/server/sensitive-export-response.js';
 import { assertRegularPrivateFile } from '../../apps/portal/src/lib/server/report-attachment-route.js';
 import { readSource } from '../fixtures/b5-lifecycle-security-fixture.js';
@@ -65,74 +61,15 @@ function seedStepUpDatabase(): ReturnType<typeof createDatabase>['sqlite'] {
   return database.sqlite;
 }
 
-describe('WP-SEC step-up and private artifact boundaries', () => {
-  it('authorizes a live session without a second password confirmation', () => {
+describe('WP-SEC session and private artifact boundaries', () => {
+  it('does not expose a private-artifact step-up authenticator', () => {
     const sqlite = seedStepUpDatabase();
-    expect(() => assertRecentStepUp(sqlite, principal())).toThrow(
-      'Confirm your identity to continue',
-    );
-    expect(() => assertRecentStepUp(sqlite, principal('worker-session'))).not.toThrow();
-
-    sqlite
-      .prepare('UPDATE session SET expires_at=? WHERE id=?')
-      .run(new Date(Date.now() - 1).toISOString(), 'worker-session');
-    expect(() => assertRecentStepUp(sqlite, principal('worker-session'))).toThrow(
-      'Confirm your identity to continue',
-    );
-  });
-
-  it('keeps the canonical database guard fail-closed outside a live session', () => {
-    process.env.NODE_ENV = 'test';
-    const sqlite = seedStepUpDatabase();
-    expect(() => assertCoreRecentStepUp(sqlite, principal(), V3AccessDeniedError)).toThrow(
-      'Recent step-up authentication is required',
-    );
-    expect(() =>
-      assertCoreRecentStepUp(sqlite, principal('worker-session'), V3AccessDeniedError),
-    ).not.toThrow();
-
-    sqlite
-      .prepare('UPDATE session SET expires_at=? WHERE id=?')
-      .run(new Date(Date.now() - 1).toISOString(), 'worker-session');
-    expect(() =>
-      assertCoreRecentStepUp(sqlite, principal('worker-session'), V3AccessDeniedError),
-    ).toThrow('Recent step-up authentication is required');
-  });
-
-  it('keeps an owner login privileged until the session expires', () => {
-    const sqlite = seedStepUpDatabase();
-    const now = new Date().toISOString();
-    sqlite
-      .prepare(
-        "INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at) VALUES('owner','Owner','antonny.luty@j-aautomation.com','owner_admin','active',1,?,?)",
-      )
-      .run(now, now);
-    sqlite
-      .prepare(
-        'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
-      )
-      .run(
-        'owner-session',
-        'owner-token',
-        'owner',
-        new Date(Date.now() + 60 * 60_000).toISOString(),
-        now,
-        now,
-        null,
-      );
-    const owner: Principal = {
-      userId: 'owner',
-      role: 'owner_admin',
-      projectIds: new Set(),
-      sessionId: 'owner-session',
-    };
-    expect(() => assertCoreRecentStepUp(sqlite, owner, V3AccessDeniedError)).not.toThrow();
-    sqlite
-      .prepare('UPDATE session SET expires_at=? WHERE id=?')
-      .run(new Date(Date.now() - 1).toISOString(), 'owner-session');
-    expect(() => assertCoreRecentStepUp(sqlite, owner, V3AccessDeniedError)).toThrow(
-      'Recent step-up authentication is required',
-    );
+    expect(
+      sqlite.prepare('SELECT step_up_at FROM session WHERE id=?').get('worker-session'),
+    ).toEqual({ step_up_at: null });
+    const source = readSource('apps/portal/src/lib/server/private-artifact-access.ts');
+    expect(source).not.toContain('assertRecentStepUp');
+    expect(source).not.toContain('requireStepUp');
   });
 
   it('allows an authorized operational report download without repeated step-up', async () => {
@@ -186,7 +123,6 @@ describe('WP-SEC step-up and private artifact boundaries', () => {
       principal: principal('worker-session'),
       kind: 'period_report',
       id: reportId,
-      requireStepUp: false,
       loadMetadata: () => ({
         storageKey: 'reports/period-report.pdf',
         sha256: createHash('sha256').update(bytes).digest('hex'),
@@ -244,7 +180,6 @@ describe('WP-SEC step-up and private artifact boundaries', () => {
       principal: principal('worker-session'),
       kind: 'period_report',
       id: 'period-report-unreviewed',
-      requireStepUp: false,
       loadMetadata: () => {
         throw new Error('metadata must not be loaded before authorization');
       },
@@ -265,7 +200,7 @@ describe('WP-SEC step-up and private artifact boundaries', () => {
     expect(() =>
       sensitiveExportResponse({
         sqlite,
-        principal: { ...principal('worker-session'), role: 'finance_admin' },
+        principal: { ...principal(), role: 'finance_admin' },
         auditEntityType: 'document',
         auditEntityId: 'worker-statement:worker:2026-08-01:2026-08-31',
         exportKind: 'worker_compensation_statement',
@@ -289,7 +224,7 @@ describe('WP-SEC step-up and private artifact boundaries', () => {
         periodStart: '2026-08-01',
         periodEnd: '2026-08-31',
       }),
-    ).toThrow('Confirm your identity to continue');
+    ).not.toThrow();
   });
 
   it('uses shared exclusive private-file publication for offline attachment writes', () => {
@@ -406,14 +341,14 @@ describe('WP-SEC disabled offline contract', () => {
     expect(source).toContain('JA_OFFLINE_ENABLED');
   });
 
-  it('applies session-bound step-up to every restricted finance export route', () => {
+  it('does not apply step-up authentication to finance export routes', () => {
     for (const path of [
       'apps/portal/src/routes/app/api/projects/[id]/finance-export/+server.ts',
       'apps/portal/src/routes/app/api/invoice-collection-ledger/[format]/+server.ts',
       'apps/portal/src/routes/app/api/worker-statement/[format]/+server.ts',
     ]) {
       const source = readSource(path);
-      expect(source, path).toContain('assertRecentStepUp');
+      expect(source, path).not.toMatch(/step.?up/iu);
     }
   });
 
@@ -423,7 +358,7 @@ describe('WP-SEC disabled offline contract', () => {
     );
     expect(source).toContain('listWorkerStatementArtifacts');
     expect(source).toContain('artifactDownloadLocation');
-    expect(source).toContain('assertRecentStepUp');
+    expect(source).not.toMatch(/step.?up/iu);
     for (const mutatingBoundary of [
       'buildWorkerStatementSnapshot',
       'requestWorkerStatementArtifact',
@@ -437,9 +372,9 @@ describe('WP-SEC disabled offline contract', () => {
       );
   });
 
-  it('does not exempt internal period reports from step-up', () => {
+  it('does not apply step-up authentication to internal period reports', () => {
     const source = readSource('apps/portal/src/routes/app/api/reports/[id]/pdf/+server.ts');
-    expect(source).toContain('subject.audience');
-    expect(source).not.toContain('requireStepUp: false');
+    expect(source).not.toMatch(/step.?up/iu);
+    expect(source).not.toContain('requireStepUp');
   });
 });

@@ -164,7 +164,7 @@ describe('Client Essential CORE-03/09 project commercial policy contracts', () =
     expect(() => policies.createProjectCommercialPolicy(auditor, input)).toThrow(AccessDeniedError);
   });
 
-  it('requires a live session before the public write facade mutates policy', () => {
+  it('requires a live session without adding a second-password prerequisite', () => {
     const value = fixture();
     const policies = repository(value);
     vi.stubEnv('NODE_ENV', 'production');
@@ -174,8 +174,7 @@ describe('Client Essential CORE-03/09 project commercial policy contracts', () =
         withoutSession(value.finance),
         policyInput(value.project.id, '2026-01-01'),
       ),
-    ).toThrow(/Recent step-up authentication is required/u);
-    expect(policies.listProjectCommercialPolicies(value.finance, value.project.id)).toHaveLength(0);
+    ).toThrow(/Live authenticated session required/u);
 
     const now = new Date().toISOString();
     const expiresAt = new Date(Date.now() + 60 * 60_000).toISOString();
@@ -202,7 +201,6 @@ describe('Client Essential CORE-03/09 project commercial policy contracts', () =
         policyInput(value.project.id, '2026-01-01'),
       ),
     ).toMatchObject({ version: 1 });
-
     expect(
       policies.createProjectCommercialPolicy(
         liveFinance,

@@ -538,10 +538,6 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     'Incluido en todo incluido / precio fijo',
     'Incluído em tudo incluído / preço fixo',
   ],
-  "Invitations require step-up authentication. The worker will be added as 'invited' status.": [
-    'Las invitaciones requieren autenticación reforzada. El trabajador se añadirá con el estado «invitado».',
-    'Os convites exigem autenticação reforçada. O colaborador será adicionado com o status «convidado».',
-  ],
   'Invite/Create Worker': ['Invitar/crear trabajador', 'Convidar/criar colaborador'],
   'Invoice line items and amounts': [
     'Partidas e importes de la factura',
@@ -747,11 +743,6 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
       'Actualiza los campos siguientes y vuelve a enviarlo. El propietario y el equipo de administración pueden ver exactamente qué ha cambiado.',
       'Atualize os campos abaixo e envie novamente. O proprietário e a equipe de administração podem ver exatamente o que mudou.',
     ],
-  'Use step-up authentication immediately before payment, invoice void, rate, invitation, or final-pack actions.':
-    [
-      'Usa autenticación reforzada justo antes de acciones de pago, anulación de facturas, tarifas, invitaciones o paquetes finales.',
-      'Use autenticação reforçada imediatamente antes de ações de pagamento, anulação de fatura, taxas, convites ou pacotes finais.',
-    ],
   'Use the company credentials issued for your J&A workspace.': [
     'Usa las credenciales de empresa emitidas para tu espacio de trabajo de J&A.',
     'Use as credenciais da empresa fornecidas para seu espaço de trabalho J&A.',
@@ -808,6 +799,11 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
     [
       'Se necesita un informe final seguro para el cliente y un PDF listo antes de registrar su conformidad.',
       'É necessário um relatório final seguro para o cliente e um PDF pronto antes de registrar a conformidade.',
+    ],
+  'A verified signed PDF copy is required for this exact report version. It contains no financial information.':
+    [
+      'Se requiere una copia PDF firmada y verificada para esta versión exacta del informe. No contiene información financiera.',
+      'Uma cópia em PDF assinada e verificada é obrigatória para esta versão exata do relatório. Ela não contém informações financeiras.',
     ],
   'ACTIVITY REGISTER': ['REGISTRO DE ACTIVIDAD', 'REGISTRO DE ATIVIDADES'],
   Accounting: ['Contabilidad', 'Contabilidade'],
@@ -1116,6 +1112,8 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
     'Controles, sistemas e evidência técnica',
   ],
   'Correction draft': ['Borrador de corrección', 'Rascunho de correção'],
+  'Correction reason': ['Motivo de la corrección', 'Motivo da correção'],
+  'Create corrected draft': ['Crear borrador corregido', 'Criar rascunho corrigido'],
   'Cost center': ['Centro de coste', 'Centro de custo'],
   'Cost center code': ['Código del centro de coste', 'Código do centro de custo'],
   'Create a reviewable Accounting Pack and follow each artifact until it is ready, failed or queued for automatic processing.':
@@ -1805,6 +1803,10 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   'Read only': ['Solo lectura', 'Somente leitura'],
   'Ready for signature': ['Listo para firma', 'Pronto para assinatura'],
   'Reason code': ['Código de motivo', 'Código do motivo'],
+  'Reason for evidence attachment': [
+    'Motivo del adjunto de evidencia',
+    'Motivo do anexo de evidência',
+  ],
   'Reason for invalidation': ['Motivo de la invalidación', 'Motivo da invalidação'],
   'Receipt preview': ['Vista previa del recibo', 'Pré-visualização do recibo'],
   'Recent time entries': ['Registros de tiempo recientes', 'Registros de tempo recentes'],
@@ -1822,6 +1824,72 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   'Record customer sign-off': [
     'Registrar conformidad del cliente',
     'Registrar conformidade do cliente',
+  ],
+  'Capture verified signed-copy evidence': [
+    'Registrar evidencia de copia firmada verificada',
+    'Registrar evidência de cópia assinada verificada',
+  ],
+  'Attach verified signed-copy evidence': [
+    'Adjuntar evidencia de copia firmada verificada',
+    'Anexar evidência de cópia assinada verificada',
+  ],
+  'Customer signed-copy evidence': [
+    'Evidencia de copia firmada del cliente',
+    'Evidência de cópia assinada do cliente',
+  ],
+  'Customer signature date': ['Fecha de firma del cliente', 'Data da assinatura do cliente'],
+  'Evidence verified at': ['Evidencia verificada el', 'Evidência verificada em'],
+  'Retry after security scan': [
+    'Reintentar tras el análisis de seguridad',
+    'Tentar novamente após a verificação de segurança',
+  ],
+  'The uploaded signed PDF is awaiting its security scan. Retry after the scan completes; do not upload it again.':
+    [
+      'El PDF firmado subido está pendiente del análisis de seguridad. Reinténtalo cuando termine; no vuelvas a subirlo.',
+      'O PDF assinado enviado aguarda a verificação de segurança. Tente novamente quando terminar; não envie o arquivo outra vez.',
+    ],
+  'Exact report binding': ['Vinculación exacta del informe', 'Vínculo exato do relatório'],
+  'Open verified signed-copy evidence': [
+    'Abrir evidencia de copia firmada verificada',
+    'Abrir evidência de cópia assinada verificada',
+  ],
+  'Record verified signed-copy evidence': [
+    'Registrar evidencia de copia firmada verificada',
+    'Registrar evidência de cópia assinada verificada',
+  ],
+  'Report hash': ['Hash del informe', 'Hash do relatório'],
+  'Required. Upload the complete signed PDF copy (maximum 20 MB).': [
+    'Obligatorio. Carga la copia PDF firmada completa (máximo 20 MB).',
+    'Obrigatório. Envie a cópia em PDF assinada completa (máximo de 20 MB).',
+  ],
+  'Signed PDF copy': ['Copia PDF firmada', 'Cópia em PDF assinada'],
+  'Signed-copy evidence unavailable': [
+    'Evidencia de copia firmada no disponible',
+    'Evidência de cópia assinada indisponível',
+  ],
+  'This historical conformity has no currently verified signed-copy evidence. It remains in the audit record but cannot support a future invoice issue.':
+    [
+      'Esta conformidad histórica no tiene evidencia de copia firmada actualmente verificada. Se conserva en el registro de auditoría, pero no puede respaldar una futura emisión de factura.',
+      'Esta conformidade histórica não possui evidência de cópia assinada atualmente verificada. Ela permanece no registro de auditoria, mas não pode respaldar uma futura emissão de fatura.',
+    ],
+  'This preserves the historical conformity and attaches a newly verified private signed PDF to the exact immutable report version.':
+    [
+      'Esto conserva la conformidad histórica y adjunta un nuevo PDF privado firmado y verificado a la versión exacta e inmutable del informe.',
+      'Isso preserva a conformidade histórica e anexa um novo PDF privado assinado e verificado à versão exata e imutável do relatório.',
+    ],
+  'The original signer details and signed date remain unchanged in the historical record.': [
+    'Los datos originales del firmante y la fecha de firma no cambian en el registro histórico.',
+    'Os dados originais do signatário e a data de assinatura permanecem inalterados no registro histórico.',
+  ],
+  'Upload the signed customer PDF for this exact report version and enter the signer details. The server records the verification time.':
+    [
+      'Carga el PDF firmado por el cliente para esta versión exacta del informe e introduce los datos del firmante. El servidor registra la hora de verificación.',
+      'Envie o PDF assinado pelo cliente para esta versão exata do relatório e informe os dados do signatário. O servidor registra a hora da verificação.',
+    ],
+  'Verified evidence': ['Evidencia verificada', 'Evidência verificada'],
+  'Verified signed-copy evidence is bound to this immutable report version.': [
+    'La evidencia de copia firmada verificada está vinculada a esta versión inmutable del informe.',
+    'A evidência de cópia assinada verificada está vinculada a esta versão imutável do relatório.',
   ],
   'Record the receipt and operational facts. Finance handles later classification.': [
     'Registra el recibo y los hechos operativos. Finanzas gestiona la clasificación posterior.',

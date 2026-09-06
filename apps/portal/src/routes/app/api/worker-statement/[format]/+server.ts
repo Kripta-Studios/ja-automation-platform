@@ -5,7 +5,6 @@ import {
   ValidationError,
   V3AccessDeniedError,
 } from '@ja/database';
-import { assertRecentStepUp } from '$lib/server/private-artifact-access';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { requiredExportPeriod } from '$lib/server/report-export-request';
 import {
@@ -49,7 +48,7 @@ function durableFailure(cause: unknown): Response | null {
  * Requests are deliberately handled by the collection POST endpoint. A GET here may only look up
  * an artifact that already exists; it must not build a source snapshot, create an artifact/job,
  * render a file, or write an export audit record. Ready artifacts are redirected to the canonical
- * private download route, which owns the final authorization, step-up and integrity boundary.
+ * private download route, which owns the final authorization and integrity boundary.
  */
 export const GET: RequestHandler = ({ locals, params, url }) => {
   if (!locals.user || !locals.session) error(401, 'Sign in required');
@@ -59,15 +58,6 @@ export const GET: RequestHandler = ({ locals, params, url }) => {
   const { periodStart, periodEnd } = requiredExportPeriod(url);
   const context = openPortalRepository(locals);
   try {
-    if (process.env.NODE_ENV === 'production') {
-      try {
-        assertRecentStepUp(context.sqlite, context.principal);
-      } catch (cause) {
-        if (cause instanceof V3AccessDeniedError) error(403, cause.message);
-        throw cause;
-      }
-    }
-
     try {
       const repository = workerStatementRepository(context.sqlite);
       const artifact = repository

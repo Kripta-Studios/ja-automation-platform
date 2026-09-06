@@ -3,15 +3,24 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { newId, type Principal, type Role } from '@ja/domain';
 import { createDatabase, PortalRepository, V3Repository } from './index.ts';
+import {
+  assertSyntheticDeploymentConfiguration,
+  canonicalFixtureDirectoryPath,
+  canonicalFixturePath,
+  requiredFixtureSentinel,
+} from '../../../scripts/isolated-test-guards.ts';
 
-const path = process.env.JA_DATABASE_PATH ?? resolve(process.cwd(), 'data/demo.db');
+if (!process.env.JA_DATABASE_PATH?.trim())
+  throw new Error('JA_DATABASE_PATH must be explicit for the disposable demo seed.');
+assertSyntheticDeploymentConfiguration();
+const path = canonicalFixturePath(process.env.JA_DATABASE_PATH, { requireExisting: false });
 if (existsSync(path) && process.env.JA_DEMO_SEED_PRESERVE_DB !== 'true') rmSync(path);
 mkdirSync(dirname(path), { recursive: true });
 const { sqlite } = createDatabase(path);
 const repository = new PortalRepository(sqlite);
 const v3 = new V3Repository(sqlite);
 const timestamp = '2026-08-18T12:00:00.000Z';
-const ownerAdminEmail = 'antonny.luty@j-aautomation.com';
+const ownerAdminEmail = 'owner@demo.jaautomation.test';
 const demoServiceActorId = 'demo-client-essential-service-actor';
 const demoServiceActorName = 'Client Essential demo service actor';
 const demoServiceActorCapabilities = [
@@ -29,12 +38,22 @@ const demoServiceActorCapabilities = [
   'backup.verify',
 ] as const;
 const configuredDocumentRoot = process.env.JA_DOCUMENT_ROOT;
-const demoDocumentRoot = resolve(
-  configuredDocumentRoot ?? resolve(process.cwd(), 'data/documents'),
+const resetDocuments = process.env.JA_FIXTURE_RESET_DOCUMENTS === 'true';
+if (resetDocuments && !configuredDocumentRoot)
+  throw new Error('JA_DOCUMENT_ROOT must be explicit when resetting fixture documents.');
+const requestedDocumentRoot = resolve(
+  configuredDocumentRoot ?? resolve(dirname(path), 'documents'),
 );
+const fixtureSentinel = resetDocuments ? requiredFixtureSentinel() : undefined;
+const demoDocumentRoot = canonicalFixtureDirectoryPath(requestedDocumentRoot, {
+  roots: [dirname(path)],
+  token: fixtureSentinel,
+  requireToken: resetDocuments,
+  requireExisting: false,
+});
 if (
   process.env.JA_DEMO_SEED_PRESERVE_DB !== 'true' &&
-  (!configuredDocumentRoot || process.env.JA_FIXTURE_RESET_DOCUMENTS === 'true') &&
+  resetDocuments &&
   existsSync(demoDocumentRoot)
 )
   rmSync(demoDocumentRoot, { recursive: true, force: true });
@@ -93,12 +112,12 @@ const syntheticPdf = (title: string, lines: readonly string[]): Buffer => {
 };
 
 const users = [
-  ['admin', 'Antonny Nascimento', ownerAdminEmail, 'owner_admin'],
-  ['finance', 'Elena Costa', 'finance@demo.jaautomation.local', 'finance_admin'],
-  ['manager', 'Daniel Brooks', 'pm@demo.jaautomation.local', 'project_manager'],
-  ['worker', 'Alex Rivera', 'worker@demo.jaautomation.local', 'worker'],
-  ['worker2', 'Rafael Santos', 'rafael@demo.jaautomation.local', 'worker'],
-  ['worker3', 'Maya Chen', 'maya@demo.jaautomation.local', 'worker'],
+  ['admin', 'Demo Owner', ownerAdminEmail, 'owner_admin'],
+  ['finance', 'Elena Costa', 'finance@demo.jaautomation.test', 'finance_admin'],
+  ['manager', 'Daniel Brooks', 'pm@demo.jaautomation.test', 'project_manager'],
+  ['worker', 'Alex Rivera', 'worker@demo.jaautomation.test', 'worker'],
+  ['worker2', 'Rafael Santos', 'rafael@demo.jaautomation.test', 'worker'],
+  ['worker3', 'Maya Chen', 'maya@demo.jaautomation.test', 'worker'],
 ] as const;
 const userIds = new Map<string, string>();
 for (const [key, name, email, role] of users) {
@@ -189,11 +208,9 @@ if (
 )
   throw new Error('Seeded service actor binding is not the configured Client Essential fixture');
 
-// Accounting Pack revisions are immutable Finance evidence and therefore use
-// the same bounded, human-session step-up contract as the live portal. The
-// opaque fixture token is never printed or exported as a demo credential.
+// This synthetic Finance session exercises ordinary authentication only.
 const financeSessionId = newId();
-const financeStepUpAt = new Date().toISOString();
+const financeSessionCreatedAt = new Date().toISOString();
 const financeSessionExpiresAt = new Date(Date.now() + 60 * 60_000).toISOString();
 sqlite
   .prepare(
@@ -204,9 +221,9 @@ sqlite
     newId(),
     userIds.get('finance')!,
     financeSessionExpiresAt,
-    financeStepUpAt,
-    financeStepUpAt,
-    financeStepUpAt,
+    financeSessionCreatedAt,
+    financeSessionCreatedAt,
+    null,
   );
 const finance = {
   ...principal('finance', 'finance_admin'),
@@ -1077,6 +1094,42 @@ for (const [projectId, name, amountMinor, dueOn] of [
   repository.reviewProjectMilestone(finance, milestone.id, 'approved');
 }
 
+// Commercial classification is fail-closed against the canonical legal-entity
+// authority. Seed that authority before creating any expense that enters the
+// operational/Finance approval workflow.
+const entity = repository.createLegalEntity(owner, {
+  code: 'DEMO',
+  legalName: 'J&A Automation · Demonstration Invoice',
+  currency: 'USD',
+  billingAddress: 'Demonstration record · not for payment',
+  companyIdentifiers: 'TEST DEMO',
+});
+const canonicalEntity = v3.createCanonicalLegalEntityRevision(finance, {
+  legacyLegalEntityId: entity.id,
+  effectiveFrom: '2026-08-01',
+  legalName: 'J&A Automation · Demonstration Invoice',
+  taxIdentifier: 'TEST-DEMO-TAX',
+  registrationIdentifier: 'TEST-DEMO-REGISTRATION',
+  addressLine1: 'Demonstration record · not for payment',
+  locality: 'Detroit',
+  region: 'Michigan',
+  postalCode: '48201',
+  countryCode: 'US',
+  baseCurrency: 'USD',
+  timezone: 'UTC',
+  reason: 'Canonical legal-entity authority for deterministic Client Essential evidence',
+  idempotencyKey: 'demo:canonical-legal-entity:2026-08-01',
+});
+for (const project of [line, palletizer, recovery, support]) {
+  v3.assignCanonicalLegalEntityToProject(finance, {
+    projectId: project.id,
+    legalEntityRevisionId: canonicalEntity.revisionId,
+    effectiveFrom: '2026-08-01',
+    reason: 'Bind the deterministic project to its canonical legal-entity authority',
+    idempotencyKey: `demo:project-legal-entity:${project.id}:2026-08-01`,
+  });
+}
+
 const receipt = (
   actor: Principal,
   projectId: string,
@@ -1193,7 +1246,18 @@ const addExpense = (
     receiptRequired: true,
     receiptDocumentId: documentId,
   });
-  repository.submitExpense(actor, record.id, record.version);
+  const classified = repository.classifyExpenseCommercially(finance, {
+    expenseId: record.id,
+    expectedVersion: record.version,
+    clientTreatment: input.treatment,
+    billingTreatment:
+      input.billingTreatment ?? (input.treatment === 'all_in' ? 'all_in' : 'reimbursable_at_cost'),
+    markupBps: input.markupBps ?? 0,
+    taxBps: 0,
+    reason: 'Synthetic demo commercial classification',
+    idempotencyKey: `demo-expense-classification:${record.id}`,
+  });
+  repository.submitExpense(actor, record.id, classified.version);
   repository.operationalApproveExpense(owner, record.id, 'approved');
   repository.financeApproveExpense(finance, record.id);
 };
@@ -1405,38 +1469,6 @@ repository.createPlanningAssignment(owner, {
   requiredSkill: 'PLC commissioning',
 });
 
-const entity = repository.createLegalEntity(owner, {
-  code: 'DEMO',
-  legalName: 'J&A Automation · Demonstration Invoice',
-  currency: 'USD',
-  billingAddress: 'Demonstration record · not for payment',
-  companyIdentifiers: 'TEST DEMO',
-});
-const canonicalEntity = v3.createCanonicalLegalEntityRevision(finance, {
-  legacyLegalEntityId: entity.id,
-  effectiveFrom: '2026-08-01',
-  legalName: 'J&A Automation · Demonstration Invoice',
-  taxIdentifier: 'TEST-DEMO-TAX',
-  registrationIdentifier: 'TEST-DEMO-REGISTRATION',
-  addressLine1: 'Demonstration record · not for payment',
-  locality: 'Detroit',
-  region: 'Michigan',
-  postalCode: '48201',
-  countryCode: 'US',
-  baseCurrency: 'USD',
-  timezone: 'UTC',
-  reason: 'Canonical legal-entity authority for deterministic Client Essential evidence',
-  idempotencyKey: 'demo:canonical-legal-entity:2026-08-01',
-});
-for (const project of [line, palletizer, recovery, support]) {
-  v3.assignCanonicalLegalEntityToProject(finance, {
-    projectId: project.id,
-    legalEntityRevisionId: canonicalEntity.revisionId,
-    effectiveFrom: '2026-08-01',
-    reason: 'Bind the deterministic project to its canonical legal-entity authority',
-    idempotencyKey: `demo:project-legal-entity:${project.id}:2026-08-01`,
-  });
-}
 repository.createInvoiceNumberPolicy(owner, {
   legalEntityId: entity.id,
   prefix: 'DEMO',
@@ -2274,14 +2306,6 @@ for (const line of inv014Lines) {
 console.log(
   JSON.stringify(
     {
-      database: path,
-      demoUsers: Object.fromEntries(users.map(([key, , email]) => [key, email])),
-      demoUserIds: Object.fromEntries(users.map(([key]) => [key, userIds.get(key)])),
-      ownerAdmin: {
-        name: 'Antonny Nascimento',
-        email: ownerAdminEmail,
-        role: 'owner_admin',
-      },
       counts: {
         clients: (sqlite.prepare('SELECT count(*) count FROM client').get() as { count: number })
           .count,

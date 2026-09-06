@@ -707,7 +707,9 @@ describe('V3 finance and privacy paths', () => {
         version: reservedTimeVersion,
         summary: 'Attempt to change a reserved invoice source',
       }),
-    ).toThrow(/invoice time source|cannot be edited|changed|unlocked editable/);
+    ).toThrow(
+      /invoice time source|cannot be edited|changed|unlocked editable|never-submitted time draft/,
+    );
     expect(() =>
       sqlite
         .prepare('UPDATE time_entry SET activity_summary=? WHERE id=?')
@@ -716,7 +718,7 @@ describe('V3 finance and privacy paths', () => {
     expect(
       v3.closeBillingPeriod(finance, laborRule.id, '2026-08-03', '2026-08-16', 'pt').closed,
     ).toBe(true);
-    expect(v3.closeBillingPeriod(finance, expenseRule.id, '2026-08-03', '2026-08-16').closed).toBe(
+    expect(v3.closeBillingPeriod(finance, expenseRule.id, '2026-08-01', '2026-08-31').closed).toBe(
       true,
     );
     expect(
@@ -859,8 +861,8 @@ describe('V3 finance and privacy paths', () => {
     const expenseDraft = repository.createInvoiceDraft(
       finance,
       expenseRule.id,
-      '2026-08-03',
-      '2026-08-16',
+      '2026-08-01',
+      '2026-08-31',
     );
     expect(
       (

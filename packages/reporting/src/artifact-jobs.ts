@@ -496,10 +496,10 @@ export function runArtifactJobs(context: ArtifactJobContext): {
         }
       }
       const required = new Set<AccountingPackExportType>([
+        'pdf',
         'xlsx',
         'invoice_csv',
         'expense_csv',
-        ...(process.env.JA_ACCOUNTING_PACK_REQUIRE_PDF === 'true' ? (['pdf'] as const) : []),
         ...(process.env.JA_ACCOUNTING_PACK_REQUIRE_JSON === 'true' ? (['json'] as const) : []),
       ]);
       const requiredFailures = failures.filter((failure) => required.has(failure.type));

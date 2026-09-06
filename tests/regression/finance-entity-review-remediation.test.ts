@@ -249,9 +249,10 @@ describe('finance entity reviewer regressions', () => {
       effectiveFrom: '2026-01-01',
       components: [{ name: 'VAT', basisPoints: 2_100 }],
     });
-    // V3's period-close operation records the authoritative closed period. The
-    // monthly rule deliberately does not match the explicitly closed 14-day
-    // range, which reproduces the reviewer regression in PortalRepository.
+    // Preserve an already-authoritative historical closure whose exact range
+    // predates the current cadence rule. New close commands remain subject to
+    // strict cadence validation; reads and draft creation must not reinterpret
+    // or erase an existing closed period.
     const rule = value.repository.createBillingRule(value.finance, {
       projectId: value.project.id,
       legalEntityId: entity.id,
@@ -263,9 +264,14 @@ describe('finance entity reviewer regressions', () => {
     });
     seedApprovedMilestone(value, 'Closed-period source', '2026-08-10');
 
-    expect(
-      value.v3.closeBillingPeriod(value.finance, rule.id, '2026-08-03', '2026-08-16').closed,
-    ).toBe(true);
+    const now = '2026-08-17T00:00:00.000Z';
+    value.sqlite
+      .prepare(
+        `INSERT INTO billing_period(
+           id,billing_rule_id,period_start,period_end,state,reasons_json,closed_at,created_at,updated_at
+         ) VALUES('legacy-closed-period',?,?,?,?,?,?,?,?)`,
+      )
+      .run(rule.id, '2026-08-03', '2026-08-16', 'closed', '[]', now, now, now);
     expect(
       value.repository.billingReadiness(value.finance, rule.id, '2026-08-03', '2026-08-16'),
     ).toMatchObject({ state: 'already_closed', reasons: [] });

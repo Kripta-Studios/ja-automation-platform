@@ -12,12 +12,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { dirname, parse, relative, resolve } from 'node:path';
 import { json } from '@sveltejs/kit';
 import { newId, type Principal } from '@ja/domain';
-import {
-  V3AccessDeniedError,
-  V3ConflictError,
-  V3ValidationError,
-  readLiveSessionStepUp,
-} from '@ja/database';
+import { V3AccessDeniedError, V3ConflictError, V3ValidationError } from '@ja/database';
 
 /**
  * The compatibility download routes pre-date the durable localized-artifact
@@ -56,14 +51,6 @@ export type PrivateArtifactDownloadOptions = Readonly<{
   loadMetadata: () => PrivateArtifactMetadata;
   expectedMediaType?: string;
   /**
-   * Restricted finance artifacts require a recent proof on this exact session.
-   * Operational project reports can explicitly opt out because their repository
-   * authorization and access audit already protect the ordinary download path.
-   */
-  requireStepUp?: boolean | ((subject: PrivateArtifactSubject) => boolean);
-  now?: () => number;
-  stepUpWindowMs?: number;
-  /**
    * When set, the response is this renderer output rather than the stored
    * file. Used for invoice PDFs so Open/Download present the frozen snapshot
    * with the current invoice layout without mutating a terminal stored artifact.
@@ -75,11 +62,9 @@ type SqliteLike = DatabaseSync;
 
 type DeploymentIdentity = Readonly<{ tenant_id: string; deployment_id: string }>;
 
-const STEP_UP_WINDOW_MS = 10 * 60_000;
 const B5_AUDIT_CONTRACT_VERSION = 'B5-R4';
 
 const NOT_FOUND_MESSAGE = 'File unavailable';
-const STEP_UP_MESSAGE = 'Confirm your identity to continue';
 const INTEGRITY_MESSAGE = 'Private artifact integrity check failed';
 
 function notFound(): Response {
@@ -218,30 +203,6 @@ export function authorizePrivateArtifact(
     tenantId: identity.tenant_id,
     deploymentId: identity.deployment_id,
   };
-}
-
-function recentStepUp(
-  sqlite: SqliteLike,
-  principal: Principal,
-  now: () => number,
-  windowMs: number,
-): boolean {
-  return readLiveSessionStepUp(sqlite, principal, now(), windowMs) !== null;
-}
-
-/**
- * Enforce the session-bound step-up contract at a route/action boundary.
- * Principals without a bound human session are deliberately rejected: this
- * guard is for interactive high-risk operations only.
- */
-export function assertRecentStepUp(
-  sqlite: SqliteLike,
-  principal: Principal,
-  now: () => number = Date.now,
-  windowMs = STEP_UP_WINDOW_MS,
-): void {
-  if (!recentStepUp(sqlite, principal, now, windowMs))
-    throw new V3AccessDeniedError(STEP_UP_MESSAGE);
 }
 
 function safeStorageKey(storageKey: string): boolean {
@@ -886,7 +847,7 @@ function isErrno(cause: unknown, code: string): boolean {
 }
 
 /**
- * Authorize, step-up authenticate, verify and stream one legacy private
+ * Authorize, verify and stream one legacy private
  * artifact.  The callback is intentionally invoked only after object-scope
  * authorization, preventing repository readiness methods from becoming an
  * existence oracle.
@@ -901,19 +862,6 @@ export async function servePrivateArtifact(
     options.id,
   );
   if (!subject) return notFound();
-
-  const now = options.now ?? Date.now;
-  const windowMs = options.stepUpWindowMs ?? STEP_UP_WINDOW_MS;
-  const stepUpRequired =
-    typeof options.requireStepUp === 'function'
-      ? options.requireStepUp(subject)
-      : options.requireStepUp !== false;
-  if (stepUpRequired && !recentStepUp(options.sqlite, options.principal, now, windowMs)) {
-    recordAccessAudit(options.sqlite, options.principal, subject, 'blocked', {
-      reason: 'step_up_required',
-    });
-    return json({ error: STEP_UP_MESSAGE }, { status: 403 });
-  }
 
   let metadata: PrivateArtifactMetadata;
   try {
@@ -1106,4 +1054,4 @@ export async function servePrivateArtifact(
   });
 }
 
-export { STEP_UP_WINDOW_MS, contentDispositionFilename, recentStepUp, safeStorageKey };
+export { contentDispositionFilename, safeStorageKey };

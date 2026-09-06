@@ -1211,7 +1211,8 @@
       </div>
 
       {#if visibleInvoices.length > 0}
-        <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           class="billing-section__invoice-list"
           data-billing-invoice-list

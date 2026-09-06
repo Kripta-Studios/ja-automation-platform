@@ -115,30 +115,29 @@ export type InvoiceTermsAndInstructions = Readonly<{
 }>;
 
 export const DEFAULT_INVOICE_TERMS: InvoiceTermsAndInstructions = Object.freeze({
-  bankSwiftNumber: 'WFBIUS6S',
-  bankAccountNumber: '8769915615',
-  bankName: 'Wells Fargo Bank',
-  beneficiary: 'J&A Automation LLC',
-  pastDueNotice:
-    'Past Due account subject to service charge of 1.5% per month and/or maximum permitted by law',
+  bankSwiftNumber: '',
+  bankAccountNumber: '',
+  bankName: '',
+  beneficiary: '',
+  pastDueNotice: '',
 });
 
 export type InvoiceCompanyInfo = Readonly<{
   name: string;
   division: string;
-  phone: string;
+  /** Optional for newly rendered documents; historical snapshots may retain it. */
+  phone?: string;
   address: string;
   email: string;
   website: string;
 }>;
 
 export const DEFAULT_INVOICE_COMPANY_INFO: InvoiceCompanyInfo = Object.freeze({
-  name: 'J&A Automation LLC',
-  division: 'USA division',
-  phone: '+1 (864) 208 4684',
-  address: '112 Birkshire Dr, Georgetown TX 78626',
-  email: 'field.operations@j-aautomation.com',
-  website: 'www.j-aautomation.com',
+  name: '',
+  division: '',
+  address: '',
+  email: '',
+  website: '',
 });
 
 const copy: Readonly<Record<InvoiceLanguage, InvoiceCopy>> = {
@@ -631,20 +630,20 @@ const resolveTerms = (snapshot: InvoiceTemplateSnapshot): InvoiceTermsAndInstruc
     | undefined;
   if (typeof custom === 'string' && custom.trim()) {
     return {
-      bankSwiftNumber: DEFAULT_INVOICE_TERMS.bankSwiftNumber,
-      bankAccountNumber: DEFAULT_INVOICE_TERMS.bankAccountNumber,
-      bankName: DEFAULT_INVOICE_TERMS.bankName,
-      beneficiary: DEFAULT_INVOICE_TERMS.beneficiary,
+      bankSwiftNumber: '',
+      bankAccountNumber: '',
+      bankName: '',
+      beneficiary: '',
       pastDueNotice: custom.trim(),
     };
   }
   if (typeof custom === 'object' && custom !== null) {
     return {
-      bankSwiftNumber: custom.bankSwiftNumber || DEFAULT_INVOICE_TERMS.bankSwiftNumber,
-      bankAccountNumber: custom.bankAccountNumber || DEFAULT_INVOICE_TERMS.bankAccountNumber,
-      bankName: custom.bankName || DEFAULT_INVOICE_TERMS.bankName,
-      beneficiary: custom.beneficiary || DEFAULT_INVOICE_TERMS.beneficiary,
-      pastDueNotice: custom.pastDueNotice || DEFAULT_INVOICE_TERMS.pastDueNotice,
+      bankSwiftNumber: custom.bankSwiftNumber?.trim() ?? '',
+      bankAccountNumber: custom.bankAccountNumber?.trim() ?? '',
+      bankName: custom.bankName?.trim() ?? '',
+      beneficiary: custom.beneficiary?.trim() ?? '',
+      pastDueNotice: custom.pastDueNotice?.trim() ?? '',
     };
   }
   return DEFAULT_INVOICE_TERMS;
@@ -1188,11 +1187,11 @@ const renderTotals = (
   return `<div class="invoice-bottom-grid">
   <div class="invoice-terms-card">
     <div class="terms-heading">${escape(localized.termsInstructions)}</div>
-    <div class="terms-field"><strong>${escape(localized.bankSwiftNumber)}:</strong> ${escape(terms.bankSwiftNumber)}</div>
-    <div class="terms-field"><strong>${escape(localized.bankAccountNumber)}:</strong> ${escape(terms.bankAccountNumber)}</div>
-    <div class="terms-field"><strong>${escape(localized.bankName)}:</strong> ${escape(terms.bankName)}</div>
-    <div class="terms-field"><strong>${escape(localized.beneficiary)}:</strong> ${escape(terms.beneficiary)}</div>
-    <div class="terms-notice">${escape(terms.pastDueNotice)}</div>
+    <div class="terms-field"><strong>${escape(localized.bankSwiftNumber)}:</strong> ${valueOrDash(terms.bankSwiftNumber, localized)}</div>
+    <div class="terms-field"><strong>${escape(localized.bankAccountNumber)}:</strong> ${valueOrDash(terms.bankAccountNumber, localized)}</div>
+    <div class="terms-field"><strong>${escape(localized.bankName)}:</strong> ${valueOrDash(terms.bankName, localized)}</div>
+    <div class="terms-field"><strong>${escape(localized.beneficiary)}:</strong> ${valueOrDash(terms.beneficiary, localized)}</div>
+    <div class="terms-notice">${valueOrDash(terms.pastDueNotice, localized)}</div>
   </div>
   <div class="invoice-total">
     <div class="total-row"><span>${escape(localized.subtotal)}</span><span>${moneyOrDash(currency, subtotalMinor, locale, localized)}</span></div>

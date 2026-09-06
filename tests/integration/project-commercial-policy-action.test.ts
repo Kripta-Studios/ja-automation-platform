@@ -98,12 +98,12 @@ describe('project commercial policy finance action', () => {
     expect(close).toHaveBeenCalledOnce();
   });
 
-  it('returns a localized-compatible forbidden result for PM or missing step-up denial', async () => {
+  it('returns a localized-compatible forbidden result for a role denial', async () => {
     const close = vi.fn();
     openPortalRepository.mockReturnValue({
       repository: {
         createProjectCommercialPolicy: vi.fn(() => {
-          throw new AccessDeniedError('Recent step-up authentication is required');
+          throw new AccessDeniedError('Finance role required');
         }),
       },
       principal: { userId: 'pm-1', role: 'project_manager', projectIds: new Set<string>() },

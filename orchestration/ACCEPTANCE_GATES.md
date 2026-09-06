@@ -9,7 +9,7 @@
 
 ## Gate 1 — Security and domain foundations
 
-- invitation/user lifecycle, RBAC, effective assignment scope, IDOR, compensation privacy, step-up, file authorization, safe DTOs, and audit pass
+- invitation/user lifecycle, RBAC, effective assignment scope, IDOR, compensation privacy, live-session validation, optional MFA, file authorization, safe DTOs, and audit pass
 - lifecycle and migration contracts preserve historical truth
 
 ## Gate 2 — Operational workflow

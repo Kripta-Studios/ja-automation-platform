@@ -8,11 +8,14 @@ The deployment does not run a seed, does not use `drizzle-kit push`, and does no
 invoice issue or send. The scheduled jobs may create drafts, PDFs, reports and Accounting Pack
 artifacts, but external delivery is handled only by the configured signed outbox adapter.
 
-The supported deployment uses Better Auth sessions with optional user-managed MFA. The first owner
+The supported deployment uses Better Auth sessions with optional user-managed MFA. MFA is voluntary
+for every role and operation: only an enrolled user receives an MFA sign-in challenge, and no
+operation requires step-up authentication. The first owner
 is provisioned once by the operator; when the live Stalwart integration is enabled, the current mailboxes are idempotently
 linked to portal identities as `worker`, except the canonical `antonny.luty@j-aautomation.com`,
 which is always the sole `owner_admin`. Invitations remain available for identities without a
-mailbox. No seed, shared account or passwordless role switch is enabled. See
+mailbox. No seed, shared account or passwordless role switch is enabled. MFA is managed only through
+the authenticated account settings facade; raw Better Auth MFA management endpoints are closed. See
 [docs/SHOWCASE_ACCESS.md](../docs/SHOWCASE_ACCESS.md) for the portal access runbook and
 [docs/DEPLOYMENT_VPS.md](../docs/DEPLOYMENT_VPS.md) for the Stalwart integration contract.
 
@@ -102,8 +105,8 @@ number policy rows before an invoice can be issued.
 ## First-owner provisioning
 
 After migrations have been applied to the intended database, build the tools target and provision
-the first owner. The command prompts for the password without echoing it; it requires 12–128
-characters and marks the account for MFA enrollment.
+the first owner. The command prompts for the password without echoing it and requires 12–128
+characters. MFA enrollment is optional after sign-in and is never a bootstrap or first-access gate.
 
 ```bash
 sudo docker compose --env-file /etc/jaautomation/jaautomation.env \
@@ -119,7 +122,8 @@ sudo systemctl enable --now jaautomation-jobs.timer jaautomation-backup.timer
 sudo bash deployment/scripts/verify-vps.sh https://j-aautomation.com/j-aautomation
 ```
 
-The owner signs in through `/j-aautomation/app/login`, enrolls MFA, then invites the rest of the
+The owner signs in through `/j-aautomation/app/login`, optionally enrolls MFA from account security,
+then invites the rest of the
 team from Projects → Team. With the live mail integration enabled, use Projects → Team → Buzones
 de correo → **Seleccionar todos los disponibles no propietarios**, choose `Worker`, and run the idempotent
 reconciliation. It must link every current Stalwart mailbox as an active, email-verified portal
@@ -131,7 +135,8 @@ NDJSON/JSON inventory.
 
 The Owner is the only actor allowed to create/update/destroy mailboxes, change Webmail passwords,
 change portal roles or offboard identities. These actions require server-side Owner authorization,
-recent step-up confirmation, durable idempotency, exact target confirmation and audit. Portal offboarding and Stalwart mailbox destroy
+an active authenticated Owner session, durable idempotency, exact target confirmation and audit; no
+step-up authentication is used. Portal offboarding and Stalwart mailbox destroy
 are separate operations; the canonical Owner cannot be deleted, demoted or replaced. For the
 complete root preflight, live login smoke and disposable-mailbox update/delete precautions, see
 [docs/DEPLOYMENT_VPS.md](../docs/DEPLOYMENT_VPS.md).

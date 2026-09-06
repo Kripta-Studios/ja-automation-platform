@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { CheckCircle2, ExternalLink, Mail, Phone } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Mail } from 'lucide-react';
 import { contact } from '@/content/company';
 import { services } from '@/content/services';
 import { publicApiPath } from '@/lib/portal';
@@ -580,17 +580,11 @@ function ContactFormContent() {
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm border border-ja-line p-6 md:p-8">
               <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                <Phone size={20} className="text-ja-red" />
+                <ExternalLink size={20} className="text-ja-red" />
                 {t('directContact')}
               </h2>
               <p className="font-semibold text-ja-ink">{contact.primaryName}</p>
               <p className="mb-6 text-sm text-ja-steel-500">{t('primaryTitle')}</p>
-              <a
-                href={`tel:${contact.usPhone.replace(/[^\d+]/g, '')}`}
-                className="flex items-center gap-2 text-sm text-ja-steel-700 hover:text-ja-red transition-colors"
-              >
-                <Phone size={16} /> {contact.usPhone}
-              </a>
               <a
                 href={contact.linkedinUrl}
                 className="mt-4 flex items-center gap-2 text-sm text-ja-steel-700 hover:text-ja-red transition-colors"

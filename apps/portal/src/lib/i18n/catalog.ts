@@ -157,8 +157,6 @@ const en = {
   'Register time': 'Register time',
   More: 'More',
   'Open PDF': 'Open PDF',
-  'Step-up authentication is active for the next 10 minutes.':
-    'Step-up authentication is active for the next 10 minutes.',
   'Print report': 'Print report',
   'Generate report': 'Generate report',
   Add: 'Add',
@@ -425,8 +423,6 @@ const esBase: Record<keyof typeof en, string> = {
   'Register time': 'Registrar tiempo',
   More: 'Más',
   'Open PDF': 'Abrir PDF',
-  'Step-up authentication is active for the next 10 minutes.':
-    'Autenticación reforzada activa (10 min).',
   'Print report': 'Imprimir informe',
   'Generate report': 'Generar informe',
   Add: 'Añadir',
@@ -683,8 +679,6 @@ const ptBase: Record<keyof typeof en, string> = {
   'Register time': 'Registrar tempo',
   More: 'Mais',
   'Open PDF': 'Abrir PDF',
-  'Step-up authentication is active for the next 10 minutes.':
-    'Autenticação reforçada ativa (10 min).',
   'Print report': 'Imprimir relatório',
   'Generate report': 'Gerar relatório',
   Add: 'Adicionar',

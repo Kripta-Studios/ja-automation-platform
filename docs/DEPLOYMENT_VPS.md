@@ -3,7 +3,10 @@
 This is the operator runbook and current deployment record for J&A Automation on the Hetzner VPS.
 The supported architecture remains Ubuntu 24.04, Docker Compose and Caddy: Caddy is the only
 Internet-facing web proxy, while the site and portal bind to loopback. The production environment
-uses Better Auth with optional MFA. When the live Stalwart integration is enabled, every current
+uses Better Auth with optional MFA. MFA is voluntary for every role and operation: only an enrolled
+user receives an MFA sign-in challenge, and no operation uses step-up authentication. The local
+account MFA facade owns enrollment, verification and transactional disable without a password field;
+raw Better Auth MFA management endpoints are blocked. When the live Stalwart integration is enabled, every current
 mailbox is also a portal identity (the canonical `antonny.luty` identity is the sole `owner_admin`;
 all other mail-linked identities start as `worker`). Do not run the demo seed or expose the
 application ports directly.
@@ -315,7 +318,8 @@ Scope it to `j-aautomation.com` if the Stalwart installation supports resource/d
 otherwise the application must enforce the domain on every request and reject any other domain or
 account ID. `sysAccountDestroy` is present only because the Owner explicitly requested mailbox
 deletion from the portal. It is a high-impact capability: keep the key restricted to this one
-portal, require the portal's Owner step-up/confirmation gate, audit every destroy request and do
+portal, require the portal's active Owner session plus explicit confirmation, audit every destroy
+request and do
 not expose a generic administrator endpoint. If the deployment initially disables delete in the
 UI, the key may be issued without `sysAccountDestroy` until that feature is reviewed; enabling
 delete later requires a key rotation or capability update and a fresh smoke test.
@@ -430,16 +434,17 @@ reconciliation must:
 
 The release also contains `apps/portal/src/cli/sync-mailboxes.ts` and the
 `pnpm --filter @ja/portal mailboxes:sync` entrypoint. It deliberately requires
-`JA_MAIL_SYNC_SESSION_ID` for a current, recently step-upped Antonny session; it must not be run as
-a fictitious root/system actor. The Owner UI is therefore the normal deployment path. The CLI is
-reserved for an attended recovery run using that same audited Owner authority.
+`JA_MAIL_SYNC_SESSION_ID` for a current authenticated Antonny session; it must not be run as a
+fictitious root/system actor. The Owner UI is therefore the normal deployment path. The CLI is
+reserved for an attended recovery run using that same audited Owner authority; no step-up
+authentication is involved.
 
 ### Owner controls and destructive operations
 
 Only the canonical Owner (`antonny.luty@j-aautomation.com`) may perform mailbox lifecycle or role
 administration. Enforce this in server-side authorization and database guards, not only by hiding
-buttons. Every operation requires an active Owner session, recent step-up authentication, exact
-target/domain validation, a durable idempotency key and an append-only audit event. The database
+buttons. Every operation requires an active Owner session, exact target/domain validation, a durable
+idempotency key and an append-only audit event; no step-up authentication is used. The database
 records `pending`, `external_done` and `complete` without passwords or credential material, and a
 completed browser replay returns its recorded safe result without repeating JMAP. An
 `external_done` replay completes the pending SQLite/audit side only; an ambiguous `pending`
@@ -483,8 +488,8 @@ release SHA, HTTP status and redacted UI results only:
    password failure remains a failure, a disabled/offboarded identity cannot create a session, and
    no local password/hash is written as a side effect of IMAP authentication.
 5. Create a uniquely named disposable test mailbox only if the customer authorizes it; verify the
-   new account in Stalwart WebAdmin/Roundcube and then remove it with the Owner's explicit
-   step-up/destructive confirmation. Never use a production mailbox or change an existing user's
+   new account in Stalwart WebAdmin/Roundcube and then remove it with the Owner's explicit typed
+   destructive confirmation while the Owner session is active. Never use a production mailbox or change an existing user's
    password for this test.
 6. If testing update/delete, take a fresh backup first, use only the disposable mailbox, verify the
    audit event and session revocation, and confirm the canonical Owner cannot be deleted, demoted,
@@ -847,7 +852,8 @@ sudo docker compose --env-file /etc/jaautomation/jaautomation.env \
 ```
 
 The canonical owner signs in at `/j-aautomation/app/login`; MFA is optional and may be enrolled from
-account security settings. Once the live mail integration is healthy, run the idempotent
+account security settings. It is never a first-access or operation gate, and no step-up
+authentication is used. Once the live mail integration is healthy, run the idempotent
 reconciliation described in **Initial reconciliation and default roles** so all current Stalwart
 mailboxes receive portal access as `worker`, while
 `antonny.luty@j-aautomation.com` remains the sole `owner_admin`. Invitations remain available for

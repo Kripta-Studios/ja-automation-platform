@@ -91,13 +91,11 @@ describe('UI_PLAN shell integration', () => {
       "'Fixed fee / milestones': 'Precio cerrado / Hitos'",
       "'All streams': 'Todos los conceptos'",
       "'Open PDF': 'Abrir PDF'",
-      "'Step-up authentication is active for the next 10 minutes.':\n    'Autenticación reforzada activa (10 min).'",
       "'Revenue cap': 'Limite de orçamento (Cap)'",
       "'Daily rate': 'Taxa diária'",
       "'Fixed fee / milestones': 'Preço fechado / Marcos'",
       "'All streams': 'Todos os conceitos'",
       "'Open PDF': 'Abrir PDF'",
-      "'Step-up authentication is active for the next 10 minutes.':\n    'Autenticação reforçada ativa (10 min).'",
     ]) {
       expect(catalog).toContain(value);
     }

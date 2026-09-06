@@ -32,6 +32,11 @@
     );
   const preview = $derived(data.preview as { invoice: Row; lines: Row[]; taxes: Row[] });
   const invoice = $derived(preview.invoice);
+  const invoicePhone = $derived(
+    invoice.company_info && typeof invoice.company_info === 'object'
+      ? String((invoice.company_info as Record<string, unknown>).phone ?? '').trim() || undefined
+      : undefined,
+  );
   const invoiceState = $derived(String(invoice.state ?? '').toLowerCase());
   const invoiceId = $derived(String(invoice.id ?? ''));
   const pdfStatus = $derived(invoicePdfStatus(invoice));
@@ -233,7 +238,7 @@
               id="edit-swift"
               name="bankSwiftNumber"
               type="text"
-              value={invoice.terms_and_instructions?.bankSwiftNumber || 'WFBIUS6S'}
+              value={invoice.terms_and_instructions?.bankSwiftNumber || ''}
             />
           </div>
           <div class="draft-field">
@@ -242,7 +247,7 @@
               id="edit-account"
               name="bankAccountNumber"
               type="text"
-              value={invoice.terms_and_instructions?.bankAccountNumber || '8769915615'}
+              value={invoice.terms_and_instructions?.bankAccountNumber || ''}
             />
           </div>
           <div class="draft-field">
@@ -251,7 +256,7 @@
               id="edit-bank-name"
               name="bankName"
               type="text"
-              value={invoice.terms_and_instructions?.bankName || 'Wells Fargo Bank'}
+              value={invoice.terms_and_instructions?.bankName || ''}
             />
           </div>
           <div class="draft-field">
@@ -260,7 +265,7 @@
               id="edit-beneficiary"
               name="beneficiary"
               type="text"
-              value={invoice.terms_and_instructions?.beneficiary || 'J&A Automation LLC'}
+              value={invoice.terms_and_instructions?.beneficiary || ''}
             />
           </div>
           <div class="draft-field full-width">
@@ -269,8 +274,7 @@
               id="edit-past-due"
               name="pastDueNotice"
               type="text"
-              value={invoice.terms_and_instructions?.pastDueNotice ||
-                'Past Due account subject to service charge of 1.5% per month and/or maximum permitted by law'}
+              value={invoice.terms_and_instructions?.pastDueNotice || ''}
             />
           </div>
         </div>
@@ -284,12 +288,14 @@
       <div class="brand-block">
         <img src={`${base}/app/logo.png`} alt="J&A Automation" />
         <div class="company-details">
-          <strong>{invoice.company_info?.name || 'J&A Automation LLC'}</strong>
-          <div>{invoice.company_info?.division || 'USA division'}</div>
-          <div>Phone: {invoice.company_info?.phone || '+1 (864) 208 4684'}</div>
-          <div>{invoice.company_info?.address || '112 Birkshire Dr, Georgetown TX 78626'}</div>
-          <div>{invoice.company_info?.email || 'field.operations@j-aautomation.com'}</div>
-          <div>{invoice.company_info?.website || 'www.j-aautomation.com'}</div>
+          <strong>{invoice.company_info?.name || invoice.issuer_name || '—'}</strong>
+          {#if invoice.company_info?.division}<div>{invoice.company_info.division}</div>{/if}
+          {#if invoicePhone}<div>Phone: {invoicePhone}</div>{/if}
+          {#if invoice.company_info?.address || invoice.issuer_address}<div>
+              {invoice.company_info?.address || invoice.issuer_address}
+            </div>{/if}
+          {#if invoice.company_info?.email}<div>{invoice.company_info.email}</div>{/if}
+          {#if invoice.company_info?.website}<div>{invoice.company_info.website}</div>{/if}
         </div>
       </div>
       <div class="invoice-identity">
@@ -387,23 +393,22 @@
         <div class="terms-heading">{t('Terms & Instructions')}</div>
         <div class="terms-field">
           <strong>{t('Bank Swift Number')}:</strong>
-          {invoice.terms_and_instructions?.bankSwiftNumber || 'WFBIUS6S'}
+          {invoice.terms_and_instructions?.bankSwiftNumber || '—'}
         </div>
         <div class="terms-field">
           <strong>{t('Bank Account Number')}:</strong>
-          {invoice.terms_and_instructions?.bankAccountNumber || '8769915615'}
+          {invoice.terms_and_instructions?.bankAccountNumber || '—'}
         </div>
         <div class="terms-field">
           <strong>{t('Bank Name')}:</strong>
-          {invoice.terms_and_instructions?.bankName || 'Wells Fargo Bank'}
+          {invoice.terms_and_instructions?.bankName || '—'}
         </div>
         <div class="terms-field">
           <strong>{t('Beneficiary')}:</strong>
-          {invoice.terms_and_instructions?.beneficiary || 'J&A Automation LLC'}
+          {invoice.terms_and_instructions?.beneficiary || '—'}
         </div>
         <div class="terms-notice">
-          {invoice.terms_and_instructions?.pastDueNotice ||
-            'Past Due account subject to service charge of 1.5% per month and/or maximum permitted by law'}
+          {invoice.terms_and_instructions?.pastDueNotice || '—'}
         </div>
       </div>
       <div class="invoice-total">

@@ -2,7 +2,6 @@ import type { DatabaseSync } from 'node:sqlite';
 import { canManageBilling, type Principal } from '@ja/domain';
 import { add, applyBasisPoints, money, type Currency } from '@ja/money';
 import { recordAuditEvent } from '../../core/audit.ts';
-import { readLiveSessionStepUp } from '../../core/authorization.ts';
 import { canonicalJson, sha256 } from '../../core/canonical-json.ts';
 import {
   ensureCommand,
@@ -46,6 +45,7 @@ export type CanonicalExpenseLegalEntityAuthority = Readonly<{
 export type ExpenseCommercialClassificationRepositoryDependencies = Readonly<{
   sqlite: DatabaseSync;
   transaction: <T>(work: () => T) => T;
+  assertLiveSession: (principal: Principal) => void;
   now: () => string;
   resolveCanonicalProjectLegalEntity: (
     principal: Principal,
@@ -99,32 +99,6 @@ export class ExpenseCommercialClassificationRepository {
       (user.role !== 'owner_admin' && user.role !== 'finance_admin')
     )
       return this.deps.errors.accessDenied('Finance role required');
-    const nowMs = Date.parse(this.deps.now());
-    if (
-      !readLiveSessionStepUp(
-        this.deps.sqlite,
-        principal,
-        Number.isFinite(nowMs) ? nowMs : Date.now(),
-      )
-    )
-      return this.deps.errors.accessDenied('Recent step-up authentication is required');
-  }
-
-  private stepUpProof(principal: Principal): {
-    stepUpVerifiedAt: string;
-    stepUpExpiresAt: string;
-  } {
-    const nowMs = Date.parse(this.deps.now());
-    const proof = readLiveSessionStepUp(
-      this.deps.sqlite,
-      principal,
-      Number.isFinite(nowMs) ? nowMs : Date.now(),
-    );
-    if (!proof) return this.failConflict('Recent step-up authentication is required');
-    return {
-      stepUpVerifiedAt: proof.verifiedAt,
-      stepUpExpiresAt: proof.expiresAt,
-    };
   }
 
   private deployment(): Deployment {
@@ -210,7 +184,6 @@ export class ExpenseCommercialClassificationRepository {
     payload: Readonly<Record<string, unknown>>,
     revisionId: string,
     normalized: ExpenseCommercialClassificationInput,
-    proof: Readonly<{ stepUpVerifiedAt: string; stepUpExpiresAt: string }>,
     spentOn: string,
     createdAt: string,
   ): FinanceCommandInput {
@@ -227,8 +200,6 @@ export class ExpenseCommercialClassificationRepository {
       evidenceNamespace: 'client-essential',
       evidenceIdPrefix: 'ce',
       commandIdPrefix: 'ce-cmd',
-      stepUpVerifiedAt: proof.stepUpVerifiedAt,
-      stepUpExpiresAt: proof.stepUpExpiresAt,
       currency: null,
       amountMinor: null,
     };
@@ -280,8 +251,8 @@ export class ExpenseCommercialClassificationRepository {
     input: ExpenseCommercialClassificationInput,
   ): ExpenseCommercialClassificationResult {
     this.assertActiveFinancePrincipal(principal);
+    this.deps.assertLiveSession(principal);
     const normalized = this.normalizeInput(input);
-    const proof = this.stepUpProof(principal);
     return this.deps.transaction(() => {
       const deployment = this.deployment();
       const expense = this.deps.sqlite
@@ -295,6 +266,14 @@ export class ExpenseCommercialClassificationRepository {
         )
         .get(normalized.expenseId) as DbRow | undefined;
       if (!expense) return this.failValidation('Expense not found');
+      if (
+        this.deps.sqlite
+          .prepare(
+            "SELECT 1 FROM record_correction_link WHERE record_type='expense' AND original_id=? LIMIT 1",
+          )
+          .get(normalized.expenseId)
+      )
+        return this.failConflict('Superseded expense is immutable');
       const projectId = this.text(rowValue(expense, 'project_id'), 'Expense project id', 200);
       const project = this.deps.sqlite
         .prepare('SELECT currency FROM project WHERE id=?')
@@ -407,7 +386,7 @@ export class ExpenseCommercialClassificationRepository {
         this.deps.sqlite,
         deployment,
         principal,
-        this.commandDescriptor(commandPayload, revisionId, normalized, proof, spentOn, createdAt),
+        this.commandDescriptor(commandPayload, revisionId, normalized, spentOn, createdAt),
         this.failConflict.bind(this),
       );
 

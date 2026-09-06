@@ -1,9 +1,26 @@
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+import {
+  localBaseUrl,
+  localSameOriginUrl,
+  requiredEnvironment,
+  requiredFixtureSentinel,
+  redactedUrlPath,
+  syntheticCredentials,
+  syntheticEmail,
+} from './isolated-test-guards.ts';
 
-const artifactsDir =
-  'C:/Users/Álvaro Schwiedop/.gemini/antigravity-ide/brain/65375eff-65c9-4087-9b1b-908c0d6445d9/screenshots';
+requiredFixtureSentinel();
+const BASE_URL = localBaseUrl('JA_QA_AUDIT_BASE_URL', 'http://127.0.0.1:5174/j-aautomation');
+const artifactsDir = resolve(
+  process.env.JA_QA_AUDIT_ARTIFACTS_DIR?.trim() || resolve(process.cwd(), 'docs/evidence/qa-audit'),
+);
+const OWNER = syntheticCredentials('JA_QA_AUDIT_OWNER_EMAIL', 'JA_QA_AUDIT_OWNER_PASSWORD');
+const INVITATION = {
+  email: syntheticEmail('JA_QA_AUDIT_INVITE_EMAIL'),
+  name: requiredEnvironment('JA_QA_AUDIT_INVITE_NAME'),
+};
 mkdirSync(artifactsDir, { recursive: true });
 
 async function runLiveAudit() {
@@ -20,14 +37,14 @@ async function runLiveAudit() {
   }
 
   try {
-    log('1. Navigating to login page at http://127.0.0.1:5174/j-aautomation/app/login');
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/login');
+    log('1. Navigating to the isolated local login page');
+    await page.goto(`${BASE_URL}/app/login`);
     await page.waitForLoadState('networkidle');
     await page.screenshot({ path: resolve(artifactsDir, '01_login_desktop.png'), fullPage: true });
 
-    log('2. Entering credentials for antonny.luty@j-aautomation.com');
-    await page.getByLabel('Work email').fill('antonny.luty@j-aautomation.com');
-    await page.getByLabel('Password').fill('antonny.luty');
+    log('2. Entering credentials for the synthetic owner fixture');
+    await page.getByLabel('Work email').fill(OWNER.email);
+    await page.getByLabel('Password').fill(OWNER.password);
     await page.getByRole('button', { name: 'Continue to workspace' }).click();
 
     log('3. Waiting for redirection to dashboard');
@@ -36,7 +53,7 @@ async function runLiveAudit() {
       { timeout: 10000 },
     );
     await page.waitForLoadState('networkidle');
-    log(`Successfully landed at ${page.url()}`);
+    log(`Successfully landed at ${redactedUrlPath(page.url())}`);
     await page.screenshot({
       path: resolve(artifactsDir, '02_dashboard_desktop.png'),
       fullPage: true,
@@ -52,12 +69,12 @@ async function runLiveAudit() {
     await page.setViewportSize({ width: 1440, height: 900 });
 
     log('4. Navigating to Projects module');
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/projects');
+    await page.goto(`${BASE_URL}/app/projects`);
     await page.waitForLoadState('networkidle');
     await page.screenshot({ path: resolve(artifactsDir, '04_projects_list.png'), fullPage: true });
 
     // Test creating a new project
-    log('5. Creating a new project: "Gabriel Automation Lab - Line 4"');
+    log('5. Creating a new synthetic project fixture');
     const newProjectBtn = page
       .getByRole('button', { name: /New project|Create project/i })
       .or(page.locator('a[href*="new-project"]'))
@@ -71,14 +88,14 @@ async function runLiveAudit() {
 
     // Submit a project via form if visible, or via API action
     log('6. Inspecting Client and Team tabs in Projects');
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/projects?view=clients');
+    await page.goto(`${BASE_URL}/app/projects?view=clients`);
     await page.waitForLoadState('networkidle');
     await page.screenshot({
       path: resolve(artifactsDir, '06_projects_clients_tab.png'),
       fullPage: true,
     });
 
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/projects?view=team');
+    await page.goto(`${BASE_URL}/app/projects?view=team`);
     await page.waitForLoadState('networkidle');
     await page.screenshot({
       path: resolve(artifactsDir, '07_projects_team_tab.png'),
@@ -86,25 +103,25 @@ async function runLiveAudit() {
     });
 
     log('7. Navigating to Access / Team / Users module');
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/access');
+    await page.goto(`${BASE_URL}/app/access`);
     await page.waitForLoadState('networkidle');
     await page.screenshot({
       path: resolve(artifactsDir, '08_access_users_desktop.png'),
       fullPage: true,
     });
 
-    // Try inviting Gabriel Lamoglia
-    log('8. Inviting user "Gabriel Lamoglia" as Project Manager');
+    // Try inviting the synthetic worker fixture.
+    log('8. Inviting the synthetic worker fixture as Project Manager');
     const inviteEmailInput = page
       .locator('input[name="email"], input[id*="email"], input[placeholder*="email"]')
       .first();
     if (await inviteEmailInput.isVisible()) {
-      await inviteEmailInput.fill('gabriel.lamoglia@j-aautomation.com');
+      await inviteEmailInput.fill(INVITATION.email);
       const nameInput = page
         .locator('input[name="name"], input[id*="name"], input[placeholder*="name"]')
         .first();
       if (await nameInput.isVisible()) {
-        await nameInput.fill('Gabriel Lamoglia');
+        await nameInput.fill(INVITATION.name);
       }
       const roleSelect = page.locator('select[name="role"]').first();
       if (await roleSelect.isVisible()) {
@@ -118,7 +135,7 @@ async function runLiveAudit() {
       if (await submitInviteBtn.isVisible()) {
         await submitInviteBtn.click();
         await page.waitForTimeout(1000);
-        log('Sent invitation for Gabriel Lamoglia');
+        log('Sent invitation for the synthetic worker fixture');
         await page.screenshot({
           path: resolve(artifactsDir, '09_user_invited_state.png'),
           fullPage: true,
@@ -127,7 +144,7 @@ async function runLiveAudit() {
     }
 
     log('9. Navigating to Reports module');
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/reports');
+    await page.goto(`${BASE_URL}/app/reports`);
     await page.waitForLoadState('networkidle');
     await page.screenshot({ path: resolve(artifactsDir, '10_reports_list.png'), fullPage: true });
 
@@ -138,9 +155,9 @@ async function runLiveAudit() {
     log(`Found ${pdfCount} PDF report links`);
     if (pdfCount > 0) {
       const href = await pdfLinks.first().getAttribute('href');
-      log(`Testing PDF endpoint: ${href}`);
       if (href) {
-        const response = await page.request.get(`http://127.0.0.1:5174${href}`);
+        log(`Testing PDF endpoint: ${redactedUrlPath(href, BASE_URL)}`);
+        const response = await page.request.get(localSameOriginUrl(href, BASE_URL));
         log(
           `PDF response status: ${response.status()}, Content-Type: ${response.headers()['content-type']}`,
         );
@@ -148,12 +165,12 @@ async function runLiveAudit() {
     }
 
     log('11. Navigating to Time module');
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/time');
+    await page.goto(`${BASE_URL}/app/time`);
     await page.waitForLoadState('networkidle');
     await page.screenshot({ path: resolve(artifactsDir, '11_time_desktop.png'), fullPage: true });
 
     log('12. Navigating to Expenses module');
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/expenses');
+    await page.goto(`${BASE_URL}/app/expenses`);
     await page.waitForLoadState('networkidle');
     await page.screenshot({
       path: resolve(artifactsDir, '12_expenses_desktop.png'),
@@ -161,7 +178,7 @@ async function runLiveAudit() {
     });
 
     log('13. Navigating to Billing & Invoices');
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/billing');
+    await page.goto(`${BASE_URL}/app/billing`);
     await page.waitForLoadState('networkidle');
     await page.screenshot({
       path: resolve(artifactsDir, '13_billing_desktop.png'),
@@ -169,7 +186,7 @@ async function runLiveAudit() {
     });
 
     log('14. Testing Logout');
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/profile');
+    await page.goto(`${BASE_URL}/app/profile`);
     await page.waitForLoadState('networkidle');
     await page.screenshot({
       path: resolve(artifactsDir, '14_profile_desktop.png'),
@@ -190,16 +207,16 @@ async function runLiveAudit() {
       });
     } else {
       log('Calling auth signout API directly');
-      await page.request.post('http://127.0.0.1:5174/j-aautomation/app/api/auth/sign-out', {
-        headers: { origin: 'http://127.0.0.1:5174' },
+      await page.request.post(`${BASE_URL}/app/api/auth/sign-out`, {
+        headers: { origin: new URL(BASE_URL).origin },
       });
-      await page.goto('http://127.0.0.1:5174/j-aautomation/app/login');
+      await page.goto(`${BASE_URL}/app/login`);
       await page.waitForLoadState('networkidle');
     }
 
-    log('15. Re-authenticating with antonny.luty@j-aautomation.com / antonny.luty');
-    await page.getByLabel('Work email').fill('antonny.luty@j-aautomation.com');
-    await page.getByLabel('Password').fill('antonny.luty');
+    log('15. Re-authenticating with the synthetic owner fixture');
+    await page.getByLabel('Work email').fill(OWNER.email);
+    await page.getByLabel('Password').fill(OWNER.password);
     await page.getByRole('button', { name: 'Continue to workspace' }).click();
     await page.waitForURL(
       (url) => url.pathname.includes('/app') && !url.pathname.includes('/login'),
@@ -209,7 +226,7 @@ async function runLiveAudit() {
     log('Successfully logged back in!');
 
     log('16. Verifying persistence in Access / Users module');
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/access');
+    await page.goto(`${BASE_URL}/app/access`);
     await page.waitForLoadState('networkidle');
     await page.screenshot({
       path: resolve(artifactsDir, '16_access_after_relogin.png'),
@@ -217,8 +234,9 @@ async function runLiveAudit() {
     });
 
     log('Audit complete.');
-  } catch (err) {
-    console.error('[AUDIT ERROR]', err);
+  } catch {
+    console.error('[AUDIT ERROR] Audit failed.');
+    process.exitCode = 1;
     await page
       .screenshot({ path: resolve(artifactsDir, '99_error_state.png'), fullPage: true })
       .catch(() => {});

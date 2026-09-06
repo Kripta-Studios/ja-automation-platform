@@ -2,6 +2,13 @@
 
 > **Historical evidence notice (2026-08-23):** Preserve this document as evidence of earlier work. Current client-release status is tracked only by the Client Essential specification/checklist. The old 42-step V3 scenario and deferred V3.1–V3.4 expansion do not determine `CLIENT READY`.
 
+> **Current security policy (2026-09-06):** MFA is optional for every role and operation. It is a
+> voluntary Better Auth sign-in factor for users who enroll; no operation uses step-up
+> authentication. The local account MFA facade has no password field, uses Better Auth's
+> `allowPasswordless` setup contract, disables MFA transactionally, and closes raw Better Auth MFA
+> management endpoints. The historical implementation notes below are retained as evidence and do
+> not describe a current MFA or step-up requirement.
+
 Last verified: 2026-08-19 (Europe/Madrid). The revised
 `J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md` is authoritative. All commands below
 were run from the repository root in `node:24.19.0-bookworm-slim` with pnpm `11.22.0`; host Node
@@ -34,7 +41,8 @@ minimum top-ups, separate labor/expense taxes, percentage compensation, overtime
 partial payments, negative adjustments, immutable snapshots, source locks, and transaction-scoped
 numbering are implemented.
 
-Reviewed migrations remain contiguous and unsquashed: `0001`–`0011` plus `0012_session_step_up`,
+Reviewed migrations remain contiguous and unsquashed: `0001`–`0011` plus historical migration
+`0012_session_step_up`,
 `0013_audit_detail_fields`, `0014_commercial_billing_controls`,
 `0015_user_lifecycle_mfa_policy`, `0016_better_auth_two_factor_fields`, and
 `0017_better_auth_account_issuer`, plus `0018_better_auth_passkey_aaguid`. `packages/database/src/schema.ts` declares the migrated
@@ -54,11 +62,12 @@ Status: complete.
 
 `apps/portal/src/lib/server/auth.ts`, `apps/portal/src/hooks.server.ts`, the security routes,
 `packages/database/src/repository.ts`, and `packages/database/src/v3-repository.ts` provide
-invite-only Better Auth sessions, active/suspended/offboarded/archived lifecycle checks, TOTP
-enrollment/verification/recovery codes, passkey registration/revocation, session-bound step-up,
-origin/rate-limit checks, role/project/ownership authorization, redacted audit detail, correlation
-IDs, and explicit service actors. User-wide `last_step_up_at` is no longer consulted for protected
-operations; the authoritative state is `session.step_up_at`.
+invite-only Better Auth sessions, active/suspended/offboarded/archived lifecycle checks, optional
+TOTP enrollment/verification/recovery codes, passkey registration/revocation, origin/rate-limit
+checks, role/project/ownership authorization, redacted audit detail, correlation IDs, and explicit
+service actors. The historical session step-up columns are retained for migration compatibility but
+are not consulted by current protected operations; no current operation requires step-up
+authentication.
 
 Private document upload/download/scan routes validate MIME, filename, size, SHA-256, safe storage
 keys, sensitivity, quota and scan state. Receipts, reports, PLC artifacts, invoice PDFs and
@@ -310,8 +319,9 @@ passwordless role switch or auth bypass remains in the runtime path.
 - Removed the demo session signer and `/app/demo-login` endpoint. Protected requests always resolve
   the Better Auth session and then load the active user before repository authorization runs.
 - Added the operator-only `portal:bootstrap-owner` flow. It hashes a 12–128 character password with
-  Better Auth, creates an audited `owner_admin` in one transaction, marks MFA enrollment required,
-  and never prints or commits the password. Additional users enter through single-use invitations.
+  Better Auth, creates an audited `owner_admin` in one transaction, leaves MFA optional, and never
+  prints or commits the password. Additional users enter through single-use invitations. (The older
+  implementation marked MFA enrollment required; that behavior is historical and superseded.)
 - Added reviewed migration `0018_better_auth_passkey_aaguid.sql` and explicit Better Auth passkey
   field mappings for the snake_case SQLite schema. This removed the passkey list 500s found during
   the first real credential smoke test and keeps passkey registration/management compatible with

@@ -2,8 +2,12 @@ import type { DatabaseSync } from 'node:sqlite';
 import { randomBytes } from 'node:crypto';
 import { newId, type Principal, type Role } from '@ja/domain';
 import { recordAuditEvent } from '../../core/audit.ts';
+import { assertLiveSession } from '../../core/authorization.ts';
 
 export const CANONICAL_OWNER_EMAIL = 'antonny.luty@j-aautomation.com';
+export const SYNTHETIC_OWNER_EMAIL = 'owner@demo.jaautomation.test';
+export const SYNTHETIC_OWNER_TENANT_ID = 'e2e-client-essential-tenant';
+export const SYNTHETIC_OWNER_DEPLOYMENT_ID = 'e2e-client-essential-deployment';
 export const CORPORATE_MAIL_DOMAIN = 'j-aautomation.com';
 
 // Better Auth expects a non-null scrypt-shaped credential row. Webmail-only
@@ -37,35 +41,37 @@ export type ProvisionResult = Readonly<{
 
 function normalizeEmail(value: string): string {
   const email = value.trim().toLowerCase();
+  // The test deployment has one deliberately reserved, non-corporate Owner
+  // mailbox. Its deployment-identity authorization is checked by callers
+  // before it can receive Owner access.
+  if (email === SYNTHETIC_OWNER_EMAIL) return email;
   if (!/^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?@j-aautomation\.com$/u.test(email))
     throw new Error('MAILBOX_EMAIL_INVALID');
   return email;
 }
 
+function designatedOwnerEmail(sqlite: DatabaseSync): string {
+  const identity = sqlite
+    .prepare('SELECT tenant_id,deployment_id FROM deployment_identity WHERE singleton=1')
+    .get() as { tenant_id: string; deployment_id: string } | undefined;
+  return identity?.tenant_id === SYNTHETIC_OWNER_TENANT_ID &&
+    identity.deployment_id === SYNTHETIC_OWNER_DEPLOYMENT_ID
+    ? SYNTHETIC_OWNER_EMAIL
+    : CANONICAL_OWNER_EMAIL;
+}
+
 function requireCanonicalOwner(sqlite: DatabaseSync, principal: Principal): void {
+  assertLiveSession(sqlite, principal, Error);
+  const ownerEmail = designatedOwnerEmail(sqlite);
   const actor = sqlite
     .prepare('SELECT email,role,status FROM user WHERE id=?')
     .get(principal.userId) as { email: string; role: string; status: string } | undefined;
-  const session = principal.sessionId
-    ? (sqlite
-        .prepare('SELECT step_up_at,expires_at FROM session WHERE id=? AND user_id=?')
-        .get(principal.sessionId, principal.userId) as
-        | { step_up_at: string | null; expires_at: string }
-        | undefined)
-    : undefined;
-  const steppedAt = session?.step_up_at ? Date.parse(session.step_up_at) : Number.NaN;
-  const expiresAt = session?.expires_at ? Date.parse(session.expires_at) : Number.NaN;
   if (
     !actor ||
     actor.status !== 'active' ||
     actor.role !== 'owner_admin' ||
-    actor.email.toLowerCase() !== CANONICAL_OWNER_EMAIL ||
-    principal.role !== 'owner_admin' ||
-    !session ||
-    !Number.isFinite(steppedAt) ||
-    Date.now() - steppedAt > 10 * 60_000 ||
-    !Number.isFinite(expiresAt) ||
-    expiresAt <= Date.now()
+    actor.email.toLowerCase() !== ownerEmail ||
+    principal.role !== 'owner_admin'
   )
     throw new Error('CANONICAL_OWNER_REQUIRED');
 }
@@ -137,9 +143,12 @@ export class MailIdentityRepository {
     }
 
     return transaction(this.sqlite, () => {
+      const ownerEmail = designatedOwnerEmail(this.sqlite);
+      if (unique.has(SYNTHETIC_OWNER_EMAIL) && ownerEmail !== SYNTHETIC_OWNER_EMAIL)
+        throw new Error('SYNTHETIC_OWNER_DEPLOYMENT_REQUIRED');
       const conflictingOwner = this.sqlite
         .prepare("SELECT id,email FROM user WHERE role='owner_admin' AND lower(email)<>? LIMIT 1")
-        .get(CANONICAL_OWNER_EMAIL);
+        .get(ownerEmail);
       if (conflictingOwner) throw new Error('NON_CANONICAL_OWNER_CONFLICT');
 
       let created = 0;
@@ -149,7 +158,7 @@ export class MailIdentityRepository {
       const now = new Date().toISOString();
       for (const mailbox of unique.values()) {
         const email = mailbox.email;
-        const isOwner = email === CANONICAL_OWNER_EMAIL;
+        const isOwner = email === ownerEmail;
         const desiredRole: Role = isOwner ? 'owner_admin' : role;
         const desiredAuthMode = isOwner ? 'hybrid' : 'webmail';
         const existing = this.sqlite
@@ -197,20 +206,23 @@ export class MailIdentityRepository {
             : auditAction === 'mailbox.bootstrap'
               ? existing.role
               : desiredRole;
-          const mustUpdate =
-            (isOwner && (existing.status !== 'active' || existing.role !== 'owner_admin')) ||
-            (!isOwner && auditAction === 'mailbox.provision' && existing.role !== nextRole) ||
-            existing.mfa_required !== 0;
+          const ownerAccessChanged =
+            isOwner && (existing.status !== 'active' || existing.role !== 'owner_admin');
+          const delegatedRoleChanged =
+            !isOwner && auditAction === 'mailbox.provision' && existing.role !== nextRole;
+          const mustUpdate = ownerAccessChanged || delegatedRoleChanged;
           if (mustUpdate) {
             if (!isOwner && existing.status !== 'active') throw new Error('PORTAL_USER_INACTIVE');
             this.sqlite
               .prepare(
                 `UPDATE user SET role=?,status=CASE WHEN lower(email)=? THEN 'active' ELSE status END,
-                   email_verified=1,mfa_required=0,offboarded_at=CASE WHEN lower(email)=? THEN NULL ELSE offboarded_at END,
+                   email_verified=1,offboarded_at=CASE WHEN lower(email)=? THEN NULL ELSE offboarded_at END,
                    updated_at=?,version=version+1 WHERE id=?`,
               )
-              .run(nextRole, CANONICAL_OWNER_EMAIL, CANONICAL_OWNER_EMAIL, now, userId);
-            this.sqlite.prepare('DELETE FROM session WHERE user_id=?').run(userId);
+              .run(nextRole, ownerEmail, ownerEmail, now, userId);
+            // Role or lifecycle changes remain session-invalidating events.
+            if (ownerAccessChanged || delegatedRoleChanged)
+              this.sqlite.prepare('DELETE FROM session WHERE user_id=?').run(userId);
             updated += 1;
             rowOutcome = 'updated_or_linked';
           } else {
@@ -288,8 +300,9 @@ export class MailIdentityRepository {
 
   bootstrap(principal: Principal, mailboxes: readonly MailboxIdentityInput[]): ProvisionResult {
     requireCanonicalOwner(this.sqlite, principal);
+    const ownerEmail = designatedOwnerEmail(this.sqlite);
     const ownerMailbox = mailboxes.find(
-      (mailbox) => mailbox.email.trim().toLowerCase() === CANONICAL_OWNER_EMAIL,
+      (mailbox) => mailbox.email.trim().toLowerCase() === ownerEmail,
     );
     if (!ownerMailbox) throw new Error('CANONICAL_OWNER_MAILBOX_MISSING');
     // Antonny is processed first so a fresh installation has the audit actor.
@@ -308,7 +321,7 @@ export class MailIdentityRepository {
     if (!['worker', 'project_manager', 'finance_admin'].includes(role))
       throw new Error('MAILBOX_ROLE_INVALID');
     const email = normalizeEmail(emailInput);
-    if (email === CANONICAL_OWNER_EMAIL) throw new Error('CANONICAL_OWNER_PROTECTED');
+    if (email === designatedOwnerEmail(this.sqlite)) throw new Error('CANONICAL_OWNER_PROTECTED');
     if (!reason.trim()) throw new Error('MAILBOX_CHANGE_REASON_REQUIRED');
     transaction(this.sqlite, () => {
       const target = this.sqlite
@@ -344,7 +357,7 @@ export class MailIdentityRepository {
   ): void {
     requireCanonicalOwner(this.sqlite, principal);
     const email = normalizeEmail(emailInput);
-    if (email === CANONICAL_OWNER_EMAIL) throw new Error('CANONICAL_OWNER_PROTECTED');
+    if (email === designatedOwnerEmail(this.sqlite)) throw new Error('CANONICAL_OWNER_PROTECTED');
     if (!reason.trim()) throw new Error('MAILBOX_CHANGE_REASON_REQUIRED');
     transaction(this.sqlite, () => {
       const target = this.sqlite

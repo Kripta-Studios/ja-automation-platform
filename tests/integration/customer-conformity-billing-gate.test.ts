@@ -1,13 +1,16 @@
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ReadinessError } from '@ja/database';
 import type { Principal } from '@ja/domain';
+import { periodReportPdf } from '@ja/reporting';
 import { assertCustomerPeriodSnapshotSafe } from '../../packages/database/src/domains/reports/customer-conformity-repository.ts';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  seedB5User,
   stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
@@ -33,6 +36,7 @@ type CustomerConformity = Readonly<{
   reportPdfStorageKey: string;
   reportPdfSha256: string;
   reportPdfByteLength: number;
+  signatureDocumentId: string;
   signerName: string;
   signerIdentity: string | null;
   signedAt: string;
@@ -44,6 +48,7 @@ type CustomerConformityContract = B5LifecycleSecurityFixture['v3'] & {
     principal: Principal,
     input: Readonly<{
       periodReportId: string;
+      signatureDocumentId?: string;
       expectedSnapshotVersion: number;
       expectedSnapshotSha256: string;
     }>,
@@ -59,9 +64,19 @@ type CustomerConformityContract = B5LifecycleSecurityFixture['v3'] & {
     principal: Principal,
     input: Readonly<{
       periodReportId: string;
+      signatureDocumentId?: string;
       signerName: string;
       signerIdentity?: string;
       signedAt: string;
+    }>,
+  ): CustomerConformity;
+  attachLegacyCustomerConformityEvidence(
+    principal: Principal,
+    input: Readonly<{
+      expectedPeriodReportId: string;
+      conformityId: string;
+      signatureDocumentId: string;
+      reason: string;
     }>,
   ): CustomerConformity;
   getCustomerConformity(principal: Principal, conformityId: string): Record<string, unknown>;
@@ -92,6 +107,9 @@ function fixture(): B5LifecycleSecurityFixture {
     owner: stepUpB5Principal(base.sqlite, base.owner, 'customer-conformity-owner-default'),
     finance: stepUpB5Principal(base.sqlite, base.finance, 'customer-conformity-finance-default'),
   };
+  base.sqlite
+    .prepare('UPDATE session SET step_up_at=NULL WHERE id IN (?,?)')
+    .run(value.owner.sessionId, value.finance.sessionId);
   fixtures.push(value);
   previousDocumentRoots.set(value, process.env.JA_DOCUMENT_ROOT);
   process.env.JA_DOCUMENT_ROOT = join(value.directory, 'documents');
@@ -104,9 +122,66 @@ function withoutSession(principal: Principal): Principal {
 }
 
 function conformity(value: B5LifecycleSecurityFixture): CustomerConformityContract {
-  // The test freezes the service seam before its implementation is wired into
-  // V3Repository.  No test path uses direct SQL as a substitute for that API.
-  return value.v3 as unknown as CustomerConformityContract;
+  // The compatibility helper creates real, private PDF evidence for legacy
+  // assertions that are about a different report condition. Tests that cover
+  // missing/wrong/tampered evidence call the concrete V3 boundary directly.
+  const service = value.v3;
+  return {
+    approvePeriodReport: service.approvePeriodReport.bind(service),
+    getCustomerConformity: service.getCustomerConformity.bind(service),
+    invalidateCustomerConformity: service.invalidateCustomerConformity.bind(service),
+    attachLegacyCustomerConformityEvidence:
+      service.attachLegacyCustomerConformityEvidence.bind(service),
+    recordCustomerConformity: (principal, input) =>
+      service.recordCustomerConformity(principal, {
+        ...input,
+        signatureDocumentId:
+          input.signatureDocumentId ??
+          recordSignedEvidence(
+            value,
+            principal,
+            'test-signed-copy.pdf',
+            undefined,
+            input.periodReportId,
+          ),
+      }),
+  } as CustomerConformityContract;
+}
+
+function recordSignedEvidence(
+  value: B5LifecycleSecurityFixture,
+  principal: Principal,
+  filename: string,
+  projectId: string | undefined = value.project.id,
+  periodReportId?: string,
+): string {
+  const binding = periodReportId ? reportBinding(value, periodReportId) : null;
+  const reservation = value.v3.reserveUpload(principal, {
+    ...(projectId ? { projectId } : {}),
+    originalFilename: filename,
+    artifactType: 'customer_signoff_evidence',
+    description: binding
+      ? JSON.stringify({
+          kind: 'customer_signoff_evidence_binding_v1',
+          periodReportId,
+          snapshotVersion: binding.snapshot_version,
+          snapshotSha256: binding.snapshot_sha256,
+        })
+      : 'Synthetic unbound signed customer PDF evidence for integration testing',
+    sensitivity: 'customer_private',
+  });
+  const bytes = Buffer.from(
+    `%PDF-1.7\nSynthetic signed copy ${reservation.reservationId}\n%%EOF\n`,
+  );
+  const target = join(value.directory, 'documents', reservation.storageKey);
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, bytes, { flag: 'wx' });
+  value.v3.finalizeUpload(principal, reservation.reservationId, {
+    sha256: createHash('sha256').update(bytes).digest('hex'),
+    mediaType: 'application/pdf',
+    byteLength: bytes.byteLength,
+  });
+  return reservation.reservationId;
 }
 
 function billing(value: B5LifecycleSecurityFixture): BillingContract {
@@ -292,6 +367,51 @@ function reportBinding(value: B5LifecycleSecurityFixture, reportId: string) {
   };
 }
 
+function insertLegacyMetadataOnlyConformity(
+  value: B5LifecycleSecurityFixture,
+  reportId: string,
+  id = 'legacy-metadata-only-conformity',
+): string {
+  const report = value.sqlite
+    .prepare(
+      `SELECT snapshot_version,snapshot_sha256,snapshot_json,pdf_storage_key,pdf_sha256,pdf_byte_length
+         FROM period_report WHERE id=?`,
+    )
+    .get(reportId) as {
+    snapshot_version: number;
+    snapshot_sha256: string;
+    snapshot_json: string;
+    pdf_storage_key: string;
+    pdf_sha256: string;
+    pdf_byte_length: number;
+  };
+  value.sqlite
+    .prepare(
+      `INSERT INTO customer_conformity(
+         id,period_report_id,snapshot_version,snapshot_sha256,snapshot_json,
+         report_pdf_storage_key,report_pdf_sha256,report_pdf_byte_length,
+         signer_name,signer_identity,signed_at,signature_document_id,created_by,created_at
+       ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    )
+    .run(
+      id,
+      reportId,
+      report.snapshot_version,
+      report.snapshot_sha256,
+      report.snapshot_json,
+      report.pdf_storage_key,
+      report.pdf_sha256,
+      report.pdf_byte_length,
+      'Historical Customer Signer',
+      'historical.customer@example.test',
+      '2026-08-24T16:30:00.000Z',
+      null,
+      value.finance.userId,
+      '2026-08-24T16:31:00.000Z',
+    );
+  return id;
+}
+
 function recordCustomerPdf(value: B5LifecycleSecurityFixture, reportId: string, filename: string) {
   const documentRoot = join(value.directory, 'documents');
   const storageKey = `reports/${reportId}/${filename}`;
@@ -424,6 +544,11 @@ function createCustomerInvoiceScenario(value: B5LifecycleSecurityFixture) {
     signerName: 'Ana Client',
     signedAt: '2026-08-24T16:30:00.000Z',
   });
+  if (!signed.signatureDocumentId) throw new Error('Synthetic signed evidence was not recorded');
+  const signatureDocument = value.sqlite
+    .prepare('SELECT storage_key FROM document WHERE id=?')
+    .get(signed.signatureDocumentId) as { storage_key: string } | undefined;
+  if (!signatureDocument) throw new Error('Synthetic signed evidence document was not found');
   return {
     ...report,
     repo,
@@ -431,6 +556,7 @@ function createCustomerInvoiceScenario(value: B5LifecycleSecurityFixture) {
     finance,
     signed,
     pdfPath: join(report.documentRoot, report.storageKey),
+    signaturePdfPath: join(report.documentRoot, signatureDocument.storage_key),
   };
 }
 
@@ -664,16 +790,7 @@ describe('Client Essential CORE-07/10 customer conformity contract', () => {
       }
       const report = beforeRefresh;
 
-      const finance = steppedUp(value, value.finance, 'finance');
-      expect(() =>
-        service.recordCustomerConformity(withoutSession(value.finance), {
-          periodReportId: reportId,
-          signerName: 'Ana Client',
-          signerIdentity: 'ana.client@example.test',
-          signedAt: '2026-08-24T16:30:00.000Z',
-        }),
-      ).toThrow(/step.?up/i);
-
+      const finance = value.finance;
       const signed = service.recordCustomerConformity(finance, {
         periodReportId: reportId,
         signerName: 'Ana Client',
@@ -723,19 +840,15 @@ describe('Client Essential CORE-07/10 customer conformity contract', () => {
         'report_pdf_sha256',
         'reportPdfByteLength',
         'report_pdf_byte_length',
+        'signatureDocumentId',
+        'signature_document_id',
       ])
         expect(pmView).not.toHaveProperty(key);
       expect(() => service.getCustomerConformity(value.worker, signed.id)).toThrow(
         /access|denied|role|worker/i,
       );
 
-      const owner = steppedUp(value, value.owner, 'owner');
-      expect(() =>
-        service.invalidateCustomerConformity(withoutSession(value.owner), {
-          conformityId: signed.id,
-          reason: 'Customer requested corrected activity wording',
-        }),
-      ).toThrow(/step.?up/i);
+      const owner = value.owner;
       const invalidated = service.invalidateCustomerConformity(owner, {
         conformityId: signed.id,
         reason: 'Customer requested corrected activity wording',
@@ -781,6 +894,48 @@ describe('Client Essential CORE-07/10 customer conformity contract', () => {
 });
 
 describe('Client Essential customer sign-off security boundary', () => {
+  it('exposes customer-private backup metadata only from approved period reports', () => {
+    const value = fixture();
+    const createAttachedDaily = (summary: string, filename: string) => {
+      const report = value.repository.createDailyReport(value.worker, {
+        projectId: value.project.id,
+        workDate: '2026-08-18',
+        summary,
+        tasksCompleted: summary,
+        downtimeMinutes: 0,
+        safetyRelated: false,
+      });
+      const reservation = value.v3.reserveReportAttachment(value.worker, {
+        reportType: 'daily',
+        reportId: report.id,
+        attachmentKind: 'daily_attachment',
+        originalFilename: filename,
+        sensitivity: 'customer_private',
+      });
+      value.v3.finalizeReportAttachment(value.worker, reservation.reservationId, {
+        sha256: createHash('sha256').update(filename).digest('hex'),
+        mediaType: 'application/pdf',
+        byteLength: 100,
+      });
+      return report;
+    };
+    const approved = createAttachedDaily('Approved evidence parent', 'approved-backup.pdf');
+    createAttachedDaily('Draft evidence parent', 'draft-backup.pdf');
+    value.repository.submitReport(value.worker, 'daily', approved.id, approved.version);
+    value.repository.reviewReport(value.manager, 'daily', approved.id, 'approved');
+
+    const { reportId } = customerReport(value, 'approved');
+    const row = value.sqlite
+      .prepare('SELECT snapshot_json FROM period_report WHERE id=?')
+      .get(reportId) as { snapshot_json: string };
+    const snapshot = JSON.parse(row.snapshot_json) as {
+      backupArtifacts: Array<{ filename: string }>;
+    };
+    expect(snapshot.backupArtifacts).toEqual([
+      expect.objectContaining({ filename: 'approved-backup.pdf' }),
+    ]);
+  });
+
   it('requires current can_review membership for PM period-report approval', () => {
     const value = fixture();
     const service = conformity(value);
@@ -880,6 +1035,128 @@ describe('Client Essential customer sign-off security boundary', () => {
       'amountMinor'
     ] = 1;
     expect(() => assertCustomerPeriodSnapshotSafe(financial)).toThrow(/forbidden|not allowed/i);
+  });
+
+  it('projects distinct worker display names for same-day customer activity without IDs, email, or finance', () => {
+    const value = fixture();
+    seedB5User(value.sqlite, 'b5-worker-two', 'worker');
+    value.sqlite
+      .prepare('UPDATE user SET name=? WHERE id=?')
+      .run('Rui Field Engineer', 'b5-worker-two');
+    value.repository.assignWorker(value.owner, {
+      projectId: value.project.id,
+      workerId: 'b5-worker-two',
+      startsOn: '2026-01-01',
+    });
+    value.repository.createClientLaborRate(value.finance, {
+      projectId: value.project.id,
+      workerId: 'b5-worker-two',
+      currency: 'EUR',
+      hourlyRateMinor: 10_000n,
+      effectiveFrom: '2026-01-01',
+    });
+    value.repository.createInternalCostRule(value.finance, {
+      projectId: value.project.id,
+      workerId: 'b5-worker-two',
+      currency: 'EUR',
+      hourlyRateMinor: 4_000n,
+      effectiveFrom: '2026-01-01',
+    });
+    value.repository.createCompensationRule(value.finance, {
+      projectId: value.project.id,
+      workerId: 'b5-worker-two',
+      currency: 'EUR',
+      rateMinor: 3_000n,
+      rateBasis: 'hourly',
+      effectiveFrom: '2026-01-01',
+    });
+    const secondWorker = value.repository.principalFor('b5-worker-two');
+    const secondTime = value.repository.createTimeEntry(secondWorker, {
+      projectId: value.project.id,
+      workDate: '2026-08-10',
+      category: 'regular',
+      minutes: 30,
+      summary: 'Second same-day operational task',
+    });
+    value.repository.submitTime(secondWorker, secondTime.id, secondTime.version);
+    value.repository.operationalApproveTime(value.manager, secondTime.id, 'approved');
+    value.repository.financeApproveTime(value.finance, secondTime.id, true);
+    const technical = value.repository.createTechnicalReport(value.worker, {
+      projectId: value.project.id,
+      reportDate: '2026-08-10',
+      systemName: 'Customer attribution PLC',
+      changeSummary: 'Technical report authored by the commissioning engineer',
+      safetyRelated: false,
+    });
+    value.repository.submitReport(value.worker, 'technical', technical.id, technical.version);
+    value.repository.reviewReport(value.manager, 'technical', technical.id, 'approved');
+    const technicalChange = value.v3.createTechnicalChange(secondWorker, {
+      projectId: value.project.id,
+      technicalReportId: technical.id,
+      component: 'Customer attribution PLC',
+      changeMade: 'Technical change authored by the field engineer',
+    });
+    value.v3.submitTechnicalChange(secondWorker, technicalChange.id, technicalChange.version);
+    value.v3.reviewTechnicalChange(value.manager, technicalChange.id, 'approved');
+    value.sqlite
+      .prepare('UPDATE user SET name=? WHERE id=?')
+      .run('Alex Commissioning Engineer', value.worker.userId);
+    const { reportId } = customerReport(value, 'review', false);
+    const refreshed = value.v3.refreshPeriodReports(value.finance, {
+      projectId: value.project.id,
+      periodStart: '2026-08-01',
+      periodEnd: '2026-08-31',
+    });
+    const customer = refreshed.find((candidate) => candidate.id === reportId);
+    if (!customer) throw new Error('Customer report was not refreshed');
+    const snapshot = customer.snapshot as Record<string, unknown>;
+    const timeSummary = snapshot.timeSummary as Array<Record<string, unknown>>;
+    const technicalReports = snapshot.technicalReports as Array<Record<string, unknown>>;
+    const technicalChanges = snapshot.technicalChanges as Array<Record<string, unknown>>;
+
+    expect(() => assertCustomerPeriodSnapshotSafe(snapshot)).not.toThrow();
+    expect(timeSummary).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          date: '2026-08-10',
+          workerDisplay: 'Alex Commissioning Engineer',
+        }),
+        expect.objectContaining({ date: '2026-08-10', workerDisplay: 'Rui Field Engineer' }),
+      ]),
+    );
+    expect(technicalReports).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          date: '2026-08-10',
+          workerDisplay: 'Alex Commissioning Engineer',
+        }),
+      ]),
+    );
+    expect(technicalChanges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          date: '2026-08-10',
+          workerDisplay: 'Rui Field Engineer',
+          changeMade: 'Technical change authored by the field engineer',
+        }),
+      ]),
+    );
+    const serialized = JSON.stringify(snapshot);
+    expect(serialized).toContain('Alex Commissioning Engineer');
+    expect(serialized).toContain('Rui Field Engineer');
+    expect(serialized).not.toContain('b5-worker@example.test');
+    expect(serialized).not.toContain('b5-worker-two@example.test');
+    expect(serialized).not.toContain('b5-worker-two');
+    expect(serialized).not.toContain('worker_id');
+    expect(serialized).not.toContain('amountMinor');
+    const pdf = periodReportPdf(snapshot as Parameters<typeof periodReportPdf>[0]);
+    const pdfPath = join(value.directory, 'same-day-customer-workers.pdf');
+    writeFileSync(pdfPath, pdf);
+    const text = execFileSync('pdftotext', ['-raw', pdfPath, '-'], { encoding: 'utf8' });
+    expect(text).toMatch(/Alex Commissioning\s+Engineer/u);
+    expect(text).toContain('Rui Field Engineer');
+    expect(text).not.toContain('b5-worker-two');
+    expect(text).not.toContain('b5-worker@example.test');
   });
 
   it('rejects a hash-valid snapshot that only carries the privacy marker but adds finance fields', () => {
@@ -1143,7 +1420,266 @@ describe('Client Essential customer sign-off security boundary', () => {
     ).toBeUndefined();
   });
 
-  it('keeps service actors out of human principals and requires step-up for sign-off mutations', () => {
+  it('rejects metadata-only conformity input before any acceptance is recorded', () => {
+    const value = fixture();
+    const { reportId } = customerReport(value, 'approved');
+    expect(() =>
+      value.v3.recordCustomerConformity(steppedUp(value, value.finance, 'missing-evidence'), {
+        periodReportId: reportId,
+        signerName: 'Ana Client',
+        signedAt: '2026-08-24T16:30:00.000Z',
+      } as never),
+    ).toThrow(/verified signed PDF evidence|required/i);
+    expect(
+      value.sqlite
+        .prepare('SELECT id FROM customer_conformity WHERE period_report_id=?')
+        .get(reportId),
+    ).toBeUndefined();
+  });
+
+  it('attaches verified evidence append-only to a legacy metadata-only conformity', () => {
+    const value = fixture();
+    const { reportId } = customerReport(value, 'approved');
+    const legacyId = insertLegacyMetadataOnlyConformity(value, reportId);
+    const finance = steppedUp(value, value.finance, 'attach-legacy-evidence');
+
+    expect(value.v3.getCustomerConformity(finance, legacyId)).toMatchObject({
+      id: legacyId,
+      signatureDocumentId: null,
+      signatureEvidenceStatus: 'missing',
+      signerName: 'Historical Customer Signer',
+    });
+    const managerView = value.v3.getCustomerConformity(value.manager, legacyId);
+    expect(managerView).toMatchObject({ signatureEvidenceStatus: 'missing' });
+    expect(managerView).not.toHaveProperty('signatureDocumentId');
+
+    const evidenceId = recordSignedEvidence(
+      value,
+      finance,
+      'legacy-repair-signed-copy.pdf',
+      undefined,
+      reportId,
+    );
+    const attached = value.v3.attachLegacyCustomerConformityEvidence(finance, {
+      expectedPeriodReportId: reportId,
+      conformityId: legacyId,
+      signatureDocumentId: evidenceId,
+      reason: 'Recovered verified signed copy from the historical customer record',
+    });
+    expect(attached).toMatchObject({
+      id: legacyId,
+      signatureDocumentId: evidenceId,
+      signatureEvidenceStatus: 'verified',
+      signerName: 'Historical Customer Signer',
+      signedAt: '2026-08-24T16:30:00.000Z',
+    });
+    expect(
+      value.sqlite
+        .prepare('SELECT signature_document_id FROM customer_conformity WHERE id=?')
+        .get(legacyId),
+    ).toEqual({ signature_document_id: null });
+    expect(
+      value.sqlite
+        .prepare(
+          'SELECT conformity_id,signature_document_id,attached_by,reason FROM customer_conformity_evidence_attachment WHERE conformity_id=?',
+        )
+        .get(legacyId),
+    ).toMatchObject({
+      conformity_id: legacyId,
+      signature_document_id: evidenceId,
+      attached_by: finance.userId,
+    });
+    expect(() =>
+      value.v3.attachLegacyCustomerConformityEvidence(finance, {
+        expectedPeriodReportId: reportId,
+        conformityId: legacyId,
+        signatureDocumentId: evidenceId,
+        reason: 'A duplicate attachment must not rewrite the historic acceptance',
+      }),
+    ).toThrow(/already|changed|evidence/i);
+    expect(value.v3.getCustomerConformity(value.manager, legacyId)).toMatchObject({
+      signatureEvidenceStatus: 'verified',
+    });
+    expect(value.v3.getCustomerConformity(value.manager, legacyId)).not.toHaveProperty(
+      'signatureDocumentId',
+    );
+  });
+
+  it('rejects a same-project legacy conformity when it is not bound to the requested period report', () => {
+    const value = fixture();
+    const first = customerReport(value, 'approved');
+    const finance = steppedUp(value, value.finance, 'legacy-route-period-binding');
+    const secondClose = value.v3.closeBillingPeriod(
+      finance,
+      first.billingRuleId,
+      '2026-09-01',
+      '2026-09-30',
+    );
+    if (!secondClose.closed) throw new Error('Second billing period was not closed');
+    const refreshed = value.v3.refreshPeriodReports(value.finance, {
+      projectId: value.project.id,
+      periodStart: '2026-09-01',
+      periodEnd: '2026-09-30',
+    });
+    const second = refreshed.find((report) => report.audience === 'customer');
+    if (!second) throw new Error('Second customer report was not created');
+    const secondBinding = reportBinding(value, second.id);
+    value.v3.approvePeriodReport(finance, {
+      periodReportId: second.id,
+      expectedSnapshotVersion: secondBinding.snapshot_version,
+      expectedSnapshotSha256: secondBinding.snapshot_sha256,
+    });
+    recordCustomerPdf(value, second.id, 'legacy-second-period.pdf');
+    const firstLegacyId = insertLegacyMetadataOnlyConformity(
+      value,
+      first.reportId,
+      'legacy-first-period',
+    );
+    const secondLegacyId = insertLegacyMetadataOnlyConformity(
+      value,
+      second.id,
+      'legacy-second-period',
+    );
+    const evidenceId = recordSignedEvidence(
+      value,
+      finance,
+      'same-project-wrong-period.pdf',
+      undefined,
+      second.id,
+    );
+
+    expect(() =>
+      value.v3.recordCustomerConformity(finance, {
+        periodReportId: first.reportId,
+        signatureDocumentId: evidenceId,
+        signerName: 'Wrong report signer',
+        signedAt: '2026-09-05T00:00:00.000Z',
+      }),
+    ).toThrow(/evidence|binding|report/i);
+
+    expect(() =>
+      value.v3.attachLegacyCustomerConformityEvidence(finance, {
+        expectedPeriodReportId: second.id,
+        conformityId: firstLegacyId,
+        signatureDocumentId: evidenceId,
+        reason: 'Must not attach evidence uploaded from another period route',
+      }),
+    ).toThrow(/period report|requested period/i);
+    expect(
+      value.sqlite.prepare('SELECT id FROM customer_conformity_evidence_attachment').all(),
+    ).toEqual([]);
+    expect(value.v3.getCustomerConformity(finance, firstLegacyId)).toMatchObject({
+      signatureEvidenceStatus: 'missing',
+    });
+    expect(
+      value.v3.attachLegacyCustomerConformityEvidence(finance, {
+        expectedPeriodReportId: second.id,
+        conformityId: secondLegacyId,
+        signatureDocumentId: evidenceId,
+        reason: 'Attach only to the exact report route after the mismatch is rejected',
+      }),
+    ).toMatchObject({
+      id: secondLegacyId,
+      signatureEvidenceStatus: 'verified',
+    });
+    expect(() =>
+      value.v3.recordCustomerConformity(finance, {
+        periodReportId: second.id,
+        signatureDocumentId: evidenceId,
+        signerName: 'Duplicate evidence signer',
+        signedAt: '2026-09-05T00:00:00.000Z',
+      }),
+    ).toThrow(/already bound|already|evidence/i);
+  });
+
+  it.each([
+    [
+      'another project',
+      (value: B5LifecycleSecurityFixture, principal: Principal, reportId: string) =>
+        recordSignedEvidence(
+          value,
+          principal,
+          'foreign-project.pdf',
+          value.repository.createProject(value.owner, {
+            clientId: value.client.id,
+            name: 'Foreign customer-signoff evidence project',
+            timezone: 'Europe/Madrid',
+            currency: 'EUR',
+            billingModel: 'tm',
+            startDate: '2026-01-01',
+          }).id,
+          reportId,
+        ),
+    ],
+    [
+      'wrong artifact type',
+      (value: B5LifecycleSecurityFixture, principal: Principal, reportId: string) => {
+        const id = recordSignedEvidence(value, principal, 'wrong-type.pdf', undefined, reportId);
+        value.sqlite.prepare('UPDATE document SET artifact_type=? WHERE id=?').run('report', id);
+        return id;
+      },
+    ],
+    [
+      'wrong sensitivity',
+      (value: B5LifecycleSecurityFixture, principal: Principal, reportId: string) => {
+        const id = recordSignedEvidence(
+          value,
+          principal,
+          'wrong-sensitivity.pdf',
+          undefined,
+          reportId,
+        );
+        value.sqlite.prepare('UPDATE document SET sensitivity=? WHERE id=?').run('internal', id);
+        return id;
+      },
+    ],
+    [
+      'quarantined scanner state',
+      (value: B5LifecycleSecurityFixture, principal: Principal, reportId: string) => {
+        const id = recordSignedEvidence(
+          value,
+          principal,
+          'quarantined-evidence.pdf',
+          undefined,
+          reportId,
+        );
+        value.sqlite
+          .prepare("UPDATE document SET state='quarantined',scan_status='pending' WHERE id=?")
+          .run(id);
+        return id;
+      },
+    ],
+  ] as const)('rejects signed-copy evidence from %s', (_label, createEvidence) => {
+    const value = fixture();
+    const { reportId } = customerReport(value, 'approved');
+    const finance = steppedUp(value, value.finance, `evidence-${_label}`);
+    const signatureDocumentId = createEvidence(value, finance, reportId);
+    expect(() =>
+      value.v3.recordCustomerConformity(finance, {
+        periodReportId: reportId,
+        signatureDocumentId,
+        signerName: 'Ana Client',
+        signedAt: '2026-08-24T16:30:00.000Z',
+      }),
+    ).toThrow(/evidence|project|unavailable/i);
+  });
+
+  it('reclaims only an unbound, uploader-owned signed-copy document', () => {
+    const value = fixture();
+    const finance = steppedUp(value, value.finance, 'reclaim-unbound-evidence');
+    const evidenceId = recordSignedEvidence(value, finance, 'discardable-signed-copy.pdf');
+    const document = value.sqlite
+      .prepare('SELECT storage_key FROM document WHERE id=?')
+      .get(evidenceId) as { storage_key: string };
+    expect(value.v3.discardUnboundCustomerSignoffEvidence(finance, evidenceId)).toMatchObject({
+      storageKey: document.storage_key,
+    });
+    expect(
+      value.sqlite.prepare('SELECT id FROM document WHERE id=?').get(evidenceId),
+    ).toBeUndefined();
+  });
+
+  it('keeps service actors out while allowing authorized sign-off mutations without step-up', () => {
     const value = fixture();
     const service = conformity(value);
     const { reportId } = customerReport(value, 'approved');
@@ -1151,47 +1687,39 @@ describe('Client Essential customer sign-off security boundary', () => {
       /active account required/i,
     );
 
-    expect(() =>
-      service.recordCustomerConformity(withoutSession(value.finance), {
-        periodReportId: reportId,
-        signerName: 'Ana Client',
-        signedAt: '2026-08-24T16:30:00.000Z',
-      }),
-    ).toThrow(/recent step-up authentication is required/i);
-
     const signed = service.recordCustomerConformity(value.finance, {
       periodReportId: reportId,
       signerName: 'Ana Client',
       signedAt: '2026-08-24T16:30:00.000Z',
     });
-    expect(() =>
-      service.invalidateCustomerConformity(withoutSession(value.owner), {
-        conformityId: signed.id,
-        reason: 'Owner must step up before invalidating customer sign-off',
-      }),
-    ).toThrow(/recent step-up authentication is required/i);
     expect(
       service.invalidateCustomerConformity(value.owner, {
         conformityId: signed.id,
         reason: 'Authorized owner invalidation',
       }),
     ).toMatchObject({ conformityId: signed.id });
+    expect(() =>
+      service.invalidateCustomerConformity(withoutSession(value.worker), {
+        conformityId: signed.id,
+        reason: 'Worker cannot invalidate customer sign-off',
+      }),
+    ).toThrow(/finance|access|denied/i);
     expect(service.getCustomerConformity(value.owner, signed.id)).toMatchObject({
       status: 'invalidated',
     });
   });
 
   it.each(['mutate', 'delete'] as const)(
-    'blocks invoice issue with customer_signoff_required when the signed PDF is %s afterward',
+    'blocks invoice issue with customer_signoff_required when the signed-copy evidence is %s afterward',
     (operation) => {
       const value = fixture();
       const scenario = createCustomerInvoiceScenario(value);
       if (operation === 'mutate') {
         const mutated = Buffer.from(scenario.bytes);
         mutated[9] = 'X'.charCodeAt(0);
-        writeFileSync(scenario.pdfPath, mutated, { flag: 'w' });
+        writeFileSync(scenario.signaturePdfPath, mutated, { flag: 'w' });
       } else {
-        unlinkSync(scenario.pdfPath);
+        unlinkSync(scenario.signaturePdfPath);
       }
 
       let blocked: unknown;
@@ -1292,6 +1820,30 @@ describe('Client Essential customer sign-off security boundary', () => {
     expect(service.getCustomerConformity(value.owner, first.id)).toMatchObject({
       id: first.id,
       status: 'invalidated',
+    });
+  });
+
+  it('does not let signed-copy evidence invalidate the exact report snapshot it accepts', () => {
+    const value = fixture();
+    const service = conformity(value);
+    const { reportId } = customerReport(value, 'approved');
+    const before = reportBinding(value, reportId);
+    const signed = service.recordCustomerConformity(value.finance, {
+      periodReportId: reportId,
+      signerName: 'Ana Client',
+      signedAt: '2026-09-05T00:00:00.000Z',
+    });
+
+    value.v3.refreshPeriodReports(value.finance, {
+      projectId: value.project.id,
+      periodStart: '2026-08-01',
+      periodEnd: '2026-08-31',
+    });
+
+    expect(reportBinding(value, reportId)).toEqual(before);
+    expect(service.getCustomerConformity(value.finance, signed.id)).toMatchObject({
+      status: 'active',
+      signatureEvidenceStatus: 'verified',
     });
   });
 });

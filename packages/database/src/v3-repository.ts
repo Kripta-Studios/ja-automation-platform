@@ -4,6 +4,7 @@ import {
   billableMinutesForDailyMinimum,
   chooseMostSpecificRate,
   overtimeRate,
+  periodForCadence,
   percentageOfEligibleClientLabor,
   type OvertimeMethod,
 } from '@ja/billing-engine';
@@ -22,11 +23,7 @@ import {
   timeInputSchema,
 } from '@ja/schemas';
 import { recordAuditEvent } from './core/audit.ts';
-import {
-  assertActiveAccount,
-  assertRecentStepUp,
-  readLiveSessionStepUp,
-} from './core/authorization.ts';
+import { assertActiveAccount, assertLiveSession } from './core/authorization.ts';
 import { canonicalJson, sha256 as canonicalSha256 } from './core/canonical-json.ts';
 import { verifyPrivatePdfArtifact } from './core/private-pdf-proof.ts';
 import { assertSafeStorageKey } from './core/storage-key.ts';
@@ -349,14 +346,30 @@ type SettlementBasis =
 const accountingPackExportTypes = ['pdf', 'xlsx', 'invoice_csv', 'expense_csv', 'json'] as const;
 type AccountingPackExportType = (typeof accountingPackExportTypes)[number];
 const requiredAccountingPackExportTypes = [
+  'pdf',
   'xlsx',
   'invoice_csv',
   'expense_csv',
 ] as const satisfies readonly AccountingPackExportType[];
 
 const timestamp = (): string => new Date().toISOString();
-const isoDate = (value: string): boolean =>
-  /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`));
+const isoDate = (value: string): boolean => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const instant = Date.UTC(year, month - 1, day);
+  if (Number.isNaN(instant)) return false;
+  const parsed = new Date(instant);
+  // Date.parse normalizes invalid dates such as 2026-02-30; V3 boundaries
+  // must accept only the exact ISO calendar day supplied by the caller.
+  return (
+    parsed.getUTCFullYear() === year &&
+    parsed.getUTCMonth() === month - 1 &&
+    parsed.getUTCDate() === day
+  );
+};
 const CUSTOMER_PERIOD_REPORT_PRIVACY_VERSION = '2026.08.24.customer-period-safe-v1';
 
 /**
@@ -390,6 +403,12 @@ function scannerStatusAllowsPrivateDownload(
 
 function requireDate(value: string, field: string): void {
   if (!isoDate(value)) throw new V3ValidationError(`${field} must be an ISO date`);
+}
+
+function requireOrderedDateRange(periodStart: string, periodEnd: string): void {
+  requireDate(periodStart, 'Period start');
+  requireDate(periodEnd, 'Period end');
+  if (periodEnd < periodStart) throw new V3ValidationError('Period end must follow start');
 }
 
 function requireDateTime(value: string, field: string): void {
@@ -459,6 +478,7 @@ export class V3Repository {
     this.canonicalProjectLegalEntities = new CanonicalProjectLegalEntityRepository({
       sqlite: this.sqlite,
       transaction: <T>(work: () => T): T => this.transaction(work),
+      assertLiveSession: (principal) => this.assertLiveSession(principal),
       now: timestamp,
       errors: {
         accessDenied: (message) => {
@@ -478,7 +498,7 @@ export class V3Repository {
       assertActive: (principal) => this.assertActive(principal),
       assertProjectAccess: (principal, projectId, allowAuditor) =>
         this.assertProjectAccess(principal, projectId, allowAuditor),
-      assertStepUp: (principal) => this.assertCustomerConformityStepUp(principal),
+      assertLiveSession: (principal) => this.assertLiveSession(principal),
       audit: (principal, action, entityType, entityId, details) =>
         this.audit(principal, action, entityType, entityId, details),
       now: timestamp,
@@ -780,9 +800,6 @@ export class V3Repository {
         );
       return { commandId: existing.command_id, created: false };
     }
-    const stepUp = readLiveSessionStepUp(this.sqlite, principal);
-    const stepUpAt = stepUp?.verifiedAt ?? null;
-    const stepUpExpiresAt = stepUp?.expiresAt ?? null;
     this.sqlite
       .prepare(
         `INSERT INTO finance_command(
@@ -807,8 +824,8 @@ export class V3Repository {
         descriptor.currency,
         payloadHash,
         sessionHash,
-        stepUpAt,
-        stepUpExpiresAt,
+        null,
+        null,
         null,
         null,
         descriptor.createdAt,
@@ -844,12 +861,8 @@ export class V3Repository {
       throw new V3AccessDeniedError('Finance role required');
   }
 
-  private assertStepUp(principal: Principal): void {
-    assertRecentStepUp(this.sqlite, principal, V3AccessDeniedError);
-  }
-
-  private assertCustomerConformityStepUp(principal: Principal): void {
-    this.assertStepUp(principal);
+  private assertLiveSession(principal: Principal): void {
+    assertLiveSession(this.sqlite, principal, V3AccessDeniedError);
   }
 
   private assertProjectAccess(principal: Principal, projectId: string, allowAuditor = false): void {
@@ -950,7 +963,7 @@ export class V3Repository {
 
   createCompensationRule(principal: Principal, input: CompensationInput): { id: string } {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     requireDate(input.effectiveFrom, 'Effective date');
     if (input.effectiveTo) {
       requireDate(input.effectiveTo, 'End date');
@@ -1086,9 +1099,9 @@ export class V3Repository {
     }>,
   ): { id: string; token: string; expiresAt: string } {
     this.assertFinance(principal);
+    this.assertLiveSession(principal);
     if (principal.role !== 'owner_admin')
       throw new V3AccessDeniedError('Owner role required to invite users');
-    this.assertStepUp(principal);
     const email = input.email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       throw new V3ValidationError('Invitation email is invalid');
@@ -1134,7 +1147,7 @@ export class V3Repository {
 
   createClientLaborRate(principal: Principal, input: LaborRateInput): { id: string } {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     this.assertProjectAccess(principal, input.projectId);
     // Browser forms intentionally represent the unscoped "All assigned
     // workers" choice and optional fields as empty strings. Normalize at the
@@ -1203,7 +1216,7 @@ export class V3Repository {
 
   createInternalCostRule(principal: Principal, input: InternalCostInput): { id: string } {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     this.assertActiveLaborWorker(input.workerId);
     if (input.projectId) this.assertProjectAccess(principal, input.projectId);
     requireDate(input.effectiveFrom, 'Effective date');
@@ -1343,7 +1356,7 @@ export class V3Repository {
     input: CompensationInput,
   ): { id: string; previousId: string } {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     const existing = this.sqlite
       .prepare(
         'SELECT worker_id,project_id,effective_from,effective_to FROM compensation_rule WHERE id=?',
@@ -1393,7 +1406,7 @@ export class V3Repository {
     effectiveTo = new Date().toISOString().slice(0, 10),
   ): void {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     requireDate(effectiveTo, 'End date');
     this.transaction(() => {
       const existing = this.sqlite
@@ -1421,7 +1434,7 @@ export class V3Repository {
     input: LaborRateInput,
   ): { id: string; previousId: string } {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     const existing = this.sqlite
       .prepare(
         'SELECT project_id,worker_id,effective_from,effective_to FROM client_labor_rate WHERE id=?',
@@ -1465,7 +1478,7 @@ export class V3Repository {
     effectiveTo = new Date().toISOString().slice(0, 10),
   ): void {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     requireDate(effectiveTo, 'End date');
     this.transaction(() => {
       const existing = this.sqlite
@@ -1491,7 +1504,7 @@ export class V3Repository {
     input: InternalCostInput,
   ): { id: string; previousId: string } {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     const existing = this.sqlite
       .prepare(
         'SELECT worker_id,project_id,effective_from,effective_to FROM internal_cost_rule WHERE id=?',
@@ -1535,7 +1548,7 @@ export class V3Repository {
     effectiveTo = new Date().toISOString().slice(0, 10),
   ): void {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     requireDate(effectiveTo, 'End date');
     this.transaction(() => {
       const existing = this.sqlite
@@ -1559,7 +1572,7 @@ export class V3Repository {
 
   createAssignmentRateOverride(principal: Principal, input: OverrideInput): { id: string } {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     const assignment = this.sqlite
       .prepare("SELECT project_id,user_id FROM project_member WHERE id=? AND status='active'")
       .get(input.projectMemberId) as { project_id: string; user_id: string } | undefined;
@@ -2143,7 +2156,7 @@ export class V3Repository {
     }>,
   ) {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     this.assertProjectAccess(principal, input.projectId);
     requireDate(input.periodStart, 'Period start');
     requireDate(input.periodEnd, 'Period end');
@@ -2168,6 +2181,7 @@ export class V3Repository {
          FROM time_entry t JOIN project p ON p.id=t.project_id
          WHERE t.project_id=? AND t.worker_id=? AND t.work_date BETWEEN ? AND ?
            AND t.approval_state IN ('approved','locked')
+           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id)
          ORDER BY t.work_date,t.id`,
         )
         .all(input.projectId, input.workerId, input.periodStart, input.periodEnd) as TimeRow[];
@@ -2515,6 +2529,7 @@ export class V3Repository {
     this.assertActive(principal);
     if (periodStart) requireDate(periodStart, 'Period start');
     if (periodEnd) requireDate(periodEnd, 'Period end');
+    if (periodStart && periodEnd) requireOrderedDateRange(periodStart, periodEnd);
     const financeVisible = canManageBilling(principal) || principal.role === 'auditor_read_only';
     if (financeVisible) this.assertFinanceReadable(principal);
     else if (projectId) throw new V3AccessDeniedError('Project filter is finance-only');
@@ -2594,7 +2609,7 @@ export class V3Repository {
     }>,
   ) {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     if (input.expectedPaymentOn !== null)
       requireDate(input.expectedPaymentOn, 'Expected worker payment date');
     return this.transaction(() => {
@@ -2653,6 +2668,7 @@ export class V3Repository {
          JOIN project p ON p.id=e.project_id
          JOIN user u ON u.id=e.worker_id
          WHERE e.who_paid='worker' AND e.approval_state IN ('approved','locked')
+           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=e.id)
            ${projectId ? 'AND e.project_id=?' : ''}
          ORDER BY e.spent_on DESC,e.id`,
       )
@@ -2685,17 +2701,21 @@ export class V3Repository {
 
   workerPay(principal: Principal, periodStart: string, periodEnd: string) {
     this.assertActive(principal);
-    requireDate(periodStart, 'Period start');
-    requireDate(periodEnd, 'Period end');
+    requireOrderedDateRange(periodStart, periodEnd);
     const sourceRows = this.sqlite
       .prepare(
         `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,t.approval_state,
                  t.billability_state,p.currency project_currency
           FROM time_entry t JOIN project p ON p.id=t.project_id
-          JOIN project_member pm ON pm.project_id=t.project_id AND pm.user_id=t.worker_id
-          WHERE t.worker_id=? AND t.work_date BETWEEN ? AND ? AND pm.status='active'
-            AND pm.starts_on<=t.work_date AND (pm.ends_on IS NULL OR pm.ends_on>=t.work_date)
+          WHERE t.worker_id=? AND t.work_date BETWEEN ? AND ?
+            AND EXISTS (
+              SELECT 1 FROM project_member pm
+               WHERE pm.project_id=t.project_id AND pm.user_id=t.worker_id
+                 AND pm.status='active' AND pm.starts_on<=t.work_date
+                 AND (pm.ends_on IS NULL OR pm.ends_on>=t.work_date)
+            )
             AND t.approval_state NOT IN ('rejected','void')
+            AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id)
           ORDER BY t.work_date,t.id`,
       )
       .all(principal.userId, periodStart, periodEnd) as TimeRow[];
@@ -2882,6 +2902,7 @@ export class V3Repository {
          FROM expense e JOIN project p ON p.id=e.project_id
          WHERE e.worker_id=? AND e.spent_on BETWEEN ? AND ? AND e.who_paid='worker'
            AND e.approval_state NOT IN ('rejected','void')
+           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=e.id)
            AND EXISTS (
              SELECT 1 FROM project_member pm
              WHERE pm.project_id=e.project_id AND pm.user_id=e.worker_id
@@ -2984,6 +3005,7 @@ export class V3Repository {
   ) {
     this.assertFinanceReadable(principal);
     this.assertProjectAccess(principal, projectId, true);
+    if (periodStart && periodEnd) requireOrderedDateRange(periodStart, periodEnd);
     return this.projectFinanceCore(projectId, periodStart, periodEnd);
   }
 
@@ -3013,6 +3035,7 @@ export class V3Repository {
     const end = periodEnd ?? '9999-12-31';
     if (periodStart) requireDate(periodStart, 'Period start');
     if (periodEnd) requireDate(periodEnd, 'Period end');
+    if (periodStart && periodEnd) requireOrderedDateRange(periodStart, periodEnd);
     const time = this.sqlite
       .prepare(
         `SELECT t.id,t.project_id,t.worker_id,u.name worker_name,t.work_date,t.category,t.activity_code,
@@ -3022,6 +3045,7 @@ export class V3Repository {
          JOIN user u ON u.id=t.worker_id
          WHERE t.project_id=? AND t.work_date BETWEEN ? AND ?
            AND t.approval_state NOT IN ('rejected','void')
+           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id)
          ORDER BY t.work_date,t.worker_id,COALESCE(t.start_time,t.created_at),t.id`,
       )
       .all(projectId, start, end) as Array<TimeRow & { worker_name: string }>;
@@ -3449,7 +3473,8 @@ export class V3Repository {
                 e.commercial_classification_state,u.name worker_name
          FROM expense e JOIN user u ON u.id=e.worker_id
          WHERE e.project_id=? AND e.spent_on BETWEEN ? AND ?
-           AND e.approval_state NOT IN ('rejected','void')`,
+           AND e.approval_state NOT IN ('rejected','void')
+           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=e.id)`,
       )
       .all(projectId, start, end) as Array<{
       id: string;
@@ -3897,6 +3922,7 @@ export class V3Repository {
     this.assertFinanceReadable(principal);
     if (periodStart) requireDate(periodStart, 'Period start');
     if (periodEnd) requireDate(periodEnd, 'Period end');
+    if (periodStart && periodEnd) requireOrderedDateRange(periodStart, periodEnd);
     const projects = this.sqlite
       .prepare(
         `SELECT p.id,p.project_number,p.name,p.currency,p.client_id,c.client_number,c.display_name client_name
@@ -4788,7 +4814,7 @@ export class V3Repository {
     }>,
   ) {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     if (input.amountMinor <= 0n) throw new V3ValidationError('Payment must be positive');
     sqliteInteger(input.amountMinor, 'Payment');
     const receivedAt = canonicalUtcTimestamp(input.receivedAt, 'Payment received date');
@@ -4875,7 +4901,6 @@ export class V3Repository {
       if (netPaidBefore + input.amountMinor > BigInt(invoice.total_minor))
         throw new V3ValidationError('Payment exceeds invoice balance');
       const id = newId();
-      const stepUp = readLiveSessionStepUp(this.sqlite, principal);
       const commandPayload = {
         schema_version: 'invoice-payment-record-v1',
         payment_id: id,
@@ -4905,8 +4930,6 @@ export class V3Repository {
           evidenceNamespace: 'invoice-payment',
           evidenceIdPrefix: 'payment',
           commandIdPrefix: 'payment-command',
-          stepUpVerifiedAt: stepUp?.verifiedAt ?? null,
-          stepUpExpiresAt: stepUp?.expiresAt ?? null,
         },
         (message) => {
           throw new V3ConflictError(message);
@@ -5029,7 +5052,7 @@ export class V3Repository {
     state: string;
   }> {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     if (input.amountMinor <= 0n) throw new V3ValidationError('Payment reversal must be positive');
     sqliteInteger(input.amountMinor, 'Payment reversal');
     const effectiveAt = canonicalUtcTimestamp(input.effectiveAt, 'Payment reversal effective date');
@@ -5254,12 +5277,12 @@ export class V3Repository {
     }>,
   ): { expenseId: string; amountMinor: string; state: 'reimbursed' } {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     const reference = requireText(input.reference, 'Reimbursement reference', 200);
     return this.transaction(() => {
       const expense = this.sqlite
         .prepare(
-          "SELECT id,worker_id,CAST(amount_minor AS TEXT) amount_minor,CAST(reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,reimbursement_state,reimbursement_reference FROM expense WHERE id=? AND approval_state IN ('approved','locked') AND who_paid='worker'",
+          "SELECT id,worker_id,CAST(amount_minor AS TEXT) amount_minor,CAST(reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,reimbursement_state,reimbursement_reference FROM expense WHERE id=? AND approval_state IN ('approved','locked') AND who_paid='worker' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id)",
         )
         .get(input.expenseId) as
         | {
@@ -5315,7 +5338,7 @@ export class V3Repository {
   ): void {
     this.assertActive(principal);
     if (principal.role !== 'owner_admin') throw new V3AccessDeniedError('Owner role required');
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     const normalizedReason = requireText(reason, 'Void reason', 2000);
     const normalizedKey = idempotencyKey.trim();
     if (normalizedKey.length < 8 || normalizedKey.length > 200)
@@ -5371,12 +5394,12 @@ export class V3Repository {
     periodEnd: string,
   ) {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
-    requireDate(periodStart, 'Period start');
-    requireDate(periodEnd, 'Period end');
+    this.assertLiveSession(principal);
+    requireOrderedDateRange(periodStart, periodEnd);
     const rule = this.sqlite
       .prepare(
         `SELECT br.id,br.project_id,br.stream_type,br.tax_profile_id,br.legal_entity_id,
+                br.cadence_type,br.anchor_date,br.monthly_cutoff_day,
                 p.daily_report_required,p.technical_reporting_required,p.currency project_currency
          FROM billing_rule br JOIN project p ON p.id=br.project_id
          WHERE br.id=? AND br.enabled=1`,
@@ -5388,12 +5411,27 @@ export class V3Repository {
           stream_type: string;
           tax_profile_id: string | null;
           legal_entity_id: string | null;
+          cadence_type: string;
+          anchor_date: string | null;
+          monthly_cutoff_day: number | null;
           daily_report_required: number;
           technical_reporting_required: number;
           project_currency: V3Currency;
         }
       | undefined;
     if (!rule) throw new V3ValidationError('Billing rule not found');
+    if (['weekly', 'every_14_days', 'semi_monthly', 'monthly'].includes(rule.cadence_type)) {
+      const expected = periodForCadence(
+        rule.cadence_type as 'weekly' | 'every_14_days' | 'semi_monthly' | 'monthly',
+        periodStart,
+        {
+          anchorDate: rule.anchor_date ?? undefined,
+          monthlyCutoffDay: rule.monthly_cutoff_day ?? undefined,
+        },
+      );
+      if (!expected || expected.start !== periodStart || expected.end !== periodEnd)
+        throw new V3ValidationError('Billing period does not match the configured cadence');
+    }
     const reasons: Array<{ code: string; sourceId?: string }> = [];
     if (!rule.tax_profile_id) reasons.push({ code: 'missing_tax_profile' });
     if (!rule.legal_entity_id) reasons.push({ code: 'missing_legal_entity' });
@@ -5403,7 +5441,8 @@ export class V3Repository {
           `SELECT id,worker_id,category,activity_code,work_date,approval_state,billability_state
            FROM time_entry
            WHERE project_id=? AND work_date BETWEEN ? AND ? AND invoice_id IS NULL
-             AND approval_state NOT IN ('rejected','void')`,
+             AND approval_state NOT IN ('rejected','void')
+             AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id)`,
         )
         .all(rule.project_id, periodStart, periodEnd) as Array<{
         id: string;
@@ -5460,10 +5499,12 @@ export class V3Repository {
              FROM time_entry t
              WHERE t.project_id=? AND t.work_date BETWEEN ? AND ?
                AND t.approval_state NOT IN ('rejected','void')
+               AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id)
                AND NOT EXISTS (
                  SELECT 1 FROM daily_report d
                  WHERE d.project_id=t.project_id AND d.work_date=t.work_date
                    AND d.approval_state IN ('approved','locked')
+                   AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='daily_report' AND rcl.original_id=d.id)
                )
              ORDER BY t.work_date`,
           )
@@ -5486,6 +5527,7 @@ export class V3Repository {
                  AND date(t.report_date)=t.report_date
                  AND t.report_date BETWEEN ? AND ?
                  AND t.approval_state IN ('approved','locked')
+                 AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='technical_report' AND rcl.original_id=t.id)
              )`,
           )
           .get(
@@ -5501,7 +5543,7 @@ export class V3Repository {
     if (rule.stream_type === 'expense') {
       const rows = this.sqlite
         .prepare(
-          "SELECT id,currency,CAST(project_currency_amount_minor AS TEXT) project_currency_amount_minor,CAST(billing_amount_minor AS TEXT) billing_amount_minor,approval_state,finance_approved_at,receipt_required,receipt_document_id FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND invoice_id IS NULL AND approval_state NOT IN ('rejected','void') AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem'))",
+          "SELECT id,currency,CAST(project_currency_amount_minor AS TEXT) project_currency_amount_minor,CAST(billing_amount_minor AS TEXT) billing_amount_minor,approval_state,finance_approved_at,receipt_required,receipt_document_id FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND invoice_id IS NULL AND approval_state NOT IN ('rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem'))",
         )
         .all(rule.project_id, periodStart, periodEnd) as Array<{
         id: string;
@@ -5548,7 +5590,7 @@ export class V3Repository {
     reportLocale: ReportLocale = 'en',
   ) {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     const readiness = this.billingReadiness(principal, billingRuleId, periodStart, periodEnd);
     if (readiness.state !== 'ready') return { ...readiness, closed: false };
     return this.transaction(() => {
@@ -5601,6 +5643,7 @@ export class V3Repository {
              WHERE project_id=? AND work_date BETWEEN ? AND ?
                AND approval_state IN ('approved','locked') AND billability_state='billable'
                AND invoice_id IS NULL
+               AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id)
                AND NOT (
                  category='travel' AND COALESCE((
                    SELECT pcp.travel_client_billable
@@ -5616,7 +5659,7 @@ export class V3Repository {
       if (rule.stream_type === 'expense')
         this.sqlite
           .prepare(
-            "UPDATE expense SET billing_state='locked',billing_lock_id=?,updated_at=?,version=version+1 WHERE project_id=? AND spent_on BETWEEN ? AND ? AND approval_state='approved' AND finance_approved_at IS NOT NULL AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem')) AND invoice_id IS NULL",
+            "UPDATE expense SET billing_state='locked',billing_lock_id=?,updated_at=?,version=version+1 WHERE project_id=? AND spent_on BETWEEN ? AND ? AND approval_state='approved' AND finance_approved_at IS NOT NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem')) AND invoice_id IS NULL",
           )
           .run(lockId, now, rule.project_id, periodStart, periodEnd);
       // A finance user may prepare a draft before the explicit period close.
@@ -5718,7 +5761,7 @@ export class V3Repository {
     snapshot: Readonly<Record<string, unknown>>;
   }> {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     requireDate(input.periodStart, 'Period start');
     requireDate(input.periodEnd, 'Period end');
     if (input.periodEnd < input.periodStart)
@@ -5795,7 +5838,9 @@ export class V3Repository {
         .prepare(
           `SELECT d.id,d.work_date,d.summary,d.safety_related,d.approval_state,u.name worker_name
            FROM daily_report d JOIN user u ON u.id=d.worker_id
-           WHERE d.project_id=? AND d.work_date BETWEEN ? AND ? ORDER BY d.work_date,d.id`,
+           WHERE d.project_id=? AND d.work_date BETWEEN ? AND ?
+             AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='daily_report' AND rcl.original_id=d.id)
+           ORDER BY d.work_date,d.id`,
         )
         .all(input.projectId, input.periodStart, input.periodEnd) as Array<{
         id: string;
@@ -5807,15 +5852,17 @@ export class V3Repository {
       }>;
       const technicalReports = this.sqlite
         .prepare(
-          `SELECT id,system_name,plant_site,area_line,station_machine,change_summary,safety_related,
-                  validation,validation_result,open_risk,approval_state,report_date,created_at
-           FROM technical_report
-           WHERE project_id=?
-             AND length(report_date)=10
-             AND report_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
-             AND date(report_date)=report_date
-             AND report_date BETWEEN ? AND ?
-           ORDER BY report_date,id`,
+          `SELECT tr.id,tr.system_name,tr.plant_site,tr.area_line,tr.station_machine,tr.change_summary,tr.safety_related,
+                  tr.validation,tr.validation_result,tr.open_risk,tr.approval_state,tr.report_date,tr.created_at,
+                  u.name worker_name
+           FROM technical_report tr JOIN user u ON u.id=tr.author_id
+           WHERE tr.project_id=?
+             AND length(tr.report_date)=10
+             AND tr.report_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+             AND date(tr.report_date)=tr.report_date
+             AND tr.report_date BETWEEN ? AND ?
+             AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='technical_report' AND rcl.original_id=tr.id)
+           ORDER BY tr.report_date,tr.id`,
         )
         .all(input.projectId, input.periodStart, input.periodEnd) as Array<{
         id: string;
@@ -5831,20 +5878,28 @@ export class V3Repository {
         approval_state: string;
         report_date: string;
         created_at: string;
+        worker_name: string;
       }>;
       const technicalChanges = this.sqlite
         .prepare(
           `SELECT tc.id,tc.technical_report_id,tc.component,tc.change_made,tc.reason,
                   tc.safety_impact,tc.production_impact,tc.validation,tc.validation_result,
                   tc.open_risk,tc.rollback_information,tc.approval_state,tc.created_at,
-                  tr.report_date technical_report_date
+                  tr.report_date technical_report_date,
+                  tr.approval_state technical_report_approval_state,u.name worker_name
            FROM technical_change tc
            JOIN technical_report tr ON tr.id=tc.technical_report_id
+           JOIN user u ON u.id=tc.author_id
            WHERE tc.project_id=?
              AND length(tr.report_date)=10
              AND tr.report_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
              AND date(tr.report_date)=tr.report_date
              AND tr.report_date BETWEEN ? AND ?
+             AND NOT EXISTS (
+               SELECT 1 FROM record_correction_link correction
+                WHERE correction.record_type='technical_report'
+                  AND correction.original_id=tr.id
+             )
            ORDER BY tr.report_date,tc.id`,
         )
         .all(input.projectId, input.periodStart, input.periodEnd) as Array<Record<string, unknown>>;
@@ -5852,7 +5907,9 @@ export class V3Repository {
         .prepare(
           `SELECT t.id,t.version,t.work_date,t.category,t.minutes,t.activity_summary,t.approval_state,u.name worker_name
            FROM time_entry t JOIN user u ON u.id=t.worker_id
-           WHERE t.project_id=? AND t.work_date BETWEEN ? AND ? ORDER BY t.work_date,t.id`,
+           WHERE t.project_id=? AND t.work_date BETWEEN ? AND ?
+             AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id)
+           ORDER BY t.work_date,t.id`,
         )
         .all(input.projectId, input.periodStart, input.periodEnd) as Array<{
         id: string;
@@ -5873,7 +5930,9 @@ export class V3Repository {
                   e.who_paid,e.client_treatment,e.billing_treatment,
                   e.approval_state,e.receipt_document_id,e.billing_state,u.name worker_name
            FROM expense e JOIN user u ON u.id=e.worker_id
-           WHERE e.project_id=? AND e.spent_on BETWEEN ? AND ? ORDER BY e.spent_on,e.id`,
+           WHERE e.project_id=? AND e.spent_on BETWEEN ? AND ?
+             AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=e.id)
+           ORDER BY e.spent_on,e.id`,
         )
         .all(input.projectId, input.periodStart, input.periodEnd) as Array<Record<string, unknown>>;
       const finance = this.projectFinanceCore(input.projectId, input.periodStart, input.periodEnd);
@@ -5941,10 +6000,37 @@ export class V3Repository {
             ];
       const documents = this.sqlite
         .prepare(
-          `SELECT id,safe_filename,media_type,byte_length,sha256,sensitivity,created_at
-           FROM document WHERE project_id=? AND state='committed' ORDER BY created_at,id`,
+          `SELECT d.id,d.safe_filename,d.media_type,d.byte_length,d.sha256,
+                  d.sensitivity,d.created_at,
+                  MAX(CASE
+                    WHEN daily.approval_state IN('approved','locked') THEN 1
+                    WHEN technical.approval_state IN('approved','locked') THEN 1
+                    ELSE 0
+                  END) customer_approved
+             FROM document d
+             JOIN report_document_link link ON link.document_id=d.id
+             LEFT JOIN daily_report daily
+               ON link.report_type='daily' AND daily.id=link.report_id
+             LEFT JOIN technical_report technical
+               ON link.report_type='technical' AND technical.id=link.report_id
+            WHERE d.project_id=? AND d.state='committed'
+              AND d.artifact_type<>'customer_signoff_evidence'
+              AND (
+                (daily.id IS NOT NULL AND daily.work_date BETWEEN ? AND ?)
+                OR
+                (technical.id IS NOT NULL AND technical.report_date BETWEEN ? AND ?)
+              )
+            GROUP BY d.id,d.safe_filename,d.media_type,d.byte_length,d.sha256,
+                     d.sensitivity,d.created_at
+            ORDER BY d.created_at,d.id`,
         )
-        .all(input.projectId) as Array<Record<string, unknown>>;
+        .all(
+          input.projectId,
+          input.periodStart,
+          input.periodEnd,
+          input.periodStart,
+          input.periodEnd,
+        ) as Array<Record<string, unknown>>;
       const reports = this.sqlite
         .prepare(
           `SELECT id,audience,report_type,state,snapshot_json,snapshot_version,snapshot_sha256,
@@ -5998,8 +6084,10 @@ export class V3Repository {
             )
           : technicalReports;
         const visibleTechnicalChanges = customer
-          ? technicalChanges.filter((change) =>
-              ['approved', 'locked'].includes(String(change.approval_state)),
+          ? technicalChanges.filter(
+              (change) =>
+                ['approved', 'locked'].includes(String(change.approval_state)) &&
+                ['approved', 'locked'].includes(String(change.technical_report_approval_state)),
             )
           : technicalChanges;
         const visibleTime = customer
@@ -6007,13 +6095,19 @@ export class V3Repository {
           : time;
         const visibleExpenses = customer ? [] : expenses;
         const visibleDocuments = customer
-          ? documents.filter((document) => document.sensitivity === 'customer_private')
+          ? documents.filter(
+              (document) =>
+                document.sensitivity === 'customer_private' && document.customer_approved === 1,
+            )
           : documents;
         const reportChanges = visibleTechnicalChanges.map((change) =>
           customer
             ? {
                 id: change.id,
-                date: change.created_at,
+                // A technical change belongs to the technical report's
+                // authoritative operational date, not its insertion time.
+                date: change.technical_report_date,
+                workerDisplay: change.worker_name,
                 component: change.component,
                 changeMade: change.change_made,
                 productionImpact: change.production_impact,
@@ -6028,7 +6122,8 @@ export class V3Repository {
           customer
             ? {
                 id: technical.id,
-                date: technical.created_at,
+                date: technical.report_date,
+                workerDisplay: technical.worker_name,
                 system: technical.system_name,
                 site: technical.plant_site,
                 area: technical.area_line,
@@ -6045,7 +6140,7 @@ export class V3Repository {
         const reportDaily = visibleDailyReports.map((daily) => ({
           id: daily.id,
           date: daily.work_date,
-          worker: customer ? undefined : daily.worker_name,
+          ...(customer ? { workerDisplay: daily.worker_name } : { worker: daily.worker_name }),
           summary: daily.summary,
           safetyRelated: daily.safety_related,
           approvalState: daily.approval_state,
@@ -6120,6 +6215,7 @@ export class V3Repository {
             category: row.category,
             minutes: row.minutes,
             activitySummary: row.activity_summary,
+            workerDisplay: row.worker_name,
             approvalState: row.approval_state,
           })),
           technicalReports: reportTechnical,
@@ -6248,6 +6344,18 @@ export class V3Repository {
     input: CustomerConformityInput,
   ): CustomerConformity {
     return this.customerConformities.recordCustomerConformity(principal, input);
+  }
+
+  attachLegacyCustomerConformityEvidence(
+    principal: Principal,
+    input: Readonly<{
+      expectedPeriodReportId: string;
+      conformityId: string;
+      signatureDocumentId: string;
+      reason: string;
+    }>,
+  ): CustomerConformity {
+    return this.customerConformities.attachLegacyCustomerConformityEvidence(principal, input);
   }
 
   approvePeriodReport(
@@ -6450,6 +6558,7 @@ export class V3Repository {
     byteLength: number,
   ): void {
     this.assertFinance(principal);
+    this.assertLiveSession(principal);
     this.assertStorageKey(storageKey);
     if (!/^[a-f0-9]{64}$/.test(sha256) || !Number.isSafeInteger(byteLength) || byteLength <= 0)
       throw new V3ValidationError('Period report PDF metadata is invalid');
@@ -6514,7 +6623,7 @@ export class V3Repository {
       | undefined;
     if (!report) throw new V3ValidationError('Period report not found');
     if (report.audience === 'customer') {
-      if (principal) this.assertCustomerConformityStepUp(principal);
+      if (principal) this.assertLiveSession(principal);
       let canonical: ReturnType<typeof canonicalCustomerPeriodSnapshot>;
       try {
         canonical = canonicalCustomerPeriodSnapshot(report.snapshot_json);
@@ -6924,7 +7033,7 @@ export class V3Repository {
     reportLocale: ReportLocale = 'en',
   ) {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     requireDate(periodStart, 'Period start');
     requireDate(periodEnd, 'Period end');
     if (periodEnd < periodStart) throw new V3ValidationError('Period end must follow start');
@@ -6946,7 +7055,7 @@ export class V3Repository {
         const job = this.latestAccountingPackJob(existing.id);
         const exportCount = this.sqlite
           .prepare(
-            "SELECT COUNT(DISTINCT export_type) AS count FROM accounting_pack_export WHERE pack_run_id=? AND export_type IN ('xlsx','invoice_csv','expense_csv') AND byte_length>0 AND length(sha256)=64",
+            "SELECT COUNT(DISTINCT export_type) AS count FROM accounting_pack_export WHERE pack_run_id=? AND export_type IN ('pdf','xlsx','invoice_csv','expense_csv') AND byte_length>0 AND length(sha256)=64",
           )
           .get(existing.id) as { count: number };
         const state =
@@ -7160,7 +7269,9 @@ export class V3Repository {
                 e.reimbursement_state,e.receipt_document_id,e.billing_state,e.version,
                 e.invoice_id,p.project_number,p.currency project_currency,u.name worker_name
          FROM expense e JOIN project p ON p.id=e.project_id JOIN user u ON u.id=e.worker_id
-         WHERE e.spent_on BETWEEN ? AND ? AND e.approval_state IN ('approved','locked') ORDER BY e.spent_on,e.id`,
+         WHERE e.spent_on BETWEEN ? AND ? AND e.approval_state IN ('approved','locked')
+           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=e.id)
+         ORDER BY e.spent_on,e.id`,
         )
         .all(periodStart, periodEnd) as Array<{
         id: string;
@@ -7255,6 +7366,7 @@ export class V3Repository {
                 p.currency project_currency
          FROM time_entry t JOIN user u ON u.id=t.worker_id JOIN project p ON p.id=t.project_id
          WHERE t.work_date BETWEEN ? AND ? AND t.approval_state IN ('approved','locked')
+           AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id)
          ORDER BY t.work_date,t.id`,
         )
         .all(periodStart, periodEnd) as Array<{
@@ -7433,6 +7545,10 @@ export class V3Repository {
          FROM expense e JOIN project p ON p.id=e.project_id
          WHERE e.spent_on BETWEEN ? AND ? AND e.approval_state IN ('approved','locked')
            AND e.who_paid='worker'
+           AND NOT EXISTS (
+             SELECT 1 FROM record_correction_link rcl
+              WHERE rcl.record_type='expense' AND rcl.original_id=e.id
+           )
          ORDER BY e.worker_id,e.project_id,e.id`,
         )
         .all(periodStart, periodEnd) as Array<{
@@ -8439,7 +8555,7 @@ export class V3Repository {
 
   markAccountingPackFinal(principal: Principal, packId: string): void {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     this.transaction(() => {
       const pack = this.sqlite
         .prepare(
@@ -8520,7 +8636,6 @@ export class V3Repository {
       const ready = new Set(readyRows.map((row) => row.export_type));
       const required = [
         ...requiredAccountingPackExportTypes,
-        ...(process.env.JA_ACCOUNTING_PACK_REQUIRE_PDF === 'true' ? (['pdf'] as const) : []),
         ...(process.env.JA_ACCOUNTING_PACK_REQUIRE_JSON === 'true' ? (['json'] as const) : []),
       ];
       const missing = required.filter((format) => !ready.has(format));
@@ -8563,7 +8678,7 @@ export class V3Repository {
     idempotencyKey: string,
   ): { jobId: string; created: boolean; state: string } {
     this.assertFinance(principal);
-    this.assertStepUp(principal);
+    this.assertLiveSession(principal);
     if (!accountingPackExportTypes.includes(exportType))
       throw new V3ValidationError('Accounting Pack export type is invalid');
     const cleanKey = requireText(idempotencyKey, 'Retry idempotency key');
@@ -8635,7 +8750,7 @@ export class V3Repository {
                    ORDER BY aj.created_at DESC,aj.id DESC LIMIT 1) job_state,
                 apr.reconciliation_json,apr.created_at,apr.updated_at,
                 COALESCE(GROUP_CONCAT(ape.export_type), '') export_types,
-                COALESCE(SUM(CASE WHEN ape.export_type IN ('xlsx','invoice_csv','expense_csv')
+                COALESCE(SUM(CASE WHEN ape.export_type IN ('pdf','xlsx','invoice_csv','expense_csv')
                                       AND ape.byte_length>0 AND length(ape.sha256)=64
                                  THEN 1 ELSE 0 END),0) ready_required_count
          FROM accounting_pack_run apr
@@ -9250,6 +9365,88 @@ export class V3Repository {
       this.audit(principal, 'document.delete', 'document', documentId, {
         previousState: document.state,
         storageKey: document.storage_key,
+      });
+      return { storageKey: document.storage_key };
+    });
+  }
+
+  /**
+   * A signed-copy upload can be committed before the separate append-only
+   * conformity insert rejects a stale report or a concurrent acceptance.
+   * Reclaim only that request's own unreferenced evidence; normal committed
+   * documents remain immutable and this never touches an EEXIST winner.
+   */
+  discardUnboundCustomerSignoffEvidence(
+    principal: Principal,
+    documentId: string,
+  ): { storageKey: SafeStorageKey } {
+    this.assertActive(principal);
+    if (!canManageBilling(principal))
+      throw new V3AccessDeniedError('Finance role required to discard signed-copy evidence');
+    const document = this.sqlite
+      .prepare(
+        `SELECT id,project_id,owner_id,state,artifact_type,storage_key
+           FROM document WHERE id=?`,
+      )
+      .get(documentId) as
+      | {
+          id: string;
+          project_id: string | null;
+          owner_id: string;
+          state: string;
+          artifact_type: string | null;
+          storage_key: SafeStorageKey;
+        }
+      | undefined;
+    if (!document) throw new V3NotFoundError('Document not found');
+    if (document.owner_id !== principal.userId || !document.project_id)
+      throw new V3AccessDeniedError('Signed-copy evidence ownership mismatch');
+    this.assertProjectAccess(principal, document.project_id, true);
+    this.assertStorageKey(document.storage_key);
+    if (document.state !== 'committed' || document.artifact_type !== 'customer_signoff_evidence')
+      throw new V3ConflictError('Signed-copy evidence is not safely reclaimable');
+    return this.transaction(() => {
+      const removed = this.sqlite
+        .prepare(
+          `DELETE FROM document
+            WHERE id=? AND owner_id=? AND state='committed'
+              AND artifact_type='customer_signoff_evidence'
+              AND NOT EXISTS(
+                SELECT 1 FROM customer_conformity conformity
+                 WHERE conformity.signature_document_id=document.id
+              )
+              AND NOT EXISTS(
+                SELECT 1 FROM document_access_event access
+                 WHERE access.document_id=document.id
+              )
+              AND NOT EXISTS(
+                SELECT 1 FROM expense expense
+                 WHERE expense.receipt_document_id=document.id
+              )
+              AND NOT EXISTS(
+                SELECT 1 FROM document child
+                 WHERE child.supersedes_id=document.id
+              )
+              AND NOT EXISTS(
+                SELECT 1 FROM report_document_link report_link
+                 WHERE report_link.document_id=document.id
+              )
+              AND NOT EXISTS(
+                SELECT 1 FROM upload_reservation upload
+                 WHERE upload.document_id=document.id
+              )
+              AND NOT EXISTS(
+                SELECT 1 FROM project_closeout closeout
+                 WHERE closeout.document_manifest_json LIKE '%' || document.id || '%'
+              )`,
+        )
+        .run(document.id, principal.userId);
+      if (removed.changes !== 1)
+        throw new V3ConflictError('Signed-copy evidence became referenced before cleanup');
+      this.audit(principal, 'document.delete', 'document', document.id, {
+        previousState: document.state,
+        storageKey: document.storage_key,
+        reason: 'unbound_customer_signoff_evidence',
       });
       return { storageKey: document.storage_key };
     });

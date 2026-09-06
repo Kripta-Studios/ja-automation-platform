@@ -152,7 +152,9 @@ describe('requested reporting artifact implementation', () => {
       }),
     );
 
-    expect(result).toMatchObject({ processed: 1, failed: 0 });
+    // The individual non-PDF artifacts must remain recorded and downloadable,
+    // but an Accounting Pack missing its contractual PDF is not complete.
+    expect(result).toMatchObject({ processed: 0, failed: 1 });
     expect(ready).toEqual(['xlsx', 'invoice_csv', 'expense_csv', 'json']);
     expect(failed).toEqual(['pdf']);
     expect(result.accountingPackResults).toEqual(

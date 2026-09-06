@@ -397,6 +397,18 @@ async function authAuditBeforeImplementation(context: AuthHookContext): Promise<
   // the protocol and its tables, but must not emit a duplicate event here.
   if (context[MANAGED_MFA_AUTH_CALL]) return;
   const path = pathWithoutPrefix(context.path);
+  // The public plugin management endpoints include password/fresh-session
+  // step-up semantics. Account holders manage optional MFA only through the
+  // local live-session facade; direct protocol calls are closed.
+  if (
+    path === '/two-factor/enable' ||
+    path === '/two-factor/disable' ||
+    path === '/two-factor/generate-backup-codes'
+  )
+    throw APIError.from('FORBIDDEN', {
+      code: 'MFA_MANAGEMENT_FACADE_REQUIRED',
+      message: 'Use the account MFA settings endpoint',
+    });
   const action = actionForPath(context.path);
   if (!action) return;
   // The same TOTP endpoint is used for both the authenticated enrollment
@@ -409,17 +421,13 @@ async function authAuditBeforeImplementation(context: AuthHookContext): Promise<
       : [action],
   );
 
-  // The plugin's session/fresh-session middleware runs after this global
-  // hook. Resolve the signed session ourselves so inactive identities are
-  // fenced before passkey/MFA management endpoints can mutate state.
+  // Resolve the signed session ourselves so inactive identities are fenced
+  // before passkey management endpoints can mutate state.
   let requestUserId: string | undefined;
   if (
     path === '/passkey/generate-register-options' ||
     path === '/passkey/verify-registration' ||
-    path === '/passkey/delete-passkey' ||
-    path === '/two-factor/enable' ||
-    path === '/two-factor/disable' ||
-    path === '/two-factor/generate-backup-codes'
+    path === '/passkey/delete-passkey'
   ) {
     requestUserId = await requestSessionUserId(context);
     await assertCredentialUserIsActive(context, requestUserId);
@@ -621,14 +629,45 @@ async function authAuditAfterImplementation(context: AuthHookContext): Promise<{
       details.outcome = 'enrollment_verified';
     }
   }
+  const synchronizeMfaProjection =
+    before.path === '/two-factor/disable' ||
+    (before.path === '/two-factor/verify-totp' && Boolean(context.context.session?.user?.id));
   try {
-    recordAuthAudit({
-      action: action.action,
-      entityType: action.entityType,
-      entityId,
-      userId,
-      details,
-    });
+    if (synchronizeMfaProjection) {
+      const database = createDatabase();
+      try {
+        database.sqlite.exec('BEGIN IMMEDIATE');
+        database.sqlite
+          .prepare(
+            before.path === '/two-factor/disable'
+              ? 'UPDATE user SET mfa_enrolled=0,mfa_required=0,updated_at=?,version=version+1 WHERE id=?'
+              : 'UPDATE user SET mfa_enrolled=1,updated_at=?,version=version+1 WHERE id=?',
+          )
+          .run(new Date().toISOString(), userId);
+        recordAuthAudit(
+          { action: action.action, entityType: action.entityType, entityId, userId, details },
+          database.sqlite,
+        );
+        database.sqlite.exec('COMMIT');
+      } catch (error) {
+        try {
+          database.sqlite.exec('ROLLBACK');
+        } catch {
+          // Preserve the original audit/projection failure.
+        }
+        throw error;
+      } finally {
+        database.sqlite.close();
+      }
+    } else {
+      recordAuthAudit({
+        action: action.action,
+        entityType: action.entityType,
+        entityId,
+        userId,
+        details,
+      });
+    }
   } catch (error) {
     try {
       if (before.path === '/passkey/verify-registration')

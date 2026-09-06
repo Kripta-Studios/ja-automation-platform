@@ -54,22 +54,21 @@ function seedUser(
     );
 }
 
-function stepUpFinance(
+function authenticatedPrincipal(
   sqlite: ReturnType<typeof createDatabase>['sqlite'],
   principal: Principal,
 ): Principal {
   const now = new Date().toISOString();
-  const sessionId = `finance-step-up-${principal.userId}`;
+  const sessionId = `finance-session-${principal.userId}`;
   sqlite
     .prepare(
-      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
     )
     .run(
       sessionId,
       `${sessionId}-token`,
       principal.userId,
       new Date(Date.now() + 3_600_000).toISOString(),
-      now,
       now,
       now,
     );
@@ -133,7 +132,7 @@ function setup(options: { canonicalAuthority?: boolean } = {}) {
   seedUser(sqlite, 'finance', 'finance_admin');
   seedUser(sqlite, 'manager', 'project_manager');
   seedUser(sqlite, 'worker', 'worker');
-  const owner = stepUpFinance(sqlite, {
+  const owner = authenticatedPrincipal(sqlite, {
     userId: 'owner',
     role: 'owner_admin',
     projectIds: new Set(),
@@ -143,7 +142,7 @@ function setup(options: { canonicalAuthority?: boolean } = {}) {
     role: 'finance_admin',
     projectIds: new Set(),
   };
-  const finance = stepUpFinance(sqlite, financeBase);
+  const finance = authenticatedPrincipal(sqlite, financeBase);
   const client = repository.createClient(owner, {
     legalName: 'Finance Truth Client',
     displayName: 'Finance Truth Client',
@@ -580,12 +579,12 @@ describe('Client Essential finance truth and payment reversals', () => {
       'rejected',
       'Duplicate expense',
     );
-    const voidExpense = repository.createExpense(worker, {
+    const deletedDraftExpense = repository.createExpense(worker, {
       projectId: project.id,
       spentOn: '2026-08-07',
       vendor: 'Voided vendor charge',
       category: 'hotel',
-      description: 'Voided expense must not block billing readiness',
+      description: 'Never-submitted expense draft must not block billing readiness',
       currency: 'USD',
       amountMinor: 100n,
       whoPaid: 'worker',
@@ -593,8 +592,7 @@ describe('Client Essential finance truth and payment reversals', () => {
       billingTreatment: 'reimbursable_at_cost',
       receiptRequired: false,
     });
-    repository.submitExpense(worker, voidExpense.id, voidExpense.version);
-    repository.deleteExpense(owner, voidExpense.id, voidExpense.version + 1);
+    repository.deleteExpense(owner, deletedDraftExpense.id, deletedDraftExpense.version);
     const expenseReadiness = v3.billingReadiness(
       finance,
       expenseRule.id,
@@ -603,14 +601,16 @@ describe('Client Essential finance truth and payment reversals', () => {
     );
     expect(
       expenseReadiness.reasons.some(
-        (reason) => reason.sourceId === rejectedExpense.id || reason.sourceId === voidExpense.id,
+        (reason) =>
+          reason.sourceId === rejectedExpense.id || reason.sourceId === deletedDraftExpense.id,
       ),
     ).toBe(false);
     expect(
       repository
         .billingReadiness(finance, expenseRule.id, '2026-08-01', '2026-08-31')
         .reasons.some(
-          (reason) => reason.sourceId === rejectedExpense.id || reason.sourceId === voidExpense.id,
+          (reason) =>
+            reason.sourceId === rejectedExpense.id || reason.sourceId === deletedDraftExpense.id,
         ),
     ).toBe(false);
     const total = BigInt(
@@ -825,13 +825,8 @@ describe('Client Essential finance truth and payment reversals', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime('2026-09-03T00:00:00.000Z');
     sqlite
-      .prepare('UPDATE session SET step_up_at=?,expires_at=? WHERE id IN (?,?)')
-      .run(
-        '2026-09-03T00:00:00.000Z',
-        '2026-09-04T00:00:00.000Z',
-        finance.sessionId,
-        owner.sessionId,
-      );
+      .prepare('UPDATE session SET expires_at=? WHERE id IN (?,?)')
+      .run('2026-09-04T00:00:00.000Z', finance.sessionId, owner.sessionId);
     const postPeriodPayment = v3.recordPayment(finance, {
       invoiceId: invoice.id,
       amountMinor: 100n,
@@ -1005,11 +1000,19 @@ describe('Client Essential finance truth and payment reversals', () => {
         currency: 'USD',
         amountMinor,
         whoPaid: 'worker',
-        clientTreatment: 'non_billable',
-        billingTreatment: 'internal_non_billable',
         receiptRequired: false,
       });
-      repository.submitExpense(worker, expense.id, expense.version);
+      const classified = repository.classifyExpenseCommercially(finance, {
+        expenseId: expense.id,
+        expectedVersion: expense.version,
+        clientTreatment: 'non_billable',
+        billingTreatment: 'internal_non_billable',
+        markupBps: 0,
+        taxBps: 0,
+        reason: 'Classify the exact reimbursement source as internal non-billable cost',
+        idempotencyKey: `finance-truth:exact-expense-classification:${index + 1}`,
+      });
+      repository.submitExpense(worker, expense.id, classified.version);
       repository.operationalApproveExpense(manager, expense.id, 'approved');
       repository.financeApproveExpense(finance, expense.id);
     }
@@ -1046,11 +1049,19 @@ describe('Client Essential finance truth and payment reversals', () => {
       currency: 'USD',
       amountMinor: 2_000n,
       whoPaid: 'worker',
-      clientTreatment: 'non_billable',
-      billingTreatment: 'internal_non_billable',
       receiptRequired: false,
     });
-    repository.submitExpense(worker, expense.id, expense.version);
+    const classifiedExpense = repository.classifyExpenseCommercially(finance, {
+      expenseId: expense.id,
+      expectedVersion: expense.version,
+      clientTreatment: 'non_billable',
+      billingTreatment: 'internal_non_billable',
+      markupBps: 0,
+      taxBps: 0,
+      reason: 'Classify the Accounting Pack direct cost source as internal non-billable',
+      idempotencyKey: 'finance-truth:pack-expense-classification:v1',
+    });
+    repository.submitExpense(worker, expense.id, classifiedExpense.version);
     repository.operationalApproveExpense(manager, expense.id, 'approved');
     repository.financeApproveExpense(finance, expense.id);
     repository.createInvoiceNumberPolicy(repository.principalFor('owner'), {

@@ -66,9 +66,19 @@
     ['approved', 'final'].includes(String(report.state)) && Boolean(report.pdfReady),
   );
   const hasActiveCustomerConformity = $derived(customerConformity?.status === 'active');
+  const signatureDocumentId = $derived(String(customerConformity?.signatureDocumentId ?? ''));
+  const signatureEvidenceStatus = $derived(
+    String(customerConformity?.signatureEvidenceStatus ?? 'missing'),
+  );
+  const pendingSignatureDocumentId = $derived(String(form?.pendingSignatureDocumentId ?? ''));
+  const signatureDateDefault = $derived(
+    String(form?.signatureDate ?? new Date().toISOString().slice(0, 10)),
+  );
   const signoffState = $derived(
     customerConformity?.status === 'active'
-      ? 'signed'
+      ? signatureEvidenceStatus === 'verified'
+        ? 'signed'
+        : 'evidence_unavailable'
       : customerConformity?.status === 'invalidated'
         ? 'invalid'
         : reportReadyForSignoff
@@ -77,6 +87,13 @@
   );
   const canCaptureCustomerSignoff = $derived(
     !internal && canManageCustomerSignoff && reportReadyForSignoff && !hasActiveCustomerConformity,
+  );
+  const canAttachLegacyCustomerSignoffEvidence = $derived(
+    !internal &&
+      canManageCustomerSignoff &&
+      reportReadyForSignoff &&
+      hasActiveCustomerConformity &&
+      signatureEvidenceStatus === 'missing',
   );
   const approvedMinutes = $derived(
     timeSummary.reduce(
@@ -96,7 +113,9 @@
       case 'ready_for_signature':
         return t('Ready for signature');
       case 'signed':
-        return t('Signed');
+        return t('Verified evidence');
+      case 'evidence_unavailable':
+        return t('Signed-copy evidence unavailable');
       case 'invalid':
         return t('Invalid / superseded');
       default:
@@ -181,10 +200,10 @@
       <header class="customer-signoff__header">
         <div>
           <p class="portal-kicker">{t('Reports')} / {t('Client Sign-off')}</p>
-          <h2>{t('Customer sign-off')}</h2>
+          <h2>{t('Customer signed-copy evidence')}</h2>
           <p class="customer-signoff__lede">
             {t(
-              'This confirmation covers approved hours and field activity for this report version. It contains no financial information.',
+              'A verified signed PDF copy is required for this exact report version. It contains no financial information.',
             )}
           </p>
         </div>
@@ -242,10 +261,19 @@
               )}
             </p>
           </div>
+        {:else if signoffState === 'evidence_unavailable'}
+          <div class="customer-signoff__notice" data-signoff-notice="evidence-unavailable">
+            <strong>{t('Signed-copy evidence unavailable')}</strong>
+            <p>
+              {t(
+                'This historical conformity has no currently verified signed-copy evidence. It remains in the audit record but cannot support a future invoice issue.',
+              )}
+            </p>
+          </div>
         {:else if customerConformity}
           <div class="customer-signoff__notice" data-signoff-notice="signed">
-            <strong>{t('Signed')}</strong>
-            <p>{t('Customer conformity is bound to this immutable report version.')}</p>
+            <strong>{t('Verified evidence')}</strong>
+            <p>{t('Verified signed-copy evidence is bound to this immutable report version.')}</p>
           </div>
         {/if}
 
@@ -264,6 +292,10 @@
               <dd>{timestamp(customerConformity.signedAt)}</dd>
             </div>
             <div>
+              <dt>{t('Evidence verified at')}</dt>
+              <dd>{timestamp(customerConformity.verifiedAt)}</dd>
+            </div>
+            <div>
               <dt>{t('Report version')}</dt>
               <dd>
                 {customerConformity.snapshotVersion
@@ -271,7 +303,20 @@
                   : t('Immutable version binding')}
               </dd>
             </div>
+            <div>
+              <dt>{t('Report hash')}</dt>
+              <dd><code>{display(report.snapshotSha256)}</code></dd>
+            </div>
           </dl>
+          {#if canManageCustomerSignoff && signatureEvidenceStatus === 'verified' && signatureDocumentId}
+            <p class="customer-signoff__evidence-link">
+              <a
+                href={`${base}/app/api/documents/${signatureDocumentId}?view=1`}
+                target="_blank"
+                rel="noreferrer">{t('Open verified signed-copy evidence')}</a
+              >
+            </p>
+          {/if}
           <p class="customer-signoff__immutable">
             <span aria-hidden="true">✓</span>
             {t('Signed record is immutable. Any correction requires a new report version.')}
@@ -291,15 +336,51 @@
         {/if}
 
         {#if canCaptureCustomerSignoff}
-          <form method="POST" action="?/sign" class="customer-signoff__form" data-signoff-form>
+          <form
+            method="POST"
+            action="?/sign"
+            enctype="multipart/form-data"
+            class="customer-signoff__form"
+            data-signoff-form
+          >
             <div>
-              <h3>{t('Capture conformity')}</h3>
+              <h3>{t('Capture verified signed-copy evidence')}</h3>
               <p class="form-help">
                 {t(
-                  'Enter the customer signer details. The signed-at time is captured by the server.',
+                  'Upload the signed customer PDF for this exact report version and enter the signer details. The server records the verification time.',
                 )}
               </p>
             </div>
+            <p class="form-help">
+              {t('Exact report binding')}: v{display(report.snapshotVersion)} ·
+              <code>{display(report.snapshotSha256)}</code>
+            </p>
+            {#if pendingSignatureDocumentId}
+              <input
+                type="hidden"
+                name="pendingSignatureDocumentId"
+                value={form?.pendingSignatureDocumentId}
+              />
+              <p class="customer-signoff__notice" data-signoff-scan-pending>
+                {t(
+                  'The uploaded signed PDF is awaiting its security scan. Retry after the scan completes; do not upload it again.',
+                )}
+              </p>
+            {/if}
+            <label>
+              {t('Signed PDF copy')}
+              <input
+                name="signatureFile"
+                type="file"
+                accept="application/pdf,.pdf"
+                required={!pendingSignatureDocumentId}
+                disabled={Boolean(pendingSignatureDocumentId)}
+                aria-describedby="customer-signoff-file-help"
+              />
+            </label>
+            <p id="customer-signoff-file-help" class="form-help">
+              {t('Required. Upload the complete signed PDF copy (maximum 20 MB).')}
+            </p>
             <label>
               {t('Signer name')}
               <input
@@ -308,6 +389,7 @@
                 required
                 maxlength="200"
                 autocomplete="name"
+                value={form?.signerName ?? ''}
                 aria-describedby="customer-signoff-signer-help"
               />
             </label>
@@ -316,9 +398,95 @@
             </p>
             <label>
               {t('Signer identity')} <span class="optional-label">({t('optional')})</span>
-              <input name="signerIdentity" type="text" maxlength="320" autocomplete="email" />
+              <input
+                name="signerIdentity"
+                type="text"
+                maxlength="320"
+                autocomplete="email"
+                value={form?.signerIdentity ?? ''}
+              />
             </label>
-            <button type="submit">{t('Record customer sign-off')}</button>
+            <label>
+              {t('Customer signature date')}
+              <input
+                name="signatureDate"
+                type="date"
+                required
+                max={new Date().toISOString().slice(0, 10)}
+                value={signatureDateDefault}
+              />
+            </label>
+            <button type="submit"
+              >{pendingSignatureDocumentId
+                ? t('Retry after security scan')
+                : t('Record verified signed-copy evidence')}</button
+            >
+          </form>
+        {/if}
+
+        {#if canAttachLegacyCustomerSignoffEvidence}
+          <form
+            method="POST"
+            action="?/sign"
+            enctype="multipart/form-data"
+            class="customer-signoff__form"
+            data-signoff-evidence-attachment
+          >
+            <div>
+              <h3>{t('Attach verified signed-copy evidence')}</h3>
+              <p class="form-help">
+                {t(
+                  'This preserves the historical conformity and attaches a newly verified private signed PDF to the exact immutable report version.',
+                )}
+              </p>
+            </div>
+            <input type="hidden" name="conformityId" value={customerConformity?.id} />
+            {#if pendingSignatureDocumentId}
+              <input
+                type="hidden"
+                name="pendingSignatureDocumentId"
+                value={form?.pendingSignatureDocumentId}
+              />
+              <p class="customer-signoff__notice" data-signoff-scan-pending>
+                {t(
+                  'The uploaded signed PDF is awaiting its security scan. Retry after the scan completes; do not upload it again.',
+                )}
+              </p>
+            {/if}
+            <p class="form-help">
+              {t('Exact report binding')}: v{display(report.snapshotVersion)} ·
+              <code>{display(report.snapshotSha256)}</code>
+            </p>
+            <label>
+              {t('Signed PDF copy')}
+              <input
+                name="signatureFile"
+                type="file"
+                accept="application/pdf,.pdf"
+                required={!pendingSignatureDocumentId}
+                disabled={Boolean(pendingSignatureDocumentId)}
+                aria-describedby="customer-signoff-attachment-file-help"
+              />
+            </label>
+            <p id="customer-signoff-attachment-file-help" class="form-help">
+              {t('Required. Upload the complete signed PDF copy (maximum 20 MB).')}
+            </p>
+            <label>
+              {t('Reason for evidence attachment')}
+              <textarea name="reason" required maxlength="2000" rows="3"
+                >{form?.reason ?? ''}</textarea
+              >
+            </label>
+            <p class="form-help">
+              {t(
+                'The original signer details and signed date remain unchanged in the historical record.',
+              )}
+            </p>
+            <button type="submit"
+              >{pendingSignatureDocumentId
+                ? t('Retry after security scan')
+                : t('Attach verified signed-copy evidence')}</button
+            >
           </form>
         {/if}
 

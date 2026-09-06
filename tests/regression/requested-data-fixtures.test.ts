@@ -4,11 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDatabase } from '@ja/database';
-import {
-  B5_TEST_DEPLOYMENT_ID,
-  B5_TEST_TENANT_ID,
-  installB5TestDeploymentIdentity,
-} from '../fixtures/b5-test-environment.js';
+import { installB5TestDeploymentIdentity } from '../fixtures/b5-test-environment.js';
 
 // Requirement coverage: V32-001, V33-017 and the compensation/billing fixture portions of V31-014.
 
@@ -20,9 +16,12 @@ type SeedRun = {
 
 const runs: SeedRun[] = [];
 const restoreDeploymentIdentities: (() => void)[] = [];
+const fixtureSentinel = '550e8400-e29b-41d4-a716-446655440000';
 
 beforeEach(() => {
   restoreDeploymentIdentities.push(installB5TestDeploymentIdentity());
+  process.env.JA_TENANT_ID = 'e2e-client-essential-tenant';
+  process.env.JA_DEPLOYMENT_ID = 'e2e-client-essential-deployment';
 });
 
 afterEach(() => {
@@ -33,7 +32,7 @@ afterEach(() => {
 function seededDemo(): SeedRun {
   const root = mkdtempSync(join(tmpdir(), 'ja-requested-demo-'));
   const databasePath = join(root, 'demo.db');
-  const documentRoot = join(root, 'documents');
+  const documentRoot = join(root, `documents-${fixtureSentinel}`);
   const output = execFileSync(
     process.execPath,
     ['--experimental-strip-types', resolve(process.cwd(), 'packages/database/src/demo-seed.ts')],
@@ -43,10 +42,11 @@ function seededDemo(): SeedRun {
         ...process.env,
         JA_DATABASE_PATH: databasePath,
         JA_DOCUMENT_ROOT: documentRoot,
-        JA_TENANT_ID: B5_TEST_TENANT_ID,
-        JA_DEPLOYMENT_ID: B5_TEST_DEPLOYMENT_ID,
+        JA_TENANT_ID: 'e2e-client-essential-tenant',
+        JA_DEPLOYMENT_ID: 'e2e-client-essential-deployment',
         JA_DEMO_SEED_PRESERVE_DB: 'false',
         JA_FIXTURE_RESET_DOCUMENTS: 'true',
+        JA_FIXTURE_SENTINEL: fixtureSentinel,
       },
       encoding: 'utf8',
       maxBuffer: 2 * 1024 * 1024,

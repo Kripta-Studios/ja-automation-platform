@@ -1,7 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { canManageBilling, type Principal } from '@ja/domain';
 import { recordAuditEvent } from '../../core/audit.ts';
-import { readLiveSessionStepUp } from '../../core/authorization.ts';
 import { canonicalJson, sha256 } from '../../core/canonical-json.ts';
 import {
   ensureCommand,
@@ -42,6 +41,7 @@ export type ProjectLegalEntityAssignmentInput = Readonly<{
 export type CanonicalProjectLegalEntityRepositoryDependencies = Readonly<{
   sqlite: DatabaseSync;
   transaction: <T>(work: () => T) => T;
+  assertLiveSession: (principal: Principal) => void;
   now: () => string;
   errors: Readonly<{
     accessDenied: ErrorFactory;
@@ -153,7 +153,7 @@ export class CanonicalProjectLegalEntityRepository {
     return this.deps.errors.conflict(message);
   }
 
-  private assertActiveFinancePrincipal(principal: Principal, requireStepUp: boolean): void {
+  private assertActiveFinancePrincipal(principal: Principal): void {
     const user = this.deps.sqlite
       .prepare('SELECT status,role FROM user WHERE id=?')
       .get(principal.userId) as { status: string; role: string } | undefined;
@@ -164,16 +164,7 @@ export class CanonicalProjectLegalEntityRepository {
       (user.role !== 'owner_admin' && user.role !== 'finance_admin')
     )
       return this.deps.errors.accessDenied('Finance role required');
-    if (!requireStepUp) return;
-    const nowMs = Date.parse(this.deps.now());
-    if (
-      !readLiveSessionStepUp(
-        this.deps.sqlite,
-        principal,
-        Number.isFinite(nowMs) ? nowMs : Date.now(),
-      )
-    )
-      return this.deps.errors.accessDenied('Recent step-up authentication is required');
+    this.deps.assertLiveSession(principal);
   }
 
   private deployment(): Deployment {
@@ -287,27 +278,12 @@ export class CanonicalProjectLegalEntityRepository {
     };
   }
 
-  private stepUpProof(principal: Principal): {
-    stepUpVerifiedAt: string;
-    stepUpExpiresAt: string;
-  } {
-    const nowMs = Date.parse(this.deps.now());
-    const proof = readLiveSessionStepUp(
-      this.deps.sqlite,
-      principal,
-      Number.isFinite(nowMs) ? nowMs : Date.now(),
-    );
-    if (!proof) return this.failConflict('Recent step-up authentication is required');
-    return { stepUpVerifiedAt: proof.verifiedAt, stepUpExpiresAt: proof.expiresAt };
-  }
-
   private commandDescriptor(
     input: Readonly<Record<string, unknown>>,
     operation: string,
     targetKind: string,
     targetSemanticId: string,
     targetContractVersion: string,
-    proof: Readonly<{ stepUpVerifiedAt: string; stepUpExpiresAt: string }>,
     effectiveAt: string,
     createdAt: string,
     idempotencyKey: string,
@@ -325,8 +301,6 @@ export class CanonicalProjectLegalEntityRepository {
       evidenceNamespace: 'client-essential',
       evidenceIdPrefix: 'ce',
       commandIdPrefix: 'ce-cmd',
-      stepUpVerifiedAt: proof.stepUpVerifiedAt,
-      stepUpExpiresAt: proof.stepUpExpiresAt,
       currency: null,
       amountMinor: null,
     };
@@ -458,9 +432,8 @@ export class CanonicalProjectLegalEntityRepository {
     principal: Principal,
     input: CanonicalLegalEntityInput,
   ): CanonicalLegalEntityRevisionResult {
-    this.assertActiveFinancePrincipal(principal, true);
+    this.assertActiveFinancePrincipal(principal);
     const normalized = this.normalizeRevisionInput(input);
-    const proof = this.stepUpProof(principal);
     return this.deps.transaction(() => {
       const deployment = this.deployment();
       const legacy = this.deps.sqlite
@@ -517,7 +490,6 @@ export class CanonicalProjectLegalEntityRepository {
           'legal_entity_revision',
           revisionId,
           'legal-entity-revision-v1',
-          proof,
           normalized.effectiveFrom,
           createdAt,
           normalized.idempotencyKey,
@@ -691,7 +663,6 @@ export class CanonicalProjectLegalEntityRepository {
             'legal_entity_revision_bridge',
             bridgeId,
             BRIDGE_CONTRACT,
-            proof,
             normalized.effectiveFrom,
             createdAt,
             `${normalized.idempotencyKey}:bridge`,
@@ -774,9 +745,8 @@ export class CanonicalProjectLegalEntityRepository {
     principal: Principal,
     input: ProjectLegalEntityAssignmentInput,
   ): ProjectLegalEntityAssignmentResult {
-    this.assertActiveFinancePrincipal(principal, true);
+    this.assertActiveFinancePrincipal(principal);
     const normalized = this.normalizeAssignmentInput(input);
-    const proof = this.stepUpProof(principal);
     return this.deps.transaction(() => {
       const deployment = this.deployment();
       const project = this.deps.sqlite
@@ -832,7 +802,6 @@ export class CanonicalProjectLegalEntityRepository {
           'project_legal_entity_assignment',
           assignmentId,
           ASSIGNMENT_CONTRACT,
-          proof,
           normalized.effectiveFrom,
           createdAt,
           normalized.idempotencyKey,
@@ -984,7 +953,7 @@ export class CanonicalProjectLegalEntityRepository {
   listCanonicalLegalEntityRevisionOptions(
     principal: Principal,
   ): CanonicalLegalEntityRevisionOption[] {
-    this.assertActiveFinancePrincipal(principal, false);
+    this.assertActiveFinancePrincipal(principal);
     const deployment = this.deployment();
     return this.deps.sqlite
       .prepare(
@@ -1027,7 +996,7 @@ export class CanonicalProjectLegalEntityRepository {
     principal: Principal,
     projectId: string,
   ): ProjectLegalEntityAssignmentView[] {
-    this.assertActiveFinancePrincipal(principal, false);
+    this.assertActiveFinancePrincipal(principal);
     const cleanProjectId = this.assertText(projectId, 'Project id', 200);
     const deployment = this.deployment();
     if (!this.deps.sqlite.prepare('SELECT id FROM project WHERE id=?').get(cleanProjectId))
@@ -1077,7 +1046,7 @@ export class CanonicalProjectLegalEntityRepository {
     projectId: string,
     onDate: string,
   ): ResolvedCanonicalProjectLegalEntity {
-    this.assertActiveFinancePrincipal(principal, false);
+    this.assertActiveFinancePrincipal(principal);
     const cleanProjectId = this.assertText(projectId, 'Project id', 200);
     const cleanDate = this.assertIsoDate(onDate, 'Resolution date');
     const deployment = this.deployment();

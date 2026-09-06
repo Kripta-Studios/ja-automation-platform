@@ -4,7 +4,6 @@ export const contact: ContactConfig = {
   primaryName: 'Antonny Nascimento',
   primaryTitle: 'Chief Executive Officer',
   email: 'antonny.luty@j-aautomation.com',
-  usPhone: '+1 (864) 208-4684',
   linkedinUrl: 'https://www.linkedin.com/in/antonny-nascimento-32b87127/',
   offices: [
     {

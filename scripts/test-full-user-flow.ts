@@ -2,13 +2,35 @@ import { chromium } from 'playwright';
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import {
+  localBaseUrl,
+  requiredEnvironment,
+  requiredFixtureSentinel,
+  verifyFixtureDatabase,
+  syntheticCredentials,
+  syntheticEmail,
+} from './isolated-test-guards.ts';
 
-const artifactsDir =
-  'C:/Users/Álvaro Schwiedop/.gemini/antigravity-ide/brain/65375eff-65c9-4087-9b1b-908c0d6445d9/screenshots';
+const FIXTURE_SENTINEL = requiredFixtureSentinel();
+const BASE_URL = localBaseUrl('JA_FULL_FLOW_BASE_URL', 'http://127.0.0.1:5174/j-aautomation');
+const artifactsDir = resolve(
+  process.env.JA_FULL_FLOW_ARTIFACTS_DIR?.trim() ||
+    resolve(process.cwd(), 'docs/evidence/full-flow'),
+);
+const dbPath = verifyFixtureDatabase(requiredEnvironment('JA_FULL_FLOW_DB_PATH'), FIXTURE_SENTINEL);
+const OWNER = syntheticCredentials('JA_FULL_FLOW_OWNER_EMAIL', 'JA_FULL_FLOW_OWNER_PASSWORD');
+const INVITATION = {
+  email: syntheticEmail('JA_FULL_FLOW_INVITE_EMAIL'),
+  name: requiredEnvironment('JA_FULL_FLOW_INVITE_NAME'),
+};
+const PROJECT = {
+  name: requiredEnvironment('JA_FULL_FLOW_PROJECT_NAME'),
+  description: requiredEnvironment('JA_FULL_FLOW_PROJECT_DESCRIPTION'),
+  costCenter: requiredEnvironment('JA_FULL_FLOW_PROJECT_COST_CENTER'),
+  alias: requiredEnvironment('JA_FULL_FLOW_PROJECT_ALIAS'),
+  timezone: requiredEnvironment('JA_FULL_FLOW_PROJECT_TIMEZONE'),
+};
 mkdirSync(artifactsDir, { recursive: true });
-
-const dbPath =
-  'C:/Users/Álvaro Schwiedop/Desktop/KriptaStudios/NexIA/J-Aautomation-new/packages/database/data/demo.db';
 
 type ProjectRow = Readonly<{
   id: string;
@@ -51,12 +73,12 @@ async function runFullUserFlow() {
   console.log('=== STARTING COMPLETE USER, WORKFLOW & PERSISTENCE VALIDATION ===');
 
   try {
-    // 1. Sign in as Admin
-    console.log('1. Signing in as Antonny Luty (Admin)...');
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/login');
+    // 1. Sign in as the synthetic owner fixture.
+    console.log('1. Signing in as the synthetic owner fixture...');
+    await page.goto(`${BASE_URL}/app/login`);
     await page.waitForLoadState('networkidle');
-    await page.getByLabel('Work email').fill('antonny.luty@j-aautomation.com');
-    await page.getByLabel('Password').fill('antonny.luty');
+    await page.getByLabel('Work email').fill(OWNER.email);
+    await page.getByLabel('Password').fill(OWNER.password);
     await page.getByRole('button', { name: 'Continue to workspace' }).click();
     await page.waitForURL(
       (url) => url.pathname.includes('/app') && !url.pathname.includes('/login'),
@@ -64,21 +86,9 @@ async function runFullUserFlow() {
     await page.waitForLoadState('networkidle');
     console.log('Logged in as Admin successfully.');
 
-    // 2. Perform Step-Up Auth
-    console.log('2. Performing step-up authentication for admin...');
-    const stepUpRes = await page.evaluate(async () => {
-      const res = await fetch('/j-aautomation/app/api/step-up', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ password: 'antonny.luty' }),
-      });
-      return { status: res.status, data: await res.json() };
-    });
-    console.log('Step-up authentication result:', stepUpRes);
-
     // 3. Create New Project via Form
-    console.log('3. Creating Project: "Gabriel Automation Lab - Line 4"...');
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/projects#new-project');
+    console.log('3. Creating the synthetic project fixture...');
+    await page.goto(`${BASE_URL}/app/projects#new-project`);
     await page.waitForLoadState('networkidle');
 
     // Open the details accordion if closed
@@ -94,21 +104,19 @@ async function runFullUserFlow() {
     if (await projectForm.isVisible()) {
       const clientSelect = projectForm.locator('select[name="clientId"]');
       await clientSelect.selectOption({ index: 0 });
-      await projectForm.locator('input[name="name"]').fill('Gabriel Automation Lab - Line 4');
-      await projectForm.locator('input[name="costCenterCode"]').fill('CC-GABRIEL-04');
-      await projectForm
-        .locator('textarea[name="description"]')
-        .fill('New automated inspection cell designed by Gabriel Lamoglia');
-      await projectForm.locator('input[name="projectAlias"]').fill('GAB-LAB-4');
+      await projectForm.locator('input[name="name"]').fill(PROJECT.name);
+      await projectForm.locator('input[name="costCenterCode"]').fill(PROJECT.costCenter);
+      await projectForm.locator('textarea[name="description"]').fill(PROJECT.description);
+      await projectForm.locator('input[name="projectAlias"]').fill(PROJECT.alias);
       await projectForm.locator('input[name="expectedMinutesPerDay"]').fill('600');
-      await projectForm.locator('input[name="timezone"]').fill('America/New_York');
+      await projectForm.locator('input[name="timezone"]').fill(PROJECT.timezone);
       await projectForm.locator('button:has-text("Create project")').click();
       await page.waitForLoadState('networkidle');
       console.log('Submitted createProject form.');
     }
 
-    // 4. Create Invitation for Gabriel Lamoglia
-    console.log('4. Inviting new user "Gabriel Lamoglia"...');
+    // 4. Create an invitation for the synthetic worker fixture.
+    console.log('4. Inviting the synthetic worker fixture...');
     const inviteDetails = page
       .locator('details:has-text("Invite/Create Worker"), details:has-text("Invite new worker")')
       .first();
@@ -120,7 +128,9 @@ async function runFullUserFlow() {
     }
     const inviteForm = page.locator('form[action="?/createInvitation"]');
     if (await inviteForm.isVisible()) {
-      await inviteForm.locator('input[name="email"]').fill('gabriel.lamoglia@j-aautomation.com');
+      await inviteForm.locator('input[name="email"]').fill(INVITATION.email);
+      const inviteNameInput = inviteForm.locator('input[name="name"]');
+      if (await inviteNameInput.isVisible()) await inviteNameInput.fill(INVITATION.name);
       await inviteForm
         .locator('select[name="role"]')
         .selectOption('project_manager')
@@ -135,7 +145,7 @@ async function runFullUserFlow() {
     // 5. Test PDF Report Download / Rendering
     console.log('5. Testing PDF report rendering API...');
     const pdfResponse = await page.request.get(
-      'http://127.0.0.1:5174/j-aautomation/app/api/reports/01a0577d-d5ad-7478-ac9f-17251e8bf026/pdf',
+      `${BASE_URL}/app/api/reports/01a0577d-d5ad-7478-ac9f-17251e8bf026/pdf`,
     );
     console.log(
       `PDF report endpoint status: ${pdfResponse.status()}, Content-Type: ${pdfResponse.headers()['content-type']}`,
@@ -147,8 +157,8 @@ async function runFullUserFlow() {
     }
 
     // 6. Log out from Admin
-    console.log('6. Logging out from Antonny Luty...');
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/profile');
+    console.log('6. Logging out from the synthetic owner fixture...');
+    await page.goto(`${BASE_URL}/app/profile`);
     await page.waitForLoadState('networkidle');
     const logoutBtn = page.getByRole('button', { name: /Sign out|Log out/i }).first();
     if (await logoutBtn.isVisible()) {
@@ -157,21 +167,21 @@ async function runFullUserFlow() {
       console.log('Logged out successfully.');
     }
 
-    // 7. Log in again as Admin Antonny Luty to verify data persistence
-    console.log('7. Logging back in as Antonny Luty to verify data persistence...');
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/login');
+    // 7. Log in again as the synthetic owner fixture to verify data persistence.
+    console.log('7. Logging back in as the synthetic owner fixture...');
+    await page.goto(`${BASE_URL}/app/login`);
     await page.waitForLoadState('networkidle');
-    await page.getByLabel('Work email').fill('antonny.luty@j-aautomation.com');
-    await page.getByLabel('Password').fill('antonny.luty');
+    await page.getByLabel('Work email').fill(OWNER.email);
+    await page.getByLabel('Password').fill(OWNER.password);
     await page.getByRole('button', { name: 'Continue to workspace' }).click();
     await page.waitForURL(
       (url) => url.pathname.includes('/app') && !url.pathname.includes('/login'),
     );
     await page.waitForLoadState('networkidle');
-    console.log('Logged back in as Antonny Luty.');
+    console.log('Logged back in as the synthetic owner fixture.');
 
     // 8. Direct DB verification of persisted rows
-    const db = new DatabaseSync(dbPath);
+    const db = new DatabaseSync(dbPath, { readOnly: true });
     console.log('8. Direct SQLite Database verification:');
     const projects = db
       .prepare('SELECT id, project_number, name, status FROM project ORDER BY created_at DESC')
@@ -185,14 +195,12 @@ async function runFullUserFlow() {
       .prepare('SELECT id, name, email, role, status FROM user ORDER BY created_at DESC')
       .all() as unknown as UserRow[];
     console.log(`Total users in DB: ${users.length}`);
-    console.log(
-      users.map((u) => ({ name: u.name, email: u.email, role: u.role, status: u.status })),
-    );
+    console.log(users.map((u) => ({ role: u.role, status: u.status })));
 
     const invitations = db
       .prepare('SELECT id, email, role, created_at FROM invitation')
       .all() as unknown as InvitationRow[];
-    console.log(`Total invitations in DB: ${invitations.length}`, invitations);
+    console.log(`Total invitations in DB: ${invitations.length}`);
 
     const timeEntries = db.prepare('SELECT count(*) as count FROM time_entry').get();
     console.log(`Total time entries in DB: ${countFromRow(timeEntries, 'time_entry')}`);
@@ -212,14 +220,14 @@ async function runFullUserFlow() {
     console.log(`Total period reports in DB: ${countFromRow(periodReports, 'period_report')}`);
 
     // Take screenshot of projects and team showing the new data
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/projects?view=team');
+    await page.goto(`${BASE_URL}/app/projects?view=team`);
     await page.waitForLoadState('networkidle');
     await page.screenshot({
-      path: resolve(artifactsDir, '23_team_with_gabriel.png'),
+      path: resolve(artifactsDir, '23_team_with_synthetic_fixture.png'),
       fullPage: true,
     });
 
-    await page.goto('http://127.0.0.1:5174/j-aautomation/app/projects');
+    await page.goto(`${BASE_URL}/app/projects`);
     await page.waitForLoadState('networkidle');
     await page.screenshot({
       path: resolve(artifactsDir, '24_projects_with_new_project.png'),
@@ -228,8 +236,9 @@ async function runFullUserFlow() {
 
     db.close();
     console.log('=== ALL WORKFLOWS, MUTATIONS, AUTH & PERSISTENCE VERIFIED 100% ===');
-  } catch (error) {
-    console.error('Error during full user flow test:', error);
+  } catch {
+    console.error('Error during full user flow test.');
+    process.exitCode = 1;
   } finally {
     await browser.close();
   }

@@ -48,6 +48,16 @@ describe('Owner mailbox directory UI contract', () => {
     expect(source).not.toMatch(/name=["'](?:hash|passwordHash|credentials)["']/i);
   });
 
+  it('keeps owner-only mailbox actions without a browser step-up password flow', () => {
+    const source = directory();
+
+    expect(source).toContain('canManageMailboxDirectory');
+    expect(source).toContain('requireExactConfirmation');
+    expect(source).not.toContain('/app/api/step-up');
+    expect(source).not.toContain('identityPassword');
+    expect(source).not.toContain('team-directory__step-up');
+  });
+
   it('protects Antonny as the unique owner and excludes owner role choices', () => {
     const source = directory();
 

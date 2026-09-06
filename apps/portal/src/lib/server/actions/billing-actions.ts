@@ -550,7 +550,7 @@ export const billingActions = {
       });
     const context = openPortalRepository(locals);
     try {
-      // v3 owns finance authorization, step-up enforcement, immutable reversal
+      // v3 owns finance authorization, immutable reversal
       // history, remaining-balance checks, and idempotent retries.
       context.v3.reversePayment(context.principal, {
         paymentId: parsed.data.paymentId,

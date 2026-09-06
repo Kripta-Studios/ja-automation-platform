@@ -51,14 +51,11 @@ describe('localized portal action contracts', () => {
         message: 'Sign in again to continue.',
       },
     });
-    expect(
-      actionFailure(new V3AccessDeniedError('Recent step-up authentication is required')),
-    ).toMatchObject({
+    expect(actionFailure(new V3AccessDeniedError('Forbidden'))).toMatchObject({
       status: 403,
       data: {
-        messageKey: 'action.error.stepUpRequired',
-        message: 'Confirm your identity to continue.',
-        stepUpRequired: true,
+        messageKey: 'action.error.forbidden',
+        message: 'You do not have permission to perform this action.',
       },
     });
   });
@@ -91,8 +88,8 @@ describe('localized portal action contracts', () => {
   it('keeps invitation writes from crashing the portal when the session is missing', () => {
     const source = readFileSync(resolve(actionRoot, 'access-actions.ts'), 'utf8');
     expect(source).toContain('openAccessContext');
-    expect(source).toContain('confirmProtectedActionIdentity');
-    expect(source).not.toContain('confirmStepUpPassword');
+    expect(source).not.toContain('confirmProtectedActionIdentity');
+    expect(source).not.toContain('step-up');
     expect(source).toMatch(/openPortalRepository\(locals\)/);
     expect(source).toContain('return { failure: actionFailure(error) }');
   });
@@ -100,12 +97,8 @@ describe('localized portal action contracts', () => {
   it('lets a logged-in owner complete team access writes without a second identity prompt', () => {
     const source = readFileSync(resolve(actionRoot, 'access-actions.ts'), 'utf8');
     expect(source).toContain("event.locals.user.role !== 'owner_admin'");
-    expect(source).toMatch(
-      /updateWorkerProfile:[\s\S]*identityScope: 'workerProfile'[\s\S]*confirmProtectedActionIdentity/,
-    );
-    expect(source).toMatch(
-      /updateUserStatus:[\s\S]*identityScope: 'userStatus'[\s\S]*confirmProtectedActionIdentity/,
-    );
+    expect(source).toMatch(/updateWorkerProfile:[\s\S]*repository\.updateWorkerProfile/);
+    expect(source).toMatch(/updateUserStatus:[\s\S]*repository\.updateUserStatus/);
     expect(source).not.toMatch(
       /parsedId\.success \|\| !name \|\| !email \|\| !role \|\| !joinedAt/,
     );

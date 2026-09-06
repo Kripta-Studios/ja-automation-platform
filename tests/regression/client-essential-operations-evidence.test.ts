@@ -3,6 +3,7 @@ import {
   OperationsEvidenceError,
   operationsEvidenceSha256,
   parseClientEssentialOperationsEvidence,
+  uatArtifactFile,
 } from '../fixtures/client-essential-32-step-fixture.ts';
 
 const now = Date.parse('2026-09-04T00:30:00.000Z');
@@ -58,6 +59,13 @@ const without = (value: Record<string, unknown>, key: string) =>
   Object.fromEntries(Object.entries(value).filter(([entryKey]) => entryKey !== key));
 
 describe('Client Essential operations evidence', () => {
+  it('uses byte-distinct fixture PDFs so content-addressed artifact types cannot collide', () => {
+    const plc = uatArtifactFile('client-essential-uat-plc-backup.pdf');
+    const receipt = uatArtifactFile('client-essential-uat-expense-receipt.pdf');
+
+    expect(plc.buffer.equals(receipt.buffer)).toBe(false);
+  });
+
   it('accepts an explicit Owner waiver only with local backup and rollback evidence', () => {
     const result = parseClientEssentialOperationsEvidence(signedEvidence(ownerWaiver), {
       now,

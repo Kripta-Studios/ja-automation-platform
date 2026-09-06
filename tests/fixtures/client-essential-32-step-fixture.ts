@@ -2,7 +2,7 @@ import { createDatabase } from '@ja/database';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { lstatSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { e2eCredentials, portal, signIn } from '../e2e/auth.js';
 import { e2eDatabasePath, e2eDocumentRoot } from '../e2e/environment.js';
 import { e2eDeploymentId, e2eTenantId } from '../e2e/support/deployment-fixture.js';
@@ -1095,14 +1095,11 @@ export async function signInFresh(page: Page, role: UatRole): Promise<void> {
   sessions.cookiesByRole.set(role, await page.context().cookies());
 }
 
-export async function stepUp(page: Page, role: keyof typeof e2eCredentials): Promise<void> {
-  const response = await page.request.post(portal('/api/step-up'), {
-    headers: { origin: new URL(page.url()).origin, referer: page.url() },
-    data: { password: e2eCredentials[role].password },
-  });
-  if (!response.ok()) {
-    throw new Error(`Step-up failed for ${role}: HTTP ${response.status()}`);
-  }
+export async function assertRoleSession(
+  page: Page,
+  _role: keyof typeof e2eCredentials,
+): Promise<void> {
+  await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();
 }
 
 export async function expectNoHorizontalOverflow(page: Page): Promise<void> {
@@ -1419,7 +1416,10 @@ export function uatArtifactFile(name: string): { name: string; mimeType: string;
     return {
       name,
       mimeType: 'application/pdf',
-      buffer: Buffer.from('%PDF-1.4\n% Client Essential UAT fixture\n', 'utf8'),
+      // Keep each synthetic artifact byte-distinct. Production de-duplicates
+      // uploads by content hash, so reusing one generic PDF payload would
+      // correctly resolve to the earlier PLC artifact instead of a receipt.
+      buffer: Buffer.from(`%PDF-1.4\n% Client Essential UAT fixture: ${name}\n`, 'utf8'),
     };
   return {
     name,

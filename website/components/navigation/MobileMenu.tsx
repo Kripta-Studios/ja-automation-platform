@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/lib/i18n/navigation';
 import { LocaleSwitcher } from '@/components/navigation/LocaleSwitcher';
-import { ExternalLink, Mail, Phone } from 'lucide-react';
+import { ExternalLink, Mail } from 'lucide-react';
 import { contact } from '@/content/company';
 import { portalLoginUrl } from '@/lib/portal';
 
@@ -92,13 +92,6 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
           {/* Contact Info */}
           <div className="mt-auto space-y-3 pt-6 border-t border-ja-line">
-            <a
-              href={`tel:${contact.usPhone.replace(/[^\d+]/g, '')}`}
-              className="flex items-center gap-3 text-sm text-ja-steel-700 hover:text-ja-red transition-colors"
-            >
-              <Phone size={16} />
-              {contact.usPhone}
-            </a>
             <a
               href={`mailto:${contact.email}`}
               className="flex items-center gap-3 text-sm text-ja-steel-700 hover:text-ja-red transition-colors"

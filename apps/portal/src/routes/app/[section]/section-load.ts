@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { MailIdentityRepository } from '@ja/database';
 import { error, redirect } from '@sveltejs/kit';
 import { defaultLookbackPeriod } from '$lib/server/iso-date';
 import { openPortalRepository } from '$lib/server/portal-repository';
@@ -45,9 +46,15 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
   try {
     const searchQuery = url.searchParams.get('q')?.trim() ?? '';
     const isProjectManager = context.principal.role === 'project_manager';
-    const canonicalOwner =
-      context.principal.role === 'owner_admin' &&
-      locals.user.email.trim().toLowerCase() === 'antonny.luty@j-aautomation.com';
+    const canonicalOwner = (() => {
+      if (context.principal.role !== 'owner_admin') return false;
+      try {
+        new MailIdentityRepository(context.sqlite).assertCanonicalOwner(context.principal);
+        return true;
+      } catch {
+        return false;
+      }
+    })();
     const common = {
       user: locals.user,
       section,

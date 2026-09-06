@@ -57,7 +57,6 @@ export type ContactConfig = {
   primaryName: string;
   primaryTitle: string;
   email: string;
-  usPhone: string;
   whatsappUrl?: string;
   linkedinUrl: string;
   careersEmail?: string;

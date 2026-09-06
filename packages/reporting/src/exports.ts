@@ -24,6 +24,7 @@ export type { ReportLocale } from './report-i18n.ts';
 
 type Cell = string | number | bigint | boolean | null | undefined;
 type Row = Readonly<Record<string, Cell>>;
+type CsvPolicy = Readonly<{ numericColumns?: readonly string[] }>;
 
 const xmlEscape = (value: string): string =>
   value.replace(
@@ -40,20 +41,35 @@ const cellText = (value: Cell): string =>
       ? value.toString()
       : String(value);
 
-export function toCsv(rows: readonly Row[], columns?: readonly string[]): string {
+export function toCsv(
+  rows: readonly Row[],
+  columns?: readonly string[],
+  policy: CsvPolicy = {},
+): string {
   const headers = columns ? [...columns] : [...new Set(rows.flatMap((row) => Object.keys(row)))];
-  const encode = (value: Cell): string => {
+  const numericColumns = new Set(policy.numericColumns ?? []);
+  const encode = (value: Cell, numeric = false): string => {
     const raw = cellText(value);
-    // CSV is commonly opened directly in a spreadsheet. Preserve signed numeric
-    // minor-unit strings, but neutralize values that could otherwise be treated
-    // as formulas or DDE commands.
-    const text = /^(?:[=+@]|-(?!\d)|[\t\r])/u.test(raw) ? `'${raw}` : raw;
+    // CSV has no typed-cell model.  A caller must explicitly declare a numeric
+    // machine column; all other values are spreadsheet text, including IDs and
+    // audit-safe exact minor units. Scientific notation is intentionally never
+    // trusted because spreadsheet readers can interpret it as a formula/value.
+    const decimalText = /^-?\d+(?:\.\d+)?$/u.test(raw);
+    const dangerous =
+      /^[\t\r\n]/u.test(raw) || /^[ ]*[=+@]/u.test(raw) || (raw.startsWith('-') && !decimalText);
+    const numericValue =
+      numeric &&
+      ((typeof value === 'number' && Number.isFinite(value)) ||
+        ((typeof value === 'string' || typeof value === 'bigint') && decimalText));
+    const text = numericValue ? raw : decimalText || dangerous ? `'${raw}` : raw;
     return /[\",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
   };
   return (
     [
-      headers.map(encode).join(','),
-      ...rows.map((row) => headers.map((header) => encode(row[header])).join(',')),
+      headers.map((header) => encode(header)).join(','),
+      ...rows.map((row) =>
+        headers.map((header) => encode(row[header], numericColumns.has(header))).join(','),
+      ),
     ].join('\r\n') + '\r\n'
   );
 }
@@ -163,37 +179,123 @@ function zip(files: readonly { name: string; data: Uint8Array }[]): Uint8Array {
   return concat([localBytes, centralBytes, end]);
 }
 
-function worksheet(rows: readonly Row[], columns?: readonly string[]): string {
+type XlsxSheet = Readonly<{
+  name: string;
+  rows: readonly Row[];
+  columns?: readonly string[];
+  /** Columns whose values are contractually numeric, never identifiers or money minor-unit text. */
+  numericColumns?: readonly string[];
+  /** ISO calendar-date columns represented as real Excel dates. */
+  dateColumns?: readonly string[];
+  /** Major-unit monetary columns. Values remain numeric and receive a reader currency-number style. */
+  moneyColumns?: readonly string[];
+}>;
+
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/u;
+
+function excelDateSerial(value: string): number | null {
+  const match = ISO_DATE.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const instant = Date.UTC(year, month - 1, day);
+  const parsed = new Date(instant);
+  // Date.parse accepts rollover dates (for example 2026-02-30); exports must not.
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  )
+    return null;
+  // Excel's 1900 date system deliberately includes its historical leap-year bug.
+  return Math.floor(instant / 86_400_000) + 25_569;
+}
+
+function numericXlsxValue(value: Cell): string | null {
+  if (typeof value === 'number')
+    return Number.isFinite(value) && (!Number.isInteger(value) || Number.isSafeInteger(value))
+      ? String(value)
+      : null;
+  if (typeof value !== 'string' || !/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/u.test(value)) return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  if (Number.isInteger(parsed) && !Number.isSafeInteger(parsed)) return null;
+  return String(parsed);
+}
+
+function worksheet(
+  sheet: Pick<XlsxSheet, 'rows' | 'columns' | 'numericColumns' | 'dateColumns' | 'moneyColumns'>,
+): string {
+  const { rows, columns } = sheet;
   const headers = columns ? [...columns] : [...new Set(rows.flatMap((row) => Object.keys(row)))];
+  const numericColumns = new Set(sheet.numericColumns ?? []);
+  const dateColumns = new Set(sheet.dateColumns ?? []);
+  const moneyColumns = new Set(sheet.moneyColumns ?? []);
+  const columnStyles = headers
+    .map((header, index) => {
+      const width = Math.min(
+        48,
+        Math.max(
+          10,
+          header.length + 2,
+          ...rows.map((row) => Math.min(46, cellText(row[header]).length + 2)),
+        ),
+      );
+      return `<col min="${index + 1}" max="${index + 1}" width="${width}" customWidth="1"${moneyColumns.has(header) ? ' style="2"' : ''}/>`;
+    })
+    .join('');
   const allRows = [Object.fromEntries(headers.map((header) => [header, header])), ...rows];
   const cells = allRows
     .map((row, rowIndex) => {
       const values = headers
         .map((header, columnIndex) => {
           const reference = `${excelColumnName(columnIndex)}${rowIndex + 1}`;
-          const value = xmlEscape(cellText(row[header]));
+          const source = row[header];
+          // Headers always remain literal strings. A formula is never emitted from a user value.
+          if (rowIndex > 0 && dateColumns.has(header) && typeof source === 'string') {
+            const serial = excelDateSerial(source);
+            if (serial !== null) return `<c r="${reference}" s="1"><v>${serial}</v></c>`;
+          }
+          if (rowIndex > 0 && numericColumns.has(header)) {
+            const numeric = numericXlsxValue(source);
+            if (numeric !== null) return `<c r="${reference}"><v>${numeric}</v></c>`;
+          }
+          const value = xmlEscape(cellText(source));
           return `<c r="${reference}" t="inlineStr"><is><t>${value}</t></is></c>`;
         })
         .join('');
       return `<row r="${rowIndex + 1}">${values}</row>`;
     })
     .join('');
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${cells}</sheetData></worksheet>`;
+  const lastColumn = excelColumnName(Math.max(0, headers.length - 1));
+  const lastRow = Math.max(1, rows.length + 1);
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>${columnStyles}</cols><sheetData>${cells}</sheetData><autoFilter ref="A1:${lastColumn}${lastRow}"/><printOptions horizontalCentered="0" verticalCentered="0"/><pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>`;
 }
 
-export function xlsxFromSheets(
-  sheets: readonly { name: string; rows: readonly Row[]; columns?: readonly string[] }[],
-): Uint8Array {
+export function xlsxFromSheets(sheets: readonly XlsxSheet[]): Uint8Array {
   const safeSheets = sheets.length ? sheets : [{ name: 'Sheet1', rows: [] }];
   const sheetEntries = safeSheets.map((sheet, index) => ({
     name: sheet.name.replace(/[\\/:?*\[\]]/g, '').slice(0, 31) || `Sheet${index + 1}`,
-    rows: worksheet(sheet.rows, sheet.columns),
+    rows: worksheet(sheet),
   }));
   const workbookSheets = sheetEntries
     .map(
       (sheet, index) =>
         `<sheet name="${xmlEscape(sheet.name)}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`,
     )
+    .join('');
+  const definedNames = sheetEntries
+    .map((sheet, index) => {
+      const quotedName = sheet.name.replace(/'/g, "''");
+      const source: XlsxSheet = safeSheets[index] ?? { name: 'Sheet1', rows: [] };
+      const columns = source.columns
+        ? [...source.columns]
+        : [...new Set(source.rows.flatMap((row) => Object.keys(row)))];
+      const lastColumn = excelColumnName(Math.max(0, columns.length - 1));
+      const lastRow = Math.max(1, source.rows.length + 1);
+      return `<definedName name="_xlnm.Print_Area" localSheetId="${index}">'${xmlEscape(quotedName)}'!$A$1:$${lastColumn}$${lastRow}</definedName><definedName name="_xlnm.Print_Titles" localSheetId="${index}">'${xmlEscape(quotedName)}'!$1:$1</definedName>`;
+    })
     .join('');
   const relationships = sheetEntries
     .map(
@@ -209,8 +311,10 @@ export function xlsxFromSheets(
       (_, index) =>
         `<Override PartName="/xl/worksheets/sheet${index + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`,
     ),
+    `<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>`,
   ].join('');
   const textFile = (value: string): Uint8Array => new TextEncoder().encode(value);
+  const styleRelationshipId = `rId${sheetEntries.length + 1}`;
   return zip([
     {
       name: '[Content_Types].xml',
@@ -227,13 +331,19 @@ export function xlsxFromSheets(
     {
       name: 'xl/workbook.xml',
       data: textFile(
-        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${workbookSheets}</sheets></workbook>`,
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${workbookSheets}</sheets><definedNames>${definedNames}</definedNames></workbook>`,
       ),
     },
     {
       name: 'xl/_rels/workbook.xml.rels',
       data: textFile(
-        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${relationships}</Relationships>`,
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${relationships}<Relationship Id="${styleRelationshipId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`,
+      ),
+    },
+    {
+      name: 'xl/styles.xml',
+      data: textFile(
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="yyyy-mm-dd"/><numFmt numFmtId="165" formatCode="#,##0.00;[Red]-#,##0.00"/></numFmts><fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts><fills count="1"><fill><patternFill patternType="none"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf></cellXfs></styleSheet>',
       ),
     },
     ...sheetEntries.map((sheet, index) => ({
@@ -472,9 +582,23 @@ function invoiceLayout(
   number: string,
   body: string,
   locale: ReportLocale,
+  snapshot: InvoiceTemplateSnapshot,
 ): string {
   const copy = localizedCopy[locale];
-  return `<!doctype html><html lang="${localeTag(locale)}"><head><meta charset="utf-8"><meta name="template-version" content="${REPORT_TEMPLATE_VERSION}"><meta name="invoice-layout" content="structured-v1"><meta name="report-locale" content="${localeTag(locale)}"><style>${pageCss}${invoiceCss}</style></head><body><header class="invoice-masthead"><div class="brand-lockup"><img class="brand-logo" src="${companyLogo()}" alt="J&amp;A Automation logo"><div class="masthead-copy"><div class="eyebrow">J&amp;A Automation LLC</div><div class="company-contact-masthead"><div>USA division · Phone: +1 (864) 208 4684</div><div>112 Birkshire Dr, Georgetown TX 78626</div><div>field.operations@j-aautomation.com · www.j-aautomation.com</div></div><div class="muted" style="margin-top:1mm;font-size:7pt">${htmlEscape(copy.template)} ${REPORT_TEMPLATE_VERSION}</div></div></div><div class="invoice-identity"><div class="eyebrow">${htmlEscape(title)}</div><h1>${htmlEscape(number)}</h1><div class="muted">${htmlEscape(subtitle)}</div></div></header><article class="invoice-document">${body}</article></body></html>`;
+  const company = snapshot.companyInfo ?? snapshot.company_info;
+  const issuerName =
+    snapshotText(snapshot.legalEntity, 'legalName', 'legal_name', 'name') ||
+    snapshotText(company, 'name');
+  const contactLines = [
+    [snapshotText(company, 'division'), snapshotText(company, 'phone')].filter(Boolean).join(' · '),
+    snapshotText(company, 'address') ||
+      snapshotText(snapshot.legalEntity, 'billingAddress', 'billing_address', 'address'),
+    [snapshotText(company, 'email'), snapshotText(company, 'website')].filter(Boolean).join(' · '),
+  ]
+    .filter(Boolean)
+    .map((line) => `<div>${htmlEscape(line)}</div>`)
+    .join('');
+  return `<!doctype html><html lang="${localeTag(locale)}"><head><meta charset="utf-8"><meta name="template-version" content="${REPORT_TEMPLATE_VERSION}"><meta name="invoice-layout" content="structured-v1"><meta name="report-locale" content="${localeTag(locale)}"><style>${pageCss}${invoiceCss}</style></head><body><header class="invoice-masthead"><div class="brand-lockup"><img class="brand-logo" src="${companyLogo()}" alt="J&amp;A Automation logo"><div class="masthead-copy"><div class="eyebrow">${htmlEscape(issuerName || '—')}</div>${contactLines ? `<div class="company-contact-masthead">${contactLines}</div>` : ''}<div class="muted" style="margin-top:1mm;font-size:7pt">${htmlEscape(copy.template)} ${REPORT_TEMPLATE_VERSION}</div></div></div><div class="invoice-identity"><div class="eyebrow">${htmlEscape(title)}</div><h1>${htmlEscape(number)}</h1><div class="muted">${htmlEscape(subtitle)}</div></div></header><article class="invoice-document">${body}</article></body></html>`;
 }
 
 function exactMoneyText(currency: unknown, minor: unknown, locale: ReportLocale = 'en'): string {
@@ -539,6 +663,54 @@ function exactMoneyText(currency: unknown, minor: unknown, locale: ReportLocale 
   return `${negative ? '-' : ''}${prefix}${integer}${fraction}${suffix}`;
 }
 
+function currencyFractionDigits(currency: unknown): number {
+  const code =
+    typeof currency === 'string' && /^[A-Za-z]{3}$/.test(currency) ? currency.toUpperCase() : 'USD';
+  try {
+    return (
+      new Intl.NumberFormat('en-US', { style: 'currency', currency: code }).resolvedOptions()
+        .maximumFractionDigits ?? 2
+    );
+  } catch {
+    return 2;
+  }
+}
+
+/**
+ * Produce an Excel numeric major-unit literal only when its significant minor-unit
+ * precision fits Excel's documented 15-digit numeric precision.  The sibling
+ * `*ExactMinor` column remains the authoritative audit value in every case.
+ */
+function majorAmountCell(currency: unknown, minor: unknown, locale: ReportLocale): Cell {
+  // A blank or malformed source is unknown, not zero.  Returning a blank cell
+  // preserves that distinction for reviewers while the paired ExactMinor value
+  // retains the original audit input.
+  if (
+    minor === null ||
+    minor === undefined ||
+    (typeof minor === 'string' && !/^-?\d+$/u.test(minor)) ||
+    (typeof minor === 'number' && !Number.isSafeInteger(minor)) ||
+    (typeof minor !== 'string' && typeof minor !== 'number' && typeof minor !== 'bigint')
+  )
+    return '';
+  let amount: bigint;
+  try {
+    amount = BigInt(String(minor));
+  } catch {
+    return '';
+  }
+  const absolute = amount < 0n ? -amount : amount;
+  if (absolute !== 0n && absolute.toString().length > 15)
+    return exactMoneyText(currency, minor, locale);
+  const fractionDigits = currencyFractionDigits(currency);
+  const scale = 10n ** BigInt(fractionDigits);
+  const integer = absolute / scale;
+  const fraction = absolute % scale;
+  return `${amount < 0n ? '-' : ''}${integer.toString()}${
+    fractionDigits > 0 ? `.${fraction.toString().padStart(fractionDigits, '0')}` : ''
+  }`;
+}
+
 function moneyText(currency: unknown, minor: unknown, locale: ReportLocale = 'en'): string {
   return htmlEscape(exactMoneyText(currency, minor, locale));
 }
@@ -567,7 +739,27 @@ function metricValue(key: string, value: unknown, currency: unknown, locale: Rep
 export function accountingPackCsv(
   snapshot: Readonly<{ invoiceRegister: readonly Row[] }>,
 ): Uint8Array {
-  return new TextEncoder().encode(toCsv(snapshot.invoiceRegister));
+  return new TextEncoder().encode(
+    toCsv(snapshot.invoiceRegister, undefined, {
+      numericColumns: ['version', 'netMinor', 'taxMinor', 'grossMinor'],
+    }),
+  );
+}
+
+function withAccountingAmounts(
+  rows: readonly Row[],
+  fields: readonly Readonly<{ amount: string; minor: string; currency?: string }>[],
+): readonly Row[] {
+  return rows.map((row) => {
+    const output: Record<string, Cell> = { ...row };
+    for (const field of fields)
+      output[field.amount] = majorAmountCell(
+        row[field.currency ?? 'currency'],
+        row[field.minor],
+        'en',
+      );
+    return output;
+  });
 }
 
 export function accountingPackXlsx(
@@ -578,11 +770,95 @@ export function accountingPackXlsx(
     expenseRegister: readonly Row[];
   }>,
 ): Uint8Array {
+  const invoiceRegister = withAccountingAmounts(snapshot.invoiceRegister, [
+    { amount: 'net', minor: 'netMinor' },
+    { amount: 'tax', minor: 'taxMinor' },
+    { amount: 'gross', minor: 'grossMinor' },
+  ]);
+  const collections = withAccountingAmounts(snapshot.collections, [
+    { amount: 'grossInvoiced', minor: 'grossInvoicedMinor' },
+    { amount: 'amountCollectedInMonth', minor: 'amountCollectedInMonthMinor' },
+    { amount: 'totalCollectedToDate', minor: 'totalCollectedToDateMinor' },
+    { amount: 'outstanding', minor: 'outstandingMinor' },
+  ]);
+  const workerCosts = withAccountingAmounts(snapshot.workerCosts, [
+    { amount: 'approvedCompensation', minor: 'approvedCompensationMinor' },
+    { amount: 'settledCompensation', minor: 'settledCompensationMinor' },
+    { amount: 'internalLoadedLaborCost', minor: 'internalLoadedLaborCostMinor' },
+    { amount: 'reimbursement', minor: 'reimbursementMinor' },
+  ]);
+  const expenseRegister = withAccountingAmounts(snapshot.expenseRegister, [
+    { amount: 'amount', minor: 'amountMinor' },
+    { amount: 'tax', minor: 'taxMinor' },
+    { amount: 'gross', minor: 'grossMinor' },
+    {
+      amount: 'projectCurrencyAmount',
+      minor: 'projectCurrencyAmountMinor',
+      currency: 'projectCurrency',
+    },
+    { amount: 'billingAmount', minor: 'billingAmountMinor', currency: 'projectCurrency' },
+  ]);
   return xlsxFromSheets([
-    { name: 'Invoice register', rows: snapshot.invoiceRegister },
-    { name: 'Collections', rows: snapshot.collections },
-    { name: 'Worker direct costs', rows: snapshot.workerCosts },
-    { name: 'Expenses', rows: snapshot.expenseRegister },
+    {
+      name: 'Invoice register',
+      rows: invoiceRegister,
+      numericColumns: ['version', 'net', 'tax', 'gross'],
+      moneyColumns: ['net', 'tax', 'gross'],
+      dateColumns: ['issueDate', 'dueDate'],
+    },
+    {
+      name: 'Collections',
+      rows: collections,
+      numericColumns: [
+        'grossInvoiced',
+        'amountCollectedInMonth',
+        'totalCollectedToDate',
+        'outstanding',
+      ],
+      dateColumns: ['paymentDate'],
+      moneyColumns: [
+        'grossInvoiced',
+        'amountCollectedInMonth',
+        'totalCollectedToDate',
+        'outstanding',
+      ],
+    },
+    {
+      name: 'Worker direct costs',
+      rows: workerCosts,
+      numericColumns: [
+        'actualApprovedMinutes',
+        'regularMinutes',
+        'standbyMinutes',
+        'overtimeMinutes',
+        'travelMinutes',
+        'missingCostRuleCount',
+        'approvedCompensation',
+        'settledCompensation',
+        'internalLoadedLaborCost',
+        'reimbursement',
+      ],
+      moneyColumns: [
+        'approvedCompensation',
+        'settledCompensation',
+        'internalLoadedLaborCost',
+        'reimbursement',
+      ],
+    },
+    {
+      name: 'Expenses',
+      rows: expenseRegister,
+      numericColumns: [
+        'version',
+        'amount',
+        'tax',
+        'gross',
+        'projectCurrencyAmount',
+        'billingAmount',
+      ],
+      dateColumns: ['date'],
+      moneyColumns: ['amount', 'tax', 'gross', 'projectCurrencyAmount', 'billingAmount'],
+    },
   ]);
 }
 
@@ -610,7 +886,17 @@ export function projectFinanceXlsx(
     {
       name: labels.summarySheet,
       rows: projectFinanceSummaryRows(snapshot.project, finance, currency, locale, labels),
-      columns: ['section', 'metric', 'value', 'exactMinorUnits'],
+      columns: [
+        'section',
+        'metric',
+        'displayValue',
+        'amount',
+        'hours',
+        'percentage',
+        'exactMinorUnits',
+      ],
+      numericColumns: ['amount', 'hours', 'percentage'],
+      moneyColumns: ['amount'],
     },
     {
       name: labels.laborSheet,
@@ -634,6 +920,17 @@ export function projectFinanceXlsx(
         'internalCostExactMinor',
         'workerCompensationExactMinor',
       ],
+      numericColumns: [
+        'actualHours',
+        'actualMinutes',
+        'billableHours',
+        'billableMinutes',
+        'clientRevenue',
+        'internalCost',
+        'workerCompensation',
+      ],
+      dateColumns: ['date'],
+      moneyColumns: ['clientRevenue', 'internalCost', 'workerCompensation'],
     },
     {
       name: labels.expenseSheet,
@@ -652,13 +949,21 @@ export function projectFinanceXlsx(
         'financeApproval',
         'projection',
         'costExactMinor',
+        'actualCostExactMinor',
         'revenueExactMinor',
+        'pendingFinanceRevenueExactMinor',
       ],
+      numericColumns: ['cost', 'actualCost', 'revenue', 'pendingFinanceRevenue'],
+      dateColumns: ['date'],
+      moneyColumns: ['cost', 'actualCost', 'revenue', 'pendingFinanceRevenue'],
     },
     {
       name: labels.unbilledSheet,
       rows: projectFinanceUnbilledRows(finance.approvedUnbilledSources, currency, locale),
       columns: ['sourceType', 'sourceId', 'date', 'workerId', 'amount', 'amountExactMinor'],
+      numericColumns: ['amount'],
+      dateColumns: ['date'],
+      moneyColumns: ['amount'],
     },
     {
       name: labels.minimumSheet,
@@ -671,6 +976,9 @@ export function projectFinanceXlsx(
         'revenue',
         'revenueExactMinor',
       ],
+      numericColumns: ['adjustmentHours', 'adjustmentMinutes', 'revenue'],
+      dateColumns: ['date'],
+      moneyColumns: ['revenue'],
     },
     {
       name: labels.invoiceSheet,
@@ -689,11 +997,17 @@ export function projectFinanceXlsx(
         'totalExactMinor',
         'collectedExactMinor',
       ],
+      numericColumns: ['total', 'collected'],
+      dateColumns: ['periodStart', 'periodEnd'],
+      moneyColumns: ['total', 'collected'],
     },
     {
       name: labels.milestoneSheet,
       rows: projectFinanceMilestoneRows(snapshot.milestones ?? [], currency, locale),
       columns: ['name', 'dueOn', 'state', 'amount', 'amountExactMinor'],
+      numericColumns: ['amount'],
+      dateColumns: ['dueOn'],
+      moneyColumns: ['amount'],
     },
     {
       name: labels.alertSheet,
@@ -790,8 +1104,63 @@ function formatBpsExact(value: unknown): string {
   }
 }
 
-function summaryRow(section: string, metric: string, value: Cell, exactMinor: Cell = ''): Row {
-  return { section, metric, value, exactMinorUnits: exactMinor };
+function summaryRow(section: string, metric: string, displayValue: Cell): Row {
+  return {
+    section,
+    metric,
+    displayValue,
+    amount: '',
+    hours: '',
+    percentage: '',
+    exactMinorUnits: '',
+  };
+}
+
+function summaryMoneyRow(
+  section: string,
+  metric: string,
+  currency: string,
+  locale: ReportLocale,
+  exactMinor: string,
+): Row {
+  return {
+    section,
+    metric,
+    displayValue: exactMinor === '' ? '' : exactMoneyText(currency, exactMinor, locale),
+    amount: majorAmountCell(currency, exactMinor, locale),
+    hours: '',
+    percentage: '',
+    exactMinorUnits: exactMinor,
+  };
+}
+
+function summaryHoursRow(section: string, metric: string, minutes: unknown): Row {
+  return {
+    section,
+    metric,
+    displayValue: minutesAsHours(minutes),
+    amount: '',
+    hours: minutesAsHours(minutes),
+    percentage: '',
+    exactMinorUnits: '',
+  };
+}
+
+function summaryPercentageRow(section: string, metric: string, bps: unknown): Row {
+  const valid =
+    (typeof bps === 'string' && /^-?\d+$/u.test(bps)) ||
+    (typeof bps === 'number' && Number.isSafeInteger(bps)) ||
+    typeof bps === 'bigint';
+  const formatted = valid ? formatBpsExact(bps) : '';
+  return {
+    section,
+    metric,
+    displayValue: formatted,
+    amount: '',
+    hours: '',
+    percentage: valid && Number.isFinite(Number(bps)) ? String(Number(bps) / 100) : '',
+    exactMinorUnits: '',
+  };
 }
 
 function projectFinanceSummaryRows(
@@ -801,11 +1170,10 @@ function projectFinanceSummaryRows(
   locale: ReportLocale,
   labels: ProjectFinanceCopy,
 ): readonly Row[] {
-  const money = (key: string): { display: string; exact: string } => {
+  const money = (key: string): string => {
     const exact = finance[key] == null ? '' : String(finance[key]);
-    return { display: exact === '' ? '' : exactMoneyText(currency, exact, locale), exact };
+    return exact;
   };
-  const hours = (key: string): string => minutesAsHours(finance[key]);
   const text = (key: string): string => (finance[key] == null ? '' : String(finance[key]));
   const laborRevenue = money('laborRevenueMinor');
   const expenseRevenue = money('expenseRevenueMinor');
@@ -840,48 +1208,40 @@ function projectFinanceSummaryRows(
     summaryRow(labels.project, 'Period end', project.period_end ?? ''),
     summaryRow(labels.project, 'Billing model', text('billingModel')),
     summaryRow(labels.project, 'Projection state', text('state')),
-    summaryRow(labels.economics, 'Labor revenue', laborRevenue.display, laborRevenue.exact),
-    summaryRow(labels.economics, 'Expense revenue', expenseRevenue.display, expenseRevenue.exact),
-    summaryRow(
-      labels.economics,
-      'Milestone revenue',
-      milestoneRevenue.display,
-      milestoneRevenue.exact,
-    ),
-    summaryRow(labels.economics, 'Revenue', revenue.display, revenue.exact),
-    summaryRow(labels.economics, 'Internal labor cost', laborCost.display, laborCost.exact),
-    summaryRow(labels.economics, 'Travel cost', travelCost.display, travelCost.exact),
-    summaryRow(labels.economics, 'Other direct cost', otherCost.display, otherCost.exact),
-    summaryRow(labels.economics, 'Direct cost', directCost.display, directCost.exact),
-    summaryRow(labels.economics, 'Worker compensation', compensation.display, compensation.exact),
-    summaryRow(labels.economics, 'Contribution', contribution.display, contribution.exact),
-    summaryRow(
-      labels.economics,
-      'Contribution margin',
-      formatBpsExact(finance.contributionMarginBps),
-    ),
-    summaryRow(labels.economics, 'Actual hours', hours('actualMinutes')),
-    summaryRow(labels.economics, 'Approved hours', hours('approvedMinutes')),
-    summaryRow(labels.economics, 'Billable hours', hours('billableMinutes')),
-    summaryRow(labels.collections, 'Invoiced net', invoiced.display, invoiced.exact),
-    summaryRow(labels.collections, 'Invoiced gross', invoicedGross.display, invoicedGross.exact),
-    summaryRow(labels.collections, 'Collected', collected.display, collected.exact),
-    summaryRow(labels.collections, 'Receivable', receivable.display, receivable.exact),
-    summaryRow(labels.collections, 'Approved unbilled WIP', unbilled.display, unbilled.exact),
-    summaryRow(labels.collections, 'Unapproved WIP', unapproved.display, unapproved.exact),
-    summaryRow(labels.forecast, 'Budget', budget.display, budget.exact),
-    summaryRow(labels.forecast, 'Remaining cap', remaining.display, remaining.exact),
-    summaryRow(labels.forecast, 'Budget consumed', formatBpsExact(finance.budgetConsumedBps)),
-    summaryRow(labels.forecast, 'Travel budget', travelBudget.display, travelBudget.exact),
-    summaryRow(labels.forecast, 'Estimate to complete', etc.display, etc.exact),
-    summaryRow(labels.forecast, 'Estimate at completion cost', eacCost.display, eacCost.exact),
-    summaryRow(
+    summaryMoneyRow(labels.economics, 'Labor revenue', currency, locale, laborRevenue),
+    summaryMoneyRow(labels.economics, 'Expense revenue', currency, locale, expenseRevenue),
+    summaryMoneyRow(labels.economics, 'Milestone revenue', currency, locale, milestoneRevenue),
+    summaryMoneyRow(labels.economics, 'Revenue', currency, locale, revenue),
+    summaryMoneyRow(labels.economics, 'Internal labor cost', currency, locale, laborCost),
+    summaryMoneyRow(labels.economics, 'Travel cost', currency, locale, travelCost),
+    summaryMoneyRow(labels.economics, 'Other direct cost', currency, locale, otherCost),
+    summaryMoneyRow(labels.economics, 'Direct cost', currency, locale, directCost),
+    summaryMoneyRow(labels.economics, 'Worker compensation', currency, locale, compensation),
+    summaryMoneyRow(labels.economics, 'Contribution', currency, locale, contribution),
+    summaryPercentageRow(labels.economics, 'Contribution margin', finance.contributionMarginBps),
+    summaryHoursRow(labels.economics, 'Actual hours', finance.actualMinutes),
+    summaryHoursRow(labels.economics, 'Approved hours', finance.approvedMinutes),
+    summaryHoursRow(labels.economics, 'Billable hours', finance.billableMinutes),
+    summaryMoneyRow(labels.collections, 'Invoiced net', currency, locale, invoiced),
+    summaryMoneyRow(labels.collections, 'Invoiced gross', currency, locale, invoicedGross),
+    summaryMoneyRow(labels.collections, 'Collected', currency, locale, collected),
+    summaryMoneyRow(labels.collections, 'Receivable', currency, locale, receivable),
+    summaryMoneyRow(labels.collections, 'Approved unbilled WIP', currency, locale, unbilled),
+    summaryMoneyRow(labels.collections, 'Unapproved WIP', currency, locale, unapproved),
+    summaryMoneyRow(labels.forecast, 'Budget', currency, locale, budget),
+    summaryMoneyRow(labels.forecast, 'Remaining cap', currency, locale, remaining),
+    summaryPercentageRow(labels.forecast, 'Budget consumed', finance.budgetConsumedBps),
+    summaryMoneyRow(labels.forecast, 'Travel budget', currency, locale, travelBudget),
+    summaryMoneyRow(labels.forecast, 'Estimate to complete', currency, locale, etc),
+    summaryMoneyRow(labels.forecast, 'Estimate at completion cost', currency, locale, eacCost),
+    summaryMoneyRow(
       labels.forecast,
       'Estimate at completion revenue',
-      eacRevenue.display,
-      eacRevenue.exact,
+      currency,
+      locale,
+      eacRevenue,
     ),
-    summaryRow(labels.forecast, 'Expected final margin', finalMargin.display, finalMargin.exact),
+    summaryMoneyRow(labels.forecast, 'Expected final margin', currency, locale, finalMargin),
     summaryRow(labels.forecast, 'Forecast basis', text('forecastBasis')),
   ];
 }
@@ -905,17 +1265,17 @@ function projectFinanceLaborRows(
       row.clientBillableMinutes == null && row.client_billable_minutes == null
         ? ''
         : String(row.clientBillableMinutes ?? row.client_billable_minutes),
-    clientRevenue: exactMoneyText(
+    clientRevenue: majorAmountCell(
       currency,
       row.clientRevenueMinor ?? row.client_revenue_minor,
       locale,
     ),
-    internalCost: exactMoneyText(
+    internalCost: majorAmountCell(
       currency,
       row.internalCostMinor ?? row.internal_cost_minor,
       locale,
     ),
-    workerCompensation: exactMoneyText(
+    workerCompensation: majorAmountCell(
       currency,
       row.workerCompensationMinor ?? row.worker_compensation_minor,
       locale,
@@ -943,10 +1303,10 @@ function projectFinanceExpenseRows(
     category: String(row.category ?? ''),
     paidBy: String(row.paidBy ?? ''),
     treatment: String(row.treatment ?? ''),
-    cost: exactMoneyText(currency, row.costMinor, locale),
-    actualCost: exactMoneyText(currency, row.actualCostMinor, locale),
-    revenue: exactMoneyText(currency, row.revenueMinor, locale),
-    pendingFinanceRevenue: exactMoneyText(
+    cost: majorAmountCell(currency, row.costMinor, locale),
+    actualCost: majorAmountCell(currency, row.actualCostMinor, locale),
+    revenue: majorAmountCell(currency, row.revenueMinor, locale),
+    pendingFinanceRevenue: majorAmountCell(
       currency,
       row.pendingFinanceRevenueMinor ?? row.pendingApprovalRevenueMinor,
       locale,
@@ -955,7 +1315,11 @@ function projectFinanceExpenseRows(
     financeApproval: String(row.financeApprovalState ?? ''),
     projection: String(row.financeProjectionState ?? ''),
     costExactMinor: String(row.costMinor ?? ''),
+    actualCostExactMinor: String(row.actualCostMinor ?? ''),
     revenueExactMinor: String(row.revenueMinor ?? ''),
+    pendingFinanceRevenueExactMinor: String(
+      row.pendingFinanceRevenueMinor ?? row.pendingApprovalRevenueMinor ?? '',
+    ),
   }));
 }
 
@@ -972,7 +1336,7 @@ function projectFinanceUnbilledRows(
       sourceId: String(row.sourceId ?? ''),
       date: String(row.workDate ?? row.spentOn ?? row.dueOn ?? ''),
       workerId: String(row.workerId ?? ''),
-      amount: exactMoneyText(currency, row.amountMinor, locale),
+      amount: majorAmountCell(currency, row.amountMinor, locale),
       amountExactMinor: String(row.amountMinor ?? ''),
     };
   });
@@ -991,7 +1355,7 @@ function projectFinanceMinimumRows(
       date: String(row.workDate ?? ''),
       adjustmentHours: minutesAsHours(row.adjustmentMinutes),
       adjustmentMinutes: row.adjustmentMinutes == null ? '' : String(row.adjustmentMinutes),
-      revenue: exactMoneyText(currency, row.revenueMinor, locale),
+      revenue: majorAmountCell(currency, row.revenueMinor, locale),
       revenueExactMinor: String(row.revenueMinor ?? ''),
     };
   });
@@ -1012,8 +1376,8 @@ function projectFinanceInvoiceRows(
       periodStart: String(row.period_start ?? row.periodStart ?? ''),
       periodEnd: String(row.period_end ?? row.periodEnd ?? ''),
       currency,
-      total: exactMoneyText(currency, total, locale),
-      collected: exactMoneyText(currency, collected, locale),
+      total: majorAmountCell(currency, total, locale),
+      collected: majorAmountCell(currency, collected, locale),
       issuedAt: String(row.issued_at ?? row.issuedAt ?? ''),
       dueAt: String(row.due_at ?? row.dueAt ?? ''),
       totalExactMinor: String(total ?? ''),
@@ -1034,7 +1398,7 @@ function projectFinanceMilestoneRows(
       name: String(row.name ?? ''),
       dueOn: String(row.due_on ?? row.dueOn ?? ''),
       state: translateReportStatus(row.approval_state ?? row.approvalState, locale),
-      amount: exactMoneyText(currency, amount, locale),
+      amount: majorAmountCell(currency, amount, locale),
       amountExactMinor: String(amount ?? ''),
     };
   });
@@ -1242,7 +1606,11 @@ function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] 
 }
 
 export function workerStatementCsv(snapshot: WorkerStatementSnapshot): Uint8Array {
-  return new TextEncoder().encode(toCsv(workerStatementRows(snapshot), workerStatementColumns));
+  return new TextEncoder().encode(
+    toCsv(workerStatementRows(snapshot), workerStatementColumns, {
+      numericColumns: ['amountMinor', 'actualMinutes', 'approvedMinutes', 'pendingMinutes'],
+    }),
+  );
 }
 
 export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Array {
@@ -1431,22 +1799,138 @@ const invoiceCollectionRows = (rows: readonly InvoiceCollectionLedgerRow[]): rea
 export function invoiceCollectionLedgerCsv(
   rows: readonly InvoiceCollectionLedgerRow[],
 ): Uint8Array {
-  return new TextEncoder().encode(toCsv(invoiceCollectionRows(rows)));
+  return new TextEncoder().encode(
+    toCsv(invoiceCollectionRows(rows), undefined, {
+      numericColumns: [
+        'subtotalMinor',
+        'taxMinor',
+        'totalMinor',
+        'grossPaymentsMinor',
+        'paymentReversalsMinor',
+        'netCollectedMinor',
+        'collectedMinor',
+        'outstandingMinor',
+        'directCostKnownMinor',
+        'directCostMinor',
+        'contributionMinor',
+        'contributionMarginBps',
+      ],
+    }),
+  );
 }
 
 export function invoiceCollectionLedgerXlsx(
   rows: readonly InvoiceCollectionLedgerRow[],
 ): Uint8Array {
-  const payments = rows.flatMap((row) =>
-    (row.payments ?? []).map((payment) => ({ invoiceId: row.invoiceId, ...payment })),
+  const ledgerRows = withAccountingAmounts(
+    invoiceCollectionRows(rows).map((row) => ({
+      ...row,
+      issueDate: String(row.issueDate ?? '').slice(0, 10),
+      dueDate: String(row.dueDate ?? '').slice(0, 10),
+      contributionMarginPercent: /^-?\d+$/u.test(String(row.contributionMarginBps ?? ''))
+        ? String(Number(row.contributionMarginBps) / 100)
+        : '',
+    })),
+    [
+      { amount: 'subtotal', minor: 'subtotalMinor' },
+      { amount: 'tax', minor: 'taxMinor' },
+      { amount: 'total', minor: 'totalMinor' },
+      { amount: 'grossPayments', minor: 'grossPaymentsMinor' },
+      { amount: 'paymentReversalAmount', minor: 'paymentReversalsMinor' },
+      { amount: 'netCollected', minor: 'netCollectedMinor' },
+      { amount: 'collected', minor: 'collectedMinor' },
+      { amount: 'outstanding', minor: 'outstandingMinor' },
+      { amount: 'directCostKnown', minor: 'directCostKnownMinor' },
+      { amount: 'directCost', minor: 'directCostMinor' },
+      { amount: 'contribution', minor: 'contributionMinor' },
+    ],
   );
-  const reversals = rows.flatMap((row) =>
-    (row.paymentReversals ?? []).map((reversal) => ({ invoiceId: row.invoiceId, ...reversal })),
+  const payments = withAccountingAmounts(
+    exportRows(
+      rows.flatMap((row) =>
+        (row.payments ?? []).map((payment) => {
+          const paymentTimestamp = String(payment.paymentDate ?? '');
+          return {
+            invoiceId: row.invoiceId,
+            currency: row.currency,
+            ...payment,
+            paymentTimestamp,
+            paymentDate: paymentTimestamp.slice(0, 10),
+          };
+        }),
+      ),
+    ),
+    [
+      { amount: 'grossAmount', minor: 'grossAmountMinor' },
+      { amount: 'reversed', minor: 'reversedMinor' },
+      { amount: 'netAmount', minor: 'netAmountMinor' },
+      { amount: 'amount', minor: 'amountMinor' },
+    ],
+  );
+  const reversals = withAccountingAmounts(
+    exportRows(
+      rows.flatMap((row) =>
+        (row.paymentReversals ?? []).map((reversal) => {
+          const paymentTimestamp = String(reversal.paymentDate ?? '');
+          return {
+            invoiceId: row.invoiceId,
+            currency: row.currency,
+            ...reversal,
+            paymentTimestamp,
+            paymentDate: paymentTimestamp.slice(0, 10),
+          };
+        }),
+      ),
+    ),
+    [{ amount: 'amount', minor: 'amountMinor' }],
   );
   return xlsxFromSheets([
-    { name: 'Invoice collection ledger', rows: invoiceCollectionRows(rows) },
-    { name: 'Payments', rows: exportRows(payments) },
-    { name: 'Reversals', rows: exportRows(reversals) },
+    {
+      name: 'Invoice collection ledger',
+      rows: ledgerRows,
+      numericColumns: [
+        'subtotal',
+        'tax',
+        'total',
+        'grossPayments',
+        'paymentReversalAmount',
+        'netCollected',
+        'collected',
+        'outstanding',
+        'directCostKnown',
+        'directCost',
+        'contribution',
+        'contributionMarginPercent',
+      ],
+      moneyColumns: [
+        'subtotal',
+        'tax',
+        'total',
+        'grossPayments',
+        'paymentReversalAmount',
+        'netCollected',
+        'collected',
+        'outstanding',
+        'directCostKnown',
+        'directCost',
+        'contribution',
+      ],
+      dateColumns: ['issueDate', 'dueDate'],
+    },
+    {
+      name: 'Payments',
+      rows: payments,
+      numericColumns: ['grossAmount', 'reversed', 'netAmount', 'amount'],
+      moneyColumns: ['grossAmount', 'reversed', 'netAmount', 'amount'],
+      dateColumns: ['paymentDate', 'paidOn', 'receivedOn'],
+    },
+    {
+      name: 'Reversals',
+      rows: reversals,
+      numericColumns: ['amount'],
+      moneyColumns: ['amount'],
+      dateColumns: ['paymentDate'],
+    },
   ]);
 }
 
@@ -1542,7 +2026,19 @@ export function accountingPackArtifactBuilders(
     {
       type: 'expense_csv',
       extension: 'csv',
-      build: () => new TextEncoder().encode(toCsv(normalized.expenseRegister)),
+      build: () =>
+        new TextEncoder().encode(
+          toCsv(normalized.expenseRegister, undefined, {
+            numericColumns: [
+              'version',
+              'amountMinor',
+              'taxMinor',
+              'grossMinor',
+              'projectCurrencyAmountMinor',
+              'billingAmountMinor',
+            ],
+          }),
+        ),
     },
     {
       type: 'json',
@@ -1869,7 +2365,7 @@ export function periodReportPdf(
     ...(snapshot.dailyReports ?? []).map((row) => ({
       type: copy.dailyReport,
       date: formatReportDate(row.work_date ?? row.workDate ?? row.date, locale),
-      worker: String(row.worker ?? row.workerName ?? row.worker_name ?? ''),
+      worker: String(row.workerDisplay ?? row.worker ?? row.workerName ?? row.worker_name ?? ''),
       detail: String(row.summary ?? ''),
       minutes: null as number | null,
       status: row.approval_state ?? row.approvalState,
@@ -1880,7 +2376,7 @@ export function periodReportPdf(
         row.report_date ?? row.reportDate ?? row.date ?? row.created_at ?? row.createdAt,
         locale,
       ),
-      worker: String(row.worker ?? row.workerName ?? row.worker_name ?? ''),
+      worker: String(row.workerDisplay ?? row.worker ?? row.workerName ?? row.worker_name ?? ''),
       detail: String(row.change_summary ?? row.changeSummary ?? ''),
       minutes: null as number | null,
       status: row.approval_state ?? row.approvalState,
@@ -1888,7 +2384,7 @@ export function periodReportPdf(
     ...(snapshot.technicalChanges ?? []).map((row) => ({
       type: copy.technicalChange,
       date: formatReportDate(row.created_at ?? row.createdAt ?? row.date, locale),
-      worker: String(row.worker ?? row.workerName ?? row.worker_name ?? ''),
+      worker: String(row.workerDisplay ?? row.worker ?? row.workerName ?? row.worker_name ?? ''),
       detail: String(row.change_made ?? row.changeMade ?? ''),
       minutes: null as number | null,
       status: row.approval_state ?? row.approvalState,
@@ -1896,7 +2392,7 @@ export function periodReportPdf(
     ...timeSummary.map((row) => ({
       type: copy.sourceTime,
       date: formatReportDate(row.work_date ?? row.workDate ?? row.date, locale),
-      worker: String(row.worker ?? row.workerName ?? row.worker_name ?? ''),
+      worker: String(row.workerDisplay ?? row.worker ?? row.workerName ?? row.worker_name ?? ''),
       detail: String(row.activity_summary ?? row.activitySummary ?? row.category ?? ''),
       minutes: Number(row.minutes ?? 0),
       status: row.approval_state ?? row.approvalState,
@@ -1908,6 +2404,7 @@ export function periodReportPdf(
       ? [
           row.type,
           row.date,
+          row.worker || '—',
           row.detail,
           row.minutes === null ? '—' : `${hours(row.minutes)} h`,
           translateReportStatus(row.status, locale),
@@ -1922,11 +2419,11 @@ export function periodReportPdf(
         ],
   );
   const operationalHeaders = customer
-    ? [copy.type, copy.date, copy.detail, copy.hours, copy.status]
+    ? [copy.type, copy.date, copy.worker, copy.detail, copy.hours, copy.status]
     : [copy.type, copy.date, copy.worker, copy.detail, copy.hours, copy.status];
   const operationalFooter = operationalRows.length
     ? customer
-      ? [copy.total, '', '', `${hours(operationalMinutesTotal)} h`, '']
+      ? [copy.total, '', '', '', `${hours(operationalMinutesTotal)} h`, '']
       : [copy.total, '', '', '', `${hours(operationalMinutesTotal)} h`, '']
     : undefined;
   const calculationTable = customer
@@ -1988,7 +2485,7 @@ export function invoicePdf(snapshot: InvoiceTemplateSnapshot): Uint8Array {
   const rendered = renderInvoiceTemplate(snapshot);
   const number = String(snapshot.number ?? snapshot.invoiceNumber ?? '');
   return renderHtmlToPdf(
-    invoiceLayout(rendered.title, rendered.subtitle, number, rendered.body, locale),
+    invoiceLayout(rendered.title, rendered.subtitle, number, rendered.body, locale, snapshot),
   );
 }
 

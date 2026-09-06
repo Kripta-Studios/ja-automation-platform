@@ -109,7 +109,7 @@ describe('SQLite migration', () => {
             version: number;
           }
         ).version,
-      ).toBe(35);
+      ).toBe(39);
       expect(
         sqlite
           .prepare("SELECT 1 FROM pragma_table_info('project') WHERE name='fixed_price_minor'")
@@ -120,7 +120,7 @@ describe('SQLite migration', () => {
           status: string;
           mfa_required: number;
         },
-      ).toEqual({ status: 'active', mfa_required: 1 });
+      ).toEqual({ status: 'active', mfa_required: 0 });
       expect(
         sqlite.prepare("SELECT two_factor_enabled FROM user WHERE id='u'").get() as {
           two_factor_enabled: number;

@@ -1,9 +1,20 @@
 import { chromium, type Page } from 'playwright';
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import {
+  localBaseUrl,
+  requiredFixtureSentinel,
+  syntheticCredentials,
+} from './isolated-test-guards.ts';
 
-const BASE_URL = 'http://127.0.0.1:5174/j-aautomation';
-const OUT_DIR = resolve(process.cwd(), 'docs/manuals/screenshots');
+requiredFixtureSentinel();
+const BASE_URL = localBaseUrl('JA_CAPTURE_BASE_URL', 'http://127.0.0.1:5174/j-aautomation');
+const OUT_DIR = resolve(
+  process.env.JA_CAPTURE_OUT_DIR?.trim() || resolve(process.cwd(), 'docs/manuals/screenshots'),
+);
+const OWNER = syntheticCredentials('JA_CAPTURE_OWNER_EMAIL', 'JA_CAPTURE_OWNER_PASSWORD');
+const WORKER = syntheticCredentials('JA_CAPTURE_WORKER_EMAIL', 'JA_CAPTURE_WORKER_PASSWORD');
 
 mkdirSync(resolve(OUT_DIR, 'owner'), { recursive: true });
 mkdirSync(resolve(OUT_DIR, 'worker'), { recursive: true });
@@ -29,9 +40,9 @@ async function captureOwnerScreenshots() {
   // Login page screenshot
   await snap(page, '/app/login', 'owner/01_login_screen.png', 1000);
 
-  // Perform Owner Login
-  await page.fill('input[name="email"]', 'antonny.luty@j-aautomation.com');
-  await page.fill('input[name="password"]', 'antonny.luty');
+  // Perform synthetic Owner Login. Credentials are supplied only by the test environment.
+  await page.fill('input[name="email"]', OWNER.email);
+  await page.fill('input[name="password"]', OWNER.password);
   await page.click('.login-submit');
   await page.waitForURL('**/app/**', { timeout: 15000 });
   await page.waitForTimeout(2000);
@@ -69,8 +80,8 @@ async function captureOwnerScreenshots() {
       await page.screenshot({ path: resolve(OUT_DIR, 'owner/10_invoice_edit_draft.png') });
       console.log('✓ Saved: owner/10_invoice_edit_draft.png');
     }
-  } catch (e) {
-    console.warn('Could not expand invoice edit accordion:', e);
+  } catch {
+    console.warn('Could not expand invoice edit accordion; continuing.');
   }
 
   // Finance & Profitability
@@ -102,8 +113,8 @@ async function captureWorkerScreenshots() {
 
   // Login as Worker
   await page.goto(`${BASE_URL}/app/login`, { waitUntil: 'networkidle' });
-  await page.fill('input[name="email"]', 'worker@demo.jaautomation.local');
-  await page.fill('input[name="password"]', 'worker');
+  await page.fill('input[name="email"]', WORKER.email);
+  await page.fill('input[name="password"]', WORKER.password);
   await page.click('.login-submit');
   await page.waitForURL('**/app/**', { timeout: 15000 });
   await page.waitForTimeout(2000);
@@ -141,8 +152,8 @@ async function captureWorkerScreenshots() {
   });
   const mobilePage = await mobileContext.newPage();
   await mobilePage.goto(`${BASE_URL}/app/login`, { waitUntil: 'networkidle' });
-  await mobilePage.fill('input[name="email"]', 'worker@demo.jaautomation.local');
-  await mobilePage.fill('input[name="password"]', 'worker');
+  await mobilePage.fill('input[name="email"]', WORKER.email);
+  await mobilePage.fill('input[name="password"]', WORKER.password);
   await mobilePage.click('.login-submit');
   await mobilePage.waitForURL('**/app/**', { timeout: 15000 });
   await mobilePage.waitForTimeout(2000);
@@ -151,13 +162,14 @@ async function captureWorkerScreenshots() {
   await mobileBrowser.close();
 }
 
-async function main() {
+export async function main() {
   await captureOwnerScreenshots();
   await captureWorkerScreenshots();
   console.log('\nAll user manual screenshots captured successfully!');
 }
 
-main().catch((err) => {
-  console.error('Fatal error during screenshot capture:', err);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href)
+  main().catch(() => {
+    console.error('Fatal error during screenshot capture.');
+    process.exit(1);
+  });

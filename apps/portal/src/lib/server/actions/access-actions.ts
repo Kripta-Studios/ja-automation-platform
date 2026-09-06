@@ -2,15 +2,14 @@ import { invitationInputSchema, uuidSchema } from '@ja/schemas';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess } from './action-message';
 import { formObject, type PortalActionEvent } from '$lib/server/action-utils';
-import { MailIdentityRepository } from '@ja/database';
+import {
+  CANONICAL_OWNER_EMAIL,
+  MailIdentityRepository,
+  SYNTHETIC_OWNER_DEPLOYMENT_ID,
+  SYNTHETIC_OWNER_EMAIL,
+  SYNTHETIC_OWNER_TENANT_ID,
+} from '@ja/database';
 import { StalwartOperationRejectedError } from '$lib/server/stalwart-client';
-
-type IdentityScope = 'invitation' | 'workerProfile' | 'userStatus';
-type IdentityContext = Readonly<{
-  identityScope: IdentityScope;
-  workerId?: string;
-  userId?: string;
-}>;
 
 function openAccessContext(locals: PortalActionEvent['locals']) {
   try {
@@ -20,66 +19,21 @@ function openAccessContext(locals: PortalActionEvent['locals']) {
   }
 }
 
-function identityFailurePayload(context: IdentityContext) {
-  return { stepUpRequired: true, ...context };
-}
-
 function requireOwner(event: PortalActionEvent): ReturnType<typeof actionFail> | null {
   if (!event.locals.user || !event.locals.session)
     return actionFail(401, 'action.error.unauthenticated', {}, 'Sign in again to continue.');
+  const email = event.locals.user.email.trim().toLowerCase();
+  const syntheticOwnerAllowed =
+    process.env.NODE_ENV !== 'production' &&
+    process.env.JA_TENANT_ID === SYNTHETIC_OWNER_TENANT_ID &&
+    process.env.JA_DEPLOYMENT_ID === SYNTHETIC_OWNER_DEPLOYMENT_ID &&
+    email === SYNTHETIC_OWNER_EMAIL;
   if (
     event.locals.user.role !== 'owner_admin' ||
-    event.locals.user.email.trim().toLowerCase() !== 'antonny.luty@j-aautomation.com'
+    (email !== CANONICAL_OWNER_EMAIL && !syntheticOwnerAllowed)
   )
     return actionFail(403, 'action.error.forbidden', {}, 'Owner administration required');
   return null;
-}
-
-function confirmProtectedActionIdentity(
-  event: PortalActionEvent,
-): ReturnType<typeof actionFail> | null {
-  const sessionId = event.locals.session?.id;
-  const userId = event.locals.user?.id;
-  if (!sessionId || !userId)
-    return actionFail(401, 'action.error.unauthenticated', {}, 'Sign in again to continue.');
-  const opened = openAccessContext(event.locals);
-  if ('failure' in opened) return opened.failure as ReturnType<typeof actionFail>;
-  try {
-    const row = opened.context.sqlite
-      .prepare('SELECT step_up_at,expires_at FROM session WHERE id=? AND user_id=?')
-      .get(sessionId, userId) as { step_up_at: string | null; expires_at: string } | undefined;
-    const steppedAt = row?.step_up_at ? Date.parse(row.step_up_at) : Number.NaN;
-    const expiresAt = row?.expires_at ? Date.parse(row.expires_at) : Number.NaN;
-    if (
-      !row ||
-      !Number.isFinite(steppedAt) ||
-      Date.now() - steppedAt > 10 * 60_000 ||
-      !Number.isFinite(expiresAt) ||
-      expiresAt <= Date.now()
-    )
-      return actionFail(
-        403,
-        'action.error.stepUpRequired',
-        {},
-        'Confirm your identity to continue.',
-        { stepUpRequired: true },
-      );
-    return null;
-  } finally {
-    opened.context.sqlite.close();
-  }
-}
-
-function withIdentityContext(error: unknown, context: IdentityContext) {
-  const failure = actionFailure(error);
-  if (failure.data?.stepUpRequired !== true) return failure;
-  return actionFail(
-    failure.status,
-    'action.error.stepUpRequired',
-    {},
-    'Confirm your identity to continue.',
-    identityFailurePayload(context),
-  );
 }
 
 export const accessActions = {
@@ -95,8 +49,6 @@ export const accessActions = {
       return actionFail(400, 'action.validation.invitation', {}, 'Invalid invitation', {
         fields: parsed.error.flatten().fieldErrors,
       });
-    const identityFailure = confirmProtectedActionIdentity(event);
-    if (identityFailure) return identityFailure;
     const opened = openAccessContext(locals);
     if ('failure' in opened) return opened.failure;
     try {
@@ -108,7 +60,7 @@ export const accessActions = {
         `Invite created: ${publicBase}/app/invite/${result.token}`,
       );
     } catch (error) {
-      return withIdentityContext(error, { identityScope: 'invitation' });
+      return actionFailure(error);
     } finally {
       opened.context.sqlite.close();
     }
@@ -130,9 +82,6 @@ export const accessActions = {
         {},
         'Invalid account status change',
       );
-    const identityContext = { identityScope: 'userStatus' as const, userId };
-    const identityFailure = confirmProtectedActionIdentity(event);
-    if (identityFailure) return identityFailure;
     const opened = openAccessContext(locals);
     if ('failure' in opened) return opened.failure;
     try {
@@ -147,7 +96,7 @@ export const accessActions = {
         `Account marked ${status}`,
       );
     } catch (error) {
-      return withIdentityContext(error, identityContext);
+      return actionFailure(error);
     } finally {
       opened.context.sqlite.close();
     }
@@ -169,9 +118,6 @@ export const accessActions = {
     if (!parsedId.success || !name.trim() || !email.trim() || !role)
       return actionFail(400, 'action.validation.workerProfile', {}, 'Invalid worker profile data');
 
-    const identityContext = { identityScope: 'workerProfile' as const, workerId };
-    const identityFailure = confirmProtectedActionIdentity(event);
-    if (identityFailure) return identityFailure;
     const opened = openAccessContext(locals);
     if ('failure' in opened) return opened.failure;
     try {
@@ -180,7 +126,13 @@ export const accessActions = {
         .get(workerId) as { email: string; role: string } | undefined;
       if (!target)
         return actionFail(400, 'action.validation.workerProfile', {}, 'Worker not found');
-      const canonical = target.email.toLowerCase() === 'antonny.luty@j-aautomation.com';
+      const designatedOwnerEmail =
+        process.env.NODE_ENV !== 'production' &&
+        process.env.JA_TENANT_ID === SYNTHETIC_OWNER_TENANT_ID &&
+        process.env.JA_DEPLOYMENT_ID === SYNTHETIC_OWNER_DEPLOYMENT_ID
+          ? SYNTHETIC_OWNER_EMAIL
+          : CANONICAL_OWNER_EMAIL;
+      const canonical = target.email.toLowerCase() === designatedOwnerEmail;
       if ((canonical && role !== 'owner_admin') || (!canonical && role === 'owner_admin'))
         return actionFail(409, 'action.error.conflict', {}, 'Antonny Luty is the only owner.');
       const linked = opened.context.sqlite
@@ -201,7 +153,7 @@ export const accessActions = {
       });
       return actionSuccess('action.access.workerProfile.updated', {}, 'Worker profile updated');
     } catch (error) {
-      return withIdentityContext(error, identityContext);
+      return actionFailure(error);
     } finally {
       opened.context.sqlite.close();
     }
@@ -227,8 +179,6 @@ export const accessActions = {
     }
     if (!['worker', 'project_manager', 'finance_admin'].includes(role))
       return actionFail(400, 'action.validation.invalid', {}, 'Invalid portal role');
-    const identityFailure = confirmProtectedActionIdentity(event);
-    if (identityFailure) return identityFailure;
 
     const { provisionMailboxUsers } = await import('$lib/server/mail-directory');
     const opened = openAccessContext(locals);
@@ -244,7 +194,7 @@ export const accessActions = {
         `${result.created + result.updated} mailbox account(s) provisioned successfully.`,
       );
     } catch (error) {
-      return withIdentityContext(error, { identityScope: 'userStatus' });
+      return actionFailure(error);
     } finally {
       opened.context.sqlite.close();
     }
@@ -276,8 +226,6 @@ export const accessActions = {
     if (!password) return actionFail(400, 'action.validation.invalid', {}, 'Password is required');
     if (!['worker', 'project_manager', 'finance_admin'].includes(provisionRole))
       return actionFail(400, 'action.validation.invalid', {}, 'Invalid portal role');
-    const identityFailure = confirmProtectedActionIdentity(event);
-    if (identityFailure) return identityFailure;
 
     const { createMailboxAccount, MailboxSagaPartialFailureError } =
       await import('$lib/server/mail-directory');
@@ -369,7 +317,7 @@ export const accessActions = {
         if (knownFailure)
           return actionFail(409, knownFailure[0] as `action.${string}`, {}, knownFailure[1]);
       }
-      return withIdentityContext(error, { identityScope: 'userStatus' });
+      return actionFailure(error);
     } finally {
       opened.context.sqlite.close();
     }
@@ -379,8 +327,6 @@ export const accessActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const authorizationFailure = requireOwner(event);
     if (authorizationFailure) return authorizationFailure;
-    const identityFailure = confirmProtectedActionIdentity(event);
-    if (identityFailure) return identityFailure;
     const opened = openAccessContext(event.locals);
     if ('failure' in opened) return opened.failure;
     try {
@@ -392,7 +338,7 @@ export const accessActions = {
         'Mailbox directory synchronized.',
       );
     } catch (error) {
-      return withIdentityContext(error, { identityScope: 'userStatus' });
+      return actionFailure(error);
     } finally {
       opened.context.sqlite.close();
     }
@@ -420,8 +366,6 @@ export const accessActions = {
       !['worker', 'project_manager', 'finance_admin'].includes(role)
     )
       return actionFail(400, 'action.validation.invalid', {}, 'Invalid role change confirmation');
-    const identityFailure = confirmProtectedActionIdentity(event);
-    if (identityFailure) return identityFailure;
     const opened = openAccessContext(event.locals);
     if ('failure' in opened) return opened.failure;
     try {
@@ -434,7 +378,7 @@ export const accessActions = {
       );
       return actionSuccess('action.access.workerProfile.updated', { role }, 'Portal role updated.');
     } catch (error) {
-      return withIdentityContext(error, { identityScope: 'workerProfile', workerId: userId });
+      return actionFailure(error);
     } finally {
       opened.context.sqlite.close();
     }
@@ -456,8 +400,6 @@ export const accessActions = {
       .toLowerCase();
     if (!uuidSchema.safeParse(userId).success || confirmation !== email || !reason)
       return actionFail(400, 'action.validation.invalid', {}, 'Invalid offboarding confirmation');
-    const identityFailure = confirmProtectedActionIdentity(event);
-    if (identityFailure) return identityFailure;
     const opened = openAccessContext(event.locals);
     if ('failure' in opened) return opened.failure;
     try {
@@ -473,7 +415,7 @@ export const accessActions = {
         'Portal access removed; mailbox preserved.',
       );
     } catch (error) {
-      return withIdentityContext(error, { identityScope: 'userStatus', userId });
+      return actionFailure(error);
     } finally {
       opened.context.sqlite.close();
     }
@@ -509,8 +451,6 @@ export const accessActions = {
         {},
         'Account, password, reason and confirmation are required',
       );
-    const identityFailure = confirmProtectedActionIdentity(event);
-    if (identityFailure) return identityFailure;
     const opened = openAccessContext(event.locals);
     if ('failure' in opened) return opened.failure;
     try {
@@ -529,7 +469,7 @@ export const accessActions = {
         'Mailbox password updated.',
       );
     } catch (error) {
-      return withIdentityContext(error, { identityScope: 'userStatus' });
+      return actionFailure(error);
     } finally {
       opened.context.sqlite.close();
     }
@@ -553,8 +493,6 @@ export const accessActions = {
         {},
         'Explicit confirmation and reason are required',
       );
-    const identityFailure = confirmProtectedActionIdentity(event);
-    if (identityFailure) return identityFailure;
     const opened = openAccessContext(event.locals);
     if ('failure' in opened) return opened.failure;
     try {
@@ -572,7 +510,7 @@ export const accessActions = {
         'Mailbox deleted; portal account preserved.',
       );
     } catch (error) {
-      return withIdentityContext(error, { identityScope: 'userStatus' });
+      return actionFailure(error);
     } finally {
       opened.context.sqlite.close();
     }

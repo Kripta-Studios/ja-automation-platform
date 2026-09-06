@@ -94,7 +94,12 @@ describe('mailbox privileged operations', () => {
 
   it('requires the exact canonical owner before any external request', async () => {
     const updatePassword = vi.fn();
-    const impostor: Principal = { userId: workerId, role: 'owner_admin', projectIds: new Set() };
+    const impostor: Principal = {
+      userId: workerId,
+      role: 'owner_admin',
+      projectIds: new Set(),
+      sessionId: 'worker-session',
+    };
     await expect(
       updateMailboxPassword(
         database.sqlite,

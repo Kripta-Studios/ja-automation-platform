@@ -13,7 +13,7 @@ import { basename, dirname, isAbsolute, relative, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 export const e2eRoot = resolve(process.cwd());
-export const e2eDataRoot = resolve(e2eRoot, 'data');
+export const e2eDataRoot = resolve(e2eRoot, 'tests/e2e/data');
 
 const tokenPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const inheritedToken = process.env.JA_E2E_FIXTURE_TOKEN;

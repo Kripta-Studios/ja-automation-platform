@@ -563,10 +563,6 @@ const generatedCoverageLiterals: Record<string, readonly [string, string]> = {
     'No se pudo activar la invitación.',
     'Não foi possível ativar o convite.',
   ],
-  "Invitations require step-up authentication. The worker will be added as 'invited' status.": [
-    "Invitations require step-up authentication. The trabajador will be added as 'invited' estado.",
-    "Invitations require step-up authentication. The colaborador will be added as 'invited' status.",
-  ],
   'Invite new worker': ['Invitar a un trabajador', 'Convidar colaborador'],
   'Invite/Create Worker': ['Invite/Create trabajador', 'Invite/Create colaborador'],
   'Invoice issue': ['factura issue', 'fatura issue'],
@@ -950,11 +946,6 @@ const generatedCoverageLiterals: Record<string, readonly [string, string]> = {
     'processar durable finanças tarefas',
   ],
   Processing: ['Procesando', 'Processando'],
-  'Production accounts require a second factor. Enabling MFA returns the setup URI and one-time recovery codes; store them in an approved password manager.':
-    [
-      'Las cuentas de producción requieren un segundo factor. Activar MFA devuelve la URI de configuración y códigos de recuperación de un solo uso; guárdalos en un gestor de contraseñas aprobado.',
-      'As contas de produção exigem um segundo fator. Ativar MFA retorna a URI de configuração e códigos de recuperação de uso único; guarde-os em um gerenciador de senhas aprovado.',
-    ],
   'Production impact': ['Impacto en producción', 'Impacto em produção'],
   Proficiency: ['Competencia', 'Proficiência'],
   'Proficiency (1-5)': ['Competencia (1-5)', 'Proficiência (1-5)'],
@@ -990,9 +981,9 @@ const generatedCoverageLiterals: Record<string, readonly [string, string]> = {
     'proyectos, informes and aprobaciones',
     'projetos, relatórios and aprovações',
   ],
-  'Protected by secure sessions, rate limits and multi-factor authentication.': [
-    'Protegido por sesiones seguras, límites de frecuencia y autenticación multifactor.',
-    'Protegido por sessões seguras, limites de frequência e autenticação multifator.',
+  'Protected by secure sessions and rate limits. Optional MFA is available in your profile.': [
+    'Protegido por sesiones seguras y límites de frecuencia. MFA opcional está disponible en tu perfil.',
+    'Protegido por sessões seguras e limites de frequência. A MFA opcional está disponível no seu perfil.',
   ],
   'Publish assignment': ['Publicar asignación', 'Publicar atribuição'],
   'Publish field assignment': ['publicar field asignación', 'publicar field atribuição'],
@@ -1131,7 +1122,6 @@ const generatedCoverageLiterals: Record<string, readonly [string, string]> = {
   'SIGNED IN': ['sesión iniciada IN', 'sessão iniciada IN'],
   'SOURCE RECORD': ['origen registro', 'origem registro'],
   'START / TARGET': ['inicio / objetivo', 'início / meta'],
-  'STEP-UP AUTHENTICATION': ['AUTENTICACIÓN REFORZADA', 'AUTENTICAÇÃO REFORÇADA'],
   Safety: ['seguridad', 'segurança'],
   'Safety impact': ['Impacto en la seguridad', 'Impacto na segurança'],
   'Safety impact: technical lead review, validation and rollback detail required': [
@@ -1370,11 +1360,6 @@ const generatedCoverageLiterals: Record<string, readonly [string, string]> = {
   'Use a recovery code': ['usar a recuperación código', 'usar a recuperação código'],
   'Use authenticator code': ['usar autenticador código', 'usar autenticador código'],
   'Use recipient email': ['Usar el correo del destinatario', 'Usar o e-mail do destinatário'],
-  'Use step-up authentication immediately before payment, invoice void, rate, invitation, or final-pack actions.':
-    [
-      'usar step-up authentication immediately before pago, factura anulación, tarifa, invitación, o final-paquete actions.',
-      'usar step-up authentication immediately before pagamento, fatura cancelamento, taxa, convite, ou final-pacote actions.',
-    ],
   'Use the company credentials issued for your J&A workspace.': [
     'usar the empresa credentials emitida for tu J&A espacio de trabajo.',
     'usar the empresa credentials emitida for seu J&A espaço de trabalho.',

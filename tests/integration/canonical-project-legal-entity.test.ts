@@ -205,7 +205,7 @@ describe('Client Essential canonical project legal-entity authority', () => {
     }
   });
 
-  it('requires complete explicit legal-entity data and a recent step-up for Owner/Finance writes', () => {
+  it('requires complete explicit legal-entity data and the Finance or Owner role', () => {
     const value = fixture();
     if (
       typeof (value.v3 as Record<string, unknown>).createCanonicalLegalEntityRevision !== 'function'
@@ -228,8 +228,12 @@ describe('Client Essential canonical project legal-entity authority', () => {
       { idempotencyKey: '' },
     ];
 
-    expect(() => createRevision(value, value.owner)).toThrow(V3AccessDeniedError);
-    expect(() => createRevision(value, value.finance)).toThrow(V3AccessDeniedError);
+    expect(() => createRevision(value, value.owner)).toThrow(
+      /Live authenticated session required/u,
+    );
+    expect(() => createRevision(value, value.finance)).toThrow(
+      /Live authenticated session required/u,
+    );
     expect(() => createRevision(value, value.manager)).toThrow(V3AccessDeniedError);
     expect(() => createRevision(value, value.worker)).toThrow(V3AccessDeniedError);
 
@@ -315,7 +319,7 @@ describe('Client Essential canonical project legal-entity authority', () => {
       state: 'completed',
       evidence_hash: row?.revision_hash,
     });
-    expect(commandRow?.step_up_verified_at).not.toBeNull();
+    expect(commandRow?.step_up_verified_at).toBeNull();
     expect(Buffer.from(commandRow?.canonical_blob ?? new Uint8Array()).toString('utf8')).toContain(
       'J&A Automation Europe S.L.',
     );

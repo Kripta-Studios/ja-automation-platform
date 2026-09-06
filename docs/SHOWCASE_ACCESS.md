@@ -2,9 +2,10 @@
 
 The portal is the private workspace described by the V3 product specification. The public site links
 to `/j-aautomation/app/login`, and that page always uses the real Better Auth flow: invite-only
-accounts, secure cookie sessions, password sign-in, passkeys where supported, TOTP MFA and recovery
-codes. The scoped UI/fixture work is not a full production-release approval; see the release gate note
-below.
+accounts, secure cookie sessions, password sign-in, passkeys where supported, and optional TOTP MFA
+with recovery codes for account holders who choose to enroll. MFA is not a first-access, role or
+operation gate, and the application has no step-up authentication. The scoped UI/fixture work is not
+by itself a full production-release approval; see the release gate note below.
 
 There is no demo button, shared account, passwordless role switch or public registration. A browser
 visitor who is not authenticated can see only the sign-in surface; every protected query still checks
@@ -15,8 +16,8 @@ the authenticated role, project membership and ownership on the server.
 1. An operator provisions the first owner once with `pnpm portal:bootstrap-owner`. The command uses
    the reviewed migrations, Better Auth's password hashing and an audited `owner_admin` record. It
    never prints or stores the password in the repository.
-2. The owner signs in at `https://example.invalid/j-aautomation/app/login`, enrolls MFA on first
-   access and verifies a passkey when available.
+2. The owner signs in at `https://example.invalid/j-aautomation/app/login` and may optionally enroll
+   MFA or a passkey from account security. Neither is required to continue.
 3. The owner opens Projects → Team and creates a single-use invitation for each team member. The
    invitee sets a password of 12–128 characters on the activation page, then signs in normally.
 4. Suspended, offboarded and archived accounts are rejected before protected portal data is loaded.

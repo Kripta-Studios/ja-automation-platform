@@ -1,0 +1,459 @@
+{
+  "candidateSha": "2058db24ca4d5d6b3f66bde11b6230e271a2d06c",
+  "workingDirectory": "/home/kripta/ja-automation-platform-vps-hotfix",
+  "environmentCategory": "mixed: synthetic + production-authorized + production-read-only",
+  "runtime": {
+    "node": "24.19.0",
+    "pnpm": "11.22.0",
+    "playwright": "1.62.1",
+    "vitest": "4.1.11",
+    "timezone": "Europe/Madrid"
+  },
+  "isolation": "Repository gates used disposable SQLite/document roots, synthetic identities, no inherited production DB/mail variables and Chromium workers=1. Production records are separately identified and contain only authorized deploy or read-only metadata checks.",
+  "recordedAt": "2026-09-06T16:21:59+02:00",
+  "results": [
+    {
+      "id": "format-final",
+      "command": "pnpm run format:check",
+      "startedAt": "2026-09-06T13:47:55+02:00",
+      "endedAt": "2026-09-06T13:47:57+02:00",
+      "exitCode": 0,
+      "counts": {
+        "failed": 0
+      },
+      "logReference": "Exact final rerun; all matched files use Prettier code style"
+    },
+    {
+      "id": "lint-final",
+      "command": "pnpm run lint",
+      "startedAt": "2026-09-06T13:47:57+02:00",
+      "endedAt": "2026-09-06T13:48:15+02:00",
+      "exitCode": 0,
+      "counts": {
+        "failed": 0
+      },
+      "logReference": "Exact final rerun; ESLint exit 0"
+    },
+    {
+      "id": "typecheck-final",
+      "command": "pnpm run typecheck",
+      "startedAt": "2026-09-06T13:48:15+02:00",
+      "endedAt": "2026-09-06T13:48:30+02:00",
+      "exitCode": 0,
+      "counts": {
+        "passedProjects": 10,
+        "failed": 0
+      },
+      "logReference": "Exact final recursive workspace summary"
+    },
+    {
+      "id": "unit-final",
+      "command": "pnpm run test:unit",
+      "startedAt": "2026-09-06T13:48:30+02:00",
+      "endedAt": "2026-09-06T13:51:03+02:00",
+      "exitCode": 0,
+      "counts": {
+        "passedFiles": 128,
+        "passedTests": 848,
+        "failed": 0
+      },
+      "logReference": "Exact final Vitest summary, duration 153.02s"
+    },
+    {
+      "id": "security-final",
+      "command": "pnpm run test:security",
+      "startedAt": "2026-09-06T13:51:09+02:00",
+      "endedAt": "2026-09-06T13:53:29+02:00",
+      "exitCode": 0,
+      "counts": {
+        "passedFiles": 32,
+        "passedTests": 189,
+        "failed": 0
+      },
+      "logReference": "Exact final Vitest summary, duration 139.87s; optional MFA/no-step-up included"
+    },
+    {
+      "id": "integration-final",
+      "command": "pnpm run test:integration",
+      "startedAt": "2026-09-06T13:53:33+02:00",
+      "endedAt": "2026-09-06T14:01:43+02:00",
+      "exitCode": 0,
+      "counts": {
+        "passedFiles": 52,
+        "passedTests": 390,
+        "failed": 0
+      },
+      "logReference": "Exact final Vitest summary, duration 490.33s; includes correction-authority regressions"
+    },
+    {
+      "id": "reporting-final",
+      "command": "pnpm run test:reporting",
+      "startedAt": "2026-09-06T14:01:51+02:00",
+      "endedAt": "2026-09-06T14:01:59+02:00",
+      "exitCode": 0,
+      "counts": {
+        "passedFiles": 1,
+        "passedTests": 7,
+        "failed": 0
+      },
+      "logReference": "Exact final summary; includes empty-register CSV schema regression"
+    },
+    {
+      "id": "migrations-final",
+      "command": "pnpm exec vitest run tests/migrations --no-file-parallelism",
+      "startedAt": "2026-09-06T14:02:00+02:00",
+      "endedAt": "2026-09-06T14:03:40+02:00",
+      "exitCode": 0,
+      "counts": {
+        "passedFiles": 11,
+        "passedTests": 85,
+        "failed": 0
+      },
+      "logReference": "Exact final summary, duration 99.74s"
+    },
+    {
+      "id": "invariants-final",
+      "command": "pnpm test:invariants",
+      "startedAt": "2026-09-06T14:03:40+02:00",
+      "endedAt": "2026-09-06T14:03:43+02:00",
+      "exitCode": 0,
+      "counts": {
+        "passedFiles": 1,
+        "passedTests": 1,
+        "failed": 0
+      },
+      "logReference": "Exact final summary, duration 2.46s"
+    },
+    {
+      "id": "offline-final",
+      "command": "pnpm test:offline",
+      "startedAt": "2026-09-06T14:03:43+02:00",
+      "endedAt": "2026-09-06T14:04:25+02:00",
+      "exitCode": 0,
+      "counts": {
+        "passedFiles": 3,
+        "passedTests": 8,
+        "failed": 0
+      },
+      "logReference": "Exact final summary, duration 41.55s"
+    },
+    {
+      "id": "continuity-local-final",
+      "command": "pnpm test:continuity",
+      "startedAt": "2026-09-06T14:04:26+02:00",
+      "endedAt": "2026-09-06T14:04:28+02:00",
+      "exitCode": 0,
+      "counts": {
+        "passedFiles": 1,
+        "passedTests": 16,
+        "failed": 0
+      },
+      "logReference": "Exact final summary, duration 1.58s; local drill only"
+    },
+    {
+      "id": "build-final",
+      "command": "isolated synthetic identity/storage: pnpm --dir website build; pnpm --filter @ja/portal build; pnpm run jobs:build",
+      "startedAt": "2026-09-06T14:04:29+02:00",
+      "endedAt": "2026-09-06T14:05:40+02:00",
+      "exitCode": 0,
+      "counts": {
+        "websiteRoutes": 255,
+        "portalBuildFailures": 0,
+        "jobsBuildFailures": 0,
+        "jobsBundleBytes": 1460130
+      },
+      "logReference": "Exact final website/jobs and synthetic-identity portal rerun; portal fail-closed without tenant recorded separately"
+    },
+    {
+      "id": "e2e-32-step",
+      "command": "isolated env + JA_E2E_OPERATIONS_EVIDENCE_PATH/SHA256/tenant/deployment + JA_E2E_CADDY_BASE_URL=https://j-aautomation.com pnpm exec playwright test tests/e2e/client-essential-32-step.spec.ts --project desktop --workers 1",
+      "startedAt": "2026-09-06T15:21:29+02:00",
+      "endedAt": "2026-09-06T15:23:30+02:00",
+      "exitCode": 0,
+      "counts": {
+        "passedSteps": 32,
+        "passedTests": 1,
+        "blockedSteps": 0,
+        "failedTests": 0
+      },
+      "logReference": "Exact final: 32/32 PASS; 1 passed in 2.0m. Operations envelope proves two automatic cycles and strict Owner waiver; deployed Caddy boundary passes."
+    },
+    {
+      "id": "e2e-cross-role-final",
+      "command": "env -u DATABASE_URL -u JA_DATABASE_PATH -u JA_DOCUMENT_ROOT -u JA_SMTP_URL -u JA_FORM_RECIPIENT pnpm exec playwright test tests/e2e/client-essential-cross-role.spec.ts --project=phone-390 --project=desktop --workers=1",
+      "startedAt": "2026-09-06T14:08:21+02:00",
+      "endedAt": "2026-09-06T14:09:59+02:00",
+      "exitCode": 0,
+      "counts": {
+        "passed": 10,
+        "skipped": 4,
+        "failed": 0
+      },
+      "logReference": "Exact final Playwright summary, duration 1.5m; skips are declared viewport-role exclusions"
+    },
+    {
+      "id": "e2e-accessibility-responsive",
+      "command": "env -u DATABASE_URL -u JA_DATABASE_PATH -u JA_DOCUMENT_ROOT -u JA_SMTP_URL -u JA_FORM_RECIPIENT pnpm exec playwright test tests/e2e/ui-multirole-accessibility-matrix.spec.ts tests/e2e/qa-remediation-responsive.spec.ts --project=phone-360 --project=phone-390 --project=tablet-768 --project=desktop --workers=1",
+      "startedAt": "2026-09-06T14:10:01+02:00",
+      "endedAt": "2026-09-06T14:14:45+02:00",
+      "exitCode": 0,
+      "counts": {
+        "passed": 24,
+        "skipped": 0,
+        "failed": 0
+      },
+      "logReference": "Exact final Playwright summary, duration 4.7m"
+    },
+    {
+      "id": "e2e-manual-capture-initial",
+      "command": "env -u DATABASE_URL pnpm exec playwright test tests/e2e/manual-candidate-capture.spec.ts --project=desktop --workers=1",
+      "startedAt": "2026-09-06T11:05:45+02:00",
+      "endedAt": "2026-09-06T11:06:13+02:00",
+      "exitCode": 1,
+      "counts": {
+        "passed": 0,
+        "failed": 1
+      },
+      "logReference": "Harness collection failure: callback required object destructuring; fixed before candidate"
+    },
+    {
+      "id": "e2e-manual-capture-final",
+      "command": "env -u DATABASE_URL -u JA_DATABASE_PATH -u JA_DOCUMENT_ROOT -u JA_SMTP_URL -u JA_FORM_RECIPIENT pnpm exec playwright test tests/e2e/manual-candidate-capture.spec.ts --project=desktop --workers=1",
+      "startedAt": "2026-09-06T14:14:51+02:00",
+      "endedAt": "2026-09-06T14:16:39+02:00",
+      "exitCode": 0,
+      "counts": {
+        "passed": 1,
+        "screenshots": 23,
+        "failed": 0
+      },
+      "logReference": "Exact final Playwright summary, duration 1.8m"
+    },
+    {
+      "id": "artifact-readers",
+      "command": "126-file canonical reader matrix + manuals: pdfinfo/pdftotext/pdftoppm contact sheets + openpyxl 3.1.5 + Python csv/json",
+      "startedAt": "2026-09-06T14:16:45+02:00",
+      "endedAt": "2026-09-06T14:20:55+02:00",
+      "exitCode": 0,
+      "counts": {
+        "artifactRecords": 126,
+        "pdfFiles": 70,
+        "pdfPagesInspected": 490,
+        "pdfPagesRendered": 490,
+        "manualPagesInspected": 12,
+        "zeroMoneyCustomerReports": 10,
+        "xlsxFiles": 19,
+        "xlsxSheets": 112,
+        "xlsxNumericCells": 2966,
+        "xlsxDateCells": 558,
+        "xlsxFormulaCells": 0,
+        "csvFiles": 28,
+        "csvDataRows": 469,
+        "jsonFiles": 9
+      },
+      "logReference": "Exact final ARTIFACT_MANIFEST.json; five all-page contact sheets visually inspected"
+    },
+    {
+      "id": "production-deploy-exact-candidate",
+      "command": "sudo bash install-jaautomation-zip-deploy.sh --archive /home/kripta/jaautomation-release-20260906-2058db2-final.zip",
+      "startedAt": "2026-09-06T15:09:45+02:00",
+      "endedAt": "2026-09-06T15:12:03+02:00",
+      "environmentCategory": "production-authorized",
+      "exitCode": 0,
+      "counts": {
+        "deployedShaMatches": 1,
+        "databaseSchema": 39,
+        "foreignKeyViolations": 0,
+        "failed": 0
+      },
+      "logReference": "Archive SHA cebad8d9810713fe21ef55b42c8ba87163116afb53babecf0c6325a4f98fa71d; online backup and rollback retained; current RELEASE-BUILD binds 2058db2."
+    },
+    {
+      "id": "production-two-automatic-cycles",
+      "command": "sudo bash /opt/jaautomation/current/deployment/scripts/verify-vps.sh https://j-aautomation.com/j-aautomation --wait-two-automatic-runs",
+      "startedAt": "2026-09-06T15:15:29+02:00",
+      "endedAt": "2026-09-06T15:15:38+02:00",
+      "environmentCategory": "production-read-only",
+      "exitCode": 0,
+      "counts": {
+        "automaticRuns": 2,
+        "failedCycles": 0
+      },
+      "logReference": "Distinct jobs.cycle completions 2026-09-06T13:15:33.747Z and 2026-09-06T13:15:38.783Z; each processed without failure or manual queue processing."
+    },
+    {
+      "id": "production-caddy-boundary",
+      "command": "caddy validate plus HTTPS EN/ES/PT/login/compatibility/health/readiness probes",
+      "startedAt": "2026-09-06T15:14:35+02:00",
+      "endedAt": "2026-09-06T15:15:38+02:00",
+      "environmentCategory": "production-read-only",
+      "exitCode": 0,
+      "counts": {
+        "publicContent200": 4,
+        "compatibilityRedirects": 1,
+        "privateBoundary404": 2,
+        "tlsVerifyResult": 0,
+        "failed": 0
+      },
+      "logReference": "Caddy config valid; format-only warning line 220. EN, ES, PT and login 200; /app 303 to login; public app health/readiness 404; TLS verified."
+    },
+    {
+      "id": "production-authenticated-owner-smoke",
+      "command": "credential-via-non-echo-stdin Playwright production Owner route smoke (no mutation)",
+      "startedAt": "2026-09-06T15:36:15+02:00",
+      "endedAt": "2026-09-06T15:40:00+02:00",
+      "environmentCategory": "production-authorized",
+      "exitCode": 0,
+      "counts": {
+        "loginWithoutMfa": 1,
+        "protectedRoutes200": 13,
+        "pageErrors": 0,
+        "serverErrors": 0,
+        "mutations": 0,
+        "failed": 0
+      },
+      "logReference": "Dashboard, projects, approvals, reports, planning, documents, finance overview/economic/billing/ledger/accounting/audit and profile passed. Credentials are not stored in evidence."
+    },
+    {
+      "id": "production-authenticated-worker-confidentiality",
+      "command": "credential-via-non-echo-stdin Playwright production Worker route/RBAC/IDOR smoke (no mutation)",
+      "startedAt": "2026-09-06T15:36:15+02:00",
+      "endedAt": "2026-09-06T15:40:00+02:00",
+      "environmentCategory": "production-authorized",
+      "exitCode": 0,
+      "counts": {
+        "loginWithoutMfa": 1,
+        "workerRoutes200": 7,
+        "forbiddenNavLinks": 0,
+        "confidentialRoutes403": 5,
+        "unassignedProject404": 1,
+        "pageErrors": 0,
+        "serverErrors": 0,
+        "failed": 0
+      },
+      "logReference": "Normal Worker routes passed; finance/billing/ledger/accounting/audit were denied and an unassigned project was concealed. Browser console HTTP errors correspond exactly to expected 403/404 probes."
+    },
+    {
+      "id": "production-authorized-synthetic-workflow-cleanup",
+      "command": "credential-via-non-echo-stdin Playwright TEST/SYNTHETIC workflow plus audited application lifecycle cleanup",
+      "startedAt": "2026-09-06T15:44:04+02:00",
+      "endedAt": "2026-09-06T15:50:30+02:00",
+      "environmentCategory": "production-authorized-synthetic",
+      "exitCode": 0,
+      "counts": {
+        "syntheticClientsArchived": 1,
+        "syntheticProjectsArchived": 1,
+        "assignmentsEnded": 1,
+        "timeDraftsRemaining": 0,
+        "expenseDraftsRemaining": 0,
+        "dailyReportDraftsRemaining": 0,
+        "immutableSyntheticReceiptsRetained": 1,
+        "realInvoicesOrPayments": 0,
+        "outboundMail": 0,
+        "failed": 0
+      },
+      "logReference": "Created client/project/Worker assignment, 60-minute time draft, USD 1.00 expense/private receipt and daily report. Drafts deleted; assignment ended; project/client archived. Committed receipt is retained as immutable audited evidence by product contract."
+    },
+    {
+      "id": "production-live-locales",
+      "command": "curl HTTPS website and login pages for EN/ES/PT document language and localized title",
+      "startedAt": "2026-09-06T15:48:30+02:00",
+      "endedAt": "2026-09-06T15:48:31+02:00",
+      "environmentCategory": "production-read-only",
+      "exitCode": 0,
+      "counts": {
+        "websiteLocales": 3,
+        "loginLocales": 3,
+        "failed": 0
+      },
+      "logReference": "Website: en/es/pt-BR language and localized title. Login: en-US/es-ES/pt-BR language and Sign in/Iniciar sesión/Entrar title."
+    },
+    {
+      "id": "production-hosting-processor-dns-inventory",
+      "command": "read-only host/container metadata, redacted environment-key inventory, listener ownership, source SDK scan and public DNS queries",
+      "startedAt": "2026-09-06T16:09:00+02:00",
+      "endedAt": "2026-09-06T16:12:00+02:00",
+      "environmentCategory": "production-read-only",
+      "exitCode": 0,
+      "counts": {
+        "hostingProvidersIdentified": 1,
+        "eeaDatacenterLocationsIdentified": 1,
+        "selfHostedMailComponentsIdentified": 1,
+        "externalSdkReferencesFound": 0,
+        "remoteBackupEnabled": 0,
+        "mailAccountsOrMessagesAccessed": 0,
+        "failed": 0
+      },
+      "logReference": "Host reports Hetzner vServer in Falkenstein, Saxony, Germany. SMTP/IMAP/JMAP names resolve to the application VPS and Stalwart owns the local mail listeners. Database/private storage/backups are local; remote backup false. Public MX/PTR/SPF/DMARC queried without mail-server access; DKIM/external delivery not claimed."
+    },
+    {
+      "id": "production-live-worker-flow-complete",
+      "command": "credential-via-non-echo-stdin Playwright production TEST/SYNTHETIC Worker workflow, audited lifecycle cleanup and read-only Owner Finance/Worker Pay canonical-route verification",
+      "startedAt": "2026-09-06T16:17:00+02:00",
+      "endedAt": "2026-09-06T16:21:59+02:00",
+      "environmentCategory": "production-authorized-synthetic",
+      "exitCode": 0,
+      "counts": {
+        "workerWorkflowStagesPassed": 6,
+        "ownerPlannedBudgetMetricsVisible": 2,
+        "workerConfidentialBudgetRateCostKeys": 0,
+        "currentSyntheticProjectsArchived": 2,
+        "currentActiveSyntheticAssignments": 0,
+        "currentSyntheticTimeExpenseReports": 0,
+        "currentImmutableSyntheticReceipts": 2,
+        "realInvoicesOrPayments": 0,
+        "outboundMail": 0,
+        "failed": 0
+      },
+      "logReference": "Literal live path passed project, 60-minute time draft, USD 1.00 expense/private receipt, daily report, Worker expected/actual-payment surface and Owner Finance planned/budget metrics. Worker project/pay serialization contained no revenue-budget, PO-cap, travel-budget, internal-cost or client-rate keys. Normal cleanup archived project/client and removed drafts/assignment; two immutable synthetic receipts remain across both authorized validations."
+    },
+    {
+      "id": "unit-pre-final-immutable-contract",
+      "command": "pnpm run test:unit",
+      "candidateSha": "2ba195f3813bb7f8deed39d564ec181bfa078001",
+      "startedAt": "2026-09-06T13:33:44+02:00",
+      "endedAt": "2026-09-06T13:36:18+02:00",
+      "exitCode": 1,
+      "counts": {
+        "passedFiles": 127,
+        "failedFiles": 1,
+        "passedTests": 845,
+        "failedTests": 1
+      },
+      "logReference": "Detected reviewed-source immutability regression; corrected in 9d87378 before final rerun"
+    },
+    {
+      "id": "focused-correction-authority-final",
+      "command": "pnpm exec vitest run tests/regression/requested-integrity.test.ts tests/integration/approval-lifecycle.test.ts",
+      "startedAt": "2026-09-06T13:47:05+02:00",
+      "endedAt": "2026-09-06T13:47:24+02:00",
+      "exitCode": 0,
+      "counts": {
+        "passedFiles": 2,
+        "passedTests": 23,
+        "failed": 0
+      },
+      "logReference": "Exact focused final summary; immutable reviewed rows plus correction holds/rejection/substitution"
+    },
+    {
+      "id": "portal-build-isolation-guard",
+      "command": "pnpm --filter @ja/portal build without JA_TENANT_ID",
+      "startedAt": "2026-09-06T14:04:56+02:00",
+      "endedAt": "2026-09-06T14:05:05+02:00",
+      "exitCode": 1,
+      "counts": {
+        "failed": 1
+      },
+      "logReference": "Expected fail-closed configuration guard: JA_TENANT_ID required; rerun with synthetic tenant passed"
+    }
+  ],
+  "knownNonPasses": [
+    "The first operations-bound 32-step rerun passed steps 1–31 but rejected a Caddy variable containing a path; the documented origin-only value was supplied and the exact final rerun passes 32/32.",
+    "A pre-final unit run caught an over-broad needs_changes edit/resubmit change that violated reviewed-source immutability; the change was corrected and focused plus full final reruns pass.",
+    "The first portal build attempt failed closed because tenant identity was intentionally absent; the exact final build with disposable storage and synthetic tenant/deployment identity passes.",
+    "The final reader run on the prior candidate exposed headerless empty Accounting Pack CSVs; a failing regression was recorded, the renderer was fixed, and all final gates/readers were rerun.",
+    "Earlier manual-capture collection and format checks failed during development; both causes were fixed and exact final reruns pass.",
+    "The first two authorized synthetic production attempts submitted an empty optional PO-cap field that the routed validator rejected with 400; each partial synthetic client was immediately deleted. A later harness waited for obsolete daily-report action name createReport even though createDailyReport committed the row; read-only state confirmed it and normal UI cleanup removed all drafts and archived the project/client. The corrected literal-flow rerun passed Worker stages and cleanup, then used an incorrect project-detail Budget selector and a strict duplicate responsive metric locator; the final canonical /finance?view=economic&project= route and first-visible metric assertions pass without mutation.",
+    "Three production dead-letter jobs and four failed localized PDF variants predate this deployment and remain truthfully visible; all observed post-deploy cycles have failed=0."
+  ]
+}

@@ -40,7 +40,7 @@ Deferred roadmap requirements remain documented; they are not deleted or silentl
 - Preserve auditability and historical truth. Never hard-delete or silently mutate issued/finalized financial history.
 - Issued invoices are immutable snapshots; corrections use void/credit/adjustment/replacement lifecycles.
 - Prevent duplicate billing and reconcile finance totals to source rows.
-- Preserve RBAC, object-level authorization/IDOR protection, worker compensation privacy, live-session validation, safe DTO allowlists, CSRF/session controls, and append-only audit. Per the requester's 2026-09-06 policy, MFA is optional for every role and operation and step-up authentication must not be introduced; the conflicting contractual clause remains an acceptance blocker until formally amended.
+- Preserve RBAC, object-level authorization/IDOR protection, worker compensation privacy, live-session validation, safe DTO allowlists, CSRF/session controls, and append-only audit. Per the Owner/requester's formal 2026-09-06 implementation decision, MFA is optional for every role and operation and step-up authentication must not be introduced. That decision controls this delivery despite the older mandatory-MFA clause; do not treat that superseded clause as a technical acceptance blocker.
 - Private artifacts require authorization before final storage and every download, normalized storage keys, validation, and integrity checks where traceability matters.
 - Do not silently overwrite PLC backups, reports, invoices, accounting snapshots, or other traceable artifacts.
 - Async states must be truthful (`queued`, `running`, `ready`, `failed`); independent formats fail/retry independently; normal users must not manually process jobs.

@@ -1,6 +1,8 @@
 # Client Essential WP00 baseline — 2026-09-06
 
-This is current-checkout evidence, not client acceptance and not production authorization.
+This is the historical WP00 snapshot, not the final decision. Its authority blockers and production
+state were superseded later on 2026-09-06 by the Owner's explicit optional-MFA/no-step-up decision,
+separate-host waiver and authorized exact-candidate deployment. See `RUN_REPORT.md`.
 
 ## Candidate and isolation
 

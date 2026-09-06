@@ -1,0 +1,6 @@
+recordType,recordId,workerId,workerName,periodStart,periodEnd,projectNumber,projectName,date,vendor,category,activitySummary,currency,amountMinor,actualMinutes,approvedMinutes,pendingMinutes,approvalState,paymentStatus,expectedPaymentOn,settledAt,expectedReimbursementOn,reimbursedAt
+compensation_summary,synthetic-worker-a:2026-08-01:2026-08-31,synthetic-worker-a,Synthetic Worker A,2026-08-01,2026-08-31,,,,,,,USD,32000,,480,0,complete,estimated_approved,,,,
+pending_compensation,synthetic-worker-a:2026-08-01:2026-08-31:pending,synthetic-worker-a,Synthetic Worker A,2026-08-01,2026-08-31,,,,,,,USD,0,,480,0,pending,estimated_pending,,,,
+time_activity,synthetic-time-1,synthetic-worker-a,Synthetic Worker A,2026-08-01,2026-08-31,SYN-C-0001-P-001,Synthetic commissioning validation,2026-08-12,,regular,Synthetic commissioning validation,USD,32000,480,,,approved,,,,,
+compensation_settlement,synthetic-settlement-1,synthetic-worker-a,Synthetic Worker A,2026-08-01,2026-08-31,SYN-C-0001-P-001,Synthetic commissioning validation,,,,,USD,32000,,,,,scheduled,2026-09-10,,,
+reimbursable_expense,synthetic-expense-1,synthetic-worker-a,Synthetic Worker A,2026-08-01,2026-08-31,SYN-C-0001-P-001,,2026-08-12,Synthetic Transit Vendor,travel,,USD,8500,,,,approved,scheduled,,,2026-09-10,

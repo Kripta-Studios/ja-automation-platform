@@ -8,13 +8,31 @@ The requirements clarified directly with J&A on 2026-08-24 are release-authorita
 
 ## Current candidate policy update — 2026-09-06
 
-The requester's current implementation instruction supersedes the older internal step-up design:
+The Owner/requester's formal implementation decision supersedes the older internal step-up design
+and the older mandatory-MFA clause for this delivery:
 MFA is optional for every user and operation, and the application has no step-up authentication.
 Authorization continues to rely on an active session, role and object scope, CSRF/session controls,
 idempotency and append-only audit. Historical schema columns and older evidence prose are retained
-only for additive migration/history compatibility and are not active authentication gates. The
-supplied principal contract still states a conflicting mandatory-MFA requirement; that conflict is
-recorded as an external acceptance blocker and is not silently waived by this checklist.
+only for additive migration/history compatibility and are not active authentication gates. This
+decision was explicitly confirmed on 2026-09-06 and is no longer an acceptance blocker.
+
+**Frozen and deployed application candidate:** `2058db24ca4d5d6b3f66bde11b6230e271a2d06c`.
+Format, lint, 10 project typechecks, unit 128/848, security 32/189, integration 52/390,
+migrations 11/85, reporting 1/7, invariants 1/1, offline 3/8, local continuity 1/16, all
+workspace builds, the 24-case role/viewport accessibility matrix, the 10-pass cross-role journey
+and the manual capture pass all pass. The strict 32-step journey now passes 32/32 using fresh,
+identity-bound production evidence: two automatic cycles, verified local pre-deploy backup and
+rollback with the Owner's separate-host waiver, and the deployed Caddy boundary. The exact candidate
+is live and healthy. Authorized authenticated production smoke also passes for the designated Owner
+and Worker, including confidential-route denial and an audited TEST/SYNTHETIC workflow cleanup. The
+supplied issuer/currency/rounding/series/remittance/RBAC decisions are recorded. The honest state is
+`TECHNICALLY_VERIFIED_AWAITING_OWNER` because verified tax identity/profiles, express DPA/retention
+approval and formal signer/human acceptance remain pending.
+Read-only production inventory identifies Hetzner/Falkenstein, Germany (EEE), local database/private
+storage/backups and self-hosted Stalwart on the same VPS; remote backup is disabled and no external
+analytics/monitoring/object-storage/payment/mail SDK was found. This narrows the DPA inventory but
+does not fabricate legal approval or authorized US/BR transfer decisions.
+See `docs/evidence/client-ready-20260906/RUN_REPORT.md`.
 
 ## Legend
 
@@ -429,7 +447,7 @@ CORE ni el DoD final en `PASS` mientras falten las pruebas integradas y autentic
 # R. Public website
 
 - ✅ Existing multilingual Next.js website remains working without expanding marketing scope.
-- ✅ Public website builds 255 routes and passes the canonical-domain Caddy boundary.
+- ✅ Public website builds 255 routes locally; the exact-candidate deployed Caddy boundary validates and EN/ES/PT-BR plus portal login pass over verified TLS.
 - ✅ Contact/support forms remain isolated from private portal data.
 - ✅ Employee Portal entry works.
 - ⏭ New marketing-site feature expansion unless separately requested.
@@ -497,9 +515,17 @@ aceptación contractual ANEXO D se mantienen como gates externos separados y no 
       Stalwart over validated STARTTLS, with durable `delivered` state and no replay of the legacy backlog.
 - [x] The designated operator confirms receipt of the production acceptance message in the agreed
       `migration-test@j-aautomation.com` mailbox with Inbox placement.
-- [ ] The responsible operators verify authoritative DKIM/PTR and external send/receive; J&A approves
-      localized content, completes the Owner role/project-assignment smoke, and the approvers sign
-      ANEXO D UAT.
+- [x] Designated production Owner and Worker login without MFA; Owner protected routes pass, Worker
+      confidential finance routes fail closed, and the authorized project-assignment workflow is
+      archived with an audited TEST/SYNTHETIC cleanup. The literal Worker project → time → expense/
+      receipt → report → expected-payment path and Owner planned/budget view also pass; Worker output
+      contains no confidential budget/rate/cost keys.
+- [ ] Authorized DNS/mail operators separately verify authoritative DKIM/PTR and external
+      send/receive if still required. This campaign does not touch mail accounts, passwords, routing
+      or server configuration.
+- [ ] Authorized humans approve Accounting outputs, the Worker manual walkthrough and localized
+      marketing/legal content; identify the signers and record ANEXO D acceptance. Fiscal/DPA and
+      retention approvals remain itemized in the current client-ready decision.
 - [x] No core business flow requires a spreadsheet as the system of record.
 - [x] Project reference hours are configurable (for example 10/12/14), never become real worked
       hours, and remain independent from minimum billable hours and worker compensation.

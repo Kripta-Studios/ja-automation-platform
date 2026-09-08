@@ -1949,7 +1949,7 @@ describe('B5 cross-migration hardening SQL', () => {
     );
   });
 
-  it('migrates a realistic populated schema-18 database through schema 26 without losing legacy rows', () => {
+  it('migrates a realistic populated schema-18 database through schema 41 without losing legacy rows', () => {
     const directory = mkdtempSync(join(tmpdir(), 'ja-xm-schema18-'));
     directories.push(directory);
     const dbPath = join(directory, 'app.db');
@@ -2003,7 +2003,7 @@ describe('B5 cross-migration hardening SQL', () => {
             version: number;
           }
         ).version,
-      ).toBe(39);
+      ).toBe(41);
       expect(
         migrated.prepare('SELECT legal_name FROM client WHERE id=?').get('xm-legacy-client'),
       ).toEqual({

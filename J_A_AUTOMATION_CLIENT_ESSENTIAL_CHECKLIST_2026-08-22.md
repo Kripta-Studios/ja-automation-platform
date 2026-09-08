@@ -608,4 +608,19 @@ Production online backup restored with **29 private documents** and integrity `o
 
 ## Production evidence — 9 September 2026
 
+### Migration regression correction — 9 September 2026
+
+The broader functional run exposed six stale migration expectations across B5 legacy upgrades,
+Client Essential schema/metadata preservation, localized PDF registries and report attachments.
+A seventh occurred in issued-invoice upgrade coverage. Five test files still expected schema39
+or metadata versions19–39 despite the existing closeout/follow-up migrations40–41.
+Updated exact expectations to schema41 and metadata versions19–41; retained all data-preservation,
+integrity, foreign-key, immutable-history, authorization and artifact lifecycle assertions.
+Focused Vitest runs pass **45/45 plus 6/6 (51 total)**, with formatting and diff checks passing.
+Commands: `pnpm exec vitest run tests/migrations/b5-cross-migration-hardening.test.ts tests/migrations/client-essential-20260824-migration.test.ts tests/integration/localized-pdf-variants.test.ts tests/migrations/report-attachments-migration.test.ts --no-file-parallelism --reporter=verbose`
+and `pnpm exec vitest run tests/migrations/client-essential-invoice-immutability.test.ts --reporter=verbose`.
+Local logs: `/tmp/astra-six-failures-fixed.log` and `/tmp/astra-invoice-migration-fixed.log`.
+These are test-only corrections; no production schema or data was changed. Full application
+functional verification remains in progress and is not certified by this focused result.
+
 Core ASTRA implementation and reminder rollout correction were committed, pushed and deployed as `5a615d9` at 00:02:29 CEST. EN/ES/PT and login return HTTP200; local readiness and full SQLite integrity are `ok`, schema41 has zero foreign-key violations; production verifier passed. The first rollout's scheduler conflict and incompatible schema39 rollback, forward recovery, independent correction review, remaining non-corporate email delivery limitation and retained backups are recorded in [the implementation ledger](docs/ASTRA_IMPLEMENTATION_PROGRESS.md). This does not replace human UAT or conditional external approvals. Authorized cleanup recovered 14.37 GB net, with 35.64 GB available; see [storage evidence](docs/ASTRA_STORAGE_CLEANUP_2026-09-09.md).

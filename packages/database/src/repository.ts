@@ -18,6 +18,7 @@ import {
 import { add, hourlyRateForMinutes, money, type Currency } from '@ja/money';
 import { decodeTechnicalReportChange } from '@ja/schemas';
 import { recordAuditEvent } from './core/audit.ts';
+import { ProjectCloseoutService } from './domains/closeout/project-closeout-service.ts';
 import { assertActiveAccount, assertLiveSession } from './core/authorization.ts';
 import { verifyPrivatePdfArtifact } from './core/private-pdf-proof.ts';
 import { nextNumberSequence } from './core/sequence.ts';
@@ -51,6 +52,7 @@ import {
   type AssignmentInput,
   type AssignmentRemovalInput,
 } from './domains/workforce/workforce-repository.ts';
+import { NotificationRepository } from './domains/notifications/index.ts';
 import { V3Repository } from './v3-repository.ts';
 
 export class AccessDeniedError extends Error {}
@@ -6601,110 +6603,37 @@ export class PortalRepository {
     };
   }
 
-  createProjectCloseout(principal: Principal, projectId: string) {
-    this.assertActive(principal);
-    if (principal.role !== 'owner_admin' && principal.role !== 'finance_admin')
-      throw new AccessDeniedError('Finance role required');
-    const overview = this.projectOverview(principal, projectId);
-    const documents = this.sqlite
-      .prepare(
-        "SELECT id,sha256,byte_length,media_type,artifact_type,original_filename,sensitivity FROM document WHERE project_id=? AND state='committed' ORDER BY created_at,id",
-      )
-      .all(projectId);
-    const invoices = this.sqlite
-      .prepare(
-        'SELECT id,invoice_number,stream_type,state,period_start,period_end,total_minor,currency,issued_at,due_at FROM invoice WHERE project_id=? ORDER BY created_at',
-      )
-      .all(projectId);
-    const snapshot = {
-      project: overview.project,
-      workers: overview.workers,
-      time: overview.time,
-      reports: overview.reports,
-      expenses: overview.expenses,
-      planning: overview.planning,
-      financial: overview.financial,
-      invoices,
-      generatedAt: now(),
-    };
-    const manifest = { generatedAt: now(), files: documents };
-    const existing = this.sqlite
-      .prepare('SELECT id,state FROM project_closeout WHERE project_id=?')
-      .get(projectId) as { id: string; state: string } | undefined;
-    if (existing?.state === 'final')
-      throw new ConflictError('Final project closeout requires an authorized reopen');
-    const id = existing?.id ?? newId();
-    const timestamp = now();
-    if (existing)
-      this.sqlite
-        .prepare(
-          "UPDATE project_closeout SET state='draft',snapshot_json=?,document_manifest_json=?,updated_at=? WHERE id=?",
-        )
-        .run(JSON.stringify(snapshot), JSON.stringify(manifest), timestamp, id);
-    else
-      this.sqlite
-        .prepare(
-          "INSERT INTO project_closeout(id,project_id,state,snapshot_json,document_manifest_json,created_by,created_at,updated_at) VALUES(?,?,'draft',?,?,?,?,?)",
-        )
-        .run(
-          id,
-          projectId,
-          JSON.stringify(snapshot),
-          JSON.stringify(manifest),
-          principal.userId,
-          timestamp,
-          timestamp,
-        );
-    this.audit(principal, 'project_closeout.create', 'project_closeout', id, { projectId });
-    return { id, state: 'draft', snapshot, manifest };
-  }
-
-  finalizeProjectCloseout(principal: Principal, closeoutId: string): void {
-    this.assertActive(principal);
-    if (principal.role !== 'owner_admin' && principal.role !== 'finance_admin')
-      throw new AccessDeniedError('Finance role required');
-    this.assertLiveSession(principal);
-    const result = this.sqlite
-      .prepare(
-        "UPDATE project_closeout SET state='final',updated_at=? WHERE id=? AND state IN ('draft','review')",
-      )
-      .run(now(), closeoutId);
-    if (result.changes !== 1) throw new ConflictError('Project closeout is not reviewable');
-    const closeout = this.sqlite
-      .prepare('SELECT project_id FROM project_closeout WHERE id=?')
-      .get(closeoutId) as { project_id: string } | undefined;
-    if (closeout)
-      this.sqlite
-        .prepare(
-          "UPDATE project SET status='closed',actual_end_date=COALESCE(actual_end_date,?),updated_at=?,version=version+1 WHERE id=? AND status NOT IN ('archived','closed')",
-        )
-        .run(today(), now(), closeout.project_id);
-    this.audit(principal, 'project_closeout.finalize', 'project_closeout', closeoutId, {});
-  }
-
-  reopenProjectCloseout(principal: Principal, closeoutId: string, reason: string): void {
-    this.assertActive(principal);
-    if (principal.role !== 'owner_admin') throw new AccessDeniedError('Owner role required');
-    const cleanReason = assertText(reason, 'Reopen reason', 2000);
-    const result = this.sqlite
-      .prepare(
-        "UPDATE project_closeout SET state='reopened',reopened_by=?,reopened_at=?,reopen_reason=?,updated_at=? WHERE id=? AND state='final'",
-      )
-      .run(principal.userId, now(), cleanReason, now(), closeoutId);
-    if (result.changes !== 1) throw new ConflictError('Final closeout is required to reopen');
-    const closeout = this.sqlite
-      .prepare('SELECT project_id FROM project_closeout WHERE id=?')
-      .get(closeoutId) as { project_id: string } | undefined;
-    if (closeout)
-      this.sqlite
-        .prepare(
-          "UPDATE project SET status='active',actual_end_date=NULL,updated_at=?,version=version+1 WHERE id=?",
-        )
-        .run(now(), closeout.project_id);
-    this.audit(principal, 'project_closeout.reopen', 'project_closeout', closeoutId, {
-      reason: cleanReason,
+  private closeoutService() {
+    return new ProjectCloseoutService({
+      sqlite: this.sqlite,
+      assertActive: (principal) => this.assertActive(principal),
+      assertLiveSession: (principal) => this.assertLiveSession(principal),
+      audit: (principal, action, entityType, entityId, details) =>
+        this.audit(principal, action, entityType, entityId, details),
+      accessDenied: (message) => new AccessDeniedError(message),
+      conflict: (message) => new ConflictError(message),
+      validation: (message) => new ValidationError(message),
     });
   }
+
+  /** Legacy caller compatibility: return a new immutable-series draft projection. */
+  createProjectCloseout(principal: Principal, projectId: string) {
+    const draft = this.closeoutService().prepare(principal, { projectId });
+    return { id: draft.id, state: draft.state, snapshot: draft.internal, manifest: { client: draft.client, clientSnapshotHash: draft.clientSnapshotHash } };
+  }
+  finalizeProjectCloseout(principal: Principal, closeoutId: string): void {
+    this.closeoutService().finalize(principal, closeoutId);
+  }
+  reopenProjectCloseout(principal: Principal, closeoutId: string, reason: string): void {
+    this.closeoutService().reopen(principal, closeoutId, reason);
+  }
+  prepareProjectCloseout(principal: Principal, input: Readonly<{ projectId: string; clientDocumentIds?: readonly string[] }>) { return this.closeoutService().prepare(principal, input); }
+  refreshProjectCloseoutDraft(principal: Principal, input: Readonly<{ revisionId: string; clientDocumentIds?: readonly string[] }>) { return this.closeoutService().refresh(principal, input); }
+  confirmProjectCloseoutClientPublication(principal: Principal, revisionId: string, exactSnapshotHash: string) { return this.closeoutService().confirmClientPublication(principal, revisionId, exactSnapshotHash); }
+  finalizeProjectCloseoutRevision(principal: Principal, revisionId: string) { return this.closeoutService().finalize(principal, revisionId); }
+  projectCloseoutDetail(principal: Principal, projectId: string) { return this.closeoutService().detail(principal, projectId); }
+  projectCloseoutArtifacts(principal: Principal, revisionId: string) { return this.closeoutService().artifacts(principal, revisionId); }
+  downloadProjectCloseoutArtifact(principal: Principal, artifactId: string) { return this.closeoutService().download(principal, artifactId); }
 
   invoicePreview(principal: Principal, invoiceId: string) {
     this.assertReadable(principal);
@@ -6878,6 +6807,13 @@ export class PortalRepository {
 
   listNotifications(principal: Principal) {
     this.assertReadable(principal);
+    const persistedRole = this.sqlite.prepare('SELECT role FROM user WHERE id=?').get(principal.userId) as { role: string } | undefined;
+    if (persistedRole?.role !== principal.role) throw new AccessDeniedError('Authenticated role changed; sign in again');
+    const notificationRepository = new NotificationRepository({
+      sqlite: this.sqlite,
+      transaction: <T>(work: () => T): T => this.transaction(work),
+      now,
+    });
     const notifications = this.sqlite
       .prepare(
         'SELECT id,kind,subject_id,read_at,created_at FROM notification WHERE user_id=? ORDER BY created_at DESC LIMIT 50',
@@ -6891,6 +6827,7 @@ export class PortalRepository {
         read_at: string | null;
         created_at: string;
       };
+      const view = notificationRepository.notificationView(row.kind, row.subject_id);
       const audit = this.sqlite
         .prepare(
           `SELECT ae.action,ae.details_json,ae.occurred_at,u.name actor_name
@@ -6898,28 +6835,105 @@ export class PortalRepository {
            WHERE ae.entity_id=? AND ae.action LIKE 'report.%update'
            ORDER BY ae.occurred_at DESC,ae.id DESC LIMIT 1`,
         )
-        .get(row.subject_id) as
+        .get(view.sourceId ?? '') as
         | { action: string; details_json: string; occurred_at: string; actor_name: string | null }
         | undefined;
       const source = this.sqlite
         .prepare(
-          `SELECT d.project_id,d.work_date date,d.summary title,p.project_number,p.name project_name
-           FROM daily_report d JOIN project p ON p.id=d.project_id WHERE d.id=?
+          `SELECT t.project_id,t.worker_id owner_id,t.work_date date,t.activity_summary title,
+                  p.project_number,p.name project_name
+             FROM time_entry t JOIN project p ON p.id=t.project_id WHERE t.id=?
            UNION ALL
-           SELECT t.project_id,t.report_date,t.change_summary,p.project_number,p.name
-           FROM technical_report t JOIN project p ON p.id=t.project_id WHERE t.id=? LIMIT 1`,
+           SELECT e.project_id,e.worker_id,e.spent_on,e.description,p.project_number,p.name
+             FROM expense e JOIN project p ON p.id=e.project_id WHERE e.id=?
+           UNION ALL
+           SELECT d.project_id,d.worker_id,d.work_date,d.summary,p.project_number,p.name
+             FROM daily_report d JOIN project p ON p.id=d.project_id WHERE d.id=?
+           UNION ALL
+           SELECT t.project_id,t.author_id,COALESCE(t.report_date,substr(t.created_at,1,10)),
+                  t.change_summary,p.project_number,p.name
+             FROM technical_report t JOIN project p ON p.id=t.project_id WHERE t.id=?
+           UNION ALL
+           SELECT tc.project_id,tc.author_id,substr(tc.created_at,1,10),tc.component,
+                  p.project_number,p.name
+             FROM technical_change tc JOIN project p ON p.id=tc.project_id WHERE tc.id=?
+           UNION ALL
+           SELECT r.project_id,NULL,r.period_start,r.report_type,p.project_number,p.name
+             FROM period_report r JOIN project p ON p.id=r.project_id WHERE r.id=?
+           UNION ALL
+           SELECT i.project_id,NULL,substr(COALESCE(i.due_at,i.issued_at,i.created_at),1,10),
+                  COALESCE(i.invoice_number,i.id),p.project_number,p.name
+             FROM invoice i JOIN project p ON p.id=i.project_id WHERE i.id=?
+           UNION ALL
+           SELECT br.project_id,NULL,bp.period_start,bp.state,p.project_number,p.name
+             FROM billing_period bp
+             JOIN billing_rule br ON br.id=bp.billing_rule_id
+             JOIN project p ON p.id=br.project_id WHERE bp.id=?
+           UNION ALL
+           SELECT p.id,NULL,substr(COALESCE(p.start_date,p.created_at),1,10),p.name,
+                  p.project_number,p.name
+             FROM project p WHERE p.id=?
+           UNION ALL
+           SELECT cs.project_id,cs.worker_id,cs.period_start,'Worker settlement',
+                  p.project_number,p.name
+             FROM compensation_settlement cs JOIN project p ON p.id=cs.project_id WHERE cs.id=?
+           LIMIT 1`,
         )
-        .get(row.subject_id, row.subject_id) as
+        .get(...Array.from({ length: 10 }, () => view.sourceId ?? '')) as
         | {
             project_id: string;
+            owner_id: string | null;
             date: string;
             title: string;
             project_number: string;
             project_name: string;
           }
         | undefined;
+      const sourceAuthorized = (() => {
+        const financeOnly = ['invoice_overdue', 'period_ready', 'period_blocked', 'budget_exception', 'cap_exception'].includes(row.kind);
+        if (financeOnly && !['owner_admin', 'finance_admin', 'auditor_read_only'].includes(principal.role)) return false;
+        if (['settlement_status_changed', 'worker_payment_status'].includes(row.kind) && principal.role === 'project_manager') return false;
+        if (!source) return view.sourceId === null;
+        if (
+          principal.role === 'owner_admin' ||
+          principal.role === 'finance_admin' ||
+          principal.role === 'auditor_read_only'
+        )
+          return true;
+        const current = today();
+        const projectNotice = ['missing_time', 'assignment_published', 'budget_exception', 'cap_exception'].includes(row.kind);
+        const objectDate = projectNotice ? current : source.date || current;
+        const membership = this.sqlite
+          .prepare(
+            `SELECT 1
+               FROM project_member pm JOIN project p ON p.id=pm.project_id
+              WHERE p.status IN ('active','planned','paused')
+                AND pm.project_id=? AND pm.user_id=? AND pm.status='active'
+                AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
+                AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
+              LIMIT 1`,
+          )
+          .get(
+            source.project_id,
+            principal.userId,
+            current,
+            current,
+            objectDate,
+            objectDate,
+          );
+        if (!membership) return false;
+        return (
+          principal.role === 'project_manager' ||
+          source.owner_id === null ||
+          source.owner_id === principal.userId
+        );
+      })();
+      const safeView =
+        sourceAuthorized && source
+          ? view
+          : { sourceId: null, target: null, title: 'J&A Automation notification' };
       let changedFields: string[] = [];
-      if (audit?.details_json) {
+      if (sourceAuthorized && source && audit?.details_json) {
         try {
           const details = JSON.parse(audit.details_json) as { changedFields?: unknown };
           if (Array.isArray(details.changedFields))
@@ -6932,13 +6946,16 @@ export class PortalRepository {
       }
       return {
         ...row,
-        actor_name: audit?.actor_name ?? null,
+        source_id: safeView.sourceId,
+        target: safeView.target,
+        title: safeView.title,
+        actor_name: sourceAuthorized ? (audit?.actor_name ?? null) : null,
         changed_fields: changedFields,
-        project_id: source?.project_id ?? row.subject_id,
-        project_number: source?.project_number ?? null,
-        project_name: source?.project_name ?? null,
-        record_date: source?.date ?? null,
-        record_title: source?.title ?? null,
+        project_id: sourceAuthorized ? (source?.project_id ?? null) : null,
+        project_number: sourceAuthorized ? (source?.project_number ?? null) : null,
+        project_name: sourceAuthorized ? (source?.project_name ?? null) : null,
+        record_date: sourceAuthorized ? (row.kind === 'missing_time' ? /^missing-time:[^:]+:[^:]+:(\d{4}-\d{2}-\d{2})$/u.exec(row.subject_id)?.[1] ?? null : source?.date ?? null) : null,
+        record_title: sourceAuthorized ? (source?.title ?? null) : null,
       };
     });
   }

@@ -2,6 +2,8 @@
   import { replaceState } from '$app/navigation';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
+  import { notificationCopy } from './notifications/copy';
+  import { notificationTargetPath } from './notifications/target';
   import { createAuthClient } from 'better-auth/client';
   import { passkeyClient } from '@better-auth/passkey/client';
   import { onMount, tick } from 'svelte';
@@ -556,8 +558,8 @@
 
   async function loadWorkerStatementArtifacts(): Promise<boolean> {
     const query = new URLSearchParams({
-      periodStart: data.periodStart,
-      periodEnd: data.periodEnd,
+      periodStart: data.periodStart ?? '',
+      periodEnd: data.periodEnd ?? '',
       locale,
     });
     const response = await fetch(`${base}/app/api/worker-statement?${query.toString()}`, {
@@ -3281,19 +3283,13 @@
         </div>
         {#each data.records ?? [] as row}
           {@const notificationKind = String(row.kind)}
-          {@const notificationTarget =
-            notificationKind === 'report_deleted'
-              ? base + '/app/notifications/' + String(row.id)
-              : notificationKind.startsWith('report_')
-                ? base + '/app/reports/' + String(row.subject_id)
-                : notificationKind.includes('expense')
-                  ? base + '/app/expenses/' + String(row.subject_id)
-                  : notificationKind === 'assignment_published'
-                    ? base + '/app/projects/' + String(row.subject_id)
-                    : base + '/app/notifications/' + String(row.id)}
+          {@const safeTarget = notificationTargetPath(row.target)}
+          {@const notificationTarget = safeTarget
+            ? base + safeTarget
+            : base + '/app/notifications/' + encodeURIComponent(String(row.id))}
           <article class:unread={!row.read_at} class="notification-row">
             <a class="record-card-link" href={notificationTarget}>
-              <strong>{translate(notificationKind.replaceAll('_', ' '))}</strong>
+              <strong>{notificationCopy(notificationKind, locale).subject}</strong>
               <small>
                 {#if row.record_title}{String(row.record_title)} ·
                 {/if}
@@ -3301,6 +3297,7 @@
                 {/if}
                 {String(row.created_at).replace('T', ' ').slice(0, 16)}
               </small>
+              {#if row.record_date}<span>{translate('Record date')}: {String(row.record_date)}</span>{/if}
               {#if Array.isArray(row.changed_fields) && row.changed_fields.length > 0}
                 <span class="change-summary"
                   >{translate('Changed:')}

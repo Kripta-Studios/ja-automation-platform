@@ -15,10 +15,16 @@
     translateControlledValue,
     type ControlledValueDomain,
   } from '$lib/i18n/controlled-values';
-  import { TableRegion } from '$lib/portal/ui';
+  import { Field, FieldGroup, StatusBadge, TableRegion } from '$lib/portal/ui';
   import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
+  import { reviewCopy, type ReviewLocale } from '../../review/copy';
 
   type Row = Record<string, unknown>;
+  type FollowupView = Row & {
+    latestEventId: string | null;
+    latestEvent: Row | null;
+    events: readonly Row[];
+  };
   let { data, form } = $props();
   let localeOverride = $state<PortalLocale | null>(null);
   const locale = $derived(
@@ -51,6 +57,28 @@
   const internal = $derived(audience === 'internal');
   const customerAudience = $derived(audience === 'customer');
   const customerConformity = $derived((report.conformity ?? null) as Row | null);
+  const followup = $derived((report.followup ?? null) as FollowupView | null);
+  const followupCopy = $derived(
+    reviewCopy[(locale === 'pt' ? 'pt' : locale === 'es' ? 'es' : 'en') as ReviewLocale],
+  );
+  const followupFormValues = $derived((form?.values ?? {}) as Row);
+  const followupFormValue = (name: string, fallback = ''): string => {
+    const value = followupFormValues[name];
+    return value === null || value === undefined || value === '' ? fallback : String(value);
+  };
+  const followupEventType = $derived(followupFormValue('eventType', 'shared'));
+  const followupLatestEvent = $derived((followup?.latestEvent ?? null) as Row | null);
+  const followupResponsible = $derived(
+    followupFormValue(
+      'responsibleUserId',
+      String(followupLatestEvent?.responsibleUserId ?? data.user?.id ?? ''),
+    ),
+  );
+  const canManagePeriodFollowup = $derived(
+    customerAudience &&
+      followup !== null &&
+      ['owner_admin', 'finance_admin', 'project_manager'].includes(userRole),
+  );
   const canManageCustomerSignoff = $derived(
     userRole === 'owner_admin' || userRole === 'finance_admin',
   );
@@ -136,6 +164,28 @@
     currency = String(summary.currency ?? project.currency ?? 'USD'),
   ) => formatMoney(minor, currency, locale === 'pt' ? 'pt-BR' : locale);
   const reportLink = (id: unknown) => `${base}/app/reports/${String(id)}`;
+  const followupEventLabel = (value: unknown): string => {
+    const key = String(value ?? '');
+    return followupCopy.followupTypes[key] ?? key.replaceAll('_', ' ');
+  };
+  const followupEventVariant = (event: Row | null): 'warning' | 'info' =>
+    event?.stale ? 'warning' : 'info';
+  const followupRetryKey = (): string => {
+    const sequence = Number(followupLatestEvent?.sequenceNo ?? 0) + 1;
+    return `${String(report.id)}-event-${sequence}`;
+  };
+  const followupHistoryCards = (events: readonly Row[]) =>
+    events.map((event) => ({
+      id: display(event.id),
+      cells: [
+        { label: followupCopy.eventType, value: followupEventLabel(event.eventType) },
+        { label: followupCopy.eventDateShort, value: display(event.eventDate ?? event.createdAt) },
+        { label: followupCopy.version, value: `v${display(event.snapshotVersion)}` },
+        { label: followupCopy.hash, value: display(event.snapshotSha256) },
+        { label: followupCopy.responsible, value: display(event.responsibleUserId) },
+        { label: followupCopy.state, value: event.stale ? followupCopy.stale : followupCopy.ready },
+      ],
+    }));
   const printReport = (): void => {
     if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement)
       document.activeElement.blur();
@@ -512,6 +562,175 @@
             </div>
           </details>
         {/if}
+      </div>
+    </section>
+  {/if}
+
+  {#if canManagePeriodFollowup && followup}
+    <section class="detail-panel period-followup" data-period-followup>
+      <header class="period-followup__header">
+        <div>
+          <p class="portal-kicker">{followupCopy.period} / {followupCopy.followup}</p>
+          <h2>{followupCopy.followup}</h2>
+          <p class="period-followup__lede">{followupCopy.followupHelp}</p>
+        </div>
+        {#if followupLatestEvent}
+          <StatusBadge
+            variant={followupEventVariant(followupLatestEvent)}
+            text={followupLatestEvent.stale
+              ? followupCopy.stale
+              : followupEventLabel(followupLatestEvent.eventType)}
+          />
+        {/if}
+      </header>
+
+      <div class="period-followup__body">
+        <p class="period-followup__binding">
+          {followupCopy.exactBinding}: v{display(followup.snapshotVersion)} ·
+          <code>{display(followup.snapshotSha256)}</code>
+          {#if !followup.pdfReady}
+            · {followupCopy.pdfRequired}
+          {/if}
+        </p>
+
+        {#if followupLatestEvent}
+          <div class="period-followup__latest" data-period-followup-latest>
+            <strong
+              >{followupCopy.latestEvent}: {followupEventLabel(followupLatestEvent.eventType)}</strong
+            >
+            <span
+              >{display(followupLatestEvent.eventDate ?? followupLatestEvent.createdAt)} ·
+              {followupCopy.responsible}: {display(followupLatestEvent.responsibleUserId)}</span
+            >
+            {#if followupLatestEvent.stale}<p>{followupCopy.stale}</p>{/if}
+          </div>
+        {:else}
+          <p class="empty">{followupCopy.noEvents}</p>
+        {/if}
+
+        <details class="period-followup__history" data-period-followup-history>
+          <summary>{followupCopy.history} ({followup.events.length})</summary>
+          <TableRegion
+            label={followupCopy.history}
+            mobileMode="cards"
+            cardRows={followupHistoryCards(followup.events)}
+          >
+            <table>
+              <thead>
+                <tr>
+                  <th>{followupCopy.eventType}</th>
+                  <th>{followupCopy.eventDateShort}</th>
+                  <th>{followupCopy.version}</th>
+                  <th>{followupCopy.hash}</th>
+                  <th>{followupCopy.responsible}</th>
+                  <th>{followupCopy.state}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each followup.events as event}
+                  <tr>
+                    <td>{followupEventLabel(event.eventType)}</td>
+                    <td>{display(event.eventDate ?? event.createdAt)}</td>
+                    <td>v{display(event.snapshotVersion)}</td>
+                    <td><code>{display(event.snapshotSha256)}</code></td>
+                    <td>{display(event.responsibleUserId)}</td>
+                    <td>{event.stale ? followupCopy.stale : followupCopy.ready}</td>
+                  </tr>
+                {:else}
+                  <tr><td colspan="6">{followupCopy.noEvents}</td></tr>
+                {/each}
+              </tbody>
+            </table>
+          </TableRegion>
+        </details>
+
+        <form method="POST" action="?/recordFollowup" class="period-followup__form">
+          <p class="form-help">{followupCopy.dispatchAttestation}</p>
+          <input type="hidden" name="expectedSnapshotVersion" value={followup.snapshotVersion} />
+          <input type="hidden" name="expectedSnapshotSha256" value={followup.snapshotSha256} />
+          <input
+            type="hidden"
+            name="expectedLatestEventId"
+            value={followupFormValue('expectedLatestEventId', followup.latestEventId ?? '')}
+          />
+          <input
+            type="hidden"
+            name="idempotencyKey"
+            value={followupFormValue('idempotencyKey', followupRetryKey())}
+          />
+          <FieldGroup columns="auto">
+            <Field id="period-followup-event-type" label={followupCopy.eventType} required>
+              <select
+                id="period-followup-event-type"
+                name="eventType"
+                value={followupEventType}
+                required
+              >
+                {#each Object.entries(followupCopy.followupTypes) as [value, label]}
+                  <option {value}>{label}</option>
+                {/each}
+              </select>
+            </Field>
+            <Field id="period-followup-method" label={followupCopy.method} required={['shared', 'exported'].includes(followupEventType)}>
+              <input
+                id="period-followup-method"
+                name="method"
+                type="text"
+                maxlength="200"
+                value={followupFormValue('method')}
+                required={['shared', 'exported'].includes(followupEventType)}
+              />
+            </Field>
+            <Field id="period-followup-date" label={followupCopy.eventDate} required={['shared', 'exported'].includes(followupEventType)}>
+              <input
+                id="period-followup-date"
+                name="eventDate"
+                type="date"
+                value={followupFormValue('eventDate')}
+                required={['shared', 'exported'].includes(followupEventType)}
+              />
+            </Field>
+            <Field id="period-followup-reference" label={followupCopy.reference} required={['shared', 'exported'].includes(followupEventType)}>
+              <input
+                id="period-followup-reference"
+                name="reference"
+                type="text"
+                maxlength="500"
+                value={followupFormValue('reference')}
+                required={['shared', 'exported'].includes(followupEventType)}
+              />
+            </Field>
+            <Field id="period-followup-signatory" label={followupCopy.signatoryName} required={followupEventType === 'awaiting_signatory'}>
+              <input
+                id="period-followup-signatory"
+                name="signatoryName"
+                type="text"
+                maxlength="200"
+                value={followupFormValue('signatoryName')}
+                required={followupEventType === 'awaiting_signatory'}
+              />
+            </Field>
+            <Field id="period-followup-reason" label={followupCopy.reason} required={['returned', 'disputed'].includes(followupEventType)}>
+              <textarea
+                id="period-followup-reason"
+                name="reason"
+                maxlength="2000"
+                rows="3"
+                required={['returned', 'disputed'].includes(followupEventType)}
+              >{followupFormValue('reason')}</textarea>
+            </Field>
+            <Field id="period-followup-next" label={followupCopy.nextFollowUp}>
+              <input
+                id="period-followup-next"
+                name="nextFollowUpOn"
+                type="date"
+                value={followupFormValue('nextFollowUpOn')}
+              />
+            </Field>
+          </FieldGroup>
+          <input type="hidden" name="responsibleUserId" value={followupResponsible} />
+          <button type="submit">{followupCopy.record}</button>
+        </form>
       </div>
     </section>
   {/if}

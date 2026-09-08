@@ -28,6 +28,22 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'Period review and customer follow-up': 'Period review and customer follow-up',
+  'Project contribution': 'Project contribution',
+  'Calculated from approved project records': 'Calculated from approved project records',
+  'Finance records need review': 'Finance records need review',
+  'Finance records loaded': 'Finance records loaded',
+  'Records needing review': 'Records needing review',
+  'Review project finances, work records, upcoming obligations and reimbursements.':
+    'Review project finances, work records, upcoming obligations and reimbursements.',
+  'Choose a project to review its finances.': 'Choose a project to review its finances.',
+  'Review recorded minutes, billing status, effective rates and direct cost.':
+    'Review recorded minutes, billing status, effective rates and direct cost.',
+  'Expected payment': 'Expected payment',
+  'Compensation finalized': 'Compensation finalized',
+
+  'Cash calendar': 'Cash calendar',
+  'Commercial agreement and example': 'Commercial agreement and example',
   Today: 'Today',
   Time: 'Time',
   Reports: 'Reports',
@@ -293,6 +309,23 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'Period review and customer follow-up': 'Revisión del período y seguimiento del cliente',
+  'Project contribution': 'Contribución del proyecto',
+  'Calculated from approved project records':
+    'Calculado a partir de registros aprobados del proyecto',
+  'Finance records need review': 'Los registros financieros necesitan revisión',
+  'Finance records loaded': 'Registros financieros cargados',
+  'Records needing review': 'Registros pendientes de revisión',
+  'Review project finances, work records, upcoming obligations and reimbursements.':
+    'Revise las finanzas del proyecto, los registros de trabajo, las próximas obligaciones y los reembolsos.',
+  'Choose a project to review its finances.': 'Seleccione un proyecto para revisar sus finanzas.',
+  'Review recorded minutes, billing status, effective rates and direct cost.':
+    'Revise los minutos registrados, el estado de facturación, las tarifas vigentes y el coste directo.',
+  'Expected payment': 'Pago previsto',
+  'Compensation finalized': 'Compensación finalizada',
+
+  'Cash calendar': 'Calendario de caja',
+  'Commercial agreement and example': 'Acuerdo comercial y ejemplo',
   Today: 'Hoy',
   Time: 'Tiempo',
   Reports: 'Informes',
@@ -550,6 +583,23 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'Period review and customer follow-up': 'Revisão do período e acompanhamento do cliente',
+  'Project contribution': 'Contribuição do projeto',
+  'Calculated from approved project records':
+    'Calculado a partir de registros aprovados do projeto',
+  'Finance records need review': 'Os registros financeiros precisam de revisão',
+  'Finance records loaded': 'Registros financeiros carregados',
+  'Records needing review': 'Registros que precisam de revisão',
+  'Review project finances, work records, upcoming obligations and reimbursements.':
+    'Revise as finanças do projeto, os registros de trabalho, as próximas obrigações e os reembolsos.',
+  'Choose a project to review its finances.': 'Selecione um projeto para revisar suas finanças.',
+  'Review recorded minutes, billing status, effective rates and direct cost.':
+    'Revise os minutos registrados, o estado do faturamento, as tarifas vigentes e o custo direto.',
+  'Expected payment': 'Pagamento previsto',
+  'Compensation finalized': 'Remuneração finalizada',
+
+  'Cash calendar': 'Calendário de caixa',
+  'Commercial agreement and example': 'Acordo comercial e exemplo',
   Today: 'Hoje',
   Time: 'Tempo',
   Reports: 'Relatórios',

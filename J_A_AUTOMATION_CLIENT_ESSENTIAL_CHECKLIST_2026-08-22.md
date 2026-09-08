@@ -567,3 +567,41 @@ When this section is fully checked, deferred roadmap items must not prevent the 
       IMAPS/JMAP pass, and the production acceptance message reached Inbox. Antonny's
       role/project-assignment smoke from `docs/DEPLOYMENT_VPS.md` remains part of signed UAT; do not
       expose passwords, tokens or hashes while capturing it.
+
+## ASTRA candidate implementation evidence — 2026-09-08 (not deployed)
+
+This section records new local evidence against `ASTRA_PLAN.md`; earlier deployed handbacks do
+not certify these uncommitted changes. Plan-only commit `a2604fc` was pushed. Candidate
+implementation, final review, and representative browser completion remain in progress.
+
+- [x] Parent commercial-preview, cash-calendar and Aquarex regression run: 5 files / 21 tests
+      passed using disposable SQLite. Covers exact commercial examples, actual versus expected
+      cash, original reimbursement currency, unconfirmed compensation finalization, real-session
+      role denial, durable public-form retry and rate limiting.
+- [x] Parent Help catalog and private-download regression run: 2 files / 8 tests passed.
+      Persisted roles and live sessions protect private manuals. Generated EN/ES/PT-BR guides
+      carry revision 2026-09-08; first-page visual inspection completed in all three languages.
+- [x] Parent Finance UI and translation regression run: 2 files / 19 tests passed after task-copy
+      changes and explicit compensation-finalization labels.
+- [x] Parent frozen migration contract and operational-readiness run: 2 files / 15 tests passed
+      with additive migrations 0040/0041, populated historical upgrades, rollback and preserved
+      source projections. Original migration hashes and fixture evidence remain unchanged.
+- [ ] Closeout: complete immutable audience packages, source/privacy/failure evidence and
+      localized browser lifecycle before accepting the candidate.
+- [ ] Period follow-up: complete version-bound staff workflow and exact source-readiness browser
+      evidence, retaining the existing signed-evidence invoice gate.
+- [x] Aquarex, commercial preview, cash calendar and Help representative browser matrix:
+      28 passed across 360/390/768/1440, with both production builds completed.
+- [ ] Closeout/follow-up browser matrix and fresh independent final review remain pending.
+- [ ] Human agreement/accountant mapping, content rights, named-signatory authority and employee
+      walkthrough remain explicit acceptance inputs in `docs/ASTRA_ACCEPTANCE_REGISTER.md`.
+
+Exact commands, candidate limitations and subsequent outcomes are tracked in
+`docs/ASTRA_IMPLEMENTATION_PROGRESS.md`. No production mail, deployment or production data
+mutation is part of these checks.
+
+### ASTRA final candidate verification — 2026-09-08
+
+Owner explicitly authorized commit, push and production deployment. The completed ASTRA core browser matrix passes **44/44** at 360/390/768/1440 widths. Closeout/follow-up integration passes **25 tests**, with **12 closeout tests** rerun after final transaction source/role checks. Migration/readiness/localized-UI regression passes **52 tests**. Full workspace TypeScript passes; extended Svelte diagnostics show **zero errors**, seven existing unused-CSS warnings. Independent review corrections enforce exact confirmed snapshot hashes and atomic one-time latest-final reopen with next-draft creation and rollback.
+
+Production online backup restored with **29 private documents** and integrity `ok`. Candidate migrations39→41 applied successfully to that isolated restored production copy: integrity `ok`, zero foreign-key violations. Detailed commands, logs, backup identity and remaining human/conditional inputs are recorded in `docs/ASTRA_IMPLEMENTATION_PROGRESS.md`. Deployment identity will be recorded separately after activation; this entry does not claim human UAT or accountant approval.

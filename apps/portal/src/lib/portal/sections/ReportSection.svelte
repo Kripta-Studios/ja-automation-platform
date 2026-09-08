@@ -212,6 +212,11 @@
 </script>
 
 <section class="report-page" data-report-page>
+  {#if ['owner_admin', 'finance_admin', 'project_manager'].includes(String(data.user.role))}
+    <p>
+      <a href={`${base}/app/reports/review`}>{translate('Period review and customer follow-up')}</a>
+    </p>
+  {/if}
   <header class="report-page-context">
     <div>
       <p class="report-page-eyebrow">{translate('Operations / reports')}</p>

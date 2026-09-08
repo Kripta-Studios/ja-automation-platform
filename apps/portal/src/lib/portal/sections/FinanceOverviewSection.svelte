@@ -1,5 +1,6 @@
 <script lang="ts">
   import { base } from '$app/paths';
+  import { page } from '$app/stores';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import FinanceConfigurationSection from './FinanceConfigurationSection.svelte';
@@ -63,6 +64,14 @@
   const showCommercial = $derived(activeView === 'commercial');
 
   let sourceTab = $state<SourceTab>('portfolio');
+  $effect(() => {
+    const requested = $page.url.searchParams.get('source');
+    if (
+      requested &&
+      ['portfolio', 'workers', 'time', 'expenses', 'settlements'].includes(requested)
+    )
+      sourceTab = requested as SourceTab;
+  });
   let sourcePage = $state(0);
   const sourcePageSize = 25;
   let expenseInboxFilter = $state<ExpenseInboxFilter>('all');
@@ -316,6 +325,10 @@
     return `${translate('Expected')}: ${expected} · ${translate('Actual')}: ${actual}`;
   }
 
+  function compensationTimeline(row: Row | Record<string, unknown>): string {
+    return `${translate('Expected payment')}: ${value(row, 'expectedPaymentOn', 'expected_payment_on') || '—'} · ${translate('Compensation finalized')}: ${value(row, 'settledAt', 'settled_at') || '—'}`;
+  }
+
   const actualMetrics = $derived.by((): Metric[] => {
     if (!finance) return [];
     return [
@@ -329,13 +342,13 @@
         key: 'contribution',
         label: translate('Contribution'),
         value: displayMoney(finance.contributionMarginMinor, finance.currency),
-        note: translate('Canonical project finance value'),
+        note: translate('Project contribution'),
       },
       {
         key: 'contribution-margin-percent',
         label: translate('Contribution Margin %'),
         value: displayBps(finance.contributionMarginBps),
-        note: translate('Derived from the canonical finance projection'),
+        note: translate('Calculated from approved project records'),
       },
       {
         key: 'direct-cost',
@@ -592,6 +605,9 @@
   </section>
 {:else}
   <div class="finance-overview" data-ui="finance-overview">
+    {#if canWriteFinance}<p>
+        <a href={`${base}/app/finance/cash`}>{translate('Cash calendar')}</a>
+      </p>{/if}
     <header class="finance-overview__context">
       <div>
         <p class="finance-overview__eyebrow">{workspaceEyebrow}</p>
@@ -607,7 +623,7 @@
             )}
           {:else}
             {translate(
-              'Review canonical project economics, source records, planning signals, settlements, and reimbursements in one authorized workspace.',
+              'Review project finances, work records, upcoming obligations and reimbursements.',
             )}
           {/if}
         </p>
@@ -616,8 +632,8 @@
         variant={finance ? (financeProjectionIncomplete ? 'warning' : 'success') : 'neutral'}
         text={finance
           ? financeProjectionIncomplete
-            ? translate('Canonical finance projection incomplete')
-            : translate('Canonical projection loaded')
+            ? translate('Finance records need review')
+            : translate('Finance records loaded')
           : translate('No project selected')}
       />
     </header>
@@ -630,7 +646,7 @@
         aria-labelledby={`finance-projection-warning-${componentId}`}
       >
         <strong id={`finance-projection-warning-${componentId}`}>
-          {translate('Canonical finance projection incomplete')}
+          {translate('Finance records need review')}
         </strong>
         <p>
           {translate(
@@ -667,7 +683,7 @@
         <article class="finance-overview__attention-card">
           <span>{translate('Alerts')}</span>
           <strong>{finance?.alerts?.length ?? 0}</strong>
-          <small>{translate('Canonical projection warnings')}</small>
+          <small>{translate('Records needing review')}</small>
         </article>
       </div>
     {/if}
@@ -1054,7 +1070,7 @@
                 <h3>{translate('Approved time source records')}</h3>
                 <p>
                   {translate(
-                    'Review source minutes, billing state, canonical rates, and direct cost without recalculating them here.',
+                    'Review recorded minutes, billing status, effective rates and direct cost.',
                   )}
                 </p>
               </div>
@@ -1451,6 +1467,7 @@
         <SectionCard
           title={translate('Compensation settlements')}
           class="finance-overview__surface"
+          id="worker-payments"
         >
           <p class="finance-overview__surface-note">
             {translate(
@@ -1505,11 +1522,7 @@
                 { label: translate('State'), value: statusLabel(row.state ?? row.status) },
                 {
                   label: translate('Timeline'),
-                  value: timeline(
-                    row,
-                    ['expectedPaymentDate', 'expected_payment_date'],
-                    ['settledAt', 'settled_at'],
-                  ),
+                  value: compensationTimeline(row),
                 },
               ],
             }))}
@@ -1524,7 +1537,7 @@
                   <th scope="col">{translate('Source')}</th>
                   <th scope="col">{translate('Amount')}</th>
                   <th scope="col">{translate('State')}</th>
-                  <th scope="col">{translate('Expected / actual')}</th>
+                  <th scope="col">{translate('Timeline')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1552,13 +1565,7 @@
                         text={statusLabel(settlement.state ?? settlement.status)}
                       /></td
                     >
-                    <td
-                      >{timeline(
-                        settlement,
-                        ['expectedPaymentDate', 'expected_payment_date'],
-                        ['settledAt', 'settled_at'],
-                      )}</td
-                    >
+                    <td>{compensationTimeline(settlement)}</td>
                   </tr>
                 {:else}
                   <tr
@@ -1700,7 +1707,7 @@
     {:else}
       <SectionCard title={translate('Select a project')} class="finance-overview__surface">
         <p>
-          {translate('Choose an authorized project to inspect its canonical finance projection.')}
+          {translate('Choose a project to review its finances.')}
         </p>
       </SectionCard>
     {/if}

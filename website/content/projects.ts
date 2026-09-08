@@ -156,12 +156,13 @@ export const projects: Project[] = [
     id: 'fispal-tecnologia-showcase-2026',
     slug: 'fispal-tecnologia-industrial-automation',
     title: 'FISPAL Tecnologia 2026 Automation & Aquarex Showcase',
+    kind: 'event',
     location: 'São Paulo, Brazil',
     displayDate: '2026',
     startYear: 2026,
     industry: 'food-beverage',
     capabilities: ['training-consulting', 'simulation', 'support'],
-    technologies: ['Aquarex RO Controls', 'Digital Manufacturing', 'Smart Factory'],
+    technologies: ['Aquarex Controls', 'Digital Manufacturing', 'Smart Factory'],
     scope:
       'Demonstration and technical exchange on smart industrial automation, digital manufacturing, and Aquarex water recycling solutions for food and beverage plants.',
     outcome:

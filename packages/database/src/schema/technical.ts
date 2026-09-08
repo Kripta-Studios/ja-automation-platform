@@ -68,3 +68,17 @@ export const projectCloseouts = sqliteTable('project_closeout', {
   reopenedAt: text('reopened_at'),
   reopenReason: text('reopen_reason'),
 });
+
+export const projectCloseoutSeries = sqliteTable('project_closeout_series', {
+  id: text('id').primaryKey(), projectId: text('project_id').notNull().unique(),
+  currentDraftRevisionId: text('current_draft_revision_id'), createdAt: text('created_at').notNull(), updatedAt: text('updated_at').notNull(),
+});
+export const projectCloseoutRevisions = sqliteTable('project_closeout_revision', {
+  id: text('id').primaryKey(), seriesId: text('series_id').notNull(), revisionNumber: integer('revision_number').notNull(), state: text('state').notNull(),
+  internalSnapshotJson: text('internal_snapshot_json').notNull(), clientSnapshotJson: text('client_snapshot_json').notNull(), clientSelectionJson: text('client_selection_json').notNull(),
+  internalSnapshotSha256: text('internal_snapshot_sha256').notNull(), clientSnapshotSha256: text('client_snapshot_sha256').notNull(), clientConfirmationHash: text('client_confirmation_hash'),
+  clientConfirmedBy: text('client_confirmed_by'), clientConfirmedAt: text('client_confirmed_at'), createdBy: text('created_by').notNull(), createdAt: text('created_at').notNull(), updatedAt: text('updated_at').notNull(), finalizedBy: text('finalized_by'), finalizedAt: text('finalized_at'),
+});
+export const projectCloseoutArtifacts = sqliteTable('project_closeout_artifact', {
+  id: text('id').primaryKey(), revisionId: text('revision_id').notNull(), audience: text('audience').notNull(), storageKey: text('storage_key').notNull(), semanticFilename: text('semantic_filename').notNull(), mediaType: text('media_type').notNull(), sha256: text('sha256').notNull(), byteLength: integer('byte_length').notNull(), createdAt: text('created_at').notNull(),
+});

@@ -2,6 +2,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/lib/i18n/navigation';
 import { Droplets, Activity, ShieldCheck, Settings } from 'lucide-react';
 import { localizedAlternates } from '@/lib/i18n/metadata';
+import AquarexDatasheetForm from '@/components/aquarex/AquarexDatasheetForm';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -371,75 +372,7 @@ export default async function AquarexPage({ params }: { params: Promise<{ locale
               <p className="text-sm text-ja-steel-700">{page('datasheetBody')}</p>
             </div>
 
-            <form className="space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="firstName"
-                    className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
-                  >
-                    {page('firstName')} *
-                  </label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    className="w-full px-4 py-3 rounded-lg border border-ja-line bg-ja-surface focus:outline-none focus:ring-2 focus:ring-ja-red/20 focus:border-ja-red transition-all"
-                    required
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="lastName"
-                    className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
-                  >
-                    {page('lastName')} *
-                  </label>
-                  <input
-                    type="text"
-                    id="lastName"
-                    className="w-full px-4 py-3 rounded-lg border border-ja-line bg-ja-surface focus:outline-none focus:ring-2 focus:ring-ja-red/20 focus:border-ja-red transition-all"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
-                >
-                  {page('workEmail')} *
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  className="w-full px-4 py-3 rounded-lg border border-ja-line bg-ja-surface focus:outline-none focus:ring-2 focus:ring-ja-red/20 focus:border-ja-red transition-all"
-                  required
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="company"
-                  className="block text-xs font-semibold text-ja-ink uppercase tracking-wider mb-2"
-                >
-                  {page('company')}
-                </label>
-                <input
-                  type="text"
-                  id="company"
-                  className="w-full px-4 py-3 rounded-lg border border-ja-line bg-ja-surface focus:outline-none focus:ring-2 focus:ring-ja-red/20 focus:border-ja-red transition-all"
-                />
-              </div>
-
-              <button type="submit" className="btn btn-primary w-full mt-4">
-                {page('sendDatasheet')}
-              </button>
-
-              <p className="text-[11px] text-ja-steel-700 text-center mt-4">
-                {page('privacyNote')}
-              </p>
-            </form>
+            <AquarexDatasheetForm locale={locale} />
           </div>
         </div>
       </section>

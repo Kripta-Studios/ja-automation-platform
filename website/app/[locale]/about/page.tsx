@@ -3,6 +3,7 @@ import { Link } from '@/lib/i18n/navigation';
 import Image from 'next/image';
 import assemblyImg from '@/public/images/capabilities/assembly-engines.webp';
 import { company } from '@/content/company';
+import { projects } from '@/content/projects';
 import { LinesMotif } from '@/components/ui/LinesMotif';
 import { localizedAlternates } from '@/lib/i18n/metadata';
 
@@ -71,9 +72,9 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
                   </p>
                 </div>
                 <div>
-                  <p className="text-4xl font-bold text-ja-red mb-2">1,000+</p>
+                  <p className="text-4xl font-bold text-ja-red mb-2">{projects.length}</p>
                   <p className="text-sm text-ja-steel-300 uppercase tracking-wider">
-                    {t('projectsCompleted')}
+                    {t('projectArchiveRecords')}
                   </p>
                 </div>
               </div>

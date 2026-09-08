@@ -18,7 +18,9 @@
   let busy = $state(false);
   let message = $state('');
   let setupStarted = $derived(setupUri.length > 0);
-  let copy = $derived(mfaEnrollmentCopy[data.locale]);
+  let copy = $derived(
+    mfaEnrollmentCopy[data.locale === 'es' ? 'es' : data.locale === 'pt' ? 'pt' : 'en'],
+  );
 
   async function mfaRequest(action: 'enable' | 'verify'): Promise<void> {
     busy = true;

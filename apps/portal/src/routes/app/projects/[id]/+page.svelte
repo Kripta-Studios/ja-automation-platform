@@ -284,6 +284,13 @@
         {t('Print report')}
       </button>
       <a href={base + '/app/'}>{t('Operations dashboard')}</a>
+      {#if canWriteFinance}
+        <a
+          data-project-closeout-link
+          href={base + '/app/projects/' + encodeURIComponent(String(project.id)) + '/closeout'}
+          >Closeout</a
+        >
+      {/if}
     </div>
   </nav>
 
@@ -988,7 +995,7 @@
               min="0"
               max="24"
               value={project.expected_minutes_per_day != null
-                ? Number((project.expected_minutes_per_day / 60).toFixed(2))
+                ? Number((Number(project.expected_minutes_per_day) / 60).toFixed(2))
                 : ''}
               required
             /></label
@@ -1001,7 +1008,7 @@
               min="0"
               max="24"
               value={project.client_daily_minimum_minutes != null
-                ? Number((project.client_daily_minimum_minutes / 60).toFixed(2))
+                ? Number((Number(project.client_daily_minimum_minutes) / 60).toFixed(2))
                 : ''}
             /></label
           >

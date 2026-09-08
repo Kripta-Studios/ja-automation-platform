@@ -3,6 +3,11 @@ import { error, redirect } from '@sveltejs/kit';
 import { createHash } from 'node:crypto';
 import { relative, resolve } from 'node:path';
 import { z } from 'zod';
+import {
+  PeriodFollowupConflictError,
+  PeriodFollowupRepository,
+  PeriodFollowupValidationError,
+} from '@ja/database';
 import { actionFail, actionFailure, actionSuccess } from '$lib/server/actions/action-message';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { formObject, privateDocumentSignature } from '$lib/server/action-utils';
@@ -30,6 +35,88 @@ const signatureDateSchema = z
       });
   });
 
+type CurrentConformityRow = {
+  id: string;
+  reportState: string;
+  reportPdfStorageKey: string | null;
+  reportPdfSha256: string | null;
+  reportPdfByteLength: number | null;
+  conformityPdfStorageKey: string;
+  conformityPdfSha256: string;
+  conformityPdfByteLength: number;
+  invalidatedAt: string | null;
+};
+
+function currentConformityRow(
+  context: ReturnType<typeof openPortalRepository>,
+  reportId: string,
+): CurrentConformityRow | undefined {
+  return context.sqlite
+    .prepare(
+      `SELECT c.id,
+              r.state reportState,
+              r.pdf_storage_key reportPdfStorageKey,
+              r.pdf_sha256 reportPdfSha256,
+              r.pdf_byte_length reportPdfByteLength,
+              c.report_pdf_storage_key conformityPdfStorageKey,
+              c.report_pdf_sha256 conformityPdfSha256,
+              c.report_pdf_byte_length conformityPdfByteLength,
+              invalidation.occurred_at invalidatedAt
+         FROM customer_conformity c
+         JOIN period_report r ON r.id=c.period_report_id
+         LEFT JOIN customer_conformity_invalidation invalidation
+           ON invalidation.conformity_id=c.id
+        WHERE c.period_report_id=?
+          AND c.snapshot_version=r.snapshot_version
+          AND c.snapshot_sha256=r.snapshot_sha256
+        ORDER BY (invalidation.id IS NULL) DESC,c.created_at DESC,c.id DESC
+        LIMIT 1`,
+    )
+    .get(reportId) as CurrentConformityRow | undefined;
+}
+
+function currentReportPdfIsReady(row: CurrentConformityRow): boolean {
+  return (
+    ['review', 'approved', 'final'].includes(row.reportState) &&
+    Boolean(row.reportPdfStorageKey && row.reportPdfSha256) &&
+    /^[a-f0-9]{64}$/u.test(row.reportPdfSha256 ?? '') &&
+    Number.isSafeInteger(row.reportPdfByteLength) &&
+    Number(row.reportPdfByteLength) > 0
+  );
+}
+
+function conformityPdfMatchesCurrentReport(row: CurrentConformityRow): boolean {
+  return (
+    row.conformityPdfStorageKey === row.reportPdfStorageKey &&
+    row.conformityPdfSha256 === row.reportPdfSha256 &&
+    Number(row.conformityPdfByteLength) === Number(row.reportPdfByteLength)
+  );
+}
+
+function currentConformityForReport(
+  context: ReturnType<typeof openPortalRepository>,
+  reportId: string,
+) {
+  const current = currentConformityRow(context, reportId);
+  if (
+    !current ||
+    current.invalidatedAt ||
+    !['approved', 'final'].includes(current.reportState) ||
+    !currentReportPdfIsReady(current) ||
+    !conformityPdfMatchesCurrentReport(current)
+  )
+    return null;
+  return context.v3.getCustomerConformity(context.principal, current.id);
+}
+
+function hasEffectiveVerifiedConformity(
+  context: ReturnType<typeof openPortalRepository>,
+  reportId: string,
+): boolean {
+  const conformity = currentConformityForReport(context, reportId);
+  return conformity?.status === 'active' && conformity.signatureEvidenceStatus === 'verified';
+}
+
 export const load: PageServerLoad = ({ locals, params }) => {
   if (!locals.user) redirect(303, '/j-aautomation/app/login');
   const context = openPortalRepository(locals);
@@ -40,9 +127,14 @@ export const load: PageServerLoad = ({ locals, params }) => {
       .find((row) => String(row.id) === params.id);
     let pdfReady = false;
     const conformity =
+      locals.user.role === 'worker' ? null : currentConformityForReport(context, params.id);
+    const followup =
       locals.user.role === 'worker'
         ? null
-        : context.v3.getCustomerConformityForPeriodReport(context.principal, params.id);
+        : new PeriodFollowupRepository(context.sqlite).getReportFollowup(
+            context.principal,
+            params.id,
+          );
     try {
       context.v3.periodReportPdfMetadata(context.principal, params.id);
       pdfReady = true;
@@ -59,6 +151,7 @@ export const load: PageServerLoad = ({ locals, params }) => {
         snapshotSha256: metadata?.snapshot_sha256 ?? null,
         pdfReady,
         conformity,
+        followup,
       },
     };
   } catch {
@@ -69,6 +162,82 @@ export const load: PageServerLoad = ({ locals, params }) => {
 };
 
 export const actions: Actions = {
+  recordFollowup: async ({ locals, request, params }) => {
+    const object = await formObject(request);
+    const values = Object.fromEntries(
+      Object.entries(object).map(([key, value]) => [
+        key,
+        value instanceof File ? value.name : String(value ?? ''),
+      ]),
+    );
+    const parsed = z
+      .object({
+        expectedSnapshotVersion: z.coerce.number().int().positive(),
+        expectedSnapshotSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+        expectedLatestEventId: z.string().trim().max(200),
+        idempotencyKey: z.string().trim().min(1).max(200),
+        eventType: z.enum(['shared', 'exported', 'awaiting_signatory', 'returned', 'disputed']),
+        method: z.string().trim().max(200).optional(),
+        eventDate: z.string().trim().max(10).optional(),
+        reference: z.string().trim().max(500).optional(),
+        signatoryName: z.string().trim().max(200).optional(),
+        reason: z.string().trim().max(2000).optional(),
+        responsibleUserId: z.string().trim().min(1).max(200),
+        nextFollowUpOn: z.string().trim().max(10).optional(),
+      })
+      .strict()
+      .safeParse({
+        ...object,
+        expectedLatestEventId: object.expectedLatestEventId ?? '',
+      });
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.error.invalid',
+        {},
+        'Check the follow-up fields and try again.',
+        { values },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      if (parsed.data.eventType === 'returned' || parsed.data.eventType === 'disputed') {
+        if (hasEffectiveVerifiedConformity(context, params.id))
+          throw new PeriodFollowupConflictError(
+            'Invalidate the signed conformity through its explicit lifecycle before returning or disputing this report',
+          );
+      }
+      const event = new PeriodFollowupRepository(context.sqlite).recordEvent(context.principal, {
+        ...parsed.data,
+        periodReportId: params.id,
+        expectedLatestEventId: parsed.data.expectedLatestEventId || null,
+      });
+      return actionSuccess(
+        'action.reports.periodFollowupRecorded',
+        { eventType: event.eventType },
+        'Follow-up recorded',
+      );
+    } catch (errorValue) {
+      if (errorValue instanceof PeriodFollowupConflictError)
+        return actionFail(
+          409,
+          'action.error.conflict',
+          {},
+          'The report or follow-up history changed. Refresh and try again.',
+          { values },
+        );
+      if (errorValue instanceof PeriodFollowupValidationError)
+        return actionFail(
+          400,
+          'action.error.invalid',
+          {},
+          'Check the follow-up fields and try again.',
+          { values },
+        );
+      return actionFailure(errorValue);
+    } finally {
+      context.sqlite.close();
+    }
+  },
   approve: async ({ locals, request, params }) => {
     const parsed = z
       .object({

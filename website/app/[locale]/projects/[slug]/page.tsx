@@ -73,6 +73,10 @@ export default async function ProjectDetailPage({
               </span>
               <span className="text-ja-steel-300">•</span>
               <span className="font-[family-name:var(--font-ibm-plex-mono)] text-sm text-ja-steel-500">
+                {projectFilters(project.kind === 'event' ? 'event' : 'project')}
+              </span>
+              <span className="text-ja-steel-300">•</span>
+              <span className="font-[family-name:var(--font-ibm-plex-mono)] text-sm text-ja-steel-500">
                 {localizedProject.displayDate}
               </span>
             </div>

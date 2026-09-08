@@ -1,0 +1,21 @@
+# WP-C1 — period review and customer follow-up
+
+Objective: ASTRA F07/U11–13 and C1, preserving the existing customer-conformity and invoice issue gates. Add staff follow-up around exact report versions and a Finance project-period review screen. No customer portal or new signature authority.
+
+## Ownership and interfaces
+
+Own a cohesive `packages/database/src/domains/reports/period-followup-repository.ts`, additive migration `0041_astra_period_followup.sql` and its migration-contract entry, server service/routes under `/app/reports/review`, scoped localized copy, new component and narrow integration into `/app/reports/period/[id]` server/page, and focused `astra-period-followup` tests. Parent adds discovery link to ReportsSection/global navigation. Closeout owns migration0040/schema technical and repository closeout methods; notification agent owns v3 notification methods. Avoid their files; direct exported domain functions may receive existing repository/sqlite context. Coordinate schema/index exports if needed.
+
+## Required behavior
+
+- Existing report prepared state is derived. Staff can record shared/exported (method/date/reference), awaiting named signatory, returned or disputed with required reason, responsible existing active staff member and optional next follow-up date. This is staff-only metadata and must never be spread into client snapshots or files.
+- Append-only events bind report ID, snapshot version and hash. Require optimistic latest-event ID plus an idempotency key, reject changed-payload key reuse, preserve history. New report content/version makes old follow-up stale; do not imply the new version was shared. Require exact version/hash for every write and authenticated persisted active role/live session/project scope.
+- Finance/Owner and assigned reviewing PM may maintain operational follow-up; Worker cannot access follow-up metadata. PM must not receive any finance amounts or billing DTOs. Require valid current customer report and ready PDF before marking shared/awaiting signatory. Do not treat a contact name or shared/exported event as signature evidence or permission to approve.
+- Accepted is derived exclusively from existing effective `getCustomerConformityForPeriodReport`, its source validity and immutable evidence. Users cannot set accepted. Returned/disputed after a valid signed report requires the existing explicit conformity invalidation lifecycle; do not silently override valid acceptance. Conversely no follow-up event may bypass a missing/invalid signature issue gate.
+- Finance review route accepts authorized project + strict date range, lists relevant customer reports with exact coverage/version/hash/state and source links; displays existing `v3.billingReadiness` reasons per enabled billing stream and invoice drafts for the same project-period. Do not recompute commercial money. Never label a whole period accepted from one worker report. Display precise source IDs and safe correct routes for blockers, and explain cadence mismatch instead of claiming ready. Show active source corrections through existing readiness checks.
+- Avoid silent 200-row report limits: query project-period directly after authorization or explicitly paginate complete results. Source IDs/links must belong to authorized project. Customer report operational DTOs remain allowlisted.
+- UI EN/ES/PT, persistent labels, validation retains input, scoped help on manual signed-PDF process, full history/staleness, narrow phone layout. Use existing primitives. No outbound emails; shared is a user-attested dispatch record, not an assertion that the app sent it.
+
+## Verification
+
+Disposable DB/storage only. Tests: active role/session/PM cross-project denial; worker privacy; state validation and no forged acceptance; report version change stales old events/rejects stale writes; idempotent retry and key collision; returned/disputed reason required; signed conformity cannot be overridden; partial source coverage and corrected source keep billing blocked using existing gate; project-period queue includes exact source reasons. Migration fresh/legacy history preserved. Add browser Finance/PM follow-up journey and Worker denial, parent runs representative viewport matrix. Run relevant types/tests, no commits/deploy/mail/subagents. Report actual files/commands/results and unresolved requirements.

@@ -372,6 +372,36 @@
       "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
       "preProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56",
       "postProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56"
+    },
+    {
+      "version": 40,
+      "canonicalName": "astra_project_closeout_revisions",
+      "file": "0040_astra_project_closeout_revisions.sql",
+      "sha256": "34830b0a470ca87a1fa9dd6d965ce8e34520e3b25e5b8e67955443493f9d81eb",
+      "descriptor": "J&A B5 migration 40 astra_project_closeout_revisions",
+      "descriptorSha256": "6295e11562106af5af3aa0257a55719e158fbdcb542272dec2c56fb9b32b704e",
+      "projectionSha256": "dc0322e062bffce4ae3385824c2ed892c90e61448387a42a8f7f38fec5f3c029",
+      "vectorSha256": "50edeb65da312ca546cc00a385998e3381bad4b5ba1b59fdde3c3b8e7849c6dc",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56",
+      "postProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56"
+    },
+    {
+      "version": 41,
+      "canonicalName": "astra_period_followup",
+      "file": "0041_astra_period_followup.sql",
+      "sha256": "6beda397c59d516bc9079bd2778b24446fd60aa9d3ca0f113782c70fb08ce044",
+      "descriptor": "J&A B5 migration 41 astra_period_followup",
+      "descriptorSha256": "620f06a364f28ed6f5e9677989d9ef744f0a98a33a3e93707cd243720f44df0c",
+      "projectionSha256": "dc0322e062bffce4ae3385824c2ed892c90e61448387a42a8f7f38fec5f3c029",
+      "vectorSha256": "50edeb65da312ca546cc00a385998e3381bad4b5ba1b59fdde3c3b8e7849c6dc",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56",
+      "postProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56"
     }
   ]
 }

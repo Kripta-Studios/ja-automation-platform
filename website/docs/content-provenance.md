@@ -15,12 +15,37 @@ The historical project archive (approximately 40 records spanning 2007–2019) w
 
 ### Important Notes
 
-- The migrated historical archive largely stops at 2019. Three 2025–2026 project records were
-  added from client-approved `new-ja-data` supplied on 2026-08-27; no other current projects are
-  asserted.
+- The migrated historical archive largely stops at 2019. The typed archive currently contains 58
+  records: 49 `legacy-site` records and nine `new-ja-data` records supplied on 2026-08-27. The
+  packet did not include a durable approval register, so the nine newer records remain marked with
+  that source tag and their individual corporate approvals still need confirmation.
 - The content model is ready for new project entries to be added without restructuring.
 - Project photography is treated as **sector/capability photography** unless specific project provenance is documented. No image is falsely captioned as depicting a named client project.
 - Grammar and spelling corrections have been applied while preserving engineering meaning.
+
+### Current record register
+
+The following records are the complete current `new-ja-data` set in `content/projects.ts`. The
+source packet was supplied internally; no public source URL or approving person/date was attached
+to the repository. Eight records are described as project experience and one is explicitly marked as
+an event so it is not presented as a completed customer project.
+
+| Record ID                                 | Public record type | Source                           | Approval status                                       |
+| ----------------------------------------- | ------------------ | -------------------------------- | ----------------------------------------------------- |
+| `amazon-sortation-line-2025`              | Project experience | `new-ja-data` packet, 2026-08-27 | Corporate approval evidence not attached              |
+| `mercadolibre-fulfillment-conveyor-2025`  | Project experience | `new-ja-data` packet, 2026-08-27 | Corporate approval evidence not attached              |
+| `shopee-hub-sorting-2025`                 | Project experience | `new-ja-data` packet, 2026-08-27 | Corporate approval evidence not attached              |
+| `fruki-bottling-expansion-2026`           | Project experience | `new-ja-data` packet, 2026-08-27 | Corporate approval evidence not attached              |
+| `delta-beverage-rebuild-2025`             | Project experience | `new-ja-data` packet, 2026-08-27 | Corporate approval evidence not attached              |
+| `usa-automotive-robot-commissioning-2025` | Project experience | `new-ja-data` packet, 2026-08-27 | Corporate approval evidence not attached              |
+| `krones-variopac-rebuild-2026`            | Project experience | `new-ja-data` packet, 2026-08-27 | Corporate approval evidence not attached              |
+| `brazil-spring-water-packaging-2025`      | Project experience | `new-ja-data` packet, 2026-08-27 | Corporate approval evidence not attached              |
+| `fispal-tecnologia-showcase-2026`         | Event              | `new-ja-data` packet, 2026-08-27 | Event participation and wording approval not attached |
+
+The historical `aquarex-png-2014` record remains a `legacy-site` entry for an Aquarex caustic
+recovery system associated with Heineken in Papua New Guinea. The repository does not identify the
+J&A corporate role, a current client-reference approval, or the original source document. It remains
+historical experience, not evidence for every current Aquarex capability or claim.
 
 ## Client Names
 
@@ -109,9 +134,28 @@ public URL.
 | `public/brand/logo-jaautomation.png`              | `26ede6564559b55c08f3f24fc061e58f18179085460428c9ef0205243cf91b57` |
 | `packages/reporting/assets/logo-jaautomation.png` | `26ede6564559b55c08f3f24fc061e58f18179085460428c9ef0205243cf91b57` |
 
-## Aquarex
+## Marketing claim register
 
-Aquarex content is positioned at a high level. No recovery percentage, chemistry, membrane/filtration technology, flow rate, temperature, pressure, ROI, chemical savings, waste reduction, or certification claims have been invented.
+This register covers material claims currently exposed by the public website. A source entry or
+existing copy is not the same as current approval; where the repository has no approving person and
+date, the gap is recorded explicitly for J&A review. The source and rights columns are evidence
+fields, not approval assertions. The locale column identifies the current EN/ES/PT variants; each
+still needs separate wording approval where a named approver/date is absent.
+
+| Statement or record                                                                                         | Source URL/document                                                                                                                    | Experience and project role                                                          | Current EN/ES/PT wording                                                                                                   | Image-rights evidence                                                            | Approver/date gap                                                    |
+| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Aquarex supports acid and caustic recycling applications with automation, electrical and plant integration. | Existing Aquarex page (`https://j-aautomation.com/j-aautomation/en/solutions/aquarex`) and `aquarex-png-2014` in `content/projects.ts` | Corporate solution positioning; no individual project role claimed                   | Conservative equivalent in the Aquarex locale catalogs; no quantified performance wording                                  | No image is attached to this claim; no additional image-rights evidence required | Named approver and approval date not recorded                        |
+| Aquarex page describes process monitoring, integrated controls and plant integration.                       | `website/content/locales/en.json`, `es.json`, and `pt.json`; public Aquarex page above                                                 | Corporate solution positioning; no individual project role claimed                   | Process monitoring, integrated controls and plant integration in EN/ES/PT; RO/UF, standards and quantified wording removed | No image is attached to this claim; no additional image-rights evidence required | Named approver and approval date not recorded                        |
+| `Aquarex Caustic Recovery System` — Heineken, Papua New Guinea, 2014.                                       | `legacy-site` record `aquarex-png-2014` in `content/projects.ts`; original source document not supplied                                | Historical corporate record; J&A role and individual contribution are not identified | Historical record translated in the project catalogs without new technical detail                                          | No image is attached to this record                                              | Client-reference, project-role, named approver and date not attached |
+| FISPAL Tecnologia 2026 Aquarex showcase.                                                                    | `new-ja-data` record `fispal-tecnologia-showcase-2026`, supplied 2026-08-27; no public source URL attached                             | Event participation, not a completed customer project; individual role not stated    | Event wording translated in the project catalogs and marked `Event` in the public archive                                  | No image is attached to this record                                              | Event evidence, named approver and date not attached                 |
+| About-page archive size.                                                                                    | Count of records in `content/projects.ts`                                                                                              | Published archive metric; not an individual experience claim                         | “Published archive records” in EN/ES/PT, derived from the 58 records; no `1,000+ projects completed` wording retained      | No image is attached to this metric                                              | Named approver and date for the published count not recorded         |
+
+The public Aquarex page no longer states a recovery percentage, commissioning-time reduction,
+RO/UF or other membrane/filtration technology, flow rate, temperature, pressure, ROI, chemical
+savings, waste reduction, regulatory compliance, or named alarm-standard claim. Those claims were
+removed because the inspected source register did not reconcile them to an approved document or
+approver. A future approved datasheet may add precise wording only after its source URL/document,
+role, image rights where relevant, approving person/date, and EN/ES/PT variants are recorded here.
 
 ## Image Rights
 

@@ -135,6 +135,22 @@ const principal = (key: string, role: Role, projectIds: string[] = []): Principa
   projectIds: new Set(projectIds),
 });
 const owner = principal('admin', 'owner_admin');
+const ownerSessionId = newId();
+const ownerSessionCreatedAt = new Date().toISOString();
+sqlite
+  .prepare(
+    'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+  )
+  .run(
+    ownerSessionId,
+    newId(),
+    owner.userId,
+    new Date(Date.now() + 60 * 60_000).toISOString(),
+    ownerSessionCreatedAt,
+    ownerSessionCreatedAt,
+    null,
+  );
+const ownerLive = { ...owner, sessionId: ownerSessionId } satisfies Principal;
 
 // The demo database must exercise the same fail-closed service-actor contract
 // as a deployed instance.  Keep this fixture identity explicit and stable:
@@ -1641,7 +1657,7 @@ const canonicalRevisionMetadata = (accountingPack.reconciliation as Record<strin
 const canonicalAccountingPackRevisionId = canonicalRevisionMetadata?.revisions?.[0]?.revisionId;
 if (!canonicalAccountingPackRevisionId)
   throw new Error('Seeded Accounting Pack did not create its canonical revision');
-const closeout = repository.createProjectCloseout(owner, line.id);
+const closeout = repository.createProjectCloseout(ownerLive, line.id);
 sqlite
   .prepare(
     'INSERT OR IGNORE INTO notification(id,user_id,kind,subject_id,created_at) VALUES(?,?,?,?,?)',

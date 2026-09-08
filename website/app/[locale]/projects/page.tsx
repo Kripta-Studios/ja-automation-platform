@@ -246,8 +246,10 @@ export default async function ProjectsPage({
                     <span className="font-[family-name:var(--font-ibm-plex-mono)] text-xs tracking-wider text-ja-steel-500 uppercase">
                       {filterText(projectIndustryKeys[project.industry])}
                     </span>
-                    <span className="font-[family-name:var(--font-ibm-plex-mono)] text-xs text-ja-steel-500">
-                      {project.displayDate}
+                    <span className="flex items-center gap-2 font-[family-name:var(--font-ibm-plex-mono)] text-xs text-ja-steel-500">
+                      <span>{filterText(project.kind === 'event' ? 'event' : 'project')}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>{project.displayDate}</span>
                     </span>
                   </div>
                   <h2 className="text-lg font-semibold mb-1 group-hover:text-ja-red transition-colors">

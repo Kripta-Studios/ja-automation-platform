@@ -56,7 +56,7 @@ describe('Finance Overview section architecture', () => {
     expect(component).toContain('role="alert"');
     expect(component).toContain('financeProjectionReasons');
     expect(component).toContain('Projection completeness reasons');
-    expect(component).toContain('Canonical finance projection incomplete');
+    expect(component).toContain('Finance records need review');
   });
 
   it('uses the injected money formatter and does not recalculate money in the component', () => {
@@ -89,7 +89,10 @@ describe('Finance Overview section architecture', () => {
 
     expect(component).toContain('action="?/settleCompensation"');
     expect(component).toContain('action="?/recordReimbursement"');
-    expect(component).toContain('Expected / actual');
+    expect(component).toContain('compensationTimeline');
+    expect(component).toContain('Expected payment');
+    expect(component).toContain('Compensation finalized');
+    expect(component).toContain("'expectedPaymentOn', 'expected_payment_on'");
     expect(component).toContain('Expected');
     expect(component).toContain('Actual');
     expect(component).toContain('required');

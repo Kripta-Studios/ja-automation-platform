@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { base } from '$app/paths';
   import { FormCard, FormSection, FieldGroup, Field, formValidation } from '../ui';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
@@ -92,6 +93,12 @@
 </script>
 
 <FormCard title={translate('Finance configuration')} class="finance-config-panel">
+  <p>
+    <a
+      href={`${base}/app/finance/preview?project=${encodeURIComponent(data.selectedProjectId ?? '')}`}
+      >{translate('Commercial agreement and example')}</a
+    >
+  </p>
   <div class="panel-title">
     <div>
       <p>

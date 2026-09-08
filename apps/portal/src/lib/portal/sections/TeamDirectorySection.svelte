@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { enhance, type ActionResult, type SubmitFunction } from '$app/forms';
+  import { enhance } from '$app/forms';
+  import type { ActionResult, SubmitFunction } from '@sveltejs/kit';
   import { page } from '$app/stores';
   import { SvelteSet } from 'svelte/reactivity';
   import { ResponsiveSheet, SectionCard, StatusBadge, formValidation } from '../ui';

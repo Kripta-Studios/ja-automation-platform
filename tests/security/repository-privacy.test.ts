@@ -142,6 +142,7 @@ describe('repository authorization and privacy', () => {
     const project = repository.createProject(owner, {
       clientId: client.id,
       name: 'Security Project',
+      startDate: '2026-08-01',
       timezone: 'UTC',
       currency: 'USD',
       billingModel: 'tm',
@@ -153,6 +154,16 @@ describe('repository authorization and privacy', () => {
       startsOn: '2026-08-01',
     });
     const workerPrincipal = repository.principalFor('worker');
+    // Reminders require an effective working calendar; the expected-minutes
+    // field alone does not establish which days this worker should report.
+    sqlite
+      .prepare(
+        `INSERT INTO schedule(
+      id,project_id,timezone,monday_minutes,tuesday_minutes,wednesday_minutes,
+      thursday_minutes,friday_minutes,saturday_minutes,sunday_minutes,effective_from
+    ) VALUES(?,?,'UTC',600,600,600,600,600,0,0,'2026-08-01')`,
+      )
+      .run('security-working-calendar', project.id);
 
     v3.enqueueJob(
       'alert_dispatch',

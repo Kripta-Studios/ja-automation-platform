@@ -2,6 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import net, { type Socket } from 'node:net';
 import tls, { type TLSSocket } from 'node:tls';
 import type { DatabaseSync } from 'node:sqlite';
+import { notificationCopy, normalizeNotificationLocale } from './notification-copy.ts';
 
 const CORPORATE_DOMAIN = 'j-aautomation.com';
 const MAX_WEBHOOK_BYTES = 256 * 1024;
@@ -78,19 +79,6 @@ export const parseSignedOutboxRequest = (body: string): SignedOutboxRequest => {
   };
 };
 
-const notificationCopy = (kind: string): { subject: string; body: string } => {
-  const labels: Record<string, string> = {
-    missing_time: 'Missing time entry reminder',
-    assignment_published: 'Project assignment updated',
-    report_submitted: 'Report awaiting review',
-  };
-  const subject = labels[kind] ?? 'J&A Automation notification';
-  return {
-    subject,
-    body: `${subject}.\n\nSign in to the J&A Automation portal to review the current record.`,
-  };
-};
-
 const publicInquiryCopy = (
   kind: string,
   payload: Record<string, unknown>,
@@ -162,7 +150,7 @@ export const resolveMailDelivery = (
       .get(notificationId, userId) as { email: string; kind: string } | undefined;
     if (!row) throw new Error('Notification recipient is unavailable');
     recipient = corporateAddress(row.email, 'notification recipient');
-    copy = notificationCopy(row.kind);
+    copy = notificationCopy(row.kind, normalizeNotificationLocale(request.payload.locale));
   } else {
     recipient = corporateAddress(formRecipient, 'JA_FORM_RECIPIENT');
     const inquiry = request.payload.inquiry;

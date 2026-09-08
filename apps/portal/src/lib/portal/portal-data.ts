@@ -94,6 +94,8 @@ export type PortalData = {
   };
   finance?: {
     currency: string;
+    actualMinutes?: number;
+    approvedMinutes?: number;
     approvedCostMinor: string;
     revenueCandidateMinor: string;
     contributionMarginMinor: string;

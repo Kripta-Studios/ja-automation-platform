@@ -95,6 +95,12 @@
     'My Pay': 'M4 7h16v10H4zM4 10h16M8 14h2',
   };
 
+  const helpCopy = {
+    en: { label: 'Help', detail: 'Field guides and task instructions' },
+    es: { label: 'Ayuda', detail: 'Guías de campo e instrucciones de tareas' },
+    pt: { label: 'Ajuda', detail: 'Guias de campo e instruções de tarefas' },
+  } as const;
+
   const iconPath = (item: NavItem): string => navIconPaths[item.label] ?? 'M5 12h14M12 5l7 7-7 7';
   const accountNavigation = $derived(
     accountNavigationFor({
@@ -524,6 +530,11 @@
             <span><b>{translate(item.label)}</b><small>{translate(accountDetail)}</small></span>
           </a>
         {/each}
+        <div class="account-menu-divider" role="separator"></div>
+        <a role="menuitem" href={`${base}/app/help`} onclick={() => (accountOpen = false)}>
+          <span class="account-menu-icon" aria-hidden="true">?</span>
+          <span><b>{helpCopy[locale].label}</b><small>{helpCopy[locale].detail}</small></span>
+        </a>
         <div class="account-menu-divider" role="separator"></div>
         <a
           role="menuitem"

@@ -24,6 +24,7 @@ export type Project = {
   id: string;
   slug: string;
   title: string;
+  kind?: 'project' | 'event';
   client?: string;
   location?: string;
   startYear?: number;

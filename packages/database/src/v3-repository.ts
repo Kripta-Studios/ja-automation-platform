@@ -77,6 +77,7 @@ import {
   deriveTimeCommercialSlices,
   type TimeCommercialSlice,
 } from './domains/commercial/time-commercial-slices.ts';
+import { NotificationRepository } from './domains/notifications/index.ts';
 
 export class V3AccessDeniedError extends Error {}
 export class V3ConflictError extends Error {}
@@ -471,9 +472,15 @@ export class V3Repository {
   private readonly customerConformities: CustomerConformityRepository;
   private readonly periodReportLifecycle: PeriodReportLifecycleRepository;
   private readonly canonicalProjectLegalEntities: CanonicalProjectLegalEntityRepository;
+  private readonly notifications: NotificationRepository;
 
   constructor(sqlite: DatabaseSync) {
     this.sqlite = sqlite;
+    this.notifications = new NotificationRepository({
+      sqlite: this.sqlite,
+      transaction: <T>(work: () => T): T => this.transaction(work),
+      now: timestamp,
+    });
     this.accountingPackRevisions = new AccountingPackRevisionService(this.sqlite);
     this.canonicalProjectLegalEntities = new CanonicalProjectLegalEntityRepository({
       sqlite: this.sqlite,
@@ -10258,51 +10265,7 @@ export class V3Repository {
 
   private createMissingTimeReminders(workDate: string): number {
     requireDate(workDate, 'Reminder work date');
-    if (new Date(`${workDate}T00:00:00.000Z`).getUTCDay() === 0) return 0;
-    return this.transaction(() => {
-      const assignments = this.sqlite
-        .prepare(
-          "SELECT DISTINCT pm.project_id,pm.user_id FROM project_member pm JOIN user u ON u.id=pm.user_id WHERE u.role='worker' AND u.status='active' AND pm.status='active' AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)",
-        )
-        .all(workDate, workDate) as Array<{ project_id: string; user_id: string }>;
-      let created = 0;
-      for (const assignment of assignments) {
-        const hasTime = this.sqlite
-          .prepare(
-            'SELECT 1 FROM time_entry WHERE project_id=? AND worker_id=? AND work_date=? LIMIT 1',
-          )
-          .get(assignment.project_id, assignment.user_id, workDate);
-        if (hasTime) continue;
-        const subjectId = `missing-time:${assignment.project_id}:${assignment.user_id}:${workDate}`;
-        const notificationId = newId();
-        const notification = this.sqlite
-          .prepare(
-            'INSERT OR IGNORE INTO notification(id,user_id,kind,subject_id,created_at) VALUES(?,?,?,?,?)',
-          )
-          .run(notificationId, assignment.user_id, 'missing_time', subjectId, timestamp());
-        if (Number(notification.changes) !== 1) continue;
-        this.sqlite
-          .prepare(
-            'INSERT OR IGNORE INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at) VALUES(?,?,?,?,?,?,?)',
-          )
-          .run(
-            newId(),
-            'notification.email.requested',
-            notificationId,
-            `notification-email:${notificationId}`,
-            JSON.stringify({
-              notificationId,
-              userId: assignment.user_id,
-              kind: 'missing_time',
-              subjectId,
-            }),
-            timestamp(),
-            timestamp(),
-          );
-        created += 1;
-      }
-      return created;
-    });
+    return this.notifications.createMissingTimeReminders(workDate);
   }
 
   runDueJobs(
@@ -10335,20 +10298,27 @@ export class V3Repository {
         const reminder = payload as { alertType?: unknown; workDate?: unknown };
         if (
           reminder.alertType === 'missing_time' &&
-          typeof reminder.workDate === 'string' &&
-          reminder.workDate
+          (reminder.workDate === undefined || typeof reminder.workDate === 'string')
         ) {
-          this.createMissingTimeReminders(reminder.workDate);
+          if (typeof reminder.workDate === 'string' && reminder.workDate)
+            this.createMissingTimeReminders(reminder.workDate);
+          else this.notifications.createMissingTimeReminders();
+          this.notifications.dispatchBusinessNotifications();
+          return;
+        }
+        if (reminder.alertType === 'business_notifications') {
+          this.notifications.dispatchBusinessNotifications();
           return;
         }
         if (reminder.alertType !== 'overdue') throw new Error('PAYLOAD_INVALID');
         const now = timestamp();
         const changed = this.sqlite
           .prepare(
-            "UPDATE invoice SET state='overdue',updated_at=? WHERE due_at<? AND state IN ('issued','sent','partially_paid')",
+            "UPDATE invoice SET state='overdue',updated_at=?,version=version+1 WHERE due_at<? AND state IN ('issued','sent','partially_paid')",
           )
           .run(now, now);
         overdueMarked += Number(changed.changes);
+        this.notifications.dispatchBusinessNotifications(now);
       };
     if (!syncHandlers.period_close_report)
       syncHandlers.period_close_report = (payload) => {
@@ -10511,19 +10481,24 @@ export class V3Repository {
     );
     this.enqueueJob('alert_dispatch', `overdue:${minute}`, { alertType: 'overdue' }, now);
     this.enqueueJob(
+      'alert_dispatch',
+      `business-notifications:${minute}`,
+      { alertType: 'business_notifications' },
+      now,
+    );
+    this.enqueueJob(
       'backup_verify',
       `period-readiness:${minute}`,
       { purpose: 'period_readiness' },
       now,
     );
     const reminderDate = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
-    if (new Date(`${reminderDate}T00:00:00.000Z`).getUTCDay() !== 0)
-      this.enqueueJob(
-        'alert_dispatch',
-        `missing-time-reminder:${reminderDate}`,
-        { alertType: 'missing_time', workDate: reminderDate },
-        now,
-      );
+    this.enqueueJob(
+      'alert_dispatch',
+      `missing-time-reminder:${reminderDate}`,
+      { alertType: 'missing_time' },
+      now,
+    );
     const closedPeriods = this.sqlite
       .prepare(
         `SELECT br.id billing_rule_id,br.policy_version,bp.period_start,bp.period_end

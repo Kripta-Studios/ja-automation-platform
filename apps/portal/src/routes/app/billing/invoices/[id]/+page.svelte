@@ -16,7 +16,16 @@
   import { StatusBadge } from '$lib/portal/ui';
   import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
 
-  type Row = Record<string, string | number | boolean | null>;
+  type Row = Record<string, unknown>;
+  type InvoiceRow = Row & {
+    company_info?: Record<string, string | null> | null;
+    terms_and_instructions?: Record<string, string | null> | null;
+    calculation?: { subtotalMinor?: string | number | bigint | null } | null;
+    invoice_date?: string | null;
+    issued_at?: string | null;
+    created_at?: string | null;
+    due_date?: string | null;
+  };
   type InvoicePdfStatus = 'queued' | 'running' | 'ready' | 'failed' | 'unavailable';
   let { data } = $props();
   let localeOverride = $state<PortalLocale | null>(null);
@@ -30,7 +39,7 @@
       'billingStream',
       value === null || value === undefined ? null : String(value),
     );
-  const preview = $derived(data.preview as { invoice: Row; lines: Row[]; taxes: Row[] });
+  const preview = $derived(data.preview as { invoice: InvoiceRow; lines: Row[]; taxes: Row[] });
   const invoice = $derived(preview.invoice);
   const invoicePhone = $derived(
     invoice.company_info && typeof invoice.company_info === 'object'

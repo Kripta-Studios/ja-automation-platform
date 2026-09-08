@@ -2,6 +2,19 @@ import { extractedSectionCoverageKeys } from './coverage-literal-overrides';
 
 /** Generated from literal translation calls and action message keys. Keep this inventory in sync with the source. */
 export const PORTAL_LITERAL_KEYS = [
+  'Period review and customer follow-up',
+  'Commercial agreement and example',
+  'Calculated from approved project records',
+  'Cash calendar',
+  'Choose a project to review its finances.',
+  'Compensation finalized',
+  'Finance records loaded',
+  'Finance records need review',
+  'Project contribution',
+  'Records needing review',
+  'Review project finances, work records, upcoming obligations and reimbursements.',
+  'Review recorded minutes, billing status, effective rates and direct cost.',
+
   '0.00',
   'A draft from this authenticated account is stored on this device. Review it before it can replace the fields on screen.',
   'A local recovery draft is available for review',

@@ -1,4 +1,4 @@
-# Employee field guide — revision 2026-09-08
+# Employee field guide — revision 2026-09-09
 
 > Use only the portal address and verified support route stated in your invitation. This guide uses synthetic examples. Never share a password, MFA code, recovery code, receipt or session.
 
@@ -18,11 +18,11 @@ Open **Time**, enter the service date, activity and actual duration, and save th
 
 Draft means you can still review it. Submitted means it awaits review. If a reviewer returns it, read the reason and submit the requested correction. An approved record stays in history: use the correction flow with a reason and let the authorized reviewer update it. Do not delete, duplicate or overwrite approved time.
 
-## 4. Expenses and receipt uploads
+## 4. Expenses, receipt uploads and private files
 
 Open **Expenses**, choose the project, service date, category, amount, currency and the real payer. Select yourself only when you actually paid the expense. Attach one readable JPEG, PNG or PDF receipt and check that the complete receipt is visible before submitting. Keep the original until the upload is confirmed.
 
-If an upload fails, check the file type and connection, then retry from the same draft. If the status is unclear, refresh **Expenses** and check before uploading again; this avoids duplicate submissions. Do not use a company-paid purchase as an employee advance and do not upload replacement or altered evidence.
+If an upload fails, is pending scan/quarantine, or is rejected, read the portal message, check the file type and connection, then retry from the same draft. If the status is unclear, refresh **Expenses** and check before uploading again; this avoids duplicate submissions. Do not use a company-paid purchase as an employee advance and do not upload replacement or altered evidence. Project documents and downloads remain private and role-scoped; a link does not grant access.
 
 ## 5. Daily and Technical / PLC reports
 
@@ -37,3 +37,7 @@ This private statement is not a payslip or tax document. Never infer a customer 
 ## 7. Connection and offline capture
 
 Use offline capture only when the portal says it is enabled. Keep the device secure, reconnect and confirm that the saved or synced state is shown before signing out. If offline is disabled, wait for a connection and retry through the portal rather than making a duplicate record.
+
+## 8. Help, Activity Inbox and access limits
+
+Open **Help** to download the guide assigned to your role. **Activity Inbox** at `/app/notifications` can link to a permitted source record; reading a notification is not approval. Workers use only their own assigned projects, records, files and My Pay. Finance, Billing, Accounting, Audit, staff follow-up, Closeout and approval queues are not Worker flows; an access denial is a boundary, not an error to bypass. Email is not the system of record: use the portal and the verified support route in your invitation.

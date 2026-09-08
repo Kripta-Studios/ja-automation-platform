@@ -10,7 +10,7 @@ import {
 
 describe('ASTRA Help manual catalog', () => {
   it('keeps the revision and locale aliases deterministic', () => {
-    expect(manualRevision).toBe('2026-09-08');
+    expect(manualRevision).toBe('2026-09-09');
     expect(normalizeManualLocale(undefined)).toBe('en');
     expect(normalizeManualLocale('ES-es')).toBe('es');
     expect(normalizeManualLocale('pt_BR')).toBe('pt');
@@ -32,13 +32,13 @@ describe('ASTRA Help manual catalog', () => {
       );
     }
     expect(manualsForRole('worker').map((manual) => [manual.id, manual.revision])).toEqual([
-      ['employee-field-guide', '2026-09-08'],
-      ['worker-reference', '2026-09-06'],
+      ['employee-field-guide', '2026-09-09'],
+      ['worker-reference', '2026-09-09'],
     ]);
     expect(manualsForRole('owner_admin').map((manual) => [manual.id, manual.revision])).toEqual([
-      ['employee-field-guide', '2026-09-08'],
-      ['worker-reference', '2026-09-06'],
-      ['owner-reference', '2026-09-06'],
+      ['employee-field-guide', '2026-09-09'],
+      ['worker-reference', '2026-09-09'],
+      ['owner-reference', '2026-09-09'],
     ]);
     expect(manualsForRole('unknown')).toEqual([]);
     expect(manualForRole('owner-reference', 'worker')).toBeNull();

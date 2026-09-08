@@ -1,4 +1,4 @@
-# Guia de campo para colaboradores — revisão 2026-09-08
+# Guia de campo para colaboradores — revisão 2026-09-09
 
 > Use somente o endereço do portal e o canal de suporte verificado indicados no convite. Este guia usa exemplos sintéticos. Nunca compartilhe senha, código MFA, código de recuperação, comprovante ou sessão.
 
@@ -18,11 +18,11 @@ Em **Tempo (Time)**, informe a data do serviço, a atividade e a duração real 
 
 Rascunho permite revisar. Enviado aguarda análise. Se um revisor devolver, leia o motivo e envie a correção solicitada. Um registro aprovado permanece no histórico: use o fluxo de correção com um motivo e deixe o revisor autorizado atualizá-lo. Não exclua, duplique ou sobrescreva horas aprovadas.
 
-## 4. Despesas e envio de comprovantes
+## 4. Despesas, envio de comprovantes e arquivos privados
 
 Em **Despesas (Expenses)**, escolha o projeto, a data do serviço, a categoria, o valor, a moeda e o pagador real. Selecione a si mesmo somente se você realmente pagou a despesa. Anexe um comprovante JPEG, PNG ou PDF legível e confirme que ele está completo antes de enviar. Guarde o original até confirmar o upload.
 
-Se o envio falhar, verifique o tipo de arquivo e a conexão e tente novamente no mesmo rascunho. Se o status não estiver claro, atualize **Despesas (Expenses)** e verifique antes de enviar de novo; assim você evita duplicidades. Não registre uma compra paga pela empresa como adiantamento pessoal nem envie evidência alterada.
+Se o envio falhar, ficar pendente de análise/quarentena ou for rejeitado, leia a mensagem do portal, verifique o tipo de arquivo e a conexão e tente novamente no mesmo rascunho. Se o status não estiver claro, atualize **Despesas (Expenses)** e verifique antes de enviar de novo; assim você evita duplicidades. Não registre uma compra paga pela empresa como adiantamento pessoal nem envie evidência alterada. Documentos e downloads do projeto continuam privados e dependem da função; um link não concede acesso.
 
 ## 5. Relatórios (Reports): Diário (Daily) e PLC / Técnico (PLC / Technical)
 
@@ -37,3 +37,7 @@ Essa declaração privada não é um contracheque nem um documento fiscal. Nunca
 ## 7. Conexão e captura offline
 
 Use a captura offline somente quando o portal informar que ela está habilitada. Proteja o dispositivo, reconecte e confirme que o estado salvo ou sincronizado aparece antes de sair. Se estiver desabilitada, aguarde a conexão e tente novamente pelo portal sem criar um registro duplicado.
+
+## 8. Ajuda, caixa de atividades e limites de acesso
+
+Abra **Ajuda (Help)** para baixar o guia atribuído à sua função. A **Caixa de atividades (Activity Inbox)** em `/app/notifications` pode levar a um registro permitido; ler uma notificação não é aprová-la. Colaboradores usam apenas seus projetos atribuídos, seus registros, seus arquivos e Meu pagamento. Finanças, Faturamento, Contabilidade, Auditoria, acompanhamento da equipe, Closeout e filas de aprovação não são fluxos de Worker; uma negação de acesso é um limite, não um erro a contornar. O e-mail não é o registro do sistema: use o portal e o canal de suporte verificado no convite.

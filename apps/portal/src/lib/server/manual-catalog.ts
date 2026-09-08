@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 
-export const manualRevision = '2026-09-08';
+export const manualRevision = '2026-09-09';
 export const manualLocales = ['en', 'es', 'pt'] as const;
 export type ManualLocale = (typeof manualLocales)[number];
 
@@ -35,7 +35,7 @@ export type ManualDefinition = ManualSummary &
 
 const allAuthenticatedRoles: readonly ManualRole[] = manualRoles;
 const ownerRoles: readonly ManualRole[] = ['owner_admin', 'finance_admin'];
-const detailedReferenceRevision = '2026-09-06';
+const detailedReferenceRevision = manualRevision;
 
 const quickStart: ManualDefinition = {
   id: 'employee-field-guide',

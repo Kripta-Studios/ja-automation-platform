@@ -1,4 +1,4 @@
-# Guía de campo para empleados — revisión 2026-09-08
+# Guía de campo para empleados — revisión 2026-09-09
 
 > Usa solo la dirección del portal y el canal de soporte verificado indicados en tu invitación. Esta guía usa ejemplos sintéticos. No compartas contraseña, código MFA, código de recuperación, recibo ni sesión.
 
@@ -18,11 +18,11 @@ En **Tiempo (Time)**, indica la fecha de servicio, la actividad y la duración r
 
 Borrador permite revisar. Enviado espera revisión. Si un revisor lo devuelve, lee el motivo y envía la corrección solicitada. Un registro aprobado permanece en el historial: usa el flujo de corrección con un motivo y deja que el revisor autorizado lo actualice. No borres, dupliques ni sobrescribas horas aprobadas.
 
-## 4. Gastos y carga de recibos
+## 4. Gastos, carga de recibos y archivos privados
 
 En **Gastos (Expenses)**, selecciona proyecto, fecha de servicio, categoría, importe, moneda y el pagador real. Selecciónate solo si realmente pagaste el gasto. Adjunta un recibo JPEG, PNG o PDF legible y comprueba que se vea completo antes de enviarlo. Conserva el original hasta confirmar la carga.
 
-Si falla la carga, comprueba el tipo de archivo y la conexión y vuelve a intentarlo desde el mismo borrador. Si el estado no está claro, actualiza **Gastos (Expenses)** y compruébalo antes de volver a cargar; así evitas duplicados. No declares una compra pagada por la empresa como anticipo personal ni subas pruebas alteradas.
+Si falla la carga, queda pendiente de análisis/cuarentena o se rechaza, lee el mensaje del portal, comprueba el tipo de archivo y la conexión y vuelve a intentarlo desde el mismo borrador. Si el estado no está claro, actualiza **Gastos (Expenses)** y compruébalo antes de volver a cargar; así evitas duplicados. No declares una compra pagada por la empresa como anticipo personal ni subas pruebas alteradas. Los documentos y descargas del proyecto siguen siendo privados y dependen del rol; un enlace no concede acceso.
 
 ## 5. Informes (Reports): Diario (Daily) y PLC / Técnico (PLC / Technical)
 
@@ -37,3 +37,7 @@ Este estado privado no es una nómina ni un documento fiscal. Nunca deduzcas una
 ## 7. Conexión y captura sin conexión
 
 Usa la captura sin conexión solo si el portal indica que está habilitada. Protege el dispositivo, vuelve a conectarte y confirma que aparece el estado guardado o sincronizado antes de cerrar sesión. Si está deshabilitada, espera conexión y reintenta desde el portal sin crear un registro duplicado.
+
+## 8. Ayuda, bandeja de actividad y límites de acceso
+
+Abre **Ayuda (Help)** para descargar la guía asignada a tu rol. La **Bandeja de actividad (Activity Inbox)** en `/app/notifications` puede enlazar a un registro permitido; leer una notificación no es aprobarla. Los trabajadores usan solo sus proyectos asignados, sus registros, sus archivos y My Pay. Finanzas, Facturación, Contabilidad, Auditoría, seguimiento del personal, Closeout y colas de aprobación no son flujos de Worker; una denegación de acceso es un límite, no un error que debas sortear. El correo no es el registro del sistema: usa el portal y el canal de soporte verificado de tu invitación.

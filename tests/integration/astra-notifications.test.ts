@@ -83,6 +83,15 @@ function insertSchedule(
 }
 
 describe('ASTRA effective missing-time notifications', () => {
+  it('schedules the effective-calendar reminder alongside an existing legacy daily job', () => {
+    const value = fixture();
+    const workDate = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    value.v3.enqueueJob('alert_dispatch', `missing-time-reminder:${workDate}`, {
+      alertType: 'missing_time', workDate,
+    });
+    expect(() => value.v3.scheduleCoreJobs()).not.toThrow();
+    expect(() => value.v3.scheduleCoreJobs()).not.toThrow();
+  });
   it('uses the effective schedule and valid assignment mask, then deduplicates retries', () => {
     const value = fixture();
     value.sqlite

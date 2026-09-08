@@ -10495,7 +10495,7 @@ export class V3Repository {
     const reminderDate = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
     this.enqueueJob(
       'alert_dispatch',
-      `missing-time-reminder:${reminderDate}`,
+      `missing-time-reminder:effective-calendar-v2:${reminderDate}`,
       { alertType: 'missing_time' },
       now,
     );

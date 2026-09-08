@@ -36,6 +36,7 @@ const manualsDir = resolve(root, 'docs/manuals');
 const screenshotsDir = resolve(manualsDir, 'screenshots');
 const defaultManifest = resolve(manualsDir, 'validation/current-capture.json');
 const sha256 = /^[a-f0-9]{64}$/u;
+const brazilianPortuguese = process.argv.includes('--locale=pt-BR');
 const manuals: readonly Manual[] = [
   {
     id: 'owner-reference',
@@ -54,6 +55,25 @@ const manuals: readonly Manual[] = [
     subtitle: 'Assigned work, factual records, private files and personal compensation',
   },
 ];
+const selectedManuals: readonly Manual[] = brazilianPortuguese
+  ? manuals.map((manual) => ({
+      ...manual,
+      id: `${manual.id}-pt-br`,
+      source: manual.source.replace('.md', '_PT-BR.md'),
+      output: manual.output.replace('.pdf', '_PT-BR.pdf'),
+      title:
+        manual.role === 'owner'
+          ? 'Guia do usuário — Proprietário e Financeiro'
+          : 'Guia do usuário — Trabalhador',
+      subtitle:
+        manual.role === 'owner'
+          ? 'Administração operacional, financeiro, evidências do cliente e encerramento controlado'
+          : 'Trabalho atribuído, registros factuais, arquivos privados e remuneração pessoal',
+    }))
+  : manuals;
+function localize(en: string, pt: string): string {
+  return brazilianPortuguese ? pt : en;
+}
 function fail(message: string): never {
   throw new Error(`Manual generation refused: ${message}`);
 }
@@ -106,7 +126,10 @@ function loadManifest(): {
     !manifest.checks.every((check) => /^(passed|pass|ok)$/iu.test(String(check.status)))
   )
     fail('every capture manifest validation check must pass');
-  const source = readManualSourceIdentity(root);
+  // Translation reuses the existing validated capture set; it does not validate newer app edits.
+  const source = brazilianPortuguese
+    ? { sourceCommit: manifest.sourceCommit, sourceDigest: manifest.sourceDigest }
+    : readManualSourceIdentity(root);
   if (source.sourceDigest !== manifest.sourceDigest)
     fail('capture manifest sourceDigest differs from current application source');
   const seen = new Set<string>();
@@ -190,7 +213,7 @@ function renderMarkdown(
       const capture = figureFor(captures, figure[1] as Role, figure[2]);
       const caption = figure[3].replace(/[. ]+$/u, '');
       out.push(
-        `<figure><img src="${image(capture)}" alt="Synthetic ${escapeHtml(caption)}" /><figcaption>${inline(caption)}. Synthetic capture at ${capture.viewport.width} × ${capture.viewport.height}; route ${inline(capture.route)}.</figcaption></figure>`,
+        `<figure><img src="${image(capture)}" alt="${localize('Synthetic', 'Exemplo fictício')} ${escapeHtml(caption)}" /><figcaption>${inline(caption)}. ${localize('Synthetic capture at', 'Captura com dados fictícios em')} ${capture.viewport.width} × ${capture.viewport.height}; ${localize('route', 'rota')} ${inline(capture.route)}.</figcaption></figure>`,
       );
       continue;
     }
@@ -260,7 +283,7 @@ function renderMarkdown(
   closeLists();
   return {
     body: out.join('\n'),
-    toc: `<nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol>${entries.map((entry) => `<li class="toc-${entry.level}"><a href="#${entry.id}">${escapeHtml(entry.title)}</a></li>`).join('')}</ol></nav>`,
+    toc: `<nav class="toc" aria-label="${localize('Table of contents', 'Sumário')}"><h2>${localize('Contents', 'Sumário')}</h2><ol>${entries.map((entry) => `<li class="toc-${entry.level}"><a href="#${entry.id}">${escapeHtml(entry.title)}</a></li>`).join('')}</ol></nav>`,
   };
 }
 function documentHtml(
@@ -270,7 +293,7 @@ function documentHtml(
   body: string,
   toc: string,
 ): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${escapeHtml(manual.title)}</title><style>@page{size:A4;margin:17mm 15mm 18mm}body{font-family:Arial,"Noto Sans",sans-serif;color:#162235;font-size:9.7pt;line-height:1.47}h1,h2,h3{color:#073b5c;break-after:avoid}h1{font-size:22pt;border-bottom:3px solid #1597c5;padding-bottom:3mm;margin:0 0 5mm}h2{font-size:14pt;margin:9mm 0 3mm;padding-top:1mm}h3{font-size:11pt;margin:5mm 0 2mm}p,li{margin:0 0 2.2mm}ol,ul{padding-left:6mm;margin:2mm 0 4mm}.cover{min-height:235mm;display:flex;flex-direction:column;justify-content:space-between;page-break-after:always}.cover h1{font-size:32pt;border:0;margin-top:70mm}.cover .subtitle{font-size:16pt;color:#41566e;max-width:125mm}.meta{border-top:2px solid #1597c5;padding-top:4mm;color:#52677f;font-size:8.5pt}.toc{page-break-after:always}.toc h2{font-size:20pt}.toc ol{list-style:none;padding:0}.toc li{margin:2.4mm 0}.toc .toc-3{margin-left:6mm;font-size:9pt}.toc a,a{color:#075d88;text-decoration:none}figure{break-inside:avoid;margin:6mm 0;border:1px solid #cbd5e1;padding:3mm;background:#f8fafc}figure img{display:block;width:100%;max-height:100mm;object-fit:contain;background:white}figcaption{font-size:8.2pt;color:#53677d;margin-top:2mm}table{width:100%;border-collapse:collapse;margin:4mm 0 5mm;break-inside:avoid;font-size:8.5pt}th,td{border:1px solid #cbd5e1;padding:2mm;vertical-align:top;text-align:left}th{background:#eaf5f9;color:#073b5c}aside{background:#eef8fc;border-left:4px solid #1597c5;padding:3mm 4mm;margin:4mm 0;color:#29465c}code{background:#edf1f4;border-radius:2px;padding:.3mm .8mm;font-size:8.5pt}.revision{font-size:8.3pt;color:#52677f;border-top:1px solid #cbd5e1;margin-top:10mm;padding-top:3mm}</style></head><body><section class="cover"><div><small>J&amp;A Automation · role-aware operational reference</small><h1>${escapeHtml(manual.title)}</h1><p class="subtitle">${escapeHtml(manual.subtitle)}</p></div><div class="meta"><p>Validated synthetic capture: ${escapeHtml(manifest.capturedAt)}</p><p>Application source identity: <code>${escapeHtml(source.sourceDigest.slice(0, 16))}</code></p><p>This guide contains no production data. Role authorization and displayed record state remain authoritative.</p></div></section>${toc}<main>${body}<p class="revision">Current validated application identity: <code>${escapeHtml(source.sourceDigest.slice(0, 16))}</code>.</p></main></body></html>`;
+  return `<!doctype html><html lang="${localize('en', 'pt-BR')}"><head><meta charset="utf-8"><title>${escapeHtml(manual.title)}</title><style>@page{size:A4;margin:17mm 15mm 18mm}body{font-family:Arial,"Noto Sans",sans-serif;color:#162235;font-size:9.7pt;line-height:1.47}h1,h2,h3{color:#073b5c;break-after:avoid}h1{font-size:22pt;border-bottom:3px solid #1597c5;padding-bottom:3mm;margin:0 0 5mm}h2{font-size:14pt;margin:9mm 0 3mm;padding-top:1mm}h3{font-size:11pt;margin:5mm 0 2mm}p,li{margin:0 0 2.2mm}ol,ul{padding-left:6mm;margin:2mm 0 4mm}.cover{min-height:235mm;display:flex;flex-direction:column;justify-content:space-between;page-break-after:always}.cover h1{font-size:32pt;border:0;margin-top:70mm}.cover .subtitle{font-size:16pt;color:#41566e;max-width:125mm}.meta{border-top:2px solid #1597c5;padding-top:4mm;color:#52677f;font-size:8.5pt}.toc{page-break-after:always}.toc h2{font-size:20pt}.toc ol{list-style:none;padding:0}.toc li{margin:2.4mm 0}.toc .toc-3{margin-left:6mm;font-size:9pt}.toc a,a{color:#075d88;text-decoration:none}figure{break-inside:avoid;margin:6mm 0;border:1px solid #cbd5e1;padding:3mm;background:#f8fafc}figure img{display:block;width:100%;max-height:100mm;object-fit:contain;background:white}figcaption{font-size:8.2pt;color:#53677d;margin-top:2mm}table{width:100%;border-collapse:collapse;margin:4mm 0 5mm;break-inside:avoid;font-size:8.5pt}th,td{border:1px solid #cbd5e1;padding:2mm;vertical-align:top;text-align:left}th{background:#eaf5f9;color:#073b5c}aside{background:#eef8fc;border-left:4px solid #1597c5;padding:3mm 4mm;margin:4mm 0;color:#29465c}code{background:#edf1f4;border-radius:2px;padding:.3mm .8mm;font-size:8.5pt}.revision{font-size:8.3pt;color:#52677f;border-top:1px solid #cbd5e1;margin-top:10mm;padding-top:3mm}</style></head><body><section class="cover"><div><small>J&amp;A Automation · ${localize('role-aware operational reference', 'referência operacional por perfil')}</small><h1>${escapeHtml(manual.title)}</h1><p class="subtitle">${escapeHtml(manual.subtitle)}</p></div><div class="meta"><p>${localize('Validated synthetic capture:', 'Captura validada com dados fictícios:')} ${escapeHtml(manifest.capturedAt)}</p><p>${localize('Application source identity:', 'Identificação do código-fonte da aplicação:')} <code>${escapeHtml(source.sourceDigest.slice(0, 16))}</code></p><p>${localize('This guide contains no production data. Role authorization and displayed record state remain authoritative.', 'Este guia não contém dados de produção. A autorização do perfil e o estado exibido do registro continuam determinando o que é permitido.')}</p></div></section>${toc}<main>${body}<p class="revision">${localize('Current validated application identity:', 'Identificação da versão de referência validada:')} <code>${escapeHtml(source.sourceDigest.slice(0, 16))}</code>.</p></main></body></html>`;
 }
 export async function generateManuals(): Promise<void> {
   const { manifest, manifestPath, source } = loadManifest();
@@ -278,7 +301,7 @@ export async function generateManuals(): Promise<void> {
   const browser = await chromium.launch({ headless: true });
   const outputs: Array<Record<string, unknown>> = [];
   try {
-    for (const manual of manuals) {
+    for (const manual of selectedManuals) {
       const markdownPath = resolve(manualsDir, manual.source);
       if (!existsSync(markdownPath)) fail(`manual source is missing: ${manual.source}`);
       const rendered = renderMarkdown(readFileSync(markdownPath, 'utf8'), manifest.screenshots);
@@ -295,8 +318,7 @@ export async function generateManuals(): Promise<void> {
         tagged: true,
         outline: true,
         headerTemplate: `<div style="font-family:Arial,sans-serif;font-size:7pt;color:#52677f;width:100%;padding-left:15mm">J&amp;A Automation · ${escapeHtml(manual.title)}</div>`,
-        footerTemplate:
-          '<div style="font-family:Arial,sans-serif;font-size:7pt;color:#52677f;width:100%;text-align:center">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>',
+        footerTemplate: `<div style="font-family:Arial,sans-serif;font-size:7pt;color:#52677f;width:100%;text-align:center">${localize('Page', 'Página')} <span class="pageNumber"></span> ${localize('of', 'de')} <span class="totalPages"></span></div>`,
         margin: { top: '17mm', bottom: '18mm', left: '15mm', right: '15mm' },
       });
       await page.close();
@@ -309,7 +331,7 @@ export async function generateManuals(): Promise<void> {
     await browser.close();
   }
   writeFileSync(
-    resolve(manualsDir, 'manual-build.json'),
+    resolve(manualsDir, brazilianPortuguese ? 'manual-build-PT-BR.json' : 'manual-build.json'),
     `${JSON.stringify({ generatedAt: new Date().toISOString(), environment: manifest.environment, sourceCommit: manifest.sourceCommit, sourceDigest: source.sourceDigest, captureManifest: relative(root, manifestPath), capturedAt: manifest.capturedAt, checks: manifest.checks, screenshots: manifest.screenshots, outputs }, null, 2)}\n`,
   );
 }

@@ -1,0 +1,778 @@
+{
+  "generatedAt": "2026-09-08T23:32:21.664Z",
+  "environment": "synthetic",
+  "sourceCommit": "ea0419bcf70235eb53cbbf7d919c65ec2957b089",
+  "sourceDigest": "ad30c8047c85ee5f48fdd976a0ed8e65e761f11f3d1647f313d65ecb2b33605d",
+  "captureManifest": "docs/manuals/validation/current-capture.json",
+  "capturedAt": "2026-09-08T23:14:31.568Z",
+  "checks": [
+    {
+      "name": "navigation:owner:/app",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/projects",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/time",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/reports",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/expenses",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/documents",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/profile",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/help",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/notifications",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/projects?view=clients",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/projects?view=team",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/planning",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/projects/01a0834b-741f-74ad-a310-b7aa0c07c064",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/approvals",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/billing",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/billing/invoices/01a0834b-7509-7462-917c-53a04d0e8509",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/finance",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/finance?view=economic",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/finance?view=commercial",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/ledger",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/accounting",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/audit",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/finance/preview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/finance/cash",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/reports/review",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/reports/period/01a0834b-7525-7168-9e41-fba80244a048",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:owner:/app/projects/01a0834b-741f-74ad-a310-b7aa0c07c064/closeout",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:phone:owner:/app/finance/cash",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:phone:owner:/app/reports/review",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:worker:/app",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:worker:/app/projects",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:worker:/app/time",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "form-open:worker:/app/time",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:worker:/app/reports",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "form-open:worker:/app/reports",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:worker:/app/expenses",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "form-open:worker:/app/expenses",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:worker:/app/documents",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:worker:/app/profile",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:worker:/app/help",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:worker:/app/notifications",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:worker:/app/pay",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:worker:/app/projects/01a0834b-741f-74ad-a310-b7aa0c07c064",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "denied:worker:/app/billing",
+      "status": "passed",
+      "httpStatus": 403
+    },
+    {
+      "name": "denied:worker:/app/finance",
+      "status": "passed",
+      "httpStatus": 403
+    },
+    {
+      "name": "denied:worker:/app/approvals",
+      "status": "passed",
+      "httpStatus": 403
+    },
+    {
+      "name": "denied:worker:/app/accounting",
+      "status": "passed",
+      "httpStatus": 403
+    },
+    {
+      "name": "denied:worker:/app/audit",
+      "status": "passed",
+      "httpStatus": 403
+    },
+    {
+      "name": "denied:worker:/app/finance/preview",
+      "status": "passed",
+      "httpStatus": 403
+    },
+    {
+      "name": "denied:worker:/app/finance/cash",
+      "status": "passed",
+      "httpStatus": 403
+    },
+    {
+      "name": "navigation:phone:worker:/app/time",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:phone:worker:/app/expenses",
+      "status": "passed",
+      "httpStatus": 200
+    }
+  ],
+  "screenshots": [
+    {
+      "key": "today",
+      "role": "owner",
+      "route": "/app",
+      "path": "docs/manuals/screenshots/current/owner/today.png",
+      "sha256": "ae6fe967af0d3a6f20d1356483f3b17105ede68c75cd4dec9d31d3db18b209f3",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "projects",
+      "role": "owner",
+      "route": "/app/projects",
+      "path": "docs/manuals/screenshots/current/owner/projects.png",
+      "sha256": "bda996b725c3db2ae321e8e3806225e652d26d22dc65a621cdd3e91c2ae20c39",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "time",
+      "role": "owner",
+      "route": "/app/time",
+      "path": "docs/manuals/screenshots/current/owner/time.png",
+      "sha256": "a0f1a95665ff488087ad61716cb03ccd5b9f3160c60bbb65107d4da14c5b673e",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "reports",
+      "role": "owner",
+      "route": "/app/reports",
+      "path": "docs/manuals/screenshots/current/owner/reports.png",
+      "sha256": "538fdebe32f140dd5d1de6a457e8574773d9f99c5dc56a7b3b5f69bc66e2c385",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "expenses",
+      "role": "owner",
+      "route": "/app/expenses",
+      "path": "docs/manuals/screenshots/current/owner/expenses.png",
+      "sha256": "7b05f2c2b1850fbf6b4983fe3f353969cf13f1596c76b3e6ba3e246f829426bd",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "documents",
+      "role": "owner",
+      "route": "/app/documents",
+      "path": "docs/manuals/screenshots/current/owner/documents.png",
+      "sha256": "9613e78c69dc99d6c9635912d3e313e1f3cd08a5530d50f37c83cf9453d2f823",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "profile",
+      "role": "owner",
+      "route": "/app/profile",
+      "path": "docs/manuals/screenshots/current/owner/profile.png",
+      "sha256": "58f6d98ff8f56a3bde511f70abb77c82e76087246deba5e18312528a7c5743f5",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "help",
+      "role": "owner",
+      "route": "/app/help",
+      "path": "docs/manuals/screenshots/current/owner/help.png",
+      "sha256": "b731873799f32a71172acd35ead5b8440b5703475f27c5485665a80e46f7c37b",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "notifications",
+      "role": "owner",
+      "route": "/app/notifications",
+      "path": "docs/manuals/screenshots/current/owner/notifications.png",
+      "sha256": "d3f24e512d0677cab61c364b587775772df75b5656bd45f902e6fc065bdda8f2",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "clients",
+      "role": "owner",
+      "route": "/app/projects?view=clients",
+      "path": "docs/manuals/screenshots/current/owner/clients.png",
+      "sha256": "11ba77eb54887324ff9a0d4c0711501a3910ac760f093ea92331544110723d76",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "team",
+      "role": "owner",
+      "route": "/app/projects?view=team",
+      "path": "docs/manuals/screenshots/current/owner/team.png",
+      "sha256": "d5a652f294a1eff4dc44a5dbc2e0ff35020cb1231870e1a86737180877c5ca13",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "planning",
+      "role": "owner",
+      "route": "/app/planning",
+      "path": "docs/manuals/screenshots/current/owner/planning.png",
+      "sha256": "9f107c60add951a482eb653e0a6ea8a7c9790d1b18293aa29a104d60e0bb84bc",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "project-detail",
+      "role": "owner",
+      "route": "/app/projects/01a0834b-741f-74ad-a310-b7aa0c07c064",
+      "path": "docs/manuals/screenshots/current/owner/project-detail.png",
+      "sha256": "91533083085a9253864feb2af71bdd0733ed5696e53792a351750ca38eb1a20c",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "approvals",
+      "role": "owner",
+      "route": "/app/approvals",
+      "path": "docs/manuals/screenshots/current/owner/approvals.png",
+      "sha256": "aa004d5cf10dc62653742c0da26fd68e5caa17f13503692630bc2009d845dc2c",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "billing",
+      "role": "owner",
+      "route": "/app/billing",
+      "path": "docs/manuals/screenshots/current/owner/billing.png",
+      "sha256": "0893a255046ca194dccd734bfc9f0e6ac6257d55a7e73b195b000994f8f17ef6",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "invoice-detail",
+      "role": "owner",
+      "route": "/app/billing/invoices/01a0834b-7509-7462-917c-53a04d0e8509",
+      "path": "docs/manuals/screenshots/current/owner/invoice-detail.png",
+      "sha256": "3653e4fc1cb8ec6a8687186eb5cc905f58687251438b87cd9a2e8be91dba75c5",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "finance",
+      "role": "owner",
+      "route": "/app/finance",
+      "path": "docs/manuals/screenshots/current/owner/finance.png",
+      "sha256": "79621f0c7af850bf51f12566634d1cc9f6c1b8104f6d2ab95fd5529611b9f952",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "economic",
+      "role": "owner",
+      "route": "/app/finance?view=economic",
+      "path": "docs/manuals/screenshots/current/owner/economic.png",
+      "sha256": "b2efb3fd58d6031842525afbbd9b099079492e1a98726ab840ea3585207c15c8",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "commercial",
+      "role": "owner",
+      "route": "/app/finance?view=commercial",
+      "path": "docs/manuals/screenshots/current/owner/commercial.png",
+      "sha256": "a603954648964a218aa356ac00c34d0a07fdfe2793edf7a38b06ef66ce7c5208",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "ledger",
+      "role": "owner",
+      "route": "/app/ledger",
+      "path": "docs/manuals/screenshots/current/owner/ledger.png",
+      "sha256": "fe9c47e184ce9db309645d36f9e055de9a9e99a5f3c9a4a9343cbb685d906e3f",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "accounting",
+      "role": "owner",
+      "route": "/app/accounting",
+      "path": "docs/manuals/screenshots/current/owner/accounting.png",
+      "sha256": "0f9992124a1f40edb7c90f4eb02530615faec7af9c3ddb62246c351a9837e225",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "audit",
+      "role": "owner",
+      "route": "/app/audit",
+      "path": "docs/manuals/screenshots/current/owner/audit.png",
+      "sha256": "e7133f9908b2fdc36feb29970f798589164acf534a5a0dd7b9bb08286bdefb55",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "preview",
+      "role": "owner",
+      "route": "/app/finance/preview",
+      "path": "docs/manuals/screenshots/current/owner/preview.png",
+      "sha256": "73d361724d668997c10c26a36d934c5e273201669abb34fea7e36d37059c51e5",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "cash",
+      "role": "owner",
+      "route": "/app/finance/cash",
+      "path": "docs/manuals/screenshots/current/owner/cash.png",
+      "sha256": "72ca876da648c4dd56e6353112e3bc8367dc7325c89041ad8c85208965c8b1f0",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "period-review",
+      "role": "owner",
+      "route": "/app/reports/review",
+      "path": "docs/manuals/screenshots/current/owner/period-review.png",
+      "sha256": "43d37d40f21becee1396ba532603768f4040bc581c088c0cddfae8164616975f",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "period-detail",
+      "role": "owner",
+      "route": "/app/reports/period/01a0834b-7525-7168-9e41-fba80244a048",
+      "path": "docs/manuals/screenshots/current/owner/period-detail.png",
+      "sha256": "d0904aec2d42576082818b78546ab7600bc4a4cd97c204cccf2e58b0c6453de2",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "closeout",
+      "role": "owner",
+      "route": "/app/projects/01a0834b-741f-74ad-a310-b7aa0c07c064/closeout",
+      "path": "docs/manuals/screenshots/current/owner/closeout.png",
+      "sha256": "b3fb67b41f3f7da978394b1aef09bfbf1a7bedb0bccd6bd198f96095250b7ae1",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "cash-phone",
+      "role": "owner",
+      "route": "/app/finance/cash",
+      "path": "docs/manuals/screenshots/current/owner/cash-phone.png",
+      "sha256": "c566d1afc6b9e0907fe97bc8b50d056946c005211af360f211d769abcd68a538",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "key": "period-review-phone",
+      "role": "owner",
+      "route": "/app/reports/review",
+      "path": "docs/manuals/screenshots/current/owner/period-review-phone.png",
+      "sha256": "c2ef7f2dac8e208c56a43d95fa295b729f78d7e54dba25c5aae09b978c9a5991",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "key": "home",
+      "role": "worker",
+      "route": "/app",
+      "path": "docs/manuals/screenshots/current/worker/home.png",
+      "sha256": "5a89900e6241aeb3337dbb39898a31d858c8f789867392ecb972fa0b80b23193",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "projects",
+      "role": "worker",
+      "route": "/app/projects",
+      "path": "docs/manuals/screenshots/current/worker/projects.png",
+      "sha256": "bbc62fee8e21d7a3c58c57a82b63129f0de778d418096ad83f0ee06a91b61a42",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "time",
+      "role": "worker",
+      "route": "/app/time",
+      "path": "docs/manuals/screenshots/current/worker/time.png",
+      "sha256": "b110daa026b61665190fdf3410ebadf775f9b06a515dd544f8a39a6abb169a98",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "time-form",
+      "role": "worker",
+      "route": "/app/time",
+      "path": "docs/manuals/screenshots/current/worker/time-form.png",
+      "sha256": "9ebf10e1c68b5d0dce789e980278de3d3d6ca726ea31fd26dac6b88819ee5082",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "reports",
+      "role": "worker",
+      "route": "/app/reports",
+      "path": "docs/manuals/screenshots/current/worker/reports.png",
+      "sha256": "35293a3a17fe03117c71150cd82d5df029ee3ba30ebd6e7be86d777a39aa9502",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "reports-form",
+      "role": "worker",
+      "route": "/app/reports",
+      "path": "docs/manuals/screenshots/current/worker/reports-form.png",
+      "sha256": "0f29e3818889cae951993671412d6feb011173b959427e3e9b75344546d87043",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "expenses",
+      "role": "worker",
+      "route": "/app/expenses",
+      "path": "docs/manuals/screenshots/current/worker/expenses.png",
+      "sha256": "b3e5fa7dc36c91b505c09ad0217698ab0f87a0ba498777211899b2d3421a5b90",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "expenses-form",
+      "role": "worker",
+      "route": "/app/expenses",
+      "path": "docs/manuals/screenshots/current/worker/expenses-form.png",
+      "sha256": "a3e3ea90202680cf21fc24dc49c1cf134dfb975e0453b644a4efc617e1aeea6c",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "documents",
+      "role": "worker",
+      "route": "/app/documents",
+      "path": "docs/manuals/screenshots/current/worker/documents.png",
+      "sha256": "11c2eaf2a1eb4173d7d6d1e61dbfa22b7625a6adde46e3b1bc0ee7aad932eae2",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "profile",
+      "role": "worker",
+      "route": "/app/profile",
+      "path": "docs/manuals/screenshots/current/worker/profile.png",
+      "sha256": "fe51509898393579b94e7415b8f38b11c1feb0e9cac8e5221fd8927fd7367b3e",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "help",
+      "role": "worker",
+      "route": "/app/help",
+      "path": "docs/manuals/screenshots/current/worker/help.png",
+      "sha256": "b666fdd004fe6cc8f1a6d38abb11238aadc1f9a1da1ccd0e14a46efa2c60af80",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "notifications",
+      "role": "worker",
+      "route": "/app/notifications",
+      "path": "docs/manuals/screenshots/current/worker/notifications.png",
+      "sha256": "57b69825123f19998b4a4eafd0da0eadb73d22d84d7c45ff39d181ef4d727d88",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "pay",
+      "role": "worker",
+      "route": "/app/pay",
+      "path": "docs/manuals/screenshots/current/worker/pay.png",
+      "sha256": "c0d716283077dee96f064e5aaef4750a982e9307ec27a5e2bf9f3bd560dc89dc",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "project-detail",
+      "role": "worker",
+      "route": "/app/projects/01a0834b-741f-74ad-a310-b7aa0c07c064",
+      "path": "docs/manuals/screenshots/current/worker/project-detail.png",
+      "sha256": "613f8a23faff574421d1e5c0366db9a3000a4f4e1287555517932f2c558230f7",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "key": "time-phone",
+      "role": "worker",
+      "route": "/app/time",
+      "path": "docs/manuals/screenshots/current/worker/time-phone.png",
+      "sha256": "7efb5b9cc2de02e688dd5f18ce6634cd812e9e0130bbc03bc009cade9f5ccfb8",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "key": "expenses-phone",
+      "role": "worker",
+      "route": "/app/expenses",
+      "path": "docs/manuals/screenshots/current/worker/expenses-phone.png",
+      "sha256": "034742e3c9e4e4240574cdf2ec9b2f15c80cc6a2acd840ca36017192174d0871",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "owner-reference-pt-br",
+      "file": "Owner_User_Guide_PT-BR.pdf",
+      "sha256": "863971280881e970ddcef35e895c3569904d06f17fff849ffcfe4798257cf3dd",
+      "bytes": 1859522
+    },
+    {
+      "id": "worker-reference-pt-br",
+      "file": "Worker_User_Guide_PT-BR.pdf",
+      "sha256": "afe6fc93bb9b51b2deb08be3b9a38445dcbf681890274771929b22b793af3c7c",
+      "bytes": 1325621
+    }
+  ]
+}

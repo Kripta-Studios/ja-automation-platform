@@ -82,5 +82,6 @@ that initial upgrade fails; stop writers and restore the verified pre-upgrade ba
 schema-41 code. Remove maintenance only after schema-42 baseline health and jobs checks succeed.
 The feature rollout can then use the retained schema-42 baseline for ordinary code rollback.
 
-Production activation and the final commit/image/backup identifiers are recorded in the deployment
-receipt after the final independent review and runtime checks.
+Production activation completed after the final independent review and runtime checks. Commit,
+image, backup and manual identifiers are recorded in
+[the deployment receipt](PRODUCTION_DEPLOYMENT_2026-09-09_SUPPLIER_WORKFORCE.md).

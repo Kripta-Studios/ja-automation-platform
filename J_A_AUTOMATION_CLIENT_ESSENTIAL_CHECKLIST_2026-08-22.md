@@ -711,3 +711,15 @@ El recibo de producción separará las pruebas sintéticas de las verificaciones
 Estos resultados no cierran el histórico perdido de backups, la copia externa, la entrega y
 recuperación real del correo, los datos fiscales ni la aceptación humana pendientes del registro
 de remediación. No se crean ni reactivan agentes tras la prohibición expresa del solicitante.
+
+### Activación verificada y limpieza — 2026-09-09, 22:09 CEST
+
+Commit de aplicación y manuales `58403295db6c0ba585eaf2e873437044cb065e24` desplegado;
+1.604 archivos y siete PDF coinciden con el paquete. Portal/site saludables, jobs activo,
+schema 42, integridad correcta y cero errores de claves foráneas. Seis casos de idioma
+EN/ES/PT en móvil/escritorio pasan contra el login productivo; dos ciclos automáticos de jobs
+pasan y `backup.verified` acredita la copia real nueva con 29 documentos. Se conservan seis
+backups, que cubren un solo día. Limpieza de Docker/cachés: aproximadamente 8,66 GB recuperados.
+
+Recibo y límites: [despliegue de la remediación](docs/PRODUCTION_DEPLOYMENT_2026-09-09_AUDIT_REMEDIATION.md).
+Los pendientes externos, fiscales y de aceptación humana de la auditoría siguen abiertos.

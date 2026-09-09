@@ -1,0 +1,215 @@
+{
+  "deployment": {
+    "commit": "58403295db6c0ba585eaf2e873437044cb065e24",
+    "archive": "/tmp/ja-locale-audit-release-5840329.zip",
+    "archiveSha256": "bd63d2cc1c4dc973b144f0fe42dd23ccd84643cd8272e8cbbd28eae7ee2987e7",
+    "release": "/opt/jaautomation/releases/ja-automation-bd63d2cc1c4dc973b144f0fe42dd23ccd84643cd8272e8cbbd28eae7ee2987e7",
+    "tag": "zip-bd63d2cc1c4dc973b144f0fe42dd23cc",
+    "files": 1604,
+    "verifiedAt": "2026-09-09T20:12:15.693439+00:00",
+    "releaseFilesVerified": 1604,
+    "pdfs": [
+      {
+        "file": "Employee_Field_Guide_EN.pdf",
+        "pages": 6,
+        "bytes": 1084503,
+        "sha256": "5e06e685dcafcac00e56cb72bfb3346fd168fb4568a33d0ed4dda7dd385f384f"
+      },
+      {
+        "file": "Employee_Field_Guide_ES.pdf",
+        "pages": 6,
+        "bytes": 1086305,
+        "sha256": "ece69e1dd2b1372a572b65ba11d38dd63655a18dc718c89fa7d14e41d67b70e4"
+      },
+      {
+        "file": "Employee_Field_Guide_PT-BR.pdf",
+        "pages": 6,
+        "bytes": 1086813,
+        "sha256": "9cd8ca8509b33d80551c1f87a0437bc6afa8e7d96ffd7fecde36fe5fd7136f8f"
+      },
+      {
+        "file": "Owner_User_Guide.pdf",
+        "pages": 17,
+        "bytes": 1922731,
+        "sha256": "7111c18d7e1aa670865bd7c4f4557626f7508cb06e14b450fe2a4abd6d0a5e69"
+      },
+      {
+        "file": "Owner_User_Guide_PT-BR.pdf",
+        "pages": 18,
+        "bytes": 1935584,
+        "sha256": "fa6585c157b4d89f5957546426dc01edd2af02d8a25933b3be513630cb87a290"
+      },
+      {
+        "file": "Worker_User_Guide.pdf",
+        "pages": 12,
+        "bytes": 1492083,
+        "sha256": "9905e6646b6355523b7d2fbe4341504ec1e151b89aa177e566073e033852d2de"
+      },
+      {
+        "file": "Worker_User_Guide_PT-BR.pdf",
+        "pages": 13,
+        "bytes": 1500006,
+        "sha256": "2f4b0657d032d69911faf36077c068cc4235965fdf64be7d019b98258eb7e071"
+      }
+    ],
+    "schema": 42,
+    "integrity": "ok",
+    "foreignKeyViolations": 0,
+    "previousBackupsPreserved": 5,
+    "outboxCounts": [
+      ["notification.email.requested", "delivered", 1],
+      ["notification.email.requested", "failed", 100],
+      ["public-inquiry.received", "delivered", 3]
+    ],
+    "containers": [
+      {
+        "name": "deployment-portal-1",
+        "imageId": "sha256:ae8e375e822dc050f0a6fc1c5073e5ceb26f227b82377d16c291dcc6597554a4",
+        "imageTag": "ja-automation-portal:zip-bd63d2cc1c4dc973b144f0fe42dd23cc",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "deployment-site-1",
+        "imageId": "sha256:0963af9fbee01923427ce5c21875335939063ba9ff732cad31cf161df44fceae",
+        "imageTag": "ja-automation-site:zip-bd63d2cc1c4dc973b144f0fe42dd23cc",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "deployment-jobs-1",
+        "imageId": "sha256:ae8e375e822dc050f0a6fc1c5073e5ceb26f227b82377d16c291dcc6597554a4",
+        "imageTag": "ja-automation-portal:zip-bd63d2cc1c4dc973b144f0fe42dd23cc",
+        "running": true,
+        "health": null
+      }
+    ]
+  },
+  "sourceDigest": "d77361643ab34930db69c534c408762b2cfbd7d372dfe8169d9ad0379066c114",
+  "productionLocale": {
+    "checkedAt": "2026-09-09T20:09:24.356Z",
+    "url": "https://j-aautomation.com/j-aautomation/app/login",
+    "environment": "production",
+    "scope": "Anonymous login only; authenticated Owner/Worker lifecycle is verified separately in isolated tests.",
+    "checks": [
+      {
+        "width": 360,
+        "locale": "pt",
+        "status": "passed",
+        "persistence": "navigation without query",
+        "secureCookie": true
+      },
+      {
+        "width": 360,
+        "locale": "es",
+        "status": "passed",
+        "persistence": "navigation without query",
+        "secureCookie": true
+      },
+      {
+        "width": 360,
+        "locale": "en",
+        "status": "passed",
+        "persistence": "navigation without query",
+        "secureCookie": true
+      },
+      {
+        "width": 1440,
+        "locale": "pt",
+        "status": "passed",
+        "persistence": "navigation without query",
+        "secureCookie": true
+      },
+      {
+        "width": 1440,
+        "locale": "es",
+        "status": "passed",
+        "persistence": "navigation without query",
+        "secureCookie": true
+      },
+      {
+        "width": 1440,
+        "locale": "en",
+        "status": "passed",
+        "persistence": "navigation without query",
+        "secureCookie": true
+      }
+    ]
+  },
+  "automaticBackupVerification": {
+    "timestamp": "2026-09-09T20:08:53.056Z",
+    "level": "warn",
+    "event": "backup.verified",
+    "service": "jaautomation-jobs",
+    "backupPath": "/var/backups/jaautomation/2026-09-09T200846963Z-8d975366-57b9-4422-81b6-13fd2ad21b49",
+    "verifiedAt": "2026-09-09T20:08:51.742Z",
+    "createdAt": "2026-09-09T20:08:47.917Z",
+    "databaseSha256": "df774459c705d6add1f74850309bdad3526bacc62e7372b2b465c5b6781efe11",
+    "integrity": "ok",
+    "foreignKeyViolations": 0,
+    "documentCount": 29,
+    "history": {
+      "snapshotCount": 6,
+      "observedDays": 1,
+      "requiredDays": 30,
+      "coverageComplete": false,
+      "missingDays": [
+        "2026-09-08",
+        "2026-09-07",
+        "2026-09-06",
+        "2026-09-05",
+        "2026-09-04",
+        "2026-09-03",
+        "2026-09-02",
+        "2026-09-01",
+        "2026-08-31",
+        "2026-08-30",
+        "2026-08-29",
+        "2026-08-28",
+        "2026-08-27",
+        "2026-08-26",
+        "2026-08-25",
+        "2026-08-24",
+        "2026-08-23",
+        "2026-08-22",
+        "2026-08-21",
+        "2026-08-20",
+        "2026-08-19",
+        "2026-08-18",
+        "2026-08-17",
+        "2026-08-16",
+        "2026-08-15",
+        "2026-08-14",
+        "2026-08-13",
+        "2026-08-12",
+        "2026-08-11"
+      ],
+      "scope": "Manifest dates only; integrity verified for latest snapshot"
+    }
+  },
+  "cleanup": {
+    "diskAvailableBefore": 16547131392,
+    "scope": "Unused audit-only candidate images/archive/extraction; dangling Docker images/build cache; unused pnpm store cache. All backup snapshots and tagged rollback images preserved.",
+    "diskAvailableAfter": 25204662272,
+    "diskRecoveredBytes": 8657530880,
+    "retainedBackups": 6
+  },
+  "localVerification": {
+    "focusedTests": 110,
+    "testFiles": 12,
+    "browserPassed": 18,
+    "intentionalNonDesktopCaptureSkips": 6,
+    "localePersistencePassed": 12,
+    "supplierWorkflowWidths": [360, 390, 768, 1440],
+    "translatedRouteVisits": 78,
+    "knownUntranslatedVisibleTexts": 0,
+    "manualScreenshots": 48,
+    "workspaceTypecheck": "passed",
+    "portalESLint": "passed"
+  },
+  "limits": [
+    "No real external test email sent; historical failed outbox entries not replayed.",
+    "Six backups cover one observed day; deleted prior history is not recovered.",
+    "Offsite destination, external alert channel, verified fiscal inputs, mailbox migration/recovery evidence and human approvals remain outstanding."
+  ]
+}

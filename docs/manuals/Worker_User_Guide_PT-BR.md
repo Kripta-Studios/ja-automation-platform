@@ -61,6 +61,8 @@ Escolha o projeto correto, a data do serviço, a categoria, o valor exato e a mo
 
 Um arquivo enviado continua privado e sujeito ao seu estado. Se estiver aguardando verificação ou em quarentena, rejeitado, indisponível ou se o envio apresentar erro, leia a mensagem, corrija o arquivo ou a conexão e tente novamente no mesmo registro autorizado. Não crie duplicatas, não altere evidências, não envie credenciais nem dados de clientes sem relação com o registro e não declare uma compra paga pela empresa como um adiantamento pessoal.
 
+O mesmo conteúdo de recibo não pode ser enviado novamente, mesmo com outro nome de arquivo. A duplicata é rejeitada sem alterar o original; o envio que falhou é removido. Confira a despesa existente ou contate o suporte autorizado, em vez de renomear ou alterar o recibo.
+
 ### Campos e correção de despesas
 
 Em **Despesas**, use os campos visíveis de Projeto, Data, Categoria, Valor, Moeda, Pagador, recibo e justificativa. Confira se o Pagador é quem realmente pagou. Salve o rascunho antes de sair de um registro parcialmente preenchido; envie somente depois que o recibo e os campos factuais estiverem consistentes. Quando um item for devolvido, corrija o problema indicado e reenvie esse item. O estado de reembolso não é o faturamento ao cliente, e uma data prevista de reembolso não comprova pagamento.

@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { MailIdentityRepository } from '@ja/database';
+import { MailIdentityRepository, listInvoiceEmailDeliveries } from '@ja/database';
 import { error, redirect } from '@sveltejs/kit';
 import { defaultLookbackPeriod } from '$lib/server/iso-date';
 import { openPortalRepository } from '$lib/server/portal-repository';
@@ -422,6 +422,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         return {
           ...common,
           billingRules: context.repository.listBillingRules(context.principal),
+          invoiceEmailDeliveries: context.principal.role === 'auditor_read_only' ? [] : listInvoiceEmailDeliveries(context.sqlite, context.principal),
           invoices: context.repository.listInvoices(context.principal).map((invoice) => ({
             ...invoice,
             // A command token belongs to the displayed payment form, not to invoice.version:

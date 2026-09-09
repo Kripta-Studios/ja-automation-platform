@@ -99,6 +99,7 @@ services:
       JA_DATABASE_PATH: /var/lib/jaautomation/data/jaautomation.sqlite
       JA_MIGRATIONS_PATH: /app/migrations
       JA_DOCUMENT_ROOT: /var/lib/jaautomation/files
+      JA_BACKUP_ROOT: /var/backups/jaautomation
       JA_CHROMIUM_PATH: /usr/bin/chromium
       JA_MIN_FREE_BYTES: ${JA_MIN_FREE_BYTES:-1073741824}
       JA_ACCOUNTING_PACK_REQUIRE_PDF: ${JA_ACCOUNTING_PACK_REQUIRE_PDF:-false}
@@ -111,8 +112,10 @@ services:
       JA_ALERT_WEBHOOK_URL: ${JA_ALERT_WEBHOOK_URL:-}
       JA_ALERT_WEBHOOK_SECRET: ${JA_ALERT_WEBHOOK_SECRET:-}
       JA_JOBS_POLL_MS: ${JA_JOBS_POLL_MS:-5000}
+    group_add: ['${JA_BACKUP_READER_GID:-10003}']
     volumes:
       - /var/lib/jaautomation:/var/lib/jaautomation
+      - /var/backups/jaautomation:/var/backups/jaautomation:ro
     read_only: true
     tmpfs: [/tmp]
     security_opt: [no-new-privileges:true]

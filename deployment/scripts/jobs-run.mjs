@@ -1,4 +1,6 @@
 import { createHash, createHmac } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import {
   closeSync,
   constants as fsConstants,
@@ -261,6 +263,21 @@ async function runCycle() {
       repository,
       v3,
       documentRoot: root,
+      verifyBackup: () => {
+        const evidence = JSON.parse(
+          execFileSync(
+            process.execPath,
+            [fileURLToPath(new URL('./backup-verify.mjs', import.meta.url))],
+            {
+              encoding: 'utf8',
+              timeout: 120_000,
+              maxBuffer: 1024 * 1024,
+              stdio: ['ignore', 'pipe', 'pipe'],
+            },
+          ),
+        );
+        log(evidence.history.coverageComplete ? 'info' : 'warn', 'backup.verified', evidence);
+      },
       localizedPdf,
       workerStatement,
     });

@@ -42,7 +42,7 @@ RUN apt-get update \
 WORKDIR /app
 COPY --from=build --chown=jaautomation:jaautomation /portal ./
 COPY --from=build --chown=jaautomation:jaautomation /workspace/migrations ./migrations
-COPY --from=build --chown=jaautomation:jaautomation /workspace/deployment/jobs-build/jobs-run.mjs ./deployment/jobs-run.mjs
+COPY --from=build --chown=jaautomation:jaautomation /workspace/deployment/jobs-build/ ./deployment/
 COPY --from=build --chown=jaautomation:jaautomation /workspace/packages/reporting/assets ./reporting-assets
 COPY --from=build --chown=jaautomation:jaautomation /workspace/manuals ./manuals
 ENV JA_REPORTING_LOGO_PATH=/app/reporting-assets/logo-jaautomation.png JA_MANUAL_ROOT=/app/manuals

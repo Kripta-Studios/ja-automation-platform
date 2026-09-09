@@ -6,7 +6,7 @@ import {
   claimOutboxDelivery,
   markOutboxDelivered,
   parseSignedOutboxRequest,
-  releaseOutboxDeliveryClaim,
+  failOutboxDelivery,
   resolveMailDelivery,
   sendStalwartMail,
   verifyOutboxSignature,
@@ -40,8 +40,14 @@ export const POST: RequestHandler = async ({ request }) => {
   const { sqlite } = createDatabase(path);
   const claimId = randomUUID();
   let claimed = false;
+  let smtpAccepted = false;
   try {
-    const delivery = resolveMailDelivery(sqlite, parsed, process.env.JA_FORM_RECIPIENT);
+    const delivery = resolveMailDelivery(sqlite, parsed, process.env.JA_FORM_RECIPIENT, {
+      authSecret: process.env.JA_AUTH_SECRET,
+      documentRoot: process.env.JA_DOCUMENT_ROOT,
+      publicOrigin: process.env.ORIGIN,
+      publicBasePath: process.env.JA_PUBLIC_BASE_PATH,
+    });
     if (delivery === 'already-delivered') return new Response(null, { status: 204 });
     const claim = claimOutboxDelivery(sqlite, parsed, claimId);
     if (claim === 'already-delivered') return new Response(null, { status: 204 });
@@ -55,13 +61,14 @@ export const POST: RequestHandler = async ({ request }) => {
       password: smtpPassword,
       from: process.env.JA_SMTP_FROM,
     });
+    smtpAccepted = true;
     markOutboxDelivered(sqlite, parsed, claimId);
     claimed = false;
     return new Response(null, { status: 204 });
-  } catch {
+  } catch (error) {
     if (claimed) {
       try {
-        releaseOutboxDeliveryClaim(sqlite, parsed, claimId);
+        failOutboxDelivery(sqlite, parsed, claimId, error, smtpAccepted);
       } catch {
         // The worker owns retry recovery. Keep the public response generic if
         // a concurrent database failure prevents best-effort claim release.

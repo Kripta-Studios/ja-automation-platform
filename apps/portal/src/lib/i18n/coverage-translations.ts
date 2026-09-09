@@ -8,6 +8,56 @@ import { explicitCoverageLiterals } from './coverage-literals';
  */
 
 const exact: Record<string, readonly [string, string]> = {
+  'Delivery uncertain; check mail server before retrying': [
+    'Entrega incierta; comprueba el servidor de correo antes de reintentar',
+    'Entrega incerta; verifique o servidor de e-mail antes de tentar novamente',
+  ],
+  'action.billing.invoiceEmail.uncertain': [
+    'Entrega incierta; comprueba el servidor de correo antes de reintentar. No hay reintento automático.',
+    'Entrega incerta; verifique o servidor de e-mail antes de tentar novamente. Não haverá nova tentativa automática.',
+  ],
+  'Email sending': ['Enviando correo', 'Enviando e-mail'],
+  'action.billing.invoiceEmail.sending': ['El envío está en curso.', 'O envio está em andamento.'],
+  'Invoice recipient email': [
+    'Correo del destinatario de la factura',
+    'E-mail do destinatário da fatura',
+  ],
+  'Send by email': ['Enviar por correo', 'Enviar por e-mail'],
+  'Send the issued PDF by email. Queued is not sent; SMTP acceptance does not confirm inbox delivery.':
+    [
+      'Envía el PDF emitido por correo. En cola no significa enviado; la aceptación SMTP no confirma la entrega en la bandeja de entrada.',
+      'Envie o PDF emitido por e-mail. Na fila não significa enviado; a aceitação SMTP não confirma a entrega na caixa de entrada.',
+    ],
+  'Accepted by SMTP server': ['Aceptado por el servidor SMTP', 'Aceito pelo servidor SMTP'],
+  'Email failed; administrator action required': [
+    'Error de correo; requiere intervención del administrador',
+    'Falha no e-mail; requer ação do administrador',
+  ],
+  'Email delivery error; automatic retry pending': [
+    'Error de envío; reintento automático pendiente',
+    'Erro no envio; nova tentativa automática pendente',
+  ],
+  'Email queued': ['Correo en cola', 'E-mail na fila'],
+  'Mark sent records a manual delivery only. It does not send an email.': [
+    'Marcar enviada registra únicamente una entrega manual. No envía ningún correo.',
+    'Marcar enviada registra apenas uma entrega manual. Não envia nenhum e-mail.',
+  ],
+  'action.billing.invoiceEmail.queued': [
+    'Correo en cola. Todavía no se ha enviado.',
+    'E-mail na fila. Ainda não foi enviado.',
+  ],
+  'action.billing.invoiceEmail.accepted': [
+    'El servidor SMTP aceptó el correo. No confirma entrega en la bandeja de entrada.',
+    'O servidor SMTP aceitou o e-mail. Não confirma entrega na caixa de entrada.',
+  ],
+  'action.billing.invoiceEmail.failed': [
+    'El envío falló y requiere intervención del administrador.',
+    'O envio falhou e requer ação do administrador.',
+  ],
+  'action.billing.invoiceEmail.retrying': [
+    'Error de envío. El sistema reintentará automáticamente.',
+    'Erro no envio. O sistema tentará novamente automaticamente.',
+  ],
   'Document access': ['Acceso al documento', 'Acesso ao documento'],
   'Project document': ['Documento del proyecto', 'Documento do projeto'],
   'Finance, Owner and Auditor only': [
@@ -1190,7 +1240,10 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Borrador de ajuste de factura creado.',
     'Rascunho de ajuste da fatura criado.',
   ],
-  'action.billing.invoiceAlreadySent': ['La factura ya fue enviada.', 'A fatura já foi enviada.'],
+  'action.billing.invoiceAlreadySent': [
+    'La factura ya está marcada como enviada.',
+    'A fatura já está marcada como enviada.',
+  ],
   'action.billing.invoiceApproved': ['Factura aprobada.', 'Fatura aprovada.'],
   'action.billing.invoiceDeleted': ['Factura eliminada.', 'Fatura excluída.'],
   'action.billing.invoiceDraftCreated': [
@@ -1214,7 +1267,10 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Política de numeración de facturas guardada.',
     'Política de numeração de faturas salva.',
   ],
-  'action.billing.invoiceSent': ['Factura enviada.', 'Fatura enviada.'],
+  'action.billing.invoiceSent': [
+    'Factura marcada como enviada manualmente.',
+    'Fatura marcada como enviada manualmente.',
+  ],
   'action.billing.invoiceUpdated': ['Factura actualizada.', 'Fatura atualizada.'],
   'action.billing.invoiceVoided': [
     'Factura anulada y registrada en la auditoría.',
@@ -1723,6 +1779,19 @@ function actionMessage(locale: 'es' | 'pt', key: string): string {
 }
 
 function englishActionMessage(key: string): string {
+  const emailMessages: Record<string, string> = {
+    'action.billing.invoiceEmail.uncertain':
+      'Delivery uncertain; check mail server before retrying. No automatic retry.',
+    'action.billing.invoiceEmail.sending': 'Email delivery is in progress.',
+    'action.billing.invoiceEmail.queued': 'Invoice email queued. It has not been sent yet.',
+    'action.billing.invoiceEmail.accepted':
+      'SMTP server accepted the email. Inbox delivery is not confirmed.',
+    'action.billing.invoiceEmail.failed': 'Email failed; administrator action required.',
+    'action.billing.invoiceEmail.retrying': 'Email delivery error; automatic retry pending.',
+    'action.billing.invoiceSent': 'Invoice marked as sent manually.',
+    'action.billing.invoiceAlreadySent': 'Invoice already marked as sent.',
+  };
+  if (emailMessages[key]) return emailMessages[key];
   const suffix = key.slice('action.'.length);
   const exactEnglish: Record<string, string> = {
     'action.billing.paymentReversed': 'Payment reversal recorded.',

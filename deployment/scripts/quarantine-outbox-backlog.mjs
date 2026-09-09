@@ -4,7 +4,13 @@ import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 
-const SUPPORTED_TOPICS = new Set(['notification.email.requested', 'public-inquiry.received']);
+const SUPPORTED_TOPICS = new Set([
+  'notification.email.requested',
+  'public-inquiry.received',
+  'invitation.created',
+  'invoice.issued',
+  'invoice.email.requested',
+]);
 
 const argument = (name, fallback) => {
   const prefix = `--${name}=`;

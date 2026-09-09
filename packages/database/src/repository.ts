@@ -6019,19 +6019,6 @@ export class PortalRepository {
           "UPDATE invoice SET state='sent',sent_at=?,updated_at=?,version=version+1 WHERE id=? AND state='issued'",
         )
         .run(timestamp, timestamp, invoiceId);
-      this.sqlite
-        .prepare(
-          'INSERT OR IGNORE INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at) VALUES(?,?,?,?,?,?,?)',
-        )
-        .run(
-          newId(),
-          'invoice.send.requested',
-          invoiceId,
-          `invoice-send:${invoiceId}:${idempotencyKey}`,
-          JSON.stringify({ invoiceId, invoiceNumber: invoice.invoice_number }),
-          timestamp,
-          timestamp,
-        );
       this.audit(principal, 'invoice.send', 'invoice', invoiceId, {
         invoiceNumber: invoice.invoice_number,
       });

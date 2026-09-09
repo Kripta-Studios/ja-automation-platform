@@ -61,6 +61,8 @@ Choose the correct project, service date, category, exact amount/currency, actua
 
 An uploaded file is still private and status-controlled. If it is pending scan/quarantine, rejected, unavailable or the upload reports an error, read the message, correct the file or connection issue and retry from the same authorized record. Do not create duplicates, alter evidence, upload credentials or unrelated customer data, or submit a company-paid purchase as a personal advance.
 
+The same receipt content cannot be uploaded again, even under another filename. A duplicate is rejected without changing the original; the failed upload is removed. Review the existing expense or contact authorized support instead of renaming or altering the receipt.
+
 ### Expense fields and correction
 
 In **Expenses**, use the visible Project, Date, Category, Amount, Currency, Payer, receipt and reason fields. Check that the Payer is the person who actually paid. Save the draft before leaving a partially complete record; submit only after the receipt and factual fields match. When an item is returned, correct the stated issue and resubmit that item. A reimbursement state is not customer billing and an expected reimbursement date is not proof of payment.

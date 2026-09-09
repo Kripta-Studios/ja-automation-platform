@@ -647,6 +647,11 @@ process_archive() (
   [[ -n "$backup_dir" && -d "$backup_dir" ]] \
     || die 'El backup previo no devolvió un directorio verificable'
 
+  # The previous release's backup creator may preserve unreadable source modes.
+  # Normalize only backup snapshots before updated jobs inspect them.
+  "$NODE" "$release_dir/deployment/scripts/configure-backup-reader.mjs" \
+    --env-file="$ENV_FILE"
+
   log 'Clasificando y aislando el backlog anterior al corte de entrega'
   "$NODE" "$release_dir/deployment/scripts/quarantine-outbox-backlog.mjs" \
     --database="$DB_PATH" \

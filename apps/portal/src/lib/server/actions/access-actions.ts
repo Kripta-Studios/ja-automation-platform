@@ -1,3 +1,4 @@
+import { sealInvitationToken } from '$lib/server/invitation-mail-token';
 import { invitationInputSchema, uuidSchema } from '@ja/schemas';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess } from './action-message';
@@ -52,7 +53,11 @@ export const accessActions = {
     const opened = openAccessContext(locals);
     if ('failure' in opened) return opened.failure;
     try {
-      const result = opened.context.v3.createInvitation(opened.context.principal, parsed.data);
+      const result = opened.context.v3.createInvitation(
+        opened.context.principal,
+        parsed.data,
+        (token, id) => sealInvitationToken(token, id, process.env.JA_AUTH_SECRET),
+      );
       const publicBase = process.env.JA_PUBLIC_BASE_PATH ?? '/j-aautomation';
       return actionSuccess(
         'action.access.invitation.created',

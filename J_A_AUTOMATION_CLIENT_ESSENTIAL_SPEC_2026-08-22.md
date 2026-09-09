@@ -76,7 +76,7 @@ Required behavior:
 - server-side authorization on every protected operation;
 - workers only see assigned projects and their own private compensation information;
 - Workers and PMs never receive client rates, other workers' pay, internal loaded costs, company margin, or Finance-only exports;
-- sensitive Finance/Admin changes require re-authentication or equivalent step-up protection;
+- sensitive Finance/Admin changes require live-session validation and server-side authorization; MFA is optional and no step-up is required, per the Owner decision of 2026-09-06 (see the reconciliation record below);
 - no public registration.
 
 A sophisticated identity platform is not required. Correct role isolation is.
@@ -654,7 +654,7 @@ Required:
 - RBAC and object-level authorization;
 - no IDOR across projects/workers;
 - no worker access to Finance-only DTO fields;
-- step-up for high-risk Finance/Admin actions;
+- live-session and role authorization for high-risk Finance/Admin actions; optional MFA and no step-up under the Owner decision of 2026-09-06;
 - no forged “service actor” path that bypasses human permissions.
 
 ### Audit
@@ -1052,3 +1052,20 @@ It does **not** need to become, before first production use:
 - an ML platform;
 - a JEPA product;
 - or a generalized integration platform.
+
+
+## 2026-09-09 — Recorded implementation-scope reconciliation
+
+The Owner decision dated 2026-09-06, retained in
+[OWNER_DECISIONS.md](docs/evidence/client-ready-20260906/OWNER_DECISIONS.md) (D13),
+requires optional MFA for every role and operation and no step-up. The two older requirements
+above have been reconciled with that instruction. Session validation, role/object authorization,
+private artifact controls and audit remain mandatory. This edit records the authorized software
+scope; it does not alter or sign the supplied contractual PDF or assert literal conformity with
+its mandatory-MFA text.
+
+Separate-host continuity was waived for the earlier Essential go-live. The current remediation
+request seeks to implement it when an authorized destination is available; a local backup is not
+an offsite copy. Thirty-day historical backup coverage, real fiscal configuration, mail migration,
+DPA/retention and human acceptance must be supported by their own evidence. See
+[the remediation register](docs/AUDIT_REMEDIATION_2026-09-09.md).

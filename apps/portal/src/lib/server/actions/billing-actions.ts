@@ -1,3 +1,5 @@
+import { fail } from '@sveltejs/kit';
+import { queueInvoiceEmail } from '@ja/database';
 import {
   accountingPackPeriodSchema,
   billingCloseSchema,
@@ -617,6 +619,31 @@ export const billingActions = {
       return actionSuccess('action.billing.invoiceVoided', {}, 'Invoice voided with audit trail');
     } catch (error) {
       return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  emailInvoice: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'billing') return actionFail(404, 'action.navigation.wrongSection');
+    const object = await formObject(request);
+    const context = openPortalRepository(locals);
+    try {
+      const result = queueInvoiceEmail(context.sqlite, context.principal, {
+        invoiceId: String(object.invoiceId ?? ''),
+        recipient: String(object.recipient ?? ''),
+      });
+      return actionSuccess(
+        `action.billing.invoiceEmail.${result.status}`,
+        {},
+        'Invoice email request recorded',
+      );
+    } catch (error) {
+      const failure = actionFailure(error);
+      return fail(failure.status, {
+        ...failure.data,
+        invoiceEmailRecipient: String(object.recipient ?? '').slice(0, 254),
+        invoiceEmailId: String(object.invoiceId ?? ''),
+      });
     } finally {
       context.sqlite.close();
     }

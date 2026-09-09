@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from 'node:crypto';
 import { execFile as execFileCallback } from 'node:child_process';
+import { createReadStream } from 'node:fs';
 import { cp, mkdir, mkdtemp, open, readFile, readdir, rename } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, posix, relative, resolve } from 'node:path';
@@ -575,6 +576,65 @@ async function documentEntries(root, current = root) {
     }
   }
   return result.sort((left, right) => left.path.localeCompare(right.path));
+}
+
+/** Bounded-memory integrity metadata; never opens SQLite or retains artifact bytes. */
+export async function backupFileMetadata(path) {
+  const checked = await assertSafePath(path, { label: 'backup integrity file' });
+  if (!checked.stats.isFile()) throw new Error('Backup integrity target is not a regular file');
+  const hash = createHash('sha256');
+  let byteLength = 0;
+  for await (const chunk of createReadStream(path)) {
+    hash.update(chunk);
+    byteLength += chunk.byteLength;
+  }
+  return { sha256: hash.digest('hex'), byteLength };
+}
+
+export async function verifyLocalBackupMetadata(
+  backupPath,
+  { allowEmptySqliteSidecars = false } = {},
+) {
+  const source = resolve(backupPath);
+  await assertSafeTree(source, { label: 'backup metadata source' });
+  const expectedNames = new Set(['database.db', 'documents', 'manifest.json']);
+  for (const name of await readdir(source)) {
+    if (expectedNames.has(name)) continue;
+    if (!allowEmptySqliteSidecars || !['database.db-wal', 'database.db-shm'].includes(name))
+      throw new Error('Backup contains unexpected entries');
+    const { stats } = await assertSafePath(join(source, name), { label: 'backup SQLite sidecar' });
+    if (!stats.isFile() || (name === 'database.db-wal' && stats.size !== 0))
+      throw new Error('Backup has uncheckpointed or invalid SQLite sidecars');
+  }
+  const manifest = validateManifest(
+    JSON.parse(await readFile(join(source, 'manifest.json'), 'utf8')),
+  );
+  const database = await backupFileMetadata(join(source, 'database.db'));
+  if (
+    database.sha256 !== manifest.database.sha256 ||
+    database.byteLength !== manifest.database.byteLength
+  )
+    throw new Error('Backup database integrity metadata mismatch');
+  const documentsRoot = join(source, 'documents');
+  await assertSafePath(documentsRoot, { directory: true, label: 'backup documents' });
+  const documents = [];
+  async function visit(directory) {
+    for (const name of await readdir(directory)) {
+      const path = join(directory, name);
+      const { stats } = await assertSafePath(path, { label: 'backup document' });
+      if (stats.isDirectory()) await visit(path);
+      else
+        documents.push({
+          path: relative(documentsRoot, path).replaceAll('\\', '/'),
+          ...(await backupFileMetadata(path)),
+        });
+    }
+  }
+  await visit(documentsRoot);
+  documents.sort((a, b) => a.path.localeCompare(b.path));
+  if (canonicalJson(documents) !== canonicalJson(manifest.documents))
+    throw new Error('Backup document manifest integrity mismatch');
+  return { manifest };
 }
 
 /** Verify that a local backup is complete before encryption or upload. */

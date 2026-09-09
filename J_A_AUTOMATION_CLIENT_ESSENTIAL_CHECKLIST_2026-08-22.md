@@ -667,3 +667,29 @@ el informe final; los antiguos checks técnicos no resuelven el defecto reproduc
 a aceptación contractual/humana.
 
 Cierre de la batería actual: `vitest run --no-file-parallelism` termina con salida0, **199 archivos / 1.351 pruebas PASS**, duración1.233,41s. La prueba adicional del duplicado confirma el defecto fuera de esa batería; el veredicto global continúa NO CUMPLIMIENTO ÍNTEGRO. Log: `/home/kripta/auditoria-ja-2026-09-09/vitest-full.log`.
+
+### Remediación técnica posterior a la auditoría — 2026-09-09
+
+La auditoría anterior conserva su valor histórico. El registro actualizado es
+[docs/AUDIT_REMEDIATION_2026-09-09.md](docs/AUDIT_REMEDIATION_2026-09-09.md).
+Se han corregido los recibos duplicados, la integración de invitaciones/avisos y el envío explícito
+de facturas con PDF, la diferenciación entre registro manual/cola/aceptación SMTP/entrega incierta,
+y la verificación real de backups con retención mínima y acceso privado del worker.
+
+Evidencia local: 78 pruebas en 11 archivos de regresión pasan sobre las correcciones estabilizadas;
+los dos recorridos nuevos de navegador pasan a 360/390/768/1440 px. Typecheck y ESLint pasan.
+La corrección posterior de normalización de mayúsculas del destinatario tiene su propia prueba
+idempotente. La batería amplia ejecutada durante los cambios tuvo 202 archivos / 1.403 pruebas
+correctas y ocho fallos en cuatro archivos; todos esos archivos están incluidos en la repetición
+correcta, sin declarar que el primer comando fue un PASS.
+
+El recorrido de 32 pasos supera los pasos funcionales 1–29. Los pasos 30–32 todavía requieren sus
+parámetros de evidencia operacional, continuidad y Caddy. La verificación real de la última copia
+retenida confirma integridad SQLite, cero errores de claves foráneas y 29 documentos; cinco copias
+cubren un solo día de los treinta exigidos. El código no recupera el histórico eliminado.
+
+No se declara cumplimiento contractual íntegro: destino externo de backups, alertas externas,
+pruebas de entrega/migración/recuperación real de correo, datos fiscales verificados y aprobaciones
+humanas siguen pendientes. La SPEC recoge la decisión existente del Owner sobre MFA opcional y
+sin step-up; no se altera ni se firma retroactivamente el contrato original. La activación y las
+comprobaciones de producción se acreditarán en el recibo de despliegue de esta remediación.

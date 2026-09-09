@@ -1109,6 +1109,7 @@ export class V3Repository {
       role: 'owner_admin' | 'finance_admin' | 'project_manager' | 'worker' | 'auditor_read_only';
       expiresInDays?: number;
     }>,
+    sealToken?: (token: string, invitationId: string) => string,
   ): { id: string; token: string; expiresAt: string } {
     this.assertFinance(principal);
     this.assertLiveSession(principal);
@@ -1131,30 +1132,40 @@ export class V3Repository {
     const id = newId();
     const now = timestamp();
     const expiresAt = new Date(Date.now() + expiresInDays * 86_400_000).toISOString();
-    this.sqlite
-      .prepare(
-        'INSERT INTO invitation(id,email,token_hash,role,invited_by,expires_at,created_at) VALUES(?,?,?,?,?,?,?)',
-      )
-      .run(id, email, tokenHash, input.role, principal.userId, expiresAt, now);
-    this.sqlite
-      .prepare(
-        'INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at) VALUES(?,?,?,?,?,?,?)',
-      )
-      .run(
-        newId(),
-        'invitation.created',
-        id,
-        `invitation:${id}`,
-        JSON.stringify({ invitationId: id, email, role: input.role, expiresAt }),
-        now,
-        now,
-      );
-    this.audit(principal, 'invitation.create', 'invitation', id, {
-      email,
-      role: input.role,
-      expiresAt,
+    const encryptedToken = sealToken?.(token, id);
+    return this.transaction(() => {
+      this.sqlite
+        .prepare(
+          'INSERT INTO invitation(id,email,token_hash,role,invited_by,expires_at,created_at) VALUES(?,?,?,?,?,?,?)',
+        )
+        .run(id, email, tokenHash, input.role, principal.userId, expiresAt, now);
+      if (encryptedToken)
+        this.sqlite
+          .prepare(
+            'INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at) VALUES(?,?,?,?,?,?,?)',
+          )
+          .run(
+            newId(),
+            'invitation.created',
+            id,
+            `invitation:${id}`,
+            JSON.stringify({
+              invitationId: id,
+              email,
+              role: input.role,
+              expiresAt,
+              encryptedToken,
+            }),
+            now,
+            now,
+          );
+      this.audit(principal, 'invitation.create', 'invitation', id, {
+        email,
+        role: input.role,
+        expiresAt,
+      });
+      return { id, token, expiresAt };
     });
-    return { id, token, expiresAt };
   }
 
   createClientLaborRate(principal: Principal, input: LaborRateInput): { id: string } {
@@ -2766,7 +2777,11 @@ export class V3Repository {
 
   workerPay(principal: Principal, periodStart: string, periodEnd: string) {
     this.assertActive(principal);
-    if (this.sqlite.prepare('SELECT 1 FROM supplier_user_profile WHERE user_id=?').get(principal.userId))
+    if (
+      this.sqlite
+        .prepare('SELECT 1 FROM supplier_user_profile WHERE user_id=?')
+        .get(principal.userId)
+    )
       throw new V3AccessDeniedError('Financial access is disabled for this workforce account');
     requireOrderedDateRange(periodStart, periodEnd);
     const sourceRows = this.sqlite
@@ -10361,8 +10376,7 @@ export class V3Repository {
       };
     if (!syncHandlers.backup_verify)
       syncHandlers.backup_verify = () => {
-        // Readiness remains an explicit finance action; this durable run only
-        // records a truthful successful scheduler execution.
+        throw new Error('BACKUP_VERIFIER_UNAVAILABLE');
       };
 
     const outcomes = runDueConfiguredDurableJobsSync(this.sqlite, limit, syncHandlers);
@@ -10386,6 +10400,12 @@ export class V3Repository {
     for (let index = 0; index < limit; index += 1) {
       const claimed = this.transaction(() => {
         const now = timestamp();
+        // A durable SMTP claim left by a crashed process cannot safely be resent.
+        this.sqlite
+          .prepare(
+            "UPDATE outbox_event SET failed_at=?,lease_until=NULL,last_error='SMTP_DELIVERY_UNCERTAIN' WHERE delivered_at IS NULL AND failed_at IS NULL AND last_error LIKE 'DELIVERY_IN_PROGRESS:%' AND (lease_until IS NULL OR lease_until<?)",
+          )
+          .run(now, now);
         const event = this.sqlite
           .prepare(
             'SELECT id,topic,aggregate_id,idempotency_key,payload_json,attempts FROM outbox_event WHERE delivered_at IS NULL AND failed_at IS NULL AND available_at<=? AND (lease_until IS NULL OR lease_until<?) ORDER BY available_at,id LIMIT 1',
@@ -10426,9 +10446,13 @@ export class V3Repository {
           const now = timestamp();
           this.sqlite
             .prepare(
-              'UPDATE outbox_event SET delivered_at=?,lease_until=NULL,last_error=NULL WHERE id=? AND delivered_at IS NULL',
+              "UPDATE outbox_event SET delivered_at=?,lease_until=NULL,last_error=NULL WHERE id=? AND delivered_at IS NULL AND failed_at IS NULL AND (last_error IS NULL OR last_error NOT LIKE 'DELIVERY_IN_PROGRESS:%')",
             )
             .run(now, claimed.id);
+          const acknowledged = this.sqlite
+            .prepare('SELECT delivered_at FROM outbox_event WHERE id=?')
+            .get(claimed.id) as { delivered_at: string | null };
+          if (!acknowledged.delivered_at) throw new Error('SMTP_DELIVERY_UNCERTAIN');
           if (claimed.topic === 'public-inquiry.received')
             this.sqlite
               .prepare(
@@ -10459,7 +10483,12 @@ export class V3Repository {
           const now = timestamp();
           this.sqlite
             .prepare(
-              'UPDATE outbox_event SET lease_until=NULL,available_at=?,last_error=?,failed_at=CASE WHEN ? THEN ? ELSE failed_at END WHERE id=? AND delivered_at IS NULL',
+              "UPDATE outbox_event SET failed_at=?,lease_until=NULL,last_error='SMTP_DELIVERY_UNCERTAIN' WHERE id=? AND delivered_at IS NULL AND failed_at IS NULL AND last_error LIKE 'DELIVERY_IN_PROGRESS:%'",
+            )
+            .run(now, claimed.id);
+          this.sqlite
+            .prepare(
+              "UPDATE outbox_event SET lease_until=NULL,available_at=?,last_error=?,failed_at=CASE WHEN ? THEN ? ELSE failed_at END WHERE id=? AND delivered_at IS NULL AND failed_at IS NULL AND (last_error IS NULL OR last_error NOT LIKE 'DELIVERY_IN_PROGRESS:%')",
             )
             .run(
               new Date(Date.now() + delayMs).toISOString(),
@@ -10469,7 +10498,10 @@ export class V3Repository {
               claimed.id,
             );
         });
-        if (permanentlyFailedNow) permanentlyFailed += 1;
+        const terminal = this.sqlite
+          .prepare('SELECT failed_at FROM outbox_event WHERE id=?')
+          .get(claimed.id) as { failed_at: string | null };
+        if (terminal.failed_at) permanentlyFailed += 1;
       }
     }
     return { processed, failed, permanentlyFailed };
@@ -10479,7 +10511,7 @@ export class V3Repository {
     const now = timestamp();
     const jobs = [
       ['alert_dispatch', '*/5 * * * *'],
-      ['backup_verify', '*/5 * * * *'],
+      ['backup_verify', '0 * * * *'],
       ['accounting_pack_artifact_render', '0 2 1 * *'],
       ['auto_draft', '*/10 * * * *'],
       ['temporary_upload_cleanup', '15 * * * *'],
@@ -10490,6 +10522,11 @@ export class V3Repository {
           'INSERT OR IGNORE INTO scheduled_job(id,kind,cron_expression,payload_json,updated_at) VALUES(?,?,?,?,?)',
         )
         .run(newId(), kind, cron, '{}', now);
+    this.sqlite
+      .prepare(
+        "UPDATE scheduled_job SET cron_expression='0 * * * *',updated_at=? WHERE kind='backup_verify'",
+      )
+      .run(now);
     const minute = now.slice(0, 16);
     const cleanupHour = now.slice(0, 13);
     const cleanupBoundary = new Date(`${cleanupHour}:00:00.000Z`);
@@ -10509,8 +10546,8 @@ export class V3Repository {
     );
     this.enqueueJob(
       'backup_verify',
-      `period-readiness:${minute}`,
-      { purpose: 'period_readiness' },
+      `backup-verify:${cleanupHour}`,
+      { purpose: 'backup_integrity' },
       now,
     );
     const reminderDate = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
@@ -11389,6 +11426,16 @@ export class V3Repository {
       if (reservation.state !== 'temporary') throw new V3ConflictError('Upload already finalized');
       // Membership may be revoked while the authorized upload writes its bytes.
       if (reservation.project_id) this.assertProjectAccess(principal, reservation.project_id);
+
+      // Preserve the global content uniqueness rule without leaking the existing
+      // document's identity or attaching a receipt from another access scope.
+      // The immediate transaction serializes competing finalizations.
+      if (
+        this.sqlite
+          .prepare('SELECT 1 FROM document WHERE sha256=? AND byte_length=? AND id<>?')
+          .get(input.sha256, input.byteLength, reservationId)
+      )
+        throw new V3ConflictError('Upload conflicts with existing content');
 
       const malwareScanRequired = malwareScannerRequired();
 

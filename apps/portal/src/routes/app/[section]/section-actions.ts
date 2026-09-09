@@ -48,6 +48,7 @@ export const sectionActions: Actions = {
   closePeriod: billingActions.closePeriod,
   voidInvoice: billingActions.voidInvoice,
   sendInvoice: billingActions.sendInvoice,
+  emailInvoice: billingActions.emailInvoice,
   createAccountingPack: billingActions.createAccountingPack,
   finalizeAccountingPack: billingActions.finalizeAccountingPack,
   createClient: projectActions.createClient,

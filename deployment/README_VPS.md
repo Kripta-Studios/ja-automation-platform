@@ -517,3 +517,28 @@ The repository provides the mechanism but cannot supply the customer's real valu
 SMTP/form recipient, signed outbox/CRM adapter, malware scanner, encrypted off-site backup target,
 accountant-approved tax/legal/numbering configuration, disk-alert destination, and final client
 recipient/currency data. These are deployment inputs, not code placeholders.
+
+### Required backup-reader migration before starting updated jobs
+
+Install the Ubuntu `acl` package. Set `JA_BACKUP_READER_GID` in the protected deployment environment
+(default `10003`), selecting an unused GID for the dedicated `jaautomation-backup-readers` group.
+The setup refuses collisions with any other group. Before activating this release on an existing VPS:
+
+```sh
+/opt/jaautomation/runtime/node/bin/node deployment/scripts/configure-backup-reader.mjs
+```
+
+Run from the reviewed release as root. `install-vps.sh` runs this step for new installations too.
+It configures the backup root's setgid/default ACL and only timestamped snapshot directories;
+unrelated backup-root siblings are untouched. Directories use `2750`, files `0640`. The group ID
+is persisted in the environment consumed by Compose and the nightly backup service. Only the jobs
+container receives this supplementary group and a read-only backup mount; the portal does not.
+
+Before activation, verify the latest snapshot from a process running as UID `10001` with this
+supplementary group, using `backup-verify.mjs`, and save its JSON evidence. Repeat after the first
+nightly and deployment-helper backups. Install the reviewed `deployment/scripts/jaautomation-zip-deploy`
+helper before the cutover: it reapplies this setup immediately after the pre-cutover backup, before
+quarantine and activation, because older creators preserve restrictive source file modes despite
+default ACL inheritance. Pause the backup timer and ensure no backup service is running during
+the controlled cutover. A successful scheduler run is not a substitute for this access check.
+No setup or retention setting can recreate previously deleted historical snapshots.

@@ -1,6 +1,6 @@
 import { backup, DatabaseSync } from 'node:sqlite';
 import { createHash, randomUUID } from 'node:crypto';
-import { cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { chown, chmod, cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sendOperationalAlert } from './alerts.mjs';
@@ -48,21 +48,53 @@ async function copyDocumentSnapshot(source, target) {
   await assertSafeTree(target, { label: 'backup document snapshot' });
 }
 
-async function retention(root, currentStamp) {
-  const retentionDays = Number.parseInt(process.env.JA_BACKUP_RETENTION_DAYS ?? '30', 10);
-  if (!Number.isInteger(retentionDays) || retentionDays <= 0) return;
+async function grantBackupReader(path, gid) {
+  const { stats } = await assertSafePath(path, { label: 'backup reader permissions' });
+  await chown(path, stats.uid, gid);
+  await chmod(path, stats.isDirectory() ? 0o2750 : 0o640);
+  if (stats.isDirectory())
+    for (const entry of await readdir(path)) await grantBackupReader(join(path, entry), gid);
+}
+
+function retentionDaysConfigured() {
+  const retentionDays = Number(process.env.JA_BACKUP_RETENTION_DAYS ?? '30');
+  if (!Number.isSafeInteger(retentionDays) || retentionDays < 30)
+    throw new Error('Backup retention must be at least 30 days');
+  return retentionDays;
+}
+
+async function retention(root, currentStamp, retentionDays) {
   const cutoff = Date.now() - retentionDays * 86_400_000;
   for (const entry of await readdir(root, { withFileTypes: true })) {
-    if (entry.name === currentStamp) continue;
+    if (
+      entry.name === currentStamp ||
+      !/^\d{4}-\d{2}-\d{2}T\d{9}Z-[0-9a-f-]{36}$/u.test(entry.name)
+    )
+      continue;
     const entryPath = resolve(root, entry.name);
     const checked = await assertSafePath(entryPath, { label: 'backup retention entry' });
     if (!checked.stats.isDirectory()) continue;
-    if (checked.stats.mtimeMs < cutoff)
+    // mtime changes during copies/cleanup and is not the snapshot's age.
+    let manifest;
+    try {
+      manifest = JSON.parse(await readFile(resolve(entryPath, 'manifest.json'), 'utf8'));
+    } catch {
+      continue;
+    }
+    const createdAt = Date.parse(manifest.createdAt);
+    if (manifest.format === 1 && Number.isFinite(createdAt) && createdAt < cutoff)
       await removeSafePath(entryPath, { recursive: true, label: 'backup retention entry' });
   }
 }
 
 export async function createBackup({ databasePath, documentRoot, backupRoot }) {
+  const retentionDays = retentionDaysConfigured();
+  const readerGroup = process.env.JA_BACKUP_READER_GID;
+  if (
+    readerGroup !== undefined &&
+    (!/^[0-9]+$/.test(readerGroup) || !Number.isSafeInteger(Number(readerGroup)))
+  )
+    throw new Error('Backup reader group must be a numeric gid');
   const sourcePath = resolve(databasePath);
   const documentsPath = resolve(documentRoot);
   const root = resolve(backupRoot);
@@ -115,7 +147,16 @@ export async function createBackup({ databasePath, documentRoot, backupRoot }) {
       flag: 'wx',
     });
     await assertSafeTree(target, { label: 'completed backup' });
-    await retention(root, stamp);
+    if (readerGroup !== undefined) {
+      await chown(
+        root,
+        (await assertSafePath(root, { directory: true })).stats.uid,
+        Number(readerGroup),
+      );
+      await chmod(root, 0o2750);
+      await grantBackupReader(target, Number(readerGroup));
+    }
+    await retention(root, stamp, retentionDays);
     return { path: target, manifest };
   } catch (error) {
     // Never recursively delete an unvalidated path. If an attacker races this

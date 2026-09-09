@@ -1073,3 +1073,5 @@ export {
   type DurableJobExecutionContext,
   type DurableJobOutcome,
 } from './runner.ts';
+
+export { queueInvoiceEmail, listInvoiceEmailDeliveries, invoiceEmailRecipient } from './domains/invoices/invoice-email.ts';

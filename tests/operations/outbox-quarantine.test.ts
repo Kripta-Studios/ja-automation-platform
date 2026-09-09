@@ -162,6 +162,34 @@ describe('pre-cutover outbox quarantine', () => {
     }
   });
 
+  it('preserves pending invitation and invoice delivery topics across deployment', () => {
+    const value = fixture();
+    try {
+      const topics = ['invitation.created', 'invoice.issued', 'invoice.email.requested'];
+      for (const topic of topics)
+        insertEvent(value.sqlite, topic, topic, '2026-09-04T00:01:00.000Z');
+      value.sqlite.close();
+      createVerifiedBackup(value);
+      const result = runQuarantine(value);
+      expect(result.status, result.stderr).toBe(0);
+      expect(result.stdout).toContain('"total":0');
+      const reopened = createDatabase(value.databasePath).sqlite;
+      try {
+        expect(
+          reopened
+            .prepare(
+              'SELECT count(*) count FROM outbox_event WHERE delivered_at IS NULL AND failed_at IS NULL',
+            )
+            .get(),
+        ).toEqual({ count: 3 });
+      } finally {
+        reopened.close();
+      }
+    } finally {
+      if (value.sqlite.isOpen) value.sqlite.close();
+    }
+  });
+
   it('fails before mutation when a post-cutover topic is unsupported', () => {
     const value = fixture();
     try {

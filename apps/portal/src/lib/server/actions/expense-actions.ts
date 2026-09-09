@@ -149,6 +149,7 @@ export const expenseActions = {
           return actionFail(400, 'action.validation.receiptPath', {}, 'Invalid receipt path');
         }
 
+        createdReceiptStorageKey = storageKey;
         createdReceiptStoragePath = target;
         try {
           await writePrivateFileExclusive(root, storageKey, bytes);

@@ -1,4 +1,16 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import {
+  readFileSync,
+  realpathSync,
+  lstatSync,
+  openSync,
+  closeSync,
+  fstatSync,
+  constants,
+} from 'node:fs';
+import { resolve, sep } from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { openInvitationToken } from './invitation-mail-token.ts';
 import net, { type Socket } from 'node:net';
 import tls, { type TLSSocket } from 'node:tls';
 import type { DatabaseSync } from 'node:sqlite';
@@ -12,7 +24,12 @@ type SmtpSocket = Socket | TLSSocket;
 
 export type SignedOutboxRequest = Readonly<{
   eventId: string;
-  topic: 'notification.email.requested' | 'public-inquiry.received';
+  topic:
+    | 'notification.email.requested'
+    | 'public-inquiry.received'
+    | 'invitation.created'
+    | 'invoice.issued'
+    | 'invoice.email.requested';
   aggregateId: string;
   idempotencyKey: string;
   attempts: number;
@@ -24,6 +41,7 @@ export type MailDelivery = Readonly<{
   subject: string;
   body: string;
   messageId: string;
+  attachment?: Readonly<{ filename: string; content: Buffer }>;
 }>;
 
 const requiredText = (value: unknown, field: string, maximum = 512): string => {
@@ -31,6 +49,21 @@ const requiredText = (value: unknown, field: string, maximum = 512): string => {
     throw new Error(`Invalid ${field}`);
   if (/\r|\n/u.test(value)) throw new Error(`Invalid ${field}`);
   return value.trim();
+};
+
+const recipientAddress = (value: unknown, field: string): string => {
+  const address = requiredText(value, field, 254).toLowerCase();
+  const parts = address.split('@');
+  const local = parts[0] ?? '';
+  const domain = parts[1] ?? '';
+  if (
+    parts.length !== 2 ||
+    local.length > 64 ||
+    !/^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*$/u.test(local) ||
+    !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/u.test(domain)
+  )
+    throw new Error(`Invalid ${field}`);
+  return address;
 };
 
 const corporateAddress = (value: unknown, field: string): string => {
@@ -59,7 +92,15 @@ export const parseSignedOutboxRequest = (body: string): SignedOutboxRequest => {
     throw new Error('Webhook body is too large');
   const value = JSON.parse(body) as Record<string, unknown>;
   const topic = requiredText(value.topic, 'topic', 128);
-  if (topic !== 'notification.email.requested' && topic !== 'public-inquiry.received')
+  if (
+    ![
+      'notification.email.requested',
+      'public-inquiry.received',
+      'invitation.created',
+      'invoice.issued',
+      'invoice.email.requested',
+    ].includes(topic)
+  )
     throw new Error('Unsupported outbox topic');
   if (
     !Number.isSafeInteger(value.attempts) ||
@@ -71,7 +112,7 @@ export const parseSignedOutboxRequest = (body: string): SignedOutboxRequest => {
     throw new Error('Invalid payload');
   return {
     eventId: requiredText(value.eventId, 'eventId'),
-    topic,
+    topic: topic as SignedOutboxRequest['topic'],
     aggregateId: requiredText(value.aggregateId, 'aggregateId'),
     idempotencyKey: requiredText(value.idempotencyKey, 'idempotencyKey'),
     attempts: Number(value.attempts),
@@ -107,15 +148,22 @@ export const resolveMailDelivery = (
   sqlite: DatabaseSync,
   request: SignedOutboxRequest,
   formRecipient: string | undefined,
+  options: Readonly<{
+    authSecret?: string | undefined;
+    documentRoot?: string | undefined;
+    publicOrigin?: string | undefined;
+    publicBasePath?: string | undefined;
+  }> = {},
 ): MailDelivery | 'already-delivered' => {
   const event = sqlite
     .prepare(
-      `SELECT topic,aggregate_id,idempotency_key,delivered_at,failed_at
+      `SELECT topic,aggregate_id,idempotency_key,delivered_at,failed_at,payload_json
          FROM outbox_event
         WHERE id=?`,
     )
     .get(request.eventId) as
     | {
+        payload_json: string;
         topic: string;
         aggregate_id: string;
         idempotency_key: string;
@@ -133,11 +181,17 @@ export const resolveMailDelivery = (
   if (event.delivered_at) return 'already-delivered';
   if (event.failed_at) throw new Error('Outbox event is not deliverable');
 
+  const payload = JSON.parse(event.payload_json) as Record<string, unknown>;
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload))
+    throw new Error('Invalid stored event payload');
+  // The worker may enrich an inquiry request; mail content and identity always
+  // come from the database, never from a signed caller's substituted values.
+  let attachment: MailDelivery['attachment'];
   let recipient: string;
   let copy: { subject: string; body: string };
   if (request.topic === 'notification.email.requested') {
-    const userId = requiredText(request.payload.userId, 'payload.userId');
-    const notificationId = requiredText(request.payload.notificationId, 'payload.notificationId');
+    const userId = requiredText(payload.userId, 'payload.userId');
+    const notificationId = requiredText(payload.notificationId, 'payload.notificationId');
     if (notificationId !== request.aggregateId)
       throw new Error('Notification identity does not match the outbox event');
     const row = sqlite
@@ -149,26 +203,159 @@ export const resolveMailDelivery = (
       )
       .get(notificationId, userId) as { email: string; kind: string } | undefined;
     if (!row) throw new Error('Notification recipient is unavailable');
-    recipient = corporateAddress(row.email, 'notification recipient');
-    copy = notificationCopy(row.kind, normalizeNotificationLocale(request.payload.locale));
+    recipient = recipientAddress(row.email, 'notification recipient');
+    copy = notificationCopy(row.kind, normalizeNotificationLocale(payload.locale));
+  } else if (request.topic === 'invitation.created') {
+    const invitation = sqlite
+      .prepare('SELECT email,token_hash,role,expires_at,used_at FROM invitation WHERE id=?')
+      .get(request.aggregateId) as
+      | {
+          email: string;
+          token_hash: string;
+          role: string;
+          expires_at: string;
+          used_at: string | null;
+        }
+      | undefined;
+    if (
+      !invitation ||
+      invitation.used_at ||
+      !Number.isFinite(Date.parse(invitation.expires_at)) ||
+      Date.parse(invitation.expires_at) <= Date.now() ||
+      payload.invitationId !== request.aggregateId ||
+      payload.email !== invitation.email ||
+      payload.role !== invitation.role ||
+      payload.expiresAt !== invitation.expires_at
+    )
+      throw new Error('Invitation is unavailable');
+    const token = openInvitationToken(
+      requiredText(payload.encryptedToken, 'encryptedToken', 1024),
+      request.aggregateId,
+      options.authSecret,
+    );
+    if (
+      !/^[A-Za-z0-9_-]{43}$/u.test(token) ||
+      createHash('sha256').update(token).digest('hex') !== invitation.token_hash
+    )
+      throw new Error('Invitation token mismatch');
+    const origin = new URL(options.publicOrigin ?? 'https://j-aautomation.com');
+    if (
+      origin.protocol !== 'https:' ||
+      origin.username ||
+      origin.password ||
+      origin.pathname !== '/' ||
+      origin.search ||
+      origin.hash
+    )
+      throw new Error('Invalid public origin');
+    const base = options.publicBasePath ?? '/j-aautomation';
+    if (!/^(?:\/[a-zA-Z0-9_-]+)*$/u.test(base)) throw new Error('Invalid public base path');
+    recipient = recipientAddress(invitation.email, 'invitation recipient');
+    copy = {
+      subject: 'J&A Automation invitation',
+      body: `You have been invited to J&A Automation. Accept before ${invitation.expires_at}:\n${origin.origin}${base}/app/invite/${token}`,
+    };
+  } else if (request.topic === 'invoice.issued') {
+    if (payload.invoiceId !== request.aggregateId) throw new Error('Invoice identity mismatch');
+    const issuer = sqlite
+      .prepare(
+        "SELECT u.email,i.invoice_number FROM invoice i JOIN audit_event a ON a.entity_id=i.id AND a.action='invoice.issue' JOIN user u ON u.id=a.actor_id WHERE i.id=? AND i.issued_at IS NOT NULL AND u.status='active' AND u.email_verified=1 AND u.role IN ('owner_admin','finance_admin') ORDER BY a.occurred_at LIMIT 1",
+      )
+      .get(request.aggregateId) as { email: string; invoice_number: string } | undefined;
+    if (!issuer) throw new Error('Invoice issuer unavailable');
+    recipient = recipientAddress(issuer.email, 'invoice issuer');
+    copy = {
+      subject: `Invoice ${issuer.invoice_number} issued`,
+      body: 'The invoice was issued in the portal. This internal notice does not send the invoice to the client. Use the explicit invoice email action to request client delivery.',
+    };
+  } else if (request.topic === 'invoice.email.requested') {
+    if (payload.invoiceId !== request.aggregateId) throw new Error('Invoice identity mismatch');
+    const invoice = sqlite
+      .prepare(
+        "SELECT i.invoice_number,i.pdf_storage_key,i.pdf_sha256,i.pdf_byte_length FROM invoice i JOIN user u ON u.id=? WHERE i.id=? AND i.state IN ('issued','sent','partially_paid','paid','overdue') AND i.pdf_status='ready' AND u.status='active' AND u.role IN ('owner_admin','finance_admin')",
+      )
+      .get(requiredText(payload.requestedBy, 'requestedBy'), request.aggregateId) as
+      | {
+          invoice_number: string;
+          pdf_storage_key: string;
+          pdf_sha256: string;
+          pdf_byte_length: number;
+        }
+      | undefined;
+    if (
+      !invoice ||
+      invoice.pdf_sha256 !== payload.pdfSha256 ||
+      !options.documentRoot ||
+      !/^[a-f0-9]{64}$/u.test(invoice.pdf_sha256)
+    )
+      throw new Error('Invoice PDF unavailable');
+    const key = invoice.pdf_storage_key;
+    if (
+      !key ||
+      key.includes('\\') ||
+      key.startsWith('/') ||
+      key.split('/').some((part) => !part || part === '.' || part === '..')
+    )
+      throw new Error('Invalid invoice storage key');
+    const root = realpathSync(options.documentRoot);
+    let path = root;
+    for (const part of key.split('/')) {
+      path = resolve(path, part);
+      if (lstatSync(path).isSymbolicLink()) throw new Error('Invoice storage symlink rejected');
+    }
+    if (!realpathSync(path).startsWith(root + sep)) throw new Error('Invoice storage escape');
+    const stat = lstatSync(path);
+    if (
+      !stat.isFile() ||
+      stat.size !== invoice.pdf_byte_length ||
+      stat.size <= 0 ||
+      stat.size > 20 * 1024 * 1024
+    )
+      throw new Error('Invalid invoice PDF size');
+    const descriptor = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+    let content: Buffer;
+    try {
+      const opened = fstatSync(descriptor);
+      if (
+        !opened.isFile() ||
+        opened.size !== stat.size ||
+        opened.dev !== stat.dev ||
+        opened.ino !== stat.ino
+      )
+        throw new Error('Invoice PDF changed during read');
+      content = readFileSync(descriptor);
+    } finally {
+      closeSync(descriptor);
+    }
+    if (
+      content.subarray(0, 5).toString() !== '%PDF-' ||
+      createHash('sha256').update(content).digest('hex') !== invoice.pdf_sha256
+    )
+      throw new Error('Invoice PDF integrity mismatch');
+    recipient = recipientAddress(payload.recipient, 'invoice recipient');
+    attachment = {
+      filename: `Invoice-${invoice.invoice_number.replace(/[^a-zA-Z0-9_-]/gu, '_')}.pdf`,
+      content,
+    };
+    copy = {
+      subject: `J&A Automation invoice ${invoice.invoice_number}`,
+      body: 'Please find your J&A Automation invoice attached.',
+    };
   } else {
     recipient = corporateAddress(formRecipient, 'JA_FORM_RECIPIENT');
-    const inquiry = request.payload.inquiry;
-    if (!inquiry || typeof inquiry !== 'object' || Array.isArray(inquiry))
-      throw new Error('Public inquiry payload is unavailable');
-    const record = inquiry as Record<string, unknown>;
-    const inquiryId = requiredText(record.id, 'inquiry.id');
-    if (inquiryId !== request.aggregateId)
-      throw new Error('Inquiry identity does not match the outbox event');
-    const kind = requiredText(record.kind, 'inquiry.kind', 64);
-    if (!record.payload || typeof record.payload !== 'object' || Array.isArray(record.payload))
-      throw new Error('Inquiry form payload is unavailable');
-    copy = publicInquiryCopy(kind, record.payload as Record<string, unknown>);
+    if (payload.inquiryId !== request.aggregateId)
+      throw new Error('Inquiry identity does not match the stored event');
+    const row = sqlite
+      .prepare('SELECT kind,payload_json FROM public_inquiry WHERE id=?')
+      .get(request.aggregateId) as { kind: string; payload_json: string } | undefined;
+    if (!row) throw new Error('Inquiry is unavailable');
+    copy = publicInquiryCopy(row.kind, JSON.parse(row.payload_json) as Record<string, unknown>);
   }
 
   const digest = createHash('sha256').update(request.idempotencyKey).digest('hex').slice(0, 40);
   return {
     recipient,
+    ...(attachment ? { attachment } : {}),
     subject: copy.subject,
     body: copy.body,
     messageId: `<ja-${digest}@${CORPORATE_DOMAIN}>`,
@@ -329,6 +516,12 @@ const smtpCredential = (value: string | undefined, field: string, maximum: numbe
   return value;
 };
 
+export class SmtpDeliveryUncertainError extends Error {
+  constructor() {
+    super('SMTP_DELIVERY_UNCERTAIN');
+  }
+}
+
 export const sendStalwartMail = async (
   delivery: MailDelivery,
   options: Readonly<{
@@ -359,7 +552,13 @@ export const sendStalwartMail = async (
   const timeoutMs = options.timeoutMs ?? SMTP_TIMEOUT_MS;
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 60_000)
     throw new Error('Invalid SMTP timeout');
-  const recipient = corporateAddress(delivery.recipient, 'recipient');
+  const recipient = recipientAddress(delivery.recipient, 'recipient');
+  requiredText(delivery.subject, 'subject', 512);
+  if (
+    !/^<ja-[a-z0-9-]+@j-aautomation\.com>$/u.test(delivery.messageId) &&
+    !/^<[a-z0-9-]+@j-aautomation\.com>$/u.test(delivery.messageId)
+  )
+    throw new Error('Invalid message ID');
   const from = corporateAddress(options.from ?? 'no-reply@j-aautomation.com', 'sender');
   const username = corporateAddress(options.username, 'SMTP username');
   const password = smtpCredential(options.password, 'SMTP password', 4_096);
@@ -370,6 +569,7 @@ export const sendStalwartMail = async (
   socketRef.current.setTimeout(timeoutMs);
   const reader = responseReader(socketRef.current);
   const deadline = setTimeout(() => socketRef.current.destroy(), timeoutMs);
+  let dataMayHaveBeenAccepted = false;
   try {
     await expectCode(reader, [220]);
     await writeLine(socketRef.current, 'EHLO portal.j-aautomation.com');
@@ -429,6 +629,33 @@ export const sendStalwartMail = async (
     await expectCode(reader, [250, 251]);
     await writeLine(socketRef.current, 'DATA');
     await expectCode(reader, [354]);
+    const boundary = `ja-${createHash('sha256').update(delivery.messageId).digest('hex')}`;
+    const contentLines = delivery.attachment
+      ? [
+          `Content-Type: multipart/mixed; boundary="${boundary}"`,
+          '',
+          `--${boundary}`,
+          'Content-Type: text/plain; charset=UTF-8',
+          'Content-Transfer-Encoding: quoted-printable',
+          '',
+          quotedPrintableBody(delivery.body),
+          `--${boundary}`,
+          'Content-Type: application/pdf',
+          `Content-Disposition: attachment; filename="${delivery.attachment.filename.replace(/[^a-zA-Z0-9_.-]/gu, '_')}"`,
+          'Content-Transfer-Encoding: base64',
+          '',
+          delivery.attachment.content
+            .toString('base64')
+            .match(/.{1,76}/gu)
+            ?.join('\r\n') ?? '',
+          `--${boundary}--`,
+        ]
+      : [
+          'Content-Type: text/plain; charset=UTF-8',
+          'Content-Transfer-Encoding: quoted-printable',
+          '',
+          quotedPrintableBody(delivery.body),
+        ];
     const message = [
       `Date: ${new Date().toUTCString()}`,
       `Message-ID: ${delivery.messageId}`,
@@ -436,19 +663,26 @@ export const sendStalwartMail = async (
       `To: <${recipient}>`,
       `Subject: ${encodedSubject(delivery.subject)}`,
       'MIME-Version: 1.0',
-      'Content-Type: text/plain; charset=UTF-8',
-      'Content-Transfer-Encoding: quoted-printable',
-      '',
-      quotedPrintableBody(delivery.body),
+      ...contentLines,
     ].join('\r\n');
+    dataMayHaveBeenAccepted = true;
     await writeLine(socketRef.current, `${message}\r\n.`);
-    await expectCode(reader, [250]);
+    const dataResponse = await reader.read();
+    if (dataResponse.code >= 400 && dataResponse.code <= 599) {
+      // A complete negative final reply proves the server did not accept DATA.
+      dataMayHaveBeenAccepted = false;
+      throw new Error(`SMTP rejected command (${dataResponse.code})`);
+    }
+    if (dataResponse.code !== 250) throw new SmtpDeliveryUncertainError();
     // SMTP DATA 250 is the authoritative queue acceptance point. QUIT is only
     // connection hygiene: a peer may close immediately after accepting DATA,
     // and treating that close as a failed delivery would retry the same mail.
     await writeLine(socketRef.current, 'QUIT')
       .then(() => expectCode(reader, [221]))
       .catch(() => undefined);
+  } catch (error) {
+    if (dataMayHaveBeenAccepted) throw new SmtpDeliveryUncertainError();
+    throw error;
   } finally {
     clearTimeout(deadline);
     reader.detach();
@@ -490,11 +724,11 @@ export const claimOutboxDelivery = (
       throw new Error('Outbox event cannot be claimed for delivery');
     const result = sqlite
       .prepare(
-        `UPDATE outbox_event SET last_error=?
+        `UPDATE outbox_event SET last_error=?,lease_until=COALESCE(lease_until,?)
           WHERE id=? AND delivered_at IS NULL AND failed_at IS NULL
             AND attempts=? AND last_error IS NULL`,
       )
-      .run(marker, request.eventId, request.attempts);
+      .run(marker, new Date(Date.now() + 60000).toISOString(), request.eventId, request.attempts);
     if (Number(result.changes) !== 1) throw new Error('Outbox delivery claim failed');
     sqlite.exec('COMMIT');
     return 'claimed';
@@ -541,6 +775,29 @@ export const markOutboxDelivered = (
         deliveryClaim(claimId),
       );
     if (Number(result.changes) !== 1) throw new Error('Outbox delivery acknowledgement failed');
+    if (request.topic === 'invoice.email.requested') {
+      const event = sqlite
+        .prepare('SELECT payload_json FROM outbox_event WHERE id=?')
+        .get(request.eventId) as { payload_json: string };
+      const payload = JSON.parse(event.payload_json) as { requestedBy: string; recipient: string };
+      sqlite
+        .prepare(
+          "INSERT INTO invoice_event(id,invoice_id,event_type,reason,actor_id,occurred_at,idempotency_key) VALUES(?,?,'sent',?,?,?,?)",
+        )
+        .run(
+          randomUUID(),
+          request.aggregateId,
+          `SMTP queue accepted for ${recipientAddress(payload.recipient, 'invoice recipient')}`,
+          payload.requestedBy,
+          deliveredAt,
+          `smtp:${request.eventId}`,
+        );
+      sqlite
+        .prepare(
+          "UPDATE invoice SET state=CASE WHEN state='issued' THEN 'sent' ELSE state END,sent_at=COALESCE(sent_at,?),updated_at=?,version=version+1 WHERE id=? AND state IN ('issued','sent','partially_paid','paid','overdue')",
+        )
+        .run(deliveredAt, deliveredAt, request.aggregateId);
+    }
     if (request.topic === 'public-inquiry.received')
       sqlite
         .prepare('UPDATE public_inquiry SET delivered_at=COALESCE(delivered_at,?) WHERE id=?')
@@ -550,4 +807,21 @@ export const markOutboxDelivered = (
     sqlite.exec('ROLLBACK');
     throw error;
   }
+};
+
+/** Never release a claim if SMTP acceptance is known or ambiguous. */
+export const failOutboxDelivery = (
+  sqlite: DatabaseSync,
+  request: SignedOutboxRequest,
+  claimId: string,
+  error: unknown,
+  smtpAccepted: boolean,
+): void => {
+  if (smtpAccepted || error instanceof SmtpDeliveryUncertainError) {
+    sqlite
+      .prepare(
+        "UPDATE outbox_event SET failed_at=?,lease_until=NULL,last_error='SMTP_DELIVERY_UNCERTAIN' WHERE id=? AND delivered_at IS NULL AND failed_at IS NULL AND last_error=?",
+      )
+      .run(new Date().toISOString(), request.eventId, deliveryClaim(claimId));
+  } else releaseOutboxDeliveryClaim(sqlite, request, claimId);
 };

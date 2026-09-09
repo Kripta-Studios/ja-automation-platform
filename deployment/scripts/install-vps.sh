@@ -24,6 +24,7 @@ if [[ ! -x "$NODE_RUNTIME" || "$("$NODE_RUNTIME" --version)" != "v24.19.0" ]]; t
   exit 1
 fi
 docker compose version >/dev/null
+command -v setfacl >/dev/null || { echo "Install the acl package before deployment." >&2; exit 1; }
 
 install -d -o 10001 -g 10001 -m 0750 /var/lib/jaautomation/data /var/lib/jaautomation/files
 for directory in receipts reports invoices technical plc-backups exports temp; do
@@ -35,6 +36,8 @@ if [[ ! -f /etc/jaautomation/jaautomation.env ]]; then
   install -o root -g root -m 0600 "$RELEASE_ROOT/deployment/jaautomation.env.example" /etc/jaautomation/jaautomation.env
   echo "Created /etc/jaautomation/jaautomation.env. Replace JA_AUTH_SECRET before starting the service."
 fi
+
+"$NODE_RUNTIME" "$RELEASE_ROOT/deployment/scripts/configure-backup-reader.mjs"
 
 install -o root -g root -m 0644 "$RELEASE_ROOT/deployment/jaautomation.service" /etc/systemd/system/jaautomation.service
 install -o root -g root -m 0644 \

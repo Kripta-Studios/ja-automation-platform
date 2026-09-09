@@ -126,6 +126,8 @@ export type ArtifactJobContext = Readonly<{
   repository: ArtifactJobRepository;
   v3: ArtifactJobV3;
   documentRoot?: string;
+  /** Deployment adapter must verify a real snapshot or throw. */
+  verifyBackup?: () => void;
   /** Optional 0023 adapter supplied by the database/application composition root. */
   localizedPdf?: LocalizedPdfJobRepository;
   /** Optional Worker-statement artifact adapter supplied by the database/application composition root. */
@@ -574,6 +576,7 @@ export function runArtifactJobs(context: ArtifactJobContext): {
       });
       return result.finalize;
     };
+  if (context.verifyBackup) handlers.backup_verify = () => context.verifyBackup!();
   const result = context.v3.runDueJobs(20, handlers);
   // The B5 runner first expires/requeues terminal leases. Reconcile the associated localized
   // manifest after that transaction so a stale worker cannot remain in `running` indefinitely.

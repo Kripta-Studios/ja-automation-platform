@@ -52,6 +52,17 @@ function fixture(): {
 }
 
 describe('durable runner finalizer boundary', () => {
+  it('fails backup verification when no real adapter is configured', () => {
+    const { sqlite, v3 } = fixture();
+    try {
+      v3.enqueueJob('backup_verify', 'backup-verifier-missing', {});
+      expect(v3.runDueJobs(1)).toMatchObject({ processed: 0, failed: 1 });
+      expect(sqlite.prepare('SELECT outcome FROM job_run').get()?.outcome).not.toBe('succeeded');
+    } finally {
+      sqlite.close();
+    }
+  });
+
   it('rolls back finalizer writes, persists a bounded redacted diagnosis, and retries independently', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2110-01-01T00:00:00.000Z'));

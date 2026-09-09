@@ -903,6 +903,13 @@ describe('V3 finance and privacy paths', () => {
     expect(repository.sendInvoice(finance, laborDraft.id, 'send-after-pdf')).toMatchObject({
       sent: false,
     });
+    expect(
+      sqlite
+        .prepare(
+          "SELECT count(*) n FROM outbox_event WHERE topic='invoice.send.requested' AND aggregate_id=?",
+        )
+        .get(laborDraft.id)?.n,
+    ).toBe(0);
     expect(repository.issueInvoice(finance, laborDraft.id)).toEqual({
       invoiceNumber: issuedLabor.invoiceNumber,
       issued: false,

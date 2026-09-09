@@ -136,14 +136,14 @@ Use **Acordo comercial e exemplo** em `/app/finance/preview` para uma ilustraç�
 1. Em **Faturamento**, selecione o fluxo e o período. Resolva as mensagens de prontidão: fontes faturáveis aprovadas, limites do período, entidade jurídica/perfil tributário, moeda, limites, tarifas e eventual aceite obrigatório do cliente.
 2. Crie ou revise o rascunho. Confirme destinatário, pedido de compra/referência, itens, valores exatos, tratamento tributário e condições de pagamento. Use a prévia/PDF dos detalhes do rascunho para conferir o documento pretendido.
 3. Emita somente após a revisão autorizada. A emissão consome o número controlado e cria um retrato histórico imutável; alterações posteriores de cliente, contato ou tarifa não o reescrevem.
-4. Envie apenas pela ação de entrega autorizada e confira o estado resultante. O e-mail pode se limitar a destinatários corporativos; um evento na caixa de saída não comprova que o cliente recebeu ou aceitou a fatura.
+4. Envie apenas pela ação de entrega autorizada e confira o estado resultante. O envio explícito de faturas aceita destinatários externos válidos; um evento na caixa de saída não comprova que o cliente recebeu ou aceitou a fatura.
 5. Registre um pagamento somente com evidência de pagamento oficial. Pagamento parcial, vencido e pago são estados da fatura/do registro financeiro. Uma previsão financeira ou data de caixa não é um saldo bancário.
 
 Para um erro após a emissão, use o ciclo de cancelamento, crédito, ajuste ou substituição disponível, com motivo e data de vigência. Não edite nem exclua um retrato histórico emitido. Um estorno de pagamento também exige o fluxo controlado de estorno e uma data real de vigência; ele não apaga o evento original de pagamento.
 
 ### Sequência de controle de faturas
 
-No registro de Faturamento, use **Criar rascunho de fatura** apenas após resolver as mensagens de prontidão. Nos detalhes do rascunho, use **Salvar detalhes** para campos exclusivos do rascunho, como número do pedido de compra, desconto, dados bancários, beneficiário e aviso de atraso; reabra **Prévia** e **Abrir PDF** para revisar o documento. Use **Aprovar fatura**, **Emitir fatura**, **Registrar pagamento**, **Estornar pagamento**, **Cancelar fatura** e **Criar ajuste** somente no estado correspondente do ciclo de vida e com evidências reais. **Enviar fatura** é uma ação da fatura; confira o registro/estado resultante da caixa de saída, que por si só não demonstra aceite do cliente ou recebimento confirmado.
+No registro de Faturamento, use **Criar rascunho de fatura** apenas após resolver as mensagens de prontidão. Nos detalhes do rascunho, use **Salvar detalhes** para campos exclusivos do rascunho, como número do pedido de compra, desconto, dados bancários, beneficiário e aviso de atraso; reabra **Prévia** e **Abrir PDF** para revisar o documento. Use **Aprovar fatura**, **Emitir fatura**, **Registrar pagamento**, **Estornar pagamento**, **Cancelar fatura** e **Criar ajuste** somente no estado correspondente do ciclo de vida e com evidências reais. **Enviar por e-mail** exige destinatário explícito e PDF pronto e verificado. Confira o estado Na fila, Nova tentativa, Falha, Entrega incerta ou Aceito pelo servidor SMTP. Se a entrega for incerta, peça ao administrador para verificar o servidor de e-mail antes de tentar novamente; o reenvio automático é interrompido para evitar faturas duplicadas. Entrar na fila não marca a fatura como enviada; a aceitação SMTP marca, mas não confirma entrega na caixa de entrada nem aceite do cliente. **Marcar enviada** registra envio manual e não envia e-mail.
 
 ### Procedimento de remuneração e reembolso
 
@@ -202,3 +202,6 @@ O **Relatório operacional** permite filtrar instalação e datas, consultar est
 O Técnico externo vê apenas suas próprias horas e relatórios operacionais. As contas de Responsável do fornecedor e Técnico externo não têm Meu pagamento, tarifas, despesas, documentos financeiros ou exportações financeiras. As instruções de despesas e remuneração neste guia se aplicam às contas padrão de Trabalhador. Os relatórios de fornecedor não incluem valores financeiros. Se faltar uma instalação ou um técnico, peça a correção ao Owner.
 
 :::figure owner /app/supplier O Owner escolhe os responsáveis de fornecedor e autoriza as instalações.
+
+
+Conteúdo de recibo repetido é rejeitado com conflito controlado, mesmo com outro nome. O original permanece intacto e o arquivo da tentativa que falhou é removido. Não renomeie nem altere um recibo para contornar essa verificação.

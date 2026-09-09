@@ -52,6 +52,8 @@
   };
 
   type BillingActionResult = {
+    invoiceEmailRecipient?: string;
+    invoiceEmailId?: string;
     success?: boolean;
     message?: string;
     messageKey?: unknown;
@@ -1687,6 +1689,54 @@
                       >
                     {/if}
                   </div>
+                  {#if !isAuditor && ['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(invoiceStateValue)}
+                    <details class="billing-section__action-panel">
+                      <summary>{translate('Send by email')}</summary>
+                      <form
+                        method="POST"
+                        action="?/emailInvoice"
+                        class="billing-section__payment-form"
+                      >
+                        <input type="hidden" name="invoiceId" value={invoiceId} />
+                        <label
+                          ><span>{translate('Invoice recipient email')}</span><input
+                            type="email"
+                            name="recipient"
+                            maxlength="254"
+                            required
+                            value={form?.invoiceEmailId === invoiceId
+                              ? (form.invoiceEmailRecipient ?? '')
+                              : ''}
+                          /></label
+                        >
+                        <p>
+                          {translate(
+                            'Send the issued PDF by email. Queued is not sent; SMTP acceptance does not confirm inbox delivery.',
+                          )}
+                        </p>
+                        <button type="submit" disabled={pdfStatus !== 'ready'}
+                          >{translate('Send by email')}</button
+                        >
+                      </form>
+                      {#each (data.invoiceEmailDeliveries ?? []).filter((delivery) => delivery.invoiceId === invoiceId) as delivery}
+                        <p role="status">
+                          {delivery.recipient}: {translate(
+                            delivery.status === 'uncertain'
+                              ? 'Delivery uncertain; check mail server before retrying'
+                              : delivery.status === 'accepted'
+                                ? 'Accepted by SMTP server'
+                                : delivery.status === 'sending'
+                                  ? 'Email sending'
+                                  : delivery.status === 'failed'
+                                    ? 'Email failed; administrator action required'
+                                    : delivery.status === 'retrying'
+                                      ? 'Email delivery error; automatic retry pending'
+                                      : 'Email queued',
+                          )}
+                        </p>
+                      {/each}
+                    </details>
+                  {/if}
                   {#if isAuditor}
                     <span class="billing-section__read-only"
                       >{translate('Issued history is immutable')}</span
@@ -1818,6 +1868,11 @@
                     <details class="billing-section__action-panel">
                       <summary>{translate('More actions')}</summary>
                       {#if invoiceStateValue === 'issued'}
+                        <p>
+                          {translate(
+                            'Mark sent records a manual delivery only. It does not send an email.',
+                          )}
+                        </p>
                         <form method="POST" action="?/sendInvoice">
                           <input type="hidden" name="invoiceId" value={invoiceId} />
                           <input type="hidden" name="idempotencyKey" value={`send-${invoiceId}`} />

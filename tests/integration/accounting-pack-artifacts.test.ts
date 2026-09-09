@@ -1,5 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { createBackup } from '../../deployment/scripts/backup.mjs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Worker } from 'node:worker_threads';
@@ -792,7 +794,7 @@ describe('Accounting Pack artifact lifecycle', () => {
     ).toHaveLength(2);
   });
 
-  it('schedules and executes fenced temporary-upload cleanup idempotently', () => {
+  it('schedules and executes fenced temporary-upload cleanup idempotently', async () => {
     const { directory, sqlite, principal, v3 } = fixture();
     const reservation = v3.reserveUpload(principal, {
       originalFilename: 'abandoned.pdf',
@@ -810,7 +812,17 @@ describe('Accounting Pack artifact lifecycle', () => {
     expect(
       sqlite.prepare("SELECT count(*) count FROM job WHERE kind='temporary_upload_cleanup'").get(),
     ).toEqual({ count: 1 });
-    const result = runArtifactJobs(artifactContext(directory, principal, v3));
+    const backupRoot = join(directory, 'backups');
+    await createBackup({ databasePath: join(directory, 'app.db'), documentRoot: join(directory, 'documents'), backupRoot });
+    const result = runArtifactJobs({
+      ...artifactContext(directory, principal, v3),
+      verifyBackup: () => {
+        const evidence = JSON.parse(execFileSync(process.execPath,
+          ['deployment/scripts/backup-verify.mjs'],
+          { encoding: 'utf8', env: { ...process.env, JA_BACKUP_ROOT: backupRoot } }));
+        expect(evidence.integrity).toBe('ok');
+      },
+    });
     expect(result.failed).toBe(0);
     expect(
       sqlite.prepare('SELECT id FROM document WHERE id=?').get(reservation.reservationId),

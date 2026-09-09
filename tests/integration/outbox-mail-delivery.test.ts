@@ -1,4 +1,13 @@
-import { createHmac } from 'node:crypto';
+import {
+  createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
+  closeB5LifecycleSecurityFixture,
+} from '../fixtures/b5-lifecycle-security-fixture.js';
+import {
+  sealInvitationToken,
+  openInvitationToken,
+} from '../../apps/portal/src/lib/server/invitation-mail-token.ts';
+import { createHash, createHmac } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import net from 'node:net';
@@ -9,6 +18,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { createDatabase } from '@ja/database';
 import {
   claimOutboxDelivery,
+  failOutboxDelivery,
+  SmtpDeliveryUncertainError,
   markOutboxDelivered,
   parseSignedOutboxRequest,
   releaseOutboxDeliveryClaim,
@@ -38,6 +49,8 @@ const startTestSmtp = async (
   options: Readonly<{
     stallStartTls?: boolean;
     closeAfterData?: boolean;
+    closeWithoutDataAck?: boolean;
+    rejectAfterData?: 451 | 550;
     closeAfterSecureHello?: boolean;
   }> = {},
 ) => {
@@ -89,10 +102,13 @@ const startTestSmtp = async (
           if (dataMode) {
             if (line === '.') {
               dataMode = false;
-              acceptedMessages += 1;
+              if (!options.rejectAfterData) acceptedMessages += 1;
               lastMessage = currentMessage;
               currentMessage = [];
-              if (options.closeAfterData) socket.end('250 2.0.0 queued\r\n');
+              if (options.rejectAfterData)
+                socket.write(`${options.rejectAfterData} message rejected\r\n`);
+              else if (options.closeWithoutDataAck) socket.destroy();
+              else if (options.closeAfterData) socket.end('250 2.0.0 queued\r\n');
               else socket.write('250 2.0.0 queued\r\n');
             } else {
               maximumDataLineBytes = Math.max(maximumDataLineBytes, Buffer.byteLength(line));
@@ -173,6 +189,407 @@ const signedRequest = (overrides: Record<string, unknown> = {}) => ({
 });
 
 describe('signed outbox mail delivery', () => {
+  it.each([451, 550] as const)(
+    'keeps definitive SMTP %i DATA rejection retryable without false acceptance',
+    async (code) => {
+      const smtp = await startTestSmtp({ rejectAfterData: code });
+      const { sqlite } = database();
+      try {
+        const now = new Date().toISOString();
+        sqlite
+          .prepare(
+            "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at,attempts) VALUES('event-1','notification.email.requested','notification-1','notification-email:notification-1','{}',?,?,1)",
+          )
+          .run(now, now);
+        const request = parseSignedOutboxRequest(JSON.stringify(signedRequest()));
+        claimOutboxDelivery(sqlite, request, 'rejected-claim');
+        let rejection: unknown;
+        try {
+          await sendStalwartMail(
+            {
+              recipient: 'external@example.test',
+              subject: 'test',
+              body: 'test',
+              messageId: '<ja-rejected@j-aautomation.com>',
+            },
+            {
+              smtpUrl: `smtp://127.0.0.1:${smtp.port}`,
+              username: smtpUsername,
+              password: smtpPassword,
+              rejectUnauthorized: false,
+            },
+          );
+        } catch (error) {
+          rejection = error;
+        }
+        expect(rejection).toBeInstanceOf(Error);
+        expect(rejection).not.toBeInstanceOf(SmtpDeliveryUncertainError);
+        expect((rejection as Error).message).toContain(String(code));
+        failOutboxDelivery(sqlite, request, 'rejected-claim', rejection, false);
+        expect(
+          sqlite
+            .prepare(
+              "SELECT delivered_at,failed_at,last_error FROM outbox_event WHERE id='event-1'",
+            )
+            .get(),
+        ).toMatchObject({ delivered_at: null, failed_at: null, last_error: null });
+        expect(smtp.acceptedMessages()).toBe(0);
+      } finally {
+        sqlite.close();
+        await smtp.close();
+      }
+    },
+  );
+
+  it('stops automatic retries after ambiguous SMTP DATA, acknowledgement failure or stale claims', async () => {
+    const fixture = createB5LifecycleSecurityFixture();
+    const smtp = await startTestSmtp({ closeWithoutDataAck: true });
+    try {
+      const now = new Date().toISOString();
+      const eventId = 'uncertain-event';
+      fixture.sqlite
+        .prepare(
+          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at,attempts) VALUES(?,'notification.email.requested','notification-1','uncertain-key','{}',?,?,1)",
+        )
+        .run(eventId, now, now);
+      const request = parseSignedOutboxRequest(
+        JSON.stringify(signedRequest({ eventId, idempotencyKey: 'uncertain-key' })),
+      );
+      claimOutboxDelivery(fixture.sqlite, request, 'uncertain-claim');
+      let failure: unknown;
+      try {
+        await sendStalwartMail(
+          {
+            recipient: 'test@example.test',
+            subject: 'test',
+            body: 'test',
+            messageId: '<ja-uncertain@j-aautomation.com>',
+          },
+          {
+            smtpUrl: `smtp://127.0.0.1:${smtp.port}`,
+            username: smtpUsername,
+            password: smtpPassword,
+            rejectUnauthorized: false,
+          },
+        );
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).toBeInstanceOf(SmtpDeliveryUncertainError);
+      failOutboxDelivery(fixture.sqlite, request, 'uncertain-claim', failure, false);
+      expect(
+        fixture.sqlite
+          .prepare('SELECT delivered_at,failed_at,last_error FROM outbox_event WHERE id=?')
+          .get(eventId),
+      ).toMatchObject({
+        delivered_at: null,
+        failed_at: expect.any(String),
+        last_error: 'SMTP_DELIVERY_UNCERTAIN',
+      });
+      let calls = 0;
+      await fixture.v3.runDueOutbox(20, async () => {
+        calls++;
+      });
+      expect(calls).toBe(0);
+      expect(smtp.acceptedMessages()).toBe(1);
+      // A worker HTTP error cannot erase an endpoint claim or terminal failure.
+      fixture.sqlite
+        .prepare(
+          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at) VALUES('http-event','notification.email.requested','notification-1','http-key','{}',?,?)",
+        )
+        .run(now, now);
+      const outcome = await fixture.v3.runDueOutbox(1, async (event) => {
+        claimOutboxDelivery(
+          fixture.sqlite,
+          {
+            ...request,
+            eventId: event.id,
+            idempotencyKey: event.idempotencyKey,
+            attempts: event.attempts,
+          },
+          'http-claim',
+        );
+        throw new Error('HTTP response lost');
+      });
+      expect(outcome).toMatchObject({ failed: 1, permanentlyFailed: 1 });
+      expect(
+        fixture.sqlite.prepare("SELECT last_error FROM outbox_event WHERE id='http-event'").get(),
+      ).toMatchObject({ last_error: 'SMTP_DELIVERY_UNCERTAIN' });
+      // Definitive pre-DATA failures remain retryable after the endpoint releases its claim.
+      fixture.sqlite
+        .prepare(
+          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at) VALUES('retry-event','notification.email.requested','notification-1','retry-key','{}',?,?)",
+        )
+        .run(now, now);
+      await fixture.v3.runDueOutbox(1, async (event) => {
+        const retry = {
+          ...request,
+          eventId: event.id,
+          idempotencyKey: event.idempotencyKey,
+          attempts: event.attempts,
+        };
+        claimOutboxDelivery(fixture.sqlite, retry, 'retry-claim');
+        failOutboxDelivery(
+          fixture.sqlite,
+          retry,
+          'retry-claim',
+          new Error('SMTP authentication rejected'),
+          false,
+        );
+        throw new Error('SMTP authentication rejected');
+      });
+      expect(
+        fixture.sqlite
+          .prepare("SELECT failed_at,last_error FROM outbox_event WHERE id='retry-event'")
+          .get(),
+      ).toMatchObject({ failed_at: null, last_error: 'SMTP authentication rejected' });
+      // A known SMTP acceptance followed by SQL acknowledgement failure is equally terminal.
+      fixture.sqlite
+        .prepare(
+          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at,attempts) VALUES('ack-event','notification.email.requested','notification-1','ack-key','{}',?,?,1)",
+        )
+        .run(now, now);
+      const ack = { ...request, eventId: 'ack-event', idempotencyKey: 'ack-key' };
+      claimOutboxDelivery(fixture.sqlite, ack, 'ack-claim');
+      fixture.sqlite.exec(
+        "CREATE TEMP TRIGGER reject_delivery BEFORE UPDATE OF delivered_at ON outbox_event WHEN NEW.id='ack-event' BEGIN SELECT RAISE(ABORT,'ack DB failure'); END",
+      );
+      expect(() => markOutboxDelivered(fixture.sqlite, ack, 'ack-claim')).toThrow('ack DB failure');
+      failOutboxDelivery(fixture.sqlite, ack, 'ack-claim', new Error('ack DB failure'), true);
+      fixture.sqlite.exec('DROP TRIGGER reject_delivery');
+      // An active claim survives another worker; only an expired claim becomes uncertain.
+      fixture.sqlite
+        .prepare(
+          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at,attempts) VALUES('stale-event','notification.email.requested','notification-1','stale-key','{}',?,?,1)",
+        )
+        .run(now, now);
+      const stale = { ...request, eventId: 'stale-event', idempotencyKey: 'stale-key' };
+      claimOutboxDelivery(fixture.sqlite, stale, 'stale-claim');
+      await fixture.v3.runDueOutbox(20, async () => {
+        calls++;
+      });
+      expect(
+        fixture.sqlite.prepare("SELECT failed_at FROM outbox_event WHERE id='stale-event'").get(),
+      ).toMatchObject({ failed_at: null });
+      fixture.sqlite
+        .prepare(
+          "UPDATE outbox_event SET lease_until='2000-01-01T00:00:00.000Z' WHERE id='stale-event'",
+        )
+        .run();
+      await fixture.v3.runDueOutbox(20, async () => {
+        calls++;
+      });
+      expect(calls).toBe(0);
+      expect(
+        fixture.sqlite.prepare("SELECT last_error FROM outbox_event WHERE id='stale-event'").get(),
+      ).toMatchObject({ last_error: 'SMTP_DELIVERY_UNCERTAIN' });
+    } finally {
+      closeB5LifecycleSecurityFixture(fixture);
+      await smtp.close();
+    }
+  });
+
+  it('creates invitation and encrypted outbox atomically; manual invitations do not queue undeliverable mail', () => {
+    const fixture = createB5LifecycleSecurityFixture();
+    const owner = stepUpB5Principal(fixture.sqlite, fixture.owner, 'invitation-test');
+    try {
+      const before = fixture.sqlite.prepare('SELECT count(*) n FROM invitation').get() as {
+        n: number;
+      };
+      expect(() =>
+        fixture.v3.createInvitation(owner, { email: 'new@example.test', role: 'worker' }, () => {
+          throw new Error('seal failed');
+        }),
+      ).toThrow('seal failed');
+      expect(fixture.sqlite.prepare('SELECT count(*) n FROM invitation').get()).toEqual(before);
+      const manual = fixture.v3.createInvitation(owner, {
+        email: 'manual@example.test',
+        role: 'worker',
+      });
+      expect(
+        fixture.sqlite.prepare('SELECT id FROM outbox_event WHERE aggregate_id=?').get(manual.id),
+      ).toBeUndefined();
+      const emailed = fixture.v3.createInvitation(
+        owner,
+        { email: 'mail@example.test', role: 'worker' },
+        (token, id) => sealInvitationToken(token, id, 'secret'.repeat(10)),
+      );
+      const row = fixture.sqlite
+        .prepare('SELECT payload_json FROM outbox_event WHERE aggregate_id=?')
+        .get(emailed.id) as { payload_json: string };
+      expect(row.payload_json).not.toContain(emailed.token);
+      expect(JSON.parse(row.payload_json).encryptedToken).toMatch(/^v1\./);
+    } finally {
+      closeB5LifecycleSecurityFixture(fixture);
+    }
+  });
+
+  it('decrypts only the matching pending invitation and rejects token, identity and expiry substitution', () => {
+    const { sqlite } = database();
+    try {
+      const now = new Date().toISOString();
+      const expiresAt = new Date(Date.now() + 86400000).toISOString();
+      const token = 'a'.repeat(43);
+      const secret = 'test-auth-secret'.repeat(4);
+      const encryptedToken = sealInvitationToken(token, 'invite-1', secret);
+      expect(encryptedToken).not.toContain(token);
+      expect(() => openInvitationToken(encryptedToken, 'invite-2', secret)).toThrow();
+      expect(() =>
+        openInvitationToken(encryptedToken, 'invite-1', 'different-secret'.repeat(4)),
+      ).toThrow();
+      sqlite
+        .prepare(
+          "INSERT INTO user(id,name,email,email_verified,role,status,created_at,updated_at) VALUES('owner-1','Owner','owner@example.test',1,'finance_admin','active',?,?)",
+        )
+        .run(now, now);
+      sqlite
+        .prepare(
+          "INSERT INTO invitation(id,email,token_hash,role,invited_by,expires_at,created_at) VALUES('invite-1','external@example.test',?,'worker','owner-1',?,?)",
+        )
+        .run(createHash('sha256').update(token).digest('hex'), expiresAt, now);
+      const payload = {
+        invitationId: 'invite-1',
+        email: 'external@example.test',
+        role: 'worker',
+        expiresAt,
+        encryptedToken,
+      };
+      sqlite
+        .prepare(
+          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at) VALUES('invite-event','invitation.created','invite-1','invitation:invite-1',?,?,?)",
+        )
+        .run(JSON.stringify(payload), now, now);
+      const request = parseSignedOutboxRequest(
+        JSON.stringify(
+          signedRequest({
+            eventId: 'invite-event',
+            topic: 'invitation.created',
+            aggregateId: 'invite-1',
+            idempotencyKey: 'invitation:invite-1',
+            payload: { email: 'attacker@example.test' },
+          }),
+        ),
+      );
+      const delivery = resolveMailDelivery(sqlite, request, undefined, { authSecret: secret });
+      expect(delivery).toMatchObject({
+        recipient: 'external@example.test',
+        body: expect.stringContaining(`/app/invite/${token}`),
+      });
+      sqlite.prepare("UPDATE invitation SET token_hash=? WHERE id='invite-1'").run('b'.repeat(64));
+      expect(() => resolveMailDelivery(sqlite, request, undefined, { authSecret: secret })).toThrow(
+        'token mismatch',
+      );
+      sqlite
+        .prepare("UPDATE invitation SET expires_at='2000-01-01T00:00:00.000Z' WHERE id='invite-1'")
+        .run();
+      expect(() => resolveMailDelivery(sqlite, request, undefined, { authSecret: secret })).toThrow(
+        'unavailable',
+      );
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it('transmits PDF attachments as MIME multipart only after authenticated SMTP acceptance', async () => {
+    const smtp = await startTestSmtp();
+    try {
+      const content = Buffer.from('%PDF-1.7\nfixture');
+      await sendStalwartMail(
+        {
+          recipient: 'billing@example.test',
+          subject: 'Invoice 123',
+          body: 'Invoice attached',
+          messageId: '<ja-fixture@j-aautomation.com>',
+          attachment: { filename: 'Invoice-123.pdf', content },
+        },
+        {
+          smtpUrl: `smtp://127.0.0.1:${smtp.port}`,
+          username: smtpUsername,
+          password: smtpPassword,
+          rejectUnauthorized: false,
+        },
+      );
+      expect(smtp.acceptedMessages()).toBe(1);
+      expect(smtp.lastMessage()).toContain('multipart/mixed');
+      expect(smtp.lastMessage()).toContain('filename="Invoice-123.pdf"');
+      expect(smtp.lastMessage()).toContain(content.toString('base64'));
+    } finally {
+      await smtp.close();
+    }
+  });
+
+  it('delivers verified external user notifications using the stored event identity', async () => {
+    const { sqlite } = database();
+    const smtp = await startTestSmtp();
+    try {
+      const now = new Date().toISOString();
+      sqlite
+        .prepare(
+          "INSERT INTO user(id,name,email,email_verified,role,status,created_at,updated_at) VALUES('worker-1','External','technician@example.test',1,'worker','active',?,?)",
+        )
+        .run(now, now);
+      sqlite
+        .prepare(
+          "INSERT INTO notification(id,user_id,kind,subject_id,created_at) VALUES('notification-1','worker-1','missing_time','time-1',?)",
+        )
+        .run(now);
+      sqlite
+        .prepare(
+          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at) VALUES('event-1','notification.email.requested','notification-1','notification-email:notification-1',?,?,?)",
+        )
+        .run(JSON.stringify(signedRequest().payload), now, now);
+      const request = parseSignedOutboxRequest(JSON.stringify(signedRequest()));
+      const delivery = resolveMailDelivery(sqlite, request, undefined);
+      expect(delivery).toMatchObject({ recipient: 'technician@example.test' });
+      if (delivery === 'already-delivered') throw new Error('Unexpected duplicate');
+      await sendStalwartMail(delivery, {
+        smtpUrl: `smtp://127.0.0.1:${smtp.port}`,
+        username: smtpUsername,
+        password: smtpPassword,
+        rejectUnauthorized: false,
+      });
+      expect(smtp.acceptedMessages()).toBe(1);
+      expect(smtp.lastMessage()).toContain('To: <technician@example.test>');
+      sqlite.prepare("UPDATE user SET email_verified=0 WHERE id='worker-1'").run();
+      expect(() => resolveMailDelivery(sqlite, request, undefined)).toThrow('unavailable');
+    } finally {
+      sqlite.close();
+      await smtp.close();
+    }
+  });
+
+  it('rejects a signed request that substitutes the stored notification recipient', () => {
+    const { sqlite } = database();
+    try {
+      const now = new Date().toISOString();
+      for (const id of ['worker-1', 'worker-2']) {
+        sqlite
+          .prepare(
+            "INSERT INTO user(id,name,email,email_verified,role,status,created_at,updated_at) VALUES(?,?,?,1,'worker','active',?,?)",
+          )
+          .run(id, id, `${id}@j-aautomation.com`, now, now);
+      }
+      sqlite
+        .prepare(
+          "INSERT INTO notification(id,user_id,kind,subject_id,created_at) VALUES('notification-1','worker-2','missing_time','time-1',?)",
+        )
+        .run(now);
+      sqlite
+        .prepare(
+          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at) VALUES('event-1','notification.email.requested','notification-1','notification-email:notification-1',?,?,?)",
+        )
+        .run(JSON.stringify(signedRequest().payload), now, now);
+      const forged = parseSignedOutboxRequest(
+        JSON.stringify(
+          signedRequest({ payload: { ...signedRequest().payload, userId: 'worker-2' } }),
+        ),
+      );
+      expect(() => resolveMailDelivery(sqlite, forged, undefined)).toThrow(/stored|unavailable/);
+    } finally {
+      sqlite.close();
+    }
+  });
+
   it('validates an exact HMAC and rejects weak, malformed or changed signatures', () => {
     const secret = 'a'.repeat(64);
     const body = JSON.stringify(signedRequest());

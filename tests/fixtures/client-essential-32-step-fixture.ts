@@ -1416,14 +1416,18 @@ export function uatArtifactFile(name: string): { name: string; mimeType: string;
     return {
       name,
       mimeType: 'application/pdf',
-      // Keep each synthetic artifact byte-distinct. Production de-duplicates
-      // uploads by content hash, so reusing one generic PDF payload would
-      // correctly resolve to the earlier PLC artifact instead of a receipt.
+      // Keep distinct synthetic artifacts byte-distinct. Duplicate-content
+      // rejection is verified separately; a new expense must have its own receipt.
       buffer: Buffer.from(`%PDF-1.4\n% Client Essential UAT fixture: ${name}\n`, 'utf8'),
     };
+  const jpeg = readFileSync(resolve('website/public/images/hero/hero-food-beverage.jpg'));
+  const comment = Buffer.from(`Synthetic UAT receipt: ${name}`, 'utf8');
+  const marker = Buffer.alloc(4);
+  marker.writeUInt16BE(0xfffe, 0);
+  marker.writeUInt16BE(comment.length + 2, 2);
   return {
     name,
     mimeType: 'image/jpeg',
-    buffer: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+    buffer: Buffer.concat([jpeg.subarray(0, 2), marker, comment, jpeg.subarray(2)]),
   };
 }

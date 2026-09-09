@@ -35,6 +35,7 @@ describe('Billing section lifecycle surface', () => {
       'approveInvoice',
       'issueInvoice',
       'sendInvoice',
+      'emailInvoice',
       'recordPayment',
       'reversePayment',
       'voidInvoice',

@@ -143,7 +143,7 @@ For a mistake after issue, use the provided void, credit, adjustment or replacem
 
 ### Invoice control sequence
 
-On the Billing register, use **Create invoice draft** only after the readiness messages are resolved. In the draft detail, use **Save details** for the draft-only fields such as purchase number, discount, bank details, beneficiary and past-due notice; reopen **Preview** and **Open PDF** to review the draft document. Use **Approve invoice**, **Issue invoice**, **Record payment**, **Reverse payment**, **Void invoice** and **Create adjustment** only for their named lifecycle state and with real evidence. The **Send invoice** action is an invoice action; its resulting record/outbox state must be checked, and it does not itself demonstrate customer acceptance or a confirmed collection.
+On the Billing register, use **Create invoice draft** only after the readiness messages are resolved. In the draft detail, use **Save details** for the draft-only fields such as purchase number, discount, bank details, beneficiary and past-due notice; reopen **Preview** and **Open PDF** to review the draft document. Use **Approve invoice**, **Issue invoice**, **Record payment**, **Reverse payment**, **Void invoice** and **Create adjustment** only for their named lifecycle state and with real evidence. **Send by email** requires an explicit recipient and a ready, verified PDF. Check the displayed Queued, Retrying, Failed, Delivery uncertain or Accepted by SMTP server status. If delivery is uncertain, ask the administrator to inspect the mail server before retrying; automatic resending is stopped to avoid duplicate invoices. Queueing does not mark the invoice sent; SMTP acceptance does, but does not confirm inbox delivery or customer acceptance. **Mark sent** records a manual sending action and sends no email.
 
 ### Compensation and reimbursement procedure
 
@@ -202,3 +202,6 @@ Use **Operational report** to filter by installation and dates, read approval st
 An External technician sees only their own operational hours and reports. Supplier coordinator and External technician accounts have no My Pay, rates, expenses, financial documents or financial exports. The compensation and expense procedures elsewhere in this guide apply to standard Worker accounts. Supplier reports never include money. Contact the Owner when your installation or technician is missing; do not record work against a substitute person or project.
 
 :::figure owner /app/supplier The Owner appoints supplier coordinators and authorizes installations.
+
+
+Repeated receipt content is rejected with a controlled conflict, including renamed copies. The original stays unchanged; the failed upload is cleaned up. Do not rename or alter a receipt merely to bypass this check.

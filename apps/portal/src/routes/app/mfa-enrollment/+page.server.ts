@@ -1,7 +1,7 @@
 import { base } from '$app/paths';
 import { redirect } from '@sveltejs/kit';
 import { portalLandingForRole } from '$lib/portal-navigation';
-import { normalizePortalLocale } from '$lib/portal-i18n';
+import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import type { PageServerLoad } from './$types';
 
 /**
@@ -17,10 +17,10 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
     // This optional setup route reads only request locale state and the
     // authenticated identity already resolved by hooks. The caller can always
     // continue to the ordinary role landing without enabling MFA.
-    locale: normalizePortalLocale(
-      url.searchParams.get('lang') ??
-        cookies.get('ja.portal.locale') ??
-        cookies.get('ja-portal-locale'),
+    locale: resolvePortalLocalePreference(
+      url.searchParams.get('lang'),
+      cookies.get('ja.portal.locale'),
+      cookies.get('ja-portal-locale'),
     ),
   };
 };

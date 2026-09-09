@@ -7,6 +7,20 @@ import {
 } from './catalog';
 
 export const PORTAL_LOCALE_STORAGE_KEY = 'ja.portal.locale';
+export const PORTAL_LOCALE_LEGACY_KEY = 'ja-portal-locale';
+export const PORTAL_LOCALE_VERSION_KEY = 'ja.portal.locale.version';
+export const PORTAL_LOCALE_MAX_AGE = 365 * 24 * 60 * 60;
+
+/** Ignore invalid preferences; absence never inherits the browser's language. */
+export function resolvePortalLocalePreference(
+  ...sources: Array<string | null | undefined>
+): PortalLocale {
+  for (const value of sources) {
+    if (typeof value === 'string' && /^(en|es|pt)(?:[-_][a-z]{2,8})?$/iu.test(value.trim()))
+      return normalizePortalLocale(value);
+  }
+  return 'en';
+}
 
 export function normalizePortalLocale(value: PortalLocaleInput): PortalLocale {
   return normalizeCatalogLocale(value);

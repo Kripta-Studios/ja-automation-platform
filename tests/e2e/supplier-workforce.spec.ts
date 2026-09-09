@@ -154,7 +154,7 @@ test('Owner delegates installation; supplier adds technician and submits private
     const entry = coordinator.locator('article').filter({ hasText: note });
     await entry.getByRole('button', { name: 'Submit to J&A' }).click();
     await expect(coordinator.locator('article').filter({ hasText: note })).toContainText(
-      'submitted',
+      'Submitted',
     );
     await time.locator('[name=workerId]').selectOption(externalId);
     await time.getByLabel('Actual minutes').fill('30');
@@ -202,7 +202,7 @@ test('Owner delegates installation; supplier adds technician and submits private
     );
     expect(csv.status()).toBe(200);
     expect(await csv.text()).toContain(note);
-    expect(await csv.text()).toContain('approved');
+    expect(await csv.text()).toContain('Approved');
     expect(await csv.text()).not.toMatch(/rate_minor|payment|billability|currency|reimbursement/i);
     let coordinatorOwnTimeId: string;
     const snapshot = createDatabase(readE2EFixturePointer().databasePath);
@@ -294,5 +294,15 @@ test('Owner delegates installation; supplier adds technician and submits private
     });
   } finally {
     await coordinatorContext.close();
+    // Shared login fixtures must retain their ordinary role for later locale/manual tests.
+    // Keep the historical supplier periods and operational records as audit evidence.
+    const cleanup = createDatabase(readE2EFixturePointer().databasePath);
+    try {
+      cleanup.sqlite
+        .prepare('DELETE FROM supplier_user_profile WHERE user_id IN (?,?)')
+        .run(coordinatorId, externalId);
+    } finally {
+      cleanup.sqlite.close();
+    }
   }
 });

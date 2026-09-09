@@ -6,6 +6,8 @@
 
 ## 1. Entre usando seu convite
 
+Escolha inglês, espanhol ou português no seletor de idioma da página de acesso ou do portal. O inglês é o padrão quando não há uma preferência salva. Sua escolha permanece neste navegador ao recarregar, sair e entrar novamente.
+
 Se o convite estiver vinculado a uma caixa de e-mail corporativa, abra-o nessa caixa e entre com a conta indicada na mensagem. Se você foi convidado como colaborador externo, use o link de convite de uso único para criar sua conta. Não existe cadastro público. Se precisar de ajuda com acesso ou senha, use o canal de suporte verificado no convite; não adivinhe um endereço de e-mail ou telefone.
 
 MFA é opcional. Se decidir ativá-la, abra **Perfil (Profile)** e selecione **Ativar MFA (Enable MFA)**. Guarde os códigos de recuperação de uso único em local privado, informe o código do autenticador e escolha **Verificar MFA (Verify MFA)**. O trabalho normal no portal não exige uma solicitação adicional de verificação. Nunca envie senha, código ou sessão a outra pessoa.

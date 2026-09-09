@@ -6,6 +6,8 @@ This English reference explains the operational screens available to Owner and F
 
 Use the portal's Help page for the guides assigned to your account and the verified support route in your invitation for access problems. Do not send passwords, recovery codes, private receipts, or customer documents through email or chat.
 
+Use the language selector on the sign-in page or in the portal to choose English, Spanish or Portuguese. English is the default when no preference has been saved. Your choice is retained in this browser after navigation, reload and sign-out; the next sign-in page uses the same language.
+
 ## Role and data boundary
 
 | Role                  | Typical access                                                                    | Limits that matter                                                                                                                  |
@@ -202,6 +204,5 @@ Use **Operational report** to filter by installation and dates, read approval st
 An External technician sees only their own operational hours and reports. Supplier coordinator and External technician accounts have no My Pay, rates, expenses, financial documents or financial exports. The compensation and expense procedures elsewhere in this guide apply to standard Worker accounts. Supplier reports never include money. Contact the Owner when your installation or technician is missing; do not record work against a substitute person or project.
 
 :::figure owner /app/supplier The Owner appoints supplier coordinators and authorizes installations.
-
 
 Repeated receipt content is rejected with a controlled conflict, including renamed copies. The original stays unchanged; the failed upload is cleaned up. Do not rename or alter a receipt merely to bypass this check.

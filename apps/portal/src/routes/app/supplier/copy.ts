@@ -1,3 +1,6 @@
+import { translateControlledValue } from '$lib/i18n/controlled-values';
+import type { PortalLocale } from '$lib/portal-i18n';
+
 export const supplierCopy = {
   en: {
     title: 'Suppliers and technicians',
@@ -8,6 +11,7 @@ export const supplierCopy = {
     restricted:
       'Operational access only. Payments, rates and financial reports are not available to these accounts.',
     owner: 'Owner administration',
+    revoked: 'Revoked',
     provider: 'Supplier',
     createProvider: 'Add supplier',
     name: 'Name',
@@ -70,7 +74,8 @@ export const supplierCopy = {
       'Registra técnicos y trabajo real en las instalaciones autorizadas. J&A revisa las horas enviadas.',
     restricted:
       'Acceso solo operativo. Estas cuentas no pueden consultar pagos, tarifas ni informes financieros.',
-    owner: 'Administración del Owner',
+    owner: 'Administración del propietario',
+    revoked: 'Revocado',
     provider: 'Proveedor',
     createProvider: 'Añadir proveedor',
     name: 'Nombre',
@@ -91,7 +96,7 @@ export const supplierCopy = {
     add: 'Añadir técnico',
     email: 'Correo (opcional)',
     personnel:
-      'Se crea una ficha de técnico sin credenciales de acceso. El Owner puede configurar cuentas de acceso ya existentes.',
+      'Se crea una ficha de técnico sin credenciales de acceso. El propietario puede configurar cuentas de acceso ya existentes.',
     assign: 'Asignar técnico existente',
     assigned: 'Técnicos',
     time: 'Registrar horas del equipo',
@@ -133,7 +138,8 @@ export const supplierCopy = {
       'Cadastre técnicos e trabalho real nas instalações autorizadas. A J&A revisa as horas enviadas.',
     restricted:
       'Acesso apenas operacional. Estas contas não podem consultar pagamentos, tarifas ou relatórios financeiros.',
-    owner: 'Administração do Owner',
+    owner: 'Administração do proprietário',
+    revoked: 'Revogado',
     provider: 'Fornecedor',
     createProvider: 'Adicionar fornecedor',
     name: 'Nome',
@@ -154,7 +160,7 @@ export const supplierCopy = {
     add: 'Adicionar técnico',
     email: 'E-mail (opcional)',
     personnel:
-      'Cria um cadastro de técnico sem credenciais de acesso. O Owner pode configurar contas de acesso já existentes.',
+      'Cria um cadastro de técnico sem credenciais de acesso. O proprietário pode configurar contas de acesso já existentes.',
     assign: 'Atribuir técnico existente',
     assigned: 'Técnicos',
     time: 'Registrar horas da equipe',
@@ -189,3 +195,15 @@ export const supplierCopy = {
     select: 'Selecionar',
   },
 } as const;
+
+export function supplierStateLabel(locale: PortalLocale, state: string): string {
+  return state === 'revoked'
+    ? supplierCopy[locale].revoked
+    : translateControlledValue(locale, 'status', state);
+}
+
+export function supplierCategoryLabel(locale: PortalLocale, category: string): string {
+  return category === 'work'
+    ? supplierCopy[locale].work
+    : translateControlledValue(locale, 'timeCategory', category);
+}

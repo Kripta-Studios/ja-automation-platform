@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { normalizePortalLocale } from '$lib/portal-i18n';
+import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import {
   openSupplierContext,
   supplierPeriod,
@@ -13,10 +13,10 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
     const supplierId = url.searchParams.get('supplierId') || undefined;
     const period = supplierPeriod(url);
     return {
-      locale: normalizePortalLocale(
-        url.searchParams.get('lang') ??
-          cookies.get('ja.portal.locale') ??
-          cookies.get('ja-portal-locale'),
+      locale: resolvePortalLocalePreference(
+        url.searchParams.get('lang'),
+        cookies.get('ja.portal.locale'),
+        cookies.get('ja-portal-locale'),
       ),
       owner: ctx.principal.role === 'owner_admin',
       projects,

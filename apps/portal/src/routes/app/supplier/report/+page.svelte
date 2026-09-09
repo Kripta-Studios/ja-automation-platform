@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { portalText } from '$lib/portal-i18n';
   import { SectionCard } from '$lib/portal/ui';
-  import { supplierCopy } from '../copy';
+  import { supplierCopy, supplierStateLabel, supplierCategoryLabel } from '../copy';
   let { data } = $props();
   const c = $derived(supplierCopy[data.locale as keyof typeof supplierCopy]);
   const query = $derived(
@@ -37,7 +38,7 @@
       >{c.to}<input type="date" name="to" value={data.to} required /></label
     >
     <label
-      >Language / Idioma<select name="lang" value={data.locale}
+      >{portalText(data.locale, 'Language')}<select name="lang" value={data.locale}
         ><option value="en">English</option><option value="es">Español</option><option value="pt"
           >Português</option
         ></select
@@ -59,12 +60,12 @@
           <h3>{row.workerName} · {row.workDate}</h3>
           <dl>
             <dt>{c.category}</dt>
-            <dd>{row.category}</dd>
+            <dd>{supplierCategoryLabel(data.locale, row.category)}</dd>
             <dt>{c.minutes}</dt>
             <dd>{row.minutes}</dd>
             <dt>{c.state}</dt>
             <dd>
-              {row.state}{#if row.isSuperseded}
+              {supplierStateLabel(data.locale, row.state)}{#if row.isSuperseded}
                 · {c.superseded}{/if}
             </dd>
             <dt>{c.recordedBy}</dt>

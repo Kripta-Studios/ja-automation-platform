@@ -1,3 +1,4 @@
+import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import { error, redirect } from '@sveltejs/kit';
 import { actionFailure, actionSuccess } from '$lib/server/actions/action-message';
 import { openPortalRepository } from '$lib/server/portal-repository';
@@ -14,7 +15,7 @@ function list(form: FormData, name: string): string[] {
     .filter(Boolean);
 }
 
-export const load: PageServerLoad = ({ locals, params, url }) => {
+export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
   if (!locals.user) redirect(303, '/j-aautomation/app/login');
   if (!writer(locals.user.role)) error(403, 'Finance role required');
   const context = openPortalRepository(locals);
@@ -28,12 +29,11 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
       .all(params.id);
     return {
       user: locals.user,
-      locale:
-        url.searchParams.get('lang') === 'es'
-          ? 'es'
-          : url.searchParams.get('lang') === 'pt'
-            ? 'pt'
-            : 'en',
+      locale: resolvePortalLocalePreference(
+        url.searchParams.get('lang'),
+        cookies.get('ja.portal.locale'),
+        cookies.get('ja-portal-locale'),
+      ),
       project: overview.project,
       closeout,
       documents,
@@ -53,7 +53,7 @@ export const actions: Actions = {
         projectId: params.id ?? '',
         clientDocumentIds: list(form, 'documentId'),
       });
-      return actionSuccess('action.success', {}, 'Closeout draft prepared');
+      return actionSuccess('action.closeout.draftPrepared', {}, 'Closeout draft prepared');
     } catch (cause) {
       return actionFailure(cause);
     } finally {
@@ -70,7 +70,7 @@ export const actions: Actions = {
         ...(form.has('replaceSelection') ? { clientDocumentIds: list(form, 'documentId') } : {}),
       });
       return actionSuccess(
-        'action.success',
+        'action.closeout.draftRefreshed',
         {},
         'Closeout draft refreshed; review and confirm the new client snapshot',
       );
@@ -92,7 +92,11 @@ export const actions: Actions = {
         revisionId,
         hash,
       );
-      return actionSuccess('action.success', {}, 'Exact client snapshot confirmed');
+      return actionSuccess(
+        'action.closeout.clientSnapshotConfirmed',
+        {},
+        'Exact client snapshot confirmed',
+      );
     } catch (cause) {
       return actionFailure(cause);
     } finally {
@@ -108,7 +112,7 @@ export const actions: Actions = {
         context.principal,
         String(form.get('revisionId') ?? ''),
       );
-      return actionSuccess('action.success', {}, 'Closeout packages finalized');
+      return actionSuccess('action.closeout.packagesFinalized', {}, 'Closeout packages finalized');
     } catch (cause) {
       return actionFailure(cause);
     } finally {
@@ -125,7 +129,7 @@ export const actions: Actions = {
         String(form.get('revisionId') ?? ''),
         String(form.get('reason') ?? ''),
       );
-      return actionSuccess('action.success', {}, 'Closeout reopened');
+      return actionSuccess('action.closeout.reopened', {}, 'Closeout reopened');
     } catch (cause) {
       return actionFailure(cause);
     } finally {

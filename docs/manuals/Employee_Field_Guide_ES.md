@@ -6,6 +6,8 @@
 
 ## 1. Inicia sesión con tu invitación
 
+Elige inglés, español o portugués con el selector de idioma del acceso o del portal. El inglés es el idioma por defecto cuando no hay una preferencia guardada. Tu elección se conserva en este navegador al recargar, cerrar sesión y volver a entrar.
+
 Si la invitación está vinculada a un buzón corporativo, ábrela desde ese buzón e inicia sesión con la cuenta indicada en el mensaje. Si eres un trabajador externo, usa el enlace de invitación de un solo uso para crear tu cuenta. No hay registro público. Si necesitas ayuda con el acceso o la contraseña, utiliza el canal de soporte verificado de la invitación; no adivines una dirección de correo ni un teléfono.
 
 MFA es opcional. Si decides activarlo, abre **Perfil (Profile)** y selecciona **Activar MFA (Enable MFA)**. Guarda los códigos de recuperación de un solo uso en privado, introduce el código del autenticador y selecciona **Verificar MFA (Verify MFA)**. El trabajo normal en el portal no requiere una solicitud adicional de verificación. Nunca envíes una contraseña, un código ni una sesión a otra persona.

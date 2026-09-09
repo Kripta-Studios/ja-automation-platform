@@ -1,3 +1,4 @@
+import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import { building } from '$app/environment';
 import { auth, revokeSessionsUnlessUserIsActive } from '$lib/server/auth';
 import { createDatabase } from '@ja/database';
@@ -5,7 +6,7 @@ import { supplierRouteAllowed } from '$lib/server/supplier-route-access';
 import { createHash, randomUUID } from 'node:crypto';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import type { Handle } from '@sveltejs/kit';
-import { documentLanguage, normalizePortalLocale, type PortalLocale } from '$lib/portal-i18n';
+import { documentLanguage, type PortalLocale } from '$lib/portal-i18n';
 import {
   isWebmailOnlyUser,
   webmailOnlyUserIdForEmail,
@@ -25,11 +26,11 @@ const portalCsp =
   "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo='; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'";
 
 function requestLocale(event: Parameters<Handle>[0]['event']): PortalLocale {
-  const requested =
-    event.url.searchParams.get('lang') ??
-    event.cookies.get('ja.portal.locale') ??
-    event.cookies.get('ja-portal-locale');
-  return normalizePortalLocale(requested);
+  return resolvePortalLocalePreference(
+    event.url.searchParams.get('lang'),
+    event.cookies.get('ja.portal.locale'),
+    event.cookies.get('ja-portal-locale'),
+  );
 }
 
 async function applyServerDocumentLocale(

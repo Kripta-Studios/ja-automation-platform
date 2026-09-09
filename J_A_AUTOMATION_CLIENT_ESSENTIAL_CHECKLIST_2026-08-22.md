@@ -693,3 +693,21 @@ pruebas de entrega/migración/recuperación real de correo, datos fiscales verif
 humanas siguen pendientes. La SPEC recoge la decisión existente del Owner sobre MFA opcional y
 sin step-up; no se altera ni se firma retroactivamente el contrato original. La activación y las
 comprobaciones de producción se acreditarán en el recibo de despliegue de esta remediación.
+
+### Corrección de idiomas y preparación del despliegue — 2026-09-09
+
+Inglés por defecto sin preferencia previa; selector EN/ES/PT compartido entre portal y login,
+con migración de preferencias antiguas, cookies de un año y conservación tras navegación,
+recarga y cierre/inicio de sesión. Se corrigen etiquetas visibles y accesibles, estados de
+proveedores/CSV, mensajes de cierre, guardados financieros y mensajes de acciones en inglés.
+No se traducen datos originales ni se modifican permisos o importes por cambiar de idioma.
+
+La revisión final local supera 110 pruebas en 12 archivos, typecheck del workspace, ESLint y
+formato. Las 12 pruebas reales de persistencia pasan a 360/390/768/1440 px; el recorrido de
+78 páginas de Owner y Worker en ES/PT no encuentra textos conocidos del catálogo sin traducir.
+Las capturas y los PDF se vinculan al código mediante el digest del manifiesto de manuales.
+El recibo de producción separará las pruebas sintéticas de las verificaciones del VPS.
+
+Estos resultados no cierran el histórico perdido de backups, la copia externa, la entrega y
+recuperación real del correo, los datos fiscales ni la aceptación humana pendientes del registro
+de remediación. No se crean ni reactivan agentes tras la prohibición expresa del solicitante.

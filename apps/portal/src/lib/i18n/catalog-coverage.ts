@@ -2,6 +2,21 @@ import { extractedSectionCoverageKeys } from './coverage-literal-overrides';
 
 /** Generated from literal translation calls and action message keys. Keep this inventory in sync with the source. */
 export const PORTAL_LITERAL_KEYS = [
+  'Customer period report',
+  'Customer report',
+  'Technical reference',
+  'System reference',
+  'Backup reference',
+  'Approved customer document',
+  'Operational',
+  'Private',
+  'Project closeout',
+  'Required',
+  'Employee portal',
+  'J&A Automation portal',
+  'first.last',
+  'For example: BBS Mexico',
+  'minor units',
   'Document access',
   'Project document',
   'Finance, Owner and Auditor only',
@@ -1226,6 +1241,13 @@ export const PORTAL_LITERAL_KEYS = [
 ] as const;
 
 export const PORTAL_ACTION_KEYS = [
+  'action.closeout.draftPrepared',
+  'action.closeout.draftRefreshed',
+  'action.closeout.clientSnapshotConfirmed',
+  'action.closeout.packagesFinalized',
+  'action.closeout.reopened',
+  'action.reports.periodFollowupRecorded',
+  'action.success',
   'action.access.accountStatus.updated',
   'action.access.invitation.created',
   'action.access.workerProfile.updated',

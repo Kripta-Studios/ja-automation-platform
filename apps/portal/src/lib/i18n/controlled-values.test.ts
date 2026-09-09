@@ -12,7 +12,7 @@ describe('portal controlled-value translations', () => {
     ['artifactState', 'queued', 'En cola', 'Na fila'],
     ['timeCategory', 'commissioning', 'Puesta en marcha', 'Comissionamento'],
     ['timeCategory', 'overtime', 'Horas extra', 'Hora extra'],
-    ['timeCategory', 'standby', 'Disponibilidad / espera', 'Plantão / espera'],
+    ['timeCategory', 'standby', 'Guardia / espera', 'Plantão / espera'],
     ['timeCategory', 'weekend_holiday', 'Fin de semana / festivo', 'Fim de semana / feriado'],
     ['timeCategory', 'remote_support', 'Asistencia remota', 'Suporte remoto'],
     ['timeCategory', 'training', 'formación', 'treinamento'],

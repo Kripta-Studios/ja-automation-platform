@@ -6,6 +6,8 @@ Este guia de referência em português do Brasil explica as telas operacionais d
 
 Use a página Ajuda do portal para acessar os guias atribuídos à sua conta e o canal de suporte verificado na sua mensagem de convite para problemas de acesso. Não envie senhas, códigos de recuperação, recibos privados ou documentos de clientes por e-mail ou chat.
 
+Use o seletor de idioma na página de acesso ou no portal para escolher inglês, espanhol ou português. O inglês é o padrão quando nenhuma preferência foi salva. A escolha permanece neste navegador ao navegar, recarregar e sair da conta; a próxima página de acesso usa o mesmo idioma.
+
 ## Perfis e limites de dados
 
 | Perfil                     | Acesso típico                                                                                       | Limites importantes                                                                                                                                                                            |
@@ -202,6 +204,5 @@ O **Relatório operacional** permite filtrar instalação e datas, consultar est
 O Técnico externo vê apenas suas próprias horas e relatórios operacionais. As contas de Responsável do fornecedor e Técnico externo não têm Meu pagamento, tarifas, despesas, documentos financeiros ou exportações financeiras. As instruções de despesas e remuneração neste guia se aplicam às contas padrão de Trabalhador. Os relatórios de fornecedor não incluem valores financeiros. Se faltar uma instalação ou um técnico, peça a correção ao Owner.
 
 :::figure owner /app/supplier O Owner escolhe os responsáveis de fornecedor e autoriza as instalações.
-
 
 Conteúdo de recibo repetido é rejeitado com conflito controlado, mesmo com outro nome. O original permanece intacto e o arquivo da tentativa que falhou é removido. Não renomeie nem altere um recibo para contornar essa verificação.

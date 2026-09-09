@@ -176,7 +176,7 @@ describe('standalone portal route locale boundary', () => {
     const appHtml = read('apps/portal/src/app.html');
     expect(layout).toContain('accept-language');
     expect(layout).toContain('ja.portal.locale');
-    expect(layout).toContain('normalizePortalLocale');
+    expect(layout).toContain('resolvePortalLocalePreference');
     expect(hooks).toContain('applyServerDocumentLocale');
     expect(hooks).toContain('documentLanguage');
     expect(hooks).toContain("headers.delete('content-length')");

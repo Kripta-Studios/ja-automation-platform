@@ -1,10 +1,28 @@
 <script lang="ts">
   import { base } from '$app/paths';
+  import { standaloneActionMessage } from '../../../standalone-locale';
+  import { portalText } from '$lib/portal-i18n';
+  import { translateControlledValue } from '$lib/i18n/controlled-values';
   import { Field, SectionCard } from '$lib/portal/ui';
   import { closeoutCopy } from './copy';
   let { data, form } = $props();
   const locale = $derived(data.locale === 'es' ? 'es' : data.locale === 'pt' ? 'pt' : 'en');
   const t = $derived(closeoutCopy[locale]);
+  const actionFeedback = $derived(standaloneActionMessage(locale, form));
+  function documentLabel(value: unknown): string {
+    const labels: Record<string, string> = {
+      customer_period_pdf: 'Customer period report',
+      customer_report_pdf: 'Customer report',
+      technical_reference: 'Technical reference',
+      system_reference: 'System reference',
+      backup_reference: 'Backup reference',
+      approved_customer_document: 'Approved customer document',
+      customer_private: 'Customer private',
+      operational: 'Operational',
+    };
+    const raw = String(value ?? '—');
+    return labels[raw] ? portalText(locale, labels[raw]) : raw;
+  }
   const project = $derived(data.project as Record<string, unknown>);
   const revisions = $derived((data.closeout.revisions ?? []) as Array<Record<string, unknown>>);
   const artifacts = $derived((data.closeout.artifacts ?? []) as Array<Record<string, unknown>>);
@@ -32,13 +50,16 @@
     return value === null || value === undefined || value === '' ? '—' : String(value);
   }
   function money(row: Record<string, unknown>, amount = 'total_minor'): string {
-    return `${text(row.currency)} ${text(row[amount])} minor units`;
+    return `${text(row.currency)} ${text(row[amount])} ${portalText(locale, 'minor units')}`;
   }
   const internalSnapshot = $derived(draft ? snapshot(draft.internal_snapshot_json) : {});
   const clientSnapshot = $derived(draft ? snapshot(draft.client_snapshot_json) : {});
 </script>
 
-<svelte:head><title>Closeout · {String(project.project_number ?? '')}</title></svelte:head>
+<svelte:head
+  ><title>{portalText(locale, 'Project closeout')} · {String(project.project_number ?? '')}</title
+  ></svelte:head
+>
 <main
   class="closeout-page"
   data-closeout-page
@@ -50,19 +71,19 @@
   >
   <header>
     <p>{t.kicker}</p>
-    <h1>{String(project.name ?? 'Project')}</h1>
+    <h1>{String(project.name ?? t.project)}</h1>
     <p>{t.immutable}</p>
   </header>
-  {#if form?.message}<p role="status">{String(form.message)}</p>{/if}
+  {#if actionFeedback}<p role="status">{actionFeedback}</p>{/if}
   {#if !draft}
     <SectionCard title={t.prepare}
       ><form method="POST" action="?/prepare">
         <p>{t.selection}</p>
         {#each eligible as document}<label
             ><input type="checkbox" name="documentId" value={String(document.id)} />
-            {String(document.safe_filename ?? document.original_filename ?? document.id)} · {String(
+            {String(document.safe_filename ?? document.original_filename ?? document.id)} · {documentLabel(
               document.artifact_type,
-            )} · {String(document.sensitivity)}</label
+            )} · {documentLabel(document.sensitivity)}</label
           >{/each}<button type="submit">{t.prepareAction}</button>
       </form></SectionCard
     >
@@ -103,7 +124,11 @@
           <h4>{t.invoices}</h4>
           <ul>
             {#each rows(internalSnapshot.invoiceRegister) as invoice}<li>
-                {text(invoice.invoice_number)} · {money(invoice)} · {text(invoice.state)}
+                {text(invoice.invoice_number)} · {money(invoice)} · {translateControlledValue(
+                  locale,
+                  'status',
+                  text(invoice.state),
+                )}
               </li>{:else}<li>{t.noItems}</li>{/each}
           </ul>
           <h4>{t.payments}</h4>
@@ -126,7 +151,9 @@
           <h4>{t.documents}</h4>
           <ul>
             {#each rows(internalSnapshot.documentIndex) as item}<li>
-                {text(item.safe_filename ?? item.original_filename)} · {text(item.artifact_type)}
+                {text(item.safe_filename ?? item.original_filename)} · {documentLabel(
+                  item.artifact_type,
+                )}
               </li>{:else}<li>{t.noItems}</li>{/each}
           </ul>
           <details>
@@ -192,7 +219,7 @@
         <fieldset>
           <legend>{t.replace}</legend>{#each eligible as document}<label
               ><input type="checkbox" name="documentId" value={String(document.id)} />
-              {String(document.safe_filename ?? document.original_filename ?? document.id)} · {String(
+              {String(document.safe_filename ?? document.original_filename ?? document.id)} · {documentLabel(
                 document.artifact_type,
               )}</label
             >{/each}

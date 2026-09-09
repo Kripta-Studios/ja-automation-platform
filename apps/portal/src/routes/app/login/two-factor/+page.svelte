@@ -48,12 +48,12 @@
   $effect(() => applyStandaloneDocumentLocale(locale));
 </script>
 
-<svelte:head><title>{t('Verify your identity')} | J&A Employee Portal</title></svelte:head>
+<svelte:head><title>{t('Verify your identity')} | {t('Employee portal')}</title></svelte:head>
 <main class="login-page">
   <section class="login-showcase">
     <div class="login-ambient ambient-one"></div>
     <div class="login-showcase-content">
-      <a class="login-brand" href={`${base}/app/login`} aria-label="J&A Automation portal">
+      <a class="login-brand" href={`${base}/app/login`} aria-label={t('J&A Automation portal')}>
         <img src={`${base}/app/logo.png`} alt="J&A Automation" />
       </a>
       <div class="login-intro">

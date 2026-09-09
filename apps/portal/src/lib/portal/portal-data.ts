@@ -1,6 +1,7 @@
 export type PortalRow = Record<string, string | number | boolean | string[] | null>;
 
 export type PortalData = {
+  locale?: 'en' | 'es' | 'pt';
   offlineEnabled?: boolean;
   user: {
     id: string;

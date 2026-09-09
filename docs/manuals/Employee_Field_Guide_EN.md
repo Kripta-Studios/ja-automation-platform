@@ -6,6 +6,8 @@
 
 ## 1. Sign in with your invitation
 
+Choose English, Spanish or Portuguese with the language selector on the login page or in the portal. English is the default when no preference is saved. Your choice stays in this browser after reloading, signing out and signing in again.
+
 If the invitation is linked to a company mailbox, open it from that mailbox and sign in with the account named in the message. If you were invited as an external worker, use the single-use invitation link to create your account. There is no public sign-up. If access or password help is needed, use the verified support route in the invitation; do not guess an email address or phone number.
 
 MFA is optional. If you choose it, open **Profile**, follow **Set up MFA**, store the one-time recovery codes privately, enter the authenticator code and choose **Verify MFA**. Ordinary portal work does not require an extra step-up request. Never send a password, code or session to another person.

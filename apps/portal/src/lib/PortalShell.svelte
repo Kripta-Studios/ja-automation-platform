@@ -6,7 +6,11 @@
   import { notificationTargetPath } from './notifications/target';
   import { createAuthClient } from 'better-auth/client';
   import { passkeyClient } from '@better-auth/passkey/client';
-  import { onMount, tick } from 'svelte';
+  import { onMount, tick, untrack } from 'svelte';
+  import {
+    persistStandaloneLocale,
+    resolveStandaloneLocale,
+  } from '../routes/app/standalone-locale';
   import { SvelteMap } from 'svelte/reactivity';
   import {
     documentLanguage,
@@ -127,7 +131,7 @@
   let searchInput = $state<HTMLInputElement | null>(null);
   let searchValue = $derived(data.searchQuery ?? '');
   let offlineProjects = $state<Row[]>([]);
-  let locale = $state<PortalLocale>('en');
+  let locale = $state<PortalLocale>(untrack(() => normalizePortalLocale(data.locale)));
   let securityMessage = $state('');
   let securitySucceeded = $state(false);
   type WorkerStatementFormat = 'pdf' | 'csv';
@@ -646,9 +650,8 @@
 
   onMount(() => {
     const queryLocale = new URLSearchParams(location.search).get('lang');
-    const savedLocale = localStorage.getItem('ja-portal-locale');
-    locale = normalizePortalLocale(queryLocale ?? savedLocale ?? 'en');
-    localStorage.setItem('ja-portal-locale', locale);
+    locale = resolveStandaloneLocale(queryLocale, data.locale);
+    persistStandaloneLocale(locale);
     document.documentElement.lang = documentLanguage(locale);
     document.addEventListener('keydown', handleGlobalKeydown);
     if (location.hash === '#new-project') {
@@ -690,6 +693,7 @@
     });
   });
   async function logout() {
+    persistStandaloneLocale(locale);
     // Stop background sync/listeners before revoking this browser's offline
     // identity. This prevents a queued request from racing with sign-out.
     stopOfflineController?.();
@@ -707,7 +711,7 @@
   function changeLocale(event: Event): void {
     const selected = normalizePortalLocale((event.currentTarget as HTMLSelectElement).value);
     locale = selected;
-    localStorage.setItem('ja-portal-locale', selected);
+    persistStandaloneLocale(selected);
     const url = new URL(location.href);
     url.searchParams.set('lang', selected);
     replaceState(url, {});
@@ -1283,7 +1287,9 @@
                   )}</strong
                 >
                 <small
-                  >{String(document.project_number ?? 'Private')} · {String(document.artifact_type)} ·
+                  >{document.project_number
+                    ? String(document.project_number)
+                    : translate('Private')} · {String(document.artifact_type)} ·
                   {String(document.byte_length)} bytes</small
                 >
               </div>

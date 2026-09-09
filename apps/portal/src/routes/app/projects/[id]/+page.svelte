@@ -288,7 +288,7 @@
         <a
           data-project-closeout-link
           href={base + '/app/projects/' + encodeURIComponent(String(project.id)) + '/closeout'}
-          >Closeout</a
+          >{t('Project closeout')}</a
         >
       {/if}
     </div>

@@ -1,5 +1,11 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { page } from '$app/stores';
+  import { normalizePortalLocale, portalText } from '$lib/portal-i18n';
+  const locale = $derived(
+    normalizePortalLocale($page.url.searchParams.get('lang') ?? $page.data.locale),
+  );
+  const t = (key: string) => portalText(locale, key);
 
   type PrimitiveProps = {
     id: string;
@@ -56,7 +62,7 @@
 >
   <label for={id}>
     <span>{label}</span>
-    {#if required}<span class="ui-field-required" aria-hidden="true">Required</span>{/if}
+    {#if required}<span class="ui-field-required" aria-hidden="true">{t('Required')}</span>{/if}
   </label>
   {#if help}
     <p class="ui-field-help" id={helpId}>{help}</p>

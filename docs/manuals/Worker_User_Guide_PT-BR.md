@@ -6,6 +6,8 @@
 
 Este guia em português do Brasil explica as atividades autorizadas do Trabalhador no portal: projetos atribuídos, horas efetivamente trabalhadas, relatórios, despesas, documentos permitidos, perfil e Minha remuneração. As figuras são exemplos com dados fictícios da versão validada atual. Use Ajuda e o canal de suporte verificado na sua mensagem de convite para resolver problemas de acesso; nunca compartilhe senha, código de MFA ou de recuperação, recibo, documento de cliente ou sessão.
 
+Use o seletor de idioma na página de acesso ou no portal para escolher inglês, espanhol ou português. O inglês é o padrão quando nenhuma preferência foi salva. A escolha permanece neste navegador ao navegar, recarregar e sair da conta; a próxima página de acesso usa o mesmo idioma.
+
 Seu acesso se limita aos seus próprios dados atribuídos e aos registros de projeto permitidos. Você não pode usar Financeiro, Faturamento, Cobranças, Contabilidade, Auditoria, acompanhamento administrativo de períodos, Encerramento ou Aprovações. Uma negativa como o erro 403 indica o limite atual de acesso; não é uma situação a ser contornada. Você não pode consultar tarifas cobradas dos clientes, orçamentos de receita, limites de pedidos de compra, margens internas ou a remuneração de outro trabalhador.
 
 ## Acesso, Ajuda e MFA opcional

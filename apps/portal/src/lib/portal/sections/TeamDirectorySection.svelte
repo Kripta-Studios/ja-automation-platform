@@ -1351,7 +1351,7 @@
             name="username"
             type="text"
             autocomplete="off"
-            placeholder="nombre.apellido"
+            placeholder={translate('first.last')}
             required
             pattern="[A-Za-z0-9._-]+"
           /><span class="team-directory__addon">{CORPORATE_DOMAIN}</span>

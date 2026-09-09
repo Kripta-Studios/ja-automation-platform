@@ -226,7 +226,7 @@
               name="purchaseNo"
               type="text"
               value={invoice.purchase_no !== '—' ? invoice.purchase_no : ''}
-              placeholder="e.g. BBS Mexico"
+              placeholder={t('For example: BBS Mexico')}
             />
           </div>
           <div class="draft-field">
@@ -299,7 +299,7 @@
         <div class="company-details">
           <strong>{invoice.company_info?.name || invoice.issuer_name || '—'}</strong>
           {#if invoice.company_info?.division}<div>{invoice.company_info.division}</div>{/if}
-          {#if invoicePhone}<div>Phone: {invoicePhone}</div>{/if}
+          {#if invoicePhone}<div>{t('Phone')}: {invoicePhone}</div>{/if}
           {#if invoice.company_info?.address || invoice.issuer_address}<div>
               {invoice.company_info?.address || invoice.issuer_address}
             </div>{/if}

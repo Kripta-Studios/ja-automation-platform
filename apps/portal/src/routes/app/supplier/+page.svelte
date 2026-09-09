@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { portalText } from '$lib/portal-i18n';
   import { SectionCard } from '$lib/portal/ui';
-  import { supplierCopy } from './copy';
+  import { supplierCopy, supplierStateLabel } from './copy';
+  import { standaloneActionMessage } from '../standalone-locale';
   let { data, form } = $props();
   const c = $derived(supplierCopy[data.locale as keyof typeof supplierCopy]);
   const base = '/j-aautomation/app';
@@ -18,7 +20,7 @@
   <p>{c.intro}</p>
   <p>{c.restricted}</p>
   {#if form}<p role={form.success ? 'status' : 'alert'}>{form.success ? c.saved : c.failed}</p>
-    {#if !form.success && 'message' in form}<p>{form.message}</p>{/if}{/if}
+    {#if !form.success}<p>{standaloneActionMessage(data.locale, form)}</p>{/if}{/if}
   <form method="GET" class="filters">
     <label
       >{c.project}<select name="projectId" value={data.projectId}
@@ -28,7 +30,7 @@
     <label>{c.from}<input type="date" name="from" value={data.from} required /></label>
     <label>{c.to}<input type="date" name="to" value={data.to} required /></label>
     <label
-      >Language / Idioma<select name="lang" value={data.locale}
+      >{portalText(data.locale, 'Language')}<select name="lang" value={data.locale}
         ><option value="en">English</option><option value="es">Español</option><option value="pt"
           >Português</option
         ></select
@@ -139,7 +141,12 @@
           <p>
             <strong>{grant.supplierName}</strong> · {grant.projectName} · {grant.coordinatorName}
           </p>
-          <p>{grant.startsOn} — {grant.endsOn || '…'} · {grant.status}</p>
+          <p>
+            {grant.startsOn} — {grant.endsOn || '…'} · {supplierStateLabel(
+              data.locale,
+              grant.status,
+            )}
+          </p>
           {#if grant.status === 'active'}<form method="POST" action={actionUrl('revoke')}>
               <input type="hidden" name="id" value={grant.id} /><button>{c.revoke}</button>
             </form>{/if}
@@ -237,7 +244,7 @@
       {#each data.entries as entry}
         <article>
           <h3>{entry.workerName} · {entry.workDate}</h3>
-          <p>{entry.minutes} · {c.minutes} · {entry.state}</p>
+          <p>{entry.minutes} · {c.minutes} · {supplierStateLabel(data.locale, entry.state)}</p>
           <p>{entry.summary}</p>
           <p>{c.recordedBy}: {entry.recordedByName || entry.workerName}</p>
           {#if !data.owner && entry.state === 'needs_changes'}

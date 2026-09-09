@@ -6,6 +6,8 @@
 
 This English guide explains a Worker's own authorized portal work: assigned projects, actual time, reports, expenses, permitted documents, profile and My Pay. Figures are synthetic examples from the current validated build. Use Help and the verified support route in your invitation for access help; never share a password, MFA or recovery code, receipt, customer document, or session.
 
+Use the language selector on the sign-in page or in the portal to choose English, Spanish or Portuguese. English is the default when no preference has been saved. Your choice is retained in this browser after navigation, reload and sign-out; the next sign-in page uses the same language.
+
 Your access is limited to your own assigned data and permitted project records. You cannot use Finance, Billing, Collections, Accounting, Audit, staff period follow-up, Closeout, or Approvals. A denial such as 403 is the current access boundary; it is not an incident to work around. You cannot see customer billing rates, revenue budgets, PO caps, internal margins, or another worker's compensation.
 
 ## Sign-in, Help and optional MFA

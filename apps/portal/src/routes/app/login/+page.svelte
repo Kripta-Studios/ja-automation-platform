@@ -1,5 +1,7 @@
 <script lang="ts">
   import { base } from '$app/paths';
+  import { replaceState } from '$app/navigation';
+  import { normalizePortalLocale } from '$lib/portal-i18n';
   import { page } from '$app/stores';
   import { passkeyClient } from '@better-auth/passkey/client';
   import { createAuthClient } from 'better-auth/client';
@@ -82,6 +84,15 @@
     loginState = 'error';
   }
 
+  function changeLocale(event: Event): void {
+    const selected = normalizePortalLocale((event.currentTarget as HTMLSelectElement).value);
+    localeOverride = selected;
+    persistStandaloneLocale(selected);
+    const url = new URL(location.href);
+    url.searchParams.set('lang', selected);
+    replaceState(url, {});
+  }
+
   onMount(() => {
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
     persistStandaloneLocale(locale);
@@ -97,12 +108,12 @@
   $effect(() => applyStandaloneDocumentLocale(locale));
 </script>
 
-<svelte:head><title>{t('Sign in')} | J&A Employee Portal</title></svelte:head>
+<svelte:head><title>{t('Sign in')} | {t('Employee portal')}</title></svelte:head>
 <main class="login-page">
   <section class="login-showcase">
     <div class="login-ambient ambient-one"></div>
     <div class="login-showcase-content">
-      <a class="login-brand" href={`${base}/app/login`} aria-label="J&A Automation portal">
+      <a class="login-brand" href={`${base}/app/login`} aria-label={t('J&A Automation portal')}>
         <img src={`${base}/app/logo.png`} alt="J&A Automation" />
       </a>
       <div class="login-intro">
@@ -123,6 +134,14 @@
   </section>
   <section class="login-panel">
     <div class="login-panel-tools">
+      <label class="login-language-selector">
+        <span>{t('Language')}</span>
+        <select value={locale} onchange={changeLocale}>
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="pt">Português (Brasil)</option>
+        </select>
+      </label>
       <a
         href="https://webmail.j-aautomation.com/"
         target="_blank"
@@ -231,3 +250,23 @@
     </p>
   </section>
 </main>
+
+<style>
+  .login-panel-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+  }
+  .login-language-selector {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .login-language-selector select {
+    min-height: 44px;
+    max-width: 100%;
+    padding: 0.5rem;
+  }
+</style>

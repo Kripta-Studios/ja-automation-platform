@@ -6,30 +6,11 @@ import {
   removePrivateFileIfPresent,
   writePrivateFileExclusive,
 } from '$lib/server/private-artifact-access';
-import { assertRegularPrivateFile } from '$lib/server/report-attachment-route';
+import {
+  assertRegularPrivateFile,
+  validateReportAttachmentFile,
+} from '$lib/server/report-attachment-route';
 import type { RequestHandler } from './$types';
-
-const receiptSignature = (mediaType: string, bytes: Uint8Array): boolean => {
-  const startsWith = (...values: number[]) =>
-    values.every((value, index) => bytes[index] === value);
-  if (mediaType === 'application/pdf')
-    return new TextDecoder().decode(bytes.slice(0, 5)) === '%PDF-';
-  if (mediaType === 'image/jpeg') return startsWith(0xff, 0xd8, 0xff);
-  if (mediaType === 'image/png') return startsWith(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
-  if (mediaType === 'image/webp')
-    return (
-      new TextDecoder().decode(bytes.slice(0, 4)) === 'RIFF' &&
-      new TextDecoder().decode(bytes.slice(8, 12)) === 'WEBP'
-    );
-  if (mediaType === 'image/heic' || mediaType === 'image/heif') {
-    const brand = new TextDecoder().decode(bytes.slice(8, 16));
-    return (
-      new TextDecoder().decode(bytes.slice(4, 8)) === 'ftyp' &&
-      /heic|heix|hevc|mif1|msf1/.test(brand)
-    );
-  }
-  return false;
-};
 
 export const POST: RequestHandler = async ({ locals, request }) => {
   if (!locals.user || !locals.session) return json({ error: 'Unauthorized' }, { status: 401 });
@@ -66,9 +47,15 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   ]);
   if (!allowed.has(uploadedMediaType))
     return json({ error: 'Unsupported receipt type' }, { status: 400 });
-  const bytes = new Uint8Array(await uploadedFile.arrayBuffer());
-  if (!receiptSignature(uploadedMediaType, bytes))
-    return json({ error: 'Receipt content does not match its media type' }, { status: 400 });
+  let bytes: Uint8Array;
+  try {
+    bytes = await validateReportAttachmentFile(uploadedFile);
+  } catch {
+    return json(
+      { error: 'Receipt filename or content does not match its media type' },
+      { status: 400 },
+    );
+  }
 
   const context = openPortalRepository(locals);
   let createdStoragePath: string | null = null;

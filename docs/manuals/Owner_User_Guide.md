@@ -57,11 +57,11 @@ To create a project, choose **New Project**, select the **Client**, then set **N
 
 ### Team assignments: several workers on one project
 
-Use the Team view to search **Name, role or project** and open the worker's active assignment. For the same project, each worker can have a different assignment role, planned minutes, effective dates and commercial compensation configuration.
+Use the Team view to search **Name, role or project** and open the worker's active assignment. For the same project, each worker can have different planned minutes, effective dates and commercial compensation configuration. **Assign Worker** creates a worker assignment; the project manager is configured separately on the project.
 
 1. Confirm Worker A and Worker B each have an active assignment to the same project, with their own start/end dates. Do not reuse one worker's assignment identifier or dates for another.
-2. In the project assignment controls, set or update the correct worker's **Assignment role**, **Start date**, **End date**, **Planned minutes** and, where allowed, **Can review**. Save each worker separately.
-3. Open Finance → Commercial and use **Create compensation rule** for that same project. For Worker A select **Worker**, **Project scope** (the same project, not Global default), **Currency**, **Rule type**, **Rate basis**, the visible **Hourly rate** or daily amount, and **Effective from / Effective to**. Save the rule only after checking the decimal amount and dates.
+2. Create the assignment with its **Starts on** and optional **Ends on** dates. Use **Update assignment** to change dates, **Planned minutes** and, where allowed, **Can review**. Save each worker separately.
+3. Open Finance → Commercial and use **Create compensation rule** for that same project. For Worker A select **Worker**, **Project scope** (the same project, not Global default), **Currency**, **Rule type**, **Rate basis**, the visible **Hourly rate** or daily amount, and **Effective from**. Save the rule only after checking the decimal amount and date. Use the rule lifecycle controls to supersede or end an existing rule.
 4. Create Worker B’s separate compensation rule with its own Worker, Project scope, Currency, Rule type, Rate basis and effective dates. Use the visible percentage field only for a percentage rule; do not put a percentage in the hourly/daily amount field.
 5. Review the resulting policy history and assignment history. Client labour and internal loaded-cost rules use their own forms and must not be substituted for a Worker compensation rule. If a past actual is wrong, use its correction workflow; do not backdate a new configuration to silently alter historical truth.
 
@@ -97,7 +97,7 @@ In **Expenses**, open the submitted item and check **Project**, **Date**, **Cate
 
 :::figure owner /app/documents Private document access is checked before storage and every download.
 
-Use Documents only for authorized project artifacts. Confirm the project, audience, artifact classification and sensitivity before upload. The system registers safe storage metadata and integrity data. A file can be quarantined or pending scan before it is available; do not treat submission as a successful, shareable upload until its displayed status permits it.
+Use Documents only for authorized project artifacts. Confirm the project, audience, artifact classification and sensitivity before upload. For financial evidence, set **Document access** to **Finance, Owner and Auditor only**; the default **Project document** follows operational project access. This choice is available to Owner and Finance. The system registers safe storage metadata and integrity data. A file can be quarantined or pending scan before it is available; do not treat submission as a successful, shareable upload until its displayed status permits it.
 
 For a rejected, unavailable, or failed upload, keep the original, read the displayed error, correct the file or connection issue, and retry only through the same authorized workflow. Do not create duplicate evidence or upload credentials, unrelated customer material, altered receipts, or a private file to make a screen look populated. Downloads remain role- and object-authorized.
 

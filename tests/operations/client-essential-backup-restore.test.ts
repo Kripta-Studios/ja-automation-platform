@@ -109,6 +109,36 @@ describe('Client Essential backup/restore safety', () => {
     ).rejects.toThrow(/symbolic link/u);
   });
 
+  it('rejects orphaned foreign keys before replacing an existing database or documents', async () => {
+    const value = await fixture();
+    const corruptSource = join(value.root, 'orphaned.db');
+    const corrupt = new DatabaseSync(corruptSource);
+    corrupt.exec(`
+      PRAGMA foreign_keys=OFF;
+      CREATE TABLE parent(id INTEGER PRIMARY KEY) STRICT;
+      CREATE TABLE child(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES parent(id)) STRICT;
+      INSERT INTO child VALUES(1, 99);
+    `);
+    corrupt.close();
+    const invalid = await createBackup({
+      databasePath: corruptSource,
+      documentRoot: value.documents,
+      backupRoot: value.backups,
+    });
+    const databaseBefore = await readFile(value.source);
+    const documentBefore = await readFile(join(value.documents, 'receipt.txt'));
+    await expect(
+      restoreBackup({
+        backupPath: invalid.path,
+        databasePath: value.source,
+        documentRoot: value.documents,
+        allowOverwrite: true,
+      }),
+    ).rejects.toThrow(/foreign_key_violations=1/);
+    expect(await readFile(value.source)).toEqual(databaseBefore);
+    expect(await readFile(join(value.documents, 'receipt.txt'))).toEqual(documentBefore);
+  });
+
   it('restores allowOverwrite failure-atomically after the first swap move', async () => {
     const value = await fixture();
     const targetDatabase = join(value.root, 'target', 'app.db');

@@ -403,6 +403,7 @@ export class WorkforceRepository {
           'Assignments are only allowed on active, planned, or paused projects',
         );
 
+      assertPlannedMinutes(input.plannedMinutes, this.deps.errors.validation);
       assertDate(input.startsOn, 'Start date', this.deps.errors.validation);
       if (input.endsOn) assertDate(input.endsOn, 'End date', this.deps.errors.validation);
       if (input.endsOn && input.endsOn < input.startsOn)
@@ -425,7 +426,7 @@ export class WorkforceRepository {
           input.workerId,
           'worker',
           input.startsOn,
-          input.endsOn ?? null,
+          input.endsOn || null,
           input.plannedMinutes ?? null,
           input.canReview ? 1 : 0,
           'active',
@@ -466,6 +467,7 @@ export class WorkforceRepository {
         throw this.deps.errors.accessDenied('Assignment administration required');
       this.assertPrincipalProjectScope(principal, existing.project_id);
 
+      assertPlannedMinutes(input.plannedMinutes, this.deps.errors.validation);
       const startsOn = input.startsOn !== undefined ? input.startsOn : existing.starts_on;
       const endsOn = input.endsOn !== undefined ? input.endsOn || null : existing.ends_on;
       const plannedMinutes =
@@ -475,7 +477,7 @@ export class WorkforceRepository {
       const canReview =
         input.canReview !== undefined ? (input.canReview ? 1 : 0) : existing.can_review;
 
-      if (startsOn) assertDate(startsOn, 'Start date', this.deps.errors.validation);
+      assertDate(startsOn, 'Start date', this.deps.errors.validation);
       if (endsOn) assertDate(endsOn, 'End date', this.deps.errors.validation);
       if (endsOn && endsOn < startsOn)
         throw this.deps.errors.validation('Assignment end date must follow the start date');
@@ -684,4 +686,9 @@ function assertDate(value: string, field: string, validation: ErrorFactory): voi
     : null;
   if (!date || date.toISOString().slice(0, 10) !== value)
     throw validation(`${field} must be an ISO date`);
+}
+
+function assertPlannedMinutes(value: number | undefined, validation: ErrorFactory): void {
+  if (value !== undefined && (!Number.isSafeInteger(value) || value < 0))
+    throw validation('Planned minutes must be a non-negative safe integer');
 }

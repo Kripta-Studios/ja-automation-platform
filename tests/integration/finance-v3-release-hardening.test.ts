@@ -553,14 +553,15 @@ describe('V3 finance release hardening', () => {
        const db = new DatabaseSync(workerData.databasePath);
        db.exec('PRAGMA busy_timeout=5000');
        const update = db.prepare('UPDATE compensation_rule SET rate_minor=?,version=version+1 WHERE id=?');
-       Atomics.store(state, 1, 1);
-       Atomics.notify(state, 1);
        let rate = 100;
        while (Atomics.load(state, 0) === 0) {
          rate = rate === 100 ? 200 : 100;
          try {
            update.run(rate, workerData.ruleId);
            const updates = Atomics.add(state, 2, 1) + 1;
+           // Readiness means a second-connection write actually committed.
+           Atomics.store(state, 1, 1);
+           Atomics.notify(state, 1);
            // Give the settlement connection a scheduling window to acquire
            // its immediate transaction between real second-connection writes.
            Atomics.wait(state, 2, updates, 2);
@@ -572,10 +573,14 @@ describe('V3 finance release hardening', () => {
         workerData: { databasePath: value.databasePath, ruleId: rule.id, coordination },
       },
     );
-    while (Atomics.load(state, 1) === 0) Atomics.wait(state, 1, 0, 100);
-
     let settlement: ReturnType<typeof value.v3.settleCompensation>;
     try {
+      const readyDeadline = Date.now() + 10_000;
+      while (Atomics.load(state, 1) === 0 && Date.now() < readyDeadline)
+        Atomics.wait(state, 1, 0, 100);
+      expect(Atomics.load(state, 1), 'concurrent writer must commit before settlement starts').toBe(
+        1,
+      );
       settlement = value.v3.settleCompensation(value.finance, {
         workerId: 'worker',
         projectId: value.project.id,

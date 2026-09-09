@@ -482,7 +482,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await expect(form).toBeVisible();
         await form.locator('select[name="projectId"]').selectOption(uatProjectId);
         await selectOptionContaining(form.locator('select[name="workerId"]'), seeded.worker.name);
-        await form.locator('input[name="assignmentRole"]').fill('worker');
+        await expect(form.locator('input[name="assignmentRole"]')).toHaveValue('worker');
         await form.locator('input[name="startsOn"]').fill('2026-08-01');
         await form.locator('input[name="endsOn"]').fill('2026-12-31');
         await form.getByRole('button', { name: 'Assign', exact: true }).click();
@@ -575,12 +575,17 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         const existingInternalCosts = await page
           .locator('[aria-label="Internal cost rules"] .record-list-item')
           .count();
-        await selectFirstValue(internalCost.locator('select[name="workerId"]'));
+        await selectOptionContaining(
+          internalCost.locator('select[name="workerId"]'),
+          seeded.worker.name,
+        );
         await internalCost.locator('select[name="currency"]').selectOption('USD');
         await internalCost.locator('input[data-minor-target="hourlyRateMinor"]').fill('65.00');
         await internalCost.locator('input[name="effectiveFrom"]').fill('2026-08-01');
         await assertRoleSession(page, 'finance');
-        await internalCost.getByRole('button', { name: 'Save internal cost', exact: true }).click();
+        await submitAction(page, 'createInternalCostRule', () =>
+          internalCost.getByRole('button', { name: 'Save internal cost', exact: true }).click(),
+        );
         await navigate(
           page,
           `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
@@ -604,7 +609,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
         const form = page.locator('form[action="?/createCompensationRule"]').first();
-        await selectFirstValue(form.locator('select[name="workerId"]'));
+        await selectOptionContaining(form.locator('select[name="workerId"]'), seeded.worker.name);
         await form.locator('select[name="projectId"]').selectOption(uatProjectId);
         await form
           .locator('select[name="ruleType"]')
@@ -613,7 +618,9 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await form.locator('input[data-bps-target="percentageBps"]').fill('55');
         await form.locator('input[name="effectiveFrom"]').fill('2026-08-01');
         await assertRoleSession(page, 'finance');
-        await form.getByRole('button', { name: 'Save compensation rule', exact: true }).click();
+        await submitAction(page, 'createCompensationRule', () =>
+          form.getByRole('button', { name: 'Save compensation rule', exact: true }).click(),
+        );
         await navigate(
           page,
           `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,

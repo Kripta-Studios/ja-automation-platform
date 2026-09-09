@@ -2,6 +2,9 @@ import { extractedSectionCoverageKeys } from './coverage-literal-overrides';
 
 /** Generated from literal translation calls and action message keys. Keep this inventory in sync with the source. */
 export const PORTAL_LITERAL_KEYS = [
+  'Document access',
+  'Project document',
+  'Finance, Owner and Auditor only',
   'Period review and customer follow-up',
   'Commercial agreement and example',
   'Calculated from approved project records',

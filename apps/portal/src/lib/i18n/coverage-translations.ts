@@ -8,6 +8,12 @@ import { explicitCoverageLiterals } from './coverage-literals';
  */
 
 const exact: Record<string, readonly [string, string]> = {
+  'Document access': ['Acceso al documento', 'Acesso ao documento'],
+  'Project document': ['Documento del proyecto', 'Documento do projeto'],
+  'Finance, Owner and Auditor only': [
+    'Solo Finanzas, Propietario y Auditor',
+    'Somente Financeiro, Proprietário e Auditor',
+  ],
   'Access role': ['Rol de acceso', 'Função de acesso'],
   'Choose the email and role. The invited person sets their own name and password securely.': [
     'Elige el correo y el rol. La persona invitada configura su nombre y contraseña de forma segura.',

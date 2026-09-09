@@ -7,14 +7,12 @@ import {
   removePrivateFileIfPresent,
   writePrivateFileExclusive,
 } from '$lib/server/private-artifact-access';
-import { assertRegularPrivateFile } from '$lib/server/report-attachment-route';
-import { actionFail, actionFailure, actionSuccess } from './action-message';
 import {
-  decimalToMinor,
-  formObject,
-  receiptSignature,
-  type PortalActionEvent,
-} from '$lib/server/action-utils';
+  assertRegularPrivateFile,
+  validateReportAttachmentFile,
+} from '$lib/server/report-attachment-route';
+import { actionFail, actionFailure, actionSuccess } from './action-message';
+import { decimalToMinor, formObject, type PortalActionEvent } from '$lib/server/action-utils';
 
 const expenseCategorySchema = z.enum([
   'hotel',
@@ -114,14 +112,17 @@ export const expenseActions = {
             {},
             'Receipt must be JPG, PNG or PDF under 10 MB',
           );
-        const bytes = new Uint8Array(await receiptFile.arrayBuffer());
-        if (!receiptSignature(receiptType, bytes))
+        let bytes: Uint8Array;
+        try {
+          bytes = await validateReportAttachmentFile(receiptFile);
+        } catch {
           return actionFail(
             400,
             'action.validation.receiptContent',
             {},
-            'Receipt content does not match its declared file type',
+            'Receipt filename or content does not match its declared file type',
           );
+        }
 
         const reservation = context.v3.reserveUpload(context.principal, {
           projectId: String(object.projectId),

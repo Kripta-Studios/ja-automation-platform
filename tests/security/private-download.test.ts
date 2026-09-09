@@ -27,6 +27,9 @@ vi.mock('$lib/server/portal-repository', async (importOriginal) => ({
   openPortalRepository,
 }));
 
+const { documentActions } =
+  await import('../../apps/portal/src/lib/server/actions/document-actions.ts');
+
 const { GET: genericDocumentGet } =
   await import('../../apps/portal/src/routes/app/api/documents/[id]/+server.ts');
 const { GET: reportAttachmentGet } =
@@ -46,6 +49,55 @@ function fixture(): B5LifecycleSecurityFixture {
 }
 
 describe('B5 private download boundary', () => {
+  it.each(['owner', 'finance', 'manager', 'worker'] as const)(
+    'validates finance classification through the real upload action for %s',
+    async (role) => {
+      const value = fixture();
+      const root = mkdtempSync(join(tmpdir(), 'ja-classified-upload-'));
+      roots.push(root);
+      process.env.JA_DOCUMENT_ROOT = root;
+      openPortalRepository.mockReturnValue({
+        v3: value.v3,
+        principal: value[role],
+        sqlite: { close: vi.fn() },
+      });
+      const form = new FormData();
+      form.set('projectId', value.project.id);
+      form.set('artifactType', 'payroll');
+      form.set('description', 'Finance private evidence');
+      form.set('artifactClassification', 'finance');
+      form.set(
+        'file',
+        new File(['%PDF-1.7\nfinance evidence\n%%EOF\n'], 'payroll.pdf', {
+          type: 'application/pdf',
+        }),
+      );
+      const result = await documentActions.uploadPrivateDocument({
+        locals: {},
+        params: { section: 'documents' },
+        request: new Request('http://localhost/app/documents', { method: 'POST', body: form }),
+      } as never);
+      const row = value.sqlite
+        .prepare(
+          "SELECT id,artifact_classification,state FROM document WHERE description='Finance private evidence'",
+        )
+        .get() as { id: string; artifact_classification: string; state: string } | undefined;
+      if (role === 'manager' || role === 'worker') {
+        expect(result).toMatchObject({ status: 403 });
+        expect(row).toBeUndefined();
+      } else {
+        expect(result).toMatchObject({ success: true });
+        expect(row).toMatchObject({ artifact_classification: 'finance', state: 'committed' });
+        for (const principal of [value.manager, value.worker]) {
+          expect(() => value.v3.authorizeDocument(principal, row!.id)).toThrow();
+          expect(value.repository.listDocuments(principal)).not.toEqual(
+            expect.arrayContaining([expect.objectContaining({ id: row!.id })]),
+          );
+        }
+      }
+    },
+  );
+
   it('keeps repository object-scope authorization non-disclosing', () => {
     const value = fixture();
     const document = value.repository.registerPrivateDocument(value.owner, {
@@ -60,6 +112,49 @@ describe('B5 private download boundary', () => {
       sensitivity: 'customer_private',
     });
     expect(() => value.v3.authorizeDocument(value.outsider, document.id)).toThrow();
+  });
+
+  it('keeps finance-classified files out of operational listings and generic downloads', async () => {
+    const value = fixture();
+    const document = value.repository.registerPrivateDocument(value.owner, {
+      projectId: value.project.id,
+      sha256: 'f'.repeat(64),
+      mediaType: 'application/pdf',
+      byteLength: 5,
+      storageKey: 'reports/private-finance.pdf',
+      originalFilename: 'private-finance.pdf',
+      artifactType: 'payroll',
+      artifactClassification: 'finance',
+      sensitivity: 'sensitive',
+    });
+    for (const principal of [value.manager, value.worker]) {
+      expect(value.repository.listDocuments(principal)).not.toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: document.id })]),
+      );
+      expect(value.repository.listDocuments(principal, value.project.id)).not.toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: document.id })]),
+      );
+      expect(() => value.v3.authorizeDocument(principal, document.id)).toThrow();
+      openPortalRepository.mockReturnValue({
+        sqlite: { prepare: value.sqlite.prepare.bind(value.sqlite), close: vi.fn() },
+        v3: value.v3,
+        principal,
+      });
+      const request = {
+        locals: { user: { id: principal.userId }, session: { id: 'test-session' } },
+        params: { id: document.id },
+        url: new URL(`http://localhost/app/api/documents/${document.id}`),
+      };
+      expect((await genericDocumentGet(request as never)).status).toBe(404);
+    }
+    for (const principal of [value.owner, value.finance]) {
+      expect(value.repository.listDocuments(principal)).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: document.id })]),
+      );
+      expect(value.v3.authorizeDocument(principal, document.id).filename).toBe(
+        'private-finance.pdf',
+      );
+    }
   });
 
   it('records a document download only after the caller reports verified bytes', () => {

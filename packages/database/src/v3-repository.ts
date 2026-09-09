@@ -971,10 +971,15 @@ export class V3Repository {
   createCompensationRule(principal: Principal, input: CompensationInput): { id: string } {
     this.assertFinance(principal);
     this.assertLiveSession(principal);
+    // HTML date controls submit an empty string when the optional end date is
+    // left blank. Canonicalize only that sentinel; whitespace remains invalid
+    // input and is rejected by requireDate below.
+    const projectId = input.projectId === '' ? null : input.projectId;
+    const effectiveTo = input.effectiveTo === '' ? null : input.effectiveTo;
     requireDate(input.effectiveFrom, 'Effective date');
-    if (input.effectiveTo) {
-      requireDate(input.effectiveTo, 'End date');
-      if (input.effectiveTo < input.effectiveFrom)
+    if (effectiveTo) {
+      requireDate(effectiveTo, 'End date');
+      if (effectiveTo < input.effectiveFrom)
         throw new V3ValidationError('End date must follow the effective date');
     }
     this.assertActiveLaborWorker(input.workerId);
@@ -1029,17 +1034,17 @@ export class V3Repository {
       input.percentageBps === undefined
     )
       throw new V3ValidationError('Overtime percentage basis points are required');
-    if (input.projectId) {
-      this.assertProjectAccess(principal, input.projectId);
+    if (projectId) {
+      this.assertProjectAccess(principal, projectId);
       this.assertWorkerProjectMembership(
         input.workerId,
-        input.projectId,
+        projectId,
         input.effectiveFrom,
-        input.effectiveTo ?? input.effectiveFrom,
+        effectiveTo ?? input.effectiveFrom,
       );
       const project = this.sqlite
         .prepare('SELECT currency FROM project WHERE id=?')
-        .get(input.projectId) as { currency: V3Currency } | undefined;
+        .get(projectId) as { currency: V3Currency } | undefined;
       if (!project) throw new V3ValidationError('Project not found');
       if (project.currency !== input.currency)
         throw new V3ValidationError('Compensation currency must match the project currency');
@@ -1059,14 +1064,14 @@ export class V3Repository {
       .run(
         id,
         input.workerId,
-        input.projectId ?? null,
+        projectId ?? null,
         input.currency,
         sqliteInteger(input.rateMinor ?? 0n, 'Compensation rate'),
         input.rateBasis ?? (input.ruleType === 'Daily' ? 'daily' : 'hourly'),
         input.dailyGuaranteeMinutes ?? null,
         1,
         input.effectiveFrom,
-        input.effectiveTo ?? null,
+        effectiveTo ?? null,
         now,
         now,
         input.ruleType,
@@ -1091,7 +1096,7 @@ export class V3Repository {
       );
     this.audit(principal, 'compensation_rule.create', 'compensation_rule', id, {
       workerId: input.workerId,
-      projectId: input.projectId ?? null,
+      projectId: projectId ?? null,
       ruleType: input.ruleType,
     });
     return { id };
@@ -1224,12 +1229,16 @@ export class V3Repository {
   createInternalCostRule(principal: Principal, input: InternalCostInput): { id: string } {
     this.assertFinance(principal);
     this.assertLiveSession(principal);
+    // Preserve invalid whitespace for validation; only the browser's exact
+    // optional-date sentinel represents an open-ended rule.
+    const projectId = input.projectId === '' ? null : input.projectId;
+    const effectiveTo = input.effectiveTo === '' ? null : input.effectiveTo;
     this.assertActiveLaborWorker(input.workerId);
-    if (input.projectId) this.assertProjectAccess(principal, input.projectId);
+    if (projectId) this.assertProjectAccess(principal, projectId);
     requireDate(input.effectiveFrom, 'Effective date');
-    if (input.effectiveTo) {
-      requireDate(input.effectiveTo, 'End date');
-      if (input.effectiveTo < input.effectiveFrom)
+    if (effectiveTo) {
+      requireDate(effectiveTo, 'End date');
+      if (effectiveTo < input.effectiveFrom)
         throw new V3ValidationError('End date must follow the effective date');
     }
     if (input.hourlyRateMinor < 0n) throw new V3ValidationError('Internal cost cannot be negative');
@@ -1241,16 +1250,16 @@ export class V3Repository {
       throw new V3ValidationError('A fixed internal overtime rate is required');
     if (input.overtimeMethod === 'FIXED_ADDITION_PER_HOUR' && input.overtimeRateMinor === undefined)
       throw new V3ValidationError('An internal overtime addition is required');
-    if (input.projectId) {
+    if (projectId) {
       this.assertWorkerProjectMembership(
         input.workerId,
-        input.projectId,
+        projectId,
         input.effectiveFrom,
-        input.effectiveTo ?? input.effectiveFrom,
+        effectiveTo ?? input.effectiveFrom,
       );
       const project = this.sqlite
         .prepare('SELECT currency FROM project WHERE id=?')
-        .get(input.projectId) as { currency: V3Currency } | undefined;
+        .get(projectId) as { currency: V3Currency } | undefined;
       if (!project) throw new V3ValidationError('Project not found');
       if (project.currency !== input.currency)
         throw new V3ValidationError('Internal cost currency must match the project currency');
@@ -1268,11 +1277,11 @@ export class V3Repository {
       .run(
         id,
         input.workerId,
-        input.projectId ?? null,
+        projectId ?? null,
         input.currency,
         sqliteInteger(input.hourlyRateMinor, 'Internal cost rate'),
         input.effectiveFrom,
-        input.effectiveTo ?? null,
+        effectiveTo ?? null,
         now,
         now,
         input.overtimeMethod ?? 'BASE_RATE_MULTIPLIER',
@@ -1285,7 +1294,7 @@ export class V3Repository {
       );
     this.audit(principal, 'internal_cost.create', 'internal_cost_rule', id, {
       workerId: input.workerId,
-      projectId: input.projectId ?? null,
+      projectId: projectId ?? null,
     });
     return { id };
   }
@@ -1580,54 +1589,56 @@ export class V3Repository {
   createAssignmentRateOverride(principal: Principal, input: OverrideInput): { id: string } {
     this.assertFinance(principal);
     this.assertLiveSession(principal);
+    // Select controls submit '' for an unused optional rule. Keep malformed
+    // non-empty identifiers intact for the foreign-key and availability checks.
+    const compensationRuleId = input.compensationRuleId === '' ? null : input.compensationRuleId;
+    const internalCostRuleId = input.internalCostRuleId === '' ? null : input.internalCostRuleId;
+    const clientLaborRateId = input.clientLaborRateId === '' ? null : input.clientLaborRateId;
     const assignment = this.sqlite
       .prepare("SELECT project_id,user_id FROM project_member WHERE id=? AND status='active'")
       .get(input.projectMemberId) as { project_id: string; user_id: string } | undefined;
     if (!assignment) throw new V3ValidationError('Active project assignment not found');
     this.assertProjectAccess(principal, assignment.project_id);
-    const compensation = input.compensationRuleId
+    const compensation = compensationRuleId
       ? (this.sqlite
           .prepare('SELECT worker_id,project_id FROM compensation_rule WHERE id=?')
-          .get(input.compensationRuleId) as
-          | { worker_id: string; project_id: string | null }
-          | undefined)
+          .get(compensationRuleId) as { worker_id: string; project_id: string | null } | undefined)
       : undefined;
-    const internal = input.internalCostRuleId
+    const internal = internalCostRuleId
       ? (this.sqlite
           .prepare('SELECT worker_id,project_id FROM internal_cost_rule WHERE id=?')
-          .get(input.internalCostRuleId) as
-          | { worker_id: string; project_id: string | null }
-          | undefined)
+          .get(internalCostRuleId) as { worker_id: string; project_id: string | null } | undefined)
       : undefined;
-    const client = input.clientLaborRateId
+    const client = clientLaborRateId
       ? (this.sqlite
           .prepare('SELECT project_id,worker_id FROM client_labor_rate WHERE id=?')
-          .get(input.clientLaborRateId) as
-          | { project_id: string; worker_id: string | null }
-          | undefined)
+          .get(clientLaborRateId) as { project_id: string; worker_id: string | null } | undefined)
       : undefined;
     if (
-      (input.compensationRuleId &&
+      (compensationRuleId &&
         (!compensation ||
           compensation.worker_id !== assignment.user_id ||
           (compensation.project_id !== null &&
             compensation.project_id !== assignment.project_id))) ||
-      (input.internalCostRuleId &&
+      (internalCostRuleId &&
         (!internal ||
           internal.worker_id !== assignment.user_id ||
           (internal.project_id !== null && internal.project_id !== assignment.project_id))) ||
-      (input.clientLaborRateId &&
+      (clientLaborRateId &&
         (!client ||
           client.project_id !== assignment.project_id ||
           (client.worker_id !== null && client.worker_id !== assignment.user_id)))
     )
       throw new V3ValidationError('Rate override references an unavailable rule');
-    if (!input.compensationRuleId && !input.internalCostRuleId && !input.clientLaborRateId)
+    if (!compensationRuleId && !internalCostRuleId && !clientLaborRateId)
       throw new V3ValidationError('At least one rate rule is required');
+    // An empty date is the form encoding for no expiry. Do not trim arbitrary
+    // input: malformed whitespace must still fail date validation.
+    const effectiveTo = input.effectiveTo === '' ? null : input.effectiveTo;
     requireDate(input.effectiveFrom, 'Effective date');
-    if (input.effectiveTo) {
-      requireDate(input.effectiveTo, 'End date');
-      if (input.effectiveTo < input.effectiveFrom)
+    if (effectiveTo) {
+      requireDate(effectiveTo, 'End date');
+      if (effectiveTo < input.effectiveFrom)
         throw new V3ValidationError('End date must follow the effective date');
     }
     const id = newId();
@@ -1645,11 +1656,11 @@ export class V3Repository {
         input.projectMemberId,
         input.timeCategory ?? null,
         input.activityCode ?? null,
-        input.compensationRuleId ?? null,
-        input.internalCostRuleId ?? null,
-        input.clientLaborRateId ?? null,
+        compensationRuleId ?? null,
+        internalCostRuleId ?? null,
+        clientLaborRateId ?? null,
         input.effectiveFrom,
-        input.effectiveTo ?? null,
+        effectiveTo ?? null,
         input.priority ?? 0,
         now,
         now,
@@ -9717,7 +9728,7 @@ export class V3Repository {
     this.assertActive(principal);
     const document = this.sqlite
       .prepare(
-        'SELECT id,project_id,owner_id,storage_key,media_type,original_filename,safe_filename,sensitivity,sensitive,sha256,byte_length,state,scan_status FROM document WHERE id=?',
+        'SELECT id,project_id,owner_id,storage_key,media_type,original_filename,safe_filename,sensitivity,sensitive,sha256,byte_length,state,scan_status,artifact_classification FROM document WHERE id=?',
       )
       .get(documentId) as
       | {
@@ -9734,6 +9745,7 @@ export class V3Repository {
           byte_length: number;
           state: string;
           scan_status: string;
+          artifact_classification: ArtifactClassification;
         }
       | undefined;
     const scannerRequired = malwareScannerRequired();
@@ -9743,6 +9755,13 @@ export class V3Repository {
       !scannerStatusAllowsPrivateDownload(document.scan_status, scannerRequired)
     )
       throw new V3ValidationError('Document not found');
+    if (
+      document.artifact_classification === 'finance' &&
+      principal.role !== 'owner_admin' &&
+      principal.role !== 'finance_admin' &&
+      principal.role !== 'auditor_read_only'
+    )
+      throw new V3AccessDeniedError('Finance document access required');
     this.assertStorageKey(document.storage_key);
     let allowed =
       principal.role === 'owner_admin' ||
@@ -11357,13 +11376,17 @@ export class V3Repository {
 
     return this.transaction(() => {
       const reservation = this.sqlite
-        .prepare('SELECT owner_id, state FROM document WHERE id=?')
-        .get(reservationId) as { owner_id: string; state: string } | undefined;
+        .prepare('SELECT owner_id,project_id,state FROM document WHERE id=?')
+        .get(reservationId) as
+        | { owner_id: string; project_id: string | null; state: string }
+        | undefined;
 
       if (!reservation) throw new V3ValidationError('Reservation not found');
       if (reservation.owner_id !== principal.userId)
         throw new V3AccessDeniedError('Upload ownership mismatch');
       if (reservation.state !== 'temporary') throw new V3ConflictError('Upload already finalized');
+      // Membership may be revoked while the authorized upload writes its bytes.
+      if (reservation.project_id) this.assertProjectAccess(principal, reservation.project_id);
 
       const malwareScanRequired = malwareScannerRequired();
 

@@ -56,6 +56,42 @@ describe('B5 upload reservation and storage boundary', () => {
     expect(reservationAt, `${path} must reserve before filesystem writes`).toBeLessThan(writeAt);
   });
 
+  it.each(['worker', 'manager'] as const)(
+    'rechecks %s project membership when finalizing an upload',
+    (role) => {
+      const value = fixture();
+      const principal = value[role];
+      const reservation = value.v3.reserveUpload(principal, {
+        projectId: value.project.id,
+        originalFilename: 'receipt.pdf',
+        artifactType: 'receipt',
+      });
+      value.sqlite
+        .prepare("UPDATE project_member SET status='inactive' WHERE project_id=? AND user_id=?")
+        .run(value.project.id, principal.userId);
+      expect(() =>
+        value.v3.finalizeUpload(principal, reservation.reservationId, {
+          sha256: 'a'.repeat(64),
+          mediaType: 'application/pdf',
+          byteLength: 5,
+        }),
+      ).toThrow(/Project access required/);
+      expect(
+        value.sqlite
+          .prepare('SELECT state FROM document WHERE id=?')
+          .get(reservation.reservationId),
+      ).toEqual({ state: 'temporary' });
+      expect(
+        value.sqlite
+          .prepare(
+            "SELECT count(*) n FROM audit_event WHERE entity_id=? AND action='document.upload_finalized'",
+          )
+          .get(reservation.reservationId),
+      ).toEqual({ n: 0 });
+      value.v3.cancelUploadReservation(principal, reservation.reservationId);
+    },
+  );
+
   it('exposes reserve/finalize upload methods with server-owned metadata', () => {
     const value = fixture();
     expect(typeof method(value.repository, 'reserveUpload'), 'reserveUpload is required').toBe(

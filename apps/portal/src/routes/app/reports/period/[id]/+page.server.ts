@@ -100,12 +100,13 @@ function currentConformityForReport(
   const current = currentConformityRow(context, reportId);
   if (
     !current ||
-    current.invalidatedAt ||
     !['approved', 'final'].includes(current.reportState) ||
     !currentReportPdfIsReady(current) ||
     !conformityPdfMatchesCurrentReport(current)
   )
     return null;
+  // Keep invalidated evidence visible as history. Acceptance checks below
+  // independently require an active conformity with verified evidence.
   return context.v3.getCustomerConformity(context.principal, current.id);
 }
 

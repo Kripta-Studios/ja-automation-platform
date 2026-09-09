@@ -3107,6 +3107,8 @@ export class PortalRepository {
     this.assertReadable(principal);
     const conditions: string[] = ["d.state='committed'"];
     const values: string[] = [];
+    if (principal.role === 'worker' || principal.role === 'project_manager')
+      conditions.push("d.artifact_classification <> 'finance'");
     if (projectId) {
       this.assertProjectObjectAccess(principal, projectId);
       conditions.push('d.project_id=?');

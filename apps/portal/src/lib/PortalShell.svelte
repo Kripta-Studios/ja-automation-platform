@@ -1207,6 +1207,20 @@
                       required
                     />
                   </Field>
+                  {#if canManageProjects}
+                    <Field
+                      id="doc-classification"
+                      label={translate('Document access')}
+                      data-field="artifactClassification"
+                    >
+                      <select id="doc-classification" name="artifactClassification">
+                        <option value="standard">{translate('Project document')}</option>
+                        <option value="finance"
+                          >{translate('Finance, Owner and Auditor only')}</option
+                        >
+                      </select>
+                    </Field>
+                  {/if}
                   <Field
                     id="doc-sensitivity"
                     label={translate('Sensitivity')}
@@ -2054,6 +2068,7 @@
                     >{translate('Role')}<input
                       name="assignmentRole"
                       value="worker"
+                      readonly
                       required
                     /></label
                   ><label
@@ -2105,7 +2120,7 @@
                       /></label
                     >
                     <label class="check"
-                      ><input
+                      ><input type="hidden" name="canReviewPresent" value="1" /><input
                         name="canReview"
                         type="checkbox"
                         checked={Boolean(assignment.can_review)}
@@ -2565,6 +2580,8 @@
                       <summary class="secondary-button">{translate('Edit contact')}</summary>
                       <form method="POST" action="?/updateClientContact" class="compact-form">
                         <input type="hidden" name="contactId" value={contact.id} />
+                        <input type="hidden" name="isBillingContactPresent" value="1" />
+                        <input type="hidden" name="isPrimaryPresent" value="1" />
                         <label
                           >{translate('Name')}<input
                             name="name"
@@ -3297,7 +3314,8 @@
                 {/if}
                 {String(row.created_at).replace('T', ' ').slice(0, 16)}
               </small>
-              {#if row.record_date}<span>{translate('Record date')}: {String(row.record_date)}</span>{/if}
+              {#if row.record_date}<span>{translate('Record date')}: {String(row.record_date)}</span
+                >{/if}
               {#if Array.isArray(row.changed_fields) && row.changed_fields.length > 0}
                 <span class="change-summary"
                   >{translate('Changed:')}

@@ -8,7 +8,7 @@ COPY apps/portal ./apps/portal
 COPY packages ./packages
 COPY migrations ./migrations
 COPY deployment ./deployment
-COPY docs/manuals/Employee_Field_Guide_EN.pdf docs/manuals/Employee_Field_Guide_ES.pdf docs/manuals/Employee_Field_Guide_PT-BR.pdf docs/manuals/Worker_User_Guide.pdf docs/manuals/Owner_User_Guide.pdf ./manuals/
+COPY docs/manuals/Employee_Field_Guide_EN.pdf docs/manuals/Employee_Field_Guide_ES.pdf docs/manuals/Employee_Field_Guide_PT-BR.pdf docs/manuals/Worker_User_Guide.pdf docs/manuals/Owner_User_Guide.pdf docs/manuals/Worker_User_Guide_PT-BR.pdf docs/manuals/Owner_User_Guide_PT-BR.pdf ./manuals/
 RUN pnpm install --frozen-lockfile
 RUN env \
     JA_DATABASE_PATH=/tmp/jaautomation-release-build.sqlite \

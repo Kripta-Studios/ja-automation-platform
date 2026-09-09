@@ -23,6 +23,33 @@ function fixture(): B5LifecycleSecurityFixture {
 }
 
 describe('Client Essential CORE-02 clients, projects and assignments', () => {
+  it('keeps a blank end date open-ended and permits the assigned worker to record time', () => {
+    const value = fixture();
+    const assignment = value.repository.assignWorker(value.owner, {
+      projectId: value.project.id,
+      workerId: 'b5-outsider',
+      startsOn: '2026-01-01',
+      endsOn: '',
+    });
+    expect(
+      value.sqlite.prepare('SELECT ends_on FROM project_member WHERE id=?').get(assignment.id),
+    ).toEqual({ ends_on: null });
+    const worker = value.repository.principalFor('b5-outsider');
+    expect(value.repository.listAssignedProjects(worker)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: value.project.id })]),
+    );
+    const entry = value.repository.createTimeEntry(worker, {
+      projectId: value.project.id,
+      workDate: '2026-08-24',
+      category: 'regular',
+      minutes: 60,
+      summary: 'Open-ended assignment regression',
+    });
+    expect(
+      value.sqlite.prepare('SELECT worker_id,minutes FROM time_entry WHERE id=?').get(entry.id),
+    ).toEqual({ worker_id: 'b5-outsider', minutes: 60 });
+  });
+
   it('rejects calendar-rollover dates at workforce assignment boundaries', () => {
     const value = fixture();
     expect(() =>

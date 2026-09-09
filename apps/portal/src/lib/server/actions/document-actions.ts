@@ -5,13 +5,12 @@ import {
   removePrivateFileIfPresent,
   writePrivateFileExclusive,
 } from '$lib/server/private-artifact-access';
-import { assertRegularPrivateFile } from '$lib/server/report-attachment-route';
-import { actionFail, actionFailure, actionSuccess } from './action-message';
 import {
-  formObject,
-  privateDocumentSignature,
-  type PortalActionEvent,
-} from '$lib/server/action-utils';
+  assertRegularPrivateFile,
+  validateReportAttachmentFile,
+} from '$lib/server/report-attachment-route';
+import { actionFail, actionFailure, actionSuccess } from './action-message';
+import { formObject, type PortalActionEvent } from '$lib/server/action-utils';
 
 export const documentActions = {
   uploadPrivateDocument: async ({ locals, request, params }: PortalActionEvent) => {
@@ -23,6 +22,14 @@ export const documentActions = {
     const artifactType = String(object.artifactType ?? '').trim();
     const description = String(object.description ?? '').trim();
     const sensitivity = String(object.sensitivity ?? 'internal');
+    const artifactClassification = String(object.artifactClassification ?? 'standard');
+    if (!['standard', 'finance'].includes(artifactClassification))
+      return actionFail(
+        400,
+        'action.validation.documentSensitivity',
+        {},
+        'Document classification is invalid',
+      );
     if (!(file instanceof File) || file.size < 1)
       return actionFail(
         400,
@@ -61,20 +68,33 @@ export const documentActions = {
         {},
         'Unsupported document type or size over 50 MB',
       );
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    if (!privateDocumentSignature(file.type, bytes))
+    let bytes: Uint8Array;
+    try {
+      bytes = await validateReportAttachmentFile(file);
+    } catch {
       return actionFail(
         400,
         'action.validation.documentContent',
         {},
-        'Document content does not match its declared type',
+        'Document filename or content does not match its declared type',
       );
+    }
     const context = openPortalRepository(locals);
     let createdStorageKey: string | null = null;
     let createdStoragePath: string | null = null;
     let storageFileCreated = false;
     let reservationId: string | null = null;
     try {
+      if (
+        artifactClassification === 'finance' &&
+        !['owner_admin', 'finance_admin'].includes(context.principal.role)
+      )
+        return actionFail(
+          403,
+          'action.error.financeRoleRequired',
+          {},
+          'Finance document access required',
+        );
       const sha256 = createHash('sha256').update(bytes).digest('hex');
 
       const reservation = context.v3.reserveUpload(context.principal, {
@@ -82,6 +102,7 @@ export const documentActions = {
         originalFilename: file.name,
         artifactType,
         description,
+        artifactClassification: artifactClassification === 'finance' ? 'finance' : undefined,
         sensitivity: sensitivity as 'internal' | 'sensitive' | 'customer_private',
       });
       reservationId = reservation.reservationId;

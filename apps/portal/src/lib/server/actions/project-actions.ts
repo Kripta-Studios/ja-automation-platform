@@ -462,9 +462,10 @@ export const projectActions = {
     if (formData.has('email')) input.email = formData.get('email')?.toString();
     if (formData.has('phone')) input.phone = formData.get('phone')?.toString();
     if (formData.has('role')) input.role = formData.get('role')?.toString();
-    if (formData.has('isBillingContact'))
+    if (formData.has('isBillingContactPresent') || formData.has('isBillingContact'))
       input.isBillingContact = formData.get('isBillingContact')?.toString() === 'on';
-    if (formData.has('isPrimary')) input.isPrimary = formData.get('isPrimary')?.toString() === 'on';
+    if (formData.has('isPrimaryPresent') || formData.has('isPrimary'))
+      input.isPrimary = formData.get('isPrimary')?.toString() === 'on';
 
     const context = openPortalRepository(locals);
     try {
@@ -523,12 +524,18 @@ export const projectActions = {
       version: number;
     } = { version };
     if (formData.has('startsOn')) input.startsOn = formData.get('startsOn')?.toString();
-    if (formData.has('endsOn')) input.endsOn = formData.get('endsOn')?.toString() || undefined;
-    if (formData.has('plannedMinutes'))
-      input.plannedMinutes = formData.get('plannedMinutes')
-        ? Number(formData.get('plannedMinutes'))
-        : undefined;
-    if (formData.has('canReview')) input.canReview = formData.get('canReview')?.toString() === 'on';
+    if (formData.has('endsOn')) input.endsOn = formData.get('endsOn')?.toString() ?? '';
+    if (formData.has('plannedMinutes')) {
+      const plannedMinutes = formData.get('plannedMinutes')?.toString() ?? '';
+      input.plannedMinutes =
+        plannedMinutes === ''
+          ? 0
+          : /^\d+$/u.test(plannedMinutes)
+            ? Number(plannedMinutes)
+            : Number.NaN;
+    }
+    if (formData.has('canReviewPresent') || formData.has('canReview'))
+      input.canReview = formData.get('canReview')?.toString() === 'on';
     input.version = version;
 
     const context = openPortalRepository(locals);

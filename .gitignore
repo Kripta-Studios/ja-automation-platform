@@ -8,6 +8,7 @@ deployment/jobs-build/
 dist/
 coverage/
 test-results/
+/tests/e2e/data/
 playwright-report/
 trace-out/
 .playwright-mcp/

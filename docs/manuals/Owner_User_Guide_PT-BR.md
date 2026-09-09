@@ -97,7 +97,7 @@ Em **Despesas**, abra o item enviado e confira **Projeto**, **Data**, **Categori
 
 :::figure owner /app/documents O acesso a documentos privados é verificado antes do armazenamento e a cada download.
 
-Use Documentos apenas para arquivos autorizados do projeto. Confirme o projeto, o público destinatário, a classificação do arquivo e sua sensibilidade antes de enviar. O sistema registra metadados seguros de armazenamento e dados de integridade. Um arquivo pode ficar em quarentena ou aguardando verificação antes de estar disponível; não trate o envio como concluído e compartilhável até que seu estado exibido permita isso.
+Use Documentos apenas para arquivos autorizados do projeto. Confirme o projeto, o público destinatário, a classificação do arquivo e sua sensibilidade antes de enviar. Para documentos financeiros, em **Acesso ao documento**, selecione **Somente Financeiro, Proprietário e Auditor**; a opção padrão **Documento do projeto** segue o acesso operacional ao projeto. Essa escolha está disponível para Proprietário e Financeiro. O sistema registra metadados seguros de armazenamento e dados de integridade. Um arquivo pode ficar em quarentena ou aguardando verificação antes de estar disponível; não trate o envio como concluído e compartilhável até que seu estado exibido permita isso.
 
 Se um envio for rejeitado, ficar indisponível ou falhar, mantenha o original, leia o erro exibido, corrija o arquivo ou a conexão e tente novamente apenas pelo mesmo fluxo autorizado. Não crie evidências duplicadas nem envie credenciais, materiais de clientes sem relação com o registro, recibos alterados ou um arquivo privado apenas para preencher uma tela. Os downloads continuam sujeitos à autorização por perfil e objeto.
 

@@ -594,6 +594,32 @@ describe('ASTRA project closeout revisions', () => {
     expect(value.repository.finalizeProjectCloseoutRevision(principal, draft.id)).toHaveLength(2);
   });
 
+  it.each(['finance', 'identity', 'hr', 'security', 'confidential', 'receipt'] as const)(
+    'rejects %s documents even when their upload metadata claims customer approval',
+    (classification) => {
+      const value = fixture();
+      const principal = owner(value);
+      const reservation = value.v3.reserveUpload(principal, {
+        projectId: value.project.id,
+        originalFilename: 'customer-reference.pdf',
+        artifactType: 'approved_customer_document',
+        sensitivity: 'customer_private',
+        artifactClassification: classification,
+      });
+      value.v3.finalizeUpload(principal, reservation.reservationId, {
+        sha256: 'c'.repeat(64),
+        mediaType: 'application/pdf',
+        byteLength: 5,
+      });
+      expect(() =>
+        value.repository.prepareProjectCloseout(principal, {
+          projectId: value.project.id,
+          clientDocumentIds: [reservation.reservationId],
+        }),
+      ).toThrow(/not authorized for customer closeout/);
+    },
+  );
+
   it('puts only selected customer PDF bytes in the client ZIP, keeps the internal ZIP free of them, and emits a readable summary PDF', () => {
     const value = fixture();
     const root = mkdtempSync(join(tmpdir(), 'ja-closeout-content-'));

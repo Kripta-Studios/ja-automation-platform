@@ -606,7 +606,9 @@
 {:else}
   <div class="finance-overview" data-ui="finance-overview">
     {#if canWriteFinance}<p>
-        <a href={`${base}/app/finance/cash`}>{translate('Cash calendar')}</a>
+        <a class="secondary-button" href={`${base}/app/finance/cash`}
+          >{translate('Cash calendar')}</a
+        >
       </p>{/if}
     <header class="finance-overview__context">
       <div>

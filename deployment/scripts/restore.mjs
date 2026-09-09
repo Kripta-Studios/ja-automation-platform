@@ -201,6 +201,7 @@ export async function restoreBackup({
 
     let integrity;
     let foreignKeys;
+    let foreignKeyViolations;
     const restored = new DatabaseSync(stagingDatabase);
     try {
       restored.exec(
@@ -208,12 +209,13 @@ export async function restoreBackup({
       );
       integrity = restored.prepare('PRAGMA integrity_check').get().integrity_check;
       foreignKeys = restored.prepare('PRAGMA foreign_keys').get().foreign_keys;
+      foreignKeyViolations = restored.prepare('PRAGMA foreign_key_check').all().length;
     } finally {
       restored.close();
     }
-    if (integrity !== 'ok' || foreignKeys !== 1)
+    if (integrity !== 'ok' || foreignKeys !== 1 || foreignKeyViolations !== 0)
       throw new Error(
-        `Restored SQLite check failed: integrity=${integrity} foreign_keys=${foreignKeys}`,
+        `Restored SQLite check failed: integrity=${integrity} foreign_keys=${foreignKeys} foreign_key_violations=${foreignKeyViolations}`,
       );
 
     restoredFiles = await files(stagingDocuments);

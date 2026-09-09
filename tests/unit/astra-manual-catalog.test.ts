@@ -45,7 +45,7 @@ describe('ASTRA Help manual catalog', () => {
     expect(manualForRole('owner-reference', 'auditor_read_only')).toBeNull();
     expect(manualForRole('owner-reference', 'finance_admin')).toMatchObject({
       audience: 'owner',
-      locales: ['en'],
+      locales: ['en', 'pt'],
     });
   });
 
@@ -56,6 +56,22 @@ describe('ASTRA Help manual catalog', () => {
     expect(bytes.subarray(0, 5).toString('ascii')).toBe('%PDF-');
     expect(bytes.byteLength).toBeGreaterThan(100_000);
   });
+
+  it.each(['worker-reference', 'owner-reference'])(
+    'serves the distinct Brazilian Portuguese %s PDF',
+    async (id) => {
+      const manual = manualForRole(id, 'owner_admin');
+      if (!manual) throw new Error('Detailed reference is missing');
+      expect(manual.locales).toContain('pt');
+      expect(manual.assets.pt?.sourceName).toMatch(/_PT-BR\.pdf$/);
+      const [english, portuguese] = await Promise.all([
+        readManualPdf(manual, 'en'),
+        readManualPdf(manual, 'pt'),
+      ]);
+      expect(portuguese.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+      expect(portuguese.equals(english)).toBe(false);
+    },
+  );
 
   it('resolves checked-in manuals when the portal starts from its package directory', async () => {
     const originalCwd = process.cwd();

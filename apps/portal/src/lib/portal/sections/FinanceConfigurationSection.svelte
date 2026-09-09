@@ -18,6 +18,8 @@
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
   } = $props();
 
+  let compensationRuleType = $state('Hourly');
+
   const rowValue = (row: Row, ...keys: string[]): string => {
     for (const key of keys) {
       const value = row[key];
@@ -950,7 +952,7 @@
               </select>
             </Field>
             <Field id="finance-comp-ruletype" label={translate('Rule type')} data-field="ruleType">
-              <select id="finance-comp-ruletype" name="ruleType">
+              <select id="finance-comp-ruletype" name="ruleType" bind:value={compensationRuleType}>
                 <option value="Hourly">{translate('Hourly')}</option>
                 <option value="Daily">{translate('Daily')}</option>
                 <option value="FixedPerBillingPeriod"
@@ -992,40 +994,43 @@
                 <option value="daily">{translate('Daily')}</option>
               </select>
             </Field>
-            <Field
-              id="finance-comp-percentage"
-              label={translate('Percentage')}
-              data-field="percentageBps"
-            >
-              <input type="hidden" name="percentageBps" value="0" />
-              <input
+            {#if compensationRuleType === 'PercentageOfEligibleClientLabor'}
+              <Field
                 id="finance-comp-percentage"
-                type="text"
-                inputmode="decimal"
-                value="0"
-                data-bps-target="percentageBps"
-                oninput={syncPercentToBps}
-                placeholder={translate('e.g. 55')}
-              />
-            </Field>
-            <Field
-              id="finance-comp-percentagebasis"
-              label={translate('Percentage basis')}
-              data-field="percentageBasis"
-            >
-              <select id="finance-comp-percentagebasis" name="percentageBasis">
-                <option value="CLIENT_LABOR_BEFORE_TAX"
-                  >{translate('Client labor before tax')}</option
-                >
-                <option value="CLIENT_LABOR_AFTER_APPROVED_DISCOUNT"
-                  >{translate('Client labor after approved discount')}</option
-                >
-                <option value="ISSUED_ELIGIBLE_LABOR">{translate('Issued eligible labor')}</option>
-                <option value="COLLECTED_ELIGIBLE_LABOR"
-                  >{translate('Collected eligible labor')}</option
-                >
-              </select>
-            </Field>
+                label={translate('Percentage')}
+                data-field="percentageBps"
+              >
+                <input type="hidden" name="percentageBps" value="0" />
+                <input
+                  id="finance-comp-percentage"
+                  type="text"
+                  inputmode="decimal"
+                  value="0"
+                  data-bps-target="percentageBps"
+                  oninput={syncPercentToBps}
+                  placeholder={translate('e.g. 55')}
+                />
+              </Field>
+              <Field
+                id="finance-comp-percentagebasis"
+                label={translate('Percentage basis')}
+                data-field="percentageBasis"
+              >
+                <select id="finance-comp-percentagebasis" name="percentageBasis">
+                  <option value="CLIENT_LABOR_BEFORE_TAX"
+                    >{translate('Client labor before tax')}</option
+                  >
+                  <option value="CLIENT_LABOR_AFTER_APPROVED_DISCOUNT"
+                    >{translate('Client labor after approved discount')}</option
+                  >
+                  <option value="ISSUED_ELIGIBLE_LABOR">{translate('Issued eligible labor')}</option
+                  >
+                  <option value="COLLECTED_ELIGIBLE_LABOR"
+                    >{translate('Collected eligible labor')}</option
+                  >
+                </select>
+              </Field>
+            {/if}
             <Field
               id="finance-comp-trigger"
               label={translate('Settlement trigger')}

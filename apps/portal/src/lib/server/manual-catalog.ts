@@ -68,16 +68,17 @@ const workerReference: ManualDefinition = {
     pt: 'Guia do usuário do colaborador',
   },
   description: {
-    en: 'The detailed English reference for worker time, reports, expenses, documents and personal compensation.',
-    es: 'La referencia detallada en inglés sobre tiempo, informes, gastos, documentos y compensación personal.',
-    pt: 'A referência detalhada em inglês sobre tempo, relatórios, despesas, documentos e remuneração pessoal.',
+    en: 'The detailed reference for worker time, reports, expenses, documents and personal compensation.',
+    es: 'La referencia detallada sobre tiempo, informes, gastos, documentos y compensación personal.',
+    pt: 'A referência detalhada sobre tempo, relatórios, despesas, documentos e remuneração pessoal.',
   },
   audience: 'worker',
-  locales: ['en'],
+  locales: ['en', 'pt'],
   revision: detailedReferenceRevision,
   allowedRoles: allAuthenticatedRoles,
   assets: {
     en: { sourceName: 'Worker_User_Guide.pdf' },
+    pt: { sourceName: 'Worker_User_Guide_PT-BR.pdf' },
   },
 };
 
@@ -89,16 +90,17 @@ const ownerReference: ManualDefinition = {
     pt: 'Guia do usuário de Owner e Finanças',
   },
   description: {
-    en: 'The detailed English reference for administration, review, finance, billing, accounting and audit work.',
-    es: 'La referencia detallada en inglés para administración, revisión, finanzas, facturación, contabilidad y auditoría.',
-    pt: 'A referência detalhada em inglês para administração, análise, finanças, faturamento, contabilidade e auditoria.',
+    en: 'The detailed reference for administration, review, finance, billing, accounting and audit work.',
+    es: 'La referencia detallada para administración, revisión, finanzas, facturación, contabilidad y auditoría.',
+    pt: 'A referência detalhada para administração, análise, finanças, faturamento, contabilidade e auditoria.',
   },
   audience: 'owner',
-  locales: ['en'],
+  locales: ['en', 'pt'],
   revision: detailedReferenceRevision,
   allowedRoles: ownerRoles,
   assets: {
     en: { sourceName: 'Owner_User_Guide.pdf' },
+    pt: { sourceName: 'Owner_User_Guide_PT-BR.pdf' },
   },
 };
 

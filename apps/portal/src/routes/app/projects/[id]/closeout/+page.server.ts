@@ -23,7 +23,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
     const closeout = context.repository.projectCloseoutDetail(context.principal, params.id);
     const documents = context.sqlite
       .prepare(
-        "SELECT id,safe_filename,original_filename,artifact_type,sensitivity,media_type,sha256,byte_length FROM document WHERE project_id=? AND state='committed' AND media_type='application/pdf' AND artifact_type IN ('customer_period_pdf','customer_report_pdf','technical_reference','system_reference','backup_reference','approved_customer_document') AND sensitivity IN ('customer_private','operational') AND scan_status IN ('clean','not_scanned') ORDER BY created_at,id",
+        "SELECT id,safe_filename,original_filename,artifact_type,sensitivity,media_type,sha256,byte_length FROM document WHERE project_id=? AND state='committed' AND artifact_classification='standard' AND media_type='application/pdf' AND artifact_type IN ('customer_period_pdf','customer_report_pdf','technical_reference','system_reference','backup_reference','approved_customer_document') AND sensitivity IN ('customer_private','operational') AND scan_status IN ('clean','not_scanned') ORDER BY created_at,id",
       )
       .all(params.id);
     return {

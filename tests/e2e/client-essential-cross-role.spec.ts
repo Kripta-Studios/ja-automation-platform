@@ -1624,9 +1624,11 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
 
     await page.goto(new URL(detailHref ?? '', page.url()).toString());
     await page.reload();
+    // This is a new, unapproved snapshot. The invalidated signature remains
+    // bound to the old version above and must not become this version's state.
     await expect(page.locator('[data-signoff-state]')).toHaveAttribute(
       'data-signoff-state',
-      'invalid',
+      'needs_report',
     );
     const replacementApprovalForm = page.locator('form[data-period-report-approval]');
     await expect(replacementApprovalForm).toHaveCount(1);

@@ -45,6 +45,7 @@ type SourceDocument = Readonly<{
   artifact_type: string;
   sensitivity: string;
   scan_status: string | null;
+  artifact_classification?: string;
 }>;
 type RevisionRow = Readonly<{
   id: string;
@@ -266,7 +267,7 @@ export class ProjectCloseoutService {
     const marks = ids.map(() => '?').join(',');
     const rows = this.sqlite
       .prepare(
-        `SELECT id,storage_key,sha256,byte_length,media_type,safe_filename,original_filename,artifact_type,sensitivity,scan_status FROM document WHERE project_id=? AND id IN (${marks}) AND state='committed' ORDER BY id`,
+        `SELECT id,storage_key,sha256,byte_length,media_type,safe_filename,original_filename,artifact_type,sensitivity,scan_status,artifact_classification FROM document WHERE project_id=? AND id IN (${marks}) AND state='committed' ORDER BY id`,
       )
       .all(projectId, ...ids) as SourceDocument[];
     if (rows.length !== ids.length)
@@ -274,6 +275,7 @@ export class ProjectCloseoutService {
     let bytes = 0;
     for (const row of rows) {
       if (
+        row.artifact_classification !== 'standard' ||
         !CLIENT_ARTIFACT_TYPES.has(row.artifact_type) ||
         row.media_type !== 'application/pdf' ||
         !['customer_private', 'operational'].includes(row.sensitivity) ||

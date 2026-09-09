@@ -51,7 +51,9 @@
 <main class="record-detail-page">
   <nav class="detail-nav">
     <a href={base + '/app/time'}>← {t('Time')}</a>
-    <a href={base + '/app/projects/' + String(record.project_id)}>{t('Open project')}</a>
+    {#if !data.user?.workforceProfile}<a href={base + '/app/projects/' + String(record.project_id)}
+        >{t('Open project')}</a
+      >{/if}
     <button type="button" class="no-print print-trigger" onclick={printReport}>
       <span aria-hidden="true">⎙</span>
       {t('Print Report')}
@@ -70,11 +72,13 @@
     <article>
       <span>{t('CATEGORY')}</span><strong>{controlled('timeCategory', record.category)}</strong>
     </article>
-    <article>
-      <span>{t('BILLABILITY')}</span><strong
-        >{controlled('status', record.billability_state ?? 'pending')}</strong
-      >
-    </article>
+    {#if 'billability_state' in record}
+      <article>
+        <span>{t('BILLABILITY')}</span><strong
+          >{controlled('status', record.billability_state ?? 'pending')}</strong
+        >
+      </article>
+    {/if}
     <article>
       <span>{t('SITE')}</span><strong>{record.site ?? record.site_name ?? '—'}</strong>
     </article>

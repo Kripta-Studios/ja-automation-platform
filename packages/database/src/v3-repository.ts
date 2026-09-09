@@ -2766,6 +2766,8 @@ export class V3Repository {
 
   workerPay(principal: Principal, periodStart: string, periodEnd: string) {
     this.assertActive(principal);
+    if (this.sqlite.prepare('SELECT 1 FROM supplier_user_profile WHERE user_id=?').get(principal.userId))
+      throw new V3AccessDeniedError('Financial access is disabled for this workforce account');
     requireOrderedDateRange(periodStart, periodEnd);
     const sourceRows = this.sqlite
       .prepare(

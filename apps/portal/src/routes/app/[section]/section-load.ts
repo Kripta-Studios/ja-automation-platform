@@ -49,6 +49,13 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
     error(403, 'Approval access required');
   const context = openPortalRepository(locals);
   try {
+    const restrictedProfile = context.sqlite
+      .prepare('SELECT profile FROM supplier_user_profile WHERE user_id=?')
+      .get(context.principal.userId) as
+      | { profile: 'external_technician' | 'supplier_coordinator' }
+      | undefined;
+    if (restrictedProfile && !['time', 'reports', 'profile'].includes(section))
+      error(403, 'Operational account: access denied');
     const searchQuery = url.searchParams.get('q')?.trim() ?? '';
     const isProjectManager = context.principal.role === 'project_manager';
     const canonicalOwner = (() => {
@@ -61,16 +68,18 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
       }
     })();
     const common = {
-      user: locals.user,
+      user: { ...locals.user, workforceProfile: restrictedProfile?.profile },
       section,
       searchQuery,
-      searchSuggestions: isProjectManager
-        ? projectManagerSearchSuggestionsProjection(
-            context.repository.searchSuggestions(context.principal),
-          )
-        : context.repository.searchSuggestions(context.principal),
+      searchSuggestions: restrictedProfile
+        ? []
+        : isProjectManager
+          ? projectManagerSearchSuggestionsProjection(
+              context.repository.searchSuggestions(context.principal),
+            )
+          : context.repository.searchSuggestions(context.principal),
       searchResults:
-        searchQuery.length >= 2
+        !restrictedProfile && searchQuery.length >= 2
           ? isProjectManager
             ? projectManagerSearchProjection(
                 context.repository.search(context.principal, searchQuery),
@@ -130,7 +139,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           weeklySchedules,
         );
         const weeklyPay =
-          context.principal.role === 'worker'
+          context.principal.role === 'worker' && !restrictedProfile
             ? context.v3.workerPay(context.principal, weekStart, week.weekEnd)
             : undefined;
         const category = url.searchParams.get('category')?.trim() || undefined;
@@ -154,8 +163,10 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           ...common,
           projects: context.repository.listAssignedProjects(context.principal),
           records: context.repository.listOwnReports(context.principal),
-          technicalChanges: context.v3.listTechnicalChanges(context.principal),
-          periodReports: context.v3.listPeriodReports(context.principal),
+          technicalChanges: restrictedProfile
+            ? []
+            : context.v3.listTechnicalChanges(context.principal),
+          periodReports: restrictedProfile ? [] : context.v3.listPeriodReports(context.principal),
         };
       case 'expenses': {
         const records = context.repository.listExpensesForScope(context.principal);
@@ -325,11 +336,22 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
       case 'approvals':
         return {
           ...common,
-          records: isProjectManager
+          records: (isProjectManager
             ? projectManagerApprovalQueueProjection(
                 context.repository.listApprovalQueue(context.principal),
               )
-            : context.repository.listApprovalQueue(context.principal),
+            : context.repository.listApprovalQueue(context.principal)
+          ).map((row) => ({
+            ...row,
+            worker_name:
+              context.sqlite
+                .prepare('SELECT name FROM user WHERE id=?')
+                .get(String(row.worker_id ?? ''))?.name ?? '',
+            project_name:
+              context.sqlite
+                .prepare('SELECT name FROM project WHERE id=?')
+                .get(String(row.project_id ?? ''))?.name ?? '',
+          })),
           milestones: isProjectManager
             ? projectManagerMilestoneProjection(
                 context.repository.listMilestonesForReview(context.principal),

@@ -238,7 +238,9 @@
     return typeof localized.message === 'string' ? localized.message : '';
   }
 
-  const roleNavigation = $derived(portalNavigationForRole(base, data.user.role));
+  const roleNavigation = $derived(
+    portalNavigationForRole(base, data.user.role, data.user.workforceProfile),
+  );
   const navigation: readonly NavItem[] = $derived(roleNavigation.primary);
   const mobileNavigation: readonly NavItem[] = $derived(mobilePrimaryNavigationFor(roleNavigation));
   const secondaryNavigation: readonly NavItem[] = $derived(roleNavigation.secondary);

@@ -186,3 +186,19 @@ Owners can use Audit to inspect append-only security and finance events. Auditor
 In **Audit**, filter or locate the relevant event and compare its action, entity, actor, timestamp and details with the record under review. Audit is append-only; do not attempt to edit, remove or recreate an event. In **Profile**, manage only your own language, passkeys and optional MFA. Register a passkey only on an appropriate personal device. When enabling MFA, complete **Verify MFA** with the authenticator code and store displayed recovery codes privately. Profile changes never grant a finance, billing or audit role.
 
 If a required control is absent, a route returns an authorization error, an upload is blocked, a figure differs from the current screen, or an amount conflicts with approved evidence, stop and use the verified support route in the invitation. Do not bypass RBAC, fabricate customer acceptance, manually run a job, or make a financial mutation to test the portal.
+
+## Supplier teams and accounts without financial access
+
+The Owner chooses the supplier coordinator. A supplier account cannot appoint itself or grant finance, administration or approval permissions. An installation is a project in the app. The Owner must authorize each installation and its effective dates before the coordinator can record team work.
+
+For the Owner: open **Suppliers**, add the supplier, select an existing Worker account and save **Supplier coordinator** or **External technician**. Then authorize the installation for the chosen coordinator. Changing the access profile signs that account out; the person must sign in again. Revoking an installation blocks that coordinator on the next request, including their personal time and reports for that installation. Technician assignments and other coordinators’ permissions are managed separately by the Owner.
+
+For the coordinator: open **Supplier team**, select an authorized installation, and use **Add technician**. Enter the technician's name, optional email and assignment dates. This creates a personnel record without login credentials or an invitation email. Use **Assign existing technician** for someone already in your supplier team. Ask the Owner to configure any existing account that needs to sign in.
+
+In **Record team hours**, select the technician and enter the real work date, category, minutes and work description. Save the draft, check it and select **Submit to J&A**. The named technician is the subject of the hours; the coordinator remains the recorded actor. J&A approves the hours through the normal review workflow. A supplier cannot approve its team's hours. Returned **needs_changes** hours use **Create correction draft**; edit and submit the replacement while the original remains in history. Rejected work requires a new draft.
+
+Use **Operational report** to filter by installation and dates, read approval states, download CSV, or print/save a PDF in the browser. History remains visible; rejected, void and superseded records do not increase the effective total. This report does not certify payment or customer acceptance.
+
+An External technician sees only their own operational hours and reports. Supplier coordinator and External technician accounts have no My Pay, rates, expenses, financial documents or financial exports. The compensation and expense procedures elsewhere in this guide apply to standard Worker accounts. Supplier reports never include money. Contact the Owner when your installation or technician is missing; do not record work against a substitute person or project.
+
+:::figure owner /app/supplier The Owner appoints supplier coordinators and authorizes installations.

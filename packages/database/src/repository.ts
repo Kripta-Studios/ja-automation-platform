@@ -46,6 +46,10 @@ import {
   type ExpenseCommercialClassificationResult,
 } from './domains/finance/expense-commercial-classification-repository.ts';
 import { TimeEntryRepository } from './domains/time/time-entry-repository.ts';
+import {
+  isSupplierCoordinator,
+  readLiveSupplierCoordinatorGrant,
+} from './domains/workforce/supplier-access.ts';
 import { canonicalCustomerPeriodSnapshot } from './domains/reports/customer-conformity-repository.ts';
 import {
   WorkforceRepository,
@@ -527,6 +531,8 @@ export class PortalRepository {
       assertReadable: (principal) => this.assertReadable(principal),
       assertCanReview: (principal, projectId) =>
         this.assertOperationalReviewer(principal, projectId),
+      assertOwnTimeAccess: (principal, projectId, workDate) =>
+        this.assertSupplierCoordinatorOperationalAccess(principal, projectId, workDate),
       audit: (principal, action, entityType, entityId, details) =>
         this.audit(principal, action, entityType, entityId, details),
       assertDate,
@@ -1508,6 +1514,7 @@ export class PortalRepository {
 
   private assertProjectMembership(principal: Principal, projectId: string, onDate = today()): void {
     if (principal.role === 'owner_admin') return;
+    this.assertSupplierCoordinatorOperationalAccess(principal, projectId, onDate);
     const project = this.sqlite
       .prepare("SELECT status FROM project WHERE id=? AND status IN ('active','planned','paused')")
       .get(projectId) as { status: string } | undefined;
@@ -1540,6 +1547,7 @@ export class PortalRepository {
     )
       return true;
     if (!principal.projectIds.has(projectId)) return false;
+    if (!this.hasSupplierCoordinatorOperationalAccess(principal, projectId, objectDate)) return false;
     const current = today();
     const assignment = this.sqlite
       .prepare(
@@ -1547,6 +1555,36 @@ export class PortalRepository {
       )
       .get(projectId, principal.userId, current, current, objectDate, objectDate);
     return Boolean(assignment);
+  }
+
+  /**
+   * A coordinator's project_member assignment supports allocation history. Its
+   * live operational authority comes from the supplier grant, so revocation
+   * cannot be bypassed through ordinary worker time or report methods.
+   */
+  private hasSupplierCoordinatorOperationalAccess(
+    principal: Principal,
+    projectId: string,
+    operationDate: string,
+  ): boolean {
+    if (!isSupplierCoordinator(this.sqlite, principal.userId)) return true;
+    try {
+      this.assertLiveSession(principal);
+    } catch {
+      return false;
+    }
+    return Boolean(
+      readLiveSupplierCoordinatorGrant(this.sqlite, principal, projectId, operationDate, today()),
+    );
+  }
+
+  private assertSupplierCoordinatorOperationalAccess(
+    principal: Principal,
+    projectId: string,
+    operationDate: string,
+  ): void {
+    if (this.hasSupplierCoordinatorOperationalAccess(principal, projectId, operationDate)) return;
+    throw new AccessDeniedError('Current supplier project grant required');
   }
 
   private assertProjectObjectAccess(
@@ -1573,6 +1611,47 @@ export class PortalRepository {
       principal.role === 'owner_admin' ||
       principal.role === 'finance_admin' ||
       principal.role === 'auditor_read_only'
+    );
+  }
+
+  private supplierTimeProjection<T extends Record<string, unknown>>(
+    principal: Principal,
+    rows: T[],
+  ): T[] {
+    if (
+      !this.sqlite
+        .prepare('SELECT 1 FROM supplier_user_profile WHERE user_id=?')
+        .get(principal.userId)
+    )
+      return rows;
+    const operationalKeys = new Set([
+      'id',
+      'project_id',
+      'worker_id',
+      'work_date',
+      'category',
+      'activity_code',
+      'minutes',
+      'activity_summary',
+      'approval_state',
+      'version',
+      'project_number',
+      'project_name',
+      'correction_linked',
+      'project_timezone',
+      'submitted_at',
+      'approved_at',
+      'start_time',
+      'end_time',
+      'break_minutes',
+      'site',
+      'site_name',
+      'worker_name',
+      'worker_email',
+    ]);
+    return rows.map(
+      (row) =>
+        Object.fromEntries(Object.entries(row).filter(([key]) => operationalKeys.has(key))) as T,
     );
   }
 
@@ -2713,6 +2792,11 @@ export class PortalRepository {
         if (!assignment)
           throw new AccessDeniedError('Effective project assignment required for submission');
       }
+      this.assertSupplierCoordinatorOperationalAccess(
+        principal,
+        row.project_id,
+        row.business_date,
+      );
       const timestamp = now();
       const result = this.sqlite
         .prepare(
@@ -6782,7 +6866,7 @@ export class PortalRepository {
     }
     const daily = this.sqlite
       .prepare(
-        `SELECT 'daily' type,d.id,d.work_date date,d.summary title,d.approval_state,d.version,
+        `SELECT 'daily' type,d.id,d.project_id,d.work_date date,d.summary title,d.approval_state,d.version,
                 d.safety_related,p.project_number,p.name project_name,u.name author_name
          FROM daily_report d JOIN project p ON p.id=d.project_id JOIN user u ON u.id=d.worker_id
          ${dailyConditions.length ? `WHERE ${dailyConditions.join(' AND ')}` : ''}
@@ -6791,7 +6875,7 @@ export class PortalRepository {
       .all(...dailyValues) as Array<Record<string, unknown>>;
     const technical = this.sqlite
       .prepare(
-        `SELECT 'technical' type,t.id,t.report_date date,t.system_name title,t.approval_state,
+        `SELECT 'technical' type,t.id,t.project_id,t.report_date date,t.system_name title,t.approval_state,
                 t.version,t.safety_related,p.project_number,p.name project_name,u.name author_name
          FROM technical_report t JOIN project p ON p.id=t.project_id JOIN user u ON u.id=t.author_id
          ${technicalConditions.length ? `WHERE ${technicalConditions.join(' AND ')}` : ''}
@@ -6799,6 +6883,15 @@ export class PortalRepository {
       )
       .all(...technicalValues) as Array<Record<string, unknown>>;
     return [...daily, ...technical]
+      .filter((row) =>
+        !isSupplierCoordinator(this.sqlite, principal.userId) ||
+        this.hasEffectiveProjectObjectAccess(
+          principal,
+          String(row.project_id),
+          String(row.date),
+        ),
+      )
+      .map(({ project_id: _projectId, ...row }) => row)
       .sort((left, right) => String(right.date).localeCompare(String(left.date)))
       .slice(0, 200);
   }
@@ -7132,11 +7225,14 @@ export class PortalRepository {
   listOwnTime(principal: Principal) {
     const rows = this.time.listOwnTime(principal) as Array<Record<string, unknown>>;
     if (this.canSeeFinanceFields(principal)) return rows;
-    return rows.filter((row) =>
-      this.hasEffectiveProjectObjectAccess(
-        principal,
-        String(row.project_id),
-        String(row.work_date),
+    return this.supplierTimeProjection(
+      principal,
+      rows.filter((row) =>
+        this.hasEffectiveProjectObjectAccess(
+          principal,
+          String(row.project_id),
+          String(row.work_date),
+        ),
       ),
     );
   }
@@ -7183,7 +7279,7 @@ export class PortalRepository {
       clauses.push('t.work_date<=?');
       values.push(filters.to);
     }
-    return this.sqlite
+    const rows = this.sqlite
       .prepare(
         `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
                 t.activity_summary,t.approval_state,t.billability_state,
@@ -7198,7 +7294,18 @@ export class PortalRepository {
          WHERE ${clauses.join(' AND ')}
          ORDER BY t.work_date DESC,t.created_at DESC LIMIT 400`,
       )
-      .all(...values);
+      .all(...values) as Array<Record<string, unknown>>;
+    return this.supplierTimeProjection(
+      principal,
+      rows.filter((row) =>
+        !isSupplierCoordinator(this.sqlite, principal.userId) ||
+        this.hasEffectiveProjectObjectAccess(
+          principal,
+          String(row.project_id),
+          String(row.work_date),
+        ),
+      ),
+    );
   }
 
   timeDetail(principal: Principal, id: string) {
@@ -7227,7 +7334,7 @@ export class PortalRepository {
       )
     )
       throw new AccessDeniedError('Time entry access required');
-    return row;
+    return this.supplierTimeProjection(principal, [row])[0]!;
   }
 
   listOwnTimeWeek(principal: Principal, weekStart: string) {
@@ -7239,11 +7346,14 @@ export class PortalRepository {
     if (this.canSeeFinanceFields(principal)) return result;
     return {
       ...result,
-      rows: result.rows.filter((row) =>
-        this.hasEffectiveProjectObjectAccess(
-          principal,
-          String(row.project_id),
-          String(row.work_date),
+      rows: this.supplierTimeProjection(
+        principal,
+        result.rows.filter((row) =>
+          this.hasEffectiveProjectObjectAccess(
+            principal,
+            String(row.project_id),
+            String(row.work_date),
+          ),
         ),
       ),
     };
@@ -7579,7 +7689,11 @@ export class PortalRepository {
   }
 
   listAssignedProjects(principal: Principal) {
-    return this.planning.listAssignedProjects(principal);
+    const projects = this.planning.listAssignedProjects(principal);
+    if (!isSupplierCoordinator(this.sqlite, principal.userId)) return projects;
+    return projects.filter((project) =>
+      this.hasEffectiveProjectObjectAccess(principal, String(project.id), today()),
+    );
   }
 
   listClients(principal: Principal) {

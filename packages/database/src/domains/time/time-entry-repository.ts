@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { createHash } from 'node:crypto';
 import { newId, type Principal } from '@ja/domain';
 
 type ErrorFactory = (message: string) => never;
@@ -32,12 +33,58 @@ export type TimeEntryUpdateInput = Readonly<{
 
 export type TimeEntryDecision = 'approved' | 'needs_changes' | 'rejected';
 
+export type TimeEntryCorrectionInput = Readonly<{
+  originalId: string;
+  requestId: string;
+  reason: string;
+  patch?: Readonly<{
+    workDate?: string;
+    category?: string;
+    activityCode?: string;
+    minutes?: number;
+    summary?: string;
+    site?: string;
+    startTime?: string;
+    endTime?: string;
+    breakMinutes?: number;
+  }>;
+}>;
+
 export type TimeEntryRepositoryDependencies = Readonly<{
   sqlite: DatabaseSync;
   transaction: <T>(work: () => T) => T;
   assertActive: (principal: Principal) => void;
   assertReadable: (principal: Principal) => void;
   assertCanReview: (principal: Principal, projectId: string) => void;
+  /**
+   * Optional live authorization for a worker recording their own canonical
+   * time. PortalRepository uses this to add supplier-coordinator grant scope
+   * without changing the standard worker membership invariant.
+   */
+  assertOwnTimeAccess?: (
+    principal: Principal,
+    projectId: string,
+    workDate: string,
+  ) => void;
+  /**
+   * Optional live authorization for a coordinator recording a canonical time
+   * entry on behalf of another worker.  The ordinary portal repository does
+   * not provide this capability, so its worker-ownership invariant remains
+   * the default.
+   */
+  assertDelegatedTimeAccess?: (
+    principal: Principal,
+    workerId: string,
+    projectId: string,
+    workDate: string,
+  ) => void;
+  recordDelegatedTimeEntry?: (
+    principal: Principal,
+    timeEntryId: string,
+    workerId: string,
+    projectId: string,
+    workDate: string,
+  ) => void;
   audit: (
     principal: Principal,
     action: string,
@@ -116,6 +163,11 @@ export class TimeEntryRepository {
          FROM time_entry
          WHERE worker_id=? AND work_date=?
            AND approval_state NOT IN ('void','rejected')
+           AND NOT EXISTS(
+             SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id
+                AND correction.approval_state<>'rejected'
+           )
            AND (? IS NULL OR id<>?)`,
       )
       .get(candidate.workerId, candidate.workDate, candidate.id ?? null, candidate.id ?? null) as
@@ -135,6 +187,11 @@ export class TimeEntryRepository {
          FROM time_entry
          WHERE worker_id=? AND work_date=?
            AND approval_state NOT IN ('void','rejected')
+           AND NOT EXISTS(
+             SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id
+                AND correction.approval_state<>'rejected'
+           )
            AND (? IS NULL OR id<>?)`,
       )
       .all(
@@ -186,8 +243,13 @@ export class TimeEntryRepository {
     ownerAdminBypass = false,
   ): void {
     if (ownerAdminBypass && principal.role === 'owner_admin') return;
-    if (workerId !== principal.userId)
-      throw this.deps.errors.accessDenied('Time entry ownership required');
+    if (workerId !== principal.userId) {
+      if (!this.deps.assertDelegatedTimeAccess)
+        throw this.deps.errors.accessDenied('Time entry ownership required');
+      this.deps.assertDelegatedTimeAccess(principal, workerId, projectId, workDate);
+      return;
+    }
+    this.deps.assertOwnTimeAccess?.(principal, projectId, workDate);
     const currentDate = this.deps.now().slice(0, 10);
     const assignment = this.deps.sqlite
       .prepare(
@@ -198,13 +260,22 @@ export class TimeEntryRepository {
   }
 
   createTimeEntry(principal: Principal, input: TimeEntryInput) {
+    return this.createTimeEntryForWorker(principal, principal.userId, input);
+  }
+
+  /**
+   * Supplier workforce is the sole caller that may set a different subject.
+   * The dependency above performs a fresh database authorization inside this
+   * same write transaction; the audit actor stays the authenticated principal.
+   */
+  createTimeEntryForWorker(principal: Principal, workerId: string, input: TimeEntryInput) {
     this.deps.assertActive(principal);
     return this.deps.transaction(() => {
       // Keep authorization ahead of input validation so a revoked/stale
       // worker cannot use malformed values as a validation oracle.  This
       // checks both the current assignment and the object date; the timezone
       // lookup below is only data retrieval, not authorization.
-      this.assertEffectiveMembership(principal, input.projectId, principal.userId, input.workDate);
+      this.assertEffectiveMembership(principal, input.projectId, workerId, input.workDate);
       this.deps.assertDate(input.workDate, 'Work date');
       if (!Number.isInteger(input.minutes) || input.minutes < 0 || input.minutes > 1440)
         throw this.deps.errors.validation('Minutes must be an integer from 0 to 1440');
@@ -212,12 +283,12 @@ export class TimeEntryRepository {
         .prepare(
           "SELECT p.timezone FROM project_member pm JOIN project p ON p.id=pm.project_id WHERE p.status IN ('active','planned','paused') AND pm.project_id=? AND pm.user_id=? AND pm.status='active' AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)",
         )
-        .get(input.projectId, principal.userId, input.workDate, input.workDate) as
+        .get(input.projectId, workerId, input.workDate, input.workDate) as
         | { timezone: string }
         | undefined;
       if (!assignment) throw this.deps.errors.accessDenied('Active project assignment required');
       this.validateEffectiveEntry({
-        workerId: principal.userId,
+        workerId,
         workDate: input.workDate,
         minutes: input.minutes,
         startTime: input.startTime ?? null,
@@ -233,7 +304,7 @@ export class TimeEntryRepository {
         .run(
           id,
           input.projectId,
-          principal.userId,
+          workerId,
           input.workDate,
           this.deps.assertText(input.category, 'Category', 100),
           input.activityCode?.trim() || null,
@@ -249,8 +320,17 @@ export class TimeEntryRepository {
           timestamp,
           timestamp,
         );
+      if (workerId !== principal.userId)
+        this.deps.recordDelegatedTimeEntry?.(
+          principal,
+          id,
+          workerId,
+          input.projectId,
+          input.workDate,
+        );
       this.deps.audit(principal, 'time.create', 'time_entry', id, {
         projectId: input.projectId,
+        workerId,
         minutes: input.minutes,
       });
       return { id, version: 1 };
@@ -280,17 +360,27 @@ export class TimeEntryRepository {
         | undefined;
       if (
         !current ||
-        current.worker_id !== principal.userId ||
         current.approval_state !== 'draft' ||
         current.invoice_id !== null ||
         current.version !== baseVersion
       )
         throw this.deps.errors.conflict('Time entry changed or cannot be submitted');
+      const ownerCorrection =
+        principal.role === 'owner_admin' &&
+        Boolean(
+          this.deps.sqlite
+            .prepare(
+              `SELECT 1 FROM record_correction_link
+                WHERE record_type='time_entry' AND correction_id=? AND actor_user_id=?`,
+            )
+            .get(id, principal.userId),
+        );
       this.assertEffectiveMembership(
         principal,
         current.project_id,
         current.worker_id,
         current.work_date,
+        ownerCorrection,
       );
       this.validateEffectiveEntry({
         id,
@@ -307,10 +397,13 @@ export class TimeEntryRepository {
           `UPDATE time_entry SET approval_state='submitted',submitted_at=?,updated_at=?,version=version+1
              WHERE id=? AND worker_id=? AND approval_state='draft' AND version=? AND invoice_id IS NULL`,
         )
-        .run(timestamp, timestamp, id, principal.userId, baseVersion);
+        .run(timestamp, timestamp, id, current.worker_id, baseVersion);
       if (result.changes !== 1)
         throw this.deps.errors.conflict('Time entry changed or cannot be submitted');
-      this.deps.audit(principal, 'time.submit', 'time_entry', id, { baseVersion });
+      this.deps.audit(principal, 'time.submit', 'time_entry', id, {
+        baseVersion,
+        workerId: current.worker_id,
+      });
       return { id, version: baseVersion + 1 };
     });
   }
@@ -342,8 +435,6 @@ export class TimeEntryRepository {
           }
         | undefined;
       if (!current) throw this.deps.errors.validation('Time entry not found');
-      if (current.worker_id !== principal.userId)
-        throw this.deps.errors.accessDenied('Time entry ownership required');
       if (
         current.invoice_id ||
         current.billing_status !== 'unlocked' ||
@@ -351,6 +442,15 @@ export class TimeEntryRepository {
       )
         throw this.deps.errors.conflict('Only an unlocked never-submitted time draft can change');
       const workDate = input.workDate ?? current.work_date;
+      // A delegated correction must retain authority over the existing record
+      // as well as any requested new date; otherwise a coordinator could move
+      // an out-of-scope historical entry by guessing its id.
+      this.assertEffectiveMembership(
+        principal,
+        current.project_id,
+        current.worker_id,
+        current.work_date,
+      );
       this.assertEffectiveMembership(principal, current.project_id, current.worker_id, workDate);
       if (input.workDate !== undefined) this.deps.assertDate(input.workDate, 'Work date');
       if (
@@ -403,13 +503,234 @@ export class TimeEntryRepository {
           input.breakMinutes ?? null,
           timestamp,
           input.id,
-          principal.userId,
+          current.worker_id,
           input.version,
         );
       if (result.changes !== 1)
         throw this.deps.errors.conflict('Time entry changed or cannot be edited');
-      this.deps.audit(principal, 'time.update', 'time_entry', input.id, { version: input.version });
+      this.deps.audit(principal, 'time.update', 'time_entry', input.id, {
+        version: input.version,
+        workerId: current.worker_id,
+      });
       return { id: input.id, version: input.version + 1 };
+    });
+  }
+
+  /**
+   * Creates a new canonical draft and immutable link; it never rewrites the
+   * reviewed row.  Delegated callers pass through the same live scope check as
+   * create/update/submit, so the actor remains the coordinator and the worker
+   * remains the time subject.
+   */
+  createCorrectionDraft(principal: Principal, input: TimeEntryCorrectionInput) {
+    this.deps.assertActive(principal);
+    const requestId = this.deps.assertText(input.requestId, 'Correction request', 200);
+    const reason = this.deps.assertText(input.reason, 'Correction reason', 2000);
+    if (reason.length < 3)
+      throw this.deps.errors.validation('Correction reason must contain at least 3 characters');
+    const patch = input.patch ?? {};
+    const payloadHash = createHash('sha256')
+      .update(
+        JSON.stringify({
+          originalId: input.originalId,
+          requestId,
+          reason,
+          patch,
+          actorUserId: principal.userId,
+        }),
+      )
+      .digest('hex');
+    return this.deps.transaction(() => {
+      const original = this.deps.sqlite
+        .prepare(
+          `SELECT id,project_id,worker_id,work_date,category,activity_code,minutes,project_timezone,
+                  activity_summary,site,start_time,end_time,break_minutes,approval_state,invoice_id,
+                  billing_status,billing_lock_id,locked_at,version
+             FROM time_entry WHERE id=?`,
+        )
+        .get(input.originalId) as
+        | {
+            id: string;
+            project_id: string;
+            worker_id: string;
+            work_date: string;
+            category: string;
+            activity_code: string | null;
+            minutes: number;
+            project_timezone: string;
+            activity_summary: string;
+            site: string | null;
+            start_time: string | null;
+            end_time: string | null;
+            break_minutes: number | null;
+            approval_state: string;
+            invoice_id: string | null;
+            billing_status: string;
+            billing_lock_id: string | null;
+            locked_at: string | null;
+            version: number;
+          }
+        | undefined;
+      if (!original) throw this.deps.errors.validation('Original time entry not found');
+      this.assertEffectiveMembership(
+        principal,
+        original.project_id,
+        original.worker_id,
+        original.work_date,
+      );
+      const parent = this.deps.sqlite
+        .prepare(
+          "SELECT original_id FROM record_correction_link WHERE record_type='time_entry' AND correction_id=?",
+        )
+        .get(original.id) as { original_id: string } | undefined;
+      const canonicalOriginalId = parent?.original_id ?? original.id;
+      const attempts = this.deps.sqlite
+        .prepare(
+          `SELECT rcl.correction_id,rcl.request_id,rcl.request_payload_sha256,correction.approval_state
+             FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id
+            WHERE rcl.record_type='time_entry' AND rcl.original_id=?`,
+        )
+        .all(canonicalOriginalId) as Array<{
+        correction_id: string;
+        request_id: string;
+        request_payload_sha256: string;
+        approval_state: string;
+      }>;
+      const prior = attempts.find((attempt) => attempt.request_id === requestId);
+      if (prior && prior.approval_state !== 'rejected') {
+        if (prior.request_payload_sha256 !== payloadHash)
+          throw this.deps.errors.conflict('Correction request conflicts with prior replay');
+        return { id: prior.correction_id, correctionId: prior.correction_id, replayed: true };
+      }
+      if (
+        attempts.some(
+          (attempt) =>
+            attempt.approval_state !== 'rejected' && attempt.correction_id !== original.id,
+        )
+      )
+        throw this.deps.errors.conflict('A correction draft already exists for this time entry');
+      if (!['approved', 'needs_changes'].includes(original.approval_state))
+        throw this.deps.errors.conflict(
+          'Only approved or reviewer-returned time can create a correction draft',
+        );
+      if (
+        original.invoice_id ||
+        original.billing_status !== 'unlocked' ||
+        original.billing_lock_id ||
+        original.locked_at
+      )
+        throw this.deps.errors.conflict(
+          'Financially finalized time requires an explicit adjustment',
+        );
+      const workDate = patch.workDate ?? original.work_date;
+      const minutes = patch.minutes ?? original.minutes;
+      const startTime = patch.startTime ?? original.start_time;
+      const endTime = patch.endTime ?? original.end_time;
+      const breakMinutes = patch.breakMinutes ?? original.break_minutes;
+      this.deps.assertDate(workDate, 'Work date');
+      if (patch.category !== undefined) this.deps.assertText(patch.category, 'Category', 100);
+      if (patch.summary !== undefined) this.deps.assertText(patch.summary, 'Activity summary');
+      const correctionId = newId();
+      const timestamp = this.deps.now();
+      if (parent && original.approval_state === 'needs_changes') {
+        const superseded = this.deps.sqlite
+          .prepare(
+            "UPDATE time_entry SET approval_state='rejected',updated_at=?,version=version+1 WHERE id=? AND approval_state='needs_changes'",
+          )
+          .run(timestamp, original.id);
+        if (superseded.changes !== 1)
+          throw this.deps.errors.conflict('Returned correction changed before retry');
+        this.deps.sqlite
+          .prepare(
+            `INSERT INTO approval_event(id,entity_type,entity_id,from_state,to_state,actor_id,reason,occurred_at)
+             VALUES(?,?,?,?,?,?,?,?)`,
+          )
+          .run(
+            newId(),
+            'time',
+            original.id,
+            'needs_changes',
+            'rejected',
+            principal.userId,
+            `Superseded by append-only correction retry ${correctionId}`,
+            timestamp,
+          );
+      }
+      this.deps.sqlite
+        .prepare(
+          `INSERT INTO time_entry(id,project_id,worker_id,work_date,category,activity_code,minutes,project_timezone,
+             activity_summary,site,start_time,end_time,break_minutes,approval_state,billability_state,billing_status,
+             created_at,updated_at,version)
+           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'draft','pending','unlocked',?,?,1)`,
+        )
+        .run(
+          correctionId,
+          original.project_id,
+          original.worker_id,
+          workDate,
+          patch.category === undefined
+            ? original.category
+            : this.deps.assertText(patch.category, 'Category', 100),
+          patch.activityCode ?? original.activity_code,
+          minutes,
+          original.project_timezone,
+          patch.summary === undefined
+            ? original.activity_summary
+            : this.deps.assertText(patch.summary, 'Activity summary'),
+          patch.site ?? original.site,
+          startTime,
+          endTime,
+          breakMinutes,
+          timestamp,
+          timestamp,
+        );
+      const deployment = this.deps.sqlite
+        .prepare('SELECT tenant_id FROM deployment_identity WHERE singleton=1')
+        .get() as { tenant_id: string } | undefined;
+      if (!deployment) throw this.deps.errors.validation('Deployment identity is not configured');
+      this.deps.sqlite
+        .prepare(
+          `INSERT INTO record_correction_link(
+             id,tenant_id,record_type,original_id,correction_id,request_id,request_payload_sha256,
+             actor_user_id,reason,created_at,correlation_id
+           ) VALUES(?,?, 'time_entry',?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          newId(),
+          deployment.tenant_id,
+          canonicalOriginalId,
+          correctionId,
+          requestId,
+          payloadHash,
+          principal.userId,
+          reason,
+          timestamp,
+          principal.correlationId ?? newId(),
+        );
+      this.validateEffectiveEntry({
+        id: correctionId,
+        workerId: original.worker_id,
+        workDate,
+        minutes,
+        startTime,
+        endTime,
+        breakMinutes,
+      });
+      if (original.worker_id !== principal.userId)
+        this.deps.recordDelegatedTimeEntry?.(
+          principal,
+          correctionId,
+          original.worker_id,
+          original.project_id,
+          workDate,
+        );
+      this.deps.audit(principal, 'correction.create', 'time_entry', correctionId, {
+        projectId: original.project_id,
+        originalId: canonicalOriginalId,
+        workerId: original.worker_id,
+        reason,
+      });
+      return { id: correctionId, correctionId, originalId: canonicalOriginalId, version: 1 };
     });
   }
 
@@ -458,14 +779,36 @@ export class TimeEntryRepository {
         throw this.deps.errors.conflict('Correction drafts are immutable and cannot be deleted');
 
       if (current.approval_state === 'draft') {
-        const result = this.deps.sqlite
-          .prepare(
-            "DELETE FROM time_entry WHERE id=? AND version=? AND invoice_id IS NULL AND billing_status='unlocked' AND billing_lock_id IS NULL",
-          )
-          .run(id, version);
-        if (result.changes !== 1)
-          throw this.deps.errors.conflict('Time entry changed or cannot be deleted');
-        this.deps.audit(principal, 'time.delete', 'time_entry', id, { version });
+        const delegatedRecorder = this.deps.sqlite
+          .prepare('SELECT 1 FROM supplier_time_entry_recorder WHERE time_entry_id=? LIMIT 1')
+          .get(id);
+        if (delegatedRecorder) {
+          // Recorder provenance is append-only.  A delegated draft therefore
+          // has a factual discard state instead of a physical delete that
+          // would either violate the FK or erase the coordinator/subject link.
+          const result = this.deps.sqlite
+            .prepare(
+              `UPDATE time_entry SET approval_state='void',updated_at=?,version=version+1
+                 WHERE id=? AND version=? AND approval_state='draft' AND invoice_id IS NULL
+                   AND billing_status='unlocked' AND billing_lock_id IS NULL`,
+            )
+            .run(this.deps.now(), id, version);
+          if (result.changes !== 1)
+            throw this.deps.errors.conflict('Time entry changed or cannot be discarded');
+          this.deps.audit(principal, 'time.void', 'time_entry', id, {
+            version,
+            operation: 'discard_delegated_draft',
+          });
+        } else {
+          const result = this.deps.sqlite
+            .prepare(
+              "DELETE FROM time_entry WHERE id=? AND version=? AND invoice_id IS NULL AND billing_status='unlocked' AND billing_lock_id IS NULL",
+            )
+            .run(id, version);
+          if (result.changes !== 1)
+            throw this.deps.errors.conflict('Time entry changed or cannot be deleted');
+          this.deps.audit(principal, 'time.delete', 'time_entry', id, { version });
+        }
       } else {
         // Any returned/submitted/approved time is already review history. It cannot be
         // silently removed by the worker's generic delete/void command; an
@@ -595,6 +938,8 @@ export class TimeEntryRepository {
           continue;
         }
         const targetDate = this.deps.shiftIsoDate(targetWeekStart, offset);
+        this.deps.assertOwnTimeAccess?.(principal, row.project_id, row.work_date);
+        this.deps.assertOwnTimeAccess?.(principal, row.project_id, targetDate);
         const assignment = this.deps.sqlite
           .prepare(
             "SELECT p.timezone FROM project_member pm JOIN project p ON p.id=pm.project_id WHERE p.status IN ('active','planned','paused') AND pm.project_id=? AND pm.user_id=? AND pm.status='active' AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)",

@@ -51,9 +51,31 @@ const item = (section: string, label: string, icon: string, href?: string): NavI
  * the worker-safe menu so an incomplete session cannot reveal administrative
  * or financial destinations through the shell.
  */
-export function portalNavigationForRole(base: string, role?: string | null): PortalNavigation {
+export function portalNavigationForRole(
+  base: string,
+  role?: string | null,
+  workforceProfile?: string,
+): PortalNavigation {
   const route = (section: string, view?: string): string =>
     `${base}/app/${section}${view ? `?view=${encodeURIComponent(view)}` : ''}`;
+
+  if (workforceProfile === 'external_technician' || workforceProfile === 'supplier_coordinator')
+    return {
+      primary: [
+        ...(workforceProfile === 'supplier_coordinator'
+          ? [item('supplier', 'Supplier team', '◌')]
+          : []),
+        item('time', 'Time', '◷'),
+        item('reports', 'Reports', '▤'),
+      ],
+      secondary: [
+        item('supplier', 'Operational report', '▤', route('supplier/report')),
+        item('profile', 'Profile', '◎'),
+        item('help', 'Help', '?'),
+      ],
+      admin: [],
+      security: [],
+    };
 
   const worker: PortalNavigation = {
     primary: [
@@ -115,6 +137,7 @@ export function portalNavigationForRole(base: string, role?: string | null): Por
         secondary: [
           item('projects', 'Clients', '◉', route('projects', 'clients')),
           item('projects', 'Team', '◌', route('projects', 'team')),
+          item('supplier', 'Suppliers', '◌'),
           item('planning', 'Planning', '⌘'),
           item('documents', 'Documents', '▧'),
           item('finance', 'Finance Overview', '↗', route('finance', 'overview')),

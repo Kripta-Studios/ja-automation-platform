@@ -1,5 +1,7 @@
 # Guía de campo para empleados — revisión 2026-09-09
 
+**Cuentas externas:** Los responsables de proveedor y técnicos externos tienen acceso solo operativo. My Pay, gastos y procedimientos financieros corresponden a cuentas Worker estándar. Consulta «Proveedores y cuentas sin acceso financiero» para tu flujo.
+
 > Usa solo la dirección del portal y el canal de soporte verificado indicados en tu invitación. Esta guía usa ejemplos sintéticos. No compartas contraseña, código MFA, código de recuperación, recibo ni sesión.
 
 ## 1. Inicia sesión con tu invitación
@@ -41,3 +43,17 @@ Usa la captura sin conexión solo si el portal indica que está habilitada. Prot
 ## 8. Ayuda, bandeja de actividad y límites de acceso
 
 Abre **Ayuda (Help)** para descargar la guía asignada a tu rol. La **Bandeja de actividad (Activity Inbox)** en `/app/notifications` puede enlazar a un registro permitido; leer una notificación no es aprobarla. Los trabajadores usan solo sus proyectos asignados, sus registros, sus archivos y My Pay. Finanzas, Facturación, Contabilidad, Auditoría, seguimiento del personal, Closeout y colas de aprobación no son flujos de Worker; una denegación de acceso es un límite, no un error que debas sortear. El correo no es el registro del sistema: usa el portal y el canal de soporte verificado de tu invitación.
+
+## Proveedores y cuentas sin acceso financiero
+
+El Owner elige al responsable del proveedor y autoriza cada instalación y sus fechas. Una instalación corresponde a un proyecto de la app. El proveedor no puede darse permisos de administración, finanzas o aprobación.
+
+Para el Owner: entra en **Proveedores**, añade el proveedor, selecciona una cuenta Worker existente y guarda el perfil **Responsable de proveedor** o **Técnico externo**. Autoriza la instalación para el responsable elegido. Cambiar el perfil cierra las sesiones de esa cuenta; la persona debe volver a entrar. Retirar una autorización bloquea el siguiente acceso de ese responsable, incluidas sus propias horas e informes de esa instalación. El Owner gestiona por separado las asignaciones de los técnicos y los permisos de otros responsables.
+
+Para el responsable: abre **Equipo de mi proveedor**, elige la instalación y pulsa **Añadir técnico**. Introduce nombre, correo opcional y fechas de asignación. Se crea una ficha sin contraseña ni envío de invitación. **Asignar técnico existente** permite incorporar a alguien que ya pertenece a tu proveedor. El Owner configura las cuentas existentes que necesitan iniciar sesión.
+
+En **Registrar horas del equipo**, selecciona el técnico e introduce la fecha real, categoría, minutos y trabajo realizado. Guarda el borrador, compruébalo y envíalo a J&A. Las horas pertenecen al técnico; el responsable queda identificado como autor. J&A revisa y aprueba por el flujo habitual. El proveedor no aprueba sus propias horas. Si se devuelven como **needs_changes**, crea un borrador de corrección, edítalo y envíalo, conservando el original. Un registro rechazado requiere un nuevo borrador.
+
+En **Informe operativo**, filtra instalación y fechas, consulta estados, descarga CSV o imprime/guarda PDF desde el navegador. El historial permanece visible; los registros rechazados, anulados o sustituidos no incrementan el total efectivo. El informe no acredita pagos ni aceptación del cliente.
+
+El Técnico externo solo ve sus propias horas e informes operativos. El Responsable de proveedor y el Técnico externo no tienen My Pay, tarifas, gastos, documentos financieros ni exportaciones financieras. Las instrucciones sobre gastos y pagos de esta guía corresponden a cuentas Worker estándar. Los informes del proveedor no incluyen importes. Si falta una instalación o un técnico, pide al Owner que revise la asignación.

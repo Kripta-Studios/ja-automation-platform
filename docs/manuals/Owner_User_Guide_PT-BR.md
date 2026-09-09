@@ -186,3 +186,19 @@ Proprietários podem usar Auditoria para examinar eventos de segurança e financ
 Em **Auditoria**, filtre ou localize o evento pertinente e compare sua ação, entidade, autor, data/hora e detalhes com o registro em análise. A auditoria só permite acrescentar eventos; não tente editar, remover ou recriar um evento. Em **Perfil**, gerencie apenas seu próprio idioma, chaves de acesso e MFA opcional. Cadastre uma chave de acesso somente em um dispositivo pessoal apropriado. Ao ativar MFA, conclua **Verificar MFA** com o código do autenticador e guarde os códigos de recuperação exibidos em local privado. Alterações de Perfil nunca concedem um perfil financeiro, de faturamento ou de auditoria.
 
 Se um controle necessário estiver ausente, uma rota retornar erro de autorização, um envio for bloqueado, uma figura diferir da tela atual ou um valor divergir de evidências aprovadas, pare e use o canal de suporte verificado na mensagem de convite. Não contorne o controle de acesso por perfil, não fabrique aceite do cliente, não execute uma tarefa manualmente e não faça uma alteração financeira para testar o portal.
+
+## Fornecedores e contas sem acesso financeiro
+
+O Owner escolhe o responsável do fornecedor. Uma conta de fornecedor não pode se nomear nem conceder permissões financeiras, administrativas ou de aprovação. Cada instalação corresponde a um projeto no aplicativo. O Owner autoriza separadamente as instalações e as datas de acesso.
+
+Para o Owner: abra **Fornecedores**, cadastre o fornecedor, selecione uma conta de Trabalhador existente e salve o perfil **Responsável do fornecedor** ou **Técnico externo**. Autorize a instalação para o responsável escolhido. Alterar o perfil encerra as sessões da conta: a pessoa deve entrar novamente. Revogar uma instalação bloqueia o próximo acesso desse responsável, incluindo suas próprias horas e relatórios da instalação. As atribuições dos técnicos e as permissões de outros responsáveis são administradas separadamente pelo Owner.
+
+Para o responsável: abra **Equipe do meu fornecedor**, selecione a instalação e use **Adicionar técnico**. Informe nome, e-mail opcional e datas da atribuição. O cadastro não cria senha nem envia convite. Use **Atribuir técnico existente** para alguém já cadastrado no seu fornecedor. O Owner configura contas existentes que precisam entrar no aplicativo.
+
+Em **Registrar horas da equipe**, selecione o técnico e registre data real, categoria, minutos e trabalho realizado. Salve o rascunho, confira e envie à J&A. As horas pertencem ao técnico; o responsável fica identificado como autor do registro. A J&A analisa e aprova pelo fluxo normal. O fornecedor não aprova as próprias horas. Para horas devolvidas como **needs_changes**, crie um rascunho de correção, edite e envie a substituição, preservando o original. Registros rejeitados exigem um novo rascunho.
+
+O **Relatório operacional** permite filtrar instalação e datas, consultar estados de aprovação, baixar CSV e imprimir/salvar PDF pelo navegador. O histórico permanece visível; registros rejeitados, anulados e substituídos não aumentam o total efetivo. O relatório não comprova pagamento nem aceite do cliente.
+
+O Técnico externo vê apenas suas próprias horas e relatórios operacionais. As contas de Responsável do fornecedor e Técnico externo não têm Meu pagamento, tarifas, despesas, documentos financeiros ou exportações financeiras. As instruções de despesas e remuneração neste guia se aplicam às contas padrão de Trabalhador. Os relatórios de fornecedor não incluem valores financeiros. Se faltar uma instalação ou um técnico, peça a correção ao Owner.
+
+:::figure owner /app/supplier O Owner escolhe os responsáveis de fornecedor e autoriza as instalações.

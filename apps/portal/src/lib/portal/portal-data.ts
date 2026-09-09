@@ -10,6 +10,7 @@ export type PortalData = {
     status?: string;
     mfaEnrolled?: boolean;
     mfaRequired?: boolean;
+    workforceProfile?: 'external_technician' | 'supplier_coordinator';
   };
   section: string;
   projects?: PortalRow[];

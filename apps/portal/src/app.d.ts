@@ -11,6 +11,7 @@ declare global {
         status?: string;
         mfaEnrolled?: boolean;
         mfaRequired?: boolean;
+        workforceProfile?: 'external_technician' | 'supplier_coordinator';
       } | null;
     }
   }

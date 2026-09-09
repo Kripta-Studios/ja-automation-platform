@@ -1,5 +1,7 @@
 # Guia de campo para colaboradores — revisão 2026-09-09
 
+**Contas externas:** Responsáveis de fornecedor e técnicos externos têm acesso apenas operacional. Meu pagamento, despesas e procedimentos financeiros se aplicam às contas padrão de Trabalhador. Consulte “Fornecedores e contas sem acesso financeiro”.
+
 > Use somente o endereço do portal e o canal de suporte verificado indicados no convite. Este guia usa exemplos sintéticos. Nunca compartilhe senha, código MFA, código de recuperação, comprovante ou sessão.
 
 ## 1. Entre usando seu convite
@@ -41,3 +43,17 @@ Use a captura offline somente quando o portal informar que ela está habilitada.
 ## 8. Ajuda, caixa de atividades e limites de acesso
 
 Abra **Ajuda (Help)** para baixar o guia atribuído à sua função. A **Caixa de atividades (Activity Inbox)** em `/app/notifications` pode levar a um registro permitido; ler uma notificação não é aprová-la. Colaboradores usam apenas seus projetos atribuídos, seus registros, seus arquivos e Meu pagamento. Finanças, Faturamento, Contabilidade, Auditoria, acompanhamento da equipe, Closeout e filas de aprovação não são fluxos de Worker; uma negação de acesso é um limite, não um erro a contornar. O e-mail não é o registro do sistema: use o portal e o canal de suporte verificado no convite.
+
+## Fornecedores e contas sem acesso financeiro
+
+O Owner escolhe o responsável do fornecedor. Uma conta de fornecedor não pode se nomear nem conceder permissões financeiras, administrativas ou de aprovação. Cada instalação corresponde a um projeto no aplicativo. O Owner autoriza separadamente as instalações e as datas de acesso.
+
+Para o Owner: abra **Fornecedores**, cadastre o fornecedor, selecione uma conta de Trabalhador existente e salve o perfil **Responsável do fornecedor** ou **Técnico externo**. Autorize a instalação para o responsável escolhido. Alterar o perfil encerra as sessões da conta: a pessoa deve entrar novamente. Revogar uma instalação bloqueia o próximo acesso desse responsável, incluindo suas próprias horas e relatórios da instalação. As atribuições dos técnicos e as permissões de outros responsáveis são administradas separadamente pelo Owner.
+
+Para o responsável: abra **Equipe do meu fornecedor**, selecione a instalação e use **Adicionar técnico**. Informe nome, e-mail opcional e datas da atribuição. O cadastro não cria senha nem envia convite. Use **Atribuir técnico existente** para alguém já cadastrado no seu fornecedor. O Owner configura contas existentes que precisam entrar no aplicativo.
+
+Em **Registrar horas da equipe**, selecione o técnico e registre data real, categoria, minutos e trabalho realizado. Salve o rascunho, confira e envie à J&A. As horas pertencem ao técnico; o responsável fica identificado como autor do registro. A J&A analisa e aprova pelo fluxo normal. O fornecedor não aprova as próprias horas. Para horas devolvidas como **needs_changes**, crie um rascunho de correção, edite e envie a substituição, preservando o original. Registros rejeitados exigem um novo rascunho.
+
+O **Relatório operacional** permite filtrar instalação e datas, consultar estados de aprovação, baixar CSV e imprimir/salvar PDF pelo navegador. O histórico permanece visível; registros rejeitados, anulados e substituídos não aumentam o total efetivo. O relatório não comprova pagamento nem aceite do cliente.
+
+O Técnico externo vê apenas suas próprias horas e relatórios operacionais. As contas de Responsável do fornecedor e Técnico externo não têm Meu pagamento, tarifas, despesas, documentos financeiros ou exportações financeiras. As instruções de despesas e remuneração neste guia se aplicam às contas padrão de Trabalhador. Os relatórios de fornecedor não incluem valores financeiros. Se faltar uma instalação ou um técnico, peça a correção ao Owner.

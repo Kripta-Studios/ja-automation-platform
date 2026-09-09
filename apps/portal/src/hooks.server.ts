@@ -1,6 +1,7 @@
 import { building } from '$app/environment';
 import { auth, revokeSessionsUnlessUserIsActive } from '$lib/server/auth';
 import { createDatabase } from '@ja/database';
+import { supplierRouteAllowed } from '$lib/server/supplier-route-access';
 import { createHash, randomUUID } from 'node:crypto';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import type { Handle } from '@sveltejs/kit';
@@ -297,23 +298,37 @@ export const handle: Handle = async ({ event, resolve }) => {
     const active = currentUser !== null;
     event.locals.session = active ? (current?.session ?? null) : null;
     event.locals.user = currentUser;
-    // This compatibility release may be used after supplier profiles exist.
-    // Deny restricted accounts until the full operational workspace is available.
-    if (currentUser && isPortal && !isAuth) {
+    if (currentUser) {
       const { sqlite } = createDatabase();
       try {
-        if (
-          sqlite.prepare('SELECT 1 FROM supplier_user_profile WHERE user_id=?').get(currentUser.id)
-        )
-          return applySecurityHeaders(
-            new Response('Supplier workspace temporarily unavailable', {
-              status: 503,
-              headers: { 'cache-control': 'no-store' },
-            }),
-            true,
-            path,
-            correlationId,
-          );
+        const profile = sqlite
+          .prepare('SELECT profile FROM supplier_user_profile WHERE user_id=?')
+          .get(currentUser.id) as
+          | { profile: 'external_technician' | 'supplier_coordinator' }
+          | undefined;
+        if (profile) {
+          event.locals.user!.workforceProfile = profile.profile;
+          const route = path.slice(portalBase.length);
+          if (!supplierRouteAllowed(route))
+            return applySecurityHeaders(
+              new Response('Operational account: access denied', { status: 403 }),
+              true,
+              path,
+              correlationId,
+            );
+          if (route === '' || route === '/' || route === '/__data.json')
+            return applySecurityHeaders(
+              new Response(null, {
+                status: 303,
+                headers: {
+                  location: `${portalBase}/${profile.profile === 'supplier_coordinator' ? 'supplier' : 'time'}`,
+                },
+              }),
+              true,
+              path,
+              correlationId,
+            );
+        }
       } finally {
         sqlite.close();
       }

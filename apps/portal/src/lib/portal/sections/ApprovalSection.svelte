@@ -278,8 +278,16 @@
             <article class="approval-row" data-approval-row={value(row, 'id')}>
               <div class="approval-row-main">
                 <a class="approval-record-link" href={recordHref(row)}>
-                  <strong>{value(row, 'type')} · {value(row, 'date')}</strong>
-                  <small>{stageLabel(row.review_stage)} · {value(row, 'project_id')}</small>
+                  <strong
+                    >{value(row, 'worker_name') || value(row, 'type')} · {value(
+                      row,
+                      'date',
+                    )}</strong
+                  >
+                  <small
+                    >{stageLabel(row.review_stage)} · {value(row, 'project_name') ||
+                      value(row, 'project_id')}</small
+                  >
                   <span>{translate('Open record →')}</span>
                 </a>
                 <div class="approval-row-status">
@@ -454,7 +462,12 @@
             <article class="approval-row" data-finance-review-row={value(row, 'id')}>
               <div class="approval-row-main">
                 <a class="approval-record-link" href={recordHref(row)}>
-                  <strong>{value(row, 'type')} · {value(row, 'date')}</strong>
+                  <strong
+                    >{value(row, 'worker_name') || value(row, 'type')} · {value(
+                      row,
+                      'date',
+                    )}</strong
+                  >
                   <small>{translate('Finance review')} · {value(row, 'project_id')}</small>
                   <span>{translate('Open record →')}</span>
                 </a>

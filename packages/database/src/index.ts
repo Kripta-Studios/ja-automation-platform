@@ -1046,6 +1046,8 @@ export * from './domains/accounting-pack/index.ts';
 export * from './domains/worker-statements/index.ts';
 export * from './domains/identity/index.ts';
 export * from './domains/reports/period-followup-repository.ts';
+export * from './domains/workforce/supplier-access.ts';
+export * from './domains/workforce/supplier-workforce-repository.ts';
 export {
   DURABLE_JOB_CAPABILITY_BY_KIND,
   DURABLE_JOB_CAPABILITIES,

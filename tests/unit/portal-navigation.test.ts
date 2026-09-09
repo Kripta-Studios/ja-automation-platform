@@ -89,6 +89,7 @@ describe('portal role navigation contract', () => {
       'Reports',
       'Clients',
       'Team',
+      'Suppliers',
       'Planning',
       'Documents',
       'Finance Overview',

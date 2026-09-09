@@ -1,5 +1,7 @@
 # Employee field guide — revision 2026-09-09
 
+**External accounts:** Supplier coordinators and external technicians have operational access only. My Pay, expenses and financial procedures below apply to standard Worker accounts. See “Supplier teams and accounts without financial access” for your workflow.
+
 > Use only the portal address and verified support route stated in your invitation. This guide uses synthetic examples. Never share a password, MFA code, recovery code, receipt or session.
 
 ## 1. Sign in with your invitation
@@ -41,3 +43,17 @@ Use offline capture only when the portal says it is enabled. Keep the device sec
 ## 8. Help, Activity Inbox and access limits
 
 Open **Help** to download the guide assigned to your role. **Activity Inbox** at `/app/notifications` can link to a permitted source record; reading a notification is not approval. Workers use only their own assigned projects, records, files and My Pay. Finance, Billing, Accounting, Audit, staff follow-up, Closeout and approval queues are not Worker flows; an access denial is a boundary, not an error to bypass. Email is not the system of record: use the portal and the verified support route in your invitation.
+
+## Supplier teams and accounts without financial access
+
+The Owner chooses the supplier coordinator. A supplier account cannot appoint itself or grant finance, administration or approval permissions. An installation is a project in the app. The Owner must authorize each installation and its effective dates before the coordinator can record team work.
+
+For the Owner: open **Suppliers**, add the supplier, select an existing Worker account and save **Supplier coordinator** or **External technician**. Then authorize the installation for the chosen coordinator. Changing the access profile signs that account out; the person must sign in again. Revoking an installation blocks that coordinator on the next request, including their personal time and reports for that installation. Technician assignments and other coordinators’ permissions are managed separately by the Owner.
+
+For the coordinator: open **Supplier team**, select an authorized installation, and use **Add technician**. Enter the technician's name, optional email and assignment dates. This creates a personnel record without login credentials or an invitation email. Use **Assign existing technician** for someone already in your supplier team. Ask the Owner to configure any existing account that needs to sign in.
+
+In **Record team hours**, select the technician and enter the real work date, category, minutes and work description. Save the draft, check it and select **Submit to J&A**. The named technician is the subject of the hours; the coordinator remains the recorded actor. J&A approves the hours through the normal review workflow. A supplier cannot approve its team's hours. Returned **needs_changes** hours use **Create correction draft**; edit and submit the replacement while the original remains in history. Rejected work requires a new draft.
+
+Use **Operational report** to filter by installation and dates, read approval states, download CSV, or print/save a PDF in the browser. History remains visible; rejected, void and superseded records do not increase the effective total. This report does not certify payment or customer acceptance.
+
+An External technician sees only their own operational hours and reports. Supplier coordinator and External technician accounts have no My Pay, rates, expenses, financial documents or financial exports. The compensation and expense procedures elsewhere in this guide apply to standard Worker accounts. Supplier reports never include money. Contact the Owner when your installation or technician is missing; do not record work against a substitute person or project.

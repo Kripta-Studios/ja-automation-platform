@@ -634,3 +634,36 @@ The final Client Essential journey passes steps 1–29 and 32. Steps 30–31 rem
 ## 2026-09-09 — Revisión57dfb95 desplegada y limpieza verificada
 
 Por autorización expresa del usuario, `57dfb95` quedó activo a las10:25:12 CEST. Web EN/ES/PT y login HTTP200, readiness e integridad correctas, esquema41 sin nuevas migraciones, dos ciclos automáticos de jobs y restauración aislada de29 archivos comprobados. Se eliminaron cachés y66 backups antiguos conservando tres copias verificadas y el release anterior compatible. Caché Docker0 B y37,74 GB disponibles. [Recibo de despliegue, recuperación y limpieza](docs/PRODUCTION_DEPLOYMENT_2026-09-09_57dfb95.md). La evidencia histórica local y los límites de aceptación humana se conservan.
+
+## 2026-09-09 — Auditoría del despliegue frente a SPEC y PDF contractual
+
+**Veredicto posterior: NO se acredita cumplimiento íntegro de ambos documentos.** Esta auditoría
+no modifica la aplicación ni producción. Los1.178 archivos del manifiesto del release activo
+`57dfb954c481d9107a18d89e3ee8fe7bad797374` coinciden y el código local de aplicación coincide con
+ese release. Base productiva esquema41, integridad correcta, cero violaciones FK y13 documentos
+committed con hash/tamaño correctos. Nueva restauración aislada de la copia del9/9 08:25 UTC: correcta.
+
+El navegador autenticado local pasa13 casos, omite10 por distribución prevista entre viewports y
+falla el recorrido compuesto de32 pasos. El paso16 reproduce HTTP500 al volver a subir bytes de un
+recibo existente: `finalizeUpload` expone la colisión del índice global `document_content_idx`.
+Prueba aislada adicional confirma `UNIQUE constraint failed: document.sha256, document.byte_length`;
+el original se conserva. No se debilitaron assertions ni se corrigió el producto en esta auditoría.
+Los pasos30–32 no recibieron parámetros de evidencia externa en esa ejecución; jobs/Caddy/restore
+se verificaron por separado, sin transformar el resultado del comando en un PASS.
+
+Otros límites confirmados: el adaptador de outbox solo acepta avisos/formularios, no los topics de
+invoice/invitación emitidos por otros flujos; destinatarios no corporativos fallan. «Mark sent» es
+registro manual, no confirmación SMTP. Solo quedan tres backups completos estructurados del9/9,
+aunque retención configurada es30 días; continuidad remota está desactivada bajo dispensa previa.
+MFA opcional/no step-up sigue siendo la decisión del Owner, pero difiere del texto literal del PDF
+y de las frases no reconciliadas de la SPEC. Permanecen configuración fiscal, DPA/retención,
+aceptación humana y evidencias de migración/correo. PTR actual ya apunta a `mx1.j-aautomation.com`.
+
+Informe y matrices de enunciados con evidencia y límites:
+`/home/kripta/auditoria-ja-2026-09-09/INFORME_AUDITORIA.md`, `MATRIZ_SPEC.csv`,
+`MATRIZ_CONTRATO_ANEXO_A.csv`, `production-readonly.json`, `restore-drill.json`,
+`e2e.json` y `duplicate-receipt.log`. Los resultados generales automatizados quedan detallados en
+el informe final; los antiguos checks técnicos no resuelven el defecto reproducido ni equivalen
+a aceptación contractual/humana.
+
+Cierre de la batería actual: `vitest run --no-file-parallelism` termina con salida0, **199 archivos / 1.351 pruebas PASS**, duración1.233,41s. La prueba adicional del duplicado confirma el defecto fuera de esa batería; el veredicto global continúa NO CUMPLIMIENTO ÍNTEGRO. Log: `/home/kripta/auditoria-ja-2026-09-09/vitest-full.log`.

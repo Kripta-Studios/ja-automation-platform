@@ -297,6 +297,27 @@ export const handle: Handle = async ({ event, resolve }) => {
     const active = currentUser !== null;
     event.locals.session = active ? (current?.session ?? null) : null;
     event.locals.user = currentUser;
+    // This compatibility release may be used after supplier profiles exist.
+    // Deny restricted accounts until the full operational workspace is available.
+    if (currentUser && isPortal && !isAuth) {
+      const { sqlite } = createDatabase();
+      try {
+        if (
+          sqlite.prepare('SELECT 1 FROM supplier_user_profile WHERE user_id=?').get(currentUser.id)
+        )
+          return applySecurityHeaders(
+            new Response('Supplier workspace temporarily unavailable', {
+              status: 503,
+              headers: { 'cache-control': 'no-store' },
+            }),
+            true,
+            path,
+            correlationId,
+          );
+      } finally {
+        sqlite.close();
+      }
+    }
   } else {
     event.locals.session = null;
     event.locals.user = null;

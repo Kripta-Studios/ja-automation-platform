@@ -220,6 +220,9 @@ export const reportActions = {
     if (params.section !== 'reports')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
+    const workerId =
+      typeof object.workerId === 'string' && object.workerId ? object.workerId : undefined;
+    delete object.workerId;
     object.safetyRelated = object.safetyRelated === 'on';
     const parsed = dailyReportInputSchema.safeParse(object);
     if (!parsed.success)
@@ -232,7 +235,7 @@ export const reportActions = {
       );
     const context = openPortalRepository(locals);
     try {
-      context.repository.createDailyReport(context.principal, parsed.data);
+      context.repository.createDailyReport(context.principal, parsed.data, workerId);
       return actionSuccess('action.reports.dailyDraftSaved', {}, 'Daily report draft saved');
     } catch (error) {
       return actionFailure(error);
@@ -244,6 +247,9 @@ export const reportActions = {
     if (params.section !== 'reports')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
+    const workerId =
+      typeof object.workerId === 'string' && object.workerId ? object.workerId : undefined;
+    delete object.workerId;
     object.safetyRelated = object.safetyRelated === 'on';
     const parsed = technicalReportInputSchema.safeParse(object);
     if (!parsed.success)
@@ -256,7 +262,7 @@ export const reportActions = {
       );
     const context = openPortalRepository(locals);
     try {
-      context.repository.createTechnicalReport(context.principal, parsed.data);
+      context.repository.createTechnicalReport(context.principal, parsed.data, workerId);
       return actionSuccess('action.reports.technicalDraftSaved', {}, 'PLC report draft saved');
     } catch (error) {
       return actionFailure(error);

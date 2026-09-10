@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/stores';
   import { base } from '$app/paths';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import { ResponsiveSheet, SectionCard, StatusBadge } from '../ui';
@@ -28,6 +29,13 @@
 
   let surface = $state<Surface | null>(null);
   let editExpenseId = $state<string | null>(null);
+  $effect(() => {
+    const id = $page.url.searchParams.get('edit');
+    if (id && records.some((row) => String(row.id) === id && row.approval_state === 'draft')) {
+      editExpenseId = id;
+      surface = 'edit';
+    }
+  });
   let search = $state('');
   let projectFilter = $state('');
   let statusFilter = $state('');
@@ -238,7 +246,7 @@
                 />
               {/if}
             </div>
-            {#if String(row.worker_id) === data.user.id}
+            {#if String(row.worker_id) === data.user.id || data.user.role === 'owner_admin'}
               <div class="expense-record-actions">
                 {#if row.approval_state === 'draft'}
                   <button type="button" class="secondary-button" onclick={() => openEdit(row)}>
@@ -264,7 +272,7 @@
                     <button type="submit" class="destructive-button">{translate('Delete')}</button>
                   </form>
                 {/if}
-                {#if (row.approval_state === 'needs_changes' || row.approval_state === 'approved') && String(row.worker_id) === data.user.id}
+                {#if (row.approval_state === 'needs_changes' || row.approval_state === 'approved') && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
                   <form
                     class="expense-record-actions"
                     method="POST"
@@ -285,6 +293,11 @@
                   </form>
                 {/if}
               </div>
+            {/if}
+            {#if data.user.role === 'owner_admin'}
+              <a href={`${base}/app/manage?type=expense#${String(row.id)}`}
+                >{translate('Manage record')} →</a
+              >
             {/if}
           </article>
         {/each}
@@ -323,6 +336,17 @@
         data-expense-entry-surface
         onsubmit={(event) => saveOfflineDraft(event, 'expense')}
       >
+        {#if data.user.role === 'owner_admin'}
+          <label
+            ><span>{translate('Worker')}</span><select name="workerId" required
+              ><option value="">{translate('Select worker')}</option
+              >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
+                  >{worker.name} — {worker.email}</option
+                >{/each}</select
+            ></label
+          >
+        {/if}
+
         <div class="expense-entry-intro">
           <strong>{translate('Capture what happened')}</strong>
           <span>{translate('Use the receipt and operational details you know on site.')}</span>

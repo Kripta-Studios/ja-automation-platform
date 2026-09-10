@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/stores';
   import { base } from '$app/paths';
   import { ResponsiveSheet } from '../ui';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
@@ -49,6 +50,11 @@
   let editCategory = $state('regular');
 
   const records = $derived(data.records ?? []);
+  $effect(() => {
+    const id = $page.url.searchParams.get('edit');
+    const row = records.find((row) => String(row.id) === id && row.approval_state === 'draft');
+    if (row) openEdit(row);
+  });
   const editRow = $derived.by(
     () => records.find((row) => String(row.id) === editTimeId) as Row | undefined,
   );
@@ -202,7 +208,7 @@
             <span class="time-record-summary">{row.activity_summary}</span>
             <span>{translate('Open record →')}</span>
           </a>
-          {#if row.approval_state === 'draft' && String(row.worker_id) === data.user.id}
+          {#if row.approval_state === 'draft' && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
             <div class="time-record-actions">
               <button type="button" class="secondary-button" onclick={() => openEdit(row)}>
                 {translate('Edit draft')}
@@ -214,7 +220,7 @@
               </form>
             </div>
           {/if}
-          {#if row.approval_state === 'needs_changes' && String(row.worker_id) === data.user.id}
+          {#if row.approval_state === 'needs_changes' && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
             <form class="time-record-actions" method="POST" action="?/createCorrectionDraft">
               <input type="hidden" name="recordType" value="time_entry" />
               <input type="hidden" name="originalId" value={row.id} />
@@ -245,6 +251,11 @@
                 <button type="submit" class="destructive-button">{translate('Delete')}</button>
               </form>
             </div>
+          {/if}
+          {#if data.user.role === 'owner_admin'}
+            <a href={`${base}/app/manage?type=time_entry#${String(row.id)}`}
+              >{translate('Manage record')} →</a
+            >
           {/if}
         </article>
       {:else}
@@ -280,6 +291,17 @@
       data-time-entry-surface
       onsubmit={(event) => saveOfflineDraft(event, 'time')}
     >
+      {#if data.user.role === 'owner_admin'}
+        <label
+          ><span>{translate('Worker')}</span><select name="workerId" required
+            ><option value="">{translate('Select worker')}</option
+            >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
+                >{worker.name} — {worker.email}</option
+              >{/each}</select
+          ></label
+        >
+      {/if}
+
       <div class="expense-entry-intro time-entry-intro">
         <strong>{translate('Capture actual work')}</strong>
         <span>{translate('Enter what happened on site, not its commercial interpretation.')}</span>

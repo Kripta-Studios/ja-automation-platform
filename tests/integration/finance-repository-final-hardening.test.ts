@@ -247,3 +247,46 @@ describe('PortalRepository final finance hardening', () => {
     ).toEqual({ legal_entity_revision_id: fixture.canonicalRevisionId });
   });
 });
+
+describe('Owner invoice draft management', () => {
+  it('discards an approved unissued invoice with lines and releases source reservations', () => {
+    const fixture = setupInvoice();
+    const owner = stepUpB5Principal(fixture.sqlite, fixture.owner, 'discard-invoice');
+    const sources = fixture.sqlite
+      .prepare('SELECT * FROM invoice_source WHERE invoice_id=?')
+      .all(fixture.draftId);
+    expect(sources.length).toBeGreaterThan(0);
+    fixture.repository.deleteInvoice(owner, fixture.draftId, 'Discard incorrect demo invoice');
+    expect(
+      fixture.sqlite.prepare('SELECT 1 FROM invoice WHERE id=?').get(fixture.draftId),
+    ).toBeUndefined();
+    expect(
+      fixture.sqlite
+        .prepare('SELECT 1 FROM invoice_source WHERE invoice_id=?')
+        .get(fixture.draftId),
+    ).toBeUndefined();
+    expect(fixture.sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
+    const audit = fixture.sqlite
+      .prepare(
+        "SELECT before_json FROM audit_event WHERE action='invoice.delete_draft' AND entity_id=?",
+      )
+      .get(fixture.draftId);
+    expect(String(audit?.before_json)).toContain('sources');
+  });
+  it('rejects deleting issued invoice history without changing its sources', () => {
+    const fixture = setupInvoice();
+    const owner = stepUpB5Principal(fixture.sqlite, fixture.owner, 'keep-issued-invoice');
+    fixture.repository.issueInvoice(fixture.finance, fixture.draftId);
+    const before = fixture.sqlite
+      .prepare('SELECT * FROM invoice_source WHERE invoice_id=?')
+      .all(fixture.draftId);
+    expect(() =>
+      fixture.repository.deleteInvoice(owner, fixture.draftId, 'Test issued deletion'),
+    ).toThrow(/Issued invoices/);
+    expect(
+      fixture.sqlite
+        .prepare('SELECT * FROM invoice_source WHERE invoice_id=?')
+        .all(fixture.draftId),
+    ).toEqual(before);
+  });
+});

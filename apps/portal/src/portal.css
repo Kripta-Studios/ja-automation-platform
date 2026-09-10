@@ -11,3 +11,26 @@
 @import './styles/portal/details-invoices.css';
 @import './styles/portal/responsive.css';
 @import './styles/portal/polish.css';
+
+.searchable-select-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.searchable-select-field > label {
+  min-width: 0;
+  margin: 0;
+}
+.searchable-select-search {
+  display: grid;
+  gap: 6px;
+}
+.searchable-select-search input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+.searchable-select-search small:empty {
+  display: none;
+}

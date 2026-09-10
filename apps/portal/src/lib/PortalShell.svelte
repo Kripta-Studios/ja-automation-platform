@@ -1165,6 +1165,9 @@
         {controlledValue}
       />
     {:else if data.section === 'documents'}
+      {#if data.user.role === 'owner_admin'}<a href={`${base}/app/manage?area=document`}
+          >{translate('Data management')} →</a
+        >{/if}
       <div class="document-workspace">
         <FormCard title={translate('Register a private artifact')} class="document-upload-panel">
           <div class="panel-title">

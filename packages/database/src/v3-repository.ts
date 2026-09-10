@@ -9790,7 +9790,15 @@ export class V3Repository {
         this.assertProjectAccess(principal, document.project_id, true);
         allowed =
           principal.role === 'project_manager' ||
-          (principal.role === 'worker' && document.owner_id === principal.userId);
+          (principal.role === 'worker' &&
+            (document.owner_id === principal.userId ||
+              Boolean(
+                this.sqlite
+                  .prepare(
+                    'SELECT 1 FROM expense WHERE receipt_document_id=? AND worker_id=? AND project_id=?',
+                  )
+                  .get(documentId, principal.userId, document.project_id),
+              )));
       } catch {
         allowed = false;
       }

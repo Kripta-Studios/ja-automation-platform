@@ -8,14 +8,18 @@ export const timeActions = {
   createTime: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'time')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const parsed = timeInputSchema.safeParse(await formObject(request));
+    const object = await formObject(request);
+    const workerId =
+      typeof object.workerId === 'string' && object.workerId ? object.workerId : undefined;
+    delete object.workerId;
+    const parsed = timeInputSchema.safeParse(object);
     if (!parsed.success)
       return actionFail(400, 'action.validation.timeFields', {}, 'Check time fields', {
         fields: parsed.error.flatten().fieldErrors,
       });
     const context = openPortalRepository(locals);
     try {
-      context.repository.createTimeEntry(context.principal, parsed.data);
+      context.repository.createTimeEntry(context.principal, parsed.data, workerId);
       return actionSuccess('action.time.draftSaved', {}, 'Time draft saved');
     } catch (error) {
       return actionFailure(error);

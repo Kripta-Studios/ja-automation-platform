@@ -69,6 +69,9 @@ export const expenseActions = {
     if (params.section !== 'expenses')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
+    const workerId =
+      typeof object.workerId === 'string' && object.workerId ? object.workerId : undefined;
+    delete object.workerId;
     const receipt = object.receipt;
     const receiptFile = receipt instanceof File ? receipt : undefined;
     delete object.receipt;
@@ -183,7 +186,7 @@ export const expenseActions = {
         return actionFail(400, 'action.validation.expenseFields', {}, 'Check expense fields', {
           fields: parsed.error.flatten().fieldErrors,
         });
-      context.repository.createExpense(context.principal, parsed.data);
+      context.repository.createExpense(context.principal, parsed.data, workerId);
       return actionSuccess('action.expense.draftSaved', {}, 'Expense draft saved');
     } catch (error) {
       if (reservationId) {

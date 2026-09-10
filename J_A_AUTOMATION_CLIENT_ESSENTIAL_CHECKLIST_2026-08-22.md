@@ -734,3 +734,14 @@ Los pendientes externos, fiscales y de aceptación humana de la auditoría sigue
 - [x] Evidencia: 41 pruebas de integración/seguridad; suites de migración comprobadas (91 pruebas entre pasada general y repetición dirigida); 16 escenarios de navegador y 4 repeticiones finales del directorio en 360/390/768/1440; compilaciones web/portal, Svelte sin errores y ESLint del alcance correctos.
 - Evidencia y capturas: [supplier-ui-20260910](docs/evidence/supplier-ui-20260910/README.md).
 - Estado: desplegado en producción el 2026-09-10 a las 09:39 UTC desde `f70c21c`; verificador de producción superado, esquema 43 íntegro y recuentos comprobados conservados. Limpieza Docker: aproximadamente 19,4 GB liberados, caché de compilación vacía y versión anterior conservada para reversión. Este alcance no cambia el veredicto global de entrega.
+
+
+## 2026-09-10 — Gestión Owner y selectores con búsqueda
+
+- [x] Gestión central de gastos, horas e informes: reapertura, edición delegada y eliminación con motivo y auditoría, con independencia del origen demo/mock.
+- [x] CRUD Owner de planificación, disponibilidad, hitos y cambios técnicos; edición, archivado y restauración de documentos.
+- [x] Descarte de facturas no emitidas y liberación transaccional de reservas; el historial emitido mantiene correcciones/anulaciones.
+- [x] Búsqueda en selectores de entidades sin distinguir mayúsculas ni acentos, conservando selección y desplegable nativo.
+- [x] Migración 44 probada desde base vacía y copia aislada de producción 43; integridad y referencias verificadas después de eliminar los tres borradores de factura y once gastos de esa copia.
+- [x] Permisos, concurrencia, privacidad, finanzas, jobs y continuidad comprobados; navegación y operaciones en móvil/tablet/escritorio.
+- Evidencia y límites: [owner-crud-20260910](docs/evidence/owner-crud-20260910/README.md). Esta ampliación no modifica las aceptaciones externas históricas pendientes.

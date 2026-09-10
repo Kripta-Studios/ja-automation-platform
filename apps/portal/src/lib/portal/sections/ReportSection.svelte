@@ -311,6 +311,11 @@
                 <button type="submit">{translate('Submit')}</button>
               </form>
             {/if}
+            {#if data.user.role === 'owner_admin'}
+              <a href={`${base}/app/manage?type=daily_report#${String(row.id)}`}
+                >{translate('Manage record')} →</a
+              >
+            {/if}
           </article>
         {:else}
           <div class="report-empty" role="status">
@@ -380,6 +385,11 @@
                 <input type="hidden" name="version" value={row.version} />
                 <button type="submit">{translate('Submit')}</button>
               </form>
+            {/if}
+            {#if data.user.role === 'owner_admin'}
+              <a href={`${base}/app/manage?type=technical_report#${String(row.id)}`}
+                >{translate('Manage record')} →</a
+              >
             {/if}
           </article>
         {:else}
@@ -594,6 +604,17 @@
       data-report-entry-surface="daily"
       onsubmit={(event) => saveOfflineDraft(event, 'daily_report')}
     >
+      {#if data.user.role === 'owner_admin'}
+        <label
+          ><span>{translate('Worker')}</span><select name="workerId" required
+            ><option value="">{translate('Select worker')}</option
+            >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
+                >{worker.name} — {worker.email}</option
+              >{/each}</select
+          ></label
+        >
+      {/if}
+
       <div class="report-entry-intro">
         <strong>{translate('Capture the shift')}</strong>
         <span
@@ -679,6 +700,17 @@
       data-report-entry-surface="technical"
       onsubmit={(event) => saveOfflineDraft(event, 'technical_report')}
     >
+      {#if data.user.role === 'owner_admin'}
+        <label
+          ><span>{translate('Worker')}</span><select name="workerId" required
+            ><option value="">{translate('Select worker')}</option
+            >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
+                >{worker.name} — {worker.email}</option
+              >{/each}</select
+          ></label
+        >
+      {/if}
+
       <div class="report-entry-intro">
         <strong>{translate('Document the technical change')}</strong>
         <span

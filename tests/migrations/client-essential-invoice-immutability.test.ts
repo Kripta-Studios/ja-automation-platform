@@ -654,7 +654,7 @@ describe('CE-CORE11 invoice issued-history and PDF immutability migration', () =
     const upgraded = createDatabase(databasePath).sqlite;
     databases.push(upgraded);
     expect(upgraded.prepare('SELECT MAX(version) AS version FROM schema_migration').get()).toEqual({
-      version: 43,
+      version: 44,
     });
     expect(
       upgraded

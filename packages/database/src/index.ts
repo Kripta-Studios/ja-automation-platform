@@ -273,6 +273,7 @@ const REVIEWED_B5_MIGRATION_NAMES: Readonly<Record<number, string>> = {
   41: 'astra_period_followup',
   42: 'supplier_workforce',
   43: 'supplier_directory_lifecycle',
+  44: 'owner_record_management',
 };
 
 const MIGRATION_CONTRACT_VERSION = 'ja-migration-contract-v1';
@@ -281,7 +282,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  '270b010967448176282e516159d9033c5f4317c1c67ded6ff71a639de2c9e213';
+  'c507a4765f14806fd22a23b46990fffea561617aea37768abe3bd44ccc3be679';
 
 type MigrationContractEntry = Readonly<{
   version: number;
@@ -1075,4 +1076,15 @@ export {
   type DurableJobOutcome,
 } from './runner.ts';
 
-export { queueInvoiceEmail, listInvoiceEmailDeliveries, invoiceEmailRecipient } from './domains/invoices/invoice-email.ts';
+export {
+  queueInvoiceEmail,
+  listInvoiceEmailDeliveries,
+  invoiceEmailRecipient,
+} from './domains/invoices/invoice-email.ts';
+
+export {
+  OwnerRecordManagement,
+  ownerRecordTypes,
+} from './domains/owner/owner-record-management.ts';
+
+export { OwnerCatalogManagement, ownerCatalogs } from './domains/owner/owner-catalog-management.ts';

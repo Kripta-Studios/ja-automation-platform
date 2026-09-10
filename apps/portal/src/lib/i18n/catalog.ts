@@ -28,6 +28,56 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'Technical changes': 'Technical changes',
+  Component: 'Component',
+  'Original behavior': 'Original behavior',
+  'Root cause': 'Root cause',
+  'Change made': 'Change made',
+  'Safety impact': 'Safety impact',
+  'Production impact': 'Production impact',
+  'Validation result': 'Validation result',
+  'Open risk': 'Open risk',
+  'Rollback information': 'Rollback information',
+  'Planned minutes': 'Planned minutes',
+  'Required skill': 'Required skill',
+  'Reports with committed attachments require a versioned correction.':
+    'Reports with committed attachments require a versioned correction.',
+  'Data management': 'Data management',
+  'Manage all company records from your Owner account. Changes apply equally to demo and production records.':
+    'Manage all company records from your Owner account. Changes apply equally to demo and production records.',
+  'Manage record': 'Manage record',
+  'Reopen as draft': 'Reopen as draft',
+  'I confirm this change to the selected record.': 'I confirm this change to the selected record.',
+  'Operational records': 'Operational records',
+  'All management areas': 'All management areas',
+  'Management areas': 'Management areas',
+  'Add or edit records': 'Add or edit records',
+  'Add record': 'Add record',
+  'Clients and contacts': 'Clients and contacts',
+  'Projects and assignments': 'Projects and assignments',
+  'Workers and access': 'Workers and access',
+  'Suppliers and technicians': 'Suppliers and technicians',
+  'Planning and skills': 'Planning and skills',
+  'Payments and settlements': 'Payments and settlements',
+  'Record type': 'Record type',
+  'Confirm the operation': 'Confirm the operation',
+  'This record is linked to billing. Manage the invoice before changing its sources.':
+    'This record is linked to billing. Manage the invoice before changing its sources.',
+  'This record is an invoice source. Manage the invoice first.':
+    'This record is an invoice source. Manage the invoice first.',
+  'This record belongs to a correction history. Use the correction workflow.':
+    'This record belongs to a correction history. Use the correction workflow.',
+  'This record is included in a period report. Manage the report before changing its sources.':
+    'This record is included in a period report. Manage the report before changing its sources.',
+  'This expense has a reimbursement. Reverse or adjust the payment first.':
+    'This expense has a reimbursement. Reverse or adjust the payment first.',
+  'This expense has a financial classification history. Use a financial correction.':
+    'This expense has a financial classification history. Use a financial correction.',
+  'This time is included in a settlement. Adjust the settlement first.':
+    'This time is included in a settlement. Adjust the settlement first.',
+  'This report has technical changes. Manage those changes first.':
+    'This report has technical changes. Manage those changes first.',
+
   'Period review and customer follow-up': 'Period review and customer follow-up',
   'Project contribution': 'Project contribution',
   'Calculated from approved project records': 'Calculated from approved project records',
@@ -312,6 +362,57 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'Technical changes': 'Cambios técnicos',
+  Component: 'Componente',
+  'Original behavior': 'Comportamiento original',
+  'Root cause': 'Causa raíz',
+  'Change made': 'Cambio realizado',
+  'Safety impact': 'Impacto en la seguridad',
+  'Production impact': 'Impacto en la producción',
+  'Validation result': 'Resultado de validación',
+  'Open risk': 'Riesgo pendiente',
+  'Rollback information': 'Información de reversión',
+  'Planned minutes': 'Minutos planificados',
+  'Required skill': 'Competencia requerida',
+  'Reports with committed attachments require a versioned correction.':
+    'Los informes con adjuntos confirmados requieren una corrección versionada.',
+  'Data management': 'Gestión de datos',
+  'Manage all company records from your Owner account. Changes apply equally to demo and production records.':
+    'Gestiona los registros de la empresa desde tu cuenta Owner. Las acciones se aplican tanto a datos de ejemplo como a datos reales.',
+  'Manage record': 'Gestionar registro',
+  'Reopen as draft': 'Quitar aprobación y reabrir',
+  'I confirm this change to the selected record.':
+    'Confirmo este cambio en el registro seleccionado.',
+  'Operational records': 'Registros operativos',
+  'All management areas': 'Todas las áreas de gestión',
+  'Management areas': 'Áreas de gestión',
+  'Add or edit records': 'Añadir o editar registros',
+  'Add record': 'Añadir registro',
+  'Clients and contacts': 'Clientes y contactos',
+  'Projects and assignments': 'Proyectos y asignaciones',
+  'Workers and access': 'Trabajadores y accesos',
+  'Suppliers and technicians': 'Proveedores y técnicos',
+  'Planning and skills': 'Planificación y habilidades',
+  'Payments and settlements': 'Pagos y liquidaciones',
+  'Record type': 'Tipo de registro',
+  'Confirm the operation': 'Confirma la operación',
+  'This record is linked to billing. Manage the invoice before changing its sources.':
+    'Este registro está vinculado a facturación. Gestiona la factura antes de cambiar sus registros de origen.',
+  'This record is an invoice source. Manage the invoice first.':
+    'Este registro forma parte de una factura. Gestiona primero la factura.',
+  'This record belongs to a correction history. Use the correction workflow.':
+    'Este registro tiene un historial de correcciones. Usa la opción de corrección.',
+  'This record is included in a period report. Manage the report before changing its sources.':
+    'Este registro forma parte de un informe finalizado. Gestiona el informe antes de cambiar sus registros de origen.',
+  'This expense has a reimbursement. Reverse or adjust the payment first.':
+    'Este gasto tiene un reembolso. Revierte o ajusta primero el pago.',
+  'This expense has a financial classification history. Use a financial correction.':
+    'Este gasto tiene un historial de clasificación financiera. Usa una corrección financiera.',
+  'This time is included in a settlement. Adjust the settlement first.':
+    'Estas horas están incluidas en una liquidación. Ajusta primero la liquidación.',
+  'This report has technical changes. Manage those changes first.':
+    'Este informe tiene cambios técnicos asociados. Gestiona primero esos cambios.',
+
   'Period review and customer follow-up': 'Revisión del período y seguimiento del cliente',
   'Project contribution': 'Contribución del proyecto',
   'Calculated from approved project records':
@@ -589,6 +690,57 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'Technical changes': 'Alterações técnicas',
+  Component: 'Componente',
+  'Original behavior': 'Comportamento original',
+  'Root cause': 'Causa raiz',
+  'Change made': 'Alteração realizada',
+  'Safety impact': 'Impacto na segurança',
+  'Production impact': 'Impacto na produção',
+  'Validation result': 'Resultado da validação',
+  'Open risk': 'Risco pendente',
+  'Rollback information': 'Informações de reversão',
+  'Planned minutes': 'Minutos planejados',
+  'Required skill': 'Competência necessária',
+  'Reports with committed attachments require a versioned correction.':
+    'Relatórios com anexos confirmados exigem uma correção versionada.',
+  'Data management': 'Gestão de dados',
+  'Manage all company records from your Owner account. Changes apply equally to demo and production records.':
+    'Gerencie os registros da empresa com sua conta Owner. As ações se aplicam tanto aos dados de exemplo quanto aos reais.',
+  'Manage record': 'Gerenciar registro',
+  'Reopen as draft': 'Reabrir como rascunho',
+  'I confirm this change to the selected record.':
+    'Confirmo esta alteração no registro selecionado.',
+  'Operational records': 'Registros operacionais',
+  'All management areas': 'Todas as áreas de gestão',
+  'Management areas': 'Áreas de gestão',
+  'Add or edit records': 'Adicionar ou editar registros',
+  'Add record': 'Adicionar registro',
+  'Clients and contacts': 'Clientes e contatos',
+  'Projects and assignments': 'Projetos e atribuições',
+  'Workers and access': 'Trabalhadores e acessos',
+  'Suppliers and technicians': 'Fornecedores e técnicos',
+  'Planning and skills': 'Planejamento e habilidades',
+  'Payments and settlements': 'Pagamentos e liquidações',
+  'Record type': 'Tipo de registro',
+  'Confirm the operation': 'Confirme a operação',
+  'This record is linked to billing. Manage the invoice before changing its sources.':
+    'Este registro está vinculado ao faturamento. Gerencie a fatura antes de alterar seus registros de origem.',
+  'This record is an invoice source. Manage the invoice first.':
+    'Este registro faz parte de uma fatura. Gerencie a fatura primeiro.',
+  'This record belongs to a correction history. Use the correction workflow.':
+    'Este registro tem um histórico de correções. Use a opção de correção.',
+  'This record is included in a period report. Manage the report before changing its sources.':
+    'Este registro faz parte de um relatório finalizado. Gerencie o relatório antes de alterar seus registros de origem.',
+  'This expense has a reimbursement. Reverse or adjust the payment first.':
+    'Esta despesa tem um reembolso. Reverta ou ajuste o pagamento primeiro.',
+  'This expense has a financial classification history. Use a financial correction.':
+    'Esta despesa tem um histórico de classificação financeira. Use uma correção financeira.',
+  'This time is included in a settlement. Adjust the settlement first.':
+    'Estas horas estão incluídas em uma liquidação. Ajuste a liquidação primeiro.',
+  'This report has technical changes. Manage those changes first.':
+    'Este relatório tem alterações técnicas associadas. Gerencie essas alterações primeiro.',
+
   'Period review and customer follow-up': 'Revisão do período e acompanhamento do cliente',
   'Project contribution': 'Contribuição do projeto',
   'Calculated from approved project records':

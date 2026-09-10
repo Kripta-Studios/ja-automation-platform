@@ -371,8 +371,10 @@ export function runArtifactJobs(context: ArtifactJobContext): {
       const projectId = String(values.projectId ?? '');
       const periodStart = String(values.periodStart ?? '');
       const periodEnd = String(values.periodEnd ?? '');
-      const reportLocale: ReportLocale =
-        values.reportLocale === 'pt' || values.reportLocale === 'es' ? values.reportLocale : 'en';
+      const reportLocale: ReportLocale | undefined =
+        values.reportLocale === 'pt' || values.reportLocale === 'es' || values.reportLocale === 'en'
+          ? values.reportLocale
+          : undefined;
       if (!projectId || !periodStart || !periodEnd)
         throw new Error('Period report job has incomplete period data');
       const reports = context.v3.refreshPeriodReportsFromJob(

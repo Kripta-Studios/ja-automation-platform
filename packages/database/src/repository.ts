@@ -57,6 +57,7 @@ import {
   type AssignmentRemovalInput,
 } from './domains/workforce/workforce-repository.ts';
 import { NotificationRepository } from './domains/notifications/index.ts';
+import { discardOwnerInvoice } from './domains/owner/owner-invoice-management.ts';
 import { V3Repository } from './v3-repository.ts';
 
 export class AccessDeniedError extends Error {}
@@ -1444,10 +1445,35 @@ export class PortalRepository {
     return this.workforce.assignWorker(principal, input);
   }
 
-  createTimeEntry(principal: Principal, input: TimeInput) {
+  private assertOwnerSubject(
+    principal: Principal,
+    workerId: string,
+    projectId: string,
+    date: string,
+  ): void {
+    if (workerId === principal.userId) return;
+    if (
+      principal.role !== 'owner_admin' ||
+      this.sqlite.prepare('SELECT role FROM user WHERE id=?').get(principal.userId)?.role !==
+        'owner_admin'
+    )
+      throw new AccessDeniedError('Owner administration required to record for another worker');
+    this.assertLiveSession(principal);
+    if (
+      !this.sqlite
+        .prepare(
+          "SELECT 1 FROM project_member pm JOIN user u ON u.id=pm.user_id WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active' AND u.status='active' AND u.role IN ('worker','project_manager') AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)",
+        )
+        .get(projectId, workerId, date, date)
+    )
+      throw new AccessDeniedError('Active worker assignment required');
+  }
+
+  createTimeEntry(principal: Principal, input: TimeInput, workerId = principal.userId) {
+    this.assertOwnerSubject(principal, workerId, input.projectId, input.workDate);
     if (principal.role !== 'owner_admin')
       this.assertProjectMembership(principal, input.projectId, input.workDate);
-    return this.time.createTimeEntry(principal, input);
+    return this.time.createTimeEntryForWorker(principal, workerId, input);
   }
 
   submitTime(principal: Principal, id: string, baseVersion: number) {
@@ -1487,6 +1513,7 @@ export class PortalRepository {
       input.workDate ?? scope.work_date,
       scope.worker_id,
     );
+    if (principal.role === 'owner_admin') this.assertLiveSession(principal);
     return this.time.updateTimeEntry(principal, input);
   }
 
@@ -1547,7 +1574,8 @@ export class PortalRepository {
     )
       return true;
     if (!principal.projectIds.has(projectId)) return false;
-    if (!this.hasSupplierCoordinatorOperationalAccess(principal, projectId, objectDate)) return false;
+    if (!this.hasSupplierCoordinatorOperationalAccess(principal, projectId, objectDate))
+      return false;
     const current = today();
     const assignment = this.sqlite
       .prepare(
@@ -1655,7 +1683,8 @@ export class PortalRepository {
     );
   }
 
-  createDailyReport(principal: Principal, input: DailyReportInput) {
+  createDailyReport(principal: Principal, input: DailyReportInput, workerId = principal.userId) {
+    this.assertOwnerSubject(principal, workerId, input.projectId, input.workDate);
     this.assertActive(principal);
     assertDate(input.workDate, 'Work date');
     this.assertProjectMembership(principal, input.projectId, input.workDate);
@@ -1674,7 +1703,7 @@ export class PortalRepository {
       .run(
         id,
         input.projectId,
-        principal.userId,
+        workerId,
         input.workDate,
         input.siteShift ?? null,
         assertText(input.summary, 'Summary'),
@@ -1700,7 +1729,12 @@ export class PortalRepository {
     return { id, version: 1 };
   }
 
-  createTechnicalReport(principal: Principal, input: TechnicalReportInput) {
+  createTechnicalReport(
+    principal: Principal,
+    input: TechnicalReportInput,
+    workerId = principal.userId,
+  ) {
+    this.assertOwnerSubject(principal, workerId, input.projectId, input.reportDate);
     this.assertActive(principal);
     assertDate(input.reportDate, 'Report date');
     // Technical reports are historical operational records.  Membership is
@@ -1720,7 +1754,7 @@ export class PortalRepository {
       .run(
         id,
         input.projectId,
-        principal.userId,
+        workerId,
         assertText(input.systemName, 'System name', 200),
         input.plantSite ?? null,
         input.areaLine ?? null,
@@ -2792,11 +2826,7 @@ export class PortalRepository {
         if (!assignment)
           throw new AccessDeniedError('Effective project assignment required for submission');
       }
-      this.assertSupplierCoordinatorOperationalAccess(
-        principal,
-        row.project_id,
-        row.business_date,
-      );
+      this.assertSupplierCoordinatorOperationalAccess(principal, row.project_id, row.business_date);
       const timestamp = now();
       const result = this.sqlite
         .prepare(
@@ -2893,14 +2923,15 @@ export class PortalRepository {
     return this.planning.createPlanningAssignment(principal, input);
   }
 
-  createExpense(principal: Principal, input: ExpenseInput) {
+  createExpense(principal: Principal, input: ExpenseInput, workerId = principal.userId) {
+    this.assertOwnerSubject(principal, workerId, input.projectId, input.spentOn);
     this.assertActive(principal);
     assertDate(input.spentOn, 'Expense date');
     const assignment = this.sqlite
       .prepare(
         "SELECT 1 ok FROM project_member WHERE project_id=? AND user_id=? AND status='active' AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?)",
       )
-      .get(input.projectId, principal.userId, input.spentOn, input.spentOn);
+      .get(input.projectId, workerId, input.spentOn, input.spentOn);
     if (!assignment) throw new AccessDeniedError('Active project assignment required');
     const project = this.sqlite
       .prepare('SELECT currency FROM project WHERE id=?')
@@ -2936,7 +2967,7 @@ export class PortalRepository {
       .run(
         id,
         input.projectId,
-        principal.userId,
+        workerId,
         input.spentOn,
         input.category,
         input.currency,
@@ -3189,7 +3220,7 @@ export class PortalRepository {
 
   listDocuments(principal: Principal, projectId?: string) {
     this.assertReadable(principal);
-    const conditions: string[] = ["d.state='committed'"];
+    const conditions: string[] = ["d.state='committed'", 'd.archived_at IS NULL'];
     const values: string[] = [];
     if (principal.role === 'worker' || principal.role === 'project_manager')
       conditions.push("d.artifact_classification <> 'finance'");
@@ -3243,9 +3274,9 @@ export class PortalRepository {
     const timestamp = now();
     const result = this.sqlite
       .prepare(
-        "UPDATE expense SET approval_state='submitted',submitted_at=?,updated_at=?,version=version+1 WHERE id=? AND worker_id=? AND approval_state='draft' AND version=? AND invoice_id IS NULL AND (receipt_required=0 OR receipt_document_id IS NOT NULL)",
+        "UPDATE expense SET approval_state='submitted',submitted_at=?,updated_at=?,version=version+1 WHERE id=? AND (worker_id=? OR ?='owner_admin') AND approval_state='draft' AND version=? AND invoice_id IS NULL AND (receipt_required=0 OR receipt_document_id IS NOT NULL)",
       )
-      .run(timestamp, timestamp, id, principal.userId, baseVersion);
+      .run(timestamp, timestamp, id, principal.userId, principal.role, baseVersion);
     if (result.changes !== 1)
       throw new ConflictError('Expense changed, lacks receipt, or cannot be submitted');
     this.audit(principal, 'expense.submit', 'expense', id, { baseVersion });
@@ -3292,8 +3323,9 @@ export class PortalRepository {
         String(current.spent_on),
         current.worker_id,
       );
-      if (current.worker_id !== principal.userId)
+      if (current.worker_id !== principal.userId && principal.role !== 'owner_admin')
         throw new AccessDeniedError('Expense ownership required');
+      if (principal.role === 'owner_admin') this.assertLiveSession(principal);
       if (
         current.invoice_id ||
         current.billing_state !== 'unlocked' ||
@@ -3338,7 +3370,7 @@ export class PortalRepository {
             END,
             payment_method=COALESCE(?,payment_method),
             receipt_document_id=COALESCE(?,receipt_document_id),updated_at=?,version=version+1
-           WHERE id=? AND worker_id=? AND version=? AND invoice_id IS NULL AND billing_state='unlocked'
+           WHERE id=? AND (worker_id=? OR ?='owner_admin') AND version=? AND invoice_id IS NULL AND billing_state='unlocked'
              AND approval_state='draft'`,
         )
         .run(
@@ -3354,6 +3386,7 @@ export class PortalRepository {
           now(),
           input.id,
           principal.userId,
+          principal.role,
           input.version,
         );
       if (result.changes !== 1) throw new ConflictError('Expense changed or cannot be edited');
@@ -6692,7 +6725,12 @@ export class PortalRepository {
   /** Legacy caller compatibility: return a new immutable-series draft projection. */
   createProjectCloseout(principal: Principal, projectId: string) {
     const draft = this.closeoutService().prepare(principal, { projectId });
-    return { id: draft.id, state: draft.state, snapshot: draft.internal, manifest: { client: draft.client, clientSnapshotHash: draft.clientSnapshotHash } };
+    return {
+      id: draft.id,
+      state: draft.state,
+      snapshot: draft.internal,
+      manifest: { client: draft.client, clientSnapshotHash: draft.clientSnapshotHash },
+    };
   }
   finalizeProjectCloseout(principal: Principal, closeoutId: string): void {
     this.closeoutService().finalize(principal, closeoutId);
@@ -6700,13 +6738,41 @@ export class PortalRepository {
   reopenProjectCloseout(principal: Principal, closeoutId: string, reason: string): void {
     this.closeoutService().reopen(principal, closeoutId, reason);
   }
-  prepareProjectCloseout(principal: Principal, input: Readonly<{ projectId: string; clientDocumentIds?: readonly string[] }>) { return this.closeoutService().prepare(principal, input); }
-  refreshProjectCloseoutDraft(principal: Principal, input: Readonly<{ revisionId: string; clientDocumentIds?: readonly string[] }>) { return this.closeoutService().refresh(principal, input); }
-  confirmProjectCloseoutClientPublication(principal: Principal, revisionId: string, exactSnapshotHash: string) { return this.closeoutService().confirmClientPublication(principal, revisionId, exactSnapshotHash); }
-  finalizeProjectCloseoutRevision(principal: Principal, revisionId: string) { return this.closeoutService().finalize(principal, revisionId); }
-  projectCloseoutDetail(principal: Principal, projectId: string) { return this.closeoutService().detail(principal, projectId); }
-  projectCloseoutArtifacts(principal: Principal, revisionId: string) { return this.closeoutService().artifacts(principal, revisionId); }
-  downloadProjectCloseoutArtifact(principal: Principal, artifactId: string) { return this.closeoutService().download(principal, artifactId); }
+  prepareProjectCloseout(
+    principal: Principal,
+    input: Readonly<{ projectId: string; clientDocumentIds?: readonly string[] }>,
+  ) {
+    return this.closeoutService().prepare(principal, input);
+  }
+  refreshProjectCloseoutDraft(
+    principal: Principal,
+    input: Readonly<{ revisionId: string; clientDocumentIds?: readonly string[] }>,
+  ) {
+    return this.closeoutService().refresh(principal, input);
+  }
+  confirmProjectCloseoutClientPublication(
+    principal: Principal,
+    revisionId: string,
+    exactSnapshotHash: string,
+  ) {
+    return this.closeoutService().confirmClientPublication(
+      principal,
+      revisionId,
+      exactSnapshotHash,
+    );
+  }
+  finalizeProjectCloseoutRevision(principal: Principal, revisionId: string) {
+    return this.closeoutService().finalize(principal, revisionId);
+  }
+  projectCloseoutDetail(principal: Principal, projectId: string) {
+    return this.closeoutService().detail(principal, projectId);
+  }
+  projectCloseoutArtifacts(principal: Principal, revisionId: string) {
+    return this.closeoutService().artifacts(principal, revisionId);
+  }
+  downloadProjectCloseoutArtifact(principal: Principal, artifactId: string) {
+    return this.closeoutService().download(principal, artifactId);
+  }
 
   invoicePreview(principal: Principal, invoiceId: string) {
     this.assertReadable(principal);
@@ -6870,13 +6936,10 @@ export class PortalRepository {
       )
       .all(...technicalValues) as Array<Record<string, unknown>>;
     return [...daily, ...technical]
-      .filter((row) =>
-        !isSupplierCoordinator(this.sqlite, principal.userId) ||
-        this.hasEffectiveProjectObjectAccess(
-          principal,
-          String(row.project_id),
-          String(row.date),
-        ),
+      .filter(
+        (row) =>
+          !isSupplierCoordinator(this.sqlite, principal.userId) ||
+          this.hasEffectiveProjectObjectAccess(principal, String(row.project_id), String(row.date)),
       )
       .map(({ project_id: _projectId, ...row }) => row)
       .sort((left, right) => String(right.date).localeCompare(String(left.date)))
@@ -6889,8 +6952,11 @@ export class PortalRepository {
 
   listNotifications(principal: Principal) {
     this.assertReadable(principal);
-    const persistedRole = this.sqlite.prepare('SELECT role FROM user WHERE id=?').get(principal.userId) as { role: string } | undefined;
-    if (persistedRole?.role !== principal.role) throw new AccessDeniedError('Authenticated role changed; sign in again');
+    const persistedRole = this.sqlite
+      .prepare('SELECT role FROM user WHERE id=?')
+      .get(principal.userId) as { role: string } | undefined;
+    if (persistedRole?.role !== principal.role)
+      throw new AccessDeniedError('Authenticated role changed; sign in again');
     const notificationRepository = new NotificationRepository({
       sqlite: this.sqlite,
       transaction: <T>(work: () => T): T => this.transaction(work),
@@ -6972,9 +7038,23 @@ export class PortalRepository {
           }
         | undefined;
       const sourceAuthorized = (() => {
-        const financeOnly = ['invoice_overdue', 'period_ready', 'period_blocked', 'budget_exception', 'cap_exception'].includes(row.kind);
-        if (financeOnly && !['owner_admin', 'finance_admin', 'auditor_read_only'].includes(principal.role)) return false;
-        if (['settlement_status_changed', 'worker_payment_status'].includes(row.kind) && principal.role === 'project_manager') return false;
+        const financeOnly = [
+          'invoice_overdue',
+          'period_ready',
+          'period_blocked',
+          'budget_exception',
+          'cap_exception',
+        ].includes(row.kind);
+        if (
+          financeOnly &&
+          !['owner_admin', 'finance_admin', 'auditor_read_only'].includes(principal.role)
+        )
+          return false;
+        if (
+          ['settlement_status_changed', 'worker_payment_status'].includes(row.kind) &&
+          principal.role === 'project_manager'
+        )
+          return false;
         if (!source) return view.sourceId === null;
         if (
           principal.role === 'owner_admin' ||
@@ -6983,7 +7063,12 @@ export class PortalRepository {
         )
           return true;
         const current = today();
-        const projectNotice = ['missing_time', 'assignment_published', 'budget_exception', 'cap_exception'].includes(row.kind);
+        const projectNotice = [
+          'missing_time',
+          'assignment_published',
+          'budget_exception',
+          'cap_exception',
+        ].includes(row.kind);
         const objectDate = projectNotice ? current : source.date || current;
         const membership = this.sqlite
           .prepare(
@@ -6995,14 +7080,7 @@ export class PortalRepository {
                 AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
               LIMIT 1`,
           )
-          .get(
-            source.project_id,
-            principal.userId,
-            current,
-            current,
-            objectDate,
-            objectDate,
-          );
+          .get(source.project_id, principal.userId, current, current, objectDate, objectDate);
         if (!membership) return false;
         return (
           principal.role === 'project_manager' ||
@@ -7036,7 +7114,11 @@ export class PortalRepository {
         project_id: sourceAuthorized ? (source?.project_id ?? null) : null,
         project_number: sourceAuthorized ? (source?.project_number ?? null) : null,
         project_name: sourceAuthorized ? (source?.project_name ?? null) : null,
-        record_date: sourceAuthorized ? (row.kind === 'missing_time' ? /^missing-time:[^:]+:[^:]+:(\d{4}-\d{2}-\d{2})$/u.exec(row.subject_id)?.[1] ?? null : source?.date ?? null) : null,
+        record_date: sourceAuthorized
+          ? row.kind === 'missing_time'
+            ? (/^missing-time:[^:]+:[^:]+:(\d{4}-\d{2}-\d{2})$/u.exec(row.subject_id)?.[1] ?? null)
+            : (source?.date ?? null)
+          : null,
         record_title: sourceAuthorized ? (source?.title ?? null) : null,
       };
     });
@@ -7284,13 +7366,14 @@ export class PortalRepository {
       .all(...values) as Array<Record<string, unknown>>;
     return this.supplierTimeProjection(
       principal,
-      rows.filter((row) =>
-        !isSupplierCoordinator(this.sqlite, principal.userId) ||
-        this.hasEffectiveProjectObjectAccess(
-          principal,
-          String(row.project_id),
-          String(row.work_date),
-        ),
+      rows.filter(
+        (row) =>
+          !isSupplierCoordinator(this.sqlite, principal.userId) ||
+          this.hasEffectiveProjectObjectAccess(
+            principal,
+            String(row.project_id),
+            String(row.work_date),
+          ),
       ),
     );
   }
@@ -8231,7 +8314,16 @@ export class PortalRepository {
     });
   }
 
-  deleteInvoice(principal: Principal, invoiceId: string): void {
+  deleteInvoice(
+    principal: Principal,
+    invoiceId: string,
+    reason = 'Discarded from billing',
+    expectedVersion?: number,
+  ): void {
+    if (principal.role === 'owner_admin') {
+      discardOwnerInvoice(this.sqlite, principal, invoiceId, reason, expectedVersion);
+      return;
+    }
     this.assertActive(principal);
     if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
     this.assertLiveSession(principal);

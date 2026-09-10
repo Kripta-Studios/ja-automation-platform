@@ -18,6 +18,8 @@ export const documents = sqliteTable(
     storageKey: text('storage_key').notNull(),
     originalFilename: text('original_filename'),
     description: text('description'),
+    archivedAt: text('archived_at'),
+    archivedBy: text('archived_by').references(() => users.id),
     sensitive: integer('sensitive', { mode: 'boolean' }),
     artifactType: text('artifact_type'),
     softwareVersion: text('software_version'),

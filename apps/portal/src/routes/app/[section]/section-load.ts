@@ -68,6 +68,17 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
       }
     })();
     const common = {
+      workers:
+        context.principal.role === 'owner_admin' &&
+        ['time', 'expenses', 'reports'].includes(section)
+          ? context.repository
+              .listAllWorkers(context.principal)
+              .filter(
+                (worker) =>
+                  worker.status === 'active' &&
+                  ['worker', 'project_manager'].includes(String(worker.role)),
+              )
+          : [],
       user: { ...locals.user, workforceProfile: restrictedProfile?.profile },
       section,
       searchQuery,
@@ -422,7 +433,10 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         return {
           ...common,
           billingRules: context.repository.listBillingRules(context.principal),
-          invoiceEmailDeliveries: context.principal.role === 'auditor_read_only' ? [] : listInvoiceEmailDeliveries(context.sqlite, context.principal),
+          invoiceEmailDeliveries:
+            context.principal.role === 'auditor_read_only'
+              ? []
+              : listInvoiceEmailDeliveries(context.sqlite, context.principal),
           invoices: context.repository.listInvoices(context.principal).map((invoice) => ({
             ...invoice,
             // A command token belongs to the displayed payment form, not to invoice.version:

@@ -1747,10 +1747,34 @@
                       <button type="submit">{translate('Approve')}</button>
                     </form>
                     <form method="POST" action="?/deleteInvoice">
+                      <input type="hidden" name="version" value={invoice.version} />
                       <input type="hidden" name="invoiceId" value={invoiceId} />
+                      <label
+                        >{translate('Correction reason')}<input
+                          name="reason"
+                          minlength="3"
+                          maxlength="2000"
+                          required
+                        /></label
+                      >
                       <button type="submit" class="danger">{translate('Discard draft')}</button>
                     </form>
                   {:else if invoiceStateValue === 'approved'}
+                    {#if data.user.role === 'owner_admin'}
+                      <form method="POST" action="?/deleteInvoice">
+                        <input type="hidden" name="version" value={invoice.version} />
+                        <input type="hidden" name="invoiceId" value={invoiceId} />
+                        <label
+                          >{translate('Correction reason')}<input
+                            name="reason"
+                            minlength="3"
+                            maxlength="2000"
+                            required
+                          /></label
+                        >
+                        <button class="danger">{translate('Discard draft')}</button>
+                      </form>
+                    {/if}
                     <form
                       method="POST"
                       action="?/issueInvoice"

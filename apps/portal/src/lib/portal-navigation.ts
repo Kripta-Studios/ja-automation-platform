@@ -138,6 +138,8 @@ export function portalNavigationForRole(
           item('projects', 'Clients', '◉', route('projects', 'clients')),
           item('projects', 'Team', '◌', route('projects', 'team')),
           item('supplier', 'Suppliers', '◌'),
+          item('time', 'Time', '◷'),
+          item('expenses', 'Expenses', '◇'),
           item('planning', 'Planning', '⌘'),
           item('documents', 'Documents', '▧'),
           item('finance', 'Finance Overview', '↗', route('finance', 'overview')),
@@ -148,7 +150,7 @@ export function portalNavigationForRole(
           item('finance', 'Commercial Configuration', '⚙', route('finance', 'commercial')),
           item('profile', 'Profile', '◎'),
         ],
-        admin: [],
+        admin: [item('manage', 'Data management', '⚙')],
         security: [item('audit', 'Audit', '⌁')],
       };
     case 'auditor_read_only':

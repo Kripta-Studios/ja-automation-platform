@@ -482,11 +482,17 @@ export const billingActions = {
   deleteInvoice: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'billing')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const parsed = invoiceIdSchema.safeParse(await formObject(request));
+    const object = await formObject(request);
+    const parsed = invoiceIdSchema.safeParse(object);
     if (!parsed.success) return actionFail(400, 'action.validation.invoice', {}, 'Invalid invoice');
     const context = openPortalRepository(locals);
     try {
-      context.repository.deleteInvoice(context.principal, parsed.data.invoiceId);
+      context.repository.deleteInvoice(
+        context.principal,
+        parsed.data.invoiceId,
+        String(object.reason ?? 'Discarded from billing'),
+        object.version === undefined ? undefined : Number(object.version),
+      );
       return actionSuccess('action.billing.invoiceDeleted', {}, 'Invoice deleted');
     } catch (error) {
       return actionFailure(error);

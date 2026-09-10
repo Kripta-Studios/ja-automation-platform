@@ -1,3 +1,4 @@
+import { assertLiveSession } from '../../core/authorization.ts';
 import type { DatabaseSync } from 'node:sqlite';
 import { createHash } from 'node:crypto';
 import { newId, type Principal } from '@ja/domain';
@@ -61,11 +62,7 @@ export type TimeEntryRepositoryDependencies = Readonly<{
    * time. PortalRepository uses this to add supplier-coordinator grant scope
    * without changing the standard worker membership invariant.
    */
-  assertOwnTimeAccess?: (
-    principal: Principal,
-    projectId: string,
-    workDate: string,
-  ) => void;
+  assertOwnTimeAccess?: (principal: Principal, projectId: string, workDate: string) => void;
   /**
    * Optional live authorization for a coordinator recording a canonical time
    * entry on behalf of another worker.  The ordinary portal repository does
@@ -242,7 +239,19 @@ export class TimeEntryRepository {
     workDate: string,
     ownerAdminBypass = false,
   ): void {
-    if (ownerAdminBypass && principal.role === 'owner_admin') return;
+    if ((ownerAdminBypass || workerId !== principal.userId) && principal.role === 'owner_admin') {
+      const owner = this.deps.sqlite
+        .prepare('SELECT role,status FROM user WHERE id=?')
+        .get(principal.userId);
+      if (owner?.role !== 'owner_admin' || owner.status !== 'active')
+        throw this.deps.errors.accessDenied('Owner administration required');
+      try {
+        assertLiveSession(this.deps.sqlite, principal, Error);
+      } catch {
+        throw this.deps.errors.accessDenied('Live authenticated session required');
+      }
+      return;
+    }
     if (workerId !== principal.userId) {
       if (!this.deps.assertDelegatedTimeAccess)
         throw this.deps.errors.accessDenied('Time entry ownership required');
@@ -380,7 +389,7 @@ export class TimeEntryRepository {
         current.project_id,
         current.worker_id,
         current.work_date,
-        ownerCorrection,
+        ownerCorrection || principal.role === 'owner_admin',
       );
       this.validateEffectiveEntry({
         id,
@@ -450,8 +459,15 @@ export class TimeEntryRepository {
         current.project_id,
         current.worker_id,
         current.work_date,
+        principal.role === 'owner_admin',
       );
-      this.assertEffectiveMembership(principal, current.project_id, current.worker_id, workDate);
+      this.assertEffectiveMembership(
+        principal,
+        current.project_id,
+        current.worker_id,
+        workDate,
+        principal.role === 'owner_admin',
+      );
       if (input.workDate !== undefined) this.deps.assertDate(input.workDate, 'Work date');
       if (
         input.minutes !== undefined &&

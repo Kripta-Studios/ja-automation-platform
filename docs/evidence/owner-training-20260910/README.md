@@ -40,3 +40,17 @@ Deployment, final authenticated checks and cache cleanup are recorded below afte
 - Supplier profiles could not fetch the shared service-worker script (403). The positive route allowlist now includes only the four public app assets: service worker, manifest and two icons. Restricted finance/offline-sync routes remain denied; regression coverage includes the asset paths.
 - Production Chromium failed before rendering (`chrome_crashpad_handler: --database is required`) because its default configuration directory was on the read-only container filesystem. Portal and jobs now use XDG configuration/cache directories under their existing `/tmp` tmpfs. A runtime Chromium launch inside the same production image succeeds with this configuration; no read-only or security boundary was removed.
 - Automatic business notifications discovered the new Demo records and attempted email delivery, receiving HTTP 502. Pending Demo-source emails were quarantined; the notification repository now applies that protection atomically for both existing Demo projects and audited training sources. No invoice-issued events were delivered.
+
+## Production delivery
+
+Activated **2026-09-10 at 14:04:44 UTC** from code commit `3f066a5`, pushed to `codex/v3-production-completion-orchestrated-20260819`.
+
+- Release archive SHA-256: `6a08bb82f05a2ba37af0cb3371bf2216b8c03d2549c30fe8a355d1b9f59fac67`.
+- Reviewed ZIP deployment completed; previous images retained as `rollback-20260910140121-6a08bb82f05a`. Pre-cutover database/documents backup: `/var/backups/jaautomation/2026-09-10T140434960Z-51e6b662-19ba-4ce6-8804-ac13d346311c`.
+- `verify-vps.sh --wait-two-automatic-runs` passed. Portal/site healthy, jobs running; Navidrome remains running.
+- Real authenticated production checks passed for all seven specified profiles. Owner layout order checked at 1440 and 390 widths, receivables card opens the matching cash filter, invoice details and Manage load successfully. Relevant operational/billing/report pages load for their authorized roles, and shared service-worker access succeeds without browser errors.
+- All **9 invoice PDF jobs succeeded automatically** after the container configuration correction. All 9 files passed PDF signature, byte-length and SHA-256 checks; all 9 authenticated Owner downloads returned PDF/HTTP 200. Worker access returns the intended existence-masking HTTP 404 (`File unavailable`).
+- Final database integrity `ok`, zero foreign-key violations, all 189 pre-existing business rows unchanged. Invoice-issued delivery remains quarantined.
+- Post-render backup includes the database and **38 private documents**: `/var/backups/jaautomation/2026-09-10T140701078Z-e9b51f23-afd6-4356-84a3-2a2900173853`.
+- Docker cleanup reclaimed **6.834 GB**, with final build cache **0 B**. Running containers, data, backups and rollback images retained.
+- Logs, final checks and authenticated screenshots are private under `/var/lib/jaautomation-zip-deploy/manual/training-20260910/`. Repository screenshots use disposable fixtures only.

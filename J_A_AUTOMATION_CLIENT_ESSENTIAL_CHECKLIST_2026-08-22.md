@@ -745,3 +745,5 @@ Los pendientes externos, fiscales y de aceptación humana de la auditoría sigue
 - [x] Migración 44 probada desde base vacía y copia aislada de producción 43; integridad y referencias verificadas después de eliminar los tres borradores de factura y once gastos de esa copia.
 - [x] Permisos, concurrencia, privacidad, finanzas, jobs y continuidad comprobados; navegación y operaciones en móvil/tablet/escritorio.
 - Evidencia y límites: [owner-crud-20260910](docs/evidence/owner-crud-20260910/README.md). Esta ampliación no modifica las aceptaciones externas históricas pendientes.
+
+- Estado de esta ampliación: commit `031077b` desplegado a las 10:49:09 UTC, esquema 44 íntegro y 19 recuentos de tablas conservados; verificador de producción superado. Caché Docker a cero tras liberar 6,828 GB. [Recibo de producción](docs/PRODUCTION_DEPLOYMENT_2026-09-10_OWNER_CRUD.md).

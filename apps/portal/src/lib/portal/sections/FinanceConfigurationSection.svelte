@@ -95,21 +95,20 @@
 </script>
 
 <FormCard title={translate('Finance configuration')} class="finance-config-panel">
-  <p>
-    <a
-      href={`${base}/app/finance/preview?project=${encodeURIComponent(data.selectedProjectId ?? '')}`}
-      >{translate('Commercial agreement and example')}</a
-    >
-  </p>
-  <div class="panel-title">
+  <div class="finance-config-intro">
     <div>
-      <p>
+      <p class="portal-kicker">{translate('Commercial policies')}</p>
+      <p class="finance-config-description">
         {translate(
           'Rates are effective-dated and resolved by assignment, category, activity, and project scope.',
         )}
       </p>
     </div>
-    <span>{translate('Commercial policies')}</span>
+    <a
+      class="secondary-button finance-config-preview"
+      href={`${base}/app/finance/preview?project=${encodeURIComponent(data.selectedProjectId ?? '')}`}
+      >{translate('Commercial agreement and example')} <span aria-hidden="true">↗</span></a
+    >
   </div>
   <FormSection
     title={translate('Project issuing authority')}

@@ -23,6 +23,7 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
     const period = supplierPeriod(url);
     return {
       owner,
+      directory: owner ? ctx.supplier.technicianDirectory(ctx.principal) : [],
       correctionRequestId: randomUUID(),
       locale: resolvePortalLocalePreference(
         url.searchParams.get('lang'),
@@ -93,6 +94,27 @@ function action(operation: string): Actions[string] {
       switch (operation) {
         case 'createSupplier':
           ctx.supplier.createSupplier(ctx.principal, { name: text('name') });
+          break;
+        case 'updateSupplier':
+          ctx.supplier.updateSupplier(ctx.principal, { id: text('id'), name: text('name') });
+          break;
+        case 'setSupplierStatus':
+          if (text('confirmed') !== 'yes') return fail(400, { success: false, operation, values });
+          ctx.supplier.setSupplierStatus(ctx.principal, { id: text('id'), status: text('status') });
+          break;
+        case 'updateTechnician':
+          ctx.supplier.updateTechnician(ctx.principal, {
+            id: text('id'),
+            name: text('name'),
+            email: optional('email'),
+          });
+          break;
+        case 'setTechnicianStatus':
+          if (text('confirmed') !== 'yes') return fail(400, { success: false, operation, values });
+          ctx.supplier.setTechnicianStatus(ctx.principal, {
+            id: text('id'),
+            status: text('status'),
+          });
           break;
         case 'setProfile': {
           const profile = text('profile');
@@ -180,6 +202,10 @@ function action(operation: string): Actions[string] {
 }
 export const actions: Actions = Object.fromEntries(
   [
+    'updateSupplier',
+    'setSupplierStatus',
+    'updateTechnician',
+    'setTechnicianStatus',
     'createSupplier',
     'setProfile',
     'grant',

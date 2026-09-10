@@ -83,7 +83,9 @@ describe('supplier workforce canonical time', () => {
     expect(fixture.repository.listOwnTime(fixture.worker)).toEqual([]);
     expect(fixture.repository.listOwnTimeWeek(fixture.worker, operationalDate).rows).toEqual([]);
     expect(fixture.repository.listTimeForScope(fixture.worker)).toEqual([]);
-    expect(() => fixture.repository.timeDetail(fixture.worker, entry.id)).toThrow(AccessDeniedError);
+    expect(() => fixture.repository.timeDetail(fixture.worker, entry.id)).toThrow(
+      AccessDeniedError,
+    );
   });
 
   it('keeps coordinator actor, technician subject, and approval pending in canonical time', () => {
@@ -174,7 +176,9 @@ describe('supplier workforce canonical time', () => {
       downtimeMinutes: 0,
       safetyRelated: false,
     });
-    expect(fixture.repository.timeDetail(coordinator, ownTime.id)).toMatchObject({ id: ownTime.id });
+    expect(fixture.repository.timeDetail(coordinator, ownTime.id)).toMatchObject({
+      id: ownTime.id,
+    });
     expect(fixture.repository.listOwnReports(coordinator)).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: ownReport.id })]),
     );
@@ -232,7 +236,9 @@ describe('supplier workforce canonical time', () => {
     expect(fixture.repository.listOwnReports(coordinator)).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ id: ownReport.id })]),
     );
-    expect(() => fixture.repository.reportDetail(coordinator, ownReport.id)).toThrow(AccessDeniedError);
+    expect(() => fixture.repository.reportDetail(coordinator, ownReport.id)).toThrow(
+      AccessDeniedError,
+    );
     expect(() => fixture.repository.submitReport(coordinator, 'daily', ownReport.id, 1)).toThrow(
       AccessDeniedError,
     );
@@ -255,7 +261,9 @@ describe('supplier workforce canonical time', () => {
       }),
     ).toThrow(AccessDeniedError);
 
-    fixture.sqlite.prepare('UPDATE supplier_project_grant SET ends_on=NULL WHERE id=?').run(grant.id);
+    fixture.sqlite
+      .prepare('UPDATE supplier_project_grant SET ends_on=NULL WHERE id=?')
+      .run(grant.id);
     fixture.sqlite.prepare("UPDATE supplier SET status='inactive' WHERE id=?").run(supplier.id);
     expect(() =>
       fixture.repository.createTimeEntry(coordinator, {
@@ -612,5 +620,126 @@ describe('supplier workforce canonical time', () => {
         )
         .get(entry.id),
     ).toEqual({ recorded_by_user_id: coordinator.userId });
+  });
+});
+
+describe('supplier directory lifecycle', () => {
+  it('edits personnel, removes and restores them without losing canonical time or assignments', () => {
+    const { fixture, suppliers, supplier, coordinator, technician } = setup();
+    const owner = stepUpB5Principal(fixture.sqlite, fixture.owner, 'directory-owner');
+    const entry = suppliers.createTime(coordinator, {
+      workerId: technician.id,
+      projectId: fixture.project.id,
+      workDate: operationalDate,
+      category: 'work',
+      minutes: 45,
+      summary: 'Retained supplier history',
+    });
+    suppliers.updateSupplier(owner, { id: supplier.id, name: 'Renamed supplier' });
+    suppliers.updateTechnician(owner, {
+      id: technician.id,
+      name: 'Renamed technician',
+      email: 'renamed@example.test',
+    });
+    expect(suppliers.technicianDirectory(owner)).toContainEqual(
+      expect.objectContaining({
+        id: technician.id,
+        name: 'Renamed technician',
+        email: 'renamed@example.test',
+        supplierName: 'Renamed supplier',
+      }),
+    );
+    suppliers.setTechnicianStatus(owner, { id: technician.id, status: 'suspended' });
+    expect(suppliers.listTechnicians(owner).some((row) => row.id === technician.id)).toBe(false);
+    expect(() =>
+      suppliers.createTime(coordinator, {
+        workerId: technician.id,
+        projectId: fixture.project.id,
+        workDate: operationalDate,
+        category: 'work',
+        minutes: 10,
+        summary: 'Denied',
+      }),
+    ).toThrow(AccessDeniedError);
+    expect(
+      fixture.sqlite.prepare('SELECT id FROM time_entry WHERE id=?').get(entry.id),
+    ).toBeTruthy();
+    expect(
+      fixture.sqlite
+        .prepare('SELECT id FROM project_member WHERE id=?')
+        .get(technician.assignmentId),
+    ).toBeTruthy();
+    suppliers.setTechnicianStatus(owner, { id: technician.id, status: 'active' });
+    expect(suppliers.listTechnicians(owner).some((row) => row.id === technician.id)).toBe(true);
+    suppliers.setSupplierStatus(owner, { id: supplier.id, status: 'inactive' });
+    expect(suppliers.listTechnicians(owner).some((row) => row.id === technician.id)).toBe(false);
+    expect(suppliers.technicianDirectory(owner).some((row) => row.id === technician.id)).toBe(true);
+    expect(
+      fixture.sqlite.prepare('SELECT 1 FROM session WHERE user_id=?').get(coordinator.userId),
+    ).toBeUndefined();
+    expect(suppliers.listGrants(owner).every((row) => row.status === 'revoked')).toBe(true);
+    expect(
+      suppliers.operationalReport(owner, {
+        supplierId: supplier.id,
+        projectId: fixture.project.id,
+        from: operationalDate,
+        to: operationalDate,
+      }).totalMinutes,
+    ).toBe(45);
+    suppliers.setSupplierStatus(owner, { id: supplier.id, status: 'active' });
+    expect(suppliers.listGrants(owner).every((row) => row.status === 'revoked')).toBe(true);
+    expect(
+      suppliers.operationalReport(owner, {
+        projectId: fixture.project.id,
+        from: operationalDate,
+        to: operationalDate,
+      }).totalMinutes,
+    ).toBe(45);
+    expect(
+      fixture.sqlite
+        .prepare(
+          "SELECT count(*) n FROM audit_event WHERE action IN ('supplier.update','supplier.status','supplier.technician.update','supplier.technician.status')",
+        )
+        .get()?.n,
+    ).toBe(6);
+  });
+
+  it('rejects unauthorized, expired-session, invalid and conflicting directory changes', () => {
+    const { fixture, suppliers, supplier, coordinator, technician } = setup();
+    const owner = stepUpB5Principal(fixture.sqlite, fixture.owner, 'directory-owner');
+    for (const actor of [coordinator, fixture.outsider, fixture.finance, fixture.owner]) {
+      expect(() => suppliers.updateSupplier(actor, { id: supplier.id, name: 'Forbidden' })).toThrow(
+        AccessDeniedError,
+      );
+      expect(() =>
+        suppliers.setSupplierStatus(actor, { id: supplier.id, status: 'inactive' }),
+      ).toThrow(AccessDeniedError);
+      expect(() =>
+        suppliers.updateTechnician(actor, { id: technician.id, name: 'Forbidden' }),
+      ).toThrow(AccessDeniedError);
+      expect(() =>
+        suppliers.setTechnicianStatus(actor, { id: technician.id, status: 'suspended' }),
+      ).toThrow(AccessDeniedError);
+    }
+    const other = suppliers.createSupplier(owner, { name: 'Other supplier' });
+    expect(() =>
+      suppliers.updateSupplier(owner, { id: other.id, name: 'Field supplier' }),
+    ).toThrow();
+    expect(() =>
+      suppliers.updateTechnician(owner, { id: technician.id, name: 'Valid', email: 'broken' }),
+    ).toThrow();
+    expect(() =>
+      suppliers.setSupplierStatus(owner, { id: supplier.id, status: 'deleted' }),
+    ).toThrow();
+    expect(() =>
+      suppliers.setTechnicianStatus(owner, { id: fixture.worker.userId, status: 'suspended' }),
+    ).toThrow();
+    fixture.sqlite.prepare('DELETE FROM session WHERE user_id=?').run(owner.userId);
+    expect(() => suppliers.updateSupplier(owner, { id: supplier.id, name: 'Expired' })).toThrow(
+      AccessDeniedError,
+    );
+    expect(suppliers.listSuppliers(fixture.owner)).toContainEqual(
+      expect.objectContaining({ id: supplier.id, name: 'Field supplier', status: 'active' }),
+    );
   });
 });

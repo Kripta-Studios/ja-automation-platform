@@ -273,6 +273,135 @@ export class SupplierWorkforceRepository {
     });
   }
 
+  /** Owner directory includes inactive personnel; operational pickers stay active-only. */
+  technicianDirectory(principal: Principal) {
+    this.assertOwner(principal);
+    return this.sqlite
+      .prepare(
+        `SELECT u.id,u.name,
+      CASE WHEN u.email LIKE 'supplier-tech-%@personnel.invalid' THEN '' ELSE u.email END email,
+      u.status,sup.supplier_id supplierId,s.name supplierName,
+      EXISTS(SELECT 1 FROM account a WHERE a.user_id=u.id) OR
+      EXISTS(SELECT 1 FROM passkey pk WHERE pk.user_id=u.id) hasLogin
+      FROM user u JOIN supplier_user_profile sup ON sup.user_id=u.id
+      JOIN supplier s ON s.id=sup.supplier_id
+      WHERE sup.profile='external_technician' AND u.role='worker' ORDER BY u.name,u.id`,
+      )
+      .all() as {
+      id: string;
+      name: string;
+      email: string;
+      status: string;
+      supplierId: string;
+      supplierName: string;
+      hasLogin: number;
+    }[];
+  }
+
+  updateSupplier(principal: Principal, input: { id: string; name: string }) {
+    return this.transaction(() => {
+      this.assertOwner(principal);
+      assertLiveSession(this.sqlite, principal, AccessDeniedError);
+      const name = requiredText(input.name, 'Supplier name', 200);
+      const before = this.sqlite.prepare('SELECT name FROM supplier WHERE id=?').get(input.id);
+      if (!before) throw new ValidationError('Supplier not found');
+      if (this.sqlite.prepare('SELECT 1 FROM supplier WHERE name=? AND id<>?').get(name, input.id))
+        throw new ConflictError('Supplier name already exists');
+      this.sqlite
+        .prepare('UPDATE supplier SET name=?,updated_at=? WHERE id=?')
+        .run(name, now(), input.id);
+      recordAuditEvent(this.sqlite, principal, 'supplier.update', 'supplier', input.id, {
+        before,
+        after: { name },
+      });
+    });
+  }
+
+  setSupplierStatus(principal: Principal, input: { id: string; status: string }) {
+    return this.transaction(() => {
+      this.assertOwner(principal);
+      assertLiveSession(this.sqlite, principal, AccessDeniedError);
+      if (!['active', 'inactive'].includes(input.status))
+        throw new ValidationError('Invalid supplier status');
+      const before = this.sqlite.prepare('SELECT status FROM supplier WHERE id=?').get(input.id);
+      if (!before) throw new ValidationError('Supplier not found');
+      if (before.status === input.status) return;
+      const timestamp = now();
+      this.sqlite
+        .prepare('UPDATE supplier SET status=?,updated_at=? WHERE id=?')
+        .run(input.status, timestamp, input.id);
+      if (input.status === 'inactive') {
+        // Revoke grants individually so restoration never silently restores delegation.
+        const grants = this.sqlite
+          .prepare("SELECT id FROM supplier_project_grant WHERE supplier_id=? AND status='active'")
+          .all(input.id);
+        for (const grant of grants) this.revokeProject(principal, { id: String(grant.id) });
+        this.sqlite
+          .prepare(
+            'DELETE FROM session WHERE user_id IN (SELECT user_id FROM supplier_user_profile WHERE supplier_id=?)',
+          )
+          .run(input.id);
+      }
+      recordAuditEvent(this.sqlite, principal, 'supplier.status', 'supplier', input.id, {
+        before,
+        after: { status: input.status },
+      });
+    });
+  }
+
+  updateTechnician(principal: Principal, input: { id: string; name: string; email?: string }) {
+    return this.transaction(() => {
+      this.assertOwner(principal);
+      assertLiveSession(this.sqlite, principal, AccessDeniedError);
+      const before = this.technicianDirectory(principal).find((row) => row.id === input.id);
+      if (!before) throw new ValidationError('Supplier technician required');
+      const name = requiredText(input.name, 'Technician name', 160);
+      const email = input.email?.trim().toLowerCase() || '';
+      if (email && (!EMAIL.test(email) || email.length > 254))
+        throw new ValidationError('Technician email is invalid');
+      // Login identities must use the existing account-management flow.
+      if (before.hasLogin && email !== before.email)
+        throw new ValidationError('Manage login email from the account profile');
+      const storedEmail = email || `supplier-tech-${input.id}@personnel.invalid`;
+      if (
+        this.sqlite.prepare('SELECT 1 FROM user WHERE email=? AND id<>?').get(storedEmail, input.id)
+      )
+        throw new ConflictError('Technician email already belongs to an account');
+      this.sqlite
+        .prepare(
+          'UPDATE user SET name=?,email=?,email_verified=CASE WHEN email=? THEN email_verified ELSE 0 END,updated_at=?,version=version+1 WHERE id=?',
+        )
+        .run(name, storedEmail, storedEmail, now(), input.id);
+      recordAuditEvent(this.sqlite, principal, 'supplier.technician.update', 'user', input.id, {
+        before: { name: before.name, email: before.email },
+        after: { name, email },
+      });
+    });
+  }
+
+  setTechnicianStatus(principal: Principal, input: { id: string; status: string }) {
+    return this.transaction(() => {
+      this.assertOwner(principal);
+      assertLiveSession(this.sqlite, principal, AccessDeniedError);
+      if (!['active', 'suspended'].includes(input.status))
+        throw new ValidationError('Invalid technician status');
+      const before = this.technicianDirectory(principal).find((row) => row.id === input.id);
+      if (!before || !['active', 'suspended'].includes(before.status))
+        throw new ValidationError('Active or suspended supplier technician required');
+      if (input.status === 'active') this.assertSupplier(before.supplierId);
+      if (before.status === input.status) return;
+      this.sqlite
+        .prepare('UPDATE user SET status=?,updated_at=?,version=version+1 WHERE id=?')
+        .run(input.status, now(), input.id);
+      this.sqlite.prepare('DELETE FROM session WHERE user_id=?').run(input.id);
+      recordAuditEvent(this.sqlite, principal, 'supplier.technician.status', 'user', input.id, {
+        before: { status: before.status },
+        after: { status: input.status },
+        supplierId: before.supplierId,
+      });
+    });
+  }
+
   setAccountProfile(
     principal: Principal,
     input: {
@@ -587,7 +716,12 @@ export class SupplierWorkforceRepository {
     const isOwner = principal.role === 'owner_admin';
     const supplierId = isOwner ? undefined : this.assertCoordinator(principal).supplierId;
     if (projectId && !isOwner) this.assertCoordinatorGrant(principal, projectId, today());
-    const filters = ["sup.profile='external_technician'", "u.role='worker'", "u.status='active'"];
+    const filters = [
+      "sup.profile='external_technician'",
+      "u.role='worker'",
+      "u.status='active'",
+      "EXISTS(SELECT 1 FROM supplier active_supplier WHERE active_supplier.id=sup.supplier_id AND active_supplier.status='active')",
+    ];
     const values: string[] = [];
     if (supplierId) {
       filters.push('sup.supplier_id=?');
@@ -859,7 +993,9 @@ export class SupplierWorkforceRepository {
     const values: string[] = [];
     if (principal.role === 'owner_admin') {
       if (supplierId) {
-        this.assertSupplier(supplierId);
+        // Inactive suppliers remain selectable in the owner's historical reports.
+        if (!this.sqlite.prepare('SELECT 1 FROM supplier WHERE id=?').get(supplierId))
+          throw new ValidationError('Supplier not found');
         where.push(scopedHistoricalIdentity);
         values.push(supplierId, supplierId, supplierId);
       } else {

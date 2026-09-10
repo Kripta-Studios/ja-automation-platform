@@ -723,3 +723,14 @@ backups, que cubren un solo día. Limpieza de Docker/cachés: aproximadamente 8,
 
 Recibo y límites: [despliegue de la remediación](docs/PRODUCTION_DEPLOYMENT_2026-09-09_AUDIT_REMEDIATION.md).
 Los pendientes externos, fiscales y de aceptación humana de la auditoría siguen abiertos.
+
+
+## 2026-09-10 — Proveedores y configuración comercial (CORE-02 / CORE-14 / CORE-15)
+
+- [x] Navegación compartida en proveedores e informe; drawer móvil y enlaces por perfil.
+- [x] Directorio con búsqueda, edición y baja/restauración confirmada para el propietario; historial y privacidad conservados.
+- [x] Separación de bloques, títulos, descripciones y aviso de autoridad de emisión en Finance configuration.
+- [x] Migración aditiva 43 para las acciones de auditoría: actualización poblada desde 42, metadatos previos e integridad verificados. Las pruebas de versiones actuales se actualizan de 42 a 43.
+- [x] Evidencia: 41 pruebas de integración/seguridad; suites de migración comprobadas (91 pruebas entre pasada general y repetición dirigida); 16 escenarios de navegador y 4 repeticiones finales del directorio en 360/390/768/1440; compilaciones web/portal, Svelte sin errores y ESLint del alcance correctos.
+- Evidencia y capturas: [supplier-ui-20260910](docs/evidence/supplier-ui-20260910/README.md).
+- Estado: implementación local verificada. No desplegada en producción; no cambia el veredicto global de entrega.

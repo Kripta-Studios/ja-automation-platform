@@ -207,3 +207,93 @@ export function supplierCategoryLabel(locale: PortalLocale, category: string): s
     ? supplierCopy[locale].work
     : translateControlledValue(locale, 'timeCategory', category);
 }
+
+export const supplierManagementCopy = {
+  en: {
+    directory: 'Directory',
+    intro: 'Manage suppliers, technicians and installation access.',
+    suppliers: 'Suppliers',
+    search: 'Search directory',
+    searchHint: 'Name, supplier or email',
+    active: 'Active',
+    inactive: 'Inactive',
+    all: 'All',
+    edit: 'Edit',
+    remove: 'Remove',
+    restore: 'Restore',
+    cancel: 'Cancel',
+    save: 'Save changes',
+    confirm: 'I confirm this change',
+    noMatches: 'No matching records. Change the search or status filter.',
+    loginEmail: 'This email is used to sign in. Manage it from the account profile.',
+    removeSupplierNote:
+      'This supplier will be made inactive and its installation authorizations revoked. Existing hours and personnel history will be retained.',
+    removeTechnicianNote:
+      'This technician will be suspended and signed out. Existing hours and assignments will be retained.',
+    restoreSupplierNote:
+      'The supplier will become active again. Installation access must be authorized again.',
+    restoreTechnicianNote:
+      'The technician will become active again, with access through their existing valid assignments.',
+    setup: 'Setup and access',
+    personnel: 'Personnel',
+    filters: 'Project and reporting period',
+  },
+  es: {
+    directory: 'Directorio',
+    intro: 'Gestiona proveedores, técnicos y accesos a las instalaciones.',
+    suppliers: 'Proveedores',
+    search: 'Buscar en el directorio',
+    searchHint: 'Nombre, proveedor o correo',
+    active: 'Activo',
+    inactive: 'Inactivo',
+    all: 'Todos',
+    edit: 'Editar',
+    remove: 'Dar de baja',
+    restore: 'Restaurar',
+    cancel: 'Cancelar',
+    save: 'Guardar cambios',
+    confirm: 'Confirmo este cambio',
+    noMatches: 'No hay coincidencias. Cambia la búsqueda o el filtro de estado.',
+    loginEmail: 'Este correo se usa para iniciar sesión. Se gestiona desde el perfil de la cuenta.',
+    removeSupplierNote:
+      'El proveedor quedará inactivo y se retirarán sus autorizaciones de instalación. Se conservará el historial de horas y personal.',
+    removeTechnicianNote:
+      'El técnico quedará suspendido y se cerrarán sus sesiones. Se conservarán sus horas y asignaciones.',
+    restoreSupplierNote:
+      'El proveedor volverá a estar activo. Será necesario autorizar de nuevo el acceso a las instalaciones.',
+    restoreTechnicianNote:
+      'El técnico volverá a estar activo, con acceso mediante sus asignaciones vigentes.',
+    setup: 'Configuración y acceso',
+    personnel: 'Personal',
+    filters: 'Proyecto y periodo del informe',
+  },
+  pt: {
+    directory: 'Diretório',
+    intro: 'Gerencie fornecedores, técnicos e acessos às instalações.',
+    suppliers: 'Fornecedores',
+    search: 'Pesquisar diretório',
+    searchHint: 'Nome, fornecedor ou e-mail',
+    active: 'Ativo',
+    inactive: 'Inativo',
+    all: 'Todos',
+    edit: 'Editar',
+    remove: 'Desativar',
+    restore: 'Restaurar',
+    cancel: 'Cancelar',
+    save: 'Salvar alterações',
+    confirm: 'Confirmo esta alteração',
+    noMatches: 'Nenhum registro encontrado. Altere a pesquisa ou o filtro de status.',
+    loginEmail: 'Este e-mail é usado para entrar. Gerencie-o no perfil da conta.',
+    removeSupplierNote:
+      'O fornecedor será desativado e suas autorizações de instalação revogadas. O histórico de horas e pessoal será mantido.',
+    removeTechnicianNote:
+      'O técnico será suspenso e suas sessões encerradas. As horas e atribuições serão mantidas.',
+    restoreSupplierNote:
+      'O fornecedor ficará ativo novamente. O acesso às instalações deverá ser autorizado novamente.',
+    restoreTechnicianNote:
+      'O técnico ficará ativo novamente, com acesso pelas suas atribuições vigentes.',
+    setup: 'Configuração e acesso',
+    personnel: 'Pessoal',
+    filters: 'Projeto e período do relatório',
+  },
+} as const;

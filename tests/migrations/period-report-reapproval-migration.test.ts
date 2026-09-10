@@ -143,7 +143,7 @@ describe('migration 0029 period report reapproval', () => {
     const { sqlite } = createDatabase(':memory:');
     try {
       expect(sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({
-        version: 42,
+        version: 43,
       });
       expect(
         sqlite
@@ -296,7 +296,7 @@ describe('migration 0029 period report reapproval', () => {
     try {
       expect(
         upgraded.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get(),
-      ).toEqual({ version: 42 });
+      ).toEqual({ version: 43 });
       expect(
         upgraded.sqlite
           .prepare(

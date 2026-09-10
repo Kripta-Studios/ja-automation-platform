@@ -16,9 +16,9 @@
 </script>
 
 <svelte:head><title>{c.report} · J&A</title></svelte:head>
-<main lang={data.locale}>
+<div class="supplier-page" lang={data.locale}>
   <nav><a href="/j-aautomation/app">{c.back}</a></nav>
-  <h1>{c.report}</h1>
+  <h1 class="supplier-title">{c.report}</h1>
   <p>{c.reportNote}</p>
   <form method="GET">
     <label
@@ -43,7 +43,7 @@
           >Português</option
         ></select
       ></label
-    ><button>{c.apply}</button>
+    ><button class="primary-button">{c.apply}</button>
   </form>
   {#if data.report}
     <h2>{data.report.project.name}</h2>
@@ -76,7 +76,7 @@
       {:else}<p>{c.empty}</p>{/each}
     </SectionCard>
   {:else}<p>{c.empty}</p>{/if}
-</main>
+</div>
 
 <style>
   h1 {
@@ -84,10 +84,8 @@
     font-weight: 700;
     line-height: 1.25;
   }
-  main {
-    max-width: 70rem;
-    margin: auto;
-    padding: 1.25rem;
+  .supplier-page {
+    min-width: 0;
     display: grid;
     gap: 1rem;
   }
@@ -103,11 +101,7 @@
     min-width: 0;
   }
   input,
-  select,
-  button {
-    font: inherit;
-    min-height: 44px;
-    padding: 0.65rem;
+  select {
     max-width: 100%;
     box-sizing: border-box;
   }
@@ -139,7 +133,7 @@
     form {
       display: none;
     }
-    main {
+    .supplier-page {
       padding: 0;
       max-width: none;
     }

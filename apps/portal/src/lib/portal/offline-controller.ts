@@ -139,7 +139,7 @@ async function notifyServiceWorkerForget(userId: string, token: string | null): 
   });
 }
 
-async function browserForgetIdentity(userId: string): Promise<void> {
+export async function browserForgetIdentity(userId: string): Promise<void> {
   const token = readOfflineIdentityCookie();
   // Revoke the browser-visible identity first. The captured token is sent to
   // the service worker solely so it can delete the exact private cache even

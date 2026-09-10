@@ -272,6 +272,7 @@ const REVIEWED_B5_MIGRATION_NAMES: Readonly<Record<number, string>> = {
   40: 'astra_project_closeout_revisions',
   41: 'astra_period_followup',
   42: 'supplier_workforce',
+  43: 'supplier_directory_lifecycle',
 };
 
 const MIGRATION_CONTRACT_VERSION = 'ja-migration-contract-v1';
@@ -280,7 +281,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  'e62837de042325c28181d9a430d377c3b5766f3b5b6341b0663edfdda5e86a43';
+  '270b010967448176282e516159d9033c5f4317c1c67ded6ff71a639de2c9e213';
 
 type MigrationContractEntry = Readonly<{
   version: number;

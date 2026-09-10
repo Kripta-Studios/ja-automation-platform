@@ -733,4 +733,4 @@ Los pendientes externos, fiscales y de aceptación humana de la auditoría sigue
 - [x] Migración aditiva 43 para las acciones de auditoría: actualización poblada desde 42, metadatos previos e integridad verificados. Las pruebas de versiones actuales se actualizan de 42 a 43.
 - [x] Evidencia: 41 pruebas de integración/seguridad; suites de migración comprobadas (91 pruebas entre pasada general y repetición dirigida); 16 escenarios de navegador y 4 repeticiones finales del directorio en 360/390/768/1440; compilaciones web/portal, Svelte sin errores y ESLint del alcance correctos.
 - Evidencia y capturas: [supplier-ui-20260910](docs/evidence/supplier-ui-20260910/README.md).
-- Estado: implementación local verificada. No desplegada en producción; no cambia el veredicto global de entrega.
+- Estado: desplegado en producción el 2026-09-10 a las 09:39 UTC desde `f70c21c`; verificador de producción superado, esquema 43 íntegro y recuentos comprobados conservados. Limpieza Docker: aproximadamente 19,4 GB liberados, caché de compilación vacía y versión anterior conservada para reversión. Este alcance no cambia el veredicto global de entrega.

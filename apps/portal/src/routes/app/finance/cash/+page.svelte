@@ -2,10 +2,13 @@
   import { base } from '$app/paths';
   import { SectionCard, FieldGroup, Field } from '$lib/portal/ui';
   import { paymentMoney } from '$lib/portal/payment-money';
+  import { ownerFinanceCopy } from '$lib/portal/owner-finance-copy';
+  import { cashFilters } from '$lib/portal/owner-finance';
   import { cashCopy } from './copy';
   let { data } = $props();
   const locale = $derived(data.locale === 'es' ? 'es' : data.locale === 'pt' ? 'pt' : 'en');
   const t = $derived(cashCopy[locale]);
+  const ft = $derived(ownerFinanceCopy[locale]);
   const metrics = [
     ['expectedInMinor', 'expectedIn'],
     ['expectedOutMinor', 'expectedOut'],
@@ -25,6 +28,19 @@
     <form method="GET">
       <input type="hidden" name="lang" value={locale} />
       <FieldGroup>
+        <Field id="cash-currency" label={ft.currency}
+          ><select id="cash-currency" name="currency" value={data.currency}
+            ><option value="">—</option>{#each data.currencies as currency}<option value={currency}
+                >{currency}</option
+              >{/each}</select
+          ></Field
+        >
+        <Field id="cash-filter" label={ft.filter}
+          ><select id="cash-filter" name="filter" value={data.filter}
+            >{#each cashFilters as filter}<option value={filter}>{ft[filter]}</option
+              >{/each}</select
+          ></Field
+        >
         <Field id="cash-from" label={t.from}
           ><input id="cash-from" type="date" name="from" value={data.from} /></Field
         >
@@ -44,9 +60,12 @@
           ></Field
         >
       </FieldGroup>
+      <label
+        ><input type="checkbox" name="dated" value="1" checked={data.datedOnly} /> {ft.dates}</label
+      >
       <button type="submit">{t.apply}</button>
     </form>
-    <p>{t.unknownDateNote}</p>
+    {#if !data.datedOnly}<p>{t.unknownDateNote}</p>{/if}
   </SectionCard>
   {#each data.groups as group}
     <SectionCard

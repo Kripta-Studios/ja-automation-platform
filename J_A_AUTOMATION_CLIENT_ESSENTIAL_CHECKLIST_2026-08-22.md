@@ -724,7 +724,6 @@ backups, que cubren un solo día. Limpieza de Docker/cachés: aproximadamente 8,
 Recibo y límites: [despliegue de la remediación](docs/PRODUCTION_DEPLOYMENT_2026-09-09_AUDIT_REMEDIATION.md).
 Los pendientes externos, fiscales y de aceptación humana de la auditoría siguen abiertos.
 
-
 ## 2026-09-10 — Proveedores y configuración comercial (CORE-02 / CORE-14 / CORE-15)
 
 - [x] Navegación compartida en proveedores e informe; drawer móvil y enlaces por perfil.
@@ -734,7 +733,6 @@ Los pendientes externos, fiscales y de aceptación humana de la auditoría sigue
 - [x] Evidencia: 41 pruebas de integración/seguridad; suites de migración comprobadas (91 pruebas entre pasada general y repetición dirigida); 16 escenarios de navegador y 4 repeticiones finales del directorio en 360/390/768/1440; compilaciones web/portal, Svelte sin errores y ESLint del alcance correctos.
 - Evidencia y capturas: [supplier-ui-20260910](docs/evidence/supplier-ui-20260910/README.md).
 - Estado: desplegado en producción el 2026-09-10 a las 09:39 UTC desde `f70c21c`; verificador de producción superado, esquema 43 íntegro y recuentos comprobados conservados. Limpieza Docker: aproximadamente 19,4 GB liberados, caché de compilación vacía y versión anterior conservada para reversión. Este alcance no cambia el veredicto global de entrega.
-
 
 ## 2026-09-10 — Gestión Owner y selectores con búsqueda
 
@@ -747,3 +745,7 @@ Los pendientes externos, fiscales y de aceptación humana de la auditoría sigue
 - Evidencia y límites: [owner-crud-20260910](docs/evidence/owner-crud-20260910/README.md). Esta ampliación no modifica las aceptaciones externas históricas pendientes.
 
 - Estado de esta ampliación: commit `031077b` desplegado a las 10:49:09 UTC, esquema 44 íntegro y 19 recuentos de tablas conservados; verificador de producción superado. Caché Docker a cero tras liberar 6,828 GB. [Recibo de producción](docs/PRODUCTION_DEPLOYMENT_2026-09-10_OWNER_CRUD.md).
+
+### 2026-09-10 — Owner financial landing and management UI
+
+Explicit Owner follow-up implemented: currency-separated exact cash/receivable/payment overview, clickable monthly bars and status donuts with matching source filters, and explicit responsive Manage buttons/navigation. Evidence: `docs/evidence/owner-finance-20260910/README.md`. Eight financial tests, 235 security/invariant tests validated (including updated dependency mock rerun), 20 final browser scenarios across 360/390/768/1440, workspace typecheck, and Svelte check with zero errors. No migration or financial history mutation; existing contractual external acceptance items remain as recorded.

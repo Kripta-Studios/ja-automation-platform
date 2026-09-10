@@ -1123,6 +1123,7 @@
 
     {#if data.section === 'today'}
       <TodaySection
+        {locale}
         {base}
         {data}
         {availableProjects}

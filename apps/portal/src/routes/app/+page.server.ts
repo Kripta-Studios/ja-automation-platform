@@ -1,3 +1,5 @@
+import { readCashMovements } from '$lib/server/cash-calendar';
+import { ownerFinanceSummary } from '$lib/portal/owner-finance';
 import { redirect } from '@sveltejs/kit';
 import { base } from '$app/paths';
 import { openPortalRepository } from '$lib/server/portal-repository';
@@ -48,6 +50,17 @@ export const load: PageServerLoad = ({ locals, url }) => {
       searchQuery,
       searchResults,
       searchSuggestions,
+      ...(context.principal.role === 'owner_admin'
+        ? {
+            ownerFinance: ownerFinanceSummary(
+              readCashMovements(context),
+              new Date().toISOString().slice(0, 10),
+              context.repository
+                .listFinanceProjects(context.principal)
+                .map((project) => String(project.currency)),
+            ),
+          }
+        : {}),
       dashboard: isProjectManager ? projectManagerDashboardProjection(dashboard) : dashboard,
       projects: context.repository.listAssignedProjects(context.principal),
       records: context.repository.listApprovalQueue(context.principal),

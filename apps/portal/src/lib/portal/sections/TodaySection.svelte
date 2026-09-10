@@ -1,9 +1,11 @@
 <script lang="ts">
+  import OwnerFinanceDashboard from './OwnerFinanceDashboard.svelte';
   import type { PortalData, PortalRow } from '../portal-data';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
 
   let {
     base,
+    locale = 'en',
     data,
     availableProjects,
     online,
@@ -18,7 +20,8 @@
     canViewPendingReports = false,
   }: {
     base: string;
-    data: Pick<PortalData, 'dashboard' | 'records'>;
+    locale?: 'en' | 'es' | 'pt';
+    data: Pick<PortalData, 'dashboard' | 'records' | 'ownerFinance' | 'locale'>;
     availableProjects: PortalRow[];
     online: boolean;
     queue: number;
@@ -62,6 +65,10 @@
     return `${target.pathname}${target.search}${target.hash}`;
   }
 </script>
+
+{#if data.ownerFinance}
+  <OwnerFinanceDashboard summary={data.ownerFinance} {locale} {base} />
+{/if}
 
 {#if data.dashboard}
   <div class="dashboard-hero">

@@ -36,9 +36,9 @@ test('Owner management areas load and navigation remains usable', async ({ page 
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.keyboard.press('Escape');
   }
-  mkdirSync('docs/evidence/owner-crud-20260910', { recursive: true });
+  mkdirSync('docs/evidence/owner-finance-20260910', { recursive: true });
   await page.screenshot({
-    path: `docs/evidence/owner-crud-20260910/owner-management-${testInfo.project.name}.png`,
+    path: `docs/evidence/owner-finance-20260910/owner-management-${testInfo.project.name}.png`,
     fullPage: false,
   });
 });
@@ -51,10 +51,28 @@ for (const kind of ['project_milestone', 'technical_change'] as const) {
     const projectId = e2eLifecycleFixturesFor(testInfo.project.name).project.id;
     const name = `Owner management ${randomUUID()}`;
     await page.goto(portal(`/manage?area=${kind}&lang=en`));
-    await page.getByText('Add record', { exact: true }).click();
+    const activeArea = page
+      .getByRole('navigation', { name: 'Management areas' })
+      .locator('[aria-current="page"]');
+    await expect(activeArea).toHaveCount(1);
+    await expect(activeArea).toHaveAttribute('href', `?area=${kind}`);
+    const addRecord = page.getByText('Add record', { exact: true });
+    await expect(addRecord).toHaveCSS('border-top-style', 'solid');
+    expect(
+      await addRecord.evaluate((el) => el.getBoundingClientRect().height),
+    ).toBeGreaterThanOrEqual(44);
+    await addRecord.click();
     const create = page
       .locator('form[action^="?/manageCatalog"]')
       .filter({ has: page.locator('input[name="id"][value=""]') });
+    const save = create.getByRole('button', { name: 'Save changes' });
+    await expect(save).toHaveCSS('border-top-style', 'solid');
+    expect(await save.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe(
+      'rgba(0, 0, 0, 0)',
+    );
+    expect(await save.evaluate((el) => el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(
+      44,
+    );
     await create.locator('select[name="project_id"]').selectOption(projectId);
     await create
       .locator(`input[name="${kind === 'project_milestone' ? 'name' : 'component'}"]`)

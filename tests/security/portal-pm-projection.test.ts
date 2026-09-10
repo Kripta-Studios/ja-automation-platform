@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { openPortalRepository } = vi.hoisted(() => ({ openPortalRepository: vi.fn() }));
+const { openPortalRepository, readCashMovements } = vi.hoisted(() => ({
+  openPortalRepository: vi.fn(),
+  readCashMovements: vi.fn(() => []),
+}));
 
 vi.mock('$lib/server/portal-repository', () => ({ openPortalRepository }));
+vi.mock('$lib/server/cash-calendar', () => ({ readCashMovements }));
 
 import {
   projectManagerApprovalQueueProjection,
@@ -61,6 +65,7 @@ function rootLoaderContext(role: string) {
         pendingReports: 1,
         upcomingInvoiceMinor: '900719925474099301',
       })),
+      listFinanceProjects: vi.fn(() => []),
       listAssignedProjects: vi.fn(() => []),
       listApprovalQueue: vi.fn(() => []),
       listPlanning: vi.fn(() => []),
@@ -85,7 +90,10 @@ async function callRootLoader(role: string) {
 }
 
 describe('project-manager portal serialization', () => {
-  beforeEach(() => openPortalRepository.mockReset());
+  beforeEach(() => {
+    openPortalRepository.mockReset();
+    readCashMovements.mockClear();
+  });
 
   it('keeps the PM dashboard operational and omits every monetary or invoice total', () => {
     const projected = projectManagerDashboardProjection({
@@ -313,6 +321,8 @@ describe('project-manager portal serialization', () => {
       },
     ];
 
+    expect(loaded).not.toHaveProperty('ownerFinance');
+    expect(readCashMovements).not.toHaveBeenCalled();
     expect(loaded.searchResults).toEqual(expected);
     expect(loaded.searchSuggestions).toEqual(expected);
     expect(loaded.dashboard).toEqual({
@@ -335,6 +345,8 @@ describe('project-manager portal serialization', () => {
     async (role) => {
       const loaded = (await callRootLoader(role)) as Record<string, unknown>;
 
+      expect(readCashMovements).toHaveBeenCalledOnce();
+      expect(loaded).toHaveProperty('ownerFinance');
       expect(loaded.searchResults).toEqual([
         operationalSearchRow,
         financeSearchRow,

@@ -69,7 +69,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
     })();
     const common = {
       workers:
-        context.principal.role === 'owner_admin' &&
+        ['owner_admin', 'project_manager'].includes(context.principal.role) &&
         ['time', 'expenses', 'reports'].includes(section)
           ? context.repository
               .listAllWorkers(context.principal)
@@ -161,6 +161,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           records: context.repository.listTimeForScope(context.principal, {
             category,
             projectId,
+            from: url.searchParams.get('from') || undefined,
+            to: url.searchParams.get('to') || undefined,
           }),
           timeFilter: { category: category ?? '', projectId: projectId ?? '' },
           weekStart,
@@ -330,6 +332,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             context.principal.role !== 'worker'
               ? context.repository.listAllWorkers(context.principal)
               : [],
+          suppliers: canonicalOwner ? context.sqlite.prepare("SELECT id,name FROM supplier WHERE status='active' ORDER BY name").all() : [],
           mailboxes,
           mailboxesUnavailable,
           mailboxDirectoryStatus: mailboxesUnavailable ? 'unavailable' : 'ready',

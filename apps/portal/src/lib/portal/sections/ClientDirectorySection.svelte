@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { base } from '$app/paths';
+  import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { SectionCard, StatusBadge } from '../ui';
   import type { PortalRow } from '../portal-data';
 
@@ -113,6 +115,7 @@
   }
 
   const visibleClients = $derived((clients ?? []).filter(matches));
+  let clientPage = $state<typeof visibleClients>([]);
 </script>
 
 <div class="client-directory" data-client-directory>
@@ -141,7 +144,8 @@
   </form>
 
   <div class="client-directory__list">
-    {#each visibleClients as client}
+    <RecordBrowser rows={visibleClients} bind:visible={clientPage} {translate} label="ClientDirectory" />
+    {#each clientPage as client}
       {@const clientId = id(client)}
       {@const relatedContacts = clientContacts(client)}
       {@const relatedProjects = clientProjects(client)}
@@ -164,6 +168,12 @@
           <StatusBadge variant={clientStatus(client)} text={statusLabel(client)} />
         </div>
 
+        {#if canManageContacts}
+          <div class="directory-actions">
+            <a class="secondary-button" href={`${base}/app/projects?action=update-client&client=${encodeURIComponent(clientId)}`}>{translate('Edit client')}</a>
+            <a class="secondary-button" href={`${base}/app/projects?action=new-project&client=${encodeURIComponent(clientId)}`}>{translate('New Project')}</a>
+          </div>
+        {/if}
         <dl class="client-directory__facts">
           {#if value(client, 'billing_address')}
             <div>

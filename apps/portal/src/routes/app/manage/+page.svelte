@@ -1,4 +1,5 @@
 <script lang="ts">
+  import RecordBrowser from '$lib/portal/ui/RecordBrowser.svelte';
   import { base } from '$app/paths';
   import { portalText, normalizePortalLocale } from '$lib/portal-i18n';
   import { SectionCard, StatusBadge } from '$lib/portal/ui';
@@ -44,6 +45,8 @@
     const value = String(row?.[name] ?? '');
     return type === 'datetime-local' ? value.slice(0, 16) : value;
   }
+  let catalogPage = $state<typeof data.catalogRows>([]);
+  let recordPage = $state<typeof data.records>([]);
 </script>
 
 <svelte:head><title>{t('Data management')} · J&amp;A</title></svelte:head>
@@ -77,7 +80,8 @@
           <summary>{t('Add record')}</summary>{@render catalogForm(null)}
         </details>{/if}
       <div class="management-records">
-        {#each data.catalogRows as row}
+        <RecordBrowser rows={data.catalogRows} bind:visible={catalogPage} translate={t} label="Records" />
+        {#each catalogPage as row}
           <article>
             <h2>
               {String(
@@ -94,7 +98,7 @@
                 row.status ?? row.approval_state ?? row.availability ?? '',
               )}
             </p>
-            <details open={Boolean(form && 'recordId' in form && form.recordId === row.id)}>
+            <details open={data.focusId === row.id || Boolean(form && 'recordId' in form && form.recordId === row.id)}>
               <summary>{t('Edit')}</summary>{@render catalogForm(row)}
             </details>
           </article>
@@ -116,7 +120,8 @@
         >
       </div>
       <div class="management-records">
-        {#each records as row}
+        <RecordBrowser rows={records} bind:visible={recordPage} translate={t} label="Operational records" />
+        {#each recordPage as row}
           <article id={String(row.id)}>
             <header>
               <strong

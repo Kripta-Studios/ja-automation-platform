@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -17,6 +18,57 @@ function fixture(): B5LifecycleSecurityFixture {
 }
 
 describe('B5 effective membership (RED characterization)', () => {
+  it('lets an in-scope project manager record work for an assigned worker', () => {
+    const value = fixture();
+    const manager = stepUpB5Principal(value.sqlite, value.manager, 'delegated-entry');
+    const time = value.repository.createTimeEntry(
+      manager,
+      {
+        projectId: value.project.id,
+        workDate: '2026-08-18',
+        category: 'regular',
+        minutes: 60,
+        summary: 'PM delegated time',
+      },
+      'b5-worker',
+    );
+    const expense = value.repository.createExpense(
+      manager,
+      {
+        projectId: value.project.id,
+        spentOn: '2026-08-18',
+        vendor: 'PM delegated vendor',
+        category: 'travel',
+        description: 'PM delegated expense',
+        currency: 'EUR',
+        amountMinor: 100n,
+        whoPaid: 'worker',
+        receiptRequired: false,
+      },
+      'b5-worker',
+    );
+    expect(value.repository.timeDetail(manager, time.id)).toEqual(
+      expect.objectContaining({ worker_id: 'b5-worker' }),
+    );
+    expect(value.repository.expenseDetail(manager, expense.id)).toEqual(
+      expect.objectContaining({ worker_id: 'b5-worker' }),
+    );
+    const outOfScope = { ...manager, projectIds: new Set<string>() };
+    expect(() =>
+      value.repository.createTimeEntry(
+        outOfScope,
+        {
+          projectId: value.project.id,
+          workDate: '2026-08-18',
+          category: 'regular',
+          minutes: 60,
+          summary: 'Must be denied',
+        },
+        'b5-worker',
+      ),
+    ).toThrow();
+  });
+
   it('does not put a future assignment into the current principal project set', () => {
     const value = fixture();
     value.sqlite

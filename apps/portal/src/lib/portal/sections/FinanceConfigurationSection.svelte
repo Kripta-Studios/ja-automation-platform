@@ -92,9 +92,12 @@
     !isAuditor && policyWriteRoles.includes(String(data.user.role)),
   );
   let overtimeEnabled = $state(true);
+  const configurationActions = ['Project issuing authority', 'Project commercial and time policy', 'Compensation statement rules', 'Client labor rates', 'Assignment budget context / internal loaded cost', 'Settlement status', 'Worker compensation', 'Client labor rate', 'Internal loaded cost'];
+  let selectedAction = $state(configurationActions[0]);
 </script>
 
 <FormCard title={translate('Finance configuration')} class="finance-config-panel">
+  <nav class="project-workflow-actions" aria-label={translate('Finance configuration')}>{#each configurationActions as action}<button type="button" class="secondary-button" aria-pressed={selectedAction === action} onclick={() => selectedAction = action}>{translate(action)}</button>{/each}</nav>
   <div class="finance-config-intro">
     <div>
       <p class="portal-kicker">{translate('Commercial policies')}</p>
@@ -110,7 +113,8 @@
       >{translate('Commercial agreement and example')} <span aria-hidden="true">↗</span></a
     >
   </div>
-  <FormSection
+  {#if selectedAction === 'Project issuing authority'}
+<FormSection
     title={translate('Project issuing authority')}
     description={translate(
       'Choose the reviewed legal-entity revision that will issue invoices for this project. Previous assignments remain visible as immutable history.',
@@ -238,8 +242,10 @@
       </p>
     {/if}
   </FormSection>
+{/if}
   <!-- project-commercial-policy-start -->
-  <FormSection
+  {#if selectedAction === 'Project commercial and time policy'}
+<FormSection
     title={translate('Project commercial and time policy')}
     description={translate(
       'Configure effective-dated interpretation for eligible time and billing readiness. This is project configuration, not worker data entry.',
@@ -402,10 +408,12 @@
       </p>
     {/if}
   </FormSection>
+{/if}
   <!-- project-commercial-policy-end -->
   {#if !isAuditor}
     <div class="management-stack compact-stack finance-rule-registers">
-      <FormSection title={translate('Compensation statement rules')}>
+      {#if selectedAction === 'Compensation statement rules'}
+<FormSection title={translate('Compensation statement rules')}>
         <p class="muted">
           {translate(
             'Existing rules are historical records. Edit by superseding the selected record; deactivate only ends its future applicability.',
@@ -566,8 +574,10 @@
           <p class="muted">{translate('No compensation rules are configured for this project.')}</p>
         {/if}
       </FormSection>
+{/if}
 
-      <FormSection title={translate('Client labor rates')}>
+      {#if selectedAction === 'Client labor rates'}
+<FormSection title={translate('Client labor rates')}>
         <p class="muted">
           {translate('Rates are resolved by project, worker, category, and effective date.')}
         </p>
@@ -695,8 +705,10 @@
           <p class="muted">{translate('No client labor rates are configured for this project.')}</p>
         {/if}
       </FormSection>
+{/if}
 
-      <FormSection title={translate('Assignment budget context / internal loaded cost')}>
+      {#if selectedAction === 'Assignment budget context / internal loaded cost'}
+<FormSection title={translate('Assignment budget context / internal loaded cost')}>
         <p class="muted">{translate('Worker cost rules remain effective-dated and auditable.')}</p>
         {#if data.internalCostRules?.length}
           <div class="record-list" aria-label={translate('Internal cost rules')}>
@@ -811,8 +823,10 @@
           </p>
         {/if}
       </FormSection>
+{/if}
     </div>
-    <FormSection title={translate('Settlement status')}>
+    {#if selectedAction === 'Settlement status'}
+<FormSection title={translate('Settlement status')}>
       <p class="muted">
         {translate(
           'Settlements are immutable financial snapshots. Correct a period by creating a new effective rule or reconciliation record; finalized settlements are never deleted.',
@@ -905,10 +919,12 @@
         <div class="form-actions"><button>{translate('Generate settlement snapshot')}</button></div>
       </form>
     </FormSection>
+{/if}
   {/if}
   {#if !isAuditor}
     <div class="management-stack compact-stack">
-      <FormSection title={translate('Worker compensation')}>
+      {#if selectedAction === 'Worker compensation'}
+<FormSection title={translate('Worker compensation')}>
         <form
           method="POST"
           action="?/createCompensationRule"
@@ -1070,8 +1086,10 @@
           </div>
         </form>
       </FormSection>
+{/if}
 
-      <FormSection title={translate('Client labor rate')}>
+      {#if selectedAction === 'Client labor rate'}
+<FormSection title={translate('Client labor rate')}>
         <form
           method="POST"
           action="?/createClientLaborRate"
@@ -1181,8 +1199,10 @@
           </div>
         </form>
       </FormSection>
+{/if}
 
-      <FormSection title={translate('Internal loaded cost')}>
+      {#if selectedAction === 'Internal loaded cost'}
+<FormSection title={translate('Internal loaded cost')}>
         <form
           method="POST"
           action="?/createInternalCostRule"
@@ -1276,6 +1296,7 @@
           </div>
         </form>
       </FormSection>
+{/if}
     </div>
   {/if}
 </FormCard>

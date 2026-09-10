@@ -109,11 +109,7 @@ it('adds coherent financial history, quarantines delivery and never recreates re
           "SELECT failed_at,delivered_at,last_error FROM outbox_event WHERE topic='invoice.issued' AND aggregate_id=?",
         )
         .get(id),
-    ).toEqual({
-      failed_at: expect.any(String),
-      delivered_at: null,
-      last_error: 'DEMO_TRAINING_NO_EXTERNAL_DELIVERY',
-    });
+    ).toBeUndefined();
   const batchTime = new Set(result.ids.time),
     batchExpenses = new Set(result.ids.expenses);
   for (const id of result.ids.invoices!)
@@ -141,12 +137,7 @@ it('adds coherent financial history, quarantines delivery and never recreates re
       "SELECT failed_at,last_error FROM outbox_event WHERE topic='notification.email.requested'",
     )
     .all();
-  expect(emails.length).toBeGreaterThan(0);
-  for (const email of emails)
-    expect(email).toEqual({
-      failed_at: expect.any(String),
-      last_error: 'DEMO_TRAINING_NO_EXTERNAL_DELIVERY',
-    });
+  expect(emails).toEqual([]);
   const normalTime = f.repository.createTimeEntry(
     f.owner,
     {
@@ -166,7 +157,7 @@ it('adds coherent financial history, quarantines delivery and never recreates re
         "SELECT 1 FROM outbox_event WHERE topic='notification.email.requested' AND failed_at IS NULL AND payload_json LIKE ?",
       )
       .get(`%${normalTime.id}%`),
-  ).toBeTruthy();
+  ).toBeUndefined();
   // A later rename must not make reruns recreate content or fail discovery.
   f.sqlite
     .prepare(

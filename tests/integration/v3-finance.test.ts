@@ -1097,7 +1097,7 @@ describe('V3 finance and privacy paths', () => {
         'public-inquiry.received',
         'inquiry-1',
         'outbox-key-1',
-        JSON.stringify({ inquiryId: 'inquiry-1', kind: 'contact' }),
+        JSON.stringify({ inquiryId: 'inquiry-1', kind: 'contact', emailConfirmed: true }),
         now,
         now,
       );
@@ -1105,7 +1105,11 @@ describe('V3 finance and privacy paths', () => {
     await expect(
       v3.runDueOutbox(10, async (event) => {
         received.push(event.idempotencyKey);
-        expect(event.payload).toEqual({ inquiryId: 'inquiry-1', kind: 'contact' });
+        expect(event.payload).toEqual({
+          inquiryId: 'inquiry-1',
+          kind: 'contact',
+          emailConfirmed: true,
+        });
       }),
     ).resolves.toMatchObject({ processed: 1, failed: 0, permanentlyFailed: 0 });
     expect(received).toEqual(['outbox-key-1']);

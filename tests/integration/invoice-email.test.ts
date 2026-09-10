@@ -159,6 +159,7 @@ describe('explicit invoice email lifecycle', () => {
     );
     expect(() =>
       queueInvoiceEmail(sqlite, finance, {
+        emailConfirmed: true,
         invoiceId: original.id,
         recipient: 'billing@example.test',
       }),
@@ -167,6 +168,7 @@ describe('explicit invoice email lifecycle', () => {
     repository.issueInvoice(finance, original.id);
     expect(() =>
       queueInvoiceEmail(sqlite, finance, {
+        emailConfirmed: true,
         invoiceId: original.id,
         recipient: 'billing@example.test',
       }),
@@ -179,7 +181,11 @@ describe('explicit invoice email lifecycle', () => {
     const oldRoot = process.env.JA_DOCUMENT_ROOT;
     process.env.JA_DOCUMENT_ROOT = directory;
     try {
-      const input = { invoiceId: original.id, recipient: 'billing@example.test' };
+      const input = {
+        emailConfirmed: true,
+        invoiceId: original.id,
+        recipient: 'billing@example.test',
+      };
       expect(() => queueInvoiceEmail(sqlite, { ...finance, sessionId: undefined }, input)).toThrow(
         /session/,
       );
@@ -201,6 +207,12 @@ describe('explicit invoice email lifecycle', () => {
       writeFileSync(join(directory, 'invoices/email.pdf'), 'corrupt');
       expect(() => queueInvoiceEmail(sqlite, finance, input)).toThrow(/integrity/);
       writeFileSync(join(directory, 'invoices/email.pdf'), bytes);
+      expect(() => queueInvoiceEmail(sqlite, finance, { ...input, emailConfirmed: false })).toThrow(
+        /confirmation/,
+      );
+      expect(() =>
+        queueInvoiceEmail(sqlite, finance, { ...input, emailConfirmed: undefined }),
+      ).toThrow(/confirmation/);
       const queued = queueInvoiceEmail(sqlite, finance, input);
       expect(queued.status).toBe('queued');
       expect(queueInvoiceEmail(sqlite, finance, input)).toEqual(queued);
@@ -275,9 +287,35 @@ describe('explicit invoice email lifecycle', () => {
         sqlite.prepare('SELECT sent_at FROM invoice WHERE id=?').get(original.id)?.sent_at,
       ).toBeTruthy();
       expect(queueInvoiceEmail(sqlite, finance, input).status).toBe('accepted');
-      expect(listInvoiceEmailDeliveries(sqlite, finance)).toMatchObject([
-        { invoiceId: original.id, status: 'accepted' },
-      ]);
+      const legacyInput = { ...input, recipient: 'legacy@example.test' };
+      const legacy = queueInvoiceEmail(sqlite, finance, legacyInput);
+      sqlite
+        .prepare(
+          "UPDATE outbox_event SET payload_json=json_remove(payload_json,'$.emailConfirmed') WHERE id=?",
+        )
+        .run(legacy.id);
+      const reconfirmed = queueInvoiceEmail(sqlite, finance, legacyInput);
+      expect(reconfirmed.id).not.toBe(legacy.id);
+      expect(reconfirmed.status).toBe('queued');
+      expect(queueInvoiceEmail(sqlite, finance, legacyInput)).toEqual(reconfirmed);
+      expect(
+        sqlite.prepare('SELECT last_error FROM outbox_event WHERE id=?').get(legacy.id),
+      ).toEqual({ last_error: 'EMAIL_NOT_CONFIRMED' });
+      sqlite
+        .prepare(
+          "UPDATE outbox_event SET payload_json=json_remove(payload_json,'$.emailConfirmed'),last_error='SMTP_DELIVERY_UNCERTAIN',failed_at=? WHERE id=?",
+        )
+        .run(new Date().toISOString(), reconfirmed.id);
+      expect(queueInvoiceEmail(sqlite, finance, legacyInput)).toMatchObject({
+        id: reconfirmed.id,
+        status: 'uncertain',
+      });
+
+      expect(
+        listInvoiceEmailDeliveries(sqlite, finance).filter(
+          (row) => row.recipient === input.recipient,
+        ),
+      ).toMatchObject([{ invoiceId: original.id, status: 'accepted' }]);
       expect(
         sqlite
           .prepare("SELECT count(*) n FROM invoice_event WHERE invoice_id=? AND event_type='sent'")

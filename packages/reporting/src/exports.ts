@@ -2794,6 +2794,8 @@ export function technicalReportPdf(snapshot: TechnicalReportSnapshot): Uint8Arra
   const changeFields = technicalReportChangeFields(snapshot);
   const fields = [
     reportField(copy.project, project.title),
+    reportField(copy.worker, snapshot.workerName ?? snapshot.worker_name ?? snapshot.author_name),
+    reportField(locale === 'es' ? 'Correo del autor' : locale === 'pt' ? 'E-mail do autor' : 'Author email', snapshot.worker_email ?? snapshot.author_email),
     reportField(copy.client, project.clientName),
     reportField(copy.date, formatReportDate(date, locale)),
     reportField(copy.system, snapshot.system ?? snapshot.systemName ?? snapshot.system_name),

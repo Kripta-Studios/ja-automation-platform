@@ -93,10 +93,23 @@ function action(operation: string): Actions[string] {
       const optional = (key: string) => text(key) || undefined;
       switch (operation) {
         case 'createSupplier':
-          ctx.supplier.createSupplier(ctx.principal, { name: text('name') });
+          ctx.supplier.createSupplier(ctx.principal, {
+            name: text('name'),
+            contactEmail: optional('contactEmail'),
+            phone: optional('phone'),
+            address: optional('address'),
+            notes: optional('notes'),
+          });
           break;
         case 'updateSupplier':
-          ctx.supplier.updateSupplier(ctx.principal, { id: text('id'), name: text('name') });
+          ctx.supplier.updateSupplier(ctx.principal, {
+            id: text('id'),
+            name: text('name'),
+            contactEmail: optional('contactEmail'),
+            phone: optional('phone'),
+            address: optional('address'),
+            notes: optional('notes'),
+          });
           break;
         case 'setSupplierStatus':
           if (text('confirmed') !== 'yes') return fail(400, { success: false, operation, values });
@@ -107,6 +120,10 @@ function action(operation: string): Actions[string] {
             id: text('id'),
             name: text('name'),
             email: optional('email'),
+            phone: optional('phone'),
+            company: optional('company'),
+            contactName: optional('contactName'),
+            notes: optional('notes'),
           });
           break;
         case 'setTechnicianStatus':
@@ -145,6 +162,10 @@ function action(operation: string): Actions[string] {
             projectId: text('projectId'),
             name: text('name'),
             email: optional('email'),
+            phone: optional('phone'),
+            company: optional('company'),
+            contactName: optional('contactName'),
+            notes: optional('notes'),
             startsOn: text('startsOn'),
             endsOn: optional('endsOn'),
           });

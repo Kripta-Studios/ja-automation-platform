@@ -87,7 +87,8 @@ describe('ASTRA effective missing-time notifications', () => {
     const value = fixture();
     const workDate = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
     value.v3.enqueueJob('alert_dispatch', `missing-time-reminder:${workDate}`, {
-      alertType: 'missing_time', workDate,
+      alertType: 'missing_time',
+      workDate,
     });
     expect(() => value.v3.scheduleCoreJobs()).not.toThrow();
     expect(() => value.v3.scheduleCoreJobs()).not.toThrow();
@@ -146,10 +147,9 @@ describe('ASTRA effective missing-time notifications', () => {
           "SELECT COUNT(*) count FROM outbox_event WHERE topic='notification.email.requested'",
         )
         .get() as { count: number },
-    ).toEqual({ count: 1 });
+    ).toEqual({ count: 0 });
 
-    // A legacy notification can survive an interrupted outbox write.  The
-    // next scan repairs that delivery row without creating a second notice.
+    // Re-scanning a legacy notice never recreates an email delivery.
     value.sqlite
       .prepare("DELETE FROM outbox_event WHERE topic='notification.email.requested'")
       .run();
@@ -160,7 +160,7 @@ describe('ASTRA effective missing-time notifications', () => {
           "SELECT COUNT(*) count FROM outbox_event WHERE topic='notification.email.requested'",
         )
         .get() as { count: number },
-    ).toEqual({ count: 1 });
+    ).toEqual({ count: 0 });
     expect(
       notifications(value, 'b5-worker').filter((row) => row.subject_id.endsWith(':2026-08-09')),
     ).toHaveLength(1);
@@ -420,15 +420,7 @@ describe('ASTRA scoped business notifications', () => {
     const payloads = value.sqlite
       .prepare("SELECT payload_json FROM outbox_event WHERE topic='notification.email.requested'")
       .all() as Array<{ payload_json: string }>;
-    for (const row of payloads) {
-      const payload = JSON.parse(row.payload_json) as Record<string, unknown>;
-      expect(Object.keys(payload).sort()).toEqual([
-        'kind',
-        'notificationId',
-        'subjectId',
-        'userId',
-      ]);
-    }
+    expect(payloads).toEqual([]);
   });
 
   it('covers period, signature, overdue, receipt, budget, cap, and worker payment triggers', () => {

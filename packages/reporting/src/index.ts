@@ -120,3 +120,5 @@ export function periodReadiness(input: {
   if (input.unapproved) reasons.push({ code: 'unapproved_records' });
   return reasons.length ? { state: 'incomplete', reasons } : { state: 'ready', reasons: [] };
 }
+
+export { expenseRegisterRows, expenseRegisterExport } from './expense-register.ts';

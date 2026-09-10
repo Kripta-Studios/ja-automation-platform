@@ -85,7 +85,10 @@ export const clientInputSchema = z
     currency: currencySchema,
     timezone: z.string().trim().min(1).max(100),
     billingEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
-    billingContactName: z.string().trim().min(2).max(160).optional(),
+    billingContactName: z.preprocess(
+      (value) => typeof value === 'string' && !value.trim() ? undefined : value,
+      z.string().trim().min(2).max(160).optional(),
+    ),
     billingAddress: z.string().trim().min(5).max(2000),
     paymentTermsDays: z.coerce.number().int().min(0).max(365).default(30),
     poReference: z.string().trim().max(200).optional(),

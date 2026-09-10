@@ -17,6 +17,12 @@
     email: string;
     hasLogin: number;
     status: string;
+    phone: string;
+    company: string;
+    contactName: string;
+    notes: string;
+    contactEmail: string;
+    address: string;
   };
   let editor = $state<Editor | null>(
     untrack(() =>
@@ -32,6 +38,12 @@
             email: form.values?.email ?? '',
             hasLogin: Number(data.directory.find((t) => t.id === form.values?.id)?.hasLogin ?? 0),
             status: form.values?.status ?? '',
+            phone: form.values?.phone ?? '',
+            company: form.values?.company ?? '',
+            contactName: form.values?.contactName ?? '',
+            notes: form.values?.notes ?? '',
+            contactEmail: form.values?.contactEmail ?? '',
+            address: form.values?.address ?? '',
           }
         : null,
     ),
@@ -51,6 +63,12 @@
       email: row.email ?? '',
       hasLogin: row.hasLogin ?? 0,
       status: '',
+      phone: String((row as typeof row & { phone?: string }).phone ?? ''),
+      company: String((row as typeof row & { company?: string }).company ?? ''),
+      contactName: String((row as typeof row & { contactName?: string }).contactName ?? ''),
+      notes: String((row as typeof row & { notes?: string }).notes ?? ''),
+      contactEmail: String((row as typeof row & { contactEmail?: string }).contactEmail ?? ''),
+      address: String((row as typeof row & { address?: string }).address ?? ''),
     };
   }
   function changeStatus(operation: string, row: { id: string; name: string }, status: string) {
@@ -124,7 +142,7 @@
       </div>
       <h3>{c.assigned}</h3>
       <div class="supplier-directory">
-        {#each data.directory.filter( (t) => matches(`${t.name} ${t.email} ${t.supplierName}`, t.status), ) as technician}
+        {#each data.directory.filter( (t) => matches(`${t.name} ${t.email} ${t.supplierName} ${t.company ?? ''} ${t.contactName ?? ''} ${t.phone ?? ''} ${t.notes ?? ''}`, t.status), ) as technician}
           <article class="directory-record" data-technician-id={technician.id}>
             <div class="directory-identity">
               <strong>{technician.name}</strong><span class="muted">{technician.supplierName}</span
@@ -132,6 +150,7 @@
                 variant={technician.status === 'active' ? 'success' : 'neutral'}
                 text={technician.status === 'active' ? m.active : m.inactive}
               />
+              {#if technician.company || technician.contactName || technician.phone}<small class="muted">{[technician.company, technician.contactName, technician.phone].filter(Boolean).join(' · ')}</small>{/if}
             </div>
             <div class="directory-actions">
               <button
@@ -183,7 +202,7 @@
         {#if form && !form.success && form.operation === editor.operation}<p role="alert">
             {standaloneActionMessage(data.locale, form)}
           </p>{/if}
-        {#if editor.operation.startsWith('update')}
+          {#if editor.operation.startsWith('update')}
           <label data-ui="field"
             >{c.name}<input
               name="name"
@@ -203,6 +222,18 @@
               /></label
             >
             {#if editor.hasLogin}<p class="muted">{m.loginEmail}</p>{/if}
+          {/if}
+          {#if editor.operation === 'updateTechnician'}
+            <label data-ui="field">{c.phone}<input name="phone" bind:value={editor.phone} maxlength="80" /></label>
+            <label data-ui="field">{c.company}<input name="company" bind:value={editor.company} maxlength="200" /></label>
+            <label data-ui="field">{c.contactName}<input name="contactName" bind:value={editor.contactName} maxlength="160" /></label>
+            <label data-ui="field">{c.notes}<textarea name="notes" bind:value={editor.notes} maxlength="5000"></textarea></label>
+          {/if}
+          {#if editor.operation === 'updateSupplier'}
+            <label data-ui="field">{c.email}<input name="contactEmail" type="email" bind:value={editor.contactEmail} maxlength="254" /></label>
+            <label data-ui="field">{c.phone}<input name="phone" bind:value={editor.phone} maxlength="80" /></label>
+            <label data-ui="field">{c.address}<input name="address" bind:value={editor.address} maxlength="500" /></label>
+            <label data-ui="field">{c.notes}<textarea name="notes" bind:value={editor.notes} maxlength="5000"></textarea></label>
           {/if}
         {:else}
           <input type="hidden" name="status" value={editor.status} />
@@ -317,7 +348,12 @@
             maxlength="160"
             value={value('createSupplier', 'name')}
           /></label
-        ><button class="primary-button">{c.createProvider}</button>
+        >
+        <label data-ui="field">{c.email}<input name="contactEmail" type="email" maxlength="254" value={value('createSupplier', 'contactEmail')} /></label>
+        <label data-ui="field">{c.phone}<input name="phone" maxlength="80" value={value('createSupplier', 'phone')} /></label>
+        <label data-ui="field">{c.address}<input name="address" maxlength="500" value={value('createSupplier', 'address')} /></label>
+        <label data-ui="field">{c.notes}<textarea name="notes" maxlength="5000">{value('createSupplier', 'notes')}</textarea></label>
+        <button class="primary-button">{c.createProvider}</button>
       </form></SectionCard
     >
     <SectionCard title={c.owner}>
@@ -405,6 +441,10 @@
             value={value('addTechnician', 'email')}
           /></label
         >
+        <label data-ui="field">{c.phone}<input name="phone" maxlength="80" value={value('addTechnician', 'phone')} /></label>
+        <label data-ui="field">{c.company}<input name="company" maxlength="200" value={value('addTechnician', 'company')} /></label>
+        <label data-ui="field">{c.contactName}<input name="contactName" maxlength="160" value={value('addTechnician', 'contactName')} /></label>
+        <label data-ui="field">{c.notes}<textarea name="notes" maxlength="5000">{value('addTechnician', 'notes')}</textarea></label>
         {@render dates('addTechnician')}<button class="primary-button">{c.add}</button>
       </form>
     </SectionCard>

@@ -9,8 +9,10 @@ import {
   SYNTHETIC_OWNER_DEPLOYMENT_ID,
   SYNTHETIC_OWNER_EMAIL,
   SYNTHETIC_OWNER_TENANT_ID,
+  SupplierWorkforceRepository,
 } from '@ja/database';
 import { StalwartOperationRejectedError } from '$lib/server/stalwart-client';
+import { hashPortalPassword } from '$lib/server/webmail-password';
 
 function openAccessContext(locals: PortalActionEvent['locals']) {
   try {
@@ -38,6 +40,69 @@ function requireOwner(event: PortalActionEvent): ReturnType<typeof actionFail> |
 }
 
 export const accessActions = {
+  createLocalPortalUser: async (event: PortalActionEvent) => {
+    const { locals, request, params } = event;
+    if (params.section !== 'projects')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const authorizationFailure = requireOwner(event);
+    if (authorizationFailure) return authorizationFailure;
+    const object = await formObject(request);
+    const name = typeof object.name === 'string' ? object.name : '';
+    const email = typeof object.email === 'string' ? object.email : '';
+    const password = typeof object.password === 'string' ? object.password : '';
+    const accessRole = typeof object.role === 'string' ? object.role : '';
+    const supplierId = typeof object.supplierId === 'string' ? object.supplierId : undefined;
+    if (!name.trim() || password.length < 12 || password.length > 128)
+      return actionFail(
+        400,
+        'action.validation.localProvision',
+        {},
+        'Name and a 12–128 character password are required',
+      );
+    const roleMap = {
+      worker: { role: 'worker' as const },
+      project_manager: { role: 'project_manager' as const },
+      finance_admin: { role: 'finance_admin' as const },
+      supplier_coordinator: { role: 'worker' as const, supplierProfile: 'supplier_coordinator' as const },
+      external_technician: { role: 'worker' as const, supplierProfile: 'external_technician' as const },
+    };
+    const mapped = roleMap[accessRole as keyof typeof roleMap];
+    if (!mapped)
+      return actionFail(400, 'action.validation.localProvision', {}, 'Choose a valid access role');
+    const supplierProfile = 'supplierProfile' in mapped ? mapped.supplierProfile : undefined;
+    if (supplierProfile && !supplierId?.trim())
+      return actionFail(400, 'action.validation.localProvision', {}, 'Select the supplier');
+    const opened = openAccessContext(locals);
+    if ('failure' in opened) return opened.failure;
+    try {
+      // Better Auth's configured crypto is the only password implementation.
+      // The resulting hash is passed to the transaction; plaintext is never
+      // returned, recorded, or placed in an audit payload.
+      const passwordHash = await hashPortalPassword(password);
+      const workforce = new SupplierWorkforceRepository(opened.context.sqlite);
+      const created = workforce.provisionLocalPortalAccount(opened.context.principal, {
+        name,
+        email,
+        passwordHash,
+        role: mapped.role,
+        supplierProfile,
+        supplierId,
+        phone: typeof object.phone === 'string' ? object.phone : undefined,
+        company: typeof object.company === 'string' ? object.company : undefined,
+        contactName: typeof object.contactName === 'string' ? object.contactName : undefined,
+        notes: typeof object.notes === 'string' ? object.notes : undefined,
+      });
+      return actionSuccess(
+        'action.access.localAccount.provisioned',
+        { userId: created.userId, role: accessRole },
+        'Local portal access created',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      opened.context.sqlite.close();
+    }
+  },
   createInvitation: async (event: PortalActionEvent) => {
     const { locals, request, params } = event;
     if (params.section !== 'projects')
@@ -50,12 +115,19 @@ export const accessActions = {
       return actionFail(400, 'action.validation.invitation', {}, 'Invalid invitation', {
         fields: parsed.error.flatten().fieldErrors,
       });
+    if (!['yes', 'no'].includes(String(object.emailChoice)))
+      return actionFail(
+        400,
+        'action.validation.invalid',
+        {},
+        'Choose whether to send the invitation email.',
+      );
     const opened = openAccessContext(locals);
     if ('failure' in opened) return opened.failure;
     try {
       const result = opened.context.v3.createInvitation(
         opened.context.principal,
-        parsed.data,
+        { ...parsed.data, emailConfirmed: object.emailChoice === 'yes' },
         (token, id) => sealInvitationToken(token, id, process.env.JA_AUTH_SECRET),
       );
       const publicBase = process.env.JA_PUBLIC_BASE_PATH ?? '/j-aautomation';

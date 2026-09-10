@@ -22,6 +22,10 @@ async function verifyForms(page: Page) {
   }
 }
 
+async function expectSaved(page: Page): Promise<void> {
+  await expect(page.getByText('Changes saved.', { exact: true }).first()).toBeVisible();
+}
+
 test('Owner delegates installation; supplier adds technician and submits private operational hours', async ({
   page,
   browser,
@@ -92,36 +96,36 @@ test('Owner delegates installation; supplier adds technician and submits private
   if (!existingSupplier) {
     await create.getByLabel('Name', { exact: true }).fill(supplierName);
     await create.getByRole('button').click();
-    await expect(page.getByRole('status')).toHaveText('Changes saved.');
+    await expectSaved(page);
   }
   const profile = page.locator('form[action^="?/setProfile"]');
   await profile.locator('[name=userId]').selectOption(coordinatorId);
   await profile.locator('[name=supplierId]').selectOption({ label: supplierName });
   await profile.locator('[name=profile]').selectOption('supplier_coordinator');
   await profile.getByRole('button').click();
-  await expect(page.getByRole('status')).toHaveText('Changes saved.');
+  await expectSaved(page);
   const grant = page.locator('form[action^="?/grant"]');
   await grant.locator('[name=supplierId]').selectOption({ label: supplierName });
   await grant.locator('[name=projectId]').selectOption(projectId);
   await grant.locator('[name=coordinatorId]').selectOption(coordinatorId);
   await grant.getByRole('button').click();
-  await expect(page.getByRole('status')).toHaveText('Changes saved.');
+  await expectSaved(page);
   await grant.locator('[name=supplierId]').selectOption({ label: supplierName });
   await grant.locator('[name=projectId]').selectOption(alternateProjectId);
   await grant.locator('[name=coordinatorId]').selectOption(coordinatorId);
   await grant.getByRole('button').click();
-  await expect(page.getByRole('status')).toHaveText('Changes saved.');
+  await expectSaved(page);
   // Existing login-enabled technician receives only operational capabilities.
   await profile.locator('[name=userId]').selectOption(externalId);
   await profile.locator('[name=supplierId]').selectOption({ label: supplierName });
   await profile.locator('[name=profile]').selectOption('external_technician');
   await profile.getByRole('button').click();
-  await expect(page.getByRole('status')).toHaveText('Changes saved.');
+  await expectSaved(page);
   const assign = page.locator('form[action^="?/assignTechnician"]');
   await assign.locator('[name=workerId]').selectOption(externalId);
   await assign.locator('[name=projectId]').selectOption(projectId);
   await assign.getByRole('button').click();
-  await expect(page.getByRole('status')).toHaveText('Changes saved.');
+  await expectSaved(page);
   const coordinatorContext = await browser.newContext({ viewport: page.viewportSize()! });
   const coordinator = await coordinatorContext.newPage();
   try {
@@ -144,13 +148,13 @@ test('Owner delegates installation; supplier adds technician and submits private
     const add = coordinator.locator('form[action^="?/addTechnician"]');
     await add.getByLabel('Name', { exact: true }).fill(technicianName);
     await add.getByRole('button').click();
-    await expect(coordinator.getByRole('status')).toHaveText('Changes saved.');
+    await expectSaved(coordinator);
     const time = coordinator.locator('form[action^="?/createTime"]');
     await time.locator('[name=workerId]').selectOption({ label: technicianName });
     await time.getByLabel('Actual minutes').fill('120');
     await time.getByLabel('Work performed').fill(note);
     await time.getByRole('button').click();
-    await expect(coordinator.getByRole('status')).toHaveText('Changes saved.');
+    await expectSaved(coordinator);
     const entry = coordinator.locator('article').filter({ hasText: note });
     await entry.getByRole('button', { name: 'Submit to J&A' }).click();
     await expect(coordinator.locator('article').filter({ hasText: note })).toContainText(
@@ -160,7 +164,7 @@ test('Owner delegates installation; supplier adds technician and submits private
     await time.getByLabel('Actual minutes').fill('30');
     await time.getByLabel('Work performed').fill(`External own record ${note}`);
     await time.getByRole('button').click();
-    await expect(coordinator.getByRole('status')).toHaveText('Changes saved.');
+    await expectSaved(coordinator);
     const persisted = createDatabase(readE2EFixturePointer().databasePath);
     let timeId: string;
     try {

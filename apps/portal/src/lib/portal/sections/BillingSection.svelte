@@ -1,4 +1,5 @@
 <script lang="ts">
+  import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { base } from '$app/paths';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
@@ -205,7 +206,7 @@
   );
 
   const invoiceCardRows = $derived.by((): TableCardRow[] =>
-    visibleInvoices.map((invoice) => {
+    invoicePage.map((invoice) => {
       const id = rowValue(invoice, 'id');
       const ledger = ledgerForInvoice(id);
       const currency = invoiceCurrency(invoice);
@@ -481,6 +482,7 @@
     if (state === 'paid') return translate('Issued history is immutable');
     return translate('No lifecycle action available');
   }
+  let invoicePage = $state<typeof visibleInvoices>([]);
 </script>
 
 <div class="billing-section" data-ui="billing-section">
@@ -1212,6 +1214,7 @@
         <span>{visibleInvoices.length}</span>
       </div>
 
+    <RecordBrowser rows={visibleInvoices} bind:visible={invoicePage} {translate} label="Billing" />
       {#if visibleInvoices.length > 0}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -1243,7 +1246,7 @@
                 </tr>
               </thead>
               <tbody>
-                {#each visibleInvoices as invoice}
+                {#each invoicePage as invoice}
                   {@const invoiceId = rowValue(invoice, 'id')}
                   {@const invoiceStateValue = invoiceState(invoice)}
                   {@const ledger = ledgerForInvoice(invoiceId)}
@@ -1714,6 +1717,14 @@
                             'Send the issued PDF by email. Queued is not sent; SMTP acceptance does not confirm inbox delivery.',
                           )}
                         </p>
+                        <label
+                          ><span>{translate('Send the invoice PDF to this address?')}</span>
+                          <select name="emailChoice" required>
+                            <option value="">{translate('Choose an option')}</option>
+                            <option value="no">{translate('No, do not send email')}</option>
+                            <option value="yes">{translate('Yes, send this email')}</option>
+                          </select></label
+                        >
                         <button type="submit" disabled={pdfStatus !== 'ready'}
                           >{translate('Send by email')}</button
                         >

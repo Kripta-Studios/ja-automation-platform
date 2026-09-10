@@ -466,7 +466,10 @@ describe('localized report PDF renderers', () => {
     ).toBe(true);
     for (const label of packMetricLabels[locale])
       expect(containsPdfCopy(packText, label)).toBe(true);
-    expect(containsPdfCopy(invoiceText, 'Startup support, sensor timing investigation')).toBe(true);
+    // The labor table now keeps the description beside the worker column, so
+    // PDF text extraction can interleave the worker cell between wrapped words.
+    for (const part of ['Startup support', 'sensor', 'timing', 'investigation'])
+      expect(containsPdfCopy(invoiceText, part)).toBe(true);
     expect(containsPdfCopy(periodText, 'Startup support')).toBe(true);
     // pdftotext emits the period-report status column between wrapped summary
     // words. Assert the controlled source terms without coupling this test to

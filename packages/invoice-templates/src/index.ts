@@ -817,18 +817,6 @@ const quantityColumn = (label: string, ..._keys: readonly string[]): InvoiceColu
   },
 });
 
-const descriptionBlock = (
-  lines: readonly Readonly<Record<string, unknown>>[],
-  localized: InvoiceCopy,
-): string => {
-  const descriptions = lines
-    .map((line) => nonEmptyString(lineValue(line, 'description', 'detail')))
-    .filter((value): value is string => Boolean(value));
-  return descriptions.length
-    ? `<p class="invoice-description-block"><strong>${escape(localized.description)}:</strong> ${descriptions.map(escape).join(' · ')}</p>`
-    : '';
-};
-
 const lineSubtotalMinorSum = (
   lines: readonly Readonly<Record<string, unknown>>[],
   snapshot: InvoiceTemplateSnapshot,
@@ -864,7 +852,7 @@ const renderLaborDetailed = (
   const totalAmountMinor = lineSubtotalMinorSum(lines, snapshot);
   const totalAmountText =
     totalAmountMinor !== 0n ? formatMinorUnits(currency, totalAmountMinor, locale) : undefined;
-  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.worker)}</h2>${descriptionBlock(lines, localized)}${table(
+  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.worker)}</h2>${table(
     [
       {
         label: `${localized.description} / ${localized.worker}`,
@@ -920,7 +908,7 @@ const renderLaborSummary = (
   const totalAmountMinor = lineSubtotalMinorSum(lines, snapshot);
   const totalAmountText =
     totalAmountMinor !== 0n ? formatMinorUnits(currency, totalAmountMinor, locale) : undefined;
-  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.summaryQuantity)}</h2>${descriptionBlock(lines, localized)}${table(
+  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.summaryQuantity)}</h2>${table(
     [
       textColumn(localized.description, 'grouping_key', 'groupingKey', 'category', 'description'),
       quantityColumn(
@@ -972,7 +960,7 @@ const renderExpensesDetailed = (
   const totalAmountMinor = lineSubtotalMinorSum(lines, snapshot);
   const totalAmountText =
     totalAmountMinor !== 0n ? formatMinorUnits(currency, totalAmountMinor, locale) : undefined;
-  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.vendor)}</h2>${descriptionBlock(lines, localized)}${table(
+  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.vendor)}</h2>${table(
     [
       {
         label: `${localized.description} / ${localized.vendor}`,
@@ -1027,7 +1015,7 @@ const renderFixedMilestone = (
   const totalAmountMinor = lineSubtotalMinorSum(lines, snapshot);
   const totalAmountText =
     totalAmountMinor !== 0n ? formatMinorUnits(currency, totalAmountMinor, locale) : undefined;
-  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.milestone)}</h2>${descriptionBlock(lines, localized)}${table(
+  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.milestone)}</h2>${table(
     [
       {
         label: `${localized.description} / ${localized.milestone}`,
@@ -1081,7 +1069,7 @@ const renderCreditAdjustment = (
   const totalAmountMinor = lineSubtotalMinorSum(lines, snapshot);
   const totalAmountText =
     totalAmountMinor !== 0n ? formatMinorUnits(currency, totalAmountMinor, locale) : undefined;
-  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.originalInvoice)}</h2>${descriptionBlock(lines, localized)}${table(
+  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.originalInvoice)}</h2>${table(
     [
       {
         label: `${localized.description} / ${localized.originalInvoice}`,

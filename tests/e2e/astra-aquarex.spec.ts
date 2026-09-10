@@ -52,6 +52,8 @@ test('Aquarex request preserves values after a failure and reports queued follow
       releaseFailure = resolve;
     });
     await page.goto(`/j-aautomation/${locale}/solutions/aquarex#datasheet`);
+    await expect(page.locator('select[name="emailChoice"]')).toHaveValue('');
+    await page.locator('select[name="emailChoice"]').selectOption('no');
     const firstName = page.locator('#aquarex-first-name');
     const lastName = page.locator('#aquarex-last-name');
     const email = page.locator('#aquarex-email');

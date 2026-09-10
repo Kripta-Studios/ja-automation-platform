@@ -18,13 +18,25 @@ import {
 
 type ProjectScope = Readonly<{ id: string; name: string }>;
 type SupplierScope = Readonly<{ supplierId: string; grantId: string }>;
-export type SupplierDto = Readonly<{ id: string; name: string; status: string }>;
+export type SupplierDto = Readonly<{
+  id: string;
+  name: string;
+  status: string;
+  contactEmail?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  notes?: string | null;
+}>;
 export type SupplierProjectDto = Readonly<{ id: string; name: string }>;
 export type SupplierTechnicianDto = Readonly<{
   id: string;
   name: string;
   email: string;
   supplierId: string;
+  phone?: string | null;
+  company?: string | null;
+  contactName?: string | null;
+  notes?: string | null;
 }>;
 export type SupplierGrantDto = Readonly<{
   id: string;
@@ -52,6 +64,19 @@ export type SupplierOperationalTimeRow = Readonly<{
   version: number;
   recordedBy: string;
   recordedByName: string;
+}>;
+
+export type LocalPortalProvisionInput = Readonly<{
+  name: string;
+  email: string;
+  passwordHash: string;
+  role: 'worker' | 'project_manager' | 'finance_admin';
+  supplierProfile?: SupplierProfile;
+  supplierId?: string;
+  phone?: string;
+  company?: string;
+  contactName?: string;
+  notes?: string;
 }>;
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/u;
@@ -245,26 +270,42 @@ export class SupplierWorkforceRepository {
     this.assertActive(principal);
     if (principal.role === 'owner_admin')
       return this.sqlite
-        .prepare('SELECT id,name,status FROM supplier ORDER BY name,id')
+        .prepare(
+          'SELECT id,name,status,contact_email contactEmail,phone,address,notes FROM supplier ORDER BY name,id',
+        )
         .all() as SupplierDto[];
     const coordinator = this.assertCoordinator(principal);
     return this.sqlite
-      .prepare("SELECT id,name,status FROM supplier WHERE id=? AND status='active'")
+      .prepare(
+        "SELECT id,name,status,contact_email contactEmail,phone,address,notes FROM supplier WHERE id=? AND status='active'",
+      )
       .all(coordinator.supplierId) as SupplierDto[];
   }
 
-  createSupplier(principal: Principal, input: { name: string }) {
+  createSupplier(
+    principal: Principal,
+    input: { name: string; contactEmail?: string; phone?: string; address?: string; notes?: string },
+  ) {
     this.assertOwner(principal);
     const name = requiredText(input.name, 'Supplier name', 200);
+    const contactEmail = input.contactEmail?.trim().toLowerCase() || null;
+    const phone = input.phone?.trim() || null;
+    const address = input.address?.trim() || null;
+    const notes = input.notes?.trim() || null;
+    if (contactEmail && (!EMAIL.test(contactEmail) || contactEmail.length > 254))
+      throw new ValidationError('Supplier email is invalid');
+    if (phone && phone.length > 80) throw new ValidationError('Phone is too long');
+    if (address && address.length > 500) throw new ValidationError('Address is too long');
+    if (notes && notes.length > 5000) throw new ValidationError('Notes are too long');
     return this.transaction(() => {
       const id = newId();
       const timestamp = now();
       try {
         this.sqlite
           .prepare(
-            "INSERT INTO supplier(id,name,status,created_at,updated_at) VALUES(?,?,'active',?,?)",
+            "INSERT INTO supplier(id,name,status,contact_email,phone,address,notes,created_at,updated_at) VALUES(?,?,'active',?,?,?,?,?,?)",
           )
-          .run(id, name, timestamp, timestamp);
+          .run(id, name, contactEmail, phone, address, notes, timestamp, timestamp);
       } catch {
         throw new ConflictError('Supplier name already exists');
       }
@@ -278,13 +319,15 @@ export class SupplierWorkforceRepository {
     this.assertOwner(principal);
     return this.sqlite
       .prepare(
-        `SELECT u.id,u.name,
+      `SELECT u.id,u.name,
       CASE WHEN u.email LIKE 'supplier-tech-%@personnel.invalid' THEN '' ELSE u.email END email,
       u.status,sup.supplier_id supplierId,s.name supplierName,
+      directory.phone,directory.company,directory.contact_name contactName,directory.notes,
       EXISTS(SELECT 1 FROM account a WHERE a.user_id=u.id) OR
       EXISTS(SELECT 1 FROM passkey pk WHERE pk.user_id=u.id) hasLogin
       FROM user u JOIN supplier_user_profile sup ON sup.user_id=u.id
       JOIN supplier s ON s.id=sup.supplier_id
+      LEFT JOIN supplier_contact_directory directory ON directory.user_id=u.id
       WHERE sup.profile='external_technician' AND u.role='worker' ORDER BY u.name,u.id`,
       )
       .all() as {
@@ -295,24 +338,159 @@ export class SupplierWorkforceRepository {
       supplierId: string;
       supplierName: string;
       hasLogin: number;
+      phone: string | null;
+      company: string | null;
+      contactName: string | null;
+      notes: string | null;
     }[];
   }
 
-  updateSupplier(principal: Principal, input: { id: string; name: string }) {
+  /**
+   * Owner-controlled local credential provisioning. The hash is supplied by
+   * the portal's Better Auth password implementation; plaintext never enters
+   * this repository or any audit payload.
+   */
+  provisionLocalPortalAccount(principal: Principal, input: LocalPortalProvisionInput) {
+    this.assertOwner(principal);
+    const name = requiredText(input.name, 'Name', 160);
+    const email = input.email.trim().toLowerCase();
+    if (!EMAIL.test(email) || email.length > 254) throw new ValidationError('Email is invalid');
+    if (!input.passwordHash || input.passwordHash.length < 20)
+      throw new ValidationError('Credential hash is invalid');
+    if (!['worker', 'project_manager', 'finance_admin'].includes(input.role)) throw new ValidationError('Invalid provisioned role');
+    const profile = input.supplierProfile;
+    if (profile && !['external_technician', 'supplier_coordinator'].includes(profile)) throw new ValidationError('Invalid supplier profile');
+    if (profile && input.role !== 'worker')
+      throw new ValidationError('Supplier profiles require the worker role');
+    const phone = input.phone?.trim() || null;
+    const company = input.company?.trim() || null;
+    const contactName = input.contactName?.trim() || null;
+    const notes = input.notes?.trim() || null;
+    if (phone && phone.length > 80) throw new ValidationError('Phone is too long');
+    if (company && company.length > 200) throw new ValidationError('Company is too long');
+    if (contactName && contactName.length > 160) throw new ValidationError('Contact name is too long');
+    if (notes && notes.length > 5000) throw new ValidationError('Notes are too long');
+
+    return this.transaction(() => {
+      this.assertOwner(principal);
+      assertLiveSession(this.sqlite, principal, AccessDeniedError);
+      if (this.sqlite.prepare('SELECT 1 FROM user WHERE lower(email)=?').get(email))
+        throw new ConflictError('An account already exists for this email');
+      const userId = newId();
+      const timestamp = now();
+      this.sqlite
+        .prepare(
+          `INSERT INTO user(
+             id,name,email,email_verified,role,status,mfa_enrolled,mfa_required,created_at,updated_at,version
+           ) VALUES(?,?,?,1,?,'active',0,0,?,?,1)`,
+        )
+        .run(userId, name, email, input.role, timestamp, timestamp);
+      this.sqlite
+        .prepare(
+          `INSERT INTO account(id,issuer,account_id,provider_id,user_id,password,created_at,updated_at)
+           VALUES(?,'local:credential',?,'credential',?,?,?,?)`,
+        )
+        .run(newId(), userId, userId, input.passwordHash, timestamp, timestamp);
+
+      if (profile) {
+        const supplierId = requiredText(input.supplierId ?? '', 'Supplier');
+        this.assertSupplier(supplierId);
+        this.sqlite
+          .prepare(
+            `INSERT INTO supplier_user_profile(user_id,supplier_id,profile,created_at,updated_at)
+             VALUES(?,?,?,?,?)`,
+          )
+          .run(userId, supplierId, profile, timestamp, timestamp);
+        this.sqlite
+          .prepare(
+            `INSERT INTO supplier_user_profile_period(
+               id,user_id,supplier_id,profile,starts_at,ends_at,created_at
+             ) VALUES(?,?,?,?,?,NULL,?)`,
+          )
+          .run(newId(), userId, supplierId, profile, timestamp, timestamp);
+      }
+      if (phone || company || contactName || notes)
+        this.sqlite
+          .prepare(
+            `INSERT INTO supplier_contact_directory(
+               user_id,phone,company,contact_name,notes,updated_at,updated_by
+             ) VALUES(?,?,?,?,?,?,?)`,
+          )
+          .run(userId, phone, company, contactName, notes, timestamp, principal.userId);
+      recordAuditEvent(this.sqlite, principal, 'supplier.technician.add', 'user', userId, {
+        role: input.role,
+        supplierProfile: profile ?? null,
+        supplierId: profile ? input.supplierId ?? null : null,
+        credential: 'local_password_hash_created',
+      });
+      return { userId, role: input.role, supplierProfile: profile ?? null };
+    });
+  }
+
+  private saveContactDirectory(
+    principal: Principal,
+    userId: string,
+    input: {
+      phone?: string;
+      company?: string;
+      contactName?: string;
+      notes?: string;
+    },
+  ): void {
+    const phone = input.phone?.trim() || null;
+    const company = input.company?.trim() || null;
+    const contactName = input.contactName?.trim() || null;
+    const notes = input.notes?.trim() || null;
+    if (phone && phone.length > 80) throw new ValidationError('Phone is too long');
+    if (company && company.length > 200) throw new ValidationError('Company is too long');
+    if (contactName && contactName.length > 160)
+      throw new ValidationError('Contact name is too long');
+    if (notes && notes.length > 5000) throw new ValidationError('Notes are too long');
+    if (!phone && !company && !contactName && !notes) {
+      this.sqlite.prepare('DELETE FROM supplier_contact_directory WHERE user_id=?').run(userId);
+      return;
+    }
+    this.sqlite
+      .prepare(
+        `INSERT INTO supplier_contact_directory(
+           user_id,phone,company,contact_name,notes,updated_at,updated_by
+         ) VALUES(?,?,?,?,?,?,?)
+         ON CONFLICT(user_id) DO UPDATE SET
+           phone=excluded.phone,company=excluded.company,contact_name=excluded.contact_name,
+           notes=excluded.notes,updated_at=excluded.updated_at,updated_by=excluded.updated_by`,
+      )
+      .run(userId, phone, company, contactName, notes, now(), principal.userId);
+  }
+
+  updateSupplier(
+    principal: Principal,
+    input: { id: string; name: string; contactEmail?: string; phone?: string; address?: string; notes?: string },
+  ) {
     return this.transaction(() => {
       this.assertOwner(principal);
       assertLiveSession(this.sqlite, principal, AccessDeniedError);
       const name = requiredText(input.name, 'Supplier name', 200);
+      const contactEmail = input.contactEmail?.trim().toLowerCase() || null;
+      const phone = input.phone?.trim() || null;
+      const address = input.address?.trim() || null;
+      const notes = input.notes?.trim() || null;
+      if (contactEmail && (!EMAIL.test(contactEmail) || contactEmail.length > 254))
+        throw new ValidationError('Supplier email is invalid');
+      if (phone && phone.length > 80) throw new ValidationError('Phone is too long');
+      if (address && address.length > 500) throw new ValidationError('Address is too long');
+      if (notes && notes.length > 5000) throw new ValidationError('Notes are too long');
       const before = this.sqlite.prepare('SELECT name FROM supplier WHERE id=?').get(input.id);
       if (!before) throw new ValidationError('Supplier not found');
       if (this.sqlite.prepare('SELECT 1 FROM supplier WHERE name=? AND id<>?').get(name, input.id))
         throw new ConflictError('Supplier name already exists');
       this.sqlite
-        .prepare('UPDATE supplier SET name=?,updated_at=? WHERE id=?')
-        .run(name, now(), input.id);
+        .prepare(
+          'UPDATE supplier SET name=?,contact_email=?,phone=?,address=?,notes=?,updated_at=? WHERE id=?',
+        )
+        .run(name, contactEmail, phone, address, notes, now(), input.id);
       recordAuditEvent(this.sqlite, principal, 'supplier.update', 'supplier', input.id, {
         before,
-        after: { name },
+        after: { name, contactEmail, phone, address, notes },
       });
     });
   }
@@ -349,7 +527,18 @@ export class SupplierWorkforceRepository {
     });
   }
 
-  updateTechnician(principal: Principal, input: { id: string; name: string; email?: string }) {
+  updateTechnician(
+    principal: Principal,
+    input: {
+      id: string;
+      name: string;
+      email?: string;
+      phone?: string;
+      company?: string;
+      contactName?: string;
+      notes?: string;
+    },
+  ) {
     return this.transaction(() => {
       this.assertOwner(principal);
       assertLiveSession(this.sqlite, principal, AccessDeniedError);
@@ -372,6 +561,7 @@ export class SupplierWorkforceRepository {
           'UPDATE user SET name=?,email=?,email_verified=CASE WHEN email=? THEN email_verified ELSE 0 END,updated_at=?,version=version+1 WHERE id=?',
         )
         .run(name, storedEmail, storedEmail, now(), input.id);
+      this.saveContactDirectory(principal, input.id, input);
       recordAuditEvent(this.sqlite, principal, 'supplier.technician.update', 'user', input.id, {
         before: { name: before.name, email: before.email },
         after: { name, email },
@@ -747,6 +937,10 @@ export class SupplierWorkforceRepository {
       projectId: string;
       name: string;
       email?: string;
+      phone?: string;
+      company?: string;
+      contactName?: string;
+      notes?: string;
       startsOn: string;
       endsOn?: string;
     },
@@ -800,6 +994,7 @@ export class SupplierWorkforceRepository {
            ) VALUES(?,?,?,'external_technician',?,NULL,?)`,
         )
         .run(newId(), id, supplierId, timestamp, timestamp);
+      this.saveContactDirectory(principal, id, input);
       const assignmentId = newId();
       this.sqlite
         .prepare(

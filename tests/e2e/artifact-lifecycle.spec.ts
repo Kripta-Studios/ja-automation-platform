@@ -423,6 +423,7 @@ test('owner archive/restore keeps the account lifecycle reversible and discovera
     .locator('input[name="email"]')
     .fill(`ux-invite-${testInfo.project.name}@example.test`);
   await invitationForm.locator('select[name="role"]').selectOption('worker');
+  await invitationForm.locator('select[name="emailChoice"]').selectOption('no');
   await invitationForm.getByRole('button', { name: 'Create invitation', exact: true }).click();
   await expect(page).toHaveURL(/view=team/);
   await expect(page.locator('[data-invitation-result]')).toBeVisible();

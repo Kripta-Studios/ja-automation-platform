@@ -256,12 +256,12 @@ describe('Client Essential deployment contracts', () => {
     const config = readFileSync(resolve('deployment/jaautomation.env.example'), 'utf8');
     const compose = readFileSync(resolve('deployment/compose.production.yml'), 'utf8');
     expect(service).toContain(
-      'docker compose --env-file /etc/jaautomation/jaautomation.env -f deployment/compose.production.yml up -d',
+      '/usr/bin/docker compose --project-name deployment --env-file /etc/jaautomation/jaautomation.env -f deployment/compose.production.yml up -d --no-build --pull never',
     );
     expect(jobsService).toContain('EnvironmentFile=/etc/jaautomation/jaautomation.env');
     expect(jobsService).not.toContain('EnvironmentFile=-/etc/jaautomation/jaautomation.env');
     expect(jobsService).toContain(
-      'docker compose --env-file /etc/jaautomation/jaautomation.env -f deployment/compose.production.yml up -d --no-deps jobs',
+      '/usr/bin/docker compose --env-file /etc/jaautomation/jaautomation.env -f deployment/compose.production.yml up -d --no-deps jobs',
     );
     expect(jobsService).not.toContain('--profile jobs');
     expect(jobsService).not.toContain('run --rm --no-deps jobs');

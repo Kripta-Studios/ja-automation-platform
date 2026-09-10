@@ -534,6 +534,8 @@ export class PortalRepository {
         this.assertOperationalReviewer(principal, projectId),
       assertOwnTimeAccess: (principal, projectId, workDate) =>
         this.assertSupplierCoordinatorOperationalAccess(principal, projectId, workDate),
+      assertDelegatedTimeAccess: (principal, workerId, projectId, workDate) =>
+        this.assertDelegatedWorkerAccess(principal, workerId, projectId, workDate),
       audit: (principal, action, entityType, entityId, details) =>
         this.audit(principal, action, entityType, entityId, details),
       assertDate,
@@ -1452,6 +1454,10 @@ export class PortalRepository {
     date: string,
   ): void {
     if (workerId === principal.userId) return;
+    if (principal.role === 'project_manager') {
+      this.assertDelegatedWorkerAccess(principal, workerId, projectId, date);
+      return;
+    }
     if (
       principal.role !== 'owner_admin' ||
       this.sqlite.prepare('SELECT role FROM user WHERE id=?').get(principal.userId)?.role !==
@@ -1467,6 +1473,31 @@ export class PortalRepository {
         .get(projectId, workerId, date, date)
     )
       throw new AccessDeniedError('Active worker assignment required');
+  }
+
+  private assertDelegatedWorkerAccess(
+    principal: Principal,
+    workerId: string,
+    projectId: string,
+    date: string,
+  ): void {
+    if (principal.role !== 'project_manager')
+      throw new AccessDeniedError('Project manager delegation required');
+    this.assertLiveSession(principal);
+    if (!principal.projectIds.has(projectId))
+      throw new AccessDeniedError('Project manager project scope required');
+    const assignment = this.sqlite
+      .prepare(
+        `SELECT 1
+           FROM project_member pm
+           JOIN user subject ON subject.id=pm.user_id
+          WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active'
+            AND subject.status='active' AND subject.role IN ('worker','project_manager')
+            AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
+          LIMIT 1`,
+      )
+      .get(projectId, workerId, date, date);
+    if (!assignment) throw new AccessDeniedError('Active worker assignment required');
   }
 
   createTimeEntry(principal: Principal, input: TimeInput, workerId = principal.userId) {
@@ -5981,19 +6012,6 @@ export class PortalRepository {
       }
       const jobKey = `invoice-pdf:${invoiceId}:${calculationHash}`;
       this.enqueueDurableJob('invoice_pdf', jobKey, { invoiceId }, issuedAt);
-      this.sqlite
-        .prepare(
-          'INSERT OR IGNORE INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at) VALUES(?,?,?,?,?,?,?)',
-        )
-        .run(
-          newId(),
-          'invoice.issued',
-          invoiceId,
-          `invoice-issued:${invoiceId}`,
-          JSON.stringify({ invoiceId, invoiceNumber }),
-          issuedAt,
-          issuedAt,
-        );
       this.audit(principal, 'invoice.issue', 'invoice', invoiceId, {
         invoiceNumber,
         calculationHash,
@@ -6920,19 +6938,19 @@ export class PortalRepository {
     const daily = this.sqlite
       .prepare(
         `SELECT 'daily' type,d.id,d.project_id,d.work_date date,d.summary title,d.approval_state,d.version,
-                d.safety_related,p.project_number,p.name project_name,u.name author_name
-         FROM daily_report d JOIN project p ON p.id=d.project_id JOIN user u ON u.id=d.worker_id
+                d.safety_related,p.project_number,p.name project_name,u.name author_name,c.display_name client_name
+         FROM daily_report d JOIN project p ON p.id=d.project_id JOIN user u ON u.id=d.worker_id JOIN client c ON c.id=p.client_id
          ${dailyConditions.length ? `WHERE ${dailyConditions.join(' AND ')}` : ''}
-         ORDER BY d.work_date DESC,d.id DESC LIMIT 200`,
+         ORDER BY d.work_date DESC,d.id DESC`,
       )
       .all(...dailyValues) as Array<Record<string, unknown>>;
     const technical = this.sqlite
       .prepare(
         `SELECT 'technical' type,t.id,t.project_id,t.report_date date,t.system_name title,t.approval_state,
-                t.version,t.safety_related,p.project_number,p.name project_name,u.name author_name
-         FROM technical_report t JOIN project p ON p.id=t.project_id JOIN user u ON u.id=t.author_id
+                t.version,t.safety_related,p.project_number,p.name project_name,u.name author_name,c.display_name client_name
+         FROM technical_report t JOIN project p ON p.id=t.project_id JOIN user u ON u.id=t.author_id JOIN client c ON c.id=p.client_id
          ${technicalConditions.length ? `WHERE ${technicalConditions.join(' AND ')}` : ''}
-         ORDER BY date DESC,t.id DESC LIMIT 200`,
+         ORDER BY date DESC,t.id DESC`,
       )
       .all(...technicalValues) as Array<Record<string, unknown>>;
     return [...daily, ...technical]
@@ -6941,9 +6959,8 @@ export class PortalRepository {
           !isSupplierCoordinator(this.sqlite, principal.userId) ||
           this.hasEffectiveProjectObjectAccess(principal, String(row.project_id), String(row.date)),
       )
-      .map(({ project_id: _projectId, ...row }) => row)
       .sort((left, right) => String(right.date).localeCompare(String(left.date)))
-      .slice(0, 200);
+;
   }
 
   listPlanning(principal: Principal) {
@@ -7358,10 +7375,10 @@ export class PortalRepository {
                 ) correction_linked${
                   this.canSeeFinanceFields(principal) ? ',t.invoice_id' : ''
                 },t.version,
-                p.project_number,p.name project_name
-         FROM time_entry t JOIN project p ON p.id=t.project_id
+                p.project_number,p.name project_name,u.name worker_name,c.display_name client_name
+         FROM time_entry t JOIN project p ON p.id=t.project_id JOIN user u ON u.id=t.worker_id JOIN client c ON c.id=p.client_id
          WHERE ${clauses.join(' AND ')}
-         ORDER BY t.work_date DESC,t.created_at DESC LIMIT 400`,
+         ORDER BY t.work_date DESC,t.created_at DESC`,
       )
       .all(...values) as Array<Record<string, unknown>>;
     return this.supplierTimeProjection(
@@ -7488,10 +7505,10 @@ export class PortalRepository {
            e.receipt_document_id,e.receipt_required,e.version`;
     return this.sqlite
       .prepare(
-        `SELECT ${expenseColumns},p.project_number,p.name project_name
-         FROM expense e JOIN project p ON p.id=e.project_id
+        `SELECT ${expenseColumns},p.project_number,p.name project_name,u.name worker_name,c.display_name client_name
+         FROM expense e JOIN project p ON p.id=e.project_id JOIN user u ON u.id=e.worker_id JOIN client c ON c.id=p.client_id
          WHERE ${clauses.join(' AND ')}
-         ORDER BY e.spent_on DESC,e.created_at DESC LIMIT 250`,
+         ORDER BY e.spent_on DESC,e.created_at DESC`,
       )
       .all(...values);
   }

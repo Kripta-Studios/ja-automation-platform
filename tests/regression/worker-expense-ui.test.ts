@@ -7,10 +7,10 @@ const sourceRoot = resolve(process.cwd(), 'apps/portal/src');
 const read = (path: string): string => readFileSync(resolve(sourceRoot, path), 'utf8');
 
 describe('worker expense slice', () => {
-  it('keeps the recent-expense register ahead of the single primary create action', () => {
+  it('keeps the primary expense action above the recent register', () => {
     const source = read('lib/portal/sections/ExpenseSection.svelte');
     expect(source.indexOf('Recent expenses')).toBeGreaterThanOrEqual(0);
-    expect(source.indexOf('Recent expenses')).toBeLessThan(source.indexOf('Record expense'));
+    expect(source.indexOf('Record expense')).toBeLessThan(source.indexOf('Recent expenses'));
     expect(source).toMatch(/data-expense-primary-cta/);
   });
 

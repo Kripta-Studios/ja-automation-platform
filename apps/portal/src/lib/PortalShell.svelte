@@ -6,6 +6,7 @@
   import { notificationTargetPath } from './notifications/target';
   import { createAuthClient } from 'better-auth/client';
   import { passkeyClient } from '@better-auth/passkey/client';
+  import RecordBrowser from './portal/ui/RecordBrowser.svelte';
   import { onMount, tick, untrack } from 'svelte';
   import {
     persistStandaloneLocale,
@@ -156,6 +157,13 @@
     | 'update-assignment'
     | 'remove-assignment';
   let projectWorkflow = $state<ProjectWorkflow | null>(null);
+  $effect(() => {
+    const requested = $page.url.searchParams.get('action');
+    if (['new-client','update-client','new-project','assign-worker','update-assignment','remove-assignment'].includes(requested ?? '')) projectWorkflow = requested as ProjectWorkflow;
+  });
+  let documentPage = $state<Row[]>([]);
+  let planningPage = $state<Row[]>([]);
+  let assignmentPage = $state<Row[]>([]);
   let passkeyName = $state('');
   let mfaCode = $state('');
   let mfaSetupUri = $state('');
@@ -1283,7 +1291,8 @@
             </div>
             <span>{data.documents?.length ?? 0} {translate('files')}</span>
           </div>
-          {#each data.documents ?? [] as document}<article class="invoice-row">
+          <RecordBrowser rows={data.documents ?? []} bind:visible={documentPage} {translate} label="Private project documents" />
+          {#each documentPage as document}<article class="invoice-row">
               <div>
                 <strong
                   >{String(
@@ -1447,22 +1456,13 @@
           </a>
         </div>
         <div class="statement-note">
-          <strong>{translate('Privacy boundary')}</strong>
-          <p>
-            {translate(
-              'This view contains only your own time, reimbursement, and compensation estimate. Client rates, internal cost, margin, and other workers remain restricted.',
-            )}
-          </p>
           {#if (data.pay.missingCompensationRules ?? 0) > 0}<p class="warning">
               {data.pay.missingCompensationRules}
               {translate(
                 'time record(s) have no matching compensation rule and require Finance review.',
               )}
             </p>{/if}
-          {#if data.pay.settlementTriggers?.length}<p>
-              {translate('Settlement trigger:')}
-              {data.pay.settlementTriggers.join(' · ')}
-            </p>{/if}
+
         </div>
       </section>
       <section class="record-list full pay-detail">
@@ -1693,6 +1693,7 @@
       />
     {:else if data.section === 'projects' && currentView === 'team'}
       <TeamDirectorySection
+        suppliers={data.suppliers ?? []}
         workers={data.workers ?? []}
         assignments={data.assignments ?? []}
         mailboxes={mailboxData.mailboxes}
@@ -1733,6 +1734,9 @@
               )}
             </p>
             <div>
+              <a class="secondary-button" href={href('projects') + '?view=clients'}>{translate('Client contacts')}</a>
+              <a class="secondary-button" href={href('projects') + '?view=team'}>{translate('Team access')}</a>
+              <a class="secondary-button" href="#assignment-history">{translate('Assignment history')}</a>
               <button
                 type="button"
                 class="primary-button"
@@ -1838,7 +1842,7 @@
                   "Each editor carries the record version it displayed. A stale submission is rejected so another administrator's changes are not overwritten.",
                 )}
               </p>
-              {#each data.clients as client}
+              {#each data.clients.filter(client => !$page.url.searchParams.get('client') || String(client.id) === $page.url.searchParams.get('client')) as client}
                 <form
                   method="POST"
                   action="?/updateClient"
@@ -2554,7 +2558,8 @@
               </div>
               <span>{data.assignments?.length ?? 0}</span>
             </div>
-            {#each data.assignments ?? [] as assignment}
+            <div id="assignment-history"></div><RecordBrowser rows={data.assignments ?? []} bind:visible={assignmentPage} {translate} label="Assignment history" />
+            {#each assignmentPage as assignment}
               <article class="record-card">
                 <div>
                   <strong>{assignment.project_number} · {assignment.project_name}</strong>
@@ -2912,7 +2917,8 @@
             <h2>{translate('Published schedule')}</h2>
             <span>{data.records?.length ?? 0}</span>
           </div>
-          {#each data.records ?? [] as row}<a
+          <RecordBrowser rows={data.records ?? []} bind:visible={planningPage} {translate} label="Published schedule" />
+          {#each planningPage as row}<a
               class="record-card-link"
               href={`${base}/app/projects/${row.project_id}`}
             >

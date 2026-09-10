@@ -47,10 +47,10 @@
           ? 7_000
           : variant === 'warning'
             ? 10_000
-            : 0),
+            : 8_000),
   );
   const canAutoDismiss = $derived(
-    Boolean(ondismiss && (autoDismiss ?? variant !== 'danger') && resolvedDuration > 0),
+    Boolean(ondismiss && (autoDismiss ?? true) && resolvedDuration > 0),
   );
   let remainingMs = 0;
   let startedAt = 0;

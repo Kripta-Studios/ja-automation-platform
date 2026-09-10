@@ -249,11 +249,13 @@ describe('signed outbox mail delivery', () => {
       const eventId = 'uncertain-event';
       fixture.sqlite
         .prepare(
-          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at,attempts) VALUES(?,'notification.email.requested','notification-1','uncertain-key','{}',?,?,1)",
+          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at,attempts) VALUES(?,'invitation.created','notification-1','uncertain-key','{\"emailConfirmed\":true}',?,?,1)",
         )
         .run(eventId, now, now);
       const request = parseSignedOutboxRequest(
-        JSON.stringify(signedRequest({ eventId, idempotencyKey: 'uncertain-key' })),
+        JSON.stringify(
+          signedRequest({ topic: 'invitation.created', eventId, idempotencyKey: 'uncertain-key' }),
+        ),
       );
       claimOutboxDelivery(fixture.sqlite, request, 'uncertain-claim');
       let failure: unknown;
@@ -295,7 +297,7 @@ describe('signed outbox mail delivery', () => {
       // A worker HTTP error cannot erase an endpoint claim or terminal failure.
       fixture.sqlite
         .prepare(
-          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at) VALUES('http-event','notification.email.requested','notification-1','http-key','{}',?,?)",
+          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at) VALUES('http-event','invitation.created','notification-1','http-key','{\"emailConfirmed\":true}',?,?)",
         )
         .run(now, now);
       const outcome = await fixture.v3.runDueOutbox(1, async (event) => {
@@ -318,7 +320,7 @@ describe('signed outbox mail delivery', () => {
       // Definitive pre-DATA failures remain retryable after the endpoint releases its claim.
       fixture.sqlite
         .prepare(
-          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at) VALUES('retry-event','notification.email.requested','notification-1','retry-key','{}',?,?)",
+          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at) VALUES('retry-event','invitation.created','notification-1','retry-key','{\"emailConfirmed\":true}',?,?)",
         )
         .run(now, now);
       await fixture.v3.runDueOutbox(1, async (event) => {
@@ -346,7 +348,7 @@ describe('signed outbox mail delivery', () => {
       // A known SMTP acceptance followed by SQL acknowledgement failure is equally terminal.
       fixture.sqlite
         .prepare(
-          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at,attempts) VALUES('ack-event','notification.email.requested','notification-1','ack-key','{}',?,?,1)",
+          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at,attempts) VALUES('ack-event','invitation.created','notification-1','ack-key','{\"emailConfirmed\":true}',?,?,1)",
         )
         .run(now, now);
       const ack = { ...request, eventId: 'ack-event', idempotencyKey: 'ack-key' };
@@ -360,7 +362,7 @@ describe('signed outbox mail delivery', () => {
       // An active claim survives another worker; only an expired claim becomes uncertain.
       fixture.sqlite
         .prepare(
-          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at,attempts) VALUES('stale-event','notification.email.requested','notification-1','stale-key','{}',?,?,1)",
+          "INSERT INTO outbox_event(id,topic,aggregate_id,idempotency_key,payload_json,available_at,created_at,attempts) VALUES('stale-event','invitation.created','notification-1','stale-key','{\"emailConfirmed\":true}',?,?,1)",
         )
         .run(now, now);
       const stale = { ...request, eventId: 'stale-event', idempotencyKey: 'stale-key' };
@@ -397,9 +399,13 @@ describe('signed outbox mail delivery', () => {
         n: number;
       };
       expect(() =>
-        fixture.v3.createInvitation(owner, { email: 'new@example.test', role: 'worker' }, () => {
-          throw new Error('seal failed');
-        }),
+        fixture.v3.createInvitation(
+          owner,
+          { email: 'new@example.test', role: 'worker', emailConfirmed: true },
+          () => {
+            throw new Error('seal failed');
+          },
+        ),
       ).toThrow('seal failed');
       expect(fixture.sqlite.prepare('SELECT count(*) n FROM invitation').get()).toEqual(before);
       const manual = fixture.v3.createInvitation(owner, {
@@ -411,7 +417,7 @@ describe('signed outbox mail delivery', () => {
       ).toBeUndefined();
       const emailed = fixture.v3.createInvitation(
         owner,
-        { email: 'mail@example.test', role: 'worker' },
+        { email: 'mail@example.test', role: 'worker', emailConfirmed: true },
         (token, id) => sealInvitationToken(token, id, 'secret'.repeat(10)),
       );
       const row = fixture.sqlite
@@ -448,6 +454,7 @@ describe('signed outbox mail delivery', () => {
         )
         .run(createHash('sha256').update(token).digest('hex'), expiresAt, now);
       const payload = {
+        emailConfirmed: true,
         invitationId: 'invite-1',
         email: 'external@example.test',
         role: 'worker',
@@ -518,7 +525,7 @@ describe('signed outbox mail delivery', () => {
     }
   });
 
-  it('delivers verified external user notifications using the stored event identity', async () => {
+  it('blocks legacy notification mail even for verified users and forged confirmation', async () => {
     const { sqlite } = database();
     const smtp = await startTestSmtp();
     try {
@@ -539,19 +546,14 @@ describe('signed outbox mail delivery', () => {
         )
         .run(JSON.stringify(signedRequest().payload), now, now);
       const request = parseSignedOutboxRequest(JSON.stringify(signedRequest()));
-      const delivery = resolveMailDelivery(sqlite, request, undefined);
-      expect(delivery).toMatchObject({ recipient: 'technician@example.test' });
-      if (delivery === 'already-delivered') throw new Error('Unexpected duplicate');
-      await sendStalwartMail(delivery, {
-        smtpUrl: `smtp://127.0.0.1:${smtp.port}`,
-        username: smtpUsername,
-        password: smtpPassword,
-        rejectUnauthorized: false,
-      });
-      expect(smtp.acceptedMessages()).toBe(1);
-      expect(smtp.lastMessage()).toContain('To: <technician@example.test>');
-      sqlite.prepare("UPDATE user SET email_verified=0 WHERE id='worker-1'").run();
-      expect(() => resolveMailDelivery(sqlite, request, undefined)).toThrow('unavailable');
+      expect(() => resolveMailDelivery(sqlite, request, undefined)).toThrow('EMAIL_NOT_CONFIRMED');
+      sqlite
+        .prepare(
+          "UPDATE outbox_event SET payload_json=json_set(payload_json,'$.emailConfirmed',json('true')) WHERE id='event-1'",
+        )
+        .run();
+      expect(() => resolveMailDelivery(sqlite, request, undefined)).toThrow('EMAIL_NOT_CONFIRMED');
+      expect(smtp.acceptedMessages()).toBe(0);
     } finally {
       sqlite.close();
       await smtp.close();
@@ -584,7 +586,7 @@ describe('signed outbox mail delivery', () => {
           signedRequest({ payload: { ...signedRequest().payload, userId: 'worker-2' } }),
         ),
       );
-      expect(() => resolveMailDelivery(sqlite, forged, undefined)).toThrow(/stored|unavailable/);
+      expect(() => resolveMailDelivery(sqlite, forged, undefined)).toThrow('EMAIL_NOT_CONFIRMED');
     } finally {
       sqlite.close();
     }
@@ -638,11 +640,8 @@ describe('signed outbox mail delivery', () => {
           now,
         );
       const request = parseSignedOutboxRequest(JSON.stringify(signedRequest()));
-      const delivery = resolveMailDelivery(sqlite, request, undefined);
-      expect(delivery).toMatchObject({
-        recipient: 'worker@j-aautomation.com',
-        subject: 'Missing time entry reminder',
-      });
+      expect(() => resolveMailDelivery(sqlite, request, undefined)).toThrow('EMAIL_NOT_CONFIRMED');
+      // Exercise the durable claim primitive independently of the delivery policy.
       sqlite.prepare('UPDATE outbox_event SET attempts=1 WHERE id=?').run('event-1');
       expect(claimOutboxDelivery(sqlite, request, 'claim-1')).toBe('claimed');
       expect(() => claimOutboxDelivery(sqlite, request, 'claim-2')).toThrow('cannot be claimed');
@@ -749,7 +748,7 @@ describe('signed outbox mail delivery', () => {
           'public-inquiry.received',
           'inquiry-1',
           'public-inquiry:inquiry-1',
-          JSON.stringify({ inquiryId: 'inquiry-1', kind: 'contact' }),
+          JSON.stringify({ inquiryId: 'inquiry-1', kind: 'contact', emailConfirmed: true }),
           now,
           now,
         );

@@ -634,9 +634,19 @@ export const billingActions = {
     const object = await formObject(request);
     const context = openPortalRepository(locals);
     try {
+      if (!['yes', 'no'].includes(String(object.emailChoice)))
+        return actionFail(
+          400,
+          'action.validation.invalid',
+          {},
+          'Choose whether to send the invoice email.',
+        );
+      if (object.emailChoice === 'no')
+        return actionSuccess('action.billing.invoiceEmail.declined', {}, 'Email not sent');
       const result = queueInvoiceEmail(context.sqlite, context.principal, {
         invoiceId: String(object.invoiceId ?? ''),
         recipient: String(object.recipient ?? ''),
+        emailConfirmed: true,
       });
       return actionSuccess(
         `action.billing.invoiceEmail.${result.status}`,
@@ -765,7 +775,8 @@ export const billingActions = {
     let discountMinor: string | undefined = undefined;
     if (discountRaw !== undefined && discountRaw !== '') {
       const minor = decimalToMinor(discountRaw);
-      discountMinor = minor ?? '0';
+      if (minor === undefined) return actionFail(400, 'action.validation.invalid', {}, 'Enter a valid discount amount.');
+      discountMinor = minor;
     }
 
     const termsAndInstructions: Record<string, string> = {};

@@ -70,6 +70,7 @@ export const sectionActions: Actions = {
   submitMilestone: projectActions.submitMilestone,
   updateSchedule: projectActions.updateSchedule,
   assignWorker: projectActions.assignWorker,
+  createLocalPortalUser: accessActions.createLocalPortalUser,
   createInvitation: accessActions.createInvitation,
   provisionMailboxUsers: accessActions.provisionMailboxUsers,
   createMailboxAccount: accessActions.createMailboxAccount,

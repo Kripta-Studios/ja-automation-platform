@@ -27,6 +27,7 @@ describe('0042 supplier workforce migration', () => {
           .all(),
       ).toEqual([
         { name: 'supplier' },
+        { name: 'supplier_contact_directory' },
         { name: 'supplier_project_grant' },
         { name: 'supplier_time_entry_recorder' },
         { name: 'supplier_user_profile' },

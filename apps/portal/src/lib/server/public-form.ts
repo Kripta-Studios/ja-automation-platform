@@ -56,6 +56,12 @@ export async function acceptPublicForm(event: RequestEvent, kind: string, schema
   } catch {
     body = null;
   }
+  const emailChoice = (body as Record<string, unknown> | null)?.emailChoice;
+  if (emailChoice !== 'yes' && emailChoice !== 'no')
+    return json(
+      { error: 'Choose whether to send an email', fields: ['emailChoice'] },
+      { status: 400 },
+    );
   const result = schema.safeParse(body);
   if (!result.success)
     return json(
@@ -68,6 +74,7 @@ export async function acceptPublicForm(event: RequestEvent, kind: string, schema
   const value = result.data as Record<string, unknown>;
   if (value.website) return json({ accepted: true }, { status: 202 });
   delete value.website;
+  value.emailConfirmed = emailChoice === 'yes';
   let clientRequestKey: string | undefined;
   try {
     clientRequestKey = readIdempotencyKey(event, kind);
@@ -159,10 +166,21 @@ export async function acceptPublicForm(event: RequestEvent, kind: string, schema
         'public-inquiry.received',
         id,
         scopedIdempotencyKey ?? createHash('sha256').update(`${kind}:${id}`).digest('hex'),
-        JSON.stringify({ inquiryId: id, kind, ...(scopedIdempotencyKey ? { payloadHash } : {}) }),
+        JSON.stringify({
+          inquiryId: id,
+          kind,
+          emailConfirmed: emailChoice === 'yes',
+          ...(scopedIdempotencyKey ? { payloadHash } : {}),
+        }),
         createdAt,
         createdAt,
       );
+    if (emailChoice === 'no')
+      sqlite
+        .prepare(
+          "UPDATE outbox_event SET failed_at=?,last_error='EMAIL_DECLINED' WHERE aggregate_id=? AND topic='public-inquiry.received'",
+        )
+        .run(createdAt, id);
     sqlite.exec('COMMIT');
   } catch (error) {
     sqlite.exec('ROLLBACK');

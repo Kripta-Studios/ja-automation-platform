@@ -1,4 +1,5 @@
 <script lang="ts">
+  import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { base } from '$app/paths';
   import type { PortalData } from '../portal-data';
   import { paymentMoney } from '../payment-money';
@@ -177,7 +178,7 @@
   });
 
   const cardRows = $derived.by((): TableCardRow[] =>
-    visibleRows.map((row) => {
+    ledgerPage.map((row) => {
       const invoice = value(row, 'invoiceNumber', 'invoice_number', 'invoiceId') || '—';
       const status = value(row, 'paymentStatus', 'payment_status');
       return {
@@ -274,6 +275,7 @@
     });
     return `${base}/app/api/invoice-collection-ledger/${format}?${query.toString()}`;
   }
+  let ledgerPage = $state<typeof visibleRows>([]);
 </script>
 
 <div class="collections-ledger-section" data-ui="collections-ledger-section">
@@ -355,6 +357,7 @@
   </form>
 
   <SectionCard title={translate('Master Invoice / Cost / Collection Ledger')}>
+    <RecordBrowser rows={visibleRows} bind:visible={ledgerPage} {translate} label="CollectionsLedger" />
     <TableRegion
       ariaLabel={translate('Master Invoice / Cost / Collection Ledger')}
       mobileMode="cards"
@@ -379,7 +382,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each visibleRows as row}
+          {#each ledgerPage as row}
             {@const status = value(row, 'paymentStatus', 'payment_status')}
             <tr data-ledger-row={value(row, 'invoiceId', 'id')}>
               <td>

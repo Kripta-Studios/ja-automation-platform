@@ -2,6 +2,32 @@ import { extractedSectionCoverageKeys } from './coverage-literal-overrides';
 
 /** Generated from literal translation calls and action message keys. Keep this inventory in sync with the source. */
 export const PORTAL_LITERAL_KEYS = [
+  'Data management',
+  'Manage record',
+  'Add or edit records',
+  'Add record',
+  'All management areas',
+  'I confirm this change to the selected record.',
+  'Manage all company records from your Owner account. Changes apply equally to demo and production records.',
+  'Management areas',
+  'Operational records',
+  'Payments and settlements',
+  'Record type',
+  'Reopen as draft',
+  'Restore',
+  'Technical changes',
+  'Back',
+
+  'Corrections',
+  'No records found',
+  'Upload document',
+  'Send the invitation email to this address?',
+  'Send the invoice PDF to this address?',
+  'Choose an option',
+  'No, do not send email',
+  'Yes, send this email',
+  'Email not sent',
+
   'Customer period report',
   'Customer report',
   'Technical reference',
@@ -1241,6 +1267,8 @@ export const PORTAL_LITERAL_KEYS = [
 ] as const;
 
 export const PORTAL_ACTION_KEYS = [
+  'action.access.localAccount.provisioned',
+  'action.billing.invoiceEmail.declined',
   'action.closeout.draftPrepared',
   'action.closeout.draftRefreshed',
   'action.closeout.clientSnapshotConfirmed',
@@ -1494,6 +1522,7 @@ export const PORTAL_ACTION_KEYS = [
   'action.validation.invoiceIdRequired',
   'action.validation.missingEmails',
   'action.validation.missingUsername',
+  'action.validation.localProvision',
 ] as const;
 
 /**

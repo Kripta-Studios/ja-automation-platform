@@ -332,7 +332,7 @@ describe('localized PDF variants', () => {
             version: number;
           }
         ).version,
-      ).toBe(42);
+      ).toBe(45);
     } finally {
       sqlite.close();
     }

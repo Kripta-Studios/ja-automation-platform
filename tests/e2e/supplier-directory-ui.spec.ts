@@ -145,21 +145,28 @@ for (const role of ['owner', 'finance'] as const) {
     const panel = page.locator('.finance-config-panel');
     await expect(panel).toBeVisible();
     const intro = panel.locator('.finance-config-intro');
+    await panel
+      .getByRole('button', { name: 'Project issuing authority', exact: true })
+      .click();
     const authority = panel.locator('[data-project-legal-entity]');
-    const policy = panel.locator('[data-project-commercial-policy]');
-    const introBox = await intro.boundingBox();
+    await authority.scrollIntoViewIfNeeded();
+    const authorityIntroBox = await intro.boundingBox();
     const authorityBox = await authority.boundingBox();
+    expect(authorityBox!.y - (authorityIntroBox!.y + authorityIntroBox!.height)).toBeGreaterThanOrEqual(23);
+    await panel
+      .getByRole('button', { name: 'Project commercial and time policy', exact: true })
+      .click();
+    const policy = panel.locator('[data-project-commercial-policy]');
+    await policy.scrollIntoViewIfNeeded();
+    const policyIntroBox = await intro.boundingBox();
     const policyBox = await policy.boundingBox();
-    expect(authorityBox!.y - (introBox!.y + introBox!.height)).toBeGreaterThanOrEqual(23);
-    expect(policyBox!.y - (authorityBox!.y + authorityBox!.height)).toBeGreaterThanOrEqual(23);
-    for (const section of [authority, policy]) {
-      const heading = await section.locator(':scope > h3').boundingBox();
-      const description = await section.locator(':scope > .ui-section-description').boundingBox();
-      const box = await section.boundingBox();
-      expect(description!.y - (heading!.y + heading!.height)).toBeGreaterThanOrEqual(16);
-      expect(heading!.x - box!.x).toBeGreaterThanOrEqual(16);
-      expect(description!.x + description!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
-    }
+    expect(policyBox!.y - (policyIntroBox!.y + policyIntroBox!.height)).toBeGreaterThanOrEqual(23);
+    const heading = await policy.locator(':scope > h3').boundingBox();
+    const description = await policy.locator(':scope > .ui-section-description').boundingBox();
+    const box = await policy.boundingBox();
+    expect(description!.y - (heading!.y + heading!.height)).toBeGreaterThanOrEqual(16);
+    expect(heading!.x - box!.x).toBeGreaterThanOrEqual(16);
+    expect(description!.x + description!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
     await intro.scrollIntoViewIfNeeded();
     await page.screenshot({
       path: testInfo.outputPath(`commercial-config-${role}.png`),

@@ -65,10 +65,11 @@ function deliveryStatus(row: {
 export function queueInvoiceEmail(
   sqlite: DatabaseSync,
   principal: Principal,
-  input: { invoiceId: string; recipient: string },
+  input: { invoiceId: string; recipient: string; emailConfirmed?: boolean },
 ) {
   return runImmediateTransaction(sqlite, 'invoice-email', () => {
     authorize(sqlite, principal);
+    if (input.emailConfirmed !== true) throw new ValidationError('Email confirmation required');
     const recipient = invoiceEmailRecipient(input.recipient);
     const invoice = sqlite
       .prepare(
@@ -90,11 +91,16 @@ export function queueInvoiceEmail(
       throw new ValidationError('Invoice PDF integrity verification failed');
     }
     const pdfSha256 = String(invoice.pdf_sha256);
-    const key = `invoice-email:${createHash('sha256')
+    const baseKey = `invoice-email:${createHash('sha256')
       .update(JSON.stringify([input.invoiceId, recipient, pdfSha256]))
       .digest('hex')}`;
-    const existing = sqlite.prepare('SELECT * FROM outbox_event WHERE idempotency_key=?').get(key);
-    if (existing) {
+    let key = baseKey;
+    for (const candidate of [baseKey, `${baseKey}:consent-v1`]) {
+      key = candidate;
+      const existing = sqlite
+        .prepare('SELECT * FROM outbox_event WHERE idempotency_key=?')
+        .get(key);
+      if (!existing) break;
       const payload = JSON.parse(String(existing.payload_json));
       if (
         existing.topic !== 'invoice.email.requested' ||
@@ -104,6 +110,20 @@ export function queueInvoiceEmail(
         payload.pdfSha256 !== pdfSha256
       )
         throw new ConflictError('Invoice email idempotency conflict');
+      if (
+        candidate === baseKey &&
+        payload.emailConfirmed !== true &&
+        !existing.delivered_at &&
+        (!existing.failed_at || existing.last_error === 'EMAIL_NOT_CONFIRMED') &&
+        !String(existing.last_error ?? '').startsWith('DELIVERY_IN_PROGRESS:')
+      ) {
+        sqlite
+          .prepare(
+            "UPDATE outbox_event SET failed_at=?,lease_until=NULL,last_error='EMAIL_NOT_CONFIRMED' WHERE id=?",
+          )
+          .run(new Date().toISOString(), String(existing.id));
+        continue;
+      }
       return { id: String(existing.id), status: deliveryStatus(existing), recipient };
     }
     const id = newId();
@@ -118,6 +138,7 @@ export function queueInvoiceEmail(
         input.invoiceId,
         key,
         JSON.stringify({
+          emailConfirmed: true,
           invoiceId: input.invoiceId,
           recipient,
           requestedBy: principal.userId,

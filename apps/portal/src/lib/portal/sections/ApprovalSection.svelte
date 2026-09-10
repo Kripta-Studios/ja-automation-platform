@@ -1,9 +1,18 @@
 <script lang="ts">
   import { base } from '$app/paths';
-  import { tick } from 'svelte';
+  import { page } from '$app/stores';
+  import { onMount, tick } from 'svelte';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { SectionCard, StatusBadge } from '../ui';
+  import {
+    operationalMatches,
+    operationalNewestFirst,
+    operationalOldestFirst,
+    operationalPage,
+    readOperationalRegisterState,
+    writeOperationalRegisterState,
+  } from './operational-register';
 
   type Tab = 'time' | 'expenses' | 'reports';
   type Stage = 'operational' | 'report' | 'correction' | 'owner_override' | 'finance' | '';
@@ -29,7 +38,58 @@
   let activeTab = $state<Tab>('time');
   let search = $state('');
   let stageFilter = $state<Stage>('');
+  let projectFilter = $state('');
+  let workerFilter = $state('');
+  let statusFilter = $state('');
+  let queuePage = $state(1);
+  let completedPage = $state(1);
+  let milestoneSearch = $state('');
+  let milestonePage = $state(1);
+  let financeSearch = $state('');
+  let financePage = $state(1);
+  let registerStateHydrated = $state(false);
+  const registerStateKey = (): string => `ja-operational-register:approvals:${data.user.id}`;
+
+  onMount(() => {
+    const saved = readOperationalRegisterState<{
+      search?: string;
+      queuePage?: number;
+      completedPage?: number;
+      milestoneSearch?: string;
+      milestonePage?: number;
+      financeSearch?: string;
+      financePage?: number;
+    }>(registerStateKey());
+    if (typeof saved?.search === 'string') search = saved.search;
+    if (typeof saved?.queuePage === 'number') queuePage = saved.queuePage;
+    if (typeof saved?.completedPage === 'number') completedPage = saved.completedPage;
+    if (typeof saved?.milestoneSearch === 'string') milestoneSearch = saved.milestoneSearch;
+    if (typeof saved?.milestonePage === 'number') milestonePage = saved.milestonePage;
+    if (typeof saved?.financeSearch === 'string') financeSearch = saved.financeSearch;
+    if (typeof saved?.financePage === 'number') financePage = saved.financePage;
+    registerStateHydrated = true;
+  });
+  $effect(() => {
+    if (registerStateHydrated)
+      writeOperationalRegisterState(registerStateKey(), {
+        search,
+        queuePage,
+        completedPage,
+        milestoneSearch,
+        milestonePage,
+        financeSearch,
+        financePage,
+      });
+  });
   const componentId = $props.id();
+
+  $effect(() => {
+    const tab = $page.url.searchParams.get('tab');
+    if (tab === 'time' || tab === 'expenses' || tab === 'reports') activeTab = tab;
+    projectFilter = $page.url.searchParams.get('project')?.trim() ?? '';
+    workerFilter = $page.url.searchParams.get('worker')?.trim() ?? '';
+    statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
+  });
 
   const rows = $derived(data.records ?? []);
   const milestones = $derived(data.milestones ?? []);
@@ -52,8 +112,7 @@
     operationalRows.filter((row) => ['daily', 'technical'].includes(String(row.type))).length,
   );
 
-  const visibleRows = $derived.by(() => {
-    const normalizedSearch = search.trim().toLowerCase();
+  const filteredOperationalRows = $derived.by(() => {
     return operationalRows.filter((row) => {
       const type = String(row.type);
       const matchesTab =
@@ -63,14 +122,70 @@
             ? type === 'expense'
             : ['daily', 'technical'].includes(type);
       const matchesStage = !stageFilter || String(row.review_stage) === stageFilter;
-      const matchesSearch =
-        !normalizedSearch ||
-        [row.id, row.date, row.type, row.project_id, row.worker_id, row.approval_state]
-          .map((value) => String(value ?? '').toLowerCase())
-          .some((value) => value.includes(normalizedSearch));
-      return matchesTab && matchesStage && matchesSearch;
+      const matchesSearch = operationalMatches(row, search, [
+        'id',
+        'date',
+        'type',
+        'project_id',
+        'project_name',
+        'project_number',
+        'client_name',
+        'worker_id',
+        'worker_name',
+      ]);
+      const matchesProject = !projectFilter || value(row, 'project_id') === projectFilter;
+      const matchesWorker = !workerFilter || value(row, 'worker_id') === workerFilter;
+      const matchesStatus = !statusFilter || value(row, 'approval_state') === statusFilter;
+      return (
+        matchesTab &&
+        matchesStage &&
+        matchesSearch &&
+        matchesProject &&
+        matchesWorker &&
+        matchesStatus
+      );
     });
   });
+  const submittedRows = $derived(
+    operationalOldestFirst(
+      filteredOperationalRows.filter((row) => value(row, 'approval_state') !== 'approved'),
+      ['date'],
+    ),
+  );
+  const completedRows = $derived(
+    operationalNewestFirst(
+      filteredOperationalRows.filter((row) => value(row, 'approval_state') === 'approved'),
+      ['date'],
+    ),
+  );
+  const pagedSubmittedRows = $derived(operationalPage(submittedRows, queuePage));
+  const pagedCompletedRows = $derived(operationalPage(completedRows, completedPage));
+  const filteredMilestones = $derived(
+    operationalNewestFirst(
+      milestones.filter((row) =>
+        operationalMatches(row, milestoneSearch, ['id', 'project_number', 'name', 'due_on']),
+      ),
+      ['due_on'],
+    ),
+  );
+  const pagedMilestones = $derived(operationalPage(filteredMilestones, milestonePage));
+  const filteredFinanceRows = $derived(
+    operationalOldestFirst(
+      financeRows.filter((row) =>
+        operationalMatches(row, financeSearch, [
+          'id',
+          'date',
+          'type',
+          'project_id',
+          'project_name',
+          'worker_id',
+          'worker_name',
+        ]),
+      ),
+      ['date'],
+    ),
+  );
+  const pagedFinanceRows = $derived(operationalPage(filteredFinanceRows, financePage));
 
   function value(row: Row, key: string): string {
     const raw = row[key];
@@ -91,13 +206,26 @@
   }
 
   function panelId(): string {
-    return `approval-panel-${componentId}`;
+    return 'approval-queue';
   }
 
   function focusTab(tab: Tab): void {
     activeTab = tab;
     if (typeof document === 'undefined') return;
     void tick().then(() => document.getElementById(tabId(tab))?.focus());
+  }
+
+  function approvalHref(overrides: Record<string, string>): string {
+    const params = new URLSearchParams();
+    const tab = overrides.tab ?? activeTab;
+    const project = overrides.project ?? projectFilter;
+    const worker = overrides.worker ?? workerFilter;
+    const status = overrides.status ?? statusFilter;
+    if (tab) params.set('tab', tab);
+    if (project) params.set('project', project);
+    if (worker) params.set('worker', worker);
+    if (status) params.set('status', status);
+    return `${base}/app/approvals?${params.toString()}`;
   }
 
   function handleTabKeydown(event: KeyboardEvent, tab: Tab): void {
@@ -186,22 +314,22 @@
   </header>
 
   <div class="approval-attention" aria-label={translate('Approval attention summary')}>
-    <article class="approval-attention-card">
+    <a class="approval-attention-card" href={approvalHref({ status: 'submitted' })}>
       <span>{translate('Needs attention')}</span>
       <strong>{attentionCount}</strong>
       <small>{translate('Submitted or correction-ready records')}</small>
-    </article>
-    <article class="approval-attention-card">
+    </a>
+    <a class="approval-attention-card" href={approvalHref({ tab: 'reports', status: 'submitted' })}>
       <span>{translate('Reports')}</span>
       <strong>{reportCount}</strong>
       <small>{translate('Daily and technical reports in scope')}</small>
-    </article>
+    </a>
     {#if financeReviewVisible}
-      <article class="approval-attention-card approval-attention-card-finance">
+      <a class="approval-attention-card approval-attention-card-finance" href="#finance-review">
         <span>{translate('Finance review')}</span>
         <strong>{financeRows.length}</strong>
         <small>{translate('Separate finance queue')}</small>
-      </article>
+      </a>
     {/if}
   </div>
 
@@ -236,12 +364,69 @@
   <form
     class="approval-filters"
     aria-label={translate('Filter approvals')}
-    onsubmit={(event) => event.preventDefault()}
+    method="GET"
+    action={`${base}/app/approvals`}
   >
+    <input type="hidden" name="tab" value={activeTab} />
     <label>
       <span>{translate('Search queue')}</span>
-      <input bind:value={search} type="search" placeholder={translate('Date, type or record')} />
+      <input
+        bind:value={search}
+        oninput={() => {
+          queuePage = 1;
+          completedPage = 1;
+        }}
+        type="search"
+        placeholder={translate('Project, worker, date or record')}
+      />
     </label>
+    <label
+      ><span>{translate('Project')}</span><select
+        name="project"
+        bind:value={projectFilter}
+        onchange={() => {
+          queuePage = 1;
+          completedPage = 1;
+        }}
+        ><option value="">{translate('All projects')}</option
+        >{#each Array.from(new Map(operationalRows
+              .filter((row) => value(row, 'project_id'))
+              .map( (row) => [value(row, 'project_id'), value(row, 'project_name') || value(row, 'project_id')], )).entries()) as [id, label]}<option
+            value={id}>{label}</option
+          >{/each}</select
+      ></label
+    >
+    <label
+      ><span>{translate('Worker')}</span><select
+        name="worker"
+        bind:value={workerFilter}
+        onchange={() => {
+          queuePage = 1;
+          completedPage = 1;
+        }}
+        ><option value="">{translate('All workers')}</option
+        >{#each Array.from(new Map(operationalRows
+              .filter((row) => value(row, 'worker_id'))
+              .map( (row) => [value(row, 'worker_id'), value(row, 'worker_name') || value(row, 'worker_id')], )).entries()) as [id, label]}<option
+            value={id}>{label}</option
+          >{/each}</select
+      ></label
+    >
+    <label
+      ><span>{translate('Status')}</span><select
+        name="status"
+        bind:value={statusFilter}
+        onchange={() => {
+          queuePage = 1;
+          completedPage = 1;
+        }}
+        ><option value="">{translate('All statuses')}</option><option value="submitted"
+          >{translate('Submitted')}</option
+        ><option value="approved">{translate('Approved')}</option><option value="needs_changes"
+          >{translate('Needs changes')}</option
+        ></select
+      ></label
+    >
     <label>
       <span>{translate('Review stage')}</span>
       <select bind:value={stageFilter}>
@@ -254,12 +439,18 @@
           >{/if}
       </select>
     </label>
+    <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
     <button
       type="button"
       class="secondary-button"
       onclick={() => {
         search = '';
         stageFilter = '';
+        projectFilter = '';
+        workerFilter = '';
+        statusFilter = '';
+        queuePage = 1;
+        completedPage = 1;
       }}>{translate('Clear filters')}</button
     >
   </form>
@@ -271,10 +462,18 @@
     aria-labelledby={tabId(activeTab)}
     tabindex="0"
   >
-    <SectionCard title={tabLabel(activeTab)} class="approval-list-surface">
-      {#if visibleRows.length > 0}
+    <SectionCard
+      title={`${translate('Oldest submitted')} · ${tabLabel(activeTab)}`}
+      class="approval-list-surface"
+    >
+      <p class="approval-purpose">
+        {translate(
+          'Act on the oldest submitted operational records first. Approved records remain below for audit and correction follow-up.',
+        )}
+      </p>
+      {#if pagedSubmittedRows.rows.length > 0}
         <div class="approval-list" aria-live="polite">
-          {#each visibleRows as row}
+          {#each pagedSubmittedRows.rows as row}
             <article class="approval-row" data-approval-row={value(row, 'id')}>
               <div class="approval-row-main">
                 <a class="approval-record-link" href={recordHref(row)}>
@@ -395,17 +594,98 @@
         </div>
       {:else}
         <div class="approval-empty" role="status">
-          <strong>{translate('Approval queue clear.')}</strong>
-          <span>{translate('No records match this operational view.')}</span>
+          <strong>{translate('No submitted records match this view.')}</strong>
+          <span>{translate('Completed records, if any, remain available below.')}</span>
         </div>
       {/if}
+      {#if pagedSubmittedRows.totalPages > 1}<nav
+          class="operational-pagination"
+          aria-label={translate('Submitted approval pages')}
+        >
+          <button
+            type="button"
+            class="secondary-button"
+            disabled={pagedSubmittedRows.current === 1}
+            onclick={() => (queuePage -= 1)}>{translate('Previous')}</button
+          ><span
+            >{translate('Page')}
+            {pagedSubmittedRows.current}
+            {translate('of')}
+            {pagedSubmittedRows.totalPages}</span
+          ><button
+            type="button"
+            class="secondary-button"
+            disabled={pagedSubmittedRows.current === pagedSubmittedRows.totalPages}
+            onclick={() => (queuePage += 1)}>{translate('Next')}</button
+          >
+        </nav>{/if}
     </SectionCard>
   </div>
 
+  {#if completedRows.length > 0}
+    <SectionCard title={translate('Completed review follow-up')} class="approval-list-surface">
+      <p class="approval-purpose">
+        {translate(
+          'These approved records are immutable operational history. Open a record to inspect it or start the audited correction path where permitted.',
+        )}
+      </p>
+      <div class="approval-list">
+        {#each pagedCompletedRows.rows as row}<article class="approval-row">
+            <div class="approval-row-main">
+              <a class="approval-record-link" href={recordHref(row)}
+                ><strong
+                  >{value(row, 'worker_name') || value(row, 'type')} · {value(row, 'date')}</strong
+                ><small>{value(row, 'project_name') || value(row, 'project_id')}</small><span
+                  >{translate('Open record →')}</span
+                ></a
+              ><StatusBadge
+                variant={statusVariant(row.approval_state)}
+                text={controlledValue('status', row.approval_state) || value(row, 'approval_state')}
+              />
+            </div>
+          </article>{/each}
+      </div>
+      {#if pagedCompletedRows.totalPages > 1}<nav
+          class="operational-pagination"
+          aria-label={translate('Completed approval pages')}
+        >
+          <button
+            type="button"
+            class="secondary-button"
+            disabled={pagedCompletedRows.current === 1}
+            onclick={() => (completedPage -= 1)}>{translate('Previous')}</button
+          ><span
+            >{translate('Page')}
+            {pagedCompletedRows.current}
+            {translate('of')}
+            {pagedCompletedRows.totalPages}</span
+          ><button
+            type="button"
+            class="secondary-button"
+            disabled={pagedCompletedRows.current === pagedCompletedRows.totalPages}
+            onclick={() => (completedPage += 1)}>{translate('Next')}</button
+          >
+        </nav>{/if}
+    </SectionCard>
+  {/if}
+
   {#if milestones.length > 0}
     <SectionCard title={translate('Project approvals')} class="approval-milestone-surface">
+      <p class="approval-purpose">
+        {translate(
+          'Approve submitted project milestones. This is separate from operational record review.',
+        )}
+      </p>
+      <label class="approval-register-search"
+        ><span>{translate('Search project approvals')}</span><input
+          bind:value={milestoneSearch}
+          oninput={() => (milestonePage = 1)}
+          type="search"
+          placeholder={translate('Project, milestone or due date')}
+        /></label
+      >
       <div class="approval-list" aria-live="polite">
-        {#each milestones as milestone}
+        {#each pagedMilestones.rows as milestone}
           <article class="approval-row" data-approval-milestone={value(milestone, 'id')}>
             <div class="approval-row-main">
               <a
@@ -448,17 +728,50 @@
           </article>
         {/each}
       </div>
+      {#if pagedMilestones.totalPages > 1}<nav
+          class="operational-pagination"
+          aria-label={translate('Project approval pages')}
+        >
+          <button
+            type="button"
+            class="secondary-button"
+            disabled={pagedMilestones.current === 1}
+            onclick={() => (milestonePage -= 1)}>{translate('Previous')}</button
+          ><span
+            >{translate('Page')}
+            {pagedMilestones.current}
+            {translate('of')}
+            {pagedMilestones.totalPages}</span
+          ><button
+            type="button"
+            class="secondary-button"
+            disabled={pagedMilestones.current === pagedMilestones.totalPages}
+            onclick={() => (milestonePage += 1)}>{translate('Next')}</button
+          >
+        </nav>{/if}
     </SectionCard>
   {/if}
 
   {#if canSeeFinanceReview && financeReviewVisible}
-    <SectionCard title={translate('Finance review')} class="approval-finance-surface">
+    <SectionCard
+      id="finance-review"
+      title={translate('Finance review')}
+      class="approval-finance-surface"
+    >
       <p class="approval-finance-note">
         {translate('This separate queue is visible only with an authorized Finance capability.')}
       </p>
-      {#if financeRows.length > 0}
+      <label class="approval-register-search"
+        ><span>{translate('Search Finance review')}</span><input
+          bind:value={financeSearch}
+          oninput={() => (financePage = 1)}
+          type="search"
+          placeholder={translate('Project, worker, date or record')}
+        /></label
+      >
+      {#if pagedFinanceRows.rows.length > 0}
         <div class="approval-list" aria-live="polite">
-          {#each financeRows as row}
+          {#each pagedFinanceRows.rows as row}
             <article class="approval-row" data-finance-review-row={value(row, 'id')}>
               <div class="approval-row-main">
                 <a class="approval-record-link" href={recordHref(row)}>
@@ -499,6 +812,27 @@
           <strong>{translate('Finance queue clear.')}</strong>
         </div>
       {/if}
+      {#if pagedFinanceRows.totalPages > 1}<nav
+          class="operational-pagination"
+          aria-label={translate('Finance review pages')}
+        >
+          <button
+            type="button"
+            class="secondary-button"
+            disabled={pagedFinanceRows.current === 1}
+            onclick={() => (financePage -= 1)}>{translate('Previous')}</button
+          ><span
+            >{translate('Page')}
+            {pagedFinanceRows.current}
+            {translate('of')}
+            {pagedFinanceRows.totalPages}</span
+          ><button
+            type="button"
+            class="secondary-button"
+            disabled={pagedFinanceRows.current === pagedFinanceRows.totalPages}
+            onclick={() => (financePage += 1)}>{translate('Next')}</button
+          >
+        </nav>{/if}
     </SectionCard>
   {/if}
 </div>
@@ -570,6 +904,15 @@
     display: grid;
     gap: 0.2rem;
     padding: 0.9rem 1rem;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .approval-attention-card:hover,
+  .approval-attention-card:focus-visible {
+    border-color: var(--accent, #0d5c63);
+    outline: 3px solid color-mix(in srgb, var(--accent, #0d5c63) 28%, transparent);
+    outline-offset: 2px;
   }
 
   .approval-attention-card-finance {
@@ -772,6 +1115,44 @@
     margin: 0 0 0.5rem;
   }
 
+  .approval-purpose {
+    color: var(--muted, #5d6878);
+    margin: 0 0 1rem;
+  }
+
+  .approval-register-search {
+    display: grid;
+    gap: 0.3rem;
+    max-width: 30rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .approval-register-search span {
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+
+  .approval-register-search input {
+    border: 1px solid var(--border, #c8d1dc);
+    border-radius: 0.4rem;
+    min-height: 2.75rem;
+    padding: 0.55rem 0.7rem;
+  }
+
+  .operational-pagination {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+  }
+
+  .operational-pagination span {
+    color: var(--muted, #5d6878);
+    font-size: 0.85rem;
+  }
+
   .approval-filters button:focus-visible,
   .approval-tabs button:focus-visible,
   .approval-row button:focus-visible,
@@ -808,6 +1189,20 @@
     }
 
     .approval-filters button {
+      width: 100%;
+    }
+
+    .operational-pagination {
+      justify-content: stretch;
+    }
+
+    .operational-pagination button {
+      flex: 1 1 7rem;
+    }
+
+    .operational-pagination span {
+      order: -1;
+      text-align: center;
       width: 100%;
     }
 

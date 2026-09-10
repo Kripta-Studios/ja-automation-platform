@@ -506,7 +506,7 @@
             <div class="surface-heading">
               <div>
                 <p class="portal-kicker">{t('OPERATIONAL ASSIGNMENTS')}</p>
-                <h2 id="team-title">{t('Team')}</h2>
+                <h2 id="team-title"><a href={`${base}/app/projects?view=team&project=${project.id}`}>{t('Team')}</a></h2>
               </div>
               <span class="surface-count">{overview.workers.length}</span>
             </div>
@@ -527,7 +527,7 @@
                       .toUpperCase()}
                   </div>
                   <div class="record-copy">
-                    <strong>{display(worker.name, t('Assigned worker'))}</strong><small
+                    <a href={`${base}/app/projects?view=team&project=${project.id}&worker=${worker.worker_id ?? worker.id}`}><strong>{display(worker.name, t('Assigned worker'))}</strong></a><small
                       >{controlled('role', worker.assignment_role ?? worker.role)} · {display(
                         worker.starts_on,
                       )} → {display(worker.ends_on, t('Open assignment'))}</small
@@ -549,7 +549,7 @@
             <div class="surface-heading">
               <div>
                 <p class="portal-kicker">{t('PLANNING CONTEXT')}</p>
-                <h2 id="planning-title">{t('Published schedule')}</h2>
+                <h2 id="planning-title"><a href={`${base}/app/planning?project=${project.id}`}>{t('Published schedule')}</a></h2>
               </div>
               <span class="surface-count">{overview.planning.length}</span>
             </div>
@@ -611,7 +611,7 @@
             <a class="primary-button" href={base + '/app/reports'}>{t('Open Reports')}</a>
           </div>
           <div class="report-surface-grid">
-            <a class="report-type-card" href={base + '/app/reports?view=daily'}
+            <a class="report-type-card" href={base + '/app/reports?view=daily&project=' + encodeURIComponent(String(project.id))}
               ><span class="report-type-icon" aria-hidden="true">D</span><strong
                 >{t('Daily')}</strong
               ><small>{t('Field activity and operational summary')}</small><span
@@ -619,7 +619,7 @@
                 >{overview.reports.filter((row) => row.type !== 'PLC').length}</span
               ></a
             >
-            <a class="report-type-card" href={base + '/app/reports?view=technical'}
+            <a class="report-type-card" href={base + '/app/reports?view=technical&project=' + encodeURIComponent(String(project.id))}
               ><span class="report-type-icon" aria-hidden="true">P</span><strong
                 >{t('Technical / PLC')}</strong
               ><small>{t('Controls, systems and technical evidence')}</small><span
@@ -629,7 +629,7 @@
             >
             <a
               class="report-type-card report-signoff-card"
-              href={base + '/app/reports?view=signoff'}
+              href={base + '/app/reports?view=signoff&project=' + encodeURIComponent(String(project.id))}
               ><span class="report-type-icon" aria-hidden="true">✓</span><strong
                 >{t('Client Sign-off')}</strong
               ><small>{t('Customer-safe hours, activities and conformity surface')}</small><span
@@ -667,7 +667,7 @@
             <div class="surface-heading">
               <div>
                 <p class="portal-kicker">{t('FINANCE / ADMIN')}</p>
-                <h2 id="commercial-policy-title">{t('Commercial configuration')}</h2>
+                <h2 id="commercial-policy-title"><a href={`${base}/app/finance?view=commercial&project=${project.id}`}>{t('Commercial configuration')}</a></h2>
               </div>
               <span class="read-only-note">{isAuditor ? t('Read only') : t('Authorized view')}</span
               >
@@ -719,7 +719,7 @@
             <div class="surface-heading">
               <div>
                 <p class="portal-kicker">{t('CANONICAL PROJECTION')}</p>
-                <h2 id="economics-title">{t('Project economics')}</h2>
+                <h2 id="economics-title"><a href={`${base}/app/finance?view=economic&project=${project.id}`}>{t('Project economics')}</a></h2>
               </div>
               <span class="read-only-note"
                 >{isAuditor ? t('Read only') : t('Exact source records')}</span
@@ -798,7 +798,7 @@
           </div>
           <div class="compact-record-list">
             {#each overview.milestones as milestone}
-              <a class="compact-record" href={base + '/app/approvals'}
+              <a class="compact-record" href={`${base}/app/manage?area=project_milestone&project=${project.id}&focus=${milestone.id}`}
                 ><span class="record-mark" aria-hidden="true">M</span><span class="record-copy"
                   ><strong>{display(milestone.name, t('Milestone'))}</strong><small
                     >{display(milestone.due_on, t('No due date'))} · {status(

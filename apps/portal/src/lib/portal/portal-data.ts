@@ -2,6 +2,7 @@ import type { OwnerFinanceSummary } from './owner-finance';
 export type PortalRow = Record<string, string | number | boolean | string[] | null>;
 
 export type PortalData = {
+  suppliers?: PortalRow[];
   locale?: 'en' | 'es' | 'pt';
   offlineEnabled?: boolean;
   ownerFinance?: OwnerFinanceSummary;

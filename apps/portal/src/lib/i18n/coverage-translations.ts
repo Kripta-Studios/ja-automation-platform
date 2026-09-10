@@ -8,6 +8,23 @@ import { explicitCoverageLiterals } from './coverage-literals';
  */
 
 const exact: Record<string, readonly [string, string]> = {
+  Corrections: ['Correcciones', 'Correções'],
+  'No records found': ['No se encontraron registros', 'Nenhum registro encontrado'],
+  'Upload document': ['Subir documento', 'Enviar documento'],
+  'Send the invitation email to this address?': [
+    '¿Enviar el correo de invitación a esta dirección?',
+    'Enviar o e-mail de convite para este endereço?',
+  ],
+  'Send the invoice PDF to this address?': [
+    '¿Enviar el PDF de la factura a esta dirección?',
+    'Enviar o PDF da fatura para este endereço?',
+  ],
+  'Choose an option': ['Elige una opción', 'Escolha uma opção'],
+  'No, do not send email': ['No, no enviar correo', 'Não, não enviar e-mail'],
+  'Yes, send this email': ['Sí, enviar este correo', 'Sim, enviar este e-mail'],
+  'action.billing.invoiceEmail.declined': ['Correo no enviado', 'E-mail não enviado'],
+  'Email not sent': ['Correo no enviado', 'E-mail não enviado'],
+
   'PLC report required': ['Informe de PLC obligatorio', 'Relatório de PLC obrigatório'],
   'PLC report': ['Informe de PLC', 'Relatório de PLC'],
   'action.closeout.draftPrepared': [
@@ -1299,6 +1316,10 @@ export function isCoverageInvariantKey(key: string): boolean {
  * validation messages without exposing an English fallback to users.
  */
 const actionExact: Record<string, readonly [string, string]> = {
+  'action.access.localAccount.provisioned': [
+    'Acceso local al portal creado.',
+    'Acesso local ao portal criado.',
+  ],
   'action.access.mailbox.aliasExists': [
     'Ese alias de correo ya existe en Stalwart.',
     'Esse alias de e-mail já existe no Stalwart.',
@@ -1352,6 +1373,10 @@ const actionExact: Record<string, readonly [string, string]> = {
   'action.access.mailboxes.provisioned': [
     'Buzones incorporados al portal.',
     'Caixas de correio provisionadas no portal.',
+  ],
+  'action.validation.localProvision': [
+    'Revisa los datos de acceso local y el proveedor seleccionado.',
+    'Revise os dados de acesso local e o fornecedor selecionado.',
   ],
   'action.access.accountStatus.updated': [
     'Estado de la cuenta actualizado.',
@@ -1957,6 +1982,7 @@ function englishActionMessage(key: string): string {
   const emailMessages: Record<string, string> = {
     'action.billing.invoiceEmail.uncertain':
       'Delivery uncertain; check mail server before retrying. No automatic retry.',
+    'action.billing.invoiceEmail.declined': 'Email not sent',
     'action.billing.invoiceEmail.sending': 'Email delivery is in progress.',
     'action.billing.invoiceEmail.queued': 'Invoice email queued. It has not been sent yet.',
     'action.billing.invoiceEmail.accepted':
@@ -1982,6 +2008,8 @@ function englishActionMessage(key: string): string {
     'action.validation.missingEmails': 'No email accounts selected.',
     'action.validation.invalid': 'Check the submitted values.',
     'action.validation.missingUsername': 'Username is required.',
+    'action.access.localAccount.provisioned': 'Local portal access created.',
+    'action.validation.localProvision': 'Check local access and supplier fields.',
     'action.access.mailbox.createdLinkPending':
       'The mailbox was created in Stalwart, but its portal link is pending. Retry the same creation to finish linking it; a second mailbox will not be created.',
     'action.access.mailboxes.provisioned': 'Mailbox directory synchronized.',

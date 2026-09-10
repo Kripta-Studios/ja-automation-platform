@@ -318,6 +318,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           await form.locator('input[name="email"]').fill(email);
           await form.locator('select[name="role"]').selectOption(role);
           await assertRoleSession(page, 'owner');
+          await form.locator('select[name="emailChoice"]').selectOption('no');
           await form.getByRole('button', { name: 'Create invitation', exact: true }).click();
           await expectActionMessage(page, /invite|created/i);
         }

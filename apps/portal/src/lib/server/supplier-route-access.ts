@@ -25,7 +25,7 @@ export function supplierRouteAllowed(path: string): boolean {
     // These named routes are management/customer-wide views, not own records.
     return !['/reports/review', '/reports/period', '/reports/export'].includes(route);
   }
-  if (/^\/help\/[^/]+$/u.test(route)) return true;
+  if (/^\/help\/[^/]+(?:\/download)?$/u.test(route)) return true;
   if (/^\/api\/auth(?:\/|$)/u.test(route)) return true;
   if (route === '/api/security/mfa') return true;
   // The localized artifact repository allows workers only their own daily/technical reports.

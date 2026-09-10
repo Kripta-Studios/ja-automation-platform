@@ -72,6 +72,7 @@ test('capture current manuals from authenticated synthetic application screens',
       ['period-review', '/reports/review'],
       ['period-detail', `/reports/period/${periodId}`],
       ['closeout', `/projects/${projectId}/closeout`],
+      ['supplier', '/supplier'],
     ],
     worker: [
       ['home', ''],
@@ -184,6 +185,34 @@ test('capture current manuals from authenticated synthetic application screens',
       });
     }
     await context.close();
+  }
+  // Supplier captures are produced by the dedicated supplier workflow fixture.
+  // Keep those approved synthetic screens in the shared manual manifest so the
+  // role-specific Owner and Worker guides remain reproducible without creating
+  // supplier accounts in this read-only navigation pass.
+  for (const capture of [
+    {
+      key: 'supplier-team',
+      role: 'worker',
+      route: '/app/supplier',
+      path: 'docs/manuals/screenshots/current/supplier/team.png',
+      viewport: { width: 1440, height: 900 },
+    },
+    {
+      key: 'supplier-report',
+      role: 'worker',
+      route: '/app/supplier/report',
+      path: 'docs/manuals/screenshots/current/supplier/report.png',
+      viewport: { width: 1440, height: 900 },
+    },
+  ] as const) {
+    screenshots.push({
+      ...capture,
+      sha256: createHash('sha256')
+        .update(readFileSync(resolve(root, capture.path)))
+        .digest('hex'),
+    });
+    checks.push({ name: `supplier-capture:${capture.route}`, status: 'passed' });
   }
   expect(readManualSourceIdentity(root).sourceDigest).toBe(identity.sourceDigest);
   const manifest = {

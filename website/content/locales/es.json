@@ -316,7 +316,11 @@
     "industryWarehouseLogistics": "Almacenamiento y logística",
     "industryOther": "Otra / no estoy seguro",
     "aquarexWaterTreatment": "Tratamiento de agua Aquarex",
-    "otherNotSure": "Otro / no estoy seguro"
+    "otherNotSure": "Otro / no estoy seguro",
+    "emailQuestion": "¿Quieres que esta solicitud también se envíe por correo al equipo de J&A?",
+    "emailChoose": "Elige una opción",
+    "emailNo": "No, solo registrar la solicitud",
+    "emailYes": "Sí, enviar también el correo"
   },
   "about": {
     "eyebrow": "ACERCA DE J&A AUTOMATION",
@@ -573,7 +577,11 @@
     "sendAnother": "Enviar otra solicitud",
     "errorBody": "No pudimos poner su solicitud en cola. Sus datos siguen aquí; revíselos e inténtelo de nuevo.",
     "website": "Sitio web",
-    "privacyNote": "Al solicitar seguimiento, acepta nuestra política de privacidad. Nunca compartiremos sus datos."
+    "privacyNote": "Al solicitar seguimiento, acepta nuestra política de privacidad. Nunca compartiremos sus datos.",
+    "emailQuestion": "¿Quieres que esta solicitud también se envíe por correo al equipo de J&A?",
+    "emailChoose": "Elige una opción",
+    "emailNo": "No, solo registrar la solicitud",
+    "emailYes": "Sí, enviar también el correo"
   },
   "projectCatalog": {
     "amazon-sortation-line-2025": {

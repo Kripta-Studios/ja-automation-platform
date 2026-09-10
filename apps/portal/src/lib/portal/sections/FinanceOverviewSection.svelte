@@ -1,4 +1,5 @@
 <script lang="ts">
+  import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
@@ -73,7 +74,7 @@
       sourceTab = requested as SourceTab;
   });
   let sourcePage = $state(0);
-  const sourcePageSize = 25;
+  const sourcePageSize = 8;
   let expenseInboxFilter = $state<ExpenseInboxFilter>('all');
   let selectedExpenseId = $state('');
   const finance = $derived(data.finance as FinanceProjection | null | undefined);
@@ -434,7 +435,7 @@
   });
 
   const portfolioCardRows = $derived.by((): TableCardRow[] =>
-    portfolioProjects.map((row) => {
+    sourceRowsPage.map((row) => {
       const id = projectId(row);
       const label = `${projectNumber(row)} · ${projectName(row)}`;
       return {
@@ -471,7 +472,7 @@
   );
 
   const workerCardRows = $derived.by((): TableCardRow[] =>
-    portfolioWorkers.map((row) => ({
+    sourceRowsPage.map((row) => ({
       id: value(row, 'workerId', 'worker_id', 'id'),
       cells: [
         { label: translate('Worker'), value: value(row, 'workerName', 'worker_name') || '—' },
@@ -492,7 +493,7 @@
   );
 
   const timeCardRows = $derived.by((): TableCardRow[] =>
-    timeEconomics.map((row) => ({
+    sourceRowsPage.map((row) => ({
       id: value(row, 'id'),
       cells: [
         { label: translate('Date'), value: value(row, 'workDate', 'work_date') || '—' },
@@ -515,7 +516,7 @@
   );
 
   const expenseCardRows = $derived.by((): TableCardRow[] =>
-    expenseEconomics.map((row) => ({
+    sourceRowsPage.map((row) => ({
       id: value(row, 'id'),
       cells: [
         { label: translate('Date'), value: value(row, 'spentOn', 'spent_on') || '—' },
@@ -579,20 +580,10 @@
     financeExpenses.filter((expense) => expensePreset(expense) === 'non_billable').length,
   );
 
-  const pagedPortfolio = $derived(paginate(portfolioProjects, sourcePage));
-  const pagedWorkers = $derived(paginate(portfolioWorkers, sourcePage));
-  const pagedTime = $derived(paginate(timeEconomics, sourcePage));
-  const currentSourceCount = $derived(
-    sourceTab === 'workers'
-      ? portfolioWorkers.length
-      : sourceTab === 'time'
-        ? timeEconomics.length
-        : sourceTab === 'expenses'
-          ? expenseEconomics.length
-          : sourceTab === 'settlements'
-            ? settlements.length
-            : portfolioProjects.length,
-  );
+  const sourceRows = $derived(sourceTab === 'workers' ? portfolioWorkers : sourceTab === 'time' ? timeEconomics : sourceTab === 'expenses' ? expenseEconomics : sourceTab === 'settlements' ? settlements : portfolioProjects);
+  let sourceRowsPage = $state<Row[]>([]);
+  let classificationPage = $state<Row[]>([]);
+  let reimbursementPage = $state<Row[]>([]);
 </script>
 
 {#if !authorizedFinance}
@@ -874,6 +865,7 @@
 
       {#if showSourceTabs}
         <SectionCard title={translate('Source records')} class="finance-overview__surface">
+          <RecordBrowser rows={sourceRows} bind:visible={sourceRowsPage} {translate} label="Source records" />
           <div
             class="finance-overview__source-tabs"
             role="tablist"
@@ -949,7 +941,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {#each pagedPortfolio as row}
+                  {#each sourceRowsPage as row}
                     <tr data-finance-project-row={projectId(row)}>
                       <td>
                         {#if projectId(row)}
@@ -1027,7 +1019,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    {#each pagedWorkers as row}
+                    {#each sourceRowsPage as row}
                       <tr>
                         <td>{value(row, 'workerName', 'worker_name') || '—'}</td>
                         <td>{value(row, 'currency') || '—'}</td>
@@ -1101,7 +1093,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {#each pagedTime as row}
+                  {#each sourceRowsPage as row}
                     <tr>
                       <td>{value(row, 'workDate', 'work_date') || '—'}</td>
                       <td>{categoryLabel(row.category)}</td>
@@ -1169,7 +1161,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {#each expenseEconomics as row}
+                  {#each sourceRowsPage as row}
                     <tr>
                       <td>{value(row, 'spentOn', 'spent_on') || '—'}</td>
                       <td>{categoryLabel(row.category)}</td>
@@ -1189,19 +1181,7 @@
             </TableRegion>
           {/if}
 
-          {#if currentSourceCount > sourcePageSize}
-            <div class="finance-overview__pager">
-              <button type="button" disabled={sourcePage === 0} onclick={() => (sourcePage -= 1)}
-                >{translate('Previous')}</button
-              >
-              <span>{sourcePage + 1} / {pageCount(currentSourceCount)}</span>
-              <button
-                type="button"
-                disabled={sourcePage + 1 >= pageCount(currentSourceCount)}
-                onclick={() => (sourcePage += 1)}>{translate('Next')}</button
-              >
-            </div>
-          {/if}
+
         </SectionCard>
       {/if}
 
@@ -1217,7 +1197,7 @@
                 <h3>{translate('Expense treatment and planning')}</h3>
                 <p>
                   {translate(
-                    'Finance/Admin classify operational expense truth. Expected reimbursement and recovery remain separate from actual states.',
+                    'Choose whether J&A charges this expense to the client, absorbs the cost, or excludes it from billing. Separately, schedule or record repayment to the worker who advanced the money.',
                   )}
                 </p>
               </div>
@@ -1259,7 +1239,8 @@
               >
             </div>
 
-            {#each filteredFinanceExpenses as expense}
+            <RecordBrowser rows={filteredFinanceExpenses} bind:visible={classificationPage} {translate} label="Expense treatment and planning" />
+            {#each classificationPage as expense}
               {@const expenseId = value(expense, 'id')}
               {@const expenseVersion = value(expense, 'version') || '1'}
               {@const classificationState = expenseClassificationState(expense)}
@@ -1509,7 +1490,7 @@
             class="finance-overview__table-region"
             ariaLabel={translate('Compensation settlements table')}
             mobileMode="cards"
-            cardRows={settlements.map((row) => ({
+            cardRows={sourceRowsPage.map((row) => ({
               id: value(row, 'id'),
               cells: [
                 {
@@ -1543,7 +1524,7 @@
                 </tr>
               </thead>
               <tbody>
-                {#each settlements as settlement}
+                {#each sourceRowsPage as settlement}
                   <tr>
                     <td>{value(settlement, 'workerName', 'worker_name') || '—'}</td>
                     <td
@@ -1590,7 +1571,7 @@
                   'Set an expected payment date while preserving the actual settled timestamp.',
                 )}
               </p>
-              {#each settlements as settlement}
+              {#each sourceRowsPage as settlement}
                 {@const settlementState = value(settlement, 'state', 'status')}
                 <form
                   method="POST"
@@ -1637,7 +1618,8 @@
             )}
           </p>
           <div class="finance-overview__reimbursement-list">
-            {#each reimbursements as reimbursement}
+            <RecordBrowser rows={reimbursements} bind:visible={reimbursementPage} {translate} label="Worker reimbursement queue" />
+            {#each reimbursementPage as reimbursement}
               {@const reimbursementState = value(
                 reimbursement,
                 'reimbursementState',

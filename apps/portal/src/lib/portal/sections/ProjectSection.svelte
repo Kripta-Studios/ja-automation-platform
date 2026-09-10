@@ -1,4 +1,5 @@
 <script lang="ts">
+  import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { SectionCard, StatusBadge, TableRegion } from '../ui';
   import type { TableCardRow } from '../ui';
   import type { PortalRow } from '../portal-data';
@@ -158,7 +159,7 @@
   );
 
   const projectCardRows = $derived.by((): TableCardRow[] =>
-    visibleProjects.map((project) => {
+    projectPage.map((project) => {
       const id = projectId(project);
       const label = `${projectNumber(project)} · ${projectName(project)}`;
       return {
@@ -218,6 +219,7 @@
   function activatePrimaryAction(): void {
     primaryAction?.onactivate?.();
   }
+  let projectPage = $state<typeof visibleProjects>([]);
 </script>
 
 <div class="project-section" data-ui="project-section">
@@ -275,6 +277,7 @@
   </form>
 
   <SectionCard title={translate('Authorized projects')} class="project-section__list-surface">
+    <RecordBrowser rows={visibleProjects} bind:visible={projectPage} {translate} label="Project" />
     <TableRegion
       ariaLabel={translate('Authorized projects list')}
       mobileMode="cards"
@@ -292,7 +295,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each visibleProjects as project}
+          {#each projectPage as project}
             {@const status = projectStatus(project)}
             {@const actions = lifecycleActions(project)}
             <tr data-project-row={projectId(project)}>

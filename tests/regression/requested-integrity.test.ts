@@ -112,7 +112,8 @@ describe('requested immutable-history and RBAC invariants (RED characterization)
     expect(locked.approval_state).toBe('locked');
     expect(locked.version).toBeGreaterThan(submitted.version);
 
-    expect(() => value.repository.deleteTime(value.owner, created.id, locked.version)).toThrow(
+    const liveOwner = stepUpB5Principal(value.sqlite, value.owner, 'locked-time-delete');
+    expect(() => value.repository.deleteTime(liveOwner, created.id, locked.version)).toThrow(
       /locked|void|immutable/i,
     );
     expect(

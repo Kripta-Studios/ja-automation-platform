@@ -16,12 +16,12 @@ describe('Worker time UI vertical slice', () => {
     expect(timeBranch).not.toContain('action="?/createTime"');
   });
 
-  it('keeps the list and status context ahead of the one primary Log time CTA', () => {
+  it('keeps the primary Log time CTA above the list and status context', () => {
     const source = readSource('apps/portal/src/lib/portal/sections/TimeSection.svelte');
     expect(source.indexOf('class="time-status-strip"')).toBeGreaterThan(-1);
     expect(source.indexOf('class="time-filters"')).toBeGreaterThan(-1);
-    expect(source.indexOf('class="time-record-list"')).toBeLessThan(
-      source.indexOf('data-time-primary-cta'),
+    expect(source.indexOf('data-time-primary-cta')).toBeLessThan(
+      source.indexOf('class="time-record-list"'),
     );
     expect((source.match(/data-time-primary-cta/g) ?? []).length).toBe(1);
   });

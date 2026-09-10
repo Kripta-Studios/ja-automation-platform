@@ -6,6 +6,18 @@
 **Client validation update:** 2026-08-24
 The requirements clarified directly with J&A on 2026-08-24 are release-authoritative. Existing PASS/PARTIAL evidence must be revalidated where these clarifications materially change the behavior; no prior PASS may be assumed to prove a newly clarified rule.
 
+## Owner email policy — 2026-09-10
+
+The Owner explicitly replaced automatic operational email with in-app notices only.
+Every other application email requires an explicit yes/no decision in the triggering
+user's interface; the initial selection is empty and the server checks confirmation.
+Invoice issue does not send email; PDF delivery is a separate confirmed command.
+Invitations and public inquiries support recording without email. The delivery worker
+quarantines unconfirmed historical mail without deleting history, and the SMTP endpoint
+checks persisted consent. This instruction supersedes the older automatic-email clause
+in Anexo A for this delivery. Validation and deployment evidence is recorded in
+`docs/evidence/email-consent-20260910.md`.
+
 ## Current candidate policy update — 2026-09-06
 
 The Owner/requester's formal implementation decision supersedes the older internal step-up design

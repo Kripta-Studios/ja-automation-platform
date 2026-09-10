@@ -20,7 +20,7 @@ describe('Client Essential reports UI', () => {
     expect(source).toMatch(/ArrowRight|ArrowLeft/);
   });
 
-  it('keeps each field register ahead of its single primary create action', () => {
+  it('keeps both primary report actions above the field registers', () => {
     const source = read('lib/portal/sections/ReportSection.svelte');
     const dailyList = source.indexOf('data-report-tab="daily"');
     const technicalList = source.indexOf('data-report-tab="technical"');
@@ -30,9 +30,9 @@ describe('Client Essential reports UI', () => {
 
     expect(dailyList).toBeGreaterThanOrEqual(0);
     expect(technicalList).toBeGreaterThan(dailyList);
-    expect(primaryIndices).toHaveLength(2);
-    expect(primaryIndices[0]).toBeGreaterThan(dailyList);
-    expect(primaryIndices[1]).toBeGreaterThan(technicalList);
+    expect(primaryIndices).toHaveLength(1);
+    expect(primaryIndices[0]).toBeLessThan(dailyList);
+    expect(source.indexOf('report-primary-action-secondary')).toBeLessThan(dailyList);
     expect(source).toContain('data-report-generator-cta');
   });
 

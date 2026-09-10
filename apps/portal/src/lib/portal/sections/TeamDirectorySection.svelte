@@ -1,4 +1,5 @@
 <script lang="ts">
+  import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { enhance } from '$app/forms';
   import type { ActionResult, SubmitFunction } from '@sveltejs/kit';
   import { page } from '$app/stores';
@@ -31,6 +32,7 @@
 
   export type TeamDirectoryProps = {
     workers: PortalRow[];
+    suppliers?: PortalRow[];
     assignments?: PortalRow[];
     mailboxes?: MailboxRow[] | null;
     mailboxDirectoryStatus?: MailboxDirectoryStatus;
@@ -45,6 +47,7 @@
   };
 
   let {
+    suppliers = [],
     workers,
     assignments = [],
     mailboxes,
@@ -63,6 +66,9 @@
     $page.url.searchParams.get('directory') === 'mailboxes' ? 'mailboxes' : 'specialists',
   );
   let search = $state('');
+  let createLocal = $state(true);
+  let localRole = $state('worker');
+  let revealPassword = $state(false);
   let showAll = $state(false);
   let editingWorkerId = $state<string | null>(null);
   let creatingUser = $state(false);
@@ -368,6 +374,7 @@
     await navigator.clipboard.writeText(new URL(invitationPath, location.origin).toString());
     invitationCopied = true;
   }
+  let teamPage = $state<typeof visibleWorkers>([]);
 </script>
 
 <div class="team-directory" data-team-directory>
@@ -449,11 +456,7 @@
             <div>
               <p class="team-directory__eyebrow">{translate('SECURE USER PROVISIONING')}</p>
               <h2 id="team-create-user-title">{translate('Create user access')}</h2>
-              <p>
-                {translate(
-                  'Choose the email and role. The invited person sets their own name and password securely.',
-                )}
-              </p>
+              <p>{translate('Choose an invitation or set local credentials yourself. Assign project access after creating the account.')}</p>
             </div>
             <button
               type="button"
@@ -465,6 +468,23 @@
             >
           </div>
           {#if creatingUser}
+            <label><span>{translate('Access method')}</span><select bind:value={createLocal}><option value={true}>{translate('Set email and password')}</option><option value={false}>{translate('Invitation link')}</option></select></label>
+            {#if createLocal}
+              <form method="POST" action="?view=team&/createLocalPortalUser" class="team-directory__create-form" autocomplete="off">
+                <label>{translate('Name')}<input name="name" minlength="2" maxlength="160" required /></label>
+                <label>{translate('Email')}<input name="email" type="email" required /></label>
+                <label>{translate('Phone')}<input name="phone" maxlength="80" /></label>
+                <label>{translate('Company')}<input name="company" maxlength="200" /></label>
+                <label>{translate('Contact name')}<input name="contactName" maxlength="160" /></label>
+                <label>{translate('Notes')}<textarea name="notes" maxlength="5000"></textarea></label>
+                <label>{translate('Access role')}<select name="role" bind:value={localRole}><option value="worker">{translate('Worker')}</option><option value="project_manager">{translate('Project Manager')}</option><option value="finance_admin">{translate('Finance Admin')}</option><option value="external_technician">{translate('External technician')}</option><option value="supplier_coordinator">{translate('Supplier coordinator')}</option></select></label>
+                {#if ['external_technician', 'supplier_coordinator'].includes(localRole)}<label>{translate('Supplier')}<select name="supplierId" required><option value="">{translate('Select supplier')}</option>{#each suppliers as supplier}<option value={String(supplier.id)}>{supplier.name}</option>{/each}</select></label>{/if}
+                <label>{translate('Initial password')}<input name="password" type={revealPassword ? 'text' : 'password'} minlength="12" maxlength="128" autocomplete="new-password" required /></label>
+                <label><input type="checkbox" bind:checked={revealPassword} />{translate('Show password to copy')}</label>
+                <p>{translate('Copy the chosen credentials before saving. This creates portal access without sending an email; assign the person to their authorized projects next.')}</p>
+                <button type="submit">{translate('Create user access')}</button>
+              </form>
+            {:else}
             <form
               id="team-create-user-form"
               method="POST"
@@ -513,11 +533,20 @@
                   </li>
                 </ol>
               </div>
+              <label
+                ><span>{translate('Send the invitation email to this address?')}</span>
+                <select name="emailChoice" required>
+                  <option value="">{translate('Choose an option')}</option>
+                  <option value="no">{translate('No, do not send email')}</option>
+                  <option value="yes">{translate('Yes, send this email')}</option>
+                </select></label
+              >
               <button type="submit" class="team-directory__action team-directory__create-submit"
                 >{translate('Create invitation')}</button
               >
             </form>
           {/if}
+            {/if}
           {#if invitationPath}
             <div class="team-directory__invitation-result" role="status" data-invitation-result>
               <div>
@@ -556,7 +585,8 @@
       </div>
 
       <div class="team-directory__list">
-        {#each visibleWorkers as worker}
+<RecordBrowser rows={visibleWorkers} bind:visible={teamPage} {translate} label="TeamDirectory" />
+        {#each teamPage as worker}
           {@const assignmentsForWorker = workerAssignments(worker)}
           {@const role = value(worker, 'role') || 'worker'}
           {@const protectedOwner = workerIsProtectedOwner(worker)}

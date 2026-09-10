@@ -1,6 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { openPortalRepository } from '$lib/server/portal-repository';
-import type { PageServerLoad } from './$types';
+import { billingActions } from '$lib/server/actions/billing-actions';
+import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals, params }) => {
   if (!locals.user) redirect(303, '/j-aautomation/app/login');
@@ -15,4 +16,10 @@ export const load: PageServerLoad = ({ locals, params }) => {
   } finally {
     context.sqlite.close();
   }
+};
+
+export const actions: Actions = {
+  updateInvoiceDraftDetails: (event) => billingActions.updateInvoiceDraftDetails({
+    ...event, params: { ...event.params, section: 'billing' },
+  }),
 };

@@ -316,7 +316,11 @@
     "industryWarehouseLogistics": "Warehouse and logistics",
     "industryOther": "Other / not sure",
     "aquarexWaterTreatment": "Aquarex Water Treatment",
-    "otherNotSure": "Other / Not Sure"
+    "otherNotSure": "Other / Not Sure",
+    "emailQuestion": "Would you like this request emailed to the J&A team as well?",
+    "emailChoose": "Choose an option",
+    "emailNo": "No, only record the request",
+    "emailYes": "Yes, also send the email"
   },
   "about": {
     "eyebrow": "ABOUT J&A AUTOMATION",
@@ -573,7 +577,11 @@
     "sendAnother": "Send another request",
     "errorBody": "We couldn't queue your request. Your entries are still here; check them and try again.",
     "website": "Website",
-    "privacyNote": "By requesting follow-up, you agree to our privacy policy. We will never share your information."
+    "privacyNote": "By requesting follow-up, you agree to our privacy policy. We will never share your information.",
+    "emailQuestion": "Would you like this request emailed to the J&A team as well?",
+    "emailChoose": "Choose an option",
+    "emailNo": "No, only record the request",
+    "emailYes": "Yes, also send the email"
   },
   "projectCatalog": {
     "amazon-sortation-line-2025": {

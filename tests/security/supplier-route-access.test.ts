@@ -26,6 +26,8 @@ describe('supplier operational surface', () => {
   it.each([
     '/time',
     '/time/own-id',
+    '/help/employee-field-guide/download',
+    '/help/worker-reference/download',
     '/reports/own-id',
     '/supplier',
     '/supplier/report',

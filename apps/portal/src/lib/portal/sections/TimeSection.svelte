@@ -1,11 +1,19 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { base } from '$app/paths';
+  import { onMount } from 'svelte';
   import { ResponsiveSheet } from '../ui';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import TimesheetPanel from './TimesheetPanel.svelte';
   import { canDeleteTimeDraft } from './time-entry-actions';
+  import {
+    operationalMatches,
+    operationalNewestFirst,
+    operationalPage,
+    readOperationalRegisterState,
+    writeOperationalRegisterState,
+  } from './operational-register';
 
   let {
     data,
@@ -48,8 +56,30 @@
   let editTimeId = $state<string | null>(null);
   let createCategory = $state('regular');
   let editCategory = $state('regular');
+  let search = $state('');
+  let statusFilter = $state('');
+  let registerPage = $state(1);
+  let registerStateHydrated = $state(false);
+  const registerStateKey = (): string => `ja-operational-register:time:${data.user.id}`;
+
+  onMount(() => {
+    const saved = readOperationalRegisterState<{ search?: string; page?: number }>(
+      registerStateKey(),
+    );
+    if (typeof saved?.search === 'string') search = saved.search;
+    if (typeof saved?.page === 'number') registerPage = saved.page;
+    registerStateHydrated = true;
+  });
+  $effect(() => {
+    if (registerStateHydrated)
+      writeOperationalRegisterState(registerStateKey(), { search, page: registerPage });
+  });
 
   const records = $derived(data.records ?? []);
+  $effect(() => {
+    statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
+    registerPage = 1;
+  });
   $effect(() => {
     const id = $page.url.searchParams.get('edit');
     const row = records.find((row) => String(row.id) === id && row.approval_state === 'draft');
@@ -76,6 +106,39 @@
   const operationalDetailLabel = $derived(
     activeCategory === 'travel' ? 'Travel operational detail' : 'Standby reason',
   );
+  const filteredRecords = $derived.by(() =>
+    operationalNewestFirst(
+      records.filter(
+        (row) =>
+          (!statusFilter || String(row.approval_state) === statusFilter) &&
+          operationalMatches(row, search, [
+            'project_number',
+            'project_name',
+            'client_name',
+            'worker_name',
+            'activity_summary',
+            'category',
+            'work_date',
+          ]),
+      ),
+      ['work_date'],
+    ),
+  );
+  const pagedRecords = $derived(operationalPage(filteredRecords, registerPage));
+
+  function filterHref(overrides: Record<string, string>): string {
+    const params = new URLSearchParams();
+    const project = overrides.project ?? String(data.timeFilter?.projectId ?? '');
+    const category = overrides.category ?? String(data.timeFilter?.category ?? '');
+    const status = overrides.status ?? statusFilter;
+    const week = data.weekStart ?? '';
+    if (week) params.set('week', week);
+    if (project) params.set('project', project);
+    if (category) params.set('category', category);
+    if (status) params.set('status', status);
+    const query = params.toString();
+    return `${base}/app/time${query ? `?${query}` : ''}`;
+  }
 
   function openCreate(): void {
     surface = 'create';
@@ -114,22 +177,35 @@
     </div>
   </header>
 
+  {#if !isAuditor}
+    <div class="time-primary-action-wrap time-primary-action-top">
+      <button type="button" class="time-primary-action" data-time-primary-cta onclick={openCreate}>
+        {translate('Log time')}
+      </button>
+    </div>
+    <p class="operational-action-copy">
+      {translate(
+        'Save a draft while details are still changing. Submit time only after the recorded date, duration and activity are accurate; submitted time is reviewed and cannot be silently overwritten.',
+      )}
+    </p>
+  {/if}
+
   <div class="time-status-strip" aria-label={translate('Time attention summary')}>
-    <div class="time-status-card">
+    <a class="time-status-card" href={filterHref({ status: '' })}>
       <span>{translate('Actual recorded')}</span>
       <strong>{totalActualMinutes} {translate('min')}</strong>
       <small>{translate('Minutes you really recorded.')}</small>
-    </div>
-    <div class="time-status-card">
+    </a>
+    <a class="time-status-card" href={filterHref({ status: 'submitted' })}>
       <span>{translate('Needs attention')}</span>
       <strong>{pendingCount}</strong>
       <small>{translate('Draft or review state')}</small>
-    </div>
-    <div class="time-status-card">
+    </a>
+    <a class="time-status-card" href={filterHref({ status: 'approved' })}>
       <span>{translate('Approved')}</span>
       <strong>{approvedCount}</strong>
       <small>{translate('Rows approved by the workflow')}</small>
-    </div>
+    </a>
   </div>
 
   {#if data.timesheet}
@@ -144,6 +220,15 @@
   >
     <input type="hidden" name="week" value={data.weekStart ?? ''} />
     <label>
+      <span>{translate('Search register')}</span>
+      <input
+        bind:value={search}
+        oninput={() => (registerPage = 1)}
+        type="search"
+        placeholder={translate('Project, activity or date')}
+      />
+    </label>
+    <label>
       <span>{translate('Project')}</span>
       <select name="project">
         <option value="">{translate('All projects')}</option>
@@ -154,6 +239,16 @@
             >{project.project_number} — {project.name}</option
           >
         {/each}
+      </select>
+    </label>
+    <label>
+      <span>{translate('Status')}</span>
+      <select name="status" bind:value={statusFilter} onchange={() => (registerPage = 1)}>
+        <option value="">{translate('All statuses')}</option>
+        <option value="draft">{translate('Draft')}</option>
+        <option value="submitted">{translate('Submitted')}</option>
+        <option value="approved">{translate('Approved')}</option>
+        <option value="needs_changes">{translate('Needs changes')}</option>
       </select>
     </label>
     <label>
@@ -183,7 +278,7 @@
         <span class="time-eyebrow">{translate('ACTIVITY REGISTER')}</span>
         <h3 id="time-records-title">{translate('Recent time entries')}</h3>
       </div>
-      <span class="time-record-count">{records.length}</span>
+      <span class="time-record-count">{filteredRecords.length}</span>
     </div>
     {#if data.timeFilter?.category || data.timeFilter?.projectId}
       <p class="form-help time-filter-note">
@@ -192,7 +287,7 @@
       </p>
     {/if}
     <div class="time-records">
-      {#each records as row}
+      {#each pagedRecords.rows as row}
         <article
           class:time-record-needs-changes={row.approval_state === 'needs_changes'}
           class="time-record"
@@ -252,7 +347,7 @@
               </form>
             </div>
           {/if}
-          {#if data.user.role === 'owner_admin'}
+        {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
             <a href={`${base}/app/manage?type=time_entry#${String(row.id)}`}
               >{translate('Manage record')} →</a
             >
@@ -265,14 +360,29 @@
         </div>
       {/each}
     </div>
+    {#if pagedRecords.totalPages > 1}
+      <nav class="operational-pagination" aria-label={translate('Time register pages')}>
+        <button
+          type="button"
+          class="secondary-button"
+          disabled={pagedRecords.current === 1}
+          onclick={() => (registerPage -= 1)}>{translate('Previous')}</button
+        >
+        <span
+          >{translate('Page')}
+          {pagedRecords.current}
+          {translate('of')}
+          {pagedRecords.totalPages}</span
+        >
+        <button
+          type="button"
+          class="secondary-button"
+          disabled={pagedRecords.current === pagedRecords.totalPages}
+          onclick={() => (registerPage += 1)}>{translate('Next')}</button
+        >
+      </nav>
+    {/if}
   </section>
-  {#if !isAuditor}
-    <div class="time-primary-action-wrap">
-      <button type="button" class="time-primary-action" data-time-primary-cta onclick={openCreate}>
-        {translate('Log time')}
-      </button>
-    </div>
-  {/if}
 </div>
 
 <ResponsiveSheet
@@ -291,7 +401,7 @@
       data-time-entry-surface
       onsubmit={(event) => saveOfflineDraft(event, 'time')}
     >
-      {#if data.user.role === 'owner_admin'}
+      {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
         <label
           ><span>{translate('Worker')}</span><select name="workerId" required
             ><option value="">{translate('Select worker')}</option
@@ -418,3 +528,50 @@
     </form>
   {/if}
 </ResponsiveSheet>
+
+<style>
+  .time-primary-action-top {
+    justify-content: flex-start;
+  }
+  .operational-action-copy {
+    color: var(--ja-steel, #637486);
+    margin: -0.4rem 0 0;
+    max-width: 72ch;
+    font-size: 0.86rem;
+  }
+  .time-status-card {
+    color: inherit;
+    text-decoration: none;
+  }
+  .time-status-card:hover,
+  .time-status-card:focus-visible {
+    border-color: var(--ja-teal, #277e78);
+    outline: 3px solid color-mix(in srgb, var(--ja-teal, #277e78) 25%, transparent);
+    outline-offset: 2px;
+  }
+  .operational-pagination {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+  }
+  .operational-pagination span {
+    color: var(--ja-steel, #637486);
+    font-size: 0.85rem;
+  }
+  @media (max-width: 480px) {
+    .operational-pagination {
+      justify-content: stretch;
+    }
+    .operational-pagination button {
+      flex: 1 1 7rem;
+    }
+    .operational-pagination span {
+      order: -1;
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>

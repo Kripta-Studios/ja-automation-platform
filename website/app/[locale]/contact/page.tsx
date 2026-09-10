@@ -82,7 +82,7 @@ function ContactFormContent() {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, emailChoice: form.get('emailChoice') }),
       });
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { error?: string } | null;
@@ -566,6 +566,19 @@ function ContactFormContent() {
                 </p>
               )}
 
+              <label className="block text-sm font-medium">
+                {t('emailQuestion')}
+                <select
+                  name="emailChoice"
+                  required
+                  defaultValue=""
+                  className="w-full px-4 py-3 rounded-lg border border-ja-line bg-ja-surface mt-2"
+                >
+                  <option value="">{t('emailChoose')}</option>
+                  <option value="no">{t('emailNo')}</option>
+                  <option value="yes">{t('emailYes')}</option>
+                </select>
+              </label>
               <button
                 type="submit"
                 className={`btn btn-primary w-full md:w-auto min-w-[200px] ${status === 'loading' ? 'opacity-70 cursor-not-allowed' : ''}`}

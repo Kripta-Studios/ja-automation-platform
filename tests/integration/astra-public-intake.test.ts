@@ -42,6 +42,7 @@ afterEach(() => {
 });
 
 const aquarexPayload = (changes: Record<string, unknown> = {}) => ({
+  emailChoice: 'yes',
   name: 'Aquarex Requester',
   company: 'Example Plant',
   email: 'requester@example.com',
@@ -130,6 +131,7 @@ describe('Aquarex public intake durability', () => {
 
   it('keeps contact submissions independent when no idempotency key is supplied', async () => {
     const payload = {
+      emailChoice: 'yes',
       name: 'Contact Requester',
       company: 'Example Plant',
       email: 'contact@example.com',
@@ -217,4 +219,45 @@ describe('Aquarex public intake durability', () => {
       database.close();
     }
   });
+});
+
+it('requires a decision, records declined requests without mail and binds retries to that decision', async () => {
+  for (const emailChoice of [undefined, true, '']) {
+    const response = await acceptPublicForm(
+      eventFor(aquarexPayload({ emailChoice })),
+      'aquarex',
+      aquarexInquirySchema,
+    );
+    expect(response.status).toBe(400);
+  }
+  const key = 'email-declined-request-0001';
+  const response = await acceptPublicForm(
+    eventFor(aquarexPayload({ emailChoice: 'no' }), { key }),
+    'aquarex',
+    aquarexInquirySchema,
+  );
+  expect(response.status).toBe(202);
+  const db = createDatabase(process.env.JA_DATABASE_PATH).sqlite;
+  try {
+    expect(db.prepare('SELECT count(*) n FROM public_inquiry').get()).toEqual({ n: 1 });
+    expect(db.prepare('SELECT delivered_at,failed_at,last_error FROM outbox_event').get()).toEqual({
+      delivered_at: null,
+      failed_at: expect.any(String),
+      last_error: 'EMAIL_DECLINED',
+    });
+  } finally {
+    db.close();
+  }
+  const retry = await acceptPublicForm(
+    eventFor(aquarexPayload({ emailChoice: 'no' }), { key }),
+    'aquarex',
+    aquarexInquirySchema,
+  );
+  expect(retry.status).toBe(202);
+  const changed = await acceptPublicForm(
+    eventFor(aquarexPayload({ emailChoice: 'yes' }), { key }),
+    'aquarex',
+    aquarexInquirySchema,
+  );
+  expect(changed.status).toBe(409);
 });

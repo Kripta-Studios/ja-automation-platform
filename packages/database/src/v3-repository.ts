@@ -1,3 +1,4 @@
+import { quarantineUnconfirmedEmail } from './core/email-policy.ts';
 import { createHash, randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import {
@@ -1108,6 +1109,7 @@ export class V3Repository {
       email: string;
       role: 'owner_admin' | 'finance_admin' | 'project_manager' | 'worker' | 'auditor_read_only';
       expiresInDays?: number;
+      emailConfirmed?: boolean;
     }>,
     sealToken?: (token: string, invitationId: string) => string,
   ): { id: string; token: string; expiresAt: string } {
@@ -1132,7 +1134,7 @@ export class V3Repository {
     const id = newId();
     const now = timestamp();
     const expiresAt = new Date(Date.now() + expiresInDays * 86_400_000).toISOString();
-    const encryptedToken = sealToken?.(token, id);
+    const encryptedToken = input.emailConfirmed === true ? sealToken?.(token, id) : undefined;
     return this.transaction(() => {
       this.sqlite
         .prepare(
@@ -1150,6 +1152,8 @@ export class V3Repository {
             id,
             `invitation:${id}`,
             JSON.stringify({
+              emailConfirmed: true,
+              requestedBy: principal.userId,
               invitationId: id,
               email,
               role: input.role,
@@ -10405,6 +10409,7 @@ export class V3Repository {
     let failed = 0;
     let permanentlyFailed = 0;
     const maximumAttempts = 8;
+    quarantineUnconfirmedEmail(this.sqlite);
     for (let index = 0; index < limit; index += 1) {
       const claimed = this.transaction(() => {
         const now = timestamp();

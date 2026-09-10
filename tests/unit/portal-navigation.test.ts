@@ -37,6 +37,8 @@ describe('portal role navigation contract', () => {
       'Projects',
       'Approvals',
       'Reports',
+      'Time',
+      'Expenses',
       'Team',
       'Planning',
       'Documents',
@@ -90,6 +92,8 @@ describe('portal role navigation contract', () => {
       'Clients',
       'Team',
       'Suppliers',
+      'Time',
+      'Expenses',
       'Planning',
       'Documents',
       'Finance Overview',
@@ -99,6 +103,7 @@ describe('portal role navigation contract', () => {
       'Accounting',
       'Commercial Configuration',
       'Profile',
+      'Data management',
       'Audit',
     ]);
   });

@@ -1,3 +1,4 @@
+export { hasEmailConsent, quarantineUnconfirmedEmail } from './core/email-policy.ts';
 import {
   accessSync,
   constants,
@@ -274,6 +275,7 @@ const REVIEWED_B5_MIGRATION_NAMES: Readonly<Record<number, string>> = {
   42: 'supplier_workforce',
   43: 'supplier_directory_lifecycle',
   44: 'owner_record_management',
+  45: 'supplier_contact_directory',
 };
 
 const MIGRATION_CONTRACT_VERSION = 'ja-migration-contract-v1';
@@ -282,7 +284,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  'c507a4765f14806fd22a23b46990fffea561617aea37768abe3bd44ccc3be679';
+  'df3d9d2849b16b75d7550e9c5a5186d12b851832138c4efe1751b2a34fda2cf2';
 
 type MigrationContractEntry = Readonly<{
   version: number;

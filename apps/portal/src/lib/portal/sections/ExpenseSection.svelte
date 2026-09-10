@@ -1,10 +1,18 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { onMount } from 'svelte';
   import { base } from '$app/paths';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import { ResponsiveSheet, SectionCard, StatusBadge } from '../ui';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { money } from '../portal-format';
+  import {
+    operationalMatches,
+    operationalNewestFirst,
+    operationalPage,
+    readOperationalRegisterState,
+    writeOperationalRegisterState,
+  } from './operational-register';
 
   let {
     data,
@@ -42,6 +50,26 @@
   let receiptPreviewUrl = $state<string | null>(null);
   let receiptPreviewName = $state('');
   let receiptPreviewMime = $state('');
+  let registerPage = $state(1);
+  let registerStateHydrated = $state(false);
+  let exportFrom = $state(`${new Date().toISOString().slice(0, 8)}01`);
+  let exportTo = $state(new Date().toISOString().slice(0, 10));
+  let exportProject = $state('');
+  let exportWorker = $state('');
+  const registerStateKey = (): string => `ja-operational-register:expenses:${data.user.id}`;
+
+  onMount(() => {
+    const saved = readOperationalRegisterState<{ search?: string; page?: number }>(
+      registerStateKey(),
+    );
+    if (typeof saved?.search === 'string') search = saved.search;
+    if (typeof saved?.page === 'number') registerPage = saved.page;
+    registerStateHydrated = true;
+  });
+  $effect(() => {
+    if (registerStateHydrated)
+      writeOperationalRegisterState(registerStateKey(), { search, page: registerPage });
+  });
 
   const expenseCategories = [
     ['hotel', 'Hotel'],
@@ -62,22 +90,34 @@
   ] as const;
 
   const records = $derived(data.records ?? []);
+  $effect(() => {
+    projectFilter = $page.url.searchParams.get('project')?.trim() ?? '';
+    statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
+    registerPage = 1;
+  });
   const editRow = $derived.by(
     () => records.find((row) => String(row.id) === editExpenseId) as Row | undefined,
   );
   const visibleRecords = $derived.by(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-    return records.filter((row) => {
-      const matchesSearch =
-        !normalizedSearch ||
-        [row.vendor, row.project_number, row.description, row.spent_on]
-          .map((value) => String(value ?? '').toLowerCase())
-          .some((value) => value.includes(normalizedSearch));
-      const matchesProject = !projectFilter || String(row.project_id ?? '') === projectFilter;
-      const matchesStatus = !statusFilter || String(row.approval_state ?? '') === statusFilter;
-      return matchesSearch && matchesProject && matchesStatus;
-    });
+    return operationalNewestFirst(
+      records.filter((row) => {
+        const matchesSearch = operationalMatches(row, search, [
+          'vendor',
+          'project_number',
+          'project_name',
+          'client_name',
+          'description',
+          'spent_on',
+          'worker_name',
+        ]);
+        const matchesProject = !projectFilter || String(row.project_id ?? '') === projectFilter;
+        const matchesStatus = !statusFilter || String(row.approval_state ?? '') === statusFilter;
+        return matchesSearch && matchesProject && matchesStatus;
+      }),
+      ['spent_on'],
+    );
   });
+  const pagedRecords = $derived(operationalPage(visibleRecords, registerPage));
 
   const pendingReviewCount = $derived(
     records.filter((row) =>
@@ -152,6 +192,23 @@
     editExpenseId = null;
     clearReceiptPreview();
   }
+
+  function registerHref(overrides: Record<string, string>): string {
+    const params = new URLSearchParams();
+    const project = overrides.project ?? projectFilter;
+    const status = overrides.status ?? statusFilter;
+    if (project) params.set('project', project);
+    if (status) params.set('status', status);
+    const query = params.toString();
+    return `${base}/app/expenses${query ? `?${query}` : ''}`;
+  }
+
+  function exportHref(format: 'csv' | 'xlsx' | 'pdf'): string {
+    const params = new URLSearchParams({ from: exportFrom, to: exportTo, format });
+    if (exportProject) params.set('project', exportProject);
+    if (exportWorker) params.set('worker', exportWorker);
+    return `${base}/app/expenses/export?${params.toString()}`;
+  }
 </script>
 
 <div class="expense-page">
@@ -170,31 +227,46 @@
     >
   </header>
 
+  {#if !isAuditor}
+    <div class="expense-primary-action expense-primary-action-top">
+      <button type="button" data-expense-primary-cta onclick={openCreate}>
+        <span aria-hidden="true">＋</span>
+        {translate('Record expense')}
+      </button>
+    </div>
+  {/if}
+
   <div class="expense-status-strip" aria-label={translate('Expense attention summary')}>
-    <div class="expense-status-card">
+    <a class="expense-status-card" href={registerHref({ status: 'submitted' })}>
       <span>{translate('Needs attention')}</span>
       <strong>{pendingReviewCount}</strong>
       <small>{translate('Draft or review state')}</small>
-    </div>
-    <div class="expense-status-card">
+    </a>
+    <a class="expense-status-card" href={registerHref({ status: 'approved' })}>
       <span>{translate('Reimbursement')}</span>
       <strong>{reimbursementCount}</strong>
       <small>{translate('Pending or scheduled')}</small>
-    </div>
+    </a>
   </div>
 
   <form
     class="expense-filters"
+    method="GET"
+    action={`${base}/app/expenses`}
     aria-label={translate('Filter expenses')}
-    onsubmit={(event) => event.preventDefault()}
   >
     <label>
       <span>{translate('Search expenses')}</span>
-      <input bind:value={search} type="search" placeholder={translate('Vendor, project or date')} />
+      <input
+        bind:value={search}
+        oninput={() => (registerPage = 1)}
+        type="search"
+        placeholder={translate('Vendor, project or date')}
+      />
     </label>
     <label>
       <span>{translate('Project')}</span>
-      <select bind:value={projectFilter}>
+      <select name="project" bind:value={projectFilter} onchange={() => (registerPage = 1)}>
         <option value="">{translate('All projects')}</option>
         {#each availableProjects as project}
           <option value={String(project.id)}>{project.project_number} — {project.name}</option>
@@ -203,7 +275,7 @@
     </label>
     <label>
       <span>{translate('Status')}</span>
-      <select bind:value={statusFilter}>
+      <select name="status" bind:value={statusFilter} onchange={() => (registerPage = 1)}>
         <option value="">{translate('All statuses')}</option>
         <option value="draft">{translate('Draft')}</option>
         <option value="submitted">{translate('Submitted')}</option>
@@ -211,12 +283,33 @@
         <option value="needs_changes">{translate('Needs changes')}</option>
       </select>
     </label>
+    <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
   </form>
+
+  <section class="expense-export-panel" aria-labelledby="expense-export-title">
+    <div>
+      <h3 id="expense-export-title">{translate('Export expense register')}</h3>
+      <p>{translate('Download the filtered operational expenses as PDF, Excel or CSV.')}</p>
+    </div>
+    <div class="expense-export-fields">
+      <label><span>{translate('From')}</span><input type="date" bind:value={exportFrom} /></label>
+      <label><span>{translate('To')}</span><input type="date" bind:value={exportTo} /></label>
+      <label><span>{translate('Project')}</span><select bind:value={exportProject}><option value="">{translate('All projects')}</option>{#each availableProjects as project}<option value={String(project.id)}>{project.project_number} — {project.name}</option>{/each}</select></label>
+      {#if data.user.role === 'owner_admin' || data.user.role === 'project_manager'}
+        <label><span>{translate('Worker')}</span><select bind:value={exportWorker}><option value="">{translate('All workers')}</option>{#each data.workers ?? [] as worker}<option value={String(worker.id)}>{worker.name}</option>{/each}</select></label>
+      {/if}
+    </div>
+    <div class="expense-export-actions">
+      <a class="secondary-button" href={exportHref('pdf')}>{translate('Download PDF')}</a>
+      <a class="secondary-button" href={exportHref('xlsx')}>{translate('Download Excel')}</a>
+      <a class="secondary-button" href={exportHref('csv')}>{translate('Download CSV')}</a>
+    </div>
+  </section>
 
   <SectionCard title={translate('Recent expenses')} class="expense-list-surface">
     {#if visibleRecords.length > 0}
       <div class="expense-list" aria-live="polite">
-        {#each visibleRecords as row}
+        {#each pagedRecords.rows as row}
           <article class="expense-record" data-expense-record={String(row.id)}>
             <a class="record-card-link" href={`${base}/app/expenses/${String(row.id)}`}>
               <div class="expense-record-main">
@@ -294,7 +387,7 @@
                 {/if}
               </div>
             {/if}
-            {#if data.user.role === 'owner_admin'}
+      {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
               <a href={`${base}/app/manage?type=expense#${String(row.id)}`}
                 >{translate('Manage record')} →</a
               >
@@ -308,16 +401,29 @@
         <span>{translate('Your submitted expenses will appear here.')}</span>
       </div>
     {/if}
+    {#if pagedRecords.totalPages > 1}
+      <nav class="operational-pagination" aria-label={translate('Expense register pages')}>
+        <button
+          type="button"
+          class="secondary-button"
+          disabled={pagedRecords.current === 1}
+          onclick={() => (registerPage -= 1)}>{translate('Previous')}</button
+        >
+        <span
+          >{translate('Page')}
+          {pagedRecords.current}
+          {translate('of')}
+          {pagedRecords.totalPages}</span
+        >
+        <button
+          type="button"
+          class="secondary-button"
+          disabled={pagedRecords.current === pagedRecords.totalPages}
+          onclick={() => (registerPage += 1)}>{translate('Next')}</button
+        >
+      </nav>
+    {/if}
   </SectionCard>
-
-  {#if !isAuditor}
-    <div class="expense-primary-action">
-      <button type="button" data-expense-primary-cta onclick={openCreate}>
-        <span aria-hidden="true">＋</span>
-        {translate('Record expense')}
-      </button>
-    </div>
-  {/if}
 
   <ResponsiveSheet
     open={surface !== null}
@@ -336,7 +442,7 @@
         data-expense-entry-surface
         onsubmit={(event) => saveOfflineDraft(event, 'expense')}
       >
-        {#if data.user.role === 'owner_admin'}
+        {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
           <label
             ><span>{translate('Worker')}</span><select name="workerId" required
               ><option value="">{translate('Select worker')}</option
@@ -414,10 +520,10 @@
           </label>
           <label>
             <span>{translate('Currency')}</span>
-            <select name="currency" required>
-              <option>USD</option>
-              <option>BRL</option>
-              <option>EUR</option>
+            <select name="currency" value="USD" required>
+              <option value="USD">USD</option>
+              <option value="BRL">BRL</option>
+              <option value="EUR">EUR</option>
             </select>
           </label>
         </div>
@@ -517,3 +623,63 @@
     {/if}
   </ResponsiveSheet>
 </div>
+
+<style>
+  .expense-primary-action-top {
+    justify-content: flex-start;
+  }
+  .expense-status-card {
+    color: inherit;
+    text-decoration: none;
+  }
+  .expense-status-card:hover,
+  .expense-status-card:focus-visible {
+    border-color: var(--ja-teal, #277e78);
+    outline: 3px solid color-mix(in srgb, var(--ja-teal, #277e78) 25%, transparent);
+    outline-offset: 2px;
+  }
+  .expense-export-panel {
+    display: grid;
+    gap: 0.9rem;
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid var(--portal-border, #d8e2e8);
+    border-radius: 0.75rem;
+    background: var(--portal-surface-soft, #f8fbfc);
+  }
+  .expense-export-panel h3,
+  .expense-export-panel p { margin: 0; }
+  .expense-export-panel p { color: var(--portal-muted, #64748b); font-size: 0.86rem; }
+  .expense-export-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
+  .expense-export-fields label { display: grid; gap: 0.3rem; }
+  .expense-export-fields span { font-size: 0.78rem; font-weight: 600; }
+  .expense-export-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+  .expense-export-actions a { text-decoration: none; }
+  @media (max-width: 52rem) { .expense-export-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 34rem) { .expense-export-fields { grid-template-columns: 1fr; } .expense-export-actions a { flex: 1 1 100%; text-align: center; } }
+  .operational-pagination {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+  }
+  .operational-pagination span {
+    color: var(--ja-steel, #637486);
+    font-size: 0.85rem;
+  }
+  @media (max-width: 480px) {
+    .operational-pagination {
+      justify-content: stretch;
+    }
+    .operational-pagination button {
+      flex: 1 1 7rem;
+    }
+    .operational-pagination span {
+      order: -1;
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>

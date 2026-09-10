@@ -1,3 +1,4 @@
+import { hasEmailConsent } from '@ja/database';
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import {
   readFileSync,
@@ -184,6 +185,7 @@ export const resolveMailDelivery = (
   const payload = JSON.parse(event.payload_json) as Record<string, unknown>;
   if (!payload || typeof payload !== 'object' || Array.isArray(payload))
     throw new Error('Invalid stored event payload');
+  if (!hasEmailConsent(request.topic, payload)) throw new Error('EMAIL_NOT_CONFIRMED');
   // The worker may enrich an inquiry request; mail content and identity always
   // come from the database, never from a signed caller's substituted values.
   let attachment: MailDelivery['attachment'];

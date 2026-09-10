@@ -179,7 +179,7 @@ describe('repository authorization and privacy', () => {
       sqlite
         .prepare("SELECT topic FROM outbox_event WHERE topic='notification.email.requested'")
         .all(),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
 
     expect(repository.search(owner, 'Security')).toEqual(
       expect.arrayContaining([

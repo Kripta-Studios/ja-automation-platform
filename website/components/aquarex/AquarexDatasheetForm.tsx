@@ -62,7 +62,7 @@ export default function AquarexDatasheetForm({ locale }: AquarexDatasheetFormPro
           'content-type': 'application/json',
           'Idempotency-Key': requestKey,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, emailChoice: form.get('emailChoice') }),
       });
       const body = (await response.json().catch(() => null)) as { accepted?: boolean } | null;
       if (response.status === 409) idempotencyKey.current = undefined;
@@ -205,6 +205,19 @@ export default function AquarexDatasheetForm({ locale }: AquarexDatasheetFormPro
         </div>
       )}
 
+      <label className="block text-sm font-medium">
+        {page('emailQuestion')}
+        <select
+          name="emailChoice"
+          required
+          defaultValue=""
+          className="w-full px-4 py-3 rounded-lg border border-ja-line bg-ja-surface mt-2"
+        >
+          <option value="">{page('emailChoose')}</option>
+          <option value="no">{page('emailNo')}</option>
+          <option value="yes">{page('emailYes')}</option>
+        </select>
+      </label>
       <button
         type="submit"
         className="btn btn-primary w-full mt-4 disabled:cursor-wait disabled:opacity-60"

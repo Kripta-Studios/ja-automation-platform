@@ -39,6 +39,11 @@ describe('Client Essential identifier portal contract', () => {
     ).toBe(false);
   });
 
+  it('accepts an empty optional billing name when an email is provided', () => {
+    expect(clientInputSchema.parse({ ...clientFields, billingContactName: '  ' }).billingContactName).toBeUndefined();
+    expect(clientInputSchema.safeParse({ ...clientFields, billingContactName: '', billingEmail: '' }).success).toBe(false);
+  });
+
   it('keeps client-code clearing explicit in the versioned update contract', () => {
     expect(
       clientUpdateInputSchema.parse({

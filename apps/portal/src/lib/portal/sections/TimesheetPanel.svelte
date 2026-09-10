@@ -46,6 +46,9 @@
   const timesheetCardRows = $derived.by((): TableCardRow[] =>
     (data.timesheet?.days ?? []).map((day) => ({
       id: day.date,
+      href: `${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&from=${encodeURIComponent(day.date)}&to=${encodeURIComponent(day.date)}`,
+      linkLabel: translate('Open day entries'),
+      linkAriaLabel: `${translate('Open time entries for')} ${day.label} ${day.date}`,
       cells: [
         { label: translate('Day'), value: `${day.label} · ${day.date}` },
         { label: translate('Actual'), value: hours(day.actualMinutes) },
@@ -129,7 +132,12 @@
             class:timesheet-exception={day.status === 'Needs note' ||
               day.status === 'Needs changes'}
           >
-            <th scope="row">{day.label}<small>{day.date}</small></th>
+            <th scope="row"
+              ><a
+                href={`${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&from=${encodeURIComponent(day.date)}&to=${encodeURIComponent(day.date)}`}
+                >{day.label}<small>{day.date}</small></a
+              ></th
+            >
             <td>{hours(day.actualMinutes)}</td>
             <td>{displayMinutes(day.expectedMinutes)}</td>
             <td
@@ -195,3 +203,19 @@
     </details>
   {/if}
 </section>
+
+<style>
+  .timesheet-table th a {
+    color: inherit;
+    display: grid;
+    gap: 0.15rem;
+    text-decoration: none;
+  }
+  .timesheet-table th a:hover,
+  .timesheet-table th a:focus-visible {
+    color: var(--ja-teal, #277e78);
+    text-decoration: underline;
+    outline: 3px solid color-mix(in srgb, var(--ja-teal, #277e78) 25%, transparent);
+    outline-offset: 2px;
+  }
+</style>

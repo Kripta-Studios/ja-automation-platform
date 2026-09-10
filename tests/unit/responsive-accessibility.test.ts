@@ -171,7 +171,7 @@ describe('Client Essential responsive accessibility contract', () => {
       'Regular time 1.0h · Travel time 0.5h · Standby / waiting 0.8h · Overtime 1.0h',
     );
     expect(localizedSummary('es')).toBe(
-      'Tiempo ordinario 1.0h · Tiempo de viaje 0.5h · Disponibilidad / espera 0.8h · Horas extra 1.0h',
+      'Tiempo ordinario 1.0h · Tiempo de viaje 0.5h · Guardia / espera 0.8h · Horas extra 1.0h',
     );
   });
 

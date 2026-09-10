@@ -24,6 +24,7 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
       revision: manualRevision,
       user: {
         name: locals.user.name,
+        workforceProfile: locals.user.workforceProfile,
         role: context.principal.role,
       },
       manuals: manualsForRole(context.principal.role),

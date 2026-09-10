@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { helpWorkflows } from '$lib/portal/help-workflows';
   import { base } from '$app/paths';
 
   type Locale = 'en' | 'es' | 'pt';
@@ -13,7 +14,7 @@
   type HelpData = {
     locale: Locale;
     revision: string;
-    user: { name: string; role: string | null };
+    user: { name: string; role: string | null; workforceProfile?: string };
     manuals: readonly Manual[];
   };
 
@@ -37,7 +38,7 @@
       privateNote:
         'Your My Pay view is private. An estimate or statement is not a payslip and does not prove that money was paid.',
       support:
-        'For an invitation, access or password problem, use the verified support route in your invitation. Do not guess a support address or send passwords and codes.',
+        'For an invitation, access or password problem, contact admin@j-aautomation.com.',
       loginTitle: 'Use the invitation linked to your mailbox',
       loginBody:
         'If your invitation is linked to a company mailbox, open it from that mailbox and sign in with the account it names. If you were invited as an external worker, use the single-use invitation link to create your account. There is no public sign-up.',
@@ -71,7 +72,7 @@
       privateNote:
         'Tu vista My Pay es privada. Un estimado o estado no es una nómina ni demuestra que el dinero se haya pagado.',
       support:
-        'Para problemas de invitación, acceso o contraseña, usa el canal de soporte verificado de tu invitación. No adivines una dirección ni envíes contraseñas o códigos.',
+        'Para problemas de invitación, acceso o contraseña, contacta con admin@j-aautomation.com.',
       loginTitle: 'Usa la invitación vinculada a tu buzón',
       loginBody:
         'Si tu invitación está vinculada a un buzón corporativo, ábrela desde ese buzón e inicia sesión con la cuenta indicada. Si eres un trabajador externo, usa el enlace de invitación de un solo uso para crear tu cuenta. No hay registro público.',
@@ -105,7 +106,7 @@
       privateNote:
         'Sua visão Meu pagamento é privada. Uma estimativa ou declaração não é um contracheque e não prova que o dinheiro foi pago.',
       support:
-        'Para problemas de convite, acesso ou senha, use o canal de suporte verificado no seu convite. Não adivinhe um endereço nem envie senhas ou códigos.',
+        'Para problemas de convite, acesso ou senha, contate admin@j-aautomation.com.',
       loginTitle: 'Use o convite vinculado à sua caixa de e-mail',
       loginBody:
         'Se o convite estiver vinculado a uma caixa corporativa, abra-o nessa caixa e entre com a conta indicada. Se você foi convidado como colaborador externo, use o link de uso único para criar sua conta. Não existe cadastro público.',
@@ -203,31 +204,14 @@
   <section class="tasks" aria-labelledby="tasks-heading">
     <h2 id="tasks-heading">{text('tasksHeading')}</h2>
     <div class="task-grid">
-      <article>
-        <h3>{text('worker')}</h3>
-        <p>{text('taskTime')}</p>
-      </article>
-      <article>
-        <h3>{text('worker')}</h3>
-        <p>{text('taskExpense')}</p>
-      </article>
-      <article>
-        <h3>{text('worker')}</h3>
-        <p>{text('taskCorrection')}</p>
-      </article>
-      <article>
-        <h3>{text('worker')}</h3>
-        <p>{text('taskReport')}</p>
-      </article>
-      <article>
-        <h3>{text('worker')}</h3>
-        <p>{text('taskPay')}</p>
-      </article>
+      {#each helpWorkflows(data.user.role ?? 'worker', data.user.workforceProfile, data.locale) as topic}
+        <article><h3><a href={`${base}/app/${topic.route}`}>{topic.title} →</a></h3><p>{topic.body}</p></article>
+      {/each}
     </div>
   </section>
 
   <aside class="notice notice-private">
-    <p>{text('privateNote')}</p>
+    {#if data.user.role === 'worker' && !data.user.workforceProfile}<p>{text('privateNote')}</p>{/if}
     <p>{text('support')}</p>
   </aside>
 </main>

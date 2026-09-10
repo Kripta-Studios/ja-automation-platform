@@ -1,4 +1,6 @@
 <script lang="ts">
+  import RecordBrowser from '../ui/RecordBrowser.svelte';
+  import { invalidateAll } from '$app/navigation';
   import type { PortalLocale } from '../../portal-i18n';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import AccountingPackArtifactStatus from '../ui/localized-pdf/AccountingPackArtifactStatus.svelte';
@@ -15,6 +17,11 @@
 
   let { data, isAuditor, locale, translate, controlledValue }: Props = $props();
 
+  $effect(() => {
+    if (!(data.packs ?? []).some(pack => ['queued', 'running', 'processing'].includes(String(pack.state)))) return;
+    const timer = setInterval(() => { if (document.visibilityState === 'visible') void invalidateAll(); }, 2500);
+    return () => clearInterval(timer);
+  });
   const packs = $derived(data.packs ?? []);
 
   function previousCompleteMonth(): { periodStart: string; periodEnd: string } {
@@ -36,6 +43,7 @@
   function stateCount(state: string): number {
     return packs.filter((pack) => packState(pack) === state).length;
   }
+  let packPage = $state<typeof packs>([]);
 </script>
 
 <div class="accounting-section" data-ui="accounting-section">
@@ -113,10 +121,12 @@
     </SectionCard>
   {/if}
 
+  <p>{translate('Generate creates files for reviewing a period. Finalize freezes the reviewed figures as a historical version; later corrections require a new version.')}</p>
   <SectionCard title={translate('Accounting Pack register')} class="accounting-section__register">
+<RecordBrowser rows={packs} bind:visible={packPage} {translate} label="Accounting" />
     {#if packs.length > 0}
       <div class="accounting-section__packs" aria-live="polite">
-        {#each packs as pack}
+        {#each packPage as pack}
           <AccountingPackArtifactStatus {pack} {isAuditor} {locale} {translate} {controlledValue} />
         {/each}
       </div>

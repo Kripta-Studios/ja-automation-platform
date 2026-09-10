@@ -99,6 +99,8 @@ export function portalNavigationForRole(
           item('reports', 'Reports', '▤'),
         ],
         secondary: [
+          item('time', 'Time', '◷'),
+          item('expenses', 'Expenses', '◇'),
           item('projects', 'Team', '◌', route('projects', 'team')),
           item('planning', 'Planning', '⌘'),
           item('documents', 'Documents', '▧'),

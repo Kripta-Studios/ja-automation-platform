@@ -1017,6 +1017,7 @@
     </section>
   {/if}
 
+  {#if ['owner_admin', 'finance_admin'].includes(String(data.user.role))}
   <div class="no-print report-localized-pdf-slot">
     <LocalizedPdfPanel
       ownerType="period_report_revision"
@@ -1025,6 +1026,7 @@
       title={t('PDF')}
     />
   </div>
+  {:else}<p class="no-print">{t('Finance prepares the reviewed period PDF after approving the source records. Use Daily or Technical / PLC to submit your own work; customer sign-off confirms the reviewed period.')}</p>{/if}
 </main>
 
 <style>

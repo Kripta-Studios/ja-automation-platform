@@ -1,9 +1,17 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { page } from '$app/stores';
+  import { onMount } from 'svelte';
   import { ResponsiveSheet, StatusBadge } from '../ui';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
+  import {
+    operationalMatches,
+    operationalNewestFirst,
+    operationalPage,
+    readOperationalRegisterState,
+    writeOperationalRegisterState,
+  } from './operational-register';
 
   let {
     data,
@@ -50,6 +58,29 @@
       : resolveReportTab($page.url.searchParams.get('view')),
   );
   let surface = $state<Surface>(null);
+  let search = $state('');
+  let projectFilter = $state('');
+  let statusFilter = $state('');
+  let dailyPage = $state(1);
+  let technicalPage = $state(1);
+  let registerStateHydrated = $state(false);
+  const registerStateKey = (): string => `ja-operational-register:reports:${data.user.id}`;
+
+  onMount(() => {
+    const saved = readOperationalRegisterState<{
+      search?: string;
+      dailyPage?: number;
+      technicalPage?: number;
+    }>(registerStateKey());
+    if (typeof saved?.search === 'string') search = saved.search;
+    if (typeof saved?.dailyPage === 'number') dailyPage = saved.dailyPage;
+    if (typeof saved?.technicalPage === 'number') technicalPage = saved.technicalPage;
+    registerStateHydrated = true;
+  });
+  $effect(() => {
+    if (registerStateHydrated)
+      writeOperationalRegisterState(registerStateKey(), { search, dailyPage, technicalPage });
+  });
 
   const records = $derived(data.records ?? []);
   const periodReports = $derived(data.periodReports ?? []);
@@ -73,6 +104,50 @@
   const canGeneratePeriodReports = $derived(
     !isAuditor && ['owner_admin', 'finance_admin'].includes(String(data.user.role ?? '')),
   );
+  $effect(() => {
+    projectFilter = $page.url.searchParams.get('project')?.trim() ?? '';
+    statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
+    dailyPage = 1;
+    technicalPage = 1;
+  });
+  const filteredDailyReports = $derived.by(() =>
+    operationalNewestFirst(
+      dailyReports.filter(
+        (row) =>
+          (!projectFilter || rowText(row, 'project_id') === projectFilter) &&
+          (!statusFilter || rowText(row, 'approval_state') === statusFilter) &&
+          operationalMatches(row, search, [
+            'title',
+            'project_number',
+            'project_name',
+            'client_name',
+            'author_name',
+            'date',
+          ]),
+      ),
+      ['date'],
+    ),
+  );
+  const filteredTechnicalReports = $derived.by(() =>
+    operationalNewestFirst(
+      technicalReports.filter(
+        (row) =>
+          (!projectFilter || rowText(row, 'project_id') === projectFilter) &&
+          (!statusFilter || rowText(row, 'approval_state') === statusFilter) &&
+          operationalMatches(row, search, [
+            'title',
+            'project_number',
+            'project_name',
+            'client_name',
+            'author_name',
+            'date',
+          ]),
+      ),
+      ['date'],
+    ),
+  );
+  const pagedDailyReports = $derived(operationalPage(filteredDailyReports, dailyPage));
+  const pagedTechnicalReports = $derived(operationalPage(filteredTechnicalReports, technicalPage));
 
   function rowText(row: Row, key: string): string {
     const value = row[key];
@@ -209,6 +284,17 @@
   function closeSurface(): void {
     surface = null;
   }
+
+  function registerHref(overrides: Record<string, string>): string {
+    const params = new URLSearchParams();
+    const view = overrides.view ?? activeTab;
+    const project = overrides.project ?? projectFilter;
+    const status = overrides.status ?? statusFilter;
+    if (view) params.set('view', view);
+    if (project) params.set('project', project);
+    if (status) params.set('status', status);
+    return `${base}/app/reports?${params.toString()}`;
+  }
 </script>
 
 <section class="report-page" data-report-page>
@@ -232,23 +318,92 @@
     <span class="report-page-count" aria-label={translate('Report count')}>{records.length}</span>
   </header>
 
+  {#if !isAuditor}
+    <div
+      class="report-primary-action-wrap report-primary-action-top"
+      aria-label={translate('Create report')}
+    >
+      <button
+        type="button"
+        class="report-primary-action"
+        data-report-primary-cta
+        onclick={() => openCreate('daily')}>{translate('New daily report')}</button
+      >
+      <button
+        type="button"
+        class="report-primary-action report-primary-action-secondary"
+        onclick={() => openCreate('technical')}>{translate('New technical report')}</button
+      >
+    </div>
+  {/if}
+
   <div class="report-attention" aria-label={translate('Report attention summary')}>
-    <div class="report-attention-card">
+    <a class="report-attention-card" href={registerHref({ view: 'daily', status: 'draft' })}>
       <span>{translate('Needs attention')}</span>
       <strong>{pendingReportCount}</strong>
       <small>{translate('Draft or returned field reports')}</small>
-    </div>
-    <div class="report-attention-card">
+    </a>
+    <a class="report-attention-card" href={registerHref({ view: 'signoff', status: '' })}>
       <span>{translate('Ready for signature')}</span>
       <strong>{readySignoffCount}</strong>
       <small>{translate('Customer confirmations awaiting signature')}</small>
-    </div>
-    <div class="report-attention-card">
+    </a>
+    <a class="report-attention-card" href={registerHref({ view: 'signoff', status: '' })}>
       <span>{translate('Customer sign-off')}</span>
       <strong>{customerPeriodReports.length}</strong>
       <small>{translate('Period confirmations in scope')}</small>
-    </div>
+    </a>
   </div>
+
+  <form
+    class="report-register-filters"
+    method="GET"
+    action={`${base}/app/reports`}
+    aria-label={translate('Filter reports')}
+  >
+    <input type="hidden" name="view" value={activeTab} />
+    <label
+      ><span>{translate('Search register')}</span><input
+        bind:value={search}
+        oninput={() => {
+          dailyPage = 1;
+          technicalPage = 1;
+        }}
+        type="search"
+        placeholder={translate('Project, worker or report')}
+      /></label
+    >
+    <label
+      ><span>{translate('Project')}</span><select
+        name="project"
+        bind:value={projectFilter}
+        onchange={() => {
+          dailyPage = 1;
+          technicalPage = 1;
+        }}
+        ><option value="">{translate('All projects')}</option
+        >{#each availableProjects as project}<option value={String(project.id)}
+            >{project.project_number} — {project.name}</option
+          >{/each}</select
+      ></label
+    >
+    <label
+      ><span>{translate('Status')}</span><select
+        name="status"
+        bind:value={statusFilter}
+        onchange={() => {
+          dailyPage = 1;
+          technicalPage = 1;
+        }}
+        ><option value="">{translate('All statuses')}</option><option value="draft"
+          >{translate('Draft')}</option
+        ><option value="submitted">{translate('Submitted')}</option><option value="approved"
+          >{translate('Approved')}</option
+        ><option value="needs_changes">{translate('Needs changes')}</option></select
+      ></label
+    >
+    <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
+  </form>
 
   <div class="report-tab-list" aria-label={translate('Report types')} role="tablist">
     {#each tabs as tab}
@@ -286,7 +441,7 @@
       </header>
 
       <div class="report-register" aria-label={translate('Daily report register')}>
-        {#each dailyReports as row}
+        {#each pagedDailyReports.rows as row}
           <article class="report-register-card">
             <a class="report-register-link" href={`${base}/app/reports/${String(row.id)}`}>
               <span class="report-register-type">{reportTypeLabel(row)}</span>
@@ -324,18 +479,27 @@
           </div>
         {/each}
       </div>
-      {#if !isAuditor}
-        <div class="report-primary-action-wrap">
+      {#if pagedDailyReports.totalPages > 1}<nav
+          class="operational-pagination"
+          aria-label={translate('Daily report pages')}
+        >
           <button
             type="button"
-            class="report-primary-action"
-            data-report-primary-cta
-            onclick={() => openCreate('daily')}
+            class="secondary-button"
+            disabled={pagedDailyReports.current === 1}
+            onclick={() => (dailyPage -= 1)}>{translate('Previous')}</button
+          ><span
+            >{translate('Page')}
+            {pagedDailyReports.current}
+            {translate('of')}
+            {pagedDailyReports.totalPages}</span
+          ><button
+            type="button"
+            class="secondary-button"
+            disabled={pagedDailyReports.current === pagedDailyReports.totalPages}
+            onclick={() => (dailyPage += 1)}>{translate('Next')}</button
           >
-            {translate('New daily report')}
-          </button>
-        </div>
-      {/if}
+        </nav>{/if}
     </div>
   {:else if activeTab === 'technical'}
     <div
@@ -359,7 +523,7 @@
       </header>
 
       <div class="report-register" aria-label={translate('Technical report register')}>
-        {#each technicalReports as row}
+        {#each pagedTechnicalReports.rows as row}
           <article class="report-register-card">
             <a class="report-register-link" href={`${base}/app/reports/${String(row.id)}`}>
               <span class="report-register-type report-register-type-technical"
@@ -401,18 +565,27 @@
           </div>
         {/each}
       </div>
-      {#if !isAuditor}
-        <div class="report-primary-action-wrap">
+      {#if pagedTechnicalReports.totalPages > 1}<nav
+          class="operational-pagination"
+          aria-label={translate('Technical report pages')}
+        >
           <button
             type="button"
-            class="report-primary-action"
-            data-report-primary-cta
-            onclick={() => openCreate('technical')}
+            class="secondary-button"
+            disabled={pagedTechnicalReports.current === 1}
+            onclick={() => (technicalPage -= 1)}>{translate('Previous')}</button
+          ><span
+            >{translate('Page')}
+            {pagedTechnicalReports.current}
+            {translate('of')}
+            {pagedTechnicalReports.totalPages}</span
+          ><button
+            type="button"
+            class="secondary-button"
+            disabled={pagedTechnicalReports.current === pagedTechnicalReports.totalPages}
+            onclick={() => (technicalPage += 1)}>{translate('Next')}</button
           >
-            {translate('New technical report')}
-          </button>
-        </div>
-      {/if}
+        </nav>{/if}
     </div>
   {:else}
     <div
@@ -428,6 +601,11 @@
           <p class="report-panel-kicker">{translate('Customer confirmation')}</p>
           <h3>{translate('Client Sign-off')}</h3>
           <p>{translate('Confirm approved hours and activities for the selected period.')}</p>
+          <p class="report-action-explanation">
+            {translate(
+              'Open a ready record to review its exact version and record client sign-off. A signed record remains bound to that immutable report version; a source change requires a replacement report.',
+            )}
+          </p>
         </div>
       </header>
 
@@ -522,6 +700,11 @@
           <p>
             {translate('Internal and customer period records available to authorized reviewers.')}
           </p>
+          <p class="report-action-explanation">
+            {translate(
+                'Files appear here only after generation is ready. Open a period record to review its traceable status; PDF is available only when its stored artifact is verified.',
+            )}
+          </p>
         </div>
         <span>{periodReports.length}</span>
       </header>
@@ -604,7 +787,7 @@
       data-report-entry-surface="daily"
       onsubmit={(event) => saveOfflineDraft(event, 'daily_report')}
     >
-      {#if data.user.role === 'owner_admin'}
+      {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
         <label
           ><span>{translate('Worker')}</span><select name="workerId" required
             ><option value="">{translate('Select worker')}</option
@@ -700,7 +883,7 @@
       data-report-entry-surface="technical"
       onsubmit={(event) => saveOfflineDraft(event, 'technical_report')}
     >
-      {#if data.user.role === 'owner_admin'}
+      {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
         <label
           ><span>{translate('Worker')}</span><select name="workerId" required
             ><option value="">{translate('Select worker')}</option
@@ -882,3 +1065,80 @@
     </form>
   {/if}
 </ResponsiveSheet>
+
+<style>
+  .report-primary-action-top {
+    justify-content: flex-start;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+  }
+  .report-action-explanation {
+    max-width: 65ch;
+  }
+  .report-primary-action-secondary {
+    border-color: var(--ja-teal, #277e78);
+    background: var(--ja-teal, #277e78);
+  }
+  .report-attention-card {
+    color: inherit;
+    text-decoration: none;
+  }
+  .report-attention-card:hover,
+  .report-attention-card:focus-visible {
+    border-color: var(--ja-teal, #277e78);
+    outline: 3px solid color-mix(in srgb, var(--ja-teal, #277e78) 25%, transparent);
+    outline-offset: 2px;
+  }
+  .report-register-filters {
+    align-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .report-register-filters label {
+    display: grid;
+    flex: 1 1 12rem;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+  .report-register-filters input,
+  .report-register-filters select {
+    box-sizing: border-box;
+    min-height: 2.75rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--ja-control-border, #9eabb7);
+    border-radius: 0.45rem;
+    background: var(--ja-white, #fff);
+    font: inherit;
+  }
+  .operational-pagination {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    justify-content: flex-end;
+    margin-top: 0.9rem;
+  }
+  .operational-pagination span {
+    color: var(--ja-steel, #637486);
+    font-size: 0.85rem;
+  }
+  @media (max-width: 480px) {
+    .report-register-filters label,
+    .report-register-filters button {
+      flex: 1 1 100%;
+    }
+    .operational-pagination {
+      justify-content: stretch;
+    }
+    .operational-pagination button {
+      flex: 1 1 7rem;
+    }
+    .operational-pagination span {
+      order: -1;
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>

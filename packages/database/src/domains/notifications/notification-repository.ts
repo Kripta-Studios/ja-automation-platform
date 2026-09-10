@@ -361,6 +361,16 @@ export class NotificationRepository {
         occurredAt,
         occurredAt,
       );
+    // Explicit demonstration projects keep in-app notices, but must never send
+    // operational training reminders to real email addresses.
+    const sourceId = notificationSourceId(kind, subjectId);
+    if (sourceId && this.isDemonstrationSource(sourceId)) {
+      this.deps.sqlite
+        .prepare(
+          "UPDATE outbox_event SET failed_at=?,lease_until=NULL,last_error='DEMO_TRAINING_NO_EXTERNAL_DELIVERY' WHERE topic='notification.email.requested' AND aggregate_id=? AND delivered_at IS NULL AND failed_at IS NULL",
+        )
+        .run(occurredAt, existing.id);
+    }
     if (Number(outbox.changes) !== 1) {
       const existingOutbox = this.deps.sqlite
         .prepare(
@@ -370,6 +380,32 @@ export class NotificationRepository {
       if (!existingOutbox) throw new Error('NOTIFICATION_OUTBOX_INSERT_FAILED');
     }
     return Number(created.changes) === 1 || Number(outbox.changes) === 1;
+  }
+
+  private isDemonstrationSource(sourceId: string): boolean {
+    return Boolean(
+      this.deps.sqlite
+        .prepare(
+          `
+      WITH source(id) AS (VALUES (?)), projects(id) AS (
+        SELECT id FROM source
+        UNION SELECT project_id FROM time_entry WHERE id IN source
+        UNION SELECT project_id FROM expense WHERE id IN source
+        UNION SELECT project_id FROM daily_report WHERE id IN source
+        UNION SELECT project_id FROM technical_report WHERE id IN source
+        UNION SELECT project_id FROM invoice WHERE id IN source
+        UNION SELECT br.project_id FROM billing_period bp JOIN billing_rule br ON br.id=bp.billing_rule_id WHERE bp.id IN source
+        UNION SELECT project_id FROM period_report WHERE id IN source
+        UNION SELECT project_id FROM compensation_settlement WHERE id IN source
+      )
+      SELECT 1 FROM project p JOIN client c ON c.id=p.client_id
+      WHERE p.id IN projects AND p.name LIKE '% · Demo' AND c.display_name LIKE '% · Demo'
+      UNION SELECT 1 FROM audit_event WHERE entity_id=? AND correlation_id='owner-training-20260910-v1'
+      LIMIT 1
+    `,
+        )
+        .get(sourceId, sourceId),
+    );
   }
 
   private missingTimeForDate(workDate: string, now: string, projectId?: string): number {

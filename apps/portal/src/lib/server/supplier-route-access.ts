@@ -14,6 +14,10 @@ export function supplierRouteAllowed(path: string): boolean {
       '/supplier/report',
       '/supplier/report.csv',
       '/mfa-enrollment',
+      '/service-worker.js',
+      '/manifest.webmanifest',
+      '/icon-192.png',
+      '/icon-512.png',
     ].includes(route)
   )
     return true;

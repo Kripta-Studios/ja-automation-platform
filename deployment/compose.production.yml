@@ -56,6 +56,9 @@ services:
       JA_PUBLIC_BASE_PATH: /j-aautomation
       JA_PORTAL_BASE_PATH: /j-aautomation/app
       JA_CHROMIUM_PATH: /usr/bin/chromium
+      # Chromium crashpad requires writable XDG directories under read_only.
+      XDG_CONFIG_HOME: /tmp/ja-chromium-config
+      XDG_CACHE_HOME: /tmp/ja-chromium-cache
       # Keep the in-container path fixed; the value itself is supplied only
       # by the Docker secret below, never through an env file.
       JA_STALWART_TOKEN_FILE: /run/secrets/stalwart-mail-provisioner.token
@@ -101,6 +104,9 @@ services:
       JA_DOCUMENT_ROOT: /var/lib/jaautomation/files
       JA_BACKUP_ROOT: /var/backups/jaautomation
       JA_CHROMIUM_PATH: /usr/bin/chromium
+      # Chromium crashpad requires writable XDG directories under read_only.
+      XDG_CONFIG_HOME: /tmp/ja-chromium-config
+      XDG_CACHE_HOME: /tmp/ja-chromium-cache
       JA_MIN_FREE_BYTES: ${JA_MIN_FREE_BYTES:-1073741824}
       JA_ACCOUNTING_PACK_REQUIRE_PDF: ${JA_ACCOUNTING_PACK_REQUIRE_PDF:-false}
       JA_ACCOUNTING_PACK_REQUIRE_JSON: ${JA_ACCOUNTING_PACK_REQUIRE_JSON:-false}

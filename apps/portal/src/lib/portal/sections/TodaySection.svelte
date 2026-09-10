@@ -66,10 +66,6 @@
   }
 </script>
 
-{#if data.ownerFinance}
-  <OwnerFinanceDashboard summary={data.ownerFinance} {locale} {base} />
-{/if}
-
 {#if data.dashboard}
   <div class="dashboard-hero">
     <div>
@@ -81,6 +77,13 @@
       <strong>{data.dashboard.activeProjects} {translate('active projects')}</strong>
     </a>
   </div>
+{/if}
+
+{#if data.ownerFinance}
+  <OwnerFinanceDashboard summary={data.ownerFinance} {locale} {base} />
+{/if}
+
+{#if data.dashboard}
   <nav class="quick-actions dashboard-quick-actions" aria-label={translate('Dashboard actions')}>
     {#if canCreateProject}
       <a href={`${base}/app/projects#new-project`}>{translate('New project')}</a>

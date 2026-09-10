@@ -57,6 +57,11 @@ test('Owner financial charts drill through to matching filters on every viewport
   await page.goto(portal('?lang=es'));
   const overview = page.locator('[data-owner-finance]');
   await expect(overview.getByRole('heading', { name: 'Finanzas de la empresa' })).toBeVisible();
+  const operations = page.locator('.dashboard-hero');
+  await expect(operations).toBeVisible();
+  const operationsBox = (await operations.boundingBox())!;
+  const financeBox = (await overview.boundingBox())!;
+  expect(operationsBox.y + operationsBox.height).toBeLessThanOrEqual(financeBox.y);
   await expect(overview.locator('[data-finance-metric]')).toHaveCount(4);
   await expect(overview.locator('.bar-link')).toHaveCount(12);
   expect(Number(await overview.locator('.bar').first().getAttribute('height'))).toBeGreaterThan(0);

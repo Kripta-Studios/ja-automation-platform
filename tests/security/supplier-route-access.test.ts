@@ -34,6 +34,10 @@ describe('supplier operational surface', () => {
     '/api/localized-pdf',
     '/api/reports/own-id/attachments',
     '/profile',
+    '/service-worker.js',
+    '/manifest.webmanifest',
+    '/icon-192.png',
+    '/icon-512.png',
   ])('permits operational route with downstream object authorization %s', (path) => {
     expect(supplierRouteAllowed(path)).toBe(true);
   });

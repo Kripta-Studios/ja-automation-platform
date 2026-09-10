@@ -749,3 +749,10 @@ Los pendientes externos, fiscales y de aceptación humana de la auditoría sigue
 ### 2026-09-10 — Owner financial landing and management UI
 
 Explicit Owner follow-up implemented: currency-separated exact cash/receivable/payment overview, clickable monthly bars and status donuts with matching source filters, and explicit responsive Manage buttons/navigation. Evidence: `docs/evidence/owner-finance-20260910/README.md`. Eight financial tests, 235 security/invariant tests validated (including updated dependency mock rerun), 20 final browser scenarios across 360/390/768/1440, workspace typecheck, and Svelte check with zero errors. No migration or financial history mutation; existing contractual external acceptance items remain as recorded.
+
+### 2026-09-10 — Operational-first landing and authorized Demo finance history
+
+- [x] Field operations overview precedes Owner finance charts; 8 browser checks pass at 360/390/768/1440 with chart drill-through and Worker finance isolation.
+- [x] Owner-authorized additive training batch uses four existing Demo projects and test identities; issued invoices, simulated receipts/reimbursements and pending settlements retain normal lifecycle/audit semantics and prevent external invoice delivery.
+- [x] Isolated rehearsal preserves 189 original business rows; atomic rollback, live-session authorization and durable idempotence pass 3 integration tests. Production load has SQLite integrity `ok` and zero foreign-key violations.
+- Evidence and production activation: [Owner training delivery](docs/evidence/owner-training-20260910/README.md). This requested demonstration content does not change the global release verdict.

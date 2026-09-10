@@ -18,3 +18,15 @@ Manage has explicit primary/secondary/destructive buttons, active area navigatio
 - Screenshots contain disposable fixtures only. Existing historical screenshots are preserved; this directory contains the updated dashboard and Manage captures.
 
 Production activation and Docker cache cleanup are recorded below after deployment.
+
+## Production delivery
+
+Activated on **2026-09-10 at 13:12 UTC** from code commit `8724c9f5e26099721efe93f6e05cd7db78999c84`, pushed to `codex/v3-production-completion-orchestrated-20260819`.
+
+- Release archive SHA-256: `01a4a5f14e46ff06c5f91d164e343b8b84863beb89b5b71ee71228e4a8ee6772`.
+- Deployed through the reviewed `jaautomation-zip-deploy` helper. Pre-cutover online backup: `/var/backups/jaautomation/2026-09-10T131200927Z-1ce21b9d-04a3-445f-8844-f0430213a9b5`, including 29 private documents. Previous images retained as `rollback-20260910130913-01a4a5f14e46`.
+- `verify-vps.sh https://j-aautomation.com/j-aautomation --wait-two-automatic-runs` passed. Web and portal healthy; jobs running with two successful automatic cycles. Public Owner landing redirects to authentication; Manage rejects unauthenticated access.
+- Database integrity `ok`; zero foreign-key violations. Before/after counts unchanged for users, projects, invoices, payments, expenses, time entries and compensation settlements. No test fixtures loaded into production.
+- Docker build-cache cleanup completed after container health checks became healthy. Docker reported **6.834 GB reclaimed**; filesystem free space increased by 6,189,264,896 bytes. Final build cache **0 B**. Active containers, private data, backups and rollback images retained; Navidrome remains running.
+- Authenticated UI scenarios ran locally against disposable databases and production builds. Production evidence covers deployed source, routing, health, jobs and database integrity.
+- Operational logs and state snapshots: `/var/lib/jaautomation-zip-deploy/manual/` (`deploy-8724c9f.log`, `verify-8724c9f.log`, `before-8724c9f.json`, `after-8724c9f.json`, `cleanup-8724c9f.json`).

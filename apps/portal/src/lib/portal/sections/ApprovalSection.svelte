@@ -7,10 +7,11 @@
   import { SectionCard, StatusBadge } from '../ui';
   import {
     operationalMatches,
-    operationalNewestFirst,
-    operationalOldestFirst,
     operationalPage,
+    operationalSort,
+    operationalStatusMatches,
     readOperationalRegisterState,
+    type OperationalOrder,
     writeOperationalRegisterState,
   } from './operational-register';
 
@@ -41,6 +42,7 @@
   let projectFilter = $state('');
   let workerFilter = $state('');
   let statusFilter = $state('');
+  let order = $state<OperationalOrder>('oldest');
   let queuePage = $state(1);
   let completedPage = $state(1);
   let milestoneSearch = $state('');
@@ -53,6 +55,7 @@
   onMount(() => {
     const saved = readOperationalRegisterState<{
       search?: string;
+      order?: OperationalOrder;
       queuePage?: number;
       completedPage?: number;
       milestoneSearch?: string;
@@ -61,6 +64,9 @@
       financePage?: number;
     }>(registerStateKey());
     if (typeof saved?.search === 'string') search = saved.search;
+    if (saved?.order && ['newest', 'oldest', 'name', 'status'].includes(saved.order)) {
+      order = saved.order;
+    }
     if (typeof saved?.queuePage === 'number') queuePage = saved.queuePage;
     if (typeof saved?.completedPage === 'number') completedPage = saved.completedPage;
     if (typeof saved?.milestoneSearch === 'string') milestoneSearch = saved.milestoneSearch;
@@ -73,6 +79,7 @@
     if (registerStateHydrated)
       writeOperationalRegisterState(registerStateKey(), {
         search,
+        order,
         queuePage,
         completedPage,
         milestoneSearch,
@@ -105,8 +112,9 @@
   );
   const operationalRows = $derived(rows.filter((row) => String(row.review_stage) !== 'finance'));
   const attentionCount = $derived(
-    operationalRows.filter((row) => ['submitted', 'approved'].includes(String(row.approval_state)))
-      .length,
+    operationalRows.filter((row) =>
+      ['submitted', 'needs_changes'].includes(String(row.approval_state)),
+    ).length,
   );
   const reportCount = $derived(
     operationalRows.filter((row) => ['daily', 'technical'].includes(String(row.type))).length,
@@ -135,7 +143,10 @@
       ]);
       const matchesProject = !projectFilter || value(row, 'project_id') === projectFilter;
       const matchesWorker = !workerFilter || value(row, 'worker_id') === workerFilter;
-      const matchesStatus = !statusFilter || value(row, 'approval_state') === statusFilter;
+      const matchesStatus = operationalStatusMatches(row.approval_state, statusFilter, [
+        'submitted',
+        'needs_changes',
+      ]);
       return (
         matchesTab &&
         matchesStage &&
@@ -147,30 +158,39 @@
     });
   });
   const submittedRows = $derived(
-    operationalOldestFirst(
+    operationalSort(
       filteredOperationalRows.filter((row) => value(row, 'approval_state') !== 'approved'),
+      order,
       ['date'],
+      ['worker_name', 'project_name', 'project_number'],
+      ['approval_state', 'review_stage'],
     ),
   );
   const completedRows = $derived(
-    operationalNewestFirst(
+    operationalSort(
       filteredOperationalRows.filter((row) => value(row, 'approval_state') === 'approved'),
+      order,
       ['date'],
+      ['worker_name', 'project_name', 'project_number'],
+      ['approval_state', 'review_stage'],
     ),
   );
   const pagedSubmittedRows = $derived(operationalPage(submittedRows, queuePage));
   const pagedCompletedRows = $derived(operationalPage(completedRows, completedPage));
   const filteredMilestones = $derived(
-    operationalNewestFirst(
+    operationalSort(
       milestones.filter((row) =>
         operationalMatches(row, milestoneSearch, ['id', 'project_number', 'name', 'due_on']),
       ),
+      order,
       ['due_on'],
+      ['name', 'project_number'],
+      ['approval_state', 'state'],
     ),
   );
   const pagedMilestones = $derived(operationalPage(filteredMilestones, milestonePage));
   const filteredFinanceRows = $derived(
-    operationalOldestFirst(
+    operationalSort(
       financeRows.filter((row) =>
         operationalMatches(row, financeSearch, [
           'id',
@@ -182,7 +202,10 @@
           'worker_name',
         ]),
       ),
+      order,
       ['date'],
+      ['worker_name', 'project_name'],
+      ['approval_state', 'review_stage'],
     ),
   );
   const pagedFinanceRows = $derived(operationalPage(filteredFinanceRows, financePage));
@@ -314,7 +337,7 @@
   </header>
 
   <div class="approval-attention" aria-label={translate('Approval attention summary')}>
-    <a class="approval-attention-card" href={approvalHref({ status: 'submitted' })}>
+    <a class="approval-attention-card" href={approvalHref({ status: 'attention' })}>
       <span>{translate('Needs attention')}</span>
       <strong>{attentionCount}</strong>
       <small>{translate('Submitted or correction-ready records')}</small>
@@ -420,13 +443,31 @@
           queuePage = 1;
           completedPage = 1;
         }}
-        ><option value="">{translate('All statuses')}</option><option value="submitted"
-          >{translate('Submitted')}</option
-        ><option value="approved">{translate('Approved')}</option><option value="needs_changes"
-          >{translate('Needs changes')}</option
-        ></select
+        ><option value="">{translate('All statuses')}</option><option value="attention"
+          >{translate('Needs attention')}</option
+        ><option value="submitted">{translate('Submitted')}</option><option value="approved"
+          >{translate('Approved')}</option
+        ><option value="needs_changes">{translate('Needs changes')}</option></select
       ></label
     >
+    <label>
+      <span>{translate('Sort by')}</span>
+      <select
+        name="order"
+        bind:value={order}
+        onchange={() => {
+          queuePage = 1;
+          completedPage = 1;
+          milestonePage = 1;
+          financePage = 1;
+        }}
+      >
+        <option value="oldest">{translate('Oldest first')}</option>
+        <option value="newest">{translate('Newest first')}</option>
+        <option value="name">{translate('Name')}</option>
+        <option value="status">{translate('Status')}</option>
+      </select>
+    </label>
     <label>
       <span>{translate('Review stage')}</span>
       <select bind:value={stageFilter}>

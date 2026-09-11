@@ -28,6 +28,38 @@ test('Planning honors project filters and keeps the requested selector', async (
   await expect(page.locator('.record-card-link')).toHaveCount(0);
 });
 
+test('Operational summary cards open complete filters and expose ordering', async ({ page }) => {
+  await signIn(page, 'worker');
+
+  await page.goto(portal('/time?lang=en'));
+  await expect(page.locator('.time-filters select[name=order]')).toHaveValue('newest');
+  await page.locator('.time-status-strip').getByRole('link', { name: /Needs attention/ }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('status')).toBe('attention');
+
+  await page.goto(portal('/expenses?lang=en'));
+  await expect(page.locator('.expense-filters select[name=order]')).toHaveValue('newest');
+  await page.locator('.expense-status-strip').getByRole('link', { name: /Needs attention/ }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('status')).toBe('attention');
+  await page.locator('.expense-status-strip').getByRole('link', { name: /Reimbursement/ }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('status')).toBeNull();
+  await expect.poll(() => new URL(page.url()).searchParams.get('reimbursement')).toBe('pending');
+
+  await page.goto(portal('/reports?lang=en&view=technical'));
+  await expect(page.locator('.report-register-filters select[name=order]')).toHaveValue('newest');
+  await page.locator('.report-attention').getByRole('link', { name: /Needs attention/ }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('view')).toBe('technical');
+  await expect.poll(() => new URL(page.url()).searchParams.get('status')).toBe('attention');
+});
+
+test('Approval queue keeps unresolved and completed groups independently ordered', async ({ page }) => {
+  await signIn(page, 'owner');
+  await page.goto(portal('/approvals?lang=en'));
+
+  await expect(page.locator('.approval-filters select[name=order]')).toHaveValue('oldest');
+  await page.locator('.approval-attention').getByRole('link', { name: /Needs attention/ }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('status')).toBe('attention');
+});
+
 test('Focused management records open beyond the first page', async ({ page }) => {
   const db = createDatabase(readE2EFixturePointer().databasePath);
   const ids: string[] = [];

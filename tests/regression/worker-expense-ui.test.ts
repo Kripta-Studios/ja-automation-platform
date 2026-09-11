@@ -14,6 +14,18 @@ describe('worker expense slice', () => {
     expect(source).toMatch(/data-expense-primary-cta/);
   });
 
+  it('maps summary cards to the complete attention and reimbursement sets', () => {
+    const source = read('lib/portal/sections/ExpenseSection.svelte');
+
+    expect(source).toContain("let order = $state<OperationalOrder>('newest')");
+    expect(source).toContain('operationalStatusMatches(');
+    expect(source).toContain("status: 'attention', reimbursement: ''");
+    expect(source).toContain("status: '', reimbursement: 'pending'");
+    expect(source).toContain("['pending', 'scheduled'].includes");
+    expect(source).toContain('bind:value={order}');
+    expect(source).toContain('reimbursementFilter');
+  });
+
   it('does not expose commercial classification controls or values to workers', () => {
     const source = read('lib/portal/sections/ExpenseSection.svelte');
     for (const forbidden of [

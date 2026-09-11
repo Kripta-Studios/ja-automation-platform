@@ -26,6 +26,18 @@ describe('Worker time UI vertical slice', () => {
     expect((source.match(/data-time-primary-cta/g) ?? []).length).toBe(1);
   });
 
+  it('keeps attention filtering and user-selected ordering truthful', () => {
+    const source = readSource('apps/portal/src/lib/portal/sections/TimeSection.svelte');
+
+    expect(source).toContain("let order = $state<OperationalOrder>('newest')");
+    expect(source).toContain('operationalStatusMatches(');
+    expect(source).toContain("filterHref({ status: 'attention' })");
+    expect(source).toContain('<option value="attention">{translate(\'Needs attention\')}</option>');
+    expect(source).toContain('bind:value={order}');
+    expect(source).toContain('writeOperationalRegisterState(registerStateKey(), {');
+    expect(source).toContain('order,');
+  });
+
   it('keeps Worker entry operational and derives conditional detail from category', () => {
     const source = readSource('apps/portal/src/lib/portal/sections/TimeSection.svelte');
 

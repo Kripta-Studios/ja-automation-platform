@@ -7,9 +7,11 @@
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import {
     operationalMatches,
-    operationalNewestFirst,
     operationalPage,
+    operationalSort,
+    operationalStatusMatches,
     readOperationalRegisterState,
+    type OperationalOrder,
     writeOperationalRegisterState,
   } from './operational-register';
 
@@ -61,6 +63,7 @@
   let search = $state('');
   let projectFilter = $state('');
   let statusFilter = $state('');
+  let order = $state<OperationalOrder>('newest');
   let dailyPage = $state(1);
   let technicalPage = $state(1);
   let registerStateHydrated = $state(false);
@@ -69,17 +72,26 @@
   onMount(() => {
     const saved = readOperationalRegisterState<{
       search?: string;
+      order?: OperationalOrder;
       dailyPage?: number;
       technicalPage?: number;
     }>(registerStateKey());
     if (typeof saved?.search === 'string') search = saved.search;
+    if (saved?.order && ['newest', 'oldest', 'name', 'status'].includes(saved.order)) {
+      order = saved.order;
+    }
     if (typeof saved?.dailyPage === 'number') dailyPage = saved.dailyPage;
     if (typeof saved?.technicalPage === 'number') technicalPage = saved.technicalPage;
     registerStateHydrated = true;
   });
   $effect(() => {
     if (registerStateHydrated)
-      writeOperationalRegisterState(registerStateKey(), { search, dailyPage, technicalPage });
+      writeOperationalRegisterState(registerStateKey(), {
+        search,
+        order,
+        dailyPage,
+        technicalPage,
+      });
   });
 
   const records = $derived(data.records ?? []);
@@ -90,11 +102,15 @@
   const technicalReports = $derived(
     records.filter((row) => String(row.type ?? '').toLowerCase() === 'technical'),
   );
+  const activeFieldTab = $derived(activeTab === 'technical' ? 'technical' : 'daily');
+  const fieldReportsForActiveTab = $derived(
+    activeFieldTab === 'technical' ? technicalReports : dailyReports,
+  );
   const customerPeriodReports = $derived(
     periodReports.filter((report) => String(report.audience ?? '').toLowerCase() === 'customer'),
   );
   const pendingReportCount = $derived(
-    records.filter((row) =>
+    fieldReportsForActiveTab.filter((row) =>
       ['draft', 'submitted', 'needs_changes'].includes(String(row.approval_state)),
     ).length,
   );
@@ -111,11 +127,15 @@
     technicalPage = 1;
   });
   const filteredDailyReports = $derived.by(() =>
-    operationalNewestFirst(
+    operationalSort(
       dailyReports.filter(
         (row) =>
           (!projectFilter || rowText(row, 'project_id') === projectFilter) &&
-          (!statusFilter || rowText(row, 'approval_state') === statusFilter) &&
+          operationalStatusMatches(row.approval_state, statusFilter, [
+            'draft',
+            'submitted',
+            'needs_changes',
+          ]) &&
           operationalMatches(row, search, [
             'title',
             'project_number',
@@ -125,15 +145,22 @@
             'date',
           ]),
       ),
+      order,
       ['date'],
+      ['author_name', 'project_name', 'title'],
+      ['approval_state'],
     ),
   );
   const filteredTechnicalReports = $derived.by(() =>
-    operationalNewestFirst(
+    operationalSort(
       technicalReports.filter(
         (row) =>
           (!projectFilter || rowText(row, 'project_id') === projectFilter) &&
-          (!statusFilter || rowText(row, 'approval_state') === statusFilter) &&
+          operationalStatusMatches(row.approval_state, statusFilter, [
+            'draft',
+            'submitted',
+            'needs_changes',
+          ]) &&
           operationalMatches(row, search, [
             'title',
             'project_number',
@@ -143,7 +170,10 @@
             'date',
           ]),
       ),
+      order,
       ['date'],
+      ['author_name', 'project_name', 'title'],
+      ['approval_state'],
     ),
   );
   const pagedDailyReports = $derived(operationalPage(filteredDailyReports, dailyPage));
@@ -338,7 +368,10 @@
   {/if}
 
   <div class="report-attention" aria-label={translate('Report attention summary')}>
-    <a class="report-attention-card" href={registerHref({ view: 'daily', status: 'draft' })}>
+    <a
+      class="report-attention-card"
+      href={registerHref({ view: activeFieldTab, status: 'attention' })}
+    >
       <span>{translate('Needs attention')}</span>
       <strong>{pendingReportCount}</strong>
       <small>{translate('Draft or returned field reports')}</small>
@@ -395,13 +428,31 @@
           dailyPage = 1;
           technicalPage = 1;
         }}
-        ><option value="">{translate('All statuses')}</option><option value="draft"
-          >{translate('Draft')}</option
-        ><option value="submitted">{translate('Submitted')}</option><option value="approved"
-          >{translate('Approved')}</option
-        ><option value="needs_changes">{translate('Needs changes')}</option></select
+        ><option value="">{translate('All statuses')}</option><option value="attention"
+          >{translate('Needs attention')}</option
+        ><option value="draft">{translate('Draft')}</option><option value="submitted"
+          >{translate('Submitted')}</option
+        ><option value="approved">{translate('Approved')}</option><option value="needs_changes"
+          >{translate('Needs changes')}</option
+        ></select
       ></label
     >
+    <label>
+      <span>{translate('Sort by')}</span>
+      <select
+        name="order"
+        bind:value={order}
+        onchange={() => {
+          dailyPage = 1;
+          technicalPage = 1;
+        }}
+      >
+        <option value="newest">{translate('Newest first')}</option>
+        <option value="oldest">{translate('Oldest first')}</option>
+        <option value="name">{translate('Name')}</option>
+        <option value="status">{translate('Status')}</option>
+      </select>
+    </label>
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
   </form>
 
@@ -702,7 +753,7 @@
           </p>
           <p class="report-action-explanation">
             {translate(
-                'Files appear here only after generation is ready. Open a period record to review its traceable status; PDF is available only when its stored artifact is verified.',
+              'Files appear here only after generation is ready. Open a period record to review its traceable status; PDF is available only when its stored artifact is verified.',
             )}
           </p>
         </div>

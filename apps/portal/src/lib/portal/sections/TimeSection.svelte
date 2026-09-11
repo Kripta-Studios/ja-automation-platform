@@ -9,9 +9,11 @@
   import { canDeleteTimeDraft } from './time-entry-actions';
   import {
     operationalMatches,
-    operationalNewestFirst,
     operationalPage,
+    operationalSort,
+    operationalStatusMatches,
     readOperationalRegisterState,
+    type OperationalOrder,
     writeOperationalRegisterState,
   } from './operational-register';
 
@@ -58,21 +60,31 @@
   let editCategory = $state('regular');
   let search = $state('');
   let statusFilter = $state('');
+  let order = $state<OperationalOrder>('newest');
   let registerPage = $state(1);
   let registerStateHydrated = $state(false);
   const registerStateKey = (): string => `ja-operational-register:time:${data.user.id}`;
 
   onMount(() => {
-    const saved = readOperationalRegisterState<{ search?: string; page?: number }>(
-      registerStateKey(),
-    );
+    const saved = readOperationalRegisterState<{
+      search?: string;
+      order?: OperationalOrder;
+      page?: number;
+    }>(registerStateKey());
     if (typeof saved?.search === 'string') search = saved.search;
+    if (saved?.order && ['newest', 'oldest', 'name', 'status'].includes(saved.order)) {
+      order = saved.order;
+    }
     if (typeof saved?.page === 'number') registerPage = saved.page;
     registerStateHydrated = true;
   });
   $effect(() => {
     if (registerStateHydrated)
-      writeOperationalRegisterState(registerStateKey(), { search, page: registerPage });
+      writeOperationalRegisterState(registerStateKey(), {
+        search,
+        order,
+        page: registerPage,
+      });
   });
 
   const records = $derived(data.records ?? []);
@@ -107,10 +119,14 @@
     activeCategory === 'travel' ? 'Travel operational detail' : 'Standby reason',
   );
   const filteredRecords = $derived.by(() =>
-    operationalNewestFirst(
+    operationalSort(
       records.filter(
         (row) =>
-          (!statusFilter || String(row.approval_state) === statusFilter) &&
+          operationalStatusMatches(row.approval_state, statusFilter, [
+            'draft',
+            'submitted',
+            'needs_changes',
+          ]) &&
           operationalMatches(row, search, [
             'project_number',
             'project_name',
@@ -121,7 +137,10 @@
             'work_date',
           ]),
       ),
+      order,
       ['work_date'],
+      ['worker_name', 'project_name', 'activity_summary'],
+      ['approval_state'],
     ),
   );
   const pagedRecords = $derived(operationalPage(filteredRecords, registerPage));
@@ -196,7 +215,7 @@
       <strong>{totalActualMinutes} {translate('min')}</strong>
       <small>{translate('Minutes you really recorded.')}</small>
     </a>
-    <a class="time-status-card" href={filterHref({ status: 'submitted' })}>
+    <a class="time-status-card" href={filterHref({ status: 'attention' })}>
       <span>{translate('Needs attention')}</span>
       <strong>{pendingCount}</strong>
       <small>{translate('Draft or review state')}</small>
@@ -245,10 +264,20 @@
       <span>{translate('Status')}</span>
       <select name="status" bind:value={statusFilter} onchange={() => (registerPage = 1)}>
         <option value="">{translate('All statuses')}</option>
+        <option value="attention">{translate('Needs attention')}</option>
         <option value="draft">{translate('Draft')}</option>
         <option value="submitted">{translate('Submitted')}</option>
         <option value="approved">{translate('Approved')}</option>
         <option value="needs_changes">{translate('Needs changes')}</option>
+      </select>
+    </label>
+    <label>
+      <span>{translate('Sort by')}</span>
+      <select name="order" bind:value={order} onchange={() => (registerPage = 1)}>
+        <option value="newest">{translate('Newest first')}</option>
+        <option value="oldest">{translate('Oldest first')}</option>
+        <option value="name">{translate('Name')}</option>
+        <option value="status">{translate('Status')}</option>
       </select>
     </label>
     <label>
@@ -347,7 +376,7 @@
               </form>
             </div>
           {/if}
-        {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
+          {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
             <a href={`${base}/app/manage?type=time_entry#${String(row.id)}`}
               >{translate('Manage record')} →</a
             >

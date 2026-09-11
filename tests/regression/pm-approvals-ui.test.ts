@@ -66,6 +66,20 @@ describe('PM approvals section', () => {
     }
   });
 
+  it('exposes deterministic queue ordering without merging completed history', () => {
+    const value = source();
+
+    expect(value).toContain("let order = $state<OperationalOrder>('oldest')");
+    expect(value).toContain('operationalSort(');
+    expect(value).toContain('bind:value={order}');
+    expect(value).toContain(
+      "filteredOperationalRows.filter((row) => value(row, 'approval_state') !== 'approved')",
+    );
+    expect(value).toContain(
+      "filteredOperationalRows.filter((row) => value(row, 'approval_state') === 'approved')",
+    );
+  });
+
   it('has deliberate responsive and keyboard-safe interaction rules', () => {
     const value = source();
 

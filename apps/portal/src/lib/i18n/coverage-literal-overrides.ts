@@ -1911,6 +1911,7 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
     'Atualizar registros de período revisados',
   ],
   Reimbursement: ['Reembolso', 'Reembolso'],
+  Reimbursed: ['Reembolsado', 'Reembolsado'],
   'Reimbursement review': ['Revisión de reembolsos', 'Revisão de reembolsos'],
   'Reimbursement status': ['Estado del reembolso', 'Status do reembolso'],
   'Removal ends the assignment and preserves its historical row. It never hard-deletes project history.':

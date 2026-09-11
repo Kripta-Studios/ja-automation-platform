@@ -126,15 +126,15 @@ git commit -m "feat(portal): standardize operational register ordering"
 - Produces: URL filter `reimbursement=pending` for pending/scheduled reimbursements.
 - Produces: explicit `order` selector on each custom operational register.
 
-- [ ] **Step 1: Add failing UI regression assertions**
+- [x] **Step 1: Add failing UI regression assertions**
 
 Each source regression asserts a bound `order` select, composite attention matching, state persistence including `order`, and no hard-coded single-state link for a multi-state count. The browser case clicks Time/Expense attention cards and checks all matching statuses remain visible while approved rows do not.
 
-- [ ] **Step 2: Run the four focused regression files and confirm red**
+- [x] **Step 2: Run the four focused regression files and confirm red**
 
 Run: `pnpm vitest run tests/regression/worker-time-ui.test.ts tests/regression/worker-expense-ui.test.ts tests/regression/worker-reports-ui.test.ts tests/regression/requested-portal-ui.test.ts`
 
-- [ ] **Step 3: Add state, selectors and exact filtering to each section**
+- [x] **Step 3: Add state, selectors and exact filtering to each section**
 
 ```svelte
 <label>
@@ -150,17 +150,17 @@ Run: `pnpm vitest run tests/regression/worker-time-ui.test.ts tests/regression/w
 
 Time and Expense attention counts and links must both cover `draft`, `submitted`, and `needs_changes`. Expense reimbursement filtering must cover `pending` and `scheduled`. Report attention is computed for the selected field-report tab. Approval keeps unresolved and completed groups separate while applying the requested order within each group.
 
-- [ ] **Step 4: Add EN/ES/PT copy for the new labels and run i18n coverage**
+- [x] **Step 4: Add EN/ES/PT copy for the new labels and run i18n coverage**
 
 Run: `pnpm vitest run tests/regression/portal-i18n-coverage.test.ts tests/regression/portal-visible-locale.test.ts`
 
-- [ ] **Step 5: Run the focused component regressions and authenticated browser journey**
+- [x] **Step 5: Run the focused component regressions and authenticated browser journey**
 
 Run: `pnpm vitest run tests/regression/worker-time-ui.test.ts tests/regression/worker-expense-ui.test.ts tests/regression/worker-reports-ui.test.ts`
 
 Run: `pnpm playwright test tests/e2e/ux-review-20260911.spec.ts --project=desktop --project=phone-360`
 
-- [ ] **Step 6: Commit operational list remediation**
+- [x] **Step 6: Commit operational list remediation**
 
 ```bash
 git add apps/portal/src/lib/portal/sections apps/portal/src/lib/i18n tests/regression tests/e2e/ux-review-20260911.spec.ts

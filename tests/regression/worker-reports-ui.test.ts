@@ -36,6 +36,18 @@ describe('Client Essential reports UI', () => {
     expect(source).toContain('data-report-generator-cta');
   });
 
+  it('orders field reports and keeps the attention card scoped to the selected field tab', () => {
+    const source = read('lib/portal/sections/ReportSection.svelte');
+
+    expect(source).toContain("let order = $state<OperationalOrder>('newest')");
+    expect(source).toContain('operationalStatusMatches(');
+    expect(source).toContain('fieldReportsForActiveTab');
+    expect(source).toContain("registerHref({ view: activeFieldTab, status: 'attention' })");
+    expect(source).toContain('value="attention"');
+    expect(source).toContain("translate('Needs attention')");
+    expect(source).toContain('bind:value={order}');
+  });
+
   it('places Daily and Technical forms in the existing responsive sheet', () => {
     const source = read('lib/portal/sections/ReportSection.svelte');
     const responsive = read('styles/portal/responsive.css');

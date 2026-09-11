@@ -8,9 +8,11 @@
   import { money } from '../portal-format';
   import {
     operationalMatches,
-    operationalNewestFirst,
     operationalPage,
+    operationalSort,
+    operationalStatusMatches,
     readOperationalRegisterState,
+    type OperationalOrder,
     writeOperationalRegisterState,
   } from './operational-register';
 
@@ -47,6 +49,8 @@
   let search = $state('');
   let projectFilter = $state('');
   let statusFilter = $state('');
+  let reimbursementFilter = $state('');
+  let order = $state<OperationalOrder>('newest');
   let receiptPreviewUrl = $state<string | null>(null);
   let receiptPreviewName = $state('');
   let receiptPreviewMime = $state('');
@@ -59,16 +63,25 @@
   const registerStateKey = (): string => `ja-operational-register:expenses:${data.user.id}`;
 
   onMount(() => {
-    const saved = readOperationalRegisterState<{ search?: string; page?: number }>(
-      registerStateKey(),
-    );
+    const saved = readOperationalRegisterState<{
+      search?: string;
+      order?: OperationalOrder;
+      page?: number;
+    }>(registerStateKey());
     if (typeof saved?.search === 'string') search = saved.search;
+    if (saved?.order && ['newest', 'oldest', 'name', 'status'].includes(saved.order)) {
+      order = saved.order;
+    }
     if (typeof saved?.page === 'number') registerPage = saved.page;
     registerStateHydrated = true;
   });
   $effect(() => {
     if (registerStateHydrated)
-      writeOperationalRegisterState(registerStateKey(), { search, page: registerPage });
+      writeOperationalRegisterState(registerStateKey(), {
+        search,
+        order,
+        page: registerPage,
+      });
   });
 
   const expenseCategories = [
@@ -93,13 +106,14 @@
   $effect(() => {
     projectFilter = $page.url.searchParams.get('project')?.trim() ?? '';
     statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
+    reimbursementFilter = $page.url.searchParams.get('reimbursement')?.trim() ?? '';
     registerPage = 1;
   });
   const editRow = $derived.by(
     () => records.find((row) => String(row.id) === editExpenseId) as Row | undefined,
   );
   const visibleRecords = $derived.by(() => {
-    return operationalNewestFirst(
+    return operationalSort(
       records.filter((row) => {
         const matchesSearch = operationalMatches(row, search, [
           'vendor',
@@ -111,10 +125,23 @@
           'worker_name',
         ]);
         const matchesProject = !projectFilter || String(row.project_id ?? '') === projectFilter;
-        const matchesStatus = !statusFilter || String(row.approval_state ?? '') === statusFilter;
-        return matchesSearch && matchesProject && matchesStatus;
+        const matchesStatus = operationalStatusMatches(row.approval_state, statusFilter, [
+          'draft',
+          'submitted',
+          'needs_changes',
+        ]);
+        const reimbursementState = String(row.reimbursement_state ?? '');
+        const matchesReimbursement =
+          !reimbursementFilter ||
+          (reimbursementFilter === 'pending'
+            ? ['pending', 'scheduled'].includes(reimbursementState)
+            : reimbursementState === reimbursementFilter);
+        return matchesSearch && matchesProject && matchesStatus && matchesReimbursement;
       }),
+      order,
       ['spent_on'],
+      ['worker_name', 'project_name', 'vendor', 'description'],
+      ['approval_state', 'reimbursement_state'],
     );
   });
   const pagedRecords = $derived(operationalPage(visibleRecords, registerPage));
@@ -197,8 +224,10 @@
     const params = new URLSearchParams();
     const project = overrides.project ?? projectFilter;
     const status = overrides.status ?? statusFilter;
+    const reimbursement = overrides.reimbursement ?? reimbursementFilter;
     if (project) params.set('project', project);
     if (status) params.set('status', status);
+    if (reimbursement) params.set('reimbursement', reimbursement);
     const query = params.toString();
     return `${base}/app/expenses${query ? `?${query}` : ''}`;
   }
@@ -237,12 +266,18 @@
   {/if}
 
   <div class="expense-status-strip" aria-label={translate('Expense attention summary')}>
-    <a class="expense-status-card" href={registerHref({ status: 'submitted' })}>
+    <a
+      class="expense-status-card"
+      href={registerHref({ status: 'attention', reimbursement: '' })}
+    >
       <span>{translate('Needs attention')}</span>
       <strong>{pendingReviewCount}</strong>
       <small>{translate('Draft or review state')}</small>
     </a>
-    <a class="expense-status-card" href={registerHref({ status: 'approved' })}>
+    <a
+      class="expense-status-card"
+      href={registerHref({ status: '', reimbursement: 'pending' })}
+    >
       <span>{translate('Reimbursement')}</span>
       <strong>{reimbursementCount}</strong>
       <small>{translate('Pending or scheduled')}</small>
@@ -277,10 +312,32 @@
       <span>{translate('Status')}</span>
       <select name="status" bind:value={statusFilter} onchange={() => (registerPage = 1)}>
         <option value="">{translate('All statuses')}</option>
+        <option value="attention">{translate('Needs attention')}</option>
         <option value="draft">{translate('Draft')}</option>
         <option value="submitted">{translate('Submitted')}</option>
         <option value="approved">{translate('Approved')}</option>
         <option value="needs_changes">{translate('Needs changes')}</option>
+      </select>
+    </label>
+    <label>
+      <span>{translate('Reimbursement status')}</span>
+      <select
+        name="reimbursement"
+        bind:value={reimbursementFilter}
+        onchange={() => (registerPage = 1)}
+      >
+        <option value="">{translate('All statuses')}</option>
+        <option value="pending">{translate('Pending or scheduled')}</option>
+        <option value="reimbursed">{translate('Reimbursed')}</option>
+      </select>
+    </label>
+    <label>
+      <span>{translate('Sort by')}</span>
+      <select name="order" bind:value={order} onchange={() => (registerPage = 1)}>
+        <option value="newest">{translate('Newest first')}</option>
+        <option value="oldest">{translate('Oldest first')}</option>
+        <option value="name">{translate('Name')}</option>
+        <option value="status">{translate('Status')}</option>
       </select>
     </label>
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
@@ -294,9 +351,23 @@
     <div class="expense-export-fields">
       <label><span>{translate('From')}</span><input type="date" bind:value={exportFrom} /></label>
       <label><span>{translate('To')}</span><input type="date" bind:value={exportTo} /></label>
-      <label><span>{translate('Project')}</span><select bind:value={exportProject}><option value="">{translate('All projects')}</option>{#each availableProjects as project}<option value={String(project.id)}>{project.project_number} — {project.name}</option>{/each}</select></label>
+      <label
+        ><span>{translate('Project')}</span><select bind:value={exportProject}
+          ><option value="">{translate('All projects')}</option
+          >{#each availableProjects as project}<option value={String(project.id)}
+              >{project.project_number} — {project.name}</option
+            >{/each}</select
+        ></label
+      >
       {#if data.user.role === 'owner_admin' || data.user.role === 'project_manager'}
-        <label><span>{translate('Worker')}</span><select bind:value={exportWorker}><option value="">{translate('All workers')}</option>{#each data.workers ?? [] as worker}<option value={String(worker.id)}>{worker.name}</option>{/each}</select></label>
+        <label
+          ><span>{translate('Worker')}</span><select bind:value={exportWorker}
+            ><option value="">{translate('All workers')}</option
+            >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
+                >{worker.name}</option
+              >{/each}</select
+          ></label
+        >
       {/if}
     </div>
     <div class="expense-export-actions">
@@ -387,7 +458,7 @@
                 {/if}
               </div>
             {/if}
-      {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
+            {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
               <a href={`${base}/app/manage?type=expense#${String(row.id)}`}
                 >{translate('Manage record')} →</a
               >
@@ -648,15 +719,48 @@
     background: var(--portal-surface-soft, #f8fbfc);
   }
   .expense-export-panel h3,
-  .expense-export-panel p { margin: 0; }
-  .expense-export-panel p { color: var(--portal-muted, #64748b); font-size: 0.86rem; }
-  .expense-export-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
-  .expense-export-fields label { display: grid; gap: 0.3rem; }
-  .expense-export-fields span { font-size: 0.78rem; font-weight: 600; }
-  .expense-export-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
-  .expense-export-actions a { text-decoration: none; }
-  @media (max-width: 52rem) { .expense-export-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (max-width: 34rem) { .expense-export-fields { grid-template-columns: 1fr; } .expense-export-actions a { flex: 1 1 100%; text-align: center; } }
+  .expense-export-panel p {
+    margin: 0;
+  }
+  .expense-export-panel p {
+    color: var(--portal-muted, #64748b);
+    font-size: 0.86rem;
+  }
+  .expense-export-fields {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+  .expense-export-fields label {
+    display: grid;
+    gap: 0.3rem;
+  }
+  .expense-export-fields span {
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .expense-export-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .expense-export-actions a {
+    text-decoration: none;
+  }
+  @media (max-width: 52rem) {
+    .expense-export-fields {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 34rem) {
+    .expense-export-fields {
+      grid-template-columns: 1fr;
+    }
+    .expense-export-actions a {
+      flex: 1 1 100%;
+      text-align: center;
+    }
+  }
   .operational-pagination {
     align-items: center;
     display: flex;

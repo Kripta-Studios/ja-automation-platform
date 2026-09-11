@@ -1952,18 +1952,6 @@
     color: #fff;
   }
 
-  .finance-overview__pager {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.65rem;
-    margin-top: 0.85rem;
-  }
-
-  .finance-overview__pager button {
-    min-height: 2.75rem;
-  }
-
   .finance-overview__projection-details {
     margin-top: 0.75rem;
   }

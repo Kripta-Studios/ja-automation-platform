@@ -190,10 +190,32 @@ test('Collections summaries filter and invoice rows open their detail', async ({
     .click();
   await expect(status).toHaveValue('');
 
-  const invoice = page.locator('.collections-ledger__invoice-link').first();
+  const invoice = page
+    .locator('.collections-ledger__invoice-link:visible, [data-card-action]:visible')
+    .first();
   await expect(invoice).toBeVisible();
   await invoice.click();
   await expect.poll(() => new URL(page.url()).pathname).toMatch(/\/app\/billing\/invoices\//);
+});
+
+test('Billing setup reveals one guided configuration action at a time', async ({ page }) => {
+  await signIn(page, 'owner');
+  await page.goto(portal('/billing?lang=en'));
+  await page.getByRole('tab', { name: 'Configure billing' }).click();
+
+  const setup = page.locator('.billing-section__config-body');
+  await expect(setup.locator('.billing-section__directories')).toBeVisible();
+  await expect(setup.locator('form[action="?/createBillingRule"]')).toBeVisible();
+  await expect(setup.locator('.billing-section__config-form:visible')).toHaveCount(1);
+
+  await setup.getByRole('button', { name: 'New tax profile' }).click();
+  await expect(setup.locator('form[action="?/createTaxProfile"]')).toBeVisible();
+  await expect(setup.locator('.billing-section__config-form:visible')).toHaveCount(1);
+
+  await setup.getByRole('button', { name: 'Invoice numbering policy' }).click();
+  await expect(setup.locator('form[action="?/createInvoiceNumberPolicy"]')).toBeVisible();
+  await expect(setup.locator('.billing-section__config-form:visible')).toHaveCount(1);
+  await expect(setup.locator('.billing-section__directories')).toBeVisible();
 });
 
 test('Focused management records open beyond the first page', async ({ page }) => {

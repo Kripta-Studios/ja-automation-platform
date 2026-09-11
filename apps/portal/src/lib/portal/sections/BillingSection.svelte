@@ -9,7 +9,15 @@
 
   type BillingStage = 'all' | 'wip' | 'drafts' | 'outstanding' | 'overdue';
   type BillingWorkspace = 'invoices' | 'streams' | 'setup';
+  type BillingSetupAction = 'stream' | 'entity' | 'tax' | 'numbering';
   type InvoicePdfStatus = 'queued' | 'running' | 'ready' | 'failed' | 'unavailable';
+
+  const setupActions: ReadonlyArray<{ id: BillingSetupAction; label: string }> = [
+    { id: 'stream', label: 'New billing stream' },
+    { id: 'entity', label: 'New legal entity' },
+    { id: 'tax', label: 'New tax profile' },
+    { id: 'numbering', label: 'Invoice numbering policy' },
+  ];
 
   type LedgerPayment = {
     id?: unknown;
@@ -87,6 +95,7 @@
   let projectFilter = $state('');
   let stageFilter = $state<BillingStage>('all');
   let workspace = $state<BillingWorkspace>('invoices');
+  let setupAction = $state<BillingSetupAction>('stream');
   let selectedInvoiceId = $state('');
   type InvoiceDrawerTab = 'overview' | 'collections' | 'lifecycle';
   let invoiceDrawerTab = $state<InvoiceDrawerTab>('overview');
@@ -631,6 +640,23 @@
           </div>
         </div>
 
+        <nav class="billing-section__setup-actions" aria-label={translate('Configure billing')}>
+          {#each setupActions as action}
+            <button
+              type="button"
+              aria-pressed={setupAction === action.id}
+              onclick={() => (setupAction = action.id)}
+            >
+              {translate(action.label)}
+            </button>
+          {/each}
+        </nav>
+        <p class="billing-section__setup-help">
+          {translate(
+            'Choose one action. The portal will show only the fields needed for that task.',
+          )}
+        </p>
+
         <div class="billing-section__directories">
           <section>
             <h4>{translate('Legal entities')}</h4>
@@ -683,274 +709,291 @@
           </section>
         </div>
 
-        <form method="POST" action="?/createBillingRule" class="billing-section__config-form">
-          <h4>{translate('New billing stream')}</h4>
-          <label>
-            <span>{translate('Project')}</span>
-            <select name="projectId" required>
-              <option value="">{translate('Select project')}</option>
-              {#each availableProjects as project}
-                <option value={rowValue(project, 'id')}>{projectLabel(project)}</option>
-              {/each}
-            </select>
-          </label>
-          <label>
-            <span>{translate('Stream')}</span>
-            <select name="streamType" required>
-              <option value="labor">{translate('Labor')}</option>
-              <option value="expense">{translate('Expenses')}</option>
-              <option value="milestone">{translate('Milestone')}</option>
-              <option value="other">{translate('Other')}</option>
-            </select>
-          </label>
-          <label>
-            <span>{translate('Cadence')}</span>
-            <select name="cadenceType" required>
-              <option value="weekly">{translate('Weekly')}</option>
-              <option value="every_14_days">{translate('Every 14 days')}</option>
-              <option value="semi_monthly">{translate('Semi-monthly')}</option>
-              <option value="monthly">{translate('Monthly')}</option>
-              <option value="custom">{translate('Custom')}</option>
-              <option value="milestone">{translate('Milestone')}</option>
-              <option value="manual">{translate('Manual')}</option>
-            </select>
-          </label>
-          <label>
-            <span>{translate('Effective from')}</span>
-            <input name="effectiveFrom" type="date" required />
-          </label>
-          <label>
-            <span>{translate('Anchor date')}</span>
-            <input name="anchorDate" type="date" />
-          </label>
-          <label>
-            <span>{translate('Legal entity')}</span>
-            <select name="legalEntityId" required>
-              <option value="">{translate('Select legal entity')}</option>
-              {#each data.legalEntities ?? [] as entity}
-                <option value={rowValue(entity, 'id')}>
-                  {rowValue(entity, 'code')} — {rowValue(entity, 'legal_name', 'legalName')}
-                </option>
-              {/each}
-            </select>
-          </label>
-          <label>
-            <span>{translate('Tax profile')}</span>
-            <select name="taxProfileId" required>
-              <option value="">{translate('Select tax profile')}</option>
-              {#each data.taxProfiles ?? [] as profile}
-                <option value={rowValue(profile, 'id')}>
-                  {rowValue(profile, 'name')} ({rowValue(profile, 'currency')})
-                </option>
-              {/each}
-            </select>
-          </label>
-          <label>
-            <span>{translate('Currency')}</span>
-            <select name="currency" required>
-              <option>USD</option>
-              <option>BRL</option>
-              <option>EUR</option>
-            </select>
-          </label>
-          <label>
-            <span>{translate('Invoice template')}</span>
-            <select name="templateId" required>
-              <option value="default">{translate('Default')}</option>
-              <option value="labor-detailed">{translate('Labor detailed')}</option>
-              <option value="labor-summary">{translate('Labor summary')}</option>
-              <option value="expenses-detailed">{translate('Expenses detailed')}</option>
-              <option value="fixed-milestone">{translate('Fixed milestone')}</option>
-            </select>
-          </label>
-          <label>
-            <span>{translate('Recipient email')}</span>
-            <input name="recipientEmail" type="email" />
-          </label>
-          <label>
-            <span>{translate('Billing contact')}</span>
-            <select name="billingContactId">
-              <option value="">{translate('Use recipient email')}</option>
-              {#each data.contacts ?? [] as contact}
-                <option value={rowValue(contact, 'id')}>
-                  {rowValue(contact, 'client_number', 'clientNumber')} · {rowValue(contact, 'name')} ·
-                  {rowValue(contact, 'email') || translate('no email')}
-                </option>
-              {/each}
-            </select>
-          </label>
-          <label>
-            <span>{translate('Payment terms (days)')}</span>
-            <input name="paymentTermsDays" type="number" min="0" max="365" value="30" required />
-          </label>
-          <label>
-            <span>{translate('PO reference')}</span>
-            <input name="poNumberOverride" />
-          </label>
-          <label>
-            <span>{translate('Grouping')}</span>
-            <select name="groupingMode">
-              <option value="summary">{translate('Summary')}</option>
-              <option value="detail">{translate('Detail')}</option>
-              <option value="by_worker">{translate('By worker')}</option>
-              <option value="by_day">{translate('By day')}</option>
-              <option value="by_category">{translate('By category')}</option>
-            </select>
-          </label>
-          <label>
-            <span>{translate('Semi-monthly rule')}</span>
-            <input name="semiMonthlyRule" value="1_15_16_end" required />
-          </label>
-          <label class="billing-section__checkbox">
-            <input name="autoGenerateDraft" type="checkbox" />
-            <span>{translate('Generate drafts when the stream is due')}</span>
-          </label>
-          <button type="submit">{translate('Save billing stream')}</button>
-        </form>
-
-        <div class="billing-section__config-compact-grid">
-          <form method="POST" action="?/createLegalEntity" class="billing-section__config-form">
-            <h4>{translate('New legal entity')}</h4>
-            <label><span>{translate('Code')}</span><input name="code" required /></label>
-            <label><span>{translate('Legal name')}</span><input name="legalName" required /></label>
+        {#if setupAction === 'stream'}
+          <form method="POST" action="?/createBillingRule" class="billing-section__config-form">
+            <h4>{translate('New billing stream')}</h4>
             <label>
-              <span>{translate('Currency')}</span>
-              <select name="currency"
-                ><option>USD</option><option>BRL</option><option>EUR</option></select
-              >
-            </label>
-            <label
-              ><span>{translate('Billing address')}</span><textarea
-                name="billingAddress"
-                rows="3"
-                required
-              ></textarea></label
-            >
-            <label
-              ><span>{translate('Company identifiers')}</span><textarea
-                name="companyIdentifiers"
-                rows="2"
-                required
-              ></textarea></label
-            >
-            <button type="submit">{translate('Save legal entity')}</button>
-          </form>
-
-          <form method="POST" action="?/createTaxProfile" class="billing-section__config-form">
-            <h4>{translate('New tax profile')}</h4>
-            <label>
-              <span>{translate('Legal entity')}</span>
-              <select name="legalEntityId">
-                <option value="">{translate('Global profile')}</option>
-                {#each data.legalEntities ?? [] as entity}
-                  <option value={rowValue(entity, 'id')}
-                    >{rowValue(entity, 'code')} — {rowValue(
-                      entity,
-                      'legal_name',
-                      'legalName',
-                    )}</option
-                  >
+              <span>{translate('Project')}</span>
+              <select name="projectId" required>
+                <option value="">{translate('Select project')}</option>
+                {#each availableProjects as project}
+                  <option value={rowValue(project, 'id')}>{projectLabel(project)}</option>
                 {/each}
               </select>
             </label>
-            <label><span>{translate('Name')}</span><input name="name" required /></label>
             <label>
-              <span>{translate('Currency')}</span>
-              <select name="currency"
-                ><option>USD</option><option>BRL</option><option>EUR</option></select
-              >
+              <span>{translate('Stream')}</span>
+              <select name="streamType" required>
+                <option value="labor">{translate('Labor')}</option>
+                <option value="expense">{translate('Expenses')}</option>
+                <option value="milestone">{translate('Milestone')}</option>
+                <option value="other">{translate('Other')}</option>
+              </select>
             </label>
-            <label
-              ><span>{translate('Effective from')}</span><input
-                name="effectiveFrom"
-                type="date"
-                required
-              /></label
-            >
-            <label
-              ><span>{translate('Component')}</span><input
-                name="componentName"
-                value="VAT / sales tax"
-                required
-              /></label
-            >
-            <label
-              ><span>{translate('Tax rate')}</span><input
-                name="componentPercent"
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                value="0"
-                required
-                oninput={(event) => {
-                  const form = event.currentTarget.form;
-                  const hidden = form?.elements.namedItem(
-                    'componentBasisPoints',
-                  ) as HTMLInputElement | null;
-                  if (!hidden) return;
-                  hidden.value = percentToBps(event.currentTarget.value);
-                }}
-              /><input type="hidden" name="componentBasisPoints" value="0" /></label
-            >
-            <label class="billing-section__checkbox"
-              ><input name="componentCompound" type="checkbox" /><span
-                >{translate('Compound tax')}</span
-              ></label
-            >
-            <button type="submit">{translate('Save tax profile')}</button>
-          </form>
-
-          <form
-            method="POST"
-            action="?/createInvoiceNumberPolicy"
-            class="billing-section__config-form"
-          >
-            <h4>{translate('Invoice numbering policy')}</h4>
+            <label>
+              <span>{translate('Cadence')}</span>
+              <select name="cadenceType" required>
+                <option value="weekly">{translate('Weekly')}</option>
+                <option value="every_14_days">{translate('Every 14 days')}</option>
+                <option value="semi_monthly">{translate('Semi-monthly')}</option>
+                <option value="monthly">{translate('Monthly')}</option>
+                <option value="custom">{translate('Custom')}</option>
+                <option value="milestone">{translate('Milestone')}</option>
+                <option value="manual">{translate('Manual')}</option>
+              </select>
+            </label>
+            <label>
+              <span>{translate('Effective from')}</span>
+              <input name="effectiveFrom" type="date" required />
+            </label>
+            <label>
+              <span>{translate('Anchor date')}</span>
+              <input name="anchorDate" type="date" />
+            </label>
             <label>
               <span>{translate('Legal entity')}</span>
               <select name="legalEntityId" required>
-                <option value="">{translate('Select entity')}</option>
+                <option value="">{translate('Select legal entity')}</option>
                 {#each data.legalEntities ?? [] as entity}
-                  <option value={rowValue(entity, 'id')}
-                    >{rowValue(entity, 'code')} — {rowValue(
-                      entity,
-                      'legal_name',
-                      'legalName',
-                    )}</option
-                  >
+                  <option value={rowValue(entity, 'id')}>
+                    {rowValue(entity, 'code')} — {rowValue(entity, 'legal_name', 'legalName')}
+                  </option>
                 {/each}
               </select>
             </label>
-            <label
-              ><span>{translate('Prefix')}</span><input name="prefix" value="JA-" required /></label
-            >
-            <label
-              ><span>{translate('Digits')}</span><input
-                name="digits"
-                type="number"
-                min="4"
-                max="10"
-                value="6"
-                required
-              /></label
-            >
-            <label
-              ><span>{translate('Effective from')}</span><input
-                name="effectiveFrom"
-                type="date"
-                required
-              /></label
-            >
-            <label
-              ><span>{translate('Accountant approved at')}</span><input
-                name="accountantApprovedAt"
-                type="datetime-local"
-                required
-              /></label
-            >
-            <button type="submit">{translate('Save numbering policy')}</button>
+            <label>
+              <span>{translate('Tax profile')}</span>
+              <select name="taxProfileId" required>
+                <option value="">{translate('Select tax profile')}</option>
+                {#each data.taxProfiles ?? [] as profile}
+                  <option value={rowValue(profile, 'id')}>
+                    {rowValue(profile, 'name')} ({rowValue(profile, 'currency')})
+                  </option>
+                {/each}
+              </select>
+            </label>
+            <label>
+              <span>{translate('Currency')}</span>
+              <select name="currency" required>
+                <option>USD</option>
+                <option>BRL</option>
+                <option>EUR</option>
+              </select>
+            </label>
+            <label>
+              <span>{translate('Invoice template')}</span>
+              <select name="templateId" required>
+                <option value="default">{translate('Default')}</option>
+                <option value="labor-detailed">{translate('Labor detailed')}</option>
+                <option value="labor-summary">{translate('Labor summary')}</option>
+                <option value="expenses-detailed">{translate('Expenses detailed')}</option>
+                <option value="fixed-milestone">{translate('Fixed milestone')}</option>
+              </select>
+            </label>
+            <label>
+              <span>{translate('Recipient email')}</span>
+              <input name="recipientEmail" type="email" />
+            </label>
+            <label>
+              <span>{translate('Billing contact')}</span>
+              <select name="billingContactId">
+                <option value="">{translate('Use recipient email')}</option>
+                {#each data.contacts ?? [] as contact}
+                  <option value={rowValue(contact, 'id')}>
+                    {rowValue(contact, 'client_number', 'clientNumber')} · {rowValue(
+                      contact,
+                      'name',
+                    )} ·
+                    {rowValue(contact, 'email') || translate('no email')}
+                  </option>
+                {/each}
+              </select>
+            </label>
+            <label>
+              <span>{translate('Payment terms (days)')}</span>
+              <input name="paymentTermsDays" type="number" min="0" max="365" value="30" required />
+            </label>
+            <label>
+              <span>{translate('PO reference')}</span>
+              <input name="poNumberOverride" />
+            </label>
+            <label>
+              <span>{translate('Grouping')}</span>
+              <select name="groupingMode">
+                <option value="summary">{translate('Summary')}</option>
+                <option value="detail">{translate('Detail')}</option>
+                <option value="by_worker">{translate('By worker')}</option>
+                <option value="by_day">{translate('By day')}</option>
+                <option value="by_category">{translate('By category')}</option>
+              </select>
+            </label>
+            <label>
+              <span>{translate('Semi-monthly rule')}</span>
+              <input name="semiMonthlyRule" value="1_15_16_end" required />
+            </label>
+            <label class="billing-section__checkbox">
+              <input name="autoGenerateDraft" type="checkbox" />
+              <span>{translate('Generate drafts when the stream is due')}</span>
+            </label>
+            <button type="submit">{translate('Save billing stream')}</button>
           </form>
+        {/if}
+
+        <div class="billing-section__config-compact-grid">
+          {#if setupAction === 'entity'}
+            <form method="POST" action="?/createLegalEntity" class="billing-section__config-form">
+              <h4>{translate('New legal entity')}</h4>
+              <label><span>{translate('Code')}</span><input name="code" required /></label>
+              <label
+                ><span>{translate('Legal name')}</span><input name="legalName" required /></label
+              >
+              <label>
+                <span>{translate('Currency')}</span>
+                <select name="currency"
+                  ><option>USD</option><option>BRL</option><option>EUR</option></select
+                >
+              </label>
+              <label
+                ><span>{translate('Billing address')}</span><textarea
+                  name="billingAddress"
+                  rows="3"
+                  required
+                ></textarea></label
+              >
+              <label
+                ><span>{translate('Company identifiers')}</span><textarea
+                  name="companyIdentifiers"
+                  rows="2"
+                  required
+                ></textarea></label
+              >
+              <button type="submit">{translate('Save legal entity')}</button>
+            </form>
+          {/if}
+
+          {#if setupAction === 'tax'}
+            <form method="POST" action="?/createTaxProfile" class="billing-section__config-form">
+              <h4>{translate('New tax profile')}</h4>
+              <label>
+                <span>{translate('Legal entity')}</span>
+                <select name="legalEntityId">
+                  <option value="">{translate('Global profile')}</option>
+                  {#each data.legalEntities ?? [] as entity}
+                    <option value={rowValue(entity, 'id')}
+                      >{rowValue(entity, 'code')} — {rowValue(
+                        entity,
+                        'legal_name',
+                        'legalName',
+                      )}</option
+                    >
+                  {/each}
+                </select>
+              </label>
+              <label><span>{translate('Name')}</span><input name="name" required /></label>
+              <label>
+                <span>{translate('Currency')}</span>
+                <select name="currency"
+                  ><option>USD</option><option>BRL</option><option>EUR</option></select
+                >
+              </label>
+              <label
+                ><span>{translate('Effective from')}</span><input
+                  name="effectiveFrom"
+                  type="date"
+                  required
+                /></label
+              >
+              <label
+                ><span>{translate('Component')}</span><input
+                  name="componentName"
+                  value="VAT / sales tax"
+                  required
+                /></label
+              >
+              <label
+                ><span>{translate('Tax rate')}</span><input
+                  name="componentPercent"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value="0"
+                  required
+                  oninput={(event) => {
+                    const form = event.currentTarget.form;
+                    const hidden = form?.elements.namedItem(
+                      'componentBasisPoints',
+                    ) as HTMLInputElement | null;
+                    if (!hidden) return;
+                    hidden.value = percentToBps(event.currentTarget.value);
+                  }}
+                /><input type="hidden" name="componentBasisPoints" value="0" /></label
+              >
+              <label class="billing-section__checkbox"
+                ><input name="componentCompound" type="checkbox" /><span
+                  >{translate('Compound tax')}</span
+                ></label
+              >
+              <button type="submit">{translate('Save tax profile')}</button>
+            </form>
+          {/if}
+
+          {#if setupAction === 'numbering'}
+            <form
+              method="POST"
+              action="?/createInvoiceNumberPolicy"
+              class="billing-section__config-form"
+            >
+              <h4>{translate('Invoice numbering policy')}</h4>
+              <label>
+                <span>{translate('Legal entity')}</span>
+                <select name="legalEntityId" required>
+                  <option value="">{translate('Select entity')}</option>
+                  {#each data.legalEntities ?? [] as entity}
+                    <option value={rowValue(entity, 'id')}
+                      >{rowValue(entity, 'code')} — {rowValue(
+                        entity,
+                        'legal_name',
+                        'legalName',
+                      )}</option
+                    >
+                  {/each}
+                </select>
+              </label>
+              <label
+                ><span>{translate('Prefix')}</span><input
+                  name="prefix"
+                  value="JA-"
+                  required
+                /></label
+              >
+              <label
+                ><span>{translate('Digits')}</span><input
+                  name="digits"
+                  type="number"
+                  min="4"
+                  max="10"
+                  value="6"
+                  required
+                /></label
+              >
+              <label
+                ><span>{translate('Effective from')}</span><input
+                  name="effectiveFrom"
+                  type="date"
+                  required
+                /></label
+              >
+              <label
+                ><span>{translate('Accountant approved at')}</span><input
+                  name="accountantApprovedAt"
+                  type="datetime-local"
+                  required
+                /></label
+              >
+              <button type="submit">{translate('Save numbering policy')}</button>
+            </form>
+          {/if}
         </div>
       </div>
     </details>
@@ -1214,7 +1257,12 @@
         <span>{visibleInvoices.length}</span>
       </div>
 
-    <RecordBrowser rows={visibleInvoices} bind:visible={invoicePage} {translate} label="Billing" />
+      <RecordBrowser
+        rows={visibleInvoices}
+        bind:visible={invoicePage}
+        {translate}
+        label="Billing"
+      />
       {#if visibleInvoices.length > 0}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -2188,8 +2236,7 @@
     );
   }
 
-  .billing-section__summary-card span,
-  .billing-section__summary-card small {
+  .billing-section__summary-card span {
     color: var(--portal-muted, #64748b);
     font-size: 0.78rem;
   }
@@ -2295,9 +2342,34 @@
   }
 
   .billing-section__config-heading p,
+  .billing-section__setup-help,
   .billing-section__section-intro p {
     margin: 0.35rem 0 0;
     color: var(--portal-muted, #64748b);
+  }
+
+  .billing-section__setup-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .billing-section__setup-actions button {
+    min-height: 2.75rem;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--portal-border-strong, #b8c3d1);
+    border-radius: 999px;
+    background: var(--portal-surface, #fff);
+    color: var(--portal-ink, #16202a);
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+  }
+
+  .billing-section__setup-actions button[aria-pressed='true'] {
+    border-color: var(--portal-accent, #0f5f73);
+    background: var(--portal-accent, #0f5f73);
+    color: #fff;
   }
 
   .billing-section__config-form {
@@ -2332,7 +2404,7 @@
 
   .billing-section__config-compact-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
   }
 
@@ -2362,7 +2434,6 @@
     gap: 0.75rem;
   }
 
-  .billing-section__rule,
   .billing-section__invoice {
     display: grid;
     gap: 0.9rem;
@@ -2372,23 +2443,16 @@
     background: var(--portal-surface, #fff);
   }
 
-  .billing-section__rule-head {
-    display: grid;
-    gap: 0.25rem;
-  }
-
   .billing-section__rule-editor[open] {
     width: 100%;
     min-width: 0;
   }
 
-  .billing-section__rule > div:first-child,
   .billing-section__invoice-heading > div {
     display: grid;
     gap: 0.25rem;
   }
 
-  .billing-section__rule small,
   .billing-section__invoice small,
   .billing-section__payment-row small {
     color: var(--portal-muted, #64748b);
@@ -2692,10 +2756,6 @@
   }
 
   @media (max-width: 52rem) {
-    .billing-section__rule {
-      grid-template-columns: 1fr;
-    }
-
     .billing-section__filters {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -2717,8 +2777,7 @@
 
   @media (max-width: 760px) {
     .billing-section__context,
-    .billing-section__invoice-heading,
-    .billing-section__rule {
+    .billing-section__invoice-heading {
       align-items: flex-start;
       flex-direction: column;
     }
@@ -2726,6 +2785,15 @@
     .billing-section__workspace {
       display: grid;
       grid-template-columns: 1fr;
+    }
+
+    .billing-section__setup-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    .billing-section__setup-actions button {
+      width: 100%;
     }
 
     .billing-section__workspace-tab {

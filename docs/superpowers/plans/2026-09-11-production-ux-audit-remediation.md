@@ -281,15 +281,15 @@ git commit -m "feat(portal): connect finance summaries to source workflows"
 - Produces: keyboard-usable setup action controls that render exactly one setup form.
 - Preserves: existing form action names and server validation.
 
-- [ ] **Step 1: Add a failing browser test**
+- [x] **Step 1: Add a failing browser test**
 
 Open Configure billing, assert the New billing stream form is initially visible, select New tax profile, assert only that form is visible, then switch to Invoice numbering policy. Keep Legal entities and Tax profiles directories visible.
 
-- [ ] **Step 2: Run the focused E2E case and verify red**
+- [x] **Step 2: Run the focused E2E case and verify red**
 
 Run: `pnpm playwright test tests/e2e/ux-review-20260911.spec.ts --project=desktop`
 
-- [ ] **Step 3: Add setup action state and conditional form rendering**
+- [x] **Step 3: Add setup action state and conditional form rendering**
 
 ```svelte
 <nav class="billing-section__setup-actions" aria-label={translate('Billing setup actions')}>
@@ -307,7 +307,7 @@ Run: `pnpm playwright test tests/e2e/ux-review-20260911.spec.ts --project=deskto
 
 Wrap each existing form with the matching condition; do not rename inputs/actions or combine transactional operations.
 
-- [ ] **Step 4: Run Svelte typechecking and Billing E2E**
+- [x] **Step 4: Run Svelte typechecking and Billing E2E**
 
 Run: `pnpm --filter @ja/portal typecheck`
 

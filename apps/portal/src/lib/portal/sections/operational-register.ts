@@ -1,6 +1,7 @@
 import type { PortalRow } from '../portal-data';
 
 export const OPERATIONAL_REGISTER_PAGE_SIZE = 8;
+export type OperationalOrder = 'newest' | 'oldest' | 'name' | 'status';
 
 /** Match the words people type, regardless of accents stored in a name or project. */
 export function operationalSearchText(value: unknown): string {
@@ -27,24 +28,63 @@ export function operationalDate(row: PortalRow, fields: readonly string[]): stri
   return '';
 }
 
+function operationalField(row: PortalRow, fields: readonly string[]): string {
+  for (const field of fields) {
+    const value = String(row[field] ?? '').trim();
+    if (value) return value;
+  }
+  return '';
+}
+
+/** Order an authorized projection without mutating the repository-owned input. */
+export function operationalSort<T extends PortalRow>(
+  rows: readonly T[],
+  order: OperationalOrder,
+  dateFields: readonly string[],
+  nameFields: readonly string[],
+  statusFields: readonly string[],
+): T[] {
+  return [...rows].sort((left, right) => {
+    const leftDate = operationalDate(left, dateFields);
+    const rightDate = operationalDate(right, dateFields);
+    const leftName = operationalSearchText(operationalField(left, nameFields));
+    const rightName = operationalSearchText(operationalField(right, nameFields));
+    const leftStatus = operationalSearchText(operationalField(left, statusFields));
+    const rightStatus = operationalSearchText(operationalField(right, statusFields));
+    const byId = String(left.id ?? '').localeCompare(String(right.id ?? ''));
+    if (order === 'oldest')
+      return leftDate.localeCompare(rightDate) || leftName.localeCompare(rightName) || byId;
+    if (order === 'name')
+      return leftName.localeCompare(rightName) || leftDate.localeCompare(rightDate) || byId;
+    if (order === 'status')
+      return leftStatus.localeCompare(rightStatus) || leftDate.localeCompare(rightDate) || byId;
+    return rightDate.localeCompare(leftDate) || leftName.localeCompare(rightName) || byId;
+  });
+}
+
+/** Match a literal lifecycle state or a named composite used by an attention counter. */
+export function operationalStatusMatches(
+  rowStatus: unknown,
+  filter: string,
+  attentionStates: readonly string[],
+): boolean {
+  if (!filter) return true;
+  const state = String(rowStatus ?? '');
+  return filter === 'attention' ? attentionStates.includes(state) : state === filter;
+}
+
 export function operationalNewestFirst<T extends PortalRow>(
   rows: readonly T[],
   fields: readonly string[],
 ): T[] {
-  return [...rows].sort((left, right) => {
-    const byDate = operationalDate(right, fields).localeCompare(operationalDate(left, fields));
-    return byDate || String(right.id ?? '').localeCompare(String(left.id ?? ''));
-  });
+  return operationalSort(rows, 'newest', fields, [], []);
 }
 
 export function operationalOldestFirst<T extends PortalRow>(
   rows: readonly T[],
   fields: readonly string[],
 ): T[] {
-  return [...rows].sort((left, right) => {
-    const byDate = operationalDate(left, fields).localeCompare(operationalDate(right, fields));
-    return byDate || String(left.id ?? '').localeCompare(String(right.id ?? ''));
-  });
+  return operationalSort(rows, 'oldest', fields, [], []);
 }
 
 export function operationalPage<T>(

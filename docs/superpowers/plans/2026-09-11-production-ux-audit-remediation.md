@@ -26,18 +26,20 @@
 ### Task 1: Shared operational ordering and composite attention filters
 
 **Files:**
+
 - Modify: `apps/portal/src/lib/portal/sections/operational-register.ts`
 - Modify: `apps/portal/src/lib/portal/ui/record-browser.ts`
 - Test: `tests/operational-register.test.ts`
 - Test: `tests/record-browser.test.ts`
 
 **Interfaces:**
+
 - Produces: `OperationalOrder = 'newest' | 'oldest' | 'name' | 'status'`.
 - Produces: `operationalSort<T>(rows, order, dateFields, nameFields, statusFields): T[]`.
 - Produces: `operationalStatusMatches(rowStatus, filter, attentionStates): boolean`.
 - Extends: `recordState(row)` with an explicit `browser_status` override for context-specific period lists.
 
-- [ ] **Step 1: Write the failing helper tests**
+- [x] **Step 1: Write the failing helper tests**
 
 ```ts
 it('sorts operational rows without mutating the source', () => {
@@ -45,22 +47,34 @@ it('sorts operational rows without mutating the source', () => {
     { id: 'b', work_date: '2026-09-02', worker_name: 'Zoë', approval_state: 'approved' },
     { id: 'a', work_date: '2026-09-01', worker_name: 'Ana', approval_state: 'submitted' },
   ];
-  expect(operationalSort(rows, 'oldest', ['work_date'], ['worker_name'], ['approval_state']).map(row => row.id)).toEqual(['a', 'b']);
-  expect(operationalSort(rows, 'name', ['work_date'], ['worker_name'], ['approval_state']).map(row => row.id)).toEqual(['a', 'b']);
-  expect(rows.map(row => row.id)).toEqual(['b', 'a']);
+  expect(
+    operationalSort(rows, 'oldest', ['work_date'], ['worker_name'], ['approval_state']).map(
+      (row) => row.id,
+    ),
+  ).toEqual(['a', 'b']);
+  expect(
+    operationalSort(rows, 'name', ['work_date'], ['worker_name'], ['approval_state']).map(
+      (row) => row.id,
+    ),
+  ).toEqual(['a', 'b']);
+  expect(rows.map((row) => row.id)).toEqual(['b', 'a']);
 });
 
 it('matches a composite attention filter exactly', () => {
-  expect(operationalStatusMatches('draft', 'attention', ['draft', 'submitted', 'needs_changes'])).toBe(true);
-  expect(operationalStatusMatches('approved', 'attention', ['draft', 'submitted', 'needs_changes'])).toBe(false);
+  expect(
+    operationalStatusMatches('draft', 'attention', ['draft', 'submitted', 'needs_changes']),
+  ).toBe(true);
+  expect(
+    operationalStatusMatches('approved', 'attention', ['draft', 'submitted', 'needs_changes']),
+  ).toBe(false);
 });
 ```
 
-- [ ] **Step 2: Run the focused tests and confirm they fail because the new exports do not exist**
+- [x] **Step 2: Run the focused tests and confirm they fail because the new exports do not exist**
 
 Run: `pnpm vitest run tests/operational-register.test.ts tests/record-browser.test.ts`
 
-- [ ] **Step 3: Implement deterministic, accent-insensitive ordering and composite matching**
+- [x] **Step 3: Implement deterministic, accent-insensitive ordering and composite matching**
 
 ```ts
 export type OperationalOrder = 'newest' | 'oldest' | 'name' | 'status';
@@ -78,11 +92,11 @@ export function operationalStatusMatches(
 
 `operationalSort` must copy before sorting, use the requested fields in order, normalize names with `operationalSearchText`, and use ID as the final stable tie-breaker.
 
-- [ ] **Step 4: Run focused tests and confirm green**
+- [x] **Step 4: Run focused tests and confirm green**
 
 Run: `pnpm vitest run tests/operational-register.test.ts tests/record-browser.test.ts`
 
-- [ ] **Step 5: Commit the helper contract**
+- [x] **Step 5: Commit the helper contract**
 
 ```bash
 git add apps/portal/src/lib/portal/sections/operational-register.ts apps/portal/src/lib/portal/ui/record-browser.ts tests/operational-register.test.ts tests/record-browser.test.ts
@@ -92,6 +106,7 @@ git commit -m "feat(portal): standardize operational register ordering"
 ### Task 2: Truthful Time, Expense, Report and Approval register controls
 
 **Files:**
+
 - Modify: `apps/portal/src/lib/portal/sections/TimeSection.svelte`
 - Modify: `apps/portal/src/lib/portal/sections/ExpenseSection.svelte`
 - Modify: `apps/portal/src/lib/portal/sections/ReportSection.svelte`
@@ -105,6 +120,7 @@ git commit -m "feat(portal): standardize operational register ordering"
 - Test: `tests/e2e/ux-review-20260911.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `operationalSort` and `operationalStatusMatches` from Task 1.
 - Produces: URL filter `status=attention` for combined draft/submitted/needs_changes counts.
 - Produces: URL filter `reimbursement=pending` for pending/scheduled reimbursements.
@@ -154,12 +170,14 @@ git commit -m "feat(portal): finish operational list filters and ordering"
 ### Task 3: Bound and filter Client Sign-off and generated period files
 
 **Files:**
+
 - Modify: `apps/portal/src/lib/portal/sections/ReportSection.svelte`
 - Modify: `apps/portal/src/lib/portal/ui/record-browser.ts`
 - Test: `tests/regression/worker-reports-ui.test.ts`
 - Test: `tests/e2e/ux-review-20260911.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `RecordBrowser` with `browser_status` and `contextKey`.
 - Produces: `signoffPage` and `periodReportPage`, each limited to eight rows.
 - Preserves: `hasPeriodSnapshot` and `hasReadyPeriodPdf` as navigation/download gates.
@@ -176,10 +194,10 @@ Run: `pnpm vitest run tests/regression/worker-reports-ui.test.ts tests/record-br
 
 ```ts
 const signoffRows = $derived(
-  customerPeriodReports.map(report => ({ ...report, browser_status: signoffState(report) })),
+  customerPeriodReports.map((report) => ({ ...report, browser_status: signoffState(report) })),
 );
 const generatedRows = $derived(
-  periodReports.map(report => ({ ...report, browser_status: String(report.state ?? '') })),
+  periodReports.map((report) => ({ ...report, browser_status: String(report.state ?? '') })),
 );
 ```
 
@@ -201,6 +219,7 @@ git commit -m "feat(portal): paginate period report workflows"
 ### Task 4: Finance and Collections drill-through
 
 **Files:**
+
 - Modify: `apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte`
 - Modify: `apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte`
 - Test: `tests/regression/finance-v3-review-remediation.test.ts`
@@ -208,6 +227,7 @@ git commit -m "feat(portal): paginate period report workflows"
 - Test: `tests/e2e/ux-review-20260911.spec.ts`
 
 **Interfaces:**
+
 - Produces: project-scoped hrefs for portfolio, settlements, reimbursements, billing invoices, expense/time source rows and alerts.
 - Produces: ledger summary buttons that update `statusFilter`.
 - Produces: invoice detail href `/app/billing/invoices/:id` from every ledger row/card.
@@ -249,12 +269,14 @@ git commit -m "feat(portal): connect finance summaries to source workflows"
 ### Task 5: Progressive Billing setup actions
 
 **Files:**
+
 - Modify: `apps/portal/src/lib/portal/sections/BillingSection.svelte`
 - Modify: `apps/portal/src/styles/portal/primitives.css`
 - Test: `tests/regression/requested-portal-ui.test.ts`
 - Test: `tests/e2e/ux-review-20260911.spec.ts`
 
 **Interfaces:**
+
 - Produces: `BillingSetupAction = 'stream' | 'entity' | 'tax' | 'numbering'`.
 - Produces: keyboard-usable setup action controls that render exactly one setup form.
 - Preserves: existing form action names and server validation.
@@ -272,7 +294,11 @@ Run: `pnpm playwright test tests/e2e/ux-review-20260911.spec.ts --project=deskto
 ```svelte
 <nav class="billing-section__setup-actions" aria-label={translate('Billing setup actions')}>
   {#each setupActions as action}
-    <button type="button" aria-pressed={setupAction === action.id} onclick={() => (setupAction = action.id)}>
+    <button
+      type="button"
+      aria-pressed={setupAction === action.id}
+      onclick={() => (setupAction = action.id)}
+    >
       {translate(action.label)}
     </button>
   {/each}
@@ -297,23 +323,27 @@ git commit -m "feat(portal): streamline billing setup actions"
 ### Task 6: Prove creator identity in Daily and PLC/Technical PDFs
 
 **Files:**
+
 - Modify only if the test exposes a gap: `packages/reporting/src/exports.ts`
 - Modify only if the test exposes a gap: `packages/database/src/domains/localized-artifacts/localized-pdf-repository.ts`
 - Test: `tests/reporting-i18n.test.ts`
 - Test: `tests/integration/localized-pdf-variants.test.ts`
 
 **Interfaces:**
+
 - Preserves: author identity derives from stored `worker_id`/`author_id` and the joined `user` row.
 - Requires: PDF contains author name and available author email in EN, ES and PT-BR.
 
 - [ ] **Step 1: Add report snapshots with a creator and assertions for name/email**
 
 ```ts
-const technicalText = expectPdf(technicalReportPdf({
-  ...technicalSnapshot(locale),
-  worker_name: 'Alex Rivera',
-  worker_email: 'alex.rivera@example.test',
-}));
+const technicalText = expectPdf(
+  technicalReportPdf({
+    ...technicalSnapshot(locale),
+    worker_name: 'Alex Rivera',
+    worker_email: 'alex.rivera@example.test',
+  }),
+);
 expect(containsPdfCopy(technicalText, 'Alex Rivera')).toBe(true);
 expect(containsPdfCopy(technicalText, 'alex.rivera@example.test')).toBe(true);
 ```
@@ -338,12 +368,14 @@ git commit -m "test(reporting): prove report creator identity in PDFs"
 ### Task 7: Cross-role security and complete quality gates
 
 **Files:**
+
 - Modify only for confirmed defects: `apps/portal/src/lib/server/**`
 - Modify only for confirmed defects: `packages/database/src/**`
 - Test: `tests/security`
 - Evidence: `J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md`
 
 **Interfaces:**
+
 - Verifies: Worker/PM/supplier/technician/Finance/Owner/Auditor loaders, actions and private downloads.
 - Verifies: guessed cross-project IDs fail without disclosing another object's data.
 
@@ -382,6 +414,7 @@ Do not convert missing human fiscal/legal approval or operator evidence into a t
 ### Task 8: Regenerate manuals, push, deploy and verify exact revision
 
 **Files:**
+
 - Modify: `docs/manuals/*.md`
 - Regenerate: `docs/manuals/*.pdf`
 - Regenerate: `docs/manuals/manual-build*.json`
@@ -389,6 +422,7 @@ Do not convert missing human fiscal/legal approval or operator evidence into a t
 - Create: `docs/PRODUCTION_DEPLOYMENT_2026-09-11-UX-FINAL.md`
 
 **Interfaces:**
+
 - Consumes: final tested source revision from Tasks 1–7.
 - Produces: role-aware Help artifacts packaged in the portal image.
 - Produces: pushed Git revision and verified production release with rollback retained.

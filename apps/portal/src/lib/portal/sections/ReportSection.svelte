@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { ResponsiveSheet, StatusBadge } from '../ui';
+  import RecordBrowser from '../ui/RecordBrowser.svelte';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import {
@@ -66,6 +67,8 @@
   let order = $state<OperationalOrder>('newest');
   let dailyPage = $state(1);
   let technicalPage = $state(1);
+  let signoffPage = $state<Row[]>([]);
+  let periodReportPage = $state<Row[]>([]);
   let registerStateHydrated = $state(false);
   const registerStateKey = (): string => `ja-operational-register:reports:${data.user.id}`;
 
@@ -109,13 +112,23 @@
   const customerPeriodReports = $derived(
     periodReports.filter((report) => String(report.audience ?? '').toLowerCase() === 'customer'),
   );
+  const signoffRows = $derived(
+    customerPeriodReports
+      .filter((report) => !projectFilter || rowText(report, 'project_id') === projectFilter)
+      .map((report) => ({ ...report, browser_status: signoffState(report) })),
+  );
+  const generatedRows = $derived(
+    periodReports
+      .filter((report) => !projectFilter || rowText(report, 'project_id') === projectFilter)
+      .map((report) => ({ ...report, browser_status: String(report.state ?? '') })),
+  );
   const pendingReportCount = $derived(
     fieldReportsForActiveTab.filter((row) =>
       ['draft', 'submitted', 'needs_changes'].includes(String(row.approval_state)),
     ).length,
   );
   const readySignoffCount = $derived(
-    customerPeriodReports.filter((report) => signoffState(report) === 'ready_for_signature').length,
+    signoffRows.filter((report) => signoffState(report) === 'ready_for_signature').length,
   );
   const canGeneratePeriodReports = $derived(
     !isAuditor && ['owner_admin', 'finance_admin'].includes(String(data.user.role ?? '')),
@@ -383,7 +396,7 @@
     </a>
     <a class="report-attention-card" href={registerHref({ view: 'signoff', status: '' })}>
       <span>{translate('Customer sign-off')}</span>
-      <strong>{customerPeriodReports.length}</strong>
+      <strong>{signoffRows.length}</strong>
       <small>{translate('Period confirmations in scope')}</small>
     </a>
   </div>
@@ -661,7 +674,14 @@
       </header>
 
       <div class="report-signoff-register" aria-label={translate('Client sign-off register')}>
-        {#each customerPeriodReports as report}
+        <RecordBrowser
+          rows={signoffRows}
+          bind:visible={signoffPage}
+          {translate}
+          label="Client sign-off register"
+          contextKey="client-signoff"
+        />
+        {#each signoffPage as report}
           {@const state = signoffState(report)}
           <article class="report-signoff-card" data-conformity-state={state}>
             {#if hasPeriodSnapshot(report)}
@@ -757,9 +777,16 @@
             )}
           </p>
         </div>
-        <span>{periodReports.length}</span>
+        <span>{generatedRows.length}</span>
       </header>
-      {#each periodReports as report}
+      <RecordBrowser
+        rows={generatedRows}
+        bind:visible={periodReportPage}
+        {translate}
+        label="Generated period report register"
+        contextKey="generated-period-files"
+      />
+      {#each periodReportPage as report}
         <article class="report-period-card">
           {#if hasPeriodSnapshot(report)}
             <a

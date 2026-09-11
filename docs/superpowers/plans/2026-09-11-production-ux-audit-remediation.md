@@ -182,15 +182,15 @@ git commit -m "feat(portal): finish operational list filters and ordering"
 - Produces: `signoffPage` and `periodReportPage`, each limited to eight rows.
 - Preserves: `hasPeriodSnapshot` and `hasReadyPeriodPdf` as navigation/download gates.
 
-- [ ] **Step 1: Add failing tests for both period-list browsers**
+- [x] **Step 1: Add failing tests for both period-list browsers**
 
 The regression requires distinct `RecordBrowser` contexts for `Client sign-off register` and `Generated period report register`. The E2E fixture creates more than eight customer-period rows, asserts one page contains at most eight, and moves Next without exposing an unverified PDF action.
 
-- [ ] **Step 2: Run the report regressions and verify red**
+- [x] **Step 2: Run the report regressions and verify red**
 
 Run: `pnpm vitest run tests/regression/worker-reports-ui.test.ts tests/record-browser.test.ts`
 
-- [ ] **Step 3: Decorate authorized rows with context-specific browser state and render paged arrays**
+- [x] **Step 3: Decorate authorized rows with context-specific browser state and render paged arrays**
 
 ```ts
 const signoffRows = $derived(
@@ -203,13 +203,13 @@ const generatedRows = $derived(
 
 Apply the project query before either browser. Keep queued rows disabled and ready PDF checks unchanged.
 
-- [ ] **Step 4: Run focused Vitest and Playwright checks**
+- [x] **Step 4: Run focused Vitest and Playwright checks**
 
 Run: `pnpm vitest run tests/regression/worker-reports-ui.test.ts tests/record-browser.test.ts`
 
 Run: `pnpm playwright test tests/e2e/ux-review-20260911.spec.ts --project=desktop`
 
-- [ ] **Step 5: Commit period register remediation**
+- [x] **Step 5: Commit period register remediation**
 
 ```bash
 git add apps/portal/src/lib/portal/sections/ReportSection.svelte apps/portal/src/lib/portal/ui/record-browser.ts tests/regression/worker-reports-ui.test.ts tests/e2e/ux-review-20260911.spec.ts

@@ -88,7 +88,7 @@ describe('Client Essential reports UI', () => {
     const end = source.indexOf('{#if canGeneratePeriodReports}', start);
     const signoff = source.slice(start, end < 0 ? source.length : end);
 
-    expect(signoff).toContain('customerPeriodReports');
+    expect(signoff).toContain('signoffPage');
     expect(source).toContain('Needs report');
     expect(source).toContain('Ready for signature');
     expect(source).toContain('Signed');
@@ -98,6 +98,22 @@ describe('Client Essential reports UI', () => {
     expect(signoff).not.toMatch(
       /money|invoice|margin|tax|internal|commercial|client rate|internal cost/i,
     );
+  });
+
+  it('bounds sign-off and generated period registers with independent browsers', () => {
+    const source = read('lib/portal/sections/ReportSection.svelte');
+
+    expect(source).toContain('import RecordBrowser');
+    expect(source).toContain('const signoffRows = $derived(');
+    expect(source).toContain('const generatedRows = $derived(');
+    expect(source).toContain('bind:visible={signoffPage}');
+    expect(source).toContain('contextKey="client-signoff"');
+    expect(source).toContain('{#each signoffPage as report}');
+    expect(source).toContain('bind:visible={periodReportPage}');
+    expect(source).toContain('contextKey="generated-period-files"');
+    expect(source).toContain('{#each periodReportPage as report}');
+    expect(source).not.toContain('{#each customerPeriodReports as report}');
+    expect(source).not.toContain('{#each periodReports as report}');
   });
 
   it('keeps period generation behind the Finance/Owner role gate', () => {

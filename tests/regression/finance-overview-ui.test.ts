@@ -28,6 +28,27 @@ describe('Finance Overview section architecture', () => {
     );
   });
 
+  it('connects finance summaries and actual metrics to their authorized source workflows', () => {
+    const component = source();
+    const attention = component.slice(
+      component.indexOf('class="finance-overview__attention"'),
+      component.indexOf('class="finance-overview__filters"'),
+    );
+    const hero = component.slice(
+      component.indexOf('class="finance-overview__hero"'),
+      component.indexOf('class="finance-overview__cash"'),
+    );
+
+    expect(component).toContain('function financeHref(');
+    expect(attention.match(/<a\b/g) ?? []).toHaveLength(4);
+    expect(attention).not.toContain('<article');
+    expect(hero.match(/<a\b/g) ?? []).toHaveLength(4);
+    expect(component).toContain('id="finance-source-records"');
+    expect(component).toContain('id="finance-alerts"');
+    expect(component).toContain('id="finance-reimbursements"');
+    expect(component).not.toMatch(/aria-label=\{translate\('Source records'\)\}\s*>\s*>/);
+  });
+
   it('keeps planned and expected values visibly separate from actual cash', () => {
     const component = source();
 

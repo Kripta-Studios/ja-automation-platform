@@ -273,6 +273,25 @@
     return `${base}/app/projects/${encodeURIComponent(projectId(row))}`;
   }
 
+  function financeHref(view: 'economic' | 'commercial', source?: SourceTab, hash = ''): string {
+    const query = new URLSearchParams({ view });
+    if (data.selectedProjectId) query.set('project', data.selectedProjectId);
+    if (source) query.set('source', source);
+    return `${base}/app/finance?${query.toString()}${hash}`;
+  }
+
+  function projectWorkflowHref(section: 'billing' | 'time' | 'expenses'): string {
+    const query = new URLSearchParams();
+    if (data.selectedProjectId) query.set('project', data.selectedProjectId);
+    const serialized = query.toString();
+    return `${base}/app/${section}${serialized ? `?${serialized}` : ''}`;
+  }
+
+  function sourceRecordHref(row: Row | Record<string, unknown>, kind: 'time' | 'expenses'): string {
+    const id = value(row, 'id');
+    return id ? `${base}/app/${kind}/${encodeURIComponent(id)}` : projectWorkflowHref(kind);
+  }
+
   const projectionReasonMessages: Record<string, string> = {
     missing_client_rate: 'Client rate is missing for a source record.',
     missing_internal_cost: 'Internal cost is missing for a source record.',
@@ -495,6 +514,7 @@
   const timeCardRows = $derived.by((): TableCardRow[] =>
     sourceRowsPage.map((row) => ({
       id: value(row, 'id'),
+      href: sourceRecordHref(row, 'time'),
       cells: [
         { label: translate('Date'), value: value(row, 'workDate', 'work_date') || '—' },
         { label: translate('Category'), value: categoryLabel(row.category) },
@@ -518,6 +538,7 @@
   const expenseCardRows = $derived.by((): TableCardRow[] =>
     sourceRowsPage.map((row) => ({
       id: value(row, 'id'),
+      href: sourceRecordHref(row, 'expenses'),
       cells: [
         { label: translate('Date'), value: value(row, 'spentOn', 'spent_on') || '—' },
         { label: translate('Category'), value: categoryLabel(row.category) },
@@ -580,7 +601,17 @@
     financeExpenses.filter((expense) => expensePreset(expense) === 'non_billable').length,
   );
 
-  const sourceRows = $derived(sourceTab === 'workers' ? portfolioWorkers : sourceTab === 'time' ? timeEconomics : sourceTab === 'expenses' ? expenseEconomics : sourceTab === 'settlements' ? settlements : portfolioProjects);
+  const sourceRows = $derived(
+    sourceTab === 'workers'
+      ? portfolioWorkers
+      : sourceTab === 'time'
+        ? timeEconomics
+        : sourceTab === 'expenses'
+          ? expenseEconomics
+          : sourceTab === 'settlements'
+            ? settlements
+            : portfolioProjects,
+  );
   let sourceRowsPage = $state<Row[]>([]);
   let classificationPage = $state<Row[]>([]);
   let reimbursementPage = $state<Row[]>([]);
@@ -658,26 +689,38 @@
 
     {#if showEconomics}
       <div class="finance-overview__attention" aria-label={translate('Finance attention summary')}>
-        <article class="finance-overview__attention-card">
+        <a
+          class="finance-overview__attention-card"
+          href={financeHref('economic', 'portfolio', '#finance-source-records')}
+        >
           <span>{translate('Projects')}</span>
           <strong>{portfolioProjects.length}</strong>
           <small>{translate('Authorized project sources')}</small>
-        </article>
-        <article class="finance-overview__attention-card finance-overview__attention-card--notice">
+        </a>
+        <a
+          class="finance-overview__attention-card finance-overview__attention-card--notice"
+          href={financeHref('economic', 'settlements', '#worker-payments')}
+        >
           <span>{translate('Settlement review')}</span>
           <strong>{attentionSettlements}</strong>
           <small>{translate('Expected or actual payment follow-up')}</small>
-        </article>
-        <article class="finance-overview__attention-card finance-overview__attention-card--notice">
+        </a>
+        <a
+          class="finance-overview__attention-card finance-overview__attention-card--notice"
+          href={financeHref('economic', 'settlements', '#finance-reimbursements')}
+        >
           <span>{translate('Reimbursement review')}</span>
           <strong>{attentionReimbursements}</strong>
           <small>{translate('Expected or actual reimbursement follow-up')}</small>
-        </article>
-        <article class="finance-overview__attention-card">
+        </a>
+        <a
+          class="finance-overview__attention-card"
+          href={financeHref('economic', undefined, '#finance-alerts')}
+        >
           <span>{translate('Alerts')}</span>
           <strong>{finance?.alerts?.length ?? 0}</strong>
           <small>{translate('Records needing review')}</small>
-        </article>
+        </a>
       </div>
     {/if}
 
@@ -710,9 +753,10 @@
     {#if finance}
       {#if showEconomics}
         <div class="finance-overview__hero" data-finance-actual>
-          <article
+          <a
             class="finance-overview__hero-card finance-overview__hero-card--accent"
             data-metric="direct-project-result"
+            href={financeHref('economic', 'portfolio', '#finance-source-records')}
           >
             <span>{translate('Direct Project Result')}</span>
             <strong>{displayMoney(finance.contributionMarginMinor, finance.currency)}</strong>
@@ -725,16 +769,24 @@
                 'Contribution after approved direct cost',
               )}</small
             >
-          </article>
-          <article class="finance-overview__hero-card" data-metric="invoiced">
+          </a>
+          <a
+            class="finance-overview__hero-card"
+            data-metric="invoiced"
+            href={projectWorkflowHref('billing')}
+          >
             <span>{translate('Invoiced (actual)')}</span>
             <strong>{displayMoney(finance.invoicedMinor, finance.currency)}</strong>
             <small>
               {translate('Revenue candidate')}:
               {displayMoney(finance.revenueCandidateMinor, finance.currency)}
             </small>
-          </article>
-          <article class="finance-overview__hero-card" data-metric="direct-cost">
+          </a>
+          <a
+            class="finance-overview__hero-card"
+            data-metric="direct-cost"
+            href={financeHref('economic', 'portfolio', '#finance-source-records')}
+          >
             <span>{translate('Direct cost')}</span>
             <strong>{displayMoney(finance.approvedCostMinor, finance.currency)}</strong>
             <small>
@@ -743,8 +795,12 @@
               · {translate('Expenses')}:
               {displayMoney(finance.otherDirectCostMinor, finance.currency)}
             </small>
-          </article>
-          <article class="finance-overview__hero-card" data-metric="hours-consumed">
+          </a>
+          <a
+            class="finance-overview__hero-card"
+            data-metric="hours-consumed"
+            href={projectWorkflowHref('time')}
+          >
             <span>{translate('Hours')}</span>
             <strong>
               {displayHours(finance.actualMinutes ?? finance.approvedMinutes)}
@@ -760,7 +816,7 @@
               value={progressValue(finance.hoursConsumedBps)}
             ></progress>
             <small>{displayBps(finance.hoursConsumedBps)} {translate('Hours consumed')}</small>
-          </article>
+          </a>
         </div>
 
         <div class="finance-overview__cash" aria-label={translate('Cash and liquidity')}>
@@ -784,6 +840,7 @@
         </div>
 
         <SectionCard
+          id="finance-alerts"
           title={translate('Planned / Expected')}
           class="finance-overview__surface"
           data-finance-expected
@@ -864,9 +921,19 @@
       {/if}
 
       {#if showSourceTabs}
-        <SectionCard title={translate('Source records')} class="finance-overview__surface">
+        <SectionCard
+          id="finance-source-records"
+          title={translate('Source records')}
+          class="finance-overview__surface"
+        >
           {#key sourceTab}
-            <RecordBrowser rows={sourceRows} bind:visible={sourceRowsPage} contextKey={sourceTab} {translate} label="Source records" />
+            <RecordBrowser
+              rows={sourceRows}
+              bind:visible={sourceRowsPage}
+              contextKey={sourceTab}
+              {translate}
+              label="Source records"
+            />
           {/key}
           <div
             class="finance-overview__source-tabs"
@@ -1097,7 +1164,13 @@
                 <tbody>
                   {#each sourceRowsPage as row}
                     <tr>
-                      <td>{value(row, 'workDate', 'work_date') || '—'}</td>
+                      <td>
+                        <a
+                          class="finance-overview__source-link"
+                          href={sourceRecordHref(row, 'time')}
+                          >{value(row, 'workDate', 'work_date') || '—'}</a
+                        >
+                      </td>
                       <td>{categoryLabel(row.category)}</td>
                       <td>{displayHours(value(row, 'actualMinutes', 'actual_minutes'))}</td>
                       <td
@@ -1165,7 +1238,13 @@
                 <tbody>
                   {#each sourceRowsPage as row}
                     <tr>
-                      <td>{value(row, 'spentOn', 'spent_on') || '—'}</td>
+                      <td>
+                        <a
+                          class="finance-overview__source-link"
+                          href={sourceRecordHref(row, 'expenses')}
+                          >{value(row, 'spentOn', 'spent_on') || '—'}</a
+                        >
+                      </td>
                       <td>{categoryLabel(row.category)}</td>
                       <td>{translate(value(row, 'treatment') || 'Not classified')}</td>
                       <td>{displayMoney(row.costMinor, finance.currency)}</td>
@@ -1182,8 +1261,6 @@
               </table>
             </TableRegion>
           {/if}
-
-
         </SectionCard>
       {/if}
 
@@ -1241,7 +1318,12 @@
               >
             </div>
 
-            <RecordBrowser rows={filteredFinanceExpenses} bind:visible={classificationPage} {translate} label="Expense treatment and planning" />
+            <RecordBrowser
+              rows={filteredFinanceExpenses}
+              bind:visible={classificationPage}
+              {translate}
+              label="Expense treatment and planning"
+            />
             {#each classificationPage as expense}
               {@const expenseId = value(expense, 'id')}
               {@const expenseVersion = value(expense, 'version') || '1'}
@@ -1613,6 +1695,7 @@
         <SectionCard
           title={translate('Worker reimbursement queue')}
           class="finance-overview__surface"
+          id="finance-reimbursements"
         >
           <p class="finance-overview__surface-note">
             {translate(
@@ -1620,7 +1703,12 @@
             )}
           </p>
           <div class="finance-overview__reimbursement-list">
-            <RecordBrowser rows={reimbursements} bind:visible={reimbursementPage} {translate} label="Worker reimbursement queue" />
+            <RecordBrowser
+              rows={reimbursements}
+              bind:visible={reimbursementPage}
+              {translate}
+              label="Worker reimbursement queue"
+            />
             {#each reimbursementPage as reimbursement}
               {@const reimbursementState = value(
                 reimbursement,
@@ -1716,6 +1804,17 @@
     border-radius: 0.9rem;
     background: var(--portal-surface, #fff);
     box-shadow: 0 0.45rem 1.4rem rgb(16 32 42 / 0.05);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .finance-overview__hero-card:hover,
+  .finance-overview__hero-card:focus-visible,
+  .finance-overview__attention-card:hover,
+  .finance-overview__attention-card:focus-visible {
+    border-color: var(--portal-accent, #0f5f73);
+    outline: 3px solid color-mix(in srgb, var(--portal-accent, #0f5f73) 26%, transparent);
+    outline-offset: 2px;
   }
 
   .finance-overview__hero-card--accent {
@@ -1973,6 +2072,8 @@
     border: 1px solid var(--portal-border, #d7dee8);
     border-radius: 0.75rem;
     background: var(--portal-surface, #fff);
+    color: inherit;
+    text-decoration: none;
   }
 
   .finance-overview__attention-card--notice {

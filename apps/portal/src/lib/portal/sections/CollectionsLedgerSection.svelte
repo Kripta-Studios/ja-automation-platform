@@ -183,6 +183,7 @@
       const status = value(row, 'paymentStatus', 'payment_status');
       return {
         id: value(row, 'invoiceId', 'id') || invoice,
+        href: invoiceHref(row),
         cells: [
           {
             label: translate('Invoice'),
@@ -275,6 +276,18 @@
     });
     return `${base}/app/api/invoice-collection-ledger/${format}?${query.toString()}`;
   }
+
+  function invoiceHref(row: Row): string {
+    const id = value(row, 'invoiceId', 'id');
+    return id ? `${base}/app/billing/invoices/${encodeURIComponent(id)}` : `${base}/app/billing`;
+  }
+
+  function setStatusFilter(next: string): void {
+    statusFilter = next;
+    if (typeof document !== 'undefined') {
+      document.getElementById('collections-ledger-register')?.scrollIntoView({ block: 'start' });
+    }
+  }
   let ledgerPage = $state<typeof visibleRows>([]);
 </script>
 
@@ -305,21 +318,29 @@
     class="collections-ledger__attention"
     aria-label={translate('Collections attention summary')}
   >
-    <article>
+    <button type="button" aria-pressed={statusFilter === ''} onclick={() => setStatusFilter('')}>
       <span>{translate('Issued invoices')}</span>
       <strong>{rows.length}</strong>
       <small>{translate('Authorized ledger rows')}</small>
-    </article>
-    <article>
+    </button>
+    <button
+      type="button"
+      aria-pressed={statusFilter === 'partially_paid'}
+      onclick={() => setStatusFilter('partially_paid')}
+    >
       <span>{translate('Partially paid')}</span>
       <strong>{statusCounts.partially_paid ?? 0}</strong>
       <small>{translate('Payment timeline requires review')}</small>
-    </article>
-    <article>
+    </button>
+    <button
+      type="button"
+      aria-pressed={statusFilter === 'overdue'}
+      onclick={() => setStatusFilter('overdue')}
+    >
       <span>{translate('Overdue')}</span>
       <strong>{statusCounts.overdue ?? 0}</strong>
       <small>{translate('Outstanding collection attention')}</small>
-    </article>
+    </button>
   </div>
 
   <form
@@ -356,8 +377,16 @@
     >
   </form>
 
-  <SectionCard title={translate('Master Invoice / Cost / Collection Ledger')}>
-    <RecordBrowser rows={visibleRows} bind:visible={ledgerPage} {translate} label="CollectionsLedger" />
+  <SectionCard
+    id="collections-ledger-register"
+    title={translate('Master Invoice / Cost / Collection Ledger')}
+  >
+    <RecordBrowser
+      rows={visibleRows}
+      bind:visible={ledgerPage}
+      {translate}
+      label="CollectionsLedger"
+    />
     <TableRegion
       ariaLabel={translate('Master Invoice / Cost / Collection Ledger')}
       mobileMode="cards"
@@ -386,7 +415,11 @@
             {@const status = value(row, 'paymentStatus', 'payment_status')}
             <tr data-ledger-row={value(row, 'invoiceId', 'id')}>
               <td>
-                <strong>{value(row, 'invoiceNumber', 'invoice_number', 'invoiceId') || '—'}</strong>
+                <a class="collections-ledger__invoice-link" href={invoiceHref(row)}>
+                  <strong
+                    >{value(row, 'invoiceNumber', 'invoice_number', 'invoiceId') || '—'}</strong
+                  >
+                </a>
                 <small
                   >{displayDate(
                     value(row, 'issueDate', 'issue_date'),
@@ -519,7 +552,7 @@
     gap: 0.75rem;
   }
 
-  .collections-ledger__attention article {
+  .collections-ledger__attention button {
     display: grid;
     gap: 0.22rem;
     min-height: 6rem;
@@ -527,6 +560,28 @@
     border: 1px solid var(--portal-border, #d7dee8);
     border-radius: 0.75rem;
     background: var(--portal-surface, #fff);
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+  }
+
+  .collections-ledger__attention button:hover,
+  .collections-ledger__attention button:focus-visible,
+  .collections-ledger__attention button[aria-pressed='true'] {
+    border-color: var(--portal-accent, #0f5f73);
+    outline: 3px solid color-mix(in srgb, var(--portal-accent, #0f5f73) 24%, transparent);
+    outline-offset: 2px;
+  }
+
+  .collections-ledger__invoice-link {
+    color: var(--portal-accent, #0f5f73);
+    text-decoration: none;
+  }
+
+  .collections-ledger__invoice-link:hover,
+  .collections-ledger__invoice-link:focus-visible {
+    text-decoration: underline;
   }
 
   .collections-ledger__attention span,
@@ -610,7 +665,7 @@
 
   .collections-ledger__table td > span,
   .collections-ledger__table td > small,
-  .collections-ledger__table td > strong {
+  .collections-ledger__table td > a {
     display: block;
   }
 

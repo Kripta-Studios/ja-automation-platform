@@ -151,6 +151,51 @@ test('Client sign-off and generated files stay within eight-row pages', async ({
   }
 });
 
+test('Finance summary cards drill into the selected project workflows', async ({ page }) => {
+  await signIn(page, 'owner');
+  await page.goto(portal('/finance?lang=en&view=economic'));
+
+  await expect(page.locator('.finance-overview__attention a')).toHaveCount(4);
+  await expect(page.locator('.finance-overview__hero a')).toHaveCount(4);
+  await page
+    .locator('.finance-overview__attention')
+    .getByRole('link', { name: /Settlement review/ })
+    .click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('source')).toBe('settlements');
+  await expect.poll(() => new URL(page.url()).hash).toBe('#worker-payments');
+  await expect(page.locator('#worker-payments')).toBeVisible();
+
+  await page.goto(portal('/finance?lang=en&view=economic'));
+  await page
+    .locator('.finance-overview__hero')
+    .getByRole('link', { name: /^Hours/ })
+    .click();
+  await expect.poll(() => new URL(page.url()).pathname).toMatch(/\/app\/time$/);
+  await expect.poll(() => new URL(page.url()).searchParams.get('project')).toBeTruthy();
+});
+
+test('Collections summaries filter and invoice rows open their detail', async ({ page }) => {
+  await signIn(page, 'owner');
+  await page.goto(portal('/ledger?lang=en'));
+
+  const status = page.locator('.collections-ledger__filters select');
+  await page
+    .locator('.collections-ledger__attention')
+    .getByRole('button', { name: /Partially paid/ })
+    .click();
+  await expect(status).toHaveValue('partially_paid');
+  await page
+    .locator('.collections-ledger__attention')
+    .getByRole('button', { name: /Issued invoices/ })
+    .click();
+  await expect(status).toHaveValue('');
+
+  const invoice = page.locator('.collections-ledger__invoice-link').first();
+  await expect(invoice).toBeVisible();
+  await invoice.click();
+  await expect.poll(() => new URL(page.url()).pathname).toMatch(/\/app\/billing\/invoices\//);
+});
+
 test('Focused management records open beyond the first page', async ({ page }) => {
   const db = createDatabase(readE2EFixturePointer().databasePath);
   const ids: string[] = [];

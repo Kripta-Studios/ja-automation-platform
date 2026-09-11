@@ -36,6 +36,22 @@ describe('Collections / Ledger and Accounting sections', () => {
     expect(source).toContain('data-timeline-event');
   });
 
+  it('uses summary controls as real filters and links every invoice to its detail', () => {
+    const source = ledger();
+    const attention = source.slice(
+      source.indexOf('class="collections-ledger__attention"'),
+      source.indexOf('class="collections-ledger__filters"'),
+    );
+
+    expect(attention.match(/<button/g)).toHaveLength(3);
+    expect(attention).not.toContain('<article>');
+    expect(source).toContain("onclick={() => setStatusFilter('partially_paid')}");
+    expect(source).toContain("onclick={() => setStatusFilter('overdue')}");
+    expect(source).toContain('href: invoiceHref(row)');
+    expect(source).toContain('href={invoiceHref(row)}');
+    expect(source).toContain('id="collections-ledger-register"');
+  });
+
   it('uses semantic authorized ledger export routes', () => {
     const source = ledger();
 

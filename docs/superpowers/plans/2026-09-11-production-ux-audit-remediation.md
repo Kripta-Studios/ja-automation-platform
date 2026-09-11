@@ -232,15 +232,15 @@ git commit -m "feat(portal): paginate period report workflows"
 - Produces: ledger summary buttons that update `statusFilter`.
 - Produces: invoice detail href `/app/billing/invoices/:id` from every ledger row/card.
 
-- [ ] **Step 1: Add failing source and browser assertions**
+- [x] **Step 1: Add failing source and browser assertions**
 
 Assert all four Finance attention cards are anchors/buttons, each actual metric has an authorized drill-through, the planned/expected section contains no standalone `>` text node, Collections summaries are buttons, and a ledger invoice opens the detail route.
 
-- [ ] **Step 2: Run focused tests and confirm red**
+- [x] **Step 2: Run focused tests and confirm red**
 
 Run: `pnpm vitest run tests/regression/finance-v3-review-remediation.test.ts tests/regression/requested-portal-ui.test.ts`
 
-- [ ] **Step 3: Implement links without changing finance calculations**
+- [x] **Step 3: Implement links without changing finance calculations**
 
 ```ts
 function financeHref(view: 'economic' | 'commercial', source?: string, hash = ''): string {
@@ -253,13 +253,13 @@ function financeHref(view: 'economic' | 'commercial', source?: string, hash = ''
 
 Use links to Billing for invoiced, Time for hours, Expense source/reimbursement for direct cost and reimbursement, and settlement source for settlement review. Add stable target IDs. Convert ledger counters to filter buttons and add invoice detail links. Remove the stray text node only.
 
-- [ ] **Step 4: Run focused tests and the Owner/Finance browser route checks**
+- [x] **Step 4: Run focused tests and the Owner/Finance browser route checks**
 
 Run: `pnpm vitest run tests/regression/finance-v3-review-remediation.test.ts tests/regression/requested-portal-ui.test.ts`
 
 Run: `pnpm playwright test tests/e2e/ux-review-20260911.spec.ts --project=desktop`
 
-- [ ] **Step 5: Commit finance navigation**
+- [x] **Step 5: Commit finance navigation**
 
 ```bash
 git add apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte tests/regression tests/e2e/ux-review-20260911.spec.ts

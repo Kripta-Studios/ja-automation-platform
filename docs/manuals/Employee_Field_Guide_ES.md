@@ -1,14 +1,14 @@
-# Guía de campo para empleados — revisión 2026-09-09
+# Guía de campo para empleados — revisión 2026-09-11
 
 **Cuentas externas:** Los responsables de proveedor y técnicos externos tienen acceso solo operativo. My Pay, gastos y procedimientos financieros corresponden a cuentas Worker estándar. Consulta «Proveedores y cuentas sin acceso financiero» para tu flujo.
 
-> Usa solo la dirección del portal y el canal de soporte verificado indicados en tu invitación. Esta guía usa ejemplos sintéticos. No compartas contraseña, código MFA, código de recuperación, recibo ni sesión.
+> Usa solo la dirección del portal y el contacto de soporte admin@j-aautomation.com. Esta guía usa ejemplos sintéticos. No compartas contraseña, código MFA, código de recuperación, recibo ni sesión.
 
 ## 1. Inicia sesión con tu invitación
 
 Elige inglés, español o portugués con el selector de idioma del acceso o del portal. El inglés es el idioma por defecto cuando no hay una preferencia guardada. Tu elección se conserva en este navegador al recargar, cerrar sesión y volver a entrar.
 
-Si la invitación está vinculada a un buzón corporativo, ábrela desde ese buzón e inicia sesión con la cuenta indicada en el mensaje. Si eres un trabajador externo, usa el enlace de invitación de un solo uso para crear tu cuenta. No hay registro público. Si necesitas ayuda con el acceso o la contraseña, utiliza el canal de soporte verificado de la invitación; no adivines una dirección de correo ni un teléfono.
+Si la invitación está vinculada a un buzón corporativo, ábrela desde ese buzón e inicia sesión con la cuenta indicada en el mensaje. Si eres un trabajador externo, usa el enlace de invitación de un solo uso para crear tu cuenta. No hay registro público. Si necesitas ayuda con el acceso o la contraseña, utiliza admin@j-aautomation.com; no adivines una dirección de correo ni un teléfono.
 
 MFA es opcional. Si decides activarlo, abre **Perfil (Profile)** y selecciona **Activar MFA (Enable MFA)**. Guarda los códigos de recuperación de un solo uso en privado, introduce el código del autenticador y selecciona **Verificar MFA (Verify MFA)**. El trabajo normal en el portal no requiere una solicitud adicional de verificación. Nunca envíes una contraseña, un código ni una sesión a otra persona.
 
@@ -44,7 +44,7 @@ Usa la captura sin conexión solo si el portal indica que está habilitada. Prot
 
 ## 8. Ayuda, bandeja de actividad y límites de acceso
 
-Abre **Ayuda (Help)** para descargar la guía asignada a tu rol. La **Bandeja de actividad (Activity Inbox)** en `/app/notifications` puede enlazar a un registro permitido; leer una notificación no es aprobarla. Los trabajadores usan solo sus proyectos asignados, sus registros, sus archivos y My Pay. Finanzas, Facturación, Contabilidad, Auditoría, seguimiento del personal, Closeout y colas de aprobación no son flujos de Worker; una denegación de acceso es un límite, no un error que debas sortear. El correo no es el registro del sistema: usa el portal y el canal de soporte verificado de tu invitación.
+Abre **Ayuda (Help)** para descargar la guía asignada a tu rol. La **Bandeja de actividad (Activity Inbox)** en `/app/notifications` puede enlazar a un registro permitido; leer una notificación no es aprobarla. Los trabajadores usan solo sus proyectos asignados, sus registros, sus archivos y My Pay. Finanzas, Facturación, Contabilidad, Auditoría, seguimiento del personal, Closeout y colas de aprobación no son flujos de Worker; una denegación de acceso es un límite, no un error que debas sortear. El correo no es el registro del sistema: usa el portal y admin@j-aautomation.com.
 
 ## Proveedores y cuentas sin acceso financiero
 

@@ -119,7 +119,7 @@ describe('requested portal UI regressions (RED characterization)', () => {
   it('renders client-contact actions from record ids rather than asking users to type UUIDs', () => {
     const projects = sectionBlock(shellSource(), 'projects');
     expect(projects).toMatch(/Client contacts/);
-    expect(projects).toMatch(/each data\.contacts as contact/);
+    expect(projects).toMatch(/each (?:data\.contacts|contactPage) as contact/);
     expect(projects).toMatch(/(?:Edit|Update) contact/i);
     expect(projects).toMatch(/Delete contact/i);
     expect(projects).not.toMatch(/Contact UUID/);

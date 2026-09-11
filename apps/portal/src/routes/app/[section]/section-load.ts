@@ -163,7 +163,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             projectId,
             from: url.searchParams.get('from') || undefined,
             to: url.searchParams.get('to') || undefined,
-          }),
+          }).filter(row => !url.searchParams.get('worker') || String(row.worker_id) === url.searchParams.get('worker')),
           timeFilter: { category: category ?? '', projectId: projectId ?? '' },
           weekStart,
           weekEnd: week.weekEnd,
@@ -330,7 +330,10 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               : context.repository.listAllClientContacts(context.principal),
           workers:
             context.principal.role !== 'worker'
-              ? context.repository.listAllWorkers(context.principal)
+              ? context.repository.listAllWorkers(context.principal).map(worker => ({
+                  ...worker,
+                  ...(canonicalOwner ? context.sqlite.prepare('SELECT profile workforce_profile,supplier_id FROM supplier_user_profile WHERE user_id=?').get(String(worker.id)) ?? {} : {}),
+                }))
               : [],
           suppliers: canonicalOwner ? context.sqlite.prepare("SELECT id,name FROM supplier WHERE status='active' ORDER BY name").all() : [],
           mailboxes,
@@ -379,7 +382,9 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
       case 'planning':
         return {
           ...common,
-          records: context.repository.listPlanning(context.principal),
+          records: context.repository.listPlanning(context.principal).filter(row =>
+            (!url.searchParams.get('project') || String(row.project_id) === url.searchParams.get('project')) &&
+            (!url.searchParams.get('worker') || String(row.worker_id) === url.searchParams.get('worker'))),
           projects: context.repository.listAssignedProjects(context.principal),
           skills: context.repository.listSkills(context.principal),
           workers:

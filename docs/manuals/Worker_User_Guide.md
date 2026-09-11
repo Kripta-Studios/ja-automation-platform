@@ -4,7 +4,7 @@
 
 ## Purpose and your private workspace
 
-This English guide explains a Worker's own authorized portal work: assigned projects, actual time, reports, expenses, permitted documents, profile and My Pay. Figures are synthetic examples from the current validated build. Use Help and the verified support route in your invitation for access help; never share a password, MFA or recovery code, receipt, customer document, or session.
+This English guide explains a Worker's own authorized portal work: assigned projects, actual time, reports, expenses, permitted documents, profile and My Pay. Figures are synthetic examples from the current validated build. Use Help and admin@j-aautomation.com for access help; never share a password, MFA or recovery code, receipt, customer document, or session.
 
 Use the language selector on the sign-in page or in the portal to choose English, Spanish or Portuguese. English is the default when no preference has been saved. Your choice is retained in this browser after navigation, reload and sign-out; the next sign-in page uses the same language.
 

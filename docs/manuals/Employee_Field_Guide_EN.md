@@ -1,4 +1,4 @@
-# Employee field guide — revision 2026-09-09
+# Employee field guide — revision 2026-09-11
 
 **External accounts:** Supplier coordinators and external technicians have operational access only. My Pay, expenses and financial procedures below apply to standard Worker accounts. See “Supplier teams and accounts without financial access” for your workflow.
 
@@ -44,7 +44,7 @@ Use offline capture only when the portal says it is enabled. Keep the device sec
 
 ## 8. Help, Activity Inbox and access limits
 
-Open **Help** to download the guide assigned to your role. **Activity Inbox** at `/app/notifications` can link to a permitted source record; reading a notification is not approval. Workers use only their own assigned projects, records, files and My Pay. Finance, Billing, Accounting, Audit, staff follow-up, Closeout and approval queues are not Worker flows; an access denial is a boundary, not an error to bypass. Email is not the system of record: use the portal and the verified support route in your invitation.
+Open **Help** to download the guide assigned to your role. **Activity Inbox** at `/app/notifications` can link to a permitted source record; reading a notification is not approval. Workers use only their own assigned projects, records, files and My Pay. Finance, Billing, Accounting, Audit, staff follow-up, Closeout and approval queues are not Worker flows; an access denial is a boundary, not an error to bypass. Email is not the system of record: use the portal and admin@j-aautomation.com.
 
 ## Supplier teams and accounts without financial access
 

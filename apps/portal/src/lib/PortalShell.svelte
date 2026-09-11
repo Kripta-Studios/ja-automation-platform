@@ -164,6 +164,7 @@
   let documentPage = $state<Row[]>([]);
   let planningPage = $state<Row[]>([]);
   let assignmentPage = $state<Row[]>([]);
+  let contactPage = $state<Row[]>([]);
   let passkeyName = $state('');
   let mfaCode = $state('');
   let mfaSetupUri = $state('');
@@ -1949,7 +1950,7 @@
                 <h2>{translate('Create project')}</h2>
                 <label
                   >{translate('Client')}<select name="clientId" required
-                    >{#each activeClients as client}<option value={client.id}
+                    >{#each activeClients as client}<option value={client.id} selected={String(client.id) === $page.url.searchParams.get('client')}
                         >{client.client_number} — {client.display_name}</option
                       >{/each}</select
                   ></label
@@ -2070,13 +2071,13 @@
                   <h2>{translate('Assign worker')}</h2>
                   <label
                     >{translate('Project')}<select name="projectId" required
-                      >{#each activeProjects as project}<option value={project.id}
+                      >{#each activeProjects as project}<option value={project.id} selected={String(project.id) === $page.url.searchParams.get('project')}
                           >{project.project_number}</option
                         >{/each}</select
                     ></label
                   ><label
                     >{translate('Worker')}<select name="workerId" required
-                      >{#each data.workers ?? [] as worker}<option value={worker.id}
+                      >{#each data.workers ?? [] as worker}<option value={worker.id} selected={String(worker.id) === $page.url.searchParams.get('worker')}
                           >{worker.name} — {controlledValue('role', worker.role)}</option
                         >{/each}</select
                     ></label
@@ -2101,7 +2102,7 @@
                 data-project-workflow="update-assignment"
               >
                 <h2>{translate('Update assignment')}</h2>
-                {#each (data.assignments ?? []).filter((assignment) => assignment.status === 'active') as assignment}
+                {#each (data.assignments ?? []).filter((assignment) => assignment.status === 'active' && (!$page.url.searchParams.get('worker') || String(assignment.worker_id ?? assignment.user_id) === $page.url.searchParams.get('worker')) && (!$page.url.searchParams.get('project') || String(assignment.project_id) === $page.url.searchParams.get('project'))) as assignment}
                   <form
                     method="POST"
                     action="?/updateAssignment"
@@ -2341,7 +2342,7 @@
               <span>{data.clients?.length ?? 0}</span>
             </div>
             {#each data.clients ?? [] as client}
-              <article class="record-card" data-client-id={client.id}>
+              <article class="record-card" id={`client-controls-${client.id}`} data-client-id={client.id}>
                 <div>
                   <strong>{client.client_number} · {client.display_name}</strong>
                   <small
@@ -2581,7 +2582,9 @@
               <h2>{translate('Client contacts')}</h2>
               <span>{data.contacts.length}</span>
             </div>
-            {#each data.contacts as contact}
+            <RecordBrowser rows={data.contacts} bind:visible={contactPage} {translate} label="Client contacts" />
+            <a class="secondary-button" href={`${base}/app/projects?view=clients`}>{translate('Clients')} →</a>
+            {#each contactPage as contact}
               <article class="record-card contact-card">
                 <div>
                   <strong>{contact.client_number} · {contact.name}</strong><small
@@ -2799,6 +2802,7 @@
             class="admin-form-grid"
           >
             <h2>{translate('Publish field assignment')}</h2>
+            <p class="form-help">{translate('Publish a planned shift for an assigned worker. Planning does not create actual time entries; the worker records the work performed separately.')}</p>
             <label
               >{translate('Project')}<select name="projectId" required
                 >{#each operationalProjects as project}<option value={project.id}
@@ -2917,10 +2921,21 @@
             <h2>{translate('Published schedule')}</h2>
             <span>{data.records?.length ?? 0}</span>
           </div>
+          <form method="GET" class="admin-form-grid">
+            <label>{translate('Project')}<select name="project" value={$page.url.searchParams.get('project') ?? ''}>
+              <option value="">{translate('All')}</option>
+              {#each data.projects ?? [] as project}<option value={project.id}>{project.project_number} · {project.name}</option>{/each}
+            </select></label>
+            {#if data.workers?.length}<label>{translate('Worker')}<select name="worker" value={$page.url.searchParams.get('worker') ?? ''}>
+              <option value="">{translate('All')}</option>
+              {#each data.workers as worker}<option value={worker.id}>{worker.name}</option>{/each}
+            </select></label>{/if}
+            <button type="submit">{translate('Filter')}</button>
+          </form>
           <RecordBrowser rows={data.records ?? []} bind:visible={planningPage} {translate} label="Published schedule" />
           {#each planningPage as row}<a
               class="record-card-link"
-              href={`${base}/app/projects/${row.project_id}`}
+              href={data.user.role === 'owner_admin' ? `${base}/app/manage?area=planning_assignment&project=${row.project_id}&focus=${row.id}` : `${base}/app/projects/${row.project_id}`}
             >
               <div>
                 <strong>{row.worker_name} · {row.project_number}</strong><small

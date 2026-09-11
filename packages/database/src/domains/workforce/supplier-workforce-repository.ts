@@ -70,7 +70,7 @@ export type LocalPortalProvisionInput = Readonly<{
   name: string;
   email: string;
   passwordHash: string;
-  role: 'worker' | 'project_manager' | 'finance_admin';
+  role: 'worker' | 'project_manager' | 'finance_admin' | 'auditor_read_only';
   supplierProfile?: SupplierProfile;
   supplierId?: string;
   phone?: string;
@@ -357,7 +357,7 @@ export class SupplierWorkforceRepository {
     if (!EMAIL.test(email) || email.length > 254) throw new ValidationError('Email is invalid');
     if (!input.passwordHash || input.passwordHash.length < 20)
       throw new ValidationError('Credential hash is invalid');
-    if (!['worker', 'project_manager', 'finance_admin'].includes(input.role)) throw new ValidationError('Invalid provisioned role');
+    if (!['worker', 'project_manager', 'finance_admin', 'auditor_read_only'].includes(input.role)) throw new ValidationError('Invalid provisioned role');
     const profile = input.supplierProfile;
     if (profile && !['external_technician', 'supplier_coordinator'].includes(profile)) throw new ValidationError('Invalid supplier profile');
     if (profile && input.role !== 'worker')

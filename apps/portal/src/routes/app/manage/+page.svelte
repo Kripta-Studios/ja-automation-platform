@@ -80,7 +80,7 @@
           <summary>{t('Add record')}</summary>{@render catalogForm(null)}
         </details>{/if}
       <div class="management-records">
-        <RecordBrowser rows={data.catalogRows} bind:visible={catalogPage} translate={t} label="Records" />
+        <RecordBrowser rows={data.catalogRows} bind:visible={catalogPage} focusId={data.focusId} translate={t} label="Records" />
         {#each catalogPage as row}
           <article>
             <h2>

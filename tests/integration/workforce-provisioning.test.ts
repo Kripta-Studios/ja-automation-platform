@@ -22,3 +22,13 @@ it('rejects forged roles and rolls back supplier profile creation on invalid sup
   expect(() => f.workforce.provisionLocalPortalAccount(f.owner, { name: 'Invalid supplier', email: 'invalid@example.test', passwordHash, role: 'worker', supplierProfile: 'external_technician', supplierId: 'missing' })).toThrow();
   expect(f.sqlite.prepare('SELECT id FROM user WHERE email=?').get('invalid@example.test')).toBeUndefined();
 });
+it('provisions read-only auditors and preserves the role boundary', async () => {
+  const f = setup();
+  const result = f.workforce.provisionLocalPortalAccount(f.owner, {
+    name: 'Review auditor', email: 'auditor@external.test', role: 'auditor_read_only',
+    passwordHash: await hashPassword('Test-only-auditor-password!'),
+  });
+  expect(f.sqlite.prepare('SELECT role FROM user WHERE id=?').get(result.userId)?.role).toBe('auditor_read_only');
+  expect(f.sqlite.prepare('SELECT user_id FROM supplier_user_profile WHERE user_id=?').get(result.userId)).toBeUndefined();
+  expect(() => f.workforce.setAccountProfile(f.owner, { userId: result.userId, profile: 'supplier_coordinator', supplierId: 'forged' })).toThrow(/worker accounts/);
+});

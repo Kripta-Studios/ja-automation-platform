@@ -1,10 +1,20 @@
 # Guia do usuário — Proprietário e Financeiro
 
+## Fluxos atualizados — setembro de 2026
+
+Suporte de acesso e senhas: **admin@j-aautomation.com**. Em **Projects → Team access → Create user → Set email and password**, o Owner pode criar acesso com e-mail externo e senha inicial escolhida. Copie a senha antes de salvar. Para uma conta Worker existente, **Edit profile → Access profile** permite escolher **Supplier coordinator** ou **External technician** e o fornecedor. Autorize instalações e atribua projetos separadamente. A mudança de perfil encerra as sessões e exige novo login.
+
+Use **Log time**, **Record expense** e os botões de novo relatório no início da área de trabalho. **Submit** envia os fatos para revisão; o rascunho continua editável antes do envio. O Project Manager pode registrar seu trabalho e o de pessoas com atribuição efetiva nos projetos sob sua responsabilidade. Tarifas comerciais e reembolsos privados de outros trabalhadores não fazem parte da sua visão.
+
+Os registros têm busca, filtros, ordenação e páginas de oito linhas. Em **Planning**, filtre projeto e trabalhador e abra o turno específico para gerenciá-lo. Planejamento não gera horas reais. Em **Accounting**, clique em **Packs**, **Queued** ou **Failed** para filtrar. Generate prepara arquivos para revisão; Finalize preserva uma versão histórica dos valores revisados. Correções posteriores exigem nova versão.
+
+Em **Expenses**, selecione projeto, trabalhador e período para exportar PDF, Excel ou CSV, com totais separados por moeda. Em **Economic Review**, cada aba de origem mantém seus próprios controles. Liquidações finalizam remuneração aprovada; datas previstas são planejamento e o pagamento real é registrado separadamente. Faturas emitidas preservam o histórico e usam anulação, crédito ou substituição para correções.
+
 ## Objetivo e limites das evidências
 
 Este guia de referência em português do Brasil explica as telas operacionais disponíveis aos administradores Proprietário e Financeiro. Ele corresponde à versão atual do portal identificada no registro de validação. As figuras são capturas dessa versão com dados fictícios. Mostram controles e estados, nunca registros de produção. Uma captura serve para orientação; não autoriza uma ação nem comprova a conclusão de um evento de negócio. As capturas preservam os textos da interface original; as instruções e legendas deste guia estão em português do Brasil.
 
-Use a página Ajuda do portal para acessar os guias atribuídos à sua conta e o canal de suporte verificado na sua mensagem de convite para problemas de acesso. Não envie senhas, códigos de recuperação, recibos privados ou documentos de clientes por e-mail ou chat.
+Use a página Ajuda do portal para acessar os guias atribuídos à sua conta e admin@j-aautomation.com para problemas de acesso. Não envie senhas, códigos de recuperação, recibos privados ou documentos de clientes por e-mail ou chat.
 
 Use o seletor de idioma na página de acesso ou no portal para escolher inglês, espanhol ou português. O inglês é o padrão quando nenhuma preferência foi salva. A escolha permanece neste navegador ao navegar, recarregar e sair da conta; a próxima página de acesso usa o mesmo idioma.
 

@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 
-export const manualRevision = '2026-09-10';
+export const manualRevision = '2026-09-11';
 export const manualLocales = ['en', 'es', 'pt'] as const;
 export type ManualLocale = (typeof manualLocales)[number];
 

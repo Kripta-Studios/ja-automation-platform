@@ -507,6 +507,7 @@
               <div>
                 <p class="portal-kicker">{t('OPERATIONAL ASSIGNMENTS')}</p>
                 <h2 id="team-title"><a href={`${base}/app/projects?view=team&project=${project.id}`}>{t('Team')}</a></h2>
+                {#if data.user.role === 'owner_admin'}<a class="secondary-button" href={`${base}/app/projects?action=assign-worker&project=${project.id}`}>{t('Assign worker')} →</a>{/if}
               </div>
               <span class="surface-count">{overview.workers.length}</span>
             </div>
@@ -580,8 +581,8 @@
             {:else}<p class="empty-state">{t('No published schedule is configured.')}</p>{/if}
             <div class="planning-list">
               {#each overview.planning as plan}
-                <article class="planning-record">
-                  <strong>{display(plan.worker_name, t('Assigned worker'))}</strong><small
+                <article class="planning-record"><a href={data.user.role === 'owner_admin' ? `${base}/app/manage?area=planning_assignment&project=${project.id}&focus=${plan.id}` : `${base}/app/planning?project=${project.id}`}>
+                  <strong>{display(plan.worker_name, t('Assigned worker'))}</strong></a><small
                     >{display(plan.site)} · {display(plan.required_skill)}</small
                   ><span
                     >{display(plan.starts_at).replace('T', ' ').slice(0, 16)} → {display(

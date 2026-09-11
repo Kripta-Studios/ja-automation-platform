@@ -1,14 +1,14 @@
-# Guia de campo para colaboradores — revisão 2026-09-09
+# Guia de campo para colaboradores — revisão 2026-09-11
 
 **Contas externas:** Responsáveis de fornecedor e técnicos externos têm acesso apenas operacional. Meu pagamento, despesas e procedimentos financeiros se aplicam às contas padrão de Trabalhador. Consulte “Fornecedores e contas sem acesso financeiro”.
 
-> Use somente o endereço do portal e o canal de suporte verificado indicados no convite. Este guia usa exemplos sintéticos. Nunca compartilhe senha, código MFA, código de recuperação, comprovante ou sessão.
+> Use somente o endereço do portal e o contato de suporte admin@j-aautomation.com. Este guia usa exemplos sintéticos. Nunca compartilhe senha, código MFA, código de recuperação, comprovante ou sessão.
 
 ## 1. Entre usando seu convite
 
 Escolha inglês, espanhol ou português no seletor de idioma da página de acesso ou do portal. O inglês é o padrão quando não há uma preferência salva. Sua escolha permanece neste navegador ao recarregar, sair e entrar novamente.
 
-Se o convite estiver vinculado a uma caixa de e-mail corporativa, abra-o nessa caixa e entre com a conta indicada na mensagem. Se você foi convidado como colaborador externo, use o link de convite de uso único para criar sua conta. Não existe cadastro público. Se precisar de ajuda com acesso ou senha, use o canal de suporte verificado no convite; não adivinhe um endereço de e-mail ou telefone.
+Se o convite estiver vinculado a uma caixa de e-mail corporativa, abra-o nessa caixa e entre com a conta indicada na mensagem. Se você foi convidado como colaborador externo, use o link de convite de uso único para criar sua conta. Não existe cadastro público. Se precisar de ajuda com acesso ou senha, use admin@j-aautomation.com; não adivinhe um endereço de e-mail ou telefone.
 
 MFA é opcional. Se decidir ativá-la, abra **Perfil (Profile)** e selecione **Ativar MFA (Enable MFA)**. Guarde os códigos de recuperação de uso único em local privado, informe o código do autenticador e escolha **Verificar MFA (Verify MFA)**. O trabalho normal no portal não exige uma solicitação adicional de verificação. Nunca envie senha, código ou sessão a outra pessoa.
 
@@ -44,7 +44,7 @@ Use a captura offline somente quando o portal informar que ela está habilitada.
 
 ## 8. Ajuda, caixa de atividades e limites de acesso
 
-Abra **Ajuda (Help)** para baixar o guia atribuído à sua função. A **Caixa de atividades (Activity Inbox)** em `/app/notifications` pode levar a um registro permitido; ler uma notificação não é aprová-la. Colaboradores usam apenas seus projetos atribuídos, seus registros, seus arquivos e Meu pagamento. Finanças, Faturamento, Contabilidade, Auditoria, acompanhamento da equipe, Closeout e filas de aprovação não são fluxos de Worker; uma negação de acesso é um limite, não um erro a contornar. O e-mail não é o registro do sistema: use o portal e o canal de suporte verificado no convite.
+Abra **Ajuda (Help)** para baixar o guia atribuído à sua função. A **Caixa de atividades (Activity Inbox)** em `/app/notifications` pode levar a um registro permitido; ler uma notificação não é aprová-la. Colaboradores usam apenas seus projetos atribuídos, seus registros, seus arquivos e Meu pagamento. Finanças, Faturamento, Contabilidade, Auditoria, acompanhamento da equipe, Closeout e filas de aprovação não são fluxos de Worker; uma negação de acesso é um limite, não um erro a contornar. O e-mail não é o registro do sistema: use o portal e admin@j-aautomation.com.
 
 ## Fornecedores e contas sem acesso financeiro
 

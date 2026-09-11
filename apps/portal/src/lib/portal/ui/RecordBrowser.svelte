@@ -1,29 +1,46 @@
 <script lang="ts" generics="T extends Record<string, unknown>">
   import type { Snippet } from 'svelte';
-  import { normalizeSelectSearch } from '../searchable-selects';
-  type Row = Record<string, unknown>;
-  let { rows, visible = $bindable<T[]>([]), children, label = 'Records', translate = (text: string) => text, pageSize = 8 }:
-    { rows: T[]; visible?: T[]; children?: Snippet<[T[]]>; label?: string; translate?: (text: string) => string; pageSize?: number } = $props();
+  import { onMount } from 'svelte';
+  import { page as route } from '$app/stores';
+  import { readOperationalRegisterState, writeOperationalRegisterState } from '../sections/operational-register';
+  import { browseRecords, recordState } from './record-browser';
+  let { rows, visible = $bindable<T[]>([]), status = $bindable(''), children, label = 'Records', translate = (text: string) => text, pageSize = 8, focusId = '', contextKey = '' }:
+    { rows: T[]; visible?: T[]; status?: string; children?: Snippet<[T[]]>; label?: string; translate?: (text: string) => string; pageSize?: number; focusId?: string; contextKey?: string } = $props();
   let search = $state('');
-  let status = $state('');
   let order = $state('priority');
   let page = $state(0);
-  const stateOf = (row: Row) => String(row.approval_state ?? row.status ?? row.state ?? '');
-  const dateOf = (row: Row) => String(row.date ?? row.work_date ?? row.spent_on ?? row.issue_date ?? row.period_start ?? row.starts_on ?? row.created_at ?? '');
-  const nameOf = (row: Row) => String(row.name ?? row.display_name ?? row.worker_name ?? row.project_name ?? row.invoice_number ?? row.title ?? '');
-  const priority = (row: Row) => ({submitted: 0, pending: 0, failed: 0, needs_changes: 1, draft: 2, queued: 3, running: 3, approved: 4, ready: 4, active: 4, paid: 5, final: 5, archived: 6}[stateOf(row)] ?? 4);
-  const statuses = $derived([...new Set(rows.map(stateOf).filter(Boolean))].sort());
-  const filtered = $derived(rows.filter(row => (!status || stateOf(row) === status) && normalizeSelectSearch(Object.values(row).filter(v => typeof v !== 'object').join(' ')).includes(normalizeSelectSearch(search))).sort((a, b) => {
-    if (order === 'name') return nameOf(a).localeCompare(nameOf(b));
-    if (order === 'status') return stateOf(a).localeCompare(stateOf(b)) || dateOf(a).localeCompare(dateOf(b));
-    if (order === 'newest') return dateOf(b).localeCompare(dateOf(a));
-    if (order === 'oldest') return dateOf(a).localeCompare(dateOf(b));
-    return priority(a) - priority(b) || dateOf(a).localeCompare(dateOf(b)) || nameOf(a).localeCompare(nameOf(b));
-  }));
+  const statuses = $derived([...new Set([...rows.map(recordState), status].filter(Boolean))].sort());
+  const filtered = $derived(browseRecords(rows, search, status, order));
   $effect(() => { visible = filtered.slice(current * pageSize, (current + 1) * pageSize); });
   const pages = $derived(Math.max(1, Math.ceil(filtered.length / pageSize)));
   const current = $derived(Math.min(page, pages - 1));
-  $effect(() => { search; status; order; pageSize; page = 0; });
+  let criteria = '';
+  let hydrated = $state(false);
+  const storageKey = $derived(`ja-record-browser:${$route.data.user?.id ?? $route.data.managementUser?.id ?? ''}:${$route.url.pathname}${$route.url.search}:${label}:${contextKey}`);
+  onMount(() => {
+    const saved = focusId ? null : readOperationalRegisterState<{ search?: string; status?: string; order?: string; page?: number }>(storageKey);
+    if (typeof saved?.search === 'string') search = saved.search;
+    if (typeof saved?.status === 'string') status = saved.status;
+    if (typeof saved?.order === 'string') order = saved.order;
+    if (Number.isInteger(saved?.page) && Number(saved?.page) >= 0) page = Number(saved?.page);
+    criteria = JSON.stringify([search, status, order, pageSize]);
+    hydrated = true;
+  });
+  $effect(() => {
+    const next = JSON.stringify([search, status, order, pageSize]);
+    if (criteria && criteria !== next) page = 0;
+    criteria = next;
+  });
+  $effect(() => {
+    if (hydrated) writeOperationalRegisterState(storageKey, { search, status, order, page });
+  });
+  // Detail links must reveal their target even when it lives beyond the first page.
+  let appliedFocus = $state('');
+  $effect(() => {
+    if (!focusId || appliedFocus === focusId) return;
+    const index = filtered.findIndex(row => String(row.id) === focusId);
+    if (index >= 0) { page = Math.floor(index / pageSize); appliedFocus = focusId; }
+  });
 </script>
 <div class="record-browser" aria-label={translate(label)}>
   <div class="record-browser__controls">

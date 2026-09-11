@@ -13,6 +13,7 @@ import { timeActions } from '$lib/server/actions/time-actions';
 const reportAutosaveAction = reportActions.autosaveReport;
 
 export const sectionActions: Actions = {
+  setWorkforceProfile: accessActions.setWorkforceProfile,
   ['autosave' + 'Report']: reportAutosaveAction,
   generatePeriodReports: reportActions.generatePeriodReports,
   createDailyReport: reportActions.createDailyReport,

@@ -44,6 +44,11 @@
     return packs.filter((pack) => packState(pack) === state).length;
   }
   let packPage = $state<typeof packs>([]);
+  let packFilter = $state('');
+  function filterPacks(status: string) {
+    packFilter = status;
+    document.getElementById('accounting-register')?.scrollIntoView({ block: 'start' });
+  }
 </script>
 
 <div class="accounting-section" data-ui="accounting-section">
@@ -63,21 +68,21 @@
     class="accounting-section__attention"
     aria-label={translate('Accounting Pack attention summary')}
   >
-    <article>
+    <button type="button" aria-pressed={packFilter === ''} onclick={() => filterPacks('')}>
       <span>{translate('Packs')}</span>
       <strong>{packs.length}</strong>
       <small>{translate('Immutable period registers')}</small>
-    </article>
-    <article>
+    </button>
+    <button type="button" aria-pressed={packFilter === 'queued'} onclick={() => filterPacks('queued')}>
       <span>{translate('Queued')}</span>
       <strong>{stateCount('queued')}</strong>
       <small>{translate('Automatic artifact processing pending')}</small>
-    </article>
-    <article>
+    </button>
+    <button type="button" aria-pressed={packFilter === 'failed'} onclick={() => filterPacks('failed')}>
       <span>{translate('Failed')}</span>
       <strong>{stateCount('failed')}</strong>
       <small>{translate('Independent artifact retry may be available')}</small>
-    </article>
+    </button>
   </div>
 
   {#if !isAuditor}
@@ -122,8 +127,8 @@
   {/if}
 
   <p>{translate('Generate creates files for reviewing a period. Finalize freezes the reviewed figures as a historical version; later corrections require a new version.')}</p>
-  <SectionCard title={translate('Accounting Pack register')} class="accounting-section__register">
-<RecordBrowser rows={packs} bind:visible={packPage} {translate} label="Accounting" />
+  <SectionCard id="accounting-register" title={translate('Accounting Pack register')} class="accounting-section__register">
+<RecordBrowser rows={packs} bind:visible={packPage} bind:status={packFilter} {translate} label="Accounting" />
     {#if packs.length > 0}
       <div class="accounting-section__packs" aria-live="polite">
         {#each packPage as pack}
@@ -182,7 +187,9 @@
     gap: 0.75rem;
   }
 
-  .accounting-section__attention article {
+  .accounting-section__attention button {
+    text-align: left;
+    cursor: pointer;
     display: grid;
     gap: 0.22rem;
     min-height: 6rem;

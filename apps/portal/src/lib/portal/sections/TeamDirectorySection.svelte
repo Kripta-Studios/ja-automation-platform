@@ -71,6 +71,7 @@
   let revealPassword = $state(false);
   let showAll = $state(false);
   let editingWorkerId = $state<string | null>(null);
+  $effect(() => { editingWorkerId = $page.url.searchParams.get('worker'); });
   let creatingUser = $state(false);
   let invitationCopied = $state(false);
   let mailboxSearch = $state('');
@@ -128,7 +129,8 @@
   function workerAssignments(worker: PortalRow): PortalRow[] {
     const id = workerId(worker);
     return assignments.filter(
-      (assignment) => value(assignment, 'worker_id', 'user_id') === id && Boolean(id),
+      (assignment) => value(assignment, 'worker_id', 'user_id') === id && Boolean(id) &&
+        (!$page.url.searchParams.get('project') || value(assignment, 'project_id') === $page.url.searchParams.get('project')),
     );
   }
 
@@ -188,7 +190,9 @@
   const activeWorkers = $derived(
     (workers ?? []).filter((worker) => showAll || value(worker, 'status') === 'active'),
   );
-  const visibleWorkers = $derived(activeWorkers.filter(matchesWorker));
+  const visibleWorkers = $derived(activeWorkers.filter(worker => matchesWorker(worker) &&
+    (!$page.url.searchParams.get('worker') || workerId(worker) === $page.url.searchParams.get('worker')) &&
+    (!$page.url.searchParams.get('project') || workerAssignments(worker).length > 0)));
 
   function mailboxEmail(mailbox: MailboxRow): string {
     const email = String(mailbox.email ?? '')
@@ -477,7 +481,7 @@
                 <label>{translate('Company')}<input name="company" maxlength="200" /></label>
                 <label>{translate('Contact name')}<input name="contactName" maxlength="160" /></label>
                 <label>{translate('Notes')}<textarea name="notes" maxlength="5000"></textarea></label>
-                <label>{translate('Access role')}<select name="role" bind:value={localRole}><option value="worker">{translate('Worker')}</option><option value="project_manager">{translate('Project Manager')}</option><option value="finance_admin">{translate('Finance Admin')}</option><option value="external_technician">{translate('External technician')}</option><option value="supplier_coordinator">{translate('Supplier coordinator')}</option></select></label>
+                <label>{translate('Access role')}<select name="role" bind:value={localRole}><option value="worker">{translate('Worker')}</option><option value="project_manager">{translate('Project Manager')}</option><option value="finance_admin">{translate('Finance Admin')}</option><option value="auditor_read_only">{translate('Auditor (Read Only)')}</option><option value="external_technician">{translate('External technician')}</option><option value="supplier_coordinator">{translate('Supplier coordinator')}</option></select></label>
                 {#if ['external_technician', 'supplier_coordinator'].includes(localRole)}<label>{translate('Supplier')}<select name="supplierId" required><option value="">{translate('Select supplier')}</option>{#each suppliers as supplier}<option value={String(supplier.id)}>{supplier.name}</option>{/each}</select></label>{/if}
                 <label>{translate('Initial password')}<input name="password" type={revealPassword ? 'text' : 'password'} minlength="12" maxlength="128" autocomplete="new-password" required /></label>
                 <label><input type="checkbox" bind:checked={revealPassword} />{translate('Show password to copy')}</label>
@@ -623,23 +627,23 @@
             <dl class="team-directory__facts">
               <div>
                 <dt>{translate('Availability')}</dt>
-                <dd>{availability(worker)}</dd>
+                <dd><a href={`${base}/app/profile?worker=${workerId(worker)}`}>{availability(worker)}</a></dd>
               </div>
               <div>
                 <dt>{translate('Assignments')}</dt>
                 <dd>
-                  {assignmentsForWorker.filter(
+                  <a href={`${base}/app/projects?action=update-assignment&worker=${workerId(worker)}`}>{assignmentsForWorker.filter(
                     (assignment) => value(assignment, 'status') === 'active',
-                  ).length}
+                  ).length}</a>
                 </dd>
               </div>
               <div>
                 <dt>{translate('Planned hours')}</dt>
-                <dd>{formatHours(minutesFor(assignmentsForWorker, 'planned_minutes'))}</dd>
+                <dd><a href={`${base}/app/planning?worker=${workerId(worker)}`}>{formatHours(minutesFor(assignmentsForWorker, 'planned_minutes'))}</a></dd>
               </div>
               <div>
                 <dt>{translate('Actual hours')}</dt>
-                <dd>{formatHours(minutesFor(assignmentsForWorker, 'actual_minutes'))}</dd>
+                <dd><a href={`${base}/app/time?worker=${workerId(worker)}`}>{formatHours(minutesFor(assignmentsForWorker, 'actual_minutes'))}</a></dd>
               </div>
             </dl>
             {#if canManageTeam}<div class="team-directory__actions" data-team-actions>
@@ -744,6 +748,21 @@
                       >
                     </div>
                   </form>
+                  {#if role === 'worker'}
+                    <form method="POST" action="?view=team&/setWorkforceProfile" class="team-directory__form">
+                      <input type="hidden" name="workerId" value={workerId(worker)} />
+                      <label>{translate('Access profile')}<select name="profile" value={value(worker, 'workforce_profile') || 'standard'} required>
+                        <option value="standard">{translate('Worker')}</option>
+                        <option value="supplier_coordinator">{translate('Supplier coordinator')}</option>
+                        <option value="external_technician">{translate('External technician')}</option>
+                      </select></label>
+                      <label>{translate('Supplier')}<select name="supplierId" value={value(worker, 'supplier_id')}>
+                        <option value="">{translate('Select supplier')}</option>
+                        {#each suppliers as supplier}<option value={String(supplier.id)}>{supplier.name}</option>{/each}
+                      </select></label>
+                      <button type="submit" class="team-directory__action">{translate('Save profile')}</button>
+                    </form>
+                  {/if}
                 </div>{/if}
             {/if}
             <section aria-labelledby={`team-assignments-${workerId(worker)}`}>
@@ -754,10 +773,10 @@
                 {#each assignmentsForWorker as assignment}<article
                     class="team-directory__assignment"
                   >
-                    <strong
+                    <strong><a href={`${base}/app/projects/${value(assignment, 'project_id')}`}
                       >{[value(assignment, 'project_number'), value(assignment, 'project_name')]
                         .filter(Boolean)
-                        .join(' · ') || translate('Authorized project')}</strong
+                        .join(' · ') || translate('Authorized project')}</a></strong
                     ><span
                       >{controlledValue?.('role', value(assignment, 'assignment_role')) ||
                         value(assignment, 'assignment_role') ||

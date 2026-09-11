@@ -1,10 +1,20 @@
 # Owner and Finance user guide
 
+## Updated workflows — September 2026
+
+Support for access and passwords: **admin@j-aautomation.com**. Owner can create an account using an external email and a chosen initial password in **Projects → Team access → Create user → Set email and password**. Copy the password before saving. Existing Worker accounts can receive the **Supplier coordinator** or **External technician** access profile from **Edit profile**, with a supplier selected. Assign installation/project permissions separately; a profile does not grant access to every project. Profile changes invalidate sessions so the person must sign in again.
+
+Use **Log time**, **Record expense**, **New daily report** and **Technical / PLC** at the top of their work areas. Drafts remain editable; **Submit** sends operational facts for review. Project Managers can record their own work or work for an effectively assigned worker in a project they manage. Finance-only rates and other workers' reimbursement details stay outside the PM view.
+
+Registers provide search, status and ordering controls and eight rows per page. Search can combine words from a client, project and worker name. Select a project and worker in **Planning** to narrow the published schedule; Owner can open a shift to manage that exact record. Planning describes intended work and never creates actual hours. In **Accounting**, click **Packs**, **Queued** or **Failed** to filter the register. Generate builds review files; Finalize freezes the reviewed version. A later correction requires a new version.
+
+In **Expenses**, select project, worker and date range before exporting PDF, Excel or CSV. Currency totals remain separate. In **Economic Review**, choose the source tab before searching; each tab keeps its own register controls. Settlements finalize approved compensation; expected payment dates are plans, while actual payment is recorded separately. Issued invoices retain their historical snapshot: corrections use the available void, credit or replacement flow.
+
 ## Purpose and evidence boundary
 
 This English reference explains the operational screens available to Owner and Finance administrators. It is written for the current portal build named in the validation record. Figures are synthetic captures of that build. They show controls and states, never production records. A capture supports orientation; it does not authorize an action or prove that a business event was completed.
 
-Use the portal's Help page for the guides assigned to your account and the verified support route in your invitation for access problems. Do not send passwords, recovery codes, private receipts, or customer documents through email or chat.
+Use the portal's Help page for the guides assigned to your account and admin@j-aautomation.com for access problems. Do not send passwords, recovery codes, private receipts, or customer documents through email or chat.
 
 Use the language selector on the sign-in page or in the portal to choose English, Spanish or Portuguese. English is the default when no preference has been saved. Your choice is retained in this browser after navigation, reload and sign-out; the next sign-in page uses the same language.
 

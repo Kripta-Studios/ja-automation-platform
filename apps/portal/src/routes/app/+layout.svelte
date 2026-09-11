@@ -14,7 +14,7 @@
   // Supplier and management routes already provide their own role-aware chrome
   // through nested layouts. Wrapping them here would duplicate the sidebar and
   // confuse assistive navigation landmarks.
-  const standalone = $derived(Boolean(data.chromeUser) && !['/app/[section]', '/app', '/app/manage', '/app/supplier'].includes($page.route.id ?? '') && !/\/app\/(login|invite|accept-invitation)(\/|$)/.test($page.url.pathname));
+  const standalone = $derived(Boolean(data.chromeUser) && !['/app/[section]', '/app', '/app/manage'].includes($page.route.id ?? '') && !/\/app\/(supplier|login|invite|accept-invitation)(\/|$)/.test($page.url.pathname));
   const translate = (text: string) => portalText(locale, text);
   const itemHref = (item: NavItem) => item.href ?? `${base}/app/${item.section === 'today' ? '' : item.section}`;
   const auth = createAuthClient({ baseURL: typeof window === 'undefined' ? undefined : window.location.origin, basePath: `${base}/app/api/auth` });
@@ -35,12 +35,27 @@
       history.back();
     }
   }
+  function restoreOriginBack(node: HTMLElement) {
+    const click = (event: MouseEvent) => {
+      if (!origin || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      const anchor = (event.target as Element).closest('a');
+      if (!anchor || !node.contains(anchor) || !/^←/.test(anchor.textContent?.trim() ?? '')) return;
+      // Older detail headers still carry a section fallback. Use the actual
+      // navigation origin for those links as well as the shared header.
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      origin = null;
+      history.back();
+    };
+    node.addEventListener('click', click, true);
+    return { destroy() { node.removeEventListener('click', click, true); } };
+  }
 </script>
 {#if standalone && data.chromeUser}
   <a class="skip-link" href="#portal-main">{translate('Skip to main content')}</a>
   <div class="portal-layout standalone-workspace">
     <PortalChrome {base} data={{ section, user: data.chromeUser }} navigation={navigation.primary} secondaryNavigation={navigation.secondary} visibleAdmin={navigation.admin} securityAdmin={navigation.security} showAdmin={navigation.admin.length > 0} isManager={data.chromeUser.role === 'project_manager'} isFinance={['owner_admin', 'finance_admin'].includes(data.chromeUser.role ?? '')} canAudit={navigation.security.length > 0} {menuOpen} online={true} queue={0} syncMessage="" {locale} {translate} {itemHref} initials={(name) => name.split(' ').map(part => part[0]).slice(0, 2).join('')} {logout} {changeLocale} onMenuToggle={() => menuOpen = !menuOpen} onCloseMenu={() => menuOpen = false} />
-    <div id="portal-main" class="standalone-workspace__content">
+    <div id="portal-main" class="standalone-workspace__content" use:restoreOriginBack>
       <a class="workspace-back" href={origin ?? `${base}/app/${section}`} onclick={back}>← {translate('Back')}</a>
       {@render children()}
     </div>

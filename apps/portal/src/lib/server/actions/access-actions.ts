@@ -40,6 +40,27 @@ function requireOwner(event: PortalActionEvent): ReturnType<typeof actionFail> |
 }
 
 export const accessActions = {
+  setWorkforceProfile: async (event: PortalActionEvent) => {
+    if (event.params.section !== 'projects') return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const denied = requireOwner(event);
+    if (denied) return denied;
+    const object = await formObject(event.request);
+    const userId = uuidSchema.safeParse(object.workerId);
+    const profile = String(object.profile ?? '');
+    if (!userId.success || !['standard', 'supplier_coordinator', 'external_technician'].includes(profile))
+      return actionFail(400, 'action.validation.workerProfile', {}, 'Invalid worker profile data');
+    const opened = openAccessContext(event.locals);
+    if ('failure' in opened) return opened.failure;
+    try {
+      new SupplierWorkforceRepository(opened.context.sqlite).setAccountProfile(opened.context.principal, {
+        userId: userId.data,
+        profile: profile as 'standard' | 'supplier_coordinator' | 'external_technician',
+        supplierId: typeof object.supplierId === 'string' ? object.supplierId : undefined,
+      });
+      return actionSuccess('action.access.workerProfile.updated', {}, 'Worker profile updated');
+    } catch (error) { return actionFailure(error); }
+    finally { opened.context.sqlite.close(); }
+  },
   createLocalPortalUser: async (event: PortalActionEvent) => {
     const { locals, request, params } = event;
     if (params.section !== 'projects')
@@ -63,6 +84,7 @@ export const accessActions = {
       worker: { role: 'worker' as const },
       project_manager: { role: 'project_manager' as const },
       finance_admin: { role: 'finance_admin' as const },
+      auditor_read_only: { role: 'auditor_read_only' as const },
       supplier_coordinator: { role: 'worker' as const, supplierProfile: 'supplier_coordinator' as const },
       external_technician: { role: 'worker' as const, supplierProfile: 'external_technician' as const },
     };

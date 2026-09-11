@@ -865,7 +865,9 @@
 
       {#if showSourceTabs}
         <SectionCard title={translate('Source records')} class="finance-overview__surface">
-          <RecordBrowser rows={sourceRows} bind:visible={sourceRowsPage} {translate} label="Source records" />
+          {#key sourceTab}
+            <RecordBrowser rows={sourceRows} bind:visible={sourceRowsPage} contextKey={sourceTab} {translate} label="Source records" />
+          {/key}
           <div
             class="finance-overview__source-tabs"
             role="tablist"

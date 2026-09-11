@@ -172,6 +172,7 @@
           <div class="directory-actions">
             <a class="secondary-button" href={`${base}/app/projects?action=update-client&client=${encodeURIComponent(clientId)}`}>{translate('Edit client')}</a>
             <a class="secondary-button" href={`${base}/app/projects?action=new-project&client=${encodeURIComponent(clientId)}`}>{translate('New Project')}</a>
+            <a class="secondary-button" href={`${base}/app/projects#client-controls-${clientId}`}>{translate('Archive')} / {translate('Delete client')}</a>
           </div>
         {/if}
         <dl class="client-directory__facts">

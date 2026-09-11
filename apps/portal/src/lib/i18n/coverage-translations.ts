@@ -338,6 +338,9 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'Dismiss notification': ['Cerrar notificación', 'Fechar notificação'],
   'Filter by category': ['Filtrar por categoría', 'Filtrar por categoria'],
+  Filter: ['Filtrar', 'Filtrar'],
+  'Access profile': ['Perfil de acceso', 'Perfil de acesso'],
+  'Publish a planned shift for an assigned worker. Planning does not create actual time entries; the worker records the work performed separately.': ['Publica un turno previsto para un trabajador asignado. La planificación no crea horas reales; el trabajador registra por separado el trabajo realizado.', 'Publique um turno previsto para um trabalhador alocado. O planejamento não cria horas reais; o trabalhador registra separadamente o trabalho realizado.'],
   'Filter clients': ['Filtrar clientes', 'Filtrar clientes'],
   'Identification & client': ['Identificación y cliente', 'Identificação e cliente'],
   'Include inactive specialists': [

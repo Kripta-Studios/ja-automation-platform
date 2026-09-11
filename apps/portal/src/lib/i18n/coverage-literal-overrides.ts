@@ -1,5 +1,7 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'Access profile': ['Perfil de acceso', 'Perfil de acesso'],
+  'Publish a planned shift for an assigned worker. Planning does not create actual time entries; the worker records the work performed separately.': ['Publica un turno previsto para un trabajador asignado. La planificación no crea horas reales; el trabajador registra por separado el trabajo realizado.', 'Publique um turno previsto para um trabalhador alocado. O planejamento não cria horas reais; o trabalhador registra separadamente o trabalho realizado.'],
   'ACTUAL TIME': ['TIEMPO REAL', 'TEMPO REAL'],
   'Daily report required': ['Informe diario obligatorio', 'Relatório diário obrigatório'],
   'PENDING REPORTS': ['INFORMES PENDIENTES', 'RELATÓRIOS PENDENTES'],

@@ -4,7 +4,7 @@
 
 ## Objetivo e seu espaço de trabalho privado
 
-Este guia em português do Brasil explica as atividades autorizadas do Trabalhador no portal: projetos atribuídos, horas efetivamente trabalhadas, relatórios, despesas, documentos permitidos, perfil e Minha remuneração. As figuras são exemplos com dados fictícios da versão validada atual. Use Ajuda e o canal de suporte verificado na sua mensagem de convite para resolver problemas de acesso; nunca compartilhe senha, código de MFA ou de recuperação, recibo, documento de cliente ou sessão.
+Este guia em português do Brasil explica as atividades autorizadas do Trabalhador no portal: projetos atribuídos, horas efetivamente trabalhadas, relatórios, despesas, documentos permitidos, perfil e Minha remuneração. As figuras são exemplos com dados fictícios da versão validada atual. Use Ajuda e admin@j-aautomation.com para resolver problemas de acesso; nunca compartilhe senha, código de MFA ou de recuperação, recibo, documento de cliente ou sessão.
 
 Use o seletor de idioma na página de acesso ou no portal para escolher inglês, espanhol ou português. O inglês é o padrão quando nenhuma preferência foi salva. A escolha permanece neste navegador ao navegar, recarregar e sair da conta; a próxima página de acesso usa o mesmo idioma.
 

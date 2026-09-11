@@ -196,7 +196,7 @@ function claimVariant(
   sqlite: DatabaseSync,
   repository: LocalizedPdfRepository,
   variant: LocalizedPdfVariant,
-  afterClaim?: (execution: LocalizedPdfExecution) => void,
+  afterClaim?: (execution: LocalizedPdfExecution, snapshotJson: string) => void,
 ): LocalizedPdfExecution {
   const v3 = new V3Repository(sqlite);
   let execution: LocalizedPdfExecution | undefined;
@@ -213,8 +213,12 @@ function claimVariant(
         jobRunId: context.runId,
         leaseFence: context.fenceVersion,
       };
-      repository.claimVariant(String(values.variantId), execution, Number(values.requestedAttempt));
-      afterClaim?.(execution);
+      const claimed = repository.claimVariant(
+        String(values.variantId),
+        execution,
+        Number(values.requestedAttempt),
+      );
+      afterClaim?.(execution, claimed.variant.snapshotJson);
     },
   });
   expect(result).toMatchObject({ processed: 1, failed: 0 });
@@ -1231,6 +1235,47 @@ describe('localized PDF variants', () => {
         .get(variant.variantId) as { snapshot_json: string };
       expect(JSON.parse(stored.snapshot_json)).not.toHaveProperty('project_number');
       expect(JSON.parse(stored.snapshot_json)).not.toHaveProperty('worker_name');
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it('enriches technical report render snapshots from the persisted author identity', () => {
+    const { sqlite, repository, owner } = fixture();
+    try {
+      const variant = repository.requestVariant(owner, {
+        ownerType: 'technical_report',
+        ownerId: 'technical',
+        locale: 'en',
+        templateVersion: 'technical-v1',
+        generationVersion: 'renderer-1',
+      });
+      const persisted = JSON.parse(variant.snapshotJson) as Record<string, unknown>;
+      expect(persisted).not.toHaveProperty('worker_name');
+      expect(persisted).not.toHaveProperty('worker_email');
+      expect(persisted.author_id).toBe('worker');
+
+      let claimedSnapshot = '';
+      claimVariant(sqlite, repository, variant, (_execution, snapshotJson) => {
+        claimedSnapshot = snapshotJson;
+      });
+
+      const claimed = JSON.parse(claimedSnapshot) as Record<string, unknown>;
+      expect(claimed).toMatchObject({
+        project_number: 'C-0001-P-001',
+        project_name: 'Localized Project',
+        client_name: 'Localized Client',
+        worker_name: 'worker',
+        author_name: 'worker',
+        worker_email: 'worker@example.test',
+      });
+      expect(claimed.worker_name).not.toBe(claimed.client_name);
+
+      const stored = sqlite
+        .prepare('SELECT snapshot_json FROM localized_pdf_variant WHERE variant_id=?')
+        .get(variant.variantId) as { snapshot_json: string };
+      expect(JSON.parse(stored.snapshot_json)).not.toHaveProperty('worker_name');
+      expect(JSON.parse(stored.snapshot_json)).not.toHaveProperty('worker_email');
     } finally {
       sqlite.close();
     }

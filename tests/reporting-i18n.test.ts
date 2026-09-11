@@ -268,6 +268,8 @@ const technicalSnapshot = (locale: Locale) => ({
   id: 'technical-1',
   locale,
   project: { number: 'C-0001-P-001', name: 'Commissioning' },
+  workerName: 'Alex Rivera',
+  worker_email: 'alex.rivera@example.test',
   date: '2026-08-02',
   systemName: 'Line 4 PLC',
   plantSite: 'Northline plant',
@@ -565,6 +567,8 @@ describe('localized report PDF renderers', () => {
     expect(containsPdfCopy(technicalText, titles.technical[locale])).toBe(true);
     expect(containsPdfCopy(dailyText, 'C-0001-P-001')).toBe(true);
     expect(containsPdfCopy(technicalText, 'C-0001-P-001')).toBe(true);
+    expect(containsPdfCopy(technicalText, 'Alex Rivera')).toBe(true);
+    expect(containsPdfCopy(technicalText, 'alex.rivera@example.test')).toBe(true);
     expect(
       containsPdfCopy(
         dailyText,

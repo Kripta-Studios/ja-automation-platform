@@ -313,7 +313,7 @@ Run: `pnpm --filter @ja/portal typecheck`
 
 Run: `pnpm playwright test tests/e2e/ux-review-20260911.spec.ts --project=desktop --project=phone-360`
 
-- [ ] **Step 5: Commit progressive disclosure**
+- [x] **Step 5: Commit progressive disclosure**
 
 ```bash
 git add apps/portal/src/lib/portal/sections/BillingSection.svelte apps/portal/src/styles/portal/primitives.css tests/regression/requested-portal-ui.test.ts tests/e2e/ux-review-20260911.spec.ts
@@ -334,7 +334,7 @@ git commit -m "feat(portal): streamline billing setup actions"
 - Preserves: author identity derives from stored `worker_id`/`author_id` and the joined `user` row.
 - Requires: PDF contains author name and available author email in EN, ES and PT-BR.
 
-- [ ] **Step 1: Add report snapshots with a creator and assertions for name/email**
+- [x] **Step 1: Add report snapshots with a creator and assertions for name/email**
 
 ```ts
 const technicalText = expectPdf(
@@ -350,11 +350,11 @@ expect(containsPdfCopy(technicalText, 'alex.rivera@example.test')).toBe(true);
 
 The integration case queues a localized artifact from a real technical report and asserts the immutable snapshot was enriched from its persisted author, not client payload.
 
-- [ ] **Step 2: Run reporting and localized-artifact tests**
+- [x] **Step 2: Run reporting and localized-artifact tests**
 
 Run: `JA_CHROMIUM_PATH=/usr/bin/chromium pnpm vitest run tests/reporting-i18n.test.ts tests/integration/localized-pdf-variants.test.ts --no-file-parallelism`
 
-- [ ] **Step 3: If red, correct only the failing snapshot join/render boundary and rerun**
+- [x] **Step 3: If red, correct only the failing snapshot join/render boundary and rerun**
 
 The allowed fix is to add `author_name`/`author_email` from the persisted source user to the immutable snapshot or render its existing values. Do not accept browser identity fields as authority.
 

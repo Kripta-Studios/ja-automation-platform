@@ -41,6 +41,8 @@ export type PortalData = {
   invoices?: PortalRow[];
   invoiceEmailDeliveries?: PortalRow[];
   settlements?: PortalRow[];
+  compensationPayments?: PortalRow[];
+  financeToday?: string;
   payActivities?: PortalRow[];
   payExpenses?: PortalRow[];
   reimbursements?: PortalRow[];

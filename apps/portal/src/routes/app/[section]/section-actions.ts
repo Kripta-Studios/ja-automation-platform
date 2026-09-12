@@ -107,6 +107,8 @@ export const sectionActions: Actions = {
   supersedeCompensationRule: financeActions.supersedeCompensationRule,
   deactivateCompensationRule: financeActions.deactivateCompensationRule,
   settleCompensation: financeActions.settleCompensation,
+  recordCompensationPayment: financeActions.recordCompensationPayment,
+  reverseCompensationPayment: financeActions.reverseCompensationPayment,
   recordReimbursement: financeActions.recordReimbursement,
   createClientLaborRate: financeActions.createClientLaborRate,
   supersedeClientLaborRate: financeActions.supersedeClientLaborRate,

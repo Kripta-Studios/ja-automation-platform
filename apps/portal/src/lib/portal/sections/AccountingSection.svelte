@@ -18,8 +18,15 @@
   let { data, isAuditor, locale, translate, controlledValue }: Props = $props();
 
   $effect(() => {
-    if (!(data.packs ?? []).some(pack => ['queued', 'running', 'processing'].includes(String(pack.state)))) return;
-    const timer = setInterval(() => { if (document.visibilityState === 'visible') void invalidateAll(); }, 2500);
+    if (
+      !(data.packs ?? []).some((pack) =>
+        ['queued', 'running', 'processing'].includes(String(pack.state)),
+      )
+    )
+      return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') void invalidateAll();
+    }, 2500);
     return () => clearInterval(timer);
   });
   const packs = $derived(data.packs ?? []);
@@ -73,15 +80,32 @@
       <strong>{packs.length}</strong>
       <small>{translate('Immutable period registers')}</small>
     </button>
-    <button type="button" aria-pressed={packFilter === 'queued'} onclick={() => filterPacks('queued')}>
+    <button
+      type="button"
+      aria-pressed={packFilter === 'queued'}
+      onclick={() => filterPacks('queued')}
+    >
       <span>{translate('Queued')}</span>
       <strong>{stateCount('queued')}</strong>
       <small>{translate('Automatic artifact processing pending')}</small>
     </button>
-    <button type="button" aria-pressed={packFilter === 'failed'} onclick={() => filterPacks('failed')}>
+    <button
+      type="button"
+      aria-pressed={packFilter === 'failed'}
+      onclick={() => filterPacks('failed')}
+    >
       <span>{translate('Failed')}</span>
       <strong>{stateCount('failed')}</strong>
       <small>{translate('Independent artifact retry may be available')}</small>
+    </button>
+    <button
+      type="button"
+      aria-pressed={packFilter === 'ready'}
+      onclick={() => filterPacks('ready')}
+    >
+      <span>{translate('Ready')}</span>
+      <strong>{stateCount('ready')}</strong>
+      <small>{translate('Available for review, finalization or download')}</small>
     </button>
   </div>
 
@@ -126,9 +150,23 @@
     </SectionCard>
   {/if}
 
-  <p>{translate('Generate creates files for reviewing a period. Finalize freezes the reviewed figures as a historical version; later corrections require a new version.')}</p>
-  <SectionCard id="accounting-register" title={translate('Accounting Pack register')} class="accounting-section__register">
-<RecordBrowser rows={packs} bind:visible={packPage} bind:status={packFilter} {translate} label="Accounting" />
+  <p>
+    {translate(
+      'Generate creates files for reviewing a period. Finalize freezes the reviewed figures as a historical version; later corrections require a new version.',
+    )}
+  </p>
+  <SectionCard
+    id="accounting-register"
+    title={translate('Accounting Pack register')}
+    class="accounting-section__register"
+  >
+    <RecordBrowser
+      rows={packs}
+      bind:visible={packPage}
+      bind:status={packFilter}
+      {translate}
+      label="Accounting"
+    />
     {#if packs.length > 0}
       <div class="accounting-section__packs" aria-live="polite">
         {#each packPage as pack}
@@ -183,7 +221,7 @@
 
   .accounting-section__attention {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.75rem;
   }
 
@@ -280,6 +318,10 @@
   }
 
   @media (max-width: 52rem) {
+    .accounting-section__attention {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .accounting-section__fields {
       grid-template-columns: 1fr;
     }

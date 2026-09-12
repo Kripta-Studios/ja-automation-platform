@@ -63,25 +63,25 @@ those historical records as repaired or claim every preexisting application issu
 
 ## Manuals to share
 
-| Recipient | English | Portuguese | Pages |
-|---|---|---|---|
-| Owner / Antonny | [Owner guide](manuals/Owner_User_Guide.pdf) | [Guia do Owner](manuals/Owner_User_Guide_PT-BR.pdf) | 17 each |
-| Workers / supplier coordinator | [Worker guide](manuals/Worker_User_Guide.pdf) | [Guia do trabalhador](manuals/Worker_User_Guide_PT-BR.pdf) | 12 each |
-| Field quick reference | [Field guide](manuals/Employee_Field_Guide_EN.pdf) | [Guia de campo](manuals/Employee_Field_Guide_PT-BR.pdf) | 6 each |
+| Recipient                      | English                                            | Portuguese                                                 | Pages   |
+| ------------------------------ | -------------------------------------------------- | ---------------------------------------------------------- | ------- |
+| Owner / Antonny                | [Owner guide](manuals/Owner_User_Guide.pdf)        | [Guia do Owner](manuals/Owner_User_Guide_PT-BR.pdf)        | 17 each |
+| Workers / supplier coordinator | [Worker guide](manuals/Worker_User_Guide.pdf)      | [Guia do trabalhador](manuals/Worker_User_Guide_PT-BR.pdf) | 12 each |
+| Field quick reference          | [Field guide](manuals/Employee_Field_Guide_EN.pdf) | [Guia de campo](manuals/Employee_Field_Guide_PT-BR.pdf)    | 6 each  |
 
 The Spanish field guide is also retained. All seven PDFs were regenerated from authenticated
 synthetic captures, checked by text extraction and representative visual rendering, and matched
 by SHA-256 against both the released archive and the running production portal:
 
-| PDF | SHA-256 |
-|---|---|
-| `Employee_Field_Guide_EN.pdf` | `d119e5e85dc20f0cee1ad83793365e9d6c4e100e879809d0704eac2b91bd74d3` |
-| `Employee_Field_Guide_ES.pdf` | `b95da16cb2a9785c1acee707935a395fa6f84912b333aa9dd399da96aa43a560` |
+| PDF                              | SHA-256                                                            |
+| -------------------------------- | ------------------------------------------------------------------ |
+| `Employee_Field_Guide_EN.pdf`    | `d119e5e85dc20f0cee1ad83793365e9d6c4e100e879809d0704eac2b91bd74d3` |
+| `Employee_Field_Guide_ES.pdf`    | `b95da16cb2a9785c1acee707935a395fa6f84912b333aa9dd399da96aa43a560` |
 | `Employee_Field_Guide_PT-BR.pdf` | `19331759230cc9545115e87b3f535dd961cff9ffc77e1a38613636386295151e` |
-| `Owner_User_Guide.pdf` | `f2d495a296e7ff19fa60edb686c98af285b70fac3de0a69326ab9b2d638719d5` |
-| `Owner_User_Guide_PT-BR.pdf` | `c00ecfeadb79d8eb21695b467d50442e23d2e471453e63fa8080b027cb985a27` |
-| `Worker_User_Guide.pdf` | `cfdf7a6170bf93f410f50e8f198636d8f76557fd360aebcc232ee3f806bd0c43` |
-| `Worker_User_Guide_PT-BR.pdf` | `9f32129333fdb3f76951ec66ff59d2358b160490dd70385fc6d414b2bd43a7fb` |
+| `Owner_User_Guide.pdf`           | `f2d495a296e7ff19fa60edb686c98af285b70fac3de0a69326ab9b2d638719d5` |
+| `Owner_User_Guide_PT-BR.pdf`     | `c00ecfeadb79d8eb21695b467d50442e23d2e471453e63fa8080b027cb985a27` |
+| `Worker_User_Guide.pdf`          | `cfdf7a6170bf93f410f50e8f198636d8f76557fd360aebcc232ee3f806bd0c43` |
+| `Worker_User_Guide_PT-BR.pdf`    | `9f32129333fdb3f76951ec66ff59d2358b160490dd70385fc6d414b2bd43a7fb` |
 
 ## Storage cleanup
 

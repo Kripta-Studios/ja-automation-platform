@@ -53,7 +53,7 @@ Envie o relatório para revisão pelo fluxo exibido. A aprovação interna não 
 
 Em **Novo relatório diário**, escolha o projeto e preencha **Data do trabalho**, **Local / turno**, **Resumo**, trabalho concluído, problemas encontrados, evidências, pendências e plano para o dia seguinte. Selecione **Salvar relatório diário**, reabra-o e selecione **Enviar** quando estiver correto e completo.
 
-Em **Técnico / PLC**, escolha **Novo relatório técnico** e informe a data do relatório, sistema/local/área/estação, referência de plataforma/controlador/HMI/rede/software/programa, evidências do trabalho e da validação, resultado, risco pendente e recuperação ou próxima ação. Salve o relatório PLC e envie-o quando estiver pronto para revisão. Para anexar evidências permitidas, use **Tipo de anexo**, selecione o arquivo, informe a descrição factual e escolha **Enviar evidência privada**. Se o relatório estiver aprovado ou finalizado, os anexos são imutáveis: crie o rascunho de correção auditado em vez de substituir evidências.
+Em **Técnico / PLC**, escolha **Novo relatório técnico** e informe a data do relatório, sistema/local/área/estação, referência de plataforma/controlador/HMI/rede/software/programa, evidências do trabalho e da validação, resultado, risco pendente e recuperação ou próxima ação. Salve o relatório PLC e envie-o quando estiver pronto para revisão. O PDF gerado identifica você pela conta persistida do autor, mostrando seu nome e o e-mail da conta quando disponível; não é necessário redigitar dados de identidade no relatório. Para anexar evidências permitidas, use **Tipo de anexo**, selecione o arquivo, informe a descrição factual e escolha **Enviar evidência privada**. Se o relatório estiver aprovado ou finalizado, os anexos são imutáveis: crie o rascunho de correção auditado em vez de substituir evidências.
 
 ## Despesas, recibos e arquivos privados
 
@@ -87,7 +87,8 @@ Use anexos de relatórios apenas pelo fluxo do relatório correspondente e com u
 - **Aprovado** significa que a revisão autorizada aceitou o registro ou o valor.
 - **Agendado** significa que um pagamento está planejado para a data prevista exibida.
 - **Finalizado** significa que o cálculo definitivo do registro de remuneração foi encerrado; não confirma uma transferência.
-- **Pago** exige a data real de pagamento registrada. Um item agendado ou finalizado não comprova pagamento.
+- **Parcialmente pago** significa que o Financeiro registrou um pagamento real menor que a liquidação revisada e ainda há saldo pendente.
+- **Pago** exige evidência de pagamento real registrada para todo o saldo. Um item agendado ou finalizado não comprova pagamento.
 
 Baixe apenas seu próprio demonstrativo pronto. Se o arquivo estiver na fila ou em processamento, aguarde o serviço. Se houver falha, use o procedimento de erro/suporte exibido; você não executa tarefas manualmente. Informe divergências pelo canal de suporte verificado, com a referência do registro pertinente, nunca com dados de outra pessoa.
 

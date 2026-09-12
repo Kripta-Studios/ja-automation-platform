@@ -1,4 +1,8 @@
 <script lang="ts">
+  import {
+    lastCompletePeriodForCadence,
+    type BillingCadence,
+  } from '@ja/billing-engine';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { base } from '$app/paths';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
@@ -7,7 +11,7 @@
   import type { TableCardRow } from '../ui';
   import { billingReadinessMessageKey } from '../billing-readiness';
 
-  type BillingStage = 'all' | 'wip' | 'drafts' | 'outstanding' | 'overdue';
+  type BillingStage = 'all' | 'wip' | 'drafts' | 'outstanding' | 'overdue' | 'paid';
   type BillingWorkspace = 'invoices' | 'streams' | 'setup';
   type BillingSetupAction = 'stream' | 'entity' | 'tax' | 'numbering';
   type InvoicePdfStatus = 'queued' | 'running' | 'ready' | 'failed' | 'unavailable';
@@ -70,6 +74,9 @@
     issueBlocker?: unknown;
     code?: unknown;
     deepLink?: unknown;
+    billingRuleId?: unknown;
+    periodStart?: unknown;
+    periodEnd?: unknown;
   } | null;
 
   let {
@@ -97,41 +104,37 @@
   let workspace = $state<BillingWorkspace>('invoices');
   let setupAction = $state<BillingSetupAction>('stream');
   let selectedInvoiceId = $state('');
+  let invoiceWizardOpen = $state(false);
+  let invoiceWizardStep = $state(1);
+  let wizardRuleId = $state('');
+  let wizardPeriodStart = $state('');
+  let wizardPeriodEnd = $state('');
   type InvoiceDrawerTab = 'overview' | 'collections' | 'lifecycle';
   let invoiceDrawerTab = $state<InvoiceDrawerTab>('overview');
 
-  function lastCompleteWeek(): { start: string; end: string } {
-    const now = new Date();
-    const day = now.getUTCDay();
-    const distanceToMonday = (day + 6) % 7;
-    const thisMonday = Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate() - distanceToMonday,
-    );
-    const lastSunday = thisMonday - 86_400_000;
-    const lastMonday = lastSunday - 6 * 86_400_000;
-    return {
-      start: new Date(lastMonday).toISOString().slice(0, 10),
-      end: new Date(lastSunday).toISOString().slice(0, 10),
-    };
-  }
-
-  const draftPeriod = $derived(lastCompleteWeek());
   const todayIso = $derived(new Date().toISOString().slice(0, 10));
 
   function streamDraftPeriod(rule: Row): { start: string; end: string } {
-    const cadence = rowValue(rule, 'cadence_type', 'cadenceType').toLowerCase();
-    if (cadence === 'monthly') {
-      const now = new Date();
-      const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
-      const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0));
-      return {
-        start: start.toISOString().slice(0, 10),
-        end: end.toISOString().slice(0, 10),
-      };
+    const cadence = rowValue(rule, 'cadence_type', 'cadenceType').toLowerCase() as BillingCadence;
+    const monthlyCutoffRaw = rowValue(rule, 'monthly_cutoff_day', 'monthlyCutoffDay');
+    try {
+      const period = lastCompletePeriodForCadence(cadence, todayIso, {
+          anchorDate: rowValue(rule, 'anchor_date', 'anchorDate') || undefined,
+          monthlyCutoffDay: monthlyCutoffRaw ? Number(monthlyCutoffRaw) : undefined,
+        }) ?? { start: '', end: '' };
+      const effectiveFrom = rowValue(rule, 'effective_from', 'effectiveFrom');
+      const effectiveTo = rowValue(rule, 'effective_to', 'effectiveTo');
+      if (
+        (effectiveFrom && period.start < effectiveFrom) ||
+        (effectiveTo && period.end > effectiveTo)
+      )
+        return { start: '', end: '' };
+      return period;
+    } catch {
+      // A missing anchor or manual cadence must be resolved by an explicit user
+      // choice. Never make a weekly suggestion for a non-weekly stream.
+      return { start: '', end: '' };
     }
-    return draftPeriod;
   }
 
   function readinessReasons(): Array<{ code?: string }> {
@@ -139,8 +142,33 @@
     return form.reasons as Array<{ code?: string }>;
   }
 
+  function readinessActionHref(): string {
+    const codes = readinessReasons().map((reason) => String(reason.code ?? ''));
+    if (codes.some((code) => code.includes('time_approval')))
+      return `${base}/app/approvals?queue=time`;
+    if (codes.some((code) => code.includes('expense')))
+      return `${base}/app/approvals?queue=expenses`;
+    if (codes.some((code) => code.includes('client_rate')))
+      return `${base}/app/finance?view=commercial`;
+    return `${base}/app/billing`;
+  }
+
+  function reopenBlockedSelection(): void {
+    const ruleId = String(form?.billingRuleId ?? '');
+    if (ruleId) {
+      wizardRuleId = ruleId;
+      wizardPeriodStart = String(form?.periodStart ?? '');
+      wizardPeriodEnd = String(form?.periodEnd ?? '');
+    }
+    invoiceWizardStep = 4;
+    invoiceWizardOpen = true;
+  }
+
   const invoices = $derived(data.invoices ?? []);
   const billingRules = $derived(data.billingRules ?? []);
+  const wizardRule = $derived(
+    billingRules.find((rule) => rowValue(rule, 'id') === wizardRuleId),
+  );
   const ledgerRows = $derived(data.ledger ?? []);
   const canManageBilling = $derived(
     !isAuditor && ['owner_admin', 'finance_admin'].includes(String(data.user.role ?? '')),
@@ -164,6 +192,26 @@
     }) as BillingLedgerRow | undefined;
   }
 
+  function automationBlockers(rule: Row): string[] {
+    const raw = rowValue(rule, 'automation_blocking_reasons', 'automationBlockingReasons');
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .map((reason) =>
+          typeof reason === 'string'
+            ? reason
+            : reason && typeof reason === 'object' && 'code' in reason
+              ? String(reason.code)
+              : '',
+        )
+        .filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+
   function invoiceState(invoice: Row): string {
     return rowValue(invoice, 'state').toLowerCase();
   }
@@ -175,7 +223,8 @@
     if (state === 'overdue' || paymentState === 'overdue') return 'overdue';
     if (['wip', 'ready'].includes(state)) return 'wip';
     if (['draft', 'approved'].includes(state)) return 'drafts';
-    if (['issued', 'sent', 'partially_paid', 'paid'].includes(state)) return 'outstanding';
+    if (state === 'paid' || paymentState === 'paid') return 'paid';
+    if (['issued', 'sent', 'partially_paid'].includes(state)) return 'outstanding';
     return null;
   }
 
@@ -184,6 +233,7 @@
     drafts: invoices.filter((invoice) => invoiceStage(invoice) === 'drafts').length,
     outstanding: invoices.filter((invoice) => invoiceStage(invoice) === 'outstanding').length,
     overdue: invoices.filter((invoice) => invoiceStage(invoice) === 'overdue').length,
+    paid: invoices.filter((invoice) => invoiceStage(invoice) === 'paid').length,
   });
 
   const visibleInvoices = $derived.by(() => {
@@ -197,6 +247,11 @@
         [
           rowValue(invoice, 'invoice_number', 'invoiceNumber'),
           rowValue(invoice, 'project_number', 'projectNumber'),
+          rowValue(invoice, 'project_name', 'projectName'),
+          rowValue(invoice, 'client_code', 'clientCode'),
+          rowValue(invoice, 'client_number', 'clientNumber'),
+          rowValue(invoice, 'client_name', 'clientName'),
+          rowValue(invoice, 'cost_center_code', 'costCenterCode'),
           rowValue(invoice, 'stream_type', 'streamType'),
           rowValue(invoice, 'currency'),
           rowValue(invoice, 'state'),
@@ -263,6 +318,8 @@
         return translate('Outstanding');
       case 'overdue':
         return translate('Overdue');
+      case 'paid':
+        return translate('Paid');
       default:
         return translate('All invoices');
     }
@@ -316,6 +373,25 @@
   function openInvoice(invoice: Row): void {
     selectedInvoiceId = rowValue(invoice, 'id');
     invoiceDrawerTab = defaultDrawerTab(invoiceState(invoice));
+  }
+
+  function chooseWizardRule(ruleId: string): void {
+    wizardRuleId = ruleId;
+    const rule = billingRules.find((candidate) => rowValue(candidate, 'id') === ruleId);
+    const period = rule ? streamDraftPeriod(rule) : { start: '', end: '' };
+    wizardPeriodStart = period.start;
+    wizardPeriodEnd = period.end;
+  }
+
+  function openInvoiceWizard(): void {
+    if (billingRules.length === 0) {
+      workspace = 'setup';
+      setupAction = 'stream';
+      return;
+    }
+    invoiceWizardStep = 1;
+    chooseWizardRule(rowValue(billingRules[0], 'id'));
+    invoiceWizardOpen = true;
   }
 
   function openInvoiceFromCard(event: MouseEvent): void {
@@ -507,8 +583,290 @@
     </div>
     {#if isAuditor}
       <span class="billing-section__read-only" role="status">{translate('Read-only review')}</span>
+    {:else if canManageBilling}
+      <button type="button" class="primary-button" onclick={openInvoiceWizard}
+        >{translate('Create invoice')}</button
+      >
     {/if}
   </header>
+
+  {#if invoiceWizardOpen && canManageBilling}
+    <ResponsiveSheet
+      open={true}
+      title={translate('Create invoice')}
+      description={translate('Guided invoice workflow')}
+      closeLabel={translate('Close')}
+      onclose={() => (invoiceWizardOpen = false)}
+    >
+      <form method="POST" action="?/createDraft" class="billing-section__invoice-wizard">
+        <input type="hidden" name="billingRuleId" value={wizardRuleId} />
+        <input type="hidden" name="periodStart" value={wizardPeriodStart} />
+        <input type="hidden" name="periodEnd" value={wizardPeriodEnd} />
+        <ol class="billing-section__wizard-progress" aria-label={translate('Invoice steps')}>
+          {#each ['Client / project', 'Billing stream', 'Labor / expenses', 'Period', 'Included records', 'Excluded / pending', 'Taxes', 'Invoice data', 'Banking / payment', 'Commercial adjustments', 'Preview', 'Save / issue'] as label, index}
+            <li aria-current={invoiceWizardStep === index + 1 ? 'step' : undefined}>
+              <button type="button" onclick={() => (invoiceWizardStep = index + 1)}>
+                <span>{index + 1}</span>{translate(label)}
+              </button>
+            </li>
+          {/each}
+        </ol>
+
+        {#if invoiceWizardStep === 1}
+          <section>
+            <h3>{translate('Client / project')}</h3>
+            <p>{translate('Choose the project whose approved source records will be billed.')}</p>
+            <label>
+              <span>{translate('Project')}</span>
+              <select
+                value={wizardRuleId}
+                onchange={(event) => chooseWizardRule(event.currentTarget.value)}
+                required
+              >
+                {#each billingRules as rule}
+                  <option value={rowValue(rule, 'id')}>
+                    {rowValue(rule, 'client_number', 'clientNumber')} · {rowValue(
+                      rule,
+                      'client_name',
+                      'clientName',
+                    )} — {rowValue(rule, 'project_number', 'projectNumber')}
+                  </option>
+                {/each}
+              </select>
+            </label>
+          </section>
+        {:else if invoiceWizardStep === 2}
+          <section>
+            <h3>{translate('Billing stream')}</h3>
+            <p>
+              {translate(
+                'Labor and reimbursable expenses use independent streams, cadence and tax configuration.',
+              )}
+            </p>
+            <dl>
+              <div><dt>{translate('Stream')}</dt><dd>{controlledValue(
+                    'billingStream',
+                    rowValue(wizardRule, 'stream_type', 'streamType'),
+                  )}</dd></div>
+              <div><dt>{translate('Cadence')}</dt><dd>{controlledValue(
+                    'status',
+                    rowValue(wizardRule, 'cadence_type', 'cadenceType'),
+                  )}</dd></div>
+              <div><dt>{translate('Tax profile')}</dt><dd>{rowValue(
+                    wizardRule,
+                    'tax_profile_name',
+                    'taxProfileName',
+                  ) || translate('Missing')}</dd></div>
+            </dl>
+            <button
+              type="button"
+              class="secondary-button"
+              onclick={() => {
+                workspace = 'streams';
+                invoiceWizardOpen = false;
+              }}
+              >{translate('Manage stream')}</button
+            >
+          </section>
+        {:else if invoiceWizardStep === 3}
+          <section>
+            <h3>{translate('Labor / expenses')}</h3>
+            <p>
+              {translate(
+                'This stream includes one source family only, preventing the same labor or expense from being invoiced twice.',
+              )}
+            </p>
+            <dl>
+              <div><dt>{translate('Source')}</dt><dd>{controlledValue(
+                    'billingStream',
+                    rowValue(wizardRule, 'stream_type', 'streamType'),
+                  )}</dd></div>
+              <div><dt>{translate('Grouping')}</dt><dd>{controlledValue(
+                    'status',
+                    rowValue(wizardRule, 'grouping_mode', 'groupingMode') || 'summary',
+                  )}</dd></div>
+            </dl>
+          </section>
+        {:else if invoiceWizardStep === 4}
+          <section>
+            <h3>{translate('Period')}</h3>
+            <p>
+              {translate(
+                'The suggested dates come from this stream’s configured cadence. Manual dates are an explicit change and are never replaced silently.',
+              )}
+            </p>
+            <div class="billing-section__wizard-fields">
+              <label><span>{translate('Period start')}</span><input
+                  bind:value={wizardPeriodStart}
+                  type="date"
+                  required
+                /></label>
+              <label><span>{translate('Period end')}</span><input
+                  bind:value={wizardPeriodEnd}
+                  type="date"
+                  required
+                /></label>
+            </div>
+          </section>
+        {:else if invoiceWizardStep === 5}
+          <section>
+            <h3>{translate('Included records')}</h3>
+            <p>
+              {translate(
+                'The draft includes approved, eligible and unbilled records from this exact period. The generated draft preserves a source-by-source snapshot for review.',
+              )}
+            </p>
+            <p>
+              {translate(
+                'Eligibility and totals are calculated by the billing engine when the draft is saved; the browser does not duplicate those calculations.',
+              )}
+            </p>
+          </section>
+        {:else if invoiceWizardStep === 6}
+          <section>
+            <h3>{translate('Excluded / pending')}</h3>
+            <p>
+              {translate(
+                'Pending approvals, active corrections, missing rates or required reports block this exact period. The result explains each exclusion and keeps your selected dates.',
+              )}
+            </p>
+            <a class="secondary-button" href={`${base}/app/approvals?project=${encodeURIComponent(rowValue(wizardRule, 'project_id', 'projectId'))}`}
+              >{translate('Review pending records')}</a
+            >
+          </section>
+        {:else if invoiceWizardStep === 7}
+          <section>
+            <h3>{translate('Taxes')}</h3>
+            <p>
+              {translate(
+                'Taxes come from the explicit tax profile assigned to this stream, not from assumptions about labor or expenses.',
+              )}
+            </p>
+            <dl>
+              <div><dt>{translate('Tax profile')}</dt><dd>{rowValue(
+                    wizardRule,
+                    'tax_profile_name',
+                    'taxProfileName',
+                  ) || translate('Missing')}</dd></div>
+              <div><dt>{translate('Currency')}</dt><dd>{rowValue(wizardRule, 'currency')}</dd></div>
+            </dl>
+          </section>
+        {:else if invoiceWizardStep === 8}
+          <section>
+            <h3>{translate('Invoice data')}</h3>
+            <p>
+              {translate(
+                'The draft uses the stream’s legal entity, tax profile, recipient, payment terms and banking details. Edit the stream before creating the draft when those facts are incomplete.',
+              )}
+            </p>
+            <dl>
+              <div><dt>{translate('Legal entity')}</dt><dd>{rowValue(
+                    wizardRule,
+                    'legal_entity_code',
+                    'legalEntityCode',
+                  ) || translate('Missing')}</dd></div>
+              <div><dt>{translate('Recipient email')}</dt><dd>{rowValue(
+                    wizardRule,
+                    'recipient_email',
+                    'recipientEmail',
+                  ) || translate('Missing')}</dd></div>
+              <div><dt>{translate('PO reference')}</dt><dd>{rowValue(
+                    wizardRule,
+                    'po_number_override',
+                    'poNumberOverride',
+                  ) || '—'}</dd></div>
+            </dl>
+          </section>
+        {:else if invoiceWizardStep === 9}
+          <section>
+            <h3>{translate('Banking / payment')}</h3>
+            <p>
+              {translate(
+                'Bank details come from the selected issuing entity and payment terms come from the billing stream. Configure them before creating the draft if they are missing.',
+              )}
+            </p>
+            <dl>
+              <div><dt>{translate('Issuing entity')}</dt><dd>{rowValue(
+                    wizardRule,
+                    'legal_entity_code',
+                    'legalEntityCode',
+                  ) || translate('Missing')}</dd></div>
+              <div><dt>{translate('Payment terms (days)')}</dt><dd>{rowValue(
+                    wizardRule,
+                    'payment_terms_days',
+                    'paymentTermsDays',
+                  ) || '30'}</dd></div>
+            </dl>
+          </section>
+        {:else if invoiceWizardStep === 10}
+          <section>
+            <h3>{translate('Commercial adjustments')}</h3>
+            <p>
+              {translate(
+                'Correct a wrong source record in Time or Expenses. A commercial adjustment changes only what is billed and never overwrites the actual work record.',
+              )}
+            </p>
+            <p>
+              {translate(
+                'Manual commercial adjustments are added to the reviewable draft with a reason and audit trail before issue.',
+              )}
+            </p>
+          </section>
+        {:else if invoiceWizardStep === 11}
+          <section>
+            <h3>{translate('Preview')}</h3>
+            <dl>
+              <div><dt>{translate('Client')}</dt><dd>{rowValue(
+                    wizardRule,
+                    'client_name',
+                    'clientName',
+                  )}</dd></div>
+              <div><dt>{translate('Project')}</dt><dd>{rowValue(
+                    wizardRule,
+                    'project_number',
+                    'projectNumber',
+                  )}</dd></div>
+              <div><dt>{translate('Period')}</dt><dd>{wizardPeriodStart} → {wizardPeriodEnd}</dd></div>
+            </dl>
+            <p>
+              {translate(
+                'Save draft builds a reviewable snapshot. It does not issue, number, send or collect the invoice.',
+              )}
+            </p>
+          </section>
+        {:else}
+          <section>
+            <h3>{translate('Save / issue')}</h3>
+            <p>
+              {translate(
+                'Save the draft now. Finance can then review lines and adjustments, approve it, issue the immutable numbered version, send it and register collections.',
+              )}
+            </p>
+            <button type="submit" disabled={!wizardRuleId || !wizardPeriodStart || !wizardPeriodEnd}
+              >{translate('Save invoice draft')}</button
+            >
+          </section>
+        {/if}
+
+        <div class="billing-section__wizard-actions">
+          <button
+            type="button"
+            class="secondary-button"
+            disabled={invoiceWizardStep === 1}
+            onclick={() => (invoiceWizardStep = Math.max(1, invoiceWizardStep - 1))}
+            >{translate('Previous')}</button
+          >
+          {#if invoiceWizardStep < 12}
+            <button
+              type="button"
+              onclick={() => (invoiceWizardStep = Math.min(12, invoiceWizardStep + 1))}
+              >{translate('Next')}</button
+            >
+          {/if}
+        </div>
+      </form>
+    </ResponsiveSheet>
+  {/if}
 
   {#if issueBlocker}
     <aside class="billing-section__issue-blocker" data-issue-blocker role="alert">
@@ -531,6 +889,14 @@
             <li>{translate(billingReadinessMessageKey(reason.code))}</li>
           {/each}
         </ul>
+      </div>
+      <div class="billing-section__blocker-actions">
+        <a class="secondary-button" href={readinessActionHref()}
+          >{translate('Review pending records')}</a
+        >
+        <button type="button" onclick={reopenBlockedSelection}
+          >{translate('Choose another period')}</button
+        >
       </div>
     </aside>
   {/if}
@@ -566,7 +932,7 @@
 
   {#if workspace === 'invoices'}
     <div class="billing-section__summary" aria-label={translate('Billing stage summary')}>
-      {#each [['all', 'All invoices', invoices.length], ['wip', 'WIP / Ready', stageCounts.wip], ['drafts', 'Drafts', stageCounts.drafts], ['outstanding', 'Outstanding', stageCounts.outstanding], ['overdue', 'Overdue', stageCounts.overdue]] as summary}
+      {#each [['all', 'All invoices', invoices.length], ['wip', 'WIP / Ready', stageCounts.wip], ['drafts', 'Drafts', stageCounts.drafts], ['outstanding', 'Outstanding', stageCounts.outstanding], ['overdue', 'Overdue', stageCounts.overdue], ['paid', 'Paid', stageCounts.paid]] as summary}
         <button
           type="button"
           class:billing-section__summary-card--active={stageFilter === summary[0]}
@@ -611,6 +977,7 @@
           <option value="drafts">{translate('Drafts')}</option>
           <option value="outstanding">{translate('Outstanding')}</option>
           <option value="overdue">{translate('Overdue')}</option>
+          <option value="paid">{translate('Paid')}</option>
         </select>
       </label>
       <button
@@ -1036,6 +1403,38 @@
                   <td>
                     {controlledValue('status', rowValue(rule, 'cadence_type', 'cadenceType'))}
                     · {rowValue(rule, 'currency')}
+                    <small>
+                      {translate('Effective')}: {rowValue(rule, 'effective_from', 'effectiveFrom')}
+                      → {rowValue(rule, 'effective_to', 'effectiveTo') || '…'}
+                    </small>
+                    <small>
+                      {Number(rowValue(rule, 'auto_generate_draft', 'autoGenerateDraft')) === 1
+                        ? translate('Automatic draft enabled')
+                        : translate('Automatic draft disabled')}
+                    </small>
+                    {#if Number(rowValue(rule, 'auto_generate_draft', 'autoGenerateDraft')) === 1}
+                      <small>
+                        {translate('Next period')}: {streamDraftPeriod(rule).start || '—'} → {streamDraftPeriod(
+                          rule,
+                        ).end || '—'}
+                      </small>
+                      <small>
+                        {translate('Last run')}: {dateValue(
+                          rowValue(rule, 'automation_last_run', 'automationLastRun'),
+                        )} · {controlledValue(
+                          'status',
+                          rowValue(rule, 'automation_last_result', 'automationLastResult') ||
+                            'not_run',
+                        )}
+                      </small>
+                      {#if automationBlockers(rule).length > 0}
+                        <small class="billing-section__automation-blocker">
+                          {translate('Blocking reason')}: {automationBlockers(rule)
+                            .map((reason) => translate(billingReadinessMessageKey(reason)))
+                            .join(' · ')}
+                        </small>
+                      {/if}
+                    {/if}
                   </td>
                   <td>
                     {rowValue(rule, 'tax_profile_name', 'taxProfileName') ||
@@ -1163,8 +1562,32 @@
                                 >
                               </select></label
                             >
+                            <label class="billing-section__checkbox">
+                              <input type="hidden" name="autoGenerateDraftPresent" value="1" />
+                              <input
+                                name="autoGenerateDraft"
+                                type="checkbox"
+                                checked={Number(
+                                  rowValue(rule, 'auto_generate_draft', 'autoGenerateDraft'),
+                                ) === 1}
+                              />
+                              <span>{translate('Automatically prepare draft after period close')}</span>
+                            </label>
                             <button type="submit">{translate('Save billing stream')}</button>
                           </form>
+                          <button
+                            type="button"
+                            class="secondary-button"
+                            onclick={() => {
+                              workspace = 'setup';
+                              setupAction = 'stream';
+                            }}>{translate('New effective-dated conditions')}</button
+                          >
+                          <p class="billing-section__effective-note">
+                            {translate(
+                              'Cadence and commercial conditions use effective-dated streams. Create a successor for a future change so historic periods are never reinterpreted.',
+                            )}
+                          </p>
                           <form
                             method="POST"
                             action="?/archiveBillingRule"
@@ -2745,6 +3168,97 @@
     text-align: center;
   }
 
+  .billing-section__invoice-wizard {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .billing-section__wizard-progress {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .billing-section__wizard-progress button {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    padding: 0.55rem;
+    border: 1px solid var(--portal-border, #d7dee8);
+    background: var(--portal-wash, #f7f9fb);
+    color: var(--portal-ink, #16202a);
+    text-align: left;
+  }
+
+  .billing-section__wizard-progress li[aria-current='step'] button {
+    border-color: var(--portal-accent, #0f5f73);
+    background: color-mix(in srgb, var(--portal-accent, #0f5f73) 10%, white);
+  }
+
+  .billing-section__wizard-progress span {
+    display: inline-grid;
+    place-items: center;
+    min-width: 1.45rem;
+    min-height: 1.45rem;
+    border-radius: 999px;
+    background: var(--portal-ink, #16202a);
+    color: white;
+    font-size: 0.75rem;
+  }
+
+  .billing-section__invoice-wizard section,
+  .billing-section__invoice-wizard dl {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .billing-section__invoice-wizard section > h3,
+  .billing-section__invoice-wizard section > p,
+  .billing-section__invoice-wizard dl,
+  .billing-section__invoice-wizard dd {
+    margin: 0;
+  }
+
+  .billing-section__invoice-wizard dl > div {
+    display: grid;
+    grid-template-columns: minmax(8rem, 0.4fr) 1fr;
+    gap: 0.6rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--portal-border, #d7dee8);
+  }
+
+  .billing-section__invoice-wizard dt {
+    color: var(--portal-muted, #64748b);
+  }
+
+  .billing-section__wizard-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .billing-section__wizard-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--portal-border, #d7dee8);
+  }
+
+  .billing-section__automation-blocker {
+    color: var(--portal-danger, #9f2430);
+  }
+
+  .billing-section__effective-note {
+    max-width: 48rem;
+    margin: 0;
+    color: var(--portal-muted, #64748b);
+  }
+
   .billing-section button:focus-visible,
   .billing-section a:focus-visible,
   .billing-section input:focus-visible,
@@ -2809,7 +3323,9 @@
     .billing-section__config-compact-grid,
     .billing-section__directories,
     .billing-section__invoice-dates,
-    .billing-section__planning-fields {
+    .billing-section__planning-fields,
+    .billing-section__wizard-progress,
+    .billing-section__wizard-fields {
       grid-template-columns: 1fr;
     }
 

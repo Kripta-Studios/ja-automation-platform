@@ -145,14 +145,14 @@ for (const role of ['owner', 'finance'] as const) {
     const panel = page.locator('.finance-config-panel');
     await expect(panel).toBeVisible();
     const intro = panel.locator('.finance-config-intro');
-    await panel
-      .getByRole('button', { name: 'Project issuing authority', exact: true })
-      .click();
+    await panel.getByRole('button', { name: 'Project issuing authority', exact: true }).click();
     const authority = panel.locator('[data-project-legal-entity]');
     await authority.scrollIntoViewIfNeeded();
     const authorityIntroBox = await intro.boundingBox();
     const authorityBox = await authority.boundingBox();
-    expect(authorityBox!.y - (authorityIntroBox!.y + authorityIntroBox!.height)).toBeGreaterThanOrEqual(23);
+    expect(
+      authorityBox!.y - (authorityIntroBox!.y + authorityIntroBox!.height),
+    ).toBeGreaterThanOrEqual(23);
     await panel
       .getByRole('button', { name: 'Project commercial and time policy', exact: true })
       .click();

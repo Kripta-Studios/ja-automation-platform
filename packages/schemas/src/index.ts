@@ -86,7 +86,7 @@ export const clientInputSchema = z
     timezone: z.string().trim().min(1).max(100),
     billingEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
     billingContactName: z.preprocess(
-      (value) => typeof value === 'string' && !value.trim() ? undefined : value,
+      (value) => (typeof value === 'string' && !value.trim() ? undefined : value),
       z.string().trim().min(2).max(160).optional(),
     ),
     billingAddress: z.string().trim().min(5).max(2000),
@@ -446,6 +446,29 @@ export const compensationSettlementPlanningInputSchema = z
   .object({
     settlementId: uuidSchema,
     expectedPaymentOn: nullablePlanningDateSchema,
+  })
+  .strict();
+
+export const compensationPaymentInputSchema = z
+  .object({
+    settlementId: uuidSchema,
+    payeeKind: z.enum(['person', 'supplier']),
+    payeeId: uuidSchema,
+    amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
+    currency: currencySchema,
+    paidOn: isoDateSchema,
+    reference: z.string().trim().min(1).max(200),
+    note: z.string().trim().max(2000).optional(),
+    idempotencyKey: z.string().trim().min(8).max(240),
+  })
+  .strict();
+
+export const compensationPaymentReversalInputSchema = z
+  .object({
+    paymentEventId: uuidSchema,
+    reversedOn: isoDateSchema,
+    reason: z.string().trim().min(3).max(2000),
+    idempotencyKey: z.string().trim().min(8).max(240),
   })
   .strict();
 

@@ -2623,20 +2623,48 @@ export class V3Repository {
         `SELECT cs.id,cs.worker_id,cs.project_id,cs.period_start,cs.period_end,cs.source_basis,
                 CAST(cs.source_amount_minor AS TEXT) source_amount_minor,cs.percentage_bps,
                 CAST(cs.amount_minor AS TEXT) amount_minor,cs.currency,cs.state,
-                cs.settled_at,cs.expected_payment_on,p.project_number,p.name project_name,u.name worker_name
+                cs.settled_at,cs.expected_payment_on,p.project_number,p.name project_name,u.name worker_name,
+                profile.supplier_id,supplier.name supplier_name,
+                CAST(COALESCE((
+                  SELECT SUM(CASE WHEN payment.event_type='payment' THEN payment.amount_minor ELSE -payment.amount_minor END)
+                    FROM worker_compensation_payment_event payment
+                   WHERE payment.settlement_id=cs.id
+                ),0) AS TEXT) paid_amount_minor,
+                (SELECT MAX(payment.paid_on)
+                   FROM worker_compensation_payment_event payment
+                  WHERE payment.settlement_id=cs.id AND payment.event_type='payment'
+                    AND NOT EXISTS(
+                      SELECT 1 FROM worker_compensation_payment_event reversal
+                       WHERE reversal.event_type='reversal' AND reversal.reverses_event_id=payment.id
+                    )) actual_payment_on
          FROM compensation_settlement cs
          JOIN project p ON p.id=cs.project_id
          JOIN user u ON u.id=cs.worker_id
+    LEFT JOIN supplier_user_profile profile ON profile.user_id=cs.worker_id
+    LEFT JOIN supplier ON supplier.id=profile.supplier_id
          ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}
          ORDER BY cs.period_start DESC,cs.id`,
       )
       .all(...values) as Array<Record<string, DbValue>>;
-    return rows.map((row) =>
-      financeVisible
+    return rows.map((row) => {
+      const amountMinor = BigInt(String(row.amount_minor));
+      const paidAmountMinor = BigInt(String(row.paid_amount_minor ?? '0'));
+      const remainingAmountMinor = amountMinor - paidAmountMinor;
+      const paymentState =
+        paidAmountMinor <= 0n
+          ? row.expected_payment_on
+            ? 'scheduled'
+            : 'reviewed'
+          : remainingAmountMinor > 0n
+            ? 'partially_paid'
+            : 'paid';
+      return financeVisible
         ? {
             id: row.id,
             workerId: row.worker_id,
             workerName: row.worker_name,
+            supplierId: row.supplier_id,
+            supplierName: row.supplier_name,
             projectId: row.project_id,
             periodStart: row.period_start,
             periodEnd: row.period_end,
@@ -2648,6 +2676,10 @@ export class V3Repository {
             state: row.state,
             settledAt: row.settled_at,
             expectedPaymentOn: row.expected_payment_on,
+            paidAmountMinor: paidAmountMinor.toString(),
+            remainingAmountMinor: remainingAmountMinor.toString(),
+            paymentState,
+            actualPaymentOn: row.actual_payment_on,
             projectNumber: row.project_number,
             projectName: row.project_name,
           }
@@ -2661,10 +2693,14 @@ export class V3Repository {
             state: row.state,
             settledAt: row.settled_at,
             expectedPaymentOn: row.expected_payment_on,
+            paidAmountMinor: paidAmountMinor.toString(),
+            remainingAmountMinor: remainingAmountMinor.toString(),
+            paymentState,
+            actualPaymentOn: row.actual_payment_on,
             projectNumber: row.project_number,
             projectName: row.project_name,
-          },
-    );
+          };
+    });
   }
 
   setCompensationSettlementExpectedPaymentOn(
@@ -2688,13 +2724,11 @@ export class V3Repository {
         | { id: string; project_id: string; state: string; settled_at: string | null }
         | undefined;
       if (!settlement) throw new V3ValidationError('Compensation settlement not found');
-      if (settlement.settled_at || ['settled', 'paid'].includes(settlement.state))
-        throw new V3ConflictError('Settled compensation history is immutable');
       const changed = this.sqlite
         .prepare(
           `UPDATE compensation_settlement
            SET expected_payment_on=?,updated_at=?
-           WHERE id=? AND settled_at IS NULL AND state NOT IN ('settled','paid')`,
+           WHERE id=?`,
         )
         .run(input.expectedPaymentOn, timestamp(), input.settlementId);
       if (changed.changes !== 1)
@@ -2715,6 +2749,258 @@ export class V3Repository {
         settlementId: input.settlementId,
         expectedPaymentOn: input.expectedPaymentOn,
       };
+    });
+  }
+
+  listCompensationPaymentEvents(principal: Principal, settlementId?: string) {
+    this.assertActive(principal);
+    const financeVisible = canManageBilling(principal) || principal.role === 'auditor_read_only';
+    if (financeVisible) this.assertFinanceReadable(principal);
+    const conditions: string[] = [];
+    const values: DbValue[] = [];
+    if (!financeVisible) {
+      conditions.push('settlement.worker_id=?');
+      values.push(principal.userId);
+    }
+    if (settlementId) {
+      conditions.push('payment.settlement_id=?');
+      values.push(settlementId);
+    }
+    return this.sqlite
+      .prepare(
+        `SELECT payment.id,payment.settlement_id,payment.event_type,payment.reverses_event_id,
+                payment.payee_kind,payment.payee_user_id,payment.payee_supplier_id,
+                CAST(payment.amount_minor AS TEXT) amount_minor,payment.currency,payment.paid_on,
+                payment.reference,payment.note,payment.created_at,
+                payee_user.name payee_user_name,supplier.name payee_supplier_name,
+                settlement.worker_id,worker.name worker_name,settlement.project_id,
+                project.project_number,project.name project_name
+           FROM worker_compensation_payment_event payment
+           JOIN compensation_settlement settlement ON settlement.id=payment.settlement_id
+           JOIN user worker ON worker.id=settlement.worker_id
+           JOIN project ON project.id=settlement.project_id
+           LEFT JOIN user payee_user ON payee_user.id=payment.payee_user_id
+           LEFT JOIN supplier ON supplier.id=payment.payee_supplier_id
+          ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}
+          ORDER BY payment.paid_on DESC,payment.created_at DESC,payment.id DESC`,
+      )
+      .all(...values);
+  }
+
+  recordCompensationPayment(
+    principal: Principal,
+    input: Readonly<{
+      settlementId: string;
+      payeeKind: 'person' | 'supplier';
+      payeeId: string;
+      amountMinor: bigint;
+      currency: V3Currency;
+      paidOn: string;
+      reference: string;
+      note?: string;
+      idempotencyKey: string;
+    }>,
+  ) {
+    this.assertFinance(principal);
+    this.assertLiveSession(principal);
+    requireDate(input.paidOn, 'Actual payment date');
+    const reference = requireText(input.reference, 'Payment reference', 200);
+    const note = input.note?.trim() || null;
+    if (note && note.length > 2000) throw new V3ValidationError('Payment note is too long');
+    if (input.amountMinor <= 0n) throw new V3ValidationError('Payment amount must be positive');
+    const idempotencyKey = requireText(input.idempotencyKey, 'Idempotency key', 240);
+    return this.transaction(() => {
+      const duplicate = this.sqlite
+        .prepare(
+          `SELECT id,settlement_id,event_type,payee_kind,payee_user_id,payee_supplier_id,
+                  CAST(amount_minor AS TEXT) amount_minor,currency,paid_on,reference,note
+             FROM worker_compensation_payment_event WHERE idempotency_key=?`,
+        )
+        .get(idempotencyKey) as Record<string, DbValue> | undefined;
+      if (duplicate) {
+        const same =
+          duplicate.event_type === 'payment' &&
+          duplicate.settlement_id === input.settlementId &&
+          duplicate.payee_kind === input.payeeKind &&
+          String(duplicate.payee_user_id ?? duplicate.payee_supplier_id ?? '') === input.payeeId &&
+          String(duplicate.amount_minor) === input.amountMinor.toString() &&
+          duplicate.currency === input.currency &&
+          duplicate.paid_on === input.paidOn &&
+          duplicate.reference === reference &&
+          String(duplicate.note ?? '') === String(note ?? '');
+        if (!same) throw new V3ConflictError('Payment idempotency key was already used');
+        return { id: String(duplicate.id), idempotent: true };
+      }
+      const settlement = this.sqlite
+        .prepare(
+          `SELECT id,worker_id,project_id,CAST(amount_minor AS TEXT) amount_minor,currency,state
+             FROM compensation_settlement WHERE id=?`,
+        )
+        .get(input.settlementId) as
+        | {
+            id: string;
+            worker_id: string;
+            project_id: string;
+            amount_minor: string;
+            currency: V3Currency;
+            state: string;
+          }
+        | undefined;
+      if (!settlement) throw new V3ValidationError('Compensation settlement not found');
+      if (settlement.state !== 'settled')
+        throw new V3ConflictError('Compensation must be reviewed and finalized before payment');
+      if (settlement.currency !== input.currency)
+        throw new V3ValidationError('Payment currency must match the compensation settlement');
+      if (input.payeeKind === 'person') {
+        if (input.payeeId !== settlement.worker_id)
+          throw new V3ValidationError('Person payee must be the settlement worker');
+      } else {
+        const supplier = this.sqlite
+          .prepare(
+            `SELECT 1 FROM supplier
+              WHERE id=? AND EXISTS(
+                SELECT 1 FROM supplier_user_profile profile
+                 WHERE profile.user_id=? AND profile.supplier_id=supplier.id
+              )`,
+          )
+          .get(input.payeeId, settlement.worker_id);
+        if (!supplier)
+          throw new V3ValidationError('Supplier payee must be linked to the settlement worker');
+      }
+      const paid = this.sqlite
+        .prepare(
+          `SELECT CAST(COALESCE(SUM(CASE WHEN event_type='payment' THEN amount_minor ELSE -amount_minor END),0) AS TEXT) total
+             FROM worker_compensation_payment_event WHERE settlement_id=?`,
+        )
+        .get(input.settlementId) as { total: string };
+      const remaining = BigInt(settlement.amount_minor) - BigInt(paid.total);
+      if (input.amountMinor > remaining)
+        throw new V3ValidationError('Payment amount exceeds the remaining compensation balance');
+      const id = newId();
+      const createdAt = timestamp();
+      this.sqlite
+        .prepare(
+          `INSERT INTO worker_compensation_payment_event(
+             id,settlement_id,event_type,reverses_event_id,payee_kind,payee_user_id,
+             payee_supplier_id,amount_minor,currency,paid_on,reference,note,created_by,created_at,
+             idempotency_key
+           ) VALUES(?,?,'payment',NULL,?,?,?,?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          id,
+          settlement.id,
+          input.payeeKind,
+          input.payeeKind === 'person' ? input.payeeId : null,
+          input.payeeKind === 'supplier' ? input.payeeId : null,
+          sqliteInteger(input.amountMinor, 'Payment amount'),
+          input.currency,
+          input.paidOn,
+          reference,
+          note,
+          principal.userId,
+          createdAt,
+          idempotencyKey,
+        );
+      this.audit(
+        principal,
+        'compensation.payment.record',
+        'compensation_settlement',
+        settlement.id,
+        {
+          projectId: settlement.project_id,
+          paymentEventId: id,
+          amountMinor: input.amountMinor.toString(),
+          currency: input.currency,
+          paidOn: input.paidOn,
+          payeeKind: input.payeeKind,
+          payeeId: input.payeeId,
+          remainingMinor: (remaining - input.amountMinor).toString(),
+        },
+      );
+      return { id, idempotent: false };
+    });
+  }
+
+  reverseCompensationPayment(
+    principal: Principal,
+    input: Readonly<{
+      paymentEventId: string;
+      reversedOn: string;
+      reason: string;
+      idempotencyKey: string;
+    }>,
+  ) {
+    this.assertFinance(principal);
+    this.assertLiveSession(principal);
+    requireDate(input.reversedOn, 'Reversal date');
+    const reason = requireText(input.reason, 'Reversal reason', 2000);
+    const idempotencyKey = requireText(input.idempotencyKey, 'Idempotency key', 240);
+    return this.transaction(() => {
+      const existing = this.sqlite
+        .prepare('SELECT id FROM worker_compensation_payment_event WHERE idempotency_key=?')
+        .get(idempotencyKey) as { id: string } | undefined;
+      if (existing) return { id: existing.id, idempotent: true };
+      const payment = this.sqlite
+        .prepare(
+          `SELECT payment.*,settlement.project_id
+             FROM worker_compensation_payment_event payment
+             JOIN compensation_settlement settlement ON settlement.id=payment.settlement_id
+            WHERE payment.id=?`,
+        )
+        .get(input.paymentEventId) as Record<string, DbValue> | undefined;
+      if (!payment || payment.event_type !== 'payment')
+        throw new V3ValidationError('Original compensation payment not found');
+      if (
+        this.sqlite
+          .prepare(
+            `SELECT 1 FROM worker_compensation_payment_event
+              WHERE event_type='reversal' AND reverses_event_id=?`,
+          )
+          .get(input.paymentEventId)
+      )
+        throw new V3ConflictError('Compensation payment is already reversed');
+      const id = newId();
+      const createdAt = timestamp();
+      this.sqlite
+        .prepare(
+          `INSERT INTO worker_compensation_payment_event(
+             id,settlement_id,event_type,reverses_event_id,payee_kind,payee_user_id,
+             payee_supplier_id,amount_minor,currency,paid_on,reference,note,created_by,created_at,
+             idempotency_key
+           ) VALUES(?,?,'reversal',?,?,?,?,?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          id,
+          String(payment.settlement_id),
+          String(payment.id),
+          String(payment.payee_kind),
+          payment.payee_user_id ?? null,
+          payment.payee_supplier_id ?? null,
+          sqliteInteger(BigInt(String(payment.amount_minor)), 'Payment amount'),
+          String(payment.currency),
+          input.reversedOn,
+          `Reversal: ${String(payment.reference)}`.slice(0, 200),
+          reason,
+          principal.userId,
+          createdAt,
+          idempotencyKey,
+        );
+      this.audit(
+        principal,
+        'compensation.payment.reverse',
+        'compensation_settlement',
+        String(payment.settlement_id),
+        {
+          projectId: payment.project_id,
+          paymentEventId: payment.id,
+          reversalEventId: id,
+          amountMinor: String(payment.amount_minor),
+          currency: payment.currency,
+          reversedOn: input.reversedOn,
+          reason,
+        },
+      );
+      return { id, idempotent: false };
     });
   }
 
@@ -5513,7 +5799,7 @@ export class V3Repository {
     const rule = this.sqlite
       .prepare(
         `SELECT br.id,br.project_id,br.stream_type,br.tax_profile_id,br.legal_entity_id,
-                br.cadence_type,br.anchor_date,br.monthly_cutoff_day,
+                br.cadence_type,br.anchor_date,br.monthly_cutoff_day,br.effective_from,br.effective_to,
                 p.daily_report_required,p.technical_reporting_required,p.currency project_currency
          FROM billing_rule br JOIN project p ON p.id=br.project_id
          WHERE br.id=? AND br.enabled=1`,
@@ -5528,12 +5814,19 @@ export class V3Repository {
           cadence_type: string;
           anchor_date: string | null;
           monthly_cutoff_day: number | null;
+          effective_from: string;
+          effective_to: string | null;
           daily_report_required: number;
           technical_reporting_required: number;
           project_currency: V3Currency;
         }
       | undefined;
     if (!rule) throw new V3ValidationError('Billing rule not found');
+    if (
+      periodStart < rule.effective_from ||
+      (rule.effective_to !== null && periodEnd > rule.effective_to)
+    )
+      throw new V3ValidationError('Billing period is outside the stream effective dates');
     if (['weekly', 'every_14_days', 'semi_monthly', 'monthly'].includes(rule.cadence_type)) {
       const expected = periodForCadence(
         rule.cadence_type as 'weekly' | 'every_14_days' | 'semi_monthly' | 'monthly',
@@ -8753,6 +9046,48 @@ export class V3Repository {
           missingCostRuleCount,
         },
       };
+      const operationalReview = this.sqlite
+        .prepare(
+          `SELECT
+             (SELECT COUNT(*) FROM time_entry
+               WHERE work_date BETWEEN ? AND ?
+                 AND approval_state IN ('draft','submitted','needs_changes')) +
+             (SELECT COUNT(*) FROM expense
+               WHERE spent_on BETWEEN ? AND ?
+                 AND approval_state IN ('draft','submitted','needs_changes')) +
+             (SELECT COUNT(*) FROM daily_report
+               WHERE work_date BETWEEN ? AND ?
+                 AND approval_state IN ('draft','submitted','needs_changes')) +
+             (SELECT COUNT(*) FROM technical_report
+               WHERE report_date BETWEEN ? AND ?
+                 AND approval_state IN ('draft','submitted','needs_changes')) pending_record_count,
+             (SELECT COUNT(*) FROM expense
+               WHERE spent_on BETWEEN ? AND ?
+                 AND approval_state='approved'
+                 AND commercial_classification_state<>'classified') unclassified_expense_count,
+             (SELECT COUNT(*) FROM expense
+               WHERE spent_on BETWEEN ? AND ?
+                 AND approval_state NOT IN ('rejected','void')
+                 AND receipt_document_id IS NULL) missing_document_count`,
+        )
+        .get(
+          periodStart,
+          periodEnd,
+          periodStart,
+          periodEnd,
+          periodStart,
+          periodEnd,
+          periodStart,
+          periodEnd,
+          periodStart,
+          periodEnd,
+          periodStart,
+          periodEnd,
+        ) as {
+        pending_record_count: number;
+        unclassified_expense_count: number;
+        missing_document_count: number;
+      };
       const reconciliation = {
         invoiceRegisterGrossByCurrency: amountMap(invoiceGrossByCurrency),
         invoiceRegisterNetByCurrency,
@@ -8764,6 +9099,9 @@ export class V3Repository {
         approvedTimeEntryCount,
         approvedExpenseCount,
         missingCostRuleCount,
+        pendingRecordCount: operationalReview.pending_record_count,
+        unclassifiedExpenseCount: operationalReview.unclassified_expense_count,
+        missingDocumentCount: operationalReview.missing_document_count,
         paymentCount: paymentRows.length + paymentReversalRows.length,
         collectedInMonthByCurrency: amountMap(collectedByCurrency),
         workerCostSourceByCurrency: amountMap(workerCostSourceByCurrency),

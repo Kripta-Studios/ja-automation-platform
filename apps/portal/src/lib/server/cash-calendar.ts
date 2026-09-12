@@ -147,22 +147,42 @@ function readCashMovementSnapshot(context: Context): CashMovement[] {
         reference: reversal.reason ?? '',
       });
   }
+  const compensationPaymentEvents = v3.listCompensationPaymentEvents(principal);
   for (const settlement of v3.listCompensationSettlements(principal)) {
     const projectId = String(settlement.projectId);
     const day = dateOnly(settlement.periodEnd);
     if (!day) continue;
-    // The existing finalize-compensation command sets settled_at without recording a bank
-    // transfer. Preserve that meaning: settled is not newly asserted to be paid or unpaid.
-    const state = String(settlement.state);
-    if (!['draft', 'approved', 'scheduled', 'pending', 'settled', 'paid'].includes(state)) continue;
-    const amount = BigInt(String(settlement.amountMinor));
-    if (amount <= 0n) continue;
+    const state = String(settlement.paymentState ?? settlement.state);
     const startEntity = entityOn(projectId, String(settlement.periodStart));
     const endEntity = entityOn(projectId, day);
     const entity =
       startEntity.entityId === endEntity.entityId ? endEntity : { entityId: null, entity: '' };
+    const href = `/app/finance?project=${encodeURIComponent(projectId)}&view=economic&source=settlements#worker-payments`;
+    for (const payment of compensationPaymentEvents.filter(
+      (event) => String(event.settlement_id) === String(settlement.id),
+    )) {
+      const reversal = String(payment.event_type) === 'reversal';
+      movements.push({
+        id: `compensation-payment:${payment.id}`,
+        sourceId: String(settlement.id),
+        projectId,
+        project: `${settlement.projectNumber} — ${settlement.projectName}`,
+        party: String(payment.payee_user_name ?? payment.payee_supplier_name ?? ''),
+        ...entity,
+        currency: String(payment.currency),
+        kind: 'worker_compensation',
+        basis: 'actual',
+        date: dateOnly(payment.paid_on),
+        dueDate: null,
+        amountMinor: `${reversal ? '' : '-'}${String(payment.amount_minor)}`,
+        reference: String(payment.reference),
+        href,
+      });
+    }
+    const remaining = BigInt(String(settlement.remainingAmountMinor ?? settlement.amountMinor));
+    if (remaining <= 0n) continue;
     movements.push({
-      id: `compensation:${settlement.id}`,
+      id: `compensation-balance:${settlement.id}`,
       sourceId: String(settlement.id),
       projectId,
       project: `${settlement.projectNumber} — ${settlement.projectName}`,
@@ -170,14 +190,12 @@ function readCashMovementSnapshot(context: Context): CashMovement[] {
       ...entity,
       currency: String(settlement.currency),
       kind: 'worker_compensation',
-      basis: ['approved', 'scheduled', 'pending'].includes(state)
-        ? 'expected'
-        : 'needs_confirmation',
+      basis: settlement.expectedPaymentOn ? 'expected' : 'needs_confirmation',
       date: dateOnly(settlement.expectedPaymentOn),
       dueDate: null,
-      amountMinor: (-amount).toString(),
+      amountMinor: (-remaining).toString(),
       reference: state,
-      href: `/app/finance?project=${encodeURIComponent(projectId)}&view=economic&source=settlements#worker-payments`,
+      href,
     });
   }
   // Reuse the repository's correction/source eligibility; monetary cash facts use the

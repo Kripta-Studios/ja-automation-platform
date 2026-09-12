@@ -91,7 +91,15 @@ export const load: PageServerLoad = ({ locals, url }) => {
       technicalReports: ctx.sqlite
         .prepare('SELECT id,system_name FROM technical_report ORDER BY system_name')
         .all() as { id: string; system_name: string }[],
-      catalogRows: area ? new OwnerCatalogManagement(ctx.sqlite).list(ctx.principal, area).filter(row => !url.searchParams.get('project') || String(row.project_id) === url.searchParams.get('project')) : [],
+      catalogRows: area
+        ? new OwnerCatalogManagement(ctx.sqlite)
+            .list(ctx.principal, area)
+            .filter(
+              (row) =>
+                !url.searchParams.get('project') ||
+                String(row.project_id) === url.searchParams.get('project'),
+            )
+        : [],
       focusId: url.searchParams.get('focus') ?? '',
       projects: ctx.sqlite
         .prepare('SELECT id,project_number,name FROM project ORDER BY project_number')

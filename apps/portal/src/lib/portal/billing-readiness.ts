@@ -27,16 +27,8 @@ export const BILLING_READINESS_MESSAGE_KEYS = {
 export type BillingReadinessMessageKey =
   (typeof BILLING_READINESS_MESSAGE_KEYS)[keyof typeof BILLING_READINESS_MESSAGE_KEYS];
 
-const AUTO_RESOLVE_CODES = new Set(['no_billable_sources', 'period_cutoff_mismatch']);
-
 export function billingReadinessMessageKey(code: unknown): string {
   const mapped =
     BILLING_READINESS_MESSAGE_KEYS[String(code) as keyof typeof BILLING_READINESS_MESSAGE_KEYS];
   return mapped ?? 'action.conflict.billingPeriodIncomplete';
-}
-
-export function isAutoResolvableBillingReadiness(reasons: readonly { code?: string }[]): boolean {
-  return (
-    reasons.length > 0 && reasons.every((reason) => AUTO_RESOLVE_CODES.has(String(reason.code)))
-  );
 }

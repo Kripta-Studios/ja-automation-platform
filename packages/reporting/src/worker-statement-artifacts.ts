@@ -297,7 +297,13 @@ export function assertWorkerStatementSnapshot(
       !requiredString((settlement as Record<string, unknown>).periodEnd) ||
       !safeMinor((settlement as Record<string, unknown>).amountMinor) ||
       !requiredString((settlement as Record<string, unknown>).currency) ||
-      !requiredString((settlement as Record<string, unknown>).state)
+      !requiredString((settlement as Record<string, unknown>).state) ||
+      ((settlement as Record<string, unknown>).paymentState !== undefined &&
+        !requiredString((settlement as Record<string, unknown>).paymentState)) ||
+      ((settlement as Record<string, unknown>).paidAmountMinor !== undefined &&
+        !safeMinor((settlement as Record<string, unknown>).paidAmountMinor)) ||
+      ((settlement as Record<string, unknown>).remainingAmountMinor !== undefined &&
+        !safeMinor((settlement as Record<string, unknown>).remainingAmountMinor))
     )
       throw new Error('WORKER_STATEMENT_SNAPSHOT_INVALID');
   }

@@ -70,8 +70,7 @@
   let localRole = $state('worker');
   let revealPassword = $state(false);
   let showAll = $state(false);
-  let editingWorkerId = $state<string | null>(null);
-  $effect(() => { editingWorkerId = $page.url.searchParams.get('worker'); });
+  let editingWorkerId = $derived<string | null>($page.url.searchParams.get('worker'));
   let creatingUser = $state(false);
   let invitationCopied = $state(false);
   let mailboxSearch = $state('');
@@ -129,8 +128,11 @@
   function workerAssignments(worker: PortalRow): PortalRow[] {
     const id = workerId(worker);
     return assignments.filter(
-      (assignment) => value(assignment, 'worker_id', 'user_id') === id && Boolean(id) &&
-        (!$page.url.searchParams.get('project') || value(assignment, 'project_id') === $page.url.searchParams.get('project')),
+      (assignment) =>
+        value(assignment, 'worker_id', 'user_id') === id &&
+        Boolean(id) &&
+        (!$page.url.searchParams.get('project') ||
+          value(assignment, 'project_id') === $page.url.searchParams.get('project')),
     );
   }
 
@@ -190,9 +192,15 @@
   const activeWorkers = $derived(
     (workers ?? []).filter((worker) => showAll || value(worker, 'status') === 'active'),
   );
-  const visibleWorkers = $derived(activeWorkers.filter(worker => matchesWorker(worker) &&
-    (!$page.url.searchParams.get('worker') || workerId(worker) === $page.url.searchParams.get('worker')) &&
-    (!$page.url.searchParams.get('project') || workerAssignments(worker).length > 0)));
+  const visibleWorkers = $derived(
+    activeWorkers.filter(
+      (worker) =>
+        matchesWorker(worker) &&
+        (!$page.url.searchParams.get('worker') ||
+          workerId(worker) === $page.url.searchParams.get('worker')) &&
+        (!$page.url.searchParams.get('project') || workerAssignments(worker).length > 0),
+    ),
+  );
 
   function mailboxEmail(mailbox: MailboxRow): string {
     const email = String(mailbox.email ?? '')
@@ -460,7 +468,11 @@
             <div>
               <p class="team-directory__eyebrow">{translate('SECURE USER PROVISIONING')}</p>
               <h2 id="team-create-user-title">{translate('Create user access')}</h2>
-              <p>{translate('Choose an invitation or set local credentials yourself. Assign project access after creating the account.')}</p>
+              <p>
+                {translate(
+                  'Choose an invitation or set local credentials yourself. Assign project access after creating the account.',
+                )}
+              </p>
             </div>
             <button
               type="button"
@@ -472,85 +484,142 @@
             >
           </div>
           {#if creatingUser}
-            <label><span>{translate('Access method')}</span><select bind:value={createLocal}><option value={true}>{translate('Set email and password')}</option><option value={false}>{translate('Invitation link')}</option></select></label>
+            <label
+              ><span>{translate('Access method')}</span><select bind:value={createLocal}
+                ><option value={true}>{translate('Set email and password')}</option><option
+                  value={false}>{translate('Invitation link')}</option
+                ></select
+              ></label
+            >
             {#if createLocal}
-              <form method="POST" action="?view=team&/createLocalPortalUser" class="team-directory__create-form" autocomplete="off">
-                <label>{translate('Name')}<input name="name" minlength="2" maxlength="160" required /></label>
+              <form
+                method="POST"
+                action="?view=team&/createLocalPortalUser"
+                class="team-directory__create-form"
+                autocomplete="off"
+              >
+                <label
+                  >{translate('Name')}<input
+                    name="name"
+                    minlength="2"
+                    maxlength="160"
+                    required
+                  /></label
+                >
                 <label>{translate('Email')}<input name="email" type="email" required /></label>
                 <label>{translate('Phone')}<input name="phone" maxlength="80" /></label>
                 <label>{translate('Company')}<input name="company" maxlength="200" /></label>
-                <label>{translate('Contact name')}<input name="contactName" maxlength="160" /></label>
-                <label>{translate('Notes')}<textarea name="notes" maxlength="5000"></textarea></label>
-                <label>{translate('Access role')}<select name="role" bind:value={localRole}><option value="worker">{translate('Worker')}</option><option value="project_manager">{translate('Project Manager')}</option><option value="finance_admin">{translate('Finance Admin')}</option><option value="auditor_read_only">{translate('Auditor (Read Only)')}</option><option value="external_technician">{translate('External technician')}</option><option value="supplier_coordinator">{translate('Supplier coordinator')}</option></select></label>
-                {#if ['external_technician', 'supplier_coordinator'].includes(localRole)}<label>{translate('Supplier')}<select name="supplierId" required><option value="">{translate('Select supplier')}</option>{#each suppliers as supplier}<option value={String(supplier.id)}>{supplier.name}</option>{/each}</select></label>{/if}
-                <label>{translate('Initial password')}<input name="password" type={revealPassword ? 'text' : 'password'} minlength="12" maxlength="128" autocomplete="new-password" required /></label>
-                <label><input type="checkbox" bind:checked={revealPassword} />{translate('Show password to copy')}</label>
-                <p>{translate('Copy the chosen credentials before saving. This creates portal access without sending an email; assign the person to their authorized projects next.')}</p>
+                <label
+                  >{translate('Contact name')}<input name="contactName" maxlength="160" /></label
+                >
+                <label
+                  >{translate('Notes')}<textarea name="notes" maxlength="5000"></textarea></label
+                >
+                <label
+                  >{translate('Access role')}<select name="role" bind:value={localRole}
+                    ><option value="worker">{translate('Worker')}</option><option
+                      value="project_manager">{translate('Project Manager')}</option
+                    ><option value="finance_admin">{translate('Finance Admin')}</option><option
+                      value="auditor_read_only">{translate('Auditor (Read Only)')}</option
+                    ><option value="external_technician">{translate('External technician')}</option
+                    ><option value="supplier_coordinator"
+                      >{translate('Supplier coordinator')}</option
+                    ></select
+                  ></label
+                >
+                {#if ['external_technician', 'supplier_coordinator'].includes(localRole)}<label
+                    >{translate('Supplier')}<select name="supplierId" required
+                      ><option value="">{translate('Select supplier')}</option
+                      >{#each suppliers as supplier}<option value={String(supplier.id)}
+                          >{supplier.name}</option
+                        >{/each}</select
+                    ></label
+                  >{/if}
+                <label
+                  >{translate('Initial password')}<input
+                    name="password"
+                    type={revealPassword ? 'text' : 'password'}
+                    minlength="12"
+                    maxlength="128"
+                    autocomplete="new-password"
+                    required
+                  /></label
+                >
+                <label
+                  ><input type="checkbox" bind:checked={revealPassword} />{translate(
+                    'Show password to copy',
+                  )}</label
+                >
+                <p>
+                  {translate(
+                    'Copy the chosen credentials before saving. This creates portal access without sending an email; assign the person to their authorized projects next.',
+                  )}
+                </p>
                 <button type="submit">{translate('Create user access')}</button>
               </form>
             {:else}
-            <form
-              id="team-create-user-form"
-              method="POST"
-              action="?view=team&/createInvitation"
-              class="team-directory__create-form"
-              use:formValidation
-            >
-              <label for="team-invite-email">{translate('Email / company alias')}</label><input
-                id="team-invite-email"
-                name="email"
-                type="email"
-                autocomplete="email"
-                required
-              />
-              <label for="team-invite-role">{translate('Access role')}</label><select
-                id="team-invite-role"
-                name="role"
-                required
-                ><option value="worker">{translate('Worker')}</option><option
-                  value="project_manager">{translate('Project Manager')}</option
-                ><option value="finance_admin">{translate('Finance Admin')}</option><option
-                  value="auditor_read_only">{translate('Auditor (Read Only)')}</option
-                ></select
+              <form
+                id="team-create-user-form"
+                method="POST"
+                action="?view=team&/createInvitation"
+                class="team-directory__create-form"
+                use:formValidation
               >
-              <label for="team-invite-expiry">{translate('Invitation expires')}</label><select
-                id="team-invite-expiry"
-                name="expiresInDays"
-                required
-                ><option value="1">1 {translate('day')}</option><option value="3"
-                  >3 {translate('days')}</option
-                ><option value="7" selected>7 {translate('days')}</option><option value="14"
-                  >14 {translate('days')}</option
-                ></select
-              >
-              <div class="team-directory__create-explainer">
-                <strong>{translate('What happens next')}</strong>
-                <ol>
-                  <li>{translate('The portal creates a single-use activation link.')}</li>
-                  <li>
-                    {translate('Send the link to the invited person through a trusted channel.')}
-                  </li>
-                  <li>
-                    {translate(
-                      'They choose their name and password before the account becomes active.',
-                    )}
-                  </li>
-                </ol>
-              </div>
-              <label
-                ><span>{translate('Send the invitation email to this address?')}</span>
-                <select name="emailChoice" required>
-                  <option value="">{translate('Choose an option')}</option>
-                  <option value="no">{translate('No, do not send email')}</option>
-                  <option value="yes">{translate('Yes, send this email')}</option>
-                </select></label
-              >
-              <button type="submit" class="team-directory__action team-directory__create-submit"
-                >{translate('Create invitation')}</button
-              >
-            </form>
-          {/if}
+                <label for="team-invite-email">{translate('Email / company alias')}</label><input
+                  id="team-invite-email"
+                  name="email"
+                  type="email"
+                  autocomplete="email"
+                  required
+                />
+                <label for="team-invite-role">{translate('Access role')}</label><select
+                  id="team-invite-role"
+                  name="role"
+                  required
+                  ><option value="worker">{translate('Worker')}</option><option
+                    value="project_manager">{translate('Project Manager')}</option
+                  ><option value="finance_admin">{translate('Finance Admin')}</option><option
+                    value="auditor_read_only">{translate('Auditor (Read Only)')}</option
+                  ></select
+                >
+                <label for="team-invite-expiry">{translate('Invitation expires')}</label><select
+                  id="team-invite-expiry"
+                  name="expiresInDays"
+                  required
+                  ><option value="1">1 {translate('day')}</option><option value="3"
+                    >3 {translate('days')}</option
+                  ><option value="7" selected>7 {translate('days')}</option><option value="14"
+                    >14 {translate('days')}</option
+                  ></select
+                >
+                <div class="team-directory__create-explainer">
+                  <strong>{translate('What happens next')}</strong>
+                  <ol>
+                    <li>{translate('The portal creates a single-use activation link.')}</li>
+                    <li>
+                      {translate('Send the link to the invited person through a trusted channel.')}
+                    </li>
+                    <li>
+                      {translate(
+                        'They choose their name and password before the account becomes active.',
+                      )}
+                    </li>
+                  </ol>
+                </div>
+                <label
+                  ><span>{translate('Send the invitation email to this address?')}</span>
+                  <select name="emailChoice" required>
+                    <option value="">{translate('Choose an option')}</option>
+                    <option value="no">{translate('No, do not send email')}</option>
+                    <option value="yes">{translate('Yes, send this email')}</option>
+                  </select></label
+                >
+                <button type="submit" class="team-directory__action team-directory__create-submit"
+                  >{translate('Create invitation')}</button
+                >
+              </form>
             {/if}
+          {/if}
           {#if invitationPath}
             <div class="team-directory__invitation-result" role="status" data-invitation-result>
               <div>
@@ -589,7 +658,12 @@
       </div>
 
       <div class="team-directory__list">
-<RecordBrowser rows={visibleWorkers} bind:visible={teamPage} {translate} label="TeamDirectory" />
+        <RecordBrowser
+          rows={visibleWorkers}
+          bind:visible={teamPage}
+          {translate}
+          label="TeamDirectory"
+        />
         {#each teamPage as worker}
           {@const assignmentsForWorker = workerAssignments(worker)}
           {@const role = value(worker, 'role') || 'worker'}
@@ -627,23 +701,38 @@
             <dl class="team-directory__facts">
               <div>
                 <dt>{translate('Availability')}</dt>
-                <dd><a href={`${base}/app/profile?worker=${workerId(worker)}`}>{availability(worker)}</a></dd>
+                <dd>
+                  <a href={`${base}/app/profile?worker=${workerId(worker)}`}
+                    >{availability(worker)}</a
+                  >
+                </dd>
               </div>
               <div>
                 <dt>{translate('Assignments')}</dt>
                 <dd>
-                  <a href={`${base}/app/projects?action=update-assignment&worker=${workerId(worker)}`}>{assignmentsForWorker.filter(
-                    (assignment) => value(assignment, 'status') === 'active',
-                  ).length}</a>
+                  <a
+                    href={`${base}/app/projects?action=update-assignment&worker=${workerId(worker)}`}
+                    >{assignmentsForWorker.filter(
+                      (assignment) => value(assignment, 'status') === 'active',
+                    ).length}</a
+                  >
                 </dd>
               </div>
               <div>
                 <dt>{translate('Planned hours')}</dt>
-                <dd><a href={`${base}/app/planning?worker=${workerId(worker)}`}>{formatHours(minutesFor(assignmentsForWorker, 'planned_minutes'))}</a></dd>
+                <dd>
+                  <a href={`${base}/app/planning?worker=${workerId(worker)}`}
+                    >{formatHours(minutesFor(assignmentsForWorker, 'planned_minutes'))}</a
+                  >
+                </dd>
               </div>
               <div>
                 <dt>{translate('Actual hours')}</dt>
-                <dd><a href={`${base}/app/time?worker=${workerId(worker)}`}>{formatHours(minutesFor(assignmentsForWorker, 'actual_minutes'))}</a></dd>
+                <dd>
+                  <a href={`${base}/app/time?worker=${workerId(worker)}`}
+                    >{formatHours(minutesFor(assignmentsForWorker, 'actual_minutes'))}</a
+                  >
+                </dd>
               </div>
             </dl>
             {#if canManageTeam}<div class="team-directory__actions" data-team-actions>
@@ -749,18 +838,41 @@
                     </div>
                   </form>
                   {#if role === 'worker'}
-                    <form method="POST" action="?view=team&/setWorkforceProfile" class="team-directory__form">
+                    <form
+                      method="POST"
+                      action="?view=team&/setWorkforceProfile"
+                      class="team-directory__form"
+                    >
                       <input type="hidden" name="workerId" value={workerId(worker)} />
-                      <label>{translate('Access profile')}<select name="profile" value={value(worker, 'workforce_profile') || 'standard'} required>
-                        <option value="standard">{translate('Worker')}</option>
-                        <option value="supplier_coordinator">{translate('Supplier coordinator')}</option>
-                        <option value="external_technician">{translate('External technician')}</option>
-                      </select></label>
-                      <label>{translate('Supplier')}<select name="supplierId" value={value(worker, 'supplier_id')}>
-                        <option value="">{translate('Select supplier')}</option>
-                        {#each suppliers as supplier}<option value={String(supplier.id)}>{supplier.name}</option>{/each}
-                      </select></label>
-                      <button type="submit" class="team-directory__action">{translate('Save profile')}</button>
+                      <label
+                        >{translate('Access profile')}<select
+                          name="profile"
+                          value={value(worker, 'workforce_profile') || 'standard'}
+                          required
+                        >
+                          <option value="standard">{translate('Worker')}</option>
+                          <option value="supplier_coordinator"
+                            >{translate('Supplier coordinator')}</option
+                          >
+                          <option value="external_technician"
+                            >{translate('External technician')}</option
+                          >
+                        </select></label
+                      >
+                      <label
+                        >{translate('Supplier')}<select
+                          name="supplierId"
+                          value={value(worker, 'supplier_id')}
+                        >
+                          <option value="">{translate('Select supplier')}</option>
+                          {#each suppliers as supplier}<option value={String(supplier.id)}
+                              >{supplier.name}</option
+                            >{/each}
+                        </select></label
+                      >
+                      <button type="submit" class="team-directory__action"
+                        >{translate('Save profile')}</button
+                      >
                     </form>
                   {/if}
                 </div>{/if}
@@ -773,10 +885,12 @@
                 {#each assignmentsForWorker as assignment}<article
                     class="team-directory__assignment"
                   >
-                    <strong><a href={`${base}/app/projects/${value(assignment, 'project_id')}`}
-                      >{[value(assignment, 'project_number'), value(assignment, 'project_name')]
-                        .filter(Boolean)
-                        .join(' · ') || translate('Authorized project')}</a></strong
+                    <strong
+                      ><a href={`${base}/app/projects/${value(assignment, 'project_id')}`}
+                        >{[value(assignment, 'project_number'), value(assignment, 'project_name')]
+                          .filter(Boolean)
+                          .join(' · ') || translate('Authorized project')}</a
+                      ></strong
                     ><span
                       >{controlledValue?.('role', value(assignment, 'assignment_role')) ||
                         value(assignment, 'assignment_role') ||

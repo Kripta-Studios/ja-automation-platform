@@ -30,7 +30,7 @@ Si falla la carga, queda pendiente de análisis/cuarentena o se rechaza, lee el 
 
 ## 5. Informes (Reports): Diario (Daily) y PLC / Técnico (PLC / Technical)
 
-Usa **Informes (Reports)** para el informe que requiera el trabajo. **Diario (Daily)** registra un resumen factual de campo. **PLC / Técnico (PLC / Technical)** registra el sistema, el trabajo realizado, la validación, los riesgos pendientes y los adjuntos permitidos. Mantén los datos técnicos exactos y no indiques que una prueba funcionó si no fue así. La aceptación del cliente es una acción separada y sin importes; nunca firmes por el cliente.
+Usa **Informes (Reports)** para el informe que requiera el trabajo. **Diario (Daily)** registra un resumen factual de campo. **PLC / Técnico (PLC / Technical)** registra el sistema, el trabajo realizado, la validación, los riesgos pendientes y los adjuntos permitidos. El PDF generado muestra el nombre del autor guardado y el correo de su cuenta cuando está disponible. Mantén los datos técnicos exactos y no indiques que una prueba funcionó si no fue así. La aceptación del cliente es una acción separada y sin importes; nunca firmes por el cliente.
 
 ## 6. Mi pago (My Pay) y el estado del pago
 

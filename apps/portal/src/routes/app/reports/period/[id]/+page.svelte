@@ -596,7 +596,9 @@
         {#if followupLatestEvent}
           <div class="period-followup__latest" data-period-followup-latest>
             <strong
-              >{followupCopy.latestEvent}: {followupEventLabel(followupLatestEvent.eventType)}</strong
+              >{followupCopy.latestEvent}: {followupEventLabel(
+                followupLatestEvent.eventType,
+              )}</strong
             >
             <span
               >{display(followupLatestEvent.eventDate ?? followupLatestEvent.createdAt)} ·
@@ -671,7 +673,11 @@
                 {/each}
               </select>
             </Field>
-            <Field id="period-followup-method" label={followupCopy.method} required={['shared', 'exported'].includes(followupEventType)}>
+            <Field
+              id="period-followup-method"
+              label={followupCopy.method}
+              required={['shared', 'exported'].includes(followupEventType)}
+            >
               <input
                 id="period-followup-method"
                 name="method"
@@ -681,7 +687,11 @@
                 required={['shared', 'exported'].includes(followupEventType)}
               />
             </Field>
-            <Field id="period-followup-date" label={followupCopy.eventDate} required={['shared', 'exported'].includes(followupEventType)}>
+            <Field
+              id="period-followup-date"
+              label={followupCopy.eventDate}
+              required={['shared', 'exported'].includes(followupEventType)}
+            >
               <input
                 id="period-followup-date"
                 name="eventDate"
@@ -690,7 +700,11 @@
                 required={['shared', 'exported'].includes(followupEventType)}
               />
             </Field>
-            <Field id="period-followup-reference" label={followupCopy.reference} required={['shared', 'exported'].includes(followupEventType)}>
+            <Field
+              id="period-followup-reference"
+              label={followupCopy.reference}
+              required={['shared', 'exported'].includes(followupEventType)}
+            >
               <input
                 id="period-followup-reference"
                 name="reference"
@@ -700,7 +714,11 @@
                 required={['shared', 'exported'].includes(followupEventType)}
               />
             </Field>
-            <Field id="period-followup-signatory" label={followupCopy.signatoryName} required={followupEventType === 'awaiting_signatory'}>
+            <Field
+              id="period-followup-signatory"
+              label={followupCopy.signatoryName}
+              required={followupEventType === 'awaiting_signatory'}
+            >
               <input
                 id="period-followup-signatory"
                 name="signatoryName"
@@ -710,14 +728,19 @@
                 required={followupEventType === 'awaiting_signatory'}
               />
             </Field>
-            <Field id="period-followup-reason" label={followupCopy.reason} required={['returned', 'disputed'].includes(followupEventType)}>
+            <Field
+              id="period-followup-reason"
+              label={followupCopy.reason}
+              required={['returned', 'disputed'].includes(followupEventType)}
+            >
               <textarea
                 id="period-followup-reason"
                 name="reason"
                 maxlength="2000"
                 rows="3"
                 required={['returned', 'disputed'].includes(followupEventType)}
-              >{followupFormValue('reason')}</textarea>
+                >{followupFormValue('reason')}</textarea
+              >
             </Field>
             <Field id="period-followup-next" label={followupCopy.nextFollowUp}>
               <input
@@ -1018,15 +1041,19 @@
   {/if}
 
   {#if ['owner_admin', 'finance_admin'].includes(String(data.user.role))}
-  <div class="no-print report-localized-pdf-slot">
-    <LocalizedPdfPanel
-      ownerType="period_report_revision"
-      ownerId={String(report.id)}
-      {locale}
-      title={t('PDF')}
-    />
-  </div>
-  {:else}<p class="no-print">{t('Finance prepares the reviewed period PDF after approving the source records. Use Daily or Technical / PLC to submit your own work; customer sign-off confirms the reviewed period.')}</p>{/if}
+    <div class="no-print report-localized-pdf-slot">
+      <LocalizedPdfPanel
+        ownerType="period_report_revision"
+        ownerId={String(report.id)}
+        {locale}
+        title={t('PDF')}
+      />
+    </div>
+  {:else}<p class="no-print">
+      {t(
+        'Finance prepares the reviewed period PDF after approving the source records. Use Daily or Technical / PLC to submit your own work; customer sign-off confirms the reviewed period.',
+      )}
+    </p>{/if}
 </main>
 
 <style>

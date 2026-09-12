@@ -6,7 +6,7 @@ Suporte de acesso e senhas: **admin@j-aautomation.com**. Em **Projects → Team 
 
 Use **Log time**, **Record expense** e os botões de novo relatório no início da área de trabalho. **Submit** envia os fatos para revisão; o rascunho continua editável antes do envio. O Project Manager pode registrar seu trabalho e o de pessoas com atribuição efetiva nos projetos sob sua responsabilidade. Tarifas comerciais e reembolsos privados de outros trabalhadores não fazem parte da sua visão.
 
-Os registros têm busca, filtros, ordenação e páginas de oito linhas. Em **Planning**, filtre projeto e trabalhador e abra o turno específico para gerenciá-lo. Planejamento não gera horas reais. Em **Accounting**, clique em **Packs**, **Queued** ou **Failed** para filtrar. Generate prepara arquivos para revisão; Finalize preserva uma versão histórica dos valores revisados. Correções posteriores exigem nova versão.
+Os registros têm busca, filtros, ordenação e páginas de oito linhas. A ordem padrão das aprovações mantém os registros pendentes antes dos concluídos e, em seguida, prioriza os itens acionáveis mais antigos; use os filtros visíveis de estado/ordem e os controles Anterior/Próximo para mudar a visualização. Em **Planning**, filtre projeto e trabalhador e abra o turno específico para gerenciá-lo. Planejamento não gera horas reais. Em **Accounting**, clique em **Packs**, **Queued** ou **Failed** para filtrar. Generate prepara arquivos para revisão; Finalize preserva uma versão histórica dos valores revisados. Correções posteriores exigem nova versão.
 
 Em **Expenses**, selecione projeto, trabalhador e período para exportar PDF, Excel ou CSV, com totais separados por moeda. Em **Economic Review**, cada aba de origem mantém seus próprios controles. Liquidações finalizam remuneração aprovada; datas previstas são planejamento e o pagamento real é registrado separadamente. Faturas emitidas preservam o histórico e usam anulação, crédito ou substituição para correções.
 
@@ -91,7 +91,7 @@ Revise Horas por projeto e período. Confira as evidências de origem, as datas,
 
 Revise Despesas com o pagador real, recibo, categoria, moeda, projeto, justificativa profissional e tratamento comercial. Um reembolso e uma cobrança ao cliente podem seguir regras separadas. Itens devolvidos exigem uma correção fundamentada; o histórico aprovado permanece rastreável, sem ser sobrescrito silenciosamente.
 
-Use Aprovações para abrir a fila pertinente, examinar as evidências de horas/relatório/recibo e aprovar ou devolver com uma observação factual. A aprovação operacional é uma revisão interna. Não é aceite do cliente, assinatura do cliente, comprovante de recebimento nem evidência de transferência.
+Use Aprovações para abrir a fila pertinente, examinar as evidências de horas/relatório/recibo e aprovar ou devolver com uma observação factual. **Aprovações de projeto** reúne registros operacionais que exigem um revisor autorizado do projeto; **Revisão financeira** reúne a etapa separada de classificação ou confirmação controlada pelo Financeiro. A aprovação operacional é uma revisão interna. Não é aceite do cliente, assinatura do cliente, comprovante de recebimento nem evidência de transferência.
 
 ### Procedimento de horas
 
@@ -103,7 +103,7 @@ Em **Aprovações**, escolha a fila **Horas**, **Aprovações de projeto** ou **
 
 ### Procedimento de despesas
 
-Em **Despesas**, abra o item enviado e confira **Projeto**, **Data**, **Categoria**, **Valor**, **Moeda**, **Pagador**, justificativa profissional e recibo. Confirme se o tratamento comercial e o tratamento de reembolso são adequados antes da aprovação. Para um item devolvido, indique a correção necessária. Não altere um recibo original apenas para mudar um resultado financeiro.
+Em **Despesas**, abra o item enviado e confira **Projeto**, **Data**, **Categoria**, **Valor**, **Moeda**, **Pagador**, justificativa profissional e recibo. O resumo de atenção combina rascunhos, itens enviados e itens que precisam de alterações; o resumo de reembolso combina reembolsos pendentes e programados. Selecionar um resumo aplica exatamente esse filtro para revisar os registros correspondentes. Confirme se o tratamento comercial e o tratamento de reembolso são adequados antes da aprovação. Para um item devolvido, indique a correção necessária. Não altere um recibo original apenas para mudar um resultado financeiro.
 
 ## Documentos privados, anexos de relatórios e envio de arquivos
 
@@ -113,7 +113,7 @@ Use Documentos apenas para arquivos autorizados do projeto. Confirme o projeto, 
 
 Se um envio for rejeitado, ficar indisponível ou falhar, mantenha o original, leia o erro exibido, corrija o arquivo ou a conexão e tente novamente apenas pelo mesmo fluxo autorizado. Não crie evidências duplicadas nem envie credenciais, materiais de clientes sem relação com o registro, recibos alterados ou um arquivo privado apenas para preencher uma tela. Os downloads continuam sujeitos à autorização por perfil e objeto.
 
-Os anexos de relatórios Diários e Técnicos / PLC têm seus próprios tipos permitidos. Anexe apenas evidências factuais do trabalho. Um PDF de relatório ou documento de assinatura anexado deve corresponder exatamente ao arquivo e ao hash exibidos para a versão selecionada do relatório.
+Os anexos de relatórios Diários e Técnicos / PLC têm seus próprios tipos permitidos. Anexe apenas evidências factuais do trabalho. Os PDFs Diários e Técnicos / PLC gerados identificam o autor persistido do relatório pelo nome e incluem o e-mail da conta quando disponível; campos de identidade informados pelo navegador não são aceitos como autoria. Um PDF de relatório ou documento de assinatura anexado deve corresponder exatamente ao arquivo e ao hash exibidos para a versão selecionada do relatório.
 
 ## Relatórios, conformidade do cliente e acompanhamento de períodos
 
@@ -145,7 +145,7 @@ Use **Acordo comercial e exemplo** em `/app/finance/preview` para uma ilustraç�
 
 :::figure owner /app/billing O faturamento começa com registros de origem validados e um rascunho, não com uma fatura emitida.
 
-1. Em **Faturamento**, selecione o fluxo e o período. Resolva as mensagens de prontidão: fontes faturáveis aprovadas, limites do período, entidade jurídica/perfil tributário, moeda, limites, tarifas e eventual aceite obrigatório do cliente.
+1. Em **Faturamento**, use **Configurar faturamento** e seu seletor compacto de ações para abrir um formulário de configuração por vez: **Novo fluxo de faturamento**, **Nova entidade jurídica**, **Novo perfil tributário** ou **Política de numeração de faturas**. Os diretórios de entidades jurídicas e perfis tributários permanecem visíveis para consulta. Depois selecione o fluxo e o período e resolva as mensagens de prontidão: fontes faturáveis aprovadas, limites do período, entidade jurídica/perfil tributário, moeda, limites, tarifas e eventual aceite obrigatório do cliente.
 2. Crie ou revise o rascunho. Confirme destinatário, pedido de compra/referência, itens, valores exatos, tratamento tributário e condições de pagamento. Use a prévia/PDF dos detalhes do rascunho para conferir o documento pretendido.
 3. Emita somente após a revisão autorizada. A emissão consome o número controlado e cria um retrato histórico imutável; alterações posteriores de cliente, contato ou tarifa não o reescrevem.
 4. Envie apenas pela ação de entrega autorizada e confira o estado resultante. O envio explícito de faturas aceita destinatários externos válidos; um evento na caixa de saída não comprova que o cliente recebeu ou aceitou a fatura.
@@ -159,7 +159,7 @@ No registro de Faturamento, use **Criar rascunho de fatura** apenas após resolv
 
 ### Procedimento de remuneração e reembolso
 
-A remuneração dos trabalhadores é configurada e revisada como dado financeiro interno, separadamente do faturamento ao cliente. Em Financeiro → Comercial, selecione o projeto e confira o escopo de trabalhador/categoria/atividade, a tarifa exata e as datas de vigência de cada regra de remuneração. Minha remuneração pode mostrar os estados estimado, aprovado, agendado, finalizado ou pago apenas para aquele Trabalhador. **Finalizado** representa a remuneração definitiva calculada, não a confirmação de uma transferência; **Pago** exige uma data real de pagamento registrada. O reembolso também é distinto do tratamento da despesa no faturamento ao cliente. Nunca use o demonstrativo de um trabalhador para avaliar a remuneração de outro.
+A remuneração dos trabalhadores é configurada e revisada como dado financeiro interno, separadamente do faturamento ao cliente. Em Financeiro → Comercial, selecione o projeto e confira o escopo de trabalhador/categoria/atividade, a tarifa exata e as datas de vigência de cada regra de remuneração. Minha remuneração pode mostrar os estados estimado, aprovado, agendado, parcialmente pago ou pago apenas para aquele Trabalhador. **Finalizar remuneração** congela o cálculo revisado; não confirma uma transferência. Depois que o pagamento bancário ou outro pagamento real ocorrer, abra **Financeiro → Revisão econômica → Liquidações**, escolha se o beneficiário é a pessoa ou a empresa fornecedora vinculada e use **Registrar pagamento real** com data real, valor, moeda, referência e observação opcional. Pagamentos parciais preservam o saldo restante. Um erro é corrigido com **Reverter pagamento**, que acrescenta uma reversão auditada em vez de excluir o histórico. O reembolso também é distinto do tratamento da despesa no faturamento ao cliente. Nunca use o demonstrativo de um trabalhador para avaliar a remuneração de outro.
 
 ## Financeiro, calendário de caixa e registro de cobranças
 

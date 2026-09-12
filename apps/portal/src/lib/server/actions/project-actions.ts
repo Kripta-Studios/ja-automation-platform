@@ -16,10 +16,26 @@ export const projectActions = {
   createClient: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const parsed = clientInputSchema.safeParse(await formObject(request));
+    const object = await formObject(request);
+    const parsed = clientInputSchema.safeParse(object);
     if (!parsed.success)
       return actionFail(400, 'action.validation.clientFields', {}, 'Check client fields', {
         fields: parsed.error.flatten().fieldErrors,
+        values: Object.fromEntries(
+          [
+            'clientCode',
+            'legalName',
+            'displayName',
+            'currency',
+            'timezone',
+            'billingEmail',
+            'billingContactName',
+            'billingAddress',
+            'paymentTermsDays',
+            'poReference',
+            'notes',
+          ].map((key) => [key, typeof object[key] === 'string' ? object[key] : '']),
+        ),
       });
     const context = openPortalRepository(locals);
     try {

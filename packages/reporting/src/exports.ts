@@ -1466,6 +1466,10 @@ export type WorkerStatementSnapshot = Readonly<{
     amountMinor: string;
     currency: string;
     state: string;
+    paymentState?: string;
+    paidAmountMinor?: string;
+    remainingAmountMinor?: string;
+    actualPaymentOn?: string | null;
     expectedPaymentOn?: string | null;
     settledAt?: string | null;
   }>[];
@@ -1511,6 +1515,9 @@ const workerStatementColumns = [
   'paymentStatus',
   'expectedPaymentOn',
   'settledAt',
+  'actualPaymentOn',
+  'paidAmountMinor',
+  'remainingAmountMinor',
   'expectedReimbursementOn',
   'reimbursedAt',
 ] as const;
@@ -1598,9 +1605,12 @@ function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] 
       projectName: settlement.projectName,
       currency: settlement.currency,
       amountMinor: settlement.amountMinor,
-      paymentStatus: settlement.state,
+      paymentStatus: settlement.paymentState ?? settlement.state,
       expectedPaymentOn: settlement.expectedPaymentOn ?? '',
       settledAt: settlement.settledAt ?? '',
+      actualPaymentOn: settlement.actualPaymentOn ?? '',
+      paidAmountMinor: settlement.paidAmountMinor ?? '',
+      remainingAmountMinor: settlement.remainingAmountMinor ?? '',
     })),
     ...snapshot.expenses.map((expense) => ({
       recordType: 'reimbursable_expense',
@@ -1689,10 +1699,12 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
     return [
       project,
       period,
-      translateReportStatus(row.state, locale) || '—',
+      translateReportStatus(row.paymentState ?? row.state, locale) || '—',
       formatReportDate(row.expectedPaymentOn, locale) || '—',
-      formatReportDate(row.settledAt, locale) || '—',
+      formatReportDate(row.actualPaymentOn, locale) || '—',
       exactMoneyText(currency, row.amountMinor, locale),
+      exactMoneyText(currency, row.paidAmountMinor ?? '0', locale),
+      exactMoneyText(currency, row.remainingAmountMinor ?? row.amountMinor, locale),
     ];
   });
   const expenseRows = snapshot.expenses.map((row) => [
@@ -1712,7 +1724,7 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
     layout(
       copy.title,
       `${snapshot.worker.name} · ${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
-      `<section class="grid">${summary}</section><p class="muted">${htmlEscape(common.approvedHours)}: ${htmlEscape(minutesAsHours(snapshot.approvedMinutes) || snapshot.approvedMinutes)} · ${htmlEscape(copy.pendingHours)}: ${htmlEscape(minutesAsHours(snapshot.pendingMinutes) || snapshot.pendingMinutes)}</p><h2>${htmlEscape(copy.ownActivity)}</h2>${htmlTable([common.date, common.project, common.type, copy.activity, common.hours, copy.approval, copy.estimatedPay], activityRows, copy.noActivity, { amountIndexes: [6], footer: activityRows.length ? [common.total, '', '', '', minutesAsHours(activityHoursTotal) || String(activityHoursTotal), '', exactMoneyText(snapshot.currency, activityAmountTotal, locale)] : undefined })}<h2>${htmlEscape(copy.settlements)}</h2>${htmlTable([common.project, copy.period, common.status, copy.expectedPayment, copy.settled, common.amount], settlementRows, copy.noSettlements, { amountIndexes: [5], footer: settlementRows.length ? [common.total, '', '', '', '', exactMoneyText(snapshot.currency, settlementAmountTotal, locale)] : undefined })}<h2>${htmlEscape(copy.ownReimbursableExpenses)}</h2>${htmlTable([common.date, common.project, common.vendor, copy.paymentStatus, copy.expectedReimbursement, copy.reimbursed, common.amount], expenseRows, copy.noReimbursableExpenses, { amountIndexes: [6], footer: expenseRows.length ? [common.total, '', '', '', '', '', exactMoneyText(snapshot.currency, expenseAmountTotal, locale)] : undefined })}`,
+      `<section class="grid">${summary}</section><p class="muted">${htmlEscape(common.approvedHours)}: ${htmlEscape(minutesAsHours(snapshot.approvedMinutes) || snapshot.approvedMinutes)} · ${htmlEscape(copy.pendingHours)}: ${htmlEscape(minutesAsHours(snapshot.pendingMinutes) || snapshot.pendingMinutes)}</p><h2>${htmlEscape(copy.ownActivity)}</h2>${htmlTable([common.date, common.project, common.type, copy.activity, common.hours, copy.approval, copy.estimatedPay], activityRows, copy.noActivity, { amountIndexes: [6], footer: activityRows.length ? [common.total, '', '', '', minutesAsHours(activityHoursTotal) || String(activityHoursTotal), '', exactMoneyText(snapshot.currency, activityAmountTotal, locale)] : undefined })}<h2>${htmlEscape(copy.settlements)}</h2>${htmlTable([common.project, copy.period, copy.paymentStatus, copy.expectedPayment, copy.actualPayment, copy.reviewedSettlement, copy.actualPaid, copy.remaining], settlementRows, copy.noSettlements, { amountIndexes: [5, 6, 7], footer: settlementRows.length ? [common.total, '', '', '', '', exactMoneyText(snapshot.currency, settlementAmountTotal, locale), '', ''] : undefined })}<h2>${htmlEscape(copy.ownReimbursableExpenses)}</h2>${htmlTable([common.date, common.project, common.vendor, copy.paymentStatus, copy.expectedReimbursement, copy.reimbursed, common.amount], expenseRows, copy.noReimbursableExpenses, { amountIndexes: [6], footer: expenseRows.length ? [common.total, '', '', '', '', '', exactMoneyText(snapshot.currency, expenseAmountTotal, locale)] : undefined })}`,
       locale,
     ),
   );
@@ -2792,10 +2804,63 @@ export function technicalReportPdf(snapshot: TechnicalReportSnapshot): Uint8Arra
   const status = snapshot.approvalState ?? snapshot.approval_state;
   const safety = snapshot.safetyRelated ?? snapshot.safety_related;
   const changeFields = technicalReportChangeFields(snapshot);
+  const workPerformedBy =
+    snapshot.work_performed_by_name ??
+    snapshot.workerName ??
+    snapshot.worker_name ??
+    snapshot.author_name;
+  const reportCreatedBy =
+    snapshot.report_created_by_name ?? snapshot.created_by_name ?? workPerformedBy;
   const fields = [
     reportField(copy.project, project.title),
-    reportField(copy.worker, snapshot.workerName ?? snapshot.worker_name ?? snapshot.author_name),
-    reportField(locale === 'es' ? 'Correo del autor' : locale === 'pt' ? 'E-mail do autor' : 'Author email', snapshot.worker_email ?? snapshot.author_email),
+    reportField(
+      locale === 'es'
+        ? 'Trabajo realizado por'
+        : locale === 'pt'
+          ? 'Trabalho realizado por'
+          : 'Work performed by',
+      workPerformedBy,
+    ),
+    reportField(
+      locale === 'es'
+        ? 'Correo del trabajador'
+        : locale === 'pt'
+          ? 'E-mail do trabalhador'
+          : 'Worker email',
+      snapshot.work_performed_by_email ?? snapshot.worker_email ?? snapshot.author_email,
+    ),
+    reportField(
+      locale === 'es'
+        ? 'Reporte creado por'
+        : locale === 'pt'
+          ? 'Relatório criado por'
+          : 'Report created by',
+      reportCreatedBy,
+    ),
+    reportField(
+      locale === 'es'
+        ? 'Correo del creador'
+        : locale === 'pt'
+          ? 'E-mail do criador'
+          : 'Creator email',
+      snapshot.report_created_by_email ??
+        snapshot.created_by_email ??
+        snapshot.work_performed_by_email ??
+        snapshot.worker_email ??
+        snapshot.author_email,
+    ),
+    reportField(
+      locale === 'es' ? 'Revisado por' : locale === 'pt' ? 'Revisado por' : 'Reviewed by',
+      snapshot.reviewed_by_name,
+    ),
+    reportField(
+      locale === 'es'
+        ? 'Correo del revisor'
+        : locale === 'pt'
+          ? 'E-mail do revisor'
+          : 'Reviewer email',
+      snapshot.reviewed_by_email,
+    ),
     reportField(copy.client, project.clientName),
     reportField(copy.date, formatReportDate(date, locale)),
     reportField(copy.system, snapshot.system ?? snapshot.systemName ?? snapshot.system_name),

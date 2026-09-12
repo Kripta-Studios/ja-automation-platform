@@ -80,7 +80,13 @@
           <summary>{t('Add record')}</summary>{@render catalogForm(null)}
         </details>{/if}
       <div class="management-records">
-        <RecordBrowser rows={data.catalogRows} bind:visible={catalogPage} focusId={data.focusId} translate={t} label="Records" />
+        <RecordBrowser
+          rows={data.catalogRows}
+          bind:visible={catalogPage}
+          focusId={data.focusId}
+          translate={t}
+          label="Records"
+        />
         {#each catalogPage as row}
           <article>
             <h2>
@@ -98,7 +104,10 @@
                 row.status ?? row.approval_state ?? row.availability ?? '',
               )}
             </p>
-            <details open={data.focusId === row.id || Boolean(form && 'recordId' in form && form.recordId === row.id)}>
+            <details
+              open={data.focusId === row.id ||
+                Boolean(form && 'recordId' in form && form.recordId === row.id)}
+            >
               <summary>{t('Edit')}</summary>{@render catalogForm(row)}
             </details>
           </article>
@@ -120,7 +129,12 @@
         >
       </div>
       <div class="management-records">
-        <RecordBrowser rows={records} bind:visible={recordPage} translate={t} label="Operational records" />
+        <RecordBrowser
+          rows={records}
+          bind:visible={recordPage}
+          translate={t}
+          label="Operational records"
+        />
         {#each recordPage as row}
           <article id={String(row.id)}>
             <header>

@@ -33,7 +33,12 @@ function signedSnapshot(version: number): { json: string; sha256: string } {
 function seedCustomerReport(
   value: B5LifecycleSecurityFixture,
   reportId = 'astra-c1-report',
-  options: Readonly<{ version?: number; readyPdf?: boolean; audience?: string; reportType?: string }> = {},
+  options: Readonly<{
+    version?: number;
+    readyPdf?: boolean;
+    audience?: string;
+    reportType?: string;
+  }> = {},
 ) {
   const version = options.version ?? 1;
   const snapshot = signedSnapshot(version);
@@ -184,20 +189,30 @@ describe('ASTRA C1 period follow-up repository', () => {
       repository.recordEvent(manager, eventInput(report, value, { method: null })),
     ).toThrow(PeriodFollowupValidationError);
     expect(() =>
-      repository.recordEvent(manager, eventInput(report, value, { eventType: 'returned', reason: null })),
+      repository.recordEvent(
+        manager,
+        eventInput(report, value, { eventType: 'returned', reason: null }),
+      ),
     ).toThrow(PeriodFollowupValidationError);
     expect(() =>
-      repository.recordEvent(manager, eventInput(report, value, { eventType: 'accepted' as never })),
+      repository.recordEvent(
+        manager,
+        eventInput(report, value, { eventType: 'accepted' as never }),
+      ),
     ).toThrow(PeriodFollowupValidationError);
     expect(() => repository.recordEvent(manager, eventInput(noPdf, value))).toThrow(
       PeriodFollowupConflictError,
     );
     expect(
       value.sqlite
-        .prepare("SELECT name FROM pragma_table_info('period_report_followup_event') WHERE name='event_type'")
+        .prepare(
+          "SELECT name FROM pragma_table_info('period_report_followup_event') WHERE name='event_type'",
+        )
         .get(),
     ).toEqual({ name: 'event_type' });
-    expect(value.sqlite.prepare('SELECT COUNT(*) count FROM period_report_followup_event').get()).toEqual({
+    expect(
+      value.sqlite.prepare('SELECT COUNT(*) count FROM period_report_followup_event').get(),
+    ).toEqual({
       count: 0,
     });
   });
@@ -240,12 +255,13 @@ describe('ASTRA C1 period follow-up repository', () => {
       }),
     ).toThrow(PeriodFollowupConflictError);
     expect(() =>
-      value.sqlite.prepare('UPDATE period_report_followup_event SET reason=? WHERE id=?').run(
-        'overwrite',
-        first.id,
-      ),
+      value.sqlite
+        .prepare('UPDATE period_report_followup_event SET reason=? WHERE id=?')
+        .run('overwrite', first.id),
     ).toThrow(/immutable/u);
-    expect(value.sqlite.prepare('SELECT COUNT(*) count FROM period_report_followup_event').get()).toEqual({
+    expect(
+      value.sqlite.prepare('SELECT COUNT(*) count FROM period_report_followup_event').get(),
+    ).toEqual({
       count: 2,
     });
   });

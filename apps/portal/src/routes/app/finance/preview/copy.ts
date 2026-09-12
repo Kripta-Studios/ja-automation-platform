@@ -9,6 +9,7 @@ export const copy = {
     pricing: 'Labour pricing',
     hourly: 'Hourly labour',
     fixed: 'Fixed engagement (existing all-in)',
+    allInHourly: 'Hourly labour with selected expenses included (all-in)',
     currency: 'Currency',
     reference: 'Reference day (hours)',
     minimum: 'Customer minimum (hours)',
@@ -71,7 +72,7 @@ export const copy = {
     enabled: 'Overtime enabled',
     none: 'Not configured',
     expenseNote:
-      'Hourly included expenses keep hourly labour pricing. The existing all-in project model is a fixed engagement.',
+      'All-in does not automatically mean fixed price. Hourly labour can include selected expenses while worker reimbursement and J&A cost remain separate. A fixed engagement exists only when a fixed labour price is explicitly configured.',
   },
   es: {
     title: 'Acuerdo comercial y ejemplo',
@@ -83,6 +84,7 @@ export const copy = {
     pricing: 'Precio de labor',
     hourly: 'Labor por horas',
     fixed: 'Importe fijo (all-in existente)',
+    allInHourly: 'Labor por horas con gastos seleccionados incluidos (all-in)',
     currency: 'Moneda',
     reference: 'Jornada de referencia (horas)',
     minimum: 'Mínimo al cliente (horas)',
@@ -145,7 +147,7 @@ export const copy = {
     enabled: 'Horas extra activadas',
     none: 'Sin configurar',
     expenseNote:
-      'Los gastos incluidos en la tarifa horaria conservan la labor por horas. El modelo all-in existente es un importe fijo.',
+      'All-in no significa automáticamente precio fijo. La labor por horas puede incluir determinados gastos mientras el reembolso al trabajador y el coste de J&A siguen separados. Sólo existe importe fijo cuando se configura expresamente un precio fijo de labor.',
   },
   pt: {
     title: 'Acordo comercial e exemplo',
@@ -157,6 +159,7 @@ export const copy = {
     pricing: 'Preço de mão de obra',
     hourly: 'Mão de obra por hora',
     fixed: 'Valor fixo (all-in existente)',
+    allInHourly: 'Mão de obra por hora com despesas selecionadas incluídas (all-in)',
     currency: 'Moeda',
     reference: 'Jornada de referência (horas)',
     minimum: 'Mínimo ao cliente (horas)',
@@ -219,6 +222,6 @@ export const copy = {
     enabled: 'Horas extras ativadas',
     none: 'Não configurado',
     expenseNote:
-      'Despesas incluídas no preço por hora mantêm a mão de obra por hora. O modelo all-in existente tem valor fixo.',
+      'All-in não significa automaticamente preço fixo. A mão de obra por hora pode incluir determinadas despesas, enquanto o reembolso ao colaborador e o custo da J&A continuam separados. Só existe valor fixo quando um preço fixo de mão de obra é configurado explicitamente.',
   },
 };

@@ -8,7 +8,7 @@
 
 Choose English, Spanish or Portuguese with the language selector on the login page or in the portal. English is the default when no preference is saved. Your choice stays in this browser after reloading, signing out and signing in again.
 
-If the invitation is linked to a company mailbox, open it from that mailbox and sign in with the account named in the message. If you were invited as an external worker, use the single-use invitation link to create your account. There is no public sign-up. If access or password help is needed, use the verified support route in the invitation; do not guess an email address or phone number.
+If the invitation is linked to a company mailbox, open it from that mailbox and sign in with the account named in the message. If you were invited as an external worker, use the single-use invitation link to create your account. There is no public sign-up. If access or password help is needed, contact admin@j-aautomation.com; do not send passwords or security codes.
 
 MFA is optional. If you choose it, open **Profile**, follow **Set up MFA**, store the one-time recovery codes privately, enter the authenticator code and choose **Verify MFA**. Ordinary portal work does not require an extra step-up request. Never send a password, code or session to another person.
 
@@ -30,7 +30,7 @@ If an upload fails, is pending scan/quarantine, or is rejected, read the portal 
 
 ## 5. Daily and Technical / PLC reports
 
-Use **Reports** for the report required by the work. **Daily** records a factual field summary. **Technical / PLC** records the system, work performed, validation, remaining risks and permitted attachments. Keep technical facts accurate and do not claim a test passed when it did not. Customer acceptance is a separate, money-free action; never sign for a customer.
+Use **Reports** for the report required by the work. **Daily** records a factual field summary. **Technical / PLC** records the system, work performed, validation, remaining risks and permitted attachments. The generated report PDF shows the persisted author's name and account email when available. Keep technical facts accurate and do not claim a test passed when it did not. Customer acceptance is a separate, money-free action; never sign for a customer.
 
 ## 6. My Pay and payment status
 

@@ -69,7 +69,13 @@
       <dl class="facts">
         <div>
           <dt>{t.pricing}</dt>
-          <dd>{data.agreement.pricing === 'all_in' ? t.fixed : String(data.agreement.pricing)}</dd>
+          <dd
+            >{data.agreement.pricing === 'all_in'
+              ? data.agreement.fixedPriceMinor == null
+                ? t.allInHourly
+                : t.fixed
+              : String(data.agreement.pricing)}</dd
+          >
         </div>
         <div>
           <dt>{t.currency}</dt>

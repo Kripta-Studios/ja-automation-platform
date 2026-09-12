@@ -159,7 +159,17 @@
   let projectWorkflow = $state<ProjectWorkflow | null>(null);
   $effect(() => {
     const requested = $page.url.searchParams.get('action');
-    if (['new-client','update-client','new-project','assign-worker','update-assignment','remove-assignment'].includes(requested ?? '')) projectWorkflow = requested as ProjectWorkflow;
+    if (
+      [
+        'new-client',
+        'update-client',
+        'new-project',
+        'assign-worker',
+        'update-assignment',
+        'remove-assignment',
+      ].includes(requested ?? '')
+    )
+      projectWorkflow = requested as ProjectWorkflow;
   });
   let documentPage = $state<Row[]>([]);
   let planningPage = $state<Row[]>([]);
@@ -262,6 +272,44 @@
   const currentView = $derived($page.url.searchParams.get('view') ?? '');
   const currentTitle = $derived(portalTitleFor(data.section, currentView));
   const actionFeedback = $derived(actionMessage(form));
+  const clientFieldErrors = $derived.by(() => {
+    const result = form as
+      | { messageKey?: unknown; fields?: Record<string, string[] | undefined> }
+      | null
+      | undefined;
+    return result?.messageKey === 'action.validation.clientFields' && result.fields
+      ? result.fields
+      : {};
+  });
+  const clientFormValues = $derived.by(() => {
+    const result = form as
+      | { messageKey?: unknown; values?: Record<string, unknown> }
+      | null
+      | undefined;
+    return result?.messageKey === 'action.validation.clientFields' && result.values
+      ? result.values
+      : {};
+  });
+  const clientFormValue = (field: string, fallback = ''): string => {
+    const value = clientFormValues[field];
+    return typeof value === 'string' ? value : fallback;
+  };
+  function clientFieldLabel(field: string): string {
+    const labels: Record<string, string> = {
+      legalName: 'Legal name',
+      displayName: 'Display name',
+      clientCode: 'Client code (optional)',
+      currency: 'Currency',
+      timezone: 'Timezone',
+      billingContactName: 'Billing contact name',
+      billingEmail: 'Billing contact email',
+      billingAddress: 'Billing address',
+      paymentTermsDays: 'Payment terms (days)',
+      poReference: 'PO / reference',
+      notes: 'Notes',
+    };
+    return translate(labels[field] ?? field);
+  }
   const invitationPath = $derived.by(() => {
     const result = form as ActionResultWithMessageKey | undefined;
     if (!result?.success || result.messageKey !== 'action.access.invitation.created') return null;
@@ -1292,7 +1340,12 @@
             </div>
             <span>{data.documents?.length ?? 0} {translate('files')}</span>
           </div>
-          <RecordBrowser rows={data.documents ?? []} bind:visible={documentPage} {translate} label="Private project documents" />
+          <RecordBrowser
+            rows={data.documents ?? []}
+            bind:visible={documentPage}
+            {translate}
+            label="Private project documents"
+          />
           {#each documentPage as document}<article class="invoice-row">
               <div>
                 <strong
@@ -1463,7 +1516,6 @@
                 'time record(s) have no matching compensation rule and require Finance review.',
               )}
             </p>{/if}
-
         </div>
       </section>
       <section class="record-list full pay-detail">
@@ -1574,7 +1626,11 @@
         <div class="panel-title">
           <div>
             <h2>{translate('Settlement status')}</h2>
-            <p>{translate('Expected and actual payment dates for your own approved work.')}</p>
+            <p>
+              {translate(
+                'Your reviewed compensation, recorded actual payments and remaining balance. Finalizing a settlement is not proof of payment.',
+              )}
+            </p>
           </div>
           <span>{data.settlements?.length ?? 0}</span>
         </div>
@@ -1588,10 +1644,12 @@
             <thead>
               <tr>
                 <th>{translate('Project / period')}</th>
-                <th>{translate('State')}</th>
+                <th>{translate('Payment state')}</th>
                 <th>{translate('Expected payment')}</th>
-                <th>{translate('Actual payment')}</th>
-                <th>{translate('Own amount')}</th>
+                <th>{translate('Latest actual payment')}</th>
+                <th>{translate('Reviewed settlement')}</th>
+                <th>{translate('Actual paid')}</th>
+                <th>{translate('Remaining')}</th>
               </tr>
             </thead>
             <tbody>
@@ -1607,14 +1665,21 @@
                       )} → {String(settlement.periodEnd ?? '—')}
                     </a>
                   </td>
-                  <td>{controlledValue('status', settlement.state)}</td>
+                  <td>{controlledValue('status', settlement.paymentState ?? settlement.state)}</td>
                   <td>{String(settlement.expectedPaymentOn ?? translate('Not scheduled'))}</td>
-                  <td>{String(settlement.settledAt ?? translate('Not paid yet'))}</td>
+                  <td>{String(settlement.actualPaymentOn ?? translate('Not paid yet'))}</td>
                   <td>{paymentMoney(settlement.amountMinor, String(settlement.currency))}</td>
+                  <td>{paymentMoney(settlement.paidAmountMinor, String(settlement.currency))}</td>
+                  <td
+                    >{paymentMoney(
+                      settlement.remainingAmountMinor,
+                      String(settlement.currency),
+                    )}</td
+                  >
                 </tr>
               {:else}
                 <tr>
-                  <td colspan="5">{translate('No compensation settlements in this period.')}</td>
+                  <td colspan="7">{translate('No compensation settlements in this period.')}</td>
                 </tr>
               {/each}
             </tbody>
@@ -1735,9 +1800,15 @@
               )}
             </p>
             <div>
-              <a class="secondary-button" href={href('projects') + '?view=clients'}>{translate('Client contacts')}</a>
-              <a class="secondary-button" href={href('projects') + '?view=team'}>{translate('Team access')}</a>
-              <a class="secondary-button" href="#assignment-history">{translate('Assignment history')}</a>
+              <a class="secondary-button" href={href('projects') + '?view=clients'}
+                >{translate('Client contacts')}</a
+              >
+              <a class="secondary-button" href={href('projects') + '?view=team'}
+                >{translate('Team access')}</a
+              >
+              <a class="secondary-button" href="#assignment-history"
+                >{translate('Assignment history')}</a
+              >
               <button
                 type="button"
                 class="primary-button"
@@ -1789,45 +1860,92 @@
             >
               <form method="POST" action="?/createClient" class="admin-form-grid">
                 <h2>{translate('Create client')}</h2>
-                <label>{translate('Legal name')}<input name="legalName" required /></label><label
-                  >{translate('Display name')}<input name="displayName" required /></label
+                {#if Object.keys(clientFieldErrors).length > 0}
+                  <div class="form-help wide-field" role="alert" data-client-field-errors>
+                    <strong>{translate('Review these client fields')}</strong>
+                    <ul>
+                      {#each Object.entries(clientFieldErrors) as [field, messages]}
+                        <li>
+                          {clientFieldLabel(field)}: {(messages ?? []).map(translate).join(' · ')}
+                        </li>
+                      {/each}
+                    </ul>
+                  </div>
+                {/if}
+                <label
+                  >{translate('Legal name')}<input
+                    name="legalName"
+                    minlength="2"
+                    value={clientFormValue('legalName')}
+                    required
+                  /></label
+                ><label
+                  >{translate('Display name')}<input
+                    name="displayName"
+                    minlength="2"
+                    value={clientFormValue('displayName')}
+                    required
+                  /></label
                 ><label
                   >{translate('Client code (optional)')}<input
                     name="clientCode"
                     maxlength="40"
+                    value={clientFormValue('clientCode')}
                   /></label
                 ><label
-                  >{translate('Currency')}<select name="currency"
-                    ><option>USD</option><option>BRL</option><option>EUR</option></select
+                  >{translate('Currency')}<select name="currency" required
+                    ><option value="USD" selected={clientFormValue('currency', 'USD') === 'USD'}
+                      >USD</option
+                    ><option value="BRL" selected={clientFormValue('currency', 'USD') === 'BRL'}
+                      >BRL</option
+                    ><option value="EUR" selected={clientFormValue('currency', 'USD') === 'EUR'}
+                      >EUR</option
+                    ></select
                   ></label
                 ><label
                   >{translate('Timezone')}<input
                     name="timezone"
-                    value="America/New_York"
+                    value={clientFormValue('timezone', 'America/New_York')}
                     required
                   /></label
                 ><label
-                  >{translate('Billing contact name')}<input name="billingContactName" /></label
+                  >{translate('Billing contact name')}<input
+                    name="billingContactName"
+                    minlength="2"
+                    value={clientFormValue('billingContactName')}
+                    required
+                  /><small>{translate('Required when no billing email is provided')}</small></label
                 ><label
                   >{translate('Billing contact email')}<input
                     name="billingEmail"
                     type="email"
+                    value={clientFormValue('billingEmail')}
                   /></label
                 ><label class="wide-field"
-                  >{translate('Billing address')}<textarea name="billingAddress" rows="3" required
-                  ></textarea></label
+                  >{translate('Billing address')}<textarea
+                    name="billingAddress"
+                    rows="3"
+                    minlength="5"
+                    required>{clientFormValue('billingAddress')}</textarea
+                  ></label
                 ><label
                   >{translate('Payment terms (days)')}<input
                     name="paymentTermsDays"
                     type="number"
                     min="0"
                     max="365"
-                    value="30"
+                    value={clientFormValue('paymentTermsDays', '30')}
                     required
                   /></label
-                ><label>{translate('PO / reference')}<input name="poReference" /></label><label
-                  class="wide-field"
-                  >{translate('Notes')}<textarea name="notes" rows="2"></textarea></label
+                ><label
+                  >{translate('PO / reference')}<input
+                    name="poReference"
+                    value={clientFormValue('poReference')}
+                  /></label
+                ><label class="wide-field"
+                  >{translate('Notes')}<textarea name="notes" rows="2"
+                    >{clientFormValue('notes')}</textarea
+                  ></label
                 >
                 <button>{translate('Create client')}</button>
               </form>
@@ -1843,7 +1961,7 @@
                   "Each editor carries the record version it displayed. A stale submission is rejected so another administrator's changes are not overwritten.",
                 )}
               </p>
-              {#each data.clients.filter(client => !$page.url.searchParams.get('client') || String(client.id) === $page.url.searchParams.get('client')) as client}
+              {#each data.clients.filter((client) => !$page.url.searchParams.get('client') || String(client.id) === $page.url.searchParams.get('client')) as client}
                 <form
                   method="POST"
                   action="?/updateClient"
@@ -1950,7 +2068,9 @@
                 <h2>{translate('Create project')}</h2>
                 <label
                   >{translate('Client')}<select name="clientId" required
-                    >{#each activeClients as client}<option value={client.id} selected={String(client.id) === $page.url.searchParams.get('client')}
+                    >{#each activeClients as client}<option
+                        value={client.id}
+                        selected={String(client.id) === $page.url.searchParams.get('client')}
                         >{client.client_number} — {client.display_name}</option
                       >{/each}</select
                   ></label
@@ -2071,13 +2191,17 @@
                   <h2>{translate('Assign worker')}</h2>
                   <label
                     >{translate('Project')}<select name="projectId" required
-                      >{#each activeProjects as project}<option value={project.id} selected={String(project.id) === $page.url.searchParams.get('project')}
+                      >{#each activeProjects as project}<option
+                          value={project.id}
+                          selected={String(project.id) === $page.url.searchParams.get('project')}
                           >{project.project_number}</option
                         >{/each}</select
                     ></label
                   ><label
                     >{translate('Worker')}<select name="workerId" required
-                      >{#each data.workers ?? [] as worker}<option value={worker.id} selected={String(worker.id) === $page.url.searchParams.get('worker')}
+                      >{#each data.workers ?? [] as worker}<option
+                          value={worker.id}
+                          selected={String(worker.id) === $page.url.searchParams.get('worker')}
                           >{worker.name} — {controlledValue('role', worker.role)}</option
                         >{/each}</select
                     ></label
@@ -2342,7 +2466,11 @@
               <span>{data.clients?.length ?? 0}</span>
             </div>
             {#each data.clients ?? [] as client}
-              <article class="record-card" id={`client-controls-${client.id}`} data-client-id={client.id}>
+              <article
+                class="record-card"
+                id={`client-controls-${client.id}`}
+                data-client-id={client.id}
+              >
                 <div>
                   <strong>{client.client_number} · {client.display_name}</strong>
                   <small
@@ -2559,7 +2687,13 @@
               </div>
               <span>{data.assignments?.length ?? 0}</span>
             </div>
-            <div id="assignment-history"></div><RecordBrowser rows={data.assignments ?? []} bind:visible={assignmentPage} {translate} label="Assignment history" />
+            <div id="assignment-history"></div>
+            <RecordBrowser
+              rows={data.assignments ?? []}
+              bind:visible={assignmentPage}
+              {translate}
+              label="Assignment history"
+            />
             {#each assignmentPage as assignment}
               <article class="record-card">
                 <div>
@@ -2582,8 +2716,15 @@
               <h2>{translate('Client contacts')}</h2>
               <span>{data.contacts.length}</span>
             </div>
-            <RecordBrowser rows={data.contacts} bind:visible={contactPage} {translate} label="Client contacts" />
-            <a class="secondary-button" href={`${base}/app/projects?view=clients`}>{translate('Clients')} →</a>
+            <RecordBrowser
+              rows={data.contacts}
+              bind:visible={contactPage}
+              {translate}
+              label="Client contacts"
+            />
+            <a class="secondary-button" href={`${base}/app/projects?view=clients`}
+              >{translate('Clients')} →</a
+            >
             {#each contactPage as contact}
               <article class="record-card contact-card">
                 <div>
@@ -2759,6 +2900,61 @@
                           >
                         </form>
 
+                        {#if worker.role === 'worker'}
+                          <form
+                            method="POST"
+                            action="?/setWorkforceProfile"
+                            class="compact-form worker-profile-form"
+                          >
+                            <h4 class="worker-form-heading">
+                              {translate('Operational access type')}
+                            </h4>
+                            <p class="form-help">
+                              {translate(
+                                'Portal role controls application permissions. Operational access type links supplier coordinators and external technicians to the same person account without duplicating them.',
+                              )}
+                            </p>
+                            <input type="hidden" name="workerId" value={worker.id} />
+                            <label class="worker-field">
+                              {translate('Operational access type')}
+                              <select name="profile" required class="worker-field-control">
+                                <option
+                                  value="standard"
+                                  selected={!worker.workforce_profile ||
+                                    worker.workforce_profile === 'standard'}
+                                  >{translate('Standard team member')}</option
+                                >
+                                <option
+                                  value="supplier_coordinator"
+                                  selected={worker.workforce_profile === 'supplier_coordinator'}
+                                  >{translate('Supplier coordinator')}</option
+                                >
+                                <option
+                                  value="external_technician"
+                                  selected={worker.workforce_profile === 'external_technician'}
+                                  >{translate('External technician')}</option
+                                >
+                              </select>
+                            </label>
+                            <label class="worker-field">
+                              {translate('Supplier company')}
+                              <select name="supplierId" class="worker-field-control">
+                                <option value="">{translate('Not linked to a supplier')}</option>
+                                {#each data.suppliers ?? [] as supplier}
+                                  <option
+                                    value={supplier.id}
+                                    selected={String(worker.supplier_id ?? '') ===
+                                      String(supplier.id)}>{supplier.name}</option
+                                  >
+                                {/each}
+                              </select>
+                            </label>
+                            <button type="submit" class="worker-form-submit"
+                              >{translate('Save operational access')}</button
+                            >
+                          </form>
+                        {/if}
+
                         <form
                           method="POST"
                           action="?/updateUserStatus"
@@ -2802,7 +2998,11 @@
             class="admin-form-grid"
           >
             <h2>{translate('Publish field assignment')}</h2>
-            <p class="form-help">{translate('Publish a planned shift for an assigned worker. Planning does not create actual time entries; the worker records the work performed separately.')}</p>
+            <p class="form-help">
+              {translate(
+                'Publish a planned shift for an assigned worker. Planning does not create actual time entries; the worker records the work performed separately.',
+              )}
+            </p>
             <label
               >{translate('Project')}<select name="projectId" required
                 >{#each operationalProjects as project}<option value={project.id}
@@ -2922,20 +3122,40 @@
             <span>{data.records?.length ?? 0}</span>
           </div>
           <form method="GET" class="admin-form-grid">
-            <label>{translate('Project')}<select name="project" value={$page.url.searchParams.get('project') ?? ''}>
-              <option value="">{translate('All')}</option>
-              {#each data.projects ?? [] as project}<option value={project.id}>{project.project_number} · {project.name}</option>{/each}
-            </select></label>
-            {#if data.workers?.length}<label>{translate('Worker')}<select name="worker" value={$page.url.searchParams.get('worker') ?? ''}>
-              <option value="">{translate('All')}</option>
-              {#each data.workers as worker}<option value={worker.id}>{worker.name}</option>{/each}
-            </select></label>{/if}
+            <label
+              >{translate('Project')}<select
+                name="project"
+                value={$page.url.searchParams.get('project') ?? ''}
+              >
+                <option value="">{translate('All')}</option>
+                {#each data.projects ?? [] as project}<option value={project.id}
+                    >{project.project_number} · {project.name}</option
+                  >{/each}
+              </select></label
+            >
+            {#if data.workers?.length}<label
+                >{translate('Worker')}<select
+                  name="worker"
+                  value={$page.url.searchParams.get('worker') ?? ''}
+                >
+                  <option value="">{translate('All')}</option>
+                  {#each data.workers as worker}<option value={worker.id}>{worker.name}</option
+                    >{/each}
+                </select></label
+              >{/if}
             <button type="submit">{translate('Filter')}</button>
           </form>
-          <RecordBrowser rows={data.records ?? []} bind:visible={planningPage} {translate} label="Published schedule" />
+          <RecordBrowser
+            rows={data.records ?? []}
+            bind:visible={planningPage}
+            {translate}
+            label="Published schedule"
+          />
           {#each planningPage as row}<a
               class="record-card-link"
-              href={data.user.role === 'owner_admin' ? `${base}/app/manage?area=planning_assignment&project=${row.project_id}&focus=${row.id}` : `${base}/app/projects/${row.project_id}`}
+              href={data.user.role === 'owner_admin'
+                ? `${base}/app/manage?area=planning_assignment&project=${row.project_id}&focus=${row.id}`
+                : `${base}/app/projects/${row.project_id}`}
             >
               <div>
                 <strong>{row.worker_name} · {row.project_number}</strong><small

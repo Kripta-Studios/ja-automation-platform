@@ -1908,16 +1908,36 @@ export class PortalRepository {
     const daily = this.sqlite
       .prepare(
         `SELECT 'daily' type,d.*,p.project_number,p.name project_name,p.site_name,p.client_id,
-                u.name author_name,u.email author_email
+                u.name author_name,u.email author_email,
+                creator.name created_by_name,creator.email created_by_email,
+                reviewer.name reviewed_by_name,reviewer.email reviewed_by_email
          FROM daily_report d JOIN project p ON p.id=d.project_id JOIN user u ON u.id=d.worker_id
+         LEFT JOIN user reviewer ON reviewer.id=d.reviewed_by
+         LEFT JOIN audit_event created_event ON created_event.id=(
+           SELECT ae.id FROM audit_event ae
+            WHERE ae.entity_type='daily_report' AND ae.entity_id=d.id
+              AND ae.action='daily_report.create'
+            ORDER BY ae.occurred_at,ae.id LIMIT 1
+         )
+         LEFT JOIN user creator ON creator.id=created_event.actor_id
          WHERE d.id=?`,
       )
       .get(id) as Record<string, unknown> | undefined;
     const technical = this.sqlite
       .prepare(
         `SELECT 'technical' type,t.*,t.author_id owner_id,p.project_number,p.name project_name,
-                p.site_name,p.client_id,u.name author_name,u.email author_email
+                p.site_name,p.client_id,u.name author_name,u.email author_email,
+                creator.name created_by_name,creator.email created_by_email,
+                reviewer.name reviewed_by_name,reviewer.email reviewed_by_email
          FROM technical_report t JOIN project p ON p.id=t.project_id JOIN user u ON u.id=t.author_id
+         LEFT JOIN user reviewer ON reviewer.id=t.reviewed_by
+         LEFT JOIN audit_event created_event ON created_event.id=(
+           SELECT ae.id FROM audit_event ae
+            WHERE ae.entity_type='technical_report' AND ae.entity_id=t.id
+              AND ae.action='technical_report.create'
+            ORDER BY ae.occurred_at,ae.id LIMIT 1
+         )
+         LEFT JOIN user creator ON creator.id=created_event.actor_id
          WHERE t.id=?`,
       )
       .get(id) as Record<string, unknown> | undefined;
@@ -3874,8 +3894,36 @@ export class PortalRepository {
           activeTaxProfile.legal_entity_id !== input.legalEntityId)
       )
         throw new ValidationError('Active tax profile matching the billing entity is required');
+      const successorConflict = this.sqlite
+        .prepare(
+          `SELECT id FROM billing_rule
+            WHERE project_id=? AND stream_type=? AND enabled=1 AND effective_from>=?
+            LIMIT 1`,
+        )
+        .get(input.projectId, input.streamType, input.effectiveFrom) as { id: string } | undefined;
+      if (successorConflict)
+        throw new ValidationError(
+          'A billing stream already starts on or after this effective date. Choose a later date or manage the existing successor.',
+        );
+      const predecessor = this.sqlite
+        .prepare(
+          `SELECT id,effective_from,effective_to FROM billing_rule
+            WHERE project_id=? AND stream_type=? AND enabled=1 AND effective_from<?
+              AND (effective_to IS NULL OR effective_to>=?)
+            ORDER BY effective_from DESC LIMIT 1`,
+        )
+        .get(input.projectId, input.streamType, input.effectiveFrom, input.effectiveFrom) as
+        | { id: string; effective_from: string; effective_to: string | null }
+        | undefined;
       const id = newId();
       const timestamp = now();
+      if (predecessor) {
+        this.sqlite
+          .prepare(
+            'UPDATE billing_rule SET effective_to=?,updated_at=?,version=version+1 WHERE id=?',
+          )
+          .run(shiftIsoDate(input.effectiveFrom, -1), timestamp, predecessor.id);
+      }
       this.sqlite
         .prepare(
           'INSERT INTO billing_rule(id,project_id,legal_entity_id,stream_type,enabled,cadence_type,anchor_date,tax_profile_id,currency,auto_generate_draft,auto_issue,auto_send,effective_from,created_at,updated_at,template_id,recipient_email,billing_contact_id,payment_terms_days,po_number_override,semi_monthly_rule,grouping_mode,fixed_amount_minor,included_minutes,monthly_cutoff_day) VALUES(?,?,?,?,1,?,?,?,?,?,0,0,?,?,?,?,?,?,?,?,?, ?,?,?,?)',
@@ -3906,6 +3954,8 @@ export class PortalRepository {
         );
       this.audit(principal, 'billing_rule.create', 'billing_rule', id, {
         streamType: input.streamType,
+        effectiveFrom: input.effectiveFrom,
+        predecessorRuleId: predecessor?.id ?? null,
       });
       return { id };
     });
@@ -4186,12 +4236,9 @@ export class PortalRepository {
         reasons.push({ code: 'invalid_period_configuration' });
       }
     }
-    if (
-      rule.billing_model === 'all_in' &&
-      rule.stream_type === 'labor' &&
-      rule.fixed_price_minor === null
-    )
-      reasons.push({ code: 'missing_fixed_price' });
+    // ALL-IN describes which expenses are included in the hourly commercial
+    // rate. It becomes a fixed-price labor contract only when an explicit fixed
+    // price exists; otherwise approved labor continues through hourly rating.
     if (rule.billing_model === 'capped_tm' && rule.po_cap_minor !== null) {
       const consumedRows = this.sqlite
         .prepare(
@@ -4708,7 +4755,11 @@ export class PortalRepository {
         }
         subtotal = money(rule.currency, capRemaining);
       }
-      if (rule.billing_model === 'all_in' && rule.stream_type === 'labor') {
+      if (
+        rule.billing_model === 'all_in' &&
+        rule.stream_type === 'labor' &&
+        fixedAmount !== null
+      ) {
         const coveredSources = new Map<string, { id: string; version: number }>();
         for (const slice of this.billingTimeSlices(rule.project_id, periodStart, periodEnd)) {
           if (
@@ -5168,7 +5219,9 @@ export class PortalRepository {
             ? 'capped_tm_blocked_by_cap'
             : 'capped_tm_partial_allocation'
           : billingModel === 'all_in'
-            ? 'all_in_source_covered_by_fixed_price'
+            ? allocation
+              ? 'all_in_hourly_source_included'
+              : 'all_in_source_covered_by_fixed_price'
             : billingModel === 'hybrid' && !allocation
               ? 'hybrid_source_covered_by_fixed_price'
               : `${billingModel}_source_included`;
@@ -6938,8 +6991,16 @@ export class PortalRepository {
     const daily = this.sqlite
       .prepare(
         `SELECT 'daily' type,d.id,d.project_id,d.work_date date,d.summary title,d.approval_state,d.version,
-                d.safety_related,p.project_number,p.name project_name,u.name author_name,c.display_name client_name
+                d.safety_related,p.project_number,p.name project_name,u.name author_name,u.email author_email,
+                COALESCE(creator.name,u.name) created_by_name,COALESCE(creator.email,u.email) created_by_email,
+                reviewer.name reviewed_by_name,c.display_name client_name
          FROM daily_report d JOIN project p ON p.id=d.project_id JOIN user u ON u.id=d.worker_id JOIN client c ON c.id=p.client_id
+         LEFT JOIN user reviewer ON reviewer.id=d.reviewed_by
+         LEFT JOIN audit_event created_event ON created_event.id=(
+           SELECT ae.id FROM audit_event ae WHERE ae.entity_type='daily_report' AND ae.entity_id=d.id
+             AND ae.action='daily_report.create' ORDER BY ae.occurred_at,ae.id LIMIT 1
+         )
+         LEFT JOIN user creator ON creator.id=created_event.actor_id
          ${dailyConditions.length ? `WHERE ${dailyConditions.join(' AND ')}` : ''}
          ORDER BY d.work_date DESC,d.id DESC`,
       )
@@ -6947,8 +7008,16 @@ export class PortalRepository {
     const technical = this.sqlite
       .prepare(
         `SELECT 'technical' type,t.id,t.project_id,t.report_date date,t.system_name title,t.approval_state,
-                t.version,t.safety_related,p.project_number,p.name project_name,u.name author_name,c.display_name client_name
+                t.version,t.safety_related,p.project_number,p.name project_name,u.name author_name,u.email author_email,
+                COALESCE(creator.name,u.name) created_by_name,COALESCE(creator.email,u.email) created_by_email,
+                reviewer.name reviewed_by_name,c.display_name client_name
          FROM technical_report t JOIN project p ON p.id=t.project_id JOIN user u ON u.id=t.author_id JOIN client c ON c.id=p.client_id
+         LEFT JOIN user reviewer ON reviewer.id=t.reviewed_by
+         LEFT JOIN audit_event created_event ON created_event.id=(
+           SELECT ae.id FROM audit_event ae WHERE ae.entity_type='technical_report' AND ae.entity_id=t.id
+             AND ae.action='technical_report.create' ORDER BY ae.occurred_at,ae.id LIMIT 1
+         )
+         LEFT JOIN user creator ON creator.id=created_event.actor_id
          ${technicalConditions.length ? `WHERE ${technicalConditions.join(' AND ')}` : ''}
          ORDER BY date DESC,t.id DESC`,
       )
@@ -6959,8 +7028,7 @@ export class PortalRepository {
           !isSupplierCoordinator(this.sqlite, principal.userId) ||
           this.hasEffectiveProjectObjectAccess(principal, String(row.project_id), String(row.date)),
       )
-      .sort((left, right) => String(right.date).localeCompare(String(left.date)))
-;
+      .sort((left, right) => String(right.date).localeCompare(String(left.date)));
   }
 
   listPlanning(principal: Principal) {
@@ -8112,7 +8180,22 @@ export class PortalRepository {
       throw new AccessDeniedError('Finance role required');
     return this.sqlite
       .prepare(
-        'SELECT br.id,br.project_id,br.stream_type,br.cadence_type,br.anchor_date,br.monthly_cutoff_day,br.currency,br.enabled,p.project_number,p.name project_name,tp.name tax_profile_name,le.code legal_entity_code,cc.name billing_contact_name FROM billing_rule br JOIN project p ON p.id=br.project_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN client_contact cc ON cc.id=br.billing_contact_id ORDER BY p.project_number,br.stream_type',
+        `SELECT br.*,p.project_number,p.name project_name,p.client_id,
+                c.client_number,c.client_code,c.display_name client_name,
+                tp.name tax_profile_name,le.code legal_entity_code,cc.name billing_contact_name,
+                (SELECT bp.updated_at FROM billing_period bp
+                  WHERE bp.billing_rule_id=br.id ORDER BY bp.updated_at DESC LIMIT 1) automation_last_run,
+                (SELECT bp.state FROM billing_period bp
+                  WHERE bp.billing_rule_id=br.id ORDER BY bp.updated_at DESC LIMIT 1) automation_last_result,
+                (SELECT bp.reasons_json FROM billing_period bp
+                  WHERE bp.billing_rule_id=br.id ORDER BY bp.updated_at DESC LIMIT 1) automation_blocking_reasons
+           FROM billing_rule br
+           JOIN project p ON p.id=br.project_id
+           JOIN client c ON c.id=p.client_id
+           LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id
+           LEFT JOIN legal_entity le ON le.id=br.legal_entity_id
+           LEFT JOIN client_contact cc ON cc.id=br.billing_contact_id
+          ORDER BY p.project_number,br.stream_type`,
       )
       .all();
   }

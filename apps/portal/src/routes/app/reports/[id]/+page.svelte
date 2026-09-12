@@ -1233,10 +1233,22 @@
         >
       </article>
       <article>
-        <span>{t('AUTHOR')}</span><strong>{display(report.author_name)}</strong><small
+        <span>{t('WORK PERFORMED BY')}</span><strong>{display(report.author_name)}</strong><small
           >{display(report.author_email)}</small
         >
       </article>
+      <article>
+        <span>{t('REPORT CREATED BY')}</span><strong
+          >{display(report.created_by_name || report.author_name)}</strong
+        ><small>{display(report.created_by_email || report.author_email)}</small>
+      </article>
+      {#if report.reviewed_by_name}
+        <article>
+          <span>{t('REVIEWED BY')}</span><strong>{display(report.reviewed_by_name)}</strong><small
+            >{display(report.reviewed_by_email)}</small
+          >
+        </article>
+      {/if}
       <article>
         <span>{t('SAFETY')}</span><strong
           >{checked(report.safety_related) ? t('Review required') : t('No safety flag')}</strong

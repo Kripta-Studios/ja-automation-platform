@@ -155,6 +155,8 @@
             'project_name',
             'client_name',
             'author_name',
+            'created_by_name',
+            'reviewed_by_name',
             'date',
           ]),
       ),
@@ -180,6 +182,8 @@
             'project_name',
             'client_name',
             'author_name',
+            'created_by_name',
+            'reviewed_by_name',
             'date',
           ]),
       ),
@@ -515,6 +519,14 @@
                   row,
                 )}</small
               >
+              <small>
+                {translate('Work performed by')}: {rowText(row, 'author_name')} · {translate(
+                  'Report created by',
+                )}: {rowText(row, 'created_by_name') || rowText(row, 'author_name')}
+                {#if rowText(row, 'reviewed_by_name')}
+                  · {translate('Reviewed by')}: {rowText(row, 'reviewed_by_name')}
+                {/if}
+              </small>
               <span class="report-register-open">{translate('Open report →')}</span>
               {#if row.approval_state === 'needs_changes'}
                 <span class="report-register-notice"
@@ -599,6 +611,14 @@
                   row,
                 )}</small
               >
+              <small>
+                {translate('Work performed by')}: {rowText(row, 'author_name')} · {translate(
+                  'Report created by',
+                )}: {rowText(row, 'created_by_name') || rowText(row, 'author_name')}
+                {#if rowText(row, 'reviewed_by_name')}
+                  · {translate('Reviewed by')}: {rowText(row, 'reviewed_by_name')}
+                {/if}
+              </small>
               <span class="report-register-open">{translate('Open report →')}</span>
               {#if row.approval_state === 'needs_changes'}
                 <span class="report-register-notice"

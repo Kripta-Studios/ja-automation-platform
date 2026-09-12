@@ -40,17 +40,17 @@ The original Excel sheet mentioned by the owner was not identified from the supp
 
 ### 2.2 Exact application baseline
 
-| Item | Observed value |
-| --- | --- |
-| Working repository | `/home/kripta/ja-automation-platform-vps-hotfix` |
-| Local HEAD | `6ec7b8a7ba5b9eca00b88bc7062d2c8626bdde7e` |
-| Active deployment link | `/opt/jaautomation/current` |
-| Active release directory | `/opt/jaautomation/releases/ja-automation-33a6a06ad271c63a9e335b2f594b4ec5dfcd2fbe156dff4831eb7b0f513f1c4d` |
-| Deployed source commit | `6ec7b8a7ba5b9eca00b88bc7062d2c8626bdde7e`, from `RELEASE-BUILD.txt` |
-| Manifest build timestamp | `2026-09-06T19:40:36Z` |
-| Manifest runtime | Node `24.19.0`, pnpm `11.22.0` |
-| Application architecture | Next.js public website; SvelteKit portal; Node; SQLite; private local artifacts; Caddy; Docker/systemd |
-| Existing routing evidence | Portal on `127.0.0.1:5100`; public site on `127.0.0.1:5101` |
+| Item                      | Observed value                                                                                              |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Working repository        | `/home/kripta/ja-automation-platform-vps-hotfix`                                                            |
+| Local HEAD                | `6ec7b8a7ba5b9eca00b88bc7062d2c8626bdde7e`                                                                  |
+| Active deployment link    | `/opt/jaautomation/current`                                                                                 |
+| Active release directory  | `/opt/jaautomation/releases/ja-automation-33a6a06ad271c63a9e335b2f594b4ec5dfcd2fbe156dff4831eb7b0f513f1c4d` |
+| Deployed source commit    | `6ec7b8a7ba5b9eca00b88bc7062d2c8626bdde7e`, from `RELEASE-BUILD.txt`                                        |
+| Manifest build timestamp  | `2026-09-06T19:40:36Z`                                                                                      |
+| Manifest runtime          | Node `24.19.0`, pnpm `11.22.0`                                                                              |
+| Application architecture  | Next.js public website; SvelteKit portal; Node; SQLite; private local artifacts; Caddy; Docker/systemd      |
+| Existing routing evidence | Portal on `127.0.0.1:5100`; public site on `127.0.0.1:5101`                                                 |
 
 The main repository, V3 repository, conformity implementation, mail adapter, Finance overview, navigation, and website company configuration matched the deployed files byte-for-byte. This supports using those implementations as evidence about the live deployment. It does not prove that every path or every production configuration works.
 
@@ -58,14 +58,14 @@ The supplied handback checklist describes `2058db2`, an older candidate. The che
 
 ### 2.3 Evidence labels used here
 
-| Label | Meaning |
-| --- | --- |
-| Present | Reachable implementation or a concrete artifact was identified. This is not a new test-pass claim. |
-| Partial | Some foundations exist, but an identifiable business workflow or integration is incomplete. |
-| Confirmed defect | Directly observable source or public-page behavior contradicts the intended operation. |
-| Not found | Targeted schema, service, route, and action inspection did not identify the capability. This is a bounded finding, not proof about every possible external tool J&A uses. |
-| Needs validation | Configuration, real business examples, approval, or fresh runtime evidence is required. |
-| Proposed | A design recommendation inferred from J&A's work and priorities. |
+| Label            | Meaning                                                                                                                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Present          | Reachable implementation or a concrete artifact was identified. This is not a new test-pass claim.                                                                        |
+| Partial          | Some foundations exist, but an identifiable business workflow or integration is incomplete.                                                                               |
+| Confirmed defect | Directly observable source or public-page behavior contradicts the intended operation.                                                                                    |
+| Not found        | Targeted schema, service, route, and action inspection did not identify the capability. This is a bounded finding, not proof about every possible external tool J&A uses. |
+| Needs validation | Configuration, real business examples, approval, or fresh runtime evidence is required.                                                                                   |
+| Proposed         | A design recommendation inferred from J&A's work and priorities.                                                                                                          |
 
 No live customer invoice was issued, payment recorded, signature created, account modified, or form submitted during this analysis. No application test suite was rerun. Historical test counts in the checklist are historical evidence, not newly reproduced results. Production financial data was not mined to infer real margins, cash balances, staffing, or customer relationships.
 
@@ -125,14 +125,14 @@ The owner's comments make four priorities stronger than generic ERP completeness
 
 ### 3.4 Engagement patterns to support explicitly
 
-| Pattern | How it works | Product implication |
-| --- | --- | --- |
-| Hourly deployment; customer pays hotel/car directly | J&A invoices labour; the customer settles selected suppliers | Keep customer-direct spend informational unless J&A actually incurs a liability; no worker reimbursement or customer rebill for the same purchase |
-| Hourly deployment; J&A/worker advances recoverable expenses | Hours plus a separate approved expense stream | Track payer, receipt, reimbursement, recovery, independent tax and invoice periods |
-| Hourly rate includes selected expenses | Customer still pays by hour; J&A absorbs agreed travel/living costs | Hourly pricing plus included-expense rules; actual hotel cost reduces contribution |
-| Hourly engagement with minimum or cap | A minimum protects mobilisation/day economics; a PO limits recoverable revenue | Separate actual time, minimum adjustment, overtime and remaining authorised cap |
-| Genuine fixed/milestone engagement | A specifically agreed amount is earned under a different arrangement | Preserve existing support, but require deliberate selection; do not infer it from “all-in” |
-| Support/rework intervention | Returning to a previous machine may be new paid work or J&A responsibility | Link to the original project and record commercial disposition instead of automatically billing every return visit |
+| Pattern                                                     | How it works                                                                   | Product implication                                                                                                                               |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hourly deployment; customer pays hotel/car directly         | J&A invoices labour; the customer settles selected suppliers                   | Keep customer-direct spend informational unless J&A actually incurs a liability; no worker reimbursement or customer rebill for the same purchase |
+| Hourly deployment; J&A/worker advances recoverable expenses | Hours plus a separate approved expense stream                                  | Track payer, receipt, reimbursement, recovery, independent tax and invoice periods                                                                |
+| Hourly rate includes selected expenses                      | Customer still pays by hour; J&A absorbs agreed travel/living costs            | Hourly pricing plus included-expense rules; actual hotel cost reduces contribution                                                                |
+| Hourly engagement with minimum or cap                       | A minimum protects mobilisation/day economics; a PO limits recoverable revenue | Separate actual time, minimum adjustment, overtime and remaining authorised cap                                                                   |
+| Genuine fixed/milestone engagement                          | A specifically agreed amount is earned under a different arrangement           | Preserve existing support, but require deliberate selection; do not infer it from “all-in”                                                        |
+| Support/rework intervention                                 | Returning to a previous machine may be new paid work or J&A responsibility     | Link to the original project and record commercial disposition instead of automatically billing every return visit                                |
 
 These are proposed templates, not assumptions about existing project configuration.
 
@@ -193,39 +193,39 @@ Server-side privacy can prevent direct disclosure of customer rates and other wo
 
 “Present” below means source/artifact evidence, not a fresh end-to-end certification.
 
-| Owner request | Current evidence / status | What remains valuable |
-| --- | --- | --- |
-| Client number, acronym, project number, cost centre | Present in client/project schema and invoice specification | Validate one actual naming convention and display it consistently |
-| Different pay and sell rates per worker/project/activity | Present in compensation, internal-cost, client-rate and override implementations | Guided setup and source-level calculation explanations |
-| Real hours, optional activities and PLC reports | Present in time/report routes and technical domains | Reduce repeated entry; make technical detail conditional |
-| Admin adds/reduces worker time | Present correction lifecycle; historical regression evidence | Test corrections after signature, billing and month close together |
-| No universal ten-hour day | Configurable policy and actual-minute model present | Remove remaining rigid assumptions from reminders and examples |
-| Minimum billable hours | Present in billing engine/policies | Explain applicability, eligible categories, cap interaction, and adjustment lines |
-| Optional overtime at 1.6× / 2× | Present thresholds and separate commercial rates | Show worked examples and tier limitations; confirm cross-midnight/weekend rules |
-| Travel independently billable and payable | Present commercial policy | Make the agreement understandable without asking workers to choose billability |
-| Customer-paid hotel/car versus all-in | Expense classifications present; all-in wording ambiguous | Separate hourly pricing from expense responsibility |
-| Percentage of eligible labour | Present, including explicit basis concepts | Confirm inclusion of minimum top-ups/overtime and settlement trigger |
-| Worker sees expected own pay and payment dates | Present My Pay/statement/settlement paths | Explain estimate versus approved versus scheduled versus actually paid |
-| Expense photo/PDF receipts | Present private upload and expense linkage | Mobile preview, draft recovery, duplicate review and multi-receipt cases |
-| Separate labour and expense invoices | Present billing streams | Provide side-by-side readiness and independent periods/taxes |
-| Weekly / fortnightly / monthly periods | Present; every-14-days and semi-monthly both exist | Clear labels and upcoming-period preview |
-| Automatic reports and invoice generation | Durable jobs and draft-generation foundations present | Verify scheduling and missing-input notification paths; manual review stays required |
-| Invoice templates and identifiers | Five controlled layout families present | Approve actual issuer/remittance examples, language and template defaults |
-| Optional different taxes for hours/expenses | Present configurable profiles | Obtain accountant-approved configurations and preserve evidence |
-| Customer report has no monetary values | Explicit zero-money snapshot allowlist present | Protect free-text content as well as fields; preview exactly what leaves J&A |
-| Customer signature before final billing | Version/PDF-bound conformity and issue gate present | Operational collection/follow-up, missing-signature queue and partial-period decisions |
-| Worker report with only own hours and pay | Present durable Worker Statement and My Pay | Download discoverability and realistic employee walkthrough |
-| Admin report with pay, revenue, activity and dates | Present economic/Finance views and report families | A unified obligation/receipt timeline and complete drill-down |
-| Invoice/cost/payment table and monthly Accounting | Present ledger and frozen accounting-pack architecture | Reconcile with the unseen Excel and accountant's accepted monthly pack |
-| Paid/received/partial states | Present invoice payments, settlements, reimbursement states | Avoid one “paid” badge for two unrelated payment directions |
-| Active/inactive workers and projects | Present lifecycle and effective memberships | Historical access/offboarding walkthrough and reactivation checks |
-| EN/ES/PT document generation | Localized artifact infrastructure present | Real template/content parity, not only translated headings |
-| Modern mobile and desktop interface | Shared components, role navigation and historical captures present | Task-focused language, density and usability tests with actual roles |
-| Industries prominent at the beginning | Present on live homepage | Maintain this hierarchy; verify actual mobile fold in next UI campaign |
-| Remove nonexistent telephone numbers | No configured public company phone found; source scan found contact-input handling | Keep contact method approved; do not confuse a visitor's phone input with a published number |
-| LinkedIn projects on website | Recent entries exist but provenance is coarse/stale | Source register, corporate-reference approval, individual-experience distinction |
-| Requested team counts | Present in public company configuration and homepage | Confirm they describe capacity accurately; do not sum overlapping roles as headcount |
-| Employee PDF manual | Five PDFs present, including EN/ES/PT-BR field guides and detailed English Worker/Owner guides | In-app access, current revision, role-specific examples and human acceptance |
+| Owner request                                            | Current evidence / status                                                                      | What remains valuable                                                                        |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Client number, acronym, project number, cost centre      | Present in client/project schema and invoice specification                                     | Validate one actual naming convention and display it consistently                            |
+| Different pay and sell rates per worker/project/activity | Present in compensation, internal-cost, client-rate and override implementations               | Guided setup and source-level calculation explanations                                       |
+| Real hours, optional activities and PLC reports          | Present in time/report routes and technical domains                                            | Reduce repeated entry; make technical detail conditional                                     |
+| Admin adds/reduces worker time                           | Present correction lifecycle; historical regression evidence                                   | Test corrections after signature, billing and month close together                           |
+| No universal ten-hour day                                | Configurable policy and actual-minute model present                                            | Remove remaining rigid assumptions from reminders and examples                               |
+| Minimum billable hours                                   | Present in billing engine/policies                                                             | Explain applicability, eligible categories, cap interaction, and adjustment lines            |
+| Optional overtime at 1.6× / 2×                           | Present thresholds and separate commercial rates                                               | Show worked examples and tier limitations; confirm cross-midnight/weekend rules              |
+| Travel independently billable and payable                | Present commercial policy                                                                      | Make the agreement understandable without asking workers to choose billability               |
+| Customer-paid hotel/car versus all-in                    | Expense classifications present; all-in wording ambiguous                                      | Separate hourly pricing from expense responsibility                                          |
+| Percentage of eligible labour                            | Present, including explicit basis concepts                                                     | Confirm inclusion of minimum top-ups/overtime and settlement trigger                         |
+| Worker sees expected own pay and payment dates           | Present My Pay/statement/settlement paths                                                      | Explain estimate versus approved versus scheduled versus actually paid                       |
+| Expense photo/PDF receipts                               | Present private upload and expense linkage                                                     | Mobile preview, draft recovery, duplicate review and multi-receipt cases                     |
+| Separate labour and expense invoices                     | Present billing streams                                                                        | Provide side-by-side readiness and independent periods/taxes                                 |
+| Weekly / fortnightly / monthly periods                   | Present; every-14-days and semi-monthly both exist                                             | Clear labels and upcoming-period preview                                                     |
+| Automatic reports and invoice generation                 | Durable jobs and draft-generation foundations present                                          | Verify scheduling and missing-input notification paths; manual review stays required         |
+| Invoice templates and identifiers                        | Five controlled layout families present                                                        | Approve actual issuer/remittance examples, language and template defaults                    |
+| Optional different taxes for hours/expenses              | Present configurable profiles                                                                  | Obtain accountant-approved configurations and preserve evidence                              |
+| Customer report has no monetary values                   | Explicit zero-money snapshot allowlist present                                                 | Protect free-text content as well as fields; preview exactly what leaves J&A                 |
+| Customer signature before final billing                  | Version/PDF-bound conformity and issue gate present                                            | Operational collection/follow-up, missing-signature queue and partial-period decisions       |
+| Worker report with only own hours and pay                | Present durable Worker Statement and My Pay                                                    | Download discoverability and realistic employee walkthrough                                  |
+| Admin report with pay, revenue, activity and dates       | Present economic/Finance views and report families                                             | A unified obligation/receipt timeline and complete drill-down                                |
+| Invoice/cost/payment table and monthly Accounting        | Present ledger and frozen accounting-pack architecture                                         | Reconcile with the unseen Excel and accountant's accepted monthly pack                       |
+| Paid/received/partial states                             | Present invoice payments, settlements, reimbursement states                                    | Avoid one “paid” badge for two unrelated payment directions                                  |
+| Active/inactive workers and projects                     | Present lifecycle and effective memberships                                                    | Historical access/offboarding walkthrough and reactivation checks                            |
+| EN/ES/PT document generation                             | Localized artifact infrastructure present                                                      | Real template/content parity, not only translated headings                                   |
+| Modern mobile and desktop interface                      | Shared components, role navigation and historical captures present                             | Task-focused language, density and usability tests with actual roles                         |
+| Industries prominent at the beginning                    | Present on live homepage                                                                       | Maintain this hierarchy; verify actual mobile fold in next UI campaign                       |
+| Remove nonexistent telephone numbers                     | No configured public company phone found; source scan found contact-input handling             | Keep contact method approved; do not confuse a visitor's phone input with a published number |
+| LinkedIn projects on website                             | Recent entries exist but provenance is coarse/stale                                            | Source register, corporate-reference approval, individual-experience distinction             |
+| Requested team counts                                    | Present in public company configuration and homepage                                           | Confirm they describe capacity accurately; do not sum overlapping roles as headcount         |
+| Employee PDF manual                                      | Five PDFs present, including EN/ES/PT-BR field guides and detailed English Worker/Owner guides | In-app access, current revision, role-specific examples and human acceptance                 |
 
 ## 6. Contract, checklist, and acceptance must be reconciled
 
@@ -233,16 +233,16 @@ This is a product-scope comparison, not a legal conclusion about whether the sup
 
 The PDF's clause 3 states that internal engineering documents do not modify contractual scope unless expressly incorporated. Therefore an internal “deferred” label is not evidence of an agreed contractual reduction. Conversely, an older PDF statement must not erase a later explicit owner decision recorded in the repository.
 
-| Topic | Documents / implementation | Plan treatment |
-| --- | --- | --- |
-| Project closeout | Anexo A.21 specifies a consolidated closeout package; Essential defers a builder; backend functions exist without found portal callers | High-priority workflow gap; finish a bounded package using existing reports/artifacts |
-| Notifications | Anexo A.18 lists internal and email notices for approvals, periods, overdue invoices, receipts and budget | Inspect each trigger-to-recipient path; current missing-time email infrastructure does not prove the full list |
-| Accounting formats | Contract explicitly mentions PDF and XLSX plus CSV registers; reduced spec sometimes says XLSX or CSV | Acceptance should include the actual PDF, XLSX and specified registers |
-| Offline | Anexo A describes capture; Anexo D makes go-live conditional; checklist records a 1 September decision to defer | Preserve the decision; reconsider only if field connectivity creates real loss |
-| MFA | Older PDF/spec require it; current AGENTS/checklist record the 6 September decision for optional MFA and no step-up | Do not reintroduce mandatory MFA or step-up through this plan; align paperwork/history |
-| Separate-host continuity | Contract describes it; checklist records a 4 September owner waiver for initial release | Keep waiver explicit; retain a future continuity improvement without falsely claiming it exists |
-| Tax identity / DPA / retention / human UAT | Supplied evidence states outstanding approvals | Treat as unverified acceptance dependencies; ask for the current signed decisions, not assume they remain or were resolved |
-| Current release evidence | Handback says `2058db2`; live manifest says `6ec7b8a` | Produce one revision-specific acceptance index and identify which evidence applies |
+| Topic                                      | Documents / implementation                                                                                                             | Plan treatment                                                                                                             |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Project closeout                           | Anexo A.21 specifies a consolidated closeout package; Essential defers a builder; backend functions exist without found portal callers | High-priority workflow gap; finish a bounded package using existing reports/artifacts                                      |
+| Notifications                              | Anexo A.18 lists internal and email notices for approvals, periods, overdue invoices, receipts and budget                              | Inspect each trigger-to-recipient path; current missing-time email infrastructure does not prove the full list             |
+| Accounting formats                         | Contract explicitly mentions PDF and XLSX plus CSV registers; reduced spec sometimes says XLSX or CSV                                  | Acceptance should include the actual PDF, XLSX and specified registers                                                     |
+| Offline                                    | Anexo A describes capture; Anexo D makes go-live conditional; checklist records a 1 September decision to defer                        | Preserve the decision; reconsider only if field connectivity creates real loss                                             |
+| MFA                                        | Older PDF/spec require it; current AGENTS/checklist record the 6 September decision for optional MFA and no step-up                    | Do not reintroduce mandatory MFA or step-up through this plan; align paperwork/history                                     |
+| Separate-host continuity                   | Contract describes it; checklist records a 4 September owner waiver for initial release                                                | Keep waiver explicit; retain a future continuity improvement without falsely claiming it exists                            |
+| Tax identity / DPA / retention / human UAT | Supplied evidence states outstanding approvals                                                                                         | Treat as unverified acceptance dependencies; ask for the current signed decisions, not assume they remain or were resolved |
+| Current release evidence                   | Handback says `2058db2`; live manifest says `6ec7b8a`                                                                                  | Produce one revision-specific acceptance index and identify which evidence applies                                         |
 
 No existing checklist should be silently rewritten to green as part of producing this plan.
 
@@ -517,18 +517,18 @@ All rates, amounts, dates and tax percentages below are synthetic acceptance exa
 
 ### 9.1 Quantities and totals that must remain separate
 
-| Concept | Meaning | Must not be confused with |
-| --- | --- | --- |
-| Actual minutes | Time the worker reports actually occurred | Daily reference, minimum invoice quantity, planned availability |
-| Approved minutes | Actual minutes accepted operationally | Customer acceptance or collected cash |
-| Billable quantity | Commercially eligible actual quantity plus clearly identified adjustments | Fabricated worked hours |
-| Worker compensation | Amount determined by the worker agreement and source basis | Client rate or company loaded cost |
-| Loaded labour cost | Defined direct labour cost, with explicit inclusion/exclusion of compensation | A second copy of worker compensation |
-| Expense cost | Approved cost borne by J&A under the configured cost policy | Customer-direct spend or employee advances |
-| Revenue candidate | Eligible project amount under the configured commercial rules | Issued invoice, recognised revenue or cash received |
-| WIP | Approved eligible work not yet invoiced under the chosen source/cutoff policy | Another revenue amount to add to its own source total |
-| Receivable | Issued debt remaining after relevant credits and net collections | Future unsigned work |
-| Payable/obligation | Amount owed, separated from its planned settlement date | Actual payment |
+| Concept             | Meaning                                                                       | Must not be confused with                                       |
+| ------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Actual minutes      | Time the worker reports actually occurred                                     | Daily reference, minimum invoice quantity, planned availability |
+| Approved minutes    | Actual minutes accepted operationally                                         | Customer acceptance or collected cash                           |
+| Billable quantity   | Commercially eligible actual quantity plus clearly identified adjustments     | Fabricated worked hours                                         |
+| Worker compensation | Amount determined by the worker agreement and source basis                    | Client rate or company loaded cost                              |
+| Loaded labour cost  | Defined direct labour cost, with explicit inclusion/exclusion of compensation | A second copy of worker compensation                            |
+| Expense cost        | Approved cost borne by J&A under the configured cost policy                   | Customer-direct spend or employee advances                      |
+| Revenue candidate   | Eligible project amount under the configured commercial rules                 | Issued invoice, recognised revenue or cash received             |
+| WIP                 | Approved eligible work not yet invoiced under the chosen source/cutoff policy | Another revenue amount to add to its own source total           |
+| Receivable          | Issued debt remaining after relevant credits and net collections              | Future unsigned work                                            |
+| Payable/obligation  | Amount owed, separated from its planned settlement date                       | Actual payment                                                  |
 
 For the usual loaded-cost convention:
 
@@ -545,15 +545,15 @@ If loaded labour cost already includes compensation, do not add worker compensat
 
 Configuration: daily reference 12 hours; billable minimum eight eligible hours per attended worker/day; client rate USD 100/hour; worker pay USD 50/hour; loaded labour cost USD 60/hour inclusive of worker pay; no overtime or taxes in this example. Actual work: four hours.
 
-| Result | Correct value |
-| --- | --- |
-| Actual and approved work | 4 hours |
-| Client billable quantity | 8 hours, with a 4-hour minimum adjustment |
-| Client labour amount | USD 800 |
-| Worker compensation | USD 200 |
-| Loaded labour cost | USD 240 |
-| Direct contribution before other cost | USD 560 |
-| Customer time/activity report | 4 actual hours, no monetary fields |
+| Result                                | Correct value                             |
+| ------------------------------------- | ----------------------------------------- |
+| Actual and approved work              | 4 hours                                   |
+| Client billable quantity              | 8 hours, with a 4-hour minimum adjustment |
+| Client labour amount                  | USD 800                                   |
+| Worker compensation                   | USD 200                                   |
+| Loaded labour cost                    | USD 240                                   |
+| Direct contribution before other cost | USD 560                                   |
+| Customer time/activity report         | 4 actual hours, no monetary fields        |
 
 The customer invoice may explain the contractual minimum adjustment. The signed time report must not say the worker performed eight or twelve hours. A no-work day must not receive this minimum merely because it appears on a schedule; the triggering service/attendance/standby agreement must be defined.
 
@@ -577,11 +577,11 @@ An overtime multiplier of 1.6 means a total rate of 160%, not a base rate plus a
 
 Configuration: eight hours; sell rate USD 120/hour; worker pay USD 55/hour; loaded cost USD 65/hour; hotel USD 150 and meals USD 40.
 
-| Treatment | Revenue excluding tax | J&A direct cost | Contribution | Worker reimbursement if worker advanced both |
-| --- | --- | --- | --- | --- |
-| Hotel/meals included in hourly price | USD 960 | USD 710 | USD 250 | USD 190, independently tracked |
-| Hotel/meals recovered at cost | USD 1,150: labour 960 + expenses 190 | USD 710 | USD 440 | USD 190, independently tracked |
-| Customer directly paid both suppliers | USD 960 | USD 520 | USD 440 | USD 0 |
+| Treatment                             | Revenue excluding tax                | J&A direct cost | Contribution | Worker reimbursement if worker advanced both |
+| ------------------------------------- | ------------------------------------ | --------------- | ------------ | -------------------------------------------- |
+| Hotel/meals included in hourly price  | USD 960                              | USD 710         | USD 250      | USD 190, independently tracked               |
+| Hotel/meals recovered at cost         | USD 1,150: labour 960 + expenses 190 | USD 710         | USD 440      | USD 190, independently tracked               |
+| Customer directly paid both suppliers | USD 960                              | USD 520         | USD 440      | USD 0                                        |
 
 “Included in the customer rate” does not mean “the worker personally absorbs it”. Payer and reimbursement policy determine who must be repaid. Recovering a receipt from the customer does not prove that J&A has reimbursed the worker.
 
@@ -597,12 +597,12 @@ For a per-invoice margin register, allocate direct cost once to the appropriate 
 
 Opening verified cash USD 2,000. Approved worker payment USD 3,000 planned for 15 September. Reimbursements USD 500 planned for 16 September. Customer receipt USD 6,000 expected on 30 September.
 
-| Date | Expected movement | Projected cash |
-| --- | --- | --- |
-| Opening | USD 2,000 | USD 2,000 |
-| 15 September | −USD 3,000 | −USD 1,000 |
-| 16 September | −USD 500 | −USD 1,500 |
-| 30 September | +USD 6,000 | USD 4,500 |
+| Date         | Expected movement | Projected cash |
+| ------------ | ----------------- | -------------- |
+| Opening      | USD 2,000         | USD 2,000      |
+| 15 September | −USD 3,000        | −USD 1,000     |
+| 16 September | −USD 500          | −USD 1,500     |
+| 30 September | +USD 6,000        | USD 4,500      |
 
 The business needs to see the USD 1,500 interim funding gap even if the project has a positive contribution. These planned events remain a forecast until actual settlement records exist. If the opening cash is not verified, show cumulative net obligations instead of projected cash.
 
@@ -668,19 +668,19 @@ Optional extensions:
 
 These are logical records, not a mandate to create tables with these exact names.
 
-| Logical record / extension | Key information | Reuse / invariant |
-| --- | --- | --- |
-| Agreement summary/revision | Pricing basis, expense responsibility, policy references, effective dates, approved attachment | Reference existing commercial/rate revisions; avoid a competing rate authority |
-| Customer/worksite relationship | Bill-to, end customer, site, contacts and approval roles | Preserve existing client/project IDs and historical invoice snapshots |
-| Notification policy/event | Event, recipient role, language, deadline, dedupe identity, delivery outcome | Extend current outbox and notification records |
-| Closeout revision/artifacts | Project, source cutoff, audience, manifest, finalisation and supersession | Reuse current report renderer/private storage; final revisions immutable |
-| Planned cash movement | Source obligation, expected date, currency, amount, scenario and revision | Derive from source where possible; never duplicate actual payment authority |
-| Supplier and engagement | Legal payee, workers supplied, project scope, agreement reference | Optional extension; separate user account from payee |
-| Vendor invoice and source allocations | Supplier number, dates, currency, amounts, project/time/expense references | Reconcile estimated/accrued sources; count cost once |
-| Travel commitment / advance | Assignment, payer, dates, amount, cancellation and settlement allocations | Commitments distinct from actual expenses and paid cash |
-| Commercial change request | Scope, reason, estimate, affected PO/rules, approvals and effective date | Technical approval and customer commercial authorization separate |
-| Technical issue / baseline reference | System, responsible person, reports, validation, selected backup and status | Never imply that ERP approval physically deployed a PLC program |
-| Manual/content approval record | Artifact version, locale, audience, source, approving person/date | Publication is deliberate; private business records are not public content |
+| Logical record / extension            | Key information                                                                                | Reuse / invariant                                                              |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Agreement summary/revision            | Pricing basis, expense responsibility, policy references, effective dates, approved attachment | Reference existing commercial/rate revisions; avoid a competing rate authority |
+| Customer/worksite relationship        | Bill-to, end customer, site, contacts and approval roles                                       | Preserve existing client/project IDs and historical invoice snapshots          |
+| Notification policy/event             | Event, recipient role, language, deadline, dedupe identity, delivery outcome                   | Extend current outbox and notification records                                 |
+| Closeout revision/artifacts           | Project, source cutoff, audience, manifest, finalisation and supersession                      | Reuse current report renderer/private storage; final revisions immutable       |
+| Planned cash movement                 | Source obligation, expected date, currency, amount, scenario and revision                      | Derive from source where possible; never duplicate actual payment authority    |
+| Supplier and engagement               | Legal payee, workers supplied, project scope, agreement reference                              | Optional extension; separate user account from payee                           |
+| Vendor invoice and source allocations | Supplier number, dates, currency, amounts, project/time/expense references                     | Reconcile estimated/accrued sources; count cost once                           |
+| Travel commitment / advance           | Assignment, payer, dates, amount, cancellation and settlement allocations                      | Commitments distinct from actual expenses and paid cash                        |
+| Commercial change request             | Scope, reason, estimate, affected PO/rules, approvals and effective date                       | Technical approval and customer commercial authorization separate              |
+| Technical issue / baseline reference  | System, responsible person, reports, validation, selected backup and status                    | Never imply that ERP approval physically deployed a PLC program                |
+| Manual/content approval record        | Artifact version, locale, audience, source, approving person/date                              | Publication is deliberate; private business records are not public content     |
 
 ### 10.4 Source identity and temporal integrity
 
@@ -700,14 +700,14 @@ An expense's document hash can warn of reuse, but it cannot alone decide that tw
 
 ### 10.5 Role and audience boundaries
 
-| Audience | Operational scope | Money scope | Typical actions |
-| --- | --- | --- | --- |
-| Worker | Own records, assigned projects | Own compensation and reimbursement only | Draft/submit/correct under existing lifecycle; view own status |
-| PM | Assigned projects and authorized review | No sale rates, margins or private worker pay by default | Operational review and technical coordination |
-| Finance | Authorized project financial sources | Pay, loaded cost, revenue, invoices, collections | Classify, review, issue, record settlements, export |
-| Owner | Authorized company oversight | Full authorized business finance | Configure, assign, resolve exceptions and approve policy |
-| Customer report recipient | Precisely approved project/period evidence | No monetary values in time/activity report | External conformity under the chosen process |
-| Accounting recipient | Approved export package | Agreed accounting fields | Receive/read/export; not an implied right to administer the app |
+| Audience                  | Operational scope                          | Money scope                                             | Typical actions                                                 |
+| ------------------------- | ------------------------------------------ | ------------------------------------------------------- | --------------------------------------------------------------- |
+| Worker                    | Own records, assigned projects             | Own compensation and reimbursement only                 | Draft/submit/correct under existing lifecycle; view own status  |
+| PM                        | Assigned projects and authorized review    | No sale rates, margins or private worker pay by default | Operational review and technical coordination                   |
+| Finance                   | Authorized project financial sources       | Pay, loaded cost, revenue, invoices, collections        | Classify, review, issue, record settlements, export             |
+| Owner                     | Authorized company oversight               | Full authorized business finance                        | Configure, assign, resolve exceptions and approve policy        |
+| Customer report recipient | Precisely approved project/period evidence | No monetary values in time/activity report              | External conformity under the chosen process                    |
+| Accounting recipient      | Approved export package                    | Agreed accounting fields                                | Receive/read/export; not an implied right to administer the app |
 
 Perform projection on the server. Reuse existing object authorization and private-file checks. Adding a crew view or customer-signing link must not broaden the underlying role by accident. Supplier bills, bank references and worker medical/identity documents need their own justified access; do not add sensitive personal-data collection merely because an ERP could store it.
 
@@ -729,22 +729,22 @@ A useful initial load scenario is a synthetic crew submitting at shift end while
 
 The extension priority should follow actual operational loss, not the length of a standard ERP feature list.
 
-| Capability | Business case | Recommendation |
-| --- | --- | --- |
-| Lightweight inquiry follow-up | Website lead otherwise lives only in email | Add responsible person/status/next action and conversion reference if lead loss is real; no full CRM initially |
-| Quote/order-to-project | Repeated manual setup or disagreement over agreed rates | Small versioned quotation/accepted-order record after collecting real examples |
-| Commercial changes and PO revisions | Additional site work is delivered but not authorized/billed | High-value first ERP extension |
-| Supplier/subcontractor payables | External companies supply engineering or crews | High-value if confirmed; otherwise defer |
-| Travel commitments and advances | J&A funds mobilisation before invoices or receipts | High-value if observed; reuse existing expenses for actuals |
-| Resource readiness | Wrong skills, conflicts or missing site onboarding delay work | Extend existing planning; keep planned hours optional |
-| Lightweight technical issues | Open problems disappear between reports | Add before a full asset/commissioning platform |
-| FAT/SAT and punch-list management | Customer contracts require structured test packages | Later scoped industrial extension |
-| Equipment/tools tracking | Shared rented tools or test devices materially affect cost | Small custody/calibration register only after need is shown; no warehouse ERP by default |
-| Retainers/support agreements | Repeated remote-support contracts need allowance tracking | Add when a real agreement defines hours, rollover and billing |
-| Bank import/reconciliation | Manual payment matching becomes the bottleneck | Later read/import workflow with accountant-approved matching; not bank execution |
-| Accounting connector | Accountant specifies an actual software/interface | Adapter after stable CSV/XLSX mapping; no speculative connectors |
-| Offline capture | Verified connectivity loss prevents daily work | Revisit the documented deferral with a narrow worker scope |
-| OCR / assisted report writing | Measured receipt-entry or drafting time is excessive | Optional assistive drafts only; human checks amounts and technical facts |
+| Capability                          | Business case                                                 | Recommendation                                                                                                 |
+| ----------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Lightweight inquiry follow-up       | Website lead otherwise lives only in email                    | Add responsible person/status/next action and conversion reference if lead loss is real; no full CRM initially |
+| Quote/order-to-project              | Repeated manual setup or disagreement over agreed rates       | Small versioned quotation/accepted-order record after collecting real examples                                 |
+| Commercial changes and PO revisions | Additional site work is delivered but not authorized/billed   | High-value first ERP extension                                                                                 |
+| Supplier/subcontractor payables     | External companies supply engineering or crews                | High-value if confirmed; otherwise defer                                                                       |
+| Travel commitments and advances     | J&A funds mobilisation before invoices or receipts            | High-value if observed; reuse existing expenses for actuals                                                    |
+| Resource readiness                  | Wrong skills, conflicts or missing site onboarding delay work | Extend existing planning; keep planned hours optional                                                          |
+| Lightweight technical issues        | Open problems disappear between reports                       | Add before a full asset/commissioning platform                                                                 |
+| FAT/SAT and punch-list management   | Customer contracts require structured test packages           | Later scoped industrial extension                                                                              |
+| Equipment/tools tracking            | Shared rented tools or test devices materially affect cost    | Small custody/calibration register only after need is shown; no warehouse ERP by default                       |
+| Retainers/support agreements        | Repeated remote-support contracts need allowance tracking     | Add when a real agreement defines hours, rollover and billing                                                  |
+| Bank import/reconciliation          | Manual payment matching becomes the bottleneck                | Later read/import workflow with accountant-approved matching; not bank execution                               |
+| Accounting connector                | Accountant specifies an actual software/interface             | Adapter after stable CSV/XLSX mapping; no speculative connectors                                               |
+| Offline capture                     | Verified connectivity loss prevents daily work                | Revisit the documented deferral with a narrow worker scope                                                     |
+| OCR / assisted report writing       | Measured receipt-entry or drafting time is excessive          | Optional assistive drafts only; human checks amounts and technical facts                                       |
 
 Keep full payroll, employment-tax calculation, tax filings, a statutory general ledger, inventory/manufacturing planning, native mobile apps and autonomous AI approvals outside this plan's initial implementation. They are excluded or materially beyond the supplied core scope. Do not use AI to invent PLC activities, signed acceptance, receipts, or accounting facts.
 
@@ -880,38 +880,38 @@ These files were identified, not executed during this document audit.
 
 ### 14.2 Business scenarios to demonstrate
 
-| ID | Scenario | Required outcome |
-| --- | --- | --- |
-| U01 | Four actual hours, 12-hour reference, eight-hour minimum | Actual remains four; invoice adjustment/pay/cost are independent |
-| U02 | Two workers with different pay and sell rates on one project | Correct separate sources and totals; no average-rate substitution |
-| U03 | Twelve work hours plus travel, 1.6× customer and 2× worker overtime | Matches the agreed calculation and threshold-category policy |
-| U04 | Hourly price includes hotel | Hotel reduces project contribution; no automatic fixed labour invoice |
-| U05 | Customer pays hotel/car directly | No J&A payable, worker reimbursement or duplicate customer rebill |
-| U06 | Worker advances recoverable flight | Receipt, worker reimbursement and customer recovery have separate states |
-| U07 | Percentage worker with overtime and separate expenses/tax | Uses eligible labour only and the selected settlement basis |
-| U08 | Every-14-days versus semi-monthly | Distinct anchored boundaries, including month end and leap-year fixtures |
-| U09 | Rate/assignment changes mid-period | Applies source-date configuration and preserves historical lines |
-| U10 | PO cap reached or partly remaining | No silent cap increase, lost actuals or hidden unbilled exposure |
-| U11 | Customer signature missing | Draft allowed as designed; final labour issue explicitly blocked |
-| U12 | Only some workers/dates accepted | Coverage remains precise; unsigned work cannot ride on another signature |
-| U13 | Time correction after sign-off/issue | Prior values/docs remain; appropriate acceptance/credit lifecycle applies |
-| U14 | Labour/expense invoices with different taxes/templates | Independent profiles, correct identifiers and exact totals |
-| U15 | Partial payment then reversal | Exact outstanding balance and causal audit; no fake cash |
-| U16 | Worker payment scheduled but not executed | Worker sees expected date, not paid status |
-| U17 | Combined worker pay plus reimbursement transfer | Component allocations reconcile to one actual transfer if enabled |
-| U18 | Split labour/expense invoices in ledger | Project/direct cost not duplicated across invoice margin totals |
-| U19 | Late receipt after frozen month | Explicit revision/adjustment; original export unchanged |
-| U20 | EN/ES/PT versions of one report | Same financial/source truth, correct language and distinct artifact identity |
-| U21 | PM/Worker probes finance APIs or others' private files | Server-side denial/allowlists, not merely hidden UI |
-| U22 | Free-text activity contains confidential price | Customer preview/publication control prevents accidental disclosure under an explicit content policy |
-| U23 | New notification on configured Sunday/closed project | Effective calendar/state used; no rigid Monday–Saturday assumption |
-| U24 | PDF job fails but CSV/XLSX succeeds | Independent truthful states and safe retry |
-| U25 | Aquarex form submit/retry | One durable request, clear queued/failed state, no false delivery promise |
-| U26 | Final project closeout then late financial event | Frozen handover unchanged; financial follow-up remains possible |
-| U27 | Supplier bill matches already-costed contractor time | Cost recognised once with explainable variance if module enabled |
-| U28 | Worker advance settled with expenses/refund | Advance and expense/payment are not double-counted if module enabled |
-| U29 | Cross-midnight or cross-project overtime case | Agreed clock/date/threshold policy; no fabricated duration |
-| U30 | New employee follows PDF on phone | Completes time, receipt, report and own-pay tasks without developer assistance |
+| ID  | Scenario                                                            | Required outcome                                                                                     |
+| --- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| U01 | Four actual hours, 12-hour reference, eight-hour minimum            | Actual remains four; invoice adjustment/pay/cost are independent                                     |
+| U02 | Two workers with different pay and sell rates on one project        | Correct separate sources and totals; no average-rate substitution                                    |
+| U03 | Twelve work hours plus travel, 1.6× customer and 2× worker overtime | Matches the agreed calculation and threshold-category policy                                         |
+| U04 | Hourly price includes hotel                                         | Hotel reduces project contribution; no automatic fixed labour invoice                                |
+| U05 | Customer pays hotel/car directly                                    | No J&A payable, worker reimbursement or duplicate customer rebill                                    |
+| U06 | Worker advances recoverable flight                                  | Receipt, worker reimbursement and customer recovery have separate states                             |
+| U07 | Percentage worker with overtime and separate expenses/tax           | Uses eligible labour only and the selected settlement basis                                          |
+| U08 | Every-14-days versus semi-monthly                                   | Distinct anchored boundaries, including month end and leap-year fixtures                             |
+| U09 | Rate/assignment changes mid-period                                  | Applies source-date configuration and preserves historical lines                                     |
+| U10 | PO cap reached or partly remaining                                  | No silent cap increase, lost actuals or hidden unbilled exposure                                     |
+| U11 | Customer signature missing                                          | Draft allowed as designed; final labour issue explicitly blocked                                     |
+| U12 | Only some workers/dates accepted                                    | Coverage remains precise; unsigned work cannot ride on another signature                             |
+| U13 | Time correction after sign-off/issue                                | Prior values/docs remain; appropriate acceptance/credit lifecycle applies                            |
+| U14 | Labour/expense invoices with different taxes/templates              | Independent profiles, correct identifiers and exact totals                                           |
+| U15 | Partial payment then reversal                                       | Exact outstanding balance and causal audit; no fake cash                                             |
+| U16 | Worker payment scheduled but not executed                           | Worker sees expected date, not paid status                                                           |
+| U17 | Combined worker pay plus reimbursement transfer                     | Component allocations reconcile to one actual transfer if enabled                                    |
+| U18 | Split labour/expense invoices in ledger                             | Project/direct cost not duplicated across invoice margin totals                                      |
+| U19 | Late receipt after frozen month                                     | Explicit revision/adjustment; original export unchanged                                              |
+| U20 | EN/ES/PT versions of one report                                     | Same financial/source truth, correct language and distinct artifact identity                         |
+| U21 | PM/Worker probes finance APIs or others' private files              | Server-side denial/allowlists, not merely hidden UI                                                  |
+| U22 | Free-text activity contains confidential price                      | Customer preview/publication control prevents accidental disclosure under an explicit content policy |
+| U23 | New notification on configured Sunday/closed project                | Effective calendar/state used; no rigid Monday–Saturday assumption                                   |
+| U24 | PDF job fails but CSV/XLSX succeeds                                 | Independent truthful states and safe retry                                                           |
+| U25 | Aquarex form submit/retry                                           | One durable request, clear queued/failed state, no false delivery promise                            |
+| U26 | Final project closeout then late financial event                    | Frozen handover unchanged; financial follow-up remains possible                                      |
+| U27 | Supplier bill matches already-costed contractor time                | Cost recognised once with explainable variance if module enabled                                     |
+| U28 | Worker advance settled with expenses/refund                         | Advance and expense/payment are not double-counted if module enabled                                 |
+| U29 | Cross-midnight or cross-project overtime case                       | Agreed clock/date/threshold policy; no fabricated duration                                           |
+| U30 | New employee follows PDF on phone                                   | Completes time, receipt, report and own-pay tasks without developer assistance                       |
 
 Not all scenarios require new features: many should prove existing behaviour. Mark each as existing test, new test, manual acceptance, conditional extension or unresolved policy. Do not count a deferred-extension scenario against the original core release.
 
@@ -931,17 +931,17 @@ After rollout, verify the deployed identity, service health, automatic job opera
 
 Software will not remove spreadsheet dependence unless somebody owns each handoff.
 
-| Responsibility | Suggested owner | Evidence of completion |
-| --- | --- | --- |
-| Commercial agreement/rates/expense policy | Owner with Finance | Approved example and effective configuration |
-| Assignments and site readiness | PM / operations coordinator | Effective crew and operational contacts |
-| Daily actuals and receipts | Worker | Submitted factual records with evidence |
-| Operational and technical review | Assigned PM / technical reviewer | Reviewed records and reasons for returns |
-| Customer acceptance follow-up | Named PM or coordinator | Version-bound accepted report or explicit dispute |
-| Invoice issue and collection follow-up | Finance | Reviewed invoice and actual receipt allocations |
-| Worker payments / expense reimbursement | Finance / designated administrator | Approved obligations, planned dates and actual allocations |
-| Monthly pack acceptance | Accountant | Signed-off sample/mapping and final monthly revision |
-| Public claims and manuals | Owner plus content/document owner | Approved source and current-language artifact |
+| Responsibility                            | Suggested owner                    | Evidence of completion                                     |
+| ----------------------------------------- | ---------------------------------- | ---------------------------------------------------------- |
+| Commercial agreement/rates/expense policy | Owner with Finance                 | Approved example and effective configuration               |
+| Assignments and site readiness            | PM / operations coordinator        | Effective crew and operational contacts                    |
+| Daily actuals and receipts                | Worker                             | Submitted factual records with evidence                    |
+| Operational and technical review          | Assigned PM / technical reviewer   | Reviewed records and reasons for returns                   |
+| Customer acceptance follow-up             | Named PM or coordinator            | Version-bound accepted report or explicit dispute          |
+| Invoice issue and collection follow-up    | Finance                            | Reviewed invoice and actual receipt allocations            |
+| Worker payments / expense reimbursement   | Finance / designated administrator | Approved obligations, planned dates and actual allocations |
+| Monthly pack acceptance                   | Accountant                         | Signed-off sample/mapping and final monthly revision       |
+| Public claims and manuals                 | Owner plus content/document owner  | Approved source and current-language artifact              |
 
 Establish a baseline during the first operational month, then track:
 
@@ -960,22 +960,22 @@ Do not invent targets for margin, utilisation or days-sales-outstanding without 
 
 These are implementation dependencies, not a reason to leave this analysis unwritten. Record who decides, the example used, decision date and effective scope.
 
-| Decision/input | Why it matters | Working assumption until confirmed |
-| --- | --- | --- |
-| Original Excel workbook | Exact accounting columns, dates, formulas and month-close convention | Proposed ledger/pack structure only; no compatibility claim |
-| Real hourly all-in agreement | Avoid confusing included expenses with fixed pricing | Hourly labour and independently included expenses, following latest owner wording |
-| Meaning of worker invoice | Determines whether supplier-payables is necessary | Customer labour invoice + private worker statement; subcontractor bill remains optional |
-| Compensation basis and trigger | Approved/invoiced/collected labour can produce different timing/amounts | No production default invented |
-| Minimum/overtime examples | Determines categories, thresholds, day/service unit and stacking | Examples in section 9 are synthetic only |
-| PO/cap semantics | Determine cap consumption, treatment of expenses/tax and over-cap work | Surface excess explicitly; no silent cap change |
-| Issuing entity and validated tax/remittance details | Needed for real invoices and accounting | Use existing approved records only; pending identity not filled from marketing |
-| Worker relationship/payee | Employee, individual contractor and supplier crew differ | Keep compensation separate from payroll; do not assume employment status |
-| Customer signatory and method | Needed for valid business acceptance workflow | External signed evidence tied to report version; no new portal assumed |
-| Dates/terms and late-event policy | Determines forecast and month-close truth | Planned and actual remain separate; accountant approves cutoff handling |
-| Actual foreign-currency exposure | Determines need for FX and consolidation | Currency-grouped totals, no unapproved combined total |
-| Website claims, project rights and technical datasheet | Controls accurate marketing and Aquarex promise | Public/company-authored evidence is a lead for approval, not proof of every claim |
-| Manual walkthrough and preferred language | Determines practical onboarding quality | EN/ES/PT-BR quick guides plus detailed role reference |
-| Current UAT/DPA/retention/continuity decisions | Existing evidence has pending and superseded statements | Verify latest approval; preserve documented MFA/offline/continuity decisions |
+| Decision/input                                         | Why it matters                                                          | Working assumption until confirmed                                                      |
+| ------------------------------------------------------ | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Original Excel workbook                                | Exact accounting columns, dates, formulas and month-close convention    | Proposed ledger/pack structure only; no compatibility claim                             |
+| Real hourly all-in agreement                           | Avoid confusing included expenses with fixed pricing                    | Hourly labour and independently included expenses, following latest owner wording       |
+| Meaning of worker invoice                              | Determines whether supplier-payables is necessary                       | Customer labour invoice + private worker statement; subcontractor bill remains optional |
+| Compensation basis and trigger                         | Approved/invoiced/collected labour can produce different timing/amounts | No production default invented                                                          |
+| Minimum/overtime examples                              | Determines categories, thresholds, day/service unit and stacking        | Examples in section 9 are synthetic only                                                |
+| PO/cap semantics                                       | Determine cap consumption, treatment of expenses/tax and over-cap work  | Surface excess explicitly; no silent cap change                                         |
+| Issuing entity and validated tax/remittance details    | Needed for real invoices and accounting                                 | Use existing approved records only; pending identity not filled from marketing          |
+| Worker relationship/payee                              | Employee, individual contractor and supplier crew differ                | Keep compensation separate from payroll; do not assume employment status                |
+| Customer signatory and method                          | Needed for valid business acceptance workflow                           | External signed evidence tied to report version; no new portal assumed                  |
+| Dates/terms and late-event policy                      | Determines forecast and month-close truth                               | Planned and actual remain separate; accountant approves cutoff handling                 |
+| Actual foreign-currency exposure                       | Determines need for FX and consolidation                                | Currency-grouped totals, no unapproved combined total                                   |
+| Website claims, project rights and technical datasheet | Controls accurate marketing and Aquarex promise                         | Public/company-authored evidence is a lead for approval, not proof of every claim       |
+| Manual walkthrough and preferred language              | Determines practical onboarding quality                                 | EN/ES/PT-BR quick guides plus detailed role reference                                   |
+| Current UAT/DPA/retention/continuity decisions         | Existing evidence has pending and superseded statements                 | Verify latest approval; preserve documented MFA/offline/continuity decisions            |
 
 ## 17. Evidence index and handoff
 
@@ -983,28 +983,28 @@ These are implementation dependencies, not a reason to leave this analysis unwri
 
 All relative paths below are from `/home/kripta/ja-automation-platform-vps-hotfix`, except where explicitly absolute.
 
-| Evidence | Location | Supports |
-| --- | --- | --- |
-| Owner-requested functional authority | [Essential specification](J_A_AUTOMATION_CLIENT_ESSENTIAL_SPEC_2026-08-22.md) | Core scope and deliberate ERP deferrals |
-| Requested handback checklist | [Frozen handback checklist](/home/kripta/JA_CLIENT_READY_HANDBACK_2026-09-06_2058db2/J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md) | Historical evidence and outstanding acceptance |
-| Supplied contract | [Development/implementation/support contract](<Contrato de Desarrollo, Implantación y Soporte - J&A Automation.pdf>) | Clauses 3/5/7 and Anexos A–D; scope comparisons |
-| Current project instructions | [AGENTS.md](AGENTS.md) | Financial/privacy invariants; current MFA policy |
-| Current deployed identity | [Live manifest](/opt/jaautomation/current/RELEASE-BUILD.txt) | Actual commit and build identity |
-| Historical execution report | [RUN_REPORT.md](docs/evidence/client-ready-20260906/RUN_REPORT.md) | Candidate chronology and evidence limitations |
-| Core billing and closeout | [repository.ts](packages/database/src/repository.ts) | All-in fixed path around 4289; closeout around 6604 |
-| Compensation, finance and reminders | [v3-repository.ts](packages/database/src/v3-repository.ts) | Existing finance; reminders around 10258 |
-| Customer-safe conformity | [customer-conformity-repository.ts](packages/database/src/domains/reports/customer-conformity-repository.ts) | Snapshot allowlist, evidence binding and version identity |
-| Commercial slicing | [time-commercial-slices.ts](packages/database/src/domains/commercial/time-commercial-slices.ts) | Actual-minute grouping and overtime threshold projection |
-| Client/project relationships | [clients.ts](packages/database/src/schema/clients.ts), [projects.ts](packages/database/src/schema/projects.ts) | Existing contacts/identifiers/site/PO fields |
-| Workforce foundations | [workforce-planning.ts](packages/database/src/schema/workforce-planning.ts), [planning-repository.ts](packages/database/src/domains/planning/planning-repository.ts) | Skills, assignments, availability and overlap checks |
-| Portal reachability | [portal-navigation.ts](apps/portal/src/lib/portal-navigation.ts), [section-load.ts](apps/portal/src/routes/app/[section]/section-load.ts) | Role navigation and reachable domain views |
-| Existing Finance UI | [FinanceOverviewSection.svelte](apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte), [CollectionsLedgerSection.svelte](apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte) | Present metrics/dates; next workflow improvements |
-| Email delivery | [outbox-mail-delivery.ts](apps/portal/src/lib/server/outbox-mail-delivery.ts) | Notification topic, recipient restriction and copy |
-| Aquarex request form | [Aquarex page](website/app/[locale]/solutions/aquarex/page.tsx) | Form wiring defect and public content |
-| Working public-inquiry pattern | [Contact page](website/app/[locale]/contact/page.tsx) | Existing submission architecture to reuse |
-| Website content/provenance | [company.ts](website/content/company.ts), [projects.ts](website/content/projects.ts), [content-provenance.md](website/docs/content-provenance.md) | Team counts, contacts, archive and approval inconsistencies |
-| Existing guides | [Employee ES PDF](docs/manuals/Employee_Field_Guide_ES.pdf), [Worker PDF](docs/manuals/Worker_User_Guide.pdf), [Owner PDF](docs/manuals/Owner_User_Guide.pdf) | Manuals already exist |
-| Historical sanitized UI | [Worker mobile capture](docs/manuals/screenshots/worker/live-time-phone.png), [Owner Finance capture](docs/manuals/screenshots/owner/live-finance.png) | Limited layout/copy review, not current browser certification |
+| Evidence                             | Location                                                                                                                                                                                                   | Supports                                                      |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Owner-requested functional authority | [Essential specification](J_A_AUTOMATION_CLIENT_ESSENTIAL_SPEC_2026-08-22.md)                                                                                                                              | Core scope and deliberate ERP deferrals                       |
+| Requested handback checklist         | [Frozen handback checklist](/home/kripta/JA_CLIENT_READY_HANDBACK_2026-09-06_2058db2/J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md)                                                              | Historical evidence and outstanding acceptance                |
+| Supplied contract                    | [Development/implementation/support contract](<Contrato de Desarrollo, Implantación y Soporte - J&A Automation.pdf>)                                                                                       | Clauses 3/5/7 and Anexos A–D; scope comparisons               |
+| Current project instructions         | [AGENTS.md](AGENTS.md)                                                                                                                                                                                     | Financial/privacy invariants; current MFA policy              |
+| Current deployed identity            | [Live manifest](/opt/jaautomation/current/RELEASE-BUILD.txt)                                                                                                                                               | Actual commit and build identity                              |
+| Historical execution report          | [RUN_REPORT.md](docs/evidence/client-ready-20260906/RUN_REPORT.md)                                                                                                                                         | Candidate chronology and evidence limitations                 |
+| Core billing and closeout            | [repository.ts](packages/database/src/repository.ts)                                                                                                                                                       | All-in fixed path around 4289; closeout around 6604           |
+| Compensation, finance and reminders  | [v3-repository.ts](packages/database/src/v3-repository.ts)                                                                                                                                                 | Existing finance; reminders around 10258                      |
+| Customer-safe conformity             | [customer-conformity-repository.ts](packages/database/src/domains/reports/customer-conformity-repository.ts)                                                                                               | Snapshot allowlist, evidence binding and version identity     |
+| Commercial slicing                   | [time-commercial-slices.ts](packages/database/src/domains/commercial/time-commercial-slices.ts)                                                                                                            | Actual-minute grouping and overtime threshold projection      |
+| Client/project relationships         | [clients.ts](packages/database/src/schema/clients.ts), [projects.ts](packages/database/src/schema/projects.ts)                                                                                             | Existing contacts/identifiers/site/PO fields                  |
+| Workforce foundations                | [workforce-planning.ts](packages/database/src/schema/workforce-planning.ts), [planning-repository.ts](packages/database/src/domains/planning/planning-repository.ts)                                       | Skills, assignments, availability and overlap checks          |
+| Portal reachability                  | [portal-navigation.ts](apps/portal/src/lib/portal-navigation.ts), [section-load.ts](apps/portal/src/routes/app/[section]/section-load.ts)                                                                  | Role navigation and reachable domain views                    |
+| Existing Finance UI                  | [FinanceOverviewSection.svelte](apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte), [CollectionsLedgerSection.svelte](apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte) | Present metrics/dates; next workflow improvements             |
+| Email delivery                       | [outbox-mail-delivery.ts](apps/portal/src/lib/server/outbox-mail-delivery.ts)                                                                                                                              | Notification topic, recipient restriction and copy            |
+| Aquarex request form                 | [Aquarex page](website/app/[locale]/solutions/aquarex/page.tsx)                                                                                                                                            | Form wiring defect and public content                         |
+| Working public-inquiry pattern       | [Contact page](website/app/[locale]/contact/page.tsx)                                                                                                                                                      | Existing submission architecture to reuse                     |
+| Website content/provenance           | [company.ts](website/content/company.ts), [projects.ts](website/content/projects.ts), [content-provenance.md](website/docs/content-provenance.md)                                                          | Team counts, contacts, archive and approval inconsistencies   |
+| Existing guides                      | [Employee ES PDF](docs/manuals/Employee_Field_Guide_ES.pdf), [Worker PDF](docs/manuals/Worker_User_Guide.pdf), [Owner PDF](docs/manuals/Owner_User_Guide.pdf)                                              | Manuals already exist                                         |
+| Historical sanitized UI              | [Worker mobile capture](docs/manuals/screenshots/worker/live-time-phone.png), [Owner Finance capture](docs/manuals/screenshots/owner/live-finance.png)                                                     | Limited layout/copy review, not current browser certification |
 
 ### 17.2 External evidence use
 

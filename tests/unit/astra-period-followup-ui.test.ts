@@ -32,9 +32,7 @@ describe('ASTRA C1 period review surface', () => {
   });
 
   it('keeps review copy complete for English, Spanish and Portuguese', async () => {
-    const module = await import(
-      '../../apps/portal/src/routes/app/reports/review/copy.ts'
-    );
+    const module = await import('../../apps/portal/src/routes/app/reports/review/copy.ts');
     for (const locale of ['en', 'es', 'pt'] as const) {
       const copy = module.reviewCopy[locale];
       expect(copy.title).toBeTruthy();

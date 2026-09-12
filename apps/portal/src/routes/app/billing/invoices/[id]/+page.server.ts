@@ -19,7 +19,9 @@ export const load: PageServerLoad = ({ locals, params }) => {
 };
 
 export const actions: Actions = {
-  updateInvoiceDraftDetails: (event) => billingActions.updateInvoiceDraftDetails({
-    ...event, params: { ...event.params, section: 'billing' },
-  }),
+  updateInvoiceDraftDetails: (event) =>
+    billingActions.updateInvoiceDraftDetails({
+      ...event,
+      params: { ...event.params, section: 'billing' },
+    }),
 };

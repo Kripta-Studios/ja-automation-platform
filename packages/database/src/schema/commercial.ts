@@ -86,6 +86,37 @@ export const compensationSettlements = sqliteTable('compensation_settlement', {
   expectedPaymentOn: text('expected_payment_on'),
 });
 
+export const workerCompensationPaymentEvents = sqliteTable(
+  'worker_compensation_payment_event',
+  {
+    id: text('id').primaryKey(),
+    settlementId: text('settlement_id').notNull(),
+    eventType: text('event_type').notNull(),
+    reversesEventId: text('reverses_event_id').references(
+      (): AnySQLiteColumn => workerCompensationPaymentEvents.id,
+      { onUpdate: 'restrict', onDelete: 'restrict' },
+    ),
+    payeeKind: text('payee_kind').notNull(),
+    payeeUserId: text('payee_user_id'),
+    payeeSupplierId: text('payee_supplier_id'),
+    amountMinor: integer('amount_minor').notNull(),
+    currency: text('currency').notNull(),
+    paidOn: text('paid_on').notNull(),
+    reference: text('reference').notNull(),
+    note: text('note'),
+    createdBy: text('created_by').notNull(),
+    createdAt: text('created_at').notNull(),
+    idempotencyKey: text('idempotency_key').notNull().unique(),
+  },
+  (table) => [
+    index('worker_compensation_payment_settlement_idx').on(
+      table.settlementId,
+      table.paidOn,
+      table.createdAt,
+    ),
+  ],
+);
+
 export const projectCommercialPolicies = sqliteTable(
   'project_commercial_policy',
   {

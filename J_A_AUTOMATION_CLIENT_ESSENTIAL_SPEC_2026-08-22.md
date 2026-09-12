@@ -1053,7 +1053,6 @@ It does **not** need to become, before first production use:
 - a JEPA product;
 - or a generalized integration platform.
 
-
 ## 2026-09-09 — Recorded implementation-scope reconciliation
 
 The Owner decision dated 2026-09-06, retained in

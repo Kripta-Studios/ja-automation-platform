@@ -132,6 +132,22 @@
   const exportErrors = $derived(accountingPackExportErrors(pack));
   const revisionId = $derived(readRevisionId(pack));
   const packState = $derived(String(pack.state ?? ''));
+  const reconciliation = $derived.by(() => {
+    const raw = pack.reconciliation_json;
+    if (typeof raw !== 'string') return {} as Record<string, unknown>;
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : {};
+    } catch {
+      return {};
+    }
+  });
+  const reviewCount = (key: string): number => {
+    const value = Number(reconciliation[key] ?? 0);
+    return Number.isSafeInteger(value) && value >= 0 ? value : 0;
+  };
   let downloadingKey = $state<AccountingPackExportType | null>(null);
   let downloadController: AbortController | null = null;
 
@@ -216,10 +232,41 @@
       {/if}
     {/each}
     {#if !isAuditor && packState !== 'final' && packState !== 'queued'}
-      <form method="POST" action="?/finalizeAccountingPack">
-        <input type="hidden" name="packId" value={pack.id} />
-        <button>{translate('Finalize')}</button>
-      </form>
+      <details class="accounting-pack-review">
+        <summary>{translate('Review before finalizing')}</summary>
+        <p>
+          {translate(
+            'Finalize freezes this reviewed version. Later source corrections require a new Accounting Pack version.',
+          )}
+        </p>
+        <dl>
+          <div><dt>{translate('Pending records')}</dt><dd>{reviewCount(
+                'pendingRecordCount',
+              )}</dd></div>
+          <div><dt>{translate('Unclassified expenses')}</dt><dd>{reviewCount(
+                'unclassifiedExpenseCount',
+              )}</dd></div>
+          <div><dt>{translate('Missing documents')}</dt><dd>{reviewCount(
+                'missingDocumentCount',
+              )}</dd></div>
+          <div><dt>{translate('Reconciliation issues')}</dt><dd>{reviewCount(
+                'sourceMismatchCount',
+              ) + reviewCount('missingCostRuleCount')}</dd></div>
+          <div><dt>{translate('Changes since generation')}</dt><dd>{pack.sourceStale
+                ? translate('Yes — generate a new version')
+                : translate('None detected')}</dd></div>
+        </dl>
+        {#if packState === 'ready' && reconciliation.reconciles === true && !pack.sourceStale}
+          <form method="POST" action="?/finalizeAccountingPack">
+            <input type="hidden" name="packId" value={pack.id} />
+            <button>{translate('Finalize reviewed version')}</button>
+          </form>
+        {:else}
+          <p role="status">
+            {translate('Resolve processing, source-change or reconciliation issues first.')}
+          </p>
+        {/if}
+      </details>
     {/if}
   </div>
 </article>
@@ -238,5 +285,33 @@
 <style>
   .accounting-pack-localized-pdf {
     margin: 0 0 1rem;
+  }
+
+  .accounting-pack-review {
+    width: min(100%, 38rem);
+    padding: 0.65rem;
+    border: 1px solid var(--portal-border, #d7dee8);
+    border-radius: 0.6rem;
+    background: var(--portal-wash, #f7f9fb);
+  }
+
+  .accounting-pack-review p {
+    color: var(--portal-muted, #64748b);
+  }
+
+  .accounting-pack-review dl {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .accounting-pack-review dl > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .accounting-pack-review dd {
+    margin: 0;
+    font-weight: 700;
   }
 </style>

@@ -62,6 +62,22 @@ const exact: Record<string, readonly [string, string]> = {
     'Fecha prevista de pago al trabajador guardada.',
     'Data prevista de pagamento ao trabalhador salva.',
   ],
+  'action.finance.compensationPaymentRecorded': [
+    'Pago real de compensación registrado.',
+    'Pagamento real de remuneração registrado.',
+  ],
+  'action.finance.compensationPaymentReversed': [
+    'Pago de compensación revertido con trazabilidad.',
+    'Pagamento de remuneração revertido com rastreabilidade.',
+  ],
+  'action.validation.compensationPayment': [
+    'Revisa los campos del pago real.',
+    'Revise os campos do pagamento real.',
+  ],
+  'action.validation.compensationPaymentReversal': [
+    'Revisa la fecha y el motivo de la reversión.',
+    'Revise a data e o motivo da reversão.',
+  ],
   'action.finance.expenseClassified': [
     'Clasificación comercial del gasto guardada.',
     'Classificação comercial da despesa salva.',
@@ -340,7 +356,11 @@ const exact: Record<string, readonly [string, string]> = {
   'Filter by category': ['Filtrar por categoría', 'Filtrar por categoria'],
   Filter: ['Filtrar', 'Filtrar'],
   'Access profile': ['Perfil de acceso', 'Perfil de acesso'],
-  'Publish a planned shift for an assigned worker. Planning does not create actual time entries; the worker records the work performed separately.': ['Publica un turno previsto para un trabajador asignado. La planificación no crea horas reales; el trabajador registra por separado el trabajo realizado.', 'Publique um turno previsto para um trabalhador alocado. O planejamento não cria horas reais; o trabalhador registra separadamente o trabalho realizado.'],
+  'Publish a planned shift for an assigned worker. Planning does not create actual time entries; the worker records the work performed separately.':
+    [
+      'Publica un turno previsto para un trabajador asignado. La planificación no crea horas reales; el trabajador registra por separado el trabajo realizado.',
+      'Publique um turno previsto para um trabalhador alocado. O planejamento não cria horas reais; o trabalhador registra separadamente o trabalho realizado.',
+    ],
   'Filter clients': ['Filtrar clientes', 'Filtrar clientes'],
   'Identification & client': ['Identificación y cliente', 'Identificação e cliente'],
   'Include inactive specialists': [
@@ -1514,12 +1534,12 @@ const actionExact: Record<string, readonly [string, string]> = {
   'action.billing.taxProfileSaved': ['Perfil fiscal guardado.', 'Perfil fiscal salvo.'],
   'action.billing.taxProfileUpdated': ['Perfil fiscal actualizado.', 'Perfil fiscal atualizado.'],
   'action.billing.readiness.noBillableSources': [
-    'Este período no tiene horas ni gastos facturables aprobados. Elige un período completo anterior con trabajo aprobado, o espera a que se apruebe el trabajo de este período. La aplicación intenta automáticamente el último período completo con fuentes facturables.',
-    'Este período não tem horas nem despesas faturáveis aprovadas. Escolha um período completo anterior com trabalho aprovado, ou aguarde a aprovação do trabalho deste período. O aplicativo tenta automaticamente o último período completo com fontes faturáveis.',
+    'El período seleccionado no tiene horas ni gastos facturables aprobados. Revisa sus registros pendientes o elige otro período explícitamente; la aplicación no cambiará las fechas por ti.',
+    'O período selecionado não tem horas nem despesas faturáveis aprovadas. Revise os registros pendentes ou escolha outro período explicitamente; o aplicativo não mudará as datas por você.',
   ],
   'action.billing.readiness.periodCutoffMismatch': [
-    'Las fechas no coinciden con la cadencia de este flujo (por ejemplo, semanal es lunes a domingo). La aplicación alinea al último período completo de esa cadencia cuando es posible.',
-    'As datas não coincidem com a cadência deste fluxo (por exemplo, semanal é segunda a domingo). O aplicativo alinha ao último período completo dessa cadência quando possível.',
+    'Las fechas no coinciden con la cadencia de este flujo (por ejemplo, semanal es lunes a domingo). Elige el período correcto; la aplicación no lo sustituirá automáticamente.',
+    'As datas não coincidem com a cadência deste fluxo (por exemplo, semanal é segunda a domingo). Escolha o período correto; o aplicativo não o substituirá automaticamente.',
   ],
   'action.billing.readiness.pendingTimeApproval': [
     'Hay registros de tiempo de este período pendientes de aprobación. Apruébalos o recházalos en Aprobaciones y vuelve a crear el borrador.',
@@ -2209,10 +2229,15 @@ function englishActionMessage(key: string): string {
       'Restore this archived portal user before linking the mailbox.',
     'action.billing.invoicePlanningDatesSaved': 'Invoice planning dates saved.',
     'action.finance.compensationExpectedPaymentSaved': 'Expected worker payment date saved.',
+    'action.finance.compensationPaymentRecorded': 'Actual compensation payment recorded.',
+    'action.finance.compensationPaymentReversed':
+      'Compensation payment reversed with an audit event.',
     'action.finance.expenseClassified': 'Expense commercial classification saved.',
     'action.finance.expensePlanningDatesSaved': 'Expense planning dates saved.',
     'action.finance.projectCommercialPolicySaved': 'Project commercial policy saved.',
     'action.validation.compensationSettlementPlanning': 'Check the expected worker payment date.',
+    'action.validation.compensationPayment': 'Check the actual payment fields.',
+    'action.validation.compensationPaymentReversal': 'Check the payment reversal fields.',
     'action.validation.expenseCommercialClassification':
       'Check the expense commercial classification fields.',
     'action.validation.expensePlanningDates': 'Check the expense planning dates.',
@@ -2227,9 +2252,9 @@ function englishActionMessage(key: string): string {
     'action.conflict.billingPeriodIncomplete':
       'This billing period is not ready for a draft. Review the causes below and fix them in Approvals or Finance configuration.',
     'action.billing.readiness.noBillableSources':
-      'This period has no approved billable hours or expenses to invoice. Choose an earlier complete period that has approved work, or wait until this period’s work is approved. The app tries the last complete period with billable sources automatically.',
+      'The selected period has no approved billable hours or expenses. Review its pending records or explicitly choose another period; the app will not change the dates for you.',
     'action.billing.readiness.periodCutoffMismatch':
-      'These dates do not match this billing stream’s cadence (for example a weekly stream needs a Monday–Sunday week). The app aligns to the last complete cadence period automatically when possible.',
+      'These dates do not match this billing stream’s cadence (for example a weekly stream needs a Monday–Sunday week). Choose the correct period; the app will not replace it automatically.',
     'action.billing.readiness.pendingTimeApproval':
       'Time entries in this period are still waiting for approval. Approve or reject them in Approvals, then create the draft again.',
     'action.billing.readiness.pendingExpenseApproval':

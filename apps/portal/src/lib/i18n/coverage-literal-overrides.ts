@@ -1,11 +1,21 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
   'Access profile': ['Perfil de acceso', 'Perfil de acesso'],
-  'Publish a planned shift for an assigned worker. Planning does not create actual time entries; the worker records the work performed separately.': ['Publica un turno previsto para un trabajador asignado. La planificación no crea horas reales; el trabajador registra por separado el trabajo realizado.', 'Publique um turno previsto para um trabalhador alocado. O planejamento não cria horas reais; o trabalhador registra separadamente o trabalho realizado.'],
+  'Publish a planned shift for an assigned worker. Planning does not create actual time entries; the worker records the work performed separately.':
+    [
+      'Publica un turno previsto para un trabajador asignado. La planificación no crea horas reales; el trabajador registra por separado el trabajo realizado.',
+      'Publique um turno previsto para um trabalhador alocado. O planejamento não cria horas reais; o trabalhador registra separadamente o trabalho realizado.',
+    ],
   'ACTUAL TIME': ['TIEMPO REAL', 'TEMPO REAL'],
   'Daily report required': ['Informe diario obligatorio', 'Relatório diário obrigatório'],
   'PENDING REPORTS': ['INFORMES PENDIENTES', 'RELATÓRIOS PENDENTES'],
   'PROJECT REPORT': ['INFORME DEL PROYECTO', 'RELATÓRIO DO PROJETO'],
+  'WORK PERFORMED BY': ['TRABAJO REALIZADO POR', 'TRABALHO REALIZADO POR'],
+  'REPORT CREATED BY': ['REPORTE CREADO POR', 'RELATÓRIO CRIADO POR'],
+  'REVIEWED BY': ['REVISADO POR', 'REVISADO POR'],
+  'Work performed by': ['Trabajo realizado por', 'Trabalho realizado por'],
+  'Report created by': ['Reporte creado por', 'Relatório criado por'],
+  'Reviewed by': ['Revisado por', 'Revisado por'],
   'Record expense': ['Registrar gasto', 'Registrar despesa'],
   'Recorded actual time': ['Tiempo real registrado', 'Tempo real registrado'],
   'Save daily report': ['Guardar informe diario', 'Salvar relatório diário'],
@@ -1299,6 +1309,44 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
     'Planificación del pago previsto al trabajador',
     'Planejamento do pagamento esperado ao colaborador',
   ],
+  'Actual worker or supplier payments': [
+    'Pagos reales a trabajadores o proveedores',
+    'Pagamentos reais a trabalhadores ou fornecedores',
+  ],
+  'Actual paid': ['Pagado realmente', 'Pago efetivamente'],
+  'Actual payment amount': ['Importe del pago real', 'Valor do pagamento real'],
+  'Actual payment date': ['Fecha real de pago', 'Data real do pagamento'],
+  'Latest actual payment': ['Último pago real', 'Último pagamento real'],
+  'Reviewed settlement': ['Liquidación revisada', 'Liquidação revisada'],
+  Payee: ['Beneficiario', 'Beneficiário'],
+  Person: ['Persona', 'Pessoa'],
+  'Register actual payment': ['Registrar pago real', 'Registrar pagamento real'],
+  'Payment reversal': ['Reversión de pago', 'Reversão de pagamento'],
+  'Reversal date': ['Fecha de reversión', 'Data da reversão'],
+  'Reason for reversal': ['Motivo de la reversión', 'Motivo da reversão'],
+  'Finalize freezes the reviewed compensation snapshot; it does not mean money was transferred. Record each actual payment separately so partial payments, remaining balance and reversals stay traceable.':
+    [
+      'Finalizar congela la liquidación de compensación revisada; no significa que el dinero se haya transferido. Registra cada pago real por separado para conservar la trazabilidad de pagos parciales, saldo pendiente y reversiones.',
+      'Finalizar congela a liquidação de remuneração revisada; não significa que o dinheiro foi transferido. Registre cada pagamento real separadamente para manter rastreáveis pagamentos parciais, saldo restante e reversões.',
+    ],
+  'Use this register only after the bank transfer or other real payment occurred. A planned date and a finalized settlement are not payment evidence.':
+    [
+      'Usa este registro sólo después de realizar la transferencia bancaria u otro pago real. Una fecha prevista y una liquidación finalizada no demuestran el pago.',
+      'Use este registro somente após a transferência bancária ou outro pagamento real. Uma data prevista e uma liquidação finalizada não comprovam o pagamento.',
+    ],
+  'Review and finalize this compensation before recording a real payment.': [
+    'Revisa y finaliza esta compensación antes de registrar un pago real.',
+    'Revise e finalize esta remuneração antes de registrar um pagamento real.',
+  ],
+  'This compensation balance is fully paid.': [
+    'El saldo de esta compensación está totalmente pagado.',
+    'O saldo desta remuneração está totalmente pago.',
+  ],
+  'Your reviewed compensation, recorded actual payments and remaining balance. Finalizing a settlement is not proof of payment.':
+    [
+      'Tu compensación revisada, los pagos reales registrados y el saldo pendiente. Finalizar una liquidación no demuestra el pago.',
+      'Sua remuneração revisada, os pagamentos reais registrados e o saldo restante. Finalizar uma liquidação não comprova o pagamento.',
+    ],
   'Expense attention summary': ['Resumen de atención de gastos', 'Resumo de atenção das despesas'],
   'Expense count': ['Cantidad de gastos', 'Quantidade de despesas'],
   'Expense economics source table': [
@@ -2513,67 +2561,108 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
     'Assinatura do representante do cliente',
   ],
   'Name & Title': ['Nombre y cargo', 'Nome e cargo'],
-  'Generate creates files for reviewing a period. Finalize freezes the reviewed figures as a historical version; later corrections require a new version.': [
-    'La generación crea archivos para revisar un período. La finalización congela las cifras revisadas como versión histórica; las correcciones posteriores requieren otra versión.',
-    'A geração cria arquivos para revisar um período. A finalização congela os valores revisados como versão histórica; correções posteriores exigem outra versão.',
-  ],
-  'Act on the oldest submitted operational records first. Approved records remain below for audit and correction follow-up.': [
-    'Actúa primero sobre los registros operativos enviados más antiguos. Los aprobados quedan debajo para auditoría y correcciones.',
-    'Atue primeiro sobre os registros operacionais enviados mais antigos. Os aprovados ficam abaixo para auditoria e correções.',
-  ],
+  'Generate creates files for reviewing a period. Finalize freezes the reviewed figures as a historical version; later corrections require a new version.':
+    [
+      'La generación crea archivos para revisar un período. La finalización congela las cifras revisadas como versión histórica; las correcciones posteriores requieren otra versión.',
+      'A geração cria arquivos para revisar um período. A finalização congela os valores revisados como versão histórica; correções posteriores exigem outra versão.',
+    ],
+  'Act on the oldest submitted operational records first. Approved records remain below for audit and correction follow-up.':
+    [
+      'Actúa primero sobre los registros operativos enviados más antiguos. Los aprobados quedan debajo para auditoría y correcciones.',
+      'Atue primeiro sobre os registros operacionais enviados mais antigos. Os aprovados ficam abaixo para auditoria e correções.',
+    ],
   'All workers': ['Todos los trabajadores', 'Todos os colaboradores'],
   'Approve submitted project milestones. This is separate from operational record review.': [
     'Aprueba los hitos de proyecto enviados. Es independiente de la revisión operativa.',
     'Aprove os marcos de projeto enviados. É separado da revisão operacional.',
   ],
-  'Completed approval pages': ['Páginas de aprobaciones completadas', 'Páginas de aprovações concluídas'],
-  'Completed records, if any, remain available below.': ['Los registros completados siguen disponibles debajo.', 'Registros concluídos, se houver, continuam disponíveis abaixo.'],
-  'Completed review follow-up': ['Seguimiento de revisión completado', 'Acompanhamento da revisão concluído'],
+  'Completed approval pages': [
+    'Páginas de aprobaciones completadas',
+    'Páginas de aprovações concluídas',
+  ],
+  'Completed records, if any, remain available below.': [
+    'Los registros completados siguen disponibles debajo.',
+    'Registros concluídos, se houver, continuam disponíveis abaixo.',
+  ],
+  'Completed review follow-up': [
+    'Seguimiento de revisión completado',
+    'Acompanhamento da revisão concluído',
+  ],
   'Finance review pages': ['Páginas de revisión financiera', 'Páginas de revisão financeira'],
-  'No submitted records match this view.': ['No hay registros enviados que coincidan.', 'Nenhum registro enviado corresponde a esta vista.'],
+  'No submitted records match this view.': [
+    'No hay registros enviados que coincidan.',
+    'Nenhum registro enviado corresponde a esta vista.',
+  ],
   'Oldest submitted': ['Enviados más antiguos', 'Enviados mais antigos'],
-  'Page': ['Página', 'Página'],
-  'Project approval pages': ['Páginas de aprobación de proyectos', 'Páginas de aprovação de projetos'],
+  Page: ['Página', 'Página'],
+  'Project approval pages': [
+    'Páginas de aprobación de proyectos',
+    'Páginas de aprovação de projetos',
+  ],
   'Project, milestone or due date': ['Proyecto, hito o fecha límite', 'Projeto, marco ou prazo'],
-  'Project, worker, date or record': ['Proyecto, trabajador, fecha o registro', 'Projeto, colaborador, data ou registro'],
+  'Project, worker, date or record': [
+    'Proyecto, trabajador, fecha o registro',
+    'Projeto, colaborador, data ou registro',
+  ],
   'Search Finance review': ['Buscar en revisión financiera', 'Buscar na revisão financeira'],
   'Search project approvals': ['Buscar aprobaciones de proyectos', 'Buscar aprovações de projetos'],
-  'Submitted approval pages': ['Páginas de aprobaciones enviadas', 'Páginas de aprovações enviadas'],
-  'These approved records are immutable operational history. Open a record to inspect it or start the audited correction path where permitted.': [
-    'Estos registros aprobados son historial operativo inmutable. Abre un registro para revisarlo o inicia la corrección auditada cuando esté permitida.',
-    'Estes registros aprovados são histórico operacional imutável. Abra um registro para inspecioná-lo ou inicie a correção auditada quando permitido.',
+  'Submitted approval pages': [
+    'Páginas de aprobaciones enviadas',
+    'Páginas de aprovações enviadas',
   ],
-  'of': ['de', 'de'],
+  'These approved records are immutable operational history. Open a record to inspect it or start the audited correction path where permitted.':
+    [
+      'Estos registros aprobados son historial operativo inmutable. Abre un registro para revisarlo o inicia la corrección auditada cuando esté permitida.',
+      'Estes registros aprovados são histórico operacional imutável. Abra um registro para inspecioná-lo ou inicie a correção auditada quando permitido.',
+    ],
+  of: ['de', 'de'],
   'Edit client': ['Editar cliente', 'Editar cliente'],
   'Download CSV': ['Descargar CSV', 'Baixar CSV'],
   'Download Excel': ['Descargar Excel', 'Baixar Excel'],
-  'Download the filtered operational expenses as PDF, Excel or CSV.': ['Descarga los gastos operativos filtrados en PDF, Excel o CSV.', 'Baixe as despesas operacionais filtradas em PDF, Excel ou CSV.'],
+  'Download the filtered operational expenses as PDF, Excel or CSV.': [
+    'Descarga los gastos operativos filtrados en PDF, Excel o CSV.',
+    'Baixe as despesas operacionais filtradas em PDF, Excel ou CSV.',
+  ],
   'Expense register pages': ['Páginas del registro de gastos', 'Páginas do registro de despesas'],
   'Export expense register': ['Exportar registro de gastos', 'Exportar registro de despesas'],
   To: ['Hasta', 'Até'],
-  'Choose whether J&A charges this expense to the client, absorbs the cost, or excludes it from billing. Separately, schedule or record repayment to the worker who advanced the money.': [
-    'Elige si J&A repercute este gasto al cliente, absorbe el coste o lo excluye de la facturación. Programa o registra por separado el reembolso al trabajador.',
-    'Escolha se a J&A cobra esta despesa do cliente, absorve o custo ou a exclui do faturamento. Programe ou registre separadamente o reembolso ao colaborador.',
-  ],
+  'Choose whether J&A charges this expense to the client, absorbs the cost, or excludes it from billing. Separately, schedule or record repayment to the worker who advanced the money.':
+    [
+      'Elige si J&A repercute este gasto al cliente, absorbe el coste o lo excluye de la facturación. Programa o registra por separado el reembolso al trabajador.',
+      'Escolha se a J&A cobra esta despesa do cliente, absorve o custo ou a exclui do faturamento. Programe ou registre separadamente o reembolso ao colaborador.',
+    ],
   'Create report': ['Crear informe', 'Criar relatório'],
   'Daily report pages': ['Páginas de informes diarios', 'Páginas de relatórios diários'],
-  'Files appear here only after generation is ready. Open a period record to review its traceable status; PDF is available only when its stored artifact is verified.': [
-    'Los archivos aparecen cuando la generación está lista. Abre un período para revisar su estado; el PDF solo está disponible cuando el artefacto está verificado.',
-    'Os arquivos aparecem quando a geração está pronta. Abra um período para revisar o estado; o PDF só fica disponível quando o artefato é verificado.',
-  ],
+  'Files appear here only after generation is ready. Open a period record to review its traceable status; PDF is available only when its stored artifact is verified.':
+    [
+      'Los archivos aparecen cuando la generación está lista. Abre un período para revisar su estado; el PDF solo está disponible cuando el artefacto está verificado.',
+      'Os arquivos aparecem quando a geração está pronta. Abra um período para revisar o estado; o PDF só fica disponível quando o artefato é verificado.',
+    ],
   'Filter reports': ['Filtrar informes', 'Filtrar relatórios'],
-  'Open a ready record to review its exact version and record client sign-off. A signed record remains bound to that immutable report version; a source change requires a replacement report.': [
-    'Abre un registro listo para revisar su versión exacta y registrar la conformidad del cliente. Un registro firmado queda vinculado a esa versión inmutable; un cambio de origen requiere otro informe.',
-    'Abra um registro pronto para revisar a versão exata e registrar a aprovação do cliente. Um registro assinado permanece vinculado à versão imutável; uma alteração de origem exige outro relatório.',
+  'Open a ready record to review its exact version and record client sign-off. A signed record remains bound to that immutable report version; a source change requires a replacement report.':
+    [
+      'Abre un registro listo para revisar su versión exacta y registrar la conformidad del cliente. Un registro firmado queda vinculado a esa versión inmutable; un cambio de origen requiere otro informe.',
+      'Abra um registro pronto para revisar a versão exata e registrar a aprovação do cliente. Um registro assinado permanece vinculado à versão imutável; uma alteração de origem exige outro relatório.',
+    ],
+  'Project, worker or report': [
+    'Proyecto, trabajador o informe',
+    'Projeto, colaborador ou relatório',
   ],
-  'Project, worker or report': ['Proyecto, trabajador o informe', 'Projeto, colaborador ou relatório'],
   'Search register': ['Buscar en el registro', 'Buscar no registro'],
   'Technical report pages': ['Páginas de informes técnicos', 'Páginas de relatórios técnicos'],
   'Access method': ['Método de acceso', 'Método de acesso'],
-  'Choose an invitation or set local credentials yourself. Assign project access after creating the account.': ['Elige una invitación o configura tú las credenciales locales. Asigna el proyecto después de crear la cuenta.', 'Escolha um convite ou configure as credenciais locais. Atribua o projeto depois de criar a conta.'],
+  'Choose an invitation or set local credentials yourself. Assign project access after creating the account.':
+    [
+      'Elige una invitación o configura tú las credenciales locales. Asigna el proyecto después de crear la cuenta.',
+      'Escolha um convite ou configure as credenciais locais. Atribua o projeto depois de criar a conta.',
+    ],
   Company: ['Empresa', 'Empresa'],
   'Contact name': ['Nombre de contacto', 'Nome do contato'],
-  'Copy the chosen credentials before saving. This creates portal access without sending an email; assign the person to their authorized projects next.': ['Copia las credenciales elegidas antes de guardar. Esto crea acceso al portal sin enviar correo; después asigna la persona a sus proyectos autorizados.', 'Copie as credenciais escolhidas antes de salvar. Isso cria acesso ao portal sem enviar e-mail; depois atribua a pessoa aos projetos autorizados.'],
+  'Copy the chosen credentials before saving. This creates portal access without sending an email; assign the person to their authorized projects next.':
+    [
+      'Copia las credenciales elegidas antes de guardar. Esto crea acceso al portal sin enviar correo; después asigna la persona a sus proyectos autorizados.',
+      'Copie as credenciais escolhidas antes de salvar. Isso cria acesso ao portal sem enviar e-mail; depois atribua a pessoa aos projetos autorizados.',
+    ],
   'External technician': ['Técnico externo', 'Técnico externo'],
   'Initial password': ['Contraseña inicial', 'Senha inicial'],
   'Invitation link': ['Enlace de invitación', 'Link de convite'],
@@ -2583,7 +2672,11 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   Supplier: ['Proveedor', 'Fornecedor'],
   'Supplier coordinator': ['Coordinador del proveedor', 'Coordenador do fornecedor'],
   'Project, activity or date': ['Proyecto, actividad o fecha', 'Projeto, atividade ou data'],
-  'Save a draft while details are still changing. Submit time only after the recorded date, duration and activity are accurate; submitted time is reviewed and cannot be silently overwritten.': ['Guarda un borrador mientras cambian los detalles. Envía las horas cuando fecha, duración y actividad sean correctas; las horas enviadas se revisan y no se sobrescriben.', 'Salve um rascunho enquanto os detalhes mudam. Envie as horas quando data, duração e atividade estiverem corretas; o envio é revisado e não é sobrescrito silenciosamente.'],
+  'Save a draft while details are still changing. Submit time only after the recorded date, duration and activity are accurate; submitted time is reviewed and cannot be silently overwritten.':
+    [
+      'Guarda un borrador mientras cambian los detalles. Envía las horas cuando fecha, duración y actividad sean correctas; las horas enviadas se revisan y no se sobrescriben.',
+      'Salve um rascunho enquanto os detalhes mudam. Envie as horas quando data, duração e atividade estiverem corretas; o envio é revisado e não é sobrescrito silenciosamente.',
+    ],
   'Time register pages': ['Páginas del registro de tiempo', 'Páginas do registro de tempo'],
   'Open day entries': ['Abrir registros del día', 'Abrir registros do dia'],
   'Open time entries for': ['Abrir registros de tiempo de', 'Abrir registros de tempo de'],
@@ -2593,7 +2686,176 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   'Oldest first': ['Más antiguos primero', 'Mais antigos primeiro'],
   Pages: ['Páginas', 'Páginas'],
   'Sort by': ['Ordenar por', 'Ordenar por'],
-  'Finance prepares the reviewed period PDF after approving the source records. Use Daily or Technical / PLC to submit your own work; customer sign-off confirms the reviewed period.': ['Finanzas prepara el PDF del período revisado después de aprobar los registros de origen. Usa los informes diarios o técnicos / PLC para enviar tu trabajo; la conformidad del cliente confirma el período.', 'Finanças prepara o PDF do período revisado após aprovar os registros de origem. Use os relatórios diários ou técnicos / PLC para enviar seu trabalho; a aprovação do cliente confirma o período.'],
+  'Finance prepares the reviewed period PDF after approving the source records. Use Daily or Technical / PLC to submit your own work; customer sign-off confirms the reviewed period.':
+    [
+      'Finanzas prepara el PDF del período revisado después de aprobar los registros de origen. Usa los informes diarios o técnicos / PLC para enviar tu trabajo; la conformidad del cliente confirma el período.',
+      'Finanças prepara o PDF do período revisado após aprovar os registros de origem. Use os relatórios diários ou técnicos / PLC para enviar seu trabalho; a aprovação do cliente confirma o período.',
+    ],
+  'Worker overtime method': [
+    'Método de horas extra del trabajador',
+    'Método de hora extra do colaborador',
+  ],
+  'Worker overtime multiplier': [
+    'Multiplicador de horas extra del trabajador',
+    'Multiplicador de hora extra do colaborador',
+  ],
+  'Fixed overtime rate': ['Tarifa fija de horas extra', 'Tarifa fixa de hora extra'],
+  'Required when no billing email is provided': [
+    'Obligatorio si no se indica un correo de facturación',
+    'Obrigatório quando não for informado um e-mail de faturamento',
+  ],
+  'Review these client fields': [
+    'Revisa estos campos del cliente',
+    'Revise estes campos do cliente',
+  ],
+  'Create invoice': ['Crear factura', 'Criar fatura'],
+  'Guided invoice workflow': ['Flujo guiado de facturación', 'Fluxo guiado de faturamento'],
+  'Invoice steps': ['Pasos de la factura', 'Etapas da fatura'],
+  'Choose the project whose approved source records will be billed.': [
+    'Elige el proyecto cuyos registros de origen aprobados se facturarán.',
+    'Escolha o projeto cujos registros de origem aprovados serão faturados.',
+  ],
+  'Labor and reimbursable expenses use independent streams, cadence and tax configuration.': [
+    'La mano de obra y los gastos repercutibles usan flujos, frecuencias y configuración fiscal independientes.',
+    'Mão de obra e despesas recuperáveis usam fluxos, frequências e configuração fiscal independentes.',
+  ],
+  'The suggested dates come from this stream’s configured cadence. Manual dates are an explicit change and are never replaced silently.':
+    [
+      'Las fechas sugeridas proceden de la frecuencia configurada para este flujo. Las fechas manuales son un cambio explícito y nunca se sustituyen silenciosamente.',
+      'As datas sugeridas vêm da frequência configurada para este fluxo. Datas manuais são uma alteração explícita e nunca são substituídas silenciosamente.',
+    ],
+  'Only approved, unbilled records in the selected period are eligible. Pending or missing-rate records block this exact period and are never moved to another invoice automatically.':
+    [
+      'Sólo son elegibles los registros aprobados y no facturados del período seleccionado. Los registros pendientes o sin tarifa bloquean este período exacto y nunca se trasladan automáticamente a otra factura.',
+      'Somente registros aprovados e não faturados do período selecionado são elegíveis. Registros pendentes ou sem tarifa bloqueiam este período exato e nunca são movidos automaticamente para outra fatura.',
+    ],
+  'Review pending records': ['Revisar registros pendientes', 'Revisar registros pendentes'],
+  'Choose another period': ['Elegir otro período', 'Escolher outro período'],
+  'Available for review, finalization or download': [
+    'Disponible para revisar, finalizar o descargar',
+    'Disponível para revisão, finalização ou download',
+  ],
+  'Review before finalizing': ['Revisar antes de finalizar', 'Revisar antes de finalizar'],
+  'Finalize freezes this reviewed version. Later source corrections require a new Accounting Pack version.':
+    [
+      'Finalizar congela esta versión revisada. Las correcciones posteriores de los datos de origen requieren una nueva versión del paquete contable.',
+      'Finalizar congela esta versão revisada. Correções posteriores dos dados de origem exigem uma nova versão do pacote contábil.',
+    ],
+  'Pending records': ['Registros pendientes', 'Registros pendentes'],
+  'Unclassified expenses': ['Gastos sin clasificar', 'Despesas não classificadas'],
+  'Missing documents': ['Documentos que faltan', 'Documentos ausentes'],
+  'Reconciliation issues': ['Problemas de conciliación', 'Problemas de conciliação'],
+  'Changes since generation': ['Cambios desde la generación', 'Alterações desde a geração'],
+  'Yes — generate a new version': ['Sí — genera una nueva versión', 'Sim — gere uma nova versão'],
+  'None detected': ['No se detectaron', 'Nenhuma detectada'],
+  'Finalize reviewed version': ['Finalizar versión revisada', 'Finalizar versão revisada'],
+  'Resolve processing, source-change or reconciliation issues first.': [
+    'Resuelve primero los problemas de procesamiento, cambios de origen o conciliación.',
+    'Resolva primeiro os problemas de processamento, alteração de origem ou conciliação.',
+  ],
+  'Operational access type': ['Tipo de acceso operativo', 'Tipo de acesso operacional'],
+  'Portal role controls application permissions. Operational access type links supplier coordinators and external technicians to the same person account without duplicating them.':
+    [
+      'El rol del portal controla los permisos de la aplicación. El tipo de acceso operativo vincula coordinadores de proveedor y técnicos externos a la misma cuenta personal sin duplicarlos.',
+      'A função do portal controla as permissões do aplicativo. O tipo de acesso operacional vincula coordenadores de fornecedor e técnicos externos à mesma conta pessoal sem duplicá-los.',
+    ],
+  'Standard team member': ['Miembro estándar del equipo', 'Membro padrão da equipe'],
+  'Supplier company': ['Empresa proveedora', 'Empresa fornecedora'],
+  'Not linked to a supplier': ['No vinculado a un proveedor', 'Não vinculado a um fornecedor'],
+  'Save operational access': ['Guardar acceso operativo', 'Salvar acesso operacional'],
+  'The draft uses the stream’s legal entity, tax profile, recipient, payment terms and banking details. Edit the stream before creating the draft when those facts are incomplete.':
+    [
+      'El borrador usa la entidad legal, perfil fiscal, destinatario, condiciones de pago y datos bancarios del flujo. Edita el flujo antes de crear el borrador si faltan esos datos.',
+      'O rascunho usa a entidade legal, perfil fiscal, destinatário, condições de pagamento e dados bancários do fluxo. Edite o fluxo antes de criar o rascunho se esses dados estiverem incompletos.',
+    ],
+  'Correct a wrong source record in Time or Expenses. Add a commercial adjustment only after the draft exists so actual work remains unchanged.':
+    [
+      'Corrige un registro de origen erróneo en Tiempo o Gastos. Añade un ajuste comercial sólo después de crear el borrador para conservar sin cambios el trabajo real.',
+      'Corrija um registro de origem incorreto em Horas ou Despesas. Adicione um ajuste comercial somente após criar o rascunho para manter o trabalho real inalterado.',
+    ],
+  'Save draft builds a reviewable snapshot. It does not issue, number, send or collect the invoice.':
+    [
+      'Guardar borrador crea una instantánea revisable. No emite, numera, envía ni cobra la factura.',
+      'Salvar rascunho cria uma fotografia revisável. Não emite, numera, envia nem recebe a fatura.',
+    ],
+  'Save invoice draft': ['Guardar borrador de factura', 'Salvar rascunho de fatura'],
+  'Labor / expenses': ['Mano de obra / gastos', 'Mão de obra / despesas'],
+  'Included records': ['Registros incluidos', 'Registros incluídos'],
+  'Excluded / pending': ['Excluidos / pendientes', 'Excluídos / pendentes'],
+  'Banking / payment': ['Datos bancarios / pago', 'Dados bancários / pagamento'],
+  'Commercial adjustments': ['Ajustes comerciales', 'Ajustes comerciais'],
+  'Save / issue': ['Guardar / emitir', 'Salvar / emitir'],
+  Source: ['Origen', 'Origem'],
+  'Issuing entity': ['Entidad emisora', 'Entidade emissora'],
+  Effective: ['Vigencia', 'Vigência'],
+  'Automatic draft enabled': ['Borrador automático activado', 'Rascunho automático ativado'],
+  'Automatic draft disabled': ['Borrador automático desactivado', 'Rascunho automático desativado'],
+  'Next period': ['Siguiente período', 'Próximo período'],
+  'Last run': ['Última ejecución', 'Última execução'],
+  'Blocking reason': ['Motivo del bloqueo', 'Motivo do bloqueio'],
+  'Automatically prepare draft after period close': [
+    'Preparar automáticamente el borrador al cerrar el período',
+    'Preparar automaticamente o rascunho após o fechamento do período',
+  ],
+  'New effective-dated conditions': [
+    'Nuevas condiciones con fecha de vigencia',
+    'Novas condições com data de vigência',
+  ],
+  'Cadence and commercial conditions use effective-dated streams. Create a successor for a future change so historic periods are never reinterpreted.':
+    [
+      'La frecuencia y las condiciones comerciales usan flujos con fecha de vigencia. Crea un sucesor para un cambio futuro y evita reinterpretar períodos históricos.',
+      'A frequência e as condições comerciais usam fluxos com data de vigência. Crie um sucessor para uma alteração futura e evite reinterpretar períodos históricos.',
+    ],
+  'This stream includes one source family only, preventing the same labor or expense from being invoiced twice.':
+    [
+      'Este flujo incluye una sola familia de datos de origen y evita facturar dos veces la misma mano de obra o gasto.',
+      'Este fluxo inclui uma única família de dados de origem e evita faturar duas vezes a mesma mão de obra ou despesa.',
+    ],
+  'The draft includes approved, eligible and unbilled records from this exact period. The generated draft preserves a source-by-source snapshot for review.':
+    [
+      'El borrador incluye los registros aprobados, elegibles y no facturados de este período exacto. El borrador generado conserva una instantánea registro por registro para su revisión.',
+      'O rascunho inclui os registros aprovados, elegíveis e não faturados deste período exato. O rascunho gerado preserva uma fotografia registro por registro para revisão.',
+    ],
+  'Eligibility and totals are calculated by the billing engine when the draft is saved; the browser does not duplicate those calculations.':
+    [
+      'El motor de facturación calcula la elegibilidad y los totales al guardar el borrador; el navegador no duplica esos cálculos.',
+      'O motor de faturamento calcula a elegibilidade e os totais ao salvar o rascunho; o navegador não duplica esses cálculos.',
+    ],
+  'Pending approvals, active corrections, missing rates or required reports block this exact period. The result explains each exclusion and keeps your selected dates.':
+    [
+      'Las aprobaciones pendientes, correcciones activas, tarifas ausentes o informes obligatorios bloquean este período exacto. El resultado explica cada exclusión y conserva las fechas elegidas.',
+      'Aprovações pendentes, correções ativas, tarifas ausentes ou relatórios obrigatórios bloqueiam este período exato. O resultado explica cada exclusão e mantém as datas escolhidas.',
+    ],
+  'Taxes come from the explicit tax profile assigned to this stream, not from assumptions about labor or expenses.':
+    [
+      'Los impuestos proceden del perfil fiscal asignado explícitamente a este flujo, no de supuestos sobre mano de obra o gastos.',
+      'Os impostos vêm do perfil fiscal atribuído explicitamente a este fluxo, não de suposições sobre mão de obra ou despesas.',
+    ],
+  'Bank details come from the selected issuing entity and payment terms come from the billing stream. Configure them before creating the draft if they are missing.':
+    [
+      'Los datos bancarios proceden de la entidad emisora seleccionada y las condiciones de pago del flujo de facturación. Configúralos antes de crear el borrador si faltan.',
+      'Os dados bancários vêm da entidade emissora selecionada e as condições de pagamento do fluxo de faturamento. Configure-os antes de criar o rascunho se estiverem ausentes.',
+    ],
+  'Correct a wrong source record in Time or Expenses. A commercial adjustment changes only what is billed and never overwrites the actual work record.':
+    [
+      'Corrige un registro erróneo en Tiempo o Gastos. Un ajuste comercial cambia únicamente lo facturado y nunca sobrescribe el registro del trabajo real.',
+      'Corrija um registro incorreto em Horas ou Despesas. Um ajuste comercial altera somente o faturado e nunca substitui o registro do trabalho real.',
+    ],
+  'Manual commercial adjustments are added to the reviewable draft with a reason and audit trail before issue.':
+    [
+      'Los ajustes comerciales manuales se añaden al borrador revisable con un motivo y trazabilidad antes de emitirlo.',
+      'Os ajustes comerciais manuais são adicionados ao rascunho revisável com motivo e trilha de auditoria antes da emissão.',
+    ],
+  'Save the draft now. Finance can then review lines and adjustments, approve it, issue the immutable numbered version, send it and register collections.':
+    [
+      'Guarda ahora el borrador. Finanzas podrá revisar las líneas y ajustes, aprobarlo, emitir la versión numerada e inmutable, enviarla y registrar los cobros.',
+      'Salve agora o rascunho. Finanças poderá revisar linhas e ajustes, aprová-lo, emitir a versão numerada e imutável, enviá-la e registrar os recebimentos.',
+    ],
+  'The percentage applies only to the selected eligible client-labor basis. Non-billable work, excluded categories and uncollected amounts are excluded according to that basis; partial client collection produces only the collected eligible share.':
+    [
+      'El porcentaje se aplica sólo a la base de mano de obra elegible seleccionada. El trabajo no facturable, las categorías excluidas y los importes no cobrados se excluyen según esa base; un cobro parcial del cliente genera únicamente la parte elegible cobrada.',
+      'O percentual aplica-se somente à base elegível de mão de obra selecionada. Trabalho não faturável, categorias excluídas e valores não recebidos são excluídos conforme essa base; um recebimento parcial do cliente gera somente a parcela elegível recebida.',
+    ],
 };
 
 export const extractedSectionCoverageKeys = Object.keys(extractedSectionCoverageOverrides);

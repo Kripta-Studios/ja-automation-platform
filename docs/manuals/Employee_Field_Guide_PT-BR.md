@@ -30,7 +30,7 @@ Se o envio falhar, ficar pendente de análise/quarentena ou for rejeitado, leia 
 
 ## 5. Relatórios (Reports): Diário (Daily) e PLC / Técnico (PLC / Technical)
 
-Use **Relatórios (Reports)** para o relatório exigido pelo trabalho. **Diário (Daily)** registra um resumo factual de campo. **PLC / Técnico (PLC / Technical)** registra o sistema, o trabalho realizado, a validação, os riscos pendentes e os anexos permitidos. Mantenha os dados técnicos corretos e não declare que um teste passou se não passou. A aceitação do cliente é uma ação separada e sem valores; nunca assine pelo cliente.
+Use **Relatórios (Reports)** para o relatório exigido pelo trabalho. **Diário (Daily)** registra um resumo factual de campo. **PLC / Técnico (PLC / Technical)** registra o sistema, o trabalho realizado, a validação, os riscos pendentes e os anexos permitidos. O PDF gerado mostra o nome persistido do autor e o e-mail da conta quando disponível. Mantenha os dados técnicos corretos e não declare que um teste passou se não passou. A aceitação do cliente é uma ação separada e sem valores; nunca assine pelo cliente.
 
 ## 6. Meu pagamento (My Pay) e o status do pagamento
 

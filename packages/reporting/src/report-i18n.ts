@@ -479,7 +479,10 @@ export type WorkerStatementCopy = Readonly<{
   settlements: string;
   period: string;
   expectedPayment: string;
-  settled: string;
+  actualPayment: string;
+  reviewedSettlement: string;
+  actualPaid: string;
+  remaining: string;
   noSettlements: string;
   ownReimbursableExpenses: string;
   paymentStatus: string;
@@ -504,7 +507,10 @@ const workerStatements: Record<ReportLocale, WorkerStatementCopy> = {
     settlements: 'Settlements',
     period: 'Period',
     expectedPayment: 'Expected payment',
-    settled: 'Settled',
+    actualPayment: 'Latest actual payment',
+    reviewedSettlement: 'Reviewed settlement',
+    actualPaid: 'Actual paid',
+    remaining: 'Remaining',
     noSettlements: 'No settlements in this period.',
     ownReimbursableExpenses: 'Own reimbursable expenses',
     paymentStatus: 'Payment status',
@@ -527,7 +533,10 @@ const workerStatements: Record<ReportLocale, WorkerStatementCopy> = {
     settlements: 'Pagamentos',
     period: 'Período',
     expectedPayment: 'Pagamento previsto',
-    settled: 'Pago em',
+    actualPayment: 'Último pagamento real',
+    reviewedSettlement: 'Liquidação revisada',
+    actualPaid: 'Pago efetivamente',
+    remaining: 'Restante',
     noSettlements: 'Nenhum pagamento neste período.',
     ownReimbursableExpenses: 'Despesas próprias reembolsáveis',
     paymentStatus: 'Status do pagamento',
@@ -550,7 +559,10 @@ const workerStatements: Record<ReportLocale, WorkerStatementCopy> = {
     settlements: 'Pagos',
     period: 'Período',
     expectedPayment: 'Pago previsto',
-    settled: 'Pagado el',
+    actualPayment: 'Último pago real',
+    reviewedSettlement: 'Liquidación revisada',
+    actualPaid: 'Pagado realmente',
+    remaining: 'Pendiente',
     noSettlements: 'No hay pagos en este período.',
     ownReimbursableExpenses: 'Gastos propios reembolsables',
     paymentStatus: 'Estado del pago',

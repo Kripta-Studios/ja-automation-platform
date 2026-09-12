@@ -1,6 +1,5 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
 import {
   invoicePdf,
   periodReportPdf,
@@ -17,14 +16,16 @@ import {
   toCsv,
 } from '../packages/reporting/src/exports.ts';
 import type { InvoiceTemplateSnapshot } from '../packages/invoice-templates/src/index.ts';
+import { openExamplesDatabase, resolveExamplesDatabasePath } from './example-database.ts';
 
 const outDir = resolve(process.cwd(), 'docs/examples');
 mkdirSync(outDir, { recursive: true });
 
 console.log('Generating all platform PDF and Excel examples into:', outDir);
 
-// Open demo DB to pull real data
-const db = new DatabaseSync('./packages/database/data/demo.db');
+// Read a deliberately seeded synthetic database. Opening read-only prevents a typo
+// from silently creating an empty SQLite file and producing incomplete examples.
+const db = openExamplesDatabase(resolveExamplesDatabasePath());
 
 // Helper to write
 function save(filename: string, data: Uint8Array | string) {
@@ -858,15 +859,19 @@ const workerSnap = {
   ],
   settlements: [
     {
-      settlementId: 'SET-2026-08-1',
+      id: 'SET-2026-08-1',
       projectNumber: 'CP020',
       projectName: 'BBS Mexico',
       periodStart: '2026-08-01',
       periodEnd: '2026-08-14',
       amountMinor: '526000',
-      state: 'paid',
+      state: 'settled',
+      paymentState: 'partially_paid',
       expectedPaymentOn: '2026-08-15',
       settledAt: '2026-08-15',
+      actualPaymentOn: '2026-08-15',
+      paidAmountMinor: '200000',
+      remainingAmountMinor: '326000',
       reference: 'ACH-DIRECT-PAY',
       currency: 'USD',
     },
@@ -901,6 +906,8 @@ const dailySnap = {
   project: { number: 'CP020', name: 'BBS Mexico', clientName: 'IMPC Gmbh' },
   date: '2026-08-05',
   worker: 'Gabriel Santos',
+  worker_name: 'Gabriel Santos',
+  worker_email: 'gabriel.santos@example.test',
   summary:
     'Commissioned Allen Bradley ControlLogix safety zones and validated Siemens S7-1500 interlocks for Stations 10 to 14. Supervised trial production run with 0 safety incidents.',
   siteShift: 'Plant 1 · First Shift (07:00 - 17:00)',
@@ -924,6 +931,8 @@ const techSnap = {
   id: 'tech-report-cp020-01',
   project: { number: 'CP020', name: 'BBS Mexico', clientName: 'IMPC Gmbh' },
   date: '2026-08-05',
+  worker_name: 'Gabriel Santos',
+  worker_email: 'gabriel.santos@example.test',
   systemName: 'Main Assembly Cell PLC',
   plantSite: 'BBS Saltillo Plant',
   areaLine: 'Assembly Line 2',

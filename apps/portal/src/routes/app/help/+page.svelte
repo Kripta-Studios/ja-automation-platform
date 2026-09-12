@@ -37,8 +37,7 @@
       owner: 'Owner and Finance reference',
       privateNote:
         'Your My Pay view is private. An estimate or statement is not a payslip and does not prove that money was paid.',
-      support:
-        'For an invitation, access or password problem, contact admin@j-aautomation.com.',
+      support: 'For an invitation, access or password problem, contact admin@j-aautomation.com.',
       loginTitle: 'Use the invitation linked to your mailbox',
       loginBody:
         'If your invitation is linked to a company mailbox, open it from that mailbox and sign in with the account it names. If you were invited as an external worker, use the single-use invitation link to create your account. There is no public sign-up.',
@@ -105,8 +104,7 @@
       owner: 'Referência de Owner e Finanças',
       privateNote:
         'Sua visão Meu pagamento é privada. Uma estimativa ou declaração não é um contracheque e não prova que o dinheiro foi pago.',
-      support:
-        'Para problemas de convite, acesso ou senha, contate admin@j-aautomation.com.',
+      support: 'Para problemas de convite, acesso ou senha, contate admin@j-aautomation.com.',
       loginTitle: 'Use o convite vinculado à sua caixa de e-mail',
       loginBody:
         'Se o convite estiver vinculado a uma caixa corporativa, abra-o nessa caixa e entre com a conta indicada. Se você foi convidado como colaborador externo, use o link de uso único para criar sua conta. Não existe cadastro público.',
@@ -205,13 +203,18 @@
     <h2 id="tasks-heading">{text('tasksHeading')}</h2>
     <div class="task-grid">
       {#each helpWorkflows(data.user.role ?? 'worker', data.user.workforceProfile, data.locale) as topic}
-        <article><h3><a href={`${base}/app/${topic.route}`}>{topic.title} →</a></h3><p>{topic.body}</p></article>
+        <article>
+          <h3><a href={`${base}/app/${topic.route}`}>{topic.title} →</a></h3>
+          <p>{topic.body}</p>
+        </article>
       {/each}
     </div>
   </section>
 
   <aside class="notice notice-private">
-    {#if data.user.role === 'worker' && !data.user.workforceProfile}<p>{text('privateNote')}</p>{/if}
+    {#if data.user.role === 'worker' && !data.user.workforceProfile}<p>
+        {text('privateNote')}
+      </p>{/if}
     <p>{text('support')}</p>
   </aside>
 </main>

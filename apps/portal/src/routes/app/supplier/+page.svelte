@@ -1,15 +1,45 @@
 <script lang="ts">
   import { portalText } from '$lib/portal-i18n';
   import { SectionCard, StatusBadge, ResponsiveSheet } from '$lib/portal/ui';
+  import RecordBrowser from '$lib/portal/ui/RecordBrowser.svelte';
   import { supplierCopy, supplierStateLabel, supplierManagementCopy } from './copy';
   import { standaloneActionMessage } from '../standalone-locale';
   import { enhance } from '$app/forms';
+  import { page } from '$app/stores';
   import { untrack } from 'svelte';
   let { data, form } = $props();
   const c = $derived(supplierCopy[data.locale as keyof typeof supplierCopy]);
   const m = $derived(supplierManagementCopy[data.locale as keyof typeof supplierManagementCopy]);
   let search = $state('');
   let directoryStatus = $state('active');
+  type WorkspaceAction =
+    | 'directory'
+    | 'setup'
+    | 'authorize'
+    | 'personnel'
+    | 'time'
+    | 'report';
+  const allowedWorkspaceActions: WorkspaceAction[] = [
+    'directory',
+    'setup',
+    'authorize',
+    'personnel',
+    'time',
+    'report',
+  ];
+  let workspaceAction = $state<WorkspaceAction>(
+    untrack(() => {
+      const requested = $page.url.searchParams.get('workspaceAction') as WorkspaceAction | null;
+      if (
+        requested &&
+        allowedWorkspaceActions.includes(requested) &&
+        (data.owner || !['directory', 'setup', 'authorize'].includes(requested))
+      ) {
+        return requested;
+      }
+      return data.owner ? 'directory' : 'time';
+    }),
+  );
   type Editor = {
     operation: string;
     id: string;
@@ -52,6 +82,24 @@
     (directoryStatus === 'all' ||
       (directoryStatus === 'active' ? status === 'active' : status !== 'active')) &&
     text.toLocaleLowerCase().includes(search.toLocaleLowerCase());
+  const filteredSuppliers = $derived(
+    data.suppliers.filter((supplier) =>
+      matches(
+        `${supplier.name} ${supplier.contactEmail ?? ''} ${supplier.phone ?? ''} ${supplier.address ?? ''} ${supplier.notes ?? ''}`,
+        supplier.status,
+      ),
+    ),
+  );
+  const filteredTechnicians = $derived(
+    data.directory.filter((technician) =>
+      matches(
+        `${technician.name} ${technician.email} ${technician.supplierName} ${technician.company ?? ''} ${technician.contactName ?? ''} ${technician.phone ?? ''} ${technician.notes ?? ''}`,
+        technician.status,
+      ),
+    ),
+  );
+  let supplierPage = $state<typeof filteredSuppliers>([]);
+  let technicianPage = $state<typeof filteredTechnicians>([]);
   function editRecord(
     operation: string,
     row: { id: string; name: string; email?: string; hasLogin?: number },
@@ -77,7 +125,7 @@
   const base = '/j-aautomation/app';
   const today = new Date().toISOString().slice(0, 10);
   const actionUrl = (operation: string) =>
-    `?/${operation}&${new URLSearchParams({ projectId: data.projectId, from: data.from, to: data.to, lang: data.locale }).toString()}`;
+    `?/${operation}&${new URLSearchParams({ projectId: data.projectId, from: data.from, to: data.to, lang: data.locale, workspaceAction }).toString()}`;
   const value = (operation: string, key: string, fallback = '') =>
     form?.operation === operation ? (form.values?.[key] ?? fallback) : fallback;
 </script>
@@ -90,12 +138,55 @@
   {#if form}<p role={form.success ? 'status' : 'alert'}>{form.success ? c.saved : c.failed}</p>
     {#if !form.success}<p>{standaloneActionMessage(data.locale, form)}</p>{/if}{/if}
   <nav class="supplier-jump-links" aria-label={c.title}>
-    {#if data.owner}<a href="#supplier-directory">{m.directory}</a><a href="#supplier-setup"
-        >{m.setup}</a
-      >{/if}
-    <a href="#supplier-personnel">{m.personnel}</a><a href="#supplier-report">{c.report}</a>
+    {#if data.owner}
+      <button
+        type="button"
+        class:active={workspaceAction === 'directory'}
+        onclick={() => (workspaceAction = 'directory')}>{m.directory}</button
+      >
+      <button
+        type="button"
+        class:active={workspaceAction === 'setup'}
+        onclick={() => (workspaceAction = 'setup')}>{m.setup}</button
+      >
+      <button
+        type="button"
+        class:active={workspaceAction === 'authorize'}
+        onclick={() => (workspaceAction = 'authorize')}>{c.grant}</button
+      >
+    {/if}
+    <button
+      type="button"
+      class:active={workspaceAction === 'personnel'}
+      onclick={() => (workspaceAction = 'personnel')}>{m.personnel}</button
+    >
+    {#if !data.owner}
+      <button
+        type="button"
+        class:active={workspaceAction === 'time'}
+        onclick={() => (workspaceAction = 'time')}>{c.time}</button
+      >
+    {/if}
+    <button
+      type="button"
+      class:active={workspaceAction === 'report'}
+      onclick={() => (workspaceAction = 'report')}>{c.report}</button
+    >
   </nav>
-  {#if data.owner}
+  <p class="supplier-action-help">
+    {workspaceAction === 'directory'
+      ? m.intro
+      : workspaceAction === 'setup'
+        ? c.personnel
+        : workspaceAction === 'authorize'
+          ? c.restricted
+          : workspaceAction === 'personnel'
+            ? c.personnel
+            : workspaceAction === 'time'
+              ? c.intro
+              : c.report}
+  </p>
+  {#if data.owner && workspaceAction === 'directory'}
     <SectionCard title={c.title} id="supplier-directory">
       <div class="directory-filters">
         <label data-ui="field"
@@ -109,8 +200,15 @@
         >
       </div>
       <h3>{m.suppliers}</h3>
+      <RecordBrowser
+        rows={filteredSuppliers}
+        bind:visible={supplierPage}
+        translate={(value) => portalText(data.locale, value)}
+        label="Suppliers"
+        contextKey="supplier-directory"
+      />
       <div class="supplier-directory">
-        {#each data.suppliers.filter((s) => matches(s.name, s.status)) as supplier}
+        {#each supplierPage as supplier}
           <article class="directory-record" data-supplier-id={supplier.id}>
             <div class="directory-identity">
               <strong>{supplier.name}</strong><StatusBadge
@@ -141,8 +239,15 @@
         {:else}<p class="muted">{m.noMatches}</p>{/each}
       </div>
       <h3>{c.assigned}</h3>
+      <RecordBrowser
+        rows={filteredTechnicians}
+        bind:visible={technicianPage}
+        translate={(value) => portalText(data.locale, value)}
+        label="Technicians"
+        contextKey="technician-directory"
+      />
       <div class="supplier-directory">
-        {#each data.directory.filter( (t) => matches(`${t.name} ${t.email} ${t.supplierName} ${t.company ?? ''} ${t.contactName ?? ''} ${t.phone ?? ''} ${t.notes ?? ''}`, t.status), ) as technician}
+        {#each technicianPage as technician}
           <article class="directory-record" data-technician-id={technician.id}>
             <div class="directory-identity">
               <strong>{technician.name}</strong><span class="muted">{technician.supplierName}</span
@@ -150,7 +255,12 @@
                 variant={technician.status === 'active' ? 'success' : 'neutral'}
                 text={technician.status === 'active' ? m.active : m.inactive}
               />
-              {#if technician.company || technician.contactName || technician.phone}<small class="muted">{[technician.company, technician.contactName, technician.phone].filter(Boolean).join(' · ')}</small>{/if}
+              {#if technician.company || technician.contactName || technician.phone}<small
+                  class="muted"
+                  >{[technician.company, technician.contactName, technician.phone]
+                    .filter(Boolean)
+                    .join(' · ')}</small
+                >{/if}
             </div>
             <div class="directory-actions">
               <button
@@ -202,7 +312,7 @@
         {#if form && !form.success && form.operation === editor.operation}<p role="alert">
             {standaloneActionMessage(data.locale, form)}
           </p>{/if}
-          {#if editor.operation.startsWith('update')}
+        {#if editor.operation.startsWith('update')}
           <label data-ui="field"
             >{c.name}<input
               name="name"
@@ -224,16 +334,51 @@
             {#if editor.hasLogin}<p class="muted">{m.loginEmail}</p>{/if}
           {/if}
           {#if editor.operation === 'updateTechnician'}
-            <label data-ui="field">{c.phone}<input name="phone" bind:value={editor.phone} maxlength="80" /></label>
-            <label data-ui="field">{c.company}<input name="company" bind:value={editor.company} maxlength="200" /></label>
-            <label data-ui="field">{c.contactName}<input name="contactName" bind:value={editor.contactName} maxlength="160" /></label>
-            <label data-ui="field">{c.notes}<textarea name="notes" bind:value={editor.notes} maxlength="5000"></textarea></label>
+            <label data-ui="field"
+              >{c.phone}<input name="phone" bind:value={editor.phone} maxlength="80" /></label
+            >
+            <label data-ui="field"
+              >{c.company}<input
+                name="company"
+                bind:value={editor.company}
+                maxlength="200"
+              /></label
+            >
+            <label data-ui="field"
+              >{c.contactName}<input
+                name="contactName"
+                bind:value={editor.contactName}
+                maxlength="160"
+              /></label
+            >
+            <label data-ui="field"
+              >{c.notes}<textarea name="notes" bind:value={editor.notes} maxlength="5000"
+              ></textarea></label
+            >
           {/if}
           {#if editor.operation === 'updateSupplier'}
-            <label data-ui="field">{c.email}<input name="contactEmail" type="email" bind:value={editor.contactEmail} maxlength="254" /></label>
-            <label data-ui="field">{c.phone}<input name="phone" bind:value={editor.phone} maxlength="80" /></label>
-            <label data-ui="field">{c.address}<input name="address" bind:value={editor.address} maxlength="500" /></label>
-            <label data-ui="field">{c.notes}<textarea name="notes" bind:value={editor.notes} maxlength="5000"></textarea></label>
+            <label data-ui="field"
+              >{c.email}<input
+                name="contactEmail"
+                type="email"
+                bind:value={editor.contactEmail}
+                maxlength="254"
+              /></label
+            >
+            <label data-ui="field"
+              >{c.phone}<input name="phone" bind:value={editor.phone} maxlength="80" /></label
+            >
+            <label data-ui="field"
+              >{c.address}<input
+                name="address"
+                bind:value={editor.address}
+                maxlength="500"
+              /></label
+            >
+            <label data-ui="field"
+              >{c.notes}<textarea name="notes" bind:value={editor.notes} maxlength="5000"
+              ></textarea></label
+            >
           {/if}
         {:else}
           <input type="hidden" name="status" value={editor.status} />
@@ -269,33 +414,40 @@
       </form>
     {/if}
   </ResponsiveSheet>
-  <SectionCard title={m.filters}>
-    <form method="GET" class="filters">
-      <label data-ui="field"
-        >{c.project}<select name="projectId" value={data.projectId}
-          >{#each data.projects as p}<option value={p.id}>{p.name}</option>{/each}</select
-        ></label
-      >
-      <label data-ui="field"
-        >{c.from}<input type="date" name="from" value={data.from} required /></label
-      >
-      <label data-ui="field">{c.to}<input type="date" name="to" value={data.to} required /></label>
-      <label data-ui="field"
-        >{portalText(data.locale, 'Language')}<select name="lang" value={data.locale}
-          ><option value="en">English</option><option value="es">Español</option><option value="pt"
-            >Português</option
-          ></select
-        ></label
-      >
-      <button class="primary-button">{c.apply}</button>
-    </form>
-    <p>
-      <a
-        href={`${base}/supplier/report?projectId=${encodeURIComponent(data.projectId)}&from=${data.from}&to=${data.to}&lang=${data.locale}`}
-        >{c.report}</a
-      >
-    </p>
-  </SectionCard>
+  {#if ['personnel', 'time', 'report'].includes(workspaceAction)}
+    <SectionCard title={m.filters}>
+      <form method="GET" class="filters">
+        <input type="hidden" name="workspaceAction" value={workspaceAction} />
+        <label data-ui="field"
+          >{c.project}<select name="projectId" value={data.projectId}
+            >{#each data.projects as p}<option value={p.id}>{p.name}</option>{/each}</select
+          ></label
+        >
+        <label data-ui="field"
+          >{c.from}<input type="date" name="from" value={data.from} required /></label
+        >
+        <label data-ui="field"
+          >{c.to}<input type="date" name="to" value={data.to} required /></label
+        >
+        <label data-ui="field"
+          >{portalText(data.locale, 'Language')}<select name="lang" value={data.locale}
+            ><option value="en">English</option><option value="es">Español</option><option value="pt"
+              >Português</option
+            ></select
+          ></label
+        >
+        <button class="primary-button">{c.apply}</button>
+      </form>
+      {#if workspaceAction === 'report'}
+        <p>
+          <a
+            href={`${base}/supplier/report?projectId=${encodeURIComponent(data.projectId)}&from=${data.from}&to=${data.to}&lang=${data.locale}`}
+            >{c.report}</a
+          >
+        </p>
+      {/if}
+    </SectionCard>
+  {/if}
   {#snippet projects(operation: string)}
     <label data-ui="field"
       >{c.project}<select
@@ -338,7 +490,7 @@
       >{c.ends}<input name="endsOn" type="date" value={value(operation, 'endsOn')} /></label
     >
   {/snippet}
-  {#if data.owner}
+  {#if data.owner && workspaceAction === 'setup'}
     <SectionCard title={c.createProvider} id="supplier-setup"
       ><form method="POST" action={actionUrl('createSupplier')}>
         <label data-ui="field"
@@ -349,10 +501,33 @@
             value={value('createSupplier', 'name')}
           /></label
         >
-        <label data-ui="field">{c.email}<input name="contactEmail" type="email" maxlength="254" value={value('createSupplier', 'contactEmail')} /></label>
-        <label data-ui="field">{c.phone}<input name="phone" maxlength="80" value={value('createSupplier', 'phone')} /></label>
-        <label data-ui="field">{c.address}<input name="address" maxlength="500" value={value('createSupplier', 'address')} /></label>
-        <label data-ui="field">{c.notes}<textarea name="notes" maxlength="5000">{value('createSupplier', 'notes')}</textarea></label>
+        <label data-ui="field"
+          >{c.email}<input
+            name="contactEmail"
+            type="email"
+            maxlength="254"
+            value={value('createSupplier', 'contactEmail')}
+          /></label
+        >
+        <label data-ui="field"
+          >{c.phone}<input
+            name="phone"
+            maxlength="80"
+            value={value('createSupplier', 'phone')}
+          /></label
+        >
+        <label data-ui="field"
+          >{c.address}<input
+            name="address"
+            maxlength="500"
+            value={value('createSupplier', 'address')}
+          /></label
+        >
+        <label data-ui="field"
+          >{c.notes}<textarea name="notes" maxlength="5000"
+            >{value('createSupplier', 'notes')}</textarea
+          ></label
+        >
         <button class="primary-button">{c.createProvider}</button>
       </form></SectionCard
     >
@@ -384,6 +559,8 @@
         {@render suppliers('setProfile')}<button class="primary-button">{c.saveProfile}</button>
       </form>
     </SectionCard>
+  {/if}
+  {#if data.owner && workspaceAction === 'authorize'}
     <SectionCard title={c.grant}>
       <form method="POST" action={actionUrl('grant')}>
         {@render suppliers('grant')}{@render projects('grant')}
@@ -420,7 +597,7 @@
         </article>{:else}<p>{c.empty}</p>{/each}
     </SectionCard>
   {/if}
-  {#if data.projects.length}
+  {#if data.projects.length && workspaceAction === 'personnel'}
     <SectionCard title={c.add} id="supplier-personnel">
       <p>{c.personnel}</p>
       <form method="POST" action={actionUrl('addTechnician')}>
@@ -441,10 +618,32 @@
             value={value('addTechnician', 'email')}
           /></label
         >
-        <label data-ui="field">{c.phone}<input name="phone" maxlength="80" value={value('addTechnician', 'phone')} /></label>
-        <label data-ui="field">{c.company}<input name="company" maxlength="200" value={value('addTechnician', 'company')} /></label>
-        <label data-ui="field">{c.contactName}<input name="contactName" maxlength="160" value={value('addTechnician', 'contactName')} /></label>
-        <label data-ui="field">{c.notes}<textarea name="notes" maxlength="5000">{value('addTechnician', 'notes')}</textarea></label>
+        <label data-ui="field"
+          >{c.phone}<input
+            name="phone"
+            maxlength="80"
+            value={value('addTechnician', 'phone')}
+          /></label
+        >
+        <label data-ui="field"
+          >{c.company}<input
+            name="company"
+            maxlength="200"
+            value={value('addTechnician', 'company')}
+          /></label
+        >
+        <label data-ui="field"
+          >{c.contactName}<input
+            name="contactName"
+            maxlength="160"
+            value={value('addTechnician', 'contactName')}
+          /></label
+        >
+        <label data-ui="field"
+          >{c.notes}<textarea name="notes" maxlength="5000"
+            >{value('addTechnician', 'notes')}</textarea
+          ></label
+        >
         {@render dates('addTechnician')}<button class="primary-button">{c.add}</button>
       </form>
     </SectionCard>
@@ -467,8 +666,11 @@
         {#each data.assigned as t}<li>{t.name}</li>{/each}
       </ul></SectionCard
     >
-    {#if !data.owner}
-      <SectionCard title={c.time}>
+  {:else if workspaceAction === 'personnel'}
+    <p>{c.empty}</p>
+  {/if}
+  {#if data.projects.length && workspaceAction === 'time' && !data.owner}
+    <SectionCard title={c.time}>
         <form method="POST" action={actionUrl('createTime')}>
           <input type="hidden" name="projectId" value={data.projectId} />
           <label data-ui="field"
@@ -509,8 +711,11 @@
             ></label
           ><button class="primary-button">{c.save}</button>
         </form>
-      </SectionCard>
-    {/if}
+    </SectionCard>
+  {:else if workspaceAction === 'time' && !data.owner}
+    <p>{c.empty}</p>
+  {/if}
+  {#if data.projects.length && workspaceAction === 'report'}
     <SectionCard title={c.report} id="supplier-report">
       {#each data.entries as entry}
         <article>
@@ -595,7 +800,9 @@
         </article>
       {:else}<p>{c.empty}</p>{/each}
     </SectionCard>
-  {:else}<p>{c.empty}</p>{/if}
+  {:else if workspaceAction === 'report'}
+    <p>{c.empty}</p>
+  {/if}
 </div>
 
 <style>
@@ -664,12 +871,23 @@
     flex-wrap: wrap;
     gap: 0.75rem;
   }
-  .supplier-jump-links a {
+  .supplier-jump-links button {
     padding: 0.7rem 1rem;
     border: 1px solid var(--ja-card-border);
     border-radius: 0.5rem;
     background: var(--ja-surface, #fff);
     font-weight: 700;
+    color: var(--ja-text, #182230);
+  }
+  .supplier-jump-links button.active {
+    border-color: var(--ja-action, #1c5ea8);
+    background: var(--ja-action, #1c5ea8);
+    color: #fff;
+  }
+  .supplier-action-help {
+    padding: 0.85rem 1rem;
+    border-left: 0.25rem solid var(--ja-action, #1c5ea8);
+    background: var(--ja-surface-subtle, #f4f7fa);
   }
   .directory-filters {
     display: grid;

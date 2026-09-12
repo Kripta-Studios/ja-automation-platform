@@ -144,7 +144,12 @@
   </form>
 
   <div class="client-directory__list">
-    <RecordBrowser rows={visibleClients} bind:visible={clientPage} {translate} label="ClientDirectory" />
+    <RecordBrowser
+      rows={visibleClients}
+      bind:visible={clientPage}
+      {translate}
+      label="ClientDirectory"
+    />
     {#each clientPage as client}
       {@const clientId = id(client)}
       {@const relatedContacts = clientContacts(client)}
@@ -170,9 +175,19 @@
 
         {#if canManageContacts}
           <div class="directory-actions">
-            <a class="secondary-button" href={`${base}/app/projects?action=update-client&client=${encodeURIComponent(clientId)}`}>{translate('Edit client')}</a>
-            <a class="secondary-button" href={`${base}/app/projects?action=new-project&client=${encodeURIComponent(clientId)}`}>{translate('New Project')}</a>
-            <a class="secondary-button" href={`${base}/app/projects#client-controls-${clientId}`}>{translate('Archive')} / {translate('Delete client')}</a>
+            <a
+              class="secondary-button"
+              href={`${base}/app/projects?action=update-client&client=${encodeURIComponent(clientId)}`}
+              >{translate('Edit client')}</a
+            >
+            <a
+              class="secondary-button"
+              href={`${base}/app/projects?action=new-project&client=${encodeURIComponent(clientId)}`}
+              >{translate('New Project')}</a
+            >
+            <a class="secondary-button" href={`${base}/app/projects#client-controls-${clientId}`}
+              >{translate('Archive')} / {translate('Delete client')}</a
+            >
           </div>
         {/if}
         <dl class="client-directory__facts">

@@ -63,6 +63,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
             number: overview.project.project_number,
             name: overview.project.name,
             pricing: overview.project.billing_model,
+            fixedPriceMinor: overview.project.fixed_price_minor,
             currency: overview.project.currency,
             referenceMinutes: overview.project.expected_minutes_per_day,
             minimumMinutes: overview.project.client_daily_minimum_minutes,

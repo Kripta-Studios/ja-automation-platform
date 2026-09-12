@@ -1,6 +1,8 @@
 import {
   assignmentRateOverrideInputSchema,
   clientLaborRateInputSchema,
+  compensationPaymentInputSchema,
+  compensationPaymentReversalInputSchema,
   compensationRuleInputSchema,
   compensationSettlementPlanningInputSchema,
   compensationSettlementInputSchema,
@@ -12,9 +14,10 @@ import {
   reimbursementInputSchema,
   uuidSchema,
 } from '@ja/schemas';
+import { randomUUID } from 'node:crypto';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess } from './action-message';
-import { formObject, type PortalActionEvent } from '$lib/server/action-utils';
+import { decimalToMinor, formObject, type PortalActionEvent } from '$lib/server/action-utils';
 
 function parseRuleId(value: FormDataEntryValue | null): string | undefined {
   const parsed = uuidSchema.safeParse(value?.toString() ?? '');
@@ -275,6 +278,69 @@ export const financeActions = {
         'action.finance.compensationSettled',
         { count: result.length },
         `Settled ${result.length} compensation rule(s)`,
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  recordCompensationPayment: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const payeeSelection = String(object.payeeSelection ?? '');
+    const separator = payeeSelection.indexOf(':');
+    object.payeeKind = separator > 0 ? payeeSelection.slice(0, separator) : '';
+    object.payeeId = separator > 0 ? payeeSelection.slice(separator + 1) : '';
+    object.amountMinor = decimalToMinor(object.amount);
+    object.idempotencyKey = String(object.idempotencyKey || randomUUID());
+    delete object.payeeSelection;
+    delete object.amount;
+    const parsed = compensationPaymentInputSchema.safeParse(object);
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.validation.compensationPayment',
+        {},
+        'Check the actual payment fields',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      const result = context.v3.recordCompensationPayment(context.principal, parsed.data);
+      return actionSuccess(
+        'action.finance.compensationPaymentRecorded',
+        { id: result.id, idempotent: result.idempotent },
+        'Actual compensation payment recorded',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  reverseCompensationPayment: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    object.idempotencyKey = String(object.idempotencyKey || randomUUID());
+    const parsed = compensationPaymentReversalInputSchema.safeParse(object);
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.validation.compensationPaymentReversal',
+        {},
+        'Check the payment reversal fields',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      const result = context.v3.reverseCompensationPayment(context.principal, parsed.data);
+      return actionSuccess(
+        'action.finance.compensationPaymentReversed',
+        { id: result.id, idempotent: result.idempotent },
+        'Compensation payment reversed with an audit event',
       );
     } catch (error) {
       return actionFailure(error);

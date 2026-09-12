@@ -813,13 +813,20 @@ describe('Accounting Pack artifact lifecycle', () => {
       sqlite.prepare("SELECT count(*) count FROM job WHERE kind='temporary_upload_cleanup'").get(),
     ).toEqual({ count: 1 });
     const backupRoot = join(directory, 'backups');
-    await createBackup({ databasePath: join(directory, 'app.db'), documentRoot: join(directory, 'documents'), backupRoot });
+    await createBackup({
+      databasePath: join(directory, 'app.db'),
+      documentRoot: join(directory, 'documents'),
+      backupRoot,
+    });
     const result = runArtifactJobs({
       ...artifactContext(directory, principal, v3),
       verifyBackup: () => {
-        const evidence = JSON.parse(execFileSync(process.execPath,
-          ['deployment/scripts/backup-verify.mjs'],
-          { encoding: 'utf8', env: { ...process.env, JA_BACKUP_ROOT: backupRoot } }));
+        const evidence = JSON.parse(
+          execFileSync(process.execPath, ['deployment/scripts/backup-verify.mjs'], {
+            encoding: 'utf8',
+            env: { ...process.env, JA_BACKUP_ROOT: backupRoot },
+          }),
+        );
         expect(evidence.integrity).toBe('ok');
       },
     });

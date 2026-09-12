@@ -6,7 +6,7 @@ Support for access and passwords: **admin@j-aautomation.com**. Owner can create 
 
 Use **Log time**, **Record expense**, **New daily report** and **Technical / PLC** at the top of their work areas. Drafts remain editable; **Submit** sends operational facts for review. Project Managers can record their own work or work for an effectively assigned worker in a project they manage. Finance-only rates and other workers' reimbursement details stay outside the PM view.
 
-Registers provide search, status and ordering controls and eight rows per page. Search can combine words from a client, project and worker name. Select a project and worker in **Planning** to narrow the published schedule; Owner can open a shift to manage that exact record. Planning describes intended work and never creates actual hours. In **Accounting**, click **Packs**, **Queued** or **Failed** to filter the register. Generate builds review files; Finalize freezes the reviewed version. A later correction requires a new version.
+Registers provide search, status and ordering controls and eight rows per page. Search can combine words from a client, project and worker name. The default approval order keeps unresolved records ahead of completed records and then prioritizes the oldest actionable items; use the visible status/order filters and Previous/Next controls to change that view. Select a project and worker in **Planning** to narrow the published schedule; Owner can open a shift to manage that exact record. Planning describes intended work and never creates actual hours. In **Accounting**, click **Packs**, **Queued** or **Failed** to filter the register. Generate builds review files; Finalize freezes the reviewed version. A later correction requires a new version.
 
 In **Expenses**, select project, worker and date range before exporting PDF, Excel or CSV. Currency totals remain separate. In **Economic Review**, choose the source tab before searching; each tab keeps its own register controls. Settlements finalize approved compensation; expected payment dates are plans, while actual payment is recorded separately. Issued invoices retain their historical snapshot: corrections use the available void, credit or replacement flow.
 
@@ -91,7 +91,7 @@ Review Time by project and period. Check source evidence, dates, actual duration
 
 Review Expenses with the actual payer, receipt, category, currency, project, business reason and commercial treatment. A reimbursement and a client charge can follow separate rules. Returned entries require a reasoned correction; approved history remains traceable rather than silently overwritten.
 
-Use Approvals to open the relevant queue, inspect time/report/receipt evidence, and approve or return with a factual note. Operations approval is internal review. It is not customer acceptance, customer signature, proof of collection, or evidence that a transfer was made.
+Use Approvals to open the relevant queue, inspect time/report/receipt evidence, and approve or return with a factual note. **Project approvals** covers operational records that require a permitted project reviewer; **Finance review** covers the separate finance-controlled classification or confirmation step. Operations approval is internal review. It is not customer acceptance, customer signature, proof of collection, or evidence that a transfer was made.
 
 ### Time procedure
 
@@ -103,7 +103,7 @@ In **Approvals**, choose the **Time**, **Project approvals** or **Finance review
 
 ### Expense procedure
 
-In **Expenses**, open the submitted item and check **Project**, **Date**, **Category**, **Amount**, **Currency**, **Payer**, business reason and receipt. Confirm whether its commercial treatment and reimbursement treatment are appropriate before approval. For a returned item, state the correction needed. Do not change a source receipt merely to change a finance outcome.
+In **Expenses**, open the submitted item and check **Project**, **Date**, **Category**, **Amount**, **Currency**, **Payer**, business reason and receipt. The attention summary combines drafts, submitted items and items needing changes; the reimbursement summary combines pending and scheduled reimbursements. Selecting a summary applies that exact filter so the matching records can be reviewed. Confirm whether commercial treatment and reimbursement treatment are appropriate before approval. For a returned item, state the correction needed. Do not change a source receipt merely to change a finance outcome.
 
 ## Private documents, report attachments and uploads
 
@@ -113,7 +113,7 @@ Use Documents only for authorized project artifacts. Confirm the project, audien
 
 For a rejected, unavailable, or failed upload, keep the original, read the displayed error, correct the file or connection issue, and retry only through the same authorized workflow. Do not create duplicate evidence or upload credentials, unrelated customer material, altered receipts, or a private file to make a screen look populated. Downloads remain role- and object-authorized.
 
-Daily and Technical / PLC report attachments have their own permitted attachment kinds. Attach factual work evidence only. A report PDF or attached signature document must be the exact artifact and hash shown for the selected report version.
+Daily and Technical / PLC report attachments have their own permitted attachment kinds. Attach factual work evidence only. Generated Daily and Technical / PLC PDFs identify the persisted report author by name and include the account email when available; browser-entered identity fields are not trusted for authorship. A report PDF or attached signature document must be the exact artifact and hash shown for the selected report version.
 
 ## Reports, customer conformity and period follow-up
 
@@ -145,7 +145,7 @@ Use **Commercial agreement and example** at `/app/finance/preview` for a single-
 
 :::figure owner /app/billing Billing begins with validated source records and a draft, not an issued invoice.
 
-1. In **Billing**, select the stream and period. Resolve readiness messages: approved billable sources, period boundaries, legal entity/tax profile, currency, caps, rates, and any required customer signoff.
+1. In **Billing**, use **Configure billing** and its compact action selector to open one setup form at a time: **New billing stream**, **New legal entity**, **New tax profile** or **Invoice numbering policy**. The legal-entity and tax-profile directories remain visible for reference. Then select the stream and period and resolve readiness messages: approved billable sources, period boundaries, legal entity/tax profile, currency, caps, rates, and any required customer signoff.
 2. Create or review the draft. Confirm recipient, PO/reference, items, exact amounts, tax treatment and payment terms. Use the draft detail preview/PDF to check the intended document.
 3. Issue only after the authorized review. Issuance consumes the controlled number and creates an immutable historical snapshot; later customer/contact/rate changes do not rewrite it.
 4. Send only through the authorized delivery action and verify the resulting delivery state. Email may be limited to corporate recipients; an outbox event is not proof the customer received or accepted the invoice.
@@ -159,7 +159,7 @@ On the Billing register, use **Create invoice draft** only after the readiness m
 
 ### Compensation and reimbursement procedure
 
-Worker compensation is configured and reviewed as internal finance data, separately from customer billing. In Finance → Commercial, select the project and check the worker/category/activity scope, exact rate and effective dates of each compensation rule. A Worker’s My Pay may show estimated, approved, scheduled, finalized or paid states only for that Worker. **Finalized** is final calculated compensation truth, not confirmation of a transfer; **Paid** needs a recorded actual payment date. Reimbursement is likewise distinct from an expense’s customer billing treatment. Never use one worker’s statement to assess another worker’s compensation.
+Worker compensation is configured and reviewed as internal finance data, separately from customer billing. In Finance → Commercial, select the project and check the worker/category/activity scope, exact rate and effective dates of each compensation rule. A Worker’s My Pay may show estimated, approved, scheduled, partially paid or paid states only for that Worker. **Finalize compensation** freezes the reviewed calculation; it is not confirmation of a transfer. After the real bank or other payment occurs, open **Finance → Economic review → Settlements**, choose whether the beneficiary is the person or their linked supplier company, and use **Register actual payment** with the actual date, amount, currency, reference and optional note. Partial payments preserve the remaining balance. A mistake is corrected with **Reverse payment**, which appends an audited reversal instead of deleting history. Reimbursement is likewise distinct from an expense’s customer billing treatment. Never use one worker’s statement to assess another worker’s compensation.
 
 ## Finance, cash calendar and collections ledger
 

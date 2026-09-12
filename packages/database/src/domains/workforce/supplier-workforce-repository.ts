@@ -284,7 +284,13 @@ export class SupplierWorkforceRepository {
 
   createSupplier(
     principal: Principal,
-    input: { name: string; contactEmail?: string; phone?: string; address?: string; notes?: string },
+    input: {
+      name: string;
+      contactEmail?: string;
+      phone?: string;
+      address?: string;
+      notes?: string;
+    },
   ) {
     this.assertOwner(principal);
     const name = requiredText(input.name, 'Supplier name', 200);
@@ -319,7 +325,7 @@ export class SupplierWorkforceRepository {
     this.assertOwner(principal);
     return this.sqlite
       .prepare(
-      `SELECT u.id,u.name,
+        `SELECT u.id,u.name,
       CASE WHEN u.email LIKE 'supplier-tech-%@personnel.invalid' THEN '' ELSE u.email END email,
       u.status,sup.supplier_id supplierId,s.name supplierName,
       directory.phone,directory.company,directory.contact_name contactName,directory.notes,
@@ -357,9 +363,11 @@ export class SupplierWorkforceRepository {
     if (!EMAIL.test(email) || email.length > 254) throw new ValidationError('Email is invalid');
     if (!input.passwordHash || input.passwordHash.length < 20)
       throw new ValidationError('Credential hash is invalid');
-    if (!['worker', 'project_manager', 'finance_admin', 'auditor_read_only'].includes(input.role)) throw new ValidationError('Invalid provisioned role');
+    if (!['worker', 'project_manager', 'finance_admin', 'auditor_read_only'].includes(input.role))
+      throw new ValidationError('Invalid provisioned role');
     const profile = input.supplierProfile;
-    if (profile && !['external_technician', 'supplier_coordinator'].includes(profile)) throw new ValidationError('Invalid supplier profile');
+    if (profile && !['external_technician', 'supplier_coordinator'].includes(profile))
+      throw new ValidationError('Invalid supplier profile');
     if (profile && input.role !== 'worker')
       throw new ValidationError('Supplier profiles require the worker role');
     const phone = input.phone?.trim() || null;
@@ -368,7 +376,8 @@ export class SupplierWorkforceRepository {
     const notes = input.notes?.trim() || null;
     if (phone && phone.length > 80) throw new ValidationError('Phone is too long');
     if (company && company.length > 200) throw new ValidationError('Company is too long');
-    if (contactName && contactName.length > 160) throw new ValidationError('Contact name is too long');
+    if (contactName && contactName.length > 160)
+      throw new ValidationError('Contact name is too long');
     if (notes && notes.length > 5000) throw new ValidationError('Notes are too long');
 
     return this.transaction(() => {
@@ -420,7 +429,7 @@ export class SupplierWorkforceRepository {
       recordAuditEvent(this.sqlite, principal, 'supplier.technician.add', 'user', userId, {
         role: input.role,
         supplierProfile: profile ?? null,
-        supplierId: profile ? input.supplierId ?? null : null,
+        supplierId: profile ? (input.supplierId ?? null) : null,
         credential: 'local_password_hash_created',
       });
       return { userId, role: input.role, supplierProfile: profile ?? null };
@@ -464,7 +473,14 @@ export class SupplierWorkforceRepository {
 
   updateSupplier(
     principal: Principal,
-    input: { id: string; name: string; contactEmail?: string; phone?: string; address?: string; notes?: string },
+    input: {
+      id: string;
+      name: string;
+      contactEmail?: string;
+      phone?: string;
+      address?: string;
+      notes?: string;
+    },
   ) {
     return this.transaction(() => {
       this.assertOwner(principal);
@@ -601,6 +617,7 @@ export class SupplierWorkforceRepository {
     },
   ) {
     this.assertOwner(principal);
+    assertLiveSession(this.sqlite, principal, AccessDeniedError);
     return this.transaction(() => {
       const user = this.sqlite.prepare('SELECT id,role FROM user WHERE id=?').get(input.userId) as
         | { id: string; role: string }

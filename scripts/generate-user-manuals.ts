@@ -1,7 +1,7 @@
 /** Renders detailed guides from role-aware Markdown and fresh synthetic evidence. */
 import { chromium } from 'playwright';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { readManualSourceIdentity } from './manual-source-identity.ts';
 
@@ -325,6 +325,11 @@ export async function generateManuals(): Promise<void> {
       const bytes = readFileSync(output);
       const digest = createHash('sha256').update(bytes).digest('hex');
       outputs.push({ id: manual.id, file: manual.output, sha256: digest, bytes: bytes.byteLength });
+      if (!brazilianPortuguese) {
+        const examplesDir = resolve(root, 'docs/examples');
+        mkdirSync(examplesDir, { recursive: true });
+        copyFileSync(output, resolve(examplesDir, manual.output));
+      }
       console.log(`${manual.output} ${bytes.byteLength} sha256=${digest}`);
     }
   } finally {

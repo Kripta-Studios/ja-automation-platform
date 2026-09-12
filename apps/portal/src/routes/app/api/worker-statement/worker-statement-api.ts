@@ -248,6 +248,13 @@ export function buildWorkerStatementSnapshot(
         amountMinor: rowString(row.amountMinor),
         currency: rowString(row.currency),
         state: rowString(row.state),
+        paymentState: rowString(row.paymentState),
+        paidAmountMinor: rowString(row.paidAmountMinor),
+        remainingAmountMinor: rowString(row.remainingAmountMinor),
+        actualPaymentOn:
+          row.actualPaymentOn === null || row.actualPaymentOn === undefined
+            ? null
+            : String(row.actualPaymentOn),
         expectedPaymentOn:
           row.expectedPaymentOn === null || row.expectedPaymentOn === undefined
             ? null

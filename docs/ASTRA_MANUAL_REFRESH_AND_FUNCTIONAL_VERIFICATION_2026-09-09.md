@@ -27,19 +27,19 @@ Ruta seleccionada: full por el alcance financiero, de privacidad y documental. I
 
 ## Matriz de comprobación posterior al push
 
-| Área | Owner | Worker y límites | Evidencia que debe comprobarse |
-| --- | --- | --- | --- |
-| Identidad | Acceso, invitación/gestión, perfil y seguridad opcional | Acceso/perfil propio; sin administración ajena | Sesiones, permisos persistidos, denegaciones HTTP, controles visibles |
-| Clientes/proyectos/equipo | Altas, edición, asignaciones, calendario, cierre | Solo proyectos asignados y alcance efectivo | Persistencia, fechas, concurrencia, historial y retiro de acceso |
-| Configuración por trabajador | Varios trabajadores, modelos/importes/fechas distintos | Ninguna configuración privada ajena | Cálculos exactos independientes y ausencia de datos ajenos en HTML/JSON/descargas |
-| Tiempo | Revisión, devolución/corrección, aprobación | Crear/enviar/corregir lo propio | Fuente temporal, versiones, auditoría, conflictos y privacidad |
-| Informes | Revisión, PDF vigente, firma/seguimiento, cierre | Crear/enviar/consultar lo propio según alcance | Bytes PDF reales, hashes/versiones, exclusión de dinero en informe cliente |
-| Gastos | Revisión y tratamiento comercial; reembolso separado | Gasto/recibo/pagador propio | Corrección, estados, importes y separación de recuperación cliente |
-| Archivos | Subida/consulta autorizada, versiones y paquetes | Solo archivos permitidos de su ámbito | Bytes guardados/descargados, hash, reinicio/restore, cuarentena y denegación ajena |
-| Facturación/cobros | Borrador, emitir, PDF, corrección, cobro y reverso | Acceso denegado | Inmutabilidad, no duplicación, reconciliación y estados veraces |
-| Compensación | Configuración y obligaciones por trabajador | My Pay exclusivamente propio | Cálculo y declaración de pago sin inventar transferencias |
-| Finanzas/exportación | Preview, caja, ledger, accounting, informes internos | Acceso denegado | Moneda/entidad/fuente, formatos independientes y ausencia de filtraciones |
-| Ayuda/avisos | Guías y avisos propios | Guías permitidas y avisos propios | PDF correcto, no-store, revisión visible, lectura y destinos autorizados |
-| Interfaz | Flujos de escritorio y móvil | Flujos de escritorio y móvil | Etiquetas, teclado, geometría útil y resultados reales, no solo ancho de página |
+| Área                         | Owner                                                   | Worker y límites                               | Evidencia que debe comprobarse                                                     |
+| ---------------------------- | ------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Identidad                    | Acceso, invitación/gestión, perfil y seguridad opcional | Acceso/perfil propio; sin administración ajena | Sesiones, permisos persistidos, denegaciones HTTP, controles visibles              |
+| Clientes/proyectos/equipo    | Altas, edición, asignaciones, calendario, cierre        | Solo proyectos asignados y alcance efectivo    | Persistencia, fechas, concurrencia, historial y retiro de acceso                   |
+| Configuración por trabajador | Varios trabajadores, modelos/importes/fechas distintos  | Ninguna configuración privada ajena            | Cálculos exactos independientes y ausencia de datos ajenos en HTML/JSON/descargas  |
+| Tiempo                       | Revisión, devolución/corrección, aprobación             | Crear/enviar/corregir lo propio                | Fuente temporal, versiones, auditoría, conflictos y privacidad                     |
+| Informes                     | Revisión, PDF vigente, firma/seguimiento, cierre        | Crear/enviar/consultar lo propio según alcance | Bytes PDF reales, hashes/versiones, exclusión de dinero en informe cliente         |
+| Gastos                       | Revisión y tratamiento comercial; reembolso separado    | Gasto/recibo/pagador propio                    | Corrección, estados, importes y separación de recuperación cliente                 |
+| Archivos                     | Subida/consulta autorizada, versiones y paquetes        | Solo archivos permitidos de su ámbito          | Bytes guardados/descargados, hash, reinicio/restore, cuarentena y denegación ajena |
+| Facturación/cobros           | Borrador, emitir, PDF, corrección, cobro y reverso      | Acceso denegado                                | Inmutabilidad, no duplicación, reconciliación y estados veraces                    |
+| Compensación                 | Configuración y obligaciones por trabajador             | My Pay exclusivamente propio                   | Cálculo y declaración de pago sin inventar transferencias                          |
+| Finanzas/exportación         | Preview, caja, ledger, accounting, informes internos    | Acceso denegado                                | Moneda/entidad/fuente, formatos independientes y ausencia de filtraciones          |
+| Ayuda/avisos                 | Guías y avisos propios                                  | Guías permitidas y avisos propios              | PDF correcto, no-store, revisión visible, lectura y destinos autorizados           |
+| Interfaz                     | Flujos de escritorio y móvil                            | Flujos de escritorio y móvil                   | Etiquetas, teclado, geometría útil y resultados reales, no solo ancho de página    |
 
 Los resultados concretos, fallos encontrados y limitaciones se añadirán al ejecutar cada fase. No se etiqueta una función como verificada por mera presencia de código o texto del manual.

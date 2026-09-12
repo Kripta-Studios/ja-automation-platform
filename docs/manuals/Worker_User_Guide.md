@@ -53,7 +53,7 @@ Submit a report for review through the displayed workflow. Internal approval doe
 
 For **New daily report**, choose the project and complete **Work date**, **Site / shift**, **Summary**, completed work, problems found, evidence, open items and next-day plan. Select **Save daily report**, reopen it, then select **Submit** when factual and complete.
 
-For **Technical / PLC**, choose **New technical report** and enter the report date, system/site/area/station, platform/controller/HMI/network/software/program reference, work and validation evidence, result, open risk and recovery or next action. Save the PLC report, then submit it when ready for review. To attach permitted evidence, use **Attachment kind**, select the file, give the factual description and choose **Upload private evidence**. If a report is approved or finalized, attachments are immutable: create the audited correction draft rather than replacing evidence.
+For **Technical / PLC**, choose **New technical report** and enter the report date, system/site/area/station, platform/controller/HMI/network/software/program reference, work and validation evidence, result, open risk and recovery or next action. Save the PLC report, then submit it when ready for review. The generated PDF identifies you from the persisted author account, showing your name and account email when available; you do not need to retype identity data into the report. To attach permitted evidence, use **Attachment kind**, select the file, give the factual description and choose **Upload private evidence**. If a report is approved or finalized, attachments are immutable: create the audited correction draft rather than replacing evidence.
 
 ## Expenses, receipts and private files
 
@@ -87,7 +87,8 @@ Use report attachments only through the relevant report workflow and permitted a
 - **Approved** means authorized review accepted the record or amount.
 - **Scheduled** means a payment is planned for the displayed expected date.
 - **Finalized** means the compensation record's calculated truth is closed; it does not confirm a transfer.
-- **Paid** requires the recorded actual payment date. A scheduled or finalized item is not proof of payment.
+- **Partially paid** means Finance recorded a real payment smaller than the reviewed settlement and the remaining balance is still due.
+- **Paid** requires recorded actual payment evidence for the full balance. A scheduled or finalized item is not proof of payment.
 
 Download only your own ready statement artifact. If an artifact is queued or running, wait for the service. If it failed, use the shown error/support process; you do not run jobs manually. Report a discrepancy through the verified support route with the relevant record reference, never with another person's data.
 

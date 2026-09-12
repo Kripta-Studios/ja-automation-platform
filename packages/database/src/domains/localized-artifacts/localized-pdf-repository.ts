@@ -1226,7 +1226,8 @@ export class LocalizedPdfRepository {
         projectIdFromRow(parsed),
         sourceUserIdFromRow(parsed, userField),
       );
-      return JSON.stringify({ ...parsed, ...identity });
+      const people = this.lookupReportPeople(variant.ownerType, variant.ownerId, parsed);
+      return JSON.stringify({ ...parsed, ...identity, ...people });
     }
     if (variant.ownerType === 'period_report_revision') {
       const nested = parseJsonObject(parsed.snapshot_json);
@@ -1327,6 +1328,41 @@ export class LocalizedPdfRepository {
       }
       if (workerEmail) identity.worker_email = workerEmail;
     }
+    return identity;
+  }
+
+  private lookupReportPeople(
+    ownerType: 'daily_report' | 'technical_report',
+    reportId: string,
+    snapshot: Record<string, unknown>,
+  ): Record<string, string> {
+    const workerColumn = ownerType === 'daily_report' ? 'worker_id' : 'author_id';
+    const createAction = ownerType === 'daily_report' ? 'daily_report.create' : 'technical_report.create';
+    const workerId = sourceUserIdFromRow(snapshot, workerColumn);
+    const reviewerId = definedText(snapshot.reviewed_by) ?? definedText(snapshot.reviewedBy);
+    const creatorId = this.sqlite
+      .prepare(
+        `SELECT actor_id FROM audit_event
+          WHERE entity_type=? AND entity_id=? AND action=?
+          ORDER BY occurred_at,id LIMIT 1`,
+      )
+      .get(ownerType, reportId, createAction) as { actor_id: string | null } | undefined;
+    const lookup = (userId: string | null): { name: string; email: string | null } | undefined =>
+      userId
+        ? (this.sqlite.prepare('SELECT name,email FROM user WHERE id=?').get(userId) as
+            | { name: string; email: string | null }
+            | undefined)
+        : undefined;
+    const worker = lookup(workerId);
+    const creator = lookup(definedText(creatorId?.actor_id) ?? workerId);
+    const reviewer = lookup(reviewerId ?? null);
+    const identity: Record<string, string> = {};
+    if (definedText(worker?.name)) identity.work_performed_by_name = worker!.name;
+    if (definedText(worker?.email)) identity.work_performed_by_email = worker!.email!;
+    if (definedText(creator?.name)) identity.report_created_by_name = creator!.name;
+    if (definedText(creator?.email)) identity.report_created_by_email = creator!.email!;
+    if (definedText(reviewer?.name)) identity.reviewed_by_name = reviewer!.name;
+    if (definedText(reviewer?.email)) identity.reviewed_by_email = reviewer!.email!;
     return identity;
   }
 

@@ -266,18 +266,12 @@
   {/if}
 
   <div class="expense-status-strip" aria-label={translate('Expense attention summary')}>
-    <a
-      class="expense-status-card"
-      href={registerHref({ status: 'attention', reimbursement: '' })}
-    >
+    <a class="expense-status-card" href={registerHref({ status: 'attention', reimbursement: '' })}>
       <span>{translate('Needs attention')}</span>
       <strong>{pendingReviewCount}</strong>
       <small>{translate('Draft or review state')}</small>
     </a>
-    <a
-      class="expense-status-card"
-      href={registerHref({ status: '', reimbursement: 'pending' })}
-    >
+    <a class="expense-status-card" href={registerHref({ status: '', reimbursement: 'pending' })}>
       <span>{translate('Reimbursement')}</span>
       <strong>{reimbursementCount}</strong>
       <small>{translate('Pending or scheduled')}</small>
@@ -591,8 +585,8 @@
           </label>
           <label>
             <span>{translate('Currency')}</span>
-            <select name="currency" value="USD" required>
-              <option value="USD">USD</option>
+            <select name="currency" required>
+              <option value="USD" selected>USD</option>
               <option value="BRL">BRL</option>
               <option value="EUR">EUR</option>
             </select>

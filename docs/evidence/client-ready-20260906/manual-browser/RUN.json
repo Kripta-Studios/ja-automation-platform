@@ -881,11 +881,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Today",
-          "Field operations overview",
-          "Active project board"
-        ],
+        "headings": ["Today", "Field operations overview", "Active project board"],
         "outcome": "reachable",
         "interactions": [
           {
@@ -39500,13 +39496,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Approval queue",
-          "Approvals",
-          "Time",
-          "Project approvals",
-          "Finance review"
-        ],
+        "headings": ["Approval queue", "Approvals", "Time", "Project approvals", "Finance review"],
         "outcome": "reachable",
         "interactions": [
           {
@@ -43636,12 +43626,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Daily and technical reports",
-          "Reports",
-          "Daily",
-          "Generated period files"
-        ],
+        "headings": ["Daily and technical reports", "Reports", "Daily", "Generated period files"],
         "outcome": "reachable",
         "interactions": [
           {
@@ -46573,11 +46558,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Expenses and receipts",
-          "Expenses and reimbursements",
-          "Recent expenses"
-        ],
+        "headings": ["Expenses and receipts", "Expenses and reimbursements", "Recent expenses"],
         "outcome": "reachable",
         "interactions": [
           {
@@ -48515,11 +48496,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Billing streams",
-          "Billing",
-          "Invoice register"
-        ],
+        "headings": ["Billing streams", "Billing", "Invoice register"],
         "outcome": "reachable",
         "interactions": [
           {
@@ -49873,11 +49850,7 @@
                 "help": ""
               }
             ],
-            "headings": [
-              "Billing streams",
-              "Billing",
-              "Billing streams"
-            ]
+            "headings": ["Billing streams", "Billing", "Billing streams"]
           },
           {
             "target": "Configure billing tab",
@@ -51138,11 +51111,7 @@
                 "help": ""
               }
             ],
-            "headings": [
-              "Billing streams",
-              "Billing",
-              "Billing configuration"
-            ]
+            "headings": ["Billing streams", "Billing", "Billing configuration"]
           },
           {
             "target": "Invoice register filters",
@@ -51960,11 +51929,7 @@
                 "help": ""
               }
             ],
-            "headings": [
-              "Billing streams",
-              "Billing",
-              "Invoice register"
-            ]
+            "headings": ["Billing streams", "Billing", "Invoice register"]
           }
         ]
       },
@@ -52545,11 +52510,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Finance Overview",
-          "Finance overview",
-          "Planned / Expected"
-        ],
+        "headings": ["Finance Overview", "Finance overview", "Planned / Expected"],
         "outcome": "reachable",
         "interactions": [
           {
@@ -55129,12 +55090,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Economic Review",
-          "Economic Review",
-          "Planned / Expected",
-          "Source records"
-        ],
+        "headings": ["Economic Review", "Economic Review", "Planned / Expected", "Source records"],
         "outcome": "reachable",
         "interactions": []
       },
@@ -62937,10 +62893,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Audit log",
-          "Append-only security and finance audit"
-        ],
+        "headings": ["Audit log", "Append-only security and finance audit"],
         "outcome": "reachable",
         "interactions": [
           {
@@ -63373,10 +63326,7 @@
                 "help": ""
               }
             ],
-            "headings": [
-              "Audit log",
-              "Append-only security and finance audit"
-            ]
+            "headings": ["Audit log", "Append-only security and finance audit"]
           }
         ]
       },
@@ -66013,12 +65963,7 @@
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66053,20 +65998,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66101,20 +66039,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66149,20 +66080,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66197,20 +66121,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66245,20 +66162,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66293,20 +66203,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66341,20 +66244,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66389,20 +66285,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66437,20 +66326,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66485,20 +66367,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66533,20 +66408,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66581,20 +66449,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66629,20 +66490,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66677,20 +66531,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66725,20 +66572,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66773,20 +66613,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66821,20 +66654,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66869,20 +66695,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66917,20 +66736,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -66965,20 +66777,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67013,20 +66818,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67061,20 +66859,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67109,20 +66900,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67157,20 +66941,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67205,20 +66982,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67253,20 +67023,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67301,20 +67064,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67349,20 +67105,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67397,20 +67146,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67445,20 +67187,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67493,20 +67228,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67541,20 +67269,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67589,20 +67310,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67637,20 +67351,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67685,20 +67392,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67733,20 +67433,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67781,20 +67474,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67829,20 +67515,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67877,20 +67556,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67925,20 +67597,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -67973,20 +67638,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -68021,20 +67679,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -68069,20 +67720,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -68117,20 +67761,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -68165,20 +67802,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -68213,20 +67843,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -68261,20 +67884,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -68309,9 +67925,7 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       }
     ]
@@ -68666,10 +68280,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Today",
-          "Field workspace"
-        ],
+        "headings": ["Today", "Field workspace"],
         "outcome": "reachable",
         "interactions": []
       },
@@ -68985,11 +68596,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Projects",
-          "Authorized projects",
-          "Client contacts"
-        ],
+        "headings": ["Projects", "Authorized projects", "Client contacts"],
         "outcome": "reachable",
         "interactions": [
           {
@@ -69302,11 +68909,7 @@
                 "help": ""
               }
             ],
-            "headings": [
-              "Projects",
-              "Authorized projects",
-              "Client contacts"
-            ]
+            "headings": ["Projects", "Authorized projects", "Client contacts"]
           }
         ]
       },
@@ -70804,11 +70407,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Daily and technical reports",
-          "Reports",
-          "Daily"
-        ],
+        "headings": ["Daily and technical reports", "Reports", "Daily"],
         "outcome": "reachable",
         "interactions": [
           {
@@ -71169,11 +70768,7 @@
                 "help": ""
               }
             ],
-            "headings": [
-              "Daily and technical reports",
-              "Reports",
-              "Daily"
-            ]
+            "headings": ["Daily and technical reports", "Reports", "Daily"]
           },
           {
             "target": "Client Sign-off tab",
@@ -71521,11 +71116,7 @@
                 "help": ""
               }
             ],
-            "headings": [
-              "Daily and technical reports",
-              "Reports",
-              "Client Sign-off"
-            ]
+            "headings": ["Daily and technical reports", "Reports", "Client Sign-off"]
           },
           {
             "target": "New daily report form",
@@ -72070,12 +71661,7 @@
                 "help": ""
               }
             ],
-            "headings": [
-              "Daily and technical reports",
-              "Reports",
-              "Daily",
-              "New daily report"
-            ]
+            "headings": ["Daily and technical reports", "Reports", "Daily", "New daily report"]
           }
         ]
       },
@@ -72465,11 +72051,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Expenses and receipts",
-          "Expenses and reimbursements",
-          "Recent expenses"
-        ],
+        "headings": ["Expenses and receipts", "Expenses and reimbursements", "Recent expenses"],
         "outcome": "reachable",
         "interactions": [
           {
@@ -76330,10 +75912,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Client contacts",
-          "Clients"
-        ],
+        "headings": ["Client contacts", "Clients"],
         "outcome": "redirected"
       },
       {
@@ -76672,10 +76251,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Team access",
-          "Team"
-        ],
+        "headings": ["Team access", "Team"],
         "outcome": "redirected"
       },
       {
@@ -76990,10 +76566,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Resource planning",
-          "Published schedule"
-        ],
+        "headings": ["Resource planning", "Published schedule"],
         "outcome": "reachable"
       },
       {
@@ -77031,9 +76604,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Error"
-        ],
+        "headings": ["Error"],
         "outcome": "error"
       },
       {
@@ -77071,9 +76642,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "No results"
-        ],
+        "headings": ["No results"],
         "outcome": "error"
       },
       {
@@ -77111,9 +76680,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Error"
-        ],
+        "headings": ["Error"],
         "outcome": "error"
       },
       {
@@ -77151,9 +76718,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Error"
-        ],
+        "headings": ["Error"],
         "outcome": "error"
       },
       {
@@ -77191,9 +76756,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Error"
-        ],
+        "headings": ["Error"],
         "outcome": "error"
       },
       {
@@ -77231,9 +76794,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Error"
-        ],
+        "headings": ["Error"],
         "outcome": "error"
       },
       {
@@ -77271,9 +76832,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "No results"
-        ],
+        "headings": ["No results"],
         "outcome": "error"
       },
       {
@@ -77311,9 +76870,7 @@
             "help": ""
           }
         ],
-        "headings": [
-          "Error"
-        ],
+        "headings": ["Error"],
         "outcome": "error"
       },
       {
@@ -77819,12 +77376,7 @@
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -77859,20 +77411,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -77907,20 +77452,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -77955,20 +77493,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -78003,20 +77534,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -78051,20 +77575,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -78099,31 +77616,19 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/worker-statement",
         "status": 200,
-        "keys": [
-          "$.artifacts",
-          "$.artifacts[]",
-          "$.links",
-          "$.links[]"
-        ],
+        "keys": ["$.artifacts", "$.artifacts[]", "$.links", "$.links[]"],
         "sensitiveKeyPaths": []
       },
       {
@@ -78158,20 +77663,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -78206,20 +77704,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -78254,20 +77745,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -78302,20 +77786,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -78350,20 +77827,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -78398,20 +77868,13 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       },
       {
         "url": "/j-aautomation/app/api/offline/identity",
         "status": 200,
-        "keys": [
-          "$.token",
-          "$.tenantId",
-          "$.deploymentId",
-          "$.userId"
-        ],
+        "keys": ["$.token", "$.tenantId", "$.deploymentId", "$.userId"],
         "sensitiveKeyPaths": []
       },
       {
@@ -78446,9 +77909,7 @@
       {
         "url": "/j-aautomation/app/api/auth/passkey/list-user-passkeys",
         "status": 200,
-        "keys": [
-          "$[]"
-        ],
+        "keys": ["$[]"],
         "sensitiveKeyPaths": []
       }
     ]

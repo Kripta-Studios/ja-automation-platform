@@ -158,12 +158,18 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         return {
           ...common,
           projects: context.repository.listAssignedProjects(context.principal),
-          records: context.repository.listTimeForScope(context.principal, {
-            category,
-            projectId,
-            from: url.searchParams.get('from') || undefined,
-            to: url.searchParams.get('to') || undefined,
-          }).filter(row => !url.searchParams.get('worker') || String(row.worker_id) === url.searchParams.get('worker')),
+          records: context.repository
+            .listTimeForScope(context.principal, {
+              category,
+              projectId,
+              from: url.searchParams.get('from') || undefined,
+              to: url.searchParams.get('to') || undefined,
+            })
+            .filter(
+              (row) =>
+                !url.searchParams.get('worker') ||
+                String(row.worker_id) === url.searchParams.get('worker'),
+            ),
           timeFilter: { category: category ?? '', projectId: projectId ?? '' },
           weekStart,
           weekEnd: week.weekEnd,
@@ -330,12 +336,22 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               : context.repository.listAllClientContacts(context.principal),
           workers:
             context.principal.role !== 'worker'
-              ? context.repository.listAllWorkers(context.principal).map(worker => ({
+              ? context.repository.listAllWorkers(context.principal).map((worker) => ({
                   ...worker,
-                  ...(canonicalOwner ? context.sqlite.prepare('SELECT profile workforce_profile,supplier_id FROM supplier_user_profile WHERE user_id=?').get(String(worker.id)) ?? {} : {}),
+                  ...(canonicalOwner
+                    ? (context.sqlite
+                        .prepare(
+                          'SELECT profile workforce_profile,supplier_id FROM supplier_user_profile WHERE user_id=?',
+                        )
+                        .get(String(worker.id)) ?? {})
+                    : {}),
                 }))
               : [],
-          suppliers: canonicalOwner ? context.sqlite.prepare("SELECT id,name FROM supplier WHERE status='active' ORDER BY name").all() : [],
+          suppliers: canonicalOwner
+            ? context.sqlite
+                .prepare("SELECT id,name FROM supplier WHERE status='active' ORDER BY name")
+                .all()
+            : [],
           mailboxes,
           mailboxesUnavailable,
           mailboxDirectoryStatus: mailboxesUnavailable ? 'unavailable' : 'ready',
@@ -382,9 +398,15 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
       case 'planning':
         return {
           ...common,
-          records: context.repository.listPlanning(context.principal).filter(row =>
-            (!url.searchParams.get('project') || String(row.project_id) === url.searchParams.get('project')) &&
-            (!url.searchParams.get('worker') || String(row.worker_id) === url.searchParams.get('worker'))),
+          records: context.repository
+            .listPlanning(context.principal)
+            .filter(
+              (row) =>
+                (!url.searchParams.get('project') ||
+                  String(row.project_id) === url.searchParams.get('project')) &&
+                (!url.searchParams.get('worker') ||
+                  String(row.worker_id) === url.searchParams.get('worker')),
+            ),
           projects: context.repository.listAssignedProjects(context.principal),
           skills: context.repository.listSkills(context.principal),
           workers:
@@ -468,6 +490,15 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         );
         // V3 owns authorization and effective-date filtering; the route only selects the current
         // project and serializes the already-authorized rows for the UI.
+        const settlements = selected
+          ? context.v3.listCompensationSettlements(
+              context.principal,
+              undefined,
+              undefined,
+              selected,
+            )
+          : [];
+        const settlementIds = new Set(settlements.map((settlement) => String(settlement.id)));
         return {
           ...common,
           projects,
@@ -498,14 +529,13 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           clientLaborRates: context.v3.listClientLaborRates(context.principal),
           internalCostRules: context.v3.listInternalCostRules(context.principal),
           portfolio: context.v3.financePortfolio(context.principal),
-          settlements: selected
-            ? context.v3.listCompensationSettlements(
-                context.principal,
-                undefined,
-                undefined,
-                selected,
-              )
+          settlements,
+          compensationPayments: settlementIds.size
+            ? context.v3
+                .listCompensationPaymentEvents(context.principal)
+                .filter((payment) => settlementIds.has(String(payment.settlement_id)))
             : [],
+          financeToday: new Date().toISOString().slice(0, 10),
           reimbursements: selected
             ? context.v3.listReimbursementQueue(context.principal, selected)
             : [],

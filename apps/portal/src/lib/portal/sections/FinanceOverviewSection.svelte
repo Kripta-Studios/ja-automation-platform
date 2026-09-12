@@ -73,8 +73,6 @@
     )
       sourceTab = requested as SourceTab;
   });
-  let sourcePage = $state(0);
-  const sourcePageSize = 8;
   let expenseInboxFilter = $state<ExpenseInboxFilter>('all');
   let selectedExpenseId = $state('');
   const finance = $derived(data.finance as FinanceProjection | null | undefined);
@@ -95,6 +93,7 @@
   const expenseEconomics = $derived(finance?.expenseEconomics ?? []);
   const financeExpenses = $derived(data.financeExpenses ?? []);
   const settlements = $derived(data.settlements ?? []);
+  const compensationPayments = $derived(data.compensationPayments ?? []);
   const reimbursements = $derived(data.reimbursements ?? []);
 
   function value(row: Row | Record<string, unknown>, ...keys: string[]): string {
@@ -110,6 +109,28 @@
   function displayMoney(minor: unknown, currency: unknown): string {
     if (minor === null || minor === undefined || String(minor).trim() === '') return '—';
     return money(minor, String(currency || finance?.currency || 'USD'));
+  }
+
+  function minorAsDecimal(minor: unknown): string {
+    const raw = String(minor ?? '').trim();
+    if (!/^-?\d+$/.test(raw)) return '';
+    const negative = raw.startsWith('-');
+    const digits = (negative ? raw.slice(1) : raw).padStart(3, '0');
+    return `${negative ? '-' : ''}${digits.slice(0, -2)}.${digits.slice(-2)}`;
+  }
+
+  function paymentsForSettlement(settlementId: unknown): Row[] {
+    return compensationPayments.filter(
+      (payment) => value(payment, 'settlementId', 'settlement_id') === String(settlementId),
+    );
+  }
+
+  function paymentIsReversed(paymentId: unknown): boolean {
+    return compensationPayments.some(
+      (payment) =>
+        value(payment, 'eventType', 'event_type') === 'reversal' &&
+        value(payment, 'reversesEventId', 'reverses_event_id') === String(paymentId),
+    );
   }
 
   /** Format canonical basis points without converting money or financial truth in the UI. */
@@ -154,18 +175,8 @@
     return `${whole}.${fraction}`;
   }
 
-  function paginate<T>(rows: readonly T[], page: number): T[] {
-    const start = page * sourcePageSize;
-    return rows.slice(start, start + sourcePageSize);
-  }
-
-  function pageCount(length: number): number {
-    return Math.max(1, Math.ceil(length / sourcePageSize));
-  }
-
   function setSourceTab(next: SourceTab): void {
     sourceTab = next;
-    sourcePage = 0;
   }
 
   function taxPercentOptions(): Array<{ label: string; bps: string }> {
@@ -1538,7 +1549,7 @@
         >
           <p class="finance-overview__surface-note">
             {translate(
-              'Finance-only finalization of approved compensation. Settlements are immutable snapshots and keep expected and actual dates distinct.',
+              'Finalize freezes the reviewed compensation snapshot; it does not mean money was transferred. Record each actual payment separately so partial payments, remaining balance and reversals stay traceable.',
             )}
           </p>
           {#if canWriteFinance}
@@ -1586,7 +1597,15 @@
                   value: `${value(row, 'periodStart', 'period_start')} → ${value(row, 'periodEnd', 'period_end')}`,
                 },
                 { label: translate('Amount'), value: displayMoney(row.amountMinor, row.currency) },
-                { label: translate('State'), value: statusLabel(row.state ?? row.status) },
+                {
+                  label: translate('Actual paid'),
+                  value: displayMoney(row.paidAmountMinor, row.currency),
+                },
+                {
+                  label: translate('Remaining'),
+                  value: displayMoney(row.remainingAmountMinor, row.currency),
+                },
+                { label: translate('Payment state'), value: statusLabel(row.paymentState) },
                 {
                   label: translate('Timeline'),
                   value: compensationTimeline(row),
@@ -1602,8 +1621,10 @@
                   <th scope="col">{translate('Period')}</th>
                   <th scope="col">{translate('Basis')}</th>
                   <th scope="col">{translate('Source')}</th>
-                  <th scope="col">{translate('Amount')}</th>
-                  <th scope="col">{translate('State')}</th>
+                  <th scope="col">{translate('Reviewed settlement')}</th>
+                  <th scope="col">{translate('Actual paid')}</th>
+                  <th scope="col">{translate('Remaining')}</th>
+                  <th scope="col">{translate('Payment state')}</th>
                   <th scope="col">{translate('Timeline')}</th>
                 </tr>
               </thead>
@@ -1627,16 +1648,28 @@
                     >
                     <td>{displayMoney(settlement.amountMinor, settlement.currency)}</td>
                     <td
+                      >{displayMoney(
+                        value(settlement, 'paidAmountMinor', 'paid_amount_minor'),
+                        settlement.currency,
+                      )}</td
+                    >
+                    <td
+                      >{displayMoney(
+                        value(settlement, 'remainingAmountMinor', 'remaining_amount_minor'),
+                        settlement.currency,
+                      )}</td
+                    >
+                    <td
                       ><StatusBadge
-                        variant={rowStatusVariant(settlement.state ?? settlement.status)}
-                        text={statusLabel(settlement.state ?? settlement.status)}
+                        variant={rowStatusVariant(settlement.paymentState)}
+                        text={statusLabel(settlement.paymentState)}
                       /></td
                     >
                     <td>{compensationTimeline(settlement)}</td>
                   </tr>
                 {:else}
                   <tr
-                    ><td colspan="7">{translate('No settlements recorded for this project.')}</td
+                    ><td colspan="9">{translate('No settlements recorded for this project.')}</td
                     ></tr
                   >
                 {/each}
@@ -1687,6 +1720,177 @@
                   </label>
                   <button type="submit">{translate('Save expected date')}</button>
                 </form>
+              {/each}
+            </div>
+          {/if}
+          {#if settlements.length && canWriteFinance}
+            <div class="finance-overview__settlement-payments" data-compensation-payments>
+              <h3>{translate('Actual worker or supplier payments')}</h3>
+              <p class="finance-overview__surface-note">
+                {translate(
+                  'Use this register only after the bank transfer or other real payment occurred. A planned date and a finalized settlement are not payment evidence.',
+                )}
+              </p>
+              {#each sourceRowsPage as settlement}
+                {@const settlementId = value(settlement, 'id')}
+                {@const remainingMinor = value(
+                  settlement,
+                  'remainingAmountMinor',
+                  'remaining_amount_minor',
+                )}
+                {@const settlementPayments = paymentsForSettlement(settlementId)}
+                <article class="finance-overview__payment-register">
+                  <div class="finance-overview__payment-register-heading">
+                    <div>
+                      <strong>{value(settlement, 'workerName', 'worker_name')}</strong>
+                      <small
+                        >{value(settlement, 'periodStart', 'period_start')} → {value(
+                          settlement,
+                          'periodEnd',
+                          'period_end',
+                        )}</small
+                      >
+                    </div>
+                    <StatusBadge
+                      variant={rowStatusVariant(settlement.paymentState)}
+                      text={statusLabel(settlement.paymentState)}
+                    />
+                  </div>
+                  {#if value(settlement, 'state', 'status') === 'settled' && BigInt(remainingMinor || '0') > 0n}
+                    <form
+                      method="POST"
+                      action="?/recordCompensationPayment"
+                      class="finance-overview__payment-form"
+                      use:formValidation
+                    >
+                      <input type="hidden" name="settlementId" value={settlementId} />
+                      <input type="hidden" name="currency" value={settlement.currency} />
+                      <input
+                        type="hidden"
+                        name="idempotencyKey"
+                        value={`compensation-payment:${settlementId}:${value(settlement, 'paidAmountMinor', 'paid_amount_minor') || '0'}`}
+                      />
+                      <label>
+                        <span>{translate('Payee')}</span>
+                        <select name="payeeSelection" required>
+                          <option value={`person:${value(settlement, 'workerId', 'worker_id')}`}>
+                            {translate('Person')}: {value(settlement, 'workerName', 'worker_name')}
+                          </option>
+                          {#if value(settlement, 'supplierId', 'supplier_id')}
+                            <option
+                              value={`supplier:${value(settlement, 'supplierId', 'supplier_id')}`}
+                            >
+                              {translate('Supplier company')}: {value(
+                                settlement,
+                                'supplierName',
+                                'supplier_name',
+                              )}
+                            </option>
+                          {/if}
+                        </select>
+                      </label>
+                      <label>
+                        <span>{translate('Actual payment amount')}</span>
+                        <input
+                          name="amount"
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          value={minorAsDecimal(remainingMinor)}
+                          required
+                        />
+                      </label>
+                      <label>
+                        <span>{translate('Actual payment date')}</span>
+                        <input name="paidOn" type="date" value={data.financeToday} required />
+                      </label>
+                      <label>
+                        <span>{translate('Payment reference')}</span>
+                        <input name="reference" maxlength="200" required />
+                      </label>
+                      <label class="finance-overview__payment-note">
+                        <span>{translate('Note')}</span>
+                        <input name="note" maxlength="2000" />
+                      </label>
+                      <button type="submit">{translate('Register actual payment')}</button>
+                    </form>
+                  {:else if value(settlement, 'state', 'status') !== 'settled'}
+                    <p class="finance-overview__immutable-note">
+                      {translate(
+                        'Review and finalize this compensation before recording a real payment.',
+                      )}
+                    </p>
+                  {:else}
+                    <p class="finance-overview__paid-note">
+                      {translate('This compensation balance is fully paid.')}
+                    </p>
+                  {/if}
+                  {#if settlementPayments.length}
+                    <div class="finance-overview__payment-events">
+                      {#each settlementPayments as payment}
+                        {@const paymentId = value(payment, 'id')}
+                        {@const eventType = value(payment, 'eventType', 'event_type')}
+                        <div class="finance-overview__payment-event">
+                          <div>
+                            <strong
+                              >{eventType === 'reversal'
+                                ? translate('Payment reversal')
+                                : translate('Actual payment')}</strong
+                            >
+                            <small
+                              >{value(payment, 'paidOn', 'paid_on')} · {displayMoney(
+                                value(payment, 'amountMinor', 'amount_minor'),
+                                payment.currency,
+                              )} · {value(payment, 'reference')}</small
+                            >
+                            <small
+                              >{translate('Payee')}: {value(
+                                payment,
+                                'payeeUserName',
+                                'payee_user_name',
+                                'payeeSupplierName',
+                                'payee_supplier_name',
+                              )}</small
+                            >
+                          </div>
+                          {#if eventType === 'payment' && !paymentIsReversed(paymentId)}
+                            <form
+                              method="POST"
+                              action="?/reverseCompensationPayment"
+                              class="finance-overview__reversal-form"
+                              use:formValidation
+                            >
+                              <input type="hidden" name="paymentEventId" value={paymentId} />
+                              <input
+                                type="hidden"
+                                name="idempotencyKey"
+                                value={`compensation-payment-reversal:${paymentId}`}
+                              />
+                              <input
+                                name="reversedOn"
+                                type="date"
+                                value={data.financeToday}
+                                aria-label={translate('Reversal date')}
+                                required
+                              />
+                              <input
+                                name="reason"
+                                minlength="3"
+                                maxlength="2000"
+                                placeholder={translate('Reason for reversal')}
+                                aria-label={translate('Reason for reversal')}
+                                required
+                              />
+                              <button type="submit" class="secondary-button">
+                                {translate('Reverse payment')}
+                              </button>
+                            </form>
+                          {/if}
+                        </div>
+                      {/each}
+                    </div>
+                  {/if}
+                </article>
               {/each}
             </div>
           {/if}
@@ -2253,7 +2457,8 @@
   }
 
   .finance-overview__expense-controls,
-  .finance-overview__settlement-planning {
+  .finance-overview__settlement-planning,
+  .finance-overview__settlement-payments {
     display: grid;
     gap: 0.8rem;
     margin-top: 1rem;
@@ -2390,6 +2595,111 @@
     align-items: end;
   }
 
+  .finance-overview__settlement-payments h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .finance-overview__payment-register {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.9rem;
+    border: 1px solid var(--portal-border, #d7dee8);
+    border-radius: 0.65rem;
+    background: color-mix(in srgb, var(--portal-surface, #fff) 96%, var(--portal-wash, #eef2f5));
+  }
+
+  .finance-overview__payment-register-heading,
+  .finance-overview__payment-event {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .finance-overview__payment-register-heading > div,
+  .finance-overview__payment-event > div {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .finance-overview__payment-register small,
+  .finance-overview__payment-event small {
+    color: var(--portal-muted, #64748b);
+    font-size: 0.78rem;
+  }
+
+  .finance-overview__payment-form {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: end;
+    gap: 0.65rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--portal-border, #d7dee8);
+  }
+
+  .finance-overview__payment-form label {
+    display: grid;
+    gap: 0.3rem;
+    color: var(--portal-muted, #64748b);
+    font-size: 0.78rem;
+    font-weight: 650;
+  }
+
+  .finance-overview__payment-form input,
+  .finance-overview__payment-form select,
+  .finance-overview__reversal-form input {
+    width: 100%;
+    min-height: 42px;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--portal-border-strong, #b8c3d1);
+    border-radius: 0.5rem;
+    background: var(--portal-surface, #fff);
+    color: var(--portal-ink, #16202a);
+    font: inherit;
+  }
+
+  .finance-overview__payment-note {
+    grid-column: span 2;
+  }
+
+  .finance-overview__payment-form button,
+  .finance-overview__reversal-form button {
+    min-height: 42px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--portal-accent, #0f5f73);
+    border-radius: 0.5rem;
+    background: var(--portal-accent, #0f5f73);
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+  }
+
+  .finance-overview__payment-events {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .finance-overview__payment-event {
+    padding: 0.65rem;
+    border-radius: 0.5rem;
+    background: var(--portal-wash, #eef2f5);
+  }
+
+  .finance-overview__reversal-form {
+    display: grid;
+    grid-template-columns: minmax(8rem, 0.75fr) minmax(12rem, 1.4fr) auto;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .finance-overview__paid-note {
+    margin: 0;
+    color: var(--portal-success, #166534);
+    font-weight: 700;
+  }
+
   .finance-overview__immutable-note {
     margin: 0;
     padding: 0.7rem;
@@ -2470,6 +2780,11 @@
   .finance-overview__expense-form select:focus-visible,
   .finance-overview__expense-form textarea:focus-visible,
   .finance-overview__settlement-form input:focus-visible,
+  .finance-overview__payment-form input:focus-visible,
+  .finance-overview__payment-form select:focus-visible,
+  .finance-overview__payment-form button:focus-visible,
+  .finance-overview__reversal-form input:focus-visible,
+  .finance-overview__reversal-form button:focus-visible,
   .finance-overview__action-form button:focus-visible,
   .finance-overview__reimbursement-form button:focus-visible,
   .finance-overview__expense-form button:focus-visible,
@@ -2489,6 +2804,10 @@
     }
 
     .finance-overview__expense-timeline {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .finance-overview__payment-form {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -2512,6 +2831,14 @@
     .finance-overview__reimbursement-form {
       min-width: 0;
     }
+
+    .finance-overview__payment-event {
+      display: grid;
+    }
+
+    .finance-overview__reversal-form {
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (max-width: 36rem) {
@@ -2522,6 +2849,7 @@
     .finance-overview__metrics,
     .finance-overview__action-form,
     .finance-overview__expense-form-grid,
+    .finance-overview__payment-form,
     .finance-overview__reimbursement-form {
       grid-template-columns: 1fr;
     }
@@ -2533,6 +2861,10 @@
     .finance-overview__expense-timeline,
     .finance-overview__settlement-form {
       grid-template-columns: 1fr;
+    }
+
+    .finance-overview__payment-note {
+      grid-column: auto;
     }
 
     .finance-overview__filters {

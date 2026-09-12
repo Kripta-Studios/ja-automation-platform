@@ -8,17 +8,17 @@ Baseline: branch `codex/v3-production-completion-orchestrated-20260819`, HEAD `6
 
 ## Initial work ledger and dependencies (historical; current status below)
 
-| Packet                                       | Findings | Dependencies / shared interfaces                                                                       | Status                                                                      |
-| -------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| A1 acceptance/configuration register         | F01/F16  | Real agreement and accountant examples remain human inputs; existing commercial semantics control code | In progress                                                                 |
+| Packet                                       | Findings | Dependencies / shared interfaces                                                                       | Status                                                                                 |
+| -------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| A1 acceptance/configuration register         | F01/F16  | Real agreement and accountant examples remain human inputs; existing commercial semantics control code | In progress                                                                            |
 | B2 public intake and claim register          | F04/F05  | Existing public-inquiry endpoint; website-owned files only                                             | Implemented; parent 21-test combined run passed, 28-case integrated browser run passed |
-| B3 effective reminders and business notices  | F03      | Existing schedules, approval states, durable jobs/outbox; integration before C1 follow-up              | In progress                                                                 |
-| B4 versioned project closeout                | F02      | Additive immutable revisions, authorized artifacts, existing report sources                            | In progress                                                                 |
-| B1 commercial explanation/preview            | F01      | Existing exact commercial engine; no reinterpretation of historical all_in                             | In progress                                                                 |
-| B5 Help/manuals and task language            | F14/F15  | Existing role permissions, localized guides; refresh after UI changes                                  | In progress                                                                 |
-| C1 period review and acceptance follow-up    | F07      | Existing exact source coverage and signed PDF lifecycle; B3                                            | In progress                                                                 |
-| C2 cash/obligation view                      | F06      | Existing actual payments and approved obligations, currency/entity grouping; no bank balance invention | In progress                                                                 |
-| Integrated verification and acceptance index | F16      | All changed packets, fresh tests/build/browser/artifacts                                               | In progress                                                                 |
+| B3 effective reminders and business notices  | F03      | Existing schedules, approval states, durable jobs/outbox; integration before C1 follow-up              | In progress                                                                            |
+| B4 versioned project closeout                | F02      | Additive immutable revisions, authorized artifacts, existing report sources                            | In progress                                                                            |
+| B1 commercial explanation/preview            | F01      | Existing exact commercial engine; no reinterpretation of historical all_in                             | In progress                                                                            |
+| B5 Help/manuals and task language            | F14/F15  | Existing role permissions, localized guides; refresh after UI changes                                  | In progress                                                                            |
+| C1 period review and acceptance follow-up    | F07      | Existing exact source coverage and signed PDF lifecycle; B3                                            | In progress                                                                            |
+| C2 cash/obligation view                      | F06      | Existing actual payments and approved obligations, currency/entity grouping; no bank balance invention | In progress                                                                            |
+| Integrated verification and acceptance index | F16      | All changed packets, fresh tests/build/browser/artifacts                                               | In progress                                                                            |
 
 All packets agree on preserving actual hours, independent pay/cost/sale, immutable issued history, optional MFA/no step-up, scoped DTOs, automatic jobs and truthful artifact states. Website B2 does not change portal or database interfaces without escalation. B3/B4/C1 share repository/job boundaries and must have exclusive write ownership. B1/B5/C1/C2 share portal navigation, translations and data loading and must integrate sequentially. Closeout's existing one-row snapshot cannot meet immutable final revisions: add revision history before exposing finalisation. No schema migration may repurpose historical values.
 
@@ -79,16 +79,16 @@ The owner explicitly authorized staging, committing, pushing and production depl
 
 ## Current candidate status
 
-| Packet | Current status |
-| --- | --- |
-| A1 | Configuration dictionary, synthetic examples and acceptance mapping complete; named real-agreement/accountant approvals remain external. |
-| B1 | Exact commercial preview implemented; calculation/security/browser evidence passed. |
-| B2 | Durable Aquarex request/retry and claim provenance implemented; EN/ES/PT browser evidence passed. |
-| B3 | Effective-calendar reminders, business notices and private localized navigation implemented; 22 focused tests and four viewport journeys passed. |
-| B4 | Revision/artifact workflow complete, including atomic next-draft reopen and exact confirmed snapshot verification; 12 lifecycle tests passed. |
-| B5 | Private Help/manual distribution and localized five-page employee PDFs complete; authorized/denied download and browser evidence passed. |
-| C1 | Scoped review and version-bound append-only follow-up implemented; 13 tests and four viewport follow-up journeys passed after corrections. |
-| C2 | Source-backed cash calendar implemented; source/currency/role and browser evidence passed. Accountant workbook approval remains external. |
+| Packet | Current status                                                                                                                                   |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A1     | Configuration dictionary, synthetic examples and acceptance mapping complete; named real-agreement/accountant approvals remain external.         |
+| B1     | Exact commercial preview implemented; calculation/security/browser evidence passed.                                                              |
+| B2     | Durable Aquarex request/retry and claim provenance implemented; EN/ES/PT browser evidence passed.                                                |
+| B3     | Effective-calendar reminders, business notices and private localized navigation implemented; 22 focused tests and four viewport journeys passed. |
+| B4     | Revision/artifact workflow complete, including atomic next-draft reopen and exact confirmed snapshot verification; 12 lifecycle tests passed.    |
+| B5     | Private Help/manual distribution and localized five-page employee PDFs complete; authorized/denied download and browser evidence passed.         |
+| C1     | Scoped review and version-bound append-only follow-up implemented; 13 tests and four viewport follow-up journeys passed after corrections.       |
+| C2     | Source-backed cash calendar implemented; source/currency/role and browser evidence passed. Accountant workbook approval remains external.        |
 
 - Whole-workspace TypeScript passed. Extended Svelte validation: **0 errors**, seven pre-existing unused CSS warnings. Corrected type declarations/imports in invoice, project, Team Directory and MFA views; **30 relevant regression tests passed**.
 - Parent security/notification/invoice-invariant regression: **7 files, 44 passed**. Production deployment helper regression: **7 passed**. Production database read-only quick check: `ok`, schema version39; current live readiness: `ok`.

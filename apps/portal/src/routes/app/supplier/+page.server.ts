@@ -16,10 +16,12 @@ function batchDuration(values: Record<string, string>): {
   endTime?: string;
   breakMinutes?: number;
 } {
-  const startTime = values.startTime?.trim() || '';
-  const endTime = values.endTime?.trim() || '';
+  const durationOnly = values.durationMode === 'duration';
+  const intervalOnly = values.durationMode === 'interval';
+  const startTime = durationOnly ? '' : values.startTime?.trim() || '';
+  const endTime = durationOnly ? '' : values.endTime?.trim() || '';
   const breakText = values.breakMinutes?.trim() || '0';
-  if (startTime || endTime) {
+  if (intervalOnly || startTime || endTime) {
     if (!/^\d{2}:\d{2}$/u.test(startTime) || !/^\d{2}:\d{2}$/u.test(endTime))
       throw new ValidationError('Start and end time are both required');
     const toMinutes = (clock: string) => Number(clock.slice(0, 2)) * 60 + Number(clock.slice(3));
@@ -53,6 +55,7 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
     return {
       owner,
       directory: owner ? ctx.supplier.technicianDirectory(ctx.principal) : [],
+      batchRequestId: randomUUID(),
       correctionRequestId: randomUUID(),
       locale: resolvePortalLocalePreference(
         url.searchParams.get('lang'),
@@ -118,6 +121,7 @@ function action(operation: string): Actions[string] {
     );
     const ctx = openSupplierContext(locals);
     try {
+      let outcome: Record<string, string | number | boolean> | undefined;
       const text = (key: string) => values[key] ?? '';
       const optional = (key: string) => text(key) || undefined;
       switch (operation) {
@@ -223,7 +227,8 @@ function action(operation: string): Actions[string] {
             .map((id) => id.trim())
             .filter(Boolean);
           const duration = batchDuration(values);
-          ctx.supplier.createTimeBatch(ctx.principal, {
+          const batch = ctx.supplier.createTimeBatch(ctx.principal, {
+            requestId: text('requestId'),
             workerIds,
             projectId: text('projectId'),
             workDate: text('workDate'),
@@ -231,6 +236,16 @@ function action(operation: string): Actions[string] {
             summary: text('summary'),
             ...duration,
           });
+          const project = ctx.sqlite
+            .prepare('SELECT name FROM project WHERE id=?')
+            .get(text('projectId')) as { name: string } | undefined;
+          outcome = {
+            createdCount: batch.created.length,
+            projectName: project?.name ?? text('projectId'),
+            workDate: text('workDate'),
+            totalMinutes: duration.minutes * batch.created.length,
+            replayed: batch.replayed,
+          };
           break;
         }
         case 'correctTime':
@@ -264,21 +279,30 @@ function action(operation: string): Actions[string] {
             )
           )
             throw new ValidationError('The selected drafts are invalid');
-          ctx.supplier.submitTimeBatch(ctx.principal, entries);
+          const submitted = ctx.supplier.submitTimeBatch(ctx.principal, entries);
+          outcome = { submittedCount: submitted.submitted };
           break;
         }
-        case 'updateTime':
+        case 'updateTime': {
+          const durationMode = text('durationMode');
+          if (!['duration', 'interval'].includes(durationMode))
+            throw new ValidationError('Choose duration or time interval');
+          const duration = batchDuration(values);
           ctx.supplier.updateTime(ctx.principal, {
             id: text('id'),
             version: Number(text('version')),
             workDate: text('workDate'),
             category: text('category'),
-            minutes: Number(text('minutes')),
             summary: text('summary'),
+            ...duration,
+            ...(durationMode === 'duration'
+              ? { startTime: null, endTime: null, breakMinutes: null }
+              : {}),
           });
           break;
+        }
       }
-      return { success: true, operation, values: {} };
+      return { success: true, operation, values: {}, outcome };
     } catch (caught) {
       const result = actionFailure(caught);
       return fail(result.status, { ...result.data, operation, values });

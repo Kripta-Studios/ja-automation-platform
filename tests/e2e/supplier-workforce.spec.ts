@@ -23,7 +23,7 @@ async function verifyForms(page: Page) {
 }
 
 async function expectSaved(page: Page): Promise<void> {
-  await expect(page.getByText('Changes saved.', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('status').first()).toBeVisible();
 }
 
 test('Owner delegates installation; supplier adds technician and submits private operational hours', async ({
@@ -92,6 +92,7 @@ test('Owner delegates installation; supplier adds technician and submits private
   await page.goto(portal('/supplier?lang=en'));
   await verifyForms(page);
   await page.screenshot({ path: testInfo.outputPath('supplier-owner.png'), fullPage: false });
+  await page.getByRole('button', { name: 'Setup and access', exact: true }).click();
   const create = page.locator('form[action^="?/createSupplier"]');
   if (!existingSupplier) {
     await create.getByLabel('Name', { exact: true }).fill(supplierName);
@@ -104,6 +105,7 @@ test('Owner delegates installation; supplier adds technician and submits private
   await profile.locator('[name=profile]').selectOption('supplier_coordinator');
   await profile.getByRole('button').click();
   await expectSaved(page);
+  await page.getByRole('button', { name: 'Authorize installation', exact: true }).click();
   const grant = page.locator('form[action^="?/grant"]');
   await grant.locator('[name=supplierId]').selectOption({ label: supplierName });
   await grant.locator('[name=projectId]').selectOption(projectId);
@@ -116,11 +118,13 @@ test('Owner delegates installation; supplier adds technician and submits private
   await grant.getByRole('button').click();
   await expectSaved(page);
   // Existing login-enabled technician receives only operational capabilities.
+  await page.getByRole('button', { name: 'Setup and access', exact: true }).click();
   await profile.locator('[name=userId]').selectOption(externalId);
   await profile.locator('[name=supplierId]').selectOption({ label: supplierName });
   await profile.locator('[name=profile]').selectOption('external_technician');
   await profile.getByRole('button').click();
   await expectSaved(page);
+  await page.getByRole('button', { name: 'Personnel', exact: true }).click();
   const assign = page.locator('form[action^="?/assignTechnician"]');
   await assign.locator('[name=workerId]').selectOption(externalId);
   await assign.locator('[name=projectId]').selectOption(projectId);
@@ -145,18 +149,28 @@ test('Owner delegates installation; supplier adds technician and submits private
       path: testInfo.outputPath('supplier-team.png'),
       fullPage: false,
     });
+    await coordinator.getByRole('button', { name: 'Personnel', exact: true }).click();
     const add = coordinator.locator('form[action^="?/addTechnician"]');
     await add.getByLabel('Name', { exact: true }).fill(technicianName);
     await add.getByRole('button').click();
     await expectSaved(coordinator);
+    await coordinator.getByRole('button', { name: 'Record team hours', exact: true }).click();
     let time = coordinator.locator('form[action^="?/createTimeBatch"]');
     await time.getByLabel(technicianName, { exact: true }).check();
-    await time.getByLabel('Duration in hours').fill('2');
+    await time.getByLabel('Start time').fill('08:00');
+    await time.getByLabel('End time').fill('10:00');
     await time.getByLabel('Work performed').fill(note);
     await time.getByRole('button', { name: 'Save selected drafts' }).click();
     await expectSaved(coordinator);
     await coordinator.getByRole('button', { name: 'Operational report', exact: true }).click();
-    const entry = coordinator.locator('article').filter({ hasText: note });
+    let entry = coordinator.locator('article').filter({ hasText: note });
+    await entry.getByText('Correct draft', { exact: true }).click();
+    const edit = entry.locator('form[action^="?/updateTime"]');
+    await edit.getByLabel('End time').fill('09:30');
+    await edit.getByRole('button', { name: 'Save draft', exact: true }).click();
+    await expectSaved(coordinator);
+    entry = coordinator.locator('article').filter({ hasText: note });
+    await expect(entry).toContainText('90 · Actual minutes');
     await entry.getByRole('button', { name: 'Submit to J&A' }).click();
     await expect(coordinator.locator('article').filter({ hasText: note })).toContainText(
       'Submitted',
@@ -198,7 +212,7 @@ test('Owner delegates installation; supplier adds technician and submits private
     expect(forged.status()).toBe(403);
     await coordinator.goto(portal(`/supplier/report?projectId=${projectId}&lang=en`));
     await expect(coordinator.getByText(note, { exact: true })).toBeVisible();
-    await expect(coordinator.getByText('Total actual minutes: 150')).toBeVisible();
+    await expect(coordinator.getByText('Total actual minutes: 120')).toBeVisible();
     const printedReport = await coordinator.pdf({
       path: testInfo.outputPath('supplier-operational-report.pdf'),
       format: 'A4',
@@ -280,6 +294,7 @@ test('Owner delegates installation; supplier adds technician and submits private
       await externalContext.close();
     }
     await page.goto(portal(`/supplier?projectId=${projectId}&lang=en`));
+    await page.getByRole('button', { name: 'Authorize installation', exact: true }).click();
     await page
       .locator('article')
       .filter({ hasText: supplierName })

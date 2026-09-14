@@ -28,9 +28,10 @@ export type TimeEntryUpdateInput = Readonly<{
   minutes?: number;
   summary?: string;
   site?: string;
-  startTime?: string;
-  endTime?: string;
-  breakMinutes?: number;
+  /** Explicit null removes a previously saved interval and switches to duration-only entry. */
+  startTime?: string | null;
+  endTime?: string | null;
+  breakMinutes?: number | null;
 }>;
 
 export type TimeEntryDecision = 'approved' | 'needs_changes' | 'rejected';
@@ -477,16 +478,21 @@ export class TimeEntryRepository {
         throw this.deps.errors.validation('Minutes must be an integer from 0 to 1440');
       if (
         input.breakMinutes !== undefined &&
+        input.breakMinutes !== null &&
         (!Number.isInteger(input.breakMinutes) ||
           input.breakMinutes < 0 ||
           input.breakMinutes > 1440)
       )
         throw this.deps.errors.validation('Break minutes are invalid');
 
+      const supplied = (field: keyof TimeEntryUpdateInput): boolean =>
+        Object.prototype.hasOwnProperty.call(input, field);
       const minutes = input.minutes ?? current.minutes;
-      const startTime = input.startTime ?? current.start_time;
-      const endTime = input.endTime ?? current.end_time;
-      const breakMinutes = input.breakMinutes ?? current.break_minutes;
+      const startTime = supplied('startTime') ? (input.startTime ?? null) : current.start_time;
+      const endTime = supplied('endTime') ? (input.endTime ?? null) : current.end_time;
+      const breakMinutes = supplied('breakMinutes')
+        ? (input.breakMinutes ?? null)
+        : current.break_minutes;
       this.deps.assertDate(workDate, 'Work date');
       this.validateEffectiveEntry({
         id: input.id,
@@ -503,8 +509,7 @@ export class TimeEntryRepository {
           `UPDATE time_entry SET work_date=COALESCE(?,work_date),category=COALESCE(?,category),
             activity_code=COALESCE(?,activity_code),minutes=COALESCE(?,minutes),
             activity_summary=COALESCE(?,activity_summary),site=COALESCE(?,site),
-            start_time=COALESCE(?,start_time),end_time=COALESCE(?,end_time),
-            break_minutes=COALESCE(?,break_minutes),updated_at=?,version=version+1
+            start_time=?,end_time=?,break_minutes=?,updated_at=?,version=version+1
            WHERE id=? AND worker_id=? AND version=? AND invoice_id IS NULL AND billing_status='unlocked'
              AND approval_state='draft'`,
         )
@@ -515,9 +520,9 @@ export class TimeEntryRepository {
           input.minutes ?? null,
           input.summary?.trim() || null,
           input.site?.trim() || null,
-          input.startTime ?? null,
-          input.endTime ?? null,
-          input.breakMinutes ?? null,
+          startTime,
+          endTime,
+          breakMinutes,
           timestamp,
           input.id,
           current.worker_id,

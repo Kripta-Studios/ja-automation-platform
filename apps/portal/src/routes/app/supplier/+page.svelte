@@ -116,10 +116,12 @@
         ? String(form.values?.workerIds ?? '')
             .split(',')
             .filter(Boolean)
+            .slice(0, 100)
         : [],
     ),
   );
   let selectedDraftIds = $state<string[]>([]);
+  const batchLimit = 100;
   const filteredAssigned = $derived(
     data.assigned.filter((technician) =>
       technician.name.toLocaleLowerCase().includes(teamSearch.toLocaleLowerCase()),
@@ -129,8 +131,18 @@
   const selectedDraftPayload = $derived(
     draftEntries
       .filter((entry) => selectedDraftIds.includes(String(entry.id)))
+      .slice(0, batchLimit)
       .map((entry) => ({ id: String(entry.id), version: Number(entry.version) })),
   );
+  function addVisibleTechnicians() {
+    selectedWorkerIds = [
+      ...new Set([...selectedWorkerIds, ...filteredAssigned.map((row) => String(row.id))]),
+    ].slice(0, batchLimit);
+  }
+  const updateValue = (entryId: string, key: string, fallback = '') =>
+    form?.operation === 'updateTime' && form.values?.id === entryId
+      ? (form.values?.[key] ?? fallback)
+      : fallback;
   function editRecord(
     operation: UpdateOperation,
     row: { id: string; name: string; email?: string; hasLogin?: number },
@@ -170,7 +182,16 @@
   <h1 class="supplier-title">{data.owner ? c.title : c.team}</h1>
   <p>{data.owner ? m.intro : c.intro}</p>
   {#if !data.owner}<p>{c.restricted}</p>{/if}
-  {#if form}<p role={form.success ? 'status' : 'alert'}>{form.success ? c.saved : c.failed}</p>
+  {#if form}<p role={form.success ? 'status' : 'alert'}>
+      {#if form.success && form.operation === 'createTimeBatch' && form.outcome}
+        {form.outcome.replayed ? c.batchAlreadySaved : c.batchSaved}: {form.outcome.createdCount}
+        {c.drafts} · {form.outcome.projectName} · {form.outcome.workDate} · {form.outcome
+          .totalMinutes}
+        {c.teamMinutes}
+      {:else if form.success && form.operation === 'submitTimeBatch' && form.outcome}
+        {form.outcome.submittedCount} {c.draftsSubmitted}
+      {:else}{form.success ? c.saved : c.failed}{/if}
+    </p>
     {#if !form.success}<p>{standaloneActionMessage(data.locale, form)}</p>{/if}{/if}
   <nav class="supplier-jump-links" aria-label={c.title}>
     {#if data.owner}
@@ -703,6 +724,11 @@
     <SectionCard title={c.time}>
       <p>{c.batchHelp}</p>
       <form method="POST" action={actionUrl('createTimeBatch')}>
+        <input
+          type="hidden"
+          name="requestId"
+          value={value('createTimeBatch', 'requestId', data.batchRequestId)}
+        />
         <input type="hidden" name="projectId" value={data.projectId} />
         <input type="hidden" name="workerIds" value={selectedWorkerIds.join(',')} />
         <div class="batch-team">
@@ -710,10 +736,7 @@
             >{c.findTechnician}<input type="search" bind:value={teamSearch} /></label
           >
           <div class="batch-team-actions">
-            <button
-              type="button"
-              class="secondary-button"
-              onclick={() => (selectedWorkerIds = filteredAssigned.map((row) => String(row.id)))}
+            <button type="button" class="secondary-button" onclick={addVisibleTechnicians}
               >{c.selectVisible}</button
             >
             <button type="button" class="secondary-button" onclick={() => (selectedWorkerIds = [])}
@@ -728,6 +751,8 @@
                   type="checkbox"
                   value={String(technician.id)}
                   bind:group={selectedWorkerIds}
+                  disabled={selectedWorkerIds.length >= batchLimit &&
+                    !selectedWorkerIds.includes(String(technician.id))}
                 />
                 <span>{technician.name}</span>
               </label>
@@ -802,8 +827,10 @@
           <button
             type="button"
             class="secondary-button"
-            onclick={() => (selectedDraftIds = draftEntries.map((entry) => String(entry.id)))}
-            >{c.selectDrafts}</button
+            onclick={() =>
+              (selectedDraftIds = draftEntries
+                .slice(0, batchLimit)
+                .map((entry) => String(entry.id)))}>{c.selectDrafts}</button
           >
           <button type="button" class="secondary-button" onclick={() => (selectedDraftIds = [])}
             >{c.clearSelection}</button
@@ -811,6 +838,7 @@
           <button class="primary-button" disabled={selectedDraftPayload.length === 0}
             >{c.submitSelected}</button
           >
+          <strong>{selectedDraftPayload.length}/{batchLimit} {c.selected}</strong>
         </form>
       {/if}
       {#each data.entries as entry}
@@ -818,7 +846,13 @@
           <h3>{entry.workerName} · {entry.workDate}</h3>
           {#if !data.owner && entry.state === 'draft'}
             <label class="check draft-selector">
-              <input type="checkbox" value={String(entry.id)} bind:group={selectedDraftIds} />
+              <input
+                type="checkbox"
+                value={String(entry.id)}
+                bind:group={selectedDraftIds}
+                disabled={selectedDraftIds.length >= batchLimit &&
+                  !selectedDraftIds.includes(String(entry.id))}
+              />
               <span>{c.selectDraft}</span>
             </label>
           {/if}
@@ -878,17 +912,60 @@
                   ></label
                 >
                 <label data-ui="field"
-                  >{c.minutes}<input
-                    type="number"
-                    name="minutes"
-                    min="1"
-                    max="1440"
+                  >{c.durationMode}<select
+                    name="durationMode"
+                    value={updateValue(
+                      String(entry.id),
+                      'durationMode',
+                      entry.startTime && entry.endTime ? 'interval' : 'duration',
+                    )}
                     required
-                    value={form?.operation === 'updateTime' && form.values?.id === entry.id
-                      ? Number(form.values.minutes)
-                      : Number(entry.minutes)}
+                    ><option value="duration">{c.durationOnly}</option><option value="interval"
+                      >{c.interval}</option
+                    ></select
+                  ></label
+                >
+                <label data-ui="field"
+                  >{c.durationHours}<input
+                    inputmode="decimal"
+                    name="durationHours"
+                    value={updateValue(
+                      String(entry.id),
+                      'durationHours',
+                      entry.startTime ? '' : String(Number(entry.minutes) / 60),
+                    )}
                   /></label
                 >
+                <fieldset class="time-interval">
+                  <legend>{c.interval}</legend>
+                  <label data-ui="field"
+                    >{c.startTime}<input
+                      type="time"
+                      name="startTime"
+                      value={updateValue(String(entry.id), 'startTime', entry.startTime ?? '')}
+                    /></label
+                  >
+                  <label data-ui="field"
+                    >{c.endTime}<input
+                      type="time"
+                      name="endTime"
+                      value={updateValue(String(entry.id), 'endTime', entry.endTime ?? '')}
+                    /></label
+                  >
+                  <label data-ui="field"
+                    >{c.breakMinutes}<input
+                      type="number"
+                      min="0"
+                      max="1439"
+                      name="breakMinutes"
+                      value={updateValue(
+                        String(entry.id),
+                        'breakMinutes',
+                        String(entry.breakMinutes ?? 0),
+                      )}
+                    /></label
+                  >
+                </fieldset>
                 <label data-ui="field"
                   >{c.summary}<textarea name="summary" required
                     >{form?.operation === 'updateTime' && form.values?.id === entry.id

@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { createHash } from 'node:crypto';
 import { newId, type Principal } from '@ja/domain';
 import { recordAuditEvent } from '../../core/audit.ts';
 import { assertActiveAccount, assertLiveSession } from '../../core/authorization.ts';
@@ -64,6 +65,9 @@ export type SupplierOperationalTimeRow = Readonly<{
   workDate: string;
   category: string;
   minutes: number;
+  startTime: string | null;
+  endTime: string | null;
+  breakMinutes: number | null;
   summary: string;
   state: string;
   version: number;
@@ -1309,7 +1313,8 @@ export class SupplierWorkforceRepository {
     return this.sqlite
       .prepare(
         `SELECT t.id,t.worker_id workerId,u.name workerName,t.project_id projectId,p.name projectName,
-                t.work_date workDate,t.category,t.minutes,t.activity_summary summary,t.approval_state state,t.version,
+                t.work_date workDate,t.category,t.minutes,t.start_time startTime,t.end_time endTime,
+                t.break_minutes breakMinutes,t.activity_summary summary,t.approval_state state,t.version,
                 COALESCE(rec.recorded_by_user_id,correction_link.actor_user_id,t.worker_id) recordedBy,
                 COALESCE(ru.name,correction_actor.name,u.name) recordedByName,
                 EXISTS(
@@ -1343,7 +1348,8 @@ export class SupplierWorkforceRepository {
       return this.sqlite
         .prepare(
           `SELECT t.id,t.worker_id workerId,u.name workerName,t.project_id projectId,p.name projectName,
-                  t.work_date workDate,t.category,t.minutes,t.activity_summary summary,t.approval_state state,t.version,
+                  t.work_date workDate,t.category,t.minutes,t.start_time startTime,t.end_time endTime,
+                  t.break_minutes breakMinutes,t.activity_summary summary,t.approval_state state,t.version,
                   COALESCE(rec.recorded_by_user_id,t.worker_id) recordedBy,COALESCE(ru.name,u.name) recordedByName,
                   EXISTS(
                     SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id
@@ -1388,21 +1394,90 @@ export class SupplierWorkforceRepository {
 
   createTimeBatch(
     principal: Principal,
-    input: TimeEntryInput & { workerIds: readonly string[] },
-  ): { created: readonly { id: string; version: number }[] } {
-    const workerIds = [...new Set(input.workerIds.map((id) => id.trim()).filter(Boolean))];
+    input: TimeEntryInput & { workerIds: readonly string[]; requestId: string },
+  ): { created: readonly { id: string; version: number }[]; replayed: boolean } {
+    const requestId = requiredText(input.requestId, 'Batch request', 200);
+    if (requestId.length < 16) throw new ValidationError('Batch request is invalid');
+    const workerIds = [...new Set(input.workerIds.map((id) => id.trim()).filter(Boolean))].sort();
     if (workerIds.length === 0) throw new ValidationError('Select at least one technician');
     if (workerIds.length > 100)
       throw new ValidationError('A time batch is limited to 100 technicians');
     return this.transaction(() => {
       // Resolve every object permission before the first insert. The outer
       // transaction then makes the batch all-or-nothing if any row conflicts.
-      for (const workerId of workerIds)
-        this.assertCoordinatorScope(principal, workerId, input.projectId, input.workDate);
-      const created = workerIds.map((workerId) =>
-        this.time.createTimeEntryForWorker(principal, workerId, input),
+      // Live authorization is deliberately checked again even for a replay.
+      const scopes = workerIds.map((workerId) =>
+        this.assertCoordinatorScope(principal, workerId, input.projectId, input.workDate),
       );
-      return { created };
+      const supplierId = scopes[0]?.supplierId;
+      if (!supplierId || scopes.some((scope) => scope.supplierId !== supplierId))
+        throw new AccessDeniedError('One supplier scope is required for a time batch');
+      const payload = JSON.stringify({
+        workerIds,
+        projectId: input.projectId,
+        workDate: input.workDate,
+        category: input.category,
+        activityCode: input.activityCode?.trim() || null,
+        minutes: input.minutes,
+        summary: input.summary.trim(),
+        site: input.site?.trim() || null,
+        startTime: input.startTime?.trim() || null,
+        endTime: input.endTime?.trim() || null,
+        breakMinutes: input.breakMinutes ?? null,
+      });
+      const payloadSha256 = createHash('sha256').update(payload).digest('hex');
+      const prior = this.sqlite
+        .prepare(
+          `SELECT request_payload_sha256 payloadSha256,result_json resultJson
+             FROM supplier_time_batch_request WHERE actor_user_id=? AND request_id=?`,
+        )
+        .get(principal.userId, requestId) as
+        | { payloadSha256: string; resultJson: string }
+        | undefined;
+      if (prior) {
+        if (prior.payloadSha256 !== payloadSha256)
+          throw new ConflictError('Batch request was already used with different values');
+        const created = JSON.parse(prior.resultJson) as { id: string; version: number }[];
+        return { created, replayed: true };
+      }
+      const names = new Map(
+        (
+          this.sqlite
+            .prepare(`SELECT id,name FROM user WHERE id IN (${workerIds.map(() => '?').join(',')})`)
+            .all(...workerIds) as { id: string; name: string }[]
+        ).map((row) => [row.id, row.name]),
+      );
+      const created: { id: string; version: number }[] = [];
+      for (const workerId of workerIds) {
+        try {
+          created.push(this.time.createTimeEntryForWorker(principal, workerId, input));
+        } catch (caught) {
+          if (caught instanceof ValidationError || caught instanceof ConflictError) {
+            const Failure = caught instanceof ConflictError ? ConflictError : ValidationError;
+            throw new Failure(
+              `No time entry was saved. ${names.get(workerId) ?? 'Technician'}: ${caught.message}`,
+            );
+          }
+          throw caught;
+        }
+      }
+      this.sqlite
+        .prepare(
+          `INSERT INTO supplier_time_batch_request(
+             id,actor_user_id,supplier_id,project_id,request_id,request_payload_sha256,result_json,created_at
+           ) VALUES(?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          newId(),
+          principal.userId,
+          supplierId,
+          input.projectId,
+          requestId,
+          payloadSha256,
+          JSON.stringify(created),
+          now(),
+        );
+      return { created, replayed: false };
     });
   }
 

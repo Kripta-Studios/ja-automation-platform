@@ -180,6 +180,7 @@ describe('supplier workforce canonical time', () => {
     });
     expect(() =>
       suppliers.createTimeBatch(coordinator, {
+        requestId: 'atomic-rollback-batch-request',
         workerIds: [second.id, technician.id],
         projectId: fixture.project.id,
         workDate: operationalDate,
@@ -197,8 +198,16 @@ describe('supplier workforce canonical time', () => {
     const nextDate = new Date(`${operationalDate}T00:00:00.000Z`);
     nextDate.setUTCDate(nextDate.getUTCDate() + 1);
     const validDate = nextDate.toISOString().slice(0, 10);
-    const batch = suppliers.createTimeBatch(coordinator, {
-      workerIds: [technician.id, second.id],
+    const remaining = Array.from({ length: 40 }, (_, index) =>
+      suppliers.addTechnician(coordinator, {
+        projectId: fixture.project.id,
+        name: `Technician ${String(index + 3).padStart(2, '0')}`,
+        startsOn: '2026-01-01',
+      }),
+    );
+    const batchInput = {
+      requestId: 'shared-installation-shift-request',
+      workerIds: [technician.id, second.id, ...remaining.map((worker) => worker.id)],
       projectId: fixture.project.id,
       workDate: validDate,
       category: 'work',
@@ -207,21 +216,59 @@ describe('supplier workforce canonical time', () => {
       endTime: '17:00',
       breakMinutes: 60,
       summary: 'Shared installation shift',
+    } as const;
+    const batch = suppliers.createTimeBatch(coordinator, batchInput);
+    expect(batch.created).toHaveLength(42);
+    expect(batch.replayed).toBe(false);
+    expect(suppliers.createTimeBatch(coordinator, batchInput)).toEqual({
+      created: batch.created,
+      replayed: true,
     });
-    expect(batch.created).toHaveLength(2);
+    expect(() =>
+      suppliers.createTimeBatch(coordinator, {
+        ...batchInput,
+        summary: 'Same request, different content',
+      }),
+    ).toThrow('already used with different values');
+    expect(
+      fixture.sqlite
+        .prepare('SELECT count(*) count FROM time_entry WHERE activity_summary=?')
+        .get('Shared installation shift'),
+    ).toEqual({ count: 42 });
+
+    const corrected = suppliers.updateTime(coordinator, {
+      id: batch.created[0]!.id,
+      version: batch.created[0]!.version,
+      minutes: 420,
+      startTime: '08:00',
+      endTime: '16:00',
+      breakMinutes: 60,
+    });
+    expect(
+      fixture.sqlite
+        .prepare('SELECT minutes,start_time,end_time,break_minutes FROM time_entry WHERE id=?')
+        .get(corrected.id),
+    ).toEqual({ minutes: 420, start_time: '08:00', end_time: '16:00', break_minutes: 60 });
     expect(
       suppliers.submitTimeBatch(
         coordinator,
-        batch.created.map((entry) => ({ id: entry.id, version: entry.version })),
+        batch.created.map((entry) => ({
+          id: entry.id,
+          version: entry.id === corrected.id ? corrected.version : entry.version,
+        })),
       ),
-    ).toEqual({ submitted: 2 });
+    ).toEqual({ submitted: 42 });
     expect(
       fixture.sqlite
         .prepare(
           "SELECT count(*) count FROM time_entry WHERE activity_summary=? AND approval_state='submitted'",
         )
         .get('Shared installation shift'),
-    ).toEqual({ count: 2 });
+    ).toEqual({ count: 42 });
+    const grant = suppliers.listGrants(fixture.owner).find((row) => row.status === 'active');
+    if (!grant) throw new Error('Expected active supplier project grant');
+    suppliers.revokeProject(fixture.owner, { id: grant.id });
+    expect(() => suppliers.createTimeBatch(coordinator, batchInput)).toThrow(AccessDeniedError);
   });
 
   it('revokes a coordinator installation across ordinary own time and report methods', () => {

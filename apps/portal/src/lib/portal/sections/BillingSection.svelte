@@ -1,10 +1,8 @@
 <script lang="ts">
-  import {
-    lastCompletePeriodForCadence,
-    type BillingCadence,
-  } from '@ja/billing-engine';
+  import { lastCompletePeriodForCadence, type BillingCadence } from '@ja/billing-engine';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { base } from '$app/paths';
+  import { page } from '$app/stores';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { ResponsiveSheet, SectionCard, StatusBadge, TableRegion } from '../ui';
@@ -119,9 +117,9 @@
     const monthlyCutoffRaw = rowValue(rule, 'monthly_cutoff_day', 'monthlyCutoffDay');
     try {
       const period = lastCompletePeriodForCadence(cadence, todayIso, {
-          anchorDate: rowValue(rule, 'anchor_date', 'anchorDate') || undefined,
-          monthlyCutoffDay: monthlyCutoffRaw ? Number(monthlyCutoffRaw) : undefined,
-        }) ?? { start: '', end: '' };
+        anchorDate: rowValue(rule, 'anchor_date', 'anchorDate') || undefined,
+        monthlyCutoffDay: monthlyCutoffRaw ? Number(monthlyCutoffRaw) : undefined,
+      }) ?? { start: '', end: '' };
       const effectiveFrom = rowValue(rule, 'effective_from', 'effectiveFrom');
       const effectiveTo = rowValue(rule, 'effective_to', 'effectiveTo');
       if (
@@ -166,13 +164,31 @@
 
   const invoices = $derived(data.invoices ?? []);
   const billingRules = $derived(data.billingRules ?? []);
-  const wizardRule = $derived(
-    billingRules.find((rule) => rowValue(rule, 'id') === wizardRuleId),
+  const visibleBillingRules = $derived(
+    billingRules.filter(
+      (rule) => !projectFilter || rowValue(rule, 'project_id', 'projectId') === projectFilter,
+    ),
   );
+  let billingRulePage = $state<Row[]>([]);
+  const streamFocusId = $derived($page.url.searchParams.get('focus')?.trim() ?? '');
+  const wizardRule = $derived(billingRules.find((rule) => rowValue(rule, 'id') === wizardRuleId));
   const ledgerRows = $derived(data.ledger ?? []);
   const canManageBilling = $derived(
     !isAuditor && ['owner_admin', 'finance_admin'].includes(String(data.user.role ?? '')),
   );
+
+  $effect(() => {
+    const requestedView = $page.url.searchParams.get('view')?.trim();
+    if (requestedView === 'streams' || requestedView === 'setup' || requestedView === 'invoices')
+      workspace = requestedView;
+    projectFilter = $page.url.searchParams.get('project')?.trim() ?? '';
+    const requestedStage = $page.url.searchParams.get('stage')?.trim() as BillingStage | null;
+    if (
+      requestedStage &&
+      ['all', 'wip', 'drafts', 'outstanding', 'overdue', 'paid'].includes(requestedStage)
+    )
+      stageFilter = requestedStage;
+  });
 
   function rowValue(row: Row | Record<string, unknown> | undefined, ...keys: string[]): string {
     if (!row) return '';
@@ -644,19 +660,28 @@
               )}
             </p>
             <dl>
-              <div><dt>{translate('Stream')}</dt><dd>{controlledValue(
+              <div>
+                <dt>{translate('Stream')}</dt>
+                <dd>
+                  {controlledValue(
                     'billingStream',
                     rowValue(wizardRule, 'stream_type', 'streamType'),
-                  )}</dd></div>
-              <div><dt>{translate('Cadence')}</dt><dd>{controlledValue(
-                    'status',
-                    rowValue(wizardRule, 'cadence_type', 'cadenceType'),
-                  )}</dd></div>
-              <div><dt>{translate('Tax profile')}</dt><dd>{rowValue(
-                    wizardRule,
-                    'tax_profile_name',
-                    'taxProfileName',
-                  ) || translate('Missing')}</dd></div>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>{translate('Cadence')}</dt>
+                <dd>
+                  {controlledValue('status', rowValue(wizardRule, 'cadence_type', 'cadenceType'))}
+                </dd>
+              </div>
+              <div>
+                <dt>{translate('Tax profile')}</dt>
+                <dd>
+                  {rowValue(wizardRule, 'tax_profile_name', 'taxProfileName') ||
+                    translate('Missing')}
+                </dd>
+              </div>
             </dl>
             <button
               type="button"
@@ -664,8 +689,7 @@
               onclick={() => {
                 workspace = 'streams';
                 invoiceWizardOpen = false;
-              }}
-              >{translate('Manage stream')}</button
+              }}>{translate('Manage stream')}</button
             >
           </section>
         {:else if invoiceWizardStep === 3}
@@ -677,14 +701,24 @@
               )}
             </p>
             <dl>
-              <div><dt>{translate('Source')}</dt><dd>{controlledValue(
+              <div>
+                <dt>{translate('Source')}</dt>
+                <dd>
+                  {controlledValue(
                     'billingStream',
                     rowValue(wizardRule, 'stream_type', 'streamType'),
-                  )}</dd></div>
-              <div><dt>{translate('Grouping')}</dt><dd>{controlledValue(
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>{translate('Grouping')}</dt>
+                <dd>
+                  {controlledValue(
                     'status',
                     rowValue(wizardRule, 'grouping_mode', 'groupingMode') || 'summary',
-                  )}</dd></div>
+                  )}
+                </dd>
+              </div>
             </dl>
           </section>
         {:else if invoiceWizardStep === 4}
@@ -696,16 +730,20 @@
               )}
             </p>
             <div class="billing-section__wizard-fields">
-              <label><span>{translate('Period start')}</span><input
+              <label
+                ><span>{translate('Period start')}</span><input
                   bind:value={wizardPeriodStart}
                   type="date"
                   required
-                /></label>
-              <label><span>{translate('Period end')}</span><input
+                /></label
+              >
+              <label
+                ><span>{translate('Period end')}</span><input
                   bind:value={wizardPeriodEnd}
                   type="date"
                   required
-                /></label>
+                /></label
+              >
             </div>
           </section>
         {:else if invoiceWizardStep === 5}
@@ -730,7 +768,9 @@
                 'Pending approvals, active corrections, missing rates or required reports block this exact period. The result explains each exclusion and keeps your selected dates.',
               )}
             </p>
-            <a class="secondary-button" href={`${base}/app/approvals?project=${encodeURIComponent(rowValue(wizardRule, 'project_id', 'projectId'))}`}
+            <a
+              class="secondary-button"
+              href={`${base}/app/approvals?project=${encodeURIComponent(rowValue(wizardRule, 'project_id', 'projectId'))}`}
               >{translate('Review pending records')}</a
             >
           </section>
@@ -743,12 +783,17 @@
               )}
             </p>
             <dl>
-              <div><dt>{translate('Tax profile')}</dt><dd>{rowValue(
-                    wizardRule,
-                    'tax_profile_name',
-                    'taxProfileName',
-                  ) || translate('Missing')}</dd></div>
-              <div><dt>{translate('Currency')}</dt><dd>{rowValue(wizardRule, 'currency')}</dd></div>
+              <div>
+                <dt>{translate('Tax profile')}</dt>
+                <dd>
+                  {rowValue(wizardRule, 'tax_profile_name', 'taxProfileName') ||
+                    translate('Missing')}
+                </dd>
+              </div>
+              <div>
+                <dt>{translate('Currency')}</dt>
+                <dd>{rowValue(wizardRule, 'currency')}</dd>
+              </div>
             </dl>
           </section>
         {:else if invoiceWizardStep === 8}
@@ -760,21 +805,24 @@
               )}
             </p>
             <dl>
-              <div><dt>{translate('Legal entity')}</dt><dd>{rowValue(
-                    wizardRule,
-                    'legal_entity_code',
-                    'legalEntityCode',
-                  ) || translate('Missing')}</dd></div>
-              <div><dt>{translate('Recipient email')}</dt><dd>{rowValue(
-                    wizardRule,
-                    'recipient_email',
-                    'recipientEmail',
-                  ) || translate('Missing')}</dd></div>
-              <div><dt>{translate('PO reference')}</dt><dd>{rowValue(
-                    wizardRule,
-                    'po_number_override',
-                    'poNumberOverride',
-                  ) || '—'}</dd></div>
+              <div>
+                <dt>{translate('Legal entity')}</dt>
+                <dd>
+                  {rowValue(wizardRule, 'legal_entity_code', 'legalEntityCode') ||
+                    translate('Missing')}
+                </dd>
+              </div>
+              <div>
+                <dt>{translate('Recipient email')}</dt>
+                <dd>
+                  {rowValue(wizardRule, 'recipient_email', 'recipientEmail') ||
+                    translate('Missing')}
+                </dd>
+              </div>
+              <div>
+                <dt>{translate('PO reference')}</dt>
+                <dd>{rowValue(wizardRule, 'po_number_override', 'poNumberOverride') || '—'}</dd>
+              </div>
             </dl>
           </section>
         {:else if invoiceWizardStep === 9}
@@ -786,16 +834,17 @@
               )}
             </p>
             <dl>
-              <div><dt>{translate('Issuing entity')}</dt><dd>{rowValue(
-                    wizardRule,
-                    'legal_entity_code',
-                    'legalEntityCode',
-                  ) || translate('Missing')}</dd></div>
-              <div><dt>{translate('Payment terms (days)')}</dt><dd>{rowValue(
-                    wizardRule,
-                    'payment_terms_days',
-                    'paymentTermsDays',
-                  ) || '30'}</dd></div>
+              <div>
+                <dt>{translate('Issuing entity')}</dt>
+                <dd>
+                  {rowValue(wizardRule, 'legal_entity_code', 'legalEntityCode') ||
+                    translate('Missing')}
+                </dd>
+              </div>
+              <div>
+                <dt>{translate('Payment terms (days)')}</dt>
+                <dd>{rowValue(wizardRule, 'payment_terms_days', 'paymentTermsDays') || '30'}</dd>
+              </div>
             </dl>
           </section>
         {:else if invoiceWizardStep === 10}
@@ -816,17 +865,18 @@
           <section>
             <h3>{translate('Preview')}</h3>
             <dl>
-              <div><dt>{translate('Client')}</dt><dd>{rowValue(
-                    wizardRule,
-                    'client_name',
-                    'clientName',
-                  )}</dd></div>
-              <div><dt>{translate('Project')}</dt><dd>{rowValue(
-                    wizardRule,
-                    'project_number',
-                    'projectNumber',
-                  )}</dd></div>
-              <div><dt>{translate('Period')}</dt><dd>{wizardPeriodStart} → {wizardPeriodEnd}</dd></div>
+              <div>
+                <dt>{translate('Client')}</dt>
+                <dd>{rowValue(wizardRule, 'client_name', 'clientName')}</dd>
+              </div>
+              <div>
+                <dt>{translate('Project')}</dt>
+                <dd>{rowValue(wizardRule, 'project_number', 'projectNumber')}</dd>
+              </div>
+              <div>
+                <dt>{translate('Period')}</dt>
+                <dd>{wizardPeriodStart} → {wizardPeriodEnd}</dd>
+              </div>
             </dl>
             <p>
               {translate(
@@ -1374,9 +1424,17 @@
             'A billing stream sets cadence, template and tax for one project. Create the draft here. Approve, issue and collect in Invoices.',
           )}
         </p>
-        <span>{billingRules.length}</span>
+        <span>{visibleBillingRules.length}</span>
       </div>
-      {#if billingRules.length > 0}
+      <RecordBrowser
+        rows={visibleBillingRules}
+        bind:visible={billingRulePage}
+        {translate}
+        label="Billing streams"
+        contextKey={projectFilter || 'all-projects'}
+        focusId={streamFocusId}
+      />
+      {#if visibleBillingRules.length > 0}
         <div class="billing-section__rule-list" aria-live="polite">
           <table class="billing-section__table">
             <caption class="sr-only">{translate('Billing streams')}</caption>
@@ -1389,10 +1447,14 @@
               </tr>
             </thead>
             <tbody>
-              {#each billingRules as rule}
+              {#each billingRulePage as rule}
                 <tr data-billing-rule={rowValue(rule, 'id')}>
                   <td>
-                    <strong>{rowValue(rule, 'project_number', 'projectNumber')}</strong>
+                    <a
+                      href={`${base}/app/billing?view=streams&project=${encodeURIComponent(rowValue(rule, 'project_id', 'projectId'))}&focus=${encodeURIComponent(rowValue(rule, 'id'))}#billing-stream-${encodeURIComponent(rowValue(rule, 'id'))}`}
+                    >
+                      <strong>{rowValue(rule, 'project_number', 'projectNumber')}</strong>
+                    </a>
                     <small>
                       {controlledValue(
                         'billingStream',
@@ -1466,7 +1528,11 @@
                         >
                         <button type="submit">{translate('Create invoice draft')}</button>
                       </form>
-                      <details class="billing-section__rule-editor">
+                      <details
+                        id={`billing-stream-${rowValue(rule, 'id')}`}
+                        class="billing-section__rule-editor"
+                        open={streamFocusId === rowValue(rule, 'id')}
+                      >
                         <summary class="secondary-button">{translate('Manage stream')}</summary>
                         <div class="billing-section__rule-actions">
                           <form
@@ -1571,7 +1637,9 @@
                                   rowValue(rule, 'auto_generate_draft', 'autoGenerateDraft'),
                                 ) === 1}
                               />
-                              <span>{translate('Automatically prepare draft after period close')}</span>
+                              <span
+                                >{translate('Automatically prepare draft after period close')}</span
+                              >
                             </label>
                             <button type="submit">{translate('Save billing stream')}</button>
                           </form>

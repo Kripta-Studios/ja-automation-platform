@@ -63,6 +63,10 @@
   let surface = $state<Surface>(null);
   let search = $state('');
   let projectFilter = $state('');
+  let workerFilter = $state('');
+  let clientFilter = $state('');
+  let fromFilter = $state('');
+  let toFilter = $state('');
   let statusFilter = $state('');
   let order = $state<OperationalOrder>('newest');
   let dailyPage = $state(1);
@@ -105,6 +109,22 @@
   const technicalReports = $derived(
     records.filter((row) => String(row.type ?? '').toLowerCase() === 'technical'),
   );
+  const workerOptions = $derived(
+    Array.from(
+      new Map(
+        records
+          .filter((row) => rowText(row, 'worker_id'))
+          .map((row) => [rowText(row, 'worker_id'), rowText(row, 'author_name')]),
+      ).entries(),
+    ),
+  );
+  const clientOptions = $derived(
+    [
+      ...new Set(
+        [...records, ...periodReports].map((row) => rowText(row, 'client_name')).filter(Boolean),
+      ),
+    ].sort(),
+  );
   const activeFieldTab = $derived(activeTab === 'technical' ? 'technical' : 'daily');
   const fieldReportsForActiveTab = $derived(
     activeFieldTab === 'technical' ? technicalReports : dailyReports,
@@ -114,12 +134,24 @@
   );
   const signoffRows = $derived(
     customerPeriodReports
-      .filter((report) => !projectFilter || rowText(report, 'project_id') === projectFilter)
+      .filter(
+        (report) =>
+          (!projectFilter || rowText(report, 'project_id') === projectFilter) &&
+          (!clientFilter || rowText(report, 'client_name') === clientFilter) &&
+          (!fromFilter || rowText(report, 'period_end') >= fromFilter) &&
+          (!toFilter || rowText(report, 'period_start') <= toFilter),
+      )
       .map((report) => ({ ...report, browser_status: signoffState(report) })),
   );
   const generatedRows = $derived(
     periodReports
-      .filter((report) => !projectFilter || rowText(report, 'project_id') === projectFilter)
+      .filter(
+        (report) =>
+          (!projectFilter || rowText(report, 'project_id') === projectFilter) &&
+          (!clientFilter || rowText(report, 'client_name') === clientFilter) &&
+          (!fromFilter || rowText(report, 'period_end') >= fromFilter) &&
+          (!toFilter || rowText(report, 'period_start') <= toFilter),
+      )
       .map((report) => ({ ...report, browser_status: String(report.state ?? '') })),
   );
   const pendingReportCount = $derived(
@@ -134,7 +166,13 @@
     !isAuditor && ['owner_admin', 'finance_admin'].includes(String(data.user.role ?? '')),
   );
   $effect(() => {
+    const querySearch = $page.url.searchParams.get('q');
+    if (querySearch !== null) search = querySearch.trim();
     projectFilter = $page.url.searchParams.get('project')?.trim() ?? '';
+    workerFilter = $page.url.searchParams.get('worker')?.trim() ?? '';
+    clientFilter = $page.url.searchParams.get('client')?.trim() ?? '';
+    fromFilter = $page.url.searchParams.get('from')?.trim() ?? '';
+    toFilter = $page.url.searchParams.get('to')?.trim() ?? '';
     statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
     dailyPage = 1;
     technicalPage = 1;
@@ -144,6 +182,10 @@
       dailyReports.filter(
         (row) =>
           (!projectFilter || rowText(row, 'project_id') === projectFilter) &&
+          (!workerFilter || rowText(row, 'worker_id') === workerFilter) &&
+          (!clientFilter || rowText(row, 'client_name') === clientFilter) &&
+          (!fromFilter || rowText(row, 'date') >= fromFilter) &&
+          (!toFilter || rowText(row, 'date') <= toFilter) &&
           operationalStatusMatches(row.approval_state, statusFilter, [
             'draft',
             'submitted',
@@ -171,6 +213,10 @@
       technicalReports.filter(
         (row) =>
           (!projectFilter || rowText(row, 'project_id') === projectFilter) &&
+          (!workerFilter || rowText(row, 'worker_id') === workerFilter) &&
+          (!clientFilter || rowText(row, 'client_name') === clientFilter) &&
+          (!fromFilter || rowText(row, 'date') >= fromFilter) &&
+          (!toFilter || rowText(row, 'date') <= toFilter) &&
           operationalStatusMatches(row.approval_state, statusFilter, [
             'draft',
             'submitted',
@@ -337,9 +383,19 @@
     const view = overrides.view ?? activeTab;
     const project = overrides.project ?? projectFilter;
     const status = overrides.status ?? statusFilter;
+    const worker = overrides.worker ?? workerFilter;
+    const client = overrides.client ?? clientFilter;
+    const from = overrides.from ?? fromFilter;
+    const to = overrides.to ?? toFilter;
+    const queryText = overrides.q ?? search;
     if (view) params.set('view', view);
     if (project) params.set('project', project);
     if (status) params.set('status', status);
+    if (worker) params.set('worker', worker);
+    if (client) params.set('client', client);
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    if (queryText) params.set('q', queryText);
     return `${base}/app/reports?${params.toString()}`;
   }
 </script>
@@ -414,6 +470,7 @@
     <input type="hidden" name="view" value={activeTab} />
     <label
       ><span>{translate('Search register')}</span><input
+        name="q"
         bind:value={search}
         oninput={() => {
           dailyPage = 1;
@@ -421,6 +478,55 @@
         }}
         type="search"
         placeholder={translate('Project, worker or report')}
+      /></label
+    >
+    {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
+      <label
+        ><span>{translate('Worker')}</span><select
+          name="worker"
+          bind:value={workerFilter}
+          onchange={() => {
+            dailyPage = 1;
+            technicalPage = 1;
+          }}
+          ><option value="">{translate('All workers')}</option
+          >{#each workerOptions as [id, label]}<option value={id}>{label}</option>{/each}</select
+        ></label
+      >
+    {/if}
+    <label
+      ><span>{translate('Client')}</span><select
+        name="client"
+        bind:value={clientFilter}
+        onchange={() => {
+          dailyPage = 1;
+          technicalPage = 1;
+        }}
+        ><option value="">{translate('All clients')}</option>{#each clientOptions as client}<option
+            value={client}>{client}</option
+          >{/each}</select
+      ></label
+    >
+    <label
+      ><span>{translate('From')}</span><input
+        name="from"
+        type="date"
+        bind:value={fromFilter}
+        onchange={() => {
+          dailyPage = 1;
+          technicalPage = 1;
+        }}
+      /></label
+    >
+    <label
+      ><span>{translate('To')}</span><input
+        name="to"
+        type="date"
+        bind:value={toFilter}
+        onchange={() => {
+          dailyPage = 1;
+          technicalPage = 1;
+        }}
       /></label
     >
     <label
@@ -471,6 +577,9 @@
       </select>
     </label>
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
+    <a class="secondary-button" href={`${base}/app/reports?view=${activeTab}&q=`}
+      >{translate('Clear filters')}</a
+    >
   </form>
 
   <div class="report-tab-list" aria-label={translate('Report types')} role="tablist">
@@ -506,6 +615,11 @@
           <h3>{translate('Daily')}</h3>
           <p>{translate('Shift summary, completed work, blockers and next-day plan.')}</p>
         </div>
+        {#if !isAuditor}<button
+            type="button"
+            class="report-primary-action"
+            onclick={() => openCreate('daily')}>{translate('New daily report')}</button
+          >{/if}
       </header>
 
       <div class="report-register" aria-label={translate('Daily report register')}>
@@ -596,6 +710,11 @@
             )}
           </p>
         </div>
+        {#if !isAuditor}<button
+            type="button"
+            class="report-primary-action report-primary-action-secondary"
+            onclick={() => openCreate('technical')}>{translate('New technical report')}</button
+          >{/if}
       </header>
 
       <div class="report-register" aria-label={translate('Technical report register')}>
@@ -690,6 +809,11 @@
               'Open a ready record to review its exact version and record client sign-off. A signed record remains bound to that immutable report version; a source change requires a replacement report.',
             )}
           </p>
+          <p class="report-action-explanation">
+            {translate(
+              'Workers submit Daily or Technical reports, the Project Manager or Owner reviews the operational facts, Finance or Owner generates the customer-safe period file, and an authorized Owner or Finance user records the customer signed copy.',
+            )}
+          </p>
         </div>
       </header>
 
@@ -738,6 +862,17 @@
                 </span>
                 <span class="report-register-open">{translate('Report queued')}</span>
               </div>
+              {#if canGeneratePeriodReports}
+                <button type="button" class="secondary-button" onclick={openGenerator}
+                  >{translate('Refresh period reports')}</button
+                >
+              {:else if !isAuditor}
+                <a
+                  class="secondary-button"
+                  href={`${base}/app/reports?view=daily&project=${encodeURIComponent(rowText(report, 'project_id'))}`}
+                  >{translate('Create source report')}</a
+                >
+              {/if}
             {/if}
           </article>
         {:else}
@@ -1177,6 +1312,12 @@
     border-color: var(--ja-teal, #277e78);
     background: var(--ja-teal, #277e78);
   }
+  .report-panel-header {
+    align-items: flex-start;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
   .report-attention-card {
     color: inherit;
     text-decoration: none;
@@ -1223,6 +1364,9 @@
     font-size: 0.85rem;
   }
   @media (max-width: 480px) {
+    .report-panel-header {
+      display: grid;
+    }
     .report-register-filters label,
     .report-register-filters button {
       flex: 1 1 100%;

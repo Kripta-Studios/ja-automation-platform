@@ -1,8 +1,10 @@
 <script lang="ts">
+  import { page } from '$app/stores';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { SectionCard, StatusBadge, TableRegion } from '../ui';
   import type { TableCardRow } from '../ui';
   import type { PortalRow } from '../portal-data';
+  import { operationalSearchText } from './operational-register';
 
   /**
    * Project-section actions are deliberately supplied by the route seam. The
@@ -60,13 +62,18 @@
   let search = $state('');
   let statusFilter = $state('');
 
+  $effect(() => {
+    search = $page.url.searchParams.get('q')?.trim() ?? '';
+    statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
+  });
+
   const isOwnerOrFinance = $derived(role === 'owner_admin' || role === 'finance_admin');
   const canCreateProject = $derived(isOwnerOrFinance && capabilities.canCreateProject === true);
   const canTransitionProject = $derived(
     isOwnerOrFinance && capabilities.canTransitionProject === true,
   );
   const canManageClients = $derived(isOwnerOrFinance && capabilities.canManageClients === true);
-  const normalizedSearch = $derived(search.trim().toLowerCase());
+  const normalizedSearch = $derived(operationalSearchText(search).trim());
 
   function value(row: PortalRow, ...keys: string[]): string {
     for (const key of keys) {
@@ -140,9 +147,15 @@
         projectReference(project),
       ]
         .join(' ')
-        .toLowerCase();
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/gu, '')
+        .toLocaleLowerCase();
       const matchesSearch = !normalizedSearch || searchable.includes(normalizedSearch);
-      const matchesStatus = !statusFilter || projectStatus(project) === statusFilter;
+      const matchesStatus =
+        !statusFilter ||
+        (statusFilter === 'attention'
+          ? ['paused', 'closing'].includes(projectStatus(project))
+          : projectStatus(project) === statusFilter);
       return matchesSearch && matchesStatus;
     });
   });
@@ -232,31 +245,45 @@
   </header>
 
   <div class="project-section__attention" aria-label={translate('Project attention summary')}>
-    <div class="project-section__attention-card">
+    <a
+      class="project-section__attention-card"
+      aria-current={statusFilter === 'active' ? 'page' : undefined}
+      href={`${base}/app/projects?status=active`}
+    >
       <span>{translate('Active')}</span>
       <strong>{activeCount}</strong>
       <small>{translate('Operational projects')}</small>
-    </div>
-    <div class="project-section__attention-card">
+    </a>
+    <a
+      class="project-section__attention-card"
+      aria-current={statusFilter === 'planned' ? 'page' : undefined}
+      href={`${base}/app/projects?status=planned`}
+    >
       <span>{translate('Planned')}</span>
       <strong>{plannedCount}</strong>
       <small>{translate('Preparing to start')}</small>
-    </div>
-    <div class="project-section__attention-card project-section__attention-card--notice">
+    </a>
+    <a
+      class="project-section__attention-card project-section__attention-card--notice"
+      aria-current={statusFilter === 'attention' ? 'page' : undefined}
+      href={`${base}/app/projects?status=attention`}
+    >
       <span>{translate('Needs attention')}</span>
       <strong>{attentionCount}</strong>
       <small>{translate('Paused or closing')}</small>
-    </div>
+    </a>
   </div>
 
   <form
     class="project-section__filters"
+    method="GET"
+    action={`${base}/app/projects`}
     aria-label={translate('Filter projects')}
-    onsubmit={(event) => event.preventDefault()}
   >
     <label>
       <span>{translate('Search projects')}</span>
       <input
+        name="q"
         bind:value={search}
         type="search"
         placeholder={translate('Project, client or reference')}
@@ -264,16 +291,19 @@
     </label>
     <label>
       <span>{translate('Status')}</span>
-      <select bind:value={statusFilter}>
+      <select name="status" bind:value={statusFilter}>
         <option value="">{translate('All statuses')}</option>
         <option value="active">{translate('Active')}</option>
         <option value="planned">{translate('Planned')}</option>
+        <option value="attention">{translate('Needs attention')}</option>
         <option value="paused">{translate('Paused')}</option>
         <option value="closing">{translate('Closing')}</option>
         <option value="closed">{translate('Closed')}</option>
         <option value="archived">{translate('Archived')}</option>
       </select>
     </label>
+    <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
+    <a class="secondary-button" href={`${base}/app/projects`}>{translate('Clear filters')}</a>
   </form>
 
   <SectionCard title={translate('Authorized projects')} class="project-section__list-surface">
@@ -493,6 +523,19 @@
     border: 1px solid var(--portal-border, #d7dee8);
     border-radius: 0.75rem;
     background: var(--portal-surface, #fff);
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+  }
+
+  .project-section__attention-card:hover,
+  .project-section__attention-card:focus-visible,
+  .project-section__attention-card[aria-current='page'] {
+    border-color: var(--portal-accent, #277e78);
+    outline: 3px solid color-mix(in srgb, var(--portal-accent, #277e78) 20%, transparent);
+    outline-offset: 1px;
   }
 
   .project-section__attention-card--notice {

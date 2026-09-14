@@ -41,8 +41,11 @@
   let stageFilter = $state<Stage>('');
   let projectFilter = $state('');
   let workerFilter = $state('');
+  let clientFilter = $state('');
+  let fromFilter = $state('');
+  let toFilter = $state('');
   let statusFilter = $state('');
-  let order = $state<OperationalOrder>('oldest');
+  let order = $state<OperationalOrder>('priority');
   let queuePage = $state(1);
   let completedPage = $state(1);
   let milestoneSearch = $state('');
@@ -50,7 +53,8 @@
   let financeSearch = $state('');
   let financePage = $state(1);
   let registerStateHydrated = $state(false);
-  const registerStateKey = (): string => `ja-operational-register:approvals:${data.user.id}`;
+  // v2 intentionally resets the former "oldest" default to the action-priority ordering.
+  const registerStateKey = (): string => `ja-operational-register:approvals-v2:${data.user.id}`;
 
   onMount(() => {
     const saved = readOperationalRegisterState<{
@@ -63,8 +67,13 @@
       financeSearch?: string;
       financePage?: number;
     }>(registerStateKey());
-    if (typeof saved?.search === 'string') search = saved.search;
-    if (saved?.order && ['newest', 'oldest', 'name', 'status'].includes(saved.order)) {
+    if (!$page.url.searchParams.has('q') && typeof saved?.search === 'string')
+      search = saved.search;
+    if (
+      !$page.url.searchParams.has('order') &&
+      saved?.order &&
+      ['priority', 'newest', 'oldest', 'name', 'status'].includes(saved.order)
+    ) {
       order = saved.order;
     }
     if (typeof saved?.queuePage === 'number') queuePage = saved.queuePage;
@@ -93,9 +102,31 @@
   $effect(() => {
     const tab = $page.url.searchParams.get('tab');
     if (tab === 'time' || tab === 'expenses' || tab === 'reports') activeTab = tab;
+    search = $page.url.searchParams.get('q')?.trim() ?? search;
     projectFilter = $page.url.searchParams.get('project')?.trim() ?? '';
     workerFilter = $page.url.searchParams.get('worker')?.trim() ?? '';
+    clientFilter = $page.url.searchParams.get('client')?.trim() ?? '';
+    fromFilter = $page.url.searchParams.get('from')?.trim() ?? '';
+    toFilter = $page.url.searchParams.get('to')?.trim() ?? '';
     statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
+    const requestedStage = $page.url.searchParams.get('stage');
+    if (
+      requestedStage === '' ||
+      requestedStage === 'operational' ||
+      requestedStage === 'report' ||
+      requestedStage === 'correction' ||
+      requestedStage === 'owner_override' ||
+      requestedStage === 'finance'
+    ) {
+      stageFilter = requestedStage;
+    }
+    const requestedOrder = $page.url.searchParams.get('order');
+    if (
+      requestedOrder &&
+      ['priority', 'newest', 'oldest', 'name', 'status'].includes(requestedOrder)
+    ) {
+      order = requestedOrder as OperationalOrder;
+    }
   });
 
   const rows = $derived(data.records ?? []);
@@ -111,6 +142,15 @@
     financeReviewVisible ? rows.filter((row) => String(row.review_stage) === 'finance') : [],
   );
   const operationalRows = $derived(rows.filter((row) => String(row.review_stage) !== 'finance'));
+  const clientOptions = $derived(
+    Array.from(
+      new Map(
+        [...rows, ...milestones]
+          .filter((row) => value(row, 'client_name'))
+          .map((row) => [value(row, 'client_name'), value(row, 'client_name')]),
+      ).entries(),
+    ),
+  );
   const attentionCount = $derived(
     operationalRows.filter((row) =>
       ['submitted', 'needs_changes'].includes(String(row.approval_state)),
@@ -143,6 +183,10 @@
       ]);
       const matchesProject = !projectFilter || value(row, 'project_id') === projectFilter;
       const matchesWorker = !workerFilter || value(row, 'worker_id') === workerFilter;
+      const matchesClient = !clientFilter || value(row, 'client_name') === clientFilter;
+      const recordDate = value(row, 'date');
+      const matchesFrom = !fromFilter || recordDate >= fromFilter;
+      const matchesTo = !toFilter || recordDate <= toFilter;
       const matchesStatus = operationalStatusMatches(row.approval_state, statusFilter, [
         'submitted',
         'needs_changes',
@@ -153,6 +197,9 @@
         matchesSearch &&
         matchesProject &&
         matchesWorker &&
+        matchesClient &&
+        matchesFrom &&
+        matchesTo &&
         matchesStatus
       );
     });
@@ -179,8 +226,20 @@
   const pagedCompletedRows = $derived(operationalPage(completedRows, completedPage));
   const filteredMilestones = $derived(
     operationalSort(
-      milestones.filter((row) =>
-        operationalMatches(row, milestoneSearch, ['id', 'project_number', 'name', 'due_on']),
+      milestones.filter(
+        (row) =>
+          (!projectFilter || value(row, 'project_id') === projectFilter) &&
+          (!clientFilter || value(row, 'client_name') === clientFilter) &&
+          (!fromFilter || value(row, 'due_on') >= fromFilter) &&
+          (!toFilter || value(row, 'due_on') <= toFilter) &&
+          operationalMatches(row, milestoneSearch || search, [
+            'id',
+            'project_number',
+            'project_name',
+            'client_name',
+            'name',
+            'due_on',
+          ]),
       ),
       order,
       ['due_on'],
@@ -191,16 +250,24 @@
   const pagedMilestones = $derived(operationalPage(filteredMilestones, milestonePage));
   const filteredFinanceRows = $derived(
     operationalSort(
-      financeRows.filter((row) =>
-        operationalMatches(row, financeSearch, [
-          'id',
-          'date',
-          'type',
-          'project_id',
-          'project_name',
-          'worker_id',
-          'worker_name',
-        ]),
+      financeRows.filter(
+        (row) =>
+          (!projectFilter || value(row, 'project_id') === projectFilter) &&
+          (!workerFilter || value(row, 'worker_id') === workerFilter) &&
+          (!clientFilter || value(row, 'client_name') === clientFilter) &&
+          (!fromFilter || value(row, 'date') >= fromFilter) &&
+          (!toFilter || value(row, 'date') <= toFilter) &&
+          operationalMatches(row, financeSearch || search, [
+            'id',
+            'date',
+            'type',
+            'project_id',
+            'project_name',
+            'project_number',
+            'client_name',
+            'worker_id',
+            'worker_name',
+          ]),
       ),
       order,
       ['date'],
@@ -232,6 +299,13 @@
     return 'approval-queue';
   }
 
+  function resetApprovalPages(): void {
+    queuePage = 1;
+    completedPage = 1;
+    milestonePage = 1;
+    financePage = 1;
+  }
+
   function focusTab(tab: Tab): void {
     activeTab = tab;
     if (typeof document === 'undefined') return;
@@ -243,11 +317,19 @@
     const tab = overrides.tab ?? activeTab;
     const project = overrides.project ?? projectFilter;
     const worker = overrides.worker ?? workerFilter;
+    const client = overrides.client ?? clientFilter;
+    const from = overrides.from ?? fromFilter;
+    const to = overrides.to ?? toFilter;
     const status = overrides.status ?? statusFilter;
+    const q = overrides.q ?? search;
     if (tab) params.set('tab', tab);
     if (project) params.set('project', project);
     if (worker) params.set('worker', worker);
+    if (client) params.set('client', client);
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
     if (status) params.set('status', status);
+    if (q) params.set('q', q);
     return `${base}/app/approvals?${params.toString()}`;
   }
 
@@ -394,23 +476,36 @@
     <label>
       <span>{translate('Search queue')}</span>
       <input
+        name="q"
         bind:value={search}
-        oninput={() => {
-          queuePage = 1;
-          completedPage = 1;
-        }}
+        oninput={resetApprovalPages}
         type="search"
         placeholder={translate('Project, worker, date or record')}
       />
     </label>
     <label
+      ><span>{translate('Client')}</span><select
+        name="client"
+        bind:value={clientFilter}
+        onchange={resetApprovalPages}
+        ><option value="">{translate('All clients')}</option
+        >{#each clientOptions as [clientName, label]}<option value={clientName}>{label}</option
+          >{/each}</select
+      ></label
+    >
+    <label>
+      <span>{translate('From')}</span>
+      <input type="date" name="from" bind:value={fromFilter} onchange={resetApprovalPages} />
+    </label>
+    <label>
+      <span>{translate('To')}</span>
+      <input type="date" name="to" bind:value={toFilter} onchange={resetApprovalPages} />
+    </label>
+    <label
       ><span>{translate('Project')}</span><select
         name="project"
         bind:value={projectFilter}
-        onchange={() => {
-          queuePage = 1;
-          completedPage = 1;
-        }}
+        onchange={resetApprovalPages}
         ><option value="">{translate('All projects')}</option
         >{#each Array.from(new Map(operationalRows
               .filter((row) => value(row, 'project_id'))
@@ -423,10 +518,7 @@
       ><span>{translate('Worker')}</span><select
         name="worker"
         bind:value={workerFilter}
-        onchange={() => {
-          queuePage = 1;
-          completedPage = 1;
-        }}
+        onchange={resetApprovalPages}
         ><option value="">{translate('All workers')}</option
         >{#each Array.from(new Map(operationalRows
               .filter((row) => value(row, 'worker_id'))
@@ -439,10 +531,7 @@
       ><span>{translate('Status')}</span><select
         name="status"
         bind:value={statusFilter}
-        onchange={() => {
-          queuePage = 1;
-          completedPage = 1;
-        }}
+        onchange={resetApprovalPages}
         ><option value="">{translate('All statuses')}</option><option value="attention"
           >{translate('Needs attention')}</option
         ><option value="submitted">{translate('Submitted')}</option><option value="approved"
@@ -452,16 +541,8 @@
     >
     <label>
       <span>{translate('Sort by')}</span>
-      <select
-        name="order"
-        bind:value={order}
-        onchange={() => {
-          queuePage = 1;
-          completedPage = 1;
-          milestonePage = 1;
-          financePage = 1;
-        }}
-      >
+      <select name="order" bind:value={order} onchange={resetApprovalPages}>
+        <option value="priority">{translate('Priority then oldest')}</option>
         <option value="oldest">{translate('Oldest first')}</option>
         <option value="newest">{translate('Newest first')}</option>
         <option value="name">{translate('Name')}</option>
@@ -470,7 +551,7 @@
     </label>
     <label>
       <span>{translate('Review stage')}</span>
-      <select bind:value={stageFilter}>
+      <select name="stage" bind:value={stageFilter}>
         <option value="">{translate('All stages')}</option>
         <option value="operational">{translate('Operational review')}</option>
         <option value="report">{translate('Report review')}</option>
@@ -481,18 +562,10 @@
       </select>
     </label>
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
-    <button
-      type="button"
+    <a
       class="secondary-button"
-      onclick={() => {
-        search = '';
-        stageFilter = '';
-        projectFilter = '';
-        workerFilter = '';
-        statusFilter = '';
-        queuePage = 1;
-        completedPage = 1;
-      }}>{translate('Clear filters')}</button
+      href={`${base}/app/approvals?tab=${activeTab}&q=&stage=&order=priority`}
+      onclick={resetApprovalPages}>{translate('Clear filters')}</a
     >
   </form>
 
@@ -504,12 +577,12 @@
     tabindex="0"
   >
     <SectionCard
-      title={`${translate('Oldest submitted')} · ${tabLabel(activeTab)}`}
+      title={`${translate('Action queue')} · ${tabLabel(activeTab)}`}
       class="approval-list-surface"
     >
       <p class="approval-purpose">
         {translate(
-          'Act on the oldest submitted operational records first. Approved records remain below for audit and correction follow-up.',
+          'Records needing action come first, then explicit priority and oldest date. Approved records remain below for audit and correction follow-up.',
         )}
       </p>
       {#if pagedSubmittedRows.rows.length > 0}
@@ -714,7 +787,7 @@
     <SectionCard title={translate('Project approvals')} class="approval-milestone-surface">
       <p class="approval-purpose">
         {translate(
-          'Approve submitted project milestones. This is separate from operational record review.',
+          'A project appears here when a commercial milestone has been submitted for authorization. Approve confirms that milestone for its next commercial step; Reject returns it with a reason. It does not approve time, expenses or reports.',
         )}
       </p>
       <label class="approval-register-search"
@@ -800,7 +873,9 @@
       class="approval-finance-surface"
     >
       <p class="approval-finance-note">
-        {translate('This separate queue is visible only with an authorized Finance capability.')}
+        {translate(
+          'Finance review starts only after operational approval. Finance must confirm billability or expense treatment before a record can move into billing, reimbursement or settlement; it does not rewrite the operational facts.',
+        )}
       </p>
       <label class="approval-register-search"
         ><span>{translate('Search Finance review')}</span><input
@@ -1018,11 +1093,11 @@
     gap: 0.3rem;
   }
 
-  .approval-filters label:first-child {
+  .approval-filters label:first-of-type {
     flex: 1 1 16rem;
   }
 
-  .approval-filters label:not(:first-child) {
+  .approval-filters label:not(:first-of-type) {
     flex: 0 1 14rem;
   }
 
@@ -1224,7 +1299,7 @@
     }
 
     .approval-filters label,
-    .approval-filters label:not(:first-child) {
+    .approval-filters label:not(:first-of-type) {
       flex: 1 1 auto;
       width: 100%;
     }

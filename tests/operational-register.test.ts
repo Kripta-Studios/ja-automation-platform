@@ -71,6 +71,20 @@ describe('operational register helpers', () => {
     expect(operationalRows.map((row) => row.id)).toEqual(['approved-zoe', 'submitted-ana']);
   });
 
+  it('orders action records by explicit priority and then oldest date', () => {
+    const operationalRows = [
+      { id: 'normal-old', date: '2026-08-01', approval_state: 'submitted', priority: 'normal' },
+      { id: 'high-new', date: '2026-09-01', approval_state: 'submitted', priority: 'high' },
+      { id: 'high-old', date: '2026-08-15', approval_state: 'submitted', priority: 'high' },
+    ];
+
+    expect(
+      operationalSort(operationalRows, 'priority', ['date'], ['id'], ['approval_state']).map(
+        (row) => row.id,
+      ),
+    ).toEqual(['high-old', 'high-new', 'normal-old']);
+  });
+
   it('matches a combined attention filter without including completed history', () => {
     const attention = ['draft', 'submitted', 'needs_changes'];
     expect(operationalStatusMatches('draft', 'attention', attention)).toBe(true);

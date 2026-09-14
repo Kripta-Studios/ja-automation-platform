@@ -1,7 +1,7 @@
 import type { PortalRow } from '../portal-data';
 
 export const OPERATIONAL_REGISTER_PAGE_SIZE = 8;
-export type OperationalOrder = 'newest' | 'oldest' | 'name' | 'status';
+export type OperationalOrder = 'priority' | 'newest' | 'oldest' | 'name' | 'status';
 
 /** Match the words people type, regardless of accents stored in a name or project. */
 export function operationalSearchText(value: unknown): string {
@@ -36,6 +36,31 @@ function operationalField(row: PortalRow, fields: readonly string[]): string {
   return '';
 }
 
+function operationalPriority(row: PortalRow): number {
+  const explicit = operationalSearchText(
+    operationalField(row, ['priority', 'severity', 'urgency']),
+  );
+  const explicitRank: Record<string, number> = {
+    critical: 0,
+    urgent: 0,
+    high: 1,
+    normal: 2,
+    medium: 2,
+    low: 3,
+  };
+  if (explicit in explicitRank) return explicitRank[explicit]!;
+
+  const status = operationalSearchText(
+    operationalField(row, ['approval_state', 'state', 'status']),
+  );
+  const stage = operationalSearchText(operationalField(row, ['review_stage']));
+  if (status === 'needs_changes' || status === 'rejected' || status === 'failed') return 0;
+  if (status === 'submitted' || status === 'pending' || status === 'queued') return 1;
+  if (stage === 'owner_override' || stage === 'correction') return 2;
+  if (status === 'approved' || status === 'completed' || status === 'paid') return 4;
+  return 3;
+}
+
 /** Order an authorized projection without mutating the repository-owned input. */
 export function operationalSort<T extends PortalRow>(
   rows: readonly T[],
@@ -52,6 +77,13 @@ export function operationalSort<T extends PortalRow>(
     const leftStatus = operationalSearchText(operationalField(left, statusFields));
     const rightStatus = operationalSearchText(operationalField(right, statusFields));
     const byId = String(left.id ?? '').localeCompare(String(right.id ?? ''));
+    if (order === 'priority')
+      return (
+        operationalPriority(left) - operationalPriority(right) ||
+        leftDate.localeCompare(rightDate) ||
+        leftName.localeCompare(rightName) ||
+        byId
+      );
     if (order === 'oldest')
       return leftDate.localeCompare(rightDate) || leftName.localeCompare(rightName) || byId;
     if (order === 'name')

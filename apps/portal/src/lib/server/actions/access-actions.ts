@@ -119,6 +119,10 @@ export const accessActions = {
       const passwordHash = await hashPortalPassword(password);
       const workforce = new SupplierWorkforceRepository(opened.context.sqlite);
       const created = workforce.provisionLocalPortalAccount(opened.context.principal, {
+        existingUserId:
+          typeof object.existingUserId === 'string' && object.existingUserId.trim()
+            ? object.existingUserId
+            : undefined,
         name,
         email,
         passwordHash,

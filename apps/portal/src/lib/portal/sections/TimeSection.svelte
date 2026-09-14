@@ -59,6 +59,7 @@
   let createCategory = $state('regular');
   let editCategory = $state('regular');
   let search = $state('');
+  let clientFilter = $state('');
   let statusFilter = $state('');
   let order = $state<OperationalOrder>('newest');
   let registerPage = $state(1);
@@ -88,7 +89,13 @@
   });
 
   const records = $derived(data.records ?? []);
+  const clientOptions = $derived(
+    [...new Set(records.map((row) => String(row.client_name ?? '')).filter(Boolean))].sort(),
+  );
   $effect(() => {
+    const querySearch = $page.url.searchParams.get('q');
+    if (querySearch !== null) search = querySearch.trim();
+    clientFilter = $page.url.searchParams.get('client')?.trim() ?? '';
     statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
     registerPage = 1;
   });
@@ -127,6 +134,7 @@
             'submitted',
             'needs_changes',
           ]) &&
+          (!clientFilter || String(row.client_name ?? '') === clientFilter) &&
           operationalMatches(row, search, [
             'project_number',
             'project_name',
@@ -150,11 +158,21 @@
     const project = overrides.project ?? String(data.timeFilter?.projectId ?? '');
     const category = overrides.category ?? String(data.timeFilter?.category ?? '');
     const status = overrides.status ?? statusFilter;
+    const worker = overrides.worker ?? String(data.timeFilter?.workerId ?? '');
+    const client = overrides.client ?? clientFilter;
+    const from = overrides.from ?? String(data.timeFilter?.from ?? '');
+    const to = overrides.to ?? String(data.timeFilter?.to ?? '');
+    const queryText = overrides.q ?? search;
     const week = data.weekStart ?? '';
     if (week) params.set('week', week);
     if (project) params.set('project', project);
     if (category) params.set('category', category);
     if (status) params.set('status', status);
+    if (worker) params.set('worker', worker);
+    if (client) params.set('client', client);
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    if (queryText) params.set('q', queryText);
     const query = params.toString();
     return `${base}/app/time${query ? `?${query}` : ''}`;
   }
@@ -241,12 +259,49 @@
     <label>
       <span>{translate('Search register')}</span>
       <input
+        name="q"
         bind:value={search}
         oninput={() => (registerPage = 1)}
         type="search"
         placeholder={translate('Project, activity or date')}
       />
     </label>
+    {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
+      <label>
+        <span>{translate('Worker')}</span>
+        <select name="worker">
+          <option value="">{translate('All workers')}</option>
+          {#each data.workers ?? [] as worker}
+            <option
+              value={String(worker.id)}
+              selected={String(data.timeFilter?.workerId ?? '') === String(worker.id)}
+              >{worker.name}</option
+            >
+          {/each}
+        </select>
+      </label>
+    {/if}
+    <label>
+      <span>{translate('Client')}</span>
+      <select name="client" bind:value={clientFilter} onchange={() => (registerPage = 1)}>
+        <option value="">{translate('All clients')}</option>
+        {#each clientOptions as client}<option value={client}>{client}</option>{/each}
+      </select>
+    </label>
+    <label
+      ><span>{translate('From')}</span><input
+        name="from"
+        type="date"
+        value={data.timeFilter?.from ?? ''}
+      /></label
+    >
+    <label
+      ><span>{translate('To')}</span><input
+        name="to"
+        type="date"
+        value={data.timeFilter?.to ?? ''}
+      /></label
+    >
     <label>
       <span>{translate('Project')}</span>
       <select name="project">
@@ -293,8 +348,8 @@
     </label>
     <div class="time-filter-actions">
       <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
-      {#if data.timeFilter?.category || data.timeFilter?.projectId}
-        <a href={`${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}`}
+      {#if data.timeFilter?.category || data.timeFilter?.projectId || data.timeFilter?.workerId || data.timeFilter?.from || data.timeFilter?.to || clientFilter || search || statusFilter}
+        <a href={`${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&q=`}
           >{translate('Clear filters')}</a
         >
       {/if}
@@ -309,10 +364,11 @@
       </div>
       <span class="time-record-count">{filteredRecords.length}</span>
     </div>
-    {#if data.timeFilter?.category || data.timeFilter?.projectId}
+    {#if data.timeFilter?.category || data.timeFilter?.projectId || data.timeFilter?.workerId || data.timeFilter?.from || data.timeFilter?.to || clientFilter}
       <p class="form-help time-filter-note">
         {translate('Filtered view:')}
-        {translate(data.timeFilter.category?.replaceAll('_', ' ') || 'all categories')}.
+        {filteredRecords.length}
+        {translate('matching records')}.
       </p>
     {/if}
     <div class="time-records">

@@ -67,6 +67,7 @@ export type SupplierOperationalTimeRow = Readonly<{
 }>;
 
 export type LocalPortalProvisionInput = Readonly<{
+  existingUserId?: string;
   name: string;
   email: string;
   passwordHash: string;
@@ -383,17 +384,55 @@ export class SupplierWorkforceRepository {
     return this.transaction(() => {
       this.assertOwner(principal);
       assertLiveSession(this.sqlite, principal, AccessDeniedError);
-      if (this.sqlite.prepare('SELECT 1 FROM user WHERE lower(email)=?').get(email))
+      if (
+        this.sqlite
+          .prepare("SELECT 1 FROM user WHERE lower(email)=? AND id<>COALESCE(?,'')")
+          .get(email, input.existingUserId ?? null)
+      )
         throw new ConflictError('An account already exists for this email');
-      const userId = newId();
       const timestamp = now();
-      this.sqlite
-        .prepare(
-          `INSERT INTO user(
-             id,name,email,email_verified,role,status,mfa_enrolled,mfa_required,created_at,updated_at,version
-           ) VALUES(?,?,?,1,?,'active',0,0,?,?,1)`,
+      const userId = input.existingUserId?.trim() || newId();
+      if (input.existingUserId) {
+        const existing = this.sqlite
+          .prepare(
+            `SELECT id,role,status,
+                    EXISTS(SELECT 1 FROM account a WHERE a.user_id=user.id) OR
+                    EXISTS(SELECT 1 FROM passkey pk WHERE pk.user_id=user.id) has_login
+               FROM user WHERE id=?`,
+          )
+          .get(userId) as
+          | { id: string; role: string; status: string; has_login: number }
+          | undefined;
+        if (!existing || existing.status !== 'active')
+          throw new ValidationError('Existing person is not active');
+        if (existing.has_login === 1)
+          throw new ConflictError('This person already has portal access');
+        if (existing.role !== input.role)
+          throw new ValidationError('Existing person role does not match the selected access role');
+        const existingProfile = this.sqlite
+          .prepare('SELECT supplier_id,profile FROM supplier_user_profile WHERE user_id=?')
+          .get(userId) as { supplier_id: string; profile: SupplierProfile } | undefined;
+        if (
+          Boolean(existingProfile) !== Boolean(profile) ||
+          (existingProfile &&
+            (existingProfile.profile !== profile ||
+              existingProfile.supplier_id !== input.supplierId))
         )
-        .run(userId, name, email, input.role, timestamp, timestamp);
+          throw new ValidationError('Existing person supplier profile does not match');
+        this.sqlite
+          .prepare(
+            'UPDATE user SET name=?,email=?,email_verified=1,updated_at=?,version=version+1 WHERE id=?',
+          )
+          .run(name, email, timestamp, userId);
+      } else {
+        this.sqlite
+          .prepare(
+            `INSERT INTO user(
+               id,name,email,email_verified,role,status,mfa_enrolled,mfa_required,created_at,updated_at,version
+             ) VALUES(?,?,?,1,?,'active',0,0,?,?,1)`,
+          )
+          .run(userId, name, email, input.role, timestamp, timestamp);
+      }
       this.sqlite
         .prepare(
           `INSERT INTO account(id,issuer,account_id,provider_id,user_id,password,created_at,updated_at)
@@ -401,7 +440,7 @@ export class SupplierWorkforceRepository {
         )
         .run(newId(), userId, userId, input.passwordHash, timestamp, timestamp);
 
-      if (profile) {
+      if (profile && !input.existingUserId) {
         const supplierId = requiredText(input.supplierId ?? '', 'Supplier');
         this.assertSupplier(supplierId);
         this.sqlite
@@ -423,7 +462,11 @@ export class SupplierWorkforceRepository {
           .prepare(
             `INSERT INTO supplier_contact_directory(
                user_id,phone,company,contact_name,notes,updated_at,updated_by
-             ) VALUES(?,?,?,?,?,?,?)`,
+             ) VALUES(?,?,?,?,?,?,?)
+             ON CONFLICT(user_id) DO UPDATE SET
+               phone=excluded.phone,company=excluded.company,
+               contact_name=excluded.contact_name,notes=excluded.notes,
+               updated_at=excluded.updated_at,updated_by=excluded.updated_by`,
           )
           .run(userId, phone, company, contactName, notes, timestamp, principal.userId);
       recordAuditEvent(this.sqlite, principal, 'supplier.technician.add', 'user', userId, {
@@ -431,6 +474,7 @@ export class SupplierWorkforceRepository {
         supplierProfile: profile ?? null,
         supplierId: profile ? (input.supplierId ?? null) : null,
         credential: 'local_password_hash_created',
+        existingPerson: Boolean(input.existingUserId),
       });
       return { userId, role: input.role, supplierProfile: profile ?? null };
     });

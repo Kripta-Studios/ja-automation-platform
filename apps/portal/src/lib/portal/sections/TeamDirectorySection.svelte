@@ -68,6 +68,14 @@
   let search = $state('');
   let createLocal = $state(true);
   let localRole = $state('worker');
+  let existingUserId = $state('');
+  let localName = $state('');
+  let localEmail = $state('');
+  let localPhone = $state('');
+  let localCompany = $state('');
+  let localContactName = $state('');
+  let localNotes = $state('');
+  let localSupplierId = $state('');
   let revealPassword = $state(false);
   let showAll = $state(false);
   let editingWorkerId = $derived<string | null>($page.url.searchParams.get('worker'));
@@ -201,6 +209,45 @@
         (!$page.url.searchParams.get('project') || workerAssignments(worker).length > 0),
     ),
   );
+  const existingUserCandidates = $derived(
+    (workers ?? []).filter(
+      (worker) =>
+        value(worker, 'status') === 'active' &&
+        value(worker, 'has_portal_access') !== '1' &&
+        !workerIsProtectedOwner(worker),
+    ),
+  );
+
+  function accessRoleForWorker(worker: PortalRow): string {
+    const profile = value(worker, 'workforce_profile');
+    if (profile === 'external_technician' || profile === 'supplier_coordinator') return profile;
+    return value(worker, 'role') || 'worker';
+  }
+
+  function selectExistingPerson(userId: string): void {
+    existingUserId = userId;
+    const worker = existingUserCandidates.find((candidate) => workerId(candidate) === userId);
+    if (!worker) {
+      localName = '';
+      localEmail = '';
+      localPhone = '';
+      localCompany = '';
+      localContactName = '';
+      localNotes = '';
+      localRole = 'worker';
+      localSupplierId = '';
+      return;
+    }
+    localName = workerName(worker);
+    const email = value(worker, 'email');
+    localEmail = email.endsWith('@personnel.invalid') ? '' : email;
+    localPhone = value(worker, 'phone');
+    localCompany = value(worker, 'company');
+    localContactName = value(worker, 'contact_name');
+    localNotes = value(worker, 'notes');
+    localRole = accessRoleForWorker(worker);
+    localSupplierId = value(worker, 'supplier_id');
+  }
 
   function mailboxEmail(mailbox: MailboxRow): string {
     const email = String(mailbox.email ?? '')
@@ -499,21 +546,68 @@
                 autocomplete="off"
               >
                 <label
+                  >{translate('Existing person (optional)')}<select
+                    name="existingUserId"
+                    value={existingUserId}
+                    onchange={(event) =>
+                      selectExistingPerson((event.currentTarget as HTMLSelectElement).value)}
+                  >
+                    <option value="">{translate('Create a new person')}</option>
+                    {#each existingUserCandidates as worker}<option value={workerId(worker)}
+                        >{workerName(worker)} · {value(worker, 'email') ||
+                          translate('email required')}</option
+                      >{/each}
+                  </select></label
+                >
+                <p>
+                  {translate(
+                    'Choose an existing supplier person or team member to add credentials without duplicating their directory record.',
+                  )}
+                </p>
+                <label
                   >{translate('Name')}<input
                     name="name"
+                    bind:value={localName}
                     minlength="2"
                     maxlength="160"
                     required
                   /></label
                 >
-                <label>{translate('Email')}<input name="email" type="email" required /></label>
-                <label>{translate('Phone')}<input name="phone" maxlength="80" /></label>
-                <label>{translate('Company')}<input name="company" maxlength="200" /></label>
                 <label
-                  >{translate('Contact name')}<input name="contactName" maxlength="160" /></label
+                  >{translate('Email')}<input
+                    name="email"
+                    type="email"
+                    bind:value={localEmail}
+                    required
+                  /></label
                 >
                 <label
-                  >{translate('Notes')}<textarea name="notes" maxlength="5000"></textarea></label
+                  >{translate('Phone')}<input
+                    name="phone"
+                    bind:value={localPhone}
+                    maxlength="80"
+                  /></label
+                >
+                <label
+                  >{translate('Company')}<input
+                    name="company"
+                    bind:value={localCompany}
+                    maxlength="200"
+                  /></label
+                >
+                <label
+                  >{translate('Contact name')}<input
+                    name="contactName"
+                    bind:value={localContactName}
+                    maxlength="160"
+                  /></label
+                >
+                <label
+                  >{translate('Notes')}<textarea
+                    name="notes"
+                    bind:value={localNotes}
+                    maxlength="5000"
+                  ></textarea></label
                 >
                 <label
                   >{translate('Access role')}<select name="role" bind:value={localRole}
@@ -528,7 +622,10 @@
                   ></label
                 >
                 {#if ['external_technician', 'supplier_coordinator'].includes(localRole)}<label
-                    >{translate('Supplier')}<select name="supplierId" required
+                    >{translate('Supplier')}<select
+                      name="supplierId"
+                      bind:value={localSupplierId}
+                      required
                       ><option value="">{translate('Select supplier')}</option
                       >{#each suppliers as supplier}<option value={String(supplier.id)}
                           >{supplier.name}</option

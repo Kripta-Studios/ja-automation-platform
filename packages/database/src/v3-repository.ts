@@ -6964,6 +6964,7 @@ export class V3Repository {
         `SELECT r.id,r.project_id,r.period_start,r.period_end,r.audience,r.report_type,r.state,
                 r.snapshot_version,r.snapshot_sha256,r.pdf_storage_key,r.pdf_sha256,r.pdf_byte_length,
                 r.created_at,r.updated_at,p.project_number,p.name project_name,
+                c.display_name client_name,
                 CASE
                   WHEN r.audience<>'customer' THEN NULL
                   WHEN EXISTS(
@@ -6989,6 +6990,7 @@ export class V3Repository {
                     AND c.snapshot_sha256=r.snapshot_sha256 AND ci.id IS NULL
                   ORDER BY c.created_at DESC LIMIT 1) conformity_id
          FROM period_report r JOIN project p ON p.id=r.project_id
+         JOIN client c ON c.id=p.client_id
          ${clauses.length ? `WHERE ${clauses.join(' AND ')}` : ''}
          ORDER BY r.period_start DESC,r.audience,r.id LIMIT 200`,
       )

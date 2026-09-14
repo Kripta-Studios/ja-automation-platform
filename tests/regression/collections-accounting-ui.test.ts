@@ -43,10 +43,12 @@ describe('Collections / Ledger and Accounting sections', () => {
       source.indexOf('class="collections-ledger__filters"'),
     );
 
-    expect(attention.match(/<button/g)).toHaveLength(3);
+    expect(attention.match(/<a/g)).toHaveLength(3);
     expect(attention).not.toContain('<article>');
-    expect(source).toContain("onclick={() => setStatusFilter('partially_paid')}");
-    expect(source).toContain("onclick={() => setStatusFilter('overdue')}");
+    expect(source).toContain("ledgerFilterHref('partially_paid')");
+    expect(source).toContain("ledgerFilterHref('overdue')");
+    expect(source).toContain('name="status"');
+    expect(source).toContain('name="project"');
     expect(source).toContain('href: invoiceHref(row)');
     expect(source).toContain('href={invoiceHref(row)}');
     expect(source).toContain('id="collections-ledger-register"');

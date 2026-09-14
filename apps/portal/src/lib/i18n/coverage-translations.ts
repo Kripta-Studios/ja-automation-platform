@@ -8,6 +8,89 @@ import { explicitCoverageLiterals } from './coverage-literals';
  */
 
 const exact: Record<string, readonly [string, string]> = {
+  'Existing person (optional)': ['Persona existente (opcional)', 'Pessoa existente (opcional)'],
+  'Create a new person': ['Crear una persona nueva', 'Criar uma nova pessoa'],
+  'email required': ['correo obligatorio', 'e-mail obrigatório'],
+  'Choose an existing supplier person or team member to add credentials without duplicating their directory record.':
+    [
+      'Elige una persona de supplier o del equipo ya existente para añadir credenciales sin duplicar su ficha del directorio.',
+      'Escolha uma pessoa de fornecedor ou da equipe já existente para adicionar credenciais sem duplicar seu registro no diretório.',
+    ],
+  'Priority then oldest': ['Prioridad y después más antiguos', 'Prioridade e depois mais antigos'],
+  'All workers': ['Todos los trabajadores', 'Todos os colaboradores'],
+  'All clients': ['Todos los clientes', 'Todos os clientes'],
+  'All currencies': ['Todas las monedas', 'Todas as moedas'],
+  'Invoice data': ['Datos de la factura', 'Dados da fatura'],
+  Missing: ['Falta', 'Ausente'],
+  Taxes: ['Impuestos', 'Impostos'],
+  'Open record': ['Abrir registro', 'Abrir registro'],
+  'Not generated yet': ['Todavía no generado', 'Ainda não gerado'],
+  'Sign in again to continue.': [
+    'Inicia sesión de nuevo para continuar.',
+    'Entre novamente para continuar.',
+  ],
+  'You do not have permission to generate this PDF or its source is unavailable.': [
+    'No tienes permiso para generar este PDF o su fuente no está disponible.',
+    'Você não tem permissão para gerar este PDF ou a fonte não está disponível.',
+  ],
+  'The source changed. Refresh this page and generate the PDF again.': [
+    'La fuente cambió. Actualiza esta página y vuelve a generar el PDF.',
+    'A fonte mudou. Atualize esta página e gere o PDF novamente.',
+  ],
+  'The PDF could not be generated. Try again shortly.': [
+    'No se pudo generar el PDF. Vuelve a intentarlo en unos instantes.',
+    'Não foi possível gerar o PDF. Tente novamente em instantes.',
+  ],
+  'The PDF list could not be loaded.': [
+    'No se pudo cargar la lista de PDF.',
+    'Não foi possível carregar a lista de PDF.',
+  ],
+  'matching records': ['registros coincidentes', 'registros correspondentes'],
+  'Export filtered results': ['Exportar resultados filtrados', 'Exportar resultados filtrados'],
+  'Download exactly the expenses currently selected by the register filters.': [
+    'Descarga exactamente los gastos seleccionados por los filtros del registro.',
+    'Baixe exatamente as despesas selecionadas pelos filtros do registro.',
+  ],
+  'Create report with another scope': [
+    'Crear reporte con otro alcance',
+    'Criar relatório com outro escopo',
+  ],
+  'Choose a separate period and scope without changing the register above.': [
+    'Elige un período y alcance independientes sin cambiar el registro superior.',
+    'Escolha um período e escopo separados sem alterar o registro acima.',
+  ],
+  'Workers submit Daily or Technical reports, the Project Manager or Owner reviews the operational facts, Finance or Owner generates the customer-safe period file, and an authorized Owner or Finance user records the customer signed copy.':
+    [
+      'Los trabajadores envían informes diarios o técnicos, el gestor del proyecto o el propietario revisa los hechos operativos, Finanzas o el propietario genera el archivo de período seguro para el cliente y un usuario autorizado registra la copia firmada por el cliente.',
+      'Os colaboradores enviam relatórios diários ou técnicos, o gestor do projeto ou o proprietário revisa os fatos operacionais, Finanças ou o proprietário gera o arquivo de período seguro para o cliente e um usuário autorizado registra a cópia assinada pelo cliente.',
+    ],
+  'Create source report': ['Crear reporte de origen', 'Criar relatório de origem'],
+  'Current source records': ['Registros de origen actuales', 'Registros de origem atuais'],
+  'No reviewed operational sources in this period': [
+    'No hay fuentes operativas revisadas en este período',
+    'Não há fontes operacionais revisadas neste período',
+  ],
+  'This period has no Daily, Technical / PLC or time source records. Create or review the missing operational records before recalculating the period file.':
+    [
+      'Este período no tiene registros de origen diarios, técnicos / PLC ni de horas. Crea o revisa los registros operativos que faltan antes de recalcular el archivo del período.',
+      'Este período não tem registros de origem diários, técnicos / PLC nem de horas. Crie ou revise os registros operacionais ausentes antes de recalcular o arquivo do período.',
+    ],
+  'Action queue': ['Cola de acciones', 'Fila de ações'],
+  'Records needing action come first, then explicit priority and oldest date. Approved records remain below for audit and correction follow-up.':
+    [
+      'Primero aparecen los registros que necesitan acción, después la prioridad explícita y la fecha más antigua. Los aprobados permanecen debajo para auditoría y seguimiento de correcciones.',
+      'Primeiro aparecem os registros que exigem ação, depois a prioridade explícita e a data mais antiga. Os aprovados permanecem abaixo para auditoria e acompanhamento de correções.',
+    ],
+  'A project appears here when a commercial milestone has been submitted for authorization. Approve confirms that milestone for its next commercial step; Reject returns it with a reason. It does not approve time, expenses or reports.':
+    [
+      'Un proyecto aparece aquí cuando se envía un hito comercial para autorización. Aprobar confirma ese hito para su siguiente paso comercial; Rechazar lo devuelve con un motivo. No aprueba horas, gastos ni reportes.',
+      'Um projeto aparece aqui quando um marco comercial é enviado para autorização. Aprovar confirma esse marco para a próxima etapa comercial; Rejeitar o devolve com um motivo. Isso não aprova horas, despesas nem relatórios.',
+    ],
+  'Finance review starts only after operational approval. Finance must confirm billability or expense treatment before a record can move into billing, reimbursement or settlement; it does not rewrite the operational facts.':
+    [
+      'La revisión financiera comienza después de la aprobación operativa. Finanzas debe confirmar la facturabilidad o el tratamiento del gasto antes de que un registro pase a facturación, reembolso o liquidación; no reescribe los hechos operativos.',
+      'A revisão financeira começa após a aprovação operacional. Finanças deve confirmar a faturabilidade ou o tratamento da despesa antes que um registro avance para faturamento, reembolso ou liquidação; ela não reescreve os fatos operacionais.',
+    ],
   Corrections: ['Correcciones', 'Correções'],
   'No records found': ['No se encontraron registros', 'Nenhum registro encontrado'],
   'Upload document': ['Subir documento', 'Enviar documento'],

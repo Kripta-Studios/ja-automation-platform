@@ -69,7 +69,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
     })();
     const common = {
       workers:
-        ['owner_admin', 'project_manager'].includes(context.principal.role) &&
+        ['owner_admin', 'project_manager', 'finance_admin'].includes(context.principal.role) &&
         ['time', 'expenses', 'reports'].includes(section)
           ? context.repository
               .listAllWorkers(context.principal)
@@ -155,6 +155,9 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             : undefined;
         const category = url.searchParams.get('category')?.trim() || undefined;
         const projectId = url.searchParams.get('project')?.trim() || undefined;
+        const workerId = url.searchParams.get('worker')?.trim() || undefined;
+        const from = url.searchParams.get('from')?.trim() || undefined;
+        const to = url.searchParams.get('to')?.trim() || undefined;
         return {
           ...common,
           projects: context.repository.listAssignedProjects(context.principal),
@@ -162,15 +165,17 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             .listTimeForScope(context.principal, {
               category,
               projectId,
-              from: url.searchParams.get('from') || undefined,
-              to: url.searchParams.get('to') || undefined,
+              from,
+              to,
             })
-            .filter(
-              (row) =>
-                !url.searchParams.get('worker') ||
-                String(row.worker_id) === url.searchParams.get('worker'),
-            ),
-          timeFilter: { category: category ?? '', projectId: projectId ?? '' },
+            .filter((row) => !workerId || String(row.worker_id) === workerId),
+          timeFilter: {
+            category: category ?? '',
+            projectId: projectId ?? '',
+            workerId: workerId ?? '',
+            from: from ?? '',
+            to: to ?? '',
+          },
           weekStart,
           weekEnd: week.weekEnd,
           timesheet,
@@ -321,6 +326,25 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             mailboxesUnavailable = true;
           }
         }
+        const portalAccessForUser = canonicalOwner
+          ? context.sqlite.prepare(
+              `SELECT
+                 EXISTS(
+                   SELECT 1 FROM account a
+                    WHERE a.user_id=?
+                      AND (a.provider_id<>'credential' OR length(COALESCE(a.password,''))>0)
+                 ) OR EXISTS(SELECT 1 FROM passkey pk WHERE pk.user_id=?) has_portal_access`,
+            )
+          : null;
+        const supplierDirectoryForUser = canonicalOwner
+          ? context.sqlite.prepare(
+              `SELECT profile workforce_profile,supplier_id,
+                      d.phone,d.company,d.contact_name,d.notes
+                 FROM supplier_user_profile p
+                 LEFT JOIN supplier_contact_directory d ON d.user_id=p.user_id
+                WHERE p.user_id=?`,
+            )
+          : null;
         return {
           ...common,
           projects: directoryProjects,
@@ -339,11 +363,10 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               ? context.repository.listAllWorkers(context.principal).map((worker) => ({
                   ...worker,
                   ...(canonicalOwner
-                    ? (context.sqlite
-                        .prepare(
-                          'SELECT profile workforce_profile,supplier_id FROM supplier_user_profile WHERE user_id=?',
-                        )
-                        .get(String(worker.id)) ?? {})
+                    ? {
+                        ...(supplierDirectoryForUser?.get(String(worker.id)) ?? {}),
+                        ...(portalAccessForUser?.get(String(worker.id), String(worker.id)) ?? {}),
+                      }
                     : {}),
                 }))
               : [],
@@ -366,7 +389,13 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           })),
         };
       }
-      case 'approvals':
+      case 'approvals': {
+        const approvalIdentity = context.sqlite.prepare(
+          `SELECT p.name project_name,p.project_number,c.display_name client_name
+             FROM project p
+             JOIN client c ON c.id=p.client_id
+            WHERE p.id=?`,
+        );
         return {
           ...common,
           records: (isProjectManager
@@ -380,21 +409,23 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               context.sqlite
                 .prepare('SELECT name FROM user WHERE id=?')
                 .get(String(row.worker_id ?? ''))?.name ?? '',
-            project_name:
-              context.sqlite
-                .prepare('SELECT name FROM project WHERE id=?')
-                .get(String(row.project_id ?? ''))?.name ?? '',
+            ...(approvalIdentity.get(String(row.project_id ?? '')) ?? {}),
           })),
-          milestones: isProjectManager
+          milestones: (isProjectManager
             ? projectManagerMilestoneProjection(
                 context.repository.listMilestonesForReview(context.principal),
               )
-            : context.repository.listMilestonesForReview(context.principal),
+            : context.repository.listMilestonesForReview(context.principal)
+          ).map((row) => ({
+            ...row,
+            ...(approvalIdentity.get(String(row.project_id ?? '')) ?? {}),
+          })),
           technicalChanges:
             context.principal.role === 'owner_admin' || context.principal.role === 'project_manager'
               ? context.v3.listTechnicalChanges(context.principal, true)
               : [],
         };
+      }
       case 'planning':
         return {
           ...common,

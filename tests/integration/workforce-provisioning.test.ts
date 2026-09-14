@@ -93,3 +93,34 @@ it('provisions read-only auditors and preserves the role boundary', async () => 
     }),
   ).toThrow(/worker accounts/);
 });
+
+it('adds credentials to an existing supplier person without duplicating the directory record', async () => {
+  const f = setup();
+  const supplier = f.workforce.createSupplier(f.owner, { name: 'Existing supplier' });
+  const technician = f.workforce.addTechnician(f.owner, {
+    projectId: f.project.id,
+    name: 'Existing technician',
+    email: 'existing@other-company.test',
+    startsOn: '2026-01-01',
+    supplierId: supplier.id,
+  });
+  const before = Number(f.sqlite.prepare('SELECT COUNT(*) count FROM user').get()?.count);
+
+  const result = f.workforce.provisionLocalPortalAccount(f.owner, {
+    existingUserId: technician.id,
+    name: 'Existing technician',
+    email: 'existing@other-company.test',
+    passwordHash: await hashPassword('Test-only-existing-password!'),
+    role: 'worker',
+    supplierProfile: 'external_technician',
+    supplierId: supplier.id,
+  });
+
+  expect(result.userId).toBe(technician.id);
+  expect(Number(f.sqlite.prepare('SELECT COUNT(*) count FROM user').get()?.count)).toBe(before);
+  expect(
+    f.sqlite.prepare('SELECT user_id FROM account WHERE user_id=?').get(technician.id),
+  ).toEqual({
+    user_id: technician.id,
+  });
+});

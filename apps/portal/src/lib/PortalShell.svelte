@@ -1913,7 +1913,6 @@
                     name="billingContactName"
                     minlength="2"
                     value={clientFormValue('billingContactName')}
-                    required
                   /><small>{translate('Required when no billing email is provided')}</small></label
                 ><label
                   >{translate('Billing contact email')}<input
@@ -2695,7 +2694,12 @@
               label="Assignment history"
             />
             {#each assignmentPage as assignment}
-              <article class="record-card">
+              <a
+                class="record-card-link"
+                href={canManageAssignmentControls
+                  ? `${base}/app/projects?action=update-assignment&project=${encodeURIComponent(String(assignment.project_id ?? ''))}&worker=${encodeURIComponent(String(assignment.worker_id ?? assignment.user_id ?? ''))}`
+                  : `${base}/app/projects/${encodeURIComponent(String(assignment.project_id ?? ''))}`}
+              >
                 <div>
                   <strong>{assignment.project_number} · {assignment.project_name}</strong>
                   <small
@@ -2706,7 +2710,8 @@
                     )}</small
                   >
                 </div>
-              </article>
+                <span class="record-card-open">{translate('Open record →')}</span>
+              </a>
             {:else}<div class="empty">{translate('No assignments recorded.')}</div>{/each}
           </section>
         {/if}

@@ -83,6 +83,16 @@
     return actionData(await response.json().catch(() => null));
   }
 
+  function responseError(response: Response, body: Record<string, unknown>): string {
+    if (typeof body.error === 'string' && body.error.trim()) return t(body.error.trim());
+    if (response.status === 401) return t('Sign in again to continue.');
+    if (response.status === 403 || response.status === 404)
+      return t('You do not have permission to generate this PDF or its source is unavailable.');
+    if (response.status === 409)
+      return t('The source changed. Refresh this page and generate the PDF again.');
+    return t('The PDF could not be generated. Try again shortly.');
+  }
+
   async function refresh(options: { silent?: boolean } = {}): Promise<void> {
     if (!ownerId) return;
     if (!options.silent) loading = true;
@@ -93,7 +103,7 @@
         headers: { accept: 'application/json' },
       });
       const body = await jsonResponse(response);
-      if (!response.ok) throw new Error('localized_pdf_list_failed');
+      if (!response.ok) throw new Error(responseError(response, body));
       const next = Array.isArray(body.variants)
         ? body.variants
             .map(normalizeLocalizedPdfVariant)
@@ -101,8 +111,9 @@
         : [];
       variants = next;
       loaded = true;
-    } catch {
-      errorMessage = t('Error');
+    } catch (error) {
+      errorMessage =
+        error instanceof Error ? error.message : t('The PDF list could not be loaded.');
     } finally {
       if (!options.silent) loading = false;
     }
@@ -121,12 +132,14 @@
       });
       const body = await jsonResponse(response);
       const next = normalizeLocalizedPdfVariant(body.variant);
-      if (!response.ok || !next) throw new Error('localized_pdf_request_failed');
+      if (!response.ok || !next) throw new Error(responseError(response, body));
       variants = mergeLocalizedPdfVariant(visibleVariants, next);
       loaded = true;
-      loaded = true;
-    } catch {
-      errorMessage = t('Error');
+    } catch (error) {
+      errorMessage =
+        error instanceof Error
+          ? error.message
+          : t('The PDF could not be generated. Try again shortly.');
     } finally {
       submittingLocale = null;
     }
@@ -144,11 +157,14 @@
       });
       const body = await jsonResponse(response);
       const next = normalizeLocalizedPdfVariant(body.variant);
-      if (!response.ok || !next) throw new Error('localized_pdf_retry_failed');
+      if (!response.ok || !next) throw new Error(responseError(response, body));
       variants = mergeLocalizedPdfVariant(visibleVariants, next);
       loaded = true;
-    } catch {
-      errorMessage = t('Error');
+    } catch (error) {
+      errorMessage =
+        error instanceof Error
+          ? error.message
+          : t('The PDF could not be generated. Try again shortly.');
     } finally {
       retryingVariantId = null;
     }
@@ -243,7 +259,7 @@
       {/if}
     </div>
     <p id={`${languageId}-help`} class="localized-pdf-help">
-      {#if selectedVariant}{t(selectedVariant.status)}{:else}{t('No data')}{/if}
+      {#if selectedVariant}{t(selectedVariant.status)}{:else}{t('Not generated yet')}{/if}
     </p>
   </div>
 
@@ -266,7 +282,9 @@
               {t(variant.status)}
             </span>
           {:else}
-            <span class="localized-pdf-status localized-pdf-status-neutral">{t('No data')}</span>
+            <span class="localized-pdf-status localized-pdf-status-neutral"
+              >{t('Not generated yet')}</span
+            >
           {/if}
         </div>
         <div class="localized-pdf-variant-actions">
@@ -289,7 +307,7 @@
           {:else if variant}
             <span>{t(variant.status)}</span>
           {:else}
-            <span>{t('No data')}</span>
+            <span>{t('Not generated yet')}</span>
           {/if}
         </div>
       </li>

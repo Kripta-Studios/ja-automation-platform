@@ -4755,11 +4755,7 @@ export class PortalRepository {
         }
         subtotal = money(rule.currency, capRemaining);
       }
-      if (
-        rule.billing_model === 'all_in' &&
-        rule.stream_type === 'labor' &&
-        fixedAmount !== null
-      ) {
+      if (rule.billing_model === 'all_in' && rule.stream_type === 'labor' && fixedAmount !== null) {
         const coveredSources = new Map<string, { id: string; version: number }>();
         for (const slice of this.billingTimeSlices(rule.project_id, periodStart, periodEnd)) {
           if (
@@ -6990,7 +6986,7 @@ export class PortalRepository {
     }
     const daily = this.sqlite
       .prepare(
-        `SELECT 'daily' type,d.id,d.project_id,d.work_date date,d.summary title,d.approval_state,d.version,
+        `SELECT 'daily' type,d.id,d.project_id,d.worker_id,d.work_date date,d.summary title,d.approval_state,d.version,
                 d.safety_related,p.project_number,p.name project_name,u.name author_name,u.email author_email,
                 COALESCE(creator.name,u.name) created_by_name,COALESCE(creator.email,u.email) created_by_email,
                 reviewer.name reviewed_by_name,c.display_name client_name
@@ -7007,7 +7003,7 @@ export class PortalRepository {
       .all(...dailyValues) as Array<Record<string, unknown>>;
     const technical = this.sqlite
       .prepare(
-        `SELECT 'technical' type,t.id,t.project_id,t.report_date date,t.system_name title,t.approval_state,
+        `SELECT 'technical' type,t.id,t.project_id,t.author_id worker_id,t.report_date date,t.system_name title,t.approval_state,
                 t.version,t.safety_related,p.project_number,p.name project_name,u.name author_name,u.email author_email,
                 COALESCE(creator.name,u.name) created_by_name,COALESCE(creator.email,u.email) created_by_email,
                 reviewer.name reviewed_by_name,c.display_name client_name

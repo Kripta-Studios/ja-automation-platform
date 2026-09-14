@@ -303,6 +303,21 @@
     return id ? `${base}/app/${kind}/${encodeURIComponent(id)}` : projectWorkflowHref(kind);
   }
 
+  function workerSourceHref(row: Row | Record<string, unknown>): string {
+    const query = new URLSearchParams();
+    const workerId = value(row, 'workerId', 'worker_id', 'id');
+    if (workerId) query.set('worker', workerId);
+    if (data.selectedProjectId) query.set('project', data.selectedProjectId);
+    return `${base}/app/time?${query.toString()}`;
+  }
+
+  function ledgerHref(status: string): string {
+    const query = new URLSearchParams();
+    if (data.selectedProjectId) query.set('project', data.selectedProjectId);
+    if (status) query.set('status', status);
+    return `${base}/app/ledger?${query.toString()}`;
+  }
+
   const projectionReasonMessages: Record<string, string> = {
     missing_client_rate: 'Client rate is missing for a source record.',
     missing_internal_cost: 'Internal cost is missing for a source record.',
@@ -831,13 +846,19 @@
         </div>
 
         <div class="finance-overview__cash" aria-label={translate('Cash and liquidity')}>
-          <span data-metric="collected"
+          <a
+            class="finance-overview__cash-link"
+            href={ledgerHref('collected')}
+            data-metric="collected"
             >{translate('Collected (actual)')}:
-            <strong>{displayMoney(finance.paidMinor, finance.currency)}</strong></span
+            <strong>{displayMoney(finance.paidMinor, finance.currency)}</strong></a
           >
-          <span data-metric="outstanding"
+          <a
+            class="finance-overview__cash-link"
+            href={ledgerHref('outstanding')}
+            data-metric="outstanding"
             >{translate('Outstanding (actual)')}:
-            <strong>{displayMoney(finance.receivableMinor, finance.currency)}</strong></span
+            <strong>{displayMoney(finance.receivableMinor, finance.currency)}</strong></a
           >
           <span data-metric="approved-wip"
             >{translate('Approved unbilled WIP')}:
@@ -1101,7 +1122,11 @@
                   <tbody>
                     {#each sourceRowsPage as row}
                       <tr>
-                        <td>{value(row, 'workerName', 'worker_name') || '—'}</td>
+                        <td>
+                          <a class="finance-overview__source-link" href={workerSourceHref(row)}>
+                            {value(row, 'workerName', 'worker_name') || '—'}
+                          </a>
+                        </td>
                         <td>{value(row, 'currency') || '—'}</td>
                         <td>{displayHours(value(row, 'actualMinutes', 'actual_minutes'))}</td>
                         <td>{displayHours(value(row, 'billableMinutes', 'billable_minutes'))}</td>
@@ -1631,7 +1656,14 @@
               <tbody>
                 {#each sourceRowsPage as settlement}
                   <tr>
-                    <td>{value(settlement, 'workerName', 'worker_name') || '—'}</td>
+                    <td>
+                      <a
+                        class="finance-overview__source-link"
+                        href={`#compensation-settlement-${encodeURIComponent(value(settlement, 'id'))}`}
+                      >
+                        {value(settlement, 'workerName', 'worker_name') || '—'}
+                      </a>
+                    </td>
                     <td
                       >{value(settlement, 'periodStart', 'period_start')} → {value(
                         settlement,
@@ -1739,7 +1771,10 @@
                   'remaining_amount_minor',
                 )}
                 {@const settlementPayments = paymentsForSettlement(settlementId)}
-                <article class="finance-overview__payment-register">
+                <article
+                  class="finance-overview__payment-register"
+                  id={`compensation-settlement-${settlementId}`}
+                >
                   <div class="finance-overview__payment-register-heading">
                     <div>
                       <strong>{value(settlement, 'workerName', 'worker_name')}</strong>
@@ -1924,12 +1959,17 @@
                 data-reimbursement-id={value(reimbursement, 'id')}
               >
                 <div>
-                  <strong
-                    >{value(reimbursement, 'workerName', 'worker_name')} · {value(
-                      reimbursement,
-                      'vendor',
-                    ) || translate('Expense')}</strong
-                  >
+                  <strong>
+                    <a
+                      class="finance-overview__source-link"
+                      href={`${base}/app/expenses/${encodeURIComponent(value(reimbursement, 'id'))}`}
+                    >
+                      {value(reimbursement, 'workerName', 'worker_name')} · {value(
+                        reimbursement,
+                        'vendor',
+                      ) || translate('Expense')}
+                    </a>
+                  </strong>
                   <small>
                     {value(reimbursement, 'spentOn', 'spent_on')} · {categoryLabel(
                       reimbursement.category,
@@ -2068,11 +2108,24 @@
     background: color-mix(in srgb, var(--portal-surface, #fff) 88%, var(--portal-wash, #eef2f5));
   }
 
-  .finance-overview__cash span {
+  .finance-overview__cash span,
+  .finance-overview__cash-link {
     display: grid;
     gap: 0.2rem;
     color: var(--portal-muted, #64748b);
     font-size: 0.78rem;
+  }
+
+  .finance-overview__cash-link {
+    border-radius: 0.45rem;
+    text-decoration: none;
+  }
+
+  .finance-overview__cash-link:hover,
+  .finance-overview__cash-link:focus-visible {
+    color: var(--portal-link, #0f5f75);
+    outline: 2px solid color-mix(in srgb, var(--portal-link, #0f5f75) 35%, transparent);
+    outline-offset: 0.2rem;
   }
 
   .finance-overview__cash strong {

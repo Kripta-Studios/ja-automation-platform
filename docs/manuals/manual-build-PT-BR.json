@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-09-12T07:43:41.754Z",
+  "generatedAt": "2026-09-14T18:50:51.116Z",
   "environment": "synthetic",
-  "sourceCommit": "2b0c1c8727fd460d510e4b1410944a1d0602e8d0",
-  "sourceDigest": "de0f0624d44bc9a874cba23f12dc86da0aa0dfd6defd61e628ac9062521cb9f4",
+  "sourceCommit": "a9081c537dbbc9d634c16edaff2d398bbc63d913",
+  "sourceDigest": "80ace3cdcc351968b5cb7c0bfc6548ceba6c6d7eba7900b661b273053a309084",
   "captureManifest": "docs/manuals/validation/current-capture.json",
-  "capturedAt": "2026-09-12T07:43:26.758Z",
+  "capturedAt": "2026-09-14T18:50:32.607Z",
   "checks": [
     {
       "name": "navigation:owner:/app",
@@ -67,7 +67,7 @@
       "httpStatus": 200
     },
     {
-      "name": "navigation:owner:/app/projects/01a09491-75b4-713b-898b-20b7a3bf66c9",
+      "name": "navigation:owner:/app/projects/01a0a140-e064-72c0-81ff-b74a08f3b079",
       "status": "passed",
       "httpStatus": 200
     },
@@ -82,7 +82,7 @@
       "httpStatus": 200
     },
     {
-      "name": "navigation:owner:/app/billing/invoices/01a09491-76d3-7298-98d8-3663b2397d95",
+      "name": "navigation:owner:/app/billing/invoices/01a0a140-e15e-72a8-bf2d-ef5aad5db11c",
       "status": "passed",
       "httpStatus": 200
     },
@@ -132,12 +132,12 @@
       "httpStatus": 200
     },
     {
-      "name": "navigation:owner:/app/reports/period/01a09491-76fb-724b-9a86-3c4daf15d3c7",
+      "name": "navigation:owner:/app/reports/period/01a0a140-e182-743e-a6a4-46b4ad3aa431",
       "status": "passed",
       "httpStatus": 200
     },
     {
-      "name": "navigation:owner:/app/projects/01a09491-75b4-713b-898b-20b7a3bf66c9/closeout",
+      "name": "navigation:owner:/app/projects/01a0a140-e064-72c0-81ff-b74a08f3b079/closeout",
       "status": "passed",
       "httpStatus": 200
     },
@@ -219,7 +219,7 @@
       "httpStatus": 200
     },
     {
-      "name": "navigation:worker:/app/projects/01a09491-75b4-713b-898b-20b7a3bf66c9",
+      "name": "navigation:worker:/app/projects/01a0a140-e064-72c0-81ff-b74a08f3b079",
       "status": "passed",
       "httpStatus": 200
     },
@@ -294,7 +294,7 @@
       "role": "owner",
       "route": "/app/projects",
       "path": "docs/manuals/screenshots/current/owner/projects.png",
-      "sha256": "d9f7658e44c30863f05ccdad94ecf3a1c9faa8fe1134da50362f1267685a98f9",
+      "sha256": "89554ca158c0ecc26a3901ce5cc871af24d6081242c38138c3a7543686bfa02b",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -305,7 +305,7 @@
       "role": "owner",
       "route": "/app/time",
       "path": "docs/manuals/screenshots/current/owner/time.png",
-      "sha256": "908162471511b7f6bc8d7ed0140444f3f01316790ecb97bb6f0ab77e08e1467c",
+      "sha256": "25eb9f472887483cdb0ddf1991d23286111361d21d93c75ba2d35652cd591171",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -316,7 +316,7 @@
       "role": "owner",
       "route": "/app/reports",
       "path": "docs/manuals/screenshots/current/owner/reports.png",
-      "sha256": "56f2b72d7d83a8e121d1fedd119378bded19dc28b2c718f3322fed011b17424f",
+      "sha256": "bca6b7438bdb670d9aaf4eb833ce8f57c6856b35eb6a5fb78c7edc392789428e",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -327,7 +327,7 @@
       "role": "owner",
       "route": "/app/expenses",
       "path": "docs/manuals/screenshots/current/owner/expenses.png",
-      "sha256": "5da23c05cf8cc42af38c5bfa5eeb1e2fa9fce9274e74b776aafb46921f8aeb69",
+      "sha256": "ea83b5c845a864658207059cc3f7fe8df45c8fa3c27b4f341e9efa115819db0f",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -371,7 +371,7 @@
       "role": "owner",
       "route": "/app/notifications",
       "path": "docs/manuals/screenshots/current/owner/notifications.png",
-      "sha256": "69d3b7a42181eb23d24a05607a2108bd0387d8aeff5f25f7b5e2246d21a1aec6",
+      "sha256": "24decef6b1dc372a801215e185b2cff3c4051f99f72e62c8df9fc756e5bc7588",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -413,7 +413,7 @@
     {
       "key": "project-detail",
       "role": "owner",
-      "route": "/app/projects/01a09491-75b4-713b-898b-20b7a3bf66c9",
+      "route": "/app/projects/01a0a140-e064-72c0-81ff-b74a08f3b079",
       "path": "docs/manuals/screenshots/current/owner/project-detail.png",
       "sha256": "b0ee477b1cef3592f6104cccdaacb62d017e7beb90f639c86c9b59d6f9f00adc",
       "viewport": {
@@ -426,7 +426,7 @@
       "role": "owner",
       "route": "/app/approvals",
       "path": "docs/manuals/screenshots/current/owner/approvals.png",
-      "sha256": "5782b316402879fa470a83d5732b040ed867ba8bd0d3cdafc5c2b5f8b6ef9113",
+      "sha256": "1679f634dc7840d8e168b39c8de325c66f8979ea40b82d2e8d6d818a2e1326e6",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -446,9 +446,9 @@
     {
       "key": "invoice-detail",
       "role": "owner",
-      "route": "/app/billing/invoices/01a09491-76d3-7298-98d8-3663b2397d95",
+      "route": "/app/billing/invoices/01a0a140-e15e-72a8-bf2d-ef5aad5db11c",
       "path": "docs/manuals/screenshots/current/owner/invoice-detail.png",
-      "sha256": "094598194af5fb79595a325eafabab3ddb9084ab4a15d5b2ba92fd89a5c28a5a",
+      "sha256": "9aad88f4a8b799d827a0e088e4288f1ec87fc490e04e2035855c74dbccd7df8a",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -492,7 +492,7 @@
       "role": "owner",
       "route": "/app/ledger",
       "path": "docs/manuals/screenshots/current/owner/ledger.png",
-      "sha256": "c4a7f2be08dd681f15603a6d241ec8326e41a670ab1920643c06872c4ce1c1ba",
+      "sha256": "66d4cee3a7c6878fee65d2f27ea64fdfa69bbbd982f6fb6e035be6bafdd29698",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -514,7 +514,7 @@
       "role": "owner",
       "route": "/app/audit",
       "path": "docs/manuals/screenshots/current/owner/audit.png",
-      "sha256": "0c515bcccc1e49eccc2c3c34cef04091d89cdecdb5824ebe6fc4c19fc6ce34fb",
+      "sha256": "c7f2ea640353a02f4911873b4a86b591ce5f97e6384089707622e2a506d44a89",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -556,7 +556,7 @@
     {
       "key": "period-detail",
       "role": "owner",
-      "route": "/app/reports/period/01a09491-76fb-724b-9a86-3c4daf15d3c7",
+      "route": "/app/reports/period/01a0a140-e182-743e-a6a4-46b4ad3aa431",
       "path": "docs/manuals/screenshots/current/owner/period-detail.png",
       "sha256": "8ebbbd6f891b27527100130134c8d5f9986a4ff63ec76d9cb726ca84625f259d",
       "viewport": {
@@ -567,9 +567,9 @@
     {
       "key": "closeout",
       "role": "owner",
-      "route": "/app/projects/01a09491-75b4-713b-898b-20b7a3bf66c9/closeout",
+      "route": "/app/projects/01a0a140-e064-72c0-81ff-b74a08f3b079/closeout",
       "path": "docs/manuals/screenshots/current/owner/closeout.png",
-      "sha256": "6825e0e77367923d4a7ef371b2ae13edcde3b3d21cd62f8a6d7e25fa11ba1c7b",
+      "sha256": "dda67cf65803d6f511fb05a009b8a9f4f28a55e1d82bf69d68b80c5c860ae173",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -624,7 +624,7 @@
       "role": "worker",
       "route": "/app/projects",
       "path": "docs/manuals/screenshots/current/worker/projects.png",
-      "sha256": "8b26084a23d441d10dbcb32cdfd6e06aec6bd49e2fd6323aceb2d03257fe9306",
+      "sha256": "9c6720ac241a1bb265f0132a2672e37b96a42aa8a55a436bca21781c2457f1cc",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -635,7 +635,7 @@
       "role": "worker",
       "route": "/app/time",
       "path": "docs/manuals/screenshots/current/worker/time.png",
-      "sha256": "7f1d753b6ca6759ac012bbcc122134ce419bd84489523bfc3338339346755100",
+      "sha256": "d545e3d796ffa971fb61db3de399703f811278d6c566baf7ead8829c77d1748e",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -646,7 +646,7 @@
       "role": "worker",
       "route": "/app/time",
       "path": "docs/manuals/screenshots/current/worker/time-form.png",
-      "sha256": "073b4d59c5f81728684159261ce828b0cf0d239de8a9e769482c3d56d66b1d44",
+      "sha256": "1cfc64b1f788010d69836b076ad7887340f596aa14def2e6400d7127e38dba38",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -657,7 +657,7 @@
       "role": "worker",
       "route": "/app/reports",
       "path": "docs/manuals/screenshots/current/worker/reports.png",
-      "sha256": "8f13bd21b7038ddbc9d245b31a5d3c3e09a713396f18bba1427bfbe8058463d1",
+      "sha256": "b7a023d63d6636ed1a4c0e390483af38d02f2b17621631408fe30b06b02b7fa1",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -668,7 +668,7 @@
       "role": "worker",
       "route": "/app/reports",
       "path": "docs/manuals/screenshots/current/worker/reports-form.png",
-      "sha256": "75bfe7392f51d9be3509409477ee1eb04d9baf8129441a871b0c953c0cc68295",
+      "sha256": "4ed87f09805d48f69912ac2d2741a5bb022fa6f1fe6c34f4cde594e14c6847bc",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -679,7 +679,7 @@
       "role": "worker",
       "route": "/app/expenses",
       "path": "docs/manuals/screenshots/current/worker/expenses.png",
-      "sha256": "b2cc21251f24e3a5b8f160a754afc8a8abc234ef23e9f890da6919b760e7d229",
+      "sha256": "5c1050a3421f34849a95d3fb702a222eb15dabacf197d0cb615674738cf5a5e8",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -690,7 +690,7 @@
       "role": "worker",
       "route": "/app/expenses",
       "path": "docs/manuals/screenshots/current/worker/expenses-form.png",
-      "sha256": "e6db099a71510afd626b4d914376a7253d54362d855c257ba00727540d13e74d",
+      "sha256": "5f7ae708b536414842344b16296995443ee628054b80fecaab7e17d3f6dd8dcc",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -734,7 +734,7 @@
       "role": "worker",
       "route": "/app/notifications",
       "path": "docs/manuals/screenshots/current/worker/notifications.png",
-      "sha256": "0b12b6b597bdfa2b1ec79699e6ca7dffc1b5546f56f58728623fc8bfa57349fc",
+      "sha256": "f7cecace5784af170de6b849ba9d2934f1782470e3c8478c92f388026b1b42cb",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -745,7 +745,7 @@
       "role": "worker",
       "route": "/app/pay",
       "path": "docs/manuals/screenshots/current/worker/pay.png",
-      "sha256": "019d60533509798405e847ce29e0df432a63a774a7435631e6273769fe23c458",
+      "sha256": "d94aaf7acecf36f9def14b9e8000a5bb868ad64d29e828d2b94467e9710175eb",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -754,7 +754,7 @@
     {
       "key": "project-detail",
       "role": "worker",
-      "route": "/app/projects/01a09491-75b4-713b-898b-20b7a3bf66c9",
+      "route": "/app/projects/01a0a140-e064-72c0-81ff-b74a08f3b079",
       "path": "docs/manuals/screenshots/current/worker/project-detail.png",
       "sha256": "0b177ff34c0b657aea591f3b3ccff2d17064595cb19164570b830c7d74421646",
       "viewport": {
@@ -778,7 +778,7 @@
       "role": "worker",
       "route": "/app/expenses",
       "path": "docs/manuals/screenshots/current/worker/expenses-phone.png",
-      "sha256": "769557bbd250d0df59babfb28d4060ccbf886c1f6b09b5d56e09e3acfdefc02c",
+      "sha256": "c46f66dca0d4d0d19e023ffca3edec3691165fe6e49b87e9bf47683f5f39dd12",
       "viewport": {
         "width": 390,
         "height": 844
@@ -811,14 +811,14 @@
     {
       "id": "owner-reference-pt-br",
       "file": "Owner_User_Guide_PT-BR.pdf",
-      "sha256": "ebfd5a66e6f3de0d3f9a86bcd1e77716668dfd3cbe61f1e1b5410ed19b29855b",
-      "bytes": 2407216
+      "sha256": "f2598746a679b36a90d0b7517fdf8add8d7d733aab2aba7d52423cfce5c9aec9",
+      "bytes": 2409429
     },
     {
       "id": "worker-reference-pt-br",
       "file": "Worker_User_Guide_PT-BR.pdf",
-      "sha256": "a8cc2b8b6fd66afd440428385c768ef54f2c60c4fde0b7392f5a87b9b15a7be7",
-      "bytes": 1578497
+      "sha256": "84a50be26729f908f6b1fc84a456119f840ce9391be92550fa04a010cf193c31",
+      "bytes": 1575304
     }
   ]
 }

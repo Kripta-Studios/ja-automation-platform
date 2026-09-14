@@ -2,7 +2,7 @@
 
 ## Updated workflows — September 2026
 
-Support for access and passwords: **admin@j-aautomation.com**. Owner can create an account using an external email and a chosen initial password in **Projects → Team access → Create user → Set email and password**. Copy the password before saving. Existing Worker accounts can receive the **Supplier coordinator** or **External technician** access profile from **Edit profile**, with a supplier selected. Assign installation/project permissions separately; a profile does not grant access to every project. Profile changes invalidate sessions so the person must sign in again.
+Support for access and passwords: **admin@j-aautomation.com**. Owner can create an account using an external email and a chosen initial password in **Projects → Team access → Create user → Set email and password**. Select an existing person when the directory record already exists so the portal adds access without duplicating that person; otherwise select **Create a new person**. Copy the initial password before saving because it is not stored or shown again in plain text. Existing Worker accounts can receive the **Supplier coordinator** or **External technician** access profile from **Edit profile**, with a supplier selected. Assign installation/project permissions separately; a profile does not grant access to every project. Profile changes invalidate sessions so the person must sign in again.
 
 Use **Log time**, **Record expense**, **New daily report** and **Technical / PLC** at the top of their work areas. Drafts remain editable; **Submit** sends operational facts for review. Project Managers can record their own work or work for an effectively assigned worker in a project they manage. Finance-only rates and other workers' reimbursement details stay outside the PM view.
 
@@ -61,7 +61,7 @@ Commercial rules, issuing authority, client rates and internal loaded cost are r
 
 Open **Projects** and choose the Clients view to find the customer, contacts and sites. Before adding or changing a contact, confirm the customer, the intended operational purpose and whether it is a billing contact. A contact update does not retroactively alter an issued invoice snapshot.
 
-To create a client, choose **New Client** and enter the required **Legal name**, **Display name**, **Currency**, **Timezone**, **Billing address** and **Payment terms (days)**. Add **Client code**, **Billing contact name**, **Billing contact email**, **PO / reference** and **Notes** only when they are known. Select **Create client**. To correct a current client record, use the update form shown for that client; it carries the displayed record version, so a stale submission is rejected rather than overwriting another administrator’s change.
+To create a client, choose **New Client** and enter the required **Legal name**, **Display name**, **Currency**, **Timezone**, **Billing address** and **Payment terms (days)**. Provide at least one billing-contact identifier: **Billing contact name** or **Billing contact email**. Add **Client code**, **PO / reference** and **Notes** only when they are known. Select **Create client**. To correct a current client record, use the update form shown for that client; it carries the displayed record version, so a stale submission is rejected rather than overwriting another administrator’s change.
 
 Open the project record before changing milestones, schedule, team or customer-facing source documents. Confirm the project number, status and dates. Use **Create milestone** only for an approved deliverable. The project record supplies context; it is not authority to move work, rates or invoices from another project.
 
@@ -91,7 +91,7 @@ Review Time by project and period. Check source evidence, dates, actual duration
 
 Review Expenses with the actual payer, receipt, category, currency, project, business reason and commercial treatment. A reimbursement and a client charge can follow separate rules. Returned entries require a reasoned correction; approved history remains traceable rather than silently overwritten.
 
-Use Approvals to open the relevant queue, inspect time/report/receipt evidence, and approve or return with a factual note. **Project approvals** covers operational records that require a permitted project reviewer; **Finance review** covers the separate finance-controlled classification or confirmation step. Operations approval is internal review. It is not customer acceptance, customer signature, proof of collection, or evidence that a transfer was made.
+Use Approvals to open the relevant queue, inspect time/report/receipt evidence, and approve or return with a factual note. Search and filter by worker, project, client, status and dates when needed. The default order puts records needing action first, then higher priority, then the oldest submission. **Project approvals** contains submitted commercial milestones that need an authorized project decision; approving one accepts that milestone for the next controlled workflow step, not every record in the project. **Finance review** contains operational records whose separate finance classification or confirmation is still pending. Operations approval is internal review. It is not customer acceptance, customer signature, proof of collection, or evidence that a transfer was made.
 
 ### Time procedure
 
@@ -197,7 +197,7 @@ Owners can use Audit to inspect append-only security and finance events. Auditor
 
 In **Audit**, filter or locate the relevant event and compare its action, entity, actor, timestamp and details with the record under review. Audit is append-only; do not attempt to edit, remove or recreate an event. In **Profile**, manage only your own language, passkeys and optional MFA. Register a passkey only on an appropriate personal device. When enabling MFA, complete **Verify MFA** with the authenticator code and store displayed recovery codes privately. Profile changes never grant a finance, billing or audit role.
 
-If a required control is absent, a route returns an authorization error, an upload is blocked, a figure differs from the current screen, or an amount conflicts with approved evidence, stop and use the verified support route in the invitation. Do not bypass RBAC, fabricate customer acceptance, manually run a job, or make a financial mutation to test the portal.
+If a required control is absent, a route returns an authorization error, an upload is blocked, a figure differs from the current screen, or an amount conflicts with approved evidence, stop and contact **admin@j-aautomation.com**. Do not bypass RBAC, fabricate customer acceptance, manually run a job, or make a financial mutation to test the portal.
 
 ## Supplier teams and accounts without financial access
 

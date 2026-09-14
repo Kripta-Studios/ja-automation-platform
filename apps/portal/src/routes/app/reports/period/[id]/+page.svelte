@@ -133,6 +133,9 @@
       0,
     ),
   );
+  const operationalSourceCount = $derived(
+    dailyReports.length + technicalReports.length + timeSummary.length,
+  );
   const display = (value: unknown, fallback = '—') =>
     value === null || value === undefined || value === '' ? fallback : String(value);
   const hours = (minutes: unknown) => `${(Number(minutes ?? 0) / 60).toFixed(1)} h`;
@@ -296,6 +299,25 @@
                 'A finalized customer-safe report and a ready PDF are required before customer sign-off can be captured.',
               )}
             </p>
+            <p>
+              {t('Current source records')}: {dailyReports.length}
+              {t('Daily')} · {technicalReports.length}
+              {t('Technical / PLC')} · {timeSummary.length}
+              {t('Time entries')}.
+            </p>
+            {#if ['owner_admin', 'finance_admin'].includes(userRole)}
+              <a
+                class="preview-link"
+                href={`${base}/app/reports?view=signoff&project=${encodeURIComponent(String(project.id))}`}
+                >{t('Refresh period reports')}</a
+              >
+            {:else}
+              <a
+                class="preview-link"
+                href={`${base}/app/reports?view=daily&project=${encodeURIComponent(String(project.id))}`}
+                >{t('Create source report')}</a
+              >
+            {/if}
           </div>
         {:else if signoffState === 'ready_for_signature'}
           <div class="customer-signoff__notice" data-signoff-notice="ready">
@@ -1009,6 +1031,21 @@
           </p>
         </div>
       </div>
+      {#if operationalSourceCount === 0}
+        <div class="customer-signoff__notice" role="status">
+          <strong>{t('No reviewed operational sources in this period')}</strong>
+          <p>
+            {t(
+              'This period has no Daily, Technical / PLC or time source records. Create or review the missing operational records before recalculating the period file.',
+            )}
+          </p>
+          <a
+            class="preview-link"
+            href={`${base}/app/approvals?project=${encodeURIComponent(String(project.id))}`}
+            >{t('Review pending records')}</a
+          >
+        </div>
+      {/if}
       <form method="POST" action="?/refresh" class="admin-form-grid">
         <input type="hidden" name="projectId" value={project.id} />
         <input type="hidden" name="periodStart" value={report.periodStart} />

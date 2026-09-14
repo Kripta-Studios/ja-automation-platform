@@ -334,30 +334,42 @@
   </header>
 
   <section class="attention-grid" aria-label={t('Project status summary')}>
-    <article class="attention-card">
+    <a
+      class="attention-card"
+      href={`${base}/app/time?project=${encodeURIComponent(String(project.id))}`}
+    >
       <span>{t('Actual time')}</span><strong>{hours(overview.actualMinutes)}</strong><small
         >{t('Recorded operational time')}</small
       >
-    </article>
-    <article class="attention-card">
+    </a>
+    <a
+      class="attention-card"
+      href={`${base}/app/projects?view=team&project=${encodeURIComponent(String(project.id))}`}
+    >
       <span>{t('Assigned team')}</span><strong>{overview.workers.length}</strong><small
         >{t('Current project assignment(s)')}</small
       >
-    </article>
-    <article class="attention-card">
+    </a>
+    <a
+      class="attention-card"
+      href={`${base}/app/reports?project=${encodeURIComponent(String(project.id))}`}
+    >
       <span>{t('Reports')}</span><strong>{overview.reports.length}</strong><small
         >{t('Daily and technical records')}</small
       >
-    </article>
+    </a>
     {#if canViewCommercial && finance}
-      <article class="attention-card finance-summary">
+      <a
+        class="attention-card finance-summary"
+        href={`${base}/app/finance?view=economic&project=${encodeURIComponent(String(project.id))}`}
+      >
         <span>{t('Contribution')}</span><strong
           >{money(
             finance.contributionMarginMinor,
             String(finance.currency ?? project.currency),
           )}</strong
         ><small>{t('Canonical project finance projection')}</small>
-      </article>
+      </a>
     {/if}
   </section>
 
@@ -487,7 +499,9 @@
                     : t('No expenses recorded for this project.')}
                 </p>{/each}
             </div>
-            {#if filteredExpenses.length > 5}<a class="inline-link" href={base + '/app/expenses'}
+            {#if filteredExpenses.length > 5}<a
+                class="inline-link"
+                href={`${base}/app/expenses?project=${encodeURIComponent(String(project.id))}`}
                 >{t('View all expenses')} →</a
               >{/if}
           </section>
@@ -626,7 +640,11 @@
               <p class="portal-kicker">{t('REPORTS & FILES')}</p>
               <h2 id="reports-title">{t('Reports')}</h2>
             </div>
-            <a class="primary-button" href={base + '/app/reports'}>{t('Open Reports')}</a>
+            <a
+              class="primary-button"
+              href={`${base}/app/reports?project=${encodeURIComponent(String(project.id))}`}
+              >{t('Open Reports')}</a
+            >
           </div>
           <div class="report-surface-grid">
             <a
@@ -766,56 +784,91 @@
                 <div>
                   <dt>{t('Contribution')}</dt>
                   <dd>
-                    {money(
-                      finance.contributionMarginMinor,
-                      String(finance.currency ?? project.currency),
-                    )}
+                    <a
+                      href={`${base}/app/finance?view=economic&project=${encodeURIComponent(String(project.id))}&source=portfolio#finance-source-records`}
+                    >
+                      {money(
+                        finance.contributionMarginMinor,
+                        String(finance.currency ?? project.currency),
+                      )}
+                    </a>
                   </dd>
                 </div>
                 <div>
                   <dt>{t('Contribution Margin %')}</dt>
                   <dd>
-                    {percentageFromBps(finance.contributionMarginBps)}
+                    <a
+                      href={`${base}/app/finance?view=economic&project=${encodeURIComponent(String(project.id))}&source=portfolio#finance-source-records`}
+                    >
+                      {percentageFromBps(finance.contributionMarginBps)}
+                    </a>
                   </dd>
                 </div>
                 <div>
                   <dt>{t('Direct Project Result')}</dt>
                   <dd>
-                    {money(
-                      finance.contributionMarginMinor,
-                      String(finance.currency ?? project.currency),
-                    )}
+                    <a
+                      href={`${base}/app/finance?view=economic&project=${encodeURIComponent(String(project.id))}&source=portfolio#finance-source-records`}
+                    >
+                      {money(
+                        finance.contributionMarginMinor,
+                        String(finance.currency ?? project.currency),
+                      )}
+                    </a>
                   </dd>
                 </div>
                 <div>
                   <dt>{t('Direct cost')}</dt>
                   <dd>
-                    {money(finance.approvedCostMinor, String(finance.currency ?? project.currency))}
+                    <a
+                      href={`${base}/app/finance?view=economic&project=${encodeURIComponent(String(project.id))}&source=portfolio#finance-source-records`}
+                    >
+                      {money(
+                        finance.approvedCostMinor,
+                        String(finance.currency ?? project.currency),
+                      )}
+                    </a>
                   </dd>
                 </div>
                 <div>
                   <dt>{t('Client receivable')}</dt>
                   <dd>
-                    {money(finance.receivableMinor, String(finance.currency ?? project.currency))}
+                    <a
+                      href={`${base}/app/ledger?project=${encodeURIComponent(String(project.id))}`}
+                    >
+                      {money(finance.receivableMinor, String(finance.currency ?? project.currency))}
+                    </a>
                   </dd>
                 </div>
                 <div>
                   <dt>{t('Invoiced')}</dt>
                   <dd>
-                    {money(finance.invoicedMinor, String(finance.currency ?? project.currency))}
+                    <a
+                      href={`${base}/app/billing?project=${encodeURIComponent(String(project.id))}`}
+                    >
+                      {money(finance.invoicedMinor, String(finance.currency ?? project.currency))}
+                    </a>
                   </dd>
                 </div>
                 <div>
                   <dt>{t('Collected')}</dt>
-                  <dd>{money(finance.paidMinor, String(finance.currency ?? project.currency))}</dd>
+                  <dd>
+                    <a href={`${base}/app/ledger?project=${encodeURIComponent(String(project.id))}`}
+                      >{money(finance.paidMinor, String(finance.currency ?? project.currency))}</a
+                    >
+                  </dd>
                 </div>
                 <div>
                   <dt>{t('Approved WIP')}</dt>
                   <dd>
-                    {money(
-                      finance.approvedUnbilledWipMinor,
-                      String(finance.currency ?? project.currency),
-                    )}
+                    <a
+                      href={`${base}/app/billing?project=${encodeURIComponent(String(project.id))}&stage=wip`}
+                    >
+                      {money(
+                        finance.approvedUnbilledWipMinor,
+                        String(finance.currency ?? project.currency),
+                      )}
+                    </a>
                   </dd>
                 </div>
               </dl>
@@ -868,7 +921,11 @@
               <p class="portal-kicker">{t('FINANCE WORKFLOW')}</p>
               <h2 id="billing-title">{t('Billing')}</h2>
             </div>
-            <a class="secondary-button" href={base + '/app/billing'}>{t('Open Billing')}</a>
+            <a
+              class="secondary-button"
+              href={`${base}/app/billing?project=${encodeURIComponent(String(project.id))}`}
+              >{t('Open Billing')}</a
+            >
           </div>
           <p class="surface-intro">
             {t(
@@ -877,7 +934,10 @@
           </p>
           <div class="billing-stream-list">
             {#each billingRules as rule}
-              <article class="billing-stream">
+              <a
+                class="billing-stream"
+                href={`${base}/app/billing?view=streams&project=${encodeURIComponent(String(project.id))}&focus=${encodeURIComponent(String(rule.id))}`}
+              >
                 <div>
                   <strong>{controlled('billingStream', rule.stream_type)}</strong><small
                     >{controlled('billingStream', rule.cadence_type)} · {display(
@@ -886,7 +946,7 @@
                   >
                 </div>
                 <span class="state-badge">{status(rule.status ?? 'active')}</span>
-              </article>
+              </a>
             {:else}<p class="empty-state">
                 {t('No billing stream is configured for this project.')}
               </p>{/each}
@@ -1452,6 +1512,16 @@
     gap: 0.35rem;
     align-content: start;
     padding: 1rem;
+    color: inherit;
+    text-decoration: none;
+  }
+  .attention-card:hover,
+  .attention-card:focus-visible,
+  .billing-stream:hover,
+  .billing-stream:focus-visible {
+    border-color: var(--ja-teal, #277e78);
+    outline: 3px solid color-mix(in srgb, var(--ja-teal, #277e78) 22%, transparent);
+    outline-offset: 2px;
   }
   .attention-card span,
   .project-facts dt,
@@ -1559,6 +1629,11 @@
     margin: 0.25rem 0 0;
     overflow-wrap: anywhere;
     font-weight: 700;
+  }
+  .finance-facts dd a {
+    color: inherit;
+    text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+    text-underline-offset: 0.18em;
   }
   .project-description {
     margin: 1rem 0 0;

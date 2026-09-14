@@ -1,8 +1,10 @@
 <script lang="ts">
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { base } from '$app/paths';
+  import { page } from '$app/stores';
   import type { PortalData } from '../portal-data';
   import { paymentMoney } from '../payment-money';
+  import { operationalSearchText } from './operational-register';
   import { SectionCard, StatusBadge, TableRegion, type TableCardRow } from '../ui';
 
   type Row = Record<string, unknown>;
@@ -26,9 +28,34 @@
 
   let search = $state('');
   let statusFilter = $state('');
+  let projectFilter = $state('');
 
   const rows = $derived((data.ledger ?? []) as Row[]);
-  const normalizedSearch = $derived(search.trim().toLowerCase());
+  const normalizedSearch = $derived(operationalSearchText(search).trim());
+  const projectOptions = $derived(
+    Array.from(
+      new Map(
+        rows
+          .filter((row) => value(row, 'projectId', 'project_id'))
+          .map((row) => [
+            value(row, 'projectId', 'project_id'),
+            [
+              value(row, 'projectNumber', 'project_number'),
+              value(row, 'projectName', 'project_name'),
+            ]
+              .filter(Boolean)
+              .join(' · '),
+          ]),
+      ).entries(),
+    ),
+  );
+
+  $effect(() => {
+    projectFilter = $page.url.searchParams.get('project')?.trim() ?? '';
+    statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
+    const query = $page.url.searchParams.get('q');
+    if (query !== null) search = query.trim();
+  });
 
   function value(row: Row, ...keys: string[]): string {
     for (const key of keys) {
@@ -152,10 +179,20 @@
       .join(' · ');
   }
 
+  const scopeRows = $derived(
+    rows.filter((row) => !projectFilter || value(row, 'projectId', 'project_id') === projectFilter),
+  );
+
   const visibleRows = $derived.by(() =>
-    rows.filter((row) => {
+    scopeRows.filter((row) => {
       const status = value(row, 'paymentStatus', 'payment_status');
-      const matchesStatus = !statusFilter || status === statusFilter;
+      const matchesStatus =
+        !statusFilter ||
+        (statusFilter === 'collected'
+          ? ['paid', 'partially_paid'].includes(status)
+          : statusFilter === 'outstanding'
+            ? ['unpaid', 'partially_paid', 'overdue'].includes(status)
+            : status === statusFilter);
       const searchable = [
         value(row, 'invoiceNumber', 'invoice_number', 'invoiceId'),
         value(row, 'clientNumber', 'client_number', 'clientName', 'client_name'),
@@ -163,14 +200,16 @@
         value(row, 'streamType', 'stream_type'),
       ]
         .join(' ')
-        .toLowerCase();
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/gu, '')
+        .toLocaleLowerCase();
       return matchesStatus && (!normalizedSearch || searchable.includes(normalizedSearch));
     }),
   );
 
   const statusCounts = $derived.by(() => {
     const counts: Record<string, number> = {};
-    for (const row of rows) {
+    for (const row of scopeRows) {
       const status = value(row, 'paymentStatus', 'payment_status') || 'unknown';
       counts[status] = (counts[status] ?? 0) + 1;
     }
@@ -253,7 +292,7 @@
   }
 
   const exportPeriod = $derived.by(() => {
-    const dates = rows
+    const dates = visibleRows
       .map((row) =>
         isoCalendarDate(
           value(row, 'issueDate', 'issue_date', 'issuedAt', 'issued_at', 'createdAt', 'created_at'),
@@ -274,6 +313,9 @@
       periodStart,
       periodEnd,
     });
+    if (projectFilter) query.set('project', projectFilter);
+    if (statusFilter) query.set('status', statusFilter);
+    if (search.trim()) query.set('q', search.trim());
     return `${base}/app/api/invoice-collection-ledger/${format}?${query.toString()}`;
   }
 
@@ -282,11 +324,13 @@
     return id ? `${base}/app/billing/invoices/${encodeURIComponent(id)}` : `${base}/app/billing`;
   }
 
-  function setStatusFilter(next: string): void {
-    statusFilter = next;
-    if (typeof document !== 'undefined') {
-      document.getElementById('collections-ledger-register')?.scrollIntoView({ block: 'start' });
-    }
+  function ledgerFilterHref(status: string): string {
+    const query = new URLSearchParams();
+    if (projectFilter) query.set('project', projectFilter);
+    if (search.trim()) query.set('q', search.trim());
+    if (status) query.set('status', status);
+    const serialized = query.toString();
+    return `${base}/app/ledger${serialized ? `?${serialized}` : ''}#collections-ledger-register`;
   }
   let ledgerPage = $state<typeof visibleRows>([]);
 </script>
@@ -318,39 +362,39 @@
     class="collections-ledger__attention"
     aria-label={translate('Collections attention summary')}
   >
-    <button type="button" aria-pressed={statusFilter === ''} onclick={() => setStatusFilter('')}>
+    <a href={ledgerFilterHref('')} aria-current={statusFilter === '' ? 'page' : undefined}>
       <span>{translate('Issued invoices')}</span>
-      <strong>{rows.length}</strong>
+      <strong>{scopeRows.length}</strong>
       <small>{translate('Authorized ledger rows')}</small>
-    </button>
-    <button
-      type="button"
-      aria-pressed={statusFilter === 'partially_paid'}
-      onclick={() => setStatusFilter('partially_paid')}
+    </a>
+    <a
+      href={ledgerFilterHref('partially_paid')}
+      aria-current={statusFilter === 'partially_paid' ? 'page' : undefined}
     >
       <span>{translate('Partially paid')}</span>
       <strong>{statusCounts.partially_paid ?? 0}</strong>
       <small>{translate('Payment timeline requires review')}</small>
-    </button>
-    <button
-      type="button"
-      aria-pressed={statusFilter === 'overdue'}
-      onclick={() => setStatusFilter('overdue')}
+    </a>
+    <a
+      href={ledgerFilterHref('overdue')}
+      aria-current={statusFilter === 'overdue' ? 'page' : undefined}
     >
       <span>{translate('Overdue')}</span>
       <strong>{statusCounts.overdue ?? 0}</strong>
       <small>{translate('Outstanding collection attention')}</small>
-    </button>
+    </a>
   </div>
 
   <form
     class="collections-ledger__filters"
+    method="GET"
+    action={`${base}/app/ledger`}
     aria-label={translate('Filter collections ledger')}
-    onsubmit={(event) => event.preventDefault()}
   >
     <label>
       <span>{translate('Search ledger')}</span>
       <input
+        name="q"
         bind:value={search}
         type="search"
         placeholder={translate('Invoice, client or project')}
@@ -358,8 +402,10 @@
     </label>
     <label>
       <span>{translate('Collection status')}</span>
-      <select bind:value={statusFilter}>
+      <select name="status" bind:value={statusFilter}>
         <option value="">{translate('All statuses')}</option>
+        <option value="outstanding">{translate('Outstanding')}</option>
+        <option value="collected">{translate('Collected (actual)')}</option>
         <option value="unpaid">{translate('Unpaid')}</option>
         <option value="partially_paid">{translate('Partially paid')}</option>
         <option value="paid">{translate('Paid')}</option>
@@ -367,14 +413,15 @@
         <option value="void">{translate('Void')}</option>
       </select>
     </label>
-    <button
-      type="button"
-      class="secondary-button"
-      onclick={() => {
-        search = '';
-        statusFilter = '';
-      }}>{translate('Clear filters')}</button
-    >
+    <label>
+      <span>{translate('Project')}</span>
+      <select name="project" bind:value={projectFilter}>
+        <option value="">{translate('All projects')}</option>
+        {#each projectOptions as [id, label]}<option value={id}>{label}</option>{/each}
+      </select>
+    </label>
+    <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
+    <a class="secondary-button" href={`${base}/app/ledger?q=`}>{translate('Clear filters')}</a>
   </form>
 
   <SectionCard
@@ -552,7 +599,7 @@
     gap: 0.75rem;
   }
 
-  .collections-ledger__attention button {
+  .collections-ledger__attention a {
     display: grid;
     gap: 0.22rem;
     min-height: 6rem;
@@ -564,11 +611,12 @@
     cursor: pointer;
     font: inherit;
     text-align: left;
+    text-decoration: none;
   }
 
-  .collections-ledger__attention button:hover,
-  .collections-ledger__attention button:focus-visible,
-  .collections-ledger__attention button[aria-pressed='true'] {
+  .collections-ledger__attention a:hover,
+  .collections-ledger__attention a:focus-visible,
+  .collections-ledger__attention a[aria-current='page'] {
     border-color: var(--portal-accent, #0f5f73);
     outline: 3px solid color-mix(in srgb, var(--portal-accent, #0f5f73) 24%, transparent);
     outline-offset: 2px;
@@ -598,7 +646,7 @@
 
   .collections-ledger__filters {
     display: grid;
-    grid-template-columns: minmax(16rem, 2fr) minmax(12rem, 1fr) auto;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
     align-items: end;
     gap: 0.75rem;
     padding: 0.9rem 1rem;

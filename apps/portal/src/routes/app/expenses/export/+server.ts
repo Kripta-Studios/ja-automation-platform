@@ -14,6 +14,26 @@ export const GET: RequestHandler = ({ locals, url }) => {
   if (!['pdf', 'xlsx', 'csv'].includes(format)) error(400, 'Choose PDF, XLSX or CSV');
   const project = url.searchParams.get('project') ?? '';
   const worker = url.searchParams.get('worker') ?? '';
+  const client = url.searchParams.get('client')?.trim() ?? '';
+  const category = url.searchParams.get('category')?.trim() ?? '';
+  const currency = url.searchParams.get('currency')?.trim().toUpperCase() ?? '';
+  const status = url.searchParams.get('status')?.trim() ?? '';
+  const reimbursement = url.searchParams.get('reimbursement')?.trim() ?? '';
+  const query = url.searchParams.get('q')?.trim() ?? '';
+  if (
+    [project, worker, client, category, currency, status, reimbursement, query].some(
+      (value) => value.length > 500,
+    )
+  )
+    error(400, 'Expense filter is too long');
+  if (currency && !['USD', 'EUR', 'BRL'].includes(currency))
+    error(400, 'Choose a supported currency');
+  const searchText = (value: unknown): string =>
+    String(value ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/gu, '')
+      .toLocaleLowerCase();
+  const needle = searchText(query);
   const ctx = openPortalRepository(locals);
   try {
     if (ctx.principal.role === 'worker' && worker && worker !== ctx.principal.userId)
@@ -25,7 +45,32 @@ export const GET: RequestHandler = ({ locals, url }) => {
         String(row.spent_on) >= from &&
         String(row.spent_on) <= to &&
         (!project || row.project_id === project) &&
-        (!worker || row.worker_id === worker),
+        (!worker || row.worker_id === worker) &&
+        (!client || row.client_name === client) &&
+        (!category || row.category === category) &&
+        (!currency || row.currency === currency) &&
+        (!status ||
+          (status === 'attention'
+            ? ['draft', 'submitted', 'needs_changes'].includes(String(row.approval_state))
+            : row.approval_state === status)) &&
+        (!reimbursement ||
+          (reimbursement === 'pending'
+            ? ['pending', 'scheduled'].includes(String(row.reimbursement_state))
+            : row.reimbursement_state === reimbursement)) &&
+        (!needle ||
+          searchText(
+            [
+              row.vendor,
+              row.project_number,
+              row.project_name,
+              row.client_name,
+              row.worker_name,
+              row.description,
+              row.spent_on,
+              row.category,
+              row.currency,
+            ].join(' '),
+          ).includes(needle)),
     );
     const bytes = expenseRegisterExport(rows, format as 'pdf' | 'xlsx' | 'csv', `${from} — ${to}`);
     return new Response(Buffer.from(bytes), {

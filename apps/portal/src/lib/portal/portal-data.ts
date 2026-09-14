@@ -60,7 +60,13 @@ export type PortalData = {
   periodEnd?: string;
   weekStart?: string;
   weekEnd?: string;
-  timeFilter?: { category: string; projectId: string };
+  timeFilter?: {
+    category: string;
+    projectId: string;
+    workerId: string;
+    from: string;
+    to: string;
+  };
   timesheet?: {
     weekStart: string;
     weekEnd: string;

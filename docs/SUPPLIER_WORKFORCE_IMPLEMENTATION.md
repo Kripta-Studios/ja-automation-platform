@@ -16,9 +16,17 @@ access. An installation uses the existing project boundary; the base application
 - Canonical time preserves the technician and the actual recorder separately, follows existing
   duration/overlap/approval rules and retains correction history. Owner corrections inherit supplier
   provenance from immutable source links, even after an external profile is cleared.
-- External technicians see their own operational records only. Restricted accounts have no pay,
-  rates, expenses, commercial DTO fields, financial documents or financial downloads. Route and
-  repository checks enforce this on the server; time DTOs use an explicit operational allowlist.
+- External technicians see their own operational records only. Restricted accounts have no My Pay,
+  worker statements, compensation, rates, commercial DTO fields, financial documents or financial
+  downloads. Expenses remain an operational receipt input, without opening compensation or project
+  finance. Route and repository checks enforce this on the server; time DTOs use an explicit
+  operational allowlist.
+- Supplier-origin time uses immutable profile/recorder provenance and can be reviewed only by Owner.
+  PM and Finance retain their normal internal workflows but cannot perform supplier operational
+  approval. Finite coordinator grants cap assignments created through that delegated authority.
+- Coordinators can select multiple technicians, enter shared hours or a start/end interval and save
+  separate drafts atomically. They can review individual exceptions and submit selected drafts as
+  one all-or-nothing operation; each canonical row retains its own subject, recorder and audit trail.
 - Operational HTML, CSV and browser-generated PDF reports show actual work, state and recorder.
   Rejected, void and superseded records remain in history but do not increase the effective total.
   Delegated draft discard retains the recorder and voids the record.

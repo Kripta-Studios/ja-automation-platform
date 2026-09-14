@@ -215,7 +215,7 @@ In **Record team hours**, select the technician and enter the real work date, ca
 
 Use **Operational report** to filter by installation and dates, read approval states, download CSV, or print/save a PDF in the browser. History remains visible; rejected, void and superseded records do not increase the effective total. This report does not certify payment or customer acceptance.
 
-An External technician sees only their own operational hours, expenses, reports and own-only My Pay. A Supplier coordinator additionally sees expressly authorized installations. Neither profile sees customer rates, project margins, another person's pay, financial documents or administrative exports. Supplier operational reports never include money. Contact the Owner when an installation or technician is missing; do not record work against a substitute person or project.
+An External technician sees only their own permitted operational hours, expenses and reports. A Supplier coordinator additionally sees expressly authorized installations and can create or submit selected team drafts in one batch. Neither profile can access My Pay, worker statements, compensation, rates, margins, financial documents or administrative exports. Supplier-origin time is reviewed only by Owner; PM and Finance do not receive that operational approval action. Supplier operational reports never include money.
 
 :::figure owner /app/supplier The Owner appoints supplier coordinators and authorizes installations.
 

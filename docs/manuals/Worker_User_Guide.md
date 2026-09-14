@@ -1,6 +1,6 @@
 # Worker user guide
 
-**External accounts:** Supplier coordinators and external technicians can record their own time, expenses and reports and can use own-only My Pay. They never receive project finance, customer rates, margins, other workers' pay or financial administration. See “Supplier teams and restricted accounts” for the additional installation workflow.
+**External accounts:** Supplier coordinators and external technicians can record permitted operational time, expenses and reports. They cannot access My Pay, worker statements, compensation, rates, margins or financial administration. See “Supplier teams and restricted accounts” for the installation workflow.
 
 ## Purpose and your private workspace
 
@@ -120,7 +120,7 @@ In **Record team hours**, select the technician and enter the real work date, ca
 
 Use **Operational report** to filter by installation and dates, read approval states, download CSV, or print/save a PDF in the browser. History remains visible; rejected, void and superseded records do not increase the effective total. This report does not certify payment or customer acceptance.
 
-An External technician sees only their own operational hours, expenses, reports and own-only My Pay. Supplier coordinators have the same personal work surfaces plus their expressly authorized installation workflow. Neither profile can see customer rates, project margins, another person's pay, financial documents or administrative exports. Supplier operational reports never include money. Contact the Owner when an installation or technician is missing; do not record work against a substitute person or project.
+An External technician sees only their own permitted operational hours, expenses and reports. Supplier coordinators additionally manage expressly authorized installations and can create and submit selected team drafts in a batch. Neither profile can access My Pay, worker statements, compensation, customer rates, project margins, financial documents or administrative exports. Supplier time requires Owner review, and operational reports never include money. Contact the Owner when an installation or technician is missing; do not record work against a substitute person or project.
 
 :::figure worker /app/supplier The supplier coordinator adds technicians and records team hours.
 

@@ -11,6 +11,8 @@ export type SupplierUserProfile = Readonly<{
 export type SupplierCoordinatorGrant = Readonly<{
   supplierId: string;
   grantId: string;
+  startsOn: string;
+  endsOn: string | null;
 }>;
 
 export function readSupplierProfile(
@@ -40,7 +42,7 @@ export function readLiveSupplierCoordinatorGrant(
   if (profile?.profile !== 'supplier_coordinator') return null;
   const grant = sqlite
     .prepare(
-      `SELECT g.id grant_id
+      `SELECT g.id grant_id,g.starts_on,g.ends_on
          FROM supplier_project_grant g
          JOIN supplier s ON s.id=g.supplier_id AND s.status='active'
          JOIN project p ON p.id=g.project_id
@@ -64,8 +66,63 @@ export function readLiveSupplierCoordinatorGrant(
       operationDate,
       currentDate,
       currentDate,
-    ) as { grant_id: string } | undefined;
-  return grant ? { supplierId: profile.supplierId, grantId: grant.grant_id } : null;
+    ) as { grant_id: string; starts_on: string; ends_on: string | null } | undefined;
+  return grant
+    ? {
+        supplierId: profile.supplierId,
+        grantId: grant.grant_id,
+        startsOn: grant.starts_on,
+        endsOn: grant.ends_on,
+      }
+    : null;
+}
+
+/**
+ * Resolve supplier provenance from immutable recorder/history records rather
+ * than from the worker's current profile. Corrections inherit the provenance
+ * of their canonical source record.
+ */
+export function isSupplierTimeEntry(sqlite: DatabaseSync, timeEntryId: string): boolean {
+  const row = sqlite
+    .prepare(
+      `SELECT 1
+         FROM time_entry t
+        WHERE t.id=? AND (
+          EXISTS(
+            SELECT 1 FROM supplier_time_entry_recorder recorder
+             WHERE recorder.time_entry_id=t.id
+          )
+          OR EXISTS(
+            SELECT 1 FROM supplier_user_profile_period period
+             WHERE period.user_id=t.worker_id
+               AND period.profile IN ('external_technician','supplier_coordinator')
+               AND t.created_at>=period.starts_at
+               AND (period.ends_at IS NULL OR t.created_at<period.ends_at)
+          )
+          OR EXISTS(
+            SELECT 1
+              FROM record_correction_link link
+              JOIN time_entry source ON source.id=link.original_id
+             WHERE link.record_type='time_entry' AND link.correction_id=t.id
+               AND (
+                 EXISTS(
+                   SELECT 1 FROM supplier_time_entry_recorder source_recorder
+                    WHERE source_recorder.time_entry_id=source.id
+                 )
+                 OR EXISTS(
+                   SELECT 1 FROM supplier_user_profile_period source_period
+                    WHERE source_period.user_id=source.worker_id
+                      AND source_period.profile IN ('external_technician','supplier_coordinator')
+                      AND source.created_at>=source_period.starts_at
+                      AND (source_period.ends_at IS NULL OR source.created_at<source_period.ends_at)
+                 )
+               )
+          )
+        )
+        LIMIT 1`,
+    )
+    .get(timeEntryId);
+  return Boolean(row);
 }
 
 export function isSupplierCoordinator(sqlite: DatabaseSync, userId: string): boolean {

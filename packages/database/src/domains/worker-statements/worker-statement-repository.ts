@@ -4,6 +4,7 @@ import { newId, type Principal } from '@ja/domain';
 import { AccessDeniedError, ConflictError, ValidationError } from '../../repository.ts';
 import { recordAuditEvent } from '../../core/audit.ts';
 import { runImmediateTransaction } from '../../core/transaction.ts';
+import { assertNoSupplierFinancialAccess } from '../workforce/supplier-access.ts';
 
 /** The durable worker-statement contract is enabled by the next additive migration. */
 export const WORKER_STATEMENT_ARTIFACT_TABLE = 'worker_statement_artifact' as const;
@@ -420,6 +421,7 @@ export class WorkerStatementRepository {
   }
 
   private assertHumanWorker(principal: Principal): void {
+    assertNoSupplierFinancialAccess(this.sqlite, principal.userId, AccessDeniedError);
     if (!['worker', 'project_manager'].includes(principal.role))
       throw new AccessDeniedError('Worker or project manager role required');
     const user = this.sqlite.prepare('SELECT status FROM user WHERE id=?').get(principal.userId) as

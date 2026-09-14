@@ -215,7 +215,7 @@ Em **Registrar horas da equipe**, selecione o técnico e registre data real, cat
 
 O **Relatório operacional** permite filtrar instalação e datas, consultar estados de aprovação, baixar CSV e imprimir/salvar PDF pelo navegador. O histórico permanece visível; registros rejeitados, anulados e substituídos não aumentam o total efetivo. O relatório não comprova pagamento nem aceite do cliente.
 
-O Técnico externo vê somente as próprias horas, despesas, relatórios e Meu pagamento limitado aos próprios dados. O Responsável do fornecedor vê também as instalações expressamente autorizadas. Nenhum desses perfis pode ver tarifas do cliente, margens do projeto, pagamentos de outra pessoa, documentos financeiros ou exportações administrativas. Os relatórios operacionais do fornecedor não incluem valores. Se faltar uma instalação ou um técnico, peça a correção ao Owner.
+O Técnico externo vê somente as próprias horas, despesas e relatórios operacionais permitidos. O Responsável do fornecedor também vê instalações expressamente autorizadas e pode criar ou enviar em lote os rascunhos selecionados da equipe. Nenhum desses perfis pode acessar Meu pagamento, demonstrativos do trabalhador, remuneração, tarifas, margens, documentos financeiros ou exportações administrativas. As horas de origem do fornecedor são revisadas somente pelo Owner; PM e Finance não recebem essa ação de aprovação operacional. Os relatórios operacionais nunca incluem valores.
 
 :::figure owner /app/supplier O Owner escolhe os responsáveis de fornecedor e autoriza as instalações.
 

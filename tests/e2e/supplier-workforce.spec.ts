@@ -149,21 +149,24 @@ test('Owner delegates installation; supplier adds technician and submits private
     await add.getByLabel('Name', { exact: true }).fill(technicianName);
     await add.getByRole('button').click();
     await expectSaved(coordinator);
-    const time = coordinator.locator('form[action^="?/createTime"]');
-    await time.locator('[name=workerId]').selectOption({ label: technicianName });
-    await time.getByLabel('Actual minutes').fill('120');
+    let time = coordinator.locator('form[action^="?/createTimeBatch"]');
+    await time.getByLabel(technicianName, { exact: true }).check();
+    await time.getByLabel('Duration in hours').fill('2');
     await time.getByLabel('Work performed').fill(note);
-    await time.getByRole('button').click();
+    await time.getByRole('button', { name: 'Save selected drafts' }).click();
     await expectSaved(coordinator);
+    await coordinator.getByRole('button', { name: 'Operational report', exact: true }).click();
     const entry = coordinator.locator('article').filter({ hasText: note });
     await entry.getByRole('button', { name: 'Submit to J&A' }).click();
     await expect(coordinator.locator('article').filter({ hasText: note })).toContainText(
       'Submitted',
     );
-    await time.locator('[name=workerId]').selectOption(externalId);
-    await time.getByLabel('Actual minutes').fill('30');
+    await coordinator.getByRole('button', { name: 'Record team hours', exact: true }).click();
+    time = coordinator.locator('form[action^="?/createTimeBatch"]');
+    await time.locator(`input[type="checkbox"][value="${externalId}"]`).check();
+    await time.getByLabel('Duration in hours').fill('0.5');
     await time.getByLabel('Work performed').fill(`External own record ${note}`);
-    await time.getByRole('button').click();
+    await time.getByRole('button', { name: 'Save selected drafts' }).click();
     await expectSaved(coordinator);
     const persisted = createDatabase(readE2EFixturePointer().databasePath);
     let timeId: string;
@@ -182,11 +185,11 @@ test('Owner delegates installation; supplier adds technician and submits private
       .getByRole('button', { name: 'Approve', exact: true })
       .click();
     await expect(page.getByRole('status').filter({ hasText: /decision recorded/i })).toBeVisible();
-    // Self-service pay and expenses are available, but remain scoped to the signed-in person.
-    for (const route of ['/pay', '/expenses', '/api/worker-statement']) {
-      const response = await coordinator.request.get(portal(route));
-      expect(response.status()).toBe(200);
-    }
+    // Receipts remain an operational input. Compensation and statement routes
+    // are denied to restricted supplier accounts, including direct requests.
+    expect((await coordinator.request.get(portal('/expenses'))).status()).toBe(200);
+    for (const route of ['/pay', '/api/worker-statement'])
+      expect((await coordinator.request.get(portal(route))).status()).toBe(403);
     // Forged Owner actions remain forbidden for a live supplier session.
     const forged = await coordinator.request.post(portal('/supplier?/setProfile'), {
       form: { userId: coordinatorId, profile: 'standard' },
@@ -271,6 +274,8 @@ test('Owner delegates installation; supplier adds technician and submits private
       await external.goto(portal(`/time/${ownId}?lang=en`));
       await expect(external.getByText('BILLABILITY', { exact: true })).toHaveCount(0);
       expect((await external.request.get(portal('/my-pay'))).status()).toBe(403);
+      expect((await external.request.get(portal('/pay'))).status()).toBe(403);
+      expect((await external.request.get(portal('/api/worker-statement'))).status()).toBe(403);
     } finally {
       await externalContext.close();
     }

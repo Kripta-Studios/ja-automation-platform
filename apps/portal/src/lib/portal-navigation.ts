@@ -70,7 +70,6 @@ export function portalNavigationForRole(
         item('reports', 'Reports', '▤'),
       ],
       secondary: [
-        item('pay', 'My Pay', '$'),
         item('supplier', 'Operational report', '▤', route('supplier/report')),
         item('profile', 'Profile', '◎'),
         item('help', 'Help', '?'),

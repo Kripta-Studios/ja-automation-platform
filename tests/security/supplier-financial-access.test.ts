@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { SupplierWorkforceRepository, V3Repository, V3AccessDeniedError } from '@ja/database';
+import {
+  AccessDeniedError,
+  SupplierWorkforceRepository,
+  V3AccessDeniedError,
+  V3Repository,
+  WorkerStatementRepository,
+} from '@ja/database';
 import {
   createB5LifecycleSecurityFixture,
   closeB5LifecycleSecurityFixture,
@@ -11,7 +17,7 @@ afterEach(() => {
   for (const fixture of fixtures.splice(0)) closeB5LifecycleSecurityFixture(fixture);
 });
 describe('live supplier financial restriction', () => {
-  it('allows only the account own compensation while keeping project finance out of operational payloads', () => {
+  it('denies compensation to supplier accounts while keeping finance out of operational payloads', () => {
     const fixture = createB5LifecycleSecurityFixture();
     fixtures.push(fixture);
     const stamp = new Date().toISOString();
@@ -29,6 +35,7 @@ describe('live supplier financial restriction', () => {
     });
     const supplier = new SupplierWorkforceRepository(fixture.sqlite);
     const finance = new V3Repository(fixture.sqlite);
+    const statements = new WorkerStatementRepository(fixture.sqlite);
     const owner = stepUpB5Principal(fixture.sqlite, fixture.owner, 'supplier-owner');
     const company = supplier.createSupplier(owner, {
       name: 'No financial access supplier',
@@ -61,10 +68,17 @@ describe('live supplier financial restriction', () => {
         expect(JSON.stringify(payload)).not.toMatch(
           /billability|invoice_id|billable_minutes|client_rate|compensation_amount|internal_cost|billing_status|currency/,
         );
-      expect(finance.workerPay(principal, '2026-08-01', '2026-08-31')).toMatchObject({
-        pendingMinutes: 60,
-        projectIds: [fixture.project.id],
-      });
+      expect(() => finance.workerPay(principal, '2026-08-01', '2026-08-31')).toThrow(
+        V3AccessDeniedError,
+      );
+      expect(() => finance.listCompensationSettlements(principal)).toThrow(V3AccessDeniedError);
+      expect(() => statements.listArtifacts(principal)).toThrow(AccessDeniedError);
+      expect(() =>
+        fixture.repository.listWorkerStatementTime(principal, '2026-08-01', '2026-08-31'),
+      ).toThrow();
+      expect(() =>
+        fixture.repository.listWorkerStatementExpenses(principal, '2026-08-01', '2026-08-31'),
+      ).toThrow();
       expect(() => finance.financePortfolio(principal)).toThrow(V3AccessDeniedError);
       expect(() =>
         supplier.setAccountProfile(fixture.worker, {

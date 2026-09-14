@@ -79,6 +79,7 @@ import {
   type TimeCommercialSlice,
 } from './domains/commercial/time-commercial-slices.ts';
 import { NotificationRepository } from './domains/notifications/index.ts';
+import { assertNoSupplierFinancialAccess } from './domains/workforce/supplier-access.ts';
 
 export class V3AccessDeniedError extends Error {}
 export class V3ConflictError extends Error {}
@@ -2622,6 +2623,7 @@ export class V3Repository {
     projectId?: string,
   ) {
     this.assertActive(principal);
+    assertNoSupplierFinancialAccess(this.sqlite, principal.userId, V3AccessDeniedError);
     if (periodStart) requireDate(periodStart, 'Period start');
     if (periodEnd) requireDate(periodEnd, 'Period end');
     if (periodStart && periodEnd) requireOrderedDateRange(periodStart, periodEnd);
@@ -3096,6 +3098,7 @@ export class V3Repository {
 
   workerPay(principal: Principal, periodStart: string, periodEnd: string) {
     this.assertActive(principal);
+    assertNoSupplierFinancialAccess(this.sqlite, principal.userId, V3AccessDeniedError);
     requireOrderedDateRange(periodStart, periodEnd);
     const sourceRows = this.sqlite
       .prepare(

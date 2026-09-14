@@ -8,6 +8,35 @@ import {
   supplierReadFailure,
 } from '$lib/server/supplier-context';
 import { actionFailure } from '$lib/server/portal-repository';
+import { ValidationError } from '@ja/database';
+
+function batchDuration(values: Record<string, string>): {
+  minutes: number;
+  startTime?: string;
+  endTime?: string;
+  breakMinutes?: number;
+} {
+  const startTime = values.startTime?.trim() || '';
+  const endTime = values.endTime?.trim() || '';
+  const breakText = values.breakMinutes?.trim() || '0';
+  if (startTime || endTime) {
+    if (!/^\d{2}:\d{2}$/u.test(startTime) || !/^\d{2}:\d{2}$/u.test(endTime))
+      throw new ValidationError('Start and end time are both required');
+    const toMinutes = (clock: string) => Number(clock.slice(0, 2)) * 60 + Number(clock.slice(3));
+    const breakMinutes = Number(breakText);
+    const minutes = toMinutes(endTime) - toMinutes(startTime) - breakMinutes;
+    if (!Number.isInteger(breakMinutes) || breakMinutes < 0 || minutes < 1 || minutes > 1440)
+      throw new ValidationError('The time interval or break is invalid');
+    return { minutes, startTime, endTime, breakMinutes };
+  }
+  const normalizedHours = (values.durationHours ?? '').trim().replace(',', '.');
+  if (!/^\d{1,2}(?:\.\d{1,2})?$/u.test(normalizedHours))
+    throw new ValidationError('Enter hours, or a start and end time');
+  const minutes = Math.round(Number(normalizedHours) * 60);
+  if (minutes < 1 || minutes > 1440)
+    throw new ValidationError('Duration must be greater than zero and no more than 24 hours');
+  return { minutes };
+}
 
 export const load: PageServerLoad = ({ locals, url, cookies }) => {
   const ctx = openSupplierContext(locals);
@@ -188,6 +217,22 @@ function action(operation: string): Actions[string] {
             summary: text('summary'),
           });
           break;
+        case 'createTimeBatch': {
+          const workerIds = text('workerIds')
+            .split(',')
+            .map((id) => id.trim())
+            .filter(Boolean);
+          const duration = batchDuration(values);
+          ctx.supplier.createTimeBatch(ctx.principal, {
+            workerIds,
+            projectId: text('projectId'),
+            workDate: text('workDate'),
+            category: text('category'),
+            summary: text('summary'),
+            ...duration,
+          });
+          break;
+        }
         case 'correctTime':
           ctx.supplier.createTimeCorrection(ctx.principal, {
             originalId: text('id'),
@@ -201,6 +246,27 @@ function action(operation: string): Actions[string] {
             version: Number(text('version')),
           });
           break;
+        case 'submitTimeBatch': {
+          let entries: unknown;
+          try {
+            entries = JSON.parse(text('entries'));
+          } catch {
+            throw new ValidationError('The selected drafts are invalid');
+          }
+          if (
+            !Array.isArray(entries) ||
+            entries.some(
+              (entry) =>
+                !entry ||
+                typeof entry.id !== 'string' ||
+                !Number.isInteger(entry.version) ||
+                entry.version < 1,
+            )
+          )
+            throw new ValidationError('The selected drafts are invalid');
+          ctx.supplier.submitTimeBatch(ctx.principal, entries);
+          break;
+        }
         case 'updateTime':
           ctx.supplier.updateTime(ctx.principal, {
             id: text('id'),
@@ -234,7 +300,9 @@ export const actions: Actions = Object.fromEntries(
     'addTechnician',
     'assignTechnician',
     'createTime',
+    'createTimeBatch',
     'submitTime',
+    'submitTimeBatch',
     'updateTime',
     'correctTime',
   ].map((name) => [name, action(name)]),

@@ -1,6 +1,6 @@
 # Guia de campo para colaboradores — revisão 2026-09-11
 
-**Contas externas:** Responsáveis de fornecedor e técnicos externos podem registrar as próprias horas, despesas e relatórios e usar Meu pagamento limitado aos próprios dados. Finanças do projeto, tarifas do cliente, margens, pagamentos de outras pessoas e administração financeira permanecem restritos.
+**Contas externas:** Responsáveis de fornecedor e técnicos externos podem registrar horas, despesas e relatórios operacionais permitidos. Não podem acessar Meu pagamento, demonstrativos do trabalhador, remuneração, tarifas, margens ou administração financeira.
 
 > Use somente o endereço do portal e o contato de suporte admin@j-aautomation.com. Este guia usa exemplos sintéticos. Nunca compartilhe senha, código MFA, código de recuperação, comprovante ou sessão.
 
@@ -58,4 +58,4 @@ Em **Registrar horas da equipe**, selecione o técnico e registre data real, cat
 
 O **Relatório operacional** permite filtrar instalação e datas, consultar estados de aprovação, baixar CSV e imprimir/salvar PDF pelo navegador. O histórico permanece visível; registros rejeitados, anulados e substituídos não aumentam o total efetivo. O relatório não comprova pagamento nem aceite do cliente.
 
-O Técnico externo vê somente as próprias horas, despesas, relatórios e Meu pagamento limitado aos próprios dados. O Responsável do fornecedor vê também as instalações expressamente autorizadas. Nenhum desses perfis pode ver tarifas do cliente, margens do projeto, pagamentos de outra pessoa, documentos financeiros ou exportações administrativas. Os relatórios operacionais do fornecedor não incluem valores. Se faltar uma instalação ou um técnico, peça a correção ao Owner.
+O Técnico externo vê somente as próprias horas, despesas e relatórios operacionais permitidos. O Responsável do fornecedor também vê instalações expressamente autorizadas e pode selecionar vários técnicos para criar rascunhos rastreáveis com horas comuns ou intervalo de horário e enviá-los juntos. Nenhum desses perfis pode abrir Meu pagamento, demonstrativos, remuneração, tarifas, margens, documentos financeiros ou exportações administrativas. As horas de fornecedor exigem revisão do Owner. Os relatórios operacionais do fornecedor não incluem valores. Se faltar uma instalação ou um técnico, peça a correção ao Owner.

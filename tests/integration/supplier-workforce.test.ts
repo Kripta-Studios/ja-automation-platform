@@ -41,6 +41,10 @@ function setup() {
   const suppliers = new SupplierWorkforceRepository(fixture.sqlite);
   const supplier = suppliers.createSupplier(fixture.owner, { name: 'Field supplier' });
   seedCoordinatorCredential(fixture);
+  Object.assign(
+    fixture.owner,
+    stepUpB5Principal(fixture.sqlite, fixture.owner, 'supplier-profile-owner'),
+  );
   suppliers.setAccountProfile(fixture.owner, {
     userId: fixture.worker.userId,
     profile: 'supplier_coordinator',
@@ -157,6 +161,67 @@ describe('supplier workforce canonical time', () => {
     const grant = suppliers.listGrants(fixture.owner)[0] as { id: string };
     suppliers.revokeProject(fixture.owner, { id: grant.id });
     expect(() => create(1)).toThrow(AccessDeniedError);
+  });
+
+  it('creates and submits coordinator time batches atomically', () => {
+    const { fixture, suppliers, coordinator, technician } = setup();
+    const second = suppliers.addTechnician(coordinator, {
+      projectId: fixture.project.id,
+      name: 'Technician Two',
+      startsOn: '2026-01-01',
+    });
+    suppliers.createTime(coordinator, {
+      workerId: technician.id,
+      projectId: fixture.project.id,
+      workDate: operationalDate,
+      category: 'work',
+      minutes: 1440,
+      summary: 'Full-day source',
+    });
+    expect(() =>
+      suppliers.createTimeBatch(coordinator, {
+        workerIds: [second.id, technician.id],
+        projectId: fixture.project.id,
+        workDate: operationalDate,
+        category: 'work',
+        minutes: 30,
+        summary: 'Atomic rollback batch',
+      }),
+    ).toThrow();
+    expect(
+      fixture.sqlite
+        .prepare('SELECT count(*) count FROM time_entry WHERE activity_summary=?')
+        .get('Atomic rollback batch'),
+    ).toEqual({ count: 0 });
+
+    const nextDate = new Date(`${operationalDate}T00:00:00.000Z`);
+    nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+    const validDate = nextDate.toISOString().slice(0, 10);
+    const batch = suppliers.createTimeBatch(coordinator, {
+      workerIds: [technician.id, second.id],
+      projectId: fixture.project.id,
+      workDate: validDate,
+      category: 'work',
+      minutes: 480,
+      startTime: '08:00',
+      endTime: '17:00',
+      breakMinutes: 60,
+      summary: 'Shared installation shift',
+    });
+    expect(batch.created).toHaveLength(2);
+    expect(
+      suppliers.submitTimeBatch(
+        coordinator,
+        batch.created.map((entry) => ({ id: entry.id, version: entry.version })),
+      ),
+    ).toEqual({ submitted: 2 });
+    expect(
+      fixture.sqlite
+        .prepare(
+          "SELECT count(*) count FROM time_entry WHERE activity_summary=? AND approval_state='submitted'",
+        )
+        .get('Shared installation shift'),
+    ).toEqual({ count: 2 });
   });
 
   it('revokes a coordinator installation across ordinary own time and report methods', () => {
@@ -438,7 +503,7 @@ describe('supplier workforce canonical time', () => {
     ).toThrow();
   });
 
-  it('keeps supplier identity through owner corrections after a technician profile is cleared', () => {
+  it('keeps supplier identity and Owner-only review through corrections after profile clearing', () => {
     const { fixture, suppliers, supplier, coordinator, technician } = setup();
     const delegated = suppliers.createTime(coordinator, {
       workerId: technician.id,
@@ -462,8 +527,20 @@ describe('supplier workforce canonical time', () => {
     });
     suppliers.submitTime(coordinator, { id: delegated.id, version: delegated.version });
     fixture.repository.submitTime(technicianPrincipal, ownEntered.id, ownEntered.version);
-    fixture.repository.operationalApproveTime(fixture.manager, delegated.id, 'approved');
-    fixture.repository.operationalApproveTime(fixture.manager, ownEntered.id, 'approved');
+    expect(fixture.repository.listApprovalQueue(fixture.manager)).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: delegated.id }),
+        expect.objectContaining({ id: ownEntered.id }),
+      ]),
+    );
+    expect(() =>
+      fixture.repository.operationalApproveTime(fixture.manager, delegated.id, 'approved'),
+    ).toThrow(AccessDeniedError);
+    expect(() =>
+      fixture.repository.operationalApproveTime(fixture.finance, delegated.id, 'approved'),
+    ).toThrow(AccessDeniedError);
+    fixture.repository.operationalApproveTime(fixture.owner, delegated.id, 'approved');
+    fixture.repository.operationalApproveTime(fixture.owner, ownEntered.id, 'approved');
 
     suppliers.setAccountProfile(fixture.owner, { userId: technician.id, profile: 'standard' });
     const owner = stepUpB5Principal(fixture.sqlite, fixture.owner, 'supplier-owner-correction');
@@ -483,8 +560,15 @@ describe('supplier workforce canonical time', () => {
     });
     fixture.repository.submitTime(owner, delegatedCorrection.id, delegatedCorrection.version);
     fixture.repository.submitTime(owner, ownEnteredCorrection.id, ownEnteredCorrection.version);
-    fixture.repository.operationalApproveTime(fixture.manager, delegatedCorrection.id, 'approved');
-    fixture.repository.operationalApproveTime(fixture.manager, ownEnteredCorrection.id, 'approved');
+    expect(() =>
+      fixture.repository.operationalApproveTime(
+        fixture.manager,
+        delegatedCorrection.id,
+        'approved',
+      ),
+    ).toThrow(AccessDeniedError);
+    fixture.repository.operationalApproveTime(fixture.owner, delegatedCorrection.id, 'approved');
+    fixture.repository.operationalApproveTime(fixture.owner, ownEnteredCorrection.id, 'approved');
 
     const originalRows = fixture.sqlite
       .prepare('SELECT id,created_at FROM time_entry WHERE id IN (?,?) ORDER BY id')
@@ -591,6 +675,34 @@ describe('supplier workforce canonical time', () => {
     ).toThrow(AccessDeniedError);
     fixture.sqlite.prepare("UPDATE user SET status='suspended' WHERE id=?").run(coordinator.userId);
     expect(() => suppliers.listProjects(coordinator)).toThrow(AccessDeniedError);
+  });
+
+  it('caps delegated assignments to the coordinator grant window', () => {
+    const { fixture, suppliers, coordinator } = setup();
+    fixture.sqlite
+      .prepare(
+        'UPDATE supplier_project_grant SET ends_on=? WHERE coordinator_id=? AND project_id=?',
+      )
+      .run(operationalDate, coordinator.userId, fixture.project.id);
+
+    const capped = suppliers.addTechnician(coordinator, {
+      projectId: fixture.project.id,
+      name: 'Grant-capped technician',
+      startsOn: operationalDate,
+    });
+    expect(
+      fixture.sqlite
+        .prepare('SELECT ends_on FROM project_member WHERE id=?')
+        .get(capped.assignmentId),
+    ).toEqual({ ends_on: operationalDate });
+    expect(() =>
+      suppliers.addTechnician(coordinator, {
+        projectId: fixture.project.id,
+        name: 'Out-of-window technician',
+        startsOn: operationalDate,
+        endsOn: '2026-12-31',
+      }),
+    ).toThrow(AccessDeniedError);
   });
 
   it('voids an external technician delegated draft instead of deleting recorder provenance', () => {
@@ -707,7 +819,12 @@ describe('supplier directory lifecycle', () => {
   it('rejects unauthorized, expired-session, invalid and conflicting directory changes', () => {
     const { fixture, suppliers, supplier, coordinator, technician } = setup();
     const owner = stepUpB5Principal(fixture.sqlite, fixture.owner, 'directory-owner');
-    for (const actor of [coordinator, fixture.outsider, fixture.finance, fixture.owner]) {
+    const ownerWithoutSession = {
+      userId: fixture.owner.userId,
+      role: fixture.owner.role,
+      projectIds: fixture.owner.projectIds,
+    };
+    for (const actor of [coordinator, fixture.outsider, fixture.finance, ownerWithoutSession]) {
       expect(() => suppliers.updateSupplier(actor, { id: supplier.id, name: 'Forbidden' })).toThrow(
         AccessDeniedError,
       );

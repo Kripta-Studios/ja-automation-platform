@@ -28,6 +28,7 @@
       value === null || value === undefined ? null : String(value),
     );
   const record = $derived(data.record as Row);
+  const restrictedOperational = $derived(Boolean(data.user?.workforceProfile));
   const money = (minor: unknown, currency: string) =>
     formatMoney(minor, currency, locale === 'pt' ? 'pt-BR' : locale);
   function printReport(): void {
@@ -76,16 +77,18 @@
     <article>
       <span>{t('CATEGORY')}</span><strong>{controlled('expenseCategory', record.category)}</strong>
     </article>
-    <article>
-      <span>{t('CLIENT TREATMENT')}</span><strong
-        >{controlled('billingStream', record.client_treatment)}</strong
-      >
-    </article>
-    <article>
-      <span>{t('REIMBURSEMENT')}</span><strong
-        >{controlled('status', record.reimbursement_state ?? 'pending')}</strong
-      >
-    </article>
+    {#if !restrictedOperational}
+      <article>
+        <span>{t('CLIENT TREATMENT')}</span><strong
+          >{controlled('billingStream', record.client_treatment)}</strong
+        >
+      </article>
+      <article>
+        <span>{t('REIMBURSEMENT')}</span><strong
+          >{controlled('status', record.reimbursement_state ?? 'pending')}</strong
+        >
+      </article>
+    {/if}
   </section>
   <section class="detail-panel record-detail-copy">
     <div class="panel-title">
@@ -102,19 +105,21 @@
         <dt>{t('Payment method')}</dt>
         <dd>{record.payment_method ?? '—'}</dd>
       </div>
-      <div>
-        <dt>{t('Billing treatment')}</dt>
-        <dd>{controlled('billingStream', record.billing_treatment ?? 'internal')}</dd>
-      </div>
-      <div>
-        <dt>{t('Project-currency amount')}</dt>
-        <dd>
-          {money(
-            record.project_currency_amount_minor ?? record.amount_minor,
-            String(record.project_currency ?? record.currency),
-          )}
-        </dd>
-      </div>
+      {#if !restrictedOperational}
+        <div>
+          <dt>{t('Billing treatment')}</dt>
+          <dd>{controlled('billingStream', record.billing_treatment ?? 'internal')}</dd>
+        </div>
+        <div>
+          <dt>{t('Project-currency amount')}</dt>
+          <dd>
+            {money(
+              record.project_currency_amount_minor ?? record.amount_minor,
+              String(record.project_currency ?? record.currency),
+            )}
+          </dd>
+        </div>
+      {/if}
       <div>
         <dt>{t('Receipt')}</dt>
         <dd>

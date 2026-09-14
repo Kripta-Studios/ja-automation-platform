@@ -2,6 +2,7 @@ import { assertLiveSession } from '../../core/authorization.ts';
 import type { DatabaseSync } from 'node:sqlite';
 import { createHash } from 'node:crypto';
 import { newId, type Principal } from '@ja/domain';
+import { isSupplierTimeEntry } from '../workforce/supplier-access.ts';
 
 type ErrorFactory = (message: string) => never;
 
@@ -856,6 +857,10 @@ export class TimeEntryRepository {
         .prepare('SELECT project_id,approval_state,version FROM time_entry WHERE id=?')
         .get(id) as { project_id: string; approval_state: string; version: number } | undefined;
       if (!row) throw this.deps.errors.validation('Time entry not found');
+      if (isSupplierTimeEntry(this.deps.sqlite, id) && principal.role !== 'owner_admin')
+        throw this.deps.errors.accessDenied(
+          'Supplier workforce time can only be reviewed by an Owner',
+        );
       this.deps.assertCanReview(principal, row.project_id);
       if (row.approval_state !== 'submitted')
         throw this.deps.errors.conflict('Time entry is not submitted');

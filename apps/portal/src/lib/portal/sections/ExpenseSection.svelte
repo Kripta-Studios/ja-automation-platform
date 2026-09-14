@@ -114,6 +114,7 @@
   ] as const;
 
   const records = $derived(data.records ?? []);
+  const restrictedOperational = $derived(Boolean(data.user.workforceProfile));
   const clientOptions = $derived(
     [...new Set(records.map((row) => String(row.client_name ?? '')).filter(Boolean))].sort(),
   );
@@ -161,6 +162,7 @@
         ]);
         const reimbursementState = String(row.reimbursement_state ?? '');
         const matchesReimbursement =
+          restrictedOperational ||
           !reimbursementFilter ||
           (reimbursementFilter === 'pending'
             ? ['pending', 'scheduled'].includes(reimbursementState)
@@ -375,11 +377,13 @@
       <strong>{pendingReviewCount}</strong>
       <small>{translate('Draft or review state')}</small>
     </a>
-    <a class="expense-status-card" href={registerHref({ status: '', reimbursement: 'pending' })}>
-      <span>{translate('Reimbursement')}</span>
-      <strong>{reimbursementCount}</strong>
-      <small>{translate('Pending or scheduled')}</small>
-    </a>
+    {#if !restrictedOperational}
+      <a class="expense-status-card" href={registerHref({ status: '', reimbursement: 'pending' })}>
+        <span>{translate('Reimbursement')}</span>
+        <strong>{reimbursementCount}</strong>
+        <small>{translate('Pending or scheduled')}</small>
+      </a>
+    {/if}
   </div>
 
   <form
@@ -461,18 +465,20 @@
         <option value="needs_changes">{translate('Needs changes')}</option>
       </select>
     </label>
-    <label>
-      <span>{translate('Reimbursement status')}</span>
-      <select
-        name="reimbursement"
-        bind:value={reimbursementFilter}
-        onchange={() => (registerPage = 1)}
-      >
-        <option value="">{translate('All statuses')}</option>
-        <option value="pending">{translate('Pending or scheduled')}</option>
-        <option value="reimbursed">{translate('Reimbursed')}</option>
-      </select>
-    </label>
+    {#if !restrictedOperational}
+      <label>
+        <span>{translate('Reimbursement status')}</span>
+        <select
+          name="reimbursement"
+          bind:value={reimbursementFilter}
+          onchange={() => (registerPage = 1)}
+        >
+          <option value="">{translate('All statuses')}</option>
+          <option value="pending">{translate('Pending or scheduled')}</option>
+          <option value="reimbursed">{translate('Reimbursed')}</option>
+        </select>
+      </label>
+    {/if}
     <label>
       <span>{translate('Sort by')}</span>
       <select name="order" bind:value={order} onchange={() => (registerPage = 1)}>
@@ -486,94 +492,102 @@
     <a class="secondary-button" href={`${base}/app/expenses?q=`}>{translate('Clear filters')}</a>
   </form>
 
-  <section class="expense-export-panel" aria-labelledby="expense-filtered-export-title">
-    <div>
-      <h3 id="expense-filtered-export-title">{translate('Export filtered results')}</h3>
-      <p>
-        {translate('Download exactly the expenses currently selected by the register filters.')}
-      </p>
-    </div>
-    <div class="expense-export-actions">
-      {#if filteredExportPeriod}
-        <a class="secondary-button" href={filteredExportHref('pdf')}>{translate('Download PDF')}</a>
-        <a class="secondary-button" href={filteredExportHref('xlsx')}
-          >{translate('Download Excel')}</a
-        >
-        <a class="secondary-button" href={filteredExportHref('csv')}>{translate('Download CSV')}</a>
-      {:else}
-        <span>{translate('No matching records.')}</span>
-      {/if}
-    </div>
-  </section>
+  {#if !restrictedOperational}
+    <section class="expense-export-panel" aria-labelledby="expense-filtered-export-title">
+      <div>
+        <h3 id="expense-filtered-export-title">{translate('Export filtered results')}</h3>
+        <p>
+          {translate('Download exactly the expenses currently selected by the register filters.')}
+        </p>
+      </div>
+      <div class="expense-export-actions">
+        {#if filteredExportPeriod}
+          <a class="secondary-button" href={filteredExportHref('pdf')}
+            >{translate('Download PDF')}</a
+          >
+          <a class="secondary-button" href={filteredExportHref('xlsx')}
+            >{translate('Download Excel')}</a
+          >
+          <a class="secondary-button" href={filteredExportHref('csv')}
+            >{translate('Download CSV')}</a
+          >
+        {:else}
+          <span>{translate('No matching records.')}</span>
+        {/if}
+      </div>
+    </section>
 
-  <section class="expense-export-panel" aria-labelledby="expense-export-title">
-    <div>
-      <h3 id="expense-export-title">{translate('Create report with another scope')}</h3>
-      <p>{translate('Choose a separate period and scope without changing the register above.')}</p>
-    </div>
-    <div class="expense-export-fields">
-      <label><span>{translate('From')}</span><input type="date" bind:value={exportFrom} /></label>
-      <label><span>{translate('To')}</span><input type="date" bind:value={exportTo} /></label>
-      <label
-        ><span>{translate('Project')}</span><select bind:value={exportProject}
-          ><option value="">{translate('All projects')}</option
-          >{#each availableProjects as project}<option value={String(project.id)}
-              >{project.project_number} — {project.name}</option
-            >{/each}</select
-        ></label
-      >
-      {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
+    <section class="expense-export-panel" aria-labelledby="expense-export-title">
+      <div>
+        <h3 id="expense-export-title">{translate('Create report with another scope')}</h3>
+        <p>
+          {translate('Choose a separate period and scope without changing the register above.')}
+        </p>
+      </div>
+      <div class="expense-export-fields">
+        <label><span>{translate('From')}</span><input type="date" bind:value={exportFrom} /></label>
+        <label><span>{translate('To')}</span><input type="date" bind:value={exportTo} /></label>
         <label
-          ><span>{translate('Worker')}</span><select bind:value={exportWorker}
-            ><option value="">{translate('All workers')}</option
-            >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
-                >{worker.name}</option
+          ><span>{translate('Project')}</span><select bind:value={exportProject}
+            ><option value="">{translate('All projects')}</option
+            >{#each availableProjects as project}<option value={String(project.id)}
+                >{project.project_number} — {project.name}</option
               >{/each}</select
           ></label
         >
-      {/if}
-      <label
-        ><span>{translate('Client')}</span><select bind:value={exportClient}
-          ><option value="">{translate('All clients')}</option
-          >{#each clientOptions as client}<option value={client}>{client}</option>{/each}</select
-        ></label
-      >
-      <label
-        ><span>{translate('Category')}</span><select bind:value={exportCategory}
-          ><option value="">{translate('All categories')}</option
-          >{#each expenseCategories as [value, label]}<option {value}>{translate(label)}</option
-            >{/each}</select
-        ></label
-      >
-      <label
-        ><span>{translate('Currency')}</span><select bind:value={exportCurrency}
-          ><option value="">{translate('All currencies')}</option><option value="USD">USD</option
-          ><option value="EUR">EUR</option><option value="BRL">BRL</option></select
-        ></label
-      >
-      <label
-        ><span>{translate('Status')}</span><select bind:value={exportStatus}
-          ><option value="">{translate('All statuses')}</option><option value="draft"
-            >{translate('Draft')}</option
-          ><option value="submitted">{translate('Submitted')}</option><option value="approved"
-            >{translate('Approved')}</option
-          ><option value="needs_changes">{translate('Needs changes')}</option></select
-        ></label
-      >
-      <label
-        ><span>{translate('Reimbursement status')}</span><select bind:value={exportReimbursement}
-          ><option value="">{translate('All statuses')}</option><option value="pending"
-            >{translate('Pending or scheduled')}</option
-          ><option value="reimbursed">{translate('Reimbursed')}</option></select
-        ></label
-      >
-    </div>
-    <div class="expense-export-actions">
-      <a class="secondary-button" href={exportHref('pdf')}>{translate('Download PDF')}</a>
-      <a class="secondary-button" href={exportHref('xlsx')}>{translate('Download Excel')}</a>
-      <a class="secondary-button" href={exportHref('csv')}>{translate('Download CSV')}</a>
-    </div>
-  </section>
+        {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
+          <label
+            ><span>{translate('Worker')}</span><select bind:value={exportWorker}
+              ><option value="">{translate('All workers')}</option
+              >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
+                  >{worker.name}</option
+                >{/each}</select
+            ></label
+          >
+        {/if}
+        <label
+          ><span>{translate('Client')}</span><select bind:value={exportClient}
+            ><option value="">{translate('All clients')}</option
+            >{#each clientOptions as client}<option value={client}>{client}</option>{/each}</select
+          ></label
+        >
+        <label
+          ><span>{translate('Category')}</span><select bind:value={exportCategory}
+            ><option value="">{translate('All categories')}</option
+            >{#each expenseCategories as [value, label]}<option {value}>{translate(label)}</option
+              >{/each}</select
+          ></label
+        >
+        <label
+          ><span>{translate('Currency')}</span><select bind:value={exportCurrency}
+            ><option value="">{translate('All currencies')}</option><option value="USD">USD</option
+            ><option value="EUR">EUR</option><option value="BRL">BRL</option></select
+          ></label
+        >
+        <label
+          ><span>{translate('Status')}</span><select bind:value={exportStatus}
+            ><option value="">{translate('All statuses')}</option><option value="draft"
+              >{translate('Draft')}</option
+            ><option value="submitted">{translate('Submitted')}</option><option value="approved"
+              >{translate('Approved')}</option
+            ><option value="needs_changes">{translate('Needs changes')}</option></select
+          ></label
+        >
+        <label
+          ><span>{translate('Reimbursement status')}</span><select bind:value={exportReimbursement}
+            ><option value="">{translate('All statuses')}</option><option value="pending"
+              >{translate('Pending or scheduled')}</option
+            ><option value="reimbursed">{translate('Reimbursed')}</option></select
+          ></label
+        >
+      </div>
+      <div class="expense-export-actions">
+        <a class="secondary-button" href={exportHref('pdf')}>{translate('Download PDF')}</a>
+        <a class="secondary-button" href={exportHref('xlsx')}>{translate('Download Excel')}</a>
+        <a class="secondary-button" href={exportHref('csv')}>{translate('Download CSV')}</a>
+      </div>
+    </section>
+  {/if}
 
   <SectionCard title={translate('Recent expenses')} class="expense-list-surface">
     {#if visibleRecords.length > 0}
@@ -606,7 +620,7 @@
                     translate(String(row.approval_state ?? ''))}
                 />
               </a>
-              {#if row.reimbursement_state}
+              {#if !restrictedOperational && row.reimbursement_state}
                 <a
                   href={reimbursementStatusHref(row)}
                   aria-label={`${translate('Reimbursement')}: ${controlledValue('status', row.reimbursement_state) || translate(String(row.reimbursement_state))}`}

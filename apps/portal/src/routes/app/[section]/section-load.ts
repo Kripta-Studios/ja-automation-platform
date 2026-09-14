@@ -54,7 +54,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
       .get(context.principal.userId) as
       | { profile: 'external_technician' | 'supplier_coordinator' }
       | undefined;
-    if (restrictedProfile && !['time', 'expenses', 'reports', 'pay', 'profile'].includes(section))
+    if (restrictedProfile && !['time', 'expenses', 'reports', 'profile'].includes(section))
       error(403, 'Operational account: access denied');
     const searchQuery = url.searchParams.get('q')?.trim() ?? '';
     const isProjectManager = context.principal.role === 'project_manager';

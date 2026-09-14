@@ -47,7 +47,10 @@ import {
 } from './domains/finance/expense-commercial-classification-repository.ts';
 import { TimeEntryRepository } from './domains/time/time-entry-repository.ts';
 import {
+  assertNoSupplierFinancialAccess,
   isSupplierCoordinator,
+  isSupplierTimeEntry,
+  readSupplierProfile,
   readLiveSupplierCoordinatorGrant,
 } from './domains/workforce/supplier-access.ts';
 import { canonicalCustomerPeriodSnapshot } from './domains/reports/customer-conformity-repository.ts';
@@ -7572,9 +7575,12 @@ export class PortalRepository {
 
   listOwnExpenses(principal: Principal) {
     this.assertReadable(principal);
+    const restrictedSupplier = Boolean(readSupplierProfile(this.sqlite, principal.userId));
     const columns = this.canSeeFinanceFields(principal)
       ? 'e.id,e.project_id,e.spent_on,e.vendor,e.category,e.amount_minor,e.currency,e.approval_state,e.reimbursement_state,e.who_paid,e.billing_treatment,e.billing_amount_minor,e.billing_state,e.invoice_id,e.version'
-      : 'e.id,e.project_id,e.spent_on,e.vendor,e.category,e.amount_minor,e.currency,e.approval_state,e.reimbursement_state,e.who_paid,e.version';
+      : restrictedSupplier
+        ? 'e.id,e.project_id,e.spent_on,e.vendor,e.category,e.amount_minor,e.currency,e.approval_state,e.who_paid,e.version'
+        : 'e.id,e.project_id,e.spent_on,e.vendor,e.category,e.amount_minor,e.currency,e.approval_state,e.reimbursement_state,e.who_paid,e.version';
     const rows = this.sqlite
       .prepare(
         `SELECT ${columns},p.project_number
@@ -7609,9 +7615,10 @@ export class PortalRepository {
       );
       values.push(principal.userId, today(), today());
     }
+    const restrictedSupplier = Boolean(readSupplierProfile(this.sqlite, principal.userId));
     const expenseColumns = this.canSeeFinanceFields(principal)
       ? 'e.*'
-      : principal.role === 'worker'
+      : principal.role === 'worker' && !restrictedSupplier
         ? `e.id,e.project_id,e.worker_id,e.spent_on,e.vendor,e.category,e.description,
            e.amount_minor,e.currency,e.payment_method,e.approval_state,e.who_paid,
            e.receipt_document_id,e.receipt_required,e.reimbursement_state,
@@ -7734,6 +7741,7 @@ export class PortalRepository {
     reimbursedAt: string | null;
   }> {
     this.assertReadable(principal);
+    assertNoSupplierFinancialAccess(this.sqlite, principal.userId, AccessDeniedError);
     if (!['worker', 'project_manager'].includes(principal.role))
       throw new AccessDeniedError('Worker or project manager role required');
     assertDate(periodStart, 'Period start');
@@ -7821,6 +7829,7 @@ export class PortalRepository {
     periodEnd: string,
   ): Array<Record<string, unknown>> {
     this.assertReadable(principal);
+    assertNoSupplierFinancialAccess(this.sqlite, principal.userId, AccessDeniedError);
     if (!['worker', 'project_manager'].includes(principal.role))
       throw new AccessDeniedError('Worker or project manager role required');
     assertDate(periodStart, 'Period start');
@@ -7861,15 +7870,20 @@ export class PortalRepository {
 
   expenseDetail(principal: Principal, id: string) {
     this.assertReadable(principal);
-    const expenseColumns = this.canSeeFinanceFields(principal)
-      ? 'e.*'
-      : principal.role === 'worker'
-        ? `e.id,e.project_id,e.worker_id,e.spent_on,e.category,e.currency,e.amount_minor,
+    const restrictedSupplier = Boolean(readSupplierProfile(this.sqlite, principal.userId));
+    const expenseColumns = restrictedSupplier
+      ? `e.id,e.project_id,e.worker_id,e.spent_on,e.category,e.currency,e.amount_minor,
+         e.vendor,e.description,e.who_paid,e.payment_method,e.receipt_required,
+         e.receipt_document_id,e.approval_state,e.version,e.created_at,e.updated_at`
+      : this.canSeeFinanceFields(principal)
+        ? 'e.*'
+        : principal.role === 'worker'
+          ? `e.id,e.project_id,e.worker_id,e.spent_on,e.category,e.currency,e.amount_minor,
            e.vendor,e.description,e.who_paid,e.payment_method,e.receipt_required,
            e.receipt_document_id,e.approval_state,e.reimbursement_state,
            e.reimbursement_amount_minor,e.expected_reimbursement_on,e.reimbursed_at,e.reimbursement_reference,
            e.version,e.created_at,e.updated_at`
-        : `e.id,e.project_id,e.worker_id,e.spent_on,e.category,e.currency,e.amount_minor,
+          : `e.id,e.project_id,e.worker_id,e.spent_on,e.category,e.currency,e.amount_minor,
            e.vendor,e.description,e.who_paid,e.payment_method,e.receipt_required,
            e.receipt_document_id,e.approval_state,e.version,e.created_at,e.updated_at`;
     const row = this.sqlite
@@ -8086,9 +8100,11 @@ export class PortalRepository {
             )`,
       )
       .all(...ids);
-    return [...queued, ...retryableTime, ...retryableExpense].sort((left, right) =>
-      String(left.date).localeCompare(String(right.date)),
-    );
+    return [...queued, ...retryableTime, ...retryableExpense]
+      .filter(
+        (row) => String(row.type) !== 'time' || !isSupplierTimeEntry(this.sqlite, String(row.id)),
+      )
+      .sort((left, right) => String(left.date).localeCompare(String(right.date)));
   }
 
   listInvoices(principal: Principal): readonly InvoiceListRow[] {

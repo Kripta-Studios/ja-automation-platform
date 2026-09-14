@@ -17,7 +17,12 @@ import {
 } from './supplier-access.ts';
 
 type ProjectScope = Readonly<{ id: string; name: string }>;
-type SupplierScope = Readonly<{ supplierId: string; grantId: string }>;
+type SupplierScope = Readonly<{
+  supplierId: string;
+  grantId: string;
+  startsOn: string;
+  endsOn: string | null;
+}>;
 export type SupplierDto = Readonly<{
   id: string;
   name: string;
@@ -253,6 +258,20 @@ export class SupplierWorkforceRepository {
       .get(projectId, workerId, scope.supplierId, workDate, workDate);
     if (!worker) throw new AccessDeniedError('Supplier technician project scope required');
     return scope;
+  }
+
+  private assignmentEndWithinCoordinatorGrant(
+    principal: Principal,
+    scope: SupplierScope,
+    requestedEnd: string | null,
+  ): string | null {
+    if (principal.role === 'owner_admin' || scope.endsOn === null) return requestedEnd;
+    if (requestedEnd && requestedEnd > scope.endsOn)
+      throw new AccessDeniedError(
+        `Assignment cannot extend beyond the coordinator authorization ending ${scope.endsOn}`,
+      );
+    // A finite delegated authority cannot silently create permanent access.
+    return requestedEnd ?? scope.endsOn;
   }
 
   private assertOwnerOrCoordinatorSupplier(
@@ -1007,8 +1026,8 @@ export class SupplierWorkforceRepository {
     },
   ) {
     assertDate(input.startsOn, 'Start date');
-    const endsOn = optionalEnd(input.endsOn);
-    if (endsOn && endsOn < input.startsOn)
+    const requestedEndsOn = optionalEnd(input.endsOn);
+    if (requestedEndsOn && requestedEndsOn < input.startsOn)
       throw new ValidationError('End date must follow start date');
     const name = requiredText(input.name, 'Technician name', 160);
     const suppliedEmail = input.email?.trim().toLowerCase() || null;
@@ -1017,12 +1036,14 @@ export class SupplierWorkforceRepository {
     return this.transaction(() => {
       this.assertActive(principal);
       let supplierId: string;
+      let endsOn = requestedEndsOn;
       if (principal.role === 'owner_admin') {
         supplierId = requiredText(input.supplierId ?? '', 'Supplier');
         this.assertSupplier(supplierId);
       } else {
         const scope = this.assertCoordinatorGrant(principal, input.projectId, input.startsOn);
         supplierId = scope.supplierId;
+        endsOn = this.assignmentEndWithinCoordinatorGrant(principal, scope, requestedEndsOn);
         if (input.supplierId && input.supplierId !== supplierId)
           throw new AccessDeniedError('Supplier scope required');
       }
@@ -1099,8 +1120,8 @@ export class SupplierWorkforceRepository {
     input: { workerId: string; projectId: string; startsOn: string; endsOn?: string },
   ) {
     assertDate(input.startsOn, 'Start date');
-    const endsOn = optionalEnd(input.endsOn);
-    if (endsOn && endsOn < input.startsOn)
+    const requestedEndsOn = optionalEnd(input.endsOn);
+    if (requestedEndsOn && requestedEndsOn < input.startsOn)
       throw new ValidationError('End date must follow start date');
     return this.transaction(() => {
       const profile = readSupplierProfile(this.sqlite, input.workerId);
@@ -1110,6 +1131,7 @@ export class SupplierWorkforceRepository {
       if (!worker || profile?.profile !== 'external_technician')
         throw new AccessDeniedError('Supplier technician required');
       let supplierId: string;
+      let endsOn = requestedEndsOn;
       if (principal.role === 'owner_admin') {
         this.assertOwner(principal);
         const project = this.sqlite
@@ -1123,6 +1145,7 @@ export class SupplierWorkforceRepository {
         if (profile.supplierId !== scope.supplierId)
           throw new AccessDeniedError('Supplier technician required');
         supplierId = scope.supplierId;
+        endsOn = this.assignmentEndWithinCoordinatorGrant(principal, scope, requestedEndsOn);
       }
       const timestamp = now();
       const id = newId();
@@ -1363,8 +1386,42 @@ export class SupplierWorkforceRepository {
     return this.time.createTimeEntryForWorker(principal, input.workerId, input);
   }
 
+  createTimeBatch(
+    principal: Principal,
+    input: TimeEntryInput & { workerIds: readonly string[] },
+  ): { created: readonly { id: string; version: number }[] } {
+    const workerIds = [...new Set(input.workerIds.map((id) => id.trim()).filter(Boolean))];
+    if (workerIds.length === 0) throw new ValidationError('Select at least one technician');
+    if (workerIds.length > 100)
+      throw new ValidationError('A time batch is limited to 100 technicians');
+    return this.transaction(() => {
+      // Resolve every object permission before the first insert. The outer
+      // transaction then makes the batch all-or-nothing if any row conflicts.
+      for (const workerId of workerIds)
+        this.assertCoordinatorScope(principal, workerId, input.projectId, input.workDate);
+      const created = workerIds.map((workerId) =>
+        this.time.createTimeEntryForWorker(principal, workerId, input),
+      );
+      return { created };
+    });
+  }
+
   submitTime(principal: Principal, input: { id: string; version: number }) {
     return this.time.submitTime(principal, input.id, input.version);
+  }
+
+  submitTimeBatch(
+    principal: Principal,
+    entries: readonly { id: string; version: number }[],
+  ): { submitted: number } {
+    const unique = new Map(entries.map((entry) => [entry.id.trim(), entry.version]));
+    unique.delete('');
+    if (unique.size === 0) throw new ValidationError('Select at least one draft');
+    if (unique.size > 100) throw new ValidationError('A submission batch is limited to 100 drafts');
+    return this.transaction(() => {
+      for (const [id, version] of unique) this.time.submitTime(principal, id, version);
+      return { submitted: unique.size };
+    });
   }
 
   updateTime(principal: Principal, input: TimeEntryUpdateInput) {

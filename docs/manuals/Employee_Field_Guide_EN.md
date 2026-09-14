@@ -1,6 +1,6 @@
 # Employee field guide — revision 2026-09-11
 
-**External accounts:** Supplier coordinators and external technicians can record their own time, expenses and reports and can use own-only My Pay. Project finance, customer rates, margins, other workers' pay and financial administration remain restricted.
+**External accounts:** Supplier coordinators and external technicians can record permitted operational time, expenses and reports. They cannot access My Pay, worker statements, compensation, rates, margins or financial administration.
 
 > Use only the portal address and verified support route stated in your invitation. This guide uses synthetic examples. Never share a password, MFA code, recovery code, receipt or session.
 
@@ -58,4 +58,4 @@ In **Record team hours**, select the technician and enter the real work date, ca
 
 Use **Operational report** to filter by installation and dates, read approval states, download CSV, or print/save a PDF in the browser. History remains visible; rejected, void and superseded records do not increase the effective total. This report does not certify payment or customer acceptance.
 
-An External technician sees only their own operational hours, expenses, reports and own-only My Pay. A Supplier coordinator additionally sees expressly authorized installations. Neither profile sees customer rates, project margins, another person's pay, financial documents or administrative exports. Supplier operational reports never include money. Contact the Owner when an installation or technician is missing; do not record work against a substitute person or project.
+An External technician sees only their own permitted operational hours, expenses and reports. A Supplier coordinator additionally sees expressly authorized installations and can select several technicians to create traceable drafts with shared hours or a time interval, then submit selected drafts together. Neither profile can open My Pay, worker statements, compensation, rates, margins, financial documents or administrative exports. Supplier time requires Owner review. Supplier operational reports never include money. Contact the Owner when an installation or technician is missing; do not record work against a substitute person or project.

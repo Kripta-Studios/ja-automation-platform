@@ -6,9 +6,13 @@ import { portalNavigationForRole } from '../../apps/portal/src/lib/portal-naviga
 describe('supplier operational surface', () => {
   it.each([
     '/my-pay',
+    '/pay',
+    '/api/worker-statement',
+    '/api/worker-statement/pdf',
     '/documents',
     '/notifications',
     '/finance',
+    '/expenses/export',
     '/reports/period',
     '/reports/period/other',
     '/reports/review',
@@ -25,8 +29,6 @@ describe('supplier operational surface', () => {
     '/time/own-id',
     '/expenses',
     '/expenses/own-id',
-    '/pay',
-    '/api/worker-statement',
     '/help/employee-field-guide/download',
     '/help/worker-reference/download',
     '/reports/own-id',
@@ -44,17 +46,18 @@ describe('supplier operational surface', () => {
   ])('permits operational route with downstream object authorization %s', (path) => {
     expect(supplierRouteAllowed(path)).toBe(true);
   });
-  it('keeps external accounts on self-service work and pay while enabling coordinator team management', () => {
+  it('keeps external accounts operational-only while enabling coordinator team management', () => {
     const external = JSON.stringify(
       portalNavigationForRole('/app', 'worker', 'external_technician'),
     );
     const coordinator = JSON.stringify(
       portalNavigationForRole('/app', 'worker', 'supplier_coordinator'),
     );
-    expect(external).toContain('My Pay');
+    expect(external).not.toContain('My Pay');
     expect(external).toContain('expenses');
     expect(external).not.toContain('Finance Overview');
     expect(coordinator).toContain('/supplier');
+    expect(coordinator).not.toContain('My Pay');
     expect(JSON.stringify(portalNavigationForRole('/app', 'worker'))).toContain('My Pay');
   });
   it('exports quoted UTF-8 CSV and neutralizes formulas without dropping work descriptions', () => {

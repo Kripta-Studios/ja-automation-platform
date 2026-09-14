@@ -1,6 +1,6 @@
 # Guía de campo para empleados — revisión 2026-09-11
 
-**Cuentas externas:** Los responsables de proveedor y técnicos externos pueden registrar sus propias horas, gastos e informes y usar My Pay limitado a sus propios datos. Las finanzas del proyecto, tarifas del cliente, márgenes, pagos ajenos y administración financiera siguen restringidos.
+**Cuentas externas:** Los responsables de proveedor y técnicos externos pueden registrar las horas, gastos e informes operativos permitidos. No pueden acceder a My Pay, extractos del trabajador, compensación, tarifas, márgenes ni administración financiera.
 
 > Usa solo la dirección del portal y el contacto de soporte admin@j-aautomation.com. Esta guía usa ejemplos sintéticos. No compartas contraseña, código MFA, código de recuperación, recibo ni sesión.
 
@@ -58,4 +58,4 @@ En **Registrar horas del equipo**, selecciona el técnico e introduce la fecha r
 
 En **Informe operativo**, filtra instalación y fechas, consulta estados, descarga CSV o imprime/guarda PDF desde el navegador. El historial permanece visible; los registros rechazados, anulados o sustituidos no incrementan el total efectivo. El informe no acredita pagos ni aceptación del cliente.
 
-El Técnico externo solo ve sus propias horas, gastos, informes y My Pay limitado a sus propios datos. El Responsable de proveedor ve además las instalaciones expresamente autorizadas. Ninguno de esos perfiles ve tarifas del cliente, márgenes del proyecto, pagos ajenos, documentos financieros ni exportaciones administrativas. Los informes operativos del proveedor no incluyen importes. Si falta una instalación o un técnico, pide al Owner que revise la asignación.
+El Técnico externo solo ve sus propias horas, gastos e informes operativos permitidos. El Responsable de proveedor ve además las instalaciones expresamente autorizadas y puede seleccionar varios técnicos para crear borradores trazables con horas comunes o un intervalo horario y enviarlos juntos. Ninguno de esos perfiles puede abrir My Pay, extractos, compensación, tarifas, márgenes, documentos financieros ni exportaciones administrativas. Las horas de proveedor requieren revisión del Owner. Los informes operativos del proveedor no incluyen importes. Si falta una instalación o un técnico, pide al Owner que revise la asignación.

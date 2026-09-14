@@ -43,7 +43,7 @@ const topics: Record<
     ],
   },
   pay: {
-    roles: ['worker', 'project_manager', 'supplier_coordinator', 'external_technician'],
+    roles: ['worker', 'project_manager'],
     route: 'pay',
     en: [
       'Your own compensation and payments',
@@ -175,15 +175,15 @@ const topics: Record<
     route: 'supplier/report',
     en: [
       'Supplier coordination and operational report',
-      'The Owner authorizes a supplier and coordinator for a project and date range. The coordinator assigns existing technicians and records team work within that authorization; an external technician records their own work. Operational report is a filtered view of those time records. Edit the source draft or request an audited correction to update the report; download CSV or print it as PDF.',
+      'The Owner authorizes a supplier and coordinator for a project and date range. The coordinator can select several technicians, apply shared hours or a time interval, save separate traceable drafts and submit selected drafts together. Only Owner reviews supplier time. Operational report contains no pay, rates or financial results; external accounts cannot open My Pay or worker statements.',
     ],
     es: [
       'Coordinación de proveedores e informe operativo',
-      'Owner autoriza al proveedor y coordinador para un proyecto y fechas. El coordinador asigna técnicos existentes y registra trabajo del equipo dentro de esa autorización; el técnico externo registra su propio trabajo. Operational report es una vista filtrada de esas horas. Edita el borrador de origen o solicita una corrección auditada para actualizarla; descarga CSV o imprime en PDF.',
+      'Owner autoriza al proveedor y coordinador para un proyecto y unas fechas. El coordinador puede seleccionar varios técnicos, aplicar horas comunes o un intervalo, guardar borradores trazables separados y enviar los seleccionados juntos. Solo Owner revisa las horas de proveedor. Operational report no contiene pagos, tarifas ni resultados financieros; las cuentas externas no pueden abrir My Pay ni extractos.',
     ],
     pt: [
       'Coordenação de fornecedores e relatório operacional',
-      'Owner autoriza fornecedor e coordenador por projeto e datas. O coordenador atribui técnicos e registra trabalho da equipe nesse escopo; o técnico externo registra seu trabalho. Operational report é uma visão filtrada dessas horas. Edite o rascunho ou solicite correção auditada para atualizar; baixe CSV ou imprima em PDF.',
+      'Owner autoriza fornecedor e coordenador por projeto e datas. O coordenador pode selecionar vários técnicos, aplicar horas comuns ou intervalo, salvar rascunhos rastreáveis separados e enviar os selecionados juntos. Somente Owner revisa horas de fornecedor. Operational report não contém pagamentos, tarifas ou resultados financeiros; contas externas não podem abrir Meu pagamento ou demonstrativos.',
     ],
   },
 };
@@ -197,7 +197,7 @@ export function helpWorkflows(
     .filter(
       (topic) =>
         topic.roles.includes(effectiveRole) ||
-        (profile && ['time', 'expenses', 'pay', 'reports'].includes(topic.route)),
+        (profile && ['time', 'expenses', 'reports'].includes(topic.route)),
     )
     .map((topic) => ({ title: topic[locale][0], body: topic[locale][1], route: topic.route }));
 }

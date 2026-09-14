@@ -12,13 +12,7 @@
   const m = $derived(supplierManagementCopy[data.locale as keyof typeof supplierManagementCopy]);
   let search = $state('');
   let directoryStatus = $state('active');
-  type WorkspaceAction =
-    | 'directory'
-    | 'setup'
-    | 'authorize'
-    | 'personnel'
-    | 'time'
-    | 'report';
+  type WorkspaceAction = 'directory' | 'setup' | 'authorize' | 'personnel' | 'time' | 'report';
   const allowedWorkspaceActions: WorkspaceAction[] = [
     'directory',
     'setup',
@@ -40,13 +34,15 @@
       return data.owner ? 'directory' : 'time';
     }),
   );
-  type Editor = {
-    operation: string;
+  type UpdateOperation = 'updateSupplier' | 'updateTechnician';
+  type StatusOperation = 'setSupplierStatus' | 'setTechnicianStatus';
+  type UpdateEditor = {
+    kind: 'update';
+    operation: UpdateOperation;
     id: string;
     name: string;
     email: string;
     hasLogin: number;
-    status: string;
     phone: string;
     company: string;
     contactName: string;
@@ -54,29 +50,42 @@
     contactEmail: string;
     address: string;
   };
+  type StatusEditor = {
+    kind: 'status';
+    operation: StatusOperation;
+    id: string;
+    name: string;
+    status: string;
+  };
+  type Editor = UpdateEditor | StatusEditor;
   let editor = $state<Editor | null>(
-    untrack(() =>
-      form &&
-      !form.success &&
-      ['updateSupplier', 'updateTechnician', 'setSupplierStatus', 'setTechnicianStatus'].includes(
-        form.operation,
-      )
-        ? {
-            operation: form.operation,
-            id: form.values?.id ?? '',
-            name: form.values?.name ?? '',
-            email: form.values?.email ?? '',
-            hasLogin: Number(data.directory.find((t) => t.id === form.values?.id)?.hasLogin ?? 0),
-            status: form.values?.status ?? '',
-            phone: form.values?.phone ?? '',
-            company: form.values?.company ?? '',
-            contactName: form.values?.contactName ?? '',
-            notes: form.values?.notes ?? '',
-            contactEmail: form.values?.contactEmail ?? '',
-            address: form.values?.address ?? '',
-          }
-        : null,
-    ),
+    untrack(() => {
+      if (!form || form.success) return null;
+      if (form.operation === 'updateSupplier' || form.operation === 'updateTechnician')
+        return {
+          kind: 'update' as const,
+          operation: form.operation as UpdateOperation,
+          id: form.values?.id ?? '',
+          name: form.values?.name ?? '',
+          email: form.values?.email ?? '',
+          hasLogin: Number(data.directory.find((t) => t.id === form.values?.id)?.hasLogin ?? 0),
+          phone: form.values?.phone ?? '',
+          company: form.values?.company ?? '',
+          contactName: form.values?.contactName ?? '',
+          notes: form.values?.notes ?? '',
+          contactEmail: form.values?.contactEmail ?? '',
+          address: form.values?.address ?? '',
+        };
+      if (form.operation === 'setSupplierStatus' || form.operation === 'setTechnicianStatus')
+        return {
+          kind: 'status' as const,
+          operation: form.operation as StatusOperation,
+          id: form.values?.id ?? '',
+          name: form.values?.name ?? '',
+          status: form.values?.status ?? '',
+        };
+      return null;
+    }),
   );
   const matches = (text: string, status: string) =>
     (directoryStatus === 'all' ||
@@ -100,17 +109,39 @@
   );
   let supplierPage = $state<typeof filteredSuppliers>([]);
   let technicianPage = $state<typeof filteredTechnicians>([]);
+  let teamSearch = $state('');
+  let selectedWorkerIds = $state<string[]>(
+    untrack(() =>
+      form?.operation === 'createTimeBatch'
+        ? String(form.values?.workerIds ?? '')
+            .split(',')
+            .filter(Boolean)
+        : [],
+    ),
+  );
+  let selectedDraftIds = $state<string[]>([]);
+  const filteredAssigned = $derived(
+    data.assigned.filter((technician) =>
+      technician.name.toLocaleLowerCase().includes(teamSearch.toLocaleLowerCase()),
+    ),
+  );
+  const draftEntries = $derived(data.entries.filter((entry) => entry.state === 'draft'));
+  const selectedDraftPayload = $derived(
+    draftEntries
+      .filter((entry) => selectedDraftIds.includes(String(entry.id)))
+      .map((entry) => ({ id: String(entry.id), version: Number(entry.version) })),
+  );
   function editRecord(
-    operation: string,
+    operation: UpdateOperation,
     row: { id: string; name: string; email?: string; hasLogin?: number },
   ) {
     editor = {
+      kind: 'update',
       operation,
       id: row.id,
       name: row.name,
       email: row.email ?? '',
       hasLogin: row.hasLogin ?? 0,
-      status: '',
       phone: String((row as typeof row & { phone?: string }).phone ?? ''),
       company: String((row as typeof row & { company?: string }).company ?? ''),
       contactName: String((row as typeof row & { contactName?: string }).contactName ?? ''),
@@ -119,8 +150,12 @@
       address: String((row as typeof row & { address?: string }).address ?? ''),
     };
   }
-  function changeStatus(operation: string, row: { id: string; name: string }, status: string) {
-    editor = { operation, id: row.id, name: row.name, email: '', hasLogin: 0, status };
+  function changeStatus(
+    operation: StatusOperation,
+    row: { id: string; name: string },
+    status: string,
+  ) {
+    editor = { kind: 'status', operation, id: row.id, name: row.name, status };
   }
   const base = '/j-aautomation/app';
   const today = new Date().toISOString().slice(0, 10);
@@ -288,11 +323,7 @@
   {/if}
   <ResponsiveSheet
     open={editor !== null}
-    title={editor?.operation.startsWith('update')
-      ? m.edit
-      : editor?.status === 'active'
-        ? m.restore
-        : m.remove}
+    title={editor?.kind === 'update' ? m.edit : editor?.status === 'active' ? m.restore : m.remove}
     closeLabel={m.cancel}
     onclose={() => (editor = null)}
   >
@@ -312,7 +343,7 @@
         {#if form && !form.success && form.operation === editor.operation}<p role="alert">
             {standaloneActionMessage(data.locale, form)}
           </p>{/if}
-        {#if editor.operation.startsWith('update')}
+        {#if editor.kind === 'update'}
           <label data-ui="field"
             >{c.name}<input
               name="name"
@@ -401,10 +432,10 @@
             >{m.cancel}</button
           >
           <button
-            class={editor.operation.startsWith('set') && editor.status !== 'active'
+            class={editor.kind === 'status' && editor.status !== 'active'
               ? 'primary-button danger-button'
               : 'primary-button'}
-            >{editor.operation.startsWith('update')
+            >{editor.kind === 'update'
               ? m.save
               : editor.status === 'active'
                 ? m.restore
@@ -426,13 +457,12 @@
         <label data-ui="field"
           >{c.from}<input type="date" name="from" value={data.from} required /></label
         >
-        <label data-ui="field"
-          >{c.to}<input type="date" name="to" value={data.to} required /></label
+        <label data-ui="field">{c.to}<input type="date" name="to" value={data.to} required /></label
         >
         <label data-ui="field"
           >{portalText(data.locale, 'Language')}<select name="lang" value={data.locale}
-            ><option value="en">English</option><option value="es">Español</option><option value="pt"
-              >Português</option
+            ><option value="en">English</option><option value="es">Español</option><option
+              value="pt">Português</option
             ></select
           ></label
         >
@@ -671,55 +701,127 @@
   {/if}
   {#if data.projects.length && workspaceAction === 'time' && !data.owner}
     <SectionCard title={c.time}>
-        <form method="POST" action={actionUrl('createTime')}>
-          <input type="hidden" name="projectId" value={data.projectId} />
+      <p>{c.batchHelp}</p>
+      <form method="POST" action={actionUrl('createTimeBatch')}>
+        <input type="hidden" name="projectId" value={data.projectId} />
+        <input type="hidden" name="workerIds" value={selectedWorkerIds.join(',')} />
+        <div class="batch-team">
           <label data-ui="field"
-            >{c.worker}<select name="workerId" required value={value('createTime', 'workerId')}
-              ><option value="">{c.select}</option>{#each data.assigned as t}<option value={t.id}
-                  >{t.name}</option
-                >{/each}</select
-            ></label
+            >{c.findTechnician}<input type="search" bind:value={teamSearch} /></label
           >
+          <div class="batch-team-actions">
+            <button
+              type="button"
+              class="secondary-button"
+              onclick={() => (selectedWorkerIds = filteredAssigned.map((row) => String(row.id)))}
+              >{c.selectVisible}</button
+            >
+            <button type="button" class="secondary-button" onclick={() => (selectedWorkerIds = [])}
+              >{c.clearSelection}</button
+            >
+            <strong>{selectedWorkerIds.length} {c.selected}</strong>
+          </div>
+          <div class="batch-technicians">
+            {#each filteredAssigned as technician}
+              <label class="check batch-technician">
+                <input
+                  type="checkbox"
+                  value={String(technician.id)}
+                  bind:group={selectedWorkerIds}
+                />
+                <span>{technician.name}</span>
+              </label>
+            {:else}<p class="muted">{m.noMatches}</p>{/each}
+          </div>
+        </div>
+        <label data-ui="field"
+          >{c.date}<input
+            type="date"
+            name="workDate"
+            value={value('createTimeBatch', 'workDate', today)}
+            required
+          /></label
+        >
+        <label data-ui="field"
+          >{c.category}<select name="category" value={value('createTimeBatch', 'category', 'work')}
+            ><option value="work">{c.work}</option><option value="travel">{c.travel}</option
+            ></select
+          ></label
+        >
+        <label data-ui="field"
+          >{c.durationHours}<input
+            inputmode="decimal"
+            name="durationHours"
+            placeholder="8 or 8,5"
+            value={value('createTimeBatch', 'durationHours')}
+          /></label
+        >
+        <fieldset class="time-interval">
+          <legend>{c.intervalAlternative}</legend>
           <label data-ui="field"
-            >{c.date}<input
-              type="date"
-              name="workDate"
-              value={value('createTime', 'workDate', today)}
-              required
+            >{c.startTime}<input
+              type="time"
+              name="startTime"
+              value={value('createTimeBatch', 'startTime')}
             /></label
           >
           <label data-ui="field"
-            >{c.category}<select name="category" value={value('createTime', 'category', 'work')}
-              ><option value="work">{c.work}</option><option value="travel">{c.travel}</option
-              ></select
-            ></label
+            >{c.endTime}<input
+              type="time"
+              name="endTime"
+              value={value('createTimeBatch', 'endTime')}
+            /></label
           >
           <label data-ui="field"
-            >{c.minutes}<input
+            >{c.breakMinutes}<input
               type="number"
-              min="1"
-              max="1440"
-              step="1"
-              name="minutes"
-              value={value('createTime', 'minutes')}
-              required
+              min="0"
+              max="1439"
+              name="breakMinutes"
+              value={value('createTimeBatch', 'breakMinutes', '0')}
             /></label
           >
-          <label data-ui="field"
-            >{c.summary}<textarea name="summary" required maxlength="2000"
-              >{value('createTime', 'summary')}</textarea
-            ></label
-          ><button class="primary-button">{c.save}</button>
-        </form>
+        </fieldset>
+        <label data-ui="field"
+          >{c.summary}<textarea name="summary" required maxlength="2000"
+            >{value('createTimeBatch', 'summary')}</textarea
+          ></label
+        ><button class="primary-button" disabled={selectedWorkerIds.length === 0}
+          >{c.saveSelected}</button
+        >
+      </form>
     </SectionCard>
   {:else if workspaceAction === 'time' && !data.owner}
     <p>{c.empty}</p>
   {/if}
   {#if data.projects.length && workspaceAction === 'report'}
     <SectionCard title={c.report} id="supplier-report">
+      {#if !data.owner && draftEntries.length}
+        <form method="POST" action={actionUrl('submitTimeBatch')} class="batch-submit">
+          <input type="hidden" name="entries" value={JSON.stringify(selectedDraftPayload)} />
+          <button
+            type="button"
+            class="secondary-button"
+            onclick={() => (selectedDraftIds = draftEntries.map((entry) => String(entry.id)))}
+            >{c.selectDrafts}</button
+          >
+          <button type="button" class="secondary-button" onclick={() => (selectedDraftIds = [])}
+            >{c.clearSelection}</button
+          >
+          <button class="primary-button" disabled={selectedDraftPayload.length === 0}
+            >{c.submitSelected}</button
+          >
+        </form>
+      {/if}
       {#each data.entries as entry}
         <article>
           <h3>{entry.workerName} · {entry.workDate}</h3>
+          {#if !data.owner && entry.state === 'draft'}
+            <label class="check draft-selector">
+              <input type="checkbox" value={String(entry.id)} bind:group={selectedDraftIds} />
+              <span>{c.selectDraft}</span>
+            </label>
+          {/if}
           <p>{entry.minutes} · {c.minutes} · {supplierStateLabel(data.locale, entry.state)}</p>
           <p>{entry.summary}</p>
           <p>{c.recordedBy}: {entry.recordedByName || entry.workerName}</p>
@@ -913,6 +1015,52 @@
   .supplier-directory + h3 {
     margin-top: 2rem;
   }
+  .batch-team,
+  .time-interval {
+    grid-column: 1 / -1;
+  }
+  .batch-team {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .batch-team-actions,
+  .batch-submit {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .batch-technicians {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    gap: 0.5rem;
+    max-height: 19rem;
+    overflow: auto;
+    padding: 0.75rem;
+    border: 1px solid var(--ja-card-border);
+    border-radius: 0.5rem;
+    background: var(--ja-surface-subtle, #f4f7fa);
+  }
+  .batch-technician,
+  .draft-selector {
+    display: flex;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 2.75rem;
+  }
+  .time-interval {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid var(--ja-card-border);
+    border-radius: 0.5rem;
+  }
+  .time-interval legend {
+    padding: 0 0.4rem;
+    font-weight: 700;
+  }
   h3 {
     margin: 1rem 0;
   }
@@ -941,6 +1089,9 @@
     }
     .directory-actions > button {
       flex: 1;
+    }
+    .time-interval {
+      grid-template-columns: 1fr;
     }
   }
 </style>

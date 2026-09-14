@@ -51,7 +51,7 @@
 <main class="agreement-page" lang={locale === 'pt' ? 'pt-BR' : locale}>
   <a
     href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(data.selectedProjectId)}&lang=${locale}`}
-    >← {t.back}</a
+    data-origin-back>← {t.back}</a
   >
   <h1>{t.title}</h1>
   <SectionCard title={t.summary}>
@@ -69,13 +69,13 @@
       <dl class="facts">
         <div>
           <dt>{t.pricing}</dt>
-          <dd
-            >{data.agreement.pricing === 'all_in'
+          <dd>
+            {data.agreement.pricing === 'all_in'
               ? data.agreement.fixedPriceMinor == null
                 ? t.allInHourly
                 : t.fixed
-              : String(data.agreement.pricing)}</dd
-          >
+              : String(data.agreement.pricing)}
+          </dd>
         </div>
         <div>
           <dt>{t.currency}</dt>
@@ -99,6 +99,71 @@
         </div>
       </dl>
       <p>{t.expenseNote}</p>
+      {#if data.savedAgreementCheck && data.savedRuleCoverage}
+        <section class="saved-check" aria-labelledby="saved-agreement-check-title">
+          <div class="saved-check__heading">
+            <div>
+              <h3 id="saved-agreement-check-title">{t.savedCheck}</h3>
+              <p>{t.savedCheckHelp}</p>
+            </div>
+            <strong class:ready={data.savedAgreementCheck.state === 'ready'}
+              >{data.savedAgreementCheck.state === 'ready' ? t.ready : t.incomplete}</strong
+            >
+          </div>
+          <dl class="facts">
+            <div>
+              <dt>{t.actual}</dt>
+              <dd>{Number(data.savedAgreementCheck.actualMinutes) / 60}</dd>
+            </div>
+            <div>
+              <dt>{t.billable}</dt>
+              <dd>{Number(data.savedAgreementCheck.billableMinutes) / 60}</dd>
+            </div>
+            <div>
+              <dt>{t.adjustment}</dt>
+              <dd>
+                {data.savedAgreementCheck.dailyMinimumAdjustments.reduce(
+                  (sum: number, row: { adjustmentMinutes?: number }) =>
+                    sum + Number(row.adjustmentMinutes ?? 0),
+                  0,
+                ) / 60}
+              </dd>
+            </div>
+            <div>
+              <dt>{t.revenueCandidate}</dt>
+              <dd>
+                {paymentMoney(
+                  data.savedAgreementCheck.revenueCandidateMinor,
+                  data.savedAgreementCheck.currency,
+                  locale,
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>{t.clientRates}</dt>
+              <dd>{data.savedRuleCoverage.clientRates}</dd>
+            </div>
+            <div>
+              <dt>{t.compensationRules}</dt>
+              <dd>{data.savedRuleCoverage.compensationRules}</dd>
+            </div>
+            <div>
+              <dt>{t.internalCostRules}</dt>
+              <dd>{data.savedRuleCoverage.internalCostRules}</dd>
+            </div>
+          </dl>
+          {#if data.savedAgreementCheck.reasons.length}
+            <p class="saved-check__warning">{t.savedCheckBlocked}</p>
+            <ul>
+              {#each data.savedAgreementCheck.reasons as reason}<li>
+                  <code>{reason.code}</code> · {reason.sourceId}
+                </li>{/each}
+            </ul>
+          {:else}
+            <p>{t.savedCheckReady}</p>
+          {/if}
+        </section>
+      {/if}
       <details>
         <summary>{t.streams}</summary>
         {#each data.streams as stream}
@@ -348,6 +413,38 @@
     color: #9b1c1c;
     padding: 1rem;
     border: 1px solid currentColor;
+  }
+  .saved-check {
+    margin-block: 1rem;
+    padding: 1rem;
+    border: 1px solid #cbd8dc;
+    border-radius: 0.65rem;
+    background: #f8fbfc;
+  }
+  .saved-check__heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .saved-check__heading h3,
+  .saved-check__heading p {
+    margin: 0;
+  }
+  .saved-check__heading strong {
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    background: #fff0d6;
+    color: #7a4c00;
+    white-space: nowrap;
+  }
+  .saved-check__heading strong.ready {
+    background: #dff4eb;
+    color: #145d48;
+  }
+  .saved-check__warning {
+    color: #8a3d11;
+    font-weight: 700;
   }
   @media (max-width: 600px) {
     .project-picker {

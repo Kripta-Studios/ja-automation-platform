@@ -71,6 +71,12 @@ export type ArtifactJobV3 = Readonly<{
       periodStart: string;
       periodEnd: string;
       reportLocale?: ReportLocale;
+      contentMode?:
+        | 'hours_only'
+        | 'hours_activity'
+        | 'hours_activity_selected_technical'
+        | 'hours_activity_all_technical';
+      technicalReportIds?: readonly string[];
     }>,
     execution: ArtifactJobExecution,
   ) => readonly {
@@ -375,6 +381,23 @@ export function runArtifactJobs(context: ArtifactJobContext): {
         values.reportLocale === 'pt' || values.reportLocale === 'es' || values.reportLocale === 'en'
           ? values.reportLocale
           : undefined;
+      const contentMode = [
+        'hours_only',
+        'hours_activity',
+        'hours_activity_selected_technical',
+        'hours_activity_all_technical',
+      ].includes(String(values.contentMode ?? ''))
+        ? (String(values.contentMode) as
+            | 'hours_only'
+            | 'hours_activity'
+            | 'hours_activity_selected_technical'
+            | 'hours_activity_all_technical')
+        : undefined;
+      const technicalReportIds = Array.isArray(values.technicalReportIds)
+        ? values.technicalReportIds.filter(
+            (value): value is string => typeof value === 'string' && value.length > 0,
+          )
+        : undefined;
       if (!projectId || !periodStart || !periodEnd)
         throw new Error('Period report job has incomplete period data');
       const reports = context.v3.refreshPeriodReportsFromJob(
@@ -383,6 +406,8 @@ export function runArtifactJobs(context: ArtifactJobContext): {
           periodStart,
           periodEnd,
           reportLocale,
+          contentMode,
+          technicalReportIds,
         },
         execution,
       );

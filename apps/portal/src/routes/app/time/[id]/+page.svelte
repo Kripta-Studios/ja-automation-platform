@@ -50,7 +50,7 @@
 <svelte:head><title>{t('Time entry')} | {record.project_number}</title></svelte:head>
 <main class="record-detail-page">
   <nav class="detail-nav">
-    <a href={base + '/app/time'}>← {t('Time')}</a>
+    <a href={base + '/app/time'} data-origin-back>← {t('Time')}</a>
     {#if !data.user?.workforceProfile}<a href={base + '/app/projects/' + String(record.project_id)}
         >{t('Open project')}</a
       >{/if}

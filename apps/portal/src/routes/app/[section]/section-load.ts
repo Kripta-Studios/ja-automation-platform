@@ -54,7 +54,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
       .get(context.principal.userId) as
       | { profile: 'external_technician' | 'supplier_coordinator' }
       | undefined;
-    if (restrictedProfile && !['time', 'reports', 'profile'].includes(section))
+    if (restrictedProfile && !['time', 'expenses', 'reports', 'pay', 'profile'].includes(section))
       error(403, 'Operational account: access denied');
     const searchQuery = url.searchParams.get('q')?.trim() ?? '';
     const isProjectManager = context.principal.role === 'project_manager';
@@ -207,7 +207,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           documents: context.repository.listDocuments(context.principal),
         };
       case 'pay': {
-        if (context.principal.role !== 'worker') error(403, 'Worker role required');
+        if (!['worker', 'project_manager'].includes(context.principal.role))
+          error(403, 'Worker or project manager role required');
         const lookback = defaultLookbackPeriod();
         const periodStart = url.searchParams.get('start') ?? lookback.periodStart;
         const periodEnd = url.searchParams.get('end') ?? lookback.periodEnd;
@@ -218,8 +219,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           periodStart,
           periodEnd,
         );
+        // My Pay is always the signed-in person's own statement. A PM can review
+        // project-team work elsewhere, but that broader scope must never cross
+        // this compensation boundary.
         const payActivities = context.repository
-          .listTimeForScope(context.principal, { from: periodStart, to: periodEnd })
+          .listWorkerStatementTime(context.principal, periodStart, periodEnd)
           .map((row) => ({
             id: String(row.id),
             projectNumber: String(row.project_number),

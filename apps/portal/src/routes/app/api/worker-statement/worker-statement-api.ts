@@ -196,7 +196,10 @@ export function buildWorkerStatementSnapshot(
   periodEnd: string,
   locale: ReportLocale = 'en',
 ): WorkerStatementSnapshot {
-  if (context.principal.userId !== worker.id || context.principal.role !== 'worker')
+  if (
+    context.principal.userId !== worker.id ||
+    !['worker', 'project_manager'].includes(context.principal.role)
+  )
     throw new AccessDeniedError('Worker statement access denied');
   context.sqlite.exec('BEGIN');
   try {

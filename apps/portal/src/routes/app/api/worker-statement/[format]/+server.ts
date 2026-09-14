@@ -52,7 +52,8 @@ function durableFailure(cause: unknown): Response | null {
  */
 export const GET: RequestHandler = ({ locals, params, url }) => {
   if (!locals.user || !locals.session) error(401, 'Sign in required');
-  if (locals.user.role !== 'worker') error(403, 'Worker role required');
+  if (locals.user.role !== 'worker' && locals.user.role !== 'project_manager')
+    error(403, 'Worker or project manager role required');
   const format = params.format;
   if (format !== 'pdf' && format !== 'csv') error(404, 'Export format not found');
   const { periodStart, periodEnd } = requiredExportPeriod(url);

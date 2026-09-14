@@ -575,7 +575,7 @@ export const compensationRuleInputSchema = z.object({
       'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME',
     ])
     .default('NONE'),
-  overtimeMultiplierBps: z.coerce.number().int().min(0).optional(),
+  overtimeMultiplierBps: z.coerce.number().int().min(0).max(100000).optional(),
   overtimeRateMinor: minorUnitsSchema
     .optional()
     .transform((value) => (value ? BigInt(value) : undefined)),
@@ -602,15 +602,9 @@ export const clientLaborRateInputSchema = z.object({
   effectiveFrom: z.iso.date(),
   effectiveTo: z.union([z.literal(''), z.iso.date()]).optional(),
   overtimeMethod: z
-    .enum([
-      'NONE',
-      'FIXED_RATE',
-      'BASE_RATE_MULTIPLIER',
-      'FIXED_ADDITION_PER_HOUR',
-      'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME',
-    ])
+    .enum(['NONE', 'FIXED_RATE', 'BASE_RATE_MULTIPLIER', 'FIXED_ADDITION_PER_HOUR'])
     .default('BASE_RATE_MULTIPLIER'),
-  overtimeMultiplierBps: z.coerce.number().int().min(0).optional(),
+  overtimeMultiplierBps: z.coerce.number().int().min(0).max(100000).optional(),
   overtimeRateMinor: minorUnitsSchema
     .optional()
     .transform((value) => (value ? BigInt(value) : undefined)),
@@ -626,15 +620,9 @@ export const internalCostRuleInputSchema = z.object({
   effectiveFrom: z.iso.date(),
   effectiveTo: z.union([z.literal(''), z.iso.date()]).optional(),
   overtimeMethod: z
-    .enum([
-      'NONE',
-      'FIXED_RATE',
-      'BASE_RATE_MULTIPLIER',
-      'FIXED_ADDITION_PER_HOUR',
-      'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME',
-    ])
+    .enum(['NONE', 'FIXED_RATE', 'BASE_RATE_MULTIPLIER', 'FIXED_ADDITION_PER_HOUR'])
     .default('BASE_RATE_MULTIPLIER'),
-  overtimeMultiplierBps: z.coerce.number().int().min(0).optional(),
+  overtimeMultiplierBps: z.coerce.number().int().min(0).max(100000).optional(),
   overtimeRateMinor: minorUnitsSchema
     .optional()
     .transform((value) => (value ? BigInt(value) : undefined)),

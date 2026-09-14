@@ -62,6 +62,13 @@
     deepLink?: string;
   };
 
+  type BillingReadinessPreview = {
+    state: 'ready' | 'incomplete' | 'already_closed';
+    includedSourceCount: number;
+    excludedSourceCount: number;
+    reasons: Array<{ code?: string; sourceId?: string }>;
+  };
+
   type BillingActionResult = {
     invoiceEmailRecipient?: string;
     invoiceEmailId?: string;
@@ -107,6 +114,9 @@
   let wizardRuleId = $state('');
   let wizardPeriodStart = $state('');
   let wizardPeriodEnd = $state('');
+  let wizardReadiness = $state<BillingReadinessPreview | null>(null);
+  let wizardReadinessLoading = $state(false);
+  let wizardReadinessError = $state('');
   type InvoiceDrawerTab = 'overview' | 'collections' | 'lifecycle';
   let invoiceDrawerTab = $state<InvoiceDrawerTab>('overview');
 
@@ -397,6 +407,38 @@
     const period = rule ? streamDraftPeriod(rule) : { start: '', end: '' };
     wizardPeriodStart = period.start;
     wizardPeriodEnd = period.end;
+    wizardReadiness = null;
+    wizardReadinessError = '';
+  }
+
+  function resetWizardReadiness(): void {
+    wizardReadiness = null;
+    wizardReadinessError = '';
+  }
+
+  async function checkWizardPeriod(): Promise<void> {
+    resetWizardReadiness();
+    if (!wizardRuleId || !wizardPeriodStart || !wizardPeriodEnd) {
+      wizardReadinessError = translate('Select a billing stream and valid period first.');
+      return;
+    }
+    wizardReadinessLoading = true;
+    try {
+      const query = new URLSearchParams({
+        billingRuleId: wizardRuleId,
+        periodStart: wizardPeriodStart,
+        periodEnd: wizardPeriodEnd,
+      });
+      const response = await fetch(`${base}/app/api/billing/readiness?${query.toString()}`, {
+        headers: { accept: 'application/json' },
+      });
+      if (!response.ok) throw new Error('billing-readiness-unavailable');
+      wizardReadiness = (await response.json()) as BillingReadinessPreview;
+    } catch {
+      wizardReadinessError = translate('The selected billing period could not be checked.');
+    } finally {
+      wizardReadinessLoading = false;
+    }
   }
 
   function openInvoiceWizard(): void {
@@ -420,9 +462,9 @@
     openInvoice(invoice);
   }
 
-  function percentToBps(raw: string): string {
+  function percentToBps(raw: string): string | null {
     const value = raw.trim();
-    if (!/^\d+(\.\d{1,2})?$/.test(value)) return '0';
+    if (!/^\d+(\.\d{1,2})?$/.test(value) || Number(value) > 100) return null;
     const [whole, fraction = ''] = value.split('.');
     const paddedFraction = `${fraction}00`.slice(0, 2);
     const digits = `${whole}${paddedFraction}`.replace(/^0+(?=\d)/, '') || '0';
@@ -733,6 +775,7 @@
               <label
                 ><span>{translate('Period start')}</span><input
                   bind:value={wizardPeriodStart}
+                  oninput={resetWizardReadiness}
                   type="date"
                   required
                 /></label
@@ -740,11 +783,25 @@
               <label
                 ><span>{translate('Period end')}</span><input
                   bind:value={wizardPeriodEnd}
+                  oninput={resetWizardReadiness}
                   type="date"
                   required
                 /></label
               >
             </div>
+            <button
+              type="button"
+              class="secondary-button"
+              disabled={wizardReadinessLoading ||
+                !wizardRuleId ||
+                !wizardPeriodStart ||
+                !wizardPeriodEnd}
+              onclick={checkWizardPeriod}
+              >{wizardReadinessLoading
+                ? translate('Checking period…')
+                : translate('Check selected period')}</button
+            >
+            {#if wizardReadinessError}<p role="alert">{wizardReadinessError}</p>{/if}
           </section>
         {:else if invoiceWizardStep === 5}
           <section>
@@ -759,6 +816,22 @@
                 'Eligibility and totals are calculated by the billing engine when the draft is saved; the browser does not duplicate those calculations.',
               )}
             </p>
+            {#if wizardReadiness}
+              <dl>
+                <div>
+                  <dt>{translate('Included source records')}</dt>
+                  <dd>{wizardReadiness.includedSourceCount}</dd>
+                </div>
+                <div>
+                  <dt>{translate('Period readiness')}</dt>
+                  <dd>{controlledValue('status', wizardReadiness.state)}</dd>
+                </div>
+              </dl>
+            {:else}
+              <button type="button" class="secondary-button" onclick={checkWizardPeriod}
+                >{translate('Check selected period')}</button
+              >
+            {/if}
           </section>
         {:else if invoiceWizardStep === 6}
           <section>
@@ -768,6 +841,27 @@
                 'Pending approvals, active corrections, missing rates or required reports block this exact period. The result explains each exclusion and keeps your selected dates.',
               )}
             </p>
+            {#if wizardReadiness}
+              <dl>
+                <div>
+                  <dt>{translate('Excluded or pending source records')}</dt>
+                  <dd>{wizardReadiness.excludedSourceCount}</dd>
+                </div>
+              </dl>
+              {#if wizardReadiness.reasons.length}
+                <ul>
+                  {#each wizardReadiness.reasons as reason}
+                    <li>{translate(billingReadinessMessageKey(reason.code))}</li>
+                  {/each}
+                </ul>
+              {:else}
+                <p>{translate('No blocking conditions were found for this exact period.')}</p>
+              {/if}
+            {:else}
+              <button type="button" class="secondary-button" onclick={checkWizardPeriod}
+                >{translate('Check selected period')}</button
+              >
+            {/if}
             <a
               class="secondary-button"
               href={`${base}/app/approvals?project=${encodeURIComponent(rowValue(wizardRule, 'project_id', 'projectId'))}`}
@@ -1337,12 +1431,22 @@
                   value="0"
                   required
                   oninput={(event) => {
+                    const parsed = percentToBps(event.currentTarget.value);
+                    if (parsed === null) {
+                      event.currentTarget.setCustomValidity(
+                        translate('Enter a valid percentage from 0 to 100.'),
+                      );
+                      event.currentTarget.setAttribute('aria-invalid', 'true');
+                      return;
+                    }
+                    event.currentTarget.setCustomValidity('');
+                    event.currentTarget.removeAttribute('aria-invalid');
                     const form = event.currentTarget.form;
                     const hidden = form?.elements.namedItem(
                       'componentBasisPoints',
                     ) as HTMLInputElement | null;
                     if (!hidden) return;
-                    hidden.value = percentToBps(event.currentTarget.value);
+                    hidden.value = parsed;
                   }}
                 /><input type="hidden" name="componentBasisPoints" value="0" /></label
               >

@@ -123,6 +123,8 @@ const CUSTOMER_SNAPSHOT_FIELDS = Object.freeze({
     'periodEnd',
     'audience',
     'reportType',
+    'contentMode',
+    'selectedTechnicalReportIds',
     'locale',
     'dailyReports',
     'timeSummary',
@@ -239,6 +241,27 @@ export function assertCustomerPeriodSnapshotSafe(
   for (const field of ['periodStart', 'periodEnd', 'reportType', 'locale']) {
     if (typeof root[field] !== 'string' || !root[field].trim())
       customerSnapshotValidationError(`$.${field}`, 'must be a non-empty string');
+  }
+  if (
+    root.contentMode !== undefined &&
+    ![
+      'hours_only',
+      'hours_activity',
+      'hours_activity_selected_technical',
+      'hours_activity_all_technical',
+    ].includes(String(root.contentMode))
+  )
+    customerSnapshotValidationError('$.contentMode', 'is invalid');
+  if (root.selectedTechnicalReportIds !== undefined) {
+    if (!Array.isArray(root.selectedTechnicalReportIds))
+      customerSnapshotValidationError('$.selectedTechnicalReportIds', 'must be an array');
+    for (const [index, reportId] of root.selectedTechnicalReportIds.entries()) {
+      if (typeof reportId !== 'string' || !reportId.trim())
+        customerSnapshotValidationError(
+          `$.selectedTechnicalReportIds[${index}]`,
+          'must be a non-empty string',
+        );
+    }
   }
   assertCustomerArray(root.dailyReports, '$.dailyReports', CUSTOMER_SNAPSHOT_FIELDS.dailyReport);
   assertCustomerArray(root.timeSummary, '$.timeSummary', CUSTOMER_SNAPSHOT_FIELDS.timeSummary);

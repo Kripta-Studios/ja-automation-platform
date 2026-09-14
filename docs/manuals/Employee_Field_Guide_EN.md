@@ -1,6 +1,6 @@
 # Employee field guide — revision 2026-09-11
 
-**External accounts:** Supplier coordinators and external technicians have operational access only. My Pay, expenses and financial procedures below apply to standard Worker accounts. See “Supplier teams and accounts without financial access” for your workflow.
+**External accounts:** Supplier coordinators and external technicians can record their own time, expenses and reports and can use own-only My Pay. Project finance, customer rates, margins, other workers' pay and financial administration remain restricted.
 
 > Use only the portal address and verified support route stated in your invitation. This guide uses synthetic examples. Never share a password, MFA code, recovery code, receipt or session.
 
@@ -46,7 +46,7 @@ Use offline capture only when the portal says it is enabled. Keep the device sec
 
 Open **Help** to download the guide assigned to your role. **Activity Inbox** at `/app/notifications` can link to a permitted source record; reading a notification is not approval. Workers use only their own assigned projects, records, files and My Pay. Finance, Billing, Accounting, Audit, staff follow-up, Closeout and approval queues are not Worker flows; an access denial is a boundary, not an error to bypass. Email is not the system of record: use the portal and admin@j-aautomation.com.
 
-## Supplier teams and accounts without financial access
+## Supplier teams and restricted accounts
 
 The Owner chooses the supplier coordinator. A supplier account cannot appoint itself or grant finance, administration or approval permissions. An installation is a project in the app. The Owner must authorize each installation and its effective dates before the coordinator can record team work.
 
@@ -58,4 +58,4 @@ In **Record team hours**, select the technician and enter the real work date, ca
 
 Use **Operational report** to filter by installation and dates, read approval states, download CSV, or print/save a PDF in the browser. History remains visible; rejected, void and superseded records do not increase the effective total. This report does not certify payment or customer acceptance.
 
-An External technician sees only their own operational hours and reports. Supplier coordinator and External technician accounts have no My Pay, rates, expenses, financial documents or financial exports. The compensation and expense procedures elsewhere in this guide apply to standard Worker accounts. Supplier reports never include money. Contact the Owner when your installation or technician is missing; do not record work against a substitute person or project.
+An External technician sees only their own operational hours, expenses, reports and own-only My Pay. A Supplier coordinator additionally sees expressly authorized installations. Neither profile sees customer rates, project margins, another person's pay, financial documents or administrative exports. Supplier operational reports never include money. Contact the Owner when an installation or technician is missing; do not record work against a substitute person or project.

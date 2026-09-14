@@ -4,7 +4,7 @@
 
 Support for access and passwords: **admin@j-aautomation.com**. Owner can create an account using an external email and a chosen initial password in **Projects → Team access → Create user → Set email and password**. Select an existing person when the directory record already exists so the portal adds access without duplicating that person; otherwise select **Create a new person**. Copy the initial password before saving because it is not stored or shown again in plain text. Existing Worker accounts can receive the **Supplier coordinator** or **External technician** access profile from **Edit profile**, with a supplier selected. Assign installation/project permissions separately; a profile does not grant access to every project. Profile changes invalidate sessions so the person must sign in again.
 
-Use **Log time**, **Record expense**, **New daily report** and **Technical / PLC** at the top of their work areas. Drafts remain editable; **Submit** sends operational facts for review. Project Managers can record their own work or work for an effectively assigned worker in a project they manage. Finance-only rates and other workers' reimbursement details stay outside the PM view.
+Use **Log time**, **Record expense**, **New daily report** and **Technical / PLC** at the top of their work areas. Drafts remain editable; **Submit** sends operational facts for review. Project Managers can record their own work or work for an effectively assigned worker in a project they manage, and retain own-only **My Pay**. Finance-only rates and other workers' reimbursement details stay outside the PM view.
 
 Registers provide search, status and ordering controls and eight rows per page. Search can combine words from a client, project and worker name. The default approval order keeps unresolved records ahead of completed records and then prioritizes the oldest actionable items; use the visible status/order filters and Previous/Next controls to change that view. Select a project and worker in **Planning** to narrow the published schedule; Owner can open a shift to manage that exact record. Planning describes intended work and never creates actual hours. In **Accounting**, click **Packs**, **Queued** or **Failed** to filter the register. Generate builds review files; Finalize freezes the reviewed version. A later correction requires a new version.
 
@@ -74,7 +74,7 @@ Use the Team view to search **Name, role or project** and open the worker's acti
 1. Confirm Worker A and Worker B each have an active assignment to the same project, with their own start/end dates. Do not reuse one worker's assignment identifier or dates for another.
 2. Create the assignment with its **Starts on** and optional **Ends on** dates. Use **Update assignment** to change dates, **Planned minutes** and, where allowed, **Can review**. Save each worker separately.
 3. Open Finance → Commercial and use **Create compensation rule** for that same project. For Worker A select **Worker**, **Project scope** (the same project, not Global default), **Currency**, **Rule type**, **Rate basis**, the visible **Hourly rate** or daily amount, and **Effective from**. Save the rule only after checking the decimal amount and date. Use the rule lifecycle controls to supersede or end an existing rule.
-4. Create Worker B’s separate compensation rule with its own Worker, Project scope, Currency, Rule type, Rate basis and effective dates. Use the visible percentage field only for a percentage rule; do not put a percentage in the hourly/daily amount field.
+4. Create Worker B’s separate compensation rule with its own Worker, Project scope, Currency, Rule type, Rate basis and effective dates. The form shows only the amount required by the selected rule: hourly/daily rate, fixed-period amount, fixed-project amount or approved adjustment. Use the percentage field only for percentage compensation or percentage-of-eligible-overtime; do not put a percentage in a money field. Worker overtime has its own method and may use a custom multiplier such as 1.60, a fixed overtime rate or a fixed addition per hour. Client overtime and internal loaded-cost overtime remain separate rules.
 5. Review the resulting policy history and assignment history. Client labour and internal loaded-cost rules use their own forms and must not be substituted for a Worker compensation rule. If a past actual is wrong, use its correction workflow; do not backdate a new configuration to silently alter historical truth.
 
 Worked configuration example: one project has Worker A assigned as field technician from 1–30 September with a **25.00** hourly compensation rule and Worker B as controls specialist from 15–30 September with a **180.00** daily rule whose Rate basis is **daily**. Their actual time stays factual and separate. Client labour and internal loaded-cost rules are separate forms, and neither value may be copied into the compensation form. The Owner checks each rule's scope and effective dates before approval. This is a configuration pattern, not a promise that either worker has been paid or that an invoice has issued.
@@ -119,7 +119,7 @@ Daily and Technical / PLC report attachments have their own permitted attachment
 
 :::figure owner /app/reports/review Period review groups customer-period records by project and date range.
 
-Use **Reports** for daily and technical records. Use **Period review** at `/app/reports/review` to choose the authorized project and date range, inspect source coverage, report state, snapshot version and snapshot hash, then open the specific period report.
+Use **Reports** for daily and technical records. When generating a period file, choose **Hours only**, **Hours and activity summary**, or **Hours, activity and selected technical reports**. Technical / PLC detail is excluded unless the last option and the exact approved records are selected. Use **Period review** at `/app/reports/review` to inspect source coverage, report state, snapshot version and snapshot hash, then open the specific period report.
 
 :::figure owner /app/reports/period/:id A customer period report identifies the exact snapshot before a signature or follow-up event is recorded.
 
@@ -141,6 +141,8 @@ Open Finance with the Commercial view. Select the correct project and inspect th
 
 Use **Commercial agreement and example** at `/app/finance/preview` for a single-worker, single-workday editable calculation illustration. Its fields cover hourly worker compensation, loaded hourly cost including pay, actual/reference/minimum hours, the selected expense responsibility, optional overtime, fixed-price alternative and sample billing cadence. Its editable values are not saved project rates or project configuration. It does not model travel, percentage pay, caps, taxes or mixed-rate minimums; review those in the project’s effective commercial setup. The result is before tax and does not record a payment, invoice, customer acceptance or bank confirmation.
 
+When a project is selected, **Check this saved agreement** uses the real effective rules and current source records. Its Ready/Incomplete state, missing-rule reasons and rule counts are authoritative for the saved project; the editable sample below remains only an illustration.
+
 ## Billing, issued invoices and corrections
 
 :::figure owner /app/billing Billing begins with validated source records and a draft, not an issued invoice.
@@ -154,6 +156,8 @@ Use **Commercial agreement and example** at `/app/finance/preview` for a single-
 For a mistake after issue, use the provided void, credit, adjustment or replacement lifecycle with its reason and effective date. Do not edit or delete an issued snapshot. A payment reversal likewise requires the controlled reversal path and a real effective date; it does not erase the original payment event.
 
 ### Invoice control sequence
+
+Use the primary **Create invoice** guide. In **Period**, select **Check selected period**: the server shows included and excluded/pending source counts and the real engine blockers for those exact dates. The application never substitutes another period silently.
 
 On the Billing register, use **Create invoice draft** only after the readiness messages are resolved. In the draft detail, use **Save details** for the draft-only fields such as purchase number, discount, bank details, beneficiary and past-due notice; reopen **Preview** and **Open PDF** to review the draft document. Use **Approve invoice**, **Issue invoice**, **Record payment**, **Reverse payment**, **Void invoice** and **Create adjustment** only for their named lifecycle state and with real evidence. **Send by email** requires an explicit recipient and a ready, verified PDF. Check the displayed Queued, Retrying, Failed, Delivery uncertain or Accepted by SMTP server status. If delivery is uncertain, ask the administrator to inspect the mail server before retrying; automatic resending is stopped to avoid duplicate invoices. Queueing does not mark the invoice sent; SMTP acceptance does, but does not confirm inbox delivery or customer acceptance. **Mark sent** records a manual sending action and sends no email.
 
@@ -199,7 +203,7 @@ In **Audit**, filter or locate the relevant event and compare its action, entity
 
 If a required control is absent, a route returns an authorization error, an upload is blocked, a figure differs from the current screen, or an amount conflicts with approved evidence, stop and contact **admin@j-aautomation.com**. Do not bypass RBAC, fabricate customer acceptance, manually run a job, or make a financial mutation to test the portal.
 
-## Supplier teams and accounts without financial access
+## Supplier teams and restricted accounts
 
 The Owner chooses the supplier coordinator. A supplier account cannot appoint itself or grant finance, administration or approval permissions. An installation is a project in the app. The Owner must authorize each installation and its effective dates before the coordinator can record team work.
 
@@ -211,7 +215,7 @@ In **Record team hours**, select the technician and enter the real work date, ca
 
 Use **Operational report** to filter by installation and dates, read approval states, download CSV, or print/save a PDF in the browser. History remains visible; rejected, void and superseded records do not increase the effective total. This report does not certify payment or customer acceptance.
 
-An External technician sees only their own operational hours and reports. Supplier coordinator and External technician accounts have no My Pay, rates, expenses, financial documents or financial exports. The compensation and expense procedures elsewhere in this guide apply to standard Worker accounts. Supplier reports never include money. Contact the Owner when your installation or technician is missing; do not record work against a substitute person or project.
+An External technician sees only their own operational hours, expenses, reports and own-only My Pay. A Supplier coordinator additionally sees expressly authorized installations. Neither profile sees customer rates, project margins, another person's pay, financial documents or administrative exports. Supplier operational reports never include money. Contact the Owner when an installation or technician is missing; do not record work against a substitute person or project.
 
 :::figure owner /app/supplier The Owner appoints supplier coordinators and authorizes installations.
 

@@ -88,6 +88,19 @@ export class V3NotFoundError extends Error {}
 type DbValue = string | number | bigint | null;
 type OutputValue = DbValue | boolean;
 type SafeStorageKey = string;
+type PeriodReportContentMode =
+  | 'hours_only'
+  | 'hours_activity'
+  | 'hours_activity_selected_technical'
+  | 'hours_activity_all_technical';
+type PeriodReportRefreshInput = Readonly<{
+  projectId: string;
+  periodStart: string;
+  periodEnd: string;
+  reportLocale?: ReportLocale;
+  contentMode?: PeriodReportContentMode;
+  technicalReportIds?: readonly string[];
+}>;
 type V3Currency = Currency;
 
 // Each Worker Statement artifact attempt owns one durable job. A failed handler must terminalize
@@ -1021,7 +1034,9 @@ export class V3Repository {
       throw new V3ValidationError('Daily guarantee must be between 0 and 1440 minutes');
     if (
       input.overtimeMultiplierBps !== undefined &&
-      (!Number.isInteger(input.overtimeMultiplierBps) || input.overtimeMultiplierBps < 0)
+      (!Number.isInteger(input.overtimeMultiplierBps) ||
+        input.overtimeMultiplierBps < 0 ||
+        input.overtimeMultiplierBps > 100_000)
     )
       throw new V3ValidationError('Overtime multiplier is invalid');
     if (input.rateMinor !== undefined && input.rateMinor < 0n)
@@ -1189,7 +1204,14 @@ export class V3Repository {
         throw new V3ValidationError('End date must follow the effective date');
     }
     if (input.hourlyRateMinor < 0n) throw new V3ValidationError('Client rate cannot be negative');
-    if (input.overtimeMultiplierBps !== undefined && input.overtimeMultiplierBps < 0)
+    if (input.overtimeMethod === 'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME')
+      throw new V3ValidationError(
+        'Percentage of eligible client overtime is a worker-compensation method',
+      );
+    if (
+      input.overtimeMultiplierBps !== undefined &&
+      (input.overtimeMultiplierBps < 0 || input.overtimeMultiplierBps > 100_000)
+    )
       throw new V3ValidationError('Client overtime multiplier is invalid');
     if (input.overtimeRateMinor !== undefined && input.overtimeRateMinor < 0n)
       throw new V3ValidationError('Client overtime rate is invalid');
@@ -1257,7 +1279,14 @@ export class V3Repository {
         throw new V3ValidationError('End date must follow the effective date');
     }
     if (input.hourlyRateMinor < 0n) throw new V3ValidationError('Internal cost cannot be negative');
-    if (input.overtimeMultiplierBps !== undefined && input.overtimeMultiplierBps < 0)
+    if (input.overtimeMethod === 'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME')
+      throw new V3ValidationError(
+        'Percentage of eligible client overtime is a worker-compensation method',
+      );
+    if (
+      input.overtimeMultiplierBps !== undefined &&
+      (input.overtimeMultiplierBps < 0 || input.overtimeMultiplierBps > 100_000)
+    )
       throw new V3ValidationError('Internal overtime multiplier is invalid');
     if (input.overtimeRateMinor !== undefined && input.overtimeRateMinor < 0n)
       throw new V3ValidationError('Internal overtime rate is invalid');
@@ -3067,12 +3096,6 @@ export class V3Repository {
 
   workerPay(principal: Principal, periodStart: string, periodEnd: string) {
     this.assertActive(principal);
-    if (
-      this.sqlite
-        .prepare('SELECT 1 FROM supplier_user_profile WHERE user_id=?')
-        .get(principal.userId)
-    )
-      throw new V3AccessDeniedError('Financial access is disabled for this workforce account');
     requireOrderedDateRange(periodStart, periodEnd);
     const sourceRows = this.sqlite
       .prepare(
@@ -6275,12 +6298,7 @@ export class V3Repository {
 
   refreshPeriodReports(
     principal: Principal,
-    input: Readonly<{
-      projectId: string;
-      periodStart: string;
-      periodEnd: string;
-      reportLocale?: ReportLocale;
-    }>,
+    input: PeriodReportRefreshInput,
   ): Array<{
     id: string;
     audience: 'customer' | 'internal';
@@ -6298,12 +6316,7 @@ export class V3Repository {
   }
 
   refreshPeriodReportsFromJob(
-    input: Readonly<{
-      projectId: string;
-      periodStart: string;
-      periodEnd: string;
-      reportLocale?: ReportLocale;
-    }>,
+    input: PeriodReportRefreshInput,
     execution: FencedJobExecution,
   ): Array<{
     id: string;
@@ -6320,12 +6333,7 @@ export class V3Repository {
   }
 
   private refreshPeriodReportsCore(
-    input: Readonly<{
-      projectId: string;
-      periodStart: string;
-      periodEnd: string;
-      reportLocale?: ReportLocale;
-    }>,
+    input: PeriodReportRefreshInput,
     principal: Principal | null,
     execution?: FencedJobExecution,
   ): Array<{
@@ -6447,6 +6455,40 @@ export class V3Repository {
            ORDER BY tr.report_date,tc.id`,
         )
         .all(input.projectId, input.periodStart, input.periodEnd) as Array<Record<string, unknown>>;
+      const contentMode = input.contentMode ?? 'hours_activity_all_technical';
+      if (
+        ![
+          'hours_only',
+          'hours_activity',
+          'hours_activity_selected_technical',
+          'hours_activity_all_technical',
+        ].includes(contentMode)
+      )
+        throw new V3ValidationError('Unsupported period report content selection');
+      const requestedTechnicalIds = new Set(input.technicalReportIds ?? []);
+      if (contentMode !== 'hours_activity_selected_technical' && requestedTechnicalIds.size > 0)
+        throw new V3ValidationError(
+          'Technical report selections require the selected-technical content mode',
+        );
+      const availableTechnicalIds = new Set(technicalReports.map((report) => report.id));
+      for (const reportId of requestedTechnicalIds) {
+        if (!availableTechnicalIds.has(reportId))
+          throw new V3ValidationError(
+            'A selected technical report is outside the chosen project or period',
+          );
+      }
+      const includeActivity = contentMode !== 'hours_only';
+      const includedDailyReports = includeActivity ? dailyReports : [];
+      const includedTechnicalReports =
+        contentMode === 'hours_activity_all_technical'
+          ? technicalReports
+          : contentMode === 'hours_activity_selected_technical'
+            ? technicalReports.filter((report) => requestedTechnicalIds.has(report.id))
+            : [];
+      const includedTechnicalIds = new Set(includedTechnicalReports.map((report) => report.id));
+      const includedTechnicalChanges = technicalChanges.filter((change) =>
+        includedTechnicalIds.has(String(change.technical_report_id ?? '')),
+      );
       const time = this.sqlite
         .prepare(
           `SELECT t.id,t.version,t.work_date,t.category,t.minutes,t.activity_summary,t.approval_state,u.name worker_name
@@ -6560,6 +6602,7 @@ export class V3Repository {
         .prepare(
           `SELECT d.id,d.safe_filename,d.media_type,d.byte_length,d.sha256,
                   d.sensitivity,d.created_at,
+                  GROUP_CONCAT(DISTINCT link.report_type || ':' || link.report_id) linked_report_refs,
                   MAX(CASE
                     WHEN daily.approval_state IN('approved','locked') THEN 1
                     WHEN technical.approval_state IN('approved','locked') THEN 1
@@ -6634,30 +6677,46 @@ export class V3Repository {
         const reportLocale = normalizeReportLocale(input.reportLocale ?? previousLocale);
         const customer = report.audience === 'customer';
         const visibleDailyReports = customer
-          ? dailyReports.filter((daily) => ['approved', 'locked'].includes(daily.approval_state))
-          : dailyReports;
+          ? includedDailyReports.filter((daily) =>
+              ['approved', 'locked'].includes(daily.approval_state),
+            )
+          : includedDailyReports;
         const visibleTechnicalReports = customer
-          ? technicalReports.filter((technical) =>
+          ? includedTechnicalReports.filter((technical) =>
               ['approved', 'locked'].includes(technical.approval_state),
             )
-          : technicalReports;
+          : includedTechnicalReports;
         const visibleTechnicalChanges = customer
-          ? technicalChanges.filter(
+          ? includedTechnicalChanges.filter(
               (change) =>
                 ['approved', 'locked'].includes(String(change.approval_state)) &&
                 ['approved', 'locked'].includes(String(change.technical_report_approval_state)),
             )
-          : technicalChanges;
+          : includedTechnicalChanges;
         const visibleTime = customer
           ? time.filter((row) => ['approved', 'locked'].includes(row.approval_state))
           : time;
         const visibleExpenses = customer ? [] : expenses;
+        const visibleDailyIds = new Set(visibleDailyReports.map((report) => report.id));
+        const visibleTechnicalIds = new Set(visibleTechnicalReports.map((report) => report.id));
+        const documentMatchesContent = (document: Record<string, unknown>): boolean =>
+          String(document.linked_report_refs ?? '')
+            .split(',')
+            .some((reference) => {
+              const [type, id] = reference.split(':', 2);
+              return type === 'daily'
+                ? visibleDailyIds.has(id ?? '')
+                : type === 'technical'
+                  ? visibleTechnicalIds.has(id ?? '')
+                  : false;
+            });
+        const contentDocuments = documents.filter(documentMatchesContent);
         const visibleDocuments = customer
-          ? documents.filter(
+          ? contentDocuments.filter(
               (document) =>
                 document.sensitivity === 'customer_private' && document.customer_approved === 1,
             )
-          : documents;
+          : contentDocuments;
         const reportChanges = visibleTechnicalChanges.map((change) =>
           customer
             ? {
@@ -6717,6 +6776,8 @@ export class V3Repository {
           periodEnd: input.periodEnd,
           audience: report.audience,
           reportType: report.report_type,
+          contentMode,
+          selectedTechnicalReportIds: [...visibleTechnicalIds].sort(),
           locale: reportLocale,
           dailyReports: reportDaily,
           timeSummary: visibleTime.map((row) => ({
@@ -6725,7 +6786,7 @@ export class V3Repository {
             date: row.work_date,
             category: row.category,
             minutes: row.minutes,
-            activitySummary: row.activity_summary,
+            ...(includeActivity ? { activitySummary: row.activity_summary } : {}),
             worker: row.worker_name,
             approvalState: row.approval_state,
           })),
@@ -6764,6 +6825,8 @@ export class V3Repository {
           periodEnd: input.periodEnd,
           audience: report.audience,
           reportType: report.report_type,
+          contentMode,
+          selectedTechnicalReportIds: [...visibleTechnicalIds].sort(),
           locale: reportLocale,
           dailyReports: reportDaily,
           timeSummary: visibleTime.map((row) => ({
@@ -6772,7 +6835,7 @@ export class V3Repository {
             date: row.work_date,
             category: row.category,
             minutes: row.minutes,
-            activitySummary: row.activity_summary,
+            ...(includeActivity ? { activitySummary: row.activity_summary } : {}),
             workerDisplay: row.worker_name,
             approvalState: row.approval_state,
           })),
@@ -6892,6 +6955,8 @@ export class V3Repository {
           periodEnd: input.periodEnd,
           reportIds: output.map((report) => report.id),
           sourceCount: reportSources.length,
+          contentMode,
+          selectedTechnicalReportIds: [...includedTechnicalIds].sort(),
         });
       return output;
     });

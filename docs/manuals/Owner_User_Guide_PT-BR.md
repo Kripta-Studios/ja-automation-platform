@@ -4,7 +4,7 @@
 
 Suporte de acesso e senhas: **admin@j-aautomation.com**. Em **Projects → Team access → Create user → Set email and password**, o Owner pode criar acesso com e-mail externo e senha inicial escolhida. Se a pessoa já estiver no diretório, selecione o cadastro existente para adicionar acesso sem duplicá-la; caso contrário, selecione **Criar uma nova pessoa**. Copie a senha inicial antes de salvar, pois ela não é armazenada nem exibida novamente em texto simples. Para uma conta Worker existente, **Edit profile → Access profile** permite escolher **Supplier coordinator** ou **External technician** e o fornecedor. Autorize instalações e atribua projetos separadamente. A mudança de perfil encerra as sessões e exige novo login.
 
-Use **Log time**, **Record expense** e os botões de novo relatório no início da área de trabalho. **Submit** envia os fatos para revisão; o rascunho continua editável antes do envio. O Project Manager pode registrar seu trabalho e o de pessoas com atribuição efetiva nos projetos sob sua responsabilidade. Tarifas comerciais e reembolsos privados de outros trabalhadores não fazem parte da sua visão.
+Use **Log time**, **Record expense** e os botões de novo relatório no início da área de trabalho. **Submit** envia os fatos para revisão; o rascunho continua editável antes do envio. O Project Manager pode registrar seu trabalho e o de pessoas com atribuição efetiva nos projetos sob sua responsabilidade e mantém **Meu pagamento** limitado aos próprios dados. Tarifas comerciais e reembolsos privados de outras pessoas não fazem parte da sua visão.
 
 Os registros têm busca, filtros, ordenação e páginas de oito linhas. A ordem padrão das aprovações mantém os registros pendentes antes dos concluídos e, em seguida, prioriza os itens acionáveis mais antigos; use os filtros visíveis de estado/ordem e os controles Anterior/Próximo para mudar a visualização. Em **Planning**, filtre projeto e trabalhador e abra o turno específico para gerenciá-lo. Planejamento não gera horas reais. Em **Accounting**, clique em **Packs**, **Queued** ou **Failed** para filtrar. Generate prepara arquivos para revisão; Finalize preserva uma versão histórica dos valores revisados. Correções posteriores exigem nova versão.
 
@@ -74,7 +74,7 @@ Use a visualização Equipe para buscar por **Nome, função ou projeto** e abri
 1. Confirme que o Trabalhador A e o Trabalhador B têm, cada um, uma atribuição ativa no mesmo projeto, com suas próprias datas de início e término. Não reutilize o identificador da atribuição nem as datas de um trabalhador para outro.
 2. Crie a atribuição com **Data de início** e, opcionalmente, **Data de término**. Use **Atualizar atribuição** para alterar as datas, os **Minutos planejados** e, quando permitido, **Pode revisar**. Salve cada trabalhador separadamente.
 3. Abra Financeiro → Comercial e use **Criar regra de remuneração** para esse mesmo projeto. Para o Trabalhador A, selecione **Trabalhador**, **Escopo do projeto** (o mesmo projeto, não o padrão global), **Moeda**, **Tipo de regra**, **Base de cálculo**, o **Valor por hora** visível ou o valor diário e **Vigente a partir de**. Salve a regra somente após conferir o valor decimal e a data. Use os controles de ciclo de vida da regra para substituir ou encerrar uma regra existente.
-4. Crie uma regra de remuneração separada para o Trabalhador B, com seus próprios Trabalhador, Escopo do projeto, Moeda, Tipo de regra, Base de cálculo e datas de vigência. Use o campo de percentual visível apenas para uma regra percentual; não coloque uma porcentagem no campo de valor por hora ou diário.
+4. Crie uma regra de remuneração separada para o Trabalhador B, com seus próprios Trabalhador, Escopo do projeto, Moeda, Tipo de regra, Base de cálculo e datas de vigência. O formulário mostra somente o valor exigido pela regra selecionada: valor por hora/dia, valor fixo do período, valor fixo do projeto ou ajuste aprovado. Use o campo percentual somente para remuneração percentual ou percentual de horas extras elegíveis; não informe percentual em um campo monetário. As horas extras do trabalhador têm método próprio e podem usar um multiplicador personalizado como 1,60, uma taxa fixa de hora extra ou um acréscimo fixo por hora. As horas extras do cliente e do custo interno total permanecem regras separadas.
 5. Revise o histórico resultante de políticas e atribuições. As regras de mão de obra do cliente e de custo interno total têm formulários próprios e não substituem uma regra de remuneração do Trabalhador. Se um registro passado de trabalho realizado estiver incorreto, use seu fluxo de correção; não retroaja uma nova configuração para alterar silenciosamente a verdade histórica.
 
 Exemplo de configuração: um projeto tem o Trabalhador A atribuído como técnico de campo de 1 a 30 de setembro, com uma regra de remuneração de **25,00** por hora, e o Trabalhador B como especialista em controles de 15 a 30 de setembro, com uma regra de **180,00** por dia cuja Base de cálculo é **diária**. As horas efetivamente trabalhadas permanecem factuais e separadas. As regras de mão de obra do cliente e de custo interno total usam formulários separados, e nenhum desses valores deve ser copiado para o formulário de remuneração. O Proprietário verifica o escopo e as datas de vigência de cada regra antes da aprovação. Este é um padrão de configuração, não uma afirmação de que algum trabalhador foi pago ou de que uma fatura foi emitida.
@@ -119,7 +119,7 @@ Os anexos de relatórios Diários e Técnicos / PLC têm seus próprios tipos pe
 
 :::figure owner /app/reports/review A revisão de períodos agrupa os registros de períodos do cliente por projeto e intervalo de datas.
 
-Use **Relatórios** para registros diários e técnicos. Use **Revisão de períodos** em `/app/reports/review` para escolher o projeto autorizado e o intervalo de datas, examinar a cobertura das fontes, o estado do relatório, a versão e o hash do retrato histórico e abrir o relatório específico do período.
+Use **Relatórios** para registros diários e técnicos. Ao gerar um arquivo de período, escolha **Somente horas**, **Horas e resumo de atividade** ou **Horas, atividade e relatórios técnicos selecionados**. Detalhes Technical / PLC ficam excluídos, salvo se a última opção e os registros aprovados exatos forem selecionados. Use **Revisão de períodos** em `/app/reports/review` para examinar a cobertura das fontes, o estado do relatório, a versão e o hash do retrato histórico e abrir o relatório específico do período.
 
 :::figure owner /app/reports/period/:id Um relatório de período do cliente identifica o retrato histórico exato antes do registro de assinatura ou acompanhamento.
 
@@ -141,6 +141,8 @@ Abra Financeiro na visualização Comercial. Selecione o projeto correto e exami
 
 Use **Acordo comercial e exemplo** em `/app/finance/preview` para uma ilustração de cálculo editável de um único trabalhador em um único dia de trabalho. Seus campos abrangem remuneração por hora, custo horário total incluindo remuneração, horas reais/de referência/mínimas, a responsabilidade selecionada pelas despesas, horas extras opcionais, alternativa de preço fixo e periodicidade de faturamento de exemplo. Os valores editáveis não são tarifas de projeto salvas nem configuração de projeto. A simulação não modela deslocamentos, remuneração percentual, limites, impostos ou mínimos com tarifas mistas; revise esses pontos na configuração comercial vigente do projeto. O resultado é antes dos impostos e não registra pagamento, fatura, aceite do cliente ou confirmação bancária.
 
+Ao selecionar um projeto, **Verificar este acordo salvo** usa as regras vigentes reais e os registros de origem atuais. O estado Pronto/Incompleto, os motivos de regra ausente e as quantidades de regras representam o projeto salvo; o exemplo editável abaixo continua sendo apenas uma ilustração.
+
 ## Faturamento, faturas emitidas e correções
 
 :::figure owner /app/billing O faturamento começa com registros de origem validados e um rascunho, não com uma fatura emitida.
@@ -154,6 +156,8 @@ Use **Acordo comercial e exemplo** em `/app/finance/preview` para uma ilustraç�
 Para um erro após a emissão, use o ciclo de cancelamento, crédito, ajuste ou substituição disponível, com motivo e data de vigência. Não edite nem exclua um retrato histórico emitido. Um estorno de pagamento também exige o fluxo controlado de estorno e uma data real de vigência; ele não apaga o evento original de pagamento.
 
 ### Sequência de controle de faturas
+
+Use o guia principal **Criar fatura**. Em **Período**, selecione **Verificar período selecionado**: o servidor mostra a quantidade de fontes incluídas, excluídas/pendentes e os bloqueios reais do motor para essas datas exatas. A aplicação nunca substitui silenciosamente outro período.
 
 No registro de Faturamento, use **Criar rascunho de fatura** apenas após resolver as mensagens de prontidão. Nos detalhes do rascunho, use **Salvar detalhes** para campos exclusivos do rascunho, como número do pedido de compra, desconto, dados bancários, beneficiário e aviso de atraso; reabra **Prévia** e **Abrir PDF** para revisar o documento. Use **Aprovar fatura**, **Emitir fatura**, **Registrar pagamento**, **Estornar pagamento**, **Cancelar fatura** e **Criar ajuste** somente no estado correspondente do ciclo de vida e com evidências reais. **Enviar por e-mail** exige destinatário explícito e PDF pronto e verificado. Confira o estado Na fila, Nova tentativa, Falha, Entrega incerta ou Aceito pelo servidor SMTP. Se a entrega for incerta, peça ao administrador para verificar o servidor de e-mail antes de tentar novamente; o reenvio automático é interrompido para evitar faturas duplicadas. Entrar na fila não marca a fatura como enviada; a aceitação SMTP marca, mas não confirma entrega na caixa de entrada nem aceite do cliente. **Marcar enviada** registra envio manual e não envia e-mail.
 
@@ -199,7 +203,7 @@ Em **Auditoria**, filtre ou localize o evento pertinente e compare sua ação, e
 
 Se um controle necessário estiver ausente, uma rota retornar erro de autorização, um envio for bloqueado, uma figura diferir da tela atual ou um valor divergir de evidências aprovadas, pare e entre em contato com **admin@j-aautomation.com**. Não contorne o controle de acesso por perfil, não fabrique aceite do cliente, não execute uma tarefa manualmente e não faça uma alteração financeira para testar o portal.
 
-## Fornecedores e contas sem acesso financeiro
+## Fornecedores e contas restritas
 
 O Owner escolhe o responsável do fornecedor. Uma conta de fornecedor não pode se nomear nem conceder permissões financeiras, administrativas ou de aprovação. Cada instalação corresponde a um projeto no aplicativo. O Owner autoriza separadamente as instalações e as datas de acesso.
 
@@ -211,7 +215,7 @@ Em **Registrar horas da equipe**, selecione o técnico e registre data real, cat
 
 O **Relatório operacional** permite filtrar instalação e datas, consultar estados de aprovação, baixar CSV e imprimir/salvar PDF pelo navegador. O histórico permanece visível; registros rejeitados, anulados e substituídos não aumentam o total efetivo. O relatório não comprova pagamento nem aceite do cliente.
 
-O Técnico externo vê apenas suas próprias horas e relatórios operacionais. As contas de Responsável do fornecedor e Técnico externo não têm Meu pagamento, tarifas, despesas, documentos financeiros ou exportações financeiras. As instruções de despesas e remuneração neste guia se aplicam às contas padrão de Trabalhador. Os relatórios de fornecedor não incluem valores financeiros. Se faltar uma instalação ou um técnico, peça a correção ao Owner.
+O Técnico externo vê somente as próprias horas, despesas, relatórios e Meu pagamento limitado aos próprios dados. O Responsável do fornecedor vê também as instalações expressamente autorizadas. Nenhum desses perfis pode ver tarifas do cliente, margens do projeto, pagamentos de outra pessoa, documentos financeiros ou exportações administrativas. Os relatórios operacionais do fornecedor não incluem valores. Se faltar uma instalação ou um técnico, peça a correção ao Owner.
 
 :::figure owner /app/supplier O Owner escolhe os responsáveis de fornecedor e autoriza as instalações.
 

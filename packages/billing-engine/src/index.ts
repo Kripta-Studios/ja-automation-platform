@@ -230,7 +230,11 @@ export function overtimeRate(
         throw new RangeError('Fixed overtime rate is required');
       return options.fixedRateMinor;
     case 'BASE_RATE_MULTIPLIER':
-      if (!Number.isInteger(options.multiplierBps) || (options.multiplierBps ?? 0) < 0)
+      if (
+        !Number.isInteger(options.multiplierBps) ||
+        (options.multiplierBps ?? 0) < 0 ||
+        (options.multiplierBps ?? 100_001) > 100_000
+      )
         throw new RangeError('Overtime multiplier is required');
       return divideRounded(baseRateMinor * BigInt(options.multiplierBps ?? 0), 10_000n);
     case 'FIXED_ADDITION_PER_HOUR':

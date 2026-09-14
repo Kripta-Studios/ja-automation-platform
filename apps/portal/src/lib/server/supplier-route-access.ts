@@ -7,6 +7,8 @@ export function supplierRouteAllowed(path: string): boolean {
       '/',
       '/login',
       '/time',
+      '/expenses',
+      '/pay',
       '/reports',
       '/profile',
       '/help',
@@ -21,7 +23,7 @@ export function supplierRouteAllowed(path: string): boolean {
     ].includes(route)
   )
     return true;
-  if (/^\/(time|reports)\/[^/]+$/u.test(route)) {
+  if (/^\/(time|expenses|reports)\/[^/]+$/u.test(route)) {
     // These named routes are management/customer-wide views, not own records.
     return !['/reports/review', '/reports/period', '/reports/export'].includes(route);
   }
@@ -31,5 +33,6 @@ export function supplierRouteAllowed(path: string): boolean {
   // The localized artifact repository allows workers only their own daily/technical reports.
   if (/^\/api\/localized-pdf(?:\/|$)/u.test(route)) return true;
   if (/^\/api\/reports\/[^/]+\/attachments(?:\/|$)/u.test(route)) return true;
+  if (/^\/api\/worker-statement(?:\/|$)/u.test(route)) return true;
   return false;
 }

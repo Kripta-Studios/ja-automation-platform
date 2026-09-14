@@ -52,7 +52,7 @@
 <svelte:head><title>{t('Expense')} | {record.project_number}</title></svelte:head>
 <main class="record-detail-page">
   <nav class="detail-nav">
-    <a href={base + '/app/expenses'}>← {t('Expenses')}</a>
+    <a href={base + '/app/expenses'} data-origin-back>← {t('Expenses')}</a>
     <a href={base + '/app/projects/' + String(record.project_id)}>{t('Open project')}</a>
     <button type="button" class="no-print print-trigger" onclick={printReport}>
       <span aria-hidden="true">⎙</span>

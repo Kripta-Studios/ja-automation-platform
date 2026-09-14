@@ -275,7 +275,7 @@
 
 <main class="project-detail-page" data-project-detail data-role={role}>
   <nav class="project-breadcrumb no-print" aria-label={t('Project navigation')}>
-    <a href={base + '/app/projects'}>← {t('Projects')}</a>
+    <a href={base + '/app/projects'} data-origin-back>← {t('Projects')}</a>
     <span aria-hidden="true">/</span>
     <span aria-current="page">{display(project.project_number)}</span>
     <div class="project-breadcrumb-actions">
@@ -1110,6 +1110,11 @@
                 : ''}
             /></label
           >
+          <p class="edit-field-grid__help">
+            {t(
+              'Expected hours are planning context. The client daily minimum is a separate commercial top-up applied once per worker, project and day; it never changes actual recorded hours or worker compensation.',
+            )}
+          </p>
           <label
             >{t('Planned minutes')}<input
               name="plannedMinutes"
@@ -1142,10 +1147,17 @@
               >{#each ['tm', 'tm_daily_minimum', 'all_in', 'capped_tm', 'milestone', 'hybrid', 'internal'] as model}<option
                   value={model}
                   selected={String(project.billing_model) === model}
-                  >{controlled('billingStream', model)}</option
+                  >{model === 'all_in'
+                    ? t('Hourly labor with included expenses (all-in)')
+                    : controlled('billingStream', model)}</option
                 >{/each}</select
             ></label
           >
+          <p class="edit-field-grid__help">
+            {t(
+              'All-in keeps labor hourly unless an explicit fixed labor price is configured. It only means selected expenses are included instead of billed separately.',
+            )}
+          </p>
           <label
             >{t('Budget type')}<input
               name="budgetType"
@@ -1178,7 +1190,7 @@
             /></label
           >
           <label
-            >{t('Fixed price · minor units')}<input
+            >{t('Explicit fixed labor price · minor units')}<input
               name="fixedPriceMinor"
               type="number"
               min="0"
@@ -1850,6 +1862,13 @@
     color: var(--project-ink);
     font-size: 0.85rem;
     font-weight: 750;
+  }
+  .edit-field-grid__help {
+    grid-column: 1 / -1;
+    margin: -0.2rem 0 0;
+    color: var(--project-muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
   }
   .edit-field-grid input,
   .edit-field-grid select,

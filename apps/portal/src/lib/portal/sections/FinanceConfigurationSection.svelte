@@ -42,50 +42,73 @@
     return `${normalized.slice(0, -2)}.${normalized.slice(-2)}`;
   }
 
-  function decimalToMinor(raw: string): string {
+  function decimalToMinor(raw: string): string | null {
     const value = raw.trim();
-    if (!/^\d+(\.\d{1,2})?$/.test(value)) return '0';
+    if (!/^\d+(\.\d{1,2})?$/.test(value)) return null;
     const [whole, fraction = ''] = value.split('.');
     const paddedFraction = `${fraction}00`.slice(0, 2);
     return `${whole}${paddedFraction}`.replace(/^0+(?=\d)/, '') || '0';
   }
 
-  function percentToBps(raw: string): string {
+  function percentToBps(raw: string): string | null {
     const value = raw.trim();
-    if (!/^\d+(\.\d{1,2})?$/.test(value)) return '0';
+    if (!/^\d+(\.\d{1,2})?$/.test(value) || Number(value) > 100) return null;
     const [whole, fraction = ''] = value.split('.');
     const paddedFraction = `${fraction}00`.slice(0, 2);
     return `${whole}${paddedFraction}`.replace(/^0+(?=\d)/, '') || '0';
   }
 
-  function multiplierToBps(raw: string): string {
+  function multiplierToBps(raw: string): string | null {
     const value = Number(raw);
-    if (!Number.isFinite(value) || value < 0) return '0';
+    if (!Number.isFinite(value) || value < 0 || value > 10) return null;
     return String(Math.round(value * 10_000));
+  }
+
+  function syncCanonicalInput(
+    input: HTMLInputElement,
+    targetName: string,
+    parsed: string | null,
+    message: string,
+  ): void {
+    const hidden = input.form?.elements.namedItem(targetName) as HTMLInputElement | null;
+    if (parsed === null) {
+      input.setCustomValidity(translate(message));
+      input.setAttribute('aria-invalid', 'true');
+      return;
+    }
+    input.setCustomValidity('');
+    input.removeAttribute('aria-invalid');
+    if (hidden) hidden.value = parsed;
   }
 
   function syncDecimalToMinor(event: Event): void {
     const input = event.currentTarget as HTMLInputElement;
-    const hidden = input.form?.elements.namedItem(
+    syncCanonicalInput(
+      input,
       input.dataset.minorTarget ?? '',
-    ) as HTMLInputElement | null;
-    if (hidden) hidden.value = decimalToMinor(input.value);
+      decimalToMinor(input.value),
+      'Enter a valid amount with no more than two decimal places.',
+    );
   }
 
   function syncPercentToBps(event: Event): void {
     const input = event.currentTarget as HTMLInputElement;
-    const hidden = input.form?.elements.namedItem(
+    syncCanonicalInput(
+      input,
       input.dataset.bpsTarget ?? '',
-    ) as HTMLInputElement | null;
-    if (hidden) hidden.value = percentToBps(input.value);
+      percentToBps(input.value),
+      'Enter a valid percentage from 0 to 100.',
+    );
   }
 
   function syncMultiplierToBps(event: Event): void {
     const input = event.currentTarget as HTMLInputElement;
-    const hidden = input.form?.elements.namedItem(
+    syncCanonicalInput(
+      input,
       input.dataset.bpsTarget ?? '',
-    ) as HTMLInputElement | null;
-    if (hidden) hidden.value = multiplierToBps(input.value);
+      multiplierToBps(input.value),
+      'Enter a valid multiplier from 0 to 10.',
+    );
   }
 
   const moneyLabel = (row: Row, ...keys: string[]): string => {
@@ -107,6 +130,7 @@
   );
   let overtimeEnabled = $state(true);
   let compensationOvertimeMethod = $state('NONE');
+  let compensationRateBasis = $state('hourly');
   let clientOvertimeMethod = $state('BASE_RATE_MULTIPLIER');
   let internalOvertimeMethod = $state('BASE_RATE_MULTIPLIER');
   const configurationActions = [
@@ -1045,6 +1069,10 @@
                   id="finance-comp-ruletype"
                   name="ruleType"
                   bind:value={compensationRuleType}
+                  onchange={(event) => {
+                    if (event.currentTarget.value === 'Daily') compensationRateBasis = 'daily';
+                    if (event.currentTarget.value === 'Hourly') compensationRateBasis = 'hourly';
+                  }}
                 >
                   <option value="Hourly">{translate('Hourly')}</option>
                   <option value="Daily">{translate('Daily')}</option>
@@ -1060,55 +1088,59 @@
                   >
                 </select>
               </Field>
-              <Field
-                id="finance-comp-rate"
-                label={translate('Hourly rate')}
-                required
-                data-field="rateMinor"
-              >
-                <input type="hidden" name="rateMinor" value="0" />
-                <input
+              {#if compensationRuleType !== 'PercentageOfEligibleClientLabor'}
+                <Field
                   id="finance-comp-rate"
-                  type="text"
-                  inputmode="decimal"
-                  value="0.00"
-                  data-minor-target="rateMinor"
-                  oninput={syncDecimalToMinor}
+                  label={translate(
+                    compensationRuleType === 'Daily'
+                      ? 'Daily rate'
+                      : compensationRuleType === 'FixedPerBillingPeriod'
+                        ? 'Fixed period amount'
+                        : compensationRuleType === 'FixedProjectAmount'
+                          ? 'Fixed project amount'
+                          : compensationRuleType === 'CustomApprovedAdjustment'
+                            ? 'Approved adjustment amount'
+                            : 'Hourly rate',
+                  )}
                   required
-                />
-              </Field>
-              <Field
-                id="finance-comp-ratebasis"
-                label={translate('Rate basis')}
-                data-field="rateBasis"
-              >
-                <select id="finance-comp-ratebasis" name="rateBasis">
-                  <option value="hourly">{translate('Hourly')}</option>
-                  <option value="daily">{translate('Daily')}</option>
-                </select>
-              </Field>
+                  data-field="rateMinor"
+                >
+                  <input type="hidden" name="rateMinor" value="0" />
+                  <input
+                    id="finance-comp-rate"
+                    type="text"
+                    inputmode="decimal"
+                    value="0.00"
+                    data-minor-target="rateMinor"
+                    oninput={syncDecimalToMinor}
+                    required
+                  />
+                </Field>
+              {/if}
+              {#if ['Hourly', 'Daily'].includes(compensationRuleType)}
+                <Field
+                  id="finance-comp-ratebasis"
+                  label={translate('Rate basis')}
+                  data-field="rateBasis"
+                >
+                  <select
+                    id="finance-comp-ratebasis"
+                    name="rateBasis"
+                    bind:value={compensationRateBasis}
+                  >
+                    <option value="hourly">{translate('Hourly')}</option>
+                    <option value="daily">{translate('Daily')}</option>
+                  </select>
+                </Field>
+              {:else}
+                <input type="hidden" name="rateBasis" value="hourly" />
+              {/if}
               {#if compensationRuleType === 'PercentageOfEligibleClientLabor'}
                 <p class="muted finance-config-wide">
                   {translate(
                     'The percentage applies only to the selected eligible client-labor basis. Non-billable work, excluded categories and uncollected amounts are excluded according to that basis; partial client collection produces only the collected eligible share.',
                   )}
                 </p>
-                <Field
-                  id="finance-comp-percentage"
-                  label={translate('Percentage')}
-                  data-field="percentageBps"
-                >
-                  <input type="hidden" name="percentageBps" value="0" />
-                  <input
-                    id="finance-comp-percentage"
-                    type="text"
-                    inputmode="decimal"
-                    value="0"
-                    data-bps-target="percentageBps"
-                    oninput={syncPercentToBps}
-                    placeholder={translate('e.g. 55')}
-                  />
-                </Field>
                 <Field
                   id="finance-comp-percentagebasis"
                   label={translate('Percentage basis')}
@@ -1143,6 +1175,29 @@
                   <option value="ON_CLIENT_PAYMENT">{translate('Client payment')}</option>
                 </select>
               </Field>
+              {#if compensationRuleType === 'PercentageOfEligibleClientLabor' || compensationOvertimeMethod === 'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME'}
+                <Field
+                  id="finance-comp-percentage"
+                  label={translate(
+                    compensationRuleType === 'PercentageOfEligibleClientLabor'
+                      ? 'Percentage'
+                      : 'Overtime percentage',
+                  )}
+                  data-field="percentageBps"
+                >
+                  <input type="hidden" name="percentageBps" value="0" />
+                  <input
+                    id="finance-comp-percentage"
+                    type="text"
+                    inputmode="decimal"
+                    value="0"
+                    data-bps-target="percentageBps"
+                    oninput={syncPercentToBps}
+                    placeholder={translate('e.g. 55')}
+                    required
+                  />
+                </Field>
+              {/if}
               <Field
                 id="finance-comp-daily"
                 label={translate('Daily guarantee (minutes)')}
@@ -1308,9 +1363,6 @@
                   <option value="FIXED_RATE">{translate('Fixed rate')}</option>
                   <option value="FIXED_ADDITION_PER_HOUR"
                     >{translate('Fixed addition per hour')}</option
-                  >
-                  <option value="PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME"
-                    >{translate('Percentage of eligible overtime')}</option
                   >
                 </select>
               </Field>

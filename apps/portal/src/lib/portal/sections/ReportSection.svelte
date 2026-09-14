@@ -73,6 +73,12 @@
   let technicalPage = $state(1);
   let signoffPage = $state<Row[]>([]);
   let periodReportPage = $state<Row[]>([]);
+  let periodProjectId = $state('');
+  let periodFrom = $state('');
+  let periodTo = $state('');
+  let periodContentMode = $state<
+    'hours_only' | 'hours_activity' | 'hours_activity_selected_technical'
+  >('hours_activity');
   let registerStateHydrated = $state(false);
   const registerStateKey = (): string => `ja-operational-register:reports:${data.user.id}`;
 
@@ -108,6 +114,14 @@
   );
   const technicalReports = $derived(
     records.filter((row) => String(row.type ?? '').toLowerCase() === 'technical'),
+  );
+  const selectablePeriodTechnicalReports = $derived(
+    technicalReports.filter(
+      (row) =>
+        (!periodProjectId || rowText(row, 'project_id') === periodProjectId) &&
+        (!periodFrom || rowText(row, 'date') >= periodFrom) &&
+        (!periodTo || rowText(row, 'date') <= periodTo),
+    ),
   );
   const workerOptions = $derived(
     Array.from(
@@ -1041,7 +1055,7 @@
       </div>
       <label>
         <span>{translate('Project')}</span>
-        <select name="projectId" required>
+        <select name="projectId" bind:value={periodProjectId} required>
           <option value="">{translate('Select assignment')}</option>
           {#each availableProjects as project}
             <option value={String(project.id)}>{project.project_number} — {project.name}</option>
@@ -1269,6 +1283,7 @@
         <label
           ><span>{translate('Period start')}</span><input
             name="periodStart"
+            bind:value={periodFrom}
             type="date"
             required
           /></label
@@ -1276,6 +1291,7 @@
         <label
           ><span>{translate('Period end')}</span><input
             name="periodEnd"
+            bind:value={periodTo}
             type="date"
             required
           /></label
@@ -1289,6 +1305,43 @@
           <option value="pt">{translate('Portuguese')}</option>
         </select>
       </label>
+      <label>
+        <span>{translate('Customer report content')}</span>
+        <select name="contentMode" bind:value={periodContentMode} required>
+          <option value="hours_only">{translate('Hours only')}</option>
+          <option value="hours_activity">{translate('Hours and activity summary')}</option>
+          <option value="hours_activity_selected_technical"
+            >{translate('Hours, activity and selected technical reports')}</option
+          >
+        </select>
+        <small>
+          {translate(
+            'Technical / PLC details are excluded unless you explicitly select the technical-report option and the records below.',
+          )}
+        </small>
+      </label>
+      {#if periodContentMode === 'hours_activity_selected_technical'}
+        <fieldset class="report-generator-technical">
+          <legend>{translate('Technical reports to include')}</legend>
+          {#each selectablePeriodTechnicalReports as report}
+            <label class="report-generator-technical__option">
+              <input name="technicalReportIds" type="checkbox" value={rowText(report, 'id')} />
+              <span>
+                {rowText(report, 'date')} · {rowText(report, 'project_number')} · {rowText(
+                  report,
+                  'title',
+                ) || rowText(report, 'author_name')}
+              </span>
+            </label>
+          {:else}
+            <p class="muted">
+              {periodProjectId
+                ? translate('No technical reports are available for the selected project.')
+                : translate('Select a project to choose technical reports.')}
+            </p>
+          {/each}
+        </fieldset>
+      {/if}
       <div class="report-entry-actions">
         <button type="button" class="secondary-button" onclick={closeSurface}
           >{translate('Cancel')}</button
@@ -1307,6 +1360,20 @@
   }
   .report-action-explanation {
     max-width: 65ch;
+  }
+  .report-generator-technical {
+    display: grid;
+    gap: 0.55rem;
+    margin: 0;
+    padding: 0.85rem;
+    border: 1px solid var(--ja-border, #d9e1e5);
+    border-radius: 0.65rem;
+  }
+  .report-generator-technical__option {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.6rem;
+    align-items: start;
   }
   .report-primary-action-secondary {
     border-color: var(--ja-teal, #277e78);

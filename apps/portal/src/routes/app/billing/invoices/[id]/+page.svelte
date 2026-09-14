@@ -137,7 +137,7 @@
 <svelte:head><title>{t('Invoice preview')} | {invoice.project_number}</title></svelte:head>
 <main class="invoice-preview-page">
   <nav class="detail-nav no-print">
-    <a href={`${base}/app/billing`}>← {t('Billing')}</a><button
+    <a href={`${base}/app/billing`} data-origin-back>← {t('Billing')}</a><button
       type="button"
       class="print-trigger"
       onclick={() => window.print()}><span aria-hidden="true">⎙</span> {t('Print Report')}</button

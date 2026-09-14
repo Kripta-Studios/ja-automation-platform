@@ -20,7 +20,7 @@
 
 <svelte:head><title>{t.title} | J&A</title></svelte:head>
 <main class="cash-page" lang={locale === 'pt' ? 'pt-BR' : locale}>
-  <a href={`${base}/app/finance?view=economic&lang=${locale}`}>← {t.back}</a>
+  <a href={`${base}/app/finance?view=economic&lang=${locale}`} data-origin-back>← {t.back}</a>
   <h1>{t.title}</h1>
   <p>{t.explanation}</p>
   <p>{t.pending}</p>

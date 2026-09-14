@@ -420,7 +420,8 @@ export class WorkerStatementRepository {
   }
 
   private assertHumanWorker(principal: Principal): void {
-    if (principal.role !== 'worker') throw new AccessDeniedError('Worker role required');
+    if (!['worker', 'project_manager'].includes(principal.role))
+      throw new AccessDeniedError('Worker or project manager role required');
     const user = this.sqlite.prepare('SELECT status FROM user WHERE id=?').get(principal.userId) as
       | { status: string }
       | undefined;

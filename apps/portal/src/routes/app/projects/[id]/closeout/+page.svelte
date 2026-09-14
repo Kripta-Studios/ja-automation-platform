@@ -66,8 +66,9 @@
   data-role={data.user.role}
   lang={locale === 'pt' ? 'pt-BR' : locale}
 >
-  <a href={base + '/app/projects/' + encodeURIComponent(String(project.id)) + '?lang=' + locale}
-    >← {t.back}</a
+  <a
+    href={base + '/app/projects/' + encodeURIComponent(String(project.id)) + '?lang=' + locale}
+    data-origin-back>← {t.back}</a
   >
   <header>
     <p>{t.kicker}</p>

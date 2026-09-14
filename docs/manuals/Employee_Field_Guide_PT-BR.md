@@ -1,6 +1,6 @@
 # Guia de campo para colaboradores — revisão 2026-09-11
 
-**Contas externas:** Responsáveis de fornecedor e técnicos externos têm acesso apenas operacional. Meu pagamento, despesas e procedimentos financeiros se aplicam às contas padrão de Trabalhador. Consulte “Fornecedores e contas sem acesso financeiro”.
+**Contas externas:** Responsáveis de fornecedor e técnicos externos podem registrar as próprias horas, despesas e relatórios e usar Meu pagamento limitado aos próprios dados. Finanças do projeto, tarifas do cliente, margens, pagamentos de outras pessoas e administração financeira permanecem restritos.
 
 > Use somente o endereço do portal e o contato de suporte admin@j-aautomation.com. Este guia usa exemplos sintéticos. Nunca compartilhe senha, código MFA, código de recuperação, comprovante ou sessão.
 
@@ -46,7 +46,7 @@ Use a captura offline somente quando o portal informar que ela está habilitada.
 
 Abra **Ajuda (Help)** para baixar o guia atribuído à sua função. A **Caixa de atividades (Activity Inbox)** em `/app/notifications` pode levar a um registro permitido; ler uma notificação não é aprová-la. Colaboradores usam apenas seus projetos atribuídos, seus registros, seus arquivos e Meu pagamento. Finanças, Faturamento, Contabilidade, Auditoria, acompanhamento da equipe, Closeout e filas de aprovação não são fluxos de Worker; uma negação de acesso é um limite, não um erro a contornar. O e-mail não é o registro do sistema: use o portal e admin@j-aautomation.com.
 
-## Fornecedores e contas sem acesso financeiro
+## Fornecedores e contas restritas
 
 O Owner escolhe o responsável do fornecedor. Uma conta de fornecedor não pode se nomear nem conceder permissões financeiras, administrativas ou de aprovação. Cada instalação corresponde a um projeto no aplicativo. O Owner autoriza separadamente as instalações e as datas de acesso.
 
@@ -58,4 +58,4 @@ Em **Registrar horas da equipe**, selecione o técnico e registre data real, cat
 
 O **Relatório operacional** permite filtrar instalação e datas, consultar estados de aprovação, baixar CSV e imprimir/salvar PDF pelo navegador. O histórico permanece visível; registros rejeitados, anulados e substituídos não aumentam o total efetivo. O relatório não comprova pagamento nem aceite do cliente.
 
-O Técnico externo vê apenas suas próprias horas e relatórios operacionais. As contas de Responsável do fornecedor e Técnico externo não têm Meu pagamento, tarifas, despesas, documentos financeiros ou exportações financeiras. As instruções de despesas e remuneração neste guia se aplicam às contas padrão de Trabalhador. Os relatórios de fornecedor não incluem valores financeiros. Se faltar uma instalação ou um técnico, peça a correção ao Owner.
+O Técnico externo vê somente as próprias horas, despesas, relatórios e Meu pagamento limitado aos próprios dados. O Responsável do fornecedor vê também as instalações expressamente autorizadas. Nenhum desses perfis pode ver tarifas do cliente, margens do projeto, pagamentos de outra pessoa, documentos financeiros ou exportações administrativas. Os relatórios operacionais do fornecedor não incluem valores. Se faltar uma instalação ou um técnico, peça a correção ao Owner.

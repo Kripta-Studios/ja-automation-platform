@@ -51,6 +51,9 @@ export const load: PageServerLoad = ({ locals, url }) => {
     const overview = projectId
       ? context.repository.projectOverview(context.principal, projectId)
       : null;
+    const savedAgreementCheck = projectId
+      ? context.v3.projectFinance(context.principal, projectId)
+      : null;
     return {
       defaults,
       projects: projects.map((project) => ({
@@ -77,6 +80,16 @@ export const load: PageServerLoad = ({ locals, url }) => {
             .listBillingRules(context.principal)
             .filter((rule) => rule.project_id === projectId)
         : [],
+      savedAgreementCheck,
+      savedRuleCoverage: projectId
+        ? {
+            clientRates: context.v3.listClientLaborRates(context.principal, projectId).length,
+            compensationRules: context.v3.listCompensationRules(context.principal, projectId)
+              .length,
+            internalCostRules: context.v3.listInternalCostRules(context.principal, projectId)
+              .length,
+          }
+        : null,
     };
   } finally {
     context.sqlite.close();

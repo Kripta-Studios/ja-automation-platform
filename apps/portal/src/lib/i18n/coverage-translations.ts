@@ -17,6 +17,86 @@ const exact: Record<string, readonly [string, string]> = {
       'Escolha uma pessoa de fornecedor ou da equipe já existente para adicionar credenciais sem duplicar seu registro no diretório.',
     ],
   'Priority then oldest': ['Prioridad y después más antiguos', 'Prioridade e depois mais antigos'],
+  'Enter a valid amount with no more than two decimal places.': [
+    'Introduce un importe válido con un máximo de dos decimales.',
+    'Informe um valor válido com no máximo duas casas decimais.',
+  ],
+  'Enter a valid percentage from 0 to 100.': [
+    'Introduce un porcentaje válido entre 0 y 100.',
+    'Informe um percentual válido entre 0 e 100.',
+  ],
+  'Enter a valid multiplier from 0 to 10.': [
+    'Introduce un multiplicador válido entre 0 y 10.',
+    'Informe um multiplicador válido entre 0 e 10.',
+  ],
+  'Fixed period amount': ['Importe fijo del periodo', 'Valor fixo do período'],
+  'Approved adjustment amount': ['Importe del ajuste aprobado', 'Valor do ajuste aprovado'],
+  'Overtime percentage': ['Porcentaje de horas extra', 'Percentual de horas extras'],
+  'Hourly labor with included expenses (all-in)': [
+    'Mano de obra por horas con gastos incluidos (all-in)',
+    'Mão de obra por hora com despesas incluídas (all-in)',
+  ],
+  'Expected hours are planning context. The client daily minimum is a separate commercial top-up applied once per worker, project and day; it never changes actual recorded hours or worker compensation.':
+    [
+      'Las horas previstas son contexto de planificación. El mínimo diario del cliente es un ajuste comercial independiente que se aplica una sola vez por trabajador, proyecto y día; nunca cambia las horas reales registradas ni la remuneración del trabajador.',
+      'As horas previstas são contexto de planejamento. O mínimo diário do cliente é um ajuste comercial separado aplicado uma vez por colaborador, projeto e dia; nunca altera as horas reais registradas nem a remuneração do colaborador.',
+    ],
+  'All-in keeps labor hourly unless an explicit fixed labor price is configured. It only means selected expenses are included instead of billed separately.':
+    [
+      'All-in mantiene la mano de obra por horas salvo que se configure expresamente un precio fijo de mano de obra. Sólo significa que determinados gastos están incluidos en vez de facturarse por separado.',
+      'All-in mantém a mão de obra por hora, salvo se um preço fixo de mão de obra for configurado explicitamente. Significa apenas que determinadas despesas estão incluídas em vez de faturadas separadamente.',
+    ],
+  'Explicit fixed labor price · minor units': [
+    'Precio fijo explícito de mano de obra · unidades menores',
+    'Preço fixo explícito de mão de obra · unidades menores',
+  ],
+  'Select a billing stream and valid period first.': [
+    'Selecciona primero un flujo de facturación y un periodo válido.',
+    'Selecione primeiro um fluxo de faturamento e um período válido.',
+  ],
+  'The selected billing period could not be checked.': [
+    'No se pudo comprobar el periodo de facturación seleccionado.',
+    'Não foi possível verificar o período de faturamento selecionado.',
+  ],
+  'Checking period…': ['Comprobando periodo…', 'Verificando período…'],
+  'Check selected period': ['Comprobar periodo seleccionado', 'Verificar período selecionado'],
+  'Included source records': ['Registros fuente incluidos', 'Registros de origem incluídos'],
+  'Period readiness': ['Preparación del periodo', 'Preparação do período'],
+  'Excluded or pending source records': [
+    'Registros fuente excluidos o pendientes',
+    'Registros de origem excluídos ou pendentes',
+  ],
+  'No blocking conditions were found for this exact period.': [
+    'No se encontraron bloqueos para este periodo exacto.',
+    'Nenhum bloqueio foi encontrado para este período exato.',
+  ],
+  'Customer report content': [
+    'Contenido del informe para el cliente',
+    'Conteúdo do relatório para o cliente',
+  ],
+  'Hours only': ['Sólo horas', 'Somente horas'],
+  'Hours and activity summary': ['Horas y resumen de actividad', 'Horas e resumo de atividade'],
+  'Hours, activity and selected technical reports': [
+    'Horas, actividad e informes técnicos seleccionados',
+    'Horas, atividade e relatórios técnicos selecionados',
+  ],
+  'Technical / PLC details are excluded unless you explicitly select the technical-report option and the records below.':
+    [
+      'Los detalles Technical / PLC se excluyen salvo que elijas expresamente la opción de informes técnicos y los registros de abajo.',
+      'Os detalhes Technical / PLC ficam excluídos, a menos que você selecione explicitamente a opção de relatórios técnicos e os registros abaixo.',
+    ],
+  'Technical reports to include': [
+    'Informes técnicos que se incluirán',
+    'Relatórios técnicos a incluir',
+  ],
+  'No technical reports are available for the selected project.': [
+    'No hay informes técnicos disponibles para el proyecto seleccionado.',
+    'Não há relatórios técnicos disponíveis para o projeto selecionado.',
+  ],
+  'Select a project to choose technical reports.': [
+    'Selecciona un proyecto para elegir informes técnicos.',
+    'Selecione um projeto para escolher os relatórios técnicos.',
+  ],
   'All workers': ['Todos los trabajadores', 'Todos os colaboradores'],
   'All clients': ['Todos los clientes', 'Todos os clientes'],
   'All currencies': ['Todas las monedas', 'Todas as moedas'],

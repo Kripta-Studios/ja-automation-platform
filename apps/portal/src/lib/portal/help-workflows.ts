@@ -42,6 +42,22 @@ const topics: Record<
       'Record expense salva comprovante, fornecedor, data, moeda, valor e pagador. Submit envia para aprovação operacional. Approved significa aceito, não reembolsado. Finanças registra data, valor e referência do pagamento em Worker reimbursement queue.',
     ],
   },
+  pay: {
+    roles: ['worker', 'project_manager', 'supplier_coordinator', 'external_technician'],
+    route: 'pay',
+    en: [
+      'Your own compensation and payments',
+      'My Pay is always limited to your own activity, reimbursement and compensation records. Estimated, reviewed, scheduled, partially paid and paid are different states. A finalized settlement is not proof of a bank transfer; Actual payment is based on registered payment events.',
+    ],
+    es: [
+      'Tu propia compensación y pagos',
+      'My Pay siempre se limita a tu propia actividad, reembolsos y compensación. Estimado, revisado, programado, parcialmente pagado y pagado son estados diferentes. Finalizar una liquidación no demuestra una transferencia; Pago real se basa en movimientos de pago registrados.',
+    ],
+    pt: [
+      'Sua própria remuneração e pagamentos',
+      'My Pay sempre se limita à sua própria atividade, reembolsos e remuneração. Estimado, revisado, programado, parcialmente pago e pago são estados diferentes. Finalizar uma liquidação não comprova transferência; Pagamento real usa eventos de pagamento registrados.',
+    ],
+  },
   reports: {
     roles: ['worker', 'project_manager', 'owner_admin'],
     route: 'reports',
@@ -181,7 +197,7 @@ export function helpWorkflows(
     .filter(
       (topic) =>
         topic.roles.includes(effectiveRole) ||
-        (profile && ['time', 'reports'].includes(topic.route)),
+        (profile && ['time', 'expenses', 'pay', 'reports'].includes(topic.route)),
     )
     .map((topic) => ({ title: topic[locale][0], body: topic[locale][1], route: topic.route }));
 }

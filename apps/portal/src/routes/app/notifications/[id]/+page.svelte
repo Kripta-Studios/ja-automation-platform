@@ -46,7 +46,7 @@
 
 <main class="record-detail-page notification-detail-page">
   <nav class="detail-nav">
-    <a href={base + '/app/notifications'}>← {t('Activity inbox')}</a>
+    <a href={base + '/app/notifications'} data-origin-back>← {t('Activity inbox')}</a>
     {#if target}<a href={base + target}>{t('Open source record')}</a>{/if}
   </nav>
   <header class="record-detail-header">

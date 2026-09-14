@@ -12,6 +12,8 @@ import {
   workerSkillInputSchema,
   uuidSchema,
 } from '@ja/schemas';
+import { z } from 'zod';
+import { createHash } from 'node:crypto';
 import type { PortalRepository } from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess } from './action-message';
@@ -187,9 +189,24 @@ export const reportActions = {
   generatePeriodReports: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'reports')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const formData = await request.formData();
     const parsed = accountingPackPeriodSchema
-      .extend({ projectId: uuidSchema })
-      .safeParse(await formObject(request));
+      .extend({
+        projectId: uuidSchema,
+        contentMode: z
+          .enum([
+            'hours_only',
+            'hours_activity',
+            'hours_activity_selected_technical',
+            'hours_activity_all_technical',
+          ])
+          .default('hours_activity_all_technical'),
+        technicalReportIds: z.array(uuidSchema).default([]),
+      })
+      .safeParse({
+        ...Object.fromEntries(formData),
+        technicalReportIds: formData.getAll('technicalReportIds').map(String),
+      });
     if (!parsed.success)
       return actionFail(
         400,
@@ -200,9 +217,18 @@ export const reportActions = {
     const context = openPortalRepository(locals);
     try {
       const reports = context.v3.refreshPeriodReports(context.principal, parsed.data);
+      const contentSelectionKey = createHash('sha256')
+        .update(
+          JSON.stringify({
+            contentMode: parsed.data.contentMode,
+            technicalReportIds: [...parsed.data.technicalReportIds].sort(),
+          }),
+        )
+        .digest('hex')
+        .slice(0, 16);
       context.v3.enqueueJob(
         'period_close_report',
-        `period-report-refresh:${parsed.data.projectId}:${parsed.data.periodStart}:${parsed.data.periodEnd}:${parsed.data.reportLocale}`,
+        `period-report-refresh:${parsed.data.projectId}:${parsed.data.periodStart}:${parsed.data.periodEnd}:${parsed.data.reportLocale}:${contentSelectionKey}`,
         parsed.data,
       );
       return actionSuccess(

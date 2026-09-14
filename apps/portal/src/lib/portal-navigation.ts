@@ -66,9 +66,11 @@ export function portalNavigationForRole(
           ? [item('supplier', 'Supplier team', '◌')]
           : []),
         item('time', 'Time', '◷'),
+        item('expenses', 'Expenses', '◇'),
         item('reports', 'Reports', '▤'),
       ],
       secondary: [
+        item('pay', 'My Pay', '$'),
         item('supplier', 'Operational report', '▤', route('supplier/report')),
         item('profile', 'Profile', '◎'),
         item('help', 'Help', '?'),
@@ -101,6 +103,7 @@ export function portalNavigationForRole(
         secondary: [
           item('time', 'Time', '◷'),
           item('expenses', 'Expenses', '◇'),
+          item('pay', 'My Pay', '$'),
           item('projects', 'Team', '◌', route('projects', 'team')),
           item('planning', 'Planning', '⌘'),
           item('documents', 'Documents', '▧'),

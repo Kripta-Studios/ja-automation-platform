@@ -45,12 +45,16 @@ describe('period report artifact automation', () => {
     expect(refreshPeriodReports).toHaveBeenCalledOnce();
     expect(enqueueJob).toHaveBeenCalledWith(
       'period_close_report',
-      'period-report-refresh:11111111-1111-4111-8111-111111111111:2026-08-01:2026-08-31:en',
+      expect.stringMatching(
+        /^period-report-refresh:11111111-1111-4111-8111-111111111111:2026-08-01:2026-08-31:en:[a-f0-9]{16}$/u,
+      ),
       {
         projectId: '11111111-1111-4111-8111-111111111111',
         periodStart: '2026-08-01',
         periodEnd: '2026-08-31',
         reportLocale: 'en',
+        contentMode: 'hours_activity_all_technical',
+        technicalReportIds: [],
       },
     );
     expect(runArtifactJobs).not.toHaveBeenCalled();

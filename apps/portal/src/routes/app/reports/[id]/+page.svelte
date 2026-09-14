@@ -422,7 +422,7 @@
 
 <main class="record-detail-page report-detail-page">
   <nav class="detail-nav" aria-label={t('Report navigation')}>
-    <a href={base + '/app/reports'}>← {t('Reports')}</a>
+    <a href={base + '/app/reports'} data-origin-back>← {t('Reports')}</a>
     <a href={base + '/app/projects/' + display(report.project_id)}>{t('Open project')}</a>
     <button type="button" class="no-print print-trigger" onclick={printReport}>
       <span aria-hidden="true">⎙</span>

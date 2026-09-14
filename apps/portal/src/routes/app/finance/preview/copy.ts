@@ -73,6 +73,20 @@ export const copy = {
     none: 'Not configured',
     expenseNote:
       'All-in does not automatically mean fixed price. Hourly labour can include selected expenses while worker reimbursement and J&A cost remain separate. A fixed engagement exists only when a fixed labour price is explicitly configured.',
+    savedCheck: 'Check this saved agreement',
+    savedCheckHelp:
+      "This uses the effective rules that are actually saved and resolves the project's current operational records. It is separate from the editable example below.",
+    ready: 'Ready',
+    incomplete: 'Incomplete',
+    billable: 'Billable hours',
+    revenueCandidate: 'Customer value candidate',
+    clientRates: 'Client rate rules',
+    compensationRules: 'Worker compensation rules',
+    internalCostRules: 'Internal cost rules',
+    savedCheckBlocked:
+      'The saved agreement is incomplete for the source records listed below. Resolve these rules before relying on billing or settlement values.',
+    savedCheckReady:
+      'The saved rules resolve every current source record. Review the effective dates and amounts before issuing an invoice.',
   },
   es: {
     title: 'Acuerdo comercial y ejemplo',
@@ -148,6 +162,20 @@ export const copy = {
     none: 'Sin configurar',
     expenseNote:
       'All-in no significa automáticamente precio fijo. La labor por horas puede incluir determinados gastos mientras el reembolso al trabajador y el coste de J&A siguen separados. Sólo existe importe fijo cuando se configura expresamente un precio fijo de labor.',
+    savedCheck: 'Comprobar este acuerdo guardado',
+    savedCheckHelp:
+      'Esta comprobación usa las reglas vigentes realmente guardadas y resuelve los registros operativos actuales del proyecto. Es independiente del ejemplo editable de abajo.',
+    ready: 'Listo',
+    incomplete: 'Incompleto',
+    billable: 'Horas facturables',
+    revenueCandidate: 'Valor candidato para el cliente',
+    clientRates: 'Reglas de tarifa al cliente',
+    compensationRules: 'Reglas de remuneración',
+    internalCostRules: 'Reglas de coste interno',
+    savedCheckBlocked:
+      'El acuerdo guardado está incompleto para los registros indicados. Corrige esas reglas antes de confiar en los valores de facturación o liquidación.',
+    savedCheckReady:
+      'Las reglas guardadas resuelven todos los registros actuales. Revisa sus fechas de vigencia e importes antes de emitir una factura.',
   },
   pt: {
     title: 'Acordo comercial e exemplo',
@@ -223,5 +251,19 @@ export const copy = {
     none: 'Não configurado',
     expenseNote:
       'All-in não significa automaticamente preço fixo. A mão de obra por hora pode incluir determinadas despesas, enquanto o reembolso ao colaborador e o custo da J&A continuam separados. Só existe valor fixo quando um preço fixo de mão de obra é configurado explicitamente.',
+    savedCheck: 'Verificar este acordo salvo',
+    savedCheckHelp:
+      'Esta verificação usa as regras vigentes realmente salvas e resolve os registros operacionais atuais do projeto. É independente do exemplo editável abaixo.',
+    ready: 'Pronto',
+    incomplete: 'Incompleto',
+    billable: 'Horas faturáveis',
+    revenueCandidate: 'Valor candidato para o cliente',
+    clientRates: 'Regras de tarifa ao cliente',
+    compensationRules: 'Regras de remuneração',
+    internalCostRules: 'Regras de custo interno',
+    savedCheckBlocked:
+      'O acordo salvo está incompleto para os registros indicados. Corrija essas regras antes de confiar nos valores de faturamento ou liquidação.',
+    savedCheckReady:
+      'As regras salvas resolvem todos os registros atuais. Revise as datas de vigência e os valores antes de emitir uma fatura.',
   },
 };

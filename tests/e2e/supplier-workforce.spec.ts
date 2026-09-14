@@ -182,11 +182,12 @@ test('Owner delegates installation; supplier adds technician and submits private
       .getByRole('button', { name: 'Approve', exact: true })
       .click();
     await expect(page.getByRole('status').filter({ hasText: /decision recorded/i })).toBeVisible();
-    // Direct URLs and forged Owner action remain forbidden for a live supplier session.
-    for (const route of ['/pay', '/my-pay', '/expenses', '/api/worker-statement']) {
+    // Self-service pay and expenses are available, but remain scoped to the signed-in person.
+    for (const route of ['/pay', '/expenses', '/api/worker-statement']) {
       const response = await coordinator.request.get(portal(route));
-      expect(response.status()).toBe(403);
+      expect(response.status()).toBe(200);
     }
+    // Forged Owner actions remain forbidden for a live supplier session.
     const forged = await coordinator.request.post(portal('/supplier?/setProfile'), {
       form: { userId: coordinatorId, profile: 'standard' },
       headers: { origin: new URL(portal('')).origin, accept: 'text/html' },

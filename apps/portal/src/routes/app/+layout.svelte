@@ -2,6 +2,7 @@
   import { page } from '$app/stores';
   import { base } from '$app/paths';
   import { beforeNavigate, afterNavigate, goto } from '$app/navigation';
+  import { onMount } from 'svelte';
   import { createAuthClient } from 'better-auth/client';
   import PortalChrome from '$lib/PortalChrome.svelte';
   import { portalNavigationForRole, type NavItem } from '$lib/portal-navigation';
@@ -42,25 +43,84 @@
   // SvelteKit restores scroll on popstate. Keep the actual origin so a detail's Back
   // uses browser history and retains the originating queue's URL and saved UI state.
   let origin = $state<string | null>(null);
+  let originHasNativeHistory = $state(false);
+  let fallbackBackInProgress = false;
+  const returnKey = (url: URL) => `ja:return-to:${url.pathname}${url.search}`;
+  function rememberOrigin(destination: URL, source: URL): void {
+    try {
+      sessionStorage.setItem(
+        returnKey(destination),
+        JSON.stringify({ href: source.pathname + source.search + source.hash, at: Date.now() }),
+      );
+    } catch {
+      // Browser storage is an enhancement. Native history remains authoritative.
+    }
+  }
+  function rememberedOrigin(current: URL): string | null {
+    try {
+      const raw = sessionStorage.getItem(returnKey(current));
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { href?: unknown; at?: unknown };
+      if (
+        typeof parsed.href !== 'string' ||
+        !parsed.href.startsWith(`${base}/app`) ||
+        typeof parsed.at !== 'number' ||
+        Date.now() - parsed.at > 2 * 60 * 60 * 1000
+      ) {
+        sessionStorage.removeItem(returnKey(current));
+        return null;
+      }
+      return parsed.href;
+    } catch {
+      return null;
+    }
+  }
   beforeNavigate(({ from, to, type }) => {
     if (
+      !fallbackBackInProgress &&
       type !== 'popstate' &&
       from &&
       to &&
       from.url.origin === to.url.origin &&
       from.url.pathname !== to.url.pathname
-    )
+    ) {
       origin = from.url.pathname + from.url.search + from.url.hash;
-  });
-  afterNavigate(() => {
-    menuOpen = false;
-  });
-  function back(event: MouseEvent) {
-    if (origin) {
-      event.preventDefault();
-      origin = null;
-      history.back();
+      originHasNativeHistory = true;
+      rememberOrigin(to.url, from.url);
     }
+  });
+  afterNavigate(({ to }) => {
+    menuOpen = false;
+    if (!origin && to?.url) {
+      origin = rememberedOrigin(to.url);
+      originHasNativeHistory = false;
+    }
+  });
+  onMount(() => {
+    if (!origin) {
+      origin = rememberedOrigin($page.url);
+      originHasNativeHistory = false;
+    }
+  });
+  function navigateToOrigin(): void {
+    if (!origin) return;
+    const target = origin;
+    const useNativeHistory = originHasNativeHistory && history.length > 1;
+    origin = null;
+    originHasNativeHistory = false;
+    if (useNativeHistory) {
+      history.back();
+      return;
+    }
+    fallbackBackInProgress = true;
+    void goto(target).finally(() => {
+      fallbackBackInProgress = false;
+    });
+  }
+  function back(event: MouseEvent) {
+    if (!origin) return;
+    event.preventDefault();
+    navigateToOrigin();
   }
   function restoreOriginBack(node: HTMLElement) {
     const click = (event: MouseEvent) => {
@@ -74,13 +134,12 @@
       )
         return;
       const anchor = (event.target as Element).closest('a');
-      if (!anchor || !node.contains(anchor) || !/^←/.test(anchor.textContent?.trim() ?? '')) return;
+      if (!anchor || !node.contains(anchor) || !anchor.hasAttribute('data-origin-back')) return;
       // Older detail headers still carry a section fallback. Use the actual
       // navigation origin for those links as well as the shared header.
       event.preventDefault();
       event.stopImmediatePropagation();
-      origin = null;
-      history.back();
+      navigateToOrigin();
     };
     node.addEventListener('click', click, true);
     return {
@@ -124,8 +183,11 @@
       onCloseMenu={() => (menuOpen = false)}
     />
     <div id="portal-main" class="standalone-workspace__content" use:restoreOriginBack>
-      <a class="workspace-back" href={origin ?? `${base}/app/${section}`} onclick={back}
-        >← {translate('Back')}</a
+      <a
+        class="workspace-back"
+        href={origin ?? `${base}/app/${section}`}
+        data-origin-back
+        onclick={back}>← {translate('Back')}</a
       >
       {@render children()}
     </div>

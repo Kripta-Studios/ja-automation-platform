@@ -401,11 +401,25 @@ test('Worker statement durable lifecycle is queued, service-rendered, private an
   expect(otherDownloadResponse.status()).toBe(404);
   expect(await otherDownloadResponse.text()).not.toContain(readyCsv.semanticFilename);
 
-  // PMs are operational reviewers, not Worker compensation principals. Finance and Owner are
-  // also denied by the current worker-only policy; each role must receive the same non-disclosure
-  // boundary rather than learning whether the Worker artifact exists.
+  // A PM remains a working person and may use an own-only statement. It must not reveal another
+  // worker's artifact. Finance and Owner still use their administrative settlement surfaces.
+  await page.context().clearCookies();
+  await signIn(page, 'manager');
+  const managerListResponse = await page.request.get(portal('/api/worker-statement'));
+  expect(managerListResponse.status()).toBe(200);
+  expect(await managerListResponse.text()).not.toContain(readyCsv.artifactId);
+  const managerRequestResponse = await page.request.post(portal('/api/worker-statement'), {
+    headers: { origin: new URL(page.url()).origin, referer: page.url() },
+    data: {
+      periodStart: PERIOD_START,
+      periodEnd: PERIOD_END,
+      requestKey: `${requestKey}-pm`,
+    },
+  });
+  expect([200, 202]).toContain(managerRequestResponse.status());
+  expect(await managerRequestResponse.text()).not.toContain(readyCsv.artifactId);
+
   for (const [role, suffix] of [
-    ['manager', 'pm'],
     ['finance', 'finance'],
     ['owner', 'owner'],
   ] as const) {

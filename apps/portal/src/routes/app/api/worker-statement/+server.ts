@@ -48,8 +48,8 @@ function mapError(cause: unknown): Response | null {
 
 export const GET: RequestHandler = ({ locals, url }) => {
   if (!locals.user || !locals.session) return unauthorized();
-  if (locals.user.role !== 'worker')
-    return json({ error: 'Worker role required' }, { status: 403 });
+  if (locals.user.role !== 'worker' && locals.user.role !== 'project_manager')
+    return json({ error: 'Worker or project manager role required' }, { status: 403 });
   const artifactId = url.searchParams.get('artifactId')?.trim();
   const localeResult = reportLocaleSchema.safeParse(url.searchParams.get('locale') ?? 'en');
   if (!localeResult.success)
@@ -88,8 +88,8 @@ export const GET: RequestHandler = ({ locals, url }) => {
 
 export const POST: RequestHandler = async ({ locals, request, url }) => {
   if (!locals.user || !locals.session) return unauthorized();
-  if (locals.user.role !== 'worker')
-    return json({ error: 'Worker role required' }, { status: 403 });
+  if (locals.user.role !== 'worker' && locals.user.role !== 'project_manager')
+    return json({ error: 'Worker or project manager role required' }, { status: 403 });
   let body: unknown;
   try {
     body = await request.json();

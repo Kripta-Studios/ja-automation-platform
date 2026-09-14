@@ -2097,9 +2097,9 @@
                   >{translate('Billing model')}<select name="billingModel"
                     ><option value="tm">{translate('Time & materials')}</option><option
                       value="tm_daily_minimum">{translate('T&M · daily minimum')}</option
-                    ><option value="all_in">{translate('All-in')}</option><option value="capped_tm"
-                      >{translate('Capped T&M')}</option
-                    ></select
+                    ><option value="all_in"
+                      >{translate('Hourly labor with included expenses (all-in)')}</option
+                    ><option value="capped_tm">{translate('Capped T&M')}</option></select
                   ></label
                 ><label
                   >{translate('Site timezone')}<input
@@ -2133,6 +2133,17 @@
                     max="24"
                     placeholder="8.0"
                   /></label
+                >
+                <p class="form-help">
+                  {translate(
+                    'Expected hours are planning context. The client daily minimum is a separate commercial top-up applied once per worker, project and day; it never changes actual recorded hours or worker compensation.',
+                  )}
+                </p>
+                <p class="form-help">
+                  {translate(
+                    'All-in keeps labor hourly unless an explicit fixed labor price is configured. It only means selected expenses are included instead of billed separately.',
+                  )}
+                </p>
                 ><label
                   >{translate('Budget type')}<select name="budgetType"
                     ><option value="none">{translate('No budget')}</option><option value="revenue"

@@ -212,7 +212,7 @@
 
 <main class="record-detail-page">
   <nav class="detail-nav">
-    <a href={`${base}/app/reports`}>← {t('Reports')}</a><a
+    <a href={`${base}/app/reports`} data-origin-back>← {t('Reports')}</a><a
       href={`${base}/app/projects/${String(project.id)}`}>{t('Open project')}</a
     ><button type="button" class="no-print print-trigger" onclick={printReport}
       ><span aria-hidden="true">⎙</span> {t('Print Report')}</button
@@ -1050,6 +1050,16 @@
         <input type="hidden" name="projectId" value={project.id} />
         <input type="hidden" name="periodStart" value={report.periodStart} />
         <input type="hidden" name="periodEnd" value={report.periodEnd} />
+        <input
+          type="hidden"
+          name="contentMode"
+          value={report.contentMode ?? 'hours_activity_all_technical'}
+        />
+        {#if report.contentMode === 'hours_activity_selected_technical'}
+          {#each report.selectedTechnicalReportIds ?? [] as technicalReportId}
+            <input type="hidden" name="technicalReportIds" value={technicalReportId} />
+          {/each}
+        {/if}
         <label
           >{t('Language')}<select name="reportLocale" value={locale}
             ><option value="en">{t('English')}</option><option value="es">{t('Español')}</option

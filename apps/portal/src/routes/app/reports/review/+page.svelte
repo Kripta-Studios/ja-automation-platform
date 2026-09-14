@@ -161,7 +161,7 @@
 
 <main class="period-review-page" data-period-review lang={locale === 'pt' ? 'pt-BR' : locale}>
   <nav class="review-nav">
-    <a href={`${base}/app/reports?lang=${locale}`}>← {copy.back}</a>
+    <a href={`${base}/app/reports?lang=${locale}`} data-origin-back>← {copy.back}</a>
   </nav>
 
   <header class="review-header">

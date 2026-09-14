@@ -1,6 +1,6 @@
 # Guia do usuário — Trabalhador
 
-**Contas externas:** Responsáveis de fornecedor e técnicos externos têm acesso apenas operacional. Meu pagamento, despesas e procedimentos financeiros se aplicam às contas padrão de Trabalhador. Consulte “Fornecedores e contas sem acesso financeiro”.
+**Contas externas:** Responsáveis de fornecedor e técnicos externos podem registrar as próprias horas, despesas e relatórios e usar Meu pagamento limitado aos próprios dados. Nunca recebem finanças do projeto, tarifas do cliente, margens, remuneração de outras pessoas ou administração financeira. Consulte “Equipes de fornecedor e contas restritas”.
 
 ## Objetivo e seu espaço de trabalho privado
 
@@ -108,7 +108,7 @@ Use Perfil para atualizar apenas seu próprio idioma, competências e disponibil
 
 Pare e contate o suporte verificado se o acesso for negado, uma atribuição estiver ausente, um registro divergir das evidências factuais, um envio falhar após a nova tentativa segura ou o estado de um pagamento não estiver claro. Não contorne um perfil, não crie um registro duplicado, não execute uma tarefa em segundo plano e não use e-mail como fonte oficial de registro.
 
-## Fornecedores e contas sem acesso financeiro
+## Equipes de fornecedor e contas restritas
 
 O Owner escolhe o responsável do fornecedor. Uma conta de fornecedor não pode se nomear nem conceder permissões financeiras, administrativas ou de aprovação. Cada instalação corresponde a um projeto no aplicativo. O Owner autoriza separadamente as instalações e as datas de acesso.
 
@@ -120,7 +120,7 @@ Em **Registrar horas da equipe**, selecione o técnico e registre data real, cat
 
 O **Relatório operacional** permite filtrar instalação e datas, consultar estados de aprovação, baixar CSV e imprimir/salvar PDF pelo navegador. O histórico permanece visível; registros rejeitados, anulados e substituídos não aumentam o total efetivo. O relatório não comprova pagamento nem aceite do cliente.
 
-O Técnico externo vê apenas suas próprias horas e relatórios operacionais. As contas de Responsável do fornecedor e Técnico externo não têm Meu pagamento, tarifas, despesas, documentos financeiros ou exportações financeiras. As instruções de despesas e remuneração neste guia se aplicam às contas padrão de Trabalhador. Os relatórios de fornecedor não incluem valores financeiros. Se faltar uma instalação ou um técnico, peça a correção ao Owner.
+O Técnico externo vê somente as próprias horas, despesas, relatórios e Meu pagamento limitado aos próprios dados. O Responsável do fornecedor possui as mesmas áreas pessoais e o fluxo das instalações expressamente autorizadas. Nenhum desses perfis pode ver tarifas do cliente, margens do projeto, remuneração de outra pessoa, documentos financeiros ou exportações administrativas. Os relatórios operacionais do fornecedor não incluem valores. Se faltar uma instalação ou um técnico, peça a correção ao Owner.
 
 :::figure worker /app/supplier O responsável do fornecedor cadastra técnicos e registra horas da equipe.
 

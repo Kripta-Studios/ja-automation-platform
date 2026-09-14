@@ -4204,6 +4204,8 @@ export class PortalRepository {
       .get(billingRuleId, periodStart, periodEnd) as { state: string } | undefined;
     const explicitlyClosed = existing?.state === 'closed';
     const reasons: ReadinessReason[] = [];
+    let includedSourceCount = 0;
+    let excludedSourceCount = 0;
     if (!rule.tax_profile_id) reasons.push({ code: 'missing_tax_profile' });
     else if (rule.tax_profile_status !== 'active') reasons.push({ code: 'inactive_tax_profile' });
     if (!rule.legal_entity_id) reasons.push({ code: 'missing_legal_entity' });
@@ -4250,6 +4252,9 @@ export class PortalRepository {
       if (consumed >= BigInt(rule.po_cap_minor)) reasons.push({ code: 'cap_exhausted' });
     }
     if (rule.stream_type === 'labor') {
+      const slices = this.billingTimeSlices(rule.project_id, periodStart, periodEnd);
+      const candidateSourceIds = new Set(slices.map((slice) => slice.row.id));
+      const eligibleSourceIds = new Set<string>();
       const pending = this.sqlite
         .prepare(
           "SELECT id FROM time_entry WHERE project_id=? AND work_date BETWEEN ? AND ? AND approval_state NOT IN ('approved','locked','rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id)",
@@ -4257,7 +4262,7 @@ export class PortalRepository {
         .all(rule.project_id, periodStart, periodEnd) as Array<{ id: string }>;
       reasons.push(...pending.map((row) => ({ code: 'pending_time_approval', sourceId: row.id })));
       const missingRateSources = new Set<string>();
-      for (const slice of this.billingTimeSlices(rule.project_id, periodStart, periodEnd)) {
+      for (const slice of slices) {
         const row = slice.row;
         if (
           !['approved', 'locked'].includes(row.approval_state) ||
@@ -4266,6 +4271,7 @@ export class PortalRepository {
           !slice.clientBillable
         )
           continue;
+        eligibleSourceIds.add(row.id);
         if (
           this.billingSliceClientRate(
             principal,
@@ -4277,6 +4283,10 @@ export class PortalRepository {
         )
           missingRateSources.add(row.id);
       }
+      includedSourceCount = [...eligibleSourceIds].filter(
+        (sourceId) => !missingRateSources.has(sourceId),
+      ).length;
+      excludedSourceCount = Math.max(0, candidateSourceIds.size - includedSourceCount);
       reasons.push(
         ...[...missingRateSources].map((sourceId) => ({
           code: 'missing_client_rate',
@@ -4284,6 +4294,32 @@ export class PortalRepository {
         })),
       );
     } else if (rule.stream_type === 'expense') {
+      const candidates = this.sqlite
+        .prepare(
+          `SELECT id,currency,approval_state,finance_approved_at,invoice_id,
+                  project_currency_amount_minor,billing_amount_minor,commercial_classification_state
+             FROM expense
+            WHERE project_id=? AND spent_on BETWEEN ? AND ?
+              AND approval_state NOT IN ('rejected','void')
+              AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment='allowance_per_diem')
+              AND NOT EXISTS (
+                SELECT 1 FROM record_correction_link rcl
+                JOIN expense correction ON correction.id=rcl.correction_id
+                WHERE rcl.record_type='expense'
+                  AND ((rcl.original_id=expense.id AND correction.approval_state='approved')
+                    OR (rcl.correction_id=expense.id AND correction.approval_state<>'approved'))
+              )`,
+        )
+        .all(rule.project_id, periodStart, periodEnd) as Array<{
+        id: string;
+        currency: string;
+        approval_state: string;
+        finance_approved_at: string | null;
+        invoice_id: string | null;
+        project_currency_amount_minor: number | null;
+        billing_amount_minor: number | null;
+        commercial_classification_state: string;
+      }>;
       const pending = this.sqlite
         .prepare(
           "SELECT id FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND invoice_id IS NULL AND approval_state NOT IN ('rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=expense.id AND correction.approval_state='approved') OR (rcl.correction_id=expense.id AND correction.approval_state<>'approved'))) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem')) AND (approval_state!='approved' OR finance_approved_at IS NULL)",
@@ -4324,9 +4360,25 @@ export class PortalRepository {
           sourceId: row.id,
         })),
       );
+      const missingProjectionIds = new Set(missingProjections.map((row) => row.id));
+      includedSourceCount = candidates.filter(
+        (candidate) =>
+          candidate.approval_state === 'approved' &&
+          candidate.finance_approved_at !== null &&
+          candidate.invoice_id === null &&
+          !missingProjectionIds.has(candidate.id),
+      ).length;
+      excludedSourceCount = Math.max(0, candidates.length - includedSourceCount);
     }
     const state = reasons.length ? 'incomplete' : explicitlyClosed ? 'already_closed' : 'ready';
-    return { state, reasons, projectId: rule.project_id, streamType: rule.stream_type } as const;
+    return {
+      state,
+      reasons,
+      projectId: rule.project_id,
+      streamType: rule.stream_type,
+      includedSourceCount,
+      excludedSourceCount,
+    } as const;
   }
 
   createInvoiceDraft(
@@ -7682,7 +7734,8 @@ export class PortalRepository {
     reimbursedAt: string | null;
   }> {
     this.assertReadable(principal);
-    if (principal.role !== 'worker') throw new AccessDeniedError('Worker role required');
+    if (!['worker', 'project_manager'].includes(principal.role))
+      throw new AccessDeniedError('Worker or project manager role required');
     assertDate(periodStart, 'Period start');
     assertDate(periodEnd, 'Period end');
     if (periodStart > periodEnd)
@@ -7768,7 +7821,8 @@ export class PortalRepository {
     periodEnd: string,
   ): Array<Record<string, unknown>> {
     this.assertReadable(principal);
-    if (principal.role !== 'worker') throw new AccessDeniedError('Worker role required');
+    if (!['worker', 'project_manager'].includes(principal.role))
+      throw new AccessDeniedError('Worker or project manager role required');
     assertDate(periodStart, 'Period start');
     assertDate(periodEnd, 'Period end');
     if (periodStart > periodEnd)

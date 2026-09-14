@@ -11,7 +11,7 @@ afterEach(() => {
   for (const fixture of fixtures.splice(0)) closeB5LifecycleSecurityFixture(fixture);
 });
 describe('live supplier financial restriction', () => {
-  it('disables worker compensation for both external profiles and restores only by Owner decision', () => {
+  it('allows only the account own compensation while keeping project finance out of operational payloads', () => {
     const fixture = createB5LifecycleSecurityFixture();
     fixtures.push(fixture);
     const stamp = new Date().toISOString();
@@ -29,11 +29,12 @@ describe('live supplier financial restriction', () => {
     });
     const supplier = new SupplierWorkforceRepository(fixture.sqlite);
     const finance = new V3Repository(fixture.sqlite);
-    const company = supplier.createSupplier(fixture.owner, {
+    const owner = stepUpB5Principal(fixture.sqlite, fixture.owner, 'supplier-owner');
+    const company = supplier.createSupplier(owner, {
       name: 'No financial access supplier',
     });
     for (const profile of ['external_technician', 'supplier_coordinator'] as const) {
-      supplier.setAccountProfile(fixture.owner, {
+      supplier.setAccountProfile(owner, {
         userId: fixture.worker.userId,
         supplierId: company.id,
         profile,
@@ -41,7 +42,7 @@ describe('live supplier financial restriction', () => {
       const principal =
         profile === 'supplier_coordinator'
           ? (() => {
-              supplier.grantProject(fixture.owner, {
+              supplier.grantProject(owner, {
                 supplierId: company.id,
                 projectId: fixture.project.id,
                 coordinatorId: fixture.worker.userId,
@@ -60,9 +61,11 @@ describe('live supplier financial restriction', () => {
         expect(JSON.stringify(payload)).not.toMatch(
           /billability|invoice_id|billable_minutes|client_rate|compensation_amount|internal_cost|billing_status|currency/,
         );
-      expect(() => finance.workerPay(principal, '2026-08-01', '2026-08-31')).toThrow(
-        V3AccessDeniedError,
-      );
+      expect(finance.workerPay(principal, '2026-08-01', '2026-08-31')).toMatchObject({
+        pendingMinutes: 60,
+        projectIds: [fixture.project.id],
+      });
+      expect(() => finance.financePortfolio(principal)).toThrow(V3AccessDeniedError);
       expect(() =>
         supplier.setAccountProfile(fixture.worker, {
           userId: fixture.worker.userId,
@@ -70,7 +73,7 @@ describe('live supplier financial restriction', () => {
         }),
       ).toThrow();
     }
-    supplier.setAccountProfile(fixture.owner, {
+    supplier.setAccountProfile(owner, {
       userId: fixture.worker.userId,
       profile: 'standard',
     });

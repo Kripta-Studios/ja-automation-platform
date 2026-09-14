@@ -39,6 +39,7 @@ describe('portal role navigation contract', () => {
       'Reports',
       'Time',
       'Expenses',
+      'My Pay',
       'Team',
       'Planning',
       'Documents',
@@ -149,7 +150,7 @@ describe('portal role navigation contract', () => {
       );
 
     expect(accountLabels('worker')).toEqual(['My Pay', 'Profile']);
-    expect(accountLabels('project_manager')).toEqual(['Documents', 'Profile']);
+    expect(accountLabels('project_manager')).toEqual(['My Pay', 'Documents', 'Profile']);
     expect(accountLabels('finance_admin')).toEqual(['Documents', 'Profile']);
     expect(accountLabels('owner_admin')).toEqual(['Documents', 'Profile']);
     expect(accountLabels('auditor_read_only')).toEqual(['Profile']);

@@ -1,6 +1,6 @@
 # Guía de campo para empleados — revisión 2026-09-11
 
-**Cuentas externas:** Los responsables de proveedor y técnicos externos tienen acceso solo operativo. My Pay, gastos y procedimientos financieros corresponden a cuentas Worker estándar. Consulta «Proveedores y cuentas sin acceso financiero» para tu flujo.
+**Cuentas externas:** Los responsables de proveedor y técnicos externos pueden registrar sus propias horas, gastos e informes y usar My Pay limitado a sus propios datos. Las finanzas del proyecto, tarifas del cliente, márgenes, pagos ajenos y administración financiera siguen restringidos.
 
 > Usa solo la dirección del portal y el contacto de soporte admin@j-aautomation.com. Esta guía usa ejemplos sintéticos. No compartas contraseña, código MFA, código de recuperación, recibo ni sesión.
 
@@ -46,7 +46,7 @@ Usa la captura sin conexión solo si el portal indica que está habilitada. Prot
 
 Abre **Ayuda (Help)** para descargar la guía asignada a tu rol. La **Bandeja de actividad (Activity Inbox)** en `/app/notifications` puede enlazar a un registro permitido; leer una notificación no es aprobarla. Los trabajadores usan solo sus proyectos asignados, sus registros, sus archivos y My Pay. Finanzas, Facturación, Contabilidad, Auditoría, seguimiento del personal, Closeout y colas de aprobación no son flujos de Worker; una denegación de acceso es un límite, no un error que debas sortear. El correo no es el registro del sistema: usa el portal y admin@j-aautomation.com.
 
-## Proveedores y cuentas sin acceso financiero
+## Proveedores y cuentas restringidas
 
 El Owner elige al responsable del proveedor y autoriza cada instalación y sus fechas. Una instalación corresponde a un proyecto de la app. El proveedor no puede darse permisos de administración, finanzas o aprobación.
 
@@ -58,4 +58,4 @@ En **Registrar horas del equipo**, selecciona el técnico e introduce la fecha r
 
 En **Informe operativo**, filtra instalación y fechas, consulta estados, descarga CSV o imprime/guarda PDF desde el navegador. El historial permanece visible; los registros rechazados, anulados o sustituidos no incrementan el total efectivo. El informe no acredita pagos ni aceptación del cliente.
 
-El Técnico externo solo ve sus propias horas e informes operativos. El Responsable de proveedor y el Técnico externo no tienen My Pay, tarifas, gastos, documentos financieros ni exportaciones financieras. Las instrucciones sobre gastos y pagos de esta guía corresponden a cuentas Worker estándar. Los informes del proveedor no incluyen importes. Si falta una instalación o un técnico, pide al Owner que revise la asignación.
+El Técnico externo solo ve sus propias horas, gastos, informes y My Pay limitado a sus propios datos. El Responsable de proveedor ve además las instalaciones expresamente autorizadas. Ninguno de esos perfiles ve tarifas del cliente, márgenes del proyecto, pagos ajenos, documentos financieros ni exportaciones administrativas. Los informes operativos del proveedor no incluyen importes. Si falta una instalación o un técnico, pide al Owner que revise la asignación.

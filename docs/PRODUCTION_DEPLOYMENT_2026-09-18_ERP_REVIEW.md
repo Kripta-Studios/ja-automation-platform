@@ -69,3 +69,10 @@ documentación. No modifican el código desplegado identificado arriba.
 Logs locales de la entrega: `/tmp/ja-erp-deploy.log`,
 `/tmp/ja-erp-production-after-runtime.log`, `/tmp/ja-erp-production-after.log`,
 `/tmp/ja-erp-backup-after.log` y `/tmp/ja-erp-docker-cache.log`.
+
+## Despliegue posterior de la ampliación QuickBooks
+
+La ampliación de planificación de cobros se desplegó a las 21:00:49 UTC con código `d69efe6`.
+Su verificación, backup y estado actualizado de los pendientes históricos están en el
+[recibo de planificación de cobros](PRODUCTION_DEPLOYMENT_2026-09-18_QUICKBOOKS.md).
+Este enlace no modifica la evidencia del despliegue anterior descrito arriba.

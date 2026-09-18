@@ -75,19 +75,16 @@ de la página visible. La interfaz presenta diez filas por página y tarjetas en
 Los informes históricos explícitos conservan el corte temporal existente del ledger y no
 usan fechas previstas actuales: estas no tienen un histórico de revisiones recuperable.
 
-## Integración directa con Intuit: requisito externo
+## Alcance confirmado: inspiración funcional
 
-No se ha conectado una empresa de QuickBooks ni se han transferido datos. Una integración
-real requiere aplicación registrada, Client ID/secret, entorno sandbox/producción y autorización
-OAuth de la empresa (`realmId`).
-[Contrato oficial de autenticación](https://developer.intuit.com/app/developer/qbo/docs/develop/authentication-and-authorization/oauth-2.0).
+El usuario confirma que QuickBooks se utiliza exclusivamente como referencia de la competencia
+para mejorar las funcionalidades propias del ERP. La conexión con QuickBooks/Intuit queda
+expresamente excluida: no es un pendiente, requisito externo ni ampliación prevista de esta solicitud.
 
-Diseño recomendado si se encarga esa conexión: empezar por exportación unidireccional de
-clientes y facturas emitidas; conservar J&A como fuente de horas, compensación y snapshots;
-mapear identificadores y monedas de forma explícita; guardar tokens cifrados; usar outbox
-idempotente con reintentos y conciliación; nunca importar una actualización remota sobre una
-factura emitida. Pagos y abonos necesitan decidir antes qué sistema es autoridad. Las claves
-y la autorización de la empresa no se pueden sustituir por una implementación ficticia.
+Las funciones implementadas utilizan los datos, cálculos, permisos e infraestructura de J&A.
+No se ha creado ningún conector, flujo OAuth, sincronización ni transferencia de datos a Intuit.
+No hace falta una cuenta, suscripción o credencial de QuickBooks para usar estas mejoras.
+Se retira la propuesta de integración externa de la documentación por no corresponder al encargo.
 
 ## Ejecución y evidencia
 

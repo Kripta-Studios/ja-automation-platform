@@ -90,8 +90,14 @@ Estos estados existían antes del cambio y mantienen los mismos totales después
   válidos documentos cuya integridad histórica no está acreditada.
 - **Retención aún incompleta**: 12 snapshots en 10 días distintos; no acredita 30 días de
   cobertura. La integridad indicada corresponde al último backup, no a todos los históricos.
-- La conexión directa a una empresa de QuickBooks requiere credenciales y consentimiento
-  OAuth de Intuit. Esta entrega incorpora funciones nativas de análisis, sin sincronización externa.
+
+## Aclaración de alcance del usuario
+
+QuickBooks es exclusivamente una referencia funcional de la competencia. La conexión con
+QuickBooks/Intuit está expresamente excluida del encargo y no constituye un pendiente.
+Las mejoras desplegadas son nativas del ERP; no se ha implementado ningún conector, OAuth,
+sincronización o transferencia de datos a Intuit. Esta aclaración documental no cambia el código
+desplegado ni requiere un nuevo despliegue.
 
 Este recibo se publica en un commit posterior de documentación; el código desplegado sigue
 siendo `d69efe6afde139e02a7e1d4633203f697a632357`.

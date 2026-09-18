@@ -12,11 +12,15 @@ test('Finance can reconcile current partial collections, aging and filtered expo
   const invoiceId = randomUUID();
   const invoiceNumber = `AGING-${invoiceId}`;
   let projectId = '';
+  let clientId = '';
   try {
     const rule = db.sqlite
       .prepare("SELECT id,project_id FROM billing_rule WHERE currency='USD' LIMIT 1")
       .get()!;
     projectId = String(rule.project_id);
+    clientId = String(
+      db.sqlite.prepare('SELECT client_id FROM project WHERE id=?').get(projectId)!.client_id,
+    );
     const now = new Date().toISOString();
     db.sqlite
       .prepare(
@@ -52,6 +56,49 @@ test('Finance can reconcile current partial collections, aging and filtered expo
   expect(csv).toContain('2099-01-01');
   expect(csv).toContain('balanceAsOf');
   expect(response.headers()['cache-control']).toBe('private, no-store');
+  const workbench = page.locator('[data-collections-workbench]');
+  await expect(workbench.getByRole('heading', { name: 'Customer balances' })).toBeVisible();
+  await expect(workbench).toContainText('75.00');
+  const customerResponse = await page.request.get(
+    portal(
+      `/api/invoice-collection-ledger/csv?q=${invoiceNumber}&client=${clientId}&report=customers`,
+    ),
+  );
+  expect(customerResponse.status()).toBe(200);
+  expect(await customerResponse.text()).toContain('7500');
+  expect(customerResponse.headers()['cache-control']).toBe('private, no-store');
+  const otherClient = await page.request.get(
+    portal(`/api/invoice-collection-ledger/csv?q=${invoiceNumber}&client=other&report=customers`),
+  );
+  expect(otherClient.status()).toBe(200);
+  expect(await otherClient.text()).not.toContain('7500');
+  await workbench.getByRole('button', { name: 'Collection priorities', exact: true }).click();
+  await expect(workbench).toContainText('Overdue invoice');
+  await expect(workbench).toContainText(invoiceNumber);
+  await workbench.getByRole('button', { name: 'Collection forecast', exact: true }).click();
+  await expect(workbench).toContainText('Beyond 90 days');
+  await expect(workbench).toContainText('75.00');
+  const forecastHref = await workbench
+    .getByRole('link', { name: 'Export view CSV' })
+    .getAttribute('href');
+  const forecastResponse = await page.request.get(new URL(forecastHref!, portal()).href);
+  expect(forecastResponse.status()).toBe(200);
+  expect(await forecastResponse.text()).toContain('laterMinor');
+  for (const control of await workbench
+    .locator('.workbench-controls button, .workbench-controls a')
+    .all()) {
+    const box = await control.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    expect(box!.width).toBeGreaterThan(70);
+  }
+  await workbench.getByRole('button', { name: 'Customer balances', exact: true }).click();
+  const reviewLink = workbench
+    .getByRole('link', { name: 'Review invoices', exact: true })
+    .filter({ visible: true });
+  await reviewLink.click();
+  await expect(filter.locator('select[name="client"]')).toHaveValue(clientId);
+  await expect(filter.locator('input[name="q"]')).toHaveValue(invoiceNumber);
+
   await filter.locator('select[name="aging"]').selectOption('current');
   await expect(page.getByText('No ledger rows found').first()).toBeVisible();
   await filter.locator('select[name="aging"]').selectOption('over_90');
@@ -135,8 +182,20 @@ test('Credits reconcile gross and net balances without losing historical issuanc
     expect(historic).not.toContain(`${prefix}-remaining`);
     if (year === '2020') expect(historic).not.toContain(`${prefix}-partial`);
     expect(historic).not.toContain('2099-01-01');
+    const forecast = await page.request.get(
+      portal(`${endpoint}&periodStart=2020-01-01&periodEnd=${year}-12-31&report=forecast`),
+    );
+    expect(forecast.status()).toBe(200);
+    expect(await forecast.text()).toContain('10000');
   }
-  for (const invalid of ['currency=GBP', 'aging=invalid', 'project=a&project=b'])
+  for (const invalid of [
+    'currency=GBP',
+    'aging=invalid',
+    'project=a&project=b',
+    'client=a&client=b',
+    'report=unknown',
+    'report=customers&report=forecast',
+  ])
     expect((await page.request.get(portal(`${endpoint}&${invalid}`))).status()).toBe(400);
 });
 
@@ -202,7 +261,12 @@ test('Workers can find missing receipts and export the same authorized expenses'
     expect(csv).not.toContain('-OTHER-PRIVATE');
     expect(csv).not.toMatch(/client_rate|internal_cost|contribution_margin/iu);
   }
-  expect((await page.request.get(portal('/api/invoice-collection-ledger/csv'))).status()).toBe(403);
+  for (const report of ['', 'customers', 'forecast', 'priorities'])
+    expect(
+      (
+        await page.request.get(portal(`/api/invoice-collection-ledger/csv?report=${report}`))
+      ).status(),
+    ).toBe(403);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('expense-evidence.png'), fullPage: true });
 });
@@ -215,5 +279,41 @@ test('PM receives operational receipt controls without reimbursement controls', 
   await expect(page.locator('select[name="receipt"]')).toBeVisible();
   await expect(page.locator('select[name="reimbursement"]')).toHaveCount(0);
   await expect(page.getByText('Reimbursement status', { exact: true })).toHaveCount(0);
-  expect((await page.request.get(portal('/api/invoice-collection-ledger/csv'))).status()).toBe(403);
+  for (const report of ['', 'customers', 'forecast', 'priorities'])
+    expect(
+      (
+        await page.request.get(portal(`/api/invoice-collection-ledger/csv?report=${report}`))
+      ).status(),
+    ).toBe(403);
+});
+
+test('Collection planning exports require authentication and a supported format', async ({
+  page,
+}) => {
+  for (const report of ['customers', 'forecast', 'priorities'])
+    expect(
+      (
+        await page.request.get(portal(`/api/invoice-collection-ledger/csv?report=${report}`))
+      ).status(),
+    ).toBe(401);
+  await signIn(page, 'owner');
+  expect(
+    (
+      await page.request.get(portal('/api/invoice-collection-ledger/xlsx?report=customers'))
+    ).status(),
+  ).toBe(400);
+  expect(
+    (
+      await page.request.get(portal('/api/invoice-collection-ledger/csv?report=customers'))
+    ).status(),
+  ).toBe(200);
+  await page.goto(portal('/ledger?lang=es'));
+  await expect(
+    page.getByRole('heading', { name: 'Saldos por cliente', exact: true }),
+  ).toBeVisible();
+  await page.goto(portal('/ledger?lang=pt'));
+  await page.getByRole('button', { name: 'Previsão de recebimentos', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Previsão de recebimentos', exact: true }),
+  ).toBeVisible();
 });

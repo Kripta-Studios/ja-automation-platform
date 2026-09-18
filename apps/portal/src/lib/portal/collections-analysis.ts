@@ -37,7 +37,7 @@ function minor(row: CollectionRow, ...keys: string[]): bigint {
   return BigInt(value);
 }
 
-function calendarDay(raw: string): number | null {
+export function calendarDay(raw: string): number | null {
   const date = raw.slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/u.test(date)) return null;
   const timestamp = Date.parse(`${date}T00:00:00Z`);
@@ -79,6 +79,7 @@ export function collectionAging(
 }
 
 export type CollectionFilters = {
+  client?: string;
   project?: string;
   status?: string;
   query?: string;
@@ -96,6 +97,8 @@ export function collectionMatches(
   filters: CollectionFilters,
   asOf: string,
 ): boolean {
+  if (filters.client && collectionText(row, 'clientId', 'client_id') !== filters.client)
+    return false;
   if (filters.project && collectionText(row, 'projectId', 'project_id') !== filters.project)
     return false;
   if (filters.currency && collectionText(row, 'currency') !== filters.currency) return false;

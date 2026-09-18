@@ -48,6 +48,11 @@
   );
   const calculation = $derived((report.commercialCalculation ?? []) as Row[]);
   const dailyReports = $derived((report.dailyReports ?? []) as Row[]);
+  const selectedTechnicalReportIds = $derived(
+    Array.isArray(report.selectedTechnicalReportIds)
+      ? report.selectedTechnicalReportIds.filter((id): id is string => typeof id === 'string')
+      : [],
+  );
   const technicalReports = $derived((report.technicalReports ?? []) as Row[]);
   const technicalChanges = $derived((report.technicalChanges ?? []) as Row[]);
   const expenses = $derived((report.expenses ?? []) as Row[]);
@@ -1056,7 +1061,7 @@
           value={report.contentMode ?? 'hours_activity_all_technical'}
         />
         {#if report.contentMode === 'hours_activity_selected_technical'}
-          {#each report.selectedTechnicalReportIds ?? [] as technicalReportId}
+          {#each selectedTechnicalReportIds as technicalReportId}
             <input type="hidden" name="technicalReportIds" value={technicalReportId} />
           {/each}
         {/if}

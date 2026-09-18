@@ -780,3 +780,12 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Navegador: 64 casos aplicables aprobados entre la pasada final y la repetición de tres contratos actualizados; 12 exclusiones de viewport preexistentes. Incluye 48 comprobaciones de mejoras ERP, alcance y accesibilidad en 360/390/768/1440. Aislamiento offline y controles estructurales: 18/18.
 - [x] Publicación y producción: código `2bb50b2` desplegado a las 19:32:45 UTC; esquema 48 íntegro, snapshots emitidos y registros financieros conservados, backup de 50 documentos verificado, dos ciclos automáticos sin fallos nuevos. Caché Docker 0 B tras liberar 6,917 GB.
 - Estado: actualización desplegada y verificada. [Recibo y límites operativos](docs/PRODUCTION_DEPLOYMENT_2026-09-18_ERP_REVIEW.md). No modifica las aceptaciones externas ni los pendientes históricos documentados.
+
+## 2026-09-18 — Planificación de cobros inspirada en QuickBooks
+
+- [x] Ampliación explícita: resumen de saldos por cliente/moneda, filtro por cliente, prioridades de cobro, previsión de entradas a 90 días y tres CSV del mismo alcance. [Análisis y decisiones](docs/QUICKBOOKS_REVIEW_2026-09-18.md).
+- [x] Dinero exacto y corte temporal: 28 pruebas focalizadas, incluyendo integración del calendario; abonos separados, importes grandes, fechas límite y exportación segura.
+- [x] Regresión general: 1.026 casos ejecutados (1.025 pasaron; un fallo de inventario de traducciones corregido). Repetición dirigida de 91 casos y cinco comprobaciones del resumen pasan. No quedan fallos sin resolver de esta pasada.
+- [x] Navegador: 20/20 en 360/390/768/1440; 14/14 adicionales tras guardas de tipos previas en clientes e informes. Owner/Finance autorizados, Worker/PM denegados, EN/ES/PT, Axe y controles táctiles. [Capturas y evidencia](docs/evidence/quickbooks-20260918/README.md).
+- [x] Typecheck y ESLint; Svelte con cero errores y cero avisos; formato; revisión independiente final aprobada. No se necesitan migraciones y no se añaden escrituras financieras.
+- Publicación, backup, conservación de históricos y limpieza Docker: [recibo de producción](docs/PRODUCTION_DEPLOYMENT_2026-09-18_QUICKBOOKS.md). No afirma conexión con Intuit ni cierra los pendientes históricos o aceptaciones externas.

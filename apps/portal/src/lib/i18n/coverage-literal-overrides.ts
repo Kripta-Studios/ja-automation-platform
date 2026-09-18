@@ -1,5 +1,50 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  Pagination: ['Paginación', 'Paginação'],
+  Records: ['Registros', 'Registros'],
+  'Collection planning': ['Planificación de cobros', 'Planejamento de recebimentos'],
+  'Collection views': ['Vistas de cobros', 'Visões de recebimentos'],
+  'Customer balances': ['Saldos por cliente', 'Saldos por cliente'],
+  'Collection priorities': ['Prioridades de cobro', 'Prioridades de recebimento'],
+  'Collection forecast': ['Previsión de cobros', 'Previsão de recebimentos'],
+  'Export view CSV': ['Exportar vista CSV', 'Exportar visão CSV'],
+  'Open documents': ['Documentos pendientes', 'Documentos pendentes'],
+  'Oldest overdue (days)': ['Mayor vencimiento (días)', 'Maior atraso (dias)'],
+  'Review invoices': ['Revisar facturas', 'Revisar faturas'],
+  'Review invoice': ['Revisar factura', 'Revisar fatura'],
+  'Review reason': ['Motivo de revisión', 'Motivo de revisão'],
+  'Overdue invoice': ['Factura vencida', 'Fatura vencida'],
+  'Collection date passed': ['Fecha de cobro pasada', 'Data de recebimento passada'],
+  'Collection date missing': ['Sin fecha de cobro', 'Sem data de recebimento'],
+  'Today through 7 days': ['Hoy y próximos 7 días', 'Hoje e próximos 7 dias'],
+  '8–30 days ahead': ['Entre 8 y 30 días', 'Entre 8 e 30 dias'],
+  '31–60 days ahead': ['Entre 31 y 60 días', 'Entre 31 e 60 dias'],
+  '61–90 days ahead': ['Entre 61 y 90 días', 'Entre 61 e 90 dias'],
+  'Beyond 90 days': ['Más de 90 días', 'Mais de 90 dias'],
+  'Using expected collection date': [
+    'Con fecha prevista de cobro',
+    'Com data prevista de recebimento',
+  ],
+  'Using invoice due date': ['Con vencimiento de factura', 'Com vencimento da fatura'],
+  'No open items for this view': [
+    'No hay pendientes en esta vista',
+    'Não há pendências nesta visão',
+  ],
+  'Internal customer summary across projects and issuers. Credit balances remain separate and are not automatically applied.':
+    [
+      'Resumen interno por cliente de proyectos y emisores. Los saldos acreedores se mantienen separados y no se aplican automáticamente.',
+      'Resumo interno por cliente de projetos e emissores. Os saldos credores permanecem separados e não são aplicados automaticamente.',
+    ],
+  'Remaining receivables use the expected collection date, or the invoice due date when absent. Past dates and missing dates stay separate. This is not a bank balance or guaranteed cash.':
+    [
+      'Los saldos pendientes usan la fecha prevista de cobro o, si falta, el vencimiento de la factura. Las fechas pasadas y los saldos sin fecha se separan. No representa saldo bancario ni efectivo garantizado.',
+      'Os saldos pendentes usam a data prevista de recebimento ou, na ausência, o vencimento da fatura. Datas passadas e saldos sem data ficam separados. Não representa saldo bancário nem dinheiro garantido.',
+    ],
+  'Review overdue invoices, passed collection dates and missing due dates. Ordered by currency and oldest overdue first. Opening an invoice does not send a reminder.':
+    [
+      'Revisa facturas vencidas, fechas previstas pasadas y vencimientos sin registrar. Ordenadas por moneda y mayor atraso. Abrir una factura no envía recordatorios.',
+      'Revise faturas vencidas, datas previstas passadas e vencimentos não registrados. Ordenadas por moeda e maior atraso. Abrir uma fatura não envia lembretes.',
+    ],
   'UTC time': ['hora UTC', 'horário UTC'],
   'Service period': ['Período de servicio', 'Período de serviço'],
   'Invoice reconciliation details': [

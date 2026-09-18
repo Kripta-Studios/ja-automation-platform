@@ -1960,7 +1960,7 @@
                   "Each editor carries the record version it displayed. A stale submission is rejected so another administrator's changes are not overwritten.",
                 )}
               </p>
-              {#each data.clients.filter((client) => !$page.url.searchParams.get('client') || String(client.id) === $page.url.searchParams.get('client')) as client}
+              {#each (data.clients ?? []).filter((client) => !$page.url.searchParams.get('client') || String(client.id) === $page.url.searchParams.get('client')) as client}
                 <form
                   method="POST"
                   action="?/updateClient"

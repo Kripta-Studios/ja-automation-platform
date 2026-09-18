@@ -195,3 +195,10 @@ Límites: un pago registrado entre la carga de pantalla y la descarga puede camb
 actual; no se promete una captura atómica entre dos peticiones. Los estados heredados `credited`
 sin fecha efectiva no permiten reconstrucción histórica completa; los abonos emitidos como
 ajustes sí conservan su procedencia. No se asignan créditos automáticamente a facturas.
+
+## Ampliación solicitada: QuickBooks
+
+El análisis posterior de QuickBooks y la implementación de planificación de cobros están en
+[QuickBooks y mejoras del ERP](QUICKBOOKS_REVIEW_2026-09-18.md), con evidencia y recibo de
+producción propios. Esta ampliación conserva las decisiones financieras y de privacidad de
+esta revisión; no conecta automáticamente una empresa de Intuit.

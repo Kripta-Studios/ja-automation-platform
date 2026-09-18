@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CollectionsWorkbench from './CollectionsWorkbench.svelte';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
@@ -35,12 +36,25 @@
   let search = $state('');
   let statusFilter = $state('');
   let projectFilter = $state('');
+  let clientFilter = $state('');
   let currencyFilter = $state('');
   let agingFilter = $state('');
 
   const rows = $derived((data.ledger ?? []) as Row[]);
   const asOf = $derived(data.financeToday ?? new Date().toISOString().slice(0, 10));
   const currencyOptions = $derived([...new Set(rows.map((row) => value(row, 'currency')))].sort());
+  const clientOptions = $derived(
+    Array.from(
+      new Map(
+        rows.map((row) => [
+          value(row, 'clientId', 'client_id'),
+          [value(row, 'clientNumber', 'client_number'), value(row, 'clientName', 'client_name')]
+            .filter(Boolean)
+            .join(' · '),
+        ]),
+      ).entries(),
+    ).filter(([id]) => id),
+  );
   const projectOptions = $derived(
     Array.from(
       new Map(
@@ -60,12 +74,13 @@
   );
 
   $effect(() => {
+    clientFilter = $page.url.searchParams.get('client')?.trim() ?? '';
     projectFilter = $page.url.searchParams.get('project')?.trim() ?? '';
     statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
     currencyFilter = $page.url.searchParams.get('currency')?.trim() ?? '';
     agingFilter = $page.url.searchParams.get('aging')?.trim() ?? '';
     const query = $page.url.searchParams.get('q');
-    if (query !== null) search = query.trim();
+    search = query?.trim() ?? '';
   });
 
   function value(row: Row, ...keys: string[]): string {
@@ -194,7 +209,7 @@
     rows.filter((row) =>
       collectionMatches(
         row,
-        { project: projectFilter, currency: currencyFilter, query: search },
+        { project: projectFilter, client: clientFilter, currency: currencyFilter, query: search },
         asOf,
       ),
     ),
@@ -331,6 +346,7 @@
     // Emission dates describe the visible invoices; they must not truncate later collections.
     const query = new URLSearchParams();
     if (projectFilter) query.set('project', projectFilter);
+    if (clientFilter) query.set('client', clientFilter);
     if (statusFilter) query.set('status', statusFilter);
     if (search.trim()) query.set('q', search.trim());
     if (currencyFilter) query.set('currency', currencyFilter);
@@ -346,6 +362,7 @@
   function ledgerFilterHref(status: string): string {
     const query = new URLSearchParams();
     if (projectFilter) query.set('project', projectFilter);
+    if (clientFilter) query.set('client', clientFilter);
     if (search.trim()) query.set('q', search.trim());
     if (currencyFilter) query.set('currency', currencyFilter);
     if (agingFilter) query.set('aging', agingFilter);
@@ -356,6 +373,7 @@
   function agingHref(bucket: string, currency: string): string {
     const query = new URLSearchParams({ aging: bucket, currency });
     if (projectFilter) query.set('project', projectFilter);
+    if (clientFilter) query.set('client', clientFilter);
     if (search.trim()) query.set('q', search.trim());
     return `${base}/app/ledger?${query}#collections-ledger-register`;
   }
@@ -441,6 +459,13 @@
       </select>
     </label>
     <label>
+      <span>{translate('Client')}</span>
+      <select name="client" bind:value={clientFilter}>
+        <option value="">{translate('All clients')}</option>
+        {#each clientOptions as [id, label]}<option value={id}>{label}</option>{/each}
+      </select>
+    </label>
+    <label>
       <span>{translate('Project')}</span>
       <select name="project" bind:value={projectFilter}>
         <option value="">{translate('All projects')}</option>
@@ -517,6 +542,13 @@
       <p role="status">{translate('No ledger rows found')}</p>
     {/each}
   </SectionCard>
+
+  <CollectionsWorkbench
+    rows={visibleRows}
+    {asOf}
+    {translate}
+    exportUrl={canExport ? exportHref('csv') : null}
+  />
 
   <SectionCard
     id="collections-ledger-register"

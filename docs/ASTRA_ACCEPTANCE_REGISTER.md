@@ -1,5 +1,9 @@
 # Webapp acceptance and configuration register
 
+> Historical evidence/configuration register. For the current release, reconciled decisions and
+> outstanding actions, see [project status — 2026-09-18](PROJECT_STATUS_2026-09-18.md).
+> Dated statuses below apply to their recorded checkpoint; later evidence does not erase that history.
+
 Date: 2026-09-08. Source: `ASTRA_PLAN.md`. This register separates executable checks from decisions that require J&A or its accountant. Values below are synthetic examples, never production defaults. The original Excel workbook has not been supplied to this implementation session.
 
 ## Configuration dictionary

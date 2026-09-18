@@ -1,5 +1,9 @@
 # Audit remediation — 2026-09-09
 
+> Historical evidence/configuration register. For the current release, reconciled decisions and
+> outstanding actions, see [project status — 2026-09-18](PROJECT_STATUS_2026-09-18.md).
+> Dated statuses below apply to their recorded checkpoint; later evidence does not erase that history.
+
 This work addresses the audit of 57dfb95 against the Client Essential SPEC and contractual PDF.
 The starting production feature is c6a6179 (supplier workforce), with documentation through
 49b9e62. The historical audit remains unchanged; a newer release does not erase its findings.

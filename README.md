@@ -7,29 +7,28 @@ authority, followed by the validated local contract (`ANEXO A` and `ANEXO D`), `
 only, and the repository instructions. The unified V3 specification is subordinate domain reference;
 V3.1–V3.4 expansion is deferred roadmap.
 
-## Current release checkpoint
+## Current release checkpoint — 2026-09-18
 
-As of 2026-08-28, the current worktree contains the Client Essential implementation through the
-Worker statement, report/sign-off, PM projection, finance, service-actor and continuity foundations.
-The release verdict remains **NOT READY**. The latest checkpoint proves the local authenticated
-browser journey through steps 1–29 and the deployed public-routing assertions in step 32; the
-deliberate operations gates for two successful automatic jobs-timer runs (step 30) and an encrypted
-remote-copy restore drill (step 31) remain open. Formatting/lint and independent release reviews
-also remain release-gate dependencies. A passing focused test, a deployable ZIP, or a live Caddy
-smoke check does not by itself establish `CLIENT READY`.
+Production is operational on application commit `d69efe6`, with native ERP and collection-planning
+improvements deployed. **Client Essential acceptance is still open; the project is not certified
+`CLIENT READY`.** Fiscal/legal and human acceptance, historical job/PDF incidents, backup-history
+coverage and a fresh complete 32-step journey remain tracked with their closure evidence.
 
-The pinned Node `24.19.0` / pnpm `11.22.0` evidence recorded in the checklist includes unit
-(`522`), integration (`238`), security (`98`), invariant (`1`), reporting (`4`), offline (`8`),
-continuity-contract (`14`) and migration (`77`) tests, plus production builds, local backup/restore
-and the 2026-08-28 browser checkpoint. These are repository/local or endpoint checks, not proof of
-healthy live jobs or remote continuity. The checklist records the current evidence, open dependencies
-and final DoD status:
+Read the [consolidated project status](docs/PROJECT_STATUS_2026-09-18.md) for the CORE-01–17
+implementation/evidence map, current decisions, pending actions and historical reconciliation.
+The [read-only production evidence](docs/validation/project-status-20260918.json) verifies the
+active release, healthy services, database integrity, preserved records and latest local backup.
+Documentation commits after `d69efe6` do not change the deployed application. QuickBooks is only
+functional inspiration; Intuit connectivity/OAuth/synchronization is explicitly excluded.
+
+Earlier release checkpoints remain in the dated checklist and deployment receipts; their verdicts
+apply to those candidates, not automatically to the current one. Requirement authority is unchanged:
 
 - [Client Essential specification](J_A_AUTOMATION_CLIENT_ESSENTIAL_SPEC_2026-08-22.md)
 - [Client Essential checklist](J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md)
 - [Project contract and UAT](J_A_Automation_Contrato_Proyecto_EVOCON_ES.html)
 - [Approved UX plan](UI_PLAN.md)
-- [Current execution DAG](CODEX_EXECUTION_PLAN.md)
+- [Execution DAG reference](CODEX_EXECUTION_PLAN.md)
 
 ## Applications
 

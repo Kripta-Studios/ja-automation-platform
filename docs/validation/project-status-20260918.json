@@ -1,0 +1,127 @@
+{
+  "capturedAt": "2026-09-18T21:14:21.648368+00:00",
+  "scope": "Read-only production verification and documentation reconciliation; no full acceptance journey or external mail sent. Backup verification uses an isolated temporary copy.",
+  "repository": {
+    "branch": "codex/v3-production-completion-orchestrated-20260819",
+    "headBeforeConsolidation": "be0c9ea350f45d0f57958fcff0a28d7cc38f54df",
+    "originHeadBeforeConsolidation": "be0c9ea350f45d0f57958fcff0a28d7cc38f54df",
+    "codeCommit": "d69efe6afde139e02a7e1d4633203f697a632357",
+    "filesChangedSinceCodeCommit": [
+      "J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md",
+      "docs/PRODUCTION_DEPLOYMENT_2026-09-18_ERP_REVIEW.md",
+      "docs/PRODUCTION_DEPLOYMENT_2026-09-18_QUICKBOOKS.md",
+      "docs/QUICKBOOKS_REVIEW_2026-09-18.md"
+    ]
+  },
+  "release": {
+    "path": "/opt/jaautomation/releases/ja-automation-f2d279ae714ee974f7c4d4b02d57a575f191f226ac51cd235237b690f8cd1203",
+    "archiveSha256": "f2d279ae714ee974f7c4d4b02d57a575f191f226ac51cd235237b690f8cd1203",
+    "archiveFilesCompared": 1714,
+    "missingFiles": [],
+    "differentFiles": []
+  },
+  "containers": [
+    {
+      "name": "deployment-portal-1",
+      "image": "ja-automation-portal:zip-f2d279ae714ee974f7c4d4b02d57a575",
+      "status": "running",
+      "health": "healthy"
+    },
+    {
+      "name": "deployment-site-1",
+      "image": "ja-automation-site:zip-f2d279ae714ee974f7c4d4b02d57a575",
+      "status": "running",
+      "health": "healthy"
+    },
+    {
+      "name": "deployment-jobs-1",
+      "image": "ja-automation-portal:zip-f2d279ae714ee974f7c4d4b02d57a575",
+      "status": "running",
+      "health": null
+    }
+  ],
+  "services": {
+    "jaautomation-jobs.timer": "active",
+    "jaautomation-backup.timer": "active",
+    "jaautomation-zip-deploy.timer": "active",
+    "jaautomation-zip-deploy.path": "active"
+  },
+  "recentAutomaticCycles": [
+    {
+      "timestamp": "2026-09-18T21:14:11.867Z",
+      "event": "jobs.cycle",
+      "processed": 0,
+      "failed": 0,
+      "outbox": {
+        "processed": 0,
+        "failed": 0,
+        "permanentlyFailed": 0
+      }
+    },
+    {
+      "timestamp": "2026-09-18T21:14:16.962Z",
+      "event": "jobs.cycle",
+      "processed": 0,
+      "failed": 0,
+      "outbox": {
+        "processed": 0,
+        "failed": 0,
+        "permanentlyFailed": 0
+      }
+    }
+  ],
+  "database": {
+    "verifiedAt": "2026-09-18T21:14:17.052Z",
+    "schema": 48,
+    "integrity": "ok",
+    "foreignKeyViolations": 0,
+    "preserved": {
+      "invoice": 14,
+      "document": 14,
+      "payment": 6,
+      "accounting_pack_revision": 1,
+      "accounting_pack_revision_snapshot": 1
+    },
+    "deadLetters": 4,
+    "failedPdfs": 5
+  },
+  "latestBackup": {
+    "backupPath": "/var/backups/jaautomation/2026-09-18T210038599Z-3f06b86f-866e-4dce-b286-5303df9931f7",
+    "verifiedAt": "2026-09-18T21:14:17.110Z",
+    "createdAt": "2026-09-18T21:00:40.289Z",
+    "databaseSha256": "03e558e996d7f19e8550f0ccf7266b8d2a2c7398a837d00aba88d9a8b809560e",
+    "integrity": "ok",
+    "foreignKeyViolations": 0,
+    "documentCount": 50,
+    "history": {
+      "snapshotCount": 12,
+      "observedDays": 10,
+      "requiredDays": 30,
+      "coverageComplete": false,
+      "missingDays": [
+        "2026-09-08",
+        "2026-09-07",
+        "2026-09-06",
+        "2026-09-05",
+        "2026-09-04",
+        "2026-09-03",
+        "2026-09-02",
+        "2026-09-01",
+        "2026-08-31",
+        "2026-08-30",
+        "2026-08-29",
+        "2026-08-28",
+        "2026-08-27",
+        "2026-08-26",
+        "2026-08-25",
+        "2026-08-24",
+        "2026-08-23",
+        "2026-08-22",
+        "2026-08-21",
+        "2026-08-20"
+      ],
+      "scope": "Manifest dates only; integrity verified for latest snapshot"
+    }
+  },
+  "dockerDiskUsage": "TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE\nImages          12        8         9.942GB   4.695GB (47%)\nContainers      11        10        3.424MB   16.38kB (0%)\nLocal Volumes   2         2         120.6MB   0B (0%)\nBuild Cache     0         0         0B        0B"
+}

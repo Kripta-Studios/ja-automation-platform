@@ -6,6 +6,27 @@
 **Client validation update:** 2026-08-24
 The requirements clarified directly with J&A on 2026-08-24 are release-authoritative. Existing PASS/PARTIAL evidence must be revalidated where these clarifications materially change the behavior; no prior PASS may be assumed to prove a newly clarified rule.
 
+## Estado actual consolidado — 2026-09-18
+
+**Producción operativa; cierre Client Essential pendiente. No se acredita el 100 % ni `CLIENT READY`.**
+El [estado consolidado](docs/PROJECT_STATUS_2026-09-18.md) es el punto de entrada para la situación
+actual: matriz CORE-01–17 con límites de evidencia, registro de pendientes P01–P11 y reconciliación
+de los checkpoints de este documento. La SPEC conserva su autoridad sobre los requisitos.
+
+- Código desplegado: `d69efe6`; commits posteriores de documentación no cambian la aplicación.
+- [Verificación nueva de solo lectura](docs/validation/project-status-20260918.json): 1.714 archivos
+  del release coinciden con el ZIP; sitio/portal sanos, jobs y timers activos, esquema 48 íntegro.
+- Conservación de snapshots/pagos/documentos verificada; último backup correcto, 12 snapshots en
+  10 días de los 30 requeridos. Permanecen 4 jobs y 5 PDF fallidos del histórico.
+- El recorrido 32/32 del 06/09 pertenece a `2058db2`; no se presenta como ejecución del código actual.
+  Las pruebas recientes de ERP/cobros y su alcance están en los recibos del 18/09.
+- Faltan las aprobaciones y evidencias externas detalladas en P02/P05–P09, además del cierre técnico
+  P01/P03/P04. La dispensa offsite se conserva; QuickBooks/Intuit está excluido, no pendiente.
+
+Las secciones fechadas y sus casillas conservan el histórico; no son una nueva certificación de la
+versión actual. En particular, las entradas «no desplegado» de ASTRA y «pendiente smoke Owner» tienen
+evidencia posterior identificada en la reconciliación. No se rellenan firmas ni se borran hallazgos.
+
 ## Owner email policy — 2026-09-10
 
 The Owner explicitly replaced automatic operational email with in-app notices only.
@@ -18,7 +39,7 @@ checks persisted consent. This instruction supersedes the older automatic-email 
 in Anexo A for this delivery. Validation and deployment evidence is recorded in
 `docs/evidence/email-consent-20260910.md`.
 
-## Current candidate policy update — 2026-09-06
+## Historical candidate and continuing policy — 2026-09-06
 
 The Owner/requester's formal implementation decision supersedes the older internal step-up design
 and the older mandatory-MFA clause for this delivery:
@@ -56,7 +77,7 @@ See `docs/evidence/client-ready-20260906/RUN_REPORT.md`.
 
 Audit classifications used below: `PASS`, `PARTIAL`, `FAIL`, `BLOCKED`, `CONDITIONAL`, `DEFERRED`. `PASS` requires executable evidence, not code presence.
 
-## Candidate qualification update — 2026-09-04
+## Historical candidate qualification — 2026-09-04
 
 **Verdict: BLOCKED — not `CLIENT READY`, solely pending the remaining human/external ANEXO D
 acceptance: authoritative DKIM/PTR and external send/receive validation, localized content approval,
@@ -580,7 +601,7 @@ When this section is fully checked, deferred roadmap items must not prevent the 
       role/project-assignment smoke from `docs/DEPLOYMENT_VPS.md` remains part of signed UAT; do not
       expose passwords, tokens or hashes while capturing it.
 
-## ASTRA candidate implementation evidence — 2026-09-08 (not deployed)
+## Historical ASTRA candidate evidence — 2026-09-08 (not yet deployed at that checkpoint)
 
 This section records new local evidence against `ASTRA_PLAN.md`; earlier deployed handbacks do
 not certify these uncommitted changes. Plan-only commit `a2604fc` was pushed. Candidate

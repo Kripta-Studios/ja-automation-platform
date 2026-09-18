@@ -1,5 +1,9 @@
 # ASTRA webapp implementation — 2026-09-08
 
+> Historical evidence/configuration register. For the current release, reconciled decisions and
+> outstanding actions, see [project status — 2026-09-18](PROJECT_STATUS_2026-09-18.md).
+> Dated statuses below apply to their recorded checkpoint; later evidence does not erase that history.
+
 Latest status, 9 September: core A–C is deployed as `5a615d9`; see the production delivery entry at the end for the rollout correction, verification and remaining mail/acceptance limits. Earlier dated entries preserve the actual implementation chronology.
 
 Authority: `ASTRA_PLAN.md`, Client Essential specification/checklist and the current owner decisions in `AGENTS.md`. User authorized proceeding on 8 September and subsequently explicitly authorized commit, push and production deployment. Scope is core portal/public website improvements (Phases A–C); conditional ERP extensions retain their explicit real-example dependencies. This evidence does not replace human UAT approval.

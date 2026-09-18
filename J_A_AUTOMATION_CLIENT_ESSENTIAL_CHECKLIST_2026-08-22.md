@@ -811,3 +811,11 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Typecheck y ESLint; Svelte con cero errores y cero avisos; formato; revisión independiente final aprobada. No se necesitan migraciones y no se añaden escrituras financieras.
 - Publicación, backup, conservación de históricos y limpieza Docker: [recibo de producción](docs/PRODUCTION_DEPLOYMENT_2026-09-18_QUICKBOOKS.md). QuickBooks se usa únicamente como referencia funcional; cualquier conexión con Intuit está expresamente excluida por el usuario y no es un pendiente. No cierra los pendientes históricos ni las aceptaciones externas.
 - [x] Desplegado `d69efe6` a las 21:00:49 UTC: sitio/portal saludables, dos ciclos automáticos sin fallos nuevos, esquema 48 íntegro, 14 snapshots de factura y todos los registros financieros de referencia conservados, backup de 50 documentos verificado. Caché Docker 0 B tras liberar 6,802 GB. Continúan los cuatro jobs/cinco PDF históricos fallidos y la cobertura de backup de 10 días; se documentan sin declararlos resueltos.
+
+## 2026-09-19 — Recuperación histórica y nueva aceptación (en curso)
+
+El usuario autorizó recuperar los cuatro jobs y cinco PDF históricos y repetir los 32 pasos.
+El [registro de recuperación](docs/RECOVERY_AND_ACCEPTANCE_2026-09-19.md) distingue reparaciones
+productivas de ensayos aislados y documenta las correcciones de encolado, fallos PDF y vigencia
+operativa de la aceptación. Tres PDF canónicos ya están recuperados y verificados en producción;
+los originales y el historial permanecen. No se declara cierre integral ni aceptación humana.

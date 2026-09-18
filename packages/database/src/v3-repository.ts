@@ -6351,6 +6351,109 @@ export class V3Repository {
     return this.refreshPeriodReportsCore(input, principal);
   }
 
+  /** Refresh and request rendering atomically, retaining terminal attempts as history. */
+  refreshAndQueuePeriodReports(principal: Principal, input: PeriodReportRefreshInput) {
+    return this.transaction(() => {
+      const normalizedInput = {
+        projectId: input.projectId,
+        periodStart: input.periodStart,
+        periodEnd: input.periodEnd,
+        ...(input.reportLocale ? { reportLocale: normalizeReportLocale(input.reportLocale) } : {}),
+        contentMode: input.contentMode ?? 'hours_activity_all_technical',
+        technicalReportIds: [...new Set(input.technicalReportIds ?? [])].sort(),
+      };
+      const reports = this.refreshPeriodReports(principal, normalizedInput);
+      if (reports.length === 0)
+        throw new V3ValidationError('No period reports exist for this period');
+      const reportSnapshots = reports
+        .map((report) => ({
+          id: report.id,
+          snapshotVersion: report.snapshotVersion,
+          locale: normalizeReportLocale(report.snapshot.locale),
+        }))
+        .sort((left, right) => left.id.localeCompare(right.id));
+      const refreshRequestKey = `period-report-refresh:v2:${createHash('sha256')
+        .update(canonicalJobJson({ ...normalizedInput, reportSnapshots }))
+        .digest('hex')}`;
+      const jobs = this.sqlite
+        .prepare(
+          `SELECT j.id,j.state,j.payload_json FROM job j
+           JOIN deployment_identity d ON d.singleton=1
+             AND j.tenant_id=d.tenant_id AND j.deployment_id=d.deployment_id
+           WHERE j.kind='period_close_report' AND j.contract_version='b5-v1'
+             AND json_extract(j.payload_json,'$.projectId')=?
+             AND json_extract(j.payload_json,'$.periodStart')=?
+             AND json_extract(j.payload_json,'$.periodEnd')=?
+           ORDER BY j.created_at DESC,j.rowid DESC`,
+        )
+        .all(input.projectId, input.periodStart, input.periodEnd) as Array<{
+        id: string;
+        state: string;
+        payload_json: string;
+      }>;
+      const versionJob = jobs.find(
+        (job) => parseJsonRecord(job.payload_json).refreshRequestKey === refreshRequestKey,
+      );
+      if (versionJob && versionJob.state !== 'dead_letter') {
+        const payload = parseJsonRecord(versionJob.payload_json);
+        return {
+          reports,
+          jobId: versionJob.id,
+          jobCreated: false,
+          jobState: versionJob.state,
+          retryOfJobId: typeof payload.retryOfJobId === 'string' ? payload.retryOfJobId : null,
+        };
+      }
+      // A pre-versioned job can also be the failed predecessor. Match the complete
+      // request scope rather than assuming its historical idempotency-key prefix.
+      const predecessor =
+        versionJob ??
+        jobs.find((job) => {
+          const payload = parseJsonRecord(job.payload_json);
+          const technicalReportIds = Array.isArray(payload.technicalReportIds)
+            ? [...new Set(payload.technicalReportIds)].sort()
+            : [];
+          return (
+            normalizeReportLocale(payload.reportLocale) ===
+              normalizeReportLocale(normalizedInput.reportLocale) &&
+            (payload.contentMode ?? 'hours_activity_all_technical') ===
+              normalizedInput.contentMode &&
+            canonicalJobJson(technicalReportIds) ===
+              canonicalJobJson(normalizedInput.technicalReportIds)
+          );
+        });
+      const retryOfJobId = predecessor?.state === 'dead_letter' ? predecessor.id : null;
+      const queued = this.enqueueJob(
+        'period_close_report',
+        retryOfJobId ? `${refreshRequestKey}:retry:${retryOfJobId}` : refreshRequestKey,
+        {
+          ...normalizedInput,
+          reportSnapshots,
+          refreshRequestKey,
+          ...(retryOfJobId ? { retryOfJobId } : {}),
+        },
+      );
+      const job = this.sqlite.prepare('SELECT state FROM job WHERE id=?').get(queued.id) as {
+        state: string;
+      };
+      this.audit(principal, 'period_report.refresh', 'project', input.projectId, {
+        periodStart: input.periodStart,
+        periodEnd: input.periodEnd,
+        reportSnapshots,
+        renderJobId: queued.id,
+        renderJobState: job.state,
+        retryOfJobId,
+      });
+      return {
+        reports,
+        jobId: queued.id,
+        jobCreated: queued.created,
+        jobState: job.state,
+        retryOfJobId,
+      };
+    });
+  }
+
   refreshPeriodReportsFromJob(
     input: PeriodReportRefreshInput,
     execution: FencedJobExecution,

@@ -13,7 +13,6 @@ import {
   uuidSchema,
 } from '@ja/schemas';
 import { z } from 'zod';
-import { createHash } from 'node:crypto';
 import type { PortalRepository } from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess } from './action-message';
@@ -216,25 +215,16 @@ export const reportActions = {
       );
     const context = openPortalRepository(locals);
     try {
-      const reports = context.v3.refreshPeriodReports(context.principal, parsed.data);
-      const contentSelectionKey = createHash('sha256')
-        .update(
-          JSON.stringify({
-            contentMode: parsed.data.contentMode,
-            technicalReportIds: [...parsed.data.technicalReportIds].sort(),
-          }),
-        )
-        .digest('hex')
-        .slice(0, 16);
-      context.v3.enqueueJob(
-        'period_close_report',
-        `period-report-refresh:${parsed.data.projectId}:${parsed.data.periodStart}:${parsed.data.periodEnd}:${parsed.data.reportLocale}:${contentSelectionKey}`,
-        parsed.data,
-      );
+      const result = context.v3.refreshAndQueuePeriodReports(context.principal, parsed.data);
       return actionSuccess(
         'action.reports.periodReportsRefreshed',
-        { reportCount: reports.length },
-        `${reports.length} period reports queued for rendering.`,
+        {
+          reportCount: result.reports.length,
+          jobId: result.jobId,
+          jobCreated: result.jobCreated,
+          jobState: result.jobState,
+        },
+        `${result.reports.length} period reports refreshed. Rendering job: ${result.jobState}.`,
       );
     } catch (error) {
       return actionFailure(error);

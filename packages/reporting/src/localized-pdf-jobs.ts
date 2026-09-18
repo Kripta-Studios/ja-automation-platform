@@ -117,6 +117,22 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function failureClass(error: unknown): string {
+  const message = errorMessage(error);
+  // Persist only controlled classifications. Filesystem/renderer messages can contain paths or
+  // business data and are not valid repository identifiers; persisting them can itself fail,
+  // leaving the claimed variant running instead of recording the original render failure.
+  switch (message) {
+    case 'LOCALIZED_PDF_DESTINATION_COLLISION':
+    case 'LOCALIZED_PDF_MAGIC_INVALID':
+    case 'LOCALIZED_PDF_SNAPSHOT_INVALID':
+    case 'LOCALIZED_PDF_COMPLETION_FAILED':
+      return message;
+    default:
+      return 'LOCALIZED_PDF_RENDER_FAILED';
+  }
+}
+
 function safeStorageKey(key: string): void {
   if (
     !key ||
@@ -224,7 +240,7 @@ function publishPdf(
       existing.byteLength === expected.byteLength
     )
       return existing;
-    throw new Error(`Localized PDF destination collision at ${target}`);
+    throw new Error('LOCALIZED_PDF_DESTINATION_COLLISION');
   } catch (error) {
     if (!missingFile(error)) throw error;
   }
@@ -258,7 +274,7 @@ function publishPdf(
         temporaryOpen = false;
         return existing;
       }
-      throw new Error(`Localized PDF destination collision at ${target}`);
+      throw new Error('LOCALIZED_PDF_DESTINATION_COLLISION');
     } catch (error) {
       if (!missingFile(error)) throw error;
     }
@@ -275,7 +291,7 @@ function publishPdf(
         existing.contentSha256 !== expected.contentSha256 ||
         existing.byteLength !== expected.byteLength
       )
-        throw new Error(`Localized PDF destination collision at ${target}`);
+        throw new Error('LOCALIZED_PDF_DESTINATION_COLLISION');
       removeTemporary(temporary);
       temporaryOpen = false;
       return existing;
@@ -526,7 +542,7 @@ export function runLocalizedPdfVariantJob(
       input.repository.failVariant(payload.variantId, {
         attemptNumber: claim.attemptNumber,
         errorCode: 'LOCALIZED_PDF_RENDER_FAILED',
-        failureClass: errorMessage(error).slice(0, 120),
+        failureClass: failureClass(error),
         retryable: true,
         execution: input.execution,
       });

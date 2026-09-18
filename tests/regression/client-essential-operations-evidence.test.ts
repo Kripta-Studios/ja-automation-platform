@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CLIENT_ESSENTIAL_OPERATIONS_EVIDENCE_MAX_AGE_MS,
   OperationsEvidenceError,
   operationsEvidenceSha256,
   parseClientEssentialOperationsEvidence,
@@ -55,6 +56,13 @@ const ownerWaiver = {
   rollback: { status: 'PASS', verifiedAt: '2026-09-04T00:15:00.000Z' },
 };
 
+const restoredContinuity = {
+  status: 'PASS',
+  remoteCopy: true,
+  encrypted: true,
+  restoreDrill: { status: 'PASS', completedAt: '2026-09-04T00:15:00.000Z' },
+};
+
 const without = (value: Record<string, unknown>, key: string) =>
   Object.fromEntries(Object.entries(value).filter(([entryKey]) => entryKey !== key));
 
@@ -90,15 +98,101 @@ describe('Client Essential operations evidence', () => {
     ).toThrow(OperationsEvidenceError);
   });
 
-  it('rejects a stale Owner waiver inside a freshly captured evidence envelope', () => {
-    const staleWaiver = { ...ownerWaiver, waivedAt: '2026-08-01T00:00:00.000Z' };
+  it('preserves a durable Owner decision date with fresh operational proof', () => {
+    const originalWaiver = { ...ownerWaiver, waivedAt: '2026-08-01T00:00:00.000Z' };
+
+    const result = parseClientEssentialOperationsEvidence(signedEvidence(originalWaiver), {
+      now,
+      ...expectedIdentity,
+    });
+
+    expect(result.continuity).toEqual(originalWaiver);
+  });
+
+  it.each(['invalid-date', '2026-09-04T00:36:00.000Z', ''])(
+    'rejects an invalid or future Owner decision date: %s',
+    (waivedAt) => {
+      expect(() =>
+        parseClientEssentialOperationsEvidence(signedEvidence({ ...ownerWaiver, waivedAt }), {
+          now,
+          ...expectedIdentity,
+        }),
+      ).toThrow(OperationsEvidenceError);
+    },
+  );
+
+  const timestampCases = [
+    'capturedAt',
+    'first automatic run',
+    'second automatic run',
+    'local backup',
+    'rollback',
+    'remote restore drill',
+  ] as const;
+
+  function evidenceWithTimestamp(field: (typeof timestampCases)[number], timestamp: string) {
+    const evidence = signedEvidence(
+      field === 'remote restore drill'
+        ? { ...restoredContinuity, restoreDrill: { status: 'PASS', completedAt: timestamp } }
+        : {
+            ...ownerWaiver,
+            ...(field === 'local backup'
+              ? { localBackup: { status: 'PASS', completedAt: timestamp } }
+              : {}),
+            ...(field === 'rollback'
+              ? { rollback: { status: 'PASS', verifiedAt: timestamp } }
+              : {}),
+          },
+    );
+    if (field === 'capturedAt') evidence.capturedAt = timestamp;
+    if (field === 'first automatic run') evidence.jobs.runs[0]!.completedAt = timestamp;
+    if (field === 'second automatic run') evidence.jobs.runs[1]!.completedAt = timestamp;
+    evidence.sha256 = operationsEvidenceSha256(evidence);
+    return evidence;
+  }
+
+  it.each(timestampCases)('rejects stale %s even in freshly signed evidence', (field) => {
+    const timestamp = new Date(
+      now - CLIENT_ESSENTIAL_OPERATIONS_EVIDENCE_MAX_AGE_MS - 1,
+    ).toISOString();
 
     expect(() =>
-      parseClientEssentialOperationsEvidence(signedEvidence(staleWaiver), {
+      parseClientEssentialOperationsEvidence(evidenceWithTimestamp(field, timestamp), {
         now,
         ...expectedIdentity,
       }),
     ).toThrow(/freshness window/u);
+  });
+
+  it.each(timestampCases)('accepts %s at the freshness boundary', (field) => {
+    const timestamp = new Date(now - CLIENT_ESSENTIAL_OPERATIONS_EVIDENCE_MAX_AGE_MS).toISOString();
+
+    expect(() =>
+      parseClientEssentialOperationsEvidence(evidenceWithTimestamp(field, timestamp), {
+        now,
+        ...expectedIdentity,
+      }),
+    ).not.toThrow();
+  });
+
+  it.each(timestampCases)('rejects future %s', (field) => {
+    const timestamp = new Date(now + 5 * 60 * 1000 + 1).toISOString();
+
+    expect(() =>
+      parseClientEssentialOperationsEvidence(evidenceWithTimestamp(field, timestamp), {
+        now,
+        ...expectedIdentity,
+      }),
+    ).toThrow(/non-future timestamp/u);
+  });
+
+  it('rejects an expired envelope even when all operations are fresh', () => {
+    const evidence = { ...signedEvidence(ownerWaiver), expiresAt: new Date(now - 1).toISOString() };
+    evidence.sha256 = operationsEvidenceSha256(evidence);
+
+    expect(() =>
+      parseClientEssentialOperationsEvidence(evidence, { now, ...expectedIdentity }),
+    ).toThrow(/Evidence has expired/u);
   });
 
   it('requires externally supplied expected identity for an Owner waiver', () => {
@@ -115,6 +209,34 @@ describe('Client Essential operations evidence', () => {
         expectedDeploymentId: 'another-deployment',
       }),
     ).toThrow(/does not match the expected deployment/u);
+  });
+
+  it('rejects an Owner waiver for a different tenant', () => {
+    expect(() =>
+      parseClientEssentialOperationsEvidence(signedEvidence(ownerWaiver), {
+        now,
+        ...expectedIdentity,
+        expectedTenantId: 'another-tenant',
+      }),
+    ).toThrow(/does not match the expected deployment tenant/u);
+  });
+
+  it('requires the supplied detached digest to match the evidence', () => {
+    const evidence = signedEvidence(ownerWaiver);
+    expect(() =>
+      parseClientEssentialOperationsEvidence(evidence, {
+        now,
+        ...expectedIdentity,
+        expectedSha256: evidence.sha256,
+      }),
+    ).not.toThrow();
+    expect(() =>
+      parseClientEssentialOperationsEvidence(evidence, {
+        now,
+        ...expectedIdentity,
+        expectedSha256: '0'.repeat(64),
+      }),
+    ).toThrow(/supplied detached SHA-256 digest/u);
   });
 
   it('rejects evidence mutated after its digest was computed', () => {
@@ -137,15 +259,10 @@ describe('Client Essential operations evidence', () => {
   });
 
   it('preserves the original separate-host continuity PASS contract', () => {
-    const continuity = {
-      status: 'PASS',
-      remoteCopy: true,
-      encrypted: true,
-      restoreDrill: { status: 'PASS', completedAt: '2026-09-04T00:15:00.000Z' },
-    };
+    const result = parseClientEssentialOperationsEvidence(signedEvidence(restoredContinuity), {
+      now,
+    });
 
-    const result = parseClientEssentialOperationsEvidence(signedEvidence(continuity), { now });
-
-    expect(result.continuity).toEqual(continuity);
+    expect(result.continuity).toEqual(restoredContinuity);
   });
 });

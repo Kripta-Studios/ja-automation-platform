@@ -590,32 +590,16 @@ export const actions: Actions = {
       );
     const context = openPortalRepository(locals);
     try {
-      const reports = context.v3.refreshPeriodReports(context.principal, {
-        ...parsed.data,
-      });
-      const contentSelectionKey = createHash('sha256')
-        .update(
-          JSON.stringify({
-            contentMode: parsed.data.contentMode,
-            technicalReportIds: [...parsed.data.technicalReportIds].sort(),
-          }),
-        )
-        .digest('hex')
-        .slice(0, 16);
-      const queued = context.v3.enqueueJob(
-        'period_close_report',
-        `period-report-refresh:${parsed.data.projectId}:${parsed.data.periodStart}:${parsed.data.periodEnd}:${parsed.data.reportLocale}:${contentSelectionKey}`,
-        parsed.data,
-      );
+      const result = context.v3.refreshAndQueuePeriodReports(context.principal, parsed.data);
       return actionSuccess(
         'action.reports.periodReportsRefreshed',
         {
-          reports: reports.length,
-          jobId: queued.id,
-          jobCreated: queued.created,
-          jobState: 'queued',
+          reports: result.reports.length,
+          jobId: result.jobId,
+          jobCreated: result.jobCreated,
+          jobState: result.jobState,
         },
-        `${reports.length} report snapshots recalculated from the current source data and queued for rendering`,
+        `${result.reports.length} report snapshots recalculated. Rendering job: ${result.jobState}.`,
       );
     } catch (error) {
       return actionFailure(error);

@@ -573,7 +573,12 @@ function arrayAlias(value: JsonObject, ...keys: string[]): unknown[] | undefined
   return undefined;
 }
 
-function normalizeRun(run: unknown, index: number, now: number): OperationsRunEvidence {
+function normalizeRun(
+  run: unknown,
+  index: number,
+  now: number,
+  maxAgeMs: number,
+): OperationsRunEvidence {
   if (!isObject(run))
     throw new OperationsEvidenceError(
       'OPERATIONS_EVIDENCE_JOBS_INVALID',
@@ -600,10 +605,19 @@ function normalizeRun(run: unknown, index: number, now: number): OperationsRunEv
     `jobs.runs[${index}].completedAt`,
     now,
   );
+  if (now - Date.parse(completedAt) > maxAgeMs)
+    throw new OperationsEvidenceError(
+      'OPERATIONS_EVIDENCE_STALE',
+      `jobs.runs[${index}].completedAt is outside the evidence freshness window`,
+    );
   return { id, status: 'PASS', automatic: true, completedAt };
 }
 
-function normalizeJobs(value: unknown, now: number): ClientEssentialOperationsEvidence['jobs'] {
+function normalizeJobs(
+  value: unknown,
+  now: number,
+  maxAgeMs: number,
+): ClientEssentialOperationsEvidence['jobs'] {
   if (!isObject(value))
     throw new OperationsEvidenceError('OPERATIONS_EVIDENCE_JOBS_INVALID', 'jobs is required');
   if (!statusPass(value.status ?? value.result ?? value.outcome ?? value.state))
@@ -628,7 +642,7 @@ function normalizeJobs(value: unknown, now: number): ClientEssentialOperationsEv
       'OPERATIONS_EVIDENCE_JOBS_INVALID',
       'jobs.runs must contain at least two automatic successful timer runs',
     );
-  const normalizedRuns = runs.map((run, index) => normalizeRun(run, index, now));
+  const normalizedRuns = runs.map((run, index) => normalizeRun(run, index, now, maxAgeMs));
   const uniqueRunKeys = new Set(normalizedRuns.map((run) => `${run.id}|${run.completedAt}`));
   if (uniqueRunKeys.size !== normalizedRuns.length)
     throw new OperationsEvidenceError(
@@ -668,12 +682,9 @@ function normalizeContinuity(
         'OPERATIONS_EVIDENCE_CONTINUITY_INVALID',
         'waived continuity must be authorized by the owner',
       );
+    // Preserve the original durable Owner decision date. Freshness applies to the
+    // operational proof below and its envelope, not to an unrevoked authorization.
     const waivedAt = parseTimestamp(value.waivedAt, 'continuity.waivedAt', now);
-    if (now - Date.parse(waivedAt) > maxAgeMs)
-      throw new OperationsEvidenceError(
-        'OPERATIONS_EVIDENCE_STALE',
-        'continuity.waivedAt is outside the evidence freshness window',
-      );
     const reason = requiredString(value.reason, 'continuity.reason');
     const localBackup = objectAlias(value, 'localBackup');
     if (
@@ -765,6 +776,11 @@ function normalizeContinuity(
     'continuity.restoreDrill.completedAt',
     now,
   );
+  if (now - Date.parse(completedAt) > maxAgeMs)
+    throw new OperationsEvidenceError(
+      'OPERATIONS_EVIDENCE_STALE',
+      'continuity.restoreDrill.completedAt is outside the evidence freshness window',
+    );
   return {
     status: 'PASS',
     remoteCopy: true,
@@ -867,7 +883,7 @@ export function parseClientEssentialOperationsEvidence(
     tenantId,
     deploymentId,
     sha256: suppliedSha256,
-    jobs: normalizeJobs(value.jobs, now),
+    jobs: normalizeJobs(value.jobs, now, maxAgeMs),
     continuity: normalizeContinuity(value.continuity, now, maxAgeMs),
     ...(expiresAt ? { expiresAt } : {}),
   };

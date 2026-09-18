@@ -9,8 +9,9 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { createDatabase, LocalizedPdfRepository, V3Repository } from '@ja/database';
 import {
   LOCALIZED_PDF_RENDERER_VERSION,
   REPORT_TEMPLATE_VERSION,
@@ -19,6 +20,10 @@ import {
   type LocalizedPdfJobRepository,
   type LocalizedPdfJobVariant,
 } from '@ja/reporting';
+import {
+  installB5TestDeploymentIdentity,
+  seedB5ServiceActorBinding,
+} from '../fixtures/b5-test-environment.js';
 
 const roots: string[] = [];
 
@@ -202,6 +207,149 @@ describe('localized PDF durable renderer', () => {
     ).toThrow('HANDLER_FAILED');
     expect(readFileSync(target).toString()).toBe('attacker-bytes');
     expect(fake.state().failed).toMatchObject({ errorCode: 'LOCALIZED_PDF_RENDER_FAILED' });
+  });
+
+  it.each([
+    ['%PDF-1.7\nPreserved historical PDF\n%%EOF', 'LOCALIZED_PDF_DESTINATION_COLLISION'],
+    ['Unverifiable historical bytes', 'LOCALIZED_PDF_MAGIC_INVALID'],
+  ])(
+    'persists a fenced failure without overwriting existing bytes: %s',
+    (original, expectedClass) => {
+      const restoreIdentity = installB5TestDeploymentIdentity();
+      const root = mkdtempSync(join(tmpdir(), 'ja-localized-pdf-real-collision-'));
+      roots.push(root);
+      const { sqlite } = createDatabase(join(root, 'app.db'));
+      try {
+        const now = new Date().toISOString();
+        sqlite
+          .prepare(
+            `INSERT INTO user(id,name,email,role,status,created_at,updated_at)
+           VALUES('owner','Owner','antonny.luty@j-aautomation.com','owner_admin','active',?,?)`,
+          )
+          .run(now, now);
+        seedB5ServiceActorBinding(sqlite, 'owner');
+        sqlite
+          .prepare(
+            `INSERT INTO client(id,client_number,legal_name,display_name,status,currency,timezone,created_at,updated_at)
+           VALUES('client','C-0001','Client','Client','active','EUR','UTC',?,?)`,
+          )
+          .run(now, now);
+        sqlite
+          .prepare(
+            `INSERT INTO project(id,project_number,client_id,name,timezone,currency,status,billing_model,created_at,updated_at)
+           VALUES('project','C-0001-P-001','client','Project','UTC','EUR','active','tm',?,?)`,
+          )
+          .run(now, now);
+        sqlite
+          .prepare(
+            `INSERT INTO daily_report(id,project_id,worker_id,work_date,summary,approval_state,created_at,updated_at)
+           VALUES('daily','project','owner','2026-08-22','Recovery regression','draft',?,?)`,
+          )
+          .run(now, now);
+        const repository = new LocalizedPdfRepository(sqlite);
+        const variant = repository.requestVariant(
+          { userId: 'owner', role: 'owner_admin', projectIds: new Set() },
+          {
+            ownerType: 'daily_report',
+            ownerId: 'daily',
+            locale: 'en',
+            templateVersion: REPORT_TEMPLATE_VERSION,
+            generationVersion: `localized-${REPORT_TEMPLATE_VERSION}`,
+          },
+        );
+        const target = join(root, variant.storageKey);
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, original);
+        const v3 = new V3Repository(sqlite);
+        const job = v3.enqueueJob(
+          'localized_pdf_variant_render',
+          `collision:${variant.variantId}`,
+          {
+            variantId: variant.variantId,
+            requestedAttempt: 1,
+          },
+        );
+        const result = v3.runDueJobs(1, {
+          localized_pdf_variant_render: (payload, context) => {
+            runLocalizedPdfVariantJob({
+              repository,
+              payload,
+              execution: {
+                jobId: context.jobId,
+                jobRunId: context.runId,
+                leaseFence: context.fenceVersion,
+              },
+              documentRoot: root,
+            });
+          },
+        });
+        expect(result).toMatchObject({ processed: 0, failed: 1 });
+        expect(
+          sqlite
+            .prepare(
+              'SELECT status,error_code,current_attempt_number FROM localized_pdf_variant WHERE variant_id=?',
+            )
+            .get(variant.variantId),
+        ).toEqual({
+          status: 'failed',
+          error_code: 'LOCALIZED_PDF_RENDER_FAILED',
+          current_attempt_number: 1,
+        });
+        expect(
+          sqlite
+            .prepare(
+              'SELECT job_id,attempt_number,outcome,failure_class FROM localized_pdf_variant_attempt WHERE variant_id=?',
+            )
+            .all(variant.variantId),
+        ).toEqual([
+          { job_id: job.id, attempt_number: 1, outcome: 'failed', failure_class: expectedClass },
+        ]);
+        expect(() =>
+          sqlite
+            .prepare('DELETE FROM localized_pdf_variant_attempt WHERE variant_id=?')
+            .run(variant.variantId),
+        ).toThrow();
+        expect(() =>
+          sqlite
+            .prepare(
+              "UPDATE localized_pdf_variant_attempt SET failure_class='changed' WHERE variant_id=?",
+            )
+            .run(variant.variantId),
+        ).toThrow();
+        expect(readFileSync(target, 'utf8')).toBe(original);
+      } finally {
+        sqlite.close();
+        restoreIdentity();
+      }
+    },
+  );
+
+  it('does not persist arbitrary renderer messages or convert a lost lease into a failure', () => {
+    const root = mkdtempSync(join(tmpdir(), 'ja-localized-pdf-safe-failure-'));
+    roots.push(root);
+    for (const message of [
+      'Renderer failed for /private/customer@example.test.pdf',
+      'LEASE_LOST',
+    ]) {
+      const initial = fakeVariant('daily_report', { summary: 'Controlled failure' });
+      const fake = fakeRepository(initial);
+      expect(() =>
+        runLocalizedPdfVariantJob({
+          repository: {
+            ...fake.repository,
+            completeVariant: () => {
+              throw new Error(message);
+            },
+          },
+          payload: { variantId: initial.variantId, requestedAttempt: 1 },
+          execution,
+          documentRoot: root,
+        }),
+      ).toThrow(message === 'LEASE_LOST' ? 'LEASE_LOST' : 'HANDLER_FAILED');
+      if (message === 'LEASE_LOST') expect(fake.state().failed).toBeUndefined();
+      else
+        expect(fake.state().failed).toMatchObject({ failureClass: 'LOCALIZED_PDF_RENDER_FAILED' });
+    }
   });
 
   it('rejects a symlink in every private-root parent component', () => {

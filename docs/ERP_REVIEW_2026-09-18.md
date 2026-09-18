@@ -151,7 +151,9 @@ comportamiento predeterminado. Gastos ya utiliza su única capa de filtros opera
 
 ## Evidencia y estado
 
-Validación del candidato completada; pendiente de publicación y verificación en producción.
+Actualización publicada y desplegada: código `2bb50b2`, 18/09/2026 a las 19:32:45 UTC.
+El [recibo de producción](PRODUCTION_DEPLOYMENT_2026-09-18_ERP_REVIEW.md) registra backup,
+integridad, conservación de facturas, salud, jobs y limpieza de caché.
 
 - Migración 48: 2/2 pruebas; contrato de migraciones B5: 14/14.
 - Ciclo de facturas, autoridad del paquete contable y selección técnica: 57/57 pruebas.
@@ -185,6 +187,9 @@ Validación del candidato completada; pendiente de publicación y verificación 
 - Las tres correcciones de aceptación siguen la identidad de factura tras su cambio de prioridad,
   la clave idempotente que incorpora la selección de contenido del informe y los controles/textos
   actuales de la cuenta Worker. No cambian reglas de negocio ni eliminan comprobaciones de privacidad.
+- Producción: esquema 48, integridad correcta, cero errores FK, nueve snapshots emitidos y
+  14 registros de factura conservados; backup de 50 documentos verificado, dos ciclos automáticos
+  sin fallos nuevos y servicios saludables. Caché Docker final 0 B; 6,917 GB liberados.
 
 Límites: un pago registrado entre la carga de pantalla y la descarga puede cambiar el saldo
 actual; no se promete una captura atómica entre dos peticiones. Los estados heredados `credited`

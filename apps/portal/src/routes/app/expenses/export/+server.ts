@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { expenseRegisterExport } from '@ja/reporting';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { isRealIsoDate } from '$lib/server/iso-date';
+import { expenseReceiptState, expenseSearchMatches } from '$lib/portal/expense-evidence';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = ({ locals, url }) => {
@@ -19,6 +20,9 @@ export const GET: RequestHandler = ({ locals, url }) => {
   const currency = url.searchParams.get('currency')?.trim().toUpperCase() ?? '';
   const status = url.searchParams.get('status')?.trim() ?? '';
   const reimbursement = url.searchParams.get('reimbursement')?.trim() ?? '';
+  const receipt = url.searchParams.get('receipt')?.trim() ?? '';
+  if (receipt && !['missing', 'attached', 'not_required'].includes(receipt))
+    error(400, 'Choose a valid receipt filter');
   const query = url.searchParams.get('q')?.trim() ?? '';
   if (
     [project, worker, client, category, currency, status, reimbursement, query].some(
@@ -28,12 +32,6 @@ export const GET: RequestHandler = ({ locals, url }) => {
     error(400, 'Expense filter is too long');
   if (currency && !['USD', 'EUR', 'BRL'].includes(currency))
     error(400, 'Choose a supported currency');
-  const searchText = (value: unknown): string =>
-    String(value ?? '')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/gu, '')
-      .toLocaleLowerCase();
-  const needle = searchText(query);
   const ctx = openPortalRepository(locals);
   try {
     if (ctx.principal.role === 'worker' && worker && worker !== ctx.principal.userId)
@@ -49,28 +47,17 @@ export const GET: RequestHandler = ({ locals, url }) => {
         (!client || row.client_name === client) &&
         (!category || row.category === category) &&
         (!currency || row.currency === currency) &&
+        (!receipt || expenseReceiptState(row) === receipt) &&
         (!status ||
           (status === 'attention'
             ? ['draft', 'submitted', 'needs_changes'].includes(String(row.approval_state))
             : row.approval_state === status)) &&
-        (!reimbursement ||
+        (ctx.principal.role === 'project_manager' ||
+          !reimbursement ||
           (reimbursement === 'pending'
             ? ['pending', 'scheduled'].includes(String(row.reimbursement_state))
             : row.reimbursement_state === reimbursement)) &&
-        (!needle ||
-          searchText(
-            [
-              row.vendor,
-              row.project_number,
-              row.project_name,
-              row.client_name,
-              row.worker_name,
-              row.description,
-              row.spent_on,
-              row.category,
-              row.currency,
-            ].join(' '),
-          ).includes(needle)),
+        expenseSearchMatches(row, query),
     );
     const bytes = expenseRegisterExport(rows, format as 'pdf' | 'xlsx' | 'csv', `${from} — ${to}`);
     return new Response(Buffer.from(bytes), {

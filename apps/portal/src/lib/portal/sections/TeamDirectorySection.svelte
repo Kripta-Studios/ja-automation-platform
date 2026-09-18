@@ -1,6 +1,7 @@
 <script lang="ts">
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { enhance } from '$app/forms';
+  import { base } from '$app/paths';
   import type { ActionResult, SubmitFunction } from '@sveltejs/kit';
   import { page } from '$app/stores';
   import { SvelteSet } from 'svelte/reactivity';
@@ -1675,6 +1676,14 @@
 </div>
 
 <style>
+  .team-directory__facts a,
+  .team-directory__assignment a {
+    display: inline-flex;
+    align-items: center;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+
   .team-directory {
     display: grid;
     gap: 1rem;

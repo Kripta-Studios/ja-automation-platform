@@ -207,7 +207,16 @@ function artifactContext(sqlite: Sqlite, v3: V3Repository): ArtifactJobV3 {
       assertFencedJobExecution(sqlite, execution, {
         kind: 'period_close_report',
         capability: 'artifact.report.render',
-        payloadTarget: input,
+        payloadTarget: {
+          projectId: input.projectId,
+          periodStart: input.periodStart,
+          periodEnd: input.periodEnd,
+          ...(input.reportLocale === undefined ? {} : { reportLocale: input.reportLocale }),
+          ...(input.contentMode === undefined ? {} : { contentMode: input.contentMode }),
+          ...(input.technicalReportIds === undefined
+            ? {}
+            : { technicalReportIds: input.technicalReportIds }),
+        },
       });
       return [
         {

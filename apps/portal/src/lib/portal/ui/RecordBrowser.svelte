@@ -17,6 +17,7 @@
     pageSize = 8,
     focusId = '',
     contextKey = '',
+    filtersEnabled = true,
   }: {
     rows: T[];
     visible?: T[];
@@ -27,6 +28,7 @@
     pageSize?: number;
     focusId?: string;
     contextKey?: string;
+    filtersEnabled?: boolean;
   } = $props();
   let search = $state('');
   let order = $state('priority');
@@ -34,7 +36,9 @@
   const statuses = $derived(
     [...new Set([...rows.map(recordState), status].filter(Boolean))].sort(),
   );
-  const filtered = $derived(browseRecords(rows, search, status, order));
+  const filtered = $derived(
+    browseRecords(rows, filtersEnabled ? search : '', filtersEnabled ? status : '', order),
+  );
   $effect(() => {
     visible = filtered.slice(current * pageSize, (current + 1) * pageSize);
   });
@@ -54,8 +58,8 @@
           order?: string;
           page?: number;
         }>(storageKey);
-    if (typeof saved?.search === 'string') search = saved.search;
-    if (typeof saved?.status === 'string') status = saved.status;
+    if (filtersEnabled && typeof saved?.search === 'string') search = saved.search;
+    if (filtersEnabled && typeof saved?.status === 'string') status = saved.status;
     if (typeof saved?.order === 'string') order = saved.order;
     if (Number.isInteger(saved?.page) && Number(saved?.page) >= 0) page = Number(saved?.page);
     criteria = JSON.stringify([search, status, order, pageSize]);
@@ -83,20 +87,22 @@
 
 <div class="record-browser" aria-label={translate(label)}>
   <div class="record-browser__controls">
-    <label
-      >{translate('Search')}<input
-        type="search"
-        bind:value={search}
-        aria-label={`${translate('Search')}: ${translate(label)}`}
-      /></label
-    >
-    <label
-      >{translate('Status')}<select bind:value={status}
-        ><option value="">{translate('All')}</option>{#each statuses as item}<option value={item}
-            >{translate(item)}</option
-          >{/each}</select
-      ></label
-    >
+    {#if filtersEnabled}
+      <label
+        >{translate('Search')}<input
+          type="search"
+          bind:value={search}
+          aria-label={`${translate('Search')}: ${translate(label)}`}
+        /></label
+      >
+      <label
+        >{translate('Status')}<select bind:value={status}
+          ><option value="">{translate('All')}</option>{#each statuses as item}<option value={item}
+              >{translate(item)}</option
+            >{/each}</select
+        ></label
+      >
+    {/if}
     <label
       >{translate('Sort by')}<select bind:value={order}
         ><option value="priority">{translate('Needs attention first')}</option><option

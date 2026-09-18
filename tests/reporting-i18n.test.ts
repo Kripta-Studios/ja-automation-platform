@@ -20,12 +20,12 @@ import {
 type Locale = 'en' | 'es' | 'pt-BR';
 
 const locales: readonly Locale[] = ['en', 'es', 'pt-BR'];
-const textFromPdf = (bytes: Uint8Array): string => {
+const textFromPdf = (bytes: Uint8Array, mode: '-layout' | '-raw' = '-layout'): string => {
   const directory = mkdtempSync(join(tmpdir(), 'ja-reporting-i18n-'));
   const input = join(directory, 'report.pdf');
   try {
     writeFileSync(input, bytes);
-    return execFileSync('pdftotext', ['-layout', input, '-'], { encoding: 'utf8' });
+    return execFileSync('pdftotext', [mode, input, '-'], { encoding: 'utf8' });
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -379,9 +379,7 @@ const workerCopy = {
     approved: 'Approved compensation',
     activity: 'Own activity',
     scheduled: 'Scheduled',
-    scheduledFragment: 'Schedule',
     reimbursed: 'Reimbursed',
-    reimbursedFragment: 'Reimburse',
     noActivity: 'No activity in this period.',
     noSettlements: 'No settlements in this period.',
     noExpenses: 'No reimbursable expenses in this period.',
@@ -393,9 +391,7 @@ const workerCopy = {
     approved: 'Compensación aprobada',
     activity: 'Actividad propia',
     scheduled: 'Programado',
-    scheduledFragment: 'Programa',
     reimbursed: 'Reembolsado',
-    reimbursedFragment: 'Reembolsa',
     noActivity: 'No hay actividad en este período.',
     noSettlements: 'No hay pagos en este período.',
     noExpenses: 'No hay gastos reembolsables en este período.',
@@ -407,9 +403,7 @@ const workerCopy = {
     approved: 'Remuneração aprovada',
     activity: 'Atividade própria',
     scheduled: 'Agendado',
-    scheduledFragment: 'Agenda',
     reimbursed: 'Reembolsado',
-    reimbursedFragment: 'Reembols',
     noActivity: 'Nenhuma atividade neste período.',
     noSettlements: 'Nenhum pagamento neste período.',
     noExpenses: 'Nenhuma despesa reembolsável neste período.',
@@ -488,15 +482,17 @@ describe('localized report PDF renderers', () => {
   });
 
   it.each(locales)('renders an ordinary Worker Statement in %s', (locale) => {
-    const text = expectPdf(workerStatementPdf(workerStatementSnapshot(locale)));
+    const pdf = workerStatementPdf(workerStatementSnapshot(locale));
+    const text = expectPdf(pdf);
+    const readingOrderText = textFromPdf(pdf, '-raw');
     const expected = workerCopy[locale];
     for (const part of expected.titleParts) expect(containsPdfCopy(text, part)).toBe(true);
     expect(containsPdfCopy(text, expected.approved)).toBe(true);
     expect(containsPdfCopy(text, expected.activity)).toBe(true);
-    // Narrow PDF columns can place adjacent-column text between a wrapped
-    // status stem and its final letter in pdftotext output.
-    expect(containsPdfCopy(text, expected.scheduledFragment)).toBe(true);
-    expect(containsPdfCopy(text, expected.reimbursedFragment)).toBe(true);
+    // Layout extraction interleaves adjacent cells between wrapped status words.
+    // Content-stream order retains each full translated word across line breaks.
+    expect(containsPdfCopy(readingOrderText, expected.scheduled), readingOrderText).toBe(true);
+    expect(containsPdfCopy(readingOrderText, expected.reimbursed), readingOrderText).toBe(true);
     expect(containsPdfCopy(text, expected.money)).toBe(true);
     expect(text).not.toContain('2026-08-12');
     if (locale !== 'en') {

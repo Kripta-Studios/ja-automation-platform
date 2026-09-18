@@ -1732,6 +1732,12 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
 
 export type InvoiceCollectionLedgerRow = Readonly<{
   invoiceId: string;
+  projectId?: string;
+  clientId?: string;
+  expectedCollectionDate?: string | null;
+  balanceAsOf?: string;
+  daysOverdue?: number | null;
+  agingBucket?: string;
   invoiceNumber?: string | null;
   clientNumber: string;
   clientName: string;
@@ -1826,6 +1832,15 @@ const invoiceCollectionRows = (rows: readonly InvoiceCollectionLedgerRow[]): rea
       totalDisplay: exactMoneyText(currency, totalMinor, 'en'),
       collectedDisplay: exactMoneyText(currency, collectedMinor, 'en'),
       outstandingDisplay: exactMoneyText(currency, outstandingMinor, 'en'),
+      projectId: ledgerText(row, 'projectId'),
+      clientId: ledgerText(row, 'clientId'),
+      servicePeriodStart: ledgerText(row, 'periodStart'),
+      servicePeriodEnd: ledgerText(row, 'periodEnd'),
+      poNumber: ledgerText(row, 'poNumber'),
+      expectedCollectionDate: ledgerText(row, 'expectedCollectionDate'),
+      balanceAsOf: ledgerText(row, 'balanceAsOf'),
+      daysOverdue: row.daysOverdue ?? '',
+      agingBucket: ledgerText(row, 'agingBucket'),
     };
   });
 
@@ -1882,7 +1897,9 @@ export function invoiceCollectionLedgerXlsx(
     exportRows(
       rows.flatMap((row) =>
         (row.payments ?? []).map((payment) => {
-          const paymentTimestamp = String(payment.paymentDate ?? '');
+          const paymentTimestamp = String(
+            payment.received_at ?? payment.receivedAt ?? payment.paymentDate ?? '',
+          );
           return {
             invoiceId: row.invoiceId,
             currency: row.currency,
@@ -1904,7 +1921,9 @@ export function invoiceCollectionLedgerXlsx(
     exportRows(
       rows.flatMap((row) =>
         (row.paymentReversals ?? []).map((reversal) => {
-          const paymentTimestamp = String(reversal.paymentDate ?? '');
+          const paymentTimestamp = String(
+            reversal.effectiveAt ?? reversal.effective_at ?? reversal.paymentDate ?? '',
+          );
           return {
             invoiceId: row.invoiceId,
             currency: row.currency,

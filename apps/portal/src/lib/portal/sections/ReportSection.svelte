@@ -4,8 +4,10 @@
   import { onMount } from 'svelte';
   import { ResponsiveSheet, StatusBadge } from '../ui';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
+  import { normalizePortalLocale } from '../../portal-i18n';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
+  import { reportGuidanceFor } from '../report-guidance';
   import {
     operationalMatches,
     operationalPage,
@@ -79,6 +81,7 @@
   let periodContentMode = $state<
     'hours_only' | 'hours_activity' | 'hours_activity_selected_technical'
   >('hours_activity');
+  let selectedTechnicalReportIds = $state<string[]>([]);
   let registerStateHydrated = $state(false);
   const registerStateKey = (): string => `ja-operational-register:reports:${data.user.id}`;
 
@@ -118,9 +121,18 @@
   const selectablePeriodTechnicalReports = $derived(
     technicalReports.filter(
       (row) =>
-        (!periodProjectId || rowText(row, 'project_id') === periodProjectId) &&
+        Boolean(periodProjectId) &&
+        rowText(row, 'project_id') === periodProjectId &&
         (!periodFrom || rowText(row, 'date') >= periodFrom) &&
-        (!periodTo || rowText(row, 'date') <= periodTo),
+        (!periodTo || rowText(row, 'date') <= periodTo) &&
+        ['approved', 'locked'].includes(rowText(row, 'approval_state').trim().toLowerCase()),
+    ),
+  );
+  const reportGuidance = $derived(
+    reportGuidanceFor(
+      normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
+      String(data.user.role ?? ''),
+      data.user.workforceProfile,
     ),
   );
   const workerOptions = $derived(
@@ -392,6 +404,10 @@
     surface = null;
   }
 
+  function clearTechnicalReportSelection(): void {
+    selectedTechnicalReportIds = [];
+  }
+
   function registerHref(overrides: Record<string, string>): string {
     const params = new URLSearchParams();
     const view = overrides.view ?? activeTab;
@@ -434,6 +450,12 @@
     </div>
     <span class="report-page-count" aria-label={translate('Report count')}>{records.length}</span>
   </header>
+
+  <aside class="report-audience-guidance" aria-label={reportGuidance.title}>
+    <strong>{reportGuidance.title}</strong>
+    <span>{reportGuidance.operational}</span>
+    <small>{reportGuidance.audiences}</small>
+  </aside>
 
   {#if !isAuditor}
     <div
@@ -1055,7 +1077,7 @@
       </div>
       <label>
         <span>{translate('Project')}</span>
-        <select name="projectId" bind:value={periodProjectId} required>
+        <select name="projectId" required>
           <option value="">{translate('Select assignment')}</option>
           {#each availableProjects as project}
             <option value={String(project.id)}>{project.project_number} — {project.name}</option>
@@ -1272,7 +1294,12 @@
       </div>
       <label>
         <span>{translate('Project')}</span>
-        <select name="projectId" required>
+        <select
+          name="projectId"
+          bind:value={periodProjectId}
+          onchange={clearTechnicalReportSelection}
+          required
+        >
           <option value="">{translate('Select project')}</option>
           {#each availableProjects as project}
             <option value={String(project.id)}>{project.project_number} — {project.name}</option>
@@ -1284,6 +1311,8 @@
           ><span>{translate('Period start')}</span><input
             name="periodStart"
             bind:value={periodFrom}
+            max={periodTo || undefined}
+            oninput={clearTechnicalReportSelection}
             type="date"
             required
           /></label
@@ -1292,6 +1321,8 @@
           ><span>{translate('Period end')}</span><input
             name="periodEnd"
             bind:value={periodTo}
+            min={periodFrom || undefined}
+            oninput={clearTechnicalReportSelection}
             type="date"
             required
           /></label
@@ -1307,7 +1338,12 @@
       </label>
       <label>
         <span>{translate('Customer report content')}</span>
-        <select name="contentMode" bind:value={periodContentMode} required>
+        <select
+          name="contentMode"
+          bind:value={periodContentMode}
+          onchange={clearTechnicalReportSelection}
+          required
+        >
           <option value="hours_only">{translate('Hours only')}</option>
           <option value="hours_activity">{translate('Hours and activity summary')}</option>
           <option value="hours_activity_selected_technical"
@@ -1325,7 +1361,15 @@
           <legend>{translate('Technical reports to include')}</legend>
           {#each selectablePeriodTechnicalReports as report}
             <label class="report-generator-technical__option">
-              <input name="technicalReportIds" type="checkbox" value={rowText(report, 'id')} />
+              <input
+                name="technicalReportIds"
+                type="checkbox"
+                value={rowText(report, 'id')}
+                bind:group={selectedTechnicalReportIds}
+                data-approval-state={rowText(report, 'approval_state')}
+                data-project-id={rowText(report, 'project_id')}
+                data-report-date={rowText(report, 'date')}
+              />
               <span>
                 {rowText(report, 'date')} · {rowText(report, 'project_number')} · {rowText(
                   report,
@@ -1360,6 +1404,19 @@
   }
   .report-action-explanation {
     max-width: 65ch;
+  }
+  .report-audience-guidance {
+    display: grid;
+    gap: 0.3rem;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid var(--ja-border, #d9e1e5);
+    border-left: 0.25rem solid var(--ja-teal, #277e78);
+    border-radius: 0.55rem;
+    background: var(--ja-surface-subtle, #f5f8f8);
+  }
+  .report-audience-guidance span,
+  .report-audience-guidance small {
+    max-width: 82ch;
   }
   .report-generator-technical {
     display: grid;

@@ -198,7 +198,7 @@
       <div
         class="ui-table-region-desktop"
         data-table-region-desktop
-        role="region"
+        role="group"
         tabindex="0"
         aria-label={accessibleName}
         aria-describedby={instructionId}

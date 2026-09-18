@@ -155,8 +155,7 @@ describe('commercial billing controls', () => {
       projectId: capped.id,
       legalEntityId: entity.id,
       streamType: 'labor',
-      cadenceType: 'every_14_days',
-      anchorDate: '2026-08-03',
+      cadenceType: 'custom',
       taxProfileId: tax.id,
       currency: 'USD',
       effectiveFrom: '2026-08-01',
@@ -304,18 +303,9 @@ describe('commercial billing controls', () => {
       }),
     ]);
     repository.updateProject(owner, { projectId: capped.id, poCapMinor: 30_000n });
-    const cappedRemainderRule = repository.createBillingRule(finance, {
-      projectId: capped.id,
-      legalEntityId: entity.id,
-      streamType: 'labor',
-      cadenceType: 'custom',
-      taxProfileId: tax.id,
-      currency: 'USD',
-      effectiveFrom: '2026-08-01',
-    });
     const cappedRemainderDraft = repository.createInvoiceDraft(
       finance,
-      cappedRemainderRule.id,
+      cappedRule.id,
       '2026-08-01',
       '2026-08-31',
     );

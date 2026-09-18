@@ -1965,32 +1965,15 @@ describe('Client Essential billing sign-off gate', () => {
     const reports = conformity(value);
     const repo = billing(value);
     createSignoffPolicy(value);
-    const { reportId } = customerReport(value);
-    const entity = value.repository.createLegalEntity(value.owner, {
-      code: 'B5-SIGNOFF',
-      legalName: 'B5 Sign-off Entity',
-      currency: 'EUR',
-      billingAddress: 'B5 sign-off billing address',
-      companyIdentifiers: 'B5-SIGNOFF-ID',
-    });
-    bindCanonicalLegalEntity(value, entity.id, 'structured-deep-link');
-    const tax = value.repository.createTaxProfile(value.finance, {
-      name: 'No tax sign-off profile',
-      currency: 'EUR',
-      effectiveFrom: '2026-01-01',
-      components: [{ name: 'No tax', basisPoints: 0 }],
-    });
-    const rule = value.repository.createBillingRule(value.finance, {
-      projectId: value.project.id,
-      legalEntityId: entity.id,
-      streamType: 'labor',
-      cadenceType: 'custom',
-      taxProfileId: tax.id,
-      currency: 'EUR',
-      effectiveFrom: '2026-01-01',
-    });
+    const { reportId, billingRuleId } = customerReport(value);
+    // The report fixture already owns this period's labor rule. Creating a second
+    // overlapping rule would violate the commercial-policy successor invariant.
+    const rule = value.sqlite
+      .prepare('SELECT id,legal_entity_id FROM billing_rule WHERE id=?')
+      .get(billingRuleId) as { id: string; legal_entity_id: string };
+    bindCanonicalLegalEntity(value, rule.legal_entity_id, 'structured-deep-link');
     value.repository.createInvoiceNumberPolicy(value.owner, {
-      legalEntityId: entity.id,
+      legalEntityId: rule.legal_entity_id,
       prefix: 'B5-SO',
       digits: 6,
       effectiveFrom: '2026-01-01',

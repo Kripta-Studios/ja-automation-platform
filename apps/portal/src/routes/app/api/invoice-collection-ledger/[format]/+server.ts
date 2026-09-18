@@ -7,15 +7,9 @@ import {
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { optionalExportPeriod } from '$lib/server/report-export-request';
 import { sensitiveExportResponse } from '$lib/server/sensitive-export-response';
+import { agingBuckets, collectionAging, collectionMatches } from '$lib/portal/collections-analysis';
 
 const financeRoles = new Set(['owner_admin', 'finance_admin']);
-
-function normalized(value: unknown): string {
-  return String(value ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-}
 
 export const GET: RequestHandler = ({ locals, params, url }) => {
   if (!locals.user || !locals.session) error(401, 'Sign in required');
@@ -36,32 +30,27 @@ export const GET: RequestHandler = ({ locals, params, url }) => {
     const project = url.searchParams.get('project')?.trim() ?? '';
     const status = url.searchParams.get('status')?.trim() ?? '';
     const query = url.searchParams.get('q')?.trim() ?? '';
-    if (project.length > 100 || status.length > 80 || query.length > 200)
+    const currency = url.searchParams.get('currency')?.trim() ?? '';
+    const aging = url.searchParams.get('aging')?.trim() ?? '';
+    if (
+      ['project', 'status', 'q', 'currency', 'aging'].some(
+        (key) => url.searchParams.getAll(key).length > 1,
+      ) ||
+      project.length > 100 ||
+      status.length > 80 ||
+      query.length > 200
+    )
       error(400, 'Invalid ledger filter');
-    const ledger = authorizedLedger.filter((row) => {
-      const record = row as unknown as Record<string, unknown>;
-      const matchesProject =
-        !project || String(record.projectId ?? record.project_id ?? '') === project;
-      const recordStatus = String(record.paymentStatus ?? record.payment_status ?? '');
-      const matchesStatus =
-        !status ||
-        (status === 'collected'
-          ? ['paid', 'partially_paid'].includes(recordStatus)
-          : status === 'outstanding'
-            ? ['unpaid', 'partially_paid', 'overdue'].includes(recordStatus)
-            : recordStatus === status);
-      const searchable = normalized(
-        [
-          record.invoiceNumber ?? record.invoice_number ?? record.invoiceId,
-          record.clientNumber ?? record.client_number,
-          record.clientName ?? record.client_name,
-          record.projectNumber ?? record.project_number,
-          record.projectName ?? record.project_name,
-          record.streamType ?? record.stream_type,
-        ].join(' '),
-      );
-      return matchesProject && matchesStatus && (!query || searchable.includes(normalized(query)));
-    });
+    if (currency && !['USD', 'EUR', 'BRL'].includes(currency))
+      error(400, 'Invalid ledger currency');
+    if (aging && !(agingBuckets as readonly string[]).includes(aging))
+      error(400, 'Invalid aging bucket');
+    // Without an explicit historical period, export current balances exactly as the register does.
+    // Legacy explicit period exports retain their original point-in-time collection cutoff.
+    const asOf = period?.periodEnd ?? new Date().toISOString().slice(0, 10);
+    const ledger = authorizedLedger
+      .filter((row) => collectionMatches(row, { project, status, query, currency, aging }, asOf))
+      .map((row) => ({ ...row, ...collectionAging(row, asOf) }));
     const bytes =
       format === 'xlsx' ? invoiceCollectionLedgerXlsx(ledger) : invoiceCollectionLedgerCsv(ledger);
     const filename = period

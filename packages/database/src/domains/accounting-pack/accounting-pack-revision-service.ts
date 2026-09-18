@@ -727,6 +727,7 @@ type CanonicalReconciliation = Readonly<{
 type SourceAuthorityCheck = Readonly<{
   mismatchCount: number;
   reasons: readonly string[];
+  allowsSignedCreditAggregates: boolean;
   values: SnapshotValues;
 }>;
 
@@ -899,6 +900,17 @@ function validateAuthoritativeSourceItems(
         : localDateInTimezone(value, sourceTimezoneFor(projectId, sourceTimezone));
     return date <= periodEnd;
   };
+  const invoiceActiveAtCut = (row: DbRow | undefined): boolean => {
+    if (!row) return false;
+    const state = rowValue<string>(row, 'state') ?? '';
+    const voidedAt = rowValue<string | null>(row, 'voided_at');
+    if (HISTORICAL_INVOICE_STATES.has(state) && voidedAt === null) return true;
+    return (
+      state === 'void' &&
+      typeof voidedAt === 'string' &&
+      !sourceDateAtOrBeforePeriodEndFor(voidedAt, rowValue<string | undefined>(row, 'project_id'))
+    );
+  };
   // Source completeness is an equality, not a caller-supplied count. Derive
   // the canonical invoice register for this entity/currency/period and reject
   // any omission even when the caller also forges internally balanced totals.
@@ -906,12 +918,13 @@ function validateAuthoritativeSourceItems(
     (
       sqlite
         .prepare(
-          `SELECT i.id,i.project_id,i.issued_at,i.tenant_id,i.deployment_id,i.legal_entity_revision_id
+          `SELECT i.id,i.project_id,i.state,i.issued_at,i.voided_at,
+                  i.tenant_id,i.deployment_id,i.legal_entity_revision_id
              FROM invoice i
              JOIN billing_rule br ON br.id=i.billing_rule_id
             WHERE i.currency=? AND br.legal_entity_id=?
-              AND i.state IN ('issued','sent','partially_paid','paid','overdue')
-              AND i.voided_at IS NULL AND i.issued_at IS NOT NULL`,
+              AND i.state IN ('issued','sent','partially_paid','paid','overdue','void')
+              AND i.issued_at IS NOT NULL`,
         )
         .all(currency, scope.legacyLegalEntityId) as DbRow[]
     )
@@ -924,6 +937,7 @@ function validateAuthoritativeSourceItems(
           Boolean(
             issuedAt && sourceDateInPeriodFor(issuedAt, rowValue<string>(row, 'project_id')),
           ) &&
+          invoiceActiveAtCut(row) &&
           (tenantId === null || tenantId === undefined || tenantId === scope.deployment.tenantId) &&
           (deploymentId === null ||
             deploymentId === undefined ||
@@ -974,8 +988,7 @@ function validateAuthoritativeSourceItems(
   const invoiceIsInScope = (row: DbRow | undefined, reasonPrefix: string): boolean => {
     if (!row) return false;
     let valid = true;
-    const state = rowValue<string>(row, 'state');
-    if (!HISTORICAL_INVOICE_STATES.has(state ?? '') || rowValue(row, 'voided_at') !== null) {
+    if (!invoiceActiveAtCut(row)) {
       reasons.push(`${reasonPrefix}:parent_invoice_not_issued`);
       valid = false;
     }
@@ -1860,12 +1873,8 @@ function validateAuthoritativeSourceItems(
              FROM invoice i LEFT JOIN billing_rule br ON br.id=i.billing_rule_id WHERE i.id=?`,
           sourceId,
         );
-        const state = rowValue<string>(row, 'state');
-        const voidedAt = rowValue<string | null>(row, 'voided_at');
         authoritative =
           Boolean(row) &&
-          HISTORICAL_INVOICE_STATES.has(state ?? '') &&
-          voidedAt === null &&
           invoiceIsInScope(row, `${kind}:${sourceId}`) &&
           projectLegalEntityMatches(
             rowValue<string>(row, 'project_id') ?? '',
@@ -2675,9 +2684,14 @@ function validateAuthoritativeSourceItems(
     }
   }
   let outstandingMinor = 0n;
+  let hasLegitimateCreditBalance = false;
+  let allSignedInvoiceComponentsLegitimate = true;
   for (const invoiceId of invoiceIds) {
     const invoice = rowFor(
-      'SELECT CAST(total_minor AS TEXT) total_minor,currency,project_id FROM invoice WHERE id=?',
+      `SELECT CAST(subtotal_minor AS TEXT) subtotal_minor,CAST(tax_minor AS TEXT) tax_minor,
+              CAST(total_minor AS TEXT) total_minor,currency,project_id,stream_type,state,issued_at,
+              voided_at
+         FROM invoice WHERE id=?`,
       invoiceId,
     );
     const invoiceCurrency = rowValue<string>(invoice, 'currency');
@@ -2754,13 +2768,48 @@ function validateAuthoritativeSourceItems(
       )
         reasons.push(`payment_reversal:${reversal.id}:missing_from_source_cut`);
     }
-    if (invoiceOutstanding < 0n) reasons.push(`invoice:${invoiceId}:negative_outstanding_balance`);
+    const signedCredit = sqlite
+      .prepare(
+        `SELECT 1 present
+           FROM invoice_adjustment
+          WHERE adjustment_invoice_id=? AND adjustment_type='credit'
+          LIMIT 1`,
+      )
+      .get(invoiceId) as { present: number } | undefined;
+    const invoiceSubtotal = BigInt(rowValue<string>(invoice, 'subtotal_minor') ?? '0');
+    const invoiceTax = BigInt(rowValue<string>(invoice, 'tax_minor') ?? '0');
+    const invoiceTotal = BigInt(rowValue<string>(invoice, 'total_minor') ?? '0');
+    const legitimateCreditBalance =
+      invoiceSubtotal <= 0n &&
+      invoiceTax <= 0n &&
+      invoiceTotal < 0n &&
+      invoiceTotal === invoiceSubtotal + invoiceTax &&
+      rowValue<string>(invoice, 'stream_type') === 'adjustment' &&
+      invoiceActiveAtCut(invoice) &&
+      ['issued', 'sent', 'void'].includes(rowValue<string>(invoice, 'state') ?? '') &&
+      Boolean(rowValue<string>(invoice, 'issued_at')) &&
+      Boolean(signedCredit) &&
+      persistedPayments.length === 0 &&
+      persistedReversals.length === 0;
+    if (invoiceSubtotal < 0n || invoiceTax < 0n || invoiceTotal < 0n) {
+      if (legitimateCreditBalance) hasLegitimateCreditBalance = true;
+      else {
+        allSignedInvoiceComponentsLegitimate = false;
+        reasons.push(`invoice:${invoiceId}:signed_invoice_components_not_credit`);
+      }
+    }
+    if (invoiceOutstanding < 0n) {
+      if (!legitimateCreditBalance)
+        reasons.push(`invoice:${invoiceId}:negative_outstanding_balance`);
+    }
     outstandingMinor += invoiceOutstanding;
   }
   const directCostMinor = workerCostMinor + expenseCostMinor;
   return {
     mismatchCount: reasons.length,
     reasons,
+    allowsSignedCreditAggregates:
+      hasLegitimateCreditBalance && allSignedInvoiceComponentsLegitimate,
     values: {
       invoiceCount: invoiceIds.size,
       paymentCount: paymentIds.size + paymentReversalIds.size,
@@ -3532,7 +3581,14 @@ function normalizeSnapshot(
     ['expenseCostMinor', canonicalValues.expenseCostMinor],
     ['directCostMinor', canonicalValues.directCostMinor],
   ] as const)
-    if (value < 0n) throw new AccountingPackRevisionError(`${field} must be non-negative`);
+    if (
+      value < 0n &&
+      !(
+        sourceAuthority.allowsSignedCreditAggregates &&
+        ['netMinor', 'taxMinor', 'grossMinor', 'outstandingMinor'].includes(field)
+      )
+    )
+      throw new AccountingPackRevisionError(`${field} must be non-negative`);
   if (canonicalValues.grossMinor !== canonicalValues.netMinor + canonicalValues.taxMinor)
     throw new AccountingPackRevisionError('Gross must equal net plus tax');
   if (

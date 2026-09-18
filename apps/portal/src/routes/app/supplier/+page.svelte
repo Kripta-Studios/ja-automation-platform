@@ -777,7 +777,7 @@
           >{c.durationHours}<input
             inputmode="decimal"
             name="durationHours"
-            placeholder="8 or 8,5"
+            placeholder={c.durationExample}
             value={value('createTimeBatch', 'durationHours')}
           /></label
         >

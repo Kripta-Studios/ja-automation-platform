@@ -1,5 +1,49 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'UTC time': ['hora UTC', 'horário UTC'],
+  'Service period': ['Período de servicio', 'Período de serviço'],
+  'Invoice reconciliation details': [
+    'Detalle de conciliación de facturas',
+    'Detalhes de conciliação de faturas',
+  ],
+  'Receipt evidence': ['Justificante del gasto', 'Comprovante da despesa'],
+  'All receipts': ['Todos los justificantes', 'Todos os comprovantes'],
+  'Required receipt missing': [
+    'Falta el justificante obligatorio',
+    'Falta o comprovante obrigatório',
+  ],
+  'Receipt attached': ['Justificante adjunto', 'Comprovante anexado'],
+  'Receipt not required': ['Justificante no obligatorio', 'Comprovante não obrigatório'],
+  'Review supporting evidence before approval': [
+    'Revisar la documentación antes de aprobar',
+    'Revisar os comprovantes antes de aprovar',
+  ],
+  'Selected technical reports must be approved or locked': [
+    'Los informes técnicos seleccionados deben estar aprobados o bloqueados',
+    'Os relatórios técnicos selecionados devem estar aprovados ou bloqueados',
+  ],
+  'Receivable aging': ['Antigüedad de saldos pendientes', 'Antiguidade dos saldos a receber'],
+  'Not yet overdue': ['Sin vencer', 'Ainda não vencido'],
+  '1–30 days overdue': ['Vencido de 1 a 30 días', 'Vencido há 1 a 30 dias'],
+  '31–60 days overdue': ['Vencido de 31 a 60 días', 'Vencido há 31 a 60 dias'],
+  '61–90 days overdue': ['Vencido de 61 a 90 días', 'Vencido há 61 a 90 dias'],
+  'Over 90 days overdue': ['Vencido hace más de 90 días', 'Vencido há mais de 90 dias'],
+  'No outstanding balance': ['Sin saldo pendiente', 'Sem saldo pendente'],
+  'Void invoice': ['Factura anulada', 'Fatura anulada'],
+  'Credit balances': ['Saldos acreedores', 'Saldos credores'],
+  'Net outstanding': ['Saldo pendiente neto', 'Saldo pendente líquido'],
+  'Gross receivables': ['Saldos deudores brutos', 'Saldos devedores brutos'],
+  'Aging shows gross receivables. Credit balances are separate, without assumed allocation.': [
+    'La antigüedad muestra saldos deudores brutos. Los saldos acreedores se separan, sin presuponer su aplicación.',
+    'A antiguidade mostra saldos devedores brutos. Os saldos credores são separados, sem presumir sua aplicação.',
+  ],
+  'All maturities': ['Todos los vencimientos', 'Todos os vencimentos'],
+  'Current balances as of': ['Saldos actuales al', 'Saldos atuais em'],
+  'Amounts follow the active filters. Currencies are never combined.': [
+    'Los importes corresponden a los filtros activos. Cada moneda se calcula por separado.',
+    'Os valores correspondem aos filtros ativos. Cada moeda é calculada separadamente.',
+  ],
+  'Invoice issue dates': ['Fechas de emisión de las facturas', 'Datas de emissão das faturas'],
   'Access profile': ['Perfil de acceso', 'Perfil de acesso'],
   'Publish a planned shift for an assigned worker. Planning does not create actual time entries; the worker records the work performed separately.':
     [

@@ -769,3 +769,13 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Isolated rehearsal preserves 189 original business rows; atomic rollback, live-session authorization and durable idempotence pass 3 integration tests. Production load has SQLite integrity `ok` and zero foreign-key violations.
 - Evidence and production activation: [Owner training delivery](docs/evidence/owner-training-20260910/README.md). This requested demonstration content does not change the global release verdict.
 - Production: `3f066a5` activated at 14:04:44 UTC; all seven real test-profile journeys pass. Nine invoice PDF jobs succeeded, nine Owner downloads verified, Worker downloads correctly masked as unavailable. Services healthy, 38-document final backup complete, Docker build cache 0 B after 6.834 GB reclaimed.
+
+## 2026-09-18 — Revisión ERP, informes por rol y conciliación
+
+- Revisión funcional y comparación con ERPNext, OpenProject, Dolibarr y Firefly III: [análisis y alcance](docs/ERP_REVIEW_2026-09-18.md). No implica sustituir la arquitectura ni modificar documentos ya emitidos.
+- [x] Implementación: cobros con antigüedad y saldos por moneda; filtros/exportaciones coherentes; evidencia de gastos; selección técnica revisada y acotada; ayuda por rol EN/ES/PT; mejoras táctiles y de accesibilidad.
+- Los casos de abonos detectados durante las pruebas requieren corregir las proyecciones y permitir agregados firmados en snapshots mediante migración 48. La aceptación exige procedencia válida, rechazo de sobrecobros, preservación de datos y revisión independiente.
+- [x] Migración 48: 2 pruebas específicas y 14 de contrato; ensayo 47→48 en copia productiva conserva 163 tablas, 251.006 filas, el snapshot real y 387 triggers, con integridad correcta y cero errores FK.
+- [x] Regresión general de 1.019 casos e integración/artefactos de 517 casos ejecutadas; los fallos detectados se resuelven con repeticiones dirigidas documentadas en el análisis. Typecheck, ESLint y revisión independiente aprobados.
+- [x] Navegador: 64 casos aplicables aprobados entre la pasada final y la repetición de tres contratos actualizados; 12 exclusiones de viewport preexistentes. Incluye 48 comprobaciones de mejoras ERP, alcance y accesibilidad en 360/390/768/1440. Aislamiento offline y controles estructurales: 18/18.
+- Estado: candidato validado; publicación y cierre operativo pendientes. Los detalles y límites quedan registrados en el análisis enlazado.

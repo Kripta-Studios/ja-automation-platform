@@ -4668,10 +4668,10 @@ export class V3Repository {
     const invoices = this.sqlite
       .prepare(
         `SELECT i.id,i.invoice_number,i.project_id,i.stream_type,i.currency,i.period_start,i.period_end,
-                i.issued_at,i.due_at,CAST(i.subtotal_minor AS TEXT) subtotal_minor,
+                i.issued_at,i.due_at,i.expected_collection_on,CAST(i.subtotal_minor AS TEXT) subtotal_minor,
                 CAST(i.tax_minor AS TEXT) tax_minor,CAST(i.total_minor AS TEXT) total_minor,
                 i.state,i.voided_at,i.version,i.legal_entity_revision_id,br.legal_entity_id,
-                p.project_number,p.name project_name,c.client_number,c.display_name client_name,
+                p.project_number,p.name project_name,c.id client_id,c.client_number,c.display_name client_name,
                 p.po_number
          FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id
               JOIN billing_rule br ON br.id=i.billing_rule_id
@@ -4687,6 +4687,7 @@ export class V3Repository {
       period_end: string | null;
       issued_at: string | null;
       due_at: string | null;
+      expected_collection_on: string | null;
       subtotal_minor: string;
       tax_minor: string;
       total_minor: string;
@@ -4697,6 +4698,7 @@ export class V3Repository {
       legal_entity_id: string;
       project_number: string;
       project_name: string;
+      client_id: string;
       client_number: string;
       client_name: string;
       po_number: string | null;
@@ -4926,9 +4928,21 @@ export class V3Repository {
       const outstanding = voidAsOf ? 0n : BigInt(invoice.total_minor) - collected;
       const contribution = BigInt(invoice.subtotal_minor) - directCost;
       const directCostComplete = directCostMissingSourceIds.length === 0;
+      const creditBalance = BigInt(invoice.total_minor) < 0n;
+      const creditStateAsOf = creditBalance
+        ? this.sqlite
+            .prepare(
+              "SELECT 1 present FROM invoice_event WHERE invoice_id=? AND event_type='sent' AND occurred_at<=? LIMIT 1",
+            )
+            .get(invoice.id, collectionAsOf)
+          ? 'sent'
+          : 'issued'
+        : invoice.state;
       return {
         invoiceId: invoice.id,
         invoiceNumber: invoice.invoice_number,
+        projectId: invoice.project_id,
+        clientId: invoice.client_id,
         legalEntityId: invoice.legal_entity_id,
         legalEntityRevisionId: invoice.legal_entity_revision_id,
         clientNumber: invoice.client_number,
@@ -4940,6 +4954,7 @@ export class V3Repository {
         periodEnd: invoice.period_end,
         issueDate: invoice.issued_at,
         dueDate: invoice.due_at,
+        expectedCollectionDate: filters.end ? null : invoice.expected_collection_on,
         currency: invoice.currency,
         subtotalMinor: String(invoice.subtotal_minor),
         taxMinor: String(invoice.tax_minor),
@@ -4955,9 +4970,11 @@ export class V3Repository {
         contributionMinor: directCostComplete ? contribution.toString() : null,
         contributionMarginBps: !directCostComplete
           ? null
-          : BigInt(invoice.subtotal_minor) === 0n
-            ? '0'
-            : divideRounded(contribution * 10_000n, BigInt(invoice.subtotal_minor)).toString(),
+          : BigInt(invoice.subtotal_minor) < 0n
+            ? null
+            : BigInt(invoice.subtotal_minor) === 0n
+              ? '0'
+              : divideRounded(contribution * 10_000n, BigInt(invoice.subtotal_minor)).toString(),
         grossPaymentsMinor: grossPayments.toString(),
         paymentReversalsMinor: reversed.toString(),
         netCollectedMinor: netCollected.toString(),
@@ -4968,22 +4985,27 @@ export class V3Repository {
         paidAt,
         paymentStatus: voidAsOf
           ? 'void'
-          : outstanding <= 0n
-            ? 'paid'
-            : collected > 0n
-              ? 'partially_paid'
-              : invoice.state === 'overdue'
-                ? 'overdue'
-                : 'unpaid',
+          : creditBalance
+            ? creditStateAsOf
+            : outstanding <= 0n
+              ? 'paid'
+              : collected > 0n
+                ? 'partially_paid'
+                : invoice.state === 'overdue'
+                  ? 'overdue'
+                  : 'unpaid',
         billingStatus: voidAsOf
           ? 'void'
-          : outstanding <= 0n
-            ? 'paid'
-            : collected > 0n
-              ? 'partially_paid'
-              : invoice.due_at !== null && invoice.due_at.slice(0, 10) < collectionAsOf.slice(0, 10)
-                ? 'overdue'
-                : 'issued',
+          : creditBalance
+            ? creditStateAsOf
+            : outstanding <= 0n
+              ? 'paid'
+              : collected > 0n
+                ? 'partially_paid'
+                : invoice.due_at !== null &&
+                    invoice.due_at.slice(0, 10) < collectionAsOf.slice(0, 10)
+                  ? 'overdue'
+                  : 'issued',
         poNumber: invoice.po_number,
         workerIds: [...workers],
         payments,
@@ -5189,7 +5211,18 @@ export class V3Repository {
     const netCollected = grossCollected - reversed;
     if (netCollected < 0n)
       throw new V3ConflictError('Payment reversal history exceeds recorded payments');
-    const outstanding = BigInt(invoice.total_minor) - netCollected;
+    const invoiceTotal = BigInt(invoice.total_minor);
+    if (invoiceTotal < 0n) {
+      if (grossCollected !== 0n || reversed !== 0n)
+        throw new V3ConflictError('Credit invoices cannot have payment collections');
+      const sent = this.sqlite
+        .prepare(
+          "SELECT 1 present FROM invoice_event WHERE invoice_id=? AND event_type='sent' AND occurred_at<=? LIMIT 1",
+        )
+        .get(invoiceId, effectiveAt) as { present: number } | undefined;
+      return { netCollected, outstanding: invoiceTotal, state: sent ? 'sent' : 'issued' };
+    }
+    const outstanding = invoiceTotal - netCollected;
     if (outstanding < 0n) throw new V3ConflictError('Invoice collection exceeds invoice total');
     if (outstanding === 0n) return { netCollected, outstanding, state: 'paid' };
     if (netCollected === 0n) {
@@ -6474,11 +6507,21 @@ export class V3Repository {
           'Technical report selections require the selected-technical content mode',
         );
       const availableTechnicalIds = new Set(technicalReports.map((report) => report.id));
+      const selectableTechnicalIds = new Set(
+        technicalReports
+          .filter((report) => ['approved', 'locked'].includes(report.approval_state))
+          .map((report) => report.id),
+      );
       for (const reportId of requestedTechnicalIds) {
         if (!availableTechnicalIds.has(reportId))
           throw new V3ValidationError(
             'A selected technical report is outside the chosen project or period',
           );
+        if (
+          contentMode === 'hours_activity_selected_technical' &&
+          !selectableTechnicalIds.has(reportId)
+        )
+          throw new V3ValidationError('Selected technical reports must be approved or locked');
       }
       const includeActivity = contentMode !== 'hours_only';
       const includedDailyReports = includeActivity ? dailyReports : [];
@@ -8426,7 +8469,11 @@ export class V3Repository {
           directCostMinor: directCost.toString(),
           contributionMinor: contribution.toString(),
           contributionMarginBps:
-            invoiceNet === 0n ? '0' : divideRounded(contribution * 10_000n, invoiceNet).toString(),
+            invoiceNet < 0n
+              ? null
+              : invoiceNet === 0n
+                ? '0'
+                : divideRounded(contribution * 10_000n, invoiceNet).toString(),
         };
       });
       const totalsByAccountingScope = totalsByCurrency.flatMap((currencyTotals) => {
@@ -8513,7 +8560,11 @@ export class V3Repository {
               .reduce((sum, row) => sum + BigInt(row.outstandingMinor), 0n)
               .toString(),
             contributionMarginBps:
-              net === 0n ? '0' : divideRounded(contribution * 10_000n, net).toString(),
+              net < 0n
+                ? null
+                : net === 0n
+                  ? '0'
+                  : divideRounded(contribution * 10_000n, net).toString(),
           };
         });
       });

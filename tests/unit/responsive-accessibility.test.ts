@@ -141,6 +141,8 @@ describe('Client Essential responsive accessibility contract', () => {
     );
     expect(tableRegion).toContain('data-table-region-desktop');
     expect(tableRegion).toContain('tabindex="0"');
+    expect(tableRegion.match(/role="region"/gu)).toHaveLength(1);
+    expect(tableRegion).toMatch(/data-table-region-desktop\s+role="group"\s+tabindex="0"/u);
   });
 
   it('routes TableRegion helper copy through translated props for the live EN-to-ES boundary', () => {

@@ -786,8 +786,13 @@ describe('Client Essential finance truth and payment reversals', () => {
       }),
     ]);
 
+    sqlite
+      .prepare('UPDATE invoice SET expected_collection_on=? WHERE id=?')
+      .run('2026-09-30', invoice.id);
     const ledger = v3.masterLedger(finance, { projectId: project.id });
     expect(ledger[0]).toMatchObject({
+      projectId: project.id,
+      expectedCollectionDate: '2026-09-30',
       grossPaymentsMinor: total.toString(),
       paymentReversalsMinor: '100',
       netCollectedMinor: (total - 100n).toString(),
@@ -816,6 +821,7 @@ describe('Client Essential finance truth and payment reversals', () => {
       .run(99_999, internalRate.id);
     expect(v3.masterLedger(finance, { projectId: project.id, end: '2026-08-31' })[0]).toMatchObject(
       {
+        expectedCollectionDate: null,
         directCostMinor: '4000',
         directCostComplete: true,
         directCostMissingSourceIds: [],

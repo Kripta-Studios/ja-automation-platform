@@ -232,6 +232,49 @@ describe('Client Essential report-family serializers', () => {
       'row.report_date ?? row.reportDate ?? row.date ?? row.created_at ?? row.createdAt',
     );
   });
+
+  it('exports payment and reversal dates from the canonical ledger field names', () => {
+    const files = unzip(
+      invoiceCollectionLedgerXlsx([
+        {
+          ...ledger[0]!,
+          payments: [
+            {
+              id: 'canonical-payment',
+              received_at: '2026-09-14T10:30:00.000Z',
+              grossAmountMinor: '8000',
+            },
+          ],
+          paymentReversals: [
+            {
+              id: 'canonical-reversal',
+              effectiveAt: '2026-09-16T11:00:00.000Z',
+              amountMinor: '3000',
+            },
+          ],
+          projectId: 'project-reference',
+          expectedCollectionDate: '2026-09-30',
+          balanceAsOf: '2026-09-18',
+          daysOverdue: 14,
+          agingBucket: '1_30',
+        },
+      ]),
+    );
+    expect(files.get('xl/worksheets/sheet1.xml')?.toString()).toContain('project-reference');
+    expect(files.get('xl/worksheets/sheet1.xml')?.toString()).toContain('1_30');
+    expect(files.get('xl/worksheets/sheet2.xml')?.toString()).toContain('2026-09-14T10:30:00.000Z');
+    expect(files.get('xl/worksheets/sheet3.xml')?.toString()).toContain('2026-09-16T11:00:00.000Z');
+    for (const [sheet, day] of [
+      [2, '2026-09-14'],
+      [3, '2026-09-16'],
+    ] as const) {
+      const serial =
+        (Date.parse(`${day}T00:00:00Z`) - Date.parse('1899-12-30T00:00:00Z')) / 86_400_000;
+      expect(files.get(`xl/worksheets/sheet${sheet}.xml`)?.toString()).toContain(
+        `<v>${serial}</v>`,
+      );
+    }
+  });
 });
 
 let directory: string;
@@ -411,10 +454,24 @@ afterEach(() => {
 });
 
 describe('Client Essential private report routes', () => {
-  it('allows only a worker to request their own durable statement and ignores guessed worker IDs', async () => {
+  it('allows own worker statements and ignores guessed worker IDs while denying finance roles', async () => {
     expect(() => workerStatementGet(event(null, 'worker', 'csv'))).toThrowError();
-    for (const role of ['project_manager', 'finance_admin', 'owner_admin'] as const)
+    for (const role of ['finance_admin', 'owner_admin'] as const)
       expect(() => workerStatementGet(event(role, 'worker', 'csv'))).toThrowError();
+    // Since edb04f6, PMs may read their own statement. A guessed worker ID must not
+    // turn that own-only route into another worker's statement download.
+    expect(
+      (
+        workerStatementGet(
+          event(
+            'project_manager',
+            'worker',
+            'csv',
+            'periodStart=2026-08-01&periodEnd=2026-08-31&workerId=worker',
+          ),
+        ) as Response
+      ).status,
+    ).toBe(404);
 
     const query = 'periodStart=2026-08-01&periodEnd=2026-08-31&workerId=other-worker';
     const requestResponse = await requestWorkerStatement('worker', query);
@@ -425,6 +482,18 @@ describe('Client Essential private report routes', () => {
     const requested = requestBody.artifacts.find((artifact) => artifact.format === 'csv');
     if (!requested) throw new Error('Worker statement CSV artifact was not requested');
     expect(requested.status).toBe('queued');
+    expect(
+      (
+        workerStatementGet(
+          event(
+            'project_manager',
+            'worker',
+            'csv',
+            'periodStart=2026-08-01&periodEnd=2026-08-31&workerId=worker',
+          ),
+        ) as Response
+      ).status,
+    ).toBe(404);
 
     const before = createDatabase();
     const beforeCounts = {
@@ -520,8 +589,8 @@ describe('Client Essential private report routes', () => {
     await expect(invalid.json()).resolves.toMatchObject({ error: 'locale must be en, es, or pt' });
   });
 
-  it('allows Finance and Owner ledger exports while denying PM, worker and anonymous users', () => {
-    for (const role of [null, 'project_manager', 'worker'] as const)
+  it('allows Finance and Owner ledger exports while denying PM, worker, auditor and anonymous users', () => {
+    for (const role of [null, 'project_manager', 'worker', 'auditor_read_only'] as const)
       expect(() => invoiceLedgerGet(event(role, 'ledger', 'csv'))).toThrowError();
     for (const role of ['finance_admin', 'owner_admin'] as const) {
       const response = invoiceLedgerGet(event(role, 'ledger', 'xlsx')) as Response;

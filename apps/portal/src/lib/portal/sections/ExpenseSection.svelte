@@ -7,7 +7,11 @@
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { money } from '../portal-format';
   import {
-    operationalMatches,
+    expenseReceiptState,
+    expenseSearchMatches,
+    receiptStateLabels,
+  } from '../expense-evidence';
+  import {
     operationalPage,
     operationalSort,
     operationalStatusMatches,
@@ -56,6 +60,7 @@
   let toFilter = $state('');
   let statusFilter = $state('');
   let reimbursementFilter = $state('');
+  let receiptFilter = $state('');
   let order = $state<OperationalOrder>('newest');
   let receiptPreviewUrl = $state<string | null>(null);
   let receiptPreviewName = $state('');
@@ -115,6 +120,12 @@
 
   const records = $derived(data.records ?? []);
   const restrictedOperational = $derived(Boolean(data.user.workforceProfile));
+  const canViewReimbursement = $derived(
+    !restrictedOperational && data.user.role !== 'project_manager',
+  );
+  const missingReceiptCount = $derived(
+    records.filter((row) => expenseReceiptState(row) === 'missing').length,
+  );
   const clientOptions = $derived(
     [...new Set(records.map((row) => String(row.client_name ?? '')).filter(Boolean))].sort(),
   );
@@ -130,6 +141,7 @@
     toFilter = $page.url.searchParams.get('to')?.trim() ?? '';
     statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
     reimbursementFilter = $page.url.searchParams.get('reimbursement')?.trim() ?? '';
+    receiptFilter = $page.url.searchParams.get('receipt')?.trim() ?? '';
     registerPage = 1;
   });
   const editRow = $derived.by(
@@ -138,15 +150,7 @@
   const visibleRecords = $derived.by(() => {
     return operationalSort(
       records.filter((row) => {
-        const matchesSearch = operationalMatches(row, search, [
-          'vendor',
-          'project_number',
-          'project_name',
-          'client_name',
-          'description',
-          'spent_on',
-          'worker_name',
-        ]);
+        const matchesSearch = expenseSearchMatches(row, search);
         const matchesProject = !projectFilter || String(row.project_id ?? '') === projectFilter;
         const matchesWorker = !workerFilter || String(row.worker_id ?? '') === workerFilter;
         const matchesClient = !clientFilter || String(row.client_name ?? '') === clientFilter;
@@ -162,7 +166,7 @@
         ]);
         const reimbursementState = String(row.reimbursement_state ?? '');
         const matchesReimbursement =
-          restrictedOperational ||
+          !canViewReimbursement ||
           !reimbursementFilter ||
           (reimbursementFilter === 'pending'
             ? ['pending', 'scheduled'].includes(reimbursementState)
@@ -176,6 +180,7 @@
           matchesCurrency &&
           matchesDate &&
           matchesStatus &&
+          (!receiptFilter || expenseReceiptState(row) === receiptFilter) &&
           matchesReimbursement
         );
       }),
@@ -266,6 +271,7 @@
     const project = overrides.project ?? projectFilter;
     const status = overrides.status ?? statusFilter;
     const reimbursement = overrides.reimbursement ?? reimbursementFilter;
+    const receipt = overrides.receipt ?? receiptFilter;
     const worker = overrides.worker ?? workerFilter;
     const client = overrides.client ?? clientFilter;
     const category = overrides.category ?? categoryFilter;
@@ -282,7 +288,8 @@
     if (to) params.set('to', to);
     if (queryText) params.set('q', queryText);
     if (status) params.set('status', status);
-    if (reimbursement) params.set('reimbursement', reimbursement);
+    if (reimbursement && canViewReimbursement) params.set('reimbursement', reimbursement);
+    if (receipt) params.set('receipt', receipt);
     const query = params.toString();
     return `${base}/app/expenses${query ? `?${query}` : ''}`;
   }
@@ -295,7 +302,8 @@
     if (exportCategory) params.set('category', exportCategory);
     if (exportCurrency) params.set('currency', exportCurrency);
     if (exportStatus) params.set('status', exportStatus);
-    if (exportReimbursement) params.set('reimbursement', exportReimbursement);
+    if (exportReimbursement && canViewReimbursement)
+      params.set('reimbursement', exportReimbursement);
     return `${base}/app/expenses/export?${params.toString()}`;
   }
 
@@ -321,7 +329,9 @@
     if (categoryFilter) params.set('category', categoryFilter);
     if (currencyFilter) params.set('currency', currencyFilter);
     if (statusFilter) params.set('status', statusFilter);
-    if (reimbursementFilter) params.set('reimbursement', reimbursementFilter);
+    if (reimbursementFilter && canViewReimbursement)
+      params.set('reimbursement', reimbursementFilter);
+    if (receiptFilter) params.set('receipt', receiptFilter);
     return `${base}/app/expenses/export?${params.toString()}`;
   }
 
@@ -377,13 +387,21 @@
       <strong>{pendingReviewCount}</strong>
       <small>{translate('Draft or review state')}</small>
     </a>
-    {#if !restrictedOperational}
+    {#if canViewReimbursement}
       <a class="expense-status-card" href={registerHref({ status: '', reimbursement: 'pending' })}>
         <span>{translate('Reimbursement')}</span>
         <strong>{reimbursementCount}</strong>
         <small>{translate('Pending or scheduled')}</small>
       </a>
     {/if}
+    <a
+      class="expense-status-card"
+      href={registerHref({ status: '', reimbursement: '', receipt: 'missing' })}
+    >
+      <span>{translate('Required receipt missing')}</span>
+      <strong>{missingReceiptCount}</strong>
+      <small>{translate('Review supporting evidence before approval')}</small>
+    </a>
   </div>
 
   <form
@@ -465,7 +483,16 @@
         <option value="needs_changes">{translate('Needs changes')}</option>
       </select>
     </label>
-    {#if !restrictedOperational}
+    <label>
+      <span>{translate('Receipt evidence')}</span>
+      <select name="receipt" bind:value={receiptFilter} onchange={() => (registerPage = 1)}>
+        <option value="">{translate('All receipts')}</option>
+        <option value="missing">{translate('Required receipt missing')}</option>
+        <option value="attached">{translate('Receipt attached')}</option>
+        <option value="not_required">{translate('Receipt not required')}</option>
+      </select>
+    </label>
+    {#if canViewReimbursement}
       <label>
         <span>{translate('Reimbursement status')}</span>
         <select
@@ -573,13 +600,14 @@
             ><option value="needs_changes">{translate('Needs changes')}</option></select
           ></label
         >
-        <label
-          ><span>{translate('Reimbursement status')}</span><select bind:value={exportReimbursement}
-            ><option value="">{translate('All statuses')}</option><option value="pending"
-              >{translate('Pending or scheduled')}</option
-            ><option value="reimbursed">{translate('Reimbursed')}</option></select
-          ></label
-        >
+        {#if canViewReimbursement}<label
+            ><span>{translate('Reimbursement status')}</span><select
+              bind:value={exportReimbursement}
+              ><option value="">{translate('All statuses')}</option><option value="pending"
+                >{translate('Pending or scheduled')}</option
+              ><option value="reimbursed">{translate('Reimbursed')}</option></select
+            ></label
+          >{/if}
       </div>
       <div class="expense-export-actions">
         <a class="secondary-button" href={exportHref('pdf')}>{translate('Download PDF')}</a>
@@ -610,6 +638,10 @@
               <span class="record-card-open">{translate('Open record →')}</span>
             </a>
             <div class="expense-record-statuses">
+              <StatusBadge
+                variant={expenseReceiptState(row) === 'missing' ? 'warning' : 'neutral'}
+                text={translate(receiptStateLabels[expenseReceiptState(row)])}
+              />
               <a
                 href={approvalStatusHref(row)}
                 aria-label={`${translate('Open record')}: ${controlledValue('status', row.approval_state) || translate(String(row.approval_state ?? ''))}`}
@@ -620,7 +652,7 @@
                     translate(String(row.approval_state ?? ''))}
                 />
               </a>
-              {#if !restrictedOperational && row.reimbursement_state}
+              {#if canViewReimbursement && row.reimbursement_state}
                 <a
                   href={reimbursementStatusHref(row)}
                   aria-label={`${translate('Reimbursement')}: ${controlledValue('status', row.reimbursement_state) || translate(String(row.reimbursement_state))}`}
@@ -932,6 +964,10 @@
     outline-offset: 2px;
   }
   .expense-record-statuses a {
+    display: inline-flex;
+    align-items: center;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
     color: inherit;
     text-decoration: none;
   }

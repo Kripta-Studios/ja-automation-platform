@@ -204,7 +204,7 @@ async function openTimeEntryForm(page: Page): Promise<void> {
 }
 
 async function openDailyReportForm(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'New daily report', exact: true }).click();
+  await page.locator('[data-report-primary-cta]').click();
   await expect(page.locator('form[action="?/createDailyReport"]')).toHaveCount(1);
 }
 

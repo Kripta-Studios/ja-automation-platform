@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PortalRepository, V3Repository, createDatabase } from '@ja/database';
 import type { Principal } from '@ja/domain';
 import { installB5TestDeploymentIdentity } from '../fixtures/b5-test-environment.js';
@@ -15,6 +15,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   for (const directory of directories.splice(0))
     rmSync(directory, { recursive: true, force: true });
   for (const restore of restoreDeploymentIdentities.splice(0).reverse()) restore();
@@ -44,6 +45,8 @@ function seedUser(
 
 describe('invoice lifecycle coverage', () => {
   it('invoices approved milestones and issues signed credit adjustments', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-31T12:00:00.000Z'));
     const directory = mkdtempSync(join(tmpdir(), 'ja-invoice-lifecycle-'));
     directories.push(directory);
     const { sqlite } = createDatabase(join(directory, 'app.db'));
@@ -291,6 +294,16 @@ describe('invoice lifecycle coverage', () => {
       ).subtotal_minor,
     ).toBe(5_000);
 
+    vi.setSystemTime(new Date('2026-09-01T12:00:00.000Z'));
+    const refreshedFinanceSessionTime = new Date().toISOString();
+    sqlite
+      .prepare('UPDATE session SET expires_at=?,updated_at=?,step_up_at=? WHERE id=?')
+      .run(
+        new Date(Date.now() + 3_600_000).toISOString(),
+        refreshedFinanceSessionTime,
+        refreshedFinanceSessionTime,
+        financeSessionId,
+      );
     const credit = repository.createInvoiceAdjustment(finance, {
       originalInvoiceId: original.id,
       adjustmentType: 'credit',
@@ -465,6 +478,81 @@ describe('invoice lifecycle coverage', () => {
         .get(original.id),
     ).toMatchObject({ adjustment_invoice_id: credit.id });
 
+    const creditLedger = v3
+      .masterLedger(finance, { projectId: project.id })
+      .find((row) => row.invoiceId === credit.id);
+    expect(creditLedger).toMatchObject({
+      subtotalMinor: '-1250',
+      taxMinor: '0',
+      totalMinor: '-1250',
+      contributionMinor: '-1250',
+      contributionMarginBps: null,
+      grossPaymentsMinor: '0',
+      paymentReversalsMinor: '0',
+      netCollectedMinor: '0',
+      collectedMinor: '0',
+      outstandingMinor: '-1250',
+      paymentStatus: 'issued',
+      billingStatus: 'issued',
+    });
+    expect(v3.projectFinance(finance, project.id)).toMatchObject({
+      invoicedMinor: '8750',
+      invoicedGrossMinor: '8750',
+      paidMinor: '100',
+      receivableMinor: '8650',
+    });
+
+    const creditIssuedAt = (
+      sqlite.prepare('SELECT issued_at FROM invoice WHERE id=?').get(credit.id) as {
+        issued_at: string;
+      }
+    ).issued_at;
+    const beforeCreditIssue = new Date(Date.parse(creditIssuedAt) - 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    expect(
+      v3
+        .masterLedger(finance, { projectId: project.id, end: beforeCreditIssue })
+        .some((row) => row.invoiceId === credit.id),
+    ).toBe(false);
+    expect(v3.projectFinance(finance, project.id, '2026-08-01', beforeCreditIssue)).toMatchObject({
+      invoicedMinor: '10000',
+      invoicedGrossMinor: '10000',
+      paidMinor: '100',
+      receivableMinor: '9900',
+    });
+
+    const creditPaymentHistoryBefore = {
+      paymentCount: (
+        sqlite.prepare('SELECT COUNT(*) count FROM payment WHERE invoice_id=?').get(credit.id) as {
+          count: number;
+        }
+      ).count,
+      invoice: sqlite
+        .prepare('SELECT state,version,updated_at FROM invoice WHERE id=?')
+        .get(credit.id),
+    };
+    expect(() =>
+      repository.recordPayment(finance, {
+        invoiceId: credit.id,
+        amountMinor: 1n,
+        currency: 'USD',
+        receivedAt: creditIssuedAt,
+        reference: 'A credit note is not a collectible invoice',
+        idempotencyKey: 'invoice-lifecycle-credit-payment-rejected',
+      }),
+    ).toThrow(/payment exceeds invoice balance/i);
+    expect(
+      (
+        sqlite.prepare('SELECT COUNT(*) count FROM payment WHERE invoice_id=?').get(credit.id) as {
+          count: number;
+        }
+      ).count,
+    ).toBe(creditPaymentHistoryBefore.paymentCount);
+    expect(
+      sqlite.prepare('SELECT state,version,updated_at FROM invoice WHERE id=?').get(credit.id),
+    ).toEqual(creditPaymentHistoryBefore.invoice);
+
     const beforeCumulativeOvercredit = adjustmentCounts();
     expect(() =>
       repository.createInvoiceAdjustment(finance, {
@@ -501,6 +589,85 @@ describe('invoice lifecycle coverage', () => {
     ).amount;
     expect(credited).toBe('10000');
     expect(BigInt(10_000) - BigInt(credited)).toBe(0n);
+
+    vi.setSystemTime(new Date('2026-09-03T12:00:00.000Z'));
+    const ownerSessionId = 'invoice-lifecycle-owner-session';
+    const ownerSessionTime = new Date().toISOString();
+    sqlite
+      .prepare('UPDATE session SET expires_at=?,updated_at=?,step_up_at=? WHERE id=?')
+      .run(
+        new Date(Date.now() + 3_600_000).toISOString(),
+        ownerSessionTime,
+        ownerSessionTime,
+        financeSessionId,
+      );
+    sqlite
+      .prepare(
+        'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
+      )
+      .run(
+        ownerSessionId,
+        `${ownerSessionId}-token`,
+        owner.userId,
+        new Date(Date.now() + 3_600_000).toISOString(),
+        ownerSessionTime,
+        ownerSessionTime,
+      );
+    v3.voidInvoice(
+      { ...owner, sessionId: ownerSessionId },
+      credit.id,
+      'Void credit after historical reporting cutoff',
+      'invoice-lifecycle-credit-void',
+    );
+    const creditOnlyPack = v3.createAccountingPack(finance, '2026-09-01', '2026-09-02');
+    const creditOnlySnapshot = creditOnlyPack.snapshot as {
+      invoiceRegister: Array<{ invoiceId: string; netMinor: string; grossMinor: string }>;
+      totals: Record<string, unknown>;
+      totalsByCurrency: Array<Record<string, unknown>>;
+    };
+    expect(creditOnlySnapshot.invoiceRegister).toEqual([
+      expect.objectContaining({ invoiceId: credit.id, netMinor: '-1250', grossMinor: '-1250' }),
+    ]);
+    expect(creditOnlySnapshot.totals).toMatchObject({
+      totalInvoicedMinor: '-1250',
+      grossInvoicedMinor: '-1250',
+      collectedMinor: '0',
+      outstandingMinor: '-1250',
+      contributionMinor: '-1250',
+      contributionMarginBps: null,
+    });
+    expect(creditOnlySnapshot.totalsByCurrency).toEqual([
+      expect.objectContaining({
+        currency: 'USD',
+        legalEntityId: entity.id,
+        totalInvoicedMinor: '-1250',
+        grossInvoicedMinor: '-1250',
+        collectedMinor: '0',
+        outstandingMinor: '-1250',
+        contributionMinor: '-1250',
+        contributionMarginBps: null,
+      }),
+    ]);
+    expect(
+      v3
+        .masterLedger(finance, { projectId: project.id, end: '2026-09-01' })
+        .find((row) => row.invoiceId === credit.id),
+    ).toMatchObject({
+      paymentStatus: 'issued',
+      billingStatus: 'issued',
+      collectedMinor: '0',
+      outstandingMinor: '-1250',
+    });
+    expect(
+      v3
+        .masterLedger(finance, { projectId: project.id })
+        .find((row) => row.invoiceId === credit.id),
+    ).toMatchObject({
+      paymentStatus: 'void',
+      billingStatus: 'void',
+      collectedMinor: '0',
+      outstandingMinor: '0',
+    });
     sqlite.close();
   });
 });

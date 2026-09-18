@@ -69,7 +69,8 @@ describe('PM approvals section', () => {
   it('exposes deterministic queue ordering without merging completed history', () => {
     const value = source();
 
-    expect(value).toContain("let order = $state<OperationalOrder>('oldest')");
+    expect(value).toContain("let order = $state<OperationalOrder>('priority')");
+    expect(value).toContain('ja-operational-register:approvals-v2:');
     expect(value).toContain('operationalSort(');
     expect(value).toContain('bind:value={order}');
     expect(value).toContain(

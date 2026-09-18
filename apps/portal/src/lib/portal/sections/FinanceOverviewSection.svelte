@@ -2117,6 +2117,8 @@
   }
 
   .finance-overview__cash-link {
+    min-height: 2.75rem;
+    align-content: center;
     border-radius: 0.45rem;
     text-decoration: none;
   }

@@ -34,6 +34,8 @@ afterEach(() => {
 type AccountingPackFixtureOptions = Readonly<{
   projectTimezone?: string;
   invoiceIssuedAt?: string;
+  creditInvoice?: boolean;
+  creditVoidedAt?: string;
 }>;
 
 function fixture(options: AccountingPackFixtureOptions = {}) {
@@ -120,25 +122,48 @@ function fixture(options: AccountingPackFixtureOptions = {}) {
       .prepare(
         `INSERT INTO invoice(
            id,project_id,invoice_number,stream_type,state,currency,subtotal_minor,tax_minor,total_minor,
-           issued_at,snapshot_json,billing_rule_id,created_at,updated_at,version
-         ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+           issued_at,voided_at,snapshot_json,billing_rule_id,created_at,updated_at,version
+         ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       )
       .run(
         id,
         'project-1',
         id.toUpperCase(),
-        'labor',
-        'issued',
+        options.creditInvoice && id === 'invoice-1' ? 'adjustment' : 'labor',
+        options.creditInvoice && id === 'invoice-1' && options.creditVoidedAt ? 'void' : 'issued',
         'EUR',
-        subtotal,
-        Math.trunc(subtotal / 5),
-        subtotal + Math.trunc(subtotal / 5),
+        options.creditInvoice && id === 'invoice-1' ? -subtotal : subtotal,
+        options.creditInvoice && id === 'invoice-1'
+          ? -Math.trunc(subtotal / 5)
+          : Math.trunc(subtotal / 5),
+        options.creditInvoice && id === 'invoice-1'
+          ? -(subtotal + Math.trunc(subtotal / 5))
+          : subtotal + Math.trunc(subtotal / 5),
         id === 'invoice-1' ? invoiceIssuedAt : '2025-12-10T00:00:00.000Z',
+        options.creditInvoice && id === 'invoice-1' ? (options.creditVoidedAt ?? null) : null,
         '{}',
         'billing-rule-1',
         now,
         now,
         version,
+      );
+  if (options.creditInvoice)
+    sqlite
+      .prepare(
+        `INSERT INTO invoice_adjustment(
+           id,original_invoice_id,adjustment_invoice_id,adjustment_type,reason,
+           created_by,created_at,idempotency_key
+         ) VALUES(?,?,?,?,?,?,?,?)`,
+      )
+      .run(
+        'credit-adjustment-1',
+        'invoice-2',
+        'invoice-1',
+        'credit',
+        'Signed credit fixture',
+        'owner',
+        invoiceIssuedAt,
+        'accounting-pack-signed-credit',
       );
   const basePrincipal: Principal = {
     userId: 'owner',
@@ -1151,6 +1176,145 @@ describe('AccountingPackRevisionService', () => {
           }),
         ),
       ).toThrow(/invoice:invoice-1:negative_outstanding_balance/u);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it('accepts a signed issued credit balance with no collection history', () => {
+    const { sqlite, service, principal } = fixture({ creditInvoice: true });
+    try {
+      const result = service.createCanonicalRevision(
+        principal,
+        input({
+          idempotencyKey: 'test:accounting-pack:signed-credit',
+          sourceItems: [
+            {
+              ...(input().sourceItems as readonly Record<string, unknown>[])[0],
+              amountMinor: -1000,
+            },
+          ],
+          netMinor: -1000,
+          taxMinor: -200,
+          grossMinor: -1200,
+          outstandingMinor: -1200,
+          contributionMinor: -1000,
+        }),
+      );
+      const snapshot = sqlite
+        .prepare('SELECT snapshot_json FROM accounting_pack_revision_snapshot WHERE revision_id=?')
+        .get(result.revisionId) as { snapshot_json: string };
+      expect(JSON.parse(snapshot.snapshot_json)).toMatchObject({
+        net_minor: -1000,
+        tax_minor: -200,
+        gross_minor: -1200,
+        collected_minor: 0,
+        outstanding_minor: -1200,
+      });
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it('keeps a later-voided signed credit in a historical pre-void cut only', () => {
+    const { sqlite, service, principal } = fixture({
+      creditInvoice: true,
+      creditVoidedAt: '2026-03-01T12:00:00.000Z',
+    });
+    const signedCreditInput = (overrides: Record<string, unknown> = {}) =>
+      input({
+        idempotencyKey: 'test:accounting-pack:historical-signed-credit',
+        sourceItems: [
+          {
+            ...(input().sourceItems as readonly Record<string, unknown>[])[0],
+            amountMinor: -1000,
+          },
+        ],
+        netMinor: -1000,
+        taxMinor: -200,
+        grossMinor: -1200,
+        outstandingMinor: -1200,
+        contributionMinor: -1000,
+        ...overrides,
+      });
+    try {
+      expect(service.createCanonicalRevision(principal, signedCreditInput()).revisionId).toMatch(
+        /^fp-accounting-pack-revision-/u,
+      );
+      expect(() =>
+        service.createCanonicalRevision(
+          principal,
+          signedCreditInput({
+            periodEnd: '2026-04-01',
+            effectiveAt: '2026-04-01T00:00:00.000Z',
+            idempotencyKey: 'test:accounting-pack:post-void-signed-credit',
+          }),
+        ),
+      ).toThrow(/not_in_canonical_cut|invoice_not_issued|parent_invoice_not_issued/u);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it('does not let a legitimate credit mask signed corruption on an ordinary invoice', () => {
+    const { sqlite, service, principal } = fixture({ creditInvoice: true });
+    try {
+      sqlite
+        .prepare(
+          `INSERT INTO invoice(
+             id,project_id,invoice_number,stream_type,state,currency,subtotal_minor,tax_minor,
+             total_minor,issued_at,snapshot_json,billing_rule_id,created_at,updated_at,version
+           ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          'invoice-corrupt-signed-components',
+          'project-1',
+          'INVOICE-CORRUPT-SIGNED-COMPONENTS',
+          'labor',
+          'issued',
+          'EUR',
+          -100,
+          200,
+          100,
+          '2026-01-20T00:00:00.000Z',
+          '{}',
+          'billing-rule-1',
+          '2026-01-20T00:00:00.000Z',
+          '2026-01-20T00:00:00.000Z',
+          1,
+        );
+      expect(() =>
+        service.createCanonicalRevision(
+          principal,
+          input({
+            idempotencyKey: 'test:accounting-pack:mixed-signed-corruption',
+            sourceItems: [
+              {
+                ...(input().sourceItems as readonly Record<string, unknown>[])[0],
+                amountMinor: -1000,
+              },
+              {
+                id: 'source-corrupt-signed-components',
+                itemKind: 'invoice',
+                sourceId: 'invoice-corrupt-signed-components',
+                itemVersion: 1,
+                effectiveAt: '2026-01-20T00:00:00.000Z',
+                evidenceType: 'invoice_source',
+                evidenceId: 'invoice-corrupt-signed-components-evidence',
+                amountMinor: -100,
+                currency: 'EUR',
+              },
+            ],
+            invoiceCount: 2,
+            sourceItemCount: 2,
+            netMinor: -1100,
+            taxMinor: 0,
+            grossMinor: -1100,
+            outstandingMinor: -1100,
+            contributionMinor: -1100,
+          }),
+        ),
+      ).toThrow(/invoice:invoice-corrupt-signed-components:signed_invoice_components_not_credit/u);
     } finally {
       sqlite.close();
     }

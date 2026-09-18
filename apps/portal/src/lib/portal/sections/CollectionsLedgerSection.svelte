@@ -4,7 +4,13 @@
   import { page } from '$app/stores';
   import type { PortalData } from '../portal-data';
   import { paymentMoney } from '../payment-money';
-  import { operationalSearchText } from './operational-register';
+  import {
+    agingBuckets,
+    agingLabels,
+    collectionAging,
+    collectionMatches,
+    collectionSummaries,
+  } from '../collections-analysis';
   import { SectionCard, StatusBadge, TableRegion, type TableCardRow } from '../ui';
 
   type Row = Record<string, unknown>;
@@ -29,9 +35,12 @@
   let search = $state('');
   let statusFilter = $state('');
   let projectFilter = $state('');
+  let currencyFilter = $state('');
+  let agingFilter = $state('');
 
   const rows = $derived((data.ledger ?? []) as Row[]);
-  const normalizedSearch = $derived(operationalSearchText(search).trim());
+  const asOf = $derived(data.financeToday ?? new Date().toISOString().slice(0, 10));
+  const currencyOptions = $derived([...new Set(rows.map((row) => value(row, 'currency')))].sort());
   const projectOptions = $derived(
     Array.from(
       new Map(
@@ -53,6 +62,8 @@
   $effect(() => {
     projectFilter = $page.url.searchParams.get('project')?.trim() ?? '';
     statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
+    currencyFilter = $page.url.searchParams.get('currency')?.trim() ?? '';
+    agingFilter = $page.url.searchParams.get('aging')?.trim() ?? '';
     const query = $page.url.searchParams.get('q');
     if (query !== null) search = query.trim();
   });
@@ -180,31 +191,23 @@
   }
 
   const scopeRows = $derived(
-    rows.filter((row) => !projectFilter || value(row, 'projectId', 'project_id') === projectFilter),
+    rows.filter((row) =>
+      collectionMatches(
+        row,
+        { project: projectFilter, currency: currencyFilter, query: search },
+        asOf,
+      ),
+    ),
   );
 
-  const visibleRows = $derived.by(() =>
-    scopeRows.filter((row) => {
-      const status = value(row, 'paymentStatus', 'payment_status');
-      const matchesStatus =
-        !statusFilter ||
-        (statusFilter === 'collected'
-          ? ['paid', 'partially_paid'].includes(status)
-          : statusFilter === 'outstanding'
-            ? ['unpaid', 'partially_paid', 'overdue'].includes(status)
-            : status === statusFilter);
-      const searchable = [
-        value(row, 'invoiceNumber', 'invoice_number', 'invoiceId'),
-        value(row, 'clientNumber', 'client_number', 'clientName', 'client_name'),
-        value(row, 'projectNumber', 'project_number', 'projectName', 'project_name'),
-        value(row, 'streamType', 'stream_type'),
-      ]
-        .join(' ')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/gu, '')
-        .toLocaleLowerCase();
-      return matchesStatus && (!normalizedSearch || searchable.includes(normalizedSearch));
-    }),
+  const visibleRows = $derived(
+    scopeRows.filter((row) =>
+      collectionMatches(row, { status: statusFilter, aging: agingFilter }, asOf),
+    ),
+  );
+  const summaries = $derived(collectionSummaries(visibleRows, asOf));
+  const overdueCount = $derived(
+    scopeRows.filter((row) => (collectionAging(row, asOf).daysOverdue ?? 0) > 0).length,
   );
 
   const statusCounts = $derived.by(() => {
@@ -251,6 +254,19 @@
             label: translate('Due on'),
             value: displayDate(value(row, 'dueDate', 'due_date'), translate('No due date')),
           },
+          {
+            label: translate('Receivable aging'),
+            value: translate(agingLabels[collectionAging(row, asOf).agingBucket]),
+          },
+          {
+            label: translate('Expected collection'),
+            value: displayDate(value(row, 'expectedCollectionDate'), '—'),
+          },
+          {
+            label: translate('Service period'),
+            value: `${value(row, 'periodStart') || '—'} → ${value(row, 'periodEnd') || '—'}`,
+          },
+          { label: translate('PO / reference'), value: value(row, 'poNumber') || '—' },
           {
             label: translate('Invoiced'),
             value: moneyValue(row, 'invoicedMinor', 'invoiced_minor', 'totalMinor', 'total_minor'),
@@ -306,16 +322,19 @@
 
   const periodStart = $derived(exportPeriod?.periodStart ?? '');
   const periodEnd = $derived(exportPeriod?.periodEnd ?? '');
-  const canExport = $derived(Boolean(periodStart && periodEnd));
+  const canExport = $derived(
+    Boolean(periodStart && periodEnd) &&
+      ['owner_admin', 'finance_admin'].includes(String(data.user.role)),
+  );
 
   function exportHref(format: 'csv' | 'xlsx'): string {
-    const query = new URLSearchParams({
-      periodStart,
-      periodEnd,
-    });
+    // Emission dates describe the visible invoices; they must not truncate later collections.
+    const query = new URLSearchParams();
     if (projectFilter) query.set('project', projectFilter);
     if (statusFilter) query.set('status', statusFilter);
     if (search.trim()) query.set('q', search.trim());
+    if (currencyFilter) query.set('currency', currencyFilter);
+    if (agingFilter) query.set('aging', agingFilter);
     return `${base}/app/api/invoice-collection-ledger/${format}?${query.toString()}`;
   }
 
@@ -328,9 +347,17 @@
     const query = new URLSearchParams();
     if (projectFilter) query.set('project', projectFilter);
     if (search.trim()) query.set('q', search.trim());
+    if (currencyFilter) query.set('currency', currencyFilter);
+    if (agingFilter) query.set('aging', agingFilter);
     if (status) query.set('status', status);
     const serialized = query.toString();
     return `${base}/app/ledger${serialized ? `?${serialized}` : ''}#collections-ledger-register`;
+  }
+  function agingHref(bucket: string, currency: string): string {
+    const query = new URLSearchParams({ aging: bucket, currency });
+    if (projectFilter) query.set('project', projectFilter);
+    if (search.trim()) query.set('q', search.trim());
+    return `${base}/app/ledger?${query}#collections-ledger-register`;
   }
   let ledgerPage = $state<typeof visibleRows>([]);
 </script>
@@ -346,11 +373,11 @@
         )}
       </p>
     </div>
-    <div class="collections-ledger__exports" aria-label={translate('Ledger exports')}>
+    <div class="collections-ledger__exports" role="group" aria-label={translate('Ledger exports')}>
       {#if canExport}
         <a class="secondary-button" href={exportHref('csv')}>{translate('Export CSV')}</a>
         <a class="secondary-button" href={exportHref('xlsx')}>{translate('Export XLSX')}</a>
-      {:else}
+      {:else if ['owner_admin', 'finance_admin'].includes(String(data.user.role))}
         <span class="collections-ledger__exports-unavailable"
           >{translate('Select a period to export')}</span
         >
@@ -380,7 +407,7 @@
       aria-current={statusFilter === 'overdue' ? 'page' : undefined}
     >
       <span>{translate('Overdue')}</span>
-      <strong>{statusCounts.overdue ?? 0}</strong>
+      <strong>{overdueCount}</strong>
       <small>{translate('Outstanding collection attention')}</small>
     </a>
   </div>
@@ -420,9 +447,76 @@
         {#each projectOptions as [id, label]}<option value={id}>{label}</option>{/each}
       </select>
     </label>
+    <label>
+      <span>{translate('Currency')}</span>
+      <select name="currency" bind:value={currencyFilter}>
+        <option value="">{translate('All currencies')}</option>
+        {#each currencyOptions as currency}<option value={currency}>{currency}</option>{/each}
+      </select>
+    </label>
+    <label>
+      <span>{translate('Receivable aging')}</span>
+      <select name="aging" bind:value={agingFilter}>
+        <option value="">{translate('All maturities')}</option>
+        {#each agingBuckets as bucket}<option value={bucket}
+            >{translate(agingLabels[bucket])}</option
+          >{/each}
+      </select>
+    </label>
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
     <a class="secondary-button" href={`${base}/app/ledger?q=`}>{translate('Clear filters')}</a>
   </form>
+
+  <SectionCard title={translate('Receivable aging')}>
+    <p class="collections-ledger__basis">
+      {translate('Current balances as of')}
+      {asOf} ({translate('UTC time')}).
+      {translate('Amounts follow the active filters. Currencies are never combined.')}
+      {#if exportPeriod}{translate('Invoice issue dates')}: {periodStart} → {periodEnd}.{/if}
+    </p>
+    {#each summaries as summary}
+      <section
+        class="collections-ledger__aging"
+        data-aging-currency={summary.currency}
+        aria-label={`${translate('Receivable aging')} · ${summary.currency}`}
+      >
+        <h3>
+          {summary.currency} · {translate('Net outstanding')}: {paymentMoney(
+            summary.netOutstanding.toString(),
+            summary.currency,
+          )}
+        </h3>
+        <p>
+          {translate('Gross receivables')}: {paymentMoney(
+            summary.outstanding.toString(),
+            summary.currency,
+          )} · {translate('Credit balances')}: {paymentMoney(
+            summary.credits.toString(),
+            summary.currency,
+          )}
+        </p>
+        <p>
+          {translate(
+            'Aging shows gross receivables. Credit balances are separate, without assumed allocation.',
+          )}
+        </p>
+        <p>{translate('Overdue')}: {paymentMoney(summary.overdue.toString(), summary.currency)}</p>
+        <div class="collections-ledger__buckets">
+          {#each agingBuckets as bucket}
+            <a
+              href={agingHref(bucket, summary.currency)}
+              aria-current={agingFilter === bucket ? 'page' : undefined}
+            >
+              <span>{translate(agingLabels[bucket])}</span>
+              <strong>{paymentMoney(summary.buckets[bucket].toString(), summary.currency)}</strong>
+            </a>
+          {/each}
+        </div>
+      </section>
+    {:else}
+      <p role="status">{translate('No ledger rows found')}</p>
+    {/each}
+  </SectionCard>
 
   <SectionCard
     id="collections-ledger-register"
@@ -433,9 +527,10 @@
       bind:visible={ledgerPage}
       {translate}
       label="CollectionsLedger"
+      filtersEnabled={false}
     />
     <TableRegion
-      ariaLabel={translate('Master Invoice / Cost / Collection Ledger')}
+      ariaLabel={translate('Invoice reconciliation details')}
       mobileMode="cards"
       {cardRows}
     >
@@ -446,6 +541,8 @@
             <th scope="col">{translate('Invoice')}</th>
             <th scope="col">{translate('Client / project')}</th>
             <th scope="col">{translate('Stream')}</th>
+            <th scope="col">{translate('Due on')} / {translate('Receivable aging')}</th>
+            <th scope="col">{translate('Invoiced')}</th>
             <th scope="col">{translate('Gross')}</th>
             <th scope="col">{translate('Reversals')}</th>
             <th scope="col">{translate('Net collected')}</th>
@@ -460,6 +557,7 @@
         <tbody>
           {#each ledgerPage as row}
             {@const status = value(row, 'paymentStatus', 'payment_status')}
+            {@const aging = collectionAging(row, asOf)}
             <tr data-ledger-row={value(row, 'invoiceId', 'id')}>
               <td>
                 <a class="collections-ledger__invoice-link" href={invoiceHref(row)}>
@@ -480,7 +578,25 @@
                 <small>{value(row, 'projectNumber', 'project_number') || '—'}</small>
               </td>
               <td>{value(row, 'streamType', 'stream_type') || '—'}</td>
+              <td>
+                <span
+                  >{displayDate(value(row, 'dueDate', 'due_date'), translate('No due date'))}</span
+                >
+                <StatusBadge
+                  variant={(aging.daysOverdue ?? 0) > 0 ? 'warning' : 'neutral'}
+                  text={translate(agingLabels[aging.agingBucket])}
+                />
+                {#if value(row, 'expectedCollectionDate')}
+                  <small
+                    >{translate('Expected collection')}: {value(
+                      row,
+                      'expectedCollectionDate',
+                    )}</small
+                  >
+                {/if}
+              </td>
               <td>{moneyValue(row, 'totalMinor', 'total_minor')}</td>
+              <td>{moneyValue(row, 'grossPaymentsMinor', 'gross_payments_minor')}</td>
               <td>{moneyValue(row, 'paymentReversalsMinor', 'payment_reversals_minor')}</td>
               <td
                 >{moneyValue(row, 'netCollectedMinor', 'collectedMinor', 'net_collected_minor')}</td
@@ -532,7 +648,7 @@
             </tr>
           {:else}
             <tr>
-              <td colspan="12">
+              <td colspan="14">
                 <div class="collections-ledger__empty" role="status">
                   <strong>{translate('No ledger rows found')}</strong>
                   <span>{translate('Try another filter or period.')}</span>
@@ -547,6 +663,43 @@
 </div>
 
 <style>
+  .collections-ledger__basis {
+    margin: 0 0 1rem;
+    color: var(--portal-muted, #64748b);
+  }
+  .collections-ledger__aging + .collections-ledger__aging {
+    margin-top: 1.25rem;
+  }
+  .collections-ledger__aging h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+  .collections-ledger__buckets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+    gap: 0.5rem;
+  }
+  .collections-ledger__buckets a {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.8rem;
+    min-height: 2.75rem;
+    border: 1px solid var(--portal-border, #d7dee8);
+    border-radius: 0.5rem;
+    color: inherit;
+    text-decoration: none;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+  .collections-ledger__buckets a:hover,
+  .collections-ledger__buckets a:focus-visible,
+  .collections-ledger__buckets a[aria-current='page'] {
+    outline: 2px solid var(--portal-accent, #0f5f73);
+    outline-offset: 2px;
+  }
+  .collections-ledger__buckets span {
+    font-size: 0.8rem;
+  }
   .collections-ledger-section {
     display: grid;
     gap: 1.25rem;

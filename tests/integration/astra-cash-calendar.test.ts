@@ -110,8 +110,11 @@ describe('source-backed cash and obligations calendar', () => {
       basis: 'expected',
     });
     expect(rows.find((row) => row.sourceId === 'finalized-pay')).toMatchObject({
+      id: 'compensation-balance:finalized-pay',
       amountMinor: '-30000',
-      basis: 'needs_confirmation',
+      date: '2026-09-11',
+      basis: 'expected',
+      reference: 'scheduled',
     });
     expect(rows.find((row) => row.sourceId === 'cash-expense')).toMatchObject({
       amountMinor: '-10000',

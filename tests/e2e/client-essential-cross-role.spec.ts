@@ -33,6 +33,26 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function periodReportRefreshIdempotencyKey(
+  projectId: string,
+  periodStart: string,
+  periodEnd: string,
+  reportLocale: string,
+  contentMode = 'hours_activity_all_technical',
+  technicalReportIds: string[] = [],
+): string {
+  const contentSelectionKey = createHash('sha256')
+    .update(
+      JSON.stringify({
+        contentMode,
+        technicalReportIds: [...technicalReportIds].sort(),
+      }),
+    )
+    .digest('hex')
+    .slice(0, 16);
+  return `period-report-refresh:${projectId}:${periodStart}:${periodEnd}:${reportLocale}:${contentSelectionKey}`;
+}
+
 /**
  * Match the stable visible label at the start of a tab's accessible text.
  * Counts/help copy may be appended by the surface without changing its
@@ -88,6 +108,9 @@ async function enableCustomerSignoffPolicy(
   effectiveFrom: string,
 ): Promise<void> {
   await page.goto(portal('/finance?view=commercial'));
+  await page
+    .getByRole('button', { name: 'Project commercial and time policy', exact: true })
+    .click();
   const policyForm = page.locator('form[data-project-commercial-policy-form]');
   await expect(policyForm).toBeVisible();
   await policyForm.locator('select[name="projectId"]').selectOption(projectId);
@@ -98,6 +121,9 @@ async function enableCustomerSignoffPolicy(
   await policyForm.getByRole('button', { name: 'Save project policy', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: /policy/i })).toBeVisible();
   await page.goto(portal(`/finance?view=commercial&project=${encodeURIComponent(projectId)}`));
+  await page
+    .getByRole('button', { name: 'Project commercial and time policy', exact: true })
+    .click();
   await expect(page.locator('[data-project-commercial-policy-row]').last()).toContainText(
     'Customer sign-off',
   );
@@ -355,7 +381,7 @@ async function enqueueCustomerPeriodReportRefresh(page: Page): Promise<string> {
           ORDER BY created_at DESC,id DESC
           LIMIT 1`,
       )
-      .get(`period-report-refresh:${projectId}:${periodStart}:${periodEnd}:en`) as
+      .get(periodReportRefreshIdempotencyKey(projectId, periodStart, periodEnd, 'en')) as
       | { id: string }
       | undefined;
     if (!job?.id) throw new Error('The period report refresh action did not persist its job');
@@ -390,6 +416,10 @@ async function refreshCustomerPeriodReportWithChangedLocale(
   const localeSelect = refreshForm.locator('select[name="reportLocale"]');
   const replacementLocale = 'es';
   await localeSelect.selectOption(replacementLocale);
+  const contentMode = await refreshForm.locator('select[name="contentMode"]').inputValue();
+  const technicalReportIds = await refreshForm
+    .locator('input[name="technicalReportIds"]:checked')
+    .evaluateAll((inputs) => inputs.map((input) => (input as HTMLInputElement).value));
   const responsePromise = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' && response.url().includes('?/generatePeriodReports'),
@@ -413,7 +443,14 @@ async function refreshCustomerPeriodReportWithChangedLocale(
           LIMIT 1`,
       )
       .get(
-        `period-report-refresh:${projectId}:${periodStart}:${periodEnd}:${replacementLocale}`,
+        periodReportRefreshIdempotencyKey(
+          projectId,
+          periodStart,
+          periodEnd,
+          replacementLocale,
+          contentMode,
+          technicalReportIds,
+        ),
       ) as { id: string } | undefined;
     if (!job?.id) throw new Error('The changed report refresh action did not persist its job');
     return job.id;
@@ -737,7 +774,7 @@ test.describe('Client Essential · Worker operational truth', () => {
     await expect(page.getByRole('tab', { name: 'Client Sign-off', exact: true })).toBeVisible();
     await expectOperationalOnly(page, '/reports');
 
-    await page.getByRole('button', { name: 'New daily report', exact: true }).click();
+    await page.locator('[data-report-primary-cta]').filter({ hasText: 'New daily report' }).click();
     const dailyForm = page.locator('form[data-report-entry-surface="daily"]');
     await expect(dailyForm).toBeVisible();
     await selectFirstAssignedProject(dailyForm);
@@ -753,7 +790,10 @@ test.describe('Client Essential · Worker operational truth', () => {
     await expect(page.getByText('Daily report draft saved')).toBeVisible();
 
     await page.getByRole('tab', { name: 'Technical / PLC', exact: true }).click();
-    await page.getByRole('button', { name: 'New technical report', exact: true }).click();
+    await page
+      .locator('.report-primary-action-top')
+      .getByRole('button', { name: 'New technical report', exact: true })
+      .click();
     const technicalForm = page.locator('form[data-report-entry-surface="technical"]');
     await expect(technicalForm).toBeVisible();
     await selectFirstAssignedProject(technicalForm);
@@ -770,18 +810,24 @@ test.describe('Client Essential · Worker operational truth', () => {
       .fill('Adjusted the debounce and documented controls validation during the shift.');
     await technicalForm.getByRole('button', { name: 'Save PLC report' }).click();
     await expect(
-      page.getByRole('status').filter({ hasText: /technical.*draft.*saved/i }),
+      page.getByRole('status').filter({ hasText: /PLC report draft saved/i }),
     ).toBeVisible();
 
     await page.goto(portal('/pay'));
     await expect(page.getByRole('heading', { name: 'My Pay', exact: true })).toBeVisible();
     await expect(
-      page.getByText('This view contains only your own time', { exact: false }),
+      page.getByText(
+        'Download your own activity, compensation, settlement, and reimbursement statement for this period.',
+        { exact: true },
+      ),
     ).toBeVisible();
-    expect(
-      await page.getByText('Alex Rivera', { exact: true }).count(),
-      'the self-only compensation projection must retain the signed-in worker identity',
-    ).toBeGreaterThan(0);
+    await page.getByRole('button', { name: 'Account options', exact: true }).click();
+    await expect(
+      page
+        .getByRole('menu', { name: 'Account options', exact: true })
+        .getByText('Alex Rivera', { exact: true }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Account options', exact: true }).click();
     for (const otherWorker of ['Rafael Santos', 'Maya Chen', 'Daniel Brooks', 'Elena Costa'])
       await expect(page.getByText(otherWorker, { exact: true })).toHaveCount(0);
     await expectOperationalOnly(page, '/pay');
@@ -918,6 +964,9 @@ test.describe('Client Essential · Finance and billing control', () => {
     await signIn(page, 'finance');
 
     await page.goto(portal('/finance?view=commercial'));
+    await page
+      .getByRole('button', { name: 'Project commercial and time policy', exact: true })
+      .click();
     const policyForm = page.locator('form[data-project-commercial-policy-form]');
     await expect(policyForm).toBeVisible();
     const projectSelect = policyForm.locator('select[name="projectId"]');
@@ -949,18 +998,24 @@ test.describe('Client Essential · Finance and billing control', () => {
       .filter({ has: page.locator('[data-invoice-status="draft"]') })
       .first();
     await expect(lineDraft).toBeVisible();
+    const lineInvoiceId = await lineDraft.getAttribute('data-invoice-row');
+    expect(
+      lineInvoiceId,
+      'the line-project draft must expose its durable invoice identity',
+    ).toBeTruthy();
     await manageInvoice(page, lineDraft);
     await page
       .locator('[data-ui="responsive-sheet"]')
       .locator('form[action="?/approveInvoice"]')
       .getByRole('button', { name: 'Approve' })
       .click();
-    const approvedLineRow = page
-      .locator('tr[data-invoice-row]')
-      .filter({ hasText: lineProjectNumber })
-      .filter({ has: page.locator('[data-invoice-status="approved"]') })
-      .first();
+    // Approval lowers the row's attention priority and may move it beyond the
+    // first register page. Search by the captured durable identity so the
+    // assertion follows the invoice that the action actually approved.
+    await page.getByRole('searchbox', { name: 'Search: Billing' }).fill(lineInvoiceId!);
+    const approvedLineRow = page.locator(`tr[data-invoice-row="${lineInvoiceId}"]`);
     await expect(approvedLineRow).toBeVisible();
+    await expect(approvedLineRow.locator('[data-invoice-status="approved"]')).toBeVisible();
     await manageInvoice(page, approvedLineRow);
     await expect(approvedLineRow).toBeVisible();
     const issueResponsePromise = page.waitForResponse(
@@ -1009,12 +1064,8 @@ test.describe('Client Essential · Finance and billing control', () => {
     expect(classificationResponse.status(), 'Finance classification action must succeed').toBe(200);
     const classificationResponseBody = await classificationResponse.text();
     expect(classificationResponseBody).toContain('action.finance.expenseClassified');
-    // The canonical action key is rendered through the locale catalog as the
-    // user-facing semantic message "Finance Expense Classified".  It does
-    // not contain the implementation noun "classification", so matching
-    // `/classification/i` would test a stale copy rather than the action.
     await expect(
-      page.getByRole('status').filter({ hasText: /expense\s+classified/i }),
+      page.getByRole('status').filter({ hasText: 'Expense commercial classification saved.' }),
     ).toBeVisible();
     // Classification is a state transition. Independently read the committed
     // row/revision so a successful HTTP response cannot be mistaken for
@@ -1798,6 +1849,9 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
     await page.goto(portal('/projects?view=team'));
     await expect(page.locator('[data-team-directory]')).toBeVisible();
     await page.getByRole('button', { name: 'Create user', exact: true }).click();
+    await page
+      .getByRole('combobox', { name: 'Access method', exact: true })
+      .selectOption({ label: 'Invitation link' });
     await expect(page.locator('form[action="?view=team&/createInvitation"]')).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'Create invitation', exact: true }),
@@ -1829,6 +1883,9 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
     await expect(
       page.getByRole('heading', { name: 'Finance configuration', exact: true }),
     ).toBeVisible();
+    await page
+      .getByRole('button', { name: 'Project commercial and time policy', exact: true })
+      .click();
     await expect(
       page.getByRole('heading', { name: 'Project commercial and time policy', exact: true }),
     ).toBeVisible();

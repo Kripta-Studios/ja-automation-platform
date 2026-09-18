@@ -590,7 +590,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         };
       }
       case 'ledger':
-        return { ...common, ledger: context.v3.masterLedger(context.principal) };
+        return {
+          ...common,
+          ledger: context.v3.masterLedger(context.principal),
+          financeToday: new Date().toISOString().slice(0, 10),
+        };
       case 'accounting': {
         return {
           ...common,

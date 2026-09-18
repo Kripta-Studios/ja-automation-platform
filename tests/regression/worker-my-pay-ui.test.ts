@@ -38,13 +38,13 @@ describe('Worker My Pay UI', () => {
       'activity.actualMinutes',
       'activity.approvalState',
       'settlement.expectedPaymentOn',
-      'settlement.settledAt',
+      'settlement.actualPaymentOn',
     ]) {
       expect(payBranch, `missing Worker My Pay field: ${field}`).toContain(field);
     }
     expect(payBranch).toContain("translate('Own activity detail')");
     expect(payBranch).toContain("translate('Expected payment')");
-    expect(payBranch).toContain("translate('Actual payment')");
+    expect(payBranch).toContain("translate('Latest actual payment')");
   });
 
   it('renders own reimbursement state, expected date, actual date, and amount', () => {

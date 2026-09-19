@@ -1,4 +1,13 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
+import { createHash } from 'node:crypto';
+import {
+  createDatabase,
+  LocalizedPdfRepository,
+  PortalRepository,
+  V3Repository,
+} from '@ja/database';
+import { runArtifactJobs } from '@ja/reporting';
 import {
   CLIENT_ESSENTIAL_32_STEPS,
   clientEssentialFixture as fixture,
@@ -14,6 +23,7 @@ import {
   uatArtifactFile,
 } from '../fixtures/client-essential-32-step-fixture.js';
 import { portal } from './auth.js';
+import { readE2EFixturePointer } from './environment.js';
 import { caddyBoundaryUrl, readCaddyBaseUrl } from './support/deployment-fixture.js';
 
 /**
@@ -34,6 +44,7 @@ import { caddyBoundaryUrl, readCaddyBaseUrl } from './support/deployment-fixture
 let seeded: SeededBusinessRows;
 const seededPeriod = fixture.period;
 const date = '2026-08-24';
+const uatBillingPeriod = { start: date, end: '2026-08-30' } as const;
 
 const forbiddenFinanceKeyPattern =
   /"(?:client(?:_rate|_treatment)|clientRate|clientTreatment|billing(?:_treatment|_rate)|billingTreatment|tax(?:_profile|_bps|_rate|_amount)|taxProfile|taxBps|internal(?:_cost|_rate)|internalCost|contribution(?:_margin)?|margin|markup(?:_bps)?|overtime(?:_threshold|_rate|_multiplier)|overtimeThreshold|travel(?:_billable|_billing)|travelBillable)"\s*:/i;
@@ -52,12 +63,60 @@ async function openInvoiceManage(page: Page, invoiceId: string): Promise<Locator
   return page.locator(`[data-invoice-row="${invoiceId}"]`);
 }
 
-async function openExpenseClassify(page: Page, index = 0): Promise<Locator> {
+function fixtureRows(sql: string, ...values: SQLInputValue[]) {
+  const database = new DatabaseSync(fixture.databasePath, { readOnly: true });
+  try {
+    return database.prepare(sql).all(...values);
+  } finally {
+    database.close();
+  }
+}
+
+/** Execute the real fenced worker only inside this run's disposable fixture.
+ * This supplies PDF readiness; step 30 independently requires production timer evidence.
+ * All business commands, approvals and signed-copy submissions still use the UI.
+ */
+function runFixtureArtifactWorker() {
+  const pointer = readE2EFixturePointer();
+  expect(pointer.databasePath).toBe(fixture.databasePath);
+  expect(pointer.documentRoot).toBe(fixture.documentRoot);
+  expect(
+    fixtureRows('SELECT tenant_id,deployment_id FROM deployment_identity WHERE singleton=1'),
+  ).toEqual([{ tenant_id: fixture.tenantId, deployment_id: fixture.deploymentId }]);
+  expect(fixture.tenantId).toBe('e2e-client-essential-tenant');
+  expect(fixture.deploymentId).toBe('e2e-client-essential-deployment');
+  const previousRoot = process.env.JA_DOCUMENT_ROOT;
+  process.env.JA_DOCUMENT_ROOT = pointer.documentRoot;
+  const database = createDatabase(pointer.databasePath);
+  try {
+    return runArtifactJobs({
+      documentRoot: pointer.documentRoot,
+      repository: new PortalRepository(database.sqlite),
+      v3: new V3Repository(database.sqlite),
+      localizedPdf: new LocalizedPdfRepository(database.sqlite),
+    });
+  } finally {
+    database.sqlite.close();
+    if (previousRoot === undefined) delete process.env.JA_DOCUMENT_ROOT;
+    else process.env.JA_DOCUMENT_ROOT = previousRoot;
+  }
+}
+
+async function openFinanceConfiguration(page: Page, action: string): Promise<void> {
   await page
-    .getByRole('button', { name: /^(?:Classify|Review)$/ })
-    .nth(index)
+    .getByRole('navigation', { name: 'Finance configuration', exact: true })
+    .getByRole('button', { name: action, exact: true })
     .click();
-  const classification = page.locator('[data-finance-expense-classification]').first();
+}
+
+async function openExpenseClassify(page: Page, expenseId: string): Promise<Locator> {
+  await page
+    .getByRole('searchbox', { name: 'Search: Expense treatment and planning', exact: true })
+    .fill(expenseId);
+  const row = page.locator(`[data-finance-expense-id="${expenseId}"]`);
+  await expect(row).toBeVisible();
+  await row.getByRole('button', { name: /^(?:Classify|Review)$/ }).click();
+  const classification = row.locator('[data-finance-expense-classification]');
   await expect(classification).toBeVisible();
   return classification;
 }
@@ -285,6 +344,8 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
     const uatExpenseIds: string[] = [];
     let uatLaborBillingRuleId = '';
     let issuedInvoiceId = '';
+    let uatCustomerReportId = '';
+    let uatSignedSnapshotSha256 = '';
     let createdTimeSummary = 'Client Essential UAT actual time';
     const createdDailySummary = 'Client Essential UAT daily report';
     const createdTechnicalSystem = 'Client Essential UAT PLC';
@@ -313,6 +374,11 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
             waitUntil: 'networkidle',
           });
           await page.getByRole('button', { name: 'Create user', exact: true }).click();
+          await page
+            .locator('label')
+            .filter({ has: page.getByText('Access method', { exact: true }) })
+            .locator('select')
+            .selectOption({ label: 'Invitation link' });
           const form = page.locator('form[action="?view=team&/createInvitation"]');
           await expect(form).toBeVisible();
           await form.locator('input[name="email"]').fill(email);
@@ -504,7 +570,11 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         if (!uatProjectId)
           throw new Error('BLOCKED by step 3: no UAT project for commercial rules');
         await signInFresh(page, 'finance');
-        await navigate(page, '/finance?view=commercial');
+        await navigate(
+          page,
+          `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
+        );
+        await openFinanceConfiguration(page, 'Project commercial and time policy');
         const policy = page.locator('form[data-project-commercial-policy-form]');
         await expect(policy).toBeVisible();
         await policy.locator('select[name="projectId"]').selectOption(uatProjectId);
@@ -512,7 +582,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await policy.locator('input[name="overtimeEnabled"][type="checkbox"]').check();
         await policy.locator('input[name="overtimeThresholdMinutes"]').fill('480');
         await policy.locator('select[name="travelClientBillable"]').selectOption('true');
-        await policy.locator('select[name="customerSignoffRequired"]').selectOption('false');
+        await policy.locator('select[name="customerSignoffRequired"]').selectOption('true');
         await assertRoleSession(page, 'finance');
         await policy.getByRole('button', { name: 'Save project policy', exact: true }).click();
         await expectActionMessage(page, /policy|saved|updated/i);
@@ -522,9 +592,14 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           page,
           `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
-        await expect(page.locator('form[action="?/createCompensationRule"]')).toBeVisible();
-        await expect(page.locator('form[action="?/createInternalCostRule"]')).toBeVisible();
-        await expect(page.locator('form[action="?/createClientLaborRate"]')).toBeVisible();
+        for (const [action, formAction] of [
+          ['Worker compensation', 'createCompensationRule'],
+          ['Internal loaded cost', 'createInternalCostRule'],
+          ['Client labor rate', 'createClientLaborRate'],
+        ] as const) {
+          await openFinanceConfiguration(page, action);
+          await expect(page.locator(`form[action="?/${formAction}"]`)).toBeVisible();
+        }
 
         await navigate(
           page,
@@ -553,9 +628,11 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
         const clientRate = page.locator('form[action="?/createClientLaborRate"]');
+        await openFinanceConfiguration(page, 'Client labor rates');
         const existingClientRates = await page
           .locator('[aria-label="Client labor rates"] .record-list-item')
           .count();
+        await openFinanceConfiguration(page, 'Client labor rate');
         // The default visible choice is "All assigned workers", which
         // intentionally covers the UAT worker through project assignment.
         await clientRate.locator('input[name="category"]').fill('regular');
@@ -568,14 +645,17 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           page,
           `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
+        await openFinanceConfiguration(page, 'Client labor rates');
         await expect(
           page.locator('[aria-label="Client labor rates"] .record-list-item'),
         ).toHaveCount(existingClientRates + 1);
 
         const internalCost = page.locator('form[action="?/createInternalCostRule"]');
+        await openFinanceConfiguration(page, 'Assignment budget context / internal loaded cost');
         const existingInternalCosts = await page
           .locator('[aria-label="Internal cost rules"] .record-list-item')
           .count();
+        await openFinanceConfiguration(page, 'Internal loaded cost');
         await selectOptionContaining(
           internalCost.locator('select[name="workerId"]'),
           seeded.worker.name,
@@ -591,6 +671,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           page,
           `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
+        await openFinanceConfiguration(page, 'Assignment budget context / internal loaded cost');
         await expect(
           page.locator('[aria-label="Internal cost rules"] .record-list-item'),
         ).toHaveCount(existingInternalCosts + 1);
@@ -610,12 +691,14 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
         const form = page.locator('form[action="?/createCompensationRule"]').first();
+        await openFinanceConfiguration(page, 'Worker compensation');
+        await expect(form).toBeVisible();
         await selectOptionContaining(form.locator('select[name="workerId"]'), seeded.worker.name);
         await form.locator('select[name="projectId"]').selectOption(uatProjectId);
         await form
           .locator('select[name="ruleType"]')
           .selectOption('PercentageOfEligibleClientLabor');
-        await form.locator('input[data-minor-target="rateMinor"]').fill('0.00');
+        await expect(form.locator('input[data-minor-target="rateMinor"]')).toHaveCount(0);
         await form.locator('input[data-bps-target="percentageBps"]').fill('55');
         await form.locator('input[name="effectiveFrom"]').fill('2026-08-01');
         await assertRoleSession(page, 'finance');
@@ -626,12 +709,21 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           page,
           `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
+        await openFinanceConfiguration(page, 'Compensation statement rules');
         await expect(
           page
             .locator('[aria-label="Compensation rules"] .record-list-item')
             .filter({ hasText: 'PercentageOfEligibleClientLabor' })
             .first(),
         ).toContainText('PercentageOfEligibleClientLabor');
+        expect(
+          fixtureRows(
+            'SELECT percentage_bps FROM compensation_rule WHERE project_id=? AND worker_id=? AND rule_type=?',
+            uatProjectId,
+            seeded.worker.id,
+            'PercentageOfEligibleClientLabor',
+          ),
+        ).toEqual([expect.objectContaining({ percentage_bps: 5500 })]);
       },
       failures,
       page,
@@ -647,13 +739,31 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           page,
           `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
-        await expect(page.locator('#finance-policy-travel')).toHaveValue('true');
+        await openFinanceConfiguration(page, 'Project commercial and time policy');
+        await expect(page.locator('[data-project-commercial-policy-row]').last()).toContainText(
+          'Travel client billable: Yes',
+        );
+        expect(
+          fixtureRows(
+            'SELECT travel_client_billable,overtime_threshold_minutes FROM project_commercial_policy WHERE project_id=? ORDER BY version DESC LIMIT 1',
+            uatProjectId,
+          ),
+        ).toEqual([{ travel_client_billable: 1, overtime_threshold_minutes: 480 }]);
+        await openFinanceConfiguration(page, 'Client labor rate');
         await expect(page.locator('form[action="?/createClientLaborRate"]')).toBeVisible();
+        // The seeded closed project has immutable invoiced expenses. Inspect a
+        // genuinely editable fixture source rather than expecting a forbidden CTA.
+        const editable = fixtureRows(
+          `SELECT id,project_id FROM expense WHERE invoice_id IS NULL AND billing_lock_id IS NULL
+           AND billing_state NOT IN ('locked','invoiced','collected','paid') ORDER BY created_at,id LIMIT 1`,
+        )[0];
+        if (!editable)
+          throw new Error('No editable seeded expense is available for policy inspection');
         await navigate(
           page,
-          `/finance?view=commercial&project=${encodeURIComponent(seeded.project.id)}`,
+          `/finance?view=commercial&project=${encodeURIComponent(String(editable.project_id))}`,
         );
-        await openExpenseClassify(page);
+        await openExpenseClassify(page, String(editable.id));
         await expect(page.locator('[data-finance-expense-classification]').first()).toBeVisible();
         const preset = page
           .locator('[data-finance-expense-classification]')
@@ -679,6 +789,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           cadenceType: 'weekly' | 'monthly',
           templateId: 'labor-detailed' | 'expenses-detailed',
         ): Promise<string> => {
+          await navigate(page, `/billing?view=streams&project=${encodeURIComponent(uatProjectId)}`);
           await page.getByRole('tab', { name: 'Billing streams', exact: true }).click();
           const existingIds = new Set(
             await page
@@ -713,7 +824,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           await assertRoleSession(page, 'finance');
           await form.getByRole('button', { name: 'Save billing stream', exact: true }).click();
           await expectActionMessage(page, /billing stream|saved|created/i);
-          await page.getByRole('tab', { name: 'Billing streams', exact: true }).click();
+          await navigate(page, `/billing?view=streams&project=${encodeURIComponent(uatProjectId)}`);
           const createdId = (
             await page
               .locator('[data-billing-rule]')
@@ -804,8 +915,23 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await navigate(page, `/pay?start=${seededPeriod.start}&end=${seededPeriod.end}`);
         await expect(page.getByRole('heading', { name: 'My Pay', exact: true })).toBeVisible();
         await expect(
-          page.getByText('This view contains only your own time', { exact: false }),
+          page.getByText(
+            'Download your own activity, compensation, settlement, and reimbursement statement for this period.',
+            { exact: true },
+          ),
         ).toBeVisible();
+        const settlements = page.getByRole('table', { name: 'Settlement status', exact: true });
+        for (const heading of [
+          'Payment state',
+          'Expected payment',
+          'Latest actual payment',
+          'Actual paid',
+          'Remaining',
+        ]) {
+          await expect(
+            settlements.getByRole('columnheader', { name: heading, exact: true }),
+          ).toBeVisible();
+        }
         await expectWorkerProjection(
           page,
           `/pay?start=${seededPeriod.start}&end=${seededPeriod.end}`,
@@ -825,7 +951,10 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await page.setViewportSize({ width: 390, height: 844 });
         await signInFresh(page, 'worker');
         await navigate(page, '/reports');
-        await page.getByRole('button', { name: 'New daily report', exact: true }).click();
+        await page
+          .getByLabel('Create report', { exact: true })
+          .getByRole('button', { name: 'New daily report', exact: true })
+          .click();
         const form = page.locator('form[data-report-entry-surface="daily"]');
         await selectOptionContaining(
           form.locator('select[name="projectId"]'),
@@ -870,7 +999,10 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await signInFresh(page, 'worker');
         await navigate(page, '/reports');
         await page.getByRole('tab', { name: 'Technical / PLC', exact: true }).click();
-        await page.getByRole('button', { name: 'New technical report', exact: true }).click();
+        await page
+          .getByLabel('Create report', { exact: true })
+          .getByRole('button', { name: 'New technical report', exact: true })
+          .click();
         const form = page.locator('form[data-report-entry-surface="technical"]');
         await selectOptionContaining(
           form.locator('select[name="projectId"]'),
@@ -935,6 +1067,16 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await expect(
           page.getByText('client-essential-uat-plc-backup.pdf', { exact: true }),
         ).toBeVisible();
+        await navigate(page, '/reports');
+        await page.getByRole('tab', { name: 'Technical / PLC', exact: true }).click();
+        const submittedReport = page
+          .locator('.report-register-card')
+          .filter({ hasText: createdTechnicalSystem });
+        await submittedReport
+          .locator('form[action="?/submitReport"]')
+          .getByRole('button', { name: 'Submit', exact: true })
+          .click();
+        await expectActionMessage(page, /report submitted|submitted/i);
       },
       failures,
       page,
@@ -1036,6 +1178,28 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await expect(approve).toBeVisible();
         await approve.getByRole('button', { name: 'Approve', exact: true }).click();
         await expectActionMessage(page, /approval|approved|recorded/i);
+        const reports = fixtureRows(
+          `SELECT id FROM daily_report WHERE project_id=? AND summary=?
+           UNION ALL SELECT id FROM technical_report WHERE project_id=? AND system_name=?`,
+          uatProjectId,
+          createdDailySummary,
+          uatProjectId,
+          createdTechnicalSystem,
+        );
+        expect(reports).toHaveLength(2);
+        for (const report of reports) {
+          await navigate(
+            page,
+            `/approvals?tab=reports&project=${encodeURIComponent(uatProjectId)}`,
+          );
+          const reportRow = page.locator(`[data-approval-row="${String(report.id)}"]`);
+          await reportRow
+            .locator('form[action="?/reviewReport"]')
+            .first()
+            .getByRole('button', { name: 'Approve report', exact: true })
+            .click();
+          await expectActionMessage(page, /report|approved|recorded/i);
+        }
       },
       failures,
       page,
@@ -1099,12 +1263,13 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
     await runStep(
       20,
       async () => {
+        if (!uatExpenseIds[0]) throw new Error('BLOCKED by step 16: no all-in expense');
         await signInFresh(page, 'finance');
         await navigate(
           page,
-          `/finance?view=commercial&project=${encodeURIComponent(seeded.project.id)}`,
+          `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
-        const classification = await openExpenseClassify(page);
+        const classification = await openExpenseClassify(page, uatExpenseIds[0]);
         await expect(classification).toBeVisible();
         const expenseId = await classification.locator('input[name="expenseId"]').inputValue();
         expect(expenseId).toMatch(/^[0-9a-f-]{36}$/i);
@@ -1119,11 +1284,17 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           .click();
         await navigate(
           page,
-          `/finance?view=commercial&project=${encodeURIComponent(seeded.project.id)}`,
+          `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
         await expect(page.locator(`[data-finance-expense-id="${expenseId}"]`)).toContainText(
           'Classified',
         );
+        expect(
+          fixtureRows(
+            'SELECT approval_state,billing_treatment,invoice_id FROM expense WHERE id=?',
+            expenseId,
+          ),
+        ).toEqual([{ approval_state: 'approved', billing_treatment: 'all_in', invoice_id: null }]);
       },
       failures,
       page,
@@ -1133,12 +1304,13 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
     await runStep(
       21,
       async () => {
+        if (!uatExpenseIds[1]) throw new Error('BLOCKED by step 16: no reimbursable expense');
         await signInFresh(page, 'finance');
         await navigate(
           page,
-          `/finance?view=commercial&project=${encodeURIComponent(seeded.project.id)}`,
+          `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
-        const classification = await openExpenseClassify(page);
+        const classification = await openExpenseClassify(page, uatExpenseIds[1]);
         await classification
           .locator('select[name="expensePreset"]')
           .selectOption('reimbursable_at_cost');
@@ -1152,11 +1324,17 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           .click();
         await navigate(
           page,
-          `/finance?view=commercial&project=${encodeURIComponent(seeded.project.id)}`,
+          `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
         await expect(
           page.getByText('Expected client recovery', { exact: true }).first(),
         ).toBeVisible();
+        expect(
+          fixtureRows(
+            'SELECT approval_state,billing_treatment FROM expense WHERE id=?',
+            uatExpenseIds[1],
+          ),
+        ).toEqual([{ approval_state: 'approved', billing_treatment: 'reimbursable_at_cost' }]);
       },
       failures,
       page,
@@ -1166,24 +1344,238 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
     await runStep(
       22,
       async () => {
+        if (!uatLaborBillingRuleId || !uatTimeEntryId)
+          throw new Error('BLOCKED by steps 10/12: the causal labor billing scope is missing');
+        const invoiceScope = [uatLaborBillingRuleId, uatBillingPeriod.start, uatBillingPeriod.end];
+        expect(
+          fixtureRows(
+            'SELECT id FROM invoice WHERE billing_rule_id=? AND period_start=? AND period_end=?',
+            ...invoiceScope,
+          ),
+        ).toHaveLength(0);
+        expect(
+          fixtureRows(
+            'SELECT customer_signoff_required FROM project_commercial_policy WHERE project_id=? ORDER BY version DESC LIMIT 1',
+            uatProjectId,
+          ),
+        ).toEqual([{ customer_signoff_required: 1 }]);
         await signInFresh(page, 'finance');
+        await navigate(page, `/billing?view=streams&project=${encodeURIComponent(uatProjectId)}`);
+        const rule = page.locator(`[data-billing-rule="${uatLaborBillingRuleId}"]`);
+        const draftForm = rule.locator('form[action="?/createDraft"]');
+        await draftForm.locator('input[name="periodStart"]').fill(uatBillingPeriod.start);
+        await draftForm.locator('input[name="periodEnd"]').fill(uatBillingPeriod.end);
+        await submitAction(page, 'createDraft', () =>
+          draftForm.getByRole('button', { name: 'Create invoice draft', exact: true }).click(),
+        );
+        await expectActionMessage(page, /invoice.*draft|draft.*created|built/i);
+        const drafts = fixtureRows(
+          'SELECT id,project_id,state FROM invoice WHERE billing_rule_id=? AND period_start=? AND period_end=?',
+          ...invoiceScope,
+        );
+        expect(drafts).toHaveLength(1);
+        expect(drafts[0]).toMatchObject({ project_id: uatProjectId, state: 'draft' });
+        issuedInvoiceId = String(drafts[0]!.id);
+        await navigate(page, `/billing?view=invoices&project=${encodeURIComponent(uatProjectId)}`);
+        const draft = await openInvoiceManage(page, issuedInvoiceId);
+        await draft
+          .locator('form[action="?/approveInvoice"]')
+          .getByRole('button', { name: 'Approve', exact: true })
+          .click();
+        await expectActionMessage(page, /invoice|approved/i);
+        await navigate(page, `/billing?view=invoices&project=${encodeURIComponent(uatProjectId)}`);
+        const blocked = await openInvoiceManage(page, issuedInvoiceId);
+        const deniedResponse = page.waitForResponse(
+          (response) =>
+            response.request().method() === 'POST' && response.url().includes('?/issueInvoice'),
+        );
+        await blocked
+          .locator('form[action="?/issueInvoice"]')
+          .getByRole('button', { name: 'Issue invoice', exact: true })
+          .click();
+        const denied = await deniedResponse;
+        expect(denied.status()).toBe(409);
+        expect(await denied.text()).toContain('customer_signoff_required');
+        expect(fixtureRows('SELECT state FROM invoice WHERE id=?', issuedInvoiceId)).toEqual([
+          { state: 'approved' },
+        ]);
+        await expect(page.locator('[data-issue-blocker]')).toBeVisible();
+
+        // Close the exact labor stream through its product command. This locks
+        // the approved sources and creates the report pair for this invoice.
+        await navigate(
+          page,
+          `/billing?view=streams&project=${encodeURIComponent(uatProjectId)}&focus=${encodeURIComponent(uatLaborBillingRuleId)}`,
+        );
+        const closeDetails = page.locator(
+          `[data-billing-rule="${uatLaborBillingRuleId}"] details.billing-section__close-sources`,
+        );
+        await closeDetails.locator('summary').click();
+        const close = closeDetails.locator('form[action="?/closePeriod"]');
+        await close.locator('input[name="periodStart"]').fill(uatBillingPeriod.start);
+        await close.locator('input[name="periodEnd"]').fill(uatBillingPeriod.end);
+        await close.locator('select[name="reportLocale"]').selectOption('en');
+        await submitAction(page, 'closePeriod', () =>
+          close.getByRole('button', { name: 'Close sources', exact: true }).click(),
+        );
+        await expectActionMessage(page, /period closed|sources locked/i);
+        expect(
+          fixtureRows(
+            'SELECT state FROM billing_period WHERE billing_rule_id=? AND period_start=? AND period_end=?',
+            ...invoiceScope,
+          ),
+        ).toEqual([{ state: 'closed' }]);
+        const reports = fixtureRows(
+          'SELECT id,audience FROM period_report WHERE project_id=? AND period_start=? AND period_end=? ORDER BY audience',
+          uatProjectId,
+          uatBillingPeriod.start,
+          uatBillingPeriod.end,
+        );
+        expect(reports.map((report) => report.audience)).toEqual(['customer', 'internal']);
+        uatCustomerReportId = String(reports.find((report) => report.audience === 'customer')!.id);
         await navigate(page, '/reports');
         await page.locator('details.report-generator > summary').click();
         await page.locator('[data-report-generator-cta]').click();
         const form = page.locator('form[action="?/generatePeriodReports"]');
-        await expect(form).toBeVisible();
-        await selectOptionContaining(
-          form.locator('select[name="projectId"]'),
-          seeded.project.projectNumber,
-        );
-        await form.locator('input[name="periodStart"]').fill(seededPeriod.start);
-        await form.locator('input[name="periodEnd"]').fill(seededPeriod.end);
+        await form.locator('select[name="projectId"]').selectOption(uatProjectId);
+        await form.locator('input[name="periodStart"]').fill(uatBillingPeriod.start);
+        await form.locator('input[name="periodEnd"]').fill(uatBillingPeriod.end);
         await form.locator('select[name="reportLocale"]').selectOption('en');
-        await assertRoleSession(page, 'finance');
-        await form.getByRole('button', { name: 'Refresh reports', exact: true }).click();
+        await submitAction(page, 'generatePeriodReports', () =>
+          form.getByRole('button', { name: 'Refresh reports', exact: true }).click(),
+        );
         await expectActionMessage(page, /period reports|queued|refreshed/i);
-        await page.getByRole('tab', { name: 'Client Sign-off', exact: true }).click();
-        await expect(page.locator('[data-conformity-state]').first()).toBeVisible();
+        const workerRuns = [];
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const run = runFixtureArtifactWorker();
+          workerRuns.push(run);
+          expect(run.failed, JSON.stringify(workerRuns)).toBe(0);
+          if (
+            fixtureRows('SELECT pdf_sha256 FROM period_report WHERE id=?', uatCustomerReportId)[0]
+              ?.pdf_sha256
+          )
+            break;
+        }
+        await testInfo.attach('client-essential-fixture-artifact-worker.json', {
+          body: JSON.stringify(workerRuns, null, 2),
+          contentType: 'application/json',
+        });
+        const rendered = fixtureRows(
+          'SELECT snapshot_json,snapshot_version,snapshot_sha256,pdf_sha256,pdf_byte_length FROM period_report WHERE id=?',
+          uatCustomerReportId,
+        )[0]!;
+        const snapshot = JSON.parse(String(rendered.snapshot_json));
+        expect(snapshot.project.id).toBe(uatProjectId);
+        expect(snapshot.periodStart).toBe(uatBillingPeriod.start);
+        expect(snapshot.periodEnd).toBe(uatBillingPeriod.end);
+        expect(snapshot.audience).toBe('customer');
+        expect(snapshot.customerPrivacyVersion).toBeTruthy();
+        expect(String(rendered.snapshot_json)).not.toMatch(forbiddenFinanceKeyPattern);
+        for (const forbidden of [
+          'financialSummary',
+          'commercialSummary',
+          'commercialCalculation',
+          'expenses',
+        ])
+          expect(snapshot).not.toHaveProperty(forbidden);
+        expect(snapshot.timeSummary).toEqual(
+          expect.arrayContaining([expect.objectContaining({ id: uatTimeEntryId, minutes: 480 })]),
+        );
+        expect(
+          fixtureRows(
+            'SELECT source_id FROM report_source WHERE report_id=? AND source_type=?',
+            uatCustomerReportId,
+            'time_entry',
+          ),
+        ).toEqual([{ source_id: uatTimeEntryId }]);
+        expect(String(rendered.pdf_sha256)).toMatch(/^[a-f0-9]{64}$/u);
+        expect(Number(rendered.pdf_byte_length)).toBeGreaterThan(0);
+        await navigate(page, `/reports/period/${encodeURIComponent(uatCustomerReportId)}`);
+        await expect(page.locator('[data-signoff-form]')).toHaveCount(0);
+        const approve = page.locator('form[data-period-report-approval]');
+        await expect(approve.locator('input[name="expectedSnapshotVersion"]')).toHaveValue(
+          String(rendered.snapshot_version),
+        );
+        await expect(approve.locator('input[name="expectedSnapshotSha256"]')).toHaveValue(
+          String(rendered.snapshot_sha256),
+        );
+        await submitAction(page, 'approve', () =>
+          approve.getByRole('button', { name: 'Approve customer report', exact: true }).click(),
+        );
+        await expect(page.locator('[data-signoff-state]')).toHaveAttribute(
+          'data-signoff-state',
+          'ready_for_signature',
+        );
+        // A ready and approved PDF alone must still not release this invoice.
+        await navigate(page, `/billing?view=invoices&project=${encodeURIComponent(uatProjectId)}`);
+        const unsignedInvoice = await openInvoiceManage(page, issuedInvoiceId);
+        const unsignedResponse = page.waitForResponse(
+          (response) =>
+            response.request().method() === 'POST' && response.url().includes('?/issueInvoice'),
+        );
+        await unsignedInvoice
+          .locator('form[action="?/issueInvoice"]')
+          .getByRole('button', { name: 'Issue invoice', exact: true })
+          .click();
+        const unsignedDenied = await unsignedResponse;
+        expect(unsignedDenied.status()).toBe(409);
+        expect(await unsignedDenied.text()).toContain('customer_signoff_required');
+        await expect(
+          page.locator('[data-issue-blocker]').getByRole('link', { name: 'Open sign-off' }),
+        ).toHaveAttribute('href', `/j-aautomation/app/reports/period/${uatCustomerReportId}`);
+        expect(fixtureRows('SELECT state FROM invoice WHERE id=?', issuedInvoiceId)).toEqual([
+          { state: 'approved' },
+        ]);
+        await navigate(page, `/reports/period/${encodeURIComponent(uatCustomerReportId)}`);
+        const pdfLink = page.getByRole('link', { name: 'Preview customer-safe PDF', exact: true });
+        const pdf = await page.request.get(
+          new URL((await pdfLink.getAttribute('href'))!, page.url()).toString(),
+        );
+        expect(pdf.status()).toBe(200);
+        expect(pdf.headers()['content-type']).toMatch(/^application\/pdf/u);
+        const bytes = await pdf.body();
+        expect(createHash('sha256').update(bytes).digest('hex')).toBe(rendered.pdf_sha256);
+        expect(bytes.byteLength).toBe(Number(rendered.pdf_byte_length));
+        const sign = page.locator('form[data-signoff-form]');
+        await sign
+          .locator('input[name="signerName"]')
+          .fill('Synthetic Client Essential UAT Signer');
+        await sign
+          .locator('input[name="signerIdentity"]')
+          .fill('synthetic-uat-signer@example.test');
+        await sign
+          .locator('input[name="signatureDate"]')
+          .fill(new Date().toISOString().slice(0, 10));
+        await sign.locator('input[name="signatureFile"]').setInputFiles({
+          name: 'synthetic-uat-signed-copy.pdf',
+          mimeType: 'application/pdf',
+          buffer: bytes,
+        });
+        await submitAction(page, 'sign', () =>
+          sign
+            .getByRole('button', { name: 'Record verified signed-copy evidence', exact: true })
+            .click(),
+        );
+        await expect(page.locator('[data-signoff-state]')).toHaveAttribute(
+          'data-signoff-state',
+          'signed',
+        );
+        uatSignedSnapshotSha256 = String(rendered.snapshot_sha256);
+        expect(
+          fixtureRows(
+            'SELECT snapshot_version,snapshot_sha256,report_pdf_sha256 FROM customer_conformity WHERE period_report_id=?',
+            uatCustomerReportId,
+          ),
+        ).toEqual([
+          {
+            snapshot_version: rendered.snapshot_version,
+            snapshot_sha256: uatSignedSnapshotSha256,
+            report_pdf_sha256: rendered.pdf_sha256,
+          },
+        ]);
+        expect(fixtureRows('SELECT state FROM invoice WHERE id=?', issuedInvoiceId)).toEqual([
+          { state: 'approved' },
+        ]);
       },
       failures,
       page,
@@ -1193,48 +1585,28 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
     await runStep(
       23,
       async () => {
+        if (!issuedInvoiceId || !uatCustomerReportId || !uatSignedSnapshotSha256)
+          throw new Error(
+            'BLOCKED by step 22: the same labor invoice lacks its verified customer report/signature',
+          );
         await signInFresh(page, 'finance');
-        await navigate(page, '/billing');
+        await navigate(page, '/billing?view=invoices');
         await expectInvoiceIdentifiers(page);
-        if (!uatLaborBillingRuleId)
-          throw new Error('BLOCKED by step 10: no labor billing rule identity');
-        const existingInvoiceIds = new Set(
-          await page
-            .locator('tr[data-invoice-row]')
-            .evaluateAll((rows) =>
-              rows.map((row) => row.getAttribute('data-invoice-row')).filter(Boolean),
-            ),
-        );
-        await page.getByRole('tab', { name: 'Billing streams', exact: true }).click();
-        const rule = page.locator(`[data-billing-rule="${uatLaborBillingRuleId}"]`);
-        await expect(rule).toBeVisible();
-        const createDraft = rule.locator('form[action="?/createDraft"]');
-        await createDraft.locator('input[name="periodStart"]').fill('2026-08-24');
-        await createDraft.locator('input[name="periodEnd"]').fill('2026-08-30');
-        await assertRoleSession(page, 'finance');
-        await submitAction(page, 'createDraft', () =>
-          createDraft.getByRole('button', { name: 'Create invoice draft', exact: true }).click(),
-        );
-        await expectActionMessage(page, /invoice.*draft|draft.*created|built/i);
-        await navigate(page, '/billing');
-        const createdInvoiceId = (
-          await page
-            .locator('tr[data-invoice-row]')
-            .evaluateAll((rows) =>
-              rows.map((row) => row.getAttribute('data-invoice-row')).filter(Boolean),
-            )
-        ).find((id) => !existingInvoiceIds.has(id));
-        if (!createdInvoiceId) throw new Error('Created invoice draft identity was not exposed');
-        issuedInvoiceId = createdInvoiceId;
-        expect(issuedInvoiceId).toMatch(/^[0-9a-f-]{36}$/i);
-        const draft = await openInvoiceManage(page, issuedInvoiceId);
-        await assertRoleSession(page, 'finance');
-        await draft
-          .locator('form[action="?/approveInvoice"]')
-          .getByRole('button', { name: 'Approve', exact: true })
-          .click();
-        await expectActionMessage(page, /invoice|approved/i);
-        await navigate(page, '/billing');
+        await navigate(page, `/billing?view=invoices&project=${encodeURIComponent(uatProjectId)}`);
+        expect(
+          fixtureRows(
+            'SELECT project_id,billing_rule_id,period_start,period_end,state FROM invoice WHERE id=?',
+            issuedInvoiceId,
+          ),
+        ).toEqual([
+          {
+            project_id: uatProjectId,
+            billing_rule_id: uatLaborBillingRuleId,
+            period_start: uatBillingPeriod.start,
+            period_end: uatBillingPeriod.end,
+            state: 'approved',
+          },
+        ]);
         const issueable = await openInvoiceManage(page, issuedInvoiceId);
         const issue = issueable.locator('form[action="?/issueInvoice"]');
         await expect(issue).toBeVisible();
@@ -1243,12 +1615,29 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           issue.getByRole('button', { name: 'Issue invoice', exact: true }).click(),
         );
         await expectActionMessage(page, /invoice|issued|sent/i);
+        await navigate(page, `/billing?view=invoices&project=${encodeURIComponent(uatProjectId)}`);
         const issuedRow = page.locator(`tr[data-invoice-row="${issuedInvoiceId}"]`);
         await expect(issuedRow).toContainText(/Issued|Sent|Partially paid|Paid|Overdue/i);
         await expect(issuedRow.locator('[data-invoice-pdf-status]')).toHaveAttribute(
           'data-invoice-pdf-status',
           /queued|running|ready/,
         );
+        expect(
+          fixtureRows(
+            'SELECT source_id FROM invoice_source WHERE invoice_id=? AND source_type=?',
+            issuedInvoiceId,
+            'time',
+          ),
+        ).toEqual([{ source_id: uatTimeEntryId }]);
+        expect(
+          fixtureRows('SELECT snapshot_sha256 FROM period_report WHERE id=?', uatCustomerReportId),
+        ).toEqual([{ snapshot_sha256: uatSignedSnapshotSha256 }]);
+        expect(
+          fixtureRows(
+            'SELECT snapshot_sha256 FROM customer_conformity WHERE period_report_id=?',
+            uatCustomerReportId,
+          ),
+        ).toEqual([{ snapshot_sha256: uatSignedSnapshotSha256 }]);
       },
       failures,
       page,
@@ -1259,7 +1648,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
       24,
       async () => {
         await signInFresh(page, 'finance');
-        await navigate(page, '/billing');
+        await navigate(page, `/billing?view=invoices&project=${encodeURIComponent(uatProjectId)}`);
         if (!issuedInvoiceId) throw new Error('BLOCKED by step 23: no issued invoice identity');
         const issued = await openInvoiceManage(page, issuedInvoiceId);
         await issued.locator('summary').filter({ hasText: 'Record payment' }).click();
@@ -1275,6 +1664,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await assertRoleSession(page, 'finance');
         await paymentForm.getByRole('button', { name: 'Record payment', exact: true }).click();
         await expectActionMessage(page, /payment recorded|recorded/i);
+        await navigate(page, `/billing?view=invoices&project=${encodeURIComponent(uatProjectId)}`);
         await expect(page.locator(`tr[data-invoice-row="${issuedInvoiceId}"]`)).toContainText(
           /Partially paid|Paid/i,
         );

@@ -1,232 +1,199 @@
-import { createDatabase } from '@ja/database';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { readManualSourceIdentity } from '../../scripts/manual-source-identity.js';
-import { e2eCredentials, portal, signIn } from './auth.js';
-import { e2eDatabasePath, readE2EFixturePointer } from './environment.js';
+import { portal } from './auth.js';
+import { readE2EFixturePointer } from './environment.js';
+import {
+  seedSupplierPersonas,
+  signInManualPersona,
+  type ManualPersonaAccount,
+} from './manual-persona-fixture.js';
 
-test('capture current manuals from authenticated synthetic application screens', async ({
+type Persona =
+  | 'owner'
+  | 'finance'
+  | 'manager'
+  | 'auditor'
+  | 'worker'
+  | 'supplier-coordinator'
+  | 'external-technician';
+type Locale = 'en' | 'pt';
+type Capture = {
+  persona: Persona;
+  locale: Locale;
+  key: string;
+  role: Persona;
+  route: string;
+  path: string;
+  sha256: string;
+  capturedAt: string;
+  viewport: { width: number; height: number };
+};
+
+const desktop = { width: 1440, height: 900 };
+const phone = { width: 390, height: 844 };
+const personas: ReadonlyArray<{ persona: Persona; account: ManualPersonaAccount }> = [
+  { persona: 'owner', account: 'owner' },
+  { persona: 'finance', account: 'finance' },
+  { persona: 'manager', account: 'manager' },
+  { persona: 'auditor', account: 'auditor' },
+  { persona: 'worker', account: 'worker' },
+  { persona: 'supplier-coordinator', account: 'supplierCoordinator' },
+  { persona: 'external-technician', account: 'worker2' },
+];
+
+function urlFor(route: string, locale: Locale) {
+  const url = new URL(portal(route));
+  url.searchParams.set('lang', locale);
+  return url;
+}
+
+test('capture fresh synthetic EN and PT-BR manuals for seven personas', async ({
   browser,
 }, info) => {
-  test.skip(info.project.name !== 'desktop', 'The capture explicitly includes desktop and phone.');
-  test.setTimeout(240_000);
-  readE2EFixturePointer();
+  test.skip(info.project.name !== 'desktop', 'This run includes desktop and phone screenshots.');
+  test.setTimeout(420_000);
+  const pointer = readE2EFixturePointer();
   const root = process.cwd();
   const identity = readManualSourceIdentity(root);
-  const { sqlite } = createDatabase(e2eDatabasePath);
-  let projectId: string, periodId: string, invoiceId: string;
-  try {
-    projectId = (
-      sqlite
-        .prepare(
-          `SELECT p.id FROM project p JOIN project_member pm ON pm.project_id=p.id
-      JOIN user u ON u.id=pm.user_id WHERE u.email=? AND pm.status='active' AND p.status='active'
-      ORDER BY p.id LIMIT 1`,
-        )
-        .get(e2eCredentials.worker.email) as { id: string }
-    ).id;
-    periodId = (
-      sqlite
-        .prepare(
-          "SELECT id FROM period_report WHERE audience='customer' AND length(snapshot_sha256)=64 ORDER BY created_at,id LIMIT 1",
-        )
-        .get() as { id: string }
-    ).id;
-    invoiceId = (
-      sqlite.prepare('SELECT id FROM invoice ORDER BY id LIMIT 1').get() as { id: string }
-    ).id;
-  } finally {
-    sqlite.close();
-  }
-  const common = [
-    ['projects', '/projects'],
-    ['time', '/time'],
-    ['reports', '/reports'],
-    ['expenses', '/expenses'],
-    ['documents', '/documents'],
-    ['profile', '/profile'],
-    ['help', '/help'],
-    ['notifications', '/notifications'],
-  ];
-  const routes = {
-    owner: [
-      ['today', ''],
-      ...common,
-      ['clients', '/projects?view=clients'],
-      ['team', '/projects?view=team'],
-      ['planning', '/planning'],
-      ['project-detail', `/projects/${projectId}`],
-      ['approvals', '/approvals'],
-      ['billing', '/billing'],
-      ['invoice-detail', `/billing/invoices/${invoiceId}`],
-      ['finance', '/finance'],
-      ['economic', '/finance?view=economic'],
-      ['commercial', '/finance?view=commercial'],
-      ['ledger', '/ledger'],
-      ['accounting', '/accounting'],
-      ['audit', '/audit'],
-      ['preview', '/finance/preview'],
-      ['cash', '/finance/cash'],
-      ['period-review', '/reports/review'],
-      ['period-detail', `/reports/period/${periodId}`],
-      ['closeout', `/projects/${projectId}/closeout`],
-      ['supplier', '/supplier'],
-    ],
-    worker: [
-      ['home', ''],
-      ...common,
-      ['pay', '/pay'],
-      ['project-detail', `/projects/${projectId}`],
-    ],
-  } as const;
-  const screenshots: Array<{
-    key: string;
-    role: string;
-    route: string;
-    path: string;
-    sha256: string;
-    viewport: { width: number; height: number };
-  }> = [];
-  const checks: Array<{ name: string; status: string; httpStatus?: number }> = [];
-  for (const role of ['owner', 'worker'] as const) {
-    const context = await browser.newContext({
-      viewport: { width: 1440, height: 900 },
-      deviceScaleFactor: 1,
+  const screenshots: Capture[] = [];
+  const checks: Array<{ name: string; status: 'passed'; httpStatus?: number }> = [];
+  let supplierProjectId: string | undefined;
+
+  async function navigate(page: Page, route: string, locale: Locale) {
+    const requested = urlFor(route, locale);
+    const response = await page.goto(requested.toString(), { waitUntil: 'networkidle' });
+    expect(response?.status(), `${route} ${locale}`).toBe(200);
+    await expect(page.locator('html'), `${route} must render in ${locale}`).toHaveAttribute(
+      'lang',
+      locale === 'pt' ? 'pt-BR' : 'en-US',
+    );
+    await expect(page.locator('main').first()).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    const url = new URL(page.url());
+    checks.push({
+      name: `navigation:${url.pathname}${url.search}`,
+      status: 'passed',
+      httpStatus: 200,
     });
-    const page = await context.newPage();
-    await signIn(page, role);
-    for (const [key, route] of routes[role]) {
-      const response = await page.goto(portal(route), { waitUntil: 'networkidle' });
-      expect(response?.status(), `${role} ${route}`).toBe(200);
-      await expect(page.locator('main').first()).toBeVisible();
-      await page.evaluate(() => document.fonts.ready);
-      const path = `docs/manuals/screenshots/current/${role}/${key}.png`;
-      mkdirSync(dirname(resolve(root, path)), { recursive: true });
-      await page.screenshot({ path: resolve(root, path), fullPage: false });
-      screenshots.push({
-        key,
-        role,
-        route: `/app${route}`,
-        path,
-        sha256: createHash('sha256')
-          .update(readFileSync(resolve(root, path)))
-          .digest('hex'),
-        viewport: { width: 1440, height: 900 },
-      });
-      checks.push({ name: `navigation:${role}:/app${route}`, status: 'passed', httpStatus: 200 });
-      if (role === 'worker' && ['time', 'expenses', 'reports'].includes(key)) {
-        const selector =
-          key === 'time'
-            ? '[data-time-primary-cta]'
-            : key === 'expenses'
-              ? '[data-expense-primary-cta]'
-              : '[data-report-primary-cta]';
-        await page.locator(selector).first().click();
-        await expect(page.getByRole('dialog').first()).toBeVisible();
-        const formPath = `docs/manuals/screenshots/current/${role}/${key}-form.png`;
-        await page.screenshot({ path: resolve(root, formPath), fullPage: false });
-        screenshots.push({
-          key: `${key}-form`,
-          role,
-          route: `/app${route}`,
-          path: formPath,
-          sha256: createHash('sha256')
-            .update(readFileSync(resolve(root, formPath)))
-            .digest('hex'),
-          viewport: { width: 1440, height: 900 },
-        });
-        checks.push({ name: `form-open:${role}:/app${route}`, status: 'passed' });
-      }
-    }
-    if (role === 'worker')
-      for (const route of [
-        '/billing',
-        '/finance',
-        '/approvals',
-        '/accounting',
-        '/audit',
-        '/finance/preview',
-        '/finance/cash',
-      ]) {
-        const response = await page.goto(portal(route));
-        expect(response?.status(), `worker must be denied ${route}`).toBe(403);
-        checks.push({ name: `denied:worker:/app${route}`, status: 'passed', httpStatus: 403 });
-      }
-    await page.setViewportSize({ width: 390, height: 844 });
-    for (const [key, route] of role === 'owner'
-      ? [
-          ['cash-phone', '/finance/cash'],
-          ['period-review-phone', '/reports/review'],
-        ]
-      : [
-          ['time-phone', '/time'],
-          ['expenses-phone', '/expenses'],
-        ]) {
-      const response = await page.goto(portal(route), { waitUntil: 'networkidle' });
-      expect(response?.status()).toBe(200);
-      const path = `docs/manuals/screenshots/current/${role}/${key}.png`;
-      await page.screenshot({ path: resolve(root, path), fullPage: false });
-      screenshots.push({
-        key,
-        role,
-        route: `/app${route}`,
-        path,
-        sha256: createHash('sha256')
-          .update(readFileSync(resolve(root, path)))
-          .digest('hex'),
-        viewport: { width: 390, height: 844 },
-      });
-      checks.push({
-        name: `navigation:phone:${role}:/app${route}`,
-        status: 'passed',
-        httpStatus: 200,
-      });
-    }
-    await context.close();
+    return url;
   }
-  // Supplier captures are produced by the dedicated supplier workflow fixture.
-  // Keep those approved synthetic screens in the shared manual manifest so the
-  // role-specific Owner and Worker guides remain reproducible without creating
-  // supplier accounts in this read-only navigation pass.
-  for (const capture of [
-    {
-      key: 'supplier-team',
-      role: 'worker',
-      route: '/app/supplier',
-      path: 'docs/manuals/screenshots/current/supplier/team.png',
-      viewport: { width: 1440, height: 900 },
-    },
-    {
-      key: 'supplier-report',
-      role: 'worker',
-      route: '/app/supplier/report',
-      path: 'docs/manuals/screenshots/current/supplier/report.png',
-      viewport: { width: 1440, height: 900 },
-    },
-  ] as const) {
+
+  async function capture(
+    page: Page,
+    persona: Persona,
+    locale: Locale,
+    key: string,
+    url: URL,
+    target?: Locator,
+  ) {
+    const path = `docs/manuals/screenshots/current/${persona}/${locale}/${key}.png`;
+    mkdirSync(dirname(resolve(root, path)), { recursive: true });
+    if (target) await target.screenshot({ path: resolve(root, path) });
+    else await page.screenshot({ path: resolve(root, path), fullPage: false });
     screenshots.push({
-      ...capture,
+      persona,
+      locale,
+      key,
+      role: persona,
+      route: `${url.pathname.replace(/^\/j-aautomation/, '')}${url.search}`,
+      path,
       sha256: createHash('sha256')
-        .update(readFileSync(resolve(root, capture.path)))
+        .update(readFileSync(resolve(root, path)))
         .digest('hex'),
+      capturedAt: new Date().toISOString(),
+      viewport: page.viewportSize()!,
     });
-    checks.push({ name: `supplier-capture:${capture.route}`, status: 'passed' });
+    checks.push({ name: `capture:${persona}:${locale}:${key}`, status: 'passed' });
   }
+
+  for (const { persona, account } of personas) {
+    if (persona === 'supplier-coordinator')
+      supplierProjectId = seedSupplierPersonas(pointer.databasePath);
+    for (const locale of ['en', 'pt'] as const) {
+      const context = await browser.newContext({
+        viewport: desktop,
+        deviceScaleFactor: 1,
+        locale: locale === 'pt' ? 'pt-BR' : 'en-US',
+      });
+      const page = await context.newPage();
+      try {
+        await signInManualPersona(page, account);
+        for (const [key, route] of [
+          ['home', ''],
+          ['help', '/help'],
+          ['profile', '/profile'],
+        ] as const) {
+          const url = await navigate(page, route, locale);
+          await capture(page, persona, locale, key, url);
+        }
+        if (persona === 'owner' || persona === 'manager') {
+          const url = await navigate(page, '/planning', locale);
+          const calendar = page.locator('[data-ui=planning-calendar]').first();
+          await expect(calendar).toBeVisible();
+          await capture(page, persona, locale, 'planning-month', url, calendar);
+          await calendar.locator('[aria-current=date]').click();
+          const form = page.locator('form[action="?/createPlanning"]');
+          await expect(form).toBeVisible();
+          await capture(page, persona, locale, 'planning-editor', url, form);
+        }
+        if (['owner', 'finance', 'manager', 'worker'].includes(persona)) {
+          const url = await navigate(page, '/profile', locale);
+          const calendar = page.locator('[data-availability-calendar]');
+          await expect(calendar).toBeVisible();
+          await capture(page, persona, locale, 'availability-month', url, calendar);
+          await calendar.locator('[aria-current=date]').click();
+          const dialog = page.getByRole('dialog');
+          await expect(dialog).toBeVisible();
+          await capture(page, persona, locale, 'availability-editor', url, dialog);
+        }
+        if (persona === 'worker') {
+          const url = await navigate(page, '/projects', locale);
+          const calendar = page.locator('[data-project-calendar]');
+          await calendar.locator('summary').click();
+          await expect(calendar.locator('[data-ui=planning-calendar]')).toBeVisible();
+          await capture(page, persona, locale, 'projects-month', url, calendar);
+        }
+        if (persona === 'finance') {
+          const url = await navigate(page, '/finance', locale);
+          await capture(page, persona, locale, 'finance', url);
+        }
+        if (persona === 'auditor') {
+          const url = await navigate(page, '/audit', locale);
+          await capture(page, persona, locale, 'audit', url);
+        }
+        if (persona === 'supplier-coordinator') {
+          const url = await navigate(page, `/supplier?projectId=${supplierProjectId}`, locale);
+          await capture(page, persona, locale, 'supplier-team', url);
+        }
+        if (persona === 'external-technician') {
+          const url = await navigate(page, '/time', locale);
+          await capture(page, persona, locale, 'time', url);
+        }
+        await page.setViewportSize(phone);
+        const url = await navigate(page, '', locale);
+        await capture(page, persona, locale, 'home-phone', url);
+      } finally {
+        await context.close();
+      }
+    }
+  }
+
   expect(readManualSourceIdentity(root).sourceDigest).toBe(identity.sourceDigest);
+  expect(screenshots.filter((capture) => capture.key === 'home')).toHaveLength(14);
   const manifest = {
     ...identity,
     capturedAt: new Date().toISOString(),
     environment: 'synthetic',
-    scope:
-      'Authenticated navigation, authorization denials and screenshot evidence; full functional lifecycle tests are recorded separately.',
+    scope: 'Real authenticated synthetic portal screens for seven personas in EN/PT-BR.',
     screenshots,
     checks,
   };
   mkdirSync(resolve(root, 'docs/manuals/validation'), { recursive: true });
   writeFileSync(
     resolve(root, 'docs/manuals/validation/current-capture.json'),
-    JSON.stringify(manifest, null, 2) + '\n',
+    `${JSON.stringify(manifest, null, 2)}\n`,
   );
 });

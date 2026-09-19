@@ -3,6 +3,8 @@
   import { FormCard, FormSection, FieldGroup, Field, formValidation } from '../ui';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
+  import { documentLanguage, type PortalLocale } from '../../portal-i18n';
+  import { paymentMoney } from '../payment-money';
 
   let {
     data,
@@ -10,8 +12,10 @@
     isAuditor,
     translate,
     controlledValue,
+    locale = 'en',
   }: {
     data: PortalData;
+    locale?: PortalLocale;
     availableProjects: Row[];
     isAuditor: boolean;
     translate: (value: string) => string;
@@ -19,6 +23,18 @@
   } = $props();
 
   let compensationRuleType = $state('Hourly');
+
+  function compensationRuleLabel(ruleType: string): string {
+    const labels: Record<string, string> = {
+      Hourly: 'Hourly',
+      Daily: 'Daily',
+      FixedPerBillingPeriod: 'Fixed per billing period',
+      FixedProjectAmount: 'Fixed project amount',
+      PercentageOfEligibleClientLabor: 'Percentage of eligible client labor',
+      CustomApprovedAdjustment: 'Custom approved adjustment',
+    };
+    return translate(labels[ruleType] ?? ruleType);
+  }
 
   const rowValue = (row: Row, ...keys: string[]): string => {
     for (const key of keys) {
@@ -114,7 +130,7 @@
   const moneyLabel = (row: Row, ...keys: string[]): string => {
     const value = rowValue(row, ...keys);
     const currency = rowValue(row, 'currency');
-    return value ? `${minorToDecimal(value)} ${currency}`.trim() : '—';
+    return value ? paymentMoney(value, currency || 'USD', documentLanguage(locale)) : '—';
   };
 
   const booleanValue = (row: Row, ...keys: string[]): boolean =>
@@ -494,13 +510,13 @@
                       )}</strong
                     >
                     <small>
-                      {rowValue(rule, 'ruleType', 'rule_type')} · {moneyLabel(
+                      {compensationRuleLabel(rowValue(rule, 'ruleType', 'rule_type'))} · {moneyLabel(
                         rule,
                         'rateMinor',
                         'rate_minor',
                       )}
                       · {rowValue(rule, 'effectiveFrom', 'effective_from')} →
-                      {rowValue(rule, 'effectiveTo', 'effective_to') || 'open'}
+                      {rowValue(rule, 'effectiveTo', 'effective_to') || translate('open-ended')}
                     </small>
                   </div>
                   <div class="form-actions">
@@ -671,7 +687,7 @@
                         'hourly_rate_minor',
                       )}
                       · {rowValue(rule, 'effectiveFrom', 'effective_from')} →
-                      {rowValue(rule, 'effectiveTo', 'effective_to') || 'open'}
+                      {rowValue(rule, 'effectiveTo', 'effective_to') || translate('open-ended')}
                     </small>
                   </div>
                   <div class="form-actions">
@@ -805,7 +821,7 @@
                     <small>
                       {moneyLabel(rule, 'hourlyRateMinor', 'hourly_rate_minor')} ·
                       {rowValue(rule, 'effectiveFrom', 'effective_from')} →
-                      {rowValue(rule, 'effectiveTo', 'effective_to') || 'open'}
+                      {rowValue(rule, 'effectiveTo', 'effective_to') || translate('open-ended')}
                     </small>
                   </div>
                   <div class="form-actions">

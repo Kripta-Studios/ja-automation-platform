@@ -322,7 +322,7 @@ export const handle: Handle = async ({ event, resolve }) => {
               new Response(null, {
                 status: 303,
                 headers: {
-                  location: `${portalBase}/${profile.profile === 'supplier_coordinator' ? 'supplier' : 'time'}`,
+                  location: `${portalBase}/${profile.profile === 'supplier_coordinator' ? 'supplier' : 'time'}?lang=${requestLocale(event)}`,
                 },
               }),
               true,

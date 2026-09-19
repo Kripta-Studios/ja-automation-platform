@@ -31,6 +31,15 @@ describe('authenticated shell i18n coverage', () => {
     expect(shell).toContain('data-portal-live-text');
   });
 
+  it('uses localized titles instead of route codes in breadcrumbs and print headings', () => {
+    const shell = source('lib/PortalShell.svelte');
+    expect(shell).not.toContain('data.section.toUpperCase()');
+    expect(shell).toContain('J&A / {translate(currentTitle)}');
+    expect(shell).toContain(
+      "portalText(locale, 'Report: {title}', { title: translate(currentTitle) })",
+    );
+  });
+
   it('renders record-link copy in the DOM instead of CSS pseudo-content', () => {
     const css = [
       resolve(sourceRoot, 'styles/portal/surfaces.css'),

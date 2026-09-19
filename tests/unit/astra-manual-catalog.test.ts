@@ -1,92 +1,93 @@
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  manualCatalog,
   manualForRole,
+  manualPersonas,
   manualRevision,
   manualsForRole,
   normalizeManualLocale,
+  personaForRole,
   readManualPdf,
 } from '../../apps/portal/src/lib/server/manual-catalog.ts';
 
-describe('ASTRA Help manual catalog', () => {
-  it('keeps the revision and locale aliases deterministic', () => {
-    expect(manualRevision).toBe('2026-09-14');
-    expect(normalizeManualLocale(undefined)).toBe('en');
-    expect(normalizeManualLocale('ES-es')).toBe('es');
+const references = [
+  'worker-reference',
+  'project-manager-reference',
+  'finance-reference',
+  'owner-reference',
+  'auditor-reference',
+  'supplier-coordinator-reference',
+  'external-technician-reference',
+];
+
+describe('Help manual catalog', () => {
+  it('uses seven distinct operational personas and current EN/PT-BR assets', () => {
+    expect(manualRevision).toBe('2026-09-19');
+    expect(manualPersonas).toHaveLength(7);
+    for (const id of references) {
+      const manual = manualCatalog.find((item) => item.id === id);
+      expect(manual?.locales).toEqual(['en', 'pt']);
+      expect(manual?.assets.en?.sourceName).toMatch(/\.pdf$/u);
+      expect(manual?.assets.pt?.sourceName).toMatch(/_PT-BR\.pdf$/u);
+      expect(manual?.assets.en?.sourceName).not.toBe(manual?.assets.pt?.sourceName);
+    }
     expect(normalizeManualLocale('pt_BR')).toBe('pt');
+    expect(normalizeManualLocale('ES-es')).toBe('es');
     expect(normalizeManualLocale('fr')).toBeNull();
   });
 
-  it('gives every known authenticated role the worker guides but protects the owner reference', () => {
-    for (const role of [
-      'worker',
-      'project_manager',
-      'finance_admin',
-      'owner_admin',
-      'auditor_read_only',
-    ]) {
-      expect(manualsForRole(role).map((manual) => manual.id)).toEqual(
-        role === 'finance_admin' || role === 'owner_admin'
-          ? ['employee-field-guide', 'worker-reference', 'owner-reference']
-          : ['employee-field-guide', 'worker-reference'],
-      );
+  it('assigns the right guide and does not leak Worker/My Pay or Owner-only instructions', () => {
+    const matrix = [
+      ['worker', undefined, ['employee-field-guide', 'worker-reference']],
+      ['project_manager', undefined, ['project-manager-reference']],
+      ['finance_admin', undefined, ['finance-reference']],
+      ['auditor_read_only', undefined, ['auditor-reference']],
+      ['worker', 'supplier_coordinator', ['supplier-coordinator-reference']],
+      ['worker', 'external_technician', ['external-technician-reference']],
+    ] as const;
+    for (const [role, profile, ids] of matrix) {
+      expect(manualsForRole(role, profile).map((manual) => manual.id)).toEqual(ids);
+      for (const id of references)
+        expect(Boolean(manualForRole(id, role, profile))).toBe(
+          (ids as readonly string[]).includes(id),
+        );
+      expect(personaForRole(role, profile)).toBeTruthy();
     }
-    expect(manualsForRole('worker').map((manual) => [manual.id, manual.revision])).toEqual([
-      ['employee-field-guide', '2026-09-14'],
-      ['worker-reference', '2026-09-14'],
+    expect(manualsForRole('owner_admin').map((manual) => manual.id)).toEqual([
+      'owner-reference',
+      'worker-reference',
+      'project-manager-reference',
+      'finance-reference',
+      'auditor-reference',
+      'supplier-coordinator-reference',
+      'external-technician-reference',
     ]);
-    expect(manualsForRole('owner_admin').map((manual) => [manual.id, manual.revision])).toEqual([
-      ['employee-field-guide', '2026-09-14'],
-      ['worker-reference', '2026-09-14'],
-      ['owner-reference', '2026-09-14'],
-    ]);
+    expect(manualForRole('employee-field-guide', 'owner_admin')).toBeNull();
     expect(manualsForRole('unknown')).toEqual([]);
-    expect(manualForRole('owner-reference', 'worker')).toBeNull();
-    expect(manualForRole('owner-reference', 'auditor_read_only')).toBeNull();
-    expect(manualForRole('owner-reference', 'finance_admin')).toMatchObject({
-      audience: 'owner',
-      locales: ['en', 'pt'],
-    });
   });
 
-  it('reads the allowlisted localized PDF rather than a caller-supplied path', async () => {
-    const manual = manualForRole('employee-field-guide', 'worker');
-    if (!manual) throw new Error('worker quick guide is missing');
-    const bytes = await readManualPdf(manual, 'es');
-    expect(bytes.subarray(0, 5).toString('ascii')).toBe('%PDF-');
-    expect(bytes.byteLength).toBeGreaterThan(100_000);
-  });
-
-  it.each(['worker-reference', 'owner-reference'])(
-    'serves the distinct Brazilian Portuguese %s PDF',
-    async (id) => {
-      const manual = manualForRole(id, 'owner_admin');
-      if (!manual) throw new Error('Detailed reference is missing');
-      expect(manual.locales).toContain('pt');
-      expect(manual.assets.pt?.sourceName).toMatch(/_PT-BR\.pdf$/);
-      const [english, portuguese] = await Promise.all([
-        readManualPdf(manual, 'en'),
-        readManualPdf(manual, 'pt'),
-      ]);
-      expect(portuguese.subarray(0, 5).toString('ascii')).toBe('%PDF-');
-      expect(portuguese.equals(english)).toBe(false);
-    },
-  );
-
-  it('resolves checked-in manuals when the portal starts from its package directory', async () => {
-    const originalCwd = process.cwd();
-    const configuredRoot = process.env.JA_MANUAL_ROOT;
+  it('reads allowlisted PDFs from the portal working directory', async () => {
+    const cwd = process.cwd();
+    const configured = process.env.JA_MANUAL_ROOT;
     delete process.env.JA_MANUAL_ROOT;
-    process.chdir(join(originalCwd, 'apps/portal'));
+    process.chdir(join(cwd, 'apps/portal'));
     try {
-      const manual = manualForRole('employee-field-guide', 'worker');
-      if (!manual) throw new Error('worker quick guide is missing');
-      const bytes = await readManualPdf(manual, 'en');
-      expect(bytes.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+      for (const id of references) {
+        const manual = manualForRole(id, 'owner_admin');
+        if (!manual) throw new Error(`Missing guide ${id}`);
+        const [english, portuguese] = await Promise.all([
+          readManualPdf(manual, 'en'),
+          readManualPdf(manual, 'pt'),
+        ]);
+        expect(english.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+        expect(portuguese.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+        expect(english.equals(portuguese)).toBe(false);
+      }
     } finally {
-      process.chdir(originalCwd);
-      if (configuredRoot === undefined) delete process.env.JA_MANUAL_ROOT;
-      else process.env.JA_MANUAL_ROOT = configuredRoot;
+      process.chdir(cwd);
+      if (configured === undefined) delete process.env.JA_MANUAL_ROOT;
+      else process.env.JA_MANUAL_ROOT = configured;
     }
   });
 });

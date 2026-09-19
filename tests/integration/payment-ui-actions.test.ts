@@ -124,8 +124,8 @@ describe('Client Essential payment billing action boundary', () => {
 
   it('formats ledger/payment minor units without converting cents through Number', () => {
     expect(collectionsLedgerSection).toContain("import { paymentMoney } from '../payment-money';");
-    expect(collectionsLedgerSection).toContain(
-      "return amount ? paymentMoney(amount, value(row, 'currency') || 'USD') : '—';",
+    expect(collectionsLedgerSection).toMatch(
+      /paymentMoney\(amount, value\(row, 'currency'\) \|\| 'USD', documentLanguage\(locale\)\)/,
     );
     expect(collectionsLedgerSection).not.toContain('Number(');
     expect(collectionsLedgerSection).not.toContain('money(String(row.totalMinor)');

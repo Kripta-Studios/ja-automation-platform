@@ -70,7 +70,6 @@
     formValue,
     hours,
     initials,
-    money,
   } from './portal/portal-format';
   import { configureOfflineIdentity, queueMutation, type OfflineAttachment } from './offline';
   import { paymentMoney } from './portal/payment-money';
@@ -1032,13 +1031,15 @@
         <small>{translate('INDUSTRIAL AUTOMATION · FIELD SERVICES')}</small>
       </div>
       <div class="print-meta">
-        <span>{translate(`${data.section.toUpperCase()} REPORT`)}</span>
+        <span data-portal-live-text
+          >{portalText(locale, 'Report: {title}', { title: translate(currentTitle) })}</span
+        >
         <strong>{new Date().toISOString().slice(0, 10)}</strong>
       </div>
     </header>
     <div class="portal-title">
       <div>
-        <p class="portal-kicker">J&A / {data.section.toUpperCase()}</p>
+        <p class="portal-kicker" data-portal-live-text>J&A / {translate(currentTitle)}</p>
         <h1 data-portal-live-text>{translate(currentTitle)}</h1>
       </div>
       <div class="portal-heading-tools">
@@ -1193,7 +1194,7 @@
         {online}
         {queue}
         {syncMessage}
-        {money}
+        money={(minor, currency) => paymentMoney(minor, currency, documentLanguage(locale))}
         {translate}
         {controlledValue}
         canCreateProject={canManageProjects}
@@ -1459,19 +1460,32 @@
       <div class="finance-grid">
         <a href="{base}/app/time" class="metric metric-link">
           <span>{translate('APPROVED COMPENSATION')}</span><strong
-            >{paymentMoney(data.pay.estimatedApprovedMinor, data.pay.currency)}</strong
+            >{paymentMoney(
+              data.pay.estimatedApprovedMinor,
+              data.pay.currency,
+              documentLanguage(locale),
+            )}</strong
           >
           <p>{data.pay.approvedMinutes} {translate('approved minutes')}</p>
         </a>
         <a href="{base}/app/expenses" class="metric metric-link">
           <span>{translate('APPROVED REIMBURSEMENTS')}</span><strong
-            >{paymentMoney(data.pay.approvedReimbursementMinor, data.pay.currency)}</strong
+            >{paymentMoney(
+              data.pay.approvedReimbursementMinor,
+              data.pay.currency,
+              documentLanguage(locale),
+            )}</strong
           >
           <p>
             {translate('Pending pay:')}
-            {paymentMoney(data.pay.estimatedPendingMinor, data.pay.currency)} + {paymentMoney(
+            {paymentMoney(
+              data.pay.estimatedPendingMinor,
+              data.pay.currency,
+              documentLanguage(locale),
+            )} + {paymentMoney(
               data.pay.pendingReimbursementMinor,
               data.pay.currency,
+              documentLanguage(locale),
             )}
             {translate('reimbursements.')}
           </p>
@@ -1564,8 +1578,17 @@
                   ><td>{hours(row.pendingMinutes ?? 0)}</td><td
                     >{row.plannedMinutes === null ? '—' : hours(row.plannedMinutes)}</td
                   ><td>{row.hoursRemaining === null ? '—' : hours(row.hoursRemaining)}</td><td
-                    >{paymentMoney(String(row.estimatedApprovedMinor), String(row.currency))}</td
-                  ><td>{paymentMoney(String(row.estimatedPendingMinor), String(row.currency))}</td
+                    >{paymentMoney(
+                      String(row.estimatedApprovedMinor),
+                      String(row.currency),
+                      documentLanguage(locale),
+                    )}</td
+                  ><td
+                    >{paymentMoney(
+                      String(row.estimatedPendingMinor),
+                      String(row.currency),
+                      documentLanguage(locale),
+                    )}</td
                   ></tr
                 >{:else}<tr
                   ><td colspan="8"
@@ -1674,12 +1697,25 @@
                   <td>{controlledValue('status', settlement.paymentState ?? settlement.state)}</td>
                   <td>{String(settlement.expectedPaymentOn ?? translate('Not scheduled'))}</td>
                   <td>{String(settlement.actualPaymentOn ?? translate('Not paid yet'))}</td>
-                  <td>{paymentMoney(settlement.amountMinor, String(settlement.currency))}</td>
-                  <td>{paymentMoney(settlement.paidAmountMinor, String(settlement.currency))}</td>
+                  <td
+                    >{paymentMoney(
+                      settlement.amountMinor,
+                      String(settlement.currency),
+                      documentLanguage(locale),
+                    )}</td
+                  >
+                  <td
+                    >{paymentMoney(
+                      settlement.paidAmountMinor,
+                      String(settlement.currency),
+                      documentLanguage(locale),
+                    )}</td
+                  >
                   <td
                     >{paymentMoney(
                       settlement.remainingAmountMinor,
                       String(settlement.currency),
+                      documentLanguage(locale),
                     )}</td
                   >
                 </tr>
@@ -1742,7 +1778,12 @@
                   >
                   <td>{String(expense.expectedReimbursementOn ?? translate('Not scheduled'))}</td>
                   <td>{String(expense.reimbursedAt ?? translate('Not reimbursed yet'))}</td>
-                  <td>{paymentMoney(expense.reimbursementAmountMinor, String(expense.currency))}</td
+                  <td
+                    >{paymentMoney(
+                      expense.reimbursementAmountMinor,
+                      String(expense.currency),
+                      documentLanguage(locale),
+                    )}</td
                   >
                 </tr>
               {:else}
@@ -3263,20 +3304,21 @@
         {availableProjects}
         {translate}
         {controlledValue}
-        formatMoney={paymentMoney}
+        formatMoney={(minor, currency) => paymentMoney(minor, currency, documentLanguage(locale))}
       />
     {:else if data.section === 'finance' && data.finance}
       <FinanceOverviewSection
+        {locale}
         {data}
         {availableProjects}
         {isAuditor}
         {translate}
         {controlledValue}
-        {money}
+        money={(minor, currency) => paymentMoney(minor, currency, documentLanguage(locale))}
         currentView={currentView || 'overview'}
       />
     {:else if data.section === 'ledger'}
-      <CollectionsLedgerSection {data} {translate} {controlledValue} />
+      <CollectionsLedgerSection {data} {translate} {controlledValue} {locale} />
     {:else if data.section === 'accounting'}
       <AccountingSection {data} {isAuditor} {locale} {translate} {controlledValue} />
     {:else if data.section === 'profile'}

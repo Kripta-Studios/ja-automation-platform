@@ -1,4 +1,4 @@
-import type { PortalLocale } from '../portal-i18n';
+import { portalText, type PortalLocale } from '../portal-i18n';
 type Topic = { title: string; body: string; route: string };
 const topics: Record<
   string,
@@ -19,11 +19,11 @@ const topics: Record<
     ],
     es: [
       'Registrar y enviar horas',
-      'En Log time elige el proyecto asignado y la fecha y horas reales. Save draft guarda un borrador editable. Submit lo envía al responsable del proyecto; no lo aprueba ni lo paga. Abre el registro para consultar su historial.',
+      'En {{Log time}} elige el proyecto asignado y la fecha y horas reales. {{Save draft}} guarda un borrador editable. {{Submit}} lo envía al responsable del proyecto; no lo aprueba ni lo paga. Abre el registro para consultar su historial.',
     ],
     pt: [
       'Registrar e enviar horas',
-      'Em Log time selecione o projeto atribuído, a data e as horas reais. Save draft salva um rascunho editável. Submit envia ao responsável do projeto; não aprova nem paga. Abra o registro para consultar o histórico.',
+      'Em {{Log time}} selecione o projeto atribuído, a data e as horas reais. {{Save draft}} salva um rascunho editável. {{Submit}} envia ao responsável do projeto; não aprova nem paga. Abra o registro para consultar o histórico.',
     ],
   },
   expenses: {
@@ -35,11 +35,11 @@ const topics: Record<
     ],
     es: [
       'Gastos y reembolsos',
-      'Record expense guarda el recibo, proveedor, fecha, moneda, importe y quién pagó. Submit lo envía a aprobación operativa. Approved significa aceptado, no reembolsado. Finanzas registra fecha, importe y referencia del pago al trabajador en Worker reimbursement queue.',
+      '{{Record expense}} guarda el recibo, proveedor, fecha, moneda, importe y quién pagó. {{Submit}} lo envía a aprobación operativa. {{Approved}} significa aceptado, no reembolsado. Finanzas registra fecha, importe y referencia del pago al trabajador en {{Worker reimbursement queue}}.',
     ],
     pt: [
       'Despesas e reembolsos',
-      'Record expense salva comprovante, fornecedor, data, moeda, valor e pagador. Submit envia para aprovação operacional. Approved significa aceito, não reembolsado. Finanças registra data, valor e referência do pagamento em Worker reimbursement queue.',
+      '{{Record expense}} salva comprovante, fornecedor, data, moeda, valor e pagador. {{Submit}} envia para aprovação operacional. {{Approved}} significa aceito, não reembolsado. Finanças registra data, valor e referência do pagamento em {{Worker reimbursement queue}}.',
     ],
   },
   pay: {
@@ -51,11 +51,11 @@ const topics: Record<
     ],
     es: [
       'Tu propia compensación y pagos',
-      'My Pay siempre se limita a tu propia actividad, reembolsos y compensación. Estimado, revisado, programado, parcialmente pagado y pagado son estados diferentes. Finalizar una liquidación no demuestra una transferencia; Pago real se basa en movimientos de pago registrados.',
+      '{{My Pay}} siempre se limita a tu propia actividad, reembolsos y compensación. Estimado, revisado, programado, parcialmente pagado y pagado son estados diferentes. Finalizar una liquidación no demuestra una transferencia; {{Actual payment}} se basa en movimientos de pago registrados.',
     ],
     pt: [
       'Sua própria remuneração e pagamentos',
-      'My Pay sempre se limita à sua própria atividade, reembolsos e remuneração. Estimado, revisado, programado, parcialmente pago e pago são estados diferentes. Finalizar uma liquidação não comprova transferência; Pagamento real usa eventos de pagamento registrados.',
+      '{{My Pay}} sempre se limita à sua própria atividade, reembolsos e remuneração. Estimado, revisado, programado, parcialmente pago e pago são estados diferentes. Finalizar uma liquidação não comprova transferência; {{Actual payment}} usa eventos de pagamento registrados.',
     ],
   },
   reports: {
@@ -67,11 +67,11 @@ const topics: Record<
     ],
     es: [
       'Informes diarios, técnicos y del cliente',
-      'Daily recoge trabajo realizado, bloqueos y próximos pasos. Technical / PLC registra problema, diagnóstico, cambio, validación y backups, con su autor. Guarda y envía tu informe. Client Sign-off es un periodo revisado de horas aprobadas y actividades para la conformidad del cliente: Finanzas prepara el archivo y el cliente firma.',
+      '{{Daily}} recoge trabajo realizado, bloqueos y próximos pasos. {{Technical / PLC}} registra problema, diagnóstico, cambio, validación y copias de seguridad, con su autor. Guarda y envía tu informe. {{Client Sign-off}} es un periodo revisado de horas aprobadas y actividades para la conformidad del cliente: Finanzas prepara el archivo y el cliente firma.',
     ],
     pt: [
       'Relatórios diários, técnicos e do cliente',
-      'Daily registra trabalho, impedimentos e próximos passos. Technical / PLC registra problema, diagnóstico, alteração, validação e backups, com o autor. Salve e envie seu relatório. Client Sign-off reúne horas aprovadas e atividades do período: Finanças prepara o arquivo e o cliente assina.',
+      '{{Daily}} registra trabalho, impedimentos e próximos passos. {{Technical / PLC}} registra problema, diagnóstico, alteração, validação e cópias de segurança, com o autor. Salve e envie seu relatório. {{Client Sign-off}} reúne horas aprovadas e atividades do período: Finanças prepara o arquivo e o cliente assina.',
     ],
   },
   approvals: {
@@ -82,12 +82,12 @@ const topics: Record<
       'The Project Manager coordinates assigned projects, plans the team, checks submitted hours, receipts and reports, and approves or requests changes. The queue shows pending records before completed ones, oldest first. Project approvals reviews project milestones; Finance review decides the commercial treatment after operational approval.',
     ],
     es: [
-      'Qué revisa el Project Manager',
-      'El Project Manager coordina proyectos asignados, planifica el equipo, revisa horas, recibos e informes enviados y aprueba o solicita cambios. La cola prioriza pendientes antiguos. Project approvals revisa hitos del proyecto; Finance review decide el tratamiento comercial tras la aprobación operativa.',
+      'Qué revisa el {{Project manager}}',
+      'El {{Project manager}} coordina proyectos asignados, planifica el equipo, revisa horas, recibos e informes enviados y aprueba o solicita cambios. La cola prioriza pendientes antiguos. {{Project approvals}} revisa hitos del proyecto; {{Finance review}} decide el tratamiento comercial tras la aprobación operativa.',
     ],
     pt: [
-      'O que o Project Manager revisa',
-      'O Project Manager coordena projetos atribuídos, planeja a equipe, revisa horas, comprovantes e relatórios enviados e aprova ou solicita correções. A fila prioriza pendências antigas. Project approvals revisa marcos; Finance review define o tratamento comercial após aprovação operacional.',
+      'O que o {{Project manager}} revisa',
+      'O {{Project manager}} coordena projetos atribuídos, planeja a equipe, revisa horas, comprovantes e relatórios enviados e aprova ou solicita correções. A fila prioriza pendências antigas. {{Project approvals}} revisa marcos; {{Finance review}} define o tratamento comercial após aprovação operacional.',
     ],
   },
   projects: {
@@ -99,11 +99,11 @@ const topics: Record<
     ],
     es: [
       'Clientes, proyectos y acceso',
-      'Crea el cliente con sus datos de facturación y después su proyecto. Team asigna personas para fechas concretas; Planning programa trabajo previsto. La planificación nunca crea horas reales. Edita o finaliza asignaciones para cambiar acceso conservando su historial.',
+      'Crea el cliente con sus datos de facturación y después su proyecto. {{Team}} asigna personas para fechas concretas; {{Planning}} programa trabajo previsto. La planificación nunca crea horas reales. Edita o finaliza asignaciones para cambiar acceso conservando su historial.',
     ],
     pt: [
       'Clientes, projetos e acesso',
-      'Crie o cliente com os dados de cobrança e depois o projeto. Team atribui pessoas por datas; Planning programa o trabalho previsto. O planejamento nunca cria horas reais. Edite ou encerre atribuições para alterar o acesso preservando o histórico.',
+      'Crie o cliente com os dados de cobrança e depois o projeto. {{Team}} atribui pessoas por datas; {{Planning}} programa o trabalho previsto. O planejamento nunca cria horas reais. Edite ou encerre atribuições para alterar o acesso preservando o histórico.',
     ],
   },
   economics: {
@@ -115,11 +115,11 @@ const topics: Record<
     ],
     es: [
       'Economía y pago previsto al trabajador',
-      'Economic Review compara ingresos facturados con costes directos de personal y gastos. Source records muestra los registros que los forman. Compensation settlements agrupa compensación aprobada por periodo. Expected worker payment es una previsión, no un pago realizado. Finaliza tras revisar horas y reglas; registra el pago real por separado.',
+      '{{Economic Review}} compara ingresos facturados con costes directos de personal y gastos. {{Source records}} muestra los registros que los forman. {{Compensation settlements}} agrupa compensación aprobada por periodo. {{Expected worker payment}} es una previsión, no un pago realizado. Finaliza tras revisar horas y reglas; registra el pago real por separado.',
     ],
     pt: [
       'Economia e pagamento previsto',
-      'Economic Review compara receita faturada com custos diretos de pessoal e despesas. Source records mostra os registros de origem. Compensation settlements agrupa remuneração aprovada por período. Expected worker payment é uma previsão, não um pagamento realizado. Finalize após revisar horas e regras; registre o pagamento real separadamente.',
+      '{{Economic Review}} compara receita faturada com custos diretos de pessoal e despesas. {{Source records}} mostra os registros de origem. {{Compensation settlements}} agrupa remuneração aprovada por período. {{Expected worker payment}} é uma previsão, não um pagamento realizado. Finalize após revisar horas e regras; registre o pagamento real separadamente.',
     ],
   },
   billing: {
@@ -131,11 +131,11 @@ const topics: Record<
     ],
     es: [
       'Preparar, revisar y emitir una factura',
-      'Billing streams define qué se factura, cada cuánto, con qué entidad emisora e impuestos. Crea un borrador para el proyecto y periodo tras aprobar los registros de origen. Revisa líneas y PDF, edita datos de facturación y bancarios del borrador y aprueba y emite expresamente. Las facturas emitidas conservan su histórico; se corrigen mediante anulación o abono/ajuste.',
+      '{{Billing streams}} define qué se factura, cada cuánto, con qué entidad emisora e impuestos. Crea un borrador para el proyecto y periodo tras aprobar los registros de origen. Revisa líneas y PDF, edita datos de facturación y bancarios del borrador y aprueba y emite expresamente. Las facturas emitidas conservan su histórico; se corrigen mediante anulación o abono/ajuste.',
     ],
     pt: [
       'Preparar, revisar e emitir uma fatura',
-      'Billing streams define o que faturar, frequência, entidade emissora e impostos. Crie um rascunho por projeto e período após aprovar os registros de origem. Revise linhas e PDF, edite dados bancários e de cobrança, depois aprove e emita explicitamente. Faturas emitidas preservam o histórico; corrija por anulação ou crédito/ajuste.',
+      '{{Billing streams}} define o que faturar, frequência, entidade emissora e impostos. Crie um rascunho por projeto e período após aprovar os registros de origem. Revise linhas e PDF, edite dados bancários e de cobrança, depois aprove e emita explicitamente. Faturas emitidas preservam o histórico; corrija por anulação ou crédito/ajuste.',
     ],
   },
   cash: {
@@ -146,12 +146,12 @@ const topics: Record<
       'Collections / Ledger links each issued invoice to receipts and its outstanding balance. Record each full or partial receipt with its date and reference. Cash calendar groups planned receipts and payments by date. Planned cash is separate from money actually received or paid.',
     ],
     es: [
-      'Cobros, ledger y calendario de caja',
-      'Collections / Ledger vincula cada factura emitida con cobros y saldo pendiente. Registra cobros completos o parciales con fecha y referencia. Cash calendar agrupa cobros y pagos previstos por fecha. Las previsiones están separadas del dinero realmente recibido o pagado.',
+      'Cobros, libro mayor y calendario de caja',
+      '{{Collections / Ledger}} vincula cada factura emitida con cobros y saldo pendiente. Registra cobros completos o parciales con fecha y referencia. {{Cash calendar}} agrupa cobros y pagos previstos por fecha. Las previsiones están separadas del dinero realmente recibido o pagado.',
     ],
     pt: [
-      'Recebimentos, ledger e calendário de caixa',
-      'Collections / Ledger vincula cada fatura emitida aos recebimentos e saldo em aberto. Registre recebimentos totais ou parciais com data e referência. Cash calendar agrupa previsões por data, separadas do dinheiro efetivamente recebido ou pago.',
+      'Recebimentos, livro-razão e calendário de caixa',
+      '{{Collections / Ledger}} vincula cada fatura emitida aos recebimentos e saldo em aberto. Registre recebimentos totais ou parciais com data e referência. {{Cash calendar}} agrupa previsões por data, separadas do dinheiro efetivamente recebido ou pago.',
     ],
   },
   accounting: {
@@ -163,11 +163,11 @@ const topics: Record<
     ],
     es: [
       'Generar y finalizar el paquete mensual',
-      'Generate pack reúne facturas, cobros, costes de personal y gastos del periodo en PDF y hojas de cálculo. Queued indica procesamiento pendiente; Ready permite descargar y Failed reintentar. Finalize fija las cifras revisadas como versión histórica. Las correcciones posteriores requieren otra versión.',
+      '{{Generate pack}} reúne facturas, cobros, costes de personal y gastos del periodo en PDF y hojas de cálculo. {{Queued}} indica procesamiento pendiente; {{Ready}} permite descargar y {{Failed}} reintentar. {{Finalize}} fija las cifras revisadas como versión histórica. Las correcciones posteriores requieren otra versión.',
     ],
     pt: [
       'Gerar e finalizar o pacote mensal',
-      'Generate pack reúne faturas, recebimentos, custos de pessoal e despesas em PDF e planilhas. Queued indica processamento pendente; Ready permite baixar e Failed tentar novamente. Finalize fixa os valores revisados como versão histórica. Correções posteriores exigem outra versão.',
+      '{{Generate pack}} reúne faturas, recebimentos, custos de pessoal e despesas em PDF e planilhas. {{Queued}} indica processamento pendente; {{Ready}} permite baixar e {{Failed}} tentar novamente. {{Finalize}} fixa os valores revisados como versão histórica. Correções posteriores exigem outra versão.',
     ],
   },
   supplier: {
@@ -179,11 +179,11 @@ const topics: Record<
     ],
     es: [
       'Coordinación de proveedores e informe operativo',
-      'Owner autoriza al proveedor y coordinador para un proyecto y unas fechas. El coordinador puede seleccionar varios técnicos, aplicar horas comunes o un intervalo, guardar borradores trazables separados y enviar los seleccionados juntos. Solo Owner revisa las horas de proveedor. Operational report no contiene pagos, tarifas ni resultados financieros; las cuentas externas no pueden abrir My Pay ni extractos.',
+      '{{Owner}} autoriza al proveedor y coordinador para un proyecto y unas fechas. El coordinador puede seleccionar varios técnicos, aplicar horas comunes o un intervalo, guardar borradores trazables separados y enviar los seleccionados juntos. Solo {{Owner}} revisa las horas de proveedor. {{Operational report}} no contiene pagos, tarifas ni resultados financieros; las cuentas externas no pueden abrir {{My Pay}} ni extractos.',
     ],
     pt: [
       'Coordenação de fornecedores e relatório operacional',
-      'Owner autoriza fornecedor e coordenador por projeto e datas. O coordenador pode selecionar vários técnicos, aplicar horas comuns ou intervalo, salvar rascunhos rastreáveis separados e enviar os selecionados juntos. Somente Owner revisa horas de fornecedor. Operational report não contém pagamentos, tarifas ou resultados financeiros; contas externas não podem abrir Meu pagamento ou demonstrativos.',
+      '{{Owner}} autoriza fornecedor e coordenador por projeto e datas. O coordenador pode selecionar vários técnicos, aplicar horas comuns ou intervalo, salvar rascunhos rastreáveis separados e enviar os selecionados juntos. Somente {{Owner}} revisa horas de fornecedor. {{Operational report}} não contém pagamentos, tarifas ou resultados financeiros; contas externas não podem abrir {{My Pay}} ou demonstrativos.',
     ],
   },
 };
@@ -199,5 +199,13 @@ export function helpWorkflows(
         topic.roles.includes(effectiveRole) ||
         (profile && ['time', 'expenses', 'reports'].includes(topic.route)),
     )
-    .map((topic) => ({ title: topic[locale][0], body: topic[locale][1], route: topic.route }));
+    .map((topic) => {
+      const render = (text: string) =>
+        text.replace(/\{\{([^}]+)\}\}/g, (_placeholder, key: string) => portalText(locale, key));
+      return {
+        title: render(topic[locale][0]),
+        body: render(topic[locale][1]),
+        route: topic.route,
+      };
+    });
 }

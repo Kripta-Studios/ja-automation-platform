@@ -2,10 +2,34 @@
   import RecordBrowser from '$lib/portal/ui/RecordBrowser.svelte';
   import { base } from '$app/paths';
   import { portalText, normalizePortalLocale } from '$lib/portal-i18n';
-  import { SectionCard, StatusBadge } from '$lib/portal/ui';
+  import { translateControlledValue } from '$lib/i18n/controlled-values';
+  import { SectionCard, StatusBadge, formValidation } from '$lib/portal/ui';
   let { data, form } = $props();
   let search = $state('');
-  const t = (text: string) => portalText(normalizePortalLocale(data.locale), text);
+  const t = (text: string, params?: Record<string, string | number>) =>
+    portalText(normalizePortalLocale(data.locale), text, params);
+  const controlled = (domain: 'status' | 'availability', value: unknown) =>
+    translateControlledValue(normalizePortalLocale(data.locale), domain, String(value ?? ''));
+  const feedback = $derived.by(() => {
+    if (!form) return '';
+    const result = form as {
+      messageKey?: string;
+      messageParams?: Record<string, unknown>;
+      message?: string;
+    };
+    const params = Object.fromEntries(
+      Object.entries(result.messageParams ?? {}).filter(
+        (entry): entry is [string, string | number] =>
+          typeof entry[1] === 'string' || typeof entry[1] === 'number',
+      ),
+    );
+    if (
+      result.messageKey === 'action.management.invalidField' &&
+      typeof params.fieldLabel === 'string'
+    )
+      params.fieldLabel = t(params.fieldLabel);
+    return t(result.messageKey ?? result.message ?? '', params);
+  });
   const types = [
     ['expense', 'Expenses'],
     ['time_entry', 'Time'],
@@ -59,8 +83,8 @@
       )}
     </p>
   </header>
-  {#if form?.message}<p class="management-feedback" role={form.success ? 'status' : 'alert'}>
-      {t(form.message ?? '')}
+  {#if feedback}<p class="management-feedback" role={form?.success ? 'status' : 'alert'}>
+      {feedback}
     </p>{/if}
   <nav class="management-tabs" aria-label={t('Management areas')}>
     {#each [['', 'Operational records'], ['planning_assignment', 'Planning'], ['worker_availability', 'Availability'], ['document', 'Documents'], ['technical_change', 'Technical changes'], ['project_milestone', 'Milestones']] as [area, label]}
@@ -100,8 +124,9 @@
               )}
             </h2>
             <p>
-              {row.archived_at ? t('Archived') : String(row.starts_at ?? row.due_on ?? '')} · {String(
-                row.status ?? row.approval_state ?? row.availability ?? '',
+              {row.archived_at ? t('Archived') : String(row.starts_at ?? row.due_on ?? '')} · {controlled(
+                row.status || row.approval_state ? 'status' : 'availability',
+                row.status ?? row.approval_state ?? row.availability,
               )}
             </p>
             <details
@@ -142,7 +167,7 @@
                 >{String(
                   row.vendor ?? row.summary ?? row.system_name ?? row.activity_summary ?? row.id,
                 )}</strong
-              ><StatusBadge text={t(String(row.approval_state))} />
+              ><StatusBadge text={controlled('status', row.approval_state)} />
             </header>
             <p>
               {row.worker_name} · {row.project_number} · {row.spent_on ??
@@ -164,9 +189,13 @@
                 ><a href="?area=technical_change">{t('Technical changes')}</a>
               </div>
             {:else}
-              <details>
+              <details open={Boolean(form && 'recordId' in form && form.recordId === row.id)}>
                 <summary>{t('Manage record')}</summary>
-                <form method="POST" action={`?/manageRecord&type=${data.recordType}`}>
+                <form
+                  method="POST"
+                  action={`?/manageRecord&type=${data.recordType}`}
+                  use:formValidation
+                >
                   <input type="hidden" name="recordType" value={data.recordType} /><input
                     type="hidden"
                     name="id"
@@ -175,6 +204,7 @@
                   <label
                     >{t('Correction reason')}<textarea
                       name="reason"
+                      value={fieldValue(row, 'reason', 'text')}
                       minlength="3"
                       maxlength="2000"
                       required
@@ -217,7 +247,7 @@
 </div>
 
 {#snippet catalogForm(row: Record<string, unknown> | null)}
-  <form method="POST" action={`?/manageCatalog&area=${data.area}`}>
+  <form method="POST" action={`?/manageCatalog&area=${data.area}`} use:formValidation>
     <input type="hidden" name="kind" value={data.area} /><input
       type="hidden"
       name="id"
@@ -254,9 +284,12 @@
             value={fieldValue(row, field.name, field.type) || field.options?.[0]}
             required
             >{#each field.options ?? [] as option}<option value={option}
-                >{t(
-                  field.name === 'safety_impact' ? (option === '1' ? 'Yes' : 'No') : option,
-                )}</option
+                >{field.name === 'safety_impact'
+                  ? t(option === '1' ? 'Yes' : 'No')
+                  : controlled(
+                      field.name === 'availability' ? 'availability' : 'status',
+                      option,
+                    )}</option
               >{/each}</select
           >
         {:else}<input
@@ -269,7 +302,12 @@
       </label>
     {/each}
     <label
-      >{t('Correction reason')}<textarea name="reason" minlength="3" maxlength="2000" required
+      >{t('Correction reason')}<textarea
+        name="reason"
+        value={fieldValue(row, 'reason', 'text')}
+        minlength="3"
+        maxlength="2000"
+        required
       ></textarea></label
     >
     <label class="confirmation"

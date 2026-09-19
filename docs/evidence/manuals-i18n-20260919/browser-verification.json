@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "environment": "synthetic",
+  "createdAt": "2026-09-19T09:58:50.128Z",
+  "sourceCommit": "e0590fa0472144637efc61160475ef27c6ce00e8",
+  "sourceDigest": "0a73eebb85225d37100b81c2493ca3e849679e30f75c8dfe91d08f19d8d7c467",
+  "captureManifest": {
+    "path": "docs/manuals/validation/current-capture.json",
+    "sha256": "1b2967ee316df148fff86fa12078e74eac83669ba709e29c04043243bc0e8bbc",
+    "screenshots": 90,
+    "personaLocalePairs": 14,
+    "verifiedScreenshotHashes": 90,
+    "checksPassed": 168
+  },
+  "browserChecks": [
+    {
+      "id": "locale-routes",
+      "status": "passed",
+      "result": "105 authorized routes across seven personas and EN/ES/PT-BR passed before the navigation-label-only hotfix; latest screenshot capture passed separately",
+      "log": "docs/evidence/manuals-i18n-20260919/browser-locale-capture-final.txt"
+    },
+    {
+      "id": "validation-and-conflict",
+      "status": "passed",
+      "result": "ES/PT required and email errors with en-US browser; PT stale Owner edit retained fields and made one POST",
+      "log": "docs/evidence/manuals-i18n-20260919/browser-capture-and-locale-initial.txt"
+    },
+    {
+      "id": "pdf-role-downloads",
+      "status": "passed",
+      "result": "26 allowed PDF GETs, 12 forbidden 404s, unauthenticated 401 and expired-session sign-in CTA; tested before screenshot-only PDF regeneration",
+      "log": "docs/evidence/manuals-i18n-20260919/browser-manual-downloads.txt"
+    },
+    {
+      "id": "pdf-recovery",
+      "status": "passed",
+      "result": "503 then 200 and persistent 503 actionable PT recovery, GET-only, >=44px and no horizontal overflow at 360/390/768/1440",
+      "log": "docs/evidence/manuals-i18n-20260919/browser-recovery-and-final-capture.txt"
+    },
+    {
+      "id": "owner-help-phone",
+      "status": "passed",
+      "result": "Seven PT role guides, readable 390px cards, tappable download controls and no overflow",
+      "log": "docs/evidence/manuals-i18n-20260919/browser-help-owner-mobile.txt"
+    },
+    {
+      "id": "navigation-pt",
+      "status": "passed",
+      "result": "Seven personas show Ajuda in account menu, supplier sidebar and localized profile breadcrumb",
+      "log": "docs/evidence/manuals-i18n-20260919/browser-nav-pt-final.txt"
+    },
+    {
+      "id": "availability-editor-layout",
+      "status": "passed",
+      "result": "Availability editor date and status controls are at least 240px wide, inside the dialog, with reachable Save and no horizontal overflow at 360/390/768/1440; four browser cases passed after the CSS fix",
+      "log": "docs/evidence/manuals-i18n-20260919/browser-availability-layout-final.txt"
+    }
+  ],
+  "correctedFailures": [
+    {
+      "issue": "test fixture project currency disagreed with synthetic client",
+      "evidence": "docs/evidence/manuals-i18n-20260919/browser-capture-and-locale-initial.txt",
+      "resolution": "fixture uses client currency"
+    },
+    {
+      "issue": "supplier home redirect dropped locale",
+      "evidence": "docs/evidence/manuals-i18n-20260919/browser-capture-and-locale-redirect-bug.txt",
+      "resolution": "runtime preserves locale in redirect"
+    },
+    {
+      "issue": "Help download control measured 40.78125px high",
+      "evidence": "docs/evidence/manuals-i18n-20260919/browser-manual-downloads.txt",
+      "resolution": "Help controls have 44px minimum; browser recovery rerun passed"
+    },
+    {
+      "issue": "navigation test looked for standard-role Help in sidebar though it lives in account menu",
+      "evidence": "docs/evidence/manuals-i18n-20260919/browser-nav-and-capture-definitive.txt",
+      "resolution": "test opens account menu; seven-persona rerun passed"
+    },
+    {
+      "issue": "availability layout test matched exact label text even though the label contained its select options",
+      "evidence": "docs/evidence/manuals-i18n-20260919/browser-availability-and-capture-locator-failure.txt",
+      "resolution": "test checks the select accessible name; four-width rerun passed"
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/evidence/manuals-i18n-20260919/browser-capture-and-locale-initial.txt",
+      "sha256": "a2829fdb2ce0d00efbfb538d0b1d987cc8701b562d8a360dd7f806d2a8e6b00f",
+      "capturedBytesSha256": "3b1cd73c676edc8499b8e436c6240eb49830d811cb1efde2bcecbbd98b65af2e"
+    },
+    {
+      "path": "docs/evidence/manuals-i18n-20260919/browser-capture-and-locale-redirect-bug.txt",
+      "sha256": "f645e3670ea0450fd8a9f96b992e816e9dd6475678954928b8760611ec1ee26f",
+      "capturedBytesSha256": "abb8462fcefa5dc86c3985457c51b47818dd68c97624db8ab1a5412787c073ac"
+    },
+    {
+      "path": "docs/evidence/manuals-i18n-20260919/browser-locale-capture-final.txt",
+      "sha256": "741f668c04fea33aa0920ab9ea29e00ccb23c59573114e3b9d7ce348bbad11c9",
+      "capturedBytesSha256": "03d3b7113faa0b41a81a1c452b819db9bbe929df7b505dc80066226f383dc533"
+    },
+    {
+      "path": "docs/evidence/manuals-i18n-20260919/browser-manual-downloads.txt",
+      "sha256": "9471ac57fcc73de69a53189e77eac9c3047f60640b4264ebffcd8ece5ab11eb1",
+      "capturedBytesSha256": "dac1209bcf11dc339adbd3998cdd8a44dead7690e7eced37a384331b7078891c"
+    },
+    {
+      "path": "docs/evidence/manuals-i18n-20260919/browser-recovery-and-final-capture.txt",
+      "sha256": "986cbfb927a794442c64dc4e584f0d3709785a4132c37047fa1030b534877035",
+      "capturedBytesSha256": "1d5b0b922a122f38188a606e07086c99a42c26dbd8b0db4f4e871e2956e9041e"
+    },
+    {
+      "path": "docs/evidence/manuals-i18n-20260919/browser-help-owner-mobile.txt",
+      "sha256": "1b37062842c5521ac4507bf5eb4d7f0c35595a2923e2af8f6caa438f53d61fea",
+      "capturedBytesSha256": "4ee12b2b68f118651542963aced7d62668b80ddae25071f2f24d08838d038db7"
+    },
+    {
+      "path": "docs/evidence/manuals-i18n-20260919/browser-nav-and-capture-definitive.txt",
+      "sha256": "9ac63145b8ec9343da463f5a27877979e2aeba169f23ca8063f1b5de50b855ee",
+      "capturedBytesSha256": "cbd7e6e468b25e59c371eed041d8b4ca35cef1e4921b9b4c984fe5f7888dc68f"
+    },
+    {
+      "path": "docs/evidence/manuals-i18n-20260919/browser-nav-pt-final.txt",
+      "sha256": "9e2b24b611fc2ec44d741d2dd1f4b1092762babd98096b8ae0ece71339b0a2ab",
+      "capturedBytesSha256": "6876249d668a5149f49a37016dc7c0f27491300aee876a4bee7ccb7671b551f9"
+    },
+    {
+      "path": "docs/evidence/manuals-i18n-20260919/browser-availability-and-capture-locator-failure.txt",
+      "sha256": "3805f40216ce29b1fca3b7ccead54beaa0670a23678c268b8ac8e6e7e0c4c03c",
+      "capturedBytesSha256": "59df80d34d97c86674e1dfea842f697e29941e4fb505f7c1e1b6b171b2512238"
+    },
+    {
+      "path": "docs/evidence/manuals-i18n-20260919/browser-availability-layout-final.txt",
+      "sha256": "158ea13ff08f9f62690e2a2c5902c3d72c56e4f4fe6ccab0630cdc7787502473",
+      "capturedBytesSha256": "9ffa2de3679e7886549456fe82c608b03c8d9784df8f572d5db1eb1a37b8b47d"
+    }
+  ],
+  "logNormalization": "Only trailing whitespace and blank lines at EOF removed for repository formatting; result content unchanged. Original captured-byte hashes retained per log."
+}

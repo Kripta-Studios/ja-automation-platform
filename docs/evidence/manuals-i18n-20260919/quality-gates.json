@@ -1,0 +1,44 @@
+{
+  "recordedAt": "2026-09-19T09:53:42.714823+00:00",
+  "sourceDigest": "0a73eebb85225d37100b81c2493ca3e849679e30f75c8dfe91d08f19d8d7c467",
+  "unit": {
+    "status": "PASS",
+    "files": 162,
+    "passed": 1123,
+    "durationSeconds": 276.44,
+    "scopeNote": "Full suite ran before final navigation-copy and availability-form CSS changes. Final localized navigation is covered by 88 focused tests; final CSS is covered by Svelte/static checks and four-width browser geometry."
+  },
+  "finalLocalization": {
+    "status": "PASS",
+    "files": 8,
+    "passed": 88,
+    "basis": "Translation agent executed focused catalog/navigation/regression suites, including all five roles and two supplier profiles in EN/ES/PT-BR."
+  },
+  "integration": {
+    "status": "PASS",
+    "files": 3,
+    "passed": 34,
+    "scope": ["payment-ui-actions: 7", "owner-record-management and supplier-workforce: 27"]
+  },
+  "redirectRegression": {
+    "status": "PASS",
+    "files": 4,
+    "passed": 55
+  },
+  "staticChecks": {
+    "workspaceTypes": "PASS; final copy/CSS followed by portal checks",
+    "svelte": "PASS; final availability form: 0 errors and 0 warnings",
+    "eslint": "PASS globally, followed by focused checks for final edits",
+    "format": "Changed source formatted; final documentation formatting checked before publication"
+  },
+  "independentReview": "review.json",
+  "browser": "browser-verification.json",
+  "pdf": "../../manuals/validation/pdf-quality.json",
+  "databaseMigration": "None; schema remains 49",
+  "previousFullIntegration": {
+    "applicationCommit": "7b369598d23a7a74b872d05a0cc0682597d7f2a6",
+    "files": 70,
+    "passed": 527,
+    "scopeNote": "Previous planning release, recorded separately; not claimed as a rerun of this manual/i18n release."
+  }
+}

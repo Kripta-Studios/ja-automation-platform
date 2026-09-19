@@ -5,6 +5,9 @@ describe('portal controlled-value translations', () => {
   it.each([
     ['role', 'owner', 'Propietario', 'Proprietário'],
     ['status', 'approved', 'Aprobado', 'Aprovado'],
+    ['status', 'published', 'Publicado', 'Publicado'],
+    ['status', 'cancelled', 'Cancelado', 'Cancelado'],
+    ['availability', 'unavailable', 'No disponible', 'Indisponível'],
     ['category', 'travel', 'Viaje', 'Viagem'],
     ['recordType', 'daily_field_report', 'Informe de campo diario', 'Relatório de campo diário'],
     ['availability', 'available', 'Disponible', 'Disponível'],

@@ -15,6 +15,15 @@ describe('exact minor-unit display', () => {
     expect(money('900719925474099301', 'USD')).toBe('$9,007,199,254,740,993.01');
   });
 
+  it.each([
+    ['en-US', '€9,007,199,254,740,993.01'],
+    ['es-ES', '9.007.199.254.740.993,01 €'],
+    ['pt-BR', '€ 9.007.199.254.740.993,01'],
+  ])('formats exact payment amounts in %s', (locale, expected) => {
+    expect(paymentMoney('900719925474099301', 'EUR', locale)).toBe(expected);
+    expect(paymentMoney('-900719925474099301', 'EUR', locale)).toBe(`-${expected}`);
+  });
+
   it('routes every reviewed standalone money surface through the shared formatter', () => {
     const portalFormat = read('apps/portal/src/lib/portal/portal-format.ts');
     const paymentFormat = read('apps/portal/src/lib/portal/payment-money.ts');

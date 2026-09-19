@@ -109,7 +109,12 @@
     if (!pending) open = false;
   }}
 >
-  <form method="POST" action="?/setAvailability" class="admin-form-grid" use:enhance={save}>
+  <form
+    method="POST"
+    action="?/setAvailability"
+    class="admin-form-grid availability-editor"
+    use:enhance={save}
+  >
     <input type="hidden" name="workerId" value={workerId} />
     {#if editing}<input type="hidden" name="id" value={String(editing.id)} /><input
         type="hidden"
@@ -151,3 +156,17 @@
     >
   </form>
 </ResponsiveSheet>
+
+<style>
+  .admin-form-grid.availability-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .availability-editor input,
+  .availability-editor select,
+  .availability-editor textarea {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+</style>

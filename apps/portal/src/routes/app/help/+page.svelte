@@ -1,5 +1,11 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { helpWorkflows } from '$lib/portal/help-workflows';
+  import {
+    fetchManualWithRetry,
+    manualDownloadFilename,
+    type ManualDownloadFailure,
+  } from '$lib/portal/ui/manual-download';
   import { base } from '$app/paths';
 
   type Locale = 'en' | 'es' | 'pt';
@@ -7,7 +13,7 @@
     id: string;
     title: Record<Locale, string>;
     description: Record<Locale, string>;
-    audience: 'worker' | 'owner';
+    audience: string;
     locales: readonly Locale[];
     revision: string;
   };
@@ -19,6 +25,14 @@
   };
 
   let { data }: { data: HelpData } = $props();
+  let busyManualId = $state<string | null>(null);
+  let downloadFailure = $state<{ id: string; reason: ManualDownloadFailure } | null>(null);
+  let activeDownload: AbortController | null = null;
+  let destroyed = false;
+  onDestroy(() => {
+    destroyed = true;
+    activeDownload?.abort();
+  });
   const localeNames: Record<Locale, string> = { en: 'EN', es: 'ES', pt: 'PT-BR' };
   const languageOptions: readonly Locale[] = ['en', 'es', 'pt'];
 
@@ -30,11 +44,20 @@
       revision: 'Revision',
       language: 'Guide language',
       download: 'Download PDF',
+      downloading: 'Preparing PDF…',
+      retryDownload: 'Try download again',
+      signInAgain: 'Your session ended. Sign in again to download this guide.',
+      signInAction: 'Sign in',
+      accessHelp:
+        'This guide is unavailable for your account. Ask an administrator to confirm your access.',
+      temporaryHelp: 'The PDF is still unavailable after retrying. Try again or contact support.',
+      laterHelp: 'The server asked us to wait. Please try again later or contact support.',
+      contactSupport: 'Contact support',
       availableLanguages: 'Available languages',
       quickStart: 'Quick start',
       detailed: 'Detailed reference',
       worker: 'Worker tasks',
-      owner: 'Owner and Finance reference',
+      owner: 'Role reference',
       privateNote:
         'Your My Pay view is private. An estimate or statement is not a payslip and does not prove that money was paid.',
       support: 'For an invitation, access or password problem, contact admin@j-aautomation.com.',
@@ -54,7 +77,6 @@
       tasksHeading: 'A normal day at a glance',
       noGuides:
         'No guide is assigned to this account. Contact the verified support route in your invitation.',
-      ownerRestricted: 'Available only to Owner and Finance roles.',
     },
     es: {
       title: 'Ayuda y guías de campo',
@@ -63,13 +85,23 @@
       revision: 'Revisión',
       language: 'Idioma de la guía',
       download: 'Descargar PDF',
+      downloading: 'Preparando PDF…',
+      retryDownload: 'Reintentar descarga',
+      signInAgain: 'Tu sesión terminó. Inicia sesión de nuevo para descargar la guía.',
+      signInAction: 'Iniciar sesión',
+      accessHelp:
+        'Esta guía no está disponible para tu cuenta. Solicita al administrador que compruebe tu acceso.',
+      temporaryHelp:
+        'El PDF sigue sin estar disponible tras reintentar. Inténtalo de nuevo o contacta con soporte.',
+      laterHelp: 'El servidor pidió esperar. Vuelve a intentarlo más tarde o contacta con soporte.',
+      contactSupport: 'Contactar con soporte',
       availableLanguages: 'Idiomas disponibles',
       quickStart: 'Inicio rápido',
       detailed: 'Referencia detallada',
       worker: 'Tareas del trabajador',
-      owner: 'Referencia de Owner y Finanzas',
+      owner: 'Referencia por perfil',
       privateNote:
-        'Tu vista My Pay es privada. Un estimado o estado no es una nómina ni demuestra que el dinero se haya pagado.',
+        'Tu vista Mi pago es privada. Un estimado o estado no es una nómina ni demuestra que el dinero se haya pagado.',
       support:
         'Para problemas de invitación, acceso o contraseña, contacta con admin@j-aautomation.com.',
       loginTitle: 'Usa la invitación vinculada a tu buzón',
@@ -82,13 +114,12 @@
       taskCorrection:
         'Lee el motivo de un elemento devuelto. El historial aprobado requiere el flujo de corrección y un motivo.',
       taskReport:
-        'Usa Daily para un resumen factual y Technical / PLC para trabajo y validación técnica. Nunca firmes por el cliente.',
+        'Usa el informe diario para un resumen factual y el informe técnico / PLC para trabajo y validación técnica. Nunca firmes por el cliente.',
       taskPay:
-        'My Pay separa estimado, aprobado, programado y pagado. Programado es una fecha prevista, no una prueba de pago.',
+        'Mi pago separa estimado, aprobado, programado y pagado. Programado es una fecha prevista, no una prueba de pago.',
       tasksHeading: 'Una jornada normal de un vistazo',
       noGuides:
         'No hay una guía asignada a esta cuenta. Contacta con el canal verificado de tu invitación.',
-      ownerRestricted: 'Solo disponible para roles Owner y Finanzas.',
     },
     pt: {
       title: 'Ajuda e guias de campo',
@@ -97,11 +128,21 @@
       revision: 'Revisão',
       language: 'Idioma do guia',
       download: 'Baixar PDF',
+      downloading: 'Preparando PDF…',
+      retryDownload: 'Tentar baixar novamente',
+      signInAgain: 'Sua sessão terminou. Entre novamente para baixar este guia.',
+      signInAction: 'Entrar',
+      accessHelp:
+        'Este guia não está disponível para sua conta. Peça ao administrador para confirmar seu acesso.',
+      temporaryHelp:
+        'O PDF continua indisponível após as tentativas. Tente novamente ou contate o suporte.',
+      laterHelp: 'O servidor pediu para aguardar. Tente novamente mais tarde ou contate o suporte.',
+      contactSupport: 'Contatar suporte',
       availableLanguages: 'Idiomas disponíveis',
       quickStart: 'Início rápido',
       detailed: 'Referência detalhada',
       worker: 'Tarefas do colaborador',
-      owner: 'Referência de Owner e Finanças',
+      owner: 'Referência por perfil',
       privateNote:
         'Sua visão Meu pagamento é privada. Uma estimativa ou declaração não é um contracheque e não prova que o dinheiro foi pago.',
       support: 'Para problemas de convite, acesso ou senha, contate admin@j-aautomation.com.',
@@ -115,12 +156,11 @@
       taskCorrection:
         'Leia o motivo de um item devolvido. O histórico aprovado exige o fluxo de correção e um motivo.',
       taskReport:
-        'Use Daily para um resumo factual e Technical / PLC para trabalho e validação técnica. Nunca assine pelo cliente.',
+        'Use o relatório diário para um resumo factual e o relatório técnico / PLC para trabalho e validação técnica. Nunca assine pelo cliente.',
       taskPay:
         'Meu pagamento separa estimado, aprovado, programado e pago. Programado é uma data esperada, não prova de pagamento.',
       tasksHeading: 'Um dia normal de relance',
       noGuides: 'Nenhum guia está atribuído a esta conta. Use o canal verificado no seu convite.',
-      ownerRestricted: 'Disponível apenas para as funções Owner e Finanças.',
     },
   };
 
@@ -134,6 +174,39 @@
   const title = (manual: Manual): string => manual.title[data.locale] ?? manual.title.en;
   const description = (manual: Manual): string =>
     manual.description[data.locale] ?? manual.description.en;
+  async function downloadManual(manual: Manual): Promise<void> {
+    if (busyManualId) return;
+    busyManualId = manual.id;
+    downloadFailure = null;
+    const controller = new AbortController();
+    activeDownload = controller;
+    try {
+      const result = await fetchManualWithRetry(
+        downloadHref(manual),
+        fetch,
+        undefined,
+        controller.signal,
+      );
+      if (!result.ok) {
+        if (result.failure === 'cancelled' || destroyed) return;
+        downloadFailure = { id: manual.id, reason: result.failure };
+        return;
+      }
+      const href = URL.createObjectURL(result.blob);
+      const anchor = document.createElement('a');
+      anchor.href = href;
+      anchor.download = manualDownloadFilename(manual.id, result.language, manual.revision);
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(href), 60_000);
+    } catch {
+      if (!destroyed) downloadFailure = { id: manual.id, reason: 'temporary' };
+    } finally {
+      if (activeDownload === controller) activeDownload = null;
+      if (!destroyed) busyManualId = null;
+    }
+  }
 </script>
 
 <svelte:head>
@@ -174,11 +247,7 @@
           <div class="card-heading">
             <div>
               <p class="card-kicker">
-                {manual.audience === 'owner'
-                  ? text('owner')
-                  : manual.id === 'employee-field-guide'
-                    ? text('quickStart')
-                    : text('detailed')}
+                {manual.id === 'employee-field-guide' ? text('quickStart') : text('detailed')}
               </p>
               <h2>{title(manual)}</h2>
             </div>
@@ -186,14 +255,46 @@
           </div>
           <p>{description(manual)}</p>
           <div class="manual-actions">
-            <a class="download" href={downloadHref(manual)} download>{text('download')}</a>
+            <a
+              class="download"
+              href={downloadHref(manual)}
+              download
+              aria-busy={busyManualId === manual.id}
+              aria-disabled={busyManualId !== null}
+              onclick={(event) => {
+                event.preventDefault();
+                void downloadManual(manual);
+              }}>{busyManualId === manual.id ? text('downloading') : text('download')}</a
+            >
             <span class="available"
               >{text('availableLanguages')}: {manual.locales
                 .map((item) => localeNames[item])
                 .join(', ')}</span
             >
           </div>
-          {#if manual.audience === 'owner'}<p class="restricted">{text('ownerRestricted')}</p>{/if}
+          {#if downloadFailure?.id === manual.id}
+            <div class="download-feedback" role="alert">
+              <p>
+                {downloadFailure.reason === 'sign-in'
+                  ? text('signInAgain')
+                  : downloadFailure.reason === 'access'
+                    ? text('accessHelp')
+                    : downloadFailure.reason === 'later'
+                      ? text('laterHelp')
+                      : text('temporaryHelp')}
+              </p>
+              {#if downloadFailure.reason === 'sign-in'}
+                <a href={`${base}/app/login`}>{text('signInAction')}</a>
+              {:else if downloadFailure.reason === 'temporary'}
+                <button type="button" onclick={() => void downloadManual(manual)}
+                  >{text('retryDownload')}</button
+                >
+              {/if}
+              {#if downloadFailure.reason !== 'sign-in'}
+                <a href="mailto:admin@j-aautomation.com">{text('contactSupport')}</a>
+              {/if}
+            </div>
+          {/if}
         </article>
       {/each}
     </section>
@@ -286,6 +387,12 @@
     gap: 0.35rem;
   }
   .language-links a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    box-sizing: border-box;
     color: #075985;
     border: 1px solid #b8c9d6;
     border-radius: 0.4rem;
@@ -352,7 +459,8 @@
   }
   .download {
     display: inline-flex;
-    min-height: 2.5rem;
+    min-height: 2.75rem;
+    box-sizing: border-box;
     align-items: center;
     border-radius: 0.45rem;
     background: #075985;
@@ -362,17 +470,44 @@
     font-weight: 700;
   }
   .download:focus-visible,
-  .language-links a:focus-visible {
+  .language-links a:focus-visible,
+  .download-feedback button:focus-visible,
+  .download-feedback a:focus-visible {
     outline: 3px solid #f59e0b;
     outline-offset: 2px;
   }
-  .available,
-  .restricted {
+  .available {
     color: #64748b;
     font-size: 0.78rem;
   }
-  .restricted {
-    margin: 0.8rem 0 0;
+  .download-feedback {
+    margin-top: 0.75rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+  }
+  .download-feedback p {
+    flex-basis: 100%;
+    margin: 0;
+  }
+  .download-feedback button,
+  .download-feedback a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    box-sizing: border-box;
+    border-radius: 0.45rem;
+    padding: 0.55rem 0.8rem;
+    font: inherit;
+    font-weight: 700;
+  }
+  .download-feedback button {
+    border: 1px solid #075985;
+    background: #075985;
+    color: white;
+    cursor: pointer;
   }
   .tasks {
     margin-top: 1.25rem;

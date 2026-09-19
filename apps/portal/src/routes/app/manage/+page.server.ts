@@ -5,7 +5,8 @@ import {
   OwnerCatalogManagement,
   ownerCatalogs,
 } from '@ja/database';
-import { openPortalRepository, actionFailure } from '$lib/server/portal-repository';
+import { openPortalRepository } from '$lib/server/portal-repository';
+import { actionFailure } from '$lib/server/actions/action-message';
 import type { Actions, PageServerLoad } from './$types';
 
 const domains = [
@@ -124,6 +125,74 @@ export const load: PageServerLoad = ({ locals, url }) => {
   }
 };
 
+// Only known domain messages become user-facing causes; unexpected details remain sanitized.
+const managementMessages: Record<string, string> = {
+  'Record changed. Reload before continuing.': 'action.management.changed',
+  'Planning overlaps another assignment': 'action.management.planningOverlap',
+  'Worker is unavailable': 'action.management.workerUnavailable',
+  'Manage the linked invoice before changing this milestone':
+    'action.management.linkedMilestoneInvoice',
+  'Finalized reports require a versioned correction': 'action.management.finalReport',
+  'This record is linked to billing. Manage the invoice before changing its sources.':
+    'action.management.billingLinked',
+  'This record is an invoice source. Manage the invoice first.': 'action.management.invoiceSource',
+  'This record belongs to a correction history. Use the correction workflow.':
+    'action.management.correctionHistory',
+  'This record has financial history. Use a financial correction.':
+    'action.management.financialHistory',
+  'This record is included in a period report. Manage the report before changing its sources.':
+    'action.management.periodReport',
+  'This expense has a reimbursement. Reverse or adjust the payment first.':
+    'action.management.reimbursement',
+  'This expense has a financial classification history. Use a financial correction.':
+    'action.management.classificationHistory',
+  'This time is included in a settlement. Adjust the settlement first.':
+    'action.management.settlement',
+  'This report has technical changes. Manage those changes first.':
+    'action.management.technicalChanges',
+  'Reports with committed attachments require a versioned correction.':
+    'action.management.committedAttachments',
+  'This record is already a draft': 'action.management.alreadyDraft',
+  'A reason between 3 and 2000 characters is required': 'action.management.reason',
+  'End must follow start': 'action.management.windowOrder',
+  'Active worker required': 'action.management.activeWorker',
+  'Worker assignment must cover the planning window': 'action.management.assignmentWindow',
+  'Technical report does not belong to the project': 'action.management.reportProject',
+  'Safety-impacting changes require validation and rollback information':
+    'action.management.safetyEvidence',
+  'Invalid amount': 'action.management.amount',
+  'Invalid Planned minutes': 'action.management.plannedMinutes',
+  'Project not found': 'action.management.projectNotFound',
+  'Record not found': 'action.management.recordNotFound',
+};
+
+function managementFailure(caught: unknown, values: Record<string, string>) {
+  const failure = actionFailure(caught);
+  const rawMessage = caught instanceof Error ? caught.message : '';
+  const knownKey =
+    [400, 409].includes(failure.status) && Object.hasOwn(managementMessages, rawMessage)
+      ? managementMessages[rawMessage]
+      : undefined;
+  const invalidField =
+    failure.status === 400 && !knownKey
+      ? Object.values(ownerCatalogs)
+          .flatMap((catalog) => catalog.fields)
+          .find((field) => rawMessage === `Invalid ${field.label}`)
+      : undefined;
+  return fail(failure.status, {
+    ...failure.data,
+    ...(knownKey ? { messageKey: knownKey } : {}),
+    ...(invalidField
+      ? {
+          messageKey: 'action.management.invalidField',
+          messageParams: { fieldLabel: invalidField.label },
+        }
+      : {}),
+    values,
+    recordId: values.id ?? '',
+  });
+}
+
 export const actions: Actions = {
   manageCatalog: async ({ locals, request }) => {
     const ctx = openPortalRepository(locals);
@@ -133,7 +202,12 @@ export const actions: Actions = {
       const form = await request.formData();
       values = Object.fromEntries([...form].map(([key, value]) => [key, String(value)]));
       if (form.get('confirmed') !== 'yes')
-        return fail(400, { success: false, message: 'Confirm the operation' });
+        return fail(400, {
+          success: false,
+          message: 'Confirm the operation',
+          values,
+          recordId: values.id ?? '',
+        });
       new OwnerCatalogManagement(ctx.sqlite).mutate(ctx.principal, {
         kind: String(form.get('kind')),
         id: String(form.get('id') ?? ''),
@@ -144,20 +218,26 @@ export const actions: Actions = {
       });
       return { success: true, message: 'Changes saved' };
     } catch (caught) {
-      const failure = actionFailure(caught);
-      return fail(failure.status, { ...failure.data, values, recordId: values.id ?? '' });
+      return managementFailure(caught, values);
     } finally {
       ctx.sqlite.close();
     }
   },
   manageRecord: async ({ locals, request }) => {
     const ctx = openPortalRepository(locals);
+    let values: Record<string, string> = {};
     try {
       const manager = new OwnerRecordManagement(ctx.sqlite);
       manager.assertOwner(ctx.principal);
       const form = await request.formData();
+      values = Object.fromEntries([...form].map(([key, value]) => [key, String(value)]));
       if (form.get('confirmed') !== 'yes')
-        return fail(400, { success: false, message: 'Confirm the operation' });
+        return fail(400, {
+          success: false,
+          message: 'Confirm the operation',
+          values,
+          recordId: values.id ?? '',
+        });
       manager.mutate(ctx.principal, {
         recordType: String(form.get('recordType')),
         id: String(form.get('id')),
@@ -167,7 +247,7 @@ export const actions: Actions = {
       });
       return { success: true, message: 'Changes saved' };
     } catch (caught) {
-      return actionFailure(caught);
+      return managementFailure(caught, values);
     } finally {
       ctx.sqlite.close();
     }

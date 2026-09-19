@@ -20,7 +20,9 @@ describe('portal locale catalog', () => {
   it('does not leave English copy in ES or PT outside the explicit invariant allowlist', () => {
     for (const key of portalCatalogKeys) {
       if (INVARIANT_TRANSLATION_KEYS.has(key) || isCoverageInvariantKey(key)) continue;
-      expect(portalCatalog.es[key]).not.toBe(portalCatalog.en[key]);
+      // Spanish and English share the negative; Portuguese must still use Não.
+      if (key === 'No') expect(portalCatalog.es[key]).toBe('No');
+      else expect(portalCatalog.es[key]).not.toBe(portalCatalog.en[key]);
       expect(portalCatalog.pt[key]).not.toBe(portalCatalog.en[key]);
     }
   });
@@ -57,5 +59,23 @@ describe('portal locale catalog', () => {
 
   it('keeps missing runtime keys safe for legacy callers', () => {
     expect(translate('es', 'customer-entered-value')).toBe('customer-entered-value');
+  });
+});
+
+describe('localized negative decision', () => {
+  it('uses Não for Brazilian Portuguese while retaining Spanish and English No', () => {
+    expect(translate('pt', 'No')).toBe('Não');
+    expect(translate('es', 'No')).toBe('No');
+    expect(translate('en', 'No')).toBe('No');
+  });
+});
+
+describe('generic English action errors', () => {
+  it.each([
+    ['action.error.conflict', 'This action conflicts with the current record state.'],
+    ['action.error.forbidden', 'You do not have permission to perform this action.'],
+    ['action.error.invalid', 'Check the submitted values and try again.'],
+  ])('keeps %s appropriate to every action boundary', (key, expected) => {
+    expect(translate('en', key)).toBe(expected);
   });
 });

@@ -1,3 +1,5 @@
+import { normalizePortalLocale, translate } from '../../i18n/catalog';
+
 type ValidationControl = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
 type ActionResult = { destroy: () => void };
@@ -17,7 +19,42 @@ function isInvalid(control: ValidationControl): boolean {
 }
 
 function errorMessage(control: ValidationControl): string {
-  return control.validationMessage?.trim() || 'Please complete this field.';
+  const locale = normalizePortalLocale(control.ownerDocument.documentElement.getAttribute('lang'));
+  const t = (key: string, params?: Record<string, string | number>) =>
+    translate(locale, key, params);
+  const validity = control.validity;
+  // Application-defined validation already uses the selected portal language.
+  if (validity.customError && control.validationMessage?.trim())
+    return control.validationMessage.trim();
+  const type = control.getAttribute('type');
+  if (validity.valueMissing) {
+    if (type === 'checkbox') return t('Please check this box.');
+    if (type === 'radio' || control.tagName === 'SELECT') return t('Please select an option.');
+    return t('Please complete this field.');
+  }
+  if (validity.typeMismatch) {
+    if (type === 'email') return t('Enter a valid email address.');
+    if (type === 'url') return t('Enter a valid URL.');
+  }
+  if (validity.badInput) {
+    if (type === 'time') return t('Enter a valid time.');
+    if (['date', 'datetime-local', 'month', 'week'].includes(type ?? ''))
+      return t('Enter a valid date.');
+    return t('Enter a valid number.');
+  }
+  if (validity.patternMismatch) return t('Match the requested format.');
+  if (validity.tooShort)
+    return t('Use at least {min} characters.', { min: control.getAttribute('minlength') ?? '' });
+  if (validity.tooLong)
+    return t('Use no more than {max} characters.', {
+      max: control.getAttribute('maxlength') ?? '',
+    });
+  if (validity.rangeUnderflow)
+    return t('Enter a value of at least {min}.', { min: control.getAttribute('min') ?? '' });
+  if (validity.rangeOverflow)
+    return t('Enter a value no greater than {max}.', { max: control.getAttribute('max') ?? '' });
+  if (validity.stepMismatch) return t('Enter a value matching the required step.');
+  return t('Enter a valid value.');
 }
 
 function slug(value: string): string {
@@ -142,7 +179,11 @@ function renderInvalidState(form: HTMLFormElement, invalidControls: ValidationCo
     appendToken(control, errorId);
   }
 
-  summary.textContent = `Please correct the following fields: ${messages.join(' ')}`;
+  summary.textContent = translate(
+    normalizePortalLocale(ownerDocument.documentElement.getAttribute('lang')),
+    'Please correct the following fields: {messages}',
+    { messages: messages.join(' ') },
+  );
   const first = invalidControls[0];
   if (first) {
     const focus = () => first.focus();

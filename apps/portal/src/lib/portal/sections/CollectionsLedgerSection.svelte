@@ -5,6 +5,8 @@
   import { page } from '$app/stores';
   import type { PortalData } from '../portal-data';
   import { paymentMoney } from '../payment-money';
+  import { documentLanguage, type PortalLocale } from '../../portal-i18n';
+  import { translateControlledValue } from '../../i18n/controlled-values';
   import {
     agingBuckets,
     agingLabels,
@@ -28,10 +30,11 @@
   type Props = {
     data: PortalData;
     translate: (value: string) => string;
-    controlledValue?: (domain: 'status', value: unknown) => string;
+    controlledValue?: (domain: 'status' | 'billingStream', value: unknown) => string;
+    locale?: PortalLocale;
   };
 
-  let { data, translate, controlledValue }: Props = $props();
+  let { data, translate, controlledValue, locale = 'en' }: Props = $props();
 
   let search = $state('');
   let statusFilter = $state('');
@@ -97,6 +100,11 @@
     return controlledValue?.('status', valueToLabel) || translate(String(valueToLabel || '—'));
   }
 
+  function streamLabel(row: Row): string {
+    const stream = value(row, 'streamType', 'stream_type');
+    return stream ? translateControlledValue(locale, 'billingStream', stream) : '—';
+  }
+
   function statusVariant(
     valueToClass: unknown,
   ): 'success' | 'warning' | 'danger' | 'info' | 'neutral' {
@@ -135,7 +143,9 @@
 
   function moneyValue(row: Row, ...keys: string[]): string {
     const amount = value(row, ...keys);
-    return amount ? paymentMoney(amount, value(row, 'currency') || 'USD') : '—';
+    return amount
+      ? paymentMoney(amount, value(row, 'currency') || 'USD', documentLanguage(locale))
+      : '—';
   }
 
   function directCostValue(row: Row): string {
@@ -200,7 +210,7 @@
         const kind = event.kind === 'reversal' ? translate('Reversal') : translate('Payment');
         const date = displayDate(event.date, translate('Date unavailable'));
         const reference = `${translate('Payment reference / note')}: ${event.reference}`;
-        return `${kind}: ${paymentMoney(event.amountMinor, event.currency)} · ${date} · ${reference}${event.detail ? ` · ${event.detail}` : ''}`;
+        return `${kind}: ${paymentMoney(event.amountMinor, event.currency, documentLanguage(locale))} · ${date} · ${reference}${event.detail ? ` · ${event.detail}` : ''}`;
       })
       .join(' · ');
   }
@@ -256,7 +266,7 @@
           },
           {
             label: translate('Stream'),
-            value: value(row, 'streamType', 'stream_type') || '—',
+            value: streamLabel(row),
           },
           {
             label: translate('Actual issue'),
@@ -509,15 +519,18 @@
           {summary.currency} · {translate('Net outstanding')}: {paymentMoney(
             summary.netOutstanding.toString(),
             summary.currency,
+            documentLanguage(locale),
           )}
         </h3>
         <p>
           {translate('Gross receivables')}: {paymentMoney(
             summary.outstanding.toString(),
             summary.currency,
+            documentLanguage(locale),
           )} · {translate('Credit balances')}: {paymentMoney(
             summary.credits.toString(),
             summary.currency,
+            documentLanguage(locale),
           )}
         </p>
         <p>
@@ -525,7 +538,13 @@
             'Aging shows gross receivables. Credit balances are separate, without assumed allocation.',
           )}
         </p>
-        <p>{translate('Overdue')}: {paymentMoney(summary.overdue.toString(), summary.currency)}</p>
+        <p>
+          {translate('Overdue')}: {paymentMoney(
+            summary.overdue.toString(),
+            summary.currency,
+            documentLanguage(locale),
+          )}
+        </p>
         <div class="collections-ledger__buckets">
           {#each agingBuckets as bucket}
             <a
@@ -533,7 +552,13 @@
               aria-current={agingFilter === bucket ? 'page' : undefined}
             >
               <span>{translate(agingLabels[bucket])}</span>
-              <strong>{paymentMoney(summary.buckets[bucket].toString(), summary.currency)}</strong>
+              <strong
+                >{paymentMoney(
+                  summary.buckets[bucket].toString(),
+                  summary.currency,
+                  documentLanguage(locale),
+                )}</strong
+              >
             </a>
           {/each}
         </div>
@@ -544,6 +569,7 @@
   </SectionCard>
 
   <CollectionsWorkbench
+    {locale}
     rows={visibleRows}
     {asOf}
     {translate}
@@ -609,7 +635,7 @@
                 <small>{value(row, 'clientName', 'client_name') || '—'}</small>
                 <small>{value(row, 'projectNumber', 'project_number') || '—'}</small>
               </td>
-              <td>{value(row, 'streamType', 'stream_type') || '—'}</td>
+              <td>{streamLabel(row)}</td>
               <td>
                 <span
                   >{displayDate(value(row, 'dueDate', 'due_date'), translate('No due date'))}</span
@@ -662,7 +688,13 @@
                             : translate('Payment')}
                         />
                         <div>
-                          <strong>{paymentMoney(event.amountMinor, event.currency)}</strong>
+                          <strong
+                            >{paymentMoney(
+                              event.amountMinor,
+                              event.currency,
+                              documentLanguage(locale),
+                            )}</strong
+                          >
                           <small
                             >{displayDate(event.date, translate('Date unavailable'))} · {translate(
                               'Payment reference / note',

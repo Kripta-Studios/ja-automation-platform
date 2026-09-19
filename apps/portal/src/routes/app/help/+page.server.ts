@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { AccessDeniedError, assertLiveSession } from '@ja/database';
 import { base } from '$app/paths';
-import { manualRevision, manualsForRole } from '$lib/server/manual-catalog';
+import { manualRevision, manualsForPersona, personaForPrincipal } from '$lib/server/manual-catalog';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import type { PageServerLoad } from './$types';
 
@@ -19,15 +19,21 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 
   try {
     const { locale } = await parent();
+    const persona = personaForPrincipal(context.sqlite, context.principal);
     return {
       locale,
       revision: manualRevision,
       user: {
         name: locals.user.name,
-        workforceProfile: locals.user.workforceProfile,
+        workforceProfile:
+          persona === 'supplier-coordinator'
+            ? 'supplier_coordinator'
+            : persona === 'external-technician'
+              ? 'external_technician'
+              : undefined,
         role: context.principal.role,
       },
-      manuals: manualsForRole(context.principal.role),
+      manuals: manualsForPersona(persona),
     };
   } finally {
     context.sqlite.close();

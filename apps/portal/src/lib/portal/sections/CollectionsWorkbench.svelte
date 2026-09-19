@@ -10,17 +10,20 @@
     forecastLabels,
   } from '../collections-workbench';
   import { paymentMoney } from '../payment-money';
+  import { documentLanguage, type PortalLocale } from '../../portal-i18n';
 
   let {
     rows,
     asOf,
     translate,
     exportUrl,
+    locale = 'en',
   }: {
     rows: readonly CollectionRow[];
     asOf: string;
     translate: (text: string) => string;
     exportUrl: string | null;
+    locale?: PortalLocale;
   } = $props();
   const views = {
     customers: 'Customer balances',
@@ -30,7 +33,7 @@
   let view = $state<keyof typeof views>('customers');
   let page = $state(0);
   const money = (amount: bigint | string, currency: string) =>
-    paymentMoney(String(amount), currency);
+    paymentMoney(String(amount), currency, documentLanguage(locale));
   const cell = (label: string, value: string | number) => ({
     label: translate(label),
     value: String(value),

@@ -1,0 +1,42 @@
+{
+  "reviewedAt": "2026-09-19T09:21:34.498597+00:00",
+  "reviewer": "Independent read-only agent /root/manuals_final_review",
+  "sourceDigest": "0a73eebb85225d37100b81c2493ca3e849679e30f75c8dfe91d08f19d8d7c467",
+  "scope": [
+    "persisted role and supplier profile authorization",
+    "live session checks for list and download",
+    "bounded same-origin GET recovery and auth/access stop",
+    "Owner known-error allowlist and value retention",
+    "selected-locale validation",
+    "exact money display and canonical input separation",
+    "role guide publication and edit permissions",
+    "PDF manifest, runtime digest and PNG integrity checks"
+  ],
+  "blockingFindings": [],
+  "finalPdfRenderingReviewed": false,
+  "note": "Source review only; final PDF artifact and browser verification recorded separately.",
+  "incrementalReview": {
+    "reviewedAt": "2026-09-19T09:28:56.133299+00:00",
+    "scope": "Supplier and external technician home redirect preserves canonical request locale; fixed same-origin destination, unchanged authorization and security headers",
+    "blockingFindings": []
+  },
+  "touchTargetReview": {
+    "reviewedAt": "2026-09-19T09:38:11.340730+00:00",
+    "reviewer": "Parent, independent of CSS implementer",
+    "scope": "Help language/download/retry/support controls: inline-flex, minimum 44px target and visible keyboard focus; no request or permission changes",
+    "blockingFindings": [],
+    "browserGeometryEvidence": "Recorded separately after final CSS run"
+  },
+  "navigationReview": {
+    "reviewedAt": "2026-09-19T09:47:16.993758+00:00",
+    "reviewer": "Parent, independent of translation implementer",
+    "scope": "Static translated Help and Finance Overview labels, localized breadcrumb/title interpolation for print; every navigation group of five roles and two supplier profiles covered by explicit catalog tests",
+    "blockingFindings": []
+  },
+  "availabilityLayoutReview": {
+    "reviewedAt": "2026-09-19T09:53:42.714548+00:00",
+    "reviewer": "Independent agent /root/release_readiness",
+    "scope": "AvailabilityCalendar scoped one-column drawer form and full-width inputs; CSS specificity against legacy desktop/tablet grids; no submit, state or permission changes",
+    "blockingFindings": []
+  }
+}

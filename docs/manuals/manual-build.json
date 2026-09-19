@@ -1,839 +1,2101 @@
 {
-  "generatedAt": "2026-09-14T20:35:14.729Z",
+  "generatedAt": "2026-09-19T09:56:54.676Z",
   "environment": "synthetic",
-  "sourceCommit": "d6a846e9ed6b32f512a378aba96edb8a22bbb7ea",
-  "sourceDigest": "e44e5bafaf939118ccb5d8330f91f90b42cc1dfb3cbe57a36158127efad45e0b",
+  "sourceCommit": "e0590fa0472144637efc61160475ef27c6ce00e8",
+  "sourceDigest": "0a73eebb85225d37100b81c2493ca3e849679e30f75c8dfe91d08f19d8d7c467",
   "captureManifest": "docs/manuals/validation/current-capture.json",
-  "capturedAt": "2026-09-14T20:34:58.002Z",
+  "capturedAt": "2026-09-19T09:56:05.809Z",
   "checks": [
     {
-      "name": "navigation:owner:/app",
+      "name": "navigation:/j-aautomation/app?lang=en",
       "status": "passed",
       "httpStatus": 200
     },
     {
-      "name": "navigation:owner:/app/projects",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/time",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/reports",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/expenses",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/documents",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/profile",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/help",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/notifications",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/projects?view=clients",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/projects?view=team",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/planning",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/projects/01a0a1a0-8191-719b-987c-cac75ed7b118",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/approvals",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/billing",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/billing/invoices/01a0a1a0-8279-76d9-8454-bfa786d5e2ac",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/finance",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/finance?view=economic",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/finance?view=commercial",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/ledger",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/accounting",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/audit",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/finance/preview",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/finance/cash",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/reports/review",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/reports/period/01a0a1a0-82a3-72fb-9cd3-d637c7b1aab2",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/projects/01a0a1a0-8191-719b-987c-cac75ed7b118/closeout",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:owner:/app/supplier",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:phone:owner:/app/finance/cash",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:phone:owner:/app/reports/review",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:worker:/app",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:worker:/app/projects",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:worker:/app/time",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "form-open:worker:/app/time",
+      "name": "capture:owner:en:home",
       "status": "passed"
     },
     {
-      "name": "navigation:worker:/app/reports",
+      "name": "navigation:/j-aautomation/app/help?lang=en",
       "status": "passed",
       "httpStatus": 200
     },
     {
-      "name": "form-open:worker:/app/reports",
+      "name": "capture:owner:en:help",
       "status": "passed"
     },
     {
-      "name": "navigation:worker:/app/expenses",
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
       "status": "passed",
       "httpStatus": 200
     },
     {
-      "name": "form-open:worker:/app/expenses",
+      "name": "capture:owner:en:profile",
       "status": "passed"
     },
     {
-      "name": "navigation:worker:/app/documents",
+      "name": "navigation:/j-aautomation/app/planning?lang=en",
       "status": "passed",
       "httpStatus": 200
     },
     {
-      "name": "navigation:worker:/app/profile",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:worker:/app/help",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:worker:/app/notifications",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:worker:/app/pay",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:worker:/app/projects/01a0a1a0-8191-719b-987c-cac75ed7b118",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "denied:worker:/app/billing",
-      "status": "passed",
-      "httpStatus": 403
-    },
-    {
-      "name": "denied:worker:/app/finance",
-      "status": "passed",
-      "httpStatus": 403
-    },
-    {
-      "name": "denied:worker:/app/approvals",
-      "status": "passed",
-      "httpStatus": 403
-    },
-    {
-      "name": "denied:worker:/app/accounting",
-      "status": "passed",
-      "httpStatus": 403
-    },
-    {
-      "name": "denied:worker:/app/audit",
-      "status": "passed",
-      "httpStatus": 403
-    },
-    {
-      "name": "denied:worker:/app/finance/preview",
-      "status": "passed",
-      "httpStatus": 403
-    },
-    {
-      "name": "denied:worker:/app/finance/cash",
-      "status": "passed",
-      "httpStatus": 403
-    },
-    {
-      "name": "navigation:phone:worker:/app/time",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "navigation:phone:worker:/app/expenses",
-      "status": "passed",
-      "httpStatus": 200
-    },
-    {
-      "name": "supplier-capture:/app/supplier",
+      "name": "capture:owner:en:planning-month",
       "status": "passed"
     },
     {
-      "name": "supplier-capture:/app/supplier/report",
+      "name": "capture:owner:en:planning-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:en:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:owner:en:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:en:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:pt:home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:pt:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:pt:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/planning?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:pt:planning-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:owner:pt:planning-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:pt:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:owner:pt:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:pt:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=overview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:en:home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:en:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:en:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:en:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:finance:en:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:en:finance",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=overview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:en:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=overview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:pt:home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:pt:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:pt:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:pt:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:finance:pt:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:pt:finance",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=overview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:pt:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:en:home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:en:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:en:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/planning?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:en:planning-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:manager:en:planning-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:en:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:manager:en:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:en:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:pt:home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:pt:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:pt:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/planning?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:pt:planning-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:manager:pt:planning-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:pt:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:manager:pt:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:pt:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=overview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:en:home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:en:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:en:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/audit?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:en:audit",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=overview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:en:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=overview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:pt:home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:pt:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:pt:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/audit?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:pt:audit",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=overview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:pt:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:en:home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:en:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:en:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:en:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:worker:en:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/projects?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:en:projects-month",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:en:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:pt:home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:pt:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:pt:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:pt:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:worker:pt:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/projects?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:pt:projects-month",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:pt:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/supplier?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:en:home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:en:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:en:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/supplier?projectId=01a0b917-c2aa-733f-be84-99a693bf7d46&lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:en:supplier-team",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/supplier?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:en:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/supplier?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:pt:home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:pt:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:pt:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/supplier?projectId=01a0b917-c2aa-733f-be84-99a693bf7d46&lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:pt:supplier-team",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/supplier?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:pt:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/time?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:en:home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:en:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:en:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/time?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:en:time",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/time?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:en:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/time?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:pt:home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:pt:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:pt:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/time?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:pt:time",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/time?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:pt:home-phone",
       "status": "passed"
     }
   ],
   "screenshots": [
     {
-      "key": "today",
+      "persona": "owner",
+      "locale": "en",
+      "key": "home",
       "role": "owner",
-      "route": "/app",
-      "path": "docs/manuals/screenshots/current/owner/today.png",
-      "sha256": "084eb20263365cc46b7c8564167ee4c682c784d6f1301c4d56d505b07007fa09",
+      "route": "/app?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/home.png",
+      "sha256": "50a95049685c6a7c32a1a323075544a5fffad29f8f4575259dcab4535f826c91",
+      "capturedAt": "2026-09-19T09:54:14.904Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "projects",
-      "role": "owner",
-      "route": "/app/projects",
-      "path": "docs/manuals/screenshots/current/owner/projects.png",
-      "sha256": "89554ca158c0ecc26a3901ce5cc871af24d6081242c38138c3a7543686bfa02b",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "time",
-      "role": "owner",
-      "route": "/app/time",
-      "path": "docs/manuals/screenshots/current/owner/time.png",
-      "sha256": "25eb9f472887483cdb0ddf1991d23286111361d21d93c75ba2d35652cd591171",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "reports",
-      "role": "owner",
-      "route": "/app/reports",
-      "path": "docs/manuals/screenshots/current/owner/reports.png",
-      "sha256": "bca6b7438bdb670d9aaf4eb833ce8f57c6856b35eb6a5fb78c7edc392789428e",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "expenses",
-      "role": "owner",
-      "route": "/app/expenses",
-      "path": "docs/manuals/screenshots/current/owner/expenses.png",
-      "sha256": "6a592944b4cd741ba8808399a23a65e841ee5853d164616d69281fb900672d63",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "documents",
-      "role": "owner",
-      "route": "/app/documents",
-      "path": "docs/manuals/screenshots/current/owner/documents.png",
-      "sha256": "9d5407ca416567263010e3339832ce04555d8983051a59c8b74fd3c3127efcc5",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "profile",
-      "role": "owner",
-      "route": "/app/profile",
-      "path": "docs/manuals/screenshots/current/owner/profile.png",
-      "sha256": "8a1a2a2aa083d46f251fc542ed5afced01ee79bb86ad2eb998c53df3bddadcd7",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
+      "persona": "owner",
+      "locale": "en",
       "key": "help",
       "role": "owner",
-      "route": "/app/help",
-      "path": "docs/manuals/screenshots/current/owner/help.png",
-      "sha256": "bdb45d4c7705b27269ec62d696d1812b4c7a12263a8b24c95a82bea3619ac6cb",
+      "route": "/app/help?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/help.png",
+      "sha256": "aa13d8d88e9cc2bacca58ca8e6b80334f7fc81288add4c00fb26f80dcbefdaac",
+      "capturedAt": "2026-09-19T09:54:15.790Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "notifications",
+      "persona": "owner",
+      "locale": "en",
+      "key": "profile",
       "role": "owner",
-      "route": "/app/notifications",
-      "path": "docs/manuals/screenshots/current/owner/notifications.png",
-      "sha256": "e646a7bfe7195b087f0e77e9a6cc77d65b8f87d60c0ff13f3d90b8fc249aaf68",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/profile.png",
+      "sha256": "372d96f61eee17cff3421cb1fea01edd9392ace997a1344b0adbe357542a7040",
+      "capturedAt": "2026-09-19T09:54:16.826Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "clients",
+      "persona": "owner",
+      "locale": "en",
+      "key": "planning-month",
       "role": "owner",
-      "route": "/app/projects?view=clients",
-      "path": "docs/manuals/screenshots/current/owner/clients.png",
-      "sha256": "e468010c082b81a50dccf52acc8ea6176daecee7198acb94279d5c291231c50e",
+      "route": "/app/planning?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/planning-month.png",
+      "sha256": "d7ad567a1176e1fccde4d3455f8a351915a30101db99e065fdabd52045ed5494",
+      "capturedAt": "2026-09-19T09:54:17.963Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "team",
+      "persona": "owner",
+      "locale": "en",
+      "key": "planning-editor",
       "role": "owner",
-      "route": "/app/projects?view=team",
-      "path": "docs/manuals/screenshots/current/owner/team.png",
-      "sha256": "f071f0b26ae33eb94c4099b578303d21081d3b104ffbde33696945685e2f23d4",
+      "route": "/app/planning?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/planning-editor.png",
+      "sha256": "31bba175ea359d63d252eacbc54a7795cfccc04d44b07d9551b98cf239f9f39b",
+      "capturedAt": "2026-09-19T09:54:18.203Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "planning",
+      "persona": "owner",
+      "locale": "en",
+      "key": "availability-month",
       "role": "owner",
-      "route": "/app/planning",
-      "path": "docs/manuals/screenshots/current/owner/planning.png",
-      "sha256": "efe3235efe3d04a940c3a7f320abf95ae7cbc06a71e7db14b47d2cc3186c5d24",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/availability-month.png",
+      "sha256": "072aaa3b71fe5eb350228c00dbca12881c6856f528413a65eb16a897b4573a0b",
+      "capturedAt": "2026-09-19T09:54:19.253Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "project-detail",
+      "persona": "owner",
+      "locale": "en",
+      "key": "availability-editor",
       "role": "owner",
-      "route": "/app/projects/01a0a1a0-8191-719b-987c-cac75ed7b118",
-      "path": "docs/manuals/screenshots/current/owner/project-detail.png",
-      "sha256": "b0ee477b1cef3592f6104cccdaacb62d017e7beb90f639c86c9b59d6f9f00adc",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/availability-editor.png",
+      "sha256": "e96549b433a2706a1ff05cf68d66a71e67f89d352651b63eab44453b7989a99a",
+      "capturedAt": "2026-09-19T09:54:19.484Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "approvals",
+      "persona": "owner",
+      "locale": "en",
+      "key": "home-phone",
       "role": "owner",
-      "route": "/app/approvals",
-      "path": "docs/manuals/screenshots/current/owner/approvals.png",
-      "sha256": "1679f634dc7840d8e168b39c8de325c66f8979ea40b82d2e8d6d818a2e1326e6",
+      "route": "/app?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/home-phone.png",
+      "sha256": "80e9634a28ae53f1527f1238575e3252d574533cb3931d1c1be640391c618d3c",
+      "capturedAt": "2026-09-19T09:54:20.553Z",
       "viewport": {
-        "width": 1440,
-        "height": 900
+        "width": 390,
+        "height": 844
       }
     },
     {
-      "key": "billing",
+      "persona": "owner",
+      "locale": "pt",
+      "key": "home",
       "role": "owner",
-      "route": "/app/billing",
-      "path": "docs/manuals/screenshots/current/owner/billing.png",
-      "sha256": "3e1067700c23e9435f97a7f13037efd40c689b08d07efd23b66ebc0e77486845",
+      "route": "/app?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/home.png",
+      "sha256": "b8b9e3e9750cd4e8ea3087dcb3b20f8efb4c06215af1e39b210c99d431e1d8a0",
+      "capturedAt": "2026-09-19T09:54:24.046Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "invoice-detail",
+      "persona": "owner",
+      "locale": "pt",
+      "key": "help",
       "role": "owner",
-      "route": "/app/billing/invoices/01a0a1a0-8279-76d9-8454-bfa786d5e2ac",
-      "path": "docs/manuals/screenshots/current/owner/invoice-detail.png",
-      "sha256": "9aad88f4a8b799d827a0e088e4288f1ec87fc490e04e2035855c74dbccd7df8a",
+      "route": "/app/help?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/help.png",
+      "sha256": "6e9a0005547d1d2a9ff08fc017eea4d99bf67dd12cefb71eb3cbf2f869717c21",
+      "capturedAt": "2026-09-19T09:54:24.921Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "profile",
+      "role": "owner",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/profile.png",
+      "sha256": "ba3d094a925ab8cdc75602f901216f64e86488c642459941425339bee8a07137",
+      "capturedAt": "2026-09-19T09:54:26.011Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "planning-month",
+      "role": "owner",
+      "route": "/app/planning?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/planning-month.png",
+      "sha256": "61bcb64f731aec7881e4fe7caac57d33ad33092eb7dc9a2fdbc6b45d2b27691e",
+      "capturedAt": "2026-09-19T09:54:27.121Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "planning-editor",
+      "role": "owner",
+      "route": "/app/planning?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/planning-editor.png",
+      "sha256": "438901923e92f771e3441e27a1e9312b465b1a70bc185b5e1eb098ae4c54d157",
+      "capturedAt": "2026-09-19T09:54:27.343Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "availability-month",
+      "role": "owner",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/availability-month.png",
+      "sha256": "69c98488a99ea66f49d42690e2c954408d0d5a591311f263ad269319f5a5f425",
+      "capturedAt": "2026-09-19T09:54:28.457Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "availability-editor",
+      "role": "owner",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/availability-editor.png",
+      "sha256": "697b7af8f913405eb021afee495b09d7a438f13b6b92e29698998128dc78b8b4",
+      "capturedAt": "2026-09-19T09:54:28.719Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "home-phone",
+      "role": "owner",
+      "route": "/app?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/home-phone.png",
+      "sha256": "ce30bb91baefa52f06739eeda1236612d8ae24d3f779c8ff784fa3a14fb78566",
+      "capturedAt": "2026-09-19T09:54:29.824Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "key": "home",
+      "role": "finance",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/finance/en/home.png",
+      "sha256": "88d1b70fcec65d49456a0448b5fcc42ca180e2aa2f3ba23fb3bd4955e9106ef2",
+      "capturedAt": "2026-09-19T09:54:33.293Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "key": "help",
+      "role": "finance",
+      "route": "/app/help?lang=en",
+      "path": "docs/manuals/screenshots/current/finance/en/help.png",
+      "sha256": "41d8597013ce489f98425ee7328ac9d8c933d39d403c49aaeaeaad3d60ba5af9",
+      "capturedAt": "2026-09-19T09:54:34.133Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "key": "profile",
+      "role": "finance",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/finance/en/profile.png",
+      "sha256": "2a4011e1d6d318578e2e75598671818ca0714b6bc3938ddde9510dd5548e9bf4",
+      "capturedAt": "2026-09-19T09:54:35.141Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "key": "availability-month",
+      "role": "finance",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/finance/en/availability-month.png",
+      "sha256": "072aaa3b71fe5eb350228c00dbca12881c6856f528413a65eb16a897b4573a0b",
+      "capturedAt": "2026-09-19T09:54:36.157Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "key": "availability-editor",
+      "role": "finance",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/finance/en/availability-editor.png",
+      "sha256": "e96549b433a2706a1ff05cf68d66a71e67f89d352651b63eab44453b7989a99a",
+      "capturedAt": "2026-09-19T09:54:36.388Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
       "key": "finance",
-      "role": "owner",
-      "route": "/app/finance",
-      "path": "docs/manuals/screenshots/current/owner/finance.png",
-      "sha256": "9ffeb95a4ad2f49de6080f63b9328c4d86d5f553695da8027b4875a105c2e4f9",
+      "role": "finance",
+      "route": "/app/finance?lang=en",
+      "path": "docs/manuals/screenshots/current/finance/en/finance.png",
+      "sha256": "77756f411984472bdb84c55ef003fd1c475713fd175d55e3ded934b68d7c959f",
+      "capturedAt": "2026-09-19T09:54:37.471Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "economic",
-      "role": "owner",
-      "route": "/app/finance?view=economic",
-      "path": "docs/manuals/screenshots/current/owner/economic.png",
-      "sha256": "02ce8fa2032d4509c977db8c0599054a53664f3340f0800ae6f781be958be676",
+      "persona": "finance",
+      "locale": "en",
+      "key": "home-phone",
+      "role": "finance",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/finance/en/home-phone.png",
+      "sha256": "3ba1bb034b6111cf61d2e607bff9759e939f1dd3e1fad2b38d656477d566c122",
+      "capturedAt": "2026-09-19T09:54:38.543Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "key": "home",
+      "role": "finance",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/finance/pt/home.png",
+      "sha256": "f47faa56018a666c008202abf685a0831bf6503654aa04134b2b9b43d0a372cf",
+      "capturedAt": "2026-09-19T09:54:41.952Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "commercial",
-      "role": "owner",
-      "route": "/app/finance?view=commercial",
-      "path": "docs/manuals/screenshots/current/owner/commercial.png",
-      "sha256": "91defd5e8c03ade2eb9096f5ea9da5cf2ed5982ce69678af2cceea4b39613927",
+      "persona": "finance",
+      "locale": "pt",
+      "key": "help",
+      "role": "finance",
+      "route": "/app/help?lang=pt",
+      "path": "docs/manuals/screenshots/current/finance/pt/help.png",
+      "sha256": "8a74efe04f5ea1bf97bd4d08b7bc36b8e37dab8d18aca276231cd7ee13e0f85f",
+      "capturedAt": "2026-09-19T09:54:42.809Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "ledger",
-      "role": "owner",
-      "route": "/app/ledger",
-      "path": "docs/manuals/screenshots/current/owner/ledger.png",
-      "sha256": "66d4cee3a7c6878fee65d2f27ea64fdfa69bbbd982f6fb6e035be6bafdd29698",
+      "persona": "finance",
+      "locale": "pt",
+      "key": "profile",
+      "role": "finance",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/finance/pt/profile.png",
+      "sha256": "b9f90e410a9dad3c3b5a4622cd19ccb6610e6556364d8612c45e1c05a355005c",
+      "capturedAt": "2026-09-19T09:54:43.834Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "accounting",
-      "role": "owner",
-      "route": "/app/accounting",
-      "path": "docs/manuals/screenshots/current/owner/accounting.png",
-      "sha256": "c50d7f810a32931e21283c4fe90fa70e411fa414281bf8e79f1d1b324aaca595",
+      "persona": "finance",
+      "locale": "pt",
+      "key": "availability-month",
+      "role": "finance",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/finance/pt/availability-month.png",
+      "sha256": "69c98488a99ea66f49d42690e2c954408d0d5a591311f263ad269319f5a5f425",
+      "capturedAt": "2026-09-19T09:54:44.904Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
+      "persona": "finance",
+      "locale": "pt",
+      "key": "availability-editor",
+      "role": "finance",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/finance/pt/availability-editor.png",
+      "sha256": "697b7af8f913405eb021afee495b09d7a438f13b6b92e29698998128dc78b8b4",
+      "capturedAt": "2026-09-19T09:54:45.124Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "key": "finance",
+      "role": "finance",
+      "route": "/app/finance?lang=pt",
+      "path": "docs/manuals/screenshots/current/finance/pt/finance.png",
+      "sha256": "2fd3a8473ce1b7b1b3fd5908beba9aa110272e454cca721c55857161e63764c9",
+      "capturedAt": "2026-09-19T09:54:46.180Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "key": "home-phone",
+      "role": "finance",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/finance/pt/home-phone.png",
+      "sha256": "d68c04cbae524d5ec90f4da5d0ba2237d6c1618de8a384c303abe2a41d2d56c8",
+      "capturedAt": "2026-09-19T09:54:47.275Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "home",
+      "role": "manager",
+      "route": "/app?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/home.png",
+      "sha256": "536f177124cfbe20bd34a0d623943e1ec8aff465dafd1089b67a3773a32feb1f",
+      "capturedAt": "2026-09-19T09:54:50.786Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "help",
+      "role": "manager",
+      "route": "/app/help?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/help.png",
+      "sha256": "84497c3405785a9ae2f584004a0a824b0bf8d05f2c695ea31e5cacc827d1f40a",
+      "capturedAt": "2026-09-19T09:54:51.632Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "profile",
+      "role": "manager",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/profile.png",
+      "sha256": "b2574b23df5bc6e3e878ae371200c2f9ba754f910cff4eafc9c393b22c423555",
+      "capturedAt": "2026-09-19T09:54:52.684Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "planning-month",
+      "role": "manager",
+      "route": "/app/planning?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/planning-month.png",
+      "sha256": "d7ad567a1176e1fccde4d3455f8a351915a30101db99e065fdabd52045ed5494",
+      "capturedAt": "2026-09-19T09:54:53.717Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "planning-editor",
+      "role": "manager",
+      "route": "/app/planning?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/planning-editor.png",
+      "sha256": "6d2c1f5f1db1a52bf1eac45d5e5ad9c934f48072325ecb8cb395484584f00613",
+      "capturedAt": "2026-09-19T09:54:53.923Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "availability-month",
+      "role": "manager",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/availability-month.png",
+      "sha256": "c33eab8d82602f31bee0fa34556a139beebc7e5dd09a95ca1b52c786d00862b5",
+      "capturedAt": "2026-09-19T09:54:54.946Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "availability-editor",
+      "role": "manager",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/availability-editor.png",
+      "sha256": "e96549b433a2706a1ff05cf68d66a71e67f89d352651b63eab44453b7989a99a",
+      "capturedAt": "2026-09-19T09:54:55.159Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "home-phone",
+      "role": "manager",
+      "route": "/app?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/home-phone.png",
+      "sha256": "2650117e704220165b3e1bd3f883a1d0bd058be569d2e742b08c06b9b58f0bd8",
+      "capturedAt": "2026-09-19T09:54:56.167Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "home",
+      "role": "manager",
+      "route": "/app?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/home.png",
+      "sha256": "3380dbfcd11a66f38568da7027c95d6eb6776a6e4b4f0f6aed90264c8afdbc26",
+      "capturedAt": "2026-09-19T09:54:59.397Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "help",
+      "role": "manager",
+      "route": "/app/help?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/help.png",
+      "sha256": "195c67cfb2bc1d695a9da9dddeb23ab0065807d9118e3b2be90385759f154b92",
+      "capturedAt": "2026-09-19T09:55:00.227Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "profile",
+      "role": "manager",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/profile.png",
+      "sha256": "27af285d36f90cc93b5f67458998a1495a71736ab33c08de918685a52f9acb14",
+      "capturedAt": "2026-09-19T09:55:01.273Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "planning-month",
+      "role": "manager",
+      "route": "/app/planning?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/planning-month.png",
+      "sha256": "61bcb64f731aec7881e4fe7caac57d33ad33092eb7dc9a2fdbc6b45d2b27691e",
+      "capturedAt": "2026-09-19T09:55:02.314Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "planning-editor",
+      "role": "manager",
+      "route": "/app/planning?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/planning-editor.png",
+      "sha256": "39cdd7499a461fae8c3998a52c1b905e6ad8cb758f5032e7fed65d8412017530",
+      "capturedAt": "2026-09-19T09:55:02.513Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "availability-month",
+      "role": "manager",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/availability-month.png",
+      "sha256": "61e7061dac8b0be047c07c535af9cc9add2de44b8770d96be2ad17f141d71899",
+      "capturedAt": "2026-09-19T09:55:03.556Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "availability-editor",
+      "role": "manager",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/availability-editor.png",
+      "sha256": "697b7af8f913405eb021afee495b09d7a438f13b6b92e29698998128dc78b8b4",
+      "capturedAt": "2026-09-19T09:55:03.764Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "home-phone",
+      "role": "manager",
+      "route": "/app?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/home-phone.png",
+      "sha256": "f964d4c5d6be36bb9631904fdd7ada70db2e068b099b4941fe7c832cfff22ca8",
+      "capturedAt": "2026-09-19T09:55:04.787Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "key": "home",
+      "role": "auditor",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/auditor/en/home.png",
+      "sha256": "e4571e7276703d4d8dc4677be2afc341626ef49ca756a395aeb545d6169fcb18",
+      "capturedAt": "2026-09-19T09:55:08.386Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "key": "help",
+      "role": "auditor",
+      "route": "/app/help?lang=en",
+      "path": "docs/manuals/screenshots/current/auditor/en/help.png",
+      "sha256": "9bce81cf6e53a651a25db71b8d4c6464e96b37ff8c7878af9fb6d6bf3d60c791",
+      "capturedAt": "2026-09-19T09:55:09.261Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "key": "profile",
+      "role": "auditor",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/auditor/en/profile.png",
+      "sha256": "be2aac50ef8837463e04bea0d8914474b0d2c91fff7f1eeeccc840ccc1958616",
+      "capturedAt": "2026-09-19T09:55:10.328Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
       "key": "audit",
-      "role": "owner",
-      "route": "/app/audit",
-      "path": "docs/manuals/screenshots/current/owner/audit.png",
-      "sha256": "c3d772396f82c14903f592bfd386d8b22d4ca5cc6d6a6a41488075d13991ff92",
+      "role": "auditor",
+      "route": "/app/audit?lang=en",
+      "path": "docs/manuals/screenshots/current/auditor/en/audit.png",
+      "sha256": "964cc3e1cc790f2ff6bed9ef8c070ff1447e1b2e8c89f8a47f977cb73018e83f",
+      "capturedAt": "2026-09-19T09:55:11.414Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "preview",
-      "role": "owner",
-      "route": "/app/finance/preview",
-      "path": "docs/manuals/screenshots/current/owner/preview.png",
-      "sha256": "7f38879af9a4d13eb0fdab98a1dee6527c988b01c52f486d3d1295f1a18ed5fa",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "cash",
-      "role": "owner",
-      "route": "/app/finance/cash",
-      "path": "docs/manuals/screenshots/current/owner/cash.png",
-      "sha256": "00efe15290adff0b5682d302204aaf8f0f535533073869a2c445fe9ef4991138",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "period-review",
-      "role": "owner",
-      "route": "/app/reports/review",
-      "path": "docs/manuals/screenshots/current/owner/period-review.png",
-      "sha256": "0d2e7b92b863a7bb4f0f4620e7f41df16d15899e1acf7b52d03553ba1ed38681",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "period-detail",
-      "role": "owner",
-      "route": "/app/reports/period/01a0a1a0-82a3-72fb-9cd3-d637c7b1aab2",
-      "path": "docs/manuals/screenshots/current/owner/period-detail.png",
-      "sha256": "8ebbbd6f891b27527100130134c8d5f9986a4ff63ec76d9cb726ca84625f259d",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "closeout",
-      "role": "owner",
-      "route": "/app/projects/01a0a1a0-8191-719b-987c-cac75ed7b118/closeout",
-      "path": "docs/manuals/screenshots/current/owner/closeout.png",
-      "sha256": "5218b81a02c679f07703e0e55d5a475b19c4d2a8bfe0fb527fe773a73c133999",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "supplier",
-      "role": "owner",
-      "route": "/app/supplier",
-      "path": "docs/manuals/screenshots/current/owner/supplier.png",
-      "sha256": "2dca3d8ea295f02b82822d94f177f258bab2dc43197a781f58ee48a803d94992",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "cash-phone",
-      "role": "owner",
-      "route": "/app/finance/cash",
-      "path": "docs/manuals/screenshots/current/owner/cash-phone.png",
-      "sha256": "30110cb3a1ac0500c7de6be925d87a91cef78ed3cfd728a3819eb08e08ce742b",
+      "persona": "auditor",
+      "locale": "en",
+      "key": "home-phone",
+      "role": "auditor",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/auditor/en/home-phone.png",
+      "sha256": "78100d2216beabe005f9127dee343cfac80af70e3dad97f316e01f4580a81449",
+      "capturedAt": "2026-09-19T09:55:12.489Z",
       "viewport": {
         "width": 390,
         "height": 844
       }
     },
     {
-      "key": "period-review-phone",
-      "role": "owner",
-      "route": "/app/reports/review",
-      "path": "docs/manuals/screenshots/current/owner/period-review-phone.png",
-      "sha256": "ca9b1b02157197500de0e85cb5d4750997c33e063f0bf7970d57a6de9202d657",
+      "persona": "auditor",
+      "locale": "pt",
+      "key": "home",
+      "role": "auditor",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/auditor/pt/home.png",
+      "sha256": "88978c0b05fd3d3a5ea2bb50314144672a3da516b4ba988d10560100587b859a",
+      "capturedAt": "2026-09-19T09:55:15.873Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "key": "help",
+      "role": "auditor",
+      "route": "/app/help?lang=pt",
+      "path": "docs/manuals/screenshots/current/auditor/pt/help.png",
+      "sha256": "46042fcf8ba19160df4a6d38e45291766baf963dfdbdb614f264fbe240af2598",
+      "capturedAt": "2026-09-19T09:55:16.726Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "key": "profile",
+      "role": "auditor",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/auditor/pt/profile.png",
+      "sha256": "d3191f102197eac9f3ff95e74d1bbc903e478d975a03b2bf080fc716a49d4a24",
+      "capturedAt": "2026-09-19T09:55:17.757Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "key": "audit",
+      "role": "auditor",
+      "route": "/app/audit?lang=pt",
+      "path": "docs/manuals/screenshots/current/auditor/pt/audit.png",
+      "sha256": "c909ec34e6f658415af7a94eb57fb5e792119d9afc2322bdaad62df283b0c67a",
+      "capturedAt": "2026-09-19T09:55:18.864Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "key": "home-phone",
+      "role": "auditor",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/auditor/pt/home-phone.png",
+      "sha256": "6325e6ebf055b955f27a2cbfe08983ce22100f70cd85afb1321f8e5f665b4dfa",
+      "capturedAt": "2026-09-19T09:55:20.009Z",
       "viewport": {
         "width": 390,
         "height": 844
       }
     },
     {
+      "persona": "worker",
+      "locale": "en",
       "key": "home",
       "role": "worker",
-      "route": "/app",
-      "path": "docs/manuals/screenshots/current/worker/home.png",
-      "sha256": "5a89900e6241aeb3337dbb39898a31d858c8f789867392ecb972fa0b80b23193",
+      "route": "/app?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/home.png",
+      "sha256": "2aa2d2213c8869dc32afeedf4cbc803a5995bedc7199d33f45cef35dab2ce82e",
+      "capturedAt": "2026-09-19T09:55:23.212Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "projects",
-      "role": "worker",
-      "route": "/app/projects",
-      "path": "docs/manuals/screenshots/current/worker/projects.png",
-      "sha256": "9c6720ac241a1bb265f0132a2672e37b96a42aa8a55a436bca21781c2457f1cc",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "time",
-      "role": "worker",
-      "route": "/app/time",
-      "path": "docs/manuals/screenshots/current/worker/time.png",
-      "sha256": "d545e3d796ffa971fb61db3de399703f811278d6c566baf7ead8829c77d1748e",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "time-form",
-      "role": "worker",
-      "route": "/app/time",
-      "path": "docs/manuals/screenshots/current/worker/time-form.png",
-      "sha256": "1cfc64b1f788010d69836b076ad7887340f596aa14def2e6400d7127e38dba38",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "reports",
-      "role": "worker",
-      "route": "/app/reports",
-      "path": "docs/manuals/screenshots/current/worker/reports.png",
-      "sha256": "b7a023d63d6636ed1a4c0e390483af38d02f2b17621631408fe30b06b02b7fa1",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "reports-form",
-      "role": "worker",
-      "route": "/app/reports",
-      "path": "docs/manuals/screenshots/current/worker/reports-form.png",
-      "sha256": "4ed87f09805d48f69912ac2d2741a5bb022fa6f1fe6c34f4cde594e14c6847bc",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "expenses",
-      "role": "worker",
-      "route": "/app/expenses",
-      "path": "docs/manuals/screenshots/current/worker/expenses.png",
-      "sha256": "d407e68b0ee81c37543dd492921882a7229d75e085c078a291796f3832fe7bf3",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "expenses-form",
-      "role": "worker",
-      "route": "/app/expenses",
-      "path": "docs/manuals/screenshots/current/worker/expenses-form.png",
-      "sha256": "3aee396d4a1f31605cd9c532f26231987cc09f992db27fbcf4cb8f717009e749",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "documents",
-      "role": "worker",
-      "route": "/app/documents",
-      "path": "docs/manuals/screenshots/current/worker/documents.png",
-      "sha256": "ca495a4ae13812efe6bec15349560752feed4a430bcdf27f97ba25f9338ca33b",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
-      "key": "profile",
-      "role": "worker",
-      "route": "/app/profile",
-      "path": "docs/manuals/screenshots/current/worker/profile.png",
-      "sha256": "fe51509898393579b94e7415b8f38b11c1feb0e9cac8e5221fd8927fd7367b3e",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      }
-    },
-    {
+      "persona": "worker",
+      "locale": "en",
       "key": "help",
       "role": "worker",
-      "route": "/app/help",
-      "path": "docs/manuals/screenshots/current/worker/help.png",
-      "sha256": "6c6222049443d07407ceaca6fa881c26871e8b2133501ff0d22f4eec853412bf",
+      "route": "/app/help?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/help.png",
+      "sha256": "47c1ba229e8209a7342e48ba7374bf327d5b25e527390018f081724d8b46b06f",
+      "capturedAt": "2026-09-19T09:55:24.058Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "notifications",
+      "persona": "worker",
+      "locale": "en",
+      "key": "profile",
       "role": "worker",
-      "route": "/app/notifications",
-      "path": "docs/manuals/screenshots/current/worker/notifications.png",
-      "sha256": "1ad8153d8df4d814958e0d3bdd0f85873d0439ec8c3a493667e76e29d1337bab",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/profile.png",
+      "sha256": "57009f8b4e218e4c25c2780ecde6597c63e3159e4e7f6fde353cd5c2f645e872",
+      "capturedAt": "2026-09-19T09:55:25.063Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "pay",
+      "persona": "worker",
+      "locale": "en",
+      "key": "availability-month",
       "role": "worker",
-      "route": "/app/pay",
-      "path": "docs/manuals/screenshots/current/worker/pay.png",
-      "sha256": "d94aaf7acecf36f9def14b9e8000a5bb868ad64d29e828d2b94467e9710175eb",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/availability-month.png",
+      "sha256": "a2ea68c07f5ec2eacd6167596170a53f4de3d872b51f886395762f4bc9a45438",
+      "capturedAt": "2026-09-19T09:55:26.108Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "project-detail",
+      "persona": "worker",
+      "locale": "en",
+      "key": "availability-editor",
       "role": "worker",
-      "route": "/app/projects/01a0a1a0-8191-719b-987c-cac75ed7b118",
-      "path": "docs/manuals/screenshots/current/worker/project-detail.png",
-      "sha256": "0b177ff34c0b657aea591f3b3ccff2d17064595cb19164570b830c7d74421646",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/availability-editor.png",
+      "sha256": "e96549b433a2706a1ff05cf68d66a71e67f89d352651b63eab44453b7989a99a",
+      "capturedAt": "2026-09-19T09:55:26.327Z",
       "viewport": {
         "width": 1440,
         "height": 900
       }
     },
     {
-      "key": "time-phone",
+      "persona": "worker",
+      "locale": "en",
+      "key": "projects-month",
       "role": "worker",
-      "route": "/app/time",
-      "path": "docs/manuals/screenshots/current/worker/time-phone.png",
-      "sha256": "6b392e76632fefed8fd78a74f47ae692b0031ed028301911005c2c72b955d8e8",
+      "route": "/app/projects?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/projects-month.png",
+      "sha256": "04081f6b84604b80016b30d6af49e8cd362d24f6b93418bdc451277e27403174",
+      "capturedAt": "2026-09-19T09:55:27.458Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "key": "home-phone",
+      "role": "worker",
+      "route": "/app?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/home-phone.png",
+      "sha256": "782cb495b992754cd07edcd9345d0c97c3b66fad1f4ac2896bbaa37d83b7b200",
+      "capturedAt": "2026-09-19T09:55:28.385Z",
       "viewport": {
         "width": 390,
         "height": 844
       }
     },
     {
-      "key": "expenses-phone",
+      "persona": "worker",
+      "locale": "pt",
+      "key": "home",
       "role": "worker",
-      "route": "/app/expenses",
-      "path": "docs/manuals/screenshots/current/worker/expenses-phone.png",
-      "sha256": "769557bbd250d0df59babfb28d4060ccbf886c1f6b09b5d56e09e3acfdefc02c",
+      "route": "/app?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/home.png",
+      "sha256": "4292031a585d146327911b47f06be609af2d78a5c280a85f370c7fb71f99deb2",
+      "capturedAt": "2026-09-19T09:55:31.700Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "help",
+      "role": "worker",
+      "route": "/app/help?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/help.png",
+      "sha256": "ba35d8216166e102a8206983131a6a28c12c6880a9c69232273f87458795efa3",
+      "capturedAt": "2026-09-19T09:55:32.536Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "profile",
+      "role": "worker",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/profile.png",
+      "sha256": "badf486674b58a98c5a3209dfcd79a9a284f723990e126daaf97419112181278",
+      "capturedAt": "2026-09-19T09:55:33.536Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "availability-month",
+      "role": "worker",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/availability-month.png",
+      "sha256": "f0a83d8df66226bb12a442b02e52206ca5f1027033f767a5e6ccfa53ba3161dd",
+      "capturedAt": "2026-09-19T09:55:34.584Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "availability-editor",
+      "role": "worker",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/availability-editor.png",
+      "sha256": "697b7af8f913405eb021afee495b09d7a438f13b6b92e29698998128dc78b8b4",
+      "capturedAt": "2026-09-19T09:55:34.824Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "projects-month",
+      "role": "worker",
+      "route": "/app/projects?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/projects-month.png",
+      "sha256": "e8506ad31412f05fe6e1c1458cfc65ff748c7469b65e32b420e6216b3d5d9eef",
+      "capturedAt": "2026-09-19T09:55:35.956Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "home-phone",
+      "role": "worker",
+      "route": "/app?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/home-phone.png",
+      "sha256": "6783e4f4c5d536fc4282850e246102d1d122f40418b7ea252cef25c6ffa0d6ae",
+      "capturedAt": "2026-09-19T09:55:36.909Z",
       "viewport": {
         "width": 390,
         "height": 844
       }
     },
     {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "key": "home",
+      "role": "supplier-coordinator",
+      "route": "/app/supplier?lang=en",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/en/home.png",
+      "sha256": "1f9cd981be956c7751d6b805ff43cc1aec3e88396f23845ffe167606c781f644",
+      "capturedAt": "2026-09-19T09:55:40.168Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "key": "help",
+      "role": "supplier-coordinator",
+      "route": "/app/help?lang=en",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/en/help.png",
+      "sha256": "c392a8b0b86b5cf2f965f6172ee2649f2d9a39f2a8b4a49c52ed43fed1acecf4",
+      "capturedAt": "2026-09-19T09:55:41.027Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "key": "profile",
+      "role": "supplier-coordinator",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/en/profile.png",
+      "sha256": "ace10252e55f2d29c6f71ae0da495c78a9d5ed2d16b6aac65f158102dd2b564a",
+      "capturedAt": "2026-09-19T09:55:42.197Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
       "key": "supplier-team",
-      "role": "worker",
-      "route": "/app/supplier",
-      "path": "docs/manuals/screenshots/current/supplier/team.png",
+      "role": "supplier-coordinator",
+      "route": "/app/supplier?projectId=01a0b917-c2aa-733f-be84-99a693bf7d46&lang=en",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/en/supplier-team.png",
+      "sha256": "1f9cd981be956c7751d6b805ff43cc1aec3e88396f23845ffe167606c781f644",
+      "capturedAt": "2026-09-19T09:55:43.043Z",
       "viewport": {
         "width": 1440,
         "height": 900
-      },
-      "sha256": "9c2ecdc94e764d58d078082a987b0371cd1a70fbd2c55c93e74224e6b65f73dd"
+      }
     },
     {
-      "key": "supplier-report",
-      "role": "worker",
-      "route": "/app/supplier/report",
-      "path": "docs/manuals/screenshots/current/supplier/report.png",
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "key": "home-phone",
+      "role": "supplier-coordinator",
+      "route": "/app/supplier?lang=en",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/en/home-phone.png",
+      "sha256": "fbe1ad45a12b4fc9fe92378be1a8b0bcc0c8493634f53edae638bd7a1bf4c0e2",
+      "capturedAt": "2026-09-19T09:55:43.910Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "key": "home",
+      "role": "supplier-coordinator",
+      "route": "/app/supplier?lang=pt",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/home.png",
+      "sha256": "a803816f34aa1e0137bc84e6eefbd38856c163f91e979f4d260dfb63662bc64e",
+      "capturedAt": "2026-09-19T09:55:46.973Z",
       "viewport": {
         "width": 1440,
         "height": 900
-      },
-      "sha256": "95cdac672d2226f0265df20ff11006e81b6814ade05b90dbe244dd9ece3cf24d"
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "key": "help",
+      "role": "supplier-coordinator",
+      "route": "/app/help?lang=pt",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/help.png",
+      "sha256": "122fffcd361a3ed1db3222c37a6940ccd93bea0f13bb9ae6226e36d60670463d",
+      "capturedAt": "2026-09-19T09:55:47.816Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "key": "profile",
+      "role": "supplier-coordinator",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/profile.png",
+      "sha256": "719cb76d7b53d52357f352e546854b613c76154ab15f415dc3d5956708663125",
+      "capturedAt": "2026-09-19T09:55:48.917Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "key": "supplier-team",
+      "role": "supplier-coordinator",
+      "route": "/app/supplier?projectId=01a0b917-c2aa-733f-be84-99a693bf7d46&lang=pt",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/supplier-team.png",
+      "sha256": "a803816f34aa1e0137bc84e6eefbd38856c163f91e979f4d260dfb63662bc64e",
+      "capturedAt": "2026-09-19T09:55:49.766Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "key": "home-phone",
+      "role": "supplier-coordinator",
+      "route": "/app/supplier?lang=pt",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/home-phone.png",
+      "sha256": "b24ee67e025957b75435b174c4617df7c051e9d23899ff3029e607486479c698",
+      "capturedAt": "2026-09-19T09:55:50.642Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "key": "home",
+      "role": "external-technician",
+      "route": "/app/time?lang=en",
+      "path": "docs/manuals/screenshots/current/external-technician/en/home.png",
+      "sha256": "b9c74e8585b0fcd669c605772faed5882e110eaf95e3f39958025f4a7dfe919a",
+      "capturedAt": "2026-09-19T09:55:54.081Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "key": "help",
+      "role": "external-technician",
+      "route": "/app/help?lang=en",
+      "path": "docs/manuals/screenshots/current/external-technician/en/help.png",
+      "sha256": "3fee3fbd2d7339818e7b8fdf6daa4843434b872deb5901b43fd153c16497d6bd",
+      "capturedAt": "2026-09-19T09:55:54.957Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "key": "profile",
+      "role": "external-technician",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/external-technician/en/profile.png",
+      "sha256": "364e23fc3338aa24f74e9edcc706d043bc43a6d3cb89c2bfe5fd6f3a78e49e50",
+      "capturedAt": "2026-09-19T09:55:55.976Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "key": "time",
+      "role": "external-technician",
+      "route": "/app/time?lang=en",
+      "path": "docs/manuals/screenshots/current/external-technician/en/time.png",
+      "sha256": "b9c74e8585b0fcd669c605772faed5882e110eaf95e3f39958025f4a7dfe919a",
+      "capturedAt": "2026-09-19T09:55:56.991Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "key": "home-phone",
+      "role": "external-technician",
+      "route": "/app/time?lang=en",
+      "path": "docs/manuals/screenshots/current/external-technician/en/home-phone.png",
+      "sha256": "08260b8f30848870d0a2007a6ad6ebf5978fb98bae2235eae571e1fe1022d1fe",
+      "capturedAt": "2026-09-19T09:55:58.104Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "key": "home",
+      "role": "external-technician",
+      "route": "/app/time?lang=pt",
+      "path": "docs/manuals/screenshots/current/external-technician/pt/home.png",
+      "sha256": "f9ce1e3eb6636cb533484a9b808ea025d680afe7171fea461f9e513bf121b40e",
+      "capturedAt": "2026-09-19T09:56:01.364Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "key": "help",
+      "role": "external-technician",
+      "route": "/app/help?lang=pt",
+      "path": "docs/manuals/screenshots/current/external-technician/pt/help.png",
+      "sha256": "584752de445aafafdcc5c98aefa8750a37538618ccd94d88c7c2b05f7ed488b1",
+      "capturedAt": "2026-09-19T09:56:02.215Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "key": "profile",
+      "role": "external-technician",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/external-technician/pt/profile.png",
+      "sha256": "18c43cd6387d53bc167ed05c64b890d541d67e89210bb4485d383b80804b03e3",
+      "capturedAt": "2026-09-19T09:56:03.264Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "key": "time",
+      "role": "external-technician",
+      "route": "/app/time?lang=pt",
+      "path": "docs/manuals/screenshots/current/external-technician/pt/time.png",
+      "sha256": "f9ce1e3eb6636cb533484a9b808ea025d680afe7171fea461f9e513bf121b40e",
+      "capturedAt": "2026-09-19T09:56:04.347Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "key": "home-phone",
+      "role": "external-technician",
+      "route": "/app/time?lang=pt",
+      "path": "docs/manuals/screenshots/current/external-technician/pt/home-phone.png",
+      "sha256": "a4328db64efd7bf2b122d0ba1967f3984ea472cb83c78e7cd01efb5ffe8a068c",
+      "capturedAt": "2026-09-19T09:56:05.389Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
     }
   ],
   "outputs": [
     {
-      "id": "owner-reference",
-      "file": "Owner_User_Guide.pdf",
-      "sha256": "c65ff941337f4116f9f79c7389ec2cb1cd89706f5972e9f93ff7337f6a9b8572",
-      "bytes": 2400654
-    },
-    {
       "id": "worker-reference",
       "file": "Worker_User_Guide.pdf",
-      "sha256": "7c130d192599fada6c1e09afb0d2c49ef1256f2b38306e802606cb118fb5ae2c",
-      "bytes": 1565726
+      "source": "Role_Guide_worker_EN.md",
+      "sourceSha256": "7afc7dcb749f2e9f67fb75efa6fa1411ce981aa51db544082b6a4af3fa31a6ff",
+      "sha256": "6ca085ade688b4b880817c0e33be6db8efb2454cae08c2cbe6be6f4b2984a403",
+      "bytes": 873138
+    },
+    {
+      "id": "project-manager-reference",
+      "file": "Project_Manager_User_Guide.pdf",
+      "source": "Role_Guide_manager_EN.md",
+      "sourceSha256": "6aa6a9c486e28d4dfb9887099f561b29f8da04c33f2223ffb00074b6f45e3366",
+      "sha256": "d758c9e10fd081bcd97989375d3c83880bc4e19d453c4e78a58863743b8ed2f2",
+      "bytes": 1038154
+    },
+    {
+      "id": "finance-reference",
+      "file": "Finance_User_Guide.pdf",
+      "source": "Role_Guide_finance_EN.md",
+      "sourceSha256": "a0613c92a0b0cc2d0cb660f80ee736e26a157d4afb47bf6c3a13e82cfd356c53",
+      "sha256": "bb12152a950326d9e304147566b67638c8cf88ac1868ef6bb78578fe25fa0de0",
+      "bytes": 926349
+    },
+    {
+      "id": "owner-reference",
+      "file": "Owner_User_Guide.pdf",
+      "source": "Role_Guide_owner_EN.md",
+      "sourceSha256": "475b79875e90e48563cf5a4853067a7ee6bf56ae1ada188e01c397867b5a6f57",
+      "sha256": "adabe601367cb871272c932b2dbd90f098d2eed57d9b4c42756a8f3e249db0e4",
+      "bytes": 1054693
+    },
+    {
+      "id": "auditor-reference",
+      "file": "Auditor_User_Guide.pdf",
+      "source": "Role_Guide_auditor_EN.md",
+      "sourceSha256": "f568d61dd763b70438bc231d3cd4d4282e0f89555269beaaebc1fb438f47402f",
+      "sha256": "88b3db1680057ec972cebe8c1071c28a7f92fdfbbb5431a0f9ccf1476a592cf0",
+      "bytes": 867224
+    },
+    {
+      "id": "supplier-coordinator-reference",
+      "file": "Supplier_Coordinator_User_Guide.pdf",
+      "source": "Role_Guide_supplier-coordinator_EN.md",
+      "sourceSha256": "1d0eaa6ddbb7fdf57509ca3aa838cda0779eefc1baa00c54c2297e68c8ad7fc6",
+      "sha256": "0204c6125f1aedd0aba45df600ce0d05f76a92e742cdb110861220e1073984bf",
+      "bytes": 636761
+    },
+    {
+      "id": "external-technician-reference",
+      "file": "External_Technician_User_Guide.pdf",
+      "source": "Role_Guide_external-technician_EN.md",
+      "sourceSha256": "1f715d853e3b3e39844dcedbd2ae8e251f0d637bc09c43446f57bca9b2dea93a",
+      "sha256": "86794d0a4ed9ca6e5cd31bc03f1bb435f7c2983d9fe8d951dca111f3a16cfe69",
+      "bytes": 620412
     },
     {
       "file": "Employee_Field_Guide_EN.pdf",
-      "sha256": "e0d0c1aeee5206254cb4f8243f9ebabf552a7df27198af833c1b3fa849eedf57",
-      "bytes": 1138583
-    },
-    {
-      "file": "Employee_Field_Guide_ES.pdf",
-      "sha256": "6bb927dbad31a7ec5d3e22011fe4abcb3446a1b4d9f80d19ca5c757637bd7805",
-      "bytes": 1139960
+      "source": "Employee_Field_Guide_EN.md",
+      "sourceSha256": "4b813f647f3d597aa9573bab2badf1019ef97a04b077bce1b736a1cdde772737",
+      "sha256": "53d7c425b8dee99b1f632c5081ec7293c9f0311a64afe42a190d18e4b2520369",
+      "bytes": 883684
     },
     {
       "file": "Employee_Field_Guide_PT-BR.pdf",
-      "sha256": "2da9c8a92e8eb1ceb5ab7f7356c5e736ab6ec2028c36f8913c0c73d813ec6a77",
-      "bytes": 1140885
+      "source": "Employee_Field_Guide_PT-BR.md",
+      "sourceSha256": "c5685d62aa6d67952fec210b1b8e8e6397683a4af1d379947c08f5e27dec2479",
+      "sha256": "ddc29ad5f9d69a34dce7173fc75e360b2a2163a157bce6f8f7cacbff475de5b0",
+      "bytes": 900739
+    },
+    {
+      "file": "Employee_Field_Guide_ES.pdf",
+      "source": "Employee_Field_Guide_ES.md",
+      "sourceSha256": "1dd4f81a1f4c95c0296ee3cc949c1042444aee9a199ffb645e3ebe2b46660a9b",
+      "sha256": "c5461fb045eda59b50402e605d38e7842357dfdaa3ad983f6be6b314f3ce653f",
+      "bytes": 887071
     }
   ]
 }

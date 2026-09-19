@@ -236,9 +236,12 @@ describe('portal i18n coverage contract', () => {
   it('does not treat ordinary translated copy as an accidental English fallback', () => {
     for (const key of portalCatalogKeys) {
       if (INVARIANT_TRANSLATION_KEYS.has(key) || isCoverageInvariantKey(key)) continue;
-      expect(portalCatalog.es[key], `English fallback in ES: ${key}`).not.toBe(
-        portalCatalog.en[key],
-      );
+      // No is correct Spanish, but it must not exempt Portuguese from translation.
+      if (key === 'No') expect(portalCatalog.es[key]).toBe('No');
+      else
+        expect(portalCatalog.es[key], `English fallback in ES: ${key}`).not.toBe(
+          portalCatalog.en[key],
+        );
       expect(portalCatalog.pt[key], `English fallback in PT-BR: ${key}`).not.toBe(
         portalCatalog.en[key],
       );

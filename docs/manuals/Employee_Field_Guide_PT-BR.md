@@ -1,6 +1,4 @@
-# Guia de campo para colaboradores — revisão 2026-09-11
-
-**Contas externas:** Responsáveis de fornecedor e técnicos externos podem registrar horas, despesas e relatórios operacionais permitidos. Não podem acessar Meu pagamento, demonstrativos do trabalhador, remuneração, tarifas, margens ou administração financeira.
+# Guia de campo para colaboradores — revisão 2026-09-19
 
 > Use somente o endereço do portal e o contato de suporte admin@j-aautomation.com. Este guia usa exemplos sintéticos. Nunca compartilhe senha, código MFA, código de recuperação, comprovante ou sessão.
 
@@ -42,20 +40,10 @@ Essa declaração privada não é um contracheque nem um documento fiscal. Nunca
 
 Use a captura offline somente quando o portal informar que ela está habilitada. Proteja o dispositivo, reconecte e confirme que o estado salvo ou sincronizado aparece antes de sair. Se estiver desabilitada, aguarde a conexão e tente novamente pelo portal sem criar um registro duplicado.
 
-## 8. Ajuda, caixa de atividades e limites de acesso
+## 8. Calendários e sua disponibilidade
+
+Em **Projetos**, selecione um dia no calendário para ver a agenda e abrir um projeto autorizado. Trabalho planejado nunca cria horas efetivas. Em **Perfil**, o calendário de disponibilidade mostra suas últimas 200 janelas. Escolha um dia para acrescentar uma janela UTC ou um item existente para editar estado, início/fim e nota. Selecione Disponível, Indisponível ou Provisório, salve e reabra para conferir. Se a versão estiver desatualizada, recarregue antes de tentar de novo. A data final do projeto inclui o último dia; o fim de uma janela com horário é exclusivo.
+
+## 9. Ajuda, caixa de atividades e limites de acesso
 
 Abra **Ajuda (Help)** para baixar o guia atribuído à sua função. A **Caixa de atividades (Activity Inbox)** em `/app/notifications` pode levar a um registro permitido; ler uma notificação não é aprová-la. Colaboradores usam apenas seus projetos atribuídos, seus registros, seus arquivos e Meu pagamento. Finanças, Faturamento, Contabilidade, Auditoria, acompanhamento da equipe, Closeout e filas de aprovação não são fluxos de Worker; uma negação de acesso é um limite, não um erro a contornar. O e-mail não é o registro do sistema: use o portal e admin@j-aautomation.com.
-
-## Fornecedores e contas restritas
-
-O Owner escolhe o responsável do fornecedor. Uma conta de fornecedor não pode se nomear nem conceder permissões financeiras, administrativas ou de aprovação. Cada instalação corresponde a um projeto no aplicativo. O Owner autoriza separadamente as instalações e as datas de acesso.
-
-Para o Owner: abra **Fornecedores**, cadastre o fornecedor, selecione uma conta de Trabalhador existente e salve o perfil **Responsável do fornecedor** ou **Técnico externo**. Autorize a instalação para o responsável escolhido. Alterar o perfil encerra as sessões da conta: a pessoa deve entrar novamente. Revogar uma instalação bloqueia o próximo acesso desse responsável, incluindo suas próprias horas e relatórios da instalação. As atribuições dos técnicos e as permissões de outros responsáveis são administradas separadamente pelo Owner.
-
-Para o responsável: abra **Equipe do meu fornecedor**, selecione a instalação e use **Adicionar técnico**. Informe nome, e-mail opcional e datas da atribuição. O cadastro não cria senha nem envia convite. Use **Atribuir técnico existente** para alguém já cadastrado no seu fornecedor. O Owner configura contas existentes que precisam entrar no aplicativo.
-
-Em **Registrar horas da equipe**, selecione o técnico e registre data real, categoria, minutos e trabalho realizado. Salve o rascunho, confira e envie à J&A. As horas pertencem ao técnico; o responsável fica identificado como autor do registro. A J&A analisa e aprova pelo fluxo normal. O fornecedor não aprova as próprias horas. Para horas devolvidas como **needs_changes**, crie um rascunho de correção, edite e envie a substituição, preservando o original. Registros rejeitados exigem um novo rascunho.
-
-O **Relatório operacional** permite filtrar instalação e datas, consultar estados de aprovação, baixar CSV e imprimir/salvar PDF pelo navegador. O histórico permanece visível; registros rejeitados, anulados e substituídos não aumentam o total efetivo. O relatório não comprova pagamento nem aceite do cliente.
-
-O Técnico externo vê somente as próprias horas, despesas e relatórios operacionais permitidos. O Responsável do fornecedor também vê instalações expressamente autorizadas e pode selecionar vários técnicos para criar rascunhos rastreáveis com horas comuns ou intervalo de horário e enviá-los juntos. Nenhum desses perfis pode abrir Meu pagamento, demonstrativos, remuneração, tarifas, margens, documentos financeiros ou exportações administrativas. As horas de fornecedor exigem revisão do Owner. Os relatórios operacionais do fornecedor não incluem valores. Se faltar uma instalação ou um técnico, peça a correção ao Owner.

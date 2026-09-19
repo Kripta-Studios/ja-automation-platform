@@ -42,6 +42,7 @@ class FakeNode {
   private requiredState = false;
   invalid = false;
   validationMessage = '';
+  validityFlags: Partial<ValidityState> = {};
   tabIndex = 0;
   readonly ownerDocument: FakeDocument;
 
@@ -119,8 +120,12 @@ class FakeNode {
     else this.removeAttribute('required');
   }
 
-  get validity(): { valid: boolean } {
-    return { valid: !this.invalid };
+  get validity(): Partial<ValidityState> {
+    return {
+      valid: !this.invalid,
+      customError: Boolean(this.validationMessage),
+      ...this.validityFlags,
+    };
   }
 
   get willValidate(): boolean {
@@ -284,7 +289,7 @@ class FakeForm extends FakeNode {
   }
 
   override checkValidity(): boolean {
-    return this.elements.every((element) => !element.required || !element.invalid);
+    return this.elements.every((element) => !element.invalid);
   }
 
   submit(): void {
@@ -350,6 +355,86 @@ describe('progressive form validation contract', () => {
       callback();
       return 1;
     };
+  });
+
+  it.each([
+    ['en-US', 'Please complete this field.', 'Please correct the following fields:'],
+    ['es-ES', 'Completa este campo.', 'Corrige los siguientes campos:'],
+    ['pt-BR', 'Preencha este campo.', 'Corrija os seguintes campos:'],
+  ])(
+    'uses document language %s instead of the browser validation language',
+    async (locale, fieldMessage, summaryMessage) => {
+      documentFixture.documentElement.setAttribute('lang', locale);
+      const form = new FakeForm(documentFixture);
+      const control = new FakeNode('INPUT', documentFixture);
+      control.required = true;
+      control.invalid = true;
+      control.validationMessage = 'Veuillez renseigner ce champ.';
+      control.validityFlags = { valueMissing: true, customError: false };
+      form.appendChild(control);
+      (await formValidationAction())(form as unknown as HTMLFormElement);
+      form.dispatchEvent(new FakeEvent('submit', form));
+      expect(form.querySelector('[data-field-error-for]')?.textContent).toBe(fieldMessage);
+      expect(form.querySelector('[data-validation-summary]')?.textContent).toBe(
+        `${summaryMessage} ${fieldMessage}`,
+      );
+      expect(form.querySelector('[data-validation-summary]')?.textContent).not.toContain(
+        'Veuillez',
+      );
+    },
+  );
+
+  it.each([
+    ['typeMismatch', 'email', 'Informe um endereço de e-mail válido.'],
+    ['typeMismatch', 'url', 'Informe uma URL válida.'],
+    ['valueMissing', 'checkbox', 'Marque esta caixa.'],
+    ['patternMismatch', 'text', 'Use o formato solicitado.'],
+    ['tooShort', 'text', 'Use pelo menos 3 caracteres.'],
+    ['tooLong', 'text', 'Use no máximo 10 caracteres.'],
+    ['rangeUnderflow', 'number', 'Informe um valor maior ou igual a 3.'],
+    ['rangeOverflow', 'number', 'Informe um valor menor ou igual a 10.'],
+    ['stepMismatch', 'number', 'Informe um valor que respeite o intervalo permitido.'],
+    ['badInput', 'number', 'Informe um número válido.'],
+    ['badInput', 'date', 'Informe uma data válida.'],
+    ['badInput', 'time', 'Informe um horário válido.'],
+  ])('explains native %s in Brazilian Portuguese', async (flag, type, expected) => {
+    documentFixture.documentElement.setAttribute('lang', 'pt-BR');
+    const form = new FakeForm(documentFixture);
+    const control = new FakeNode('INPUT', documentFixture);
+    control.invalid = true;
+    control.validationMessage = 'Browser language is different';
+    control.validityFlags = { [flag]: true, customError: false };
+    for (const [name, value] of Object.entries({
+      type,
+      min: '3',
+      max: '10',
+      minlength: '3',
+      maxlength: '10',
+    }))
+      control.setAttribute(name, value);
+    form.appendChild(control);
+    (await formValidationAction())(form as unknown as HTMLFormElement);
+    form.dispatchEvent(new FakeEvent('submit', form));
+    expect(form.querySelector('[data-field-error-for]')?.textContent).toBe(expected);
+  });
+
+  it('preserves custom validation and reads the current language on every submission', async () => {
+    const form = new FakeForm(documentFixture);
+    const control = new FakeNode('INPUT', documentFixture);
+    control.invalid = true;
+    control.validationMessage = 'Informe o valor acordado.';
+    control.validityFlags = { customError: true };
+    form.appendChild(control);
+    (await formValidationAction())(form as unknown as HTMLFormElement);
+    documentFixture.documentElement.setAttribute('lang', 'pt-BR');
+    form.dispatchEvent(new FakeEvent('submit', form));
+    expect(form.querySelector('[data-field-error-for]')?.textContent).toBe(
+      'Informe o valor acordado.',
+    );
+    control.validityFlags = { customError: false, valueMissing: true };
+    documentFixture.documentElement.setAttribute('lang', 'es-ES');
+    form.dispatchEvent(new FakeEvent('submit', form));
+    expect(form.querySelector('[data-field-error-for]')?.textContent).toBe('Completa este campo.');
   });
 
   it('prevents invalid submission and creates one summary plus one error per invalid control', async () => {

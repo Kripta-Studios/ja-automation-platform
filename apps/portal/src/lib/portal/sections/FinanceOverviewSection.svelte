@@ -3,6 +3,7 @@
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
+  import type { PortalLocale } from '../../portal-i18n';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import FinanceConfigurationSection from './FinanceConfigurationSection.svelte';
   import { Field, SectionCard, StatusBadge, TableRegion, formValidation } from '../ui';
@@ -34,6 +35,7 @@
     controlledValue,
     money,
     currentView = 'overview',
+    locale = 'en',
   }: {
     data: PortalData;
     availableProjects: Row[];
@@ -42,6 +44,7 @@
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
     money: MoneyFormatter;
     currentView?: string;
+    locale?: PortalLocale;
   } = $props();
 
   const financeRoles = ['owner_admin', 'finance_admin', 'auditor_read_only'] as const;
@@ -1557,6 +1560,7 @@
 
         <div class="finance-overview__configuration">
           <FinanceConfigurationSection
+            {locale}
             {data}
             {availableProjects}
             {isAuditor}

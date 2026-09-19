@@ -2,8 +2,9 @@ import { json, type RequestHandler } from '@sveltejs/kit';
 import { AccessDeniedError, assertLiveSession } from '@ja/database';
 import { base } from '$app/paths';
 import {
-  manualForRole,
+  manualForPersona,
   normalizeManualLocale,
+  personaForPrincipal,
   readManualPdf,
   type ManualLocale,
 } from '$lib/server/manual-catalog';
@@ -20,8 +21,29 @@ function privateHeaders(): Record<string, string> {
   };
 }
 
-function errorResponse(message: string, status: number): Response {
-  return json({ error: message }, { status, headers: privateHeaders() });
+const messages = {
+  en: {
+    signIn: 'Sign in required.',
+    notFound: 'Help document not found.',
+    language: 'Unsupported manual language.',
+    unavailable: 'Help document is temporarily unavailable.',
+  },
+  es: {
+    signIn: 'Debes iniciar sesión.',
+    notFound: 'No se encontró el documento de ayuda.',
+    language: 'Idioma de manual no admitido.',
+    unavailable: 'El documento de ayuda no está disponible temporalmente.',
+  },
+  pt: {
+    signIn: 'É necessário entrar na conta.',
+    notFound: 'Documento de ajuda não encontrado.',
+    language: 'Idioma do manual não aceito.',
+    unavailable: 'O documento de ajuda está temporariamente indisponível.',
+  },
+} as const;
+type ErrorKey = keyof typeof messages.en;
+function errorResponse(key: ErrorKey, status: number, locale: ManualLocale): Response {
+  return json({ error: messages[locale][key] }, { status, headers: privateHeaders() });
 }
 
 function contentDisposition(filename: string): string {
@@ -33,21 +55,28 @@ function contentDisposition(filename: string): string {
   return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
 }
 
-export const GET: RequestHandler = async ({ locals, params, url }) => {
-  if (!locals.user || !locals.session) return errorResponse(`Sign in required.`, 401);
+export const GET: RequestHandler = async ({ locals, params, url, cookies }) => {
+  const errorLocale =
+    normalizeManualLocale(url.searchParams.get('lang')) ??
+    normalizeManualLocale(cookies?.get('ja.portal.locale') ?? cookies?.get('ja-portal-locale')) ??
+    'en';
+  if (!locals.user || !locals.session) return errorResponse('signIn', 401, errorLocale);
   let context: ReturnType<typeof openPortalRepository> | undefined;
   try {
     context = openPortalRepository(locals);
     assertLiveSession(context.sqlite, context.principal, AccessDeniedError);
 
     const manualId = params.manual?.trim() ?? '';
-    const manual = manualForRole(manualId, context.principal.role);
+    const manual = manualForPersona(
+      manualId,
+      personaForPrincipal(context.sqlite, context.principal),
+    );
     // The same response is used for an unknown id and a role-disallowed manual so
     // a worker cannot probe for the existence of the Owner reference.
-    if (!manual) return errorResponse('Help document not found.', 404);
+    if (!manual) return errorResponse('notFound', 404, errorLocale);
 
     const requestedLocale = normalizeManualLocale(url.searchParams.get('lang'));
-    if (!requestedLocale) return errorResponse('Unsupported manual language.', 400);
+    if (!requestedLocale) return errorResponse('language', 400, errorLocale);
     const locale: ManualLocale = manual.assets[requestedLocale] ? requestedLocale : 'en';
 
     let bytes: Buffer;
@@ -62,7 +91,7 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
           error: cause instanceof Error ? cause.message : 'unknown error',
         }),
       );
-      return errorResponse('Help document is temporarily unavailable.', 503);
+      return errorResponse('unavailable', 503, errorLocale);
     }
 
     const body = new Uint8Array(bytes.byteLength);
@@ -81,7 +110,7 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
       },
     });
   } catch (cause) {
-    if (cause instanceof AccessDeniedError) return errorResponse('Sign in required.', 401);
+    if (cause instanceof AccessDeniedError) return errorResponse('signIn', 401, errorLocale);
     throw cause;
   } finally {
     context?.sqlite.close();

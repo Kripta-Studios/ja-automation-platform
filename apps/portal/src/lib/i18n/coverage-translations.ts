@@ -8,6 +8,48 @@ import { explicitCoverageLiterals } from './coverage-literals';
  */
 
 const exact: Record<string, readonly [string, string]> = {
+  Help: ['Ayuda', 'Ajuda'],
+  'Finance Overview': ['Resumen financiero', 'Visão financeira'],
+  'Report: {title}': ['Informe: {title}', 'Relatório: {title}'],
+  'Enter a valid date.': ['Introduce una fecha válida.', 'Informe uma data válida.'],
+  'Enter a valid time.': ['Introduce una hora válida.', 'Informe um horário válido.'],
+  Published: ['Publicado', 'Publicado'],
+  Cancelled: ['Cancelado', 'Cancelado'],
+  'Please complete this field.': ['Completa este campo.', 'Preencha este campo.'],
+  'Please select an option.': ['Selecciona una opción.', 'Selecione uma opção.'],
+  'Please check this box.': ['Marca esta casilla.', 'Marque esta caixa.'],
+  'Enter a valid email address.': [
+    'Introduce una dirección de correo válida.',
+    'Informe um endereço de e-mail válido.',
+  ],
+  'Enter a valid URL.': ['Introduce una URL válida.', 'Informe uma URL válida.'],
+  'Enter a valid number.': ['Introduce un número válido.', 'Informe um número válido.'],
+  'Match the requested format.': ['Utiliza el formato solicitado.', 'Use o formato solicitado.'],
+  'Use at least {min} characters.': [
+    'Utiliza al menos {min} caracteres.',
+    'Use pelo menos {min} caracteres.',
+  ],
+  'Use no more than {max} characters.': [
+    'Utiliza como máximo {max} caracteres.',
+    'Use no máximo {max} caracteres.',
+  ],
+  'Enter a value of at least {min}.': [
+    'Introduce un valor igual o superior a {min}.',
+    'Informe um valor maior ou igual a {min}.',
+  ],
+  'Enter a value no greater than {max}.': [
+    'Introduce un valor igual o inferior a {max}.',
+    'Informe um valor menor ou igual a {max}.',
+  ],
+  'Enter a value matching the required step.': [
+    'Introduce un valor que respete el intervalo permitido.',
+    'Informe um valor que respeite o intervalo permitido.',
+  ],
+  'Enter a valid value.': ['Introduce un valor válido.', 'Informe um valor válido.'],
+  'Please correct the following fields: {messages}': [
+    'Corrige los siguientes campos: {messages}',
+    'Corrija os seguintes campos: {messages}',
+  ],
   'Existing person (optional)': ['Persona existente (opcional)', 'Pessoa existente (opcional)'],
   'Create a new person': ['Crear una persona nueva', 'Criar uma nova pessoa'],
   'email required': ['correo obligatorio', 'e-mail obrigatório'],
@@ -1460,7 +1502,6 @@ const invariantKeys = new Set([
   'JSON',
   'MFA',
   'min',
-  'No',
   'SHA-256',
   'TOTP',
   'PLC',
@@ -1502,6 +1543,114 @@ export function isCoverageInvariantKey(key: string): boolean {
  * validation messages without exposing an English fallback to users.
  */
 const actionExact: Record<string, readonly [string, string]> = {
+  'action.management.changed': [
+    'Este registro cambió. Tus datos siguen en este formulario. Compáralos con el registro actual antes de volver a aplicar tus cambios.',
+    'Este registro mudou. Seus dados continuam neste formulário. Compare-os com o registro atual antes de aplicar suas alterações novamente.',
+  ],
+  'action.management.planningOverlap': [
+    'Esta franja coincide con otra asignación. Revisa la planificación del trabajador y elige otra franja.',
+    'Este horário coincide com outra atribuição. Revise o planejamento do colaborador e escolha outro horário.',
+  ],
+  'action.management.workerUnavailable': [
+    'El trabajador no está disponible en esta franja. Elige otra franja o revisa su disponibilidad.',
+    'O colaborador está indisponível neste horário. Escolha outro horário ou revise a disponibilidade dele.',
+  ],
+  'action.management.linkedMilestoneInvoice': [
+    'Este hito está vinculado a una factura. Abre la factura y revisa sus opciones de corrección antes de cambiar el hito.',
+    'Este marco está vinculado a uma fatura. Abra a fatura e revise as opções de correção antes de alterar o marco.',
+  ],
+  'action.management.finalReport': [
+    'Este cambio pertenece a un informe finalizado. Abre el informe y utiliza una corrección versionada.',
+    'Esta alteração pertence a um relatório finalizado. Abra o relatório e use uma correção versionada.',
+  ],
+  'action.management.billingLinked': [
+    'Este registro está vinculado a facturación. Gestiona la factura antes de cambiar sus registros de origen.',
+    'Este registro está vinculado ao faturamento. Gerencie a fatura antes de alterar os registros de origem.',
+  ],
+  'action.management.invoiceSource': [
+    'Este registro es el origen de una factura. Gestiona primero la factura.',
+    'Este registro é a origem de uma fatura. Gerencie a fatura primeiro.',
+  ],
+  'action.management.correctionHistory': [
+    'Este registro pertenece a un historial de correcciones. Utiliza el flujo de corrección.',
+    'Este registro pertence a um histórico de correções. Use o fluxo de correção.',
+  ],
+  'action.management.financialHistory': [
+    'Este registro tiene historial financiero. Utiliza una corrección financiera.',
+    'Este registro tem histórico financeiro. Use uma correção financeira.',
+  ],
+  'action.management.periodReport': [
+    'Este registro está incluido en un informe de periodo. Gestiona el informe antes de cambiar sus registros de origen.',
+    'Este registro está incluído em um relatório de período. Gerencie o relatório antes de alterar os registros de origem.',
+  ],
+  'action.management.reimbursement': [
+    'Este gasto tiene un reembolso. Revierte o ajusta primero el pago.',
+    'Esta despesa tem um reembolso. Estorne ou ajuste o pagamento primeiro.',
+  ],
+  'action.management.classificationHistory': [
+    'Este gasto tiene historial de clasificación financiera. Utiliza una corrección financiera.',
+    'Esta despesa tem histórico de classificação financeira. Use uma correção financeira.',
+  ],
+  'action.management.settlement': [
+    'Estas horas están incluidas en una liquidación. Ajusta primero la liquidación.',
+    'Estas horas estão incluídas em um acerto. Ajuste o acerto primeiro.',
+  ],
+  'action.management.technicalChanges': [
+    'Este informe tiene cambios técnicos. Gestiona primero esos cambios.',
+    'Este relatório tem alterações técnicas. Gerencie essas alterações primeiro.',
+  ],
+  'action.management.committedAttachments': [
+    'Este informe tiene adjuntos consolidados. Abre el informe y utiliza una corrección versionada.',
+    'Este relatório tem anexos consolidados. Abra o relatório e use uma correção versionada.',
+  ],
+  'action.management.alreadyDraft': [
+    'Este registro ya es un borrador. Abre el registro para editarlo directamente.',
+    'Este registro já é um rascunho. Abra o registro para editá-lo diretamente.',
+  ],
+  'action.management.reason': [
+    'Introduce un motivo de corrección de entre 3 y 2000 caracteres.',
+    'Informe um motivo de correção com 3 a 2000 caracteres.',
+  ],
+  'action.management.windowOrder': [
+    'El final debe ser posterior al inicio. Cambia la fecha y hora de inicio o fin.',
+    'O término deve ser posterior ao início. Altere a data e hora de início ou término.',
+  ],
+  'action.management.activeWorker': [
+    'Selecciona un trabajador o responsable de proyecto activo.',
+    'Selecione um colaborador ou gerente de projeto ativo.',
+  ],
+  'action.management.assignmentWindow': [
+    'La asignación al proyecto no cubre esta franja. Elige fechas dentro de la asignación o actualiza primero la asignación.',
+    'A atribuição ao projeto não cobre este horário. Escolha datas dentro da atribuição ou atualize a atribuição primeiro.',
+  ],
+  'action.management.reportProject': [
+    'Selecciona un informe técnico del proyecto elegido o cambia el proyecto.',
+    'Selecione um relatório técnico do projeto escolhido ou altere o projeto.',
+  ],
+  'action.management.safetyEvidence': [
+    'Este cambio afecta a la seguridad. Completa la validación y la información de reversión antes de guardar.',
+    'Esta alteração afeta a segurança. Preencha a validação e as informações de reversão antes de salvar.',
+  ],
+  'action.management.amount': [
+    'Introduce un importe positivo con un máximo de dos decimales.',
+    'Informe um valor positivo com no máximo duas casas decimais.',
+  ],
+  'action.management.plannedMinutes': [
+    'Introduce los minutos planificados como un número entero entre 1 y 10080.',
+    'Informe os minutos planejados como um número inteiro entre 1 e 10080.',
+  ],
+  'action.management.projectNotFound': [
+    'El proyecto ya no está disponible. Selecciona un proyecto actual.',
+    'O projeto não está mais disponível. Selecione um projeto atual.',
+  ],
+  'action.management.recordNotFound': [
+    'El registro ya no está disponible. Vuelve a la lista y selecciona un registro existente.',
+    'O registro não está mais disponível. Volte à lista e selecione um registro existente.',
+  ],
+  'action.management.invalidField': [
+    'Revisa {fieldLabel}: completa el campo con un valor válido.',
+    'Revise {fieldLabel}: preencha o campo com um valor válido.',
+  ],
   'action.access.localAccount.provisioned': [
     'Acceso local al portal creado.',
     'Acesso local ao portal criado.',
@@ -2181,14 +2330,63 @@ function englishActionMessage(key: string): string {
   if (emailMessages[key]) return emailMessages[key];
   const suffix = key.slice('action.'.length);
   const exactEnglish: Record<string, string> = {
+    'action.management.changed':
+      'This record changed. Your entries remain in this form. Compare them with the current record before applying your changes again.',
+    'action.management.planningOverlap':
+      'This time window overlaps another assignment. Review the worker’s schedule and choose another time window.',
+    'action.management.workerUnavailable':
+      'The worker is unavailable during this time window. Choose another time window or review the worker’s availability.',
+    'action.management.linkedMilestoneInvoice':
+      'This milestone is linked to an invoice. Open the linked invoice and review its correction options before changing the milestone.',
+    'action.management.finalReport':
+      'This change belongs to a finalized report. Open the report and use a versioned correction.',
+    'action.management.billingLinked':
+      'This record is linked to billing. Manage the invoice before changing its sources.',
+    'action.management.invoiceSource':
+      'This record is an invoice source. Manage the invoice first.',
+    'action.management.correctionHistory':
+      'This record belongs to a correction history. Use the correction workflow.',
+    'action.management.financialHistory':
+      'This record has financial history. Use a financial correction.',
+    'action.management.periodReport':
+      'This record is included in a period report. Manage the report before changing its sources.',
+    'action.management.reimbursement':
+      'This expense has a reimbursement. Reverse or adjust the payment first.',
+    'action.management.classificationHistory':
+      'This expense has a financial classification history. Use a financial correction.',
+    'action.management.settlement':
+      'This time is included in a settlement. Adjust the settlement first.',
+    'action.management.technicalChanges':
+      'This report has technical changes. Manage those changes first.',
+    'action.management.committedAttachments':
+      'This report has committed attachments. Open the report and use a versioned correction.',
+    'action.management.alreadyDraft':
+      'This record is already a draft. Open the record to edit it directly.',
+    'action.management.reason': 'Enter a correction reason between 3 and 2000 characters.',
+    'action.management.windowOrder':
+      'The end must be after the start. Change the start or end date and time.',
+    'action.management.activeWorker': 'Select an active worker or project manager.',
+    'action.management.assignmentWindow':
+      'The project assignment does not cover this time window. Choose dates within the assignment or update the assignment first.',
+    'action.management.reportProject':
+      'Select a technical report from the chosen project, or change the project.',
+    'action.management.safetyEvidence':
+      'This change affects safety. Complete the validation and rollback information before saving.',
+    'action.management.amount': 'Enter a positive amount with no more than two decimal places.',
+    'action.management.plannedMinutes': 'Enter planned minutes as a whole number from 1 to 10080.',
+    'action.management.projectNotFound':
+      'The project is no longer available. Select a current project.',
+    'action.management.recordNotFound':
+      'The record is no longer available. Return to the record list and select an existing record.',
+    'action.management.invalidField': 'Check {fieldLabel}: complete it with a valid value.',
     'action.success': 'Changes saved.',
     'action.error.unauthenticated': 'Sign in again to continue.',
-    'action.error.forbidden': 'Owner administration required.',
+    'action.error.forbidden': 'You do not have permission to perform this action.',
     'action.navigation.wrongSection': 'This action is not available in this section.',
     'action.validation.invitation': 'Invalid invitation.',
     'action.validation.accountStatus': 'Invalid account status change.',
     'action.validation.workerProfile': 'Invalid worker profile data.',
-    'action.error.conflict': 'Antonny Luty is the only owner.',
+    'action.error.conflict': 'This action conflicts with the current record state.',
     'action.access.workerProfile.updated': 'Worker profile updated.',
     'action.validation.invalidForm': 'Invalid form.',
     'action.validation.missingEmails': 'No email accounts selected.',
@@ -2354,7 +2552,7 @@ function englishActionMessage(key: string): string {
     'action.validation.timeRecord': 'Invalid time record.',
     'action.time.submitted': 'Time submitted.',
     'action.time.removedOrVoided': 'Time entry removed/voided.',
-    'action.error.invalid': 'The period report was not found.',
+    'action.error.invalid': 'Check the submitted values and try again.',
     'action.reports.periodFollowupRecorded': 'Period follow-up recorded.',
     'action.closeout.draftPrepared': 'Closeout draft prepared.',
     'action.closeout.draftRefreshed':

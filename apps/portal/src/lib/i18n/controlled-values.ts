@@ -40,6 +40,8 @@ const controlledKeys: Record<ControlledValueDomain, Record<string, string>> = {
     overdue: 'Overdue',
     pending: 'Pending',
     planned: 'Planned',
+    published: 'Published',
+    cancelled: 'Cancelled',
     queued: 'Queued',
     running: 'Running',
     ready: 'Ready',

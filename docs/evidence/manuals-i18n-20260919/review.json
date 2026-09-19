@@ -38,5 +38,28 @@
     "reviewer": "Independent agent /root/release_readiness",
     "scope": "AvailabilityCalendar scoped one-column drawer form and full-width inputs; CSS specificity against legacy desktop/tablet grids; no submit, state or permission changes",
     "blockingFindings": []
+  },
+  "releaseArtifactReview": {
+    "reviewedAt": "2026-09-19T10:06:04.030832+00:00",
+    "reviewer": "Independent read-only agent /root/release_readiness",
+    "applicationCommit": "e43c640611bf3f50297056719e2a5a185ed9783f",
+    "scope": "Dockerfile copies exactly the 17 catalogued PDFs; all 17 PDF/source hashes, 90 PNG hashes, capture manifest hash and final runtime source digest match. Seven personas in EN/PT-BR; isolated synthetic capture provenance accurately documented.",
+    "blockingFindings": []
+  },
+  "productionEvidenceReview": {
+    "reviewedAt": "2026-09-19T10:12:02.422635+00:00",
+    "reviewer": "Independent read-only agent /root/release_readiness",
+    "applicationCommit": "e43c640611bf3f50297056719e2a5a185ed9783f",
+    "crossChecksPassed": 20,
+    "scope": "Deployed commit and archive identity, monotonic timestamps, schema 49 before/after, unchanged historical rows, paired backups and isolated restore of 59 documents, jobs cycles and log hashes, operations contract digest, 17 runtime PDFs and capture provenance; incomplete 11/30-day backup coverage explicitly retained. Acceptance run reviewed separately.",
+    "blockingFindings": []
+  },
+  "acceptanceAssertionReview": {
+    "reviewedAt": "2026-09-19T10:17:10.051987+00:00",
+    "reviewer": "Parent, independent of test assertion implementer",
+    "scope": "Step 8 now checks the exact visible English compensation label and the seeded worker, retaining the persisted project, worker, internal rule type and percentage_bps=5500 assertion. No skipped step, product change or weakened financial assertion.",
+    "testFileSha256": "52dc463fd9e0a5b3581615e630d12bcf90ce4753636a46420ebf2cf08592e77d",
+    "runtimeSourceDigestUnchanged": "0a73eebb85225d37100b81c2493ca3e849679e30f75c8dfe91d08f19d8d7c467",
+    "blockingFindings": []
   }
 }

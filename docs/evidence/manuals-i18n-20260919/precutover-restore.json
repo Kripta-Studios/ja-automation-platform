@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "verifiedAt": "2026-09-19T10:08:24.453Z",
+  "previousRelease": "/opt/jaautomation/releases/ja-automation-eb9094bf75957c4c68559161e34a34d634bb0826ddc22638f14f77fdab27c6de",
+  "backupPath": "/var/backups/jaautomation/2026-09-19T100715593Z-aa5b02af-8736-459f-be5f-dd39d4ea6809",
+  "backupCreatedAt": "2026-09-19T10:07:18.344Z",
+  "backupDatabaseSha256": "1c09e6cf43cc31c7f871636c43ba056a429fdb0253df4a8423de816a3d900ee9",
+  "schemaVersion": 49,
+  "integrity": "ok",
+  "foreignKeys": 1,
+  "foreignKeyViolations": 0,
+  "documentCount": 59,
+  "tenantId": "jaautomation",
+  "deploymentId": "production-vps",
+  "scope": "Isolated restore in /tmp; production database and files were not modified",
+  "liveRollbackExecuted": false,
+  "postCutoverWriteReconciliationRequired": true
+}

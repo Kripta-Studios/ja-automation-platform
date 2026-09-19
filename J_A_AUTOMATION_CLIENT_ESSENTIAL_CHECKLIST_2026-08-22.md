@@ -12,13 +12,21 @@ The requirements clarified directly with J&A on 2026-08-24 are release-authorita
 El [estado actual](docs/PROJECT_STATUS_2026-09-19.md) actualiza el registro P01–P11 y conserva la
 [matriz CORE-01–17 anterior](docs/PROJECT_STATUS_2026-09-18.md). La SPEC mantiene su autoridad.
 
-- Código desplegado `3893245`; sitio/portal saludables, dos ciclos automáticos sin fallos, esquema 48 íntegro.
+- Código desplegado `e43c640`; sitio/portal saludables, dos ciclos automáticos sin fallos, esquema 49 íntegro.
+- 14 manuales por perfil EN/PT-BR y tres guías rápidas, con 90 capturas reales de la app y
+  datos sintéticos aislados. Los 17 PDF del contenedor coinciden con los revisados.
+- Calendarios accionables, disponibilidad editable, correcciones EN/ES/PT-BR y recuperación
+  automática de descargas transitorias; los conflictos humanos conservan valores y explican la acción.
 - Tres PDF recuperados y dos sustituidos por versiones seguras; originales e historial conservados.
   P03 cerrado para los incidentes identificados, sin aprobar automáticamente los informes.
-- 1.050/1.050 pruebas generales en `5db9bfc`; 8/8 focalizadas para `3893245`. Recorrido actual **32/32 PASS** en `3893245` (P01 cerrado técnicamente).
-- Backup y restauración aislada de 59 archivos verificados; 18 snapshots en 11 días UTC (P04 parcial).
+- 1.123/1.123 pruebas generales, 88/88 focalizadas para navegación y 34/34 de integración;
+  siete perfiles en EN/ES/PT-BR y cuatro tamaños de pantalla. Recorrido actual **32/32 PASS**
+  sobre `e43c640`, con evidencia operativa nueva (P01 cerrado técnicamente).
+- Backup y restauración aislada de 59 archivos verificados; 22 snapshots en 11 días UTC (P04 parcial).
 - Aprobaciones/evidencia externas P02/P05–P09 siguen pendientes; dispensa offsite vigente.
   QuickBooks/Intuit está excluido, no pendiente. Caché Docker: 0 B.
+
+[Recibo de manuales, idiomas y recuperación](docs/PRODUCTION_DEPLOYMENT_2026-09-19_MANUALS_I18N.md).
 
 Las secciones fechadas y sus casillas conservan el histórico; no son una nueva certificación de la
 versión actual. En particular, las entradas «no desplegado» de ASTRA y «pendiente smoke Owner» tienen
@@ -839,3 +847,16 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Dos ciclos automáticos sin fallos; backup posterior y restauración aislada previa verificados con 59 documentos. Caché Docker a 0 B tras liberar 6,961 GB; imágenes y volúmenes conservados.
 
 [Análisis, comparación y alcance](docs/ERP_PLANNING_REVIEW_2026-09-19.md) y [recibo de producción](docs/PRODUCTION_DEPLOYMENT_2026-09-19_PLANNING_CALENDAR.md). Los pendientes externos se conservan; P04 sigue parcial con 20 snapshots en 11 días UTC.
+
+## 2026-09-19 — Manuales por perfil, idiomas y recuperación de errores
+
+- [x] 14 referencias EN/PT-BR para siete perfiles y tres guías rápidas; 90 capturas reales de Chromium, 14 pares perfil/idioma y 168 comprobaciones. Texto, fuentes, imágenes y hashes de los 17 PDF verificados.
+- [x] Ayuda aplica sesión vigente, rol persistido y perfil de proveedor al listar/descargar. Owner conserva biblioteca de formación; los demás perfiles reciben sus guías. Navegador: 26 accesos permitidos, 12 denegados y sesión caducada con acción para entrar.
+- [x] Descargas GET con recuperación transitoria acotada, sin alertas tras recuperación correcta. Fallos persistentes y conflictos de gestión explican qué hacer y conservan los valores; no se reintentan escrituras automáticamente.
+- [x] Traducciones, estados, navegación, validación y formatos de lectura EN/ES/PT-BR; valores financieros canónicos conservados. Idioma de proveedores conservado en redirecciones.
+- [x] 1.123/1.123 pruebas unitarias generales; 88/88 de cierre de navegación; 34/34 de integración focalizada. Chromium: 105 rutas de siete perfiles en tres idiomas; disponibilidad y Ayuda verificadas en 360/390/768/1440 px. La suite general precede a los últimos ajustes de etiquetas/CSS, cubiertos por las regresiones finales.
+- [x] Código `e43c640` activo desde las 10:07:32 UTC: 1.924 archivos idénticos al ZIP y 17 PDF del contenedor con hashes coincidentes. Producción pública 3/3, dos ciclos automáticos sin fallos, esquema 49 íntegro y filas históricas comprobadas conservadas.
+- [x] Backup posterior y restauración aislada de la copia previa, ambos esquema 49 y 59 documentos. Caché de construcción Docker a 0 B tras liberar 6,976 GB; imágenes/volúmenes conservados y watchers activos.
+- [x] Aceptación **32/32 PASS** del código desplegado con evidencia operativa nueva. Se actualiza una aserción que esperaba el enum interno a su etiqueta traducida y al trabajador correcto; se conserva la comprobación de porcentaje y tipo en la base de datos. Los intentos anteriores se documentan.
+
+[Recibo de producción](docs/PRODUCTION_DEPLOYMENT_2026-09-19_MANUALS_I18N.md), [catálogo de manuales](docs/manuals/README.md) y [evidencia y alcance](docs/evidence/manuals-i18n-20260919/README.md). Las sesiones autenticadas usan datos sintéticos aislados; no se fabrican operaciones de clientes reales. P04 sigue parcial con 22 snapshots en 11 días UTC y las aprobaciones externas permanecen pendientes.

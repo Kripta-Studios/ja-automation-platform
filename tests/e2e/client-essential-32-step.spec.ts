@@ -713,9 +713,10 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await expect(
           page
             .locator('[aria-label="Compensation rules"] .record-list-item')
-            .filter({ hasText: 'PercentageOfEligibleClientLabor' })
+            .filter({ hasText: seeded.worker.name })
+            .filter({ hasText: 'Percentage of eligible client labor' })
             .first(),
-        ).toContainText('PercentageOfEligibleClientLabor');
+        ).toContainText('Percentage of eligible client labor');
         expect(
           fixtureRows(
             'SELECT percentage_bps FROM compensation_rule WHERE project_id=? AND worker_id=? AND rule_type=?',

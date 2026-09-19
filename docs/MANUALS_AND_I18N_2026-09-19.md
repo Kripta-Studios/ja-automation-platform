@@ -1,6 +1,8 @@
 # Manuales por perfil, idiomas y recuperación de errores — 19/09/2026
 
-Entrega validada para publicación, posterior al release de calendarios `7b36959`.
+Entrega publicada en Git y desplegada como `e43c640` el 19/09/2026 a las 10:07:32 UTC,
+posterior al release de calendarios `7b36959`. El [recibo de producción](PRODUCTION_DEPLOYMENT_2026-09-19_MANUALS_I18N.md)
+vincula el código, los PDF, la operación, los backups y la limpieza de caché.
 
 ## Alcance confirmado
 

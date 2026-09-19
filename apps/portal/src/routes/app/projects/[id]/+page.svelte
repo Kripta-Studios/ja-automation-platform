@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PlanningCalendar from '$lib/portal/ui/PlanningCalendar.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
@@ -606,6 +607,20 @@
                 {t('Planning context only; actual time remains independently recorded.')}
               </p>
             {:else}<p class="empty-state">{t('No published schedule is configured.')}</p>{/if}
+            <PlanningCalendar
+              translate={t}
+              {locale}
+              events={overview.planning.map((plan) => ({
+                id: String(plan.id),
+                title: `${display(plan.worker_name)} · ${display(plan.planned_minutes)} min`,
+                startsAt: String(plan.starts_at),
+                endsAt: String(plan.ends_at),
+                href:
+                  data.user.role === 'owner_admin'
+                    ? `${base}/app/manage?area=planning_assignment&project=${project.id}&focus=${plan.id}`
+                    : `${base}/app/planning?project=${project.id}`,
+              }))}
+            />
             <div class="planning-list">
               {#each overview.planning as plan}
                 <article class="planning-record">

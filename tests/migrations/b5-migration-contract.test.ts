@@ -49,6 +49,7 @@ const CONTRACT_FILES = [
   '0046_worker_compensation_payments.sql',
   '0047_supplier_time_batch_idempotency.sql',
   '0048_accounting_pack_signed_credit_balances.sql',
+  '0049_availability_calendar_edits.sql',
 ] as const;
 const TABLES = {
   client: [
@@ -379,7 +380,7 @@ const EXPECTED_PROJECTIONS: Record<string, { rowCount: number; sha256: string }>
     sha256: '1b4d05f536d30146c62eaeb83cd3a3f4d698c829fa11675f0c80aeeb0600a0e2',
   },
 };
-const EXPECTED_MANIFEST_SHA256 = '646f1f4dc008b862f0b62ee6c4da9a2399beb2e10f8c6df3af16865d61aecd9c';
+const EXPECTED_MANIFEST_SHA256 = '102e5cd7a8c52dee6177dba76808cf522e028ba52cf99d87b51c3794a50be452';
 const EXPECTED_MIGRATION_HASHES: Record<string, string> = {
   '0019_lifecycle_security.sql': '93a56b070237e6be436ff1b0b2ae3bf3a78767bdef58f03619f634520dac1b8c',
   '0020_finance_v2.sql': '21c8e230e98c71d96dbf790284ed56fa6d417638443d17e0ccd9b580655824db',
@@ -437,6 +438,8 @@ const EXPECTED_MIGRATION_HASHES: Record<string, string> = {
     '192643d9dadeee98d6333c2d9dfc77d847ecb4c884429628f57f18b57b5c6490',
   '0048_accounting_pack_signed_credit_balances.sql':
     '1f134cc853222b5685311057137fb5cb1aeb4fc68dc3849a2bae0e6124d52455',
+  '0049_availability_calendar_edits.sql':
+    '32b5f4bf8bb4a713f40ec71e2431eb477027dce7b69071b3545dd13c443b3b8c',
 };
 
 const tempDirectories: string[] = [];
@@ -643,7 +646,7 @@ describe('frozen B5 migration contract', () => {
     expect(manifest.legacyFixture.tables).toEqual(EXPECTED_PROJECTIONS);
     expect(manifest.migrations.map((entry) => entry.version)).toEqual([
       19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
-      42, 43, 44, 45, 46, 47, 48,
+      42, 43, 44, 45, 46, 47, 48, 49,
     ]);
     for (const [file, expectedHash] of Object.entries(EXPECTED_MIGRATION_HASHES))
       expect(sha256(readFileSync(join(MIGRATIONS, file))), file).toBe(expectedHash);
@@ -693,7 +696,7 @@ describe('frozen B5 migration contract', () => {
         data_classification: 'confidential',
       });
       expect(sqlite.prepare('SELECT MAX(version) AS version FROM schema_migration').get()).toEqual({
-        version: 48,
+        version: 49,
       });
       expect(sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
       expect(integrityCheck(sqlite)).toBe('ok');
@@ -798,7 +801,7 @@ describe('frozen B5 migration contract', () => {
         },
       ]);
       expect(sqlite.prepare('SELECT MAX(version) AS version FROM schema_migration').get()).toEqual({
-        version: 48,
+        version: 49,
       });
       expect(sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
       expect(integrityCheck(sqlite)).toBe('ok');
@@ -832,7 +835,7 @@ describe('frozen B5 migration contract', () => {
     try {
       expect(
         upgraded.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get(),
-      ).toEqual({ version: 48 });
+      ).toEqual({ version: 49 });
       expect(
         upgraded.sqlite
           .prepare(
@@ -907,7 +910,7 @@ describe('frozen B5 migration contract', () => {
     try {
       expect(
         upgraded.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get(),
-      ).toEqual({ version: 48 });
+      ).toEqual({ version: 49 });
       expect(
         upgraded.sqlite
           .prepare('SELECT id,state,snapshot_json,calculation_hash FROM invoice ORDER BY id')
@@ -936,7 +939,7 @@ describe('frozen B5 migration contract', () => {
       upgraded.sqlite.close();
     }
   });
-  it('upgrades a populated schema-18 copy transactionally through migration 48', () => {
+  it('upgrades a populated schema-18 copy transactionally through migration 49', () => {
     process.env.JA_TENANT_ID = 'test-tenant';
     process.env.JA_DEPLOYMENT_ID = 'test-deployment';
     const directory = mkdtempSync(join(tmpdir(), 'ja-b5-populated-upgrade-'));
@@ -955,7 +958,7 @@ describe('frozen B5 migration contract', () => {
         sqlite
           .prepare('SELECT MIN(version) min,MAX(version) max,COUNT(*) count FROM schema_migration')
           .get(),
-      ).toEqual({ min: 1, max: 48, count: 48 });
+      ).toEqual({ min: 1, max: 49, count: 49 });
       expect(
         sqlite.prepare('SELECT tenant_id,deployment_id FROM deployment_identity').get(),
       ).toEqual({
@@ -964,7 +967,7 @@ describe('frozen B5 migration contract', () => {
       });
       expect(
         sqlite.prepare('SELECT COUNT(*) count FROM migration_contract_metadata').get(),
-      ).toEqual({ count: 30 });
+      ).toEqual({ count: 31 });
       for (const [table, columns] of Object.entries(TABLES))
         expect(projection(sqlite, table, columns), table).toEqual(beforeProjections[table]);
       expect(
@@ -1045,10 +1048,10 @@ describe('frozen B5 migration contract', () => {
         upgraded.sqlite
           .prepare('SELECT MAX(version) max,COUNT(*) count FROM schema_migration')
           .get(),
-      ).toEqual({ max: 48, count: 48 });
+      ).toEqual({ max: 49, count: 49 });
       expect(
         upgraded.sqlite.prepare('SELECT COUNT(*) count FROM migration_contract_metadata').get(),
-      ).toEqual({ count: 30 });
+      ).toEqual({ count: 31 });
       expect(migrationMetadata(upgraded.sqlite)).toEqual([
         { migration_version: 19, migration_name: 'lifecycle_security' },
         { migration_version: 20, migration_name: 'finance_v2' },
@@ -1092,6 +1095,7 @@ describe('frozen B5 migration contract', () => {
         { migration_version: 46, migration_name: 'worker_compensation_payments' },
         { migration_version: 47, migration_name: 'supplier_time_batch_idempotency' },
         { migration_version: 48, migration_name: 'accounting_pack_signed_credit_balances' },
+        { migration_version: 49, migration_name: 'availability_calendar_edits' },
       ]);
       for (const [table, columns] of Object.entries(TABLES))
         expect(projection(upgraded.sqlite, table, columns), table).toEqual(
@@ -1153,10 +1157,10 @@ describe('frozen B5 migration contract', () => {
         retried.sqlite
           .prepare('SELECT MAX(version) max,COUNT(*) count FROM schema_migration')
           .get(),
-      ).toEqual({ max: 48, count: 48 });
+      ).toEqual({ max: 49, count: 49 });
       expect(
         retried.sqlite.prepare('SELECT COUNT(*) count FROM migration_contract_metadata').get(),
-      ).toEqual({ count: 30 });
+      ).toEqual({ count: 31 });
       expect(migrationMetadata(retried.sqlite)).toEqual([
         { migration_version: 19, migration_name: 'lifecycle_security' },
         { migration_version: 20, migration_name: 'finance_v2' },
@@ -1200,6 +1204,7 @@ describe('frozen B5 migration contract', () => {
         { migration_version: 46, migration_name: 'worker_compensation_payments' },
         { migration_version: 47, migration_name: 'supplier_time_batch_idempotency' },
         { migration_version: 48, migration_name: 'accounting_pack_signed_credit_balances' },
+        { migration_version: 49, migration_name: 'availability_calendar_edits' },
       ]);
       expect(retried.sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
       expect(integrityCheck(retried.sqlite)).toBe('ok');
@@ -1208,7 +1213,7 @@ describe('frozen B5 migration contract', () => {
     }
   });
 
-  it('upgrades a populated v22 copy with the historical metadata CHECK through 48', () => {
+  it('upgrades a populated v22 copy with the historical metadata CHECK through 49', () => {
     process.env.JA_TENANT_ID = 'test-tenant';
     process.env.JA_DEPLOYMENT_ID = 'test-deployment';
     const v22Migrations = copyMigrationTree(22);
@@ -1247,16 +1252,16 @@ describe('frozen B5 migration contract', () => {
         upgraded.sqlite
           .prepare('SELECT MAX(version) max,COUNT(*) count FROM schema_migration')
           .get(),
-      ).toEqual({ max: 48, count: 48 });
+      ).toEqual({ max: 49, count: 49 });
       expect(quotedMetadataRows(upgraded.sqlite).slice(0, 4)).toEqual(beforeMetadata);
-      expect(quotedMetadataRows(upgraded.sqlite)).toHaveLength(30);
+      expect(quotedMetadataRows(upgraded.sqlite)).toHaveLength(31);
       expect(
         upgraded.sqlite
           .prepare(
             "SELECT sql FROM sqlite_master WHERE type='table' AND name='migration_contract_metadata'",
           )
           .get(),
-      ).toMatchObject({ sql: expect.stringContaining('BETWEEN 19 AND 48') });
+      ).toMatchObject({ sql: expect.stringContaining('BETWEEN 19 AND 49') });
       expect(upgraded.sqlite.prepare('PRAGMA foreign_key_list(finance_v2_cutover)').all()).toEqual([
         expect.objectContaining({
           table: 'migration_contract_metadata',

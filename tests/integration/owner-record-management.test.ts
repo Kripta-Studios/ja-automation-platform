@@ -328,3 +328,36 @@ it('Owner archives and restores document listings while preserving referenced pr
   );
   expect(f.sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
 });
+
+it('preserves the published status when editing a calendar planning assignment', () => {
+  const f = setup();
+  const manager = new OwnerCatalogManagement(f.sqlite);
+  const values = {
+    project_id: f.project.id,
+    worker_id: f.worker.userId,
+    starts_at: '2026-02-10T08:00',
+    ends_at: '2026-02-10T10:00',
+    planned_minutes: '120',
+    status: 'published',
+    site: 'Calendar original',
+  };
+  manager.mutate(f.owner, {
+    kind: 'planning_assignment',
+    operation: 'create',
+    reason: 'Publish shift',
+    values,
+  });
+  const before = manager.list(f.owner, 'planning_assignment')[0];
+  manager.mutate(f.owner, {
+    kind: 'planning_assignment',
+    id: String(before.id),
+    token: before.token,
+    operation: 'update',
+    reason: 'Change site only',
+    values: { ...values, site: 'Calendar corrected' },
+  });
+  expect(manager.list(f.owner, 'planning_assignment')[0]).toMatchObject({
+    status: 'published',
+    site: 'Calendar corrected',
+  });
+});

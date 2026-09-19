@@ -248,13 +248,24 @@ export const workerSkillInputSchema = z.object({
   proficiency: z.coerce.number().int().min(1).max(5),
 });
 
-export const availabilityInputSchema = z.object({
-  workerId: uuidSchema,
-  startsAt: z.iso.datetime(),
-  endsAt: z.iso.datetime(),
-  availability: z.enum(['available', 'unavailable', 'tentative']),
-  note: z.string().trim().max(1000).optional(),
-});
+export const availabilityInputSchema = z
+  .object({
+    id: uuidSchema.optional(),
+    version: z.coerce.number().int().positive().optional(),
+    workerId: uuidSchema,
+    startsAt: z.iso.datetime(),
+    endsAt: z.iso.datetime(),
+    availability: z.enum(['available', 'unavailable', 'tentative']),
+    note: z.string().trim().max(1000).optional(),
+  })
+  .refine((input) => (input.id !== undefined) === (input.version !== undefined), {
+    message: 'Availability id and version are required together',
+    path: ['version'],
+  })
+  .refine((input) => Date.parse(input.endsAt) > Date.parse(input.startsAt), {
+    message: 'Availability end must follow start',
+    path: ['endsAt'],
+  });
 
 export const assignmentInputSchema = z.object({
   projectId: uuidSchema,
@@ -886,14 +897,8 @@ export const technicalChangeDecisionSchema = z.object({
 export const planningAssignmentInputSchema = z.object({
   projectId: uuidSchema,
   workerId: uuidSchema,
-  startsAt: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
-    .transform((value) => `${value}:00.000Z`),
-  endsAt: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
-    .transform((value) => `${value}:00.000Z`),
+  startsAt: z.iso.datetime(),
+  endsAt: z.iso.datetime(),
   plannedMinutes: integerFromForm(1, 10080),
   site: optionalText(200),
   requiredSkill: optionalText(160),

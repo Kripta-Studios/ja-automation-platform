@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import PlanningCalendar from '../ui/PlanningCalendar.svelte';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { SectionCard, StatusBadge, TableRegion } from '../ui';
   import type { TableCardRow } from '../ui';
@@ -35,6 +36,7 @@
 
   type ProjectSectionProps = {
     base: string;
+    locale?: string;
     projects: PortalRow[];
     clients?: PortalRow[];
     role?: string;
@@ -49,6 +51,7 @@
 
   let {
     base,
+    locale = 'en',
     projects,
     clients = [],
     role = '',
@@ -305,6 +308,26 @@
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
     <a class="secondary-button" href={`${base}/app/projects`}>{translate('Clear filters')}</a>
   </form>
+
+  <details class="admin-details" data-project-calendar>
+    <summary class="secondary-button">{translate('Project calendar')}</summary>
+    <PlanningCalendar
+      {translate}
+      {locale}
+      events={visibleProjects
+        .filter((project) => value(project, 'start_date'))
+        .map((project) => ({
+          id: projectId(project),
+          title: `${projectNumber(project)} · ${projectName(project)}`,
+          startsAt: value(project, 'start_date'),
+          endsAt: value(project, 'planned_end_date') || undefined,
+          href: `${base}/app/projects/${projectId(project)}`,
+        }))}
+    />
+    <p class="form-help">
+      {translate('Open a project from the calendar to review its dates, team and planning.')}
+    </p>
+  </details>
 
   <SectionCard title={translate('Authorized projects')} class="project-section__list-surface">
     <RecordBrowser rows={visibleProjects} bind:visible={projectPage} {translate} label="Project" />

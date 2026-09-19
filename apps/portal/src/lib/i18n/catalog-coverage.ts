@@ -2,6 +2,26 @@ import { extractedSectionCoverageKeys } from './coverage-literal-overrides';
 
 /** Generated from literal translation calls and action message keys. Keep this inventory in sync with the source. */
 export const PORTAL_LITERAL_KEYS = [
+  'Calendar',
+  'Calendar navigation',
+  'Previous month',
+  'Next month',
+  'Select a day to see its agenda.',
+  'Times shown in UTC.',
+  'Events',
+  'No events on this day.',
+
+  'Availability calendar',
+  'Choose a day to add availability. Open an existing window to edit it. Times are UTC.',
+  'Add availability',
+  'Edit availability',
+  'Showing the latest 200 availability windows for this person.',
+  'Availability could not be saved. Check the dates or reload if another person changed this window.',
+  'Calendar times are shown in UTC. Planning never creates actual hours.',
+  'Project calendar',
+  'Open a project from the calendar to review its dates, team and planning.',
+  'Saving…',
+
   'Pagination',
   'Records',
   'Collection planning',

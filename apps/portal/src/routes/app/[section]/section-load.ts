@@ -454,7 +454,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         // Keep the target selection server-side and constrained to the same active-worker list
         // used by the repository so a forged `?worker=` cannot broaden the data scope.
         const workforceAdmin = ['owner_admin', 'finance_admin'].includes(context.principal.role);
-        const workers = workforceAdmin
+        const canInspectWorkforce = workforceAdmin || context.principal.role === 'project_manager';
+        const workers = canInspectWorkforce
           ? context.repository
               .listAllWorkers(context.principal)
               .filter(
@@ -473,7 +474,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             workers[0]?.id ??
             context.principal.userId,
         );
-        const targetWorkerId = workforceAdmin
+        const targetWorkerId = canInspectWorkforce
           ? (validRequestedWorkerId ?? fallbackWorkerId)
           : context.principal.userId;
         const workerSkills = context.repository.listWorkerSkills(context.principal, targetWorkerId);
@@ -482,7 +483,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           workers: workers,
           selectedWorkerId: targetWorkerId,
           // `skills` is retained for existing worker-facing markup; `workerSkills` makes the
-          // selected admin target explicit for the administrator-facing editor.
+          // selected scoped target explicit for the editor.
           skills: workerSkills,
           workerSkills,
           allSkills: context.repository.listSkills(context.principal),

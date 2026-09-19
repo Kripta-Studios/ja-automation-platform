@@ -1,5 +1,44 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  Calendar: ['Calendario', 'Calendário'],
+  'Calendar navigation': ['Navegación del calendario', 'Navegação do calendário'],
+  'Previous month': ['Mes anterior', 'Mês anterior'],
+  'Next month': ['Mes siguiente', 'Próximo mês'],
+  'Select a day to see its agenda.': [
+    'Selecciona un día para ver su agenda.',
+    'Selecione um dia para ver sua agenda.',
+  ],
+  'Times shown in UTC.': ['Horas en UTC.', 'Horários em UTC.'],
+  Events: ['Eventos', 'Eventos'],
+  'No events on this day.': ['No hay eventos este día.', 'Não há eventos neste dia.'],
+
+  'Availability calendar': ['Calendario de disponibilidad', 'Calendário de disponibilidade'],
+  'Choose a day to add availability. Open an existing window to edit it. Times are UTC.': [
+    'Elige un día para añadir disponibilidad. Abre una ventana existente para editarla. Las horas son UTC.',
+    'Escolha um dia para adicionar disponibilidade. Abra um período existente para editar. Os horários são UTC.',
+  ],
+  'Add availability': ['Añadir disponibilidad', 'Adicionar disponibilidade'],
+  'Edit availability': ['Editar disponibilidad', 'Editar disponibilidade'],
+  'Showing the latest 200 availability windows for this person.': [
+    'Se muestran las últimas 200 ventanas de disponibilidad de esta persona.',
+    'São exibidos os últimos 200 períodos de disponibilidade desta pessoa.',
+  ],
+  'Availability could not be saved. Check the dates or reload if another person changed this window.':
+    [
+      'No se pudo guardar. Comprueba las fechas o recarga si otra persona modificó esta ventana.',
+      'Não foi possível salvar. Verifique as datas ou recarregue se outra pessoa alterou este período.',
+    ],
+  'Calendar times are shown in UTC. Planning never creates actual hours.': [
+    'Las horas del calendario se muestran en UTC. La planificación no genera horas reales.',
+    'Os horários do calendário são exibidos em UTC. O planejamento não gera horas reais.',
+  ],
+  'Project calendar': ['Calendario de proyectos', 'Calendário de projetos'],
+  'Open a project from the calendar to review its dates, team and planning.': [
+    'Abre un proyecto desde el calendario para consultar sus fechas, equipo y planificación.',
+    'Abra um projeto no calendário para consultar datas, equipe e planejamento.',
+  ],
+  'Saving…': ['Guardando…', 'Salvando…'],
+
   Pagination: ['Paginación', 'Paginação'],
   Records: ['Registros', 'Registros'],
   'Collection planning': ['Planificación de cobros', 'Planejamento de recebimentos'],

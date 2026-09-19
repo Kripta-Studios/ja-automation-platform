@@ -7,6 +7,8 @@
   import { createAuthClient } from 'better-auth/client';
   import { passkeyClient } from '@better-auth/passkey/client';
   import RecordBrowser from './portal/ui/RecordBrowser.svelte';
+  import PlanningCalendar from './portal/ui/PlanningCalendar.svelte';
+  import AvailabilityCalendar from './portal/sections/AvailabilityCalendar.svelte';
   import { onMount, tick, untrack } from 'svelte';
   import {
     persistStandaloneLocale,
@@ -320,14 +322,18 @@
       ? path
       : null;
   });
-  const profileWorkerId = $derived(
-    (() => {
-      const requested = $page.url.searchParams.get('worker');
-      const workers = data.workers ?? [];
-      if (requested && workers.some((worker) => String(worker.id) === requested)) return requested;
-      return String(workers[0]?.id ?? data.user.id);
-    })(),
-  );
+  const profileWorkerId = $derived(String(data.selectedWorkerId ?? data.user.id));
+  let planningStarts = $state('');
+  let planningEnds = $state('');
+  let planningForm: HTMLFormElement | undefined = $state();
+  function selectPlanningDate(date: string) {
+    planningStarts = `${date}T08:00`;
+    planningEnds = `${date}T16:00`;
+    tick().then(() => {
+      planningForm?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      planningForm?.querySelector<HTMLInputElement>('input[name="startsAt"]')?.focus();
+    });
+  }
   const isAuditor = $derived(data.user.role === 'auditor_read_only');
   const isManager = $derived(Boolean(data.user.role && data.user.role !== 'worker' && !isAuditor));
   const isFinance = $derived(
@@ -1776,6 +1782,7 @@
     {:else if data.section === 'projects' && data.user.role === 'project_manager'}
       <ProjectSection
         {base}
+        {locale}
         projects={availableProjects}
         role={data.user.role}
         capabilities={{
@@ -1789,6 +1796,25 @@
       />
     {:else if data.section === 'projects'}
       <div class="management-stack">
+        <details class="admin-details" data-project-calendar>
+          <summary class="secondary-button">{translate('Project calendar')}</summary>
+          <PlanningCalendar
+            {translate}
+            {locale}
+            events={availableProjects
+              .filter((project) => project.start_date)
+              .map((project) => ({
+                id: String(project.id),
+                title: `${project.project_number} · ${project.name}`,
+                startsAt: String(project.start_date),
+                endsAt: project.planned_end_date ? String(project.planned_end_date) : undefined,
+                href: `${base}/app/projects/${project.id}`,
+              }))}
+          />
+          <p class="form-help">
+            {translate('Open a project from the calendar to review its dates, team and planning.')}
+          </p>
+        </details>
         {#if canManageProjects}
           <nav
             class="project-workflow-actions"
@@ -3008,9 +3034,28 @@
       </div>
     {:else if data.section === 'planning'}
       <div class="management-stack">
+        <PlanningCalendar
+          {translate}
+          {locale}
+          events={(data.records ?? []).map((row) => ({
+            id: String(row.id),
+            title: `${row.worker_name} · ${row.project_number} · ${row.planned_minutes} min`,
+            startsAt: String(row.starts_at),
+            endsAt: String(row.ends_at),
+            href:
+              data.user.role === 'owner_admin'
+                ? `${base}/app/manage?area=planning_assignment&project=${row.project_id}&focus=${row.id}`
+                : `${base}/app/projects/${row.project_id}?tab=team`,
+          }))}
+          onselectdate={canManageAssignmentControls ? selectPlanningDate : undefined}
+        />
+        <p class="form-help">
+          {translate('Calendar times are shown in UTC. Planning never creates actual hours.')}
+        </p>
         {#if canManageAssignmentControls}<form
             method="POST"
             action="?/createPlanning"
+            bind:this={planningForm}
             class="admin-form-grid"
           >
             <h2>{translate('Publish field assignment')}</h2>
@@ -3020,19 +3065,36 @@
               )}
             </p>
             <label
-              >{translate('Project')}<select name="projectId" required
+              >{translate('Project')}<select
+                name="projectId"
+                value={$page.url.searchParams.get('project') ?? undefined}
+                required
                 >{#each operationalProjects as project}<option value={project.id}
                     >{project.project_number} — {project.name}</option
                   >{/each}</select
               ></label
             ><label
-              >{translate('Worker')}<select name="workerId" required
+              >{translate('Worker')}<select
+                name="workerId"
+                value={$page.url.searchParams.get('worker') ?? undefined}
+                required
                 >{#each data.workers ?? [] as worker}<option value={worker.id}>{worker.name}</option
                   >{/each}</select
               ></label
             ><label
-              >{translate('Start')}<input name="startsAt" type="datetime-local" required /></label
-            ><label>{translate('End')}<input name="endsAt" type="datetime-local" required /></label
+              >{translate('Start')}<input
+                name="startsAt"
+                type="datetime-local"
+                bind:value={planningStarts}
+                required
+              /></label
+            ><label
+              >{translate('End')}<input
+                name="endsAt"
+                type="datetime-local"
+                bind:value={planningEnds}
+                required
+              /></label
             ><label
               >{translate('Planned minutes')}<input
                 name="plannedMinutes"
@@ -3227,7 +3289,7 @@
               'Keep your own workforce profile current without exposing compensation or client rates.',
             )}
           </p>
-          {#if (data.user.role === 'owner_admin' || data.user.role === 'finance_admin') && (data.workers?.length ?? 0) > 0}
+          {#if (data.user.role === 'owner_admin' || data.user.role === 'finance_admin' || data.user.role === 'project_manager') && (data.workers?.length ?? 0) > 0}
             <form method="GET" action={href('profile')} class="worker-profile-selector">
               <label
                 >{translate('Inspect worker')}<select name="worker" required>
@@ -3245,7 +3307,7 @@
             <details class="admin-details profile-skill-details">
               <summary class="primary-button">{translate('Add Skill')}</summary>
               <form method="POST" action="?/setWorkerSkill" class="admin-form-grid">
-                <input type="hidden" name="workerId" value={data.user.id ?? ''} />
+                <input type="hidden" name="workerId" value={profileWorkerId} />
                 <label
                   >{translate('Skill')}
                   <select name="skillId" required>
@@ -3265,7 +3327,7 @@
             <details class="admin-details profile-skill-details">
               <summary class="primary-button">{translate('Remove Skill')}</summary>
               <form method="POST" action="?/deleteWorkerSkill" class="admin-form-grid">
-                <input type="hidden" name="workerId" value={data.user.id ?? ''} />
+                <input type="hidden" name="workerId" value={profileWorkerId} />
                 <label
                   >{translate('Skill')}
                   <select name="skillId" required>
@@ -3301,25 +3363,15 @@
               >
             </table>
           </TableRegion>
-          {#if !isAuditor}<form method="POST" action="?/setAvailability" class="admin-form-grid">
-              <input type="hidden" name="workerId" value={data.user.id ?? ''} /><label
-                >{translate('Starts')}<input
-                  name="startsAt"
-                  type="datetime-local"
-                  required
-                /></label
-              ><label
-                >{translate('Ends')}<input name="endsAt" type="datetime-local" required /></label
-              ><label
-                >{translate('Availability')}<select name="availability"
-                  ><option value="available">{translate('Available')}</option><option
-                    value="unavailable">{translate('Unavailable')}</option
-                  ><option value="tentative">{translate('Tentative')}</option></select
-                ></label
-              ><label>{translate('Note')}<textarea name="note" rows="2"></textarea></label><button
-                >{translate('Save availability')}</button
-              >
-            </form>{/if}
+          {#key profileWorkerId}
+            <AvailabilityCalendar
+              records={data.availability ?? []}
+              workerId={profileWorkerId}
+              readOnly={isAuditor}
+              {translate}
+              {locale}
+            />
+          {/key}
           {#if data.user.role === 'owner_admin' && (data.workers?.length ?? 0) > 0}
             <section
               class="owner-workforce-controls"
@@ -3387,43 +3439,6 @@
                     </select></label
                   >
                   <button class="danger" type="submit">{translate('Remove skill')}</button>
-                </form>
-              </details>
-              <details class="admin-details">
-                <summary class="primary-button">{translate('Manage worker availability')}</summary>
-                <form method="POST" action="?/setAvailability" class="admin-form-grid">
-                  <label
-                    >{translate('Worker')}<select name="workerId" required>
-                      {#each data.workers ?? [] as worker}
-                        <option value={worker.id}
-                          >{worker.name} · {controlledValue('role', worker.role)}</option
-                        >
-                      {/each}
-                    </select></label
-                  >
-                  <label
-                    >{translate('Starts')}<input
-                      name="startsAt"
-                      type="datetime-local"
-                      required
-                    /></label
-                  >
-                  <label
-                    >{translate('Ends')}<input
-                      name="endsAt"
-                      type="datetime-local"
-                      required
-                    /></label
-                  >
-                  <label
-                    >{translate('Availability')}<select name="availability" required>
-                      <option value="available">{translate('Available')}</option>
-                      <option value="unavailable">{translate('Unavailable')}</option>
-                      <option value="tentative">{translate('Tentative')}</option>
-                    </select></label
-                  >
-                  <label>{translate('Note')}<textarea name="note" rows="2"></textarea></label>
-                  <button type="submit">{translate('Save worker availability')}</button>
                 </form>
               </details>
             </section>

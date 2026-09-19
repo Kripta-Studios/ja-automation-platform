@@ -56,7 +56,7 @@ export const ownerCatalogs: Record<string, { title: string; fields: Field[] }> =
         name: 'status',
         label: 'Status',
         type: 'select',
-        options: ['planned', 'confirmed', 'cancelled'],
+        options: ['planned', 'published', 'cancelled'],
         required: true,
       },
     ],

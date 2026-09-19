@@ -355,7 +355,16 @@ export const reportActions = {
   createPlanning: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'planning')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const parsed = planningAssignmentInputSchema.safeParse(await formObject(request));
+    const object = await formObject(request);
+    // Planning's datetime-local controls represent UTC, independent of the server timezone.
+    for (const key of ['startsAt', 'endsAt']) {
+      const value = object[key];
+      object[key] =
+        typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)
+          ? `${value}:00.000Z`
+          : value;
+    }
+    const parsed = planningAssignmentInputSchema.safeParse(object);
     if (!parsed.success)
       return actionFail(400, 'action.validation.planningFields', {}, 'Check planning fields');
     const context = openPortalRepository(locals);

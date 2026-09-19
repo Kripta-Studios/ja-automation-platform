@@ -378,7 +378,7 @@ describe('0048 signed accounting-pack credit balances', () => {
       expect(integrityCheck(upgraded.sqlite)).toBe('ok');
       expect(
         upgraded.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get(),
-      ).toEqual({ version: 48 });
+      ).toEqual({ version: 49 });
     } finally {
       upgraded.sqlite.close();
     }

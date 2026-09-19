@@ -1,0 +1,161 @@
+[WebServer] (node:144677) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ next start --port 4173 --hostname 127.0.0.1
+
+[WebServer] (node:144690) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+
+[WebServer] (node:144712) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ node build
+
+[WebServer] (node:144725) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a0b8c6-1dc8-7314-90b2-9f3a7652ed8e",
+    "01a0b8c6-1dc8-7314-90b2-ac95e0d2f2a5",
+    "01a0b8c6-1dc9-755d-aa7c-fc08b65d3bba",
+    "01a0b8c6-1dc9-755d-aa7d-0fd940afc101"
+  ],
+  "invoiceDrafts": [
+    "01a0b8c6-1ebe-7399-925f-ba5bb3c030c3",
+    "01a0b8c6-1ec2-750e-9fa5-01436e59133b",
+    "01a0b8c6-1ec6-745e-bc71-66f0938fb4d3"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a0b8c6-1ece-715c-8687-05555e916f03",
+    "01a0b8c6-1ed0-757f-8fc0-08708bacb797",
+    "01a0b8c6-1ed3-7708-a755-f75e7774fc5d"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a0b8c6-1ece-715c-8687-05555e916f03",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a0b8c6-1eb4-7298-9fda-f1f4faf99a3a",
+    "01a0b8c6-1eb6-760b-9e62-5eb3ef17abaf"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0b8c6-1dc8-7314-90b2-9f3a7652ed8e",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a0b8c6-1edc-76c9-b24b-d732bd0e4df9"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0b8c6-1dc8-7314-90b2-9f3a7652ed8e",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a0b8c6-1ede-755d-8d43-14fe6965e1c6"
+    }
+  ],
+  "periodReportIds": [
+    "01a0b8c6-1edf-725c-9272-20bd39f6f442",
+    "01a0b8c6-1edf-725c-9272-274c57db2b41"
+  ],
+  "accountingPackId": "01a0b8c6-1f14-766e-bc83-df950db3d0dd",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-6b2c36df4fe469218918a7efcedbf08fd4aacd50",
+  "closeoutId": "01a0b8c6-1fa4-728b-b366-52b3de29c2a2"
+}
+
+Running 48 tests using 1 worker
+
+(node:144869) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/48] [phone-360] › tests/e2e/planning-calendar.spec.ts:22:3 › worker creates and edits availability from calendar with correct ownership
+[2/48] [phone-360] › tests/e2e/planning-calendar.spec.ts:22:3 › manager creates and edits availability from calendar with correct ownership
+[3/48] [phone-360] › tests/e2e/planning-calendar.spec.ts:22:3 › owner creates and edits availability from calendar with correct ownership
+[4/48] [phone-360] › tests/e2e/planning-calendar.spec.ts:22:3 › finance creates and edits availability from calendar with correct ownership
+[5/48] [phone-360] › tests/e2e/planning-calendar.spec.ts:112:3 › owner planning and projects calendars respect role actions
+[6/48] [phone-360] › tests/e2e/planning-calendar.spec.ts:112:3 › finance planning and projects calendars respect role actions
+[7/48] [phone-360] › tests/e2e/planning-calendar.spec.ts:112:3 › manager planning and projects calendars respect role actions
+[8/48] [phone-360] › tests/e2e/planning-calendar.spec.ts:112:3 › worker planning and projects calendars respect role actions
+[9/48] [phone-360] › tests/e2e/planning-calendar.spec.ts:112:3 › auditor planning and projects calendars respect role actions
+[10/48] [phone-360] › tests/e2e/planning-calendar.spec.ts:165:1 › Owner publishes from a day and edits the published shift from its agenda
+[11/48] [phone-360] › tests/e2e/planning-calendar.spec.ts:216:1 › Manager edits a scoped colleague calendar and forged worker selection stays scoped
+[12/48] [phone-360] › tests/e2e/planning-calendar.spec.ts:264:1 › Manager without active project membership can still use own availability calendar
+(node:146660) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[13/48] [phone-390] › tests/e2e/planning-calendar.spec.ts:22:3 › worker creates and edits availability from calendar with correct ownership
+[14/48] [phone-390] › tests/e2e/planning-calendar.spec.ts:22:3 › manager creates and edits availability from calendar with correct ownership
+[15/48] [phone-390] › tests/e2e/planning-calendar.spec.ts:22:3 › owner creates and edits availability from calendar with correct ownership
+[16/48] [phone-390] › tests/e2e/planning-calendar.spec.ts:22:3 › finance creates and edits availability from calendar with correct ownership
+[17/48] [phone-390] › tests/e2e/planning-calendar.spec.ts:112:3 › owner planning and projects calendars respect role actions
+[18/48] [phone-390] › tests/e2e/planning-calendar.spec.ts:112:3 › finance planning and projects calendars respect role actions
+[19/48] [phone-390] › tests/e2e/planning-calendar.spec.ts:112:3 › manager planning and projects calendars respect role actions
+[20/48] [phone-390] › tests/e2e/planning-calendar.spec.ts:112:3 › worker planning and projects calendars respect role actions
+[21/48] [phone-390] › tests/e2e/planning-calendar.spec.ts:112:3 › auditor planning and projects calendars respect role actions
+[22/48] [phone-390] › tests/e2e/planning-calendar.spec.ts:165:1 › Owner publishes from a day and edits the published shift from its agenda
+[23/48] [phone-390] › tests/e2e/planning-calendar.spec.ts:216:1 › Manager edits a scoped colleague calendar and forged worker selection stays scoped
+[24/48] [phone-390] › tests/e2e/planning-calendar.spec.ts:264:1 › Manager without active project membership can still use own availability calendar
+(node:148386) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[25/48] [tablet-768] › tests/e2e/planning-calendar.spec.ts:22:3 › worker creates and edits availability from calendar with correct ownership
+[26/48] [tablet-768] › tests/e2e/planning-calendar.spec.ts:22:3 › manager creates and edits availability from calendar with correct ownership
+[27/48] [tablet-768] › tests/e2e/planning-calendar.spec.ts:22:3 › owner creates and edits availability from calendar with correct ownership
+[28/48] [tablet-768] › tests/e2e/planning-calendar.spec.ts:22:3 › finance creates and edits availability from calendar with correct ownership
+[29/48] [tablet-768] › tests/e2e/planning-calendar.spec.ts:112:3 › owner planning and projects calendars respect role actions
+[30/48] [tablet-768] › tests/e2e/planning-calendar.spec.ts:112:3 › finance planning and projects calendars respect role actions
+[31/48] [tablet-768] › tests/e2e/planning-calendar.spec.ts:112:3 › manager planning and projects calendars respect role actions
+[32/48] [tablet-768] › tests/e2e/planning-calendar.spec.ts:112:3 › worker planning and projects calendars respect role actions
+[33/48] [tablet-768] › tests/e2e/planning-calendar.spec.ts:112:3 › auditor planning and projects calendars respect role actions
+[34/48] [tablet-768] › tests/e2e/planning-calendar.spec.ts:165:1 › Owner publishes from a day and edits the published shift from its agenda
+[35/48] [tablet-768] › tests/e2e/planning-calendar.spec.ts:216:1 › Manager edits a scoped colleague calendar and forged worker selection stays scoped
+[36/48] [tablet-768] › tests/e2e/planning-calendar.spec.ts:264:1 › Manager without active project membership can still use own availability calendar
+(node:150814) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[37/48] [desktop] › tests/e2e/planning-calendar.spec.ts:22:3 › worker creates and edits availability from calendar with correct ownership
+[38/48] [desktop] › tests/e2e/planning-calendar.spec.ts:22:3 › manager creates and edits availability from calendar with correct ownership
+[39/48] [desktop] › tests/e2e/planning-calendar.spec.ts:22:3 › owner creates and edits availability from calendar with correct ownership
+[40/48] [desktop] › tests/e2e/planning-calendar.spec.ts:22:3 › finance creates and edits availability from calendar with correct ownership
+[41/48] [desktop] › tests/e2e/planning-calendar.spec.ts:112:3 › owner planning and projects calendars respect role actions
+[42/48] [desktop] › tests/e2e/planning-calendar.spec.ts:112:3 › finance planning and projects calendars respect role actions
+[43/48] [desktop] › tests/e2e/planning-calendar.spec.ts:112:3 › manager planning and projects calendars respect role actions
+[44/48] [desktop] › tests/e2e/planning-calendar.spec.ts:112:3 › worker planning and projects calendars respect role actions
+[45/48] [desktop] › tests/e2e/planning-calendar.spec.ts:112:3 › auditor planning and projects calendars respect role actions
+[46/48] [desktop] › tests/e2e/planning-calendar.spec.ts:165:1 › Owner publishes from a day and edits the published shift from its agenda
+[47/48] [desktop] › tests/e2e/planning-calendar.spec.ts:216:1 › Manager edits a scoped colleague calendar and forged worker selection stays scoped
+[48/48] [desktop] › tests/e2e/planning-calendar.spec.ts:264:1 › Manager without active project membership can still use own availability calendar
+  48 passed (4.1m)

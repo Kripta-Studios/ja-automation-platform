@@ -25,6 +25,8 @@ export type WorkerSkillInput = Readonly<{
 }>;
 
 export type WorkerAvailabilityInput = Readonly<{
+  id?: string;
+  version?: number;
   workerId: string;
   startsAt: string;
   endsAt: string;
@@ -177,7 +179,9 @@ export class WorkforceRepository {
     this.deps.assertActive(principal);
     this.assertWorkforceWrite(principal);
     const canManage = principal.role === 'owner_admin' || principal.role === 'finance_admin';
-    if (!canManage) {
+    const isOwnProfile =
+      ['worker', 'project_manager'].includes(principal.role) && principal.userId === input.workerId;
+    if (!canManage && !isOwnProfile) {
       if (principal.role === 'worker' && principal.userId !== input.workerId)
         throw this.deps.errors.accessDenied('Worker skill ownership required');
       if (principal.role !== 'project_manager')
@@ -216,7 +220,9 @@ export class WorkforceRepository {
     this.deps.assertActive(principal);
     this.assertWorkforceWrite(principal);
     const canManage = principal.role === 'owner_admin' || principal.role === 'finance_admin';
-    if (!canManage) {
+    const isOwnProfile =
+      ['worker', 'project_manager'].includes(principal.role) && principal.userId === workerId;
+    if (!canManage && !isOwnProfile) {
       if (principal.role === 'worker' && principal.userId !== workerId)
         throw this.deps.errors.accessDenied('Worker skill ownership required');
       if (principal.role !== 'project_manager')
@@ -280,7 +286,7 @@ export class WorkforceRepository {
     const target = workerId ?? principal.userId;
     if (principal.role === 'worker' && target !== principal.userId)
       throw this.deps.errors.accessDenied('Worker skill privacy required');
-    if (principal.role === 'project_manager') {
+    if (principal.role === 'project_manager' && principal.userId !== target) {
       const ids = [...principal.projectIds];
       if (
         ids.length === 0 ||
@@ -317,46 +323,99 @@ export class WorkforceRepository {
       throw this.deps.errors.validation('Active worker not found');
     if (principal.role === 'worker' && principal.userId !== input.workerId)
       throw this.deps.errors.accessDenied('Worker availability ownership required');
-    if (principal.role === 'project_manager') {
-      const ids = [...principal.projectIds];
-      if (
-        ids.length === 0 ||
-        !this.deps.sqlite
-          .prepare(
-            `SELECT 1
-             FROM project_member pm JOIN user u ON u.id=pm.user_id
-             WHERE pm.user_id=? AND pm.status='active' AND u.status='active'
-               AND u.role IN ('worker','project_manager')
-               AND pm.project_id IN (${ids.map(() => '?').join(',')})
-               AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?) LIMIT 1`,
-          )
-          .get(input.workerId, ...ids, this.today(), this.today())
-      )
+    if (principal.role === 'project_manager' && principal.userId !== input.workerId) {
+      const assigned = [...principal.projectIds].some(
+        (projectId) =>
+          this.effectiveLaborAssignment(projectId, input.workerId) &&
+          this.effectiveLaborAssignment(projectId, principal.userId),
+      );
+      if (!assigned)
         throw this.deps.errors.accessDenied('Worker availability is outside the project scope');
     }
-    if (Date.parse(input.endsAt) <= Date.parse(input.startsAt))
-      throw this.deps.errors.validation('Availability end must follow start');
-    const id = newId();
-    const timestamp = this.deps.now();
-    this.deps.sqlite
-      .prepare(
-        'INSERT INTO worker_availability(id,worker_id,starts_at,ends_at,availability,note,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
-      )
-      .run(
-        id,
-        input.workerId,
-        input.startsAt,
-        input.endsAt,
-        input.availability,
-        input.note?.trim() || null,
-        timestamp,
-        timestamp,
-      );
-    this.deps.audit(principal, 'worker_availability.create', 'worker_availability', id, {
-      workerId: input.workerId,
-      availability: input.availability,
+    if (
+      (input.id !== undefined) !== (input.version !== undefined) ||
+      (input.version !== undefined && (!Number.isSafeInteger(input.version) || input.version < 1))
+    )
+      throw this.deps.errors.validation('Availability id and version are required together');
+    const startsAt = Date.parse(input.startsAt);
+    const endsAt = Date.parse(input.endsAt);
+    if (!Number.isFinite(startsAt) || !Number.isFinite(endsAt))
+      throw this.deps.errors.validation('Availability dates must be valid');
+    if (endsAt <= startsAt) throw this.deps.errors.validation('Availability end must follow start');
+    const note = input.note?.trim() || null;
+    return this.deps.transaction(() => {
+      const timestamp = this.deps.now();
+      if (input.id !== undefined) {
+        const existing = this.deps.sqlite
+          .prepare(
+            'SELECT id,worker_id,starts_at,ends_at,availability,note,version FROM worker_availability WHERE id=?',
+          )
+          .get(input.id) as
+          | {
+              id: string;
+              worker_id: string;
+              starts_at: string;
+              ends_at: string;
+              availability: string;
+              note: string | null;
+              version: number;
+            }
+          | undefined;
+        if (!existing || existing.worker_id !== input.workerId)
+          throw this.deps.errors.accessDenied('Worker availability ownership required');
+        if (existing.version !== input.version)
+          throw this.deps.errors.conflict('Availability changed before update');
+        const changed = this.deps.sqlite
+          .prepare(
+            'UPDATE worker_availability SET starts_at=?,ends_at=?,availability=?,note=?,updated_at=?,version=version+1 WHERE id=? AND worker_id=? AND version=?',
+          )
+          .run(
+            input.startsAt,
+            input.endsAt,
+            input.availability,
+            note,
+            timestamp,
+            input.id,
+            input.workerId,
+            existing.version,
+          );
+        if (changed.changes !== 1)
+          throw this.deps.errors.conflict('Availability changed before update');
+        const after = {
+          ...existing,
+          starts_at: input.startsAt,
+          ends_at: input.endsAt,
+          availability: input.availability,
+          note,
+          version: existing.version + 1,
+        };
+        this.deps.audit(principal, 'worker_availability.update', 'worker_availability', input.id, {
+          before: existing,
+          after,
+        });
+        return { id: input.id, version: after.version };
+      }
+      const id = newId();
+      this.deps.sqlite
+        .prepare(
+          'INSERT INTO worker_availability(id,worker_id,starts_at,ends_at,availability,note,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
+        )
+        .run(
+          id,
+          input.workerId,
+          input.startsAt,
+          input.endsAt,
+          input.availability,
+          note,
+          timestamp,
+          timestamp,
+        );
+      this.deps.audit(principal, 'worker_availability.create', 'worker_availability', id, {
+        workerId: input.workerId,
+        availability: input.availability,
+      });
+      return { id, version: 1 };
     });
-    return { id, version: 1 };
   }
 
   listWorkerAvailability(principal: Principal, workerId?: string) {
@@ -364,7 +423,7 @@ export class WorkforceRepository {
     const target = workerId ?? principal.userId;
     if (principal.role === 'worker' && target !== principal.userId)
       throw this.deps.errors.accessDenied('Worker availability privacy required');
-    if (principal.role === 'project_manager') {
+    if (principal.role === 'project_manager' && principal.userId !== target) {
       const ids = [...principal.projectIds];
       if (
         ids.length === 0 ||

@@ -8,9 +8,17 @@ async function verifyForms(page: Page) {
   const controls = page.locator(
     'form:visible input:not([type=hidden]), form:visible select, form:visible textarea, form:visible button',
   );
+  let labelTextClickVerified = false;
   for (const control of await controls.all()) {
     if (!(await control.isVisible())) continue;
-    const box = await control.boundingBox();
+    const choice = await control.evaluate(
+      (element) =>
+        element instanceof HTMLInputElement &&
+        (element.type === 'checkbox' || element.type === 'radio'),
+    );
+    const target = choice ? control.locator('xpath=ancestor::label[1]') : control;
+    if (choice) await expect(target).toHaveCount(1);
+    const box = await target.boundingBox();
     expect(box?.height).toBeGreaterThanOrEqual(44);
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
@@ -18,6 +26,22 @@ async function verifyForms(page: Page) {
       expect(
         await control.evaluate((el) => Boolean(el.closest('label')?.textContent?.trim())),
       ).toBe(true);
+    }
+    if (
+      choice &&
+      (await control.getAttribute('type')) === 'checkbox' &&
+      !labelTextClickVerified &&
+      (await control.isEnabled())
+    ) {
+      const labelText = target.locator('span').first();
+      if (await labelText.count()) {
+        const checked = await control.isChecked();
+        await labelText.click();
+        await expect(control).toBeChecked({ checked: !checked });
+        await labelText.click();
+        await expect(control).toBeChecked({ checked });
+        labelTextClickVerified = true;
+      }
     }
   }
 }

@@ -827,3 +827,13 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 [Recibo y límites](docs/RECOVERY_AND_ACCEPTANCE_2026-09-19.md),
 [resultados por paso](docs/evidence/recovery-20260919/acceptance-32-steps.json) y
 [estado actualizado](docs/PROJECT_STATUS_2026-09-19.md).
+
+## 2026-09-19 — Calendarios accionables y disponibilidad (CORE-01/02/14/15)
+
+- [x] Migración 49 ensayada en copia aislada de producción: 163 tablas y 259.034 filas anteriores conservadas; integridad `ok`, cero errores FK, 387 triggers.
+- [x] Revisión independiente de propiedad, edición por versión, auditoría, UTC y selección de trabajador; correcciones incorporadas.
+- [x] Chromium: 48/48 casos de calendario, cinco roles y 360/390/768/1440 px; proveedor/coordinador/técnico externo, 2/2 recorridos en 390/1440 px. Capturas y logs en `docs/evidence/planning-calendar-20260919/`.
+- [x] Tipos de los diez paquetes, Svelte, ESLint y formato correctos; suite unitaria 1.074/1.074 y 17/17 pruebas focalizadas sobre la última corrección de perfil propio.
+- [ ] Cierre de integración general, publicación y producción. El recibo final se añadirá después de comprobar la activación.
+
+[Análisis, comparación y alcance](docs/ERP_PLANNING_REVIEW_2026-09-19.md). Los pendientes externos y la cobertura histórica de backup mantienen el estado del registro anterior.

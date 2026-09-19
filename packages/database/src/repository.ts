@@ -1266,6 +1266,8 @@ export class PortalRepository {
   setWorkerAvailability(
     principal: Principal,
     input: Readonly<{
+      id?: string;
+      version?: number;
       workerId: string;
       startsAt: string;
       endsAt: string;

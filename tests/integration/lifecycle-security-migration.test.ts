@@ -36,7 +36,7 @@ describe('B5 lifecycle/security migration integration', () => {
       value.sqlite.prepare('SELECT MAX(version) AS version FROM schema_migration').get() as {
         version: number;
       },
-    ).toEqual({ version: 48 });
+    ).toEqual({ version: 49 });
   });
 
   it('permits the repository archive flow but never reactivates or deletes history', () => {

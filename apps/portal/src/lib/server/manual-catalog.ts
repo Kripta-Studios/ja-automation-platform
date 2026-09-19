@@ -33,13 +33,19 @@ export type ManualSummary = Readonly<{
   id: string;
   title: LocalizedText;
   description: LocalizedText;
-  audience: ManualPersona | 'quick-start';
+  audience: ManualAudience;
+  allowedPersonas: readonly ManualPersona[];
   locales: readonly ManualLocale[];
   revision: string;
 }>;
+export const manualAudiences = [
+  'work-projects',
+  'supplier-operations',
+  'administration-finance',
+] as const;
+export type ManualAudience = (typeof manualAudiences)[number] | 'quick-start';
 export type ManualDefinition = ManualSummary &
   Readonly<{
-    allowedPersonas: readonly ManualPersona[];
     assets: Readonly<Partial<Record<ManualLocale, ManualAsset>>>;
   }>;
 
@@ -72,7 +78,8 @@ export function personaForPrincipal(
 
 const guide = (
   id: string,
-  persona: ManualPersona,
+  audience: Exclude<ManualAudience, 'quick-start'>,
+  allowedPersonas: readonly ManualPersona[],
   name: [string, string, string],
   description: [string, string, string],
   sourceName: string,
@@ -80,10 +87,10 @@ const guide = (
   id,
   title: { en: name[0], es: name[1], pt: name[2] },
   description: { en: description[0], es: description[1], pt: description[2] },
-  audience: persona,
+  audience,
   locales: ['en', 'pt'],
   revision: manualRevision,
-  allowedPersonas: [persona],
+  allowedPersonas,
   assets: {
     en: { sourceName: `${sourceName}.pdf` },
     pt: { sourceName: `${sourceName}_PT-BR.pdf` },
@@ -114,99 +121,61 @@ export const manualCatalog: readonly ManualDefinition[] = [
     },
   },
   guide(
-    'worker-reference',
-    'worker',
-    ['Worker user guide', 'Guía del trabajador', 'Guia do colaborador'],
+    'work-projects-reference',
+    'work-projects',
+    ['worker', 'manager'],
+    ['Work and projects guide', 'Guía de trabajo y proyectos', 'Guia de trabalho e projetos'],
     [
-      'Own work, reports, availability and pay.',
-      'Trabajo propio, informes, disponibilidad y pago.',
-      'Trabalho próprio, relatórios, disponibilidade e pagamento.',
+      'Shared chapters for field work and project management; follow the path for your role.',
+      'Capítulos compartidos para trabajo de campo y gestión de proyectos; sigue la ruta de tu perfil.',
+      'Capítulos compartilhados para trabalho de campo e gestão de projetos; siga o roteiro do seu perfil.',
     ],
-    'Worker_User_Guide',
+    'Work_Projects_Guide',
   ),
   guide(
-    'project-manager-reference',
-    'manager',
-    ['Project manager guide', 'Guía del gestor de proyectos', 'Guia do gerente de projetos'],
+    'supplier-operations-reference',
+    'supplier-operations',
+    ['supplier-coordinator', 'external-technician'],
     [
-      'Assigned projects, planning and operational review.',
-      'Proyectos asignados, planificación y revisión operativa.',
-      'Projetos atribuídos, planejamento e revisão operacional.',
+      'Supplier operations guide',
+      'Guía de operaciones de proveedores',
+      'Guia de operações de fornecedores',
     ],
-    'Project_Manager_User_Guide',
+    [
+      'Shared chapters for supplier coordinators and external technicians; follow the path for your role.',
+      'Capítulos compartidos para coordinadores y técnicos externos; sigue la ruta de tu perfil.',
+      'Capítulos compartilhados para coordenadores e técnicos externos; siga o roteiro do seu perfil.',
+    ],
+    'Supplier_Operations_Guide',
   ),
   guide(
-    'finance-reference',
-    'finance',
+    'administration-finance-reference',
+    'administration-finance',
+    ['owner', 'finance', 'auditor'],
     [
-      'Finance administrator guide',
-      'Guía de administración financiera',
-      'Guia de administração financeira',
+      'Administration, finance and audit guide',
+      'Guía de administración, finanzas y auditoría',
+      'Guia de administração, finanças e auditoria',
     ],
     [
-      'Commercial configuration, billing, settlements and records.',
-      'Configuración comercial, facturación, liquidaciones y registros.',
-      'Configuração comercial, faturamento, liquidações e registros.',
+      'Shared chapters for owners, finance administrators and auditors; follow the path for your role.',
+      'Capítulos compartidos para propietarios, finanzas y auditores; sigue la ruta de tu perfil.',
+      'Capítulos compartilhados para proprietários, finanças e auditores; siga o roteiro do seu perfil.',
     ],
-    'Finance_User_Guide',
-  ),
-  guide(
-    'owner-reference',
-    'owner',
-    [
-      'Owner administrator guide',
-      'Guía del administrador propietario',
-      'Guia do administrador proprietário',
-    ],
-    [
-      'Administration, planning, approvals and oversight.',
-      'Administración, planificación, aprobaciones y supervisión.',
-      'Administração, planejamento, aprovações e supervisão.',
-    ],
-    'Owner_User_Guide',
-  ),
-  guide(
-    'auditor-reference',
-    'auditor',
-    [
-      'Read-only auditor guide',
-      'Guía del auditor de solo lectura',
-      'Guia do auditor somente leitura',
-    ],
-    [
-      'Read-only evidence, finance and audit review.',
-      'Consulta de evidencias, finanzas y auditoría.',
-      'Consulta de evidências, finanças e auditoria.',
-    ],
-    'Auditor_User_Guide',
-  ),
-  guide(
-    'supplier-coordinator-reference',
-    'supplier-coordinator',
-    [
-      'Supplier coordinator guide',
-      'Guía del coordinador de proveedores',
-      'Guia do coordenador de fornecedores',
-    ],
-    [
-      'Authorized installations, technicians and team hours.',
-      'Instalaciones autorizadas, técnicos y horas del equipo.',
-      'Instalações autorizadas, técnicos e horas da equipe.',
-    ],
-    'Supplier_Coordinator_User_Guide',
-  ),
-  guide(
-    'external-technician-reference',
-    'external-technician',
-    ['External technician guide', 'Guía del técnico externo', 'Guia do técnico externo'],
-    [
-      'Your own authorized operational records.',
-      'Tus registros operativos autorizados.',
-      'Seus registros operacionais autorizados.',
-    ],
-    'External_Technician_User_Guide',
+    'Administration_Finance_Guide',
   ),
 ];
+
+/** Legacy links resolve to a group, whose access is checked against the current persisted persona. */
+export const manualAliases: Readonly<Record<string, string>> = {
+  'worker-reference': 'work-projects-reference',
+  'project-manager-reference': 'work-projects-reference',
+  'supplier-coordinator-reference': 'supplier-operations-reference',
+  'external-technician-reference': 'supplier-operations-reference',
+  'owner-reference': 'administration-finance-reference',
+  'finance-reference': 'administration-finance-reference',
+  'auditor-reference': 'administration-finance-reference',
+};
 
 export function isManualRole(value: string | null | undefined): value is ManualRole {
   return manualRoles.includes(value as ManualRole);
@@ -224,10 +193,11 @@ export function manualForPersona(
   persona: ManualPersona | null,
 ): ManualDefinition | null {
   if (!id || !persona) return null;
+  const canonicalId = manualAliases[id] ?? id;
   return (
     manualCatalog.find(
       (manual) =>
-        manual.id === id &&
+        manual.id === canonicalId &&
         (manual.allowedPersonas.includes(persona) ||
           (persona === 'owner' && manual.audience !== 'quick-start')),
     ) ?? null
@@ -241,15 +211,22 @@ export function manualsForPersona(persona: ManualPersona | null): readonly Manua
       (persona === 'owner' && manual.audience !== 'quick-start'),
   );
   if (persona === 'owner')
-    available.sort((a, b) => Number(b.audience === 'owner') - Number(a.audience === 'owner'));
-  return available.map(({ id, title, description, audience, locales, revision }) => ({
-    id,
-    title,
-    description,
-    audience,
-    locales,
-    revision,
-  }));
+    available.sort(
+      (a, b) =>
+        Number(b.audience === 'administration-finance') -
+        Number(a.audience === 'administration-finance'),
+    );
+  return available.map(
+    ({ id, title, description, audience, allowedPersonas, locales, revision }) => ({
+      id,
+      title,
+      description,
+      audience,
+      allowedPersonas,
+      locales,
+      revision,
+    }),
+  );
 }
 export function manualForRole(
   id: string | null | undefined,

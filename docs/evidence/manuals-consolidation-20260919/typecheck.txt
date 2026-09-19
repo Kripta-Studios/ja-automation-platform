@@ -1,0 +1,22 @@
+$ pnpm -r --if-present typecheck
+Scope: 10 of 11 workspace projects
+packages/domain typecheck$ tsc --noEmit
+packages/schemas typecheck$ tsc --noEmit
+packages/money typecheck$ tsc --noEmit
+packages/ui-tokens typecheck$ tsc --noEmit
+packages/money typecheck: Done
+website typecheck$ tsc --noEmit
+packages/ui-tokens typecheck: Done
+packages/domain typecheck: Done
+packages/schemas typecheck: Done
+website typecheck: Done
+packages/billing-engine typecheck$ tsc --noEmit
+packages/invoice-templates typecheck$ tsc --noEmit
+packages/billing-engine typecheck: Done
+packages/invoice-templates typecheck: Done
+packages/database typecheck$ tsc --noEmit
+packages/reporting typecheck$ tsc --noEmit
+packages/reporting typecheck: Done
+packages/database typecheck: Done
+apps/portal typecheck$ svelte-kit sync && tsc --noEmit -p tsconfig.json
+apps/portal typecheck: Done

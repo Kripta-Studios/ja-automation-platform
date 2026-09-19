@@ -1,0 +1,35 @@
+{
+  "reviewedAt": "2026-09-19T10:55:50.563426+00:00",
+  "reviewer": "Independent read-only agent /root/manual_access_analysis",
+  "runtimeSourceDigest": "bca4c47792481c9b23109b957deb8003a1a143115c3eaaab050b18c96c548bf9",
+  "scope": [
+    "persisted persona and live session",
+    "group families, legacy aliases, Owner library and quick-start boundary",
+    "escaped internal PDF links and validated chapter destinations",
+    "family/locale capture allowlist and mandatory persona representation",
+    "current runtime, exact manifest and Markdown/PDF hashes for retained builds",
+    "six EN/PT-BR sources and exact role boundaries"
+  ],
+  "blockingFindings": [],
+  "correctedFindings": [
+    "Supplier-origin time requires Owner review; expenses and reports retain their authorized reviewer",
+    "Auditor does not mutate business or organizational security records; own Profile controls are not excluded",
+    "PT labels match app and internal needs_changes is identified as a code"
+  ],
+  "parentPdfVisualReview": [
+    "PT-BR administration cover: complete and readable role paths",
+    "EN work page 6: availability input labels, values and save control visible",
+    "PT-BR supplier page 6: figures and role captions fit the page"
+  ],
+  "independentPdfVisualReview": {
+    "reviewedAt": "2026-09-19T10:58:08.365832+00:00",
+    "reviewer": "Independent read-only agent /root/manual_access_analysis",
+    "pages": [
+      "Administration PT-BR cover",
+      "Work EN page 6",
+      "Supplier PT-BR page 6"
+    ],
+    "blockingFindings": [],
+    "result": "No text clipping or overlap; cover, links and captions readable; roles identifiable; complete cover on first page."
+  }
+}

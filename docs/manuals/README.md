@@ -1,57 +1,66 @@
-# Portal role guides
+# Portal manuals
 
-The active detailed sources are `Role_Guide_<persona>_EN.md` and
-`Role_Guide_<persona>_PT-BR.md` for Worker, Project manager, Finance administrator,
-Owner administrator, Read-only auditor, Supplier coordinator and External technician.
-The older `Worker_User_Guide*.md` and `Owner_User_Guide*.md` remain as historical
-sources from the previous edition; the current PDFs keep their familiar filenames
-for existing Help links. The Employee field guide remains a separate quick guide
-for ordinary Workers in EN, ES and PT-BR.
+Three shared manuals cover the seven operational profiles. Each opens with a role-specific
+reading path and links to its chapters. Every procedure identifies who may consult, create,
+approve or modify a record; every screenshot identifies the signed-in profile. Reading another
+role's procedure does not grant its permissions or access to its records.
 
-| Persona               | English PDF                                                       | Português (Brasil) PDF                                                         |
-| --------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Worker                | [Worker guide](Worker_User_Guide.pdf)                             | [Guia do colaborador](Worker_User_Guide_PT-BR.pdf)                             |
-| Project manager       | [Project manager guide](Project_Manager_User_Guide.pdf)           | [Guia do gerente de projetos](Project_Manager_User_Guide_PT-BR.pdf)            |
-| Finance administrator | [Finance guide](Finance_User_Guide.pdf)                           | [Guia de administração financeira](Finance_User_Guide_PT-BR.pdf)               |
-| Owner administrator   | [Owner guide](Owner_User_Guide.pdf)                               | [Guia do administrador proprietário](Owner_User_Guide_PT-BR.pdf)               |
-| Read-only auditor     | [Auditor guide](Auditor_User_Guide.pdf)                           | [Guia do auditor](Auditor_User_Guide_PT-BR.pdf)                                |
-| Supplier coordinator  | [Supplier coordinator guide](Supplier_Coordinator_User_Guide.pdf) | [Guia do coordenador de fornecedor](Supplier_Coordinator_User_Guide_PT-BR.pdf) |
-| External technician   | [External technician guide](External_Technician_User_Guide.pdf)   | [Guia do técnico externo](External_Technician_User_Guide_PT-BR.pdf)            |
+| Manual                            | Profiles                                        | English                                          | Português (Brasil)                                   |
+| --------------------------------- | ----------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------- |
+| Work and projects                 | Worker, Project manager                         | [Download PDF](Work_Projects_Guide.pdf)          | [Baixar PDF](Work_Projects_Guide_PT-BR.pdf)          |
+| Supplier operations               | Supplier coordinator, External technician       | [Download PDF](Supplier_Operations_Guide.pdf)    | [Baixar PDF](Supplier_Operations_Guide_PT-BR.pdf)    |
+| Administration, finance and audit | Owner, Finance administrator, Read-only auditor | [Download PDF](Administration_Finance_Guide.pdf) | [Baixar PDF](Administration_Finance_Guide_PT-BR.pdf) |
 
-Signed-in users download only their authorized references through
-[Help in the portal](https://j-aautomation.com/j-aautomation/app/help). Owner can
-view the full role library for training. Worker also receives the short
+Download the appropriate manual from [Help in the portal](https://j-aautomation.com/j-aautomation/app/help).
+Help shows the reading path for the signed-in profile. Owner can open all three manuals for
+training. The internal Worker also has the separate quick guide in
 [EN](Employee_Field_Guide_EN.pdf), [ES](Employee_Field_Guide_ES.pdf) and
-[PT-BR](Employee_Field_Guide_PT-BR.pdf) field guides.
+[PT-BR](Employee_Field_Guide_PT-BR.pdf).
 
-All illustrations are PNG screenshots taken through a real Chromium browser
-against an isolated synthetic portal with a real signed-in account for each
-persona and language. They are not drawn UI or production customer records.
-`validation/current-capture.json` records capture time, source digest, route,
-viewport and SHA-256 for every PNG. Both language builds reject a manifest that
-does not match the current application source or whose screenshots fail their
-integrity check. At least one fresh capture is required for each of the fourteen
-persona-language combinations. The Spanish Worker quick guide uses explicitly
-labelled English example screenshots; it does not claim an ES role capture.
-Native date/time inputs in these unaltered Chromium screenshots may use the
-browser or operating system's regional format even when the portal labels and
-validation are in PT-BR.
+The seven previous portal download links still resolve to their shared manual. Access is checked
+against the current persisted profile and live session. Supplier profiles retain their own
+family even though the underlying account role is Worker. Sharing a manual does not change the
+application's financial, project, supplier or personal-data permissions.
 
-After application code and translations are frozen, run from the repository root
-with Node 24.19.0 and pnpm 11.22.0:
+## Sources and illustrations
+
+The active detailed sources are `Functional_Guide_<family>_EN.md` and
+`Functional_Guide_<family>_PT-BR.md`, where family is `work-projects`, `supplier-operations` or
+`administration-finance`. The earlier individual role sources and PDFs remain historical
+editions in this repository; they are neither listed in Help nor copied into the portal image.
+
+Illustrations are unaltered PNG screenshots taken through real Chromium against the running
+application with authenticated synthetic accounts. They contain no production customer records.
+`validation/current-capture.json` binds every persona, locale, route, viewport and PNG hash to the
+runtime source digest. The grouped manuals place relevant screenshots beside their instructions.
+Their captions name the profile actually used, including when the same manual serves several roles.
+
+The Spanish quick guide uses explicitly labelled English example screenshots. Native date/time
+inputs may use the browser or operating system's regional format even when portal labels and
+validation are in Brazilian Portuguese.
+
+## Regenerate and verify
+
+Freeze the application code and translations first, then run from the repository root with
+Node 24.19.0 and pnpm 11.22.0:
 
 ```bash
-pnpm playwright test tests/e2e/manual-current-capture.spec.ts --project=desktop
+pnpm exec playwright test tests/e2e/manual-current-capture.spec.ts --project=desktop
 node --experimental-strip-types scripts/generate-user-manuals.ts
 node --experimental-strip-types scripts/generate-user-manuals.ts --locale=pt-BR
 node --experimental-strip-types scripts/generate-client-ready-manuals.ts
 ```
 
-The generator uses Playwright Chromium to render A4 tagged PDFs with an
-English/Portuguese cover, contents, practical steps and captioned screenshots.
-`manual-build.json` and `manual-build-PT-BR.json` retain source and output hashes.
-`validation/pdf-quality.json` records checks for all 17 current PDFs against
-those hashes, including page count, embedded fonts, images and extractable text.
-Use `pdfinfo`, `pdffonts` and `pdftotext` to inspect page count, embedded fonts and
-extractable text. The portal image copies only the catalogued PDFs; downloads
-require a live session and a matching persisted role/supplier profile.
+The generator rejects stale runtime digests, PNG hash mismatches, broken chapter links,
+screenshots outside a manual's family and missing representation of a family member. Partial
+builds retain an existing output only if its runtime digest, exact capture manifest, current
+Markdown and PDF hashes still match. Always complete all three generation commands for a release.
+
+The output is **six main PDFs plus three quick guides**. The A4 PDFs contain linked contents,
+role routes on the cover, tagged text, outlines and embedded screenshots. `manual-build.json`
+and `manual-build-PT-BR.json` record source, output and capture hashes; `validation/pdf-quality.json`
+records PDF quality checks. Inspect pages, embedded fonts, images and extractable text with
+`pdfinfo`, `pdffonts`, `pdfimages` and `pdftotext`, and visually review the final pages.
+
+Docker copies only these nine catalogued assets. The earlier individual PDFs are historical
+references, not additional downloads or permissions.

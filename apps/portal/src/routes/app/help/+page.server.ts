@@ -25,6 +25,7 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
       revision: manualRevision,
       user: {
         name: locals.user.name,
+        persona,
         workforceProfile:
           persona === 'supplier-coordinator'
             ? 'supplier_coordinator'

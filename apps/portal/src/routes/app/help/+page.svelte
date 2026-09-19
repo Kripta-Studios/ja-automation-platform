@@ -9,18 +9,27 @@
   import { base } from '$app/paths';
 
   type Locale = 'en' | 'es' | 'pt';
+  type Persona =
+    | 'worker'
+    | 'manager'
+    | 'finance'
+    | 'owner'
+    | 'auditor'
+    | 'supplier-coordinator'
+    | 'external-technician';
   type Manual = {
     id: string;
     title: Record<Locale, string>;
     description: Record<Locale, string>;
     audience: string;
+    allowedPersonas: readonly Persona[];
     locales: readonly Locale[];
     revision: string;
   };
   type HelpData = {
     locale: Locale;
     revision: string;
-    user: { name: string; role: string | null; workforceProfile?: string };
+    user: { name: string; role: string | null; persona: Persona | null; workforceProfile?: string };
     manuals: readonly Manual[];
   };
 
@@ -35,6 +44,73 @@
   });
   const localeNames: Record<Locale, string> = { en: 'EN', es: 'ES', pt: 'PT-BR' };
   const languageOptions: readonly Locale[] = ['en', 'es', 'pt'];
+
+  const roleNames: Record<Persona, Record<Locale, string>> = {
+    worker: { en: 'Worker', es: 'Trabajador', pt: 'Colaborador' },
+    manager: { en: 'Project manager', es: 'Gestor de proyectos', pt: 'Gerente de projetos' },
+    finance: {
+      en: 'Finance administrator',
+      es: 'Administrador financiero',
+      pt: 'Administrador financeiro',
+    },
+    owner: {
+      en: 'Owner administrator',
+      es: 'Administrador propietario',
+      pt: 'Administrador proprietário',
+    },
+    auditor: {
+      en: 'Read-only auditor',
+      es: 'Auditor de solo lectura',
+      pt: 'Auditor somente leitura',
+    },
+    'supplier-coordinator': {
+      en: 'Supplier coordinator',
+      es: 'Coordinador de proveedores',
+      pt: 'Coordenador de fornecedores',
+    },
+    'external-technician': {
+      en: 'External technician',
+      es: 'Técnico externo',
+      pt: 'Técnico externo',
+    },
+  };
+  const readingPaths: Record<Persona, Record<Locale, string>> = {
+    worker: {
+      en: 'Start with your assigned work, then time, expenses, reports and My Pay.',
+      es: 'Empieza por tu trabajo asignado; sigue con horas, gastos, informes y Mi pago.',
+      pt: 'Comece pelo trabalho atribuído; siga com horas, despesas, relatórios e Meu pagamento.',
+    },
+    manager: {
+      en: 'Start with assigned projects, then planning and operational review.',
+      es: 'Empieza por los proyectos asignados; sigue con planificación y revisión operativa.',
+      pt: 'Comece pelos projetos atribuídos; siga com planejamento e revisão operacional.',
+    },
+    finance: {
+      en: 'Start with commercial configuration, then billing, settlements and records.',
+      es: 'Empieza por la configuración comercial; sigue con facturación, liquidaciones y registros.',
+      pt: 'Comece pela configuração comercial; siga com faturamento, liquidações e registros.',
+    },
+    owner: {
+      en: 'Start with administration and access, then planning, approvals and oversight.',
+      es: 'Empieza por administración y acceso; sigue con planificación, aprobaciones y supervisión.',
+      pt: 'Comece por administração e acesso; siga com planejamento, aprovações e supervisão.',
+    },
+    auditor: {
+      en: 'Start with read-only evidence, then finance and audit review.',
+      es: 'Empieza por las evidencias de solo lectura; sigue con finanzas y revisión de auditoría.',
+      pt: 'Comece pelas evidências somente leitura; siga com finanças e revisão de auditoria.',
+    },
+    'supplier-coordinator': {
+      en: 'Start with authorized installations, then technicians and team hours.',
+      es: 'Empieza por las instalaciones autorizadas; sigue con técnicos y horas del equipo.',
+      pt: 'Comece pelas instalações autorizadas; siga com técnicos e horas da equipe.',
+    },
+    'external-technician': {
+      en: 'Start with your authorized assignments, then your own time and reports.',
+      es: 'Empieza por tus tareas autorizadas; sigue con tus horas e informes.',
+      pt: 'Comece pelas suas tarefas autorizadas; siga com suas horas e relatórios.',
+    },
+  };
 
   const copy: Record<Locale, Record<string, string>> = {
     en: {
@@ -56,6 +132,9 @@
       availableLanguages: 'Available languages',
       quickStart: 'Quick start',
       detailed: 'Detailed reference',
+      sharedChapters:
+        'This guide contains shared chapters. Read the sections for your role and its allowed tasks.',
+      rolePaths: 'I am this role: where do I start?',
       worker: 'Worker tasks',
       owner: 'Role reference',
       privateNote:
@@ -98,6 +177,9 @@
       availableLanguages: 'Idiomas disponibles',
       quickStart: 'Inicio rápido',
       detailed: 'Referencia detallada',
+      sharedChapters:
+        'Esta guía contiene capítulos compartidos. Lee las secciones de tu perfil y sus tareas permitidas.',
+      rolePaths: 'Soy este perfil: ¿por dónde empiezo?',
       worker: 'Tareas del trabajador',
       owner: 'Referencia por perfil',
       privateNote:
@@ -141,6 +223,9 @@
       availableLanguages: 'Idiomas disponíveis',
       quickStart: 'Início rápido',
       detailed: 'Referência detalhada',
+      sharedChapters:
+        'Este guia contém capítulos compartilhados. Leia as seções do seu perfil e suas tarefas permitidas.',
+      rolePaths: 'Sou deste perfil: por onde começo?',
       worker: 'Tarefas do colaborador',
       owner: 'Referência por perfil',
       privateNote:
@@ -174,6 +259,10 @@
   const title = (manual: Manual): string => manual.title[data.locale] ?? manual.title.en;
   const description = (manual: Manual): string =>
     manual.description[data.locale] ?? manual.description.en;
+  const visiblePaths = (manual: Manual): readonly Persona[] =>
+    data.user.persona && manual.allowedPersonas.includes(data.user.persona)
+      ? [data.user.persona]
+      : manual.allowedPersonas;
   async function downloadManual(manual: Manual): Promise<void> {
     if (busyManualId) return;
     busyManualId = manual.id;
@@ -254,6 +343,23 @@
             <span class="revision">{text('revision')} {manual.revision}</span>
           </div>
           <p>{description(manual)}</p>
+          {#if manual.audience !== 'quick-start'}
+            <div class="role-guidance">
+              <div class="role-badges">
+                {#each manual.allowedPersonas as persona}
+                  <span>{roleNames[persona][data.locale]}</span>
+                {/each}
+              </div>
+              <p>{text('sharedChapters')}</p>
+              <h3>{text('rolePaths')}</h3>
+              {#each visiblePaths(manual) as persona}
+                <p>
+                  <strong>{roleNames[persona][data.locale]}:</strong>
+                  {readingPaths[persona][data.locale]}
+                </p>
+              {/each}
+            </div>
+          {/if}
           <div class="manual-actions">
             <a
               class="download"
@@ -449,6 +555,31 @@
   }
   .manual-card > p {
     color: #475569;
+  }
+  .role-guidance {
+    color: #475569;
+    font-size: 0.88rem;
+    margin-bottom: 0.75rem;
+  }
+  .role-guidance p {
+    margin-bottom: 0.5rem;
+  }
+  .role-guidance h3 {
+    font-size: 0.88rem;
+    margin-bottom: 0.4rem;
+  }
+  .role-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.75rem;
+  }
+  .role-badges span {
+    background: #e8f4fa;
+    color: #075985;
+    border-radius: 999px;
+    padding: 0.25rem 0.55rem;
+    font-weight: 700;
   }
   .manual-actions {
     margin-top: auto;

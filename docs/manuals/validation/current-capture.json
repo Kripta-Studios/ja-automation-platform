@@ -1,7 +1,7 @@
 {
-  "sourceCommit": "e0590fa0472144637efc61160475ef27c6ce00e8",
-  "sourceDigest": "0a73eebb85225d37100b81c2493ca3e849679e30f75c8dfe91d08f19d8d7c467",
-  "capturedAt": "2026-09-19T09:56:05.809Z",
+  "sourceCommit": "bd45cb16bc74a09a349178d07ec11629d724513d",
+  "sourceDigest": "bca4c47792481c9b23109b957deb8003a1a143115c3eaaab050b18c96c548bf9",
+  "capturedAt": "2026-09-19T10:46:39.843Z",
   "environment": "synthetic",
   "scope": "Real authenticated synthetic portal screens for seven personas in EN/PT-BR.",
   "screenshots": [
@@ -13,7 +13,7 @@
       "route": "/app?lang=en",
       "path": "docs/manuals/screenshots/current/owner/en/home.png",
       "sha256": "50a95049685c6a7c32a1a323075544a5fffad29f8f4575259dcab4535f826c91",
-      "capturedAt": "2026-09-19T09:54:14.904Z",
+      "capturedAt": "2026-09-19T10:44:47.626Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -26,8 +26,8 @@
       "role": "owner",
       "route": "/app/help?lang=en",
       "path": "docs/manuals/screenshots/current/owner/en/help.png",
-      "sha256": "aa13d8d88e9cc2bacca58ca8e6b80334f7fc81288add4c00fb26f80dcbefdaac",
-      "capturedAt": "2026-09-19T09:54:15.790Z",
+      "sha256": "59aa9403e4b1300f91e9ad9065f14f580db067ea7196940d70dc1b517f6bf55a",
+      "capturedAt": "2026-09-19T10:44:48.523Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -41,7 +41,7 @@
       "route": "/app/profile?lang=en",
       "path": "docs/manuals/screenshots/current/owner/en/profile.png",
       "sha256": "372d96f61eee17cff3421cb1fea01edd9392ace997a1344b0adbe357542a7040",
-      "capturedAt": "2026-09-19T09:54:16.826Z",
+      "capturedAt": "2026-09-19T10:44:49.638Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -55,7 +55,7 @@
       "route": "/app/planning?lang=en",
       "path": "docs/manuals/screenshots/current/owner/en/planning-month.png",
       "sha256": "d7ad567a1176e1fccde4d3455f8a351915a30101db99e065fdabd52045ed5494",
-      "capturedAt": "2026-09-19T09:54:17.963Z",
+      "capturedAt": "2026-09-19T10:44:50.738Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -68,8 +68,8 @@
       "role": "owner",
       "route": "/app/planning?lang=en",
       "path": "docs/manuals/screenshots/current/owner/en/planning-editor.png",
-      "sha256": "31bba175ea359d63d252eacbc54a7795cfccc04d44b07d9551b98cf239f9f39b",
-      "capturedAt": "2026-09-19T09:54:18.203Z",
+      "sha256": "fc05591daedcaad2e008f90ad9c2547cfcf885bb8e16aa241752427b4612a4c1",
+      "capturedAt": "2026-09-19T10:44:50.992Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -83,7 +83,7 @@
       "route": "/app/profile?lang=en",
       "path": "docs/manuals/screenshots/current/owner/en/availability-month.png",
       "sha256": "072aaa3b71fe5eb350228c00dbca12881c6856f528413a65eb16a897b4573a0b",
-      "capturedAt": "2026-09-19T09:54:19.253Z",
+      "capturedAt": "2026-09-19T10:44:52.095Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -97,7 +97,7 @@
       "route": "/app/profile?lang=en",
       "path": "docs/manuals/screenshots/current/owner/en/availability-editor.png",
       "sha256": "e96549b433a2706a1ff05cf68d66a71e67f89d352651b63eab44453b7989a99a",
-      "capturedAt": "2026-09-19T09:54:19.484Z",
+      "capturedAt": "2026-09-19T10:44:52.362Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -111,7 +111,7 @@
       "route": "/app?lang=en",
       "path": "docs/manuals/screenshots/current/owner/en/home-phone.png",
       "sha256": "80e9634a28ae53f1527f1238575e3252d574533cb3931d1c1be640391c618d3c",
-      "capturedAt": "2026-09-19T09:54:20.553Z",
+      "capturedAt": "2026-09-19T10:44:53.451Z",
       "viewport": {
         "width": 390,
         "height": 844
@@ -125,7 +125,7 @@
       "route": "/app?lang=pt",
       "path": "docs/manuals/screenshots/current/owner/pt/home.png",
       "sha256": "b8b9e3e9750cd4e8ea3087dcb3b20f8efb4c06215af1e39b210c99d431e1d8a0",
-      "capturedAt": "2026-09-19T09:54:24.046Z",
+      "capturedAt": "2026-09-19T10:44:57.006Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -138,8 +138,8 @@
       "role": "owner",
       "route": "/app/help?lang=pt",
       "path": "docs/manuals/screenshots/current/owner/pt/help.png",
-      "sha256": "6e9a0005547d1d2a9ff08fc017eea4d99bf67dd12cefb71eb3cbf2f869717c21",
-      "capturedAt": "2026-09-19T09:54:24.921Z",
+      "sha256": "1f3a074e9279965dd08a1f228554e8491aef74a97cd24a16d665877aa4293936",
+      "capturedAt": "2026-09-19T10:44:57.898Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -153,7 +153,7 @@
       "route": "/app/profile?lang=pt",
       "path": "docs/manuals/screenshots/current/owner/pt/profile.png",
       "sha256": "ba3d094a925ab8cdc75602f901216f64e86488c642459941425339bee8a07137",
-      "capturedAt": "2026-09-19T09:54:26.011Z",
+      "capturedAt": "2026-09-19T10:44:58.932Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -167,7 +167,7 @@
       "route": "/app/planning?lang=pt",
       "path": "docs/manuals/screenshots/current/owner/pt/planning-month.png",
       "sha256": "61bcb64f731aec7881e4fe7caac57d33ad33092eb7dc9a2fdbc6b45d2b27691e",
-      "capturedAt": "2026-09-19T09:54:27.121Z",
+      "capturedAt": "2026-09-19T10:45:00.115Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -180,8 +180,8 @@
       "role": "owner",
       "route": "/app/planning?lang=pt",
       "path": "docs/manuals/screenshots/current/owner/pt/planning-editor.png",
-      "sha256": "438901923e92f771e3441e27a1e9312b465b1a70bc185b5e1eb098ae4c54d157",
-      "capturedAt": "2026-09-19T09:54:27.343Z",
+      "sha256": "302b923614e86ea2423899305388063a0cff3b1a1c6e7b7236721132cd5f8f66",
+      "capturedAt": "2026-09-19T10:45:00.377Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -195,7 +195,7 @@
       "route": "/app/profile?lang=pt",
       "path": "docs/manuals/screenshots/current/owner/pt/availability-month.png",
       "sha256": "69c98488a99ea66f49d42690e2c954408d0d5a591311f263ad269319f5a5f425",
-      "capturedAt": "2026-09-19T09:54:28.457Z",
+      "capturedAt": "2026-09-19T10:45:01.487Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -209,7 +209,7 @@
       "route": "/app/profile?lang=pt",
       "path": "docs/manuals/screenshots/current/owner/pt/availability-editor.png",
       "sha256": "697b7af8f913405eb021afee495b09d7a438f13b6b92e29698998128dc78b8b4",
-      "capturedAt": "2026-09-19T09:54:28.719Z",
+      "capturedAt": "2026-09-19T10:45:01.745Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -223,7 +223,7 @@
       "route": "/app?lang=pt",
       "path": "docs/manuals/screenshots/current/owner/pt/home-phone.png",
       "sha256": "ce30bb91baefa52f06739eeda1236612d8ae24d3f779c8ff784fa3a14fb78566",
-      "capturedAt": "2026-09-19T09:54:29.824Z",
+      "capturedAt": "2026-09-19T10:45:02.848Z",
       "viewport": {
         "width": 390,
         "height": 844
@@ -237,7 +237,7 @@
       "route": "/app/finance?view=overview",
       "path": "docs/manuals/screenshots/current/finance/en/home.png",
       "sha256": "88d1b70fcec65d49456a0448b5fcc42ca180e2aa2f3ba23fb3bd4955e9106ef2",
-      "capturedAt": "2026-09-19T09:54:33.293Z",
+      "capturedAt": "2026-09-19T10:45:06.548Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -250,8 +250,8 @@
       "role": "finance",
       "route": "/app/help?lang=en",
       "path": "docs/manuals/screenshots/current/finance/en/help.png",
-      "sha256": "41d8597013ce489f98425ee7328ac9d8c933d39d403c49aaeaeaad3d60ba5af9",
-      "capturedAt": "2026-09-19T09:54:34.133Z",
+      "sha256": "ab370cf95956be08c4c9745460be43c02d07ce03612d96061cc1e472e34a78dc",
+      "capturedAt": "2026-09-19T10:45:07.368Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -265,7 +265,7 @@
       "route": "/app/profile?lang=en",
       "path": "docs/manuals/screenshots/current/finance/en/profile.png",
       "sha256": "2a4011e1d6d318578e2e75598671818ca0714b6bc3938ddde9510dd5548e9bf4",
-      "capturedAt": "2026-09-19T09:54:35.141Z",
+      "capturedAt": "2026-09-19T10:45:08.477Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -279,7 +279,7 @@
       "route": "/app/profile?lang=en",
       "path": "docs/manuals/screenshots/current/finance/en/availability-month.png",
       "sha256": "072aaa3b71fe5eb350228c00dbca12881c6856f528413a65eb16a897b4573a0b",
-      "capturedAt": "2026-09-19T09:54:36.157Z",
+      "capturedAt": "2026-09-19T10:45:09.570Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -293,7 +293,7 @@
       "route": "/app/profile?lang=en",
       "path": "docs/manuals/screenshots/current/finance/en/availability-editor.png",
       "sha256": "e96549b433a2706a1ff05cf68d66a71e67f89d352651b63eab44453b7989a99a",
-      "capturedAt": "2026-09-19T09:54:36.388Z",
+      "capturedAt": "2026-09-19T10:45:09.801Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -307,7 +307,7 @@
       "route": "/app/finance?lang=en",
       "path": "docs/manuals/screenshots/current/finance/en/finance.png",
       "sha256": "77756f411984472bdb84c55ef003fd1c475713fd175d55e3ded934b68d7c959f",
-      "capturedAt": "2026-09-19T09:54:37.471Z",
+      "capturedAt": "2026-09-19T10:45:10.906Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -321,7 +321,7 @@
       "route": "/app/finance?view=overview",
       "path": "docs/manuals/screenshots/current/finance/en/home-phone.png",
       "sha256": "3ba1bb034b6111cf61d2e607bff9759e939f1dd3e1fad2b38d656477d566c122",
-      "capturedAt": "2026-09-19T09:54:38.543Z",
+      "capturedAt": "2026-09-19T10:45:12.020Z",
       "viewport": {
         "width": 390,
         "height": 844
@@ -335,7 +335,7 @@
       "route": "/app/finance?view=overview",
       "path": "docs/manuals/screenshots/current/finance/pt/home.png",
       "sha256": "f47faa56018a666c008202abf685a0831bf6503654aa04134b2b9b43d0a372cf",
-      "capturedAt": "2026-09-19T09:54:41.952Z",
+      "capturedAt": "2026-09-19T10:45:15.540Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -348,8 +348,8 @@
       "role": "finance",
       "route": "/app/help?lang=pt",
       "path": "docs/manuals/screenshots/current/finance/pt/help.png",
-      "sha256": "8a74efe04f5ea1bf97bd4d08b7bc36b8e37dab8d18aca276231cd7ee13e0f85f",
-      "capturedAt": "2026-09-19T09:54:42.809Z",
+      "sha256": "19d367c4bb2456f0556e60981a8a5e46194f3868fed53971b91c2b4ef02db243",
+      "capturedAt": "2026-09-19T10:45:16.398Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -363,7 +363,7 @@
       "route": "/app/profile?lang=pt",
       "path": "docs/manuals/screenshots/current/finance/pt/profile.png",
       "sha256": "b9f90e410a9dad3c3b5a4622cd19ccb6610e6556364d8612c45e1c05a355005c",
-      "capturedAt": "2026-09-19T09:54:43.834Z",
+      "capturedAt": "2026-09-19T10:45:17.378Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -377,7 +377,7 @@
       "route": "/app/profile?lang=pt",
       "path": "docs/manuals/screenshots/current/finance/pt/availability-month.png",
       "sha256": "69c98488a99ea66f49d42690e2c954408d0d5a591311f263ad269319f5a5f425",
-      "capturedAt": "2026-09-19T09:54:44.904Z",
+      "capturedAt": "2026-09-19T10:45:18.475Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -391,7 +391,7 @@
       "route": "/app/profile?lang=pt",
       "path": "docs/manuals/screenshots/current/finance/pt/availability-editor.png",
       "sha256": "697b7af8f913405eb021afee495b09d7a438f13b6b92e29698998128dc78b8b4",
-      "capturedAt": "2026-09-19T09:54:45.124Z",
+      "capturedAt": "2026-09-19T10:45:18.708Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -405,7 +405,7 @@
       "route": "/app/finance?lang=pt",
       "path": "docs/manuals/screenshots/current/finance/pt/finance.png",
       "sha256": "2fd3a8473ce1b7b1b3fd5908beba9aa110272e454cca721c55857161e63764c9",
-      "capturedAt": "2026-09-19T09:54:46.180Z",
+      "capturedAt": "2026-09-19T10:45:19.815Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -419,7 +419,7 @@
       "route": "/app/finance?view=overview",
       "path": "docs/manuals/screenshots/current/finance/pt/home-phone.png",
       "sha256": "d68c04cbae524d5ec90f4da5d0ba2237d6c1618de8a384c303abe2a41d2d56c8",
-      "capturedAt": "2026-09-19T09:54:47.275Z",
+      "capturedAt": "2026-09-19T10:45:20.855Z",
       "viewport": {
         "width": 390,
         "height": 844
@@ -433,7 +433,7 @@
       "route": "/app?lang=en",
       "path": "docs/manuals/screenshots/current/manager/en/home.png",
       "sha256": "536f177124cfbe20bd34a0d623943e1ec8aff465dafd1089b67a3773a32feb1f",
-      "capturedAt": "2026-09-19T09:54:50.786Z",
+      "capturedAt": "2026-09-19T10:45:24.228Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -446,8 +446,8 @@
       "role": "manager",
       "route": "/app/help?lang=en",
       "path": "docs/manuals/screenshots/current/manager/en/help.png",
-      "sha256": "84497c3405785a9ae2f584004a0a824b0bf8d05f2c695ea31e5cacc827d1f40a",
-      "capturedAt": "2026-09-19T09:54:51.632Z",
+      "sha256": "dc58dd6ed28d453a1027993503fd99a4368d8fc8bd86942c43fe668c5ce35faa",
+      "capturedAt": "2026-09-19T10:45:25.051Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -461,7 +461,7 @@
       "route": "/app/profile?lang=en",
       "path": "docs/manuals/screenshots/current/manager/en/profile.png",
       "sha256": "b2574b23df5bc6e3e878ae371200c2f9ba754f910cff4eafc9c393b22c423555",
-      "capturedAt": "2026-09-19T09:54:52.684Z",
+      "capturedAt": "2026-09-19T10:45:26.148Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -475,7 +475,7 @@
       "route": "/app/planning?lang=en",
       "path": "docs/manuals/screenshots/current/manager/en/planning-month.png",
       "sha256": "d7ad567a1176e1fccde4d3455f8a351915a30101db99e065fdabd52045ed5494",
-      "capturedAt": "2026-09-19T09:54:53.717Z",
+      "capturedAt": "2026-09-19T10:45:27.231Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -488,8 +488,8 @@
       "role": "manager",
       "route": "/app/planning?lang=en",
       "path": "docs/manuals/screenshots/current/manager/en/planning-editor.png",
-      "sha256": "6d2c1f5f1db1a52bf1eac45d5e5ad9c934f48072325ecb8cb395484584f00613",
-      "capturedAt": "2026-09-19T09:54:53.923Z",
+      "sha256": "5245b925c10579a4937ee148fd7bdbc076f742331b8be452f1a1b89f38ef8edf",
+      "capturedAt": "2026-09-19T10:45:27.500Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -503,7 +503,7 @@
       "route": "/app/profile?lang=en",
       "path": "docs/manuals/screenshots/current/manager/en/availability-month.png",
       "sha256": "c33eab8d82602f31bee0fa34556a139beebc7e5dd09a95ca1b52c786d00862b5",
-      "capturedAt": "2026-09-19T09:54:54.946Z",
+      "capturedAt": "2026-09-19T10:45:28.565Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -517,7 +517,7 @@
       "route": "/app/profile?lang=en",
       "path": "docs/manuals/screenshots/current/manager/en/availability-editor.png",
       "sha256": "e96549b433a2706a1ff05cf68d66a71e67f89d352651b63eab44453b7989a99a",
-      "capturedAt": "2026-09-19T09:54:55.159Z",
+      "capturedAt": "2026-09-19T10:45:28.811Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -531,7 +531,7 @@
       "route": "/app?lang=en",
       "path": "docs/manuals/screenshots/current/manager/en/home-phone.png",
       "sha256": "2650117e704220165b3e1bd3f883a1d0bd058be569d2e742b08c06b9b58f0bd8",
-      "capturedAt": "2026-09-19T09:54:56.167Z",
+      "capturedAt": "2026-09-19T10:45:29.828Z",
       "viewport": {
         "width": 390,
         "height": 844
@@ -545,7 +545,7 @@
       "route": "/app?lang=pt",
       "path": "docs/manuals/screenshots/current/manager/pt/home.png",
       "sha256": "3380dbfcd11a66f38568da7027c95d6eb6776a6e4b4f0f6aed90264c8afdbc26",
-      "capturedAt": "2026-09-19T09:54:59.397Z",
+      "capturedAt": "2026-09-19T10:45:33.222Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -558,8 +558,8 @@
       "role": "manager",
       "route": "/app/help?lang=pt",
       "path": "docs/manuals/screenshots/current/manager/pt/help.png",
-      "sha256": "195c67cfb2bc1d695a9da9dddeb23ab0065807d9118e3b2be90385759f154b92",
-      "capturedAt": "2026-09-19T09:55:00.227Z",
+      "sha256": "e5220f843373a9bcb1a7810091befdc03271a4b8f4088dc28dd920e0d41ed4d6",
+      "capturedAt": "2026-09-19T10:45:34.026Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -573,7 +573,7 @@
       "route": "/app/profile?lang=pt",
       "path": "docs/manuals/screenshots/current/manager/pt/profile.png",
       "sha256": "27af285d36f90cc93b5f67458998a1495a71736ab33c08de918685a52f9acb14",
-      "capturedAt": "2026-09-19T09:55:01.273Z",
+      "capturedAt": "2026-09-19T10:45:35.028Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -587,7 +587,7 @@
       "route": "/app/planning?lang=pt",
       "path": "docs/manuals/screenshots/current/manager/pt/planning-month.png",
       "sha256": "61bcb64f731aec7881e4fe7caac57d33ad33092eb7dc9a2fdbc6b45d2b27691e",
-      "capturedAt": "2026-09-19T09:55:02.314Z",
+      "capturedAt": "2026-09-19T10:45:36.109Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -600,8 +600,8 @@
       "role": "manager",
       "route": "/app/planning?lang=pt",
       "path": "docs/manuals/screenshots/current/manager/pt/planning-editor.png",
-      "sha256": "39cdd7499a461fae8c3998a52c1b905e6ad8cb758f5032e7fed65d8412017530",
-      "capturedAt": "2026-09-19T09:55:02.513Z",
+      "sha256": "32dcb1f6c040cbcee64a723d6f392a3e210100046365db15e5cb31a043f69ee2",
+      "capturedAt": "2026-09-19T10:45:36.303Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -615,7 +615,7 @@
       "route": "/app/profile?lang=pt",
       "path": "docs/manuals/screenshots/current/manager/pt/availability-month.png",
       "sha256": "61e7061dac8b0be047c07c535af9cc9add2de44b8770d96be2ad17f141d71899",
-      "capturedAt": "2026-09-19T09:55:03.556Z",
+      "capturedAt": "2026-09-19T10:45:37.409Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -629,7 +629,7 @@
       "route": "/app/profile?lang=pt",
       "path": "docs/manuals/screenshots/current/manager/pt/availability-editor.png",
       "sha256": "697b7af8f913405eb021afee495b09d7a438f13b6b92e29698998128dc78b8b4",
-      "capturedAt": "2026-09-19T09:55:03.764Z",
+      "capturedAt": "2026-09-19T10:45:37.637Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -643,7 +643,7 @@
       "route": "/app?lang=pt",
       "path": "docs/manuals/screenshots/current/manager/pt/home-phone.png",
       "sha256": "f964d4c5d6be36bb9631904fdd7ada70db2e068b099b4941fe7c832cfff22ca8",
-      "capturedAt": "2026-09-19T09:55:04.787Z",
+      "capturedAt": "2026-09-19T10:45:38.663Z",
       "viewport": {
         "width": 390,
         "height": 844
@@ -657,7 +657,7 @@
       "route": "/app/finance?view=overview",
       "path": "docs/manuals/screenshots/current/auditor/en/home.png",
       "sha256": "e4571e7276703d4d8dc4677be2afc341626ef49ca756a395aeb545d6169fcb18",
-      "capturedAt": "2026-09-19T09:55:08.386Z",
+      "capturedAt": "2026-09-19T10:45:42.220Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -670,8 +670,8 @@
       "role": "auditor",
       "route": "/app/help?lang=en",
       "path": "docs/manuals/screenshots/current/auditor/en/help.png",
-      "sha256": "9bce81cf6e53a651a25db71b8d4c6464e96b37ff8c7878af9fb6d6bf3d60c791",
-      "capturedAt": "2026-09-19T09:55:09.261Z",
+      "sha256": "4a76c0e9836e4edc54cc0d4a2050f633c3ba0014636757c47fedb8764e75ce18",
+      "capturedAt": "2026-09-19T10:45:43.047Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -685,7 +685,7 @@
       "route": "/app/profile?lang=en",
       "path": "docs/manuals/screenshots/current/auditor/en/profile.png",
       "sha256": "be2aac50ef8837463e04bea0d8914474b0d2c91fff7f1eeeccc840ccc1958616",
-      "capturedAt": "2026-09-19T09:55:10.328Z",
+      "capturedAt": "2026-09-19T10:45:44.075Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -698,8 +698,8 @@
       "role": "auditor",
       "route": "/app/audit?lang=en",
       "path": "docs/manuals/screenshots/current/auditor/en/audit.png",
-      "sha256": "964cc3e1cc790f2ff6bed9ef8c070ff1447e1b2e8c89f8a47f977cb73018e83f",
-      "capturedAt": "2026-09-19T09:55:11.414Z",
+      "sha256": "41716cca8d6644fd92fcfe7f44dc1b93905fcbff8bd25e412c3de5c6e9ef3994",
+      "capturedAt": "2026-09-19T10:45:45.150Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -713,7 +713,7 @@
       "route": "/app/finance?view=overview",
       "path": "docs/manuals/screenshots/current/auditor/en/home-phone.png",
       "sha256": "78100d2216beabe005f9127dee343cfac80af70e3dad97f316e01f4580a81449",
-      "capturedAt": "2026-09-19T09:55:12.489Z",
+      "capturedAt": "2026-09-19T10:45:46.300Z",
       "viewport": {
         "width": 390,
         "height": 844
@@ -727,7 +727,7 @@
       "route": "/app/finance?view=overview",
       "path": "docs/manuals/screenshots/current/auditor/pt/home.png",
       "sha256": "88978c0b05fd3d3a5ea2bb50314144672a3da516b4ba988d10560100587b859a",
-      "capturedAt": "2026-09-19T09:55:15.873Z",
+      "capturedAt": "2026-09-19T10:45:49.873Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -740,8 +740,8 @@
       "role": "auditor",
       "route": "/app/help?lang=pt",
       "path": "docs/manuals/screenshots/current/auditor/pt/help.png",
-      "sha256": "46042fcf8ba19160df4a6d38e45291766baf963dfdbdb614f264fbe240af2598",
-      "capturedAt": "2026-09-19T09:55:16.726Z",
+      "sha256": "8bfb5ec319d7405f14388f03099aa4e3e8d8141960f68cebe47da38c0c396746",
+      "capturedAt": "2026-09-19T10:45:50.710Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -755,7 +755,7 @@
       "route": "/app/profile?lang=pt",
       "path": "docs/manuals/screenshots/current/auditor/pt/profile.png",
       "sha256": "d3191f102197eac9f3ff95e74d1bbc903e478d975a03b2bf080fc716a49d4a24",
-      "capturedAt": "2026-09-19T09:55:17.757Z",
+      "capturedAt": "2026-09-19T10:45:51.743Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -768,8 +768,8 @@
       "role": "auditor",
       "route": "/app/audit?lang=pt",
       "path": "docs/manuals/screenshots/current/auditor/pt/audit.png",
-      "sha256": "c909ec34e6f658415af7a94eb57fb5e792119d9afc2322bdaad62df283b0c67a",
-      "capturedAt": "2026-09-19T09:55:18.864Z",
+      "sha256": "06e1d2b7acf7ce4658f12de4332c289783304995c69e9e9ab1007ea2c241cf00",
+      "capturedAt": "2026-09-19T10:45:52.838Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -783,7 +783,7 @@
       "route": "/app/finance?view=overview",
       "path": "docs/manuals/screenshots/current/auditor/pt/home-phone.png",
       "sha256": "6325e6ebf055b955f27a2cbfe08983ce22100f70cd85afb1321f8e5f665b4dfa",
-      "capturedAt": "2026-09-19T09:55:20.009Z",
+      "capturedAt": "2026-09-19T10:45:53.970Z",
       "viewport": {
         "width": 390,
         "height": 844
@@ -797,7 +797,7 @@
       "route": "/app?lang=en",
       "path": "docs/manuals/screenshots/current/worker/en/home.png",
       "sha256": "2aa2d2213c8869dc32afeedf4cbc803a5995bedc7199d33f45cef35dab2ce82e",
-      "capturedAt": "2026-09-19T09:55:23.212Z",
+      "capturedAt": "2026-09-19T10:45:57.275Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -810,8 +810,8 @@
       "role": "worker",
       "route": "/app/help?lang=en",
       "path": "docs/manuals/screenshots/current/worker/en/help.png",
-      "sha256": "47c1ba229e8209a7342e48ba7374bf327d5b25e527390018f081724d8b46b06f",
-      "capturedAt": "2026-09-19T09:55:24.058Z",
+      "sha256": "ee041fe43ba9056973aad659f82beeca653ad7fa3c54bfddffa78451ab2a86df",
+      "capturedAt": "2026-09-19T10:45:58.128Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -825,7 +825,7 @@
       "route": "/app/profile?lang=en",
       "path": "docs/manuals/screenshots/current/worker/en/profile.png",
       "sha256": "57009f8b4e218e4c25c2780ecde6597c63e3159e4e7f6fde353cd5c2f645e872",
-      "capturedAt": "2026-09-19T09:55:25.063Z",
+      "capturedAt": "2026-09-19T10:45:59.166Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -839,7 +839,7 @@
       "route": "/app/profile?lang=en",
       "path": "docs/manuals/screenshots/current/worker/en/availability-month.png",
       "sha256": "a2ea68c07f5ec2eacd6167596170a53f4de3d872b51f886395762f4bc9a45438",
-      "capturedAt": "2026-09-19T09:55:26.108Z",
+      "capturedAt": "2026-09-19T10:46:00.243Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -853,7 +853,7 @@
       "route": "/app/profile?lang=en",
       "path": "docs/manuals/screenshots/current/worker/en/availability-editor.png",
       "sha256": "e96549b433a2706a1ff05cf68d66a71e67f89d352651b63eab44453b7989a99a",
-      "capturedAt": "2026-09-19T09:55:26.327Z",
+      "capturedAt": "2026-09-19T10:46:00.453Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -867,7 +867,7 @@
       "route": "/app/projects?lang=en",
       "path": "docs/manuals/screenshots/current/worker/en/projects-month.png",
       "sha256": "04081f6b84604b80016b30d6af49e8cd362d24f6b93418bdc451277e27403174",
-      "capturedAt": "2026-09-19T09:55:27.458Z",
+      "capturedAt": "2026-09-19T10:46:01.653Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -881,7 +881,7 @@
       "route": "/app?lang=en",
       "path": "docs/manuals/screenshots/current/worker/en/home-phone.png",
       "sha256": "782cb495b992754cd07edcd9345d0c97c3b66fad1f4ac2896bbaa37d83b7b200",
-      "capturedAt": "2026-09-19T09:55:28.385Z",
+      "capturedAt": "2026-09-19T10:46:02.643Z",
       "viewport": {
         "width": 390,
         "height": 844
@@ -895,7 +895,7 @@
       "route": "/app?lang=pt",
       "path": "docs/manuals/screenshots/current/worker/pt/home.png",
       "sha256": "4292031a585d146327911b47f06be609af2d78a5c280a85f370c7fb71f99deb2",
-      "capturedAt": "2026-09-19T09:55:31.700Z",
+      "capturedAt": "2026-09-19T10:46:05.812Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -908,8 +908,8 @@
       "role": "worker",
       "route": "/app/help?lang=pt",
       "path": "docs/manuals/screenshots/current/worker/pt/help.png",
-      "sha256": "ba35d8216166e102a8206983131a6a28c12c6880a9c69232273f87458795efa3",
-      "capturedAt": "2026-09-19T09:55:32.536Z",
+      "sha256": "4a78eb2bd1c06b49ab5a765682787ddfdd55a37ac9a873a473cd6dfe0599c89a",
+      "capturedAt": "2026-09-19T10:46:06.659Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -923,7 +923,7 @@
       "route": "/app/profile?lang=pt",
       "path": "docs/manuals/screenshots/current/worker/pt/profile.png",
       "sha256": "badf486674b58a98c5a3209dfcd79a9a284f723990e126daaf97419112181278",
-      "capturedAt": "2026-09-19T09:55:33.536Z",
+      "capturedAt": "2026-09-19T10:46:07.699Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -937,7 +937,7 @@
       "route": "/app/profile?lang=pt",
       "path": "docs/manuals/screenshots/current/worker/pt/availability-month.png",
       "sha256": "f0a83d8df66226bb12a442b02e52206ca5f1027033f767a5e6ccfa53ba3161dd",
-      "capturedAt": "2026-09-19T09:55:34.584Z",
+      "capturedAt": "2026-09-19T10:46:08.743Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -951,7 +951,7 @@
       "route": "/app/profile?lang=pt",
       "path": "docs/manuals/screenshots/current/worker/pt/availability-editor.png",
       "sha256": "697b7af8f913405eb021afee495b09d7a438f13b6b92e29698998128dc78b8b4",
-      "capturedAt": "2026-09-19T09:55:34.824Z",
+      "capturedAt": "2026-09-19T10:46:08.974Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -964,8 +964,8 @@
       "role": "worker",
       "route": "/app/projects?lang=pt",
       "path": "docs/manuals/screenshots/current/worker/pt/projects-month.png",
-      "sha256": "e8506ad31412f05fe6e1c1458cfc65ff748c7469b65e32b420e6216b3d5d9eef",
-      "capturedAt": "2026-09-19T09:55:35.956Z",
+      "sha256": "45b4b2edd1fe29fc2d7f138a92efb35d7c61ab6400fd4fe0f572366569a19d7c",
+      "capturedAt": "2026-09-19T10:46:10.118Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -979,7 +979,7 @@
       "route": "/app?lang=pt",
       "path": "docs/manuals/screenshots/current/worker/pt/home-phone.png",
       "sha256": "6783e4f4c5d536fc4282850e246102d1d122f40418b7ea252cef25c6ffa0d6ae",
-      "capturedAt": "2026-09-19T09:55:36.909Z",
+      "capturedAt": "2026-09-19T10:46:11.100Z",
       "viewport": {
         "width": 390,
         "height": 844
@@ -993,7 +993,7 @@
       "route": "/app/supplier?lang=en",
       "path": "docs/manuals/screenshots/current/supplier-coordinator/en/home.png",
       "sha256": "1f9cd981be956c7751d6b805ff43cc1aec3e88396f23845ffe167606c781f644",
-      "capturedAt": "2026-09-19T09:55:40.168Z",
+      "capturedAt": "2026-09-19T10:46:14.149Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1006,8 +1006,8 @@
       "role": "supplier-coordinator",
       "route": "/app/help?lang=en",
       "path": "docs/manuals/screenshots/current/supplier-coordinator/en/help.png",
-      "sha256": "c392a8b0b86b5cf2f965f6172ee2649f2d9a39f2a8b4a49c52ed43fed1acecf4",
-      "capturedAt": "2026-09-19T09:55:41.027Z",
+      "sha256": "26b0a19a87e8119b9b8cf55b743787b8748aa80cb5ba1cd58617b87158316ee7",
+      "capturedAt": "2026-09-19T10:46:14.991Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1021,7 +1021,7 @@
       "route": "/app/profile?lang=en",
       "path": "docs/manuals/screenshots/current/supplier-coordinator/en/profile.png",
       "sha256": "ace10252e55f2d29c6f71ae0da495c78a9d5ed2d16b6aac65f158102dd2b564a",
-      "capturedAt": "2026-09-19T09:55:42.197Z",
+      "capturedAt": "2026-09-19T10:46:16.023Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1032,10 +1032,10 @@
       "locale": "en",
       "key": "supplier-team",
       "role": "supplier-coordinator",
-      "route": "/app/supplier?projectId=01a0b917-c2aa-733f-be84-99a693bf7d46&lang=en",
+      "route": "/app/supplier?projectId=01a0b946-0eab-728c-8b27-cbaafab5cf34&lang=en",
       "path": "docs/manuals/screenshots/current/supplier-coordinator/en/supplier-team.png",
       "sha256": "1f9cd981be956c7751d6b805ff43cc1aec3e88396f23845ffe167606c781f644",
-      "capturedAt": "2026-09-19T09:55:43.043Z",
+      "capturedAt": "2026-09-19T10:46:16.907Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1049,7 +1049,7 @@
       "route": "/app/supplier?lang=en",
       "path": "docs/manuals/screenshots/current/supplier-coordinator/en/home-phone.png",
       "sha256": "fbe1ad45a12b4fc9fe92378be1a8b0bcc0c8493634f53edae638bd7a1bf4c0e2",
-      "capturedAt": "2026-09-19T09:55:43.910Z",
+      "capturedAt": "2026-09-19T10:46:17.851Z",
       "viewport": {
         "width": 390,
         "height": 844
@@ -1063,7 +1063,7 @@
       "route": "/app/supplier?lang=pt",
       "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/home.png",
       "sha256": "a803816f34aa1e0137bc84e6eefbd38856c163f91e979f4d260dfb63662bc64e",
-      "capturedAt": "2026-09-19T09:55:46.973Z",
+      "capturedAt": "2026-09-19T10:46:20.858Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1076,8 +1076,8 @@
       "role": "supplier-coordinator",
       "route": "/app/help?lang=pt",
       "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/help.png",
-      "sha256": "122fffcd361a3ed1db3222c37a6940ccd93bea0f13bb9ae6226e36d60670463d",
-      "capturedAt": "2026-09-19T09:55:47.816Z",
+      "sha256": "755a7a38a6168a24ff83300d201bb665d3af4d590cca12b3d21a3c7da2c9a9da",
+      "capturedAt": "2026-09-19T10:46:21.716Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1091,7 +1091,7 @@
       "route": "/app/profile?lang=pt",
       "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/profile.png",
       "sha256": "719cb76d7b53d52357f352e546854b613c76154ab15f415dc3d5956708663125",
-      "capturedAt": "2026-09-19T09:55:48.917Z",
+      "capturedAt": "2026-09-19T10:46:22.855Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1102,10 +1102,10 @@
       "locale": "pt",
       "key": "supplier-team",
       "role": "supplier-coordinator",
-      "route": "/app/supplier?projectId=01a0b917-c2aa-733f-be84-99a693bf7d46&lang=pt",
+      "route": "/app/supplier?projectId=01a0b946-0eab-728c-8b27-cbaafab5cf34&lang=pt",
       "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/supplier-team.png",
       "sha256": "a803816f34aa1e0137bc84e6eefbd38856c163f91e979f4d260dfb63662bc64e",
-      "capturedAt": "2026-09-19T09:55:49.766Z",
+      "capturedAt": "2026-09-19T10:46:23.736Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1119,7 +1119,7 @@
       "route": "/app/supplier?lang=pt",
       "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/home-phone.png",
       "sha256": "b24ee67e025957b75435b174c4617df7c051e9d23899ff3029e607486479c698",
-      "capturedAt": "2026-09-19T09:55:50.642Z",
+      "capturedAt": "2026-09-19T10:46:24.615Z",
       "viewport": {
         "width": 390,
         "height": 844
@@ -1133,7 +1133,7 @@
       "route": "/app/time?lang=en",
       "path": "docs/manuals/screenshots/current/external-technician/en/home.png",
       "sha256": "b9c74e8585b0fcd669c605772faed5882e110eaf95e3f39958025f4a7dfe919a",
-      "capturedAt": "2026-09-19T09:55:54.081Z",
+      "capturedAt": "2026-09-19T10:46:28.098Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1146,8 +1146,8 @@
       "role": "external-technician",
       "route": "/app/help?lang=en",
       "path": "docs/manuals/screenshots/current/external-technician/en/help.png",
-      "sha256": "3fee3fbd2d7339818e7b8fdf6daa4843434b872deb5901b43fd153c16497d6bd",
-      "capturedAt": "2026-09-19T09:55:54.957Z",
+      "sha256": "b36380ab5c205f5070c2a05e51736836202c9fce6d72f8e49d25dd0aa7bf1f15",
+      "capturedAt": "2026-09-19T10:46:29.018Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1161,7 +1161,7 @@
       "route": "/app/profile?lang=en",
       "path": "docs/manuals/screenshots/current/external-technician/en/profile.png",
       "sha256": "364e23fc3338aa24f74e9edcc706d043bc43a6d3cb89c2bfe5fd6f3a78e49e50",
-      "capturedAt": "2026-09-19T09:55:55.976Z",
+      "capturedAt": "2026-09-19T10:46:30.088Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1175,7 +1175,7 @@
       "route": "/app/time?lang=en",
       "path": "docs/manuals/screenshots/current/external-technician/en/time.png",
       "sha256": "b9c74e8585b0fcd669c605772faed5882e110eaf95e3f39958025f4a7dfe919a",
-      "capturedAt": "2026-09-19T09:55:56.991Z",
+      "capturedAt": "2026-09-19T10:46:31.126Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1189,7 +1189,7 @@
       "route": "/app/time?lang=en",
       "path": "docs/manuals/screenshots/current/external-technician/en/home-phone.png",
       "sha256": "08260b8f30848870d0a2007a6ad6ebf5978fb98bae2235eae571e1fe1022d1fe",
-      "capturedAt": "2026-09-19T09:55:58.104Z",
+      "capturedAt": "2026-09-19T10:46:32.210Z",
       "viewport": {
         "width": 390,
         "height": 844
@@ -1203,7 +1203,7 @@
       "route": "/app/time?lang=pt",
       "path": "docs/manuals/screenshots/current/external-technician/pt/home.png",
       "sha256": "f9ce1e3eb6636cb533484a9b808ea025d680afe7171fea461f9e513bf121b40e",
-      "capturedAt": "2026-09-19T09:56:01.364Z",
+      "capturedAt": "2026-09-19T10:46:35.491Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1216,8 +1216,8 @@
       "role": "external-technician",
       "route": "/app/help?lang=pt",
       "path": "docs/manuals/screenshots/current/external-technician/pt/help.png",
-      "sha256": "584752de445aafafdcc5c98aefa8750a37538618ccd94d88c7c2b05f7ed488b1",
-      "capturedAt": "2026-09-19T09:56:02.215Z",
+      "sha256": "ee38cb7b9ce3071be2c346bd37f9a426fd2ba48db3f55e64e2985f9c3b7ddeba",
+      "capturedAt": "2026-09-19T10:46:36.315Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1231,7 +1231,7 @@
       "route": "/app/profile?lang=pt",
       "path": "docs/manuals/screenshots/current/external-technician/pt/profile.png",
       "sha256": "18c43cd6387d53bc167ed05c64b890d541d67e89210bb4485d383b80804b03e3",
-      "capturedAt": "2026-09-19T09:56:03.264Z",
+      "capturedAt": "2026-09-19T10:46:37.322Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1245,7 +1245,7 @@
       "route": "/app/time?lang=pt",
       "path": "docs/manuals/screenshots/current/external-technician/pt/time.png",
       "sha256": "f9ce1e3eb6636cb533484a9b808ea025d680afe7171fea461f9e513bf121b40e",
-      "capturedAt": "2026-09-19T09:56:04.347Z",
+      "capturedAt": "2026-09-19T10:46:38.380Z",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1259,7 +1259,7 @@
       "route": "/app/time?lang=pt",
       "path": "docs/manuals/screenshots/current/external-technician/pt/home-phone.png",
       "sha256": "a4328db64efd7bf2b122d0ba1967f3984ea472cb83c78e7cd01efb5ffe8a068c",
-      "capturedAt": "2026-09-19T09:56:05.389Z",
+      "capturedAt": "2026-09-19T10:46:39.453Z",
       "viewport": {
         "width": 390,
         "height": 844
@@ -1865,7 +1865,7 @@
       "status": "passed"
     },
     {
-      "name": "navigation:/j-aautomation/app/supplier?projectId=01a0b917-c2aa-733f-be84-99a693bf7d46&lang=en",
+      "name": "navigation:/j-aautomation/app/supplier?projectId=01a0b946-0eab-728c-8b27-cbaafab5cf34&lang=en",
       "status": "passed",
       "httpStatus": 200
     },
@@ -1910,7 +1910,7 @@
       "status": "passed"
     },
     {
-      "name": "navigation:/j-aautomation/app/supplier?projectId=01a0b917-c2aa-733f-be84-99a693bf7d46&lang=pt",
+      "name": "navigation:/j-aautomation/app/supplier?projectId=01a0b946-0eab-728c-8b27-cbaafab5cf34&lang=pt",
       "status": "passed",
       "httpStatus": 200
     },

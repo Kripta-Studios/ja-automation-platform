@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createHash } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { portal, signIn } from './auth.js';
@@ -10,23 +11,55 @@ import {
 } from './manual-persona-fixture.js';
 
 const guides = {
-  owner: 'owner-reference',
-  finance: 'finance-reference',
-  manager: 'project-manager-reference',
-  auditor: 'auditor-reference',
-  worker: 'worker-reference',
-  'supplier-coordinator': 'supplier-coordinator-reference',
-  'external-technician': 'external-technician-reference',
+  owner: 'administration-finance-reference',
+  finance: 'administration-finance-reference',
+  manager: 'work-projects-reference',
+  auditor: 'administration-finance-reference',
+  worker: 'work-projects-reference',
+  'supplier-coordinator': 'supplier-operations-reference',
+  'external-technician': 'supplier-operations-reference',
 } as const;
 type Persona = keyof typeof guides;
-const allGuides = Object.values(guides);
+const allGuides = [
+  'administration-finance-reference',
+  'work-projects-reference',
+  'supplier-operations-reference',
+] as const;
+const aliases: Record<(typeof allGuides)[number], readonly string[]> = {
+  'administration-finance-reference': ['owner-reference', 'finance-reference', 'auditor-reference'],
+  'work-projects-reference': ['worker-reference', 'project-manager-reference'],
+  'supplier-operations-reference': [
+    'supplier-coordinator-reference',
+    'external-technician-reference',
+  ],
+};
+const roleNames: Record<Persona, { en: string; pt: string }> = {
+  owner: { en: 'Owner administrator', pt: 'Administrador proprietário' },
+  finance: { en: 'Finance administrator', pt: 'Administrador financeiro' },
+  manager: { en: 'Project manager', pt: 'Gerente de projetos' },
+  auditor: { en: 'Read-only auditor', pt: 'Auditor somente leitura' },
+  worker: { en: 'Worker', pt: 'Colaborador' },
+  'supplier-coordinator': { en: 'Supplier coordinator', pt: 'Coordenador de fornecedores' },
+  'external-technician': { en: 'External technician', pt: 'Técnico externo' },
+};
+const readingCues: Record<Persona, { en: string; pt: string }> = {
+  owner: { en: 'administration and access', pt: 'administração e acesso' },
+  finance: { en: 'commercial configuration', pt: 'configuração comercial' },
+  manager: { en: 'assigned projects', pt: 'projetos atribuídos' },
+  auditor: { en: 'read-only evidence', pt: 'evidências somente leitura' },
+  worker: { en: 'assigned work', pt: 'trabalho atribuído' },
+  'supplier-coordinator': { en: 'authorized installations', pt: 'instalações autorizadas' },
+  'external-technician': { en: 'authorized assignments', pt: 'tarefas autorizadas' },
+};
+const digest = (body: Buffer): string => createHash('sha256').update(body).digest('hex');
 
-test('seven role guides have localized PDF assets and enforce role-scoped downloads', async ({
+test('three shared guides, legacy links and role reading paths enforce the persisted persona', async ({
   browser,
 }, info) => {
   test.skip(info.project.name !== 'desktop');
   test.setTimeout(240_000);
   const pointer = readE2EFixturePointer();
+  seedSupplierPersonas(pointer.databasePath);
   const personas: Array<{ persona: Persona; account: ManualPersonaAccount }> = [
     { persona: 'owner', account: 'owner' },
     { persona: 'finance', account: 'finance' },
@@ -38,8 +71,8 @@ test('seven role guides have localized PDF assets and enforce role-scoped downlo
   ];
   const checks: Array<{ persona: Persona; locale: 'en' | 'pt'; guide: string; status: number }> =
     [];
+  const groupDigests = new Map<string, string>();
   for (const { persona, account } of personas) {
-    if (persona === 'supplier-coordinator') seedSupplierPersonas(pointer.databasePath);
     const context = await browser.newContext();
     const page = await context.newPage();
     try {
@@ -47,26 +80,63 @@ test('seven role guides have localized PDF assets and enforce role-scoped downlo
       for (const locale of ['en', 'pt'] as const) {
         const help = await page.goto(portal(`/help?lang=${locale}`));
         expect(help?.status()).toBe(200);
-        const allowed = persona === 'owner' ? allGuides : [guides[persona]];
+        const allowed: readonly (typeof allGuides)[number][] =
+          persona === 'owner' ? allGuides : [guides[persona]];
+        const cards = page.locator('.manual-card');
+        await expect(cards).toHaveCount(allowed.length + Number(persona === 'worker'));
+        if (persona === 'owner')
+          await expect(cards.first()).toHaveAttribute(
+            'data-manual-id',
+            'administration-finance-reference',
+          );
+        if (persona === 'worker')
+          await expect(cards.first()).toHaveAttribute('data-manual-id', 'employee-field-guide');
         for (const guide of allowed) {
-          const link = page.locator(`a[href*="/help/${guide}/download"]`);
+          const card = page.locator(`.manual-card[data-manual-id="${guide}"]`);
+          await expect(card).toBeVisible();
+          if (guide === guides[persona]) {
+            await expect(card.locator('.role-badges')).toContainText(roleNames[persona][locale]);
+            await expect(card.locator('.role-guidance')).toContainText(
+              readingCues[persona][locale],
+            );
+          }
+          await expect(card.locator('.role-guidance')).toContainText(
+            locale === 'en' ? 'shared chapters' : 'capítulos compartilhados',
+          );
+          const link = card.locator(`a[href*="/help/${guide}/download"]`);
           await expect(link, `${persona} ${locale} ${guide} visible in Help`).toBeVisible();
           const response = await page.request.get(portal(`/help/${guide}/download?lang=${locale}`));
           expect(response.status(), `${persona} ${locale} ${guide}`).toBe(200);
           expect(response.headers()['content-type']).toContain('application/pdf');
           expect(response.headers()['content-disposition']).toMatch(/attachment.*\.pdf/i);
           expect(response.headers()['x-help-manual-language']).toBe(locale);
-          expect((await response.body()).subarray(0, 5).toString('ascii')).toBe('%PDF-');
+          const body = await response.body();
+          expect(body.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+          const hash = digest(body);
+          const key = `${guide}:${locale}`;
+          if (groupDigests.has(key)) expect(hash).toBe(groupDigests.get(key));
+          else groupDigests.set(key, hash);
           checks.push({ persona, locale, guide, status: 200 });
+          for (const alias of aliases[guide]) {
+            await expect(page.locator(`a[href*="/help/${alias}/download"]`)).toHaveCount(0);
+            const legacy = await page.request.get(portal(`/help/${alias}/download?lang=${locale}`));
+            expect(legacy.status(), `${persona} ${locale} ${alias}`).toBe(200);
+            expect(legacy.headers()['x-help-manual-path']).toContain(`/help/${guide}/download`);
+            expect(digest(await legacy.body())).toBe(hash);
+            checks.push({ persona, locale, guide: alias, status: 200 });
+          }
         }
-        if (persona !== 'owner') {
-          const foreign = persona === 'worker' ? guides.finance : guides.owner;
-          await expect(page.locator(`a[href*="/help/${foreign}/download"]`)).toHaveCount(0);
-          const response = await page.request.get(
-            portal(`/help/${foreign}/download?lang=${locale}`),
-          );
-          expect(response.status(), `${persona} must not download ${foreign}`).toBe(404);
-          checks.push({ persona, locale, guide: foreign, status: 404 });
+        for (const foreign of allGuides.filter((guide) => !allowed.includes(guide))) {
+          for (const id of [foreign, aliases[foreign][0]]) {
+            await expect(page.locator(`a[href*="/help/${id}/download"]`)).toHaveCount(0);
+            const response = await page.request.get(portal(`/help/${id}/download?lang=${locale}`));
+            expect(response.status(), `${persona} must not download ${id}`).toBe(404);
+            checks.push({ persona, locale, guide: id, status: 404 });
+          }
+        }
+        if (persona !== 'worker') {
+          const quick = await page.request.get(portal('/help/employee-field-guide/download'));
+          expect(quick.status()).toBe(404);
         }
       }
     } finally {
@@ -75,27 +145,30 @@ test('seven role guides have localized PDF assets and enforce role-scoped downlo
   }
   const unauthenticated = await browser.newContext();
   try {
-    const response = await unauthenticated.request.get(
-      portal(`/help/${guides.owner}/download?lang=pt`),
-      { maxRedirects: 0 },
-    );
-    expect(response.status()).toBe(401);
+    for (const guide of [...allGuides, 'owner-reference']) {
+      const response = await unauthenticated.request.get(
+        portal(`/help/${guide}/download?lang=pt`),
+        { maxRedirects: 0 },
+      );
+      expect(response.status()).toBe(401);
+    }
   } finally {
     await unauthenticated.close();
   }
-  await info.attach('role-guide-downloads.json', {
-    body: JSON.stringify({ checks }, null, 2),
+  await info.attach('grouped-guide-downloads.json', {
+    body: JSON.stringify({ checks, groupDigests: Object.fromEntries(groupDigests) }, null, 2),
     contentType: 'application/json',
   });
-  expect(checks.filter((check) => check.status === 200)).toHaveLength(26);
-  expect(checks.filter((check) => check.status === 404)).toHaveLength(12);
+  expect(groupDigests.size).toBe(6);
+  expect(checks.filter((check) => check.status === 200)).toHaveLength(60);
+  expect(checks.filter((check) => check.status === 404)).toHaveLength(48);
 });
 
 test('Help retries a transient PDF outage and offers an actionable PT recovery after a persistent outage', async ({
   page,
 }, info) => {
   await signIn(page, 'worker');
-  const path = '/help/worker-reference/download';
+  const path = '/help/work-projects-reference/download';
   const requests: string[] = [];
   page.on('request', (request) => {
     if (request.url().includes(path)) requests.push(request.method());
@@ -139,9 +212,9 @@ test('Help retries a transient PDF outage and offers an actionable PT recovery a
   await expect(retry).toBeVisible();
   await retry.scrollIntoViewIfNeeded();
   const screenshotPath = resolve(
-    `docs/evidence/manuals-i18n-20260919/help-recovery-${info.project.name}-pt.png`,
+    `docs/evidence/manuals-consolidation-20260919/help-recovery-${info.project.name}-pt.png`,
   );
-  mkdirSync(resolve('docs/evidence/manuals-i18n-20260919'), { recursive: true });
+  mkdirSync(resolve('docs/evidence/manuals-consolidation-20260919'), { recursive: true });
   await page.screenshot({ path: screenshotPath, fullPage: false });
   for (const target of [page.locator(`a[href*="${path}"]`), retry]) {
     const box = await target.boundingBox();
@@ -166,7 +239,7 @@ test('Help explains an expired session and offers sign-in without retrying a 401
 }, info) => {
   test.skip(info.project.name !== 'desktop');
   await signIn(page, 'worker');
-  const path = '/help/worker-reference/download';
+  const path = '/help/work-projects-reference/download';
   const requests: string[] = [];
   page.on('request', (request) => {
     if (request.url().includes(path)) requests.push(request.method());
@@ -180,7 +253,7 @@ test('Help explains an expired session and offers sign-in without retrying a 401
   expect(requests).toEqual(['GET']);
 });
 
-test('Owner Help keeps all seven role guides readable and tappable at 390px', async ({
+test('Owner Help keeps all three shared guides readable and tappable at 390px', async ({
   page,
 }, info) => {
   test.skip(info.project.name !== 'phone-390');
@@ -188,7 +261,11 @@ test('Owner Help keeps all seven role guides readable and tappable at 390px', as
   await page.goto(portal('/help?lang=pt'));
   await expect(page.getByRole('heading', { name: 'Ajuda e guias de campo' })).toBeVisible();
   const guides = page.locator('.manual-card[data-manual-id$="-reference"]');
-  await expect(guides).toHaveCount(7);
+  await expect(guides).toHaveCount(3);
+  await expect(guides.first()).toHaveAttribute(
+    'data-manual-id',
+    'administration-finance-reference',
+  );
   for (const id of allGuides) {
     const card = page.locator(`.manual-card[data-manual-id="${id}"]`);
     await expect(card.locator('h2')).toBeVisible();
@@ -202,7 +279,9 @@ test('Owner Help keeps all seven role guides readable and tappable at 390px', as
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
   await guides.first().scrollIntoViewIfNeeded();
-  const screenshotPath = resolve('docs/evidence/manuals-i18n-20260919/help-owner-390-pt.png');
-  mkdirSync(resolve('docs/evidence/manuals-i18n-20260919'), { recursive: true });
+  const screenshotPath = resolve(
+    'docs/evidence/manuals-consolidation-20260919/help-owner-390-pt.png',
+  );
+  mkdirSync(resolve('docs/evidence/manuals-consolidation-20260919'), { recursive: true });
   await page.screenshot({ path: screenshotPath, fullPage: false });
 });

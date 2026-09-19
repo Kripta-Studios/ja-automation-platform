@@ -11,7 +11,12 @@ test('worker can find localized Help and download the quick-start PDF', async ({
 
   await page.goto(portal('/help?lang=es'), { waitUntil: 'networkidle' });
   await expect(page.getByRole('heading', { name: 'Ayuda y guías de campo' })).toBeVisible();
-  await expect(page.getByText('revisión 2026-09-08')).toHaveCount(1);
+  await expect(page.locator('.manual-card')).toHaveCount(2);
+  const work = page.locator('.manual-card[data-manual-id="work-projects-reference"]');
+  await expect(work.locator('h2')).toHaveText('Guía de trabajo y proyectos');
+  await expect(work.locator('.role-badges')).toContainText('Trabajador');
+  await expect(work.locator('.role-guidance')).toContainText('trabajo asignado');
+  await expect(page.getByText('Revisión 2026-09-19')).toHaveCount(2);
 
   const response = await page.request.get(portal('/help/employee-field-guide/download?lang=es'));
   expect(response.status()).toBe(200);
@@ -20,18 +25,32 @@ test('worker can find localized Help and download the quick-start PDF', async ({
   expect((await response.body()).subarray(0, 5).toString('ascii')).toBe('%PDF-');
 });
 
-test('worker cannot download the Owner reference by changing the manual id', async ({ page }) => {
+test('worker cannot download the administration group by changing the manual id', async ({
+  page,
+}) => {
   await signIn(page, 'worker');
-  const response = await page.request.get(portal('/help/owner-reference/download'));
-  expect(response.status()).toBe(404);
+  for (const id of ['administration-finance-reference', 'owner-reference']) {
+    const response = await page.request.get(portal(`/help/${id}/download`));
+    expect(response.status()).toBe(404);
+  }
 });
 
-test('Owner can download the detailed Owner and Finance reference', async ({ page }) => {
+test('Owner sees three grouped references and can download administration, finance and audit', async ({
+  page,
+}) => {
   await signIn(page, 'owner');
   await page.goto(portal('/help'), { waitUntil: 'networkidle' });
-  await expect(page.getByText('Owner and Finance user guide')).toBeVisible();
-  const response = await page.request.get(portal('/help/owner-reference/download'));
+  const cards = page.locator('.manual-card');
+  await expect(cards).toHaveCount(3);
+  await expect(cards.first()).toHaveAttribute('data-manual-id', 'administration-finance-reference');
+  await expect(cards.first().locator('h2')).toHaveText('Administration, finance and audit guide');
+  await expect(cards.first().locator('.role-badges')).toContainText('Read-only auditor');
+  const response = await page.request.get(
+    portal('/help/administration-finance-reference/download'),
+  );
   expect(response.status()).toBe(200);
-  expect(response.headers()['content-disposition']).toContain('owner-reference-EN-');
+  expect(response.headers()['content-disposition']).toContain(
+    'administration-finance-reference-EN-',
+  );
   expect((await response.body()).subarray(0, 5).toString('ascii')).toBe('%PDF-');
 });

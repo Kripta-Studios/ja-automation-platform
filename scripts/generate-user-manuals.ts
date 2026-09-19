@@ -1,4 +1,4 @@
-/** Generate all seven role references in English or Brazilian Portuguese. */
+/** Generate the three shared references in English or Brazilian Portuguese. */
 import { generateRoleManuals } from './manual-pdf.ts';
 
 const locale = process.argv.includes('--locale=pt-BR') ? 'pt' : 'en';

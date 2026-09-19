@@ -1,0 +1,660 @@
+{
+  "checks": [
+    {
+      "persona": "owner",
+      "locale": "en",
+      "guide": "administration-finance-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "guide": "owner-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "guide": "finance-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "guide": "auditor-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "guide": "work-projects-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "guide": "worker-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "guide": "project-manager-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "guide": "supplier-operations-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "guide": "supplier-coordinator-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "guide": "external-technician-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "guide": "administration-finance-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "guide": "owner-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "guide": "finance-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "guide": "auditor-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "guide": "work-projects-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "guide": "worker-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "guide": "project-manager-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "guide": "supplier-operations-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "guide": "supplier-coordinator-reference",
+      "status": 200
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "guide": "external-technician-reference",
+      "status": 200
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "guide": "administration-finance-reference",
+      "status": 200
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "guide": "owner-reference",
+      "status": 200
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "guide": "finance-reference",
+      "status": 200
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "guide": "auditor-reference",
+      "status": 200
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "guide": "work-projects-reference",
+      "status": 404
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "guide": "worker-reference",
+      "status": 404
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "guide": "supplier-operations-reference",
+      "status": 404
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "guide": "supplier-coordinator-reference",
+      "status": 404
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "guide": "administration-finance-reference",
+      "status": 200
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "guide": "owner-reference",
+      "status": 200
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "guide": "finance-reference",
+      "status": 200
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "guide": "auditor-reference",
+      "status": 200
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "guide": "work-projects-reference",
+      "status": 404
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "guide": "worker-reference",
+      "status": 404
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "guide": "supplier-operations-reference",
+      "status": 404
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "guide": "supplier-coordinator-reference",
+      "status": 404
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "guide": "work-projects-reference",
+      "status": 200
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "guide": "worker-reference",
+      "status": 200
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "guide": "project-manager-reference",
+      "status": 200
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "guide": "administration-finance-reference",
+      "status": 404
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "guide": "owner-reference",
+      "status": 404
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "guide": "supplier-operations-reference",
+      "status": 404
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "guide": "supplier-coordinator-reference",
+      "status": 404
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "guide": "work-projects-reference",
+      "status": 200
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "guide": "worker-reference",
+      "status": 200
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "guide": "project-manager-reference",
+      "status": 200
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "guide": "administration-finance-reference",
+      "status": 404
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "guide": "owner-reference",
+      "status": 404
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "guide": "supplier-operations-reference",
+      "status": 404
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "guide": "supplier-coordinator-reference",
+      "status": 404
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "guide": "administration-finance-reference",
+      "status": 200
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "guide": "owner-reference",
+      "status": 200
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "guide": "finance-reference",
+      "status": 200
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "guide": "auditor-reference",
+      "status": 200
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "guide": "work-projects-reference",
+      "status": 404
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "guide": "worker-reference",
+      "status": 404
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "guide": "supplier-operations-reference",
+      "status": 404
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "guide": "supplier-coordinator-reference",
+      "status": 404
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "guide": "administration-finance-reference",
+      "status": 200
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "guide": "owner-reference",
+      "status": 200
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "guide": "finance-reference",
+      "status": 200
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "guide": "auditor-reference",
+      "status": 200
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "guide": "work-projects-reference",
+      "status": 404
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "guide": "worker-reference",
+      "status": 404
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "guide": "supplier-operations-reference",
+      "status": 404
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "guide": "supplier-coordinator-reference",
+      "status": 404
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "guide": "work-projects-reference",
+      "status": 200
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "guide": "worker-reference",
+      "status": 200
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "guide": "project-manager-reference",
+      "status": 200
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "guide": "administration-finance-reference",
+      "status": 404
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "guide": "owner-reference",
+      "status": 404
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "guide": "supplier-operations-reference",
+      "status": 404
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "guide": "supplier-coordinator-reference",
+      "status": 404
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "guide": "work-projects-reference",
+      "status": 200
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "guide": "worker-reference",
+      "status": 200
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "guide": "project-manager-reference",
+      "status": 200
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "guide": "administration-finance-reference",
+      "status": 404
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "guide": "owner-reference",
+      "status": 404
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "guide": "supplier-operations-reference",
+      "status": 404
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "guide": "supplier-coordinator-reference",
+      "status": 404
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "guide": "supplier-operations-reference",
+      "status": 200
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "guide": "supplier-coordinator-reference",
+      "status": 200
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "guide": "external-technician-reference",
+      "status": 200
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "guide": "administration-finance-reference",
+      "status": 404
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "guide": "owner-reference",
+      "status": 404
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "guide": "work-projects-reference",
+      "status": 404
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "guide": "worker-reference",
+      "status": 404
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "guide": "supplier-operations-reference",
+      "status": 200
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "guide": "supplier-coordinator-reference",
+      "status": 200
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "guide": "external-technician-reference",
+      "status": 200
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "guide": "administration-finance-reference",
+      "status": 404
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "guide": "owner-reference",
+      "status": 404
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "guide": "work-projects-reference",
+      "status": 404
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "guide": "worker-reference",
+      "status": 404
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "guide": "supplier-operations-reference",
+      "status": 200
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "guide": "supplier-coordinator-reference",
+      "status": 200
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "guide": "external-technician-reference",
+      "status": 200
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "guide": "administration-finance-reference",
+      "status": 404
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "guide": "owner-reference",
+      "status": 404
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "guide": "work-projects-reference",
+      "status": 404
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "guide": "worker-reference",
+      "status": 404
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "guide": "supplier-operations-reference",
+      "status": 200
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "guide": "supplier-coordinator-reference",
+      "status": 200
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "guide": "external-technician-reference",
+      "status": 200
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "guide": "administration-finance-reference",
+      "status": 404
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "guide": "owner-reference",
+      "status": 404
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "guide": "work-projects-reference",
+      "status": 404
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "guide": "worker-reference",
+      "status": 404
+    }
+  ],
+  "groupDigests": {
+    "administration-finance-reference:en": "dc96b206f811c29205aeedaf56cad2d7fb41bf28e8473fc5d286038feefdea7b",
+    "work-projects-reference:en": "49c2de93b816828fa0cb4dbd5b50584e07a00cd1e3cd84dfccca135236e63bbd",
+    "supplier-operations-reference:en": "4f41df59ea785773cde7d857e43bbe719dd5634beafa904d6e75611d6c5c50a6",
+    "administration-finance-reference:pt": "c23c98705e781d34d03200432f84126a62bdcaf737a74a0afec0f58bea81caa5",
+    "work-projects-reference:pt": "052fb2567a8fd971149e1571d232428a916063bbb093a746dcdfaafb2ee227d0",
+    "supplier-operations-reference:pt": "52c6f3865022266af0471a6f22acd9b7bfc3f0ff1edc10e7b807a41ff1af4097"
+  }
+}

@@ -29,12 +29,55 @@ type Manifest = Readonly<{
   checks: readonly Readonly<{ name: string; status: string }>[];
 }>;
 type Source = ReturnType<typeof readManualSourceIdentity>;
+type BuiltPdf = {
+  file: string;
+  source: string;
+  sourceSha256: string;
+  sha256: string;
+  bytes: number;
+};
+type BuildMetadata = {
+  sourceDigest?: string;
+  captureManifestSha256?: string;
+  outputs?: BuiltPdf[];
+};
 const root = process.cwd();
 const manualsDir = resolve(root, 'docs/manuals');
 const screenshotsRoot = resolve(manualsDir, 'screenshots/current');
 const defaultManifest = resolve(manualsDir, 'validation/current-capture.json');
 const sha256 = /^[a-f0-9]{64}$/u;
 const pngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+
+function retainCurrentOutputs(
+  previous: BuildMetadata,
+  allowedNames: ReadonlySet<string>,
+  source: Source,
+  manifestPath: string,
+): BuiltPdf[] {
+  const digest = (path: string) => createHash('sha256').update(readFileSync(path)).digest('hex');
+  if (
+    previous.sourceDigest !== source.sourceDigest ||
+    previous.captureManifestSha256 !== digest(manifestPath)
+  )
+    return [];
+  return (previous.outputs ?? []).filter((output) => {
+    if (
+      !allowedNames.has(output.file) ||
+      !output.source ||
+      output.source.includes('/') ||
+      output.source.includes('\\')
+    )
+      return false;
+    const pdf = resolve(manualsDir, output.file);
+    const markdownPath = resolve(manualsDir, output.source);
+    return (
+      existsSync(pdf) &&
+      existsSync(markdownPath) &&
+      digest(pdf) === output.sha256 &&
+      digest(markdownPath) === output.sourceSha256
+    );
+  });
+}
 
 export function loadFreshManualCapture(): {
   manifest: Manifest;
@@ -114,19 +157,60 @@ function escape(value: string): string {
 function inline(value: string): string {
   return escape(value)
     .replace(/\*\*([^*]+)\*\*/gu, '<strong>$1</strong>')
-    .replace(/`([^`]+)`/gu, '<code>$1</code>');
+    .replace(/`([^`]+)`/gu, '<code>$1</code>')
+    .replace(/\[([^\]]+)\]\((#[a-z0-9][a-z0-9-]*)\)/gu, '<a href="$2">$1</a>');
 }
-function markdown(value: string): string {
+function anchorFor(heading: string): string {
+  return heading
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/gu, '')
+    .replace(/[^a-z0-9]+/gu, '-')
+    .replace(/^-|-$/gu, '');
+}
+function markdown(value: string, renderCapture?: (persona: string, key: string) => string): string {
   const output: string[] = [];
   let list: 'ul' | 'ol' | null = null;
   const close = () => {
     if (list) output.push(`</${list}>`);
     list = null;
   };
-  for (const raw of value.split(/\r?\n/gu)) {
+  const lines = value.split(/\r?\n/gu);
+  for (let index = 0; index < lines.length; index++) {
+    const raw = lines[index];
     const line = raw.trim();
     if (!line) {
       close();
+      continue;
+    }
+    if (line.startsWith('<!-- screenshot:')) {
+      close();
+      const match = /^<!-- screenshot:([a-z-]+):([a-z0-9-]+) -->$/u.exec(line);
+      if (!match || !renderCapture) throw new Error(`Invalid screenshot directive: ${line}`);
+      output.push(renderCapture(match[1], match[2]));
+      continue;
+    }
+    if (line.startsWith('|') && /^\|\s*:?-{3,}/u.test(lines[index + 1]?.trim() ?? '')) {
+      close();
+      const cells = (row: string) =>
+        row
+          .trim()
+          .replace(/^\||\|$/gu, '')
+          .split('|')
+          .map((cell) => cell.trim());
+      const headers = cells(line);
+      output.push(
+        `<table><thead><tr>${headers.map((cell) => `<th>${inline(cell)}</th>`).join('')}</tr></thead><tbody>`,
+      );
+      index += 2;
+      while (index < lines.length && lines[index].trim().startsWith('|')) {
+        const row = cells(lines[index]);
+        if (row.length !== headers.length) throw new Error('Manual table has inconsistent columns');
+        output.push(`<tr>${row.map((cell) => `<td>${inline(cell)}</td>`).join('')}</tr>`);
+        index++;
+      }
+      index--;
+      output.push('</tbody></table>');
       continue;
     }
     if (line.startsWith('> ')) {
@@ -138,12 +222,7 @@ function markdown(value: string): string {
     if (heading) {
       close();
       if (heading[1].length === 1) continue; // Title belongs to the cover.
-      const anchor = heading[2]
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/gu, '')
-        .replace(/[^a-z0-9]+/gu, '-')
-        .replace(/^-|-$/gu, '');
+      const anchor = anchorFor(heading[2]);
       output.push(
         `<h${heading[1].length} id="${anchor}">${inline(heading[2])}</h${heading[1].length}>`,
       );
@@ -234,6 +313,42 @@ const captureCaptions: Record<string, Readonly<{ en: string; pt: string; es: str
     es: 'Auditoría: sigue eventos inmutables en una vista de solo lectura',
   },
 };
+const personaLabels: Record<ManualPersona, Readonly<{ en: string; pt: string; es: string }>> = {
+  worker: { en: 'Worker', pt: 'Colaborador', es: 'Trabajador' },
+  manager: { en: 'Project manager', pt: 'Gerente de projetos', es: 'Gestor de proyectos' },
+  finance: {
+    en: 'Finance administrator',
+    pt: 'Administração financeira',
+    es: 'Administración financiera',
+  },
+  owner: {
+    en: 'Owner administrator',
+    pt: 'Administrador proprietário',
+    es: 'Administrador propietario',
+  },
+  auditor: {
+    en: 'Read-only auditor',
+    pt: 'Auditor somente leitura',
+    es: 'Auditor de solo lectura',
+  },
+  'supplier-coordinator': {
+    en: 'Supplier coordinator',
+    pt: 'Coordenador de fornecedor',
+    es: 'Coordinador de proveedor',
+  },
+  'external-technician': {
+    en: 'External technician',
+    pt: 'Técnico externo',
+    es: 'Técnico externo',
+  },
+};
+function figureHtml(shot: Capture, locale: 'en' | 'pt' | 'es'): string {
+  const png = readFileSync(resolve(root, shot.path)).toString('base64');
+  const label = captureCaptions[shot.key]?.[locale];
+  if (!label) throw new Error(`Screenshot caption missing: ${shot.key}/${locale}`);
+  const persona = personaLabels[shot.persona][locale];
+  return `<figure class="${shot.viewport.width < 600 ? 'phone' : 'desktop'}"><img alt="${escape(`${persona}: ${label}`)}" src="data:image/png;base64,${png}"><figcaption><strong>${escape(persona)} · ${escape(label)}</strong><br><code>${escape(shot.route)}</code> · ${shot.viewport.width} × ${shot.viewport.height}</figcaption></figure>`;
+}
 function screenshotHtml(captures: readonly Capture[], locale: 'en' | 'pt' | 'es'): string {
   const heading =
     locale === 'pt'
@@ -248,40 +363,66 @@ function screenshotHtml(captures: readonly Capture[], locale: 'en' | 'pt' | 'es'
         ? 'Capturadas con el perfil indicado en una instancia aislada; las pantallas de ejemplo están en inglés y no muestran datos de clientes.'
         : 'Captured with this role signed into an isolated application; no customer data is shown.';
   return `<section class="screens"><h2>${heading}</h2><p>${context}</p>${captures
-    .map((shot) => {
-      const png = readFileSync(resolve(root, shot.path)).toString('base64');
-      const label = captureCaptions[shot.key]?.[locale] ?? shot.key.replace(/[-_]/gu, ' ');
-      return `<figure class="${shot.viewport.width < 600 ? 'phone' : 'desktop'}"><img alt="${escape(label)}" src="data:image/png;base64,${png}"><figcaption><strong>${escape(label)}</strong><br><code>${escape(shot.route)}</code> · ${shot.viewport.width} × ${shot.viewport.height}</figcaption></figure>`;
-    })
+    .map((shot) => figureHtml(shot, locale))
     .join('')}</section>`;
 }
 
 type PdfInput = Readonly<{
   id?: string;
-  persona: ManualPersona;
+  personas: readonly ManualPersona[];
+  grouped?: boolean;
   locale: 'en' | 'pt' | 'es';
   sourceName: string;
   outputName: string;
   title: string;
 }>;
-function html(input: PdfInput, source: Source, manifest: Manifest): string {
+function html(
+  input: PdfInput,
+  source: Source,
+  manifest: Manifest,
+): { html: string; captures: readonly Capture[] } {
   const sourcePath = resolve(manualsDir, input.sourceName);
   if (!existsSync(sourcePath)) throw new Error(`Manual Markdown missing: ${input.sourceName}`);
-  const shots = manifest.screenshots.filter(
+  const availableShots = manifest.screenshots.filter(
     (shot) =>
-      shot.persona === input.persona &&
+      input.personas.includes(shot.persona) &&
       shot.locale === (input.locale === 'es' ? 'en' : input.locale),
   );
   const sourceText = readFileSync(sourcePath, 'utf8');
-  const contents = markdown(sourceText);
-  const toc = [...sourceText.matchAll(/^##\s+(.+)$/gmu)]
+  const headings = [...sourceText.matchAll(/^#{2,3}\s+(.+)$/gmu)];
+  const anchors = new Set(headings.map((match) => anchorFor(match[1])));
+  if (anchors.size !== headings.length)
+    throw new Error(`Duplicate manual chapter: ${input.sourceName}`);
+  for (const match of sourceText.matchAll(/\[[^\]]+\]\((#[^)]+)\)/gu))
+    if (!anchors.has(match[1].slice(1))) throw new Error(`Broken manual chapter link: ${match[1]}`);
+  const sections = [...sourceText.matchAll(/^##\s+(.+)$/gmu)];
+  const startIndex = sections[0]?.index;
+  if (input.grouped && (startIndex === undefined || sections.length < 2))
+    throw new Error(`Grouped manual needs a role introduction and chapters: ${input.sourceName}`);
+  const endIndex = sections[1]?.index ?? sourceText.length;
+  const intro = input.grouped ? markdown(sourceText.slice(startIndex!, endIndex)) : '';
+  const body = input.grouped
+    ? sourceText.slice(0, startIndex!) + sourceText.slice(endIndex)
+    : sourceText;
+  const used: Capture[] = [];
+  const contents = markdown(body, (persona, key) => {
+    const matches = availableShots.filter((shot) => shot.persona === persona && shot.key === key);
+    if (matches.length !== 1)
+      throw new Error(`Manual screenshot missing or ambiguous: ${persona}:${key}/${input.locale}`);
+    const shot = matches[0];
+    if (used.some((previous) => previous.path === shot.path))
+      throw new Error(`Repeated screenshot in grouped manual: ${shot.path}`);
+    used.push(shot);
+    return figureHtml(shot, input.locale);
+  });
+  if (input.grouped)
+    for (const persona of input.personas)
+      if (!used.some((shot) => shot.persona === persona))
+        throw new Error(`Grouped manual is missing a screenshot for ${persona}`);
+  const shots = input.grouped ? used : availableShots;
+  const toc = sections
     .map((match) => {
-      const anchor = match[1]
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/gu, '')
-        .replace(/[^a-z0-9]+/gu, '-')
-        .replace(/^-|-$/gu, '');
+      const anchor = anchorFor(match[1]);
       return `<li><a href="#${anchor}">${inline(match[1])}</a></li>`;
     })
     .join('');
@@ -301,24 +442,28 @@ function html(input: PdfInput, source: Source, manifest: Manifest): string {
       : input.locale === 'es'
         ? 'Pantallas reales de la aplicación con datos ficticios; sin información de clientes.'
         : 'Real application screens with synthetic data; no customer information.';
-  return `<!doctype html><html lang="${input.locale === 'pt' ? 'pt-BR' : input.locale}"><head><meta charset="utf-8"><title>${escape(input.title)}</title><style>
+  return {
+    captures: shots,
+    html: `<!doctype html><html lang="${input.locale === 'pt' ? 'pt-BR' : input.locale}"><head><meta charset="utf-8"><title>${escape(input.title)}</title><style>
   @page{size:A4;margin:16mm 15mm}body{font-family:Arial,"Noto Sans",sans-serif;color:#172033;font-size:10pt;line-height:1.48}
   h1,h2,h3{color:#073b5c;break-after:avoid}h1{font-size:23pt;border-bottom:3px solid #1597c5;padding-bottom:3mm}h2{font-size:14pt;margin-top:8mm}h3{font-size:11pt}
   p,li{margin:0 0 2.5mm}ul,ol{padding-left:6mm}code{font-family:monospace;background:#edf1f4;padding:0.3mm 0.7mm}
   aside{background:#eef8fc;border-left:4px solid #1597c5;padding:3mm 4mm;margin:4mm 0}
   .cover{min-height:245mm;display:flex;flex-direction:column;justify-content:space-between;page-break-after:always}
-  .cover h1{font-size:30pt;margin-top:66mm}.meta{color:#52677f;font-size:9pt;border-top:2px solid #1597c5;padding-top:4mm}
+  .cover h1{font-size:26pt;margin-top:28mm}.cover h2{margin-top:8mm}.cover li{margin-bottom:3mm}.meta{color:#52677f;font-size:9pt;border-top:2px solid #1597c5;padding-top:4mm}
   .toc{page-break-after:always}.toc h2{font-size:20pt}.toc li{margin:3mm 0}.toc a{color:#075d88;text-decoration:none}
+  a{color:#075d88}table{width:100%;border-collapse:collapse;font-size:8.5pt;margin:4mm 0;table-layout:fixed}th,td{border:1px solid #cbd5e1;padding:2mm;vertical-align:top;overflow-wrap:anywhere}th{background:#eef8fc}tr{break-inside:avoid}
   .screens{page-break-before:always}
   figure{break-inside:avoid;margin:6mm 0;border:1px solid #cbd5e1;padding:2mm;background:#f8fafc}
   figure img{display:block;width:100%;height:auto;max-height:174mm;object-fit:contain;background:white}
   figure.phone{max-width:90mm;margin-left:auto;margin-right:auto}
   figcaption{font-size:8pt;color:#52677f;margin-top:1mm;overflow-wrap:anywhere}</style></head><body>
-  <section class="cover"><div><p>J&amp;A Automation</p><h1>${escape(input.title)}</h1><p>${syntheticLabel}</p></div>
+  <section class="cover"><div><p>J&amp;A Automation</p><h1>${escape(input.title)}</h1><p>${syntheticLabel}</p>${intro}</div>
   <div class="meta">${revisionLabel} ${manualRevision} · ${captureLabel}: ${escape(manifest.capturedAt)}</div></section>
   <nav class="toc"><h2>${contentsLabel}</h2><ol>${toc}</ol></nav>
-  <main>${contents}${screenshotHtml(shots, input.locale)}</main>
-  <p style="font-size:7pt;color:#52677f">${input.locale === 'pt' ? 'Origem' : input.locale === 'es' ? 'Fuente' : 'Source'} ${escape(source.sourceDigest.slice(0, 16))}</p></body></html>`;
+  <main>${contents}${input.grouped ? '' : screenshotHtml(shots, input.locale)}</main>
+  <p style="font-size:7pt;color:#52677f">${input.locale === 'pt' ? 'Origem' : input.locale === 'es' ? 'Fuente' : 'Source'} ${escape(source.sourceDigest.slice(0, 16))}</p></body></html>`,
+  };
 }
 
 export async function generateRoleManuals(locale: 'en' | 'pt'): Promise<void> {
@@ -327,9 +472,10 @@ export async function generateRoleManuals(locale: 'en' | 'pt'): Promise<void> {
     .filter((manual) => manual.audience !== 'quick-start')
     .map((manual) => ({
       id: manual.id,
-      persona: manual.audience as ManualPersona,
+      personas: manual.allowedPersonas,
+      grouped: true,
       locale,
-      sourceName: `Role_Guide_${manual.audience}_${locale === 'pt' ? 'PT-BR' : 'EN'}.md`,
+      sourceName: `Functional_Guide_${manual.audience}_${locale === 'pt' ? 'PT-BR' : 'EN'}.md`,
       outputName: manual.assets[locale]!.sourceName,
       title: manual.title[locale],
     }));
@@ -341,11 +487,13 @@ export async function generateRoleManuals(locale: 'en' | 'pt'): Promise<void> {
     sourceSha256: string;
     sha256: string;
     bytes: number;
+    captures: readonly Capture[];
   }> = [];
   try {
     for (const manual of manuals) {
       const page = await browser.newPage();
-      await page.setContent(html(manual, source, manifest), { waitUntil: 'networkidle' });
+      const rendered = html(manual, source, manifest);
+      await page.setContent(rendered.html, { waitUntil: 'networkidle' });
       const file = resolve(manualsDir, manual.outputName);
       await page.pdf({
         path: file,
@@ -369,6 +517,7 @@ export async function generateRoleManuals(locale: 'en' | 'pt'): Promise<void> {
           .digest('hex'),
         sha256: createHash('sha256').update(bytes).digest('hex'),
         bytes: bytes.length,
+        captures: rendered.captures,
       });
       console.log(`${manual.outputName} ${bytes.length} sha256=${outputs.at(-1)!.sha256}`);
     }
@@ -380,8 +529,13 @@ export async function generateRoleManuals(locale: 'en' | 'pt'): Promise<void> {
     locale === 'en' ? 'manual-build.json' : 'manual-build-PT-BR.json',
   );
   const previous = existsSync(buildPath)
-    ? (JSON.parse(readFileSync(buildPath, 'utf8')) as { outputs?: Array<{ file: string }> })
+    ? (JSON.parse(readFileSync(buildPath, 'utf8')) as BuildMetadata)
     : {};
+  const quickNames = new Set(
+    Object.values(manualCatalog.find((manual) => manual.audience === 'quick-start')!.assets).map(
+      (asset) => asset.sourceName,
+    ),
+  );
   writeFileSync(
     buildPath,
     `${JSON.stringify(
@@ -391,13 +545,16 @@ export async function generateRoleManuals(locale: 'en' | 'pt'): Promise<void> {
         sourceCommit: manifest.sourceCommit,
         sourceDigest: source.sourceDigest,
         captureManifest: relative(root, manifestPath),
+        captureManifestSha256: createHash('sha256')
+          .update(readFileSync(manifestPath))
+          .digest('hex'),
         capturedAt: manifest.capturedAt,
         checks: manifest.checks,
         screenshots: manifest.screenshots,
         outputs: [
-          ...(previous.outputs ?? []).filter(
-            (old) => !outputs.some((item) => item.file === old.file),
-          ),
+          ...(locale === 'en'
+            ? retainCurrentOutputs(previous, quickNames, source, manifestPath)
+            : []),
           ...outputs,
         ],
       },
@@ -441,7 +598,7 @@ export async function generateQuickGuides(): Promise<void> {
   try {
     for (const guide of guides) {
       const page = await browser.newPage();
-      await page.setContent(html({ ...guide, persona: 'worker' }, source, manifest), {
+      await page.setContent(html({ ...guide, personas: ['worker'] }, source, manifest).html, {
         waitUntil: 'networkidle',
       });
       const file = resolve(manualsDir, guide.outputName);
@@ -470,8 +627,13 @@ export async function generateQuickGuides(): Promise<void> {
   }
   const buildPath = resolve(manualsDir, 'manual-build.json');
   const previous = existsSync(buildPath)
-    ? (JSON.parse(readFileSync(buildPath, 'utf8')) as { outputs?: Array<{ file: string }> })
+    ? (JSON.parse(readFileSync(buildPath, 'utf8')) as BuildMetadata)
     : {};
+  const referenceNames = new Set(
+    manualCatalog
+      .filter((manual) => manual.audience !== 'quick-start')
+      .map((manual) => manual.assets.en!.sourceName),
+  );
   writeFileSync(
     buildPath,
     `${JSON.stringify(
@@ -481,13 +643,14 @@ export async function generateQuickGuides(): Promise<void> {
         sourceCommit: manifest.sourceCommit,
         sourceDigest: source.sourceDigest,
         captureManifest: relative(root, manifestPath),
+        captureManifestSha256: createHash('sha256')
+          .update(readFileSync(manifestPath))
+          .digest('hex'),
         capturedAt: manifest.capturedAt,
         checks: manifest.checks,
         screenshots: manifest.screenshots,
         outputs: [
-          ...(previous.outputs ?? []).filter(
-            (old) => !outputs.some((item) => item.file === old.file),
-          ),
+          ...retainCurrentOutputs(previous, referenceNames, source, manifestPath),
           ...outputs,
         ],
       },

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "applicationCommit": "1b2eef40247371e0fd88a11a946cfd92a217a471",
+  "deployedAt": "2026-09-19T11:07:03Z",
+  "releaseSha256": "4dde0163be758b969f08740e4a64a00ca6690d6e69c0348783931f6a78e92e17",
+  "testFile": "tests/e2e/client-essential-32-step.spec.ts",
+  "testFileSha256": "52dc463fd9e0a5b3581615e630d12bcf90ce4753636a46420ebf2cf08592e77d",
+  "environment": {
+    "fixture": "synthetic authenticated E2E data",
+    "productionBoundary": "https://j-aautomation.com",
+    "productionBoundaryAccess": "read-only Caddy health checks",
+    "tenantId": "jaautomation",
+    "deploymentId": "production-vps"
+  },
+  "operationsEvidence": {
+    "path": "/tmp/ja-grouped-operations-evidence.json",
+    "fileSha256": "7d37dfd6e326240a92f6f063b904582049c83b103a5ba4c2fbde4731ce08a2f8",
+    "canonicalSha256": "54022825071368523d16b3172c835b378173dabbb8b52053e8567a2deabfda2f",
+    "evidenceId": "manuals-consolidation-1b2eef4024-20260919T110821084Z",
+    "capturedAt": "2026-09-19T11:08:21.084Z",
+    "status": "READY",
+    "automaticJobRuns": 2,
+    "continuity": {
+      "status": "WAIVED",
+      "releaseBlocking": false,
+      "waivedBy": "owner",
+      "localBackup": "PASS",
+      "rollback": "PASS"
+    }
+  },
+  "result": {
+    "status": "PASS",
+    "playwrightTestsPassed": 1,
+    "playwrightTestsFailed": 0,
+    "steps": 32,
+    "stepsFailed": 0,
+    "reporterStartTime": "2026-09-19T11:08:50.264Z",
+    "reporterDurationMs": 171650.08000000002,
+    "stepResultsAttachment": "docs/evidence/manuals-consolidation-20260919/client-essential-32-step-results.json",
+    "stepResultsSha256": "fbf4982b62839b9bd998160bcd94db4f8187579235df43776a71789885693b66",
+    "stepResultsCapturedBytesSha256": "2a8ac39acb7f7b554c9543ac44de0ffbd5a4fea4d382486d809d20404d9bcec2",
+    "preflightAttachment": "docs/evidence/manuals-consolidation-20260919/client-essential-operations-evidence-preflight.json",
+    "preflightSha256": "1f57986b6cdde165e007f07f601f0e2c418cacfaf2dfc6cd785c0a61de4823f6"
+  },
+  "runner": {
+    "projects": [
+      "desktop"
+    ],
+    "workers": 1,
+    "invocations": 1,
+    "rawReporterStoredOutsideRepository": "/tmp/ja-grouped-acceptance-report-20260919.json",
+    "rawReporterSha256": "a9f7241000591f85830804089bd8c99aa375d6d3f67a32adefe825a2ff9f0ec5"
+  },
+  "log": {
+    "path": "docs/evidence/manuals-consolidation-20260919/browser-acceptance-32-steps.txt",
+    "sha256": "06a77587311bfb138b2a147587095866748a8a5b60b84b8168248a234af81a16",
+    "capturedBytesSha256": "0a2ca4200f7dc5620c8f2d03c66f475ee0ab20c29712abd9d71f0415743bc83c",
+    "normalization": "Trailing spaces and tabs removed from each line; blank lines at EOF removed."
+  }
+}

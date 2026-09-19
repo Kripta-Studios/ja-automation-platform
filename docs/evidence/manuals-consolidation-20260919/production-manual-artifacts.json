@@ -1,0 +1,67 @@
+{
+  "verifiedAt": "2026-09-19T11:07:21.996148+00:00",
+  "runtimePdfCount": 9,
+  "runtimePdfHashesMatchReviewedArtifacts": true,
+  "outputs": {
+    "Administration_Finance_Guide.pdf": "dc96b206f811c29205aeedaf56cad2d7fb41bf28e8473fc5d286038feefdea7b",
+    "Administration_Finance_Guide_PT-BR.pdf": "c23c98705e781d34d03200432f84126a62bdcaf737a74a0afec0f58bea81caa5",
+    "Employee_Field_Guide_EN.pdf": "b60deb057e040814d549cbbd1c122f65ac26907e0c6c859d2db71f59b1ce1b7f",
+    "Employee_Field_Guide_ES.pdf": "57f53a62ebe8a688b334317e7c8e342b29cbdc50d5ce77ff38282d839c08a628",
+    "Employee_Field_Guide_PT-BR.pdf": "a9d536aeccee180dde0a94fb2dbfe9c21f4baca6fb4342e66f409c34e7152643",
+    "Supplier_Operations_Guide.pdf": "4f41df59ea785773cde7d857e43bbe719dd5634beafa904d6e75611d6c5c50a6",
+    "Supplier_Operations_Guide_PT-BR.pdf": "52c6f3865022266af0471a6f22acd9b7bfc3f0ff1edc10e7b807a41ff1af4097",
+    "Work_Projects_Guide.pdf": "49c2de93b816828fa0cb4dbd5b50584e07a00cd1e3cd84dfccca135236e63bbd",
+    "Work_Projects_Guide_PT-BR.pdf": "052fb2567a8fd971149e1571d232428a916063bbb093a746dcdfaafb2ee227d0"
+  },
+  "unsignedDownloads": [
+    {
+      "manual": "work-projects-reference",
+      "locale": "en",
+      "unsignedStatus": 401,
+      "privateNoStore": true
+    },
+    {
+      "manual": "supplier-operations-reference",
+      "locale": "en",
+      "unsignedStatus": 401,
+      "privateNoStore": true
+    },
+    {
+      "manual": "administration-finance-reference",
+      "locale": "en",
+      "unsignedStatus": 401,
+      "privateNoStore": true
+    },
+    {
+      "manual": "owner-reference",
+      "locale": "en",
+      "unsignedStatus": 401,
+      "privateNoStore": true
+    },
+    {
+      "manual": "work-projects-reference",
+      "locale": "pt",
+      "unsignedStatus": 401,
+      "privateNoStore": true
+    },
+    {
+      "manual": "supplier-operations-reference",
+      "locale": "pt",
+      "unsignedStatus": 401,
+      "privateNoStore": true
+    },
+    {
+      "manual": "administration-finance-reference",
+      "locale": "pt",
+      "unsignedStatus": 401,
+      "privateNoStore": true
+    },
+    {
+      "manual": "owner-reference",
+      "locale": "pt",
+      "unsignedStatus": 401,
+      "privateNoStore": true
+    }
+  ],
+  "authenticatedScope": "Authenticated persona downloads verified with real browser against identical application source in isolated synthetic fixture; no production user session fabricated."
+}

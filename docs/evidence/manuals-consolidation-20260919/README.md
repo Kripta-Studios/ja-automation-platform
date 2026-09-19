@@ -3,7 +3,7 @@
 La aplicación y los permisos de negocio conservan su alcance. La autorización documental
 agrupa las siete personas en tres familias. Las sesiones de navegador utilizan Better Auth
 y datos sintéticos aislados; las comprobaciones públicas/operativas de producción se registran
-por separado después de desplegar.
+por separado. Código `1b2eef4`, activo desde el 19/09/2026 a las 11:07:03 UTC.
 
 - [Pruebas focalizadas, tipos, Svelte, ESLint y generación](quality-gates.json).
 - [Navegador: cuatro anchos, siete perfiles y enlaces antiguos](browser-verification.json).
@@ -13,6 +13,14 @@ por separado después de desplegar.
 - [Calidad y hashes de los nueve PDF](../../manuals/validation/pdf-quality.json).
 - [Catálogo de las tres familias EN/PT-BR y guías rápidas](../../manuals/README.md).
 - [Decisiones de agrupación y límites](../../MANUAL_CONSOLIDATION_2026-09-19.md).
+- [Recibo de producción](../../PRODUCTION_DEPLOYMENT_2026-09-19_MANUAL_CONSOLIDATION.md).
+- [Identidad del release](release.json) y [runtime, jobs y caché](runtime-verification.json).
+- [Nueve PDF instalados y fronteras públicas](production-manual-artifacts.json).
+- [Chromium en producción](production-browser.json) y [datos conservados](production-after.json).
+- [Backup posterior](backup-verification.json) y [restauración aislada](precutover-restore.json).
+- [Contrato operativo propio de este release](operations-evidence.json).
+- [Aceptación estricta posterior: 32/32 pasos](acceptance-32-steps.json).
+- [Revisión independiente de recibos y verificación final](production-review.json).
 
 Las referencias utilizan las capturas pertinentes del manifiesto, no todas las imágenes en
 cada libro. Las portadas incluyen rutas por perfil y destinos internos verificados; los pies

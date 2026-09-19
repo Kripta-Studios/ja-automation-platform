@@ -1,0 +1,24 @@
+{
+  "verifiedAt": "2026-09-19T11:07:25.410Z",
+  "browser": "Chromium",
+  "checks": [
+    {
+      "width": 360,
+      "status": 200,
+      "loginRedirect": true,
+      "horizontalOverflow": false,
+      "pageErrors": []
+    },
+    {
+      "width": 1440,
+      "status": 200,
+      "loginRedirect": true,
+      "horizontalOverflow": false,
+      "pageErrors": []
+    },
+    {
+      "page": "public-site",
+      "status": 200
+    }
+  ]
+}

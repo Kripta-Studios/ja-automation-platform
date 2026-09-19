@@ -12,21 +12,23 @@ The requirements clarified directly with J&A on 2026-08-24 are release-authorita
 El [estado actual](docs/PROJECT_STATUS_2026-09-19.md) actualiza el registro P01–P11 y conserva la
 [matriz CORE-01–17 anterior](docs/PROJECT_STATUS_2026-09-18.md). La SPEC mantiene su autoridad.
 
-- Código desplegado `e43c640`; sitio/portal saludables, dos ciclos automáticos sin fallos, esquema 49 íntegro.
-- 14 manuales por perfil EN/PT-BR y tres guías rápidas, con 90 capturas reales de la app y
-  datos sintéticos aislados. Los 17 PDF del contenedor coinciden con los revisados.
+- Código desplegado `1b2eef4`; sitio/portal saludables, dos ciclos automáticos sin fallos, esquema 49 íntegro.
+- Tres manuales compartidos EN/PT-BR y tres guías rápidas: nueve PDF activos. Siete perfiles,
+  rutas de lectura por rol, capítulos enlazados y 90 capturas fuente con datos sintéticos aislados.
+  Los nueve PDF del contenedor coinciden con los revisados; aliases y límites de negocio conservados.
 - Calendarios accionables, disponibilidad editable, correcciones EN/ES/PT-BR y recuperación
   automática de descargas transitorias; los conflictos humanos conservan valores y explican la acción.
 - Tres PDF recuperados y dos sustituidos por versiones seguras; originales e historial conservados.
   P03 cerrado para los incidentes identificados, sin aprobar automáticamente los informes.
-- 1.123/1.123 pruebas generales, 88/88 focalizadas para navegación y 34/34 de integración;
-  siete perfiles en EN/ES/PT-BR y cuatro tamaños de pantalla. Recorrido actual **32/32 PASS**
-  sobre `e43c640`, con evidencia operativa nueva (P01 cerrado técnicamente).
-- Backup y restauración aislada de 59 archivos verificados; 22 snapshots en 11 días UTC (P04 parcial).
+- Consolidación actual: 16/16 pruebas focalizadas y 19 E2E en cuatro tamaños; matriz de siete
+  perfiles EN/PT-BR en desktop con 60 descargas autorizadas y 48 denegadas entre familias.
+  Las suites generales y EN/ES/PT-BR anteriores conservan su atribución histórica.
+  Nueva aceptación **32/32 PASS en `1b2eef4`**, con evidencia operativa de este release.
+- Backup y restauración aislada de 59 archivos verificados; 24 snapshots en 11 días UTC (P04 parcial).
 - Aprobaciones/evidencia externas P02/P05–P09 siguen pendientes; dispensa offsite vigente.
   QuickBooks/Intuit está excluido, no pendiente. Caché Docker: 0 B.
 
-[Recibo de manuales, idiomas y recuperación](docs/PRODUCTION_DEPLOYMENT_2026-09-19_MANUALS_I18N.md).
+[Recibo de consolidación de manuales](docs/PRODUCTION_DEPLOYMENT_2026-09-19_MANUAL_CONSOLIDATION.md).
 
 Las secciones fechadas y sus casillas conservan el histórico; no son una nueva certificación de la
 versión actual. En particular, las entradas «no desplegado» de ASTRA y «pendiente smoke Owner» tienen

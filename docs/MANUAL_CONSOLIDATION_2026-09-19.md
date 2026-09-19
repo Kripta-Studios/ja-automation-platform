@@ -48,5 +48,7 @@ la revisión de autorización, fuentes y renderizado es independiente de sus imp
 [Catálogo con los PDF](manuals/README.md), [pruebas](evidence/manuals-consolidation-20260919/quality-gates.json)
 y [revisión](evidence/manuals-consolidation-20260919/review.json).
 
-La identidad del código publicado y la verificación operativa se registran en el recibo de
-producción posterior. Los pendientes externos y la aceptación humana conservan su estado.
+Código `1b2eef4`, publicado y desplegado el 19/09/2026 a las 11:07:03 UTC. El contenedor
+contiene exactamente los nueve PDF revisados. La identidad y la verificación operativa están
+en el [recibo de producción](PRODUCTION_DEPLOYMENT_2026-09-19_MANUAL_CONSOLIDATION.md).
+Los pendientes externos y la aceptación humana conservan su estado.

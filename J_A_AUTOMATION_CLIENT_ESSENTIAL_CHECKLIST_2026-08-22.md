@@ -834,6 +834,8 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Revisión independiente de propiedad, edición por versión, auditoría, UTC y selección de trabajador; correcciones incorporadas.
 - [x] Chromium: 48/48 casos de calendario, cinco roles y 360/390/768/1440 px; proveedor/coordinador/técnico externo, 2/2 recorridos en 390/1440 px. Capturas y logs en `docs/evidence/planning-calendar-20260919/`.
 - [x] Tipos de los diez paquetes, Svelte, ESLint y formato correctos; suite unitaria 1.074/1.074 y 17/17 pruebas focalizadas sobre la última corrección de perfil propio.
-- [ ] Cierre de integración general, publicación y producción. El recibo final se añadirá después de comprobar la activación.
+- [x] Aceptación posterior al despliegue: 32/32 pasos, con operaciones y backup del release `7b36959`; sin sustituir aceptación humana.
+- [x] Integración general 527/527 (70 archivos); código `7b36959` publicado y activo en producción a las 08:44:17 UTC. 1.753 archivos idénticos al ZIP, esquema 49 íntegro y filas financieras comprobadas conservadas.
+- [x] Dos ciclos automáticos sin fallos; backup posterior y restauración aislada previa verificados con 59 documentos. Caché Docker a 0 B tras liberar 6,961 GB; imágenes y volúmenes conservados.
 
-[Análisis, comparación y alcance](docs/ERP_PLANNING_REVIEW_2026-09-19.md). Los pendientes externos y la cobertura histórica de backup mantienen el estado del registro anterior.
+[Análisis, comparación y alcance](docs/ERP_PLANNING_REVIEW_2026-09-19.md) y [recibo de producción](docs/PRODUCTION_DEPLOYMENT_2026-09-19_PLANNING_CALENDAR.md). Los pendientes externos se conservan; P04 sigue parcial con 20 snapshots en 11 días UTC.

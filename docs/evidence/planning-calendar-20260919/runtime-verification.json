@@ -1,0 +1,34 @@
+{
+  "verifiedAt": "2026-09-19T08:47:16.589289+00:00",
+  "verifyVps": {
+    "status": "PASS",
+    "automaticCyclesObserved": 2,
+    "logSha256": "a3a90facff765df78e66aa42e14cf80c8fc7e20369382b8f75c2e5cf4008f450"
+  },
+  "publicBrowser": {
+    "status": "PASS",
+    "checks": 3,
+    "evidence": "production-browser.json"
+  },
+  "dockerBuildCache": {
+    "command": "docker builder prune -af",
+    "reclaimed": "6.961GB",
+    "after": {
+      "Active": "0",
+      "Reclaimable": "0B",
+      "Size": "0B",
+      "TotalCount": "0",
+      "Type": "Build Cache"
+    },
+    "imagesAndVolumesPruned": false
+  },
+  "backupService": {
+    "result": "success",
+    "exitCode": 0
+  },
+  "deploymentWatcher": {
+    "path": "active",
+    "timer": "active"
+  },
+  "deploymentLogSha256": "f3673684f719989ea7da1f1c21ee9a0232157eae3a21796c9b0a8714d5e7b34b"
+}

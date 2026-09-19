@@ -1,6 +1,6 @@
 {
-  "verifiedAt": "2026-09-19T08:41:13.538670+00:00",
-  "schema": 48,
+  "verifiedAt": "2026-09-19T08:45:19.559657+00:00",
+  "schema": 49,
   "integrity": "ok",
   "foreignKeyViolations": 0,
   "financialAndDocumentRows": {
@@ -13,6 +13,13 @@
   "jobs": {
     "complete": 2230,
     "dead_letter": 4,
-    "succeeded": 50017
+    "succeeded": 50025
+  },
+  "historicalRowsUnchanged": {
+    "invoice": true,
+    "payment": true,
+    "document": true,
+    "accounting_pack_revision": true,
+    "accounting_pack_revision_snapshot": true
   }
 }

@@ -70,7 +70,8 @@ proveedores pasa en móvil y escritorio (2/2), incluyendo coordinador y técnico
 su comprobación de tamaño para medir la etiqueta clicable del checkbox y se verificó que pulsar
 su texto activa/restaura la selección, sin cambiar el formulario del producto.
 
-El resultado final de suites y producción se registra en el recibo de esta entrega.
+El resultado final de suites y producción se registra en el
+[recibo de esta entrega](PRODUCTION_DEPLOYMENT_2026-09-19_PLANNING_CALENDAR.md).
 Las capturas usan cuentas/datos sintéticos aislados; no se introducen operaciones de prueba en los
 registros reales de clientes.
 

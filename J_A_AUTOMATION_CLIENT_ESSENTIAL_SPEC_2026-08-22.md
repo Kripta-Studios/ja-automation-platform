@@ -5,7 +5,7 @@
 **Status:** Proposed delivery authority for the client-complete production release  
 **Purpose:** Reduce the current V3/V3.1–V3.4 completion program to the software J&A actually needs to operate the business end-to-end, without turning the project into a general ERP, CMMS, data platform, or ML product.
 
-> Estado de ejecución al 18/09/2026: véase el [estado consolidado del proyecto](docs/PROJECT_STATUS_2026-09-18.md)
+> Estado de ejecución al 19/09/2026: véase el [estado consolidado del proyecto](docs/PROJECT_STATUS_2026-09-19.md)
 > y el [checklist](J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md). Producción está operativa,
 > pero la aceptación Client Essential sigue pendiente. Esta referencia no modifica los requisitos
 > ni convierte la especificación en una declaración de trabajo terminado.

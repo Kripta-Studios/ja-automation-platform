@@ -7,19 +7,20 @@ authority, followed by the validated local contract (`ANEXO A` and `ANEXO D`), `
 only, and the repository instructions. The unified V3 specification is subordinate domain reference;
 V3.1–V3.4 expansion is deferred roadmap.
 
-## Current release checkpoint — 2026-09-18
+## Current release checkpoint — 2026-09-19
 
-Production is operational on application commit `d69efe6`, with native ERP and collection-planning
-improvements deployed. **Client Essential acceptance is still open; the project is not certified
-`CLIENT READY`.** Fiscal/legal and human acceptance, historical job/PDF incidents, backup-history
-coverage and a fresh complete 32-step journey remain tracked with their closure evidence.
+Production is operational on application commit `3893245`. Historical PDF recovery is complete:
+three originals recovered and two safe replacements generated, with history and financial records
+preserved. **Client Essential acceptance remains open; `CLIENT READY` is not claimed.**
 
-Read the [consolidated project status](docs/PROJECT_STATUS_2026-09-18.md) for the CORE-01–17
-implementation/evidence map, current decisions, pending actions and historical reconciliation.
-The [read-only production evidence](docs/validation/project-status-20260918.json) verifies the
-active release, healthy services, database integrity, preserved records and latest local backup.
-Documentation commits after `d69efe6` do not change the deployed application. QuickBooks is only
-functional inspiration; Intuit connectivity/OAuth/synchronization is explicitly excluded.
+Read the [current project status](docs/PROJECT_STATUS_2026-09-19.md) and the
+[recovery and acceptance receipt](docs/RECOVERY_AND_ACCEPTANCE_2026-09-19.md).
+The full regression on `5db9bfc` passes 1,050/1,050; the invoice-filter fix on `3893245` passes
+8 focused checks. The complete **32/32 acceptance journey passes on `3893245`**, with current
+production operations evidence; human/fiscal/legal approvals remain separate.
+Backup and isolated restore verify 59 private files; daily 30-day coverage and external approvals
+remain tracked. Docker build cache is 0 B. Later test/documentation commits do not change deployed
+application code. Intuit connectivity/OAuth/synchronization is explicitly excluded.
 
 Earlier release checkpoints remain in the dated checklist and deployment receipts; their verdicts
 apply to those candidates, not automatically to the current one. Requirement authority is unchanged:

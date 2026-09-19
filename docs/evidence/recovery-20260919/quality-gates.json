@@ -1,0 +1,107 @@
+{
+  "unit": {
+    "files": 155,
+    "passed": 1050,
+    "failed": 0
+  },
+  "focused": {
+    "localizedPdfRepositorySecurity": 37,
+    "operationsEvidence": 37,
+    "periodQueueActions": 19,
+    "selectedSignedConformityRegressions": 3
+  },
+  "workspaceTypecheck": "PASS",
+  "scopedEslint": "PASS",
+  "svelte": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "logs": [
+    {
+      "name": "unit.log",
+      "sha256": "fbb752f5d05c6131b8ba063dae5fb59e1b9f9560dc189779a2963f1acc288807",
+      "retainedPrivately": true
+    },
+    {
+      "name": "typecheck.log",
+      "sha256": "6ab8a2c5c60f6ab9f78ed1302efa38bef0304c54245f0488fa84b408fb737b45",
+      "retainedPrivately": true
+    },
+    {
+      "name": "lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "retainedPrivately": true
+    },
+    {
+      "name": "svelte.log",
+      "sha256": "e04bd69095dc2862891381c145321aeb2d893c7b5138a95080771669c60b01e6",
+      "retainedPrivately": true
+    },
+    {
+      "name": "production-verification.log",
+      "sha256": "b3dd05321f1fb00425629f7d62692f2a4019431e6d0ccbeba0ad6a39201b1182",
+      "retainedPrivately": true
+    },
+    {
+      "name": "deploy.log",
+      "sha256": "d619a04c61f4519dd230f18bf7846847551177571fce1f4bf6657d5bad4c7ac8",
+      "retainedPrivately": true
+    },
+    {
+      "name": "docker-cache-prune.log",
+      "sha256": "34a7df85c218c3b1b1e08ccfdd15f0c92bd9e88e5d278079436cb581bf88104f",
+      "retainedPrivately": true
+    },
+    {
+      "name": "deploy-invoice-filter.log",
+      "sha256": "e72fc393a38fcb8ba01ed9251081dffe8f90947ba935a0c50aa63d8467a38fb5",
+      "retainedPrivately": true
+    },
+    {
+      "name": "production-verification-final.log",
+      "sha256": "24ba6f7a6d4522404fc7b9f73454a0c817b54bab2d6a03ae906b73a6c1fec445",
+      "retainedPrivately": true
+    },
+    {
+      "name": "docker-cache-prune-final.log",
+      "sha256": "9dd44d8d42c544f3a317f0e60a29b734024df67cfc364f286a04c78c92e46f99",
+      "retainedPrivately": true
+    },
+    {
+      "name": "acceptance-final.log",
+      "sha256": "6b27cb2a5895466e4028c1d0cf4a6dc3f7c4e7bf7c680522ae22182206db3f2a",
+      "retainedPrivately": true
+    },
+    {
+      "name": "acceptance-final-playwright.json",
+      "sha256": "2a500a2601d879591d12b0addec999de5f7cd33175f8792d317d282df6b0a824",
+      "retainedPrivately": true
+    }
+  ],
+  "independentReview": {
+    "runtimeIntegrationFinanceSecuritySpec": "PASS",
+    "productionRecoveryConservation": "PASS",
+    "acceptance": "PASS: final Sol-high read-only review of committed test source, 32/32 machine results, current operations digest and deployed release",
+    "overallClientEssentialVerdict": "NOT READY: separately tracked external approvals and incomplete 30-day backup history"
+  },
+  "generalRegressionCommit": "5db9bfce2ee49afa813f99662e8c9a4774767a31",
+  "applicationCommit": "3893245d52c9afdf1653f88032737649cf8af27b",
+  "invoiceFilterFollowup": {
+    "productionChange": "Read-only project_id projection and type",
+    "targetedTestsPassed": 8,
+    "targetedTestsFailed": 0,
+    "preFixRegressionObserved": true,
+    "databaseTypecheck": "PASS",
+    "scopedEslint": "PASS",
+    "prettier": "PASS",
+    "independentIntegrationFinanceSecuritySpec": "PASS"
+  },
+  "acceptance": {
+    "commit": "3893245d52c9afdf1653f88032737649cf8af27b",
+    "passedSteps": 32,
+    "failedSteps": 0,
+    "command": "pnpm exec playwright test tests/e2e/client-essential-32-step.spec.ts --project=desktop --workers=1 --reporter=list,json",
+    "testFileSha256": "5309f23ea5550e233b695d7f43231f3d8ec79b8cc3d8ab527f5df521bf62438d",
+    "evidence": "acceptance-32-steps.json"
+  }
+}

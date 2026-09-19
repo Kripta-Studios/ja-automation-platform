@@ -6,22 +6,19 @@
 **Client validation update:** 2026-08-24
 The requirements clarified directly with J&A on 2026-08-24 are release-authoritative. Existing PASS/PARTIAL evidence must be revalidated where these clarifications materially change the behavior; no prior PASS may be assumed to prove a newly clarified rule.
 
-## Estado actual consolidado — 2026-09-18
+## Estado actual consolidado — 2026-09-19
 
-**Producción operativa; cierre Client Essential pendiente. No se acredita el 100 % ni `CLIENT READY`.**
-El [estado consolidado](docs/PROJECT_STATUS_2026-09-18.md) es el punto de entrada para la situación
-actual: matriz CORE-01–17 con límites de evidencia, registro de pendientes P01–P11 y reconciliación
-de los checkpoints de este documento. La SPEC conserva su autoridad sobre los requisitos.
+**Producción operativa; aceptación Client Essential pendiente. No se acredita el 100 % ni `CLIENT READY`.**
+El [estado actual](docs/PROJECT_STATUS_2026-09-19.md) actualiza el registro P01–P11 y conserva la
+[matriz CORE-01–17 anterior](docs/PROJECT_STATUS_2026-09-18.md). La SPEC mantiene su autoridad.
 
-- Código desplegado: `d69efe6`; commits posteriores de documentación no cambian la aplicación.
-- [Verificación nueva de solo lectura](docs/validation/project-status-20260918.json): 1.714 archivos
-  del release coinciden con el ZIP; sitio/portal sanos, jobs y timers activos, esquema 48 íntegro.
-- Conservación de snapshots/pagos/documentos verificada; último backup correcto, 12 snapshots en
-  10 días de los 30 requeridos. Permanecen 4 jobs y 5 PDF fallidos del histórico.
-- El recorrido 32/32 del 06/09 pertenece a `2058db2`; no se presenta como ejecución del código actual.
-  Las pruebas recientes de ERP/cobros y su alcance están en los recibos del 18/09.
-- Faltan las aprobaciones y evidencias externas detalladas en P02/P05–P09, además del cierre técnico
-  P01/P03/P04. La dispensa offsite se conserva; QuickBooks/Intuit está excluido, no pendiente.
+- Código desplegado `3893245`; sitio/portal saludables, dos ciclos automáticos sin fallos, esquema 48 íntegro.
+- Tres PDF recuperados y dos sustituidos por versiones seguras; originales e historial conservados.
+  P03 cerrado para los incidentes identificados, sin aprobar automáticamente los informes.
+- 1.050/1.050 pruebas generales en `5db9bfc`; 8/8 focalizadas para `3893245`. Recorrido actual **32/32 PASS** en `3893245` (P01 cerrado técnicamente).
+- Backup y restauración aislada de 59 archivos verificados; 18 snapshots en 11 días UTC (P04 parcial).
+- Aprobaciones/evidencia externas P02/P05–P09 siguen pendientes; dispensa offsite vigente.
+  QuickBooks/Intuit está excluido, no pendiente. Caché Docker: 0 B.
 
 Las secciones fechadas y sus casillas conservan el histórico; no son una nueva certificación de la
 versión actual. En particular, las entradas «no desplegado» de ASTRA y «pendiente smoke Owner» tienen
@@ -812,10 +809,21 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - Publicación, backup, conservación de históricos y limpieza Docker: [recibo de producción](docs/PRODUCTION_DEPLOYMENT_2026-09-18_QUICKBOOKS.md). QuickBooks se usa únicamente como referencia funcional; cualquier conexión con Intuit está expresamente excluida por el usuario y no es un pendiente. No cierra los pendientes históricos ni las aceptaciones externas.
 - [x] Desplegado `d69efe6` a las 21:00:49 UTC: sitio/portal saludables, dos ciclos automáticos sin fallos nuevos, esquema 48 íntegro, 14 snapshots de factura y todos los registros financieros de referencia conservados, backup de 50 documentos verificado. Caché Docker 0 B tras liberar 6,802 GB. Continúan los cuatro jobs/cinco PDF históricos fallidos y la cobertura de backup de 10 días; se documentan sin declararlos resueltos.
 
-## 2026-09-19 — Recuperación histórica y nueva aceptación (en curso)
+## 2026-09-19 — Recuperación histórica y aceptación técnica completadas
 
-El usuario autorizó recuperar los cuatro jobs y cinco PDF históricos y repetir los 32 pasos.
-El [registro de recuperación](docs/RECOVERY_AND_ACCEPTANCE_2026-09-19.md) distingue reparaciones
-productivas de ensayos aislados y documenta las correcciones de encolado, fallos PDF y vigencia
-operativa de la aceptación. Tres PDF canónicos ya están recuperados y verificados en producción;
-los originales y el historial permanecen. No se declara cierre integral ni aceptación humana.
+- [x] P03: tres PDF canónicos recuperados y dos sustitutos seguros en producción; mensual regenerado
+      con job enlazado al agotado. Originales, cuatro jobs históricos y dos filas legacy bloqueadas conservados.
+- [x] P01: **32/32 PASS** sobre `3893245`, con operaciones productivas actuales y evidencia por paso.
+      Cierre, aprobación, firma sintética y emisión usan el mismo proyecto, periodo, regla, factura y fuente.
+- [x] Filtro de facturas por proyecto corregido; regresión causal, 8/8 pruebas focalizadas y revisión
+      independiente. Regresión general anterior `5db9bfc`: 1.050/1.050; no se atribuye al commit posterior.
+- [x] Desplegado `3893245` el 19/09 a las 06:56:23 UTC; sitio/portal saludables y dos ciclos automáticos
+      observados sin fallos. 1.720 archivos del release coinciden con su ZIP; esquema 48 íntegro, FK cero.
+- [x] Facturas, pagos, documentos y snapshots contables conservados; 50 originales con hashes idénticos.
+      Backup y restauración aislada de 59 archivos verificados. Caché Docker 0 B, 7,135 GB liberados.
+- P04 sigue parcial: 18 snapshots en 11 días UTC, aún sin cobertura de 30 días. Aprobaciones externas y
+  humanas pendientes; no se declara `CLIENT READY`. La prueba de firma es sintética, no aceptación real.
+
+[Recibo y límites](docs/RECOVERY_AND_ACCEPTANCE_2026-09-19.md),
+[resultados por paso](docs/evidence/recovery-20260919/acceptance-32-steps.json) y
+[estado actualizado](docs/PROJECT_STATUS_2026-09-19.md).

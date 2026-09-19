@@ -1,0 +1,121 @@
+[
+  {
+    "phase": "predeploy",
+    "status": "NOT_READY",
+    "passedSteps": 19,
+    "totalSteps": 32,
+    "failures": [
+      {
+        "number": 1,
+        "title": "Owner invites Worker, PM and Finance users",
+        "error": "\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('form[action=\"?view=team&/createInvitation\"]')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('form[action=\"?view=team&/createInvitation\"]')\u001b[22m\n"
+      },
+      {
+        "number": 7,
+        "title": "Admin configures compensation, internal cost, overtime and Travel",
+        "error": "\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('form[data-project-commercial-policy-form]')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('form[data-project-commercial-policy-form]')\u001b[22m\n"
+      },
+      {
+        "number": 8,
+        "title": "Percentage-based worker can be configured",
+        "error": "No select option contains Alex Rivera"
+      },
+      {
+        "number": 9,
+        "title": "Reimbursable versus all-in Travel/expenses are configured",
+        "error": "\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#finance-policy-travel')\nExpected: \u001b[32m\"true\"\u001b[39m\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#finance-policy-travel')\u001b[22m\n"
+      },
+      {
+        "number": 10,
+        "title": "Labor and expense streams/cadences/tax profiles can differ",
+        "error": "The labor billing rule identity was not exposed"
+      },
+      {
+        "number": 13,
+        "title": "Worker sees own pay/status/dates without commercial data",
+        "error": "\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('This view contains only your own time')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByText('This view contains only your own time')\u001b[22m\n"
+      },
+      {
+        "number": 14,
+        "title": "Worker submits a daily report and customer report is zero-money",
+        "error": "locator.click: Error: strict mode violation: getByRole('button', { name: 'New daily report', exact: true }) resolved to 2 elements:\n    1) <button type=\"button\" data-report-primary-cta=\"\" class=\"report-primary-action\">New daily report</button> aka getByLabel('Create report').getByRole('button', { name: 'New daily report' })\n    2) <button type=\"button\" class=\"report-primary-action\">New daily report</button> aka getByLabel('Daily', { exact: true }).getByRole('button', { name: 'New daily report' })\n\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'New daily report', exact: true })\u001b[22m\n"
+      },
+      {
+        "number": 15,
+        "title": "Worker submits a PLC/technical report with backup attachment",
+        "error": "locator.click: Error: strict mode violation: getByRole('button', { name: 'New technical report', exact: true }) resolved to 2 elements:\n    1) <button type=\"button\" class=\"report-primary-action report-primary-action-secondary svelte-t68ob0\">New technical report</button> aka getByLabel('Create report').getByRole('button', { name: 'New technical report' })\n    2) <button type=\"button\" class=\"report-primary-action report-primary-action-secondary svelte-t68ob0\">New technical report</button> aka getByLabel('Technical / PLC').getByRole('button', { name: 'New technical report' })\n\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'New technical report', exact: true })\u001b[22m\n"
+      },
+      {
+        "number": 20,
+        "title": "All-in expense affects project cost without entering an expense invoice",
+        "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /^(?:Classify|Review)$/ }).first()\u001b[22m\n"
+      },
+      {
+        "number": 21,
+        "title": "Reimbursable expense enters billing after approval",
+        "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /^(?:Classify|Review)$/ }).first()\u001b[22m\n"
+      },
+      {
+        "number": 22,
+        "title": "Period close creates customer report and gates labor invoice",
+        "error": "Expected action status matching /period reports|queued|refreshed/i\n\n\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('[role=\"status\"]').filter({ hasText: /period reports|queued|refreshed/i }).first()\nExpected: visible\nTimeout: 8000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expected action status matching /period reports|queued|refreshed/i with timeout 8000ms\u001b[22m\n\u001b[2m  - waiting for locator('[role=\"status\"]').filter({ hasText: /period reports|queued|refreshed/i }).first()\u001b[22m\n"
+      },
+      {
+        "number": 23,
+        "title": "Finance issues an immutable identified invoice",
+        "error": "BLOCKED by step 10: no labor billing rule identity"
+      },
+      {
+        "number": 24,
+        "title": "Finance records client payments and worker/expense payment states",
+        "error": "BLOCKED by step 23: no issued invoice identity"
+      }
+    ]
+  },
+  {
+    "phase": "postdeploy",
+    "status": "NOT_READY",
+    "passedSteps": 29,
+    "totalSteps": 32,
+    "failures": [
+      {
+        "number": 1,
+        "title": "Owner invites Worker, PM and Finance users",
+        "error": "locator.selectOption: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByLabel('Access method', { exact: true })\u001b[22m\n"
+      },
+      {
+        "number": 23,
+        "title": "Finance issues an immutable identified invoice",
+        "error": "Created invoice draft identity was not exposed"
+      },
+      {
+        "number": 24,
+        "title": "Finance records client payments and worker/expense payment states",
+        "error": "BLOCKED by step 23: no issued invoice identity"
+      }
+    ]
+  },
+  {
+    "phase": "causal-attempt1",
+    "status": "NOT_READY",
+    "passedSteps": 29,
+    "totalSteps": 32,
+    "failures": [
+      {
+        "number": 22,
+        "title": "Period close creates customer report and gates labor invoice",
+        "error": "\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('tr[data-invoice-row=\"01a0b76b-7c4f-7672-a540-33ffaf83bd42\"]')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('tr[data-invoice-row=\"01a0b76b-7c4f-7672-a540-33ffaf83bd42\"]')\u001b[22m\n"
+      },
+      {
+        "number": 23,
+        "title": "Finance issues an immutable identified invoice",
+        "error": "BLOCKED by step 22: the same labor invoice lacks its verified customer report/signature"
+      },
+      {
+        "number": 24,
+        "title": "Finance records client payments and worker/expense payment states",
+        "error": "\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('tr[data-invoice-row=\"01a0b76b-7c4f-7672-a540-33ffaf83bd42\"]')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('tr[data-invoice-row=\"01a0b76b-7c4f-7672-a540-33ffaf83bd42\"]')\u001b[22m\n"
+      }
+    ]
+  }
+]

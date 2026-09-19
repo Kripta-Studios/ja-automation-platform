@@ -1,11 +1,14 @@
 # Estado consolidado del repositorio y proyecto — 18/09/2026
 
+> Checkpoint histórico. El [estado del 19/09](PROJECT_STATUS_2026-09-19.md) actualiza la recuperación,
+> versión productiva y aceptación. Las cifras y pendientes de este documento corresponden al 18/09.
+
 **Veredicto: producción operativa; cierre Client Essential pendiente. No se acredita el 100 % ni `CLIENT READY`.**
 Las funcionalidades entregadas tienen evidencia técnica, pero faltan aceptación humana y fiscal/legal,
 resolución de incidencias históricas y una ejecución integral de aceptación sobre el código actual.
 Esta consolidación documenta el estado: no implementa funcionalidades ni firma una aceptación.
 
-Este documento es el punto de entrada para el **estado actual**, subordinado a la
+Este documento fue el punto de entrada para el **estado al 18/09**, subordinado a la
 [SPEC](../J_A_AUTOMATION_CLIENT_ESSENTIAL_SPEC_2026-08-22.md) y al
 [checklist](../J_A_AUTOMATION_CLIENT_ESSENTIAL_CHECKLIST_2026-08-22.md).
 Los checkpoints fechados conservan su valor histórico; un `PASS`, `BLOCKED` o «no desplegado»

@@ -103,3 +103,29 @@ Authenticated manual downloads pass for the persisted role/persona, legacy links
 retry, localized persistent failure and session expiry (three desktop cases). The 390 px Help
 layout passes its separate phone-only case. Historical evidence screenshots were preserved;
 new Help images are stored in this release directory.
+
+## Production receipt
+
+Deployed commit **`d7fbd72d746b05bf8d99a294ca843b3e1bbfda0a`** on **2026-09-22 at 17:49:09 Europe/Madrid**.
+The archive SHA-256 is `f65e3d9aa8b0014bf1735533f0027c0747495fb509810e0823e65f6bd4f2b31a` (262,926,299 bytes). The deployed
+release matches all 2,538 archived files; 604 runtime source files match the working tree.
+Nine installed PDFs match the regenerated manual hashes.
+
+SQLite integrity is OK with zero foreign-key violations. The eight historical financial tables
+and all 59 existing private files retain their baseline hashes. The latest backup
+was verified through an isolated SQLite copy plus registered-artifact checks. Its historical
+coverage remains 14/30 days; this pre-existing history limitation is not claimed resolved.
+
+Public-browser checks pass on 12 EN/ES/PT website/login combinations at 390/1440 px,
+with loaded fonts, no horizontal overflow and no console/network errors. Site and portal are
+healthy. Four automatic job executions in two distinct minute cycles succeeded; new-container
+logs contain no matched errors. Caddy and Stalwart retained their PIDs, backup/jobs timers are
+active, and unrelated running containers retained their identities.
+
+`docker builder prune -af` reclaimed **6.88GB**. Build cache is **0 B**; images, volumes and
+application data were preserved. The final GitHub receipt commit only adds verification evidence
+and this checklist update; production runtime remains the commit above.
+
+The initial explicit deployment attempt met the active ZIP scanner lock and exited without
+deploying. After that scan completed, the explicit archive deployment succeeded. No permission
+or manual product-job action was needed.

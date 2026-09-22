@@ -1,0 +1,66 @@
+{
+  "at": "2026-09-22T15:51:14.640063+00:00",
+  "command": "docker builder prune -af",
+  "reclaimed": "6.88GB",
+  "before": [
+    {
+      "Active": "14",
+      "Reclaimable": "15.78GB (51%)",
+      "Size": "30.39GB",
+      "TotalCount": "29",
+      "Type": "Images"
+    },
+    {
+      "Active": "15",
+      "Reclaimable": "28.67kB (12%)",
+      "Size": "237.6kB",
+      "TotalCount": "17",
+      "Type": "Containers"
+    },
+    {
+      "Active": "4",
+      "Reclaimable": "0B (0%)",
+      "Size": "345MB",
+      "TotalCount": "4",
+      "Type": "Local Volumes"
+    },
+    {
+      "Active": "0",
+      "Reclaimable": "6.88GB",
+      "Size": "6.88GB",
+      "TotalCount": "50",
+      "Type": "Build Cache"
+    }
+  ],
+  "after": [
+    {
+      "Active": "14",
+      "Reclaimable": "9.548GB (39%)",
+      "Size": "24.16GB",
+      "TotalCount": "29",
+      "Type": "Images"
+    },
+    {
+      "Active": "15",
+      "Reclaimable": "28.67kB (12%)",
+      "Size": "237.6kB",
+      "TotalCount": "17",
+      "Type": "Containers"
+    },
+    {
+      "Active": "4",
+      "Reclaimable": "0B (0%)",
+      "Size": "345MB",
+      "TotalCount": "4",
+      "Type": "Local Volumes"
+    },
+    {
+      "Active": "0",
+      "Reclaimable": "0B",
+      "Size": "0B",
+      "TotalCount": "0",
+      "Type": "Build Cache"
+    }
+  ],
+  "scope": "Build cache only; no image or volume prune."
+}

@@ -1,0 +1,24 @@
+{
+  "at": "2026-09-22T15:50:25.527055+00:00",
+  "scope": "Logs since each newly deployed container started; matched structured errors, ERROR and unhandled/uncaught exceptions.",
+  "results": [
+    {
+      "container": "deployment-site-1",
+      "startedAt": "2026-09-22T15:48:59.088860259Z",
+      "lines": 5,
+      "errorMatches": 0
+    },
+    {
+      "container": "deployment-portal-1",
+      "startedAt": "2026-09-22T15:48:59.086989454Z",
+      "lines": 13,
+      "errorMatches": 0
+    },
+    {
+      "container": "deployment-jobs-1",
+      "startedAt": "2026-09-22T15:48:59.39759931Z",
+      "lines": 35,
+      "errorMatches": 0
+    }
+  ]
+}

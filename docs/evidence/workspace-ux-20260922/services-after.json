@@ -1,0 +1,96 @@
+{
+  "at": "2026-09-22T15:50:14.307190+00:00",
+  "services": {
+    "caddy": {
+      "MainPID": "915",
+      "ActiveState": "active"
+    },
+    "jaautomation-jobs.timer": {
+      "ActiveState": "active"
+    },
+    "jaautomation-backup.timer": {
+      "ActiveState": "active"
+    },
+    "stalwart": {
+      "MainPID": "981",
+      "ActiveState": "active"
+    }
+  },
+  "containers": {
+    "deployment-jobs-1": {
+      "running": true,
+      "health": null,
+      "unchangedInstance": false
+    },
+    "deployment-portal-1": {
+      "running": true,
+      "health": "healthy",
+      "unchangedInstance": false
+    },
+    "deployment-site-1": {
+      "running": true,
+      "health": "healthy",
+      "unchangedInstance": false
+    },
+    "navidrome-navidrome-1": {
+      "running": true,
+      "health": null,
+      "unchangedInstance": true
+    },
+    "trace-it-frontend-1": {
+      "running": true,
+      "health": "healthy",
+      "unchangedInstance": true
+    },
+    "trace-it-backend-1": {
+      "running": true,
+      "health": "healthy",
+      "unchangedInstance": true
+    },
+    "trace-it-erp-erp-1": {
+      "running": true,
+      "health": "healthy",
+      "unchangedInstance": true
+    },
+    "trace-it-criminal-records-1": {
+      "running": true,
+      "health": "healthy",
+      "unchangedInstance": true
+    },
+    "trace-it-db-1": {
+      "running": true,
+      "health": "healthy",
+      "unchangedInstance": true
+    },
+    "lois-jobs": {
+      "running": true,
+      "health": "healthy",
+      "unchangedInstance": true
+    },
+    "lois-booking": {
+      "running": true,
+      "health": "healthy",
+      "unchangedInstance": true
+    },
+    "lois-web": {
+      "running": true,
+      "health": "healthy",
+      "unchangedInstance": true
+    },
+    "adlaudem-preview-web-1": {
+      "running": true,
+      "health": "healthy",
+      "unchangedInstance": true
+    },
+    "adlaudem-preview-db-1": {
+      "running": true,
+      "health": "healthy",
+      "unchangedInstance": true
+    },
+    "lois-db": {
+      "running": true,
+      "health": "healthy",
+      "unchangedInstance": true
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "checkedAt": "2026-09-22T15:50:25.803190+00:00",
+  "containerStartedAt": "2026-09-22T15:48:59.39759931Z",
+  "successfulExecutions": 4,
+  "automaticMinutes": [
+    "2026-09-22T15:49",
+    "2026-09-22T15:50"
+  ],
+  "runs": [
+    {
+      "kind": "alert_dispatch",
+      "state": "succeeded",
+      "outcome": "succeeded",
+      "error_code": null,
+      "started_at": "2026-09-22T15:49:05.025Z",
+      "finished_at": "2026-09-22T15:49:05.201Z"
+    },
+    {
+      "kind": "alert_dispatch",
+      "state": "succeeded",
+      "outcome": "succeeded",
+      "error_code": null,
+      "started_at": "2026-09-22T15:49:05.202Z",
+      "finished_at": "2026-09-22T15:49:05.365Z"
+    },
+    {
+      "kind": "alert_dispatch",
+      "state": "succeeded",
+      "outcome": "succeeded",
+      "error_code": null,
+      "started_at": "2026-09-22T15:50:01.928Z",
+      "finished_at": "2026-09-22T15:50:02.838Z"
+    },
+    {
+      "kind": "alert_dispatch",
+      "state": "succeeded",
+      "outcome": "succeeded",
+      "error_code": null,
+      "started_at": "2026-09-22T15:50:02.839Z",
+      "finished_at": "2026-09-22T15:50:03.030Z"
+    }
+  ]
+}

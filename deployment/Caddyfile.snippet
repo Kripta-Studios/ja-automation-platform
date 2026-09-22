@@ -4,29 +4,59 @@ redir /j-aautomation /j-aautomation/en/ 308
 log_skip /j-aautomation/app/invite/*
 handle_path /j-aautomation/portal-assets/* {
 	rewrite * /j-aautomation{path}
-	reverse_proxy 127.0.0.1:5100
+	reverse_proxy 127.0.0.1:5100 {
+		# Avoid stale Node sockets when a synchronous readiness check delays its event loop.
+		transport http {
+			keepalive off
+		}
+	}
 }
 handle /j-aautomation/_app/* {
-	reverse_proxy 127.0.0.1:5100
+	reverse_proxy 127.0.0.1:5100 {
+		# Avoid stale Node sockets when a synchronous readiness check delays its event loop.
+		transport http {
+			keepalive off
+		}
+	}
 }
 handle /j-aautomation/app/api/internal/outbox-delivery {
 	request_body {
 		max_size 256KB
 	}
-	reverse_proxy 127.0.0.1:5100
+	reverse_proxy 127.0.0.1:5100 {
+		# Avoid stale Node sockets when a synchronous readiness check delays its event loop.
+		transport http {
+			keepalive off
+		}
+	}
 }
 handle /j-aautomation/app* {
-	reverse_proxy 127.0.0.1:5100
+	reverse_proxy 127.0.0.1:5100 {
+		# Avoid stale Node sockets when a synchronous readiness check delays its event loop.
+		transport http {
+			keepalive off
+		}
+	}
 }
 handle /j-aautomation/api/public/* {
-	reverse_proxy 127.0.0.1:5100
+	reverse_proxy 127.0.0.1:5100 {
+		# Avoid stale Node sockets when a synchronous readiness check delays its event loop.
+		transport http {
+			keepalive off
+		}
+	}
 }
 @jaautomation_health_local {
 	path /j-aautomation/health/*
 	remote_ip 127.0.0.1 ::1
 }
 handle @jaautomation_health_local {
-	reverse_proxy 127.0.0.1:5100
+	reverse_proxy 127.0.0.1:5100 {
+		# Avoid stale Node sockets when a synchronous readiness check delays its event loop.
+		transport http {
+			keepalive off
+		}
+	}
 }
 handle /j-aautomation/health/* {
 	respond "Not Found" 404

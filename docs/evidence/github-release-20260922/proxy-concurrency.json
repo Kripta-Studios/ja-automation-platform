@@ -1,0 +1,52 @@
+{
+  "at": "2026-09-22T10:38:39.279446+00:00",
+  "checks": [
+    {
+      "path": "app/login",
+      "status": 200,
+      "seconds": 2.045
+    },
+    {
+      "path": "app/login",
+      "status": 200,
+      "seconds": 2.042
+    },
+    {
+      "path": "app/login",
+      "status": 200,
+      "seconds": 0.037
+    },
+    {
+      "path": "app/login",
+      "status": 200,
+      "seconds": 2.313
+    },
+    {
+      "path": "app/login",
+      "status": 200,
+      "seconds": 2.309
+    },
+    {
+      "path": "app/login",
+      "status": 200,
+      "seconds": 0.953
+    },
+    {
+      "path": "app/login",
+      "status": 200,
+      "seconds": 0.019
+    },
+    {
+      "path": "app/login",
+      "status": 200,
+      "seconds": 0.03
+    },
+    {
+      "path": "app/login",
+      "status": 200,
+      "seconds": 0.011
+    }
+  ],
+  "result": "passed",
+  "scope": "Three concurrent readiness cycles and idle reuse delays; no authenticated production writes"
+}

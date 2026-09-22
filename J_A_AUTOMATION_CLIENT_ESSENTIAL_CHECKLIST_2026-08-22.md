@@ -885,3 +885,11 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] SQLite íntegro, cero errores FK, ocho tablas históricas y 59 archivos conservados; respaldo previo y dos ciclos automáticos verificados. Segunda comprobación pública móvil/escritorio sin errores; 502 puntual inicial documentado.
 - [x] Caché Docker 0 B tras liberar 6,861 GB; imágenes/volúmenes conservados; timers/watchers activos.
 - Límites: aceptación completa de 32 pasos no repetida; cobertura histórica de respaldo 14/30 días. [Recibo y alcance](docs/PRODUCTION_DEPLOYMENT_2026-09-22_PORTAL_DENSITY.md).
+
+## 2026-09-22 — Publicación Git y comprobación operativa
+
+- [x] Renovación completa publicada en GitHub como `eb80da4`; ZIP de ese commit desplegado, 2.140 archivos extraídos idénticos. Integridad SQLite, ocho tablas históricas y 59 archivos privados conservados; nueve PDF instalados verificados.
+- [x] Reproducción de 502 durante readiness documentada. Mitigación acotada de reutilización de conexiones Caddy/Node, configuración completa validada y revisión independiente sin bloqueo; seis páginas y nueve solicitudes concurrentes posteriores correctas. No se atribuye resolución de la latencia de readiness.
+- [x] Nueva vinculación de manuales a la configuración final: 112 capturas, 196 comprobaciones y nueve PDF verificados; resumen de fuente `89b84e99ba4817e04bcb267836fa829df7456864b480f90fdea478ae5cbcff93`.
+- [x] SMTP/STARTTLS/SMTPS/IMAPS y dos webmails verificados, sin autenticación ni envío de correo. Se conservan advertencias anteriores de PhishTank/DNSSEC-DANE; no se declara ausencia absoluta de errores.
+- Despliegue definitivo y limpieza: resultados tras ejecución en [evidencia de publicación](docs/evidence/github-release-20260922/README.md).

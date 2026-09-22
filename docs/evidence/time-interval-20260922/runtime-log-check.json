@@ -1,0 +1,17 @@
+{
+  "deployment-portal-1": {
+    "linesChecked": 13,
+    "errorMatches": 0
+  },
+  "deployment-site-1": {
+    "linesChecked": 5,
+    "errorMatches": 0
+  },
+  "deployment-jobs-1": {
+    "linesChecked": 31,
+    "errorMatches": 0
+  },
+  "since": "2026-09-22T12:53:30Z",
+  "at": "2026-09-22T12:54:45.865353+00:00",
+  "scope": "Structured error and uncaught/Unhandled exception scan of new application container logs; not a guarantee that every operation was exercised."
+}

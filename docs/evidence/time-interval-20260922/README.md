@@ -31,6 +31,19 @@ Representative captures: [360 px picker](integrated-picker-phone-360.png), [1440
 
 ## Manuals and release
 
-Final clean-fixture capture passed: **116 screenshots, 202 checks** for seven personas in EN/PT-BR, including phone views. All **nine PDFs** passed hash/source-digest, embedded-font, image, page and extracted-text validation. New clock-form and picker captures and the rendered clock-form PDF page were visually inspected. See [capture log](manual-capture-final.txt) and [PDF quality manifest](../../manuals/validation/pdf-quality.json). A separate clean fixture excludes names altered by regression tests. Production deployment receipt is pending.
+Final clean-fixture capture passed: **116 screenshots, 202 checks** for seven personas in EN/PT-BR, including phone views. All **nine PDFs** passed hash/source-digest, embedded-font, image, page and extracted-text validation. New clock-form and picker captures and the rendered clock-form PDF page were visually inspected. See [capture log](manual-capture-final.txt) and [PDF quality manifest](../../manuals/validation/pdf-quality.json). A separate clean fixture excludes names altered by regression tests. Production deployment completed; see the receipt below.
 
 This focused packet does not claim to rerun the complete 32-step acceptance journey or resolve historical external/human acceptance items. Production jobs/backups and mail limits are recorded in the release receipt.
+
+## Production receipt
+
+Commit **`955f748eb0f20ac44f76b0fec397c41d956c565c`** was pushed and deployed successfully at **2026-09-22 14:53:40 Europe/Madrid**. Git archive SHA-256: `3d43a7ce49587ef3c34393615e5094f6ed025629e97659aa535a333c9e8adb90`. The active immutable release is `/opt/jaautomation/releases/ja-automation-3d43a7ce49587ef3c34393615e5094f6ed025629e97659aa535a333c9e8adb90`.
+
+- [Archive comparison](release-tree.json): all **2,227 files** match the committed archive. [Production comparison](production-after.json): all **598 runtime source files** match the working repository, nine installed PDFs match their validated hashes, SQLite integrity is `ok`, foreign-key violations are zero, eight financial-table hashes and **59 private artifacts** are unchanged.
+- [Live browser checks](production-browser.json): EN/PT websites and portal login at 390/1440 px return 200, load the intended fonts, have no horizontal overflow and report no page/network errors. The authenticated role/CRUD/time/report journeys were run against isolated fixtures. [New-container log scan](runtime-log-check.json) found no structured errors or unhandled exceptions during its stated observation window.
+- [Jobs verification](production-jobs.txt): production health/readiness and two automatic cycles passed. Four historical dead-letter jobs and two historical failed localized-PDF records remain; this release does not claim to repair those pre-existing states.
+- [Backup verification](backup-verification.json): latest pre-deployment snapshot passed SQLite/FK and **59-document** integrity checks. Historical date coverage remains **14/30 days**, not a full thirty-day history.
+- [Mail checks](mail-health.json): SMTP EHLO, submission STARTTLS, SMTPS and IMAPS with certificate validation passed; both webmails returned 200. Stalwart remains on PID **979**, with no restart or mailbox/configuration changes. These are protocol checks, not actual message delivery tests. Previously documented PhishTank/DNSSEC-DANE warnings are not claimed resolved.
+- [Final services and cleanup](final-service-state.json): required timers, deployment watcher, Caddy, Stalwart and the music bind mount are active. All inspected running containers remain running/healthy. Docker **build cache only** was pruned: **6.858 GB** reclaimed, **0 B** remaining. Images, volumes and user/application/mail data were not pruned. Available disk: **29.36 GiB on sda1**, **58.35 GiB on sdb**.
+
+The final evidence-only Git commit does not change deployed application or manual files.

@@ -1,0 +1,28 @@
+{
+  "smtp25": {
+    "ehlo": 250,
+    "starttlsAdvertised": true
+  },
+  "submission587": {
+    "starttls": "verified",
+    "ehlo": 250,
+    "certificateExpires": "Nov 23 15:23:41 2026 GMT"
+  },
+  "smtps465": {
+    "tls": "verified",
+    "ehlo": 250
+  },
+  "imaps993": {
+    "tls": "verified",
+    "capability": "OK"
+  },
+  "webmail.j-aautomation.com": {
+    "http": 200
+  },
+  "webmail.app.j-aautomation.com": {
+    "http": 200
+  },
+  "at": "2026-09-22T12:53:58.964629+00:00",
+  "mailService": "MainPID=979\nExecMainStartTimestamp=Tue 2026-09-22 08:30:28 CEST\nActiveState=active\n",
+  "scope": "Protocol and TLS checks only; no authentication, mailbox reading or email sending."
+}

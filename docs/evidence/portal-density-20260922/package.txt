@@ -1,0 +1,1 @@
+archive=/tmp/jaautomation-density-20260922.zip files=2119 bytes=156816055 sha256=0ba62783814af13aa36f3f9c0e6a6d3394499b12cad478dde89aec79f5dc672f

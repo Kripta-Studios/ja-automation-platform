@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import PlanningCalendar from '$lib/portal/ui/PlanningCalendar.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
@@ -281,7 +282,7 @@
     <span aria-current="page">{display(project.project_number)}</span>
     <div class="project-breadcrumb-actions">
       <button type="button" class="quiet-button" onclick={printReport}>
-        <span aria-hidden="true">⎙</span>
+        <PrintIcon />
         {t('Print report')}
       </button>
       <a href={base + '/app/'}>{t('Operations dashboard')}</a>
@@ -1368,11 +1369,11 @@
 
 <style>
   .project-detail-page {
-    --project-ink: var(--ja-ink, #10202f);
-    --project-muted: var(--ja-steel, #637486);
-    --project-line: var(--ja-line, #dce4ed);
+    --project-ink: var(--ja-ink, #1f1f1c);
+    --project-muted: var(--ja-steel, #77756d);
+    --project-line: var(--ja-line, #e4e4e2);
     --project-surface: var(--ja-white, #fff);
-    --project-soft: #f5f8fa;
+    --project-soft: #f8f8f7;
     max-width: 78rem;
     margin: 0 auto;
     padding: clamp(1rem, 2.5vw, 2.25rem);
@@ -1398,7 +1399,7 @@
   }
   .project-breadcrumb a,
   .inline-link {
-    color: var(--ja-teal, #277e78);
+    color: var(--ja-teal, #706e66);
     font-weight: 700;
     text-decoration: none;
   }
@@ -1430,19 +1431,19 @@
     color: var(--project-ink);
   }
   .primary-button {
-    border: 1px solid var(--ja-teal, #277e78);
-    background: var(--ja-teal, #277e78);
+    border: 1px solid var(--ja-teal, #706e66);
+    background: var(--ja-teal, #706e66);
     color: #fff;
   }
   .quiet-button:hover,
   .secondary-button:hover,
   .quiet-button:focus-visible,
   .secondary-button:focus-visible {
-    border-color: var(--ja-teal, #277e78);
+    border-color: var(--ja-teal, #706e66);
   }
   .primary-button:hover,
   .primary-button:focus-visible {
-    background: #1f6762;
+    background: #5b5a53;
   }
   .quiet-button:focus-visible,
   .secondary-button:focus-visible,
@@ -1450,7 +1451,7 @@
   .project-tabs button:focus-visible,
   .compact-record:focus-visible,
   .report-type-card:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--ja-teal, #277e78) 35%, transparent);
+    outline: 3px solid color-mix(in srgb, var(--ja-teal, #706e66) 35%, transparent);
     outline-offset: 2px;
   }
 
@@ -1546,8 +1547,8 @@
   .attention-card:focus-visible,
   .billing-stream:hover,
   .billing-stream:focus-visible {
-    border-color: var(--ja-teal, #277e78);
-    outline: 3px solid color-mix(in srgb, var(--ja-teal, #277e78) 22%, transparent);
+    border-color: var(--ja-teal, #706e66);
+    outline: 3px solid color-mix(in srgb, var(--ja-teal, #706e66) 22%, transparent);
     outline-offset: 2px;
   }
   .attention-card span,
@@ -1692,7 +1693,7 @@
   }
 
   .expense-filter select:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--ja-teal, #277e78) 35%, transparent);
+    outline: 3px solid color-mix(in srgb, var(--ja-teal, #706e66) 35%, transparent);
     outline-offset: 1px;
   }
 
@@ -1720,7 +1721,7 @@
   }
   .compact-record:hover,
   .compact-record:focus-visible {
-    border-color: var(--ja-teal, #277e78);
+    border-color: var(--ja-teal, #706e66);
   }
   .record-mark,
   .report-type-icon,
@@ -1768,8 +1769,8 @@
   }
   .avatar {
     border-radius: 50%;
-    background: #edf4f6;
-    color: var(--ja-teal, #277e78);
+    background: #f3f3f2;
+    color: var(--ja-teal, #706e66);
   }
   .planning-record {
     display: grid;
@@ -1904,7 +1905,7 @@
   .edit-field-grid textarea:focus-visible,
   .invoice-draft-form input:focus-visible,
   .invoice-draft-form select:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--ja-teal, #277e78) 35%, transparent);
+    outline: 3px solid color-mix(in srgb, var(--ja-teal, #706e66) 35%, transparent);
     outline-offset: 1px;
   }
   .wide-field {
@@ -1932,9 +1933,9 @@
   .form-notice {
     display: grid;
     gap: 0.2rem;
-    border-inline-start: 3px solid var(--ja-teal, #277e78);
+    border-inline-start: 3px solid var(--ja-teal, #706e66);
     padding: 0.75rem 0.9rem;
-    background: #eef8f7;
+    background: #f6f6f5;
   }
   .form-notice span {
     color: var(--project-muted);

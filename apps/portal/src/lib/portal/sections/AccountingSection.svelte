@@ -112,6 +112,7 @@
   {#if !isAuditor}
     <SectionCard
       title={translate('Generate monthly Accounting Pack')}
+      collapsible
       class="accounting-section__create"
     >
       <form method="POST" action="?/createAccountingPack" class="accounting-section__form">
@@ -199,8 +200,8 @@
 
   .accounting-section__eyebrow {
     margin: 0 0 0.35rem;
-    color: var(--portal-muted, #64748b);
-    font-size: 0.72rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -208,7 +209,7 @@
 
   .accounting-section__context h2 {
     margin: 0;
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
     font-size: clamp(1.55rem, 2vw, 2rem);
     letter-spacing: -0.025em;
   }
@@ -216,7 +217,7 @@
   .accounting-section__context p:last-child {
     max-width: 48rem;
     margin: 0.4rem 0 0;
-    color: var(--portal-muted, #64748b);
+    color: var(--portal-muted, #67675f);
   }
 
   .accounting-section__attention {
@@ -232,19 +233,19 @@
     gap: 0.22rem;
     min-height: 6rem;
     padding: 0.9rem 1rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.75rem;
     background: var(--portal-surface, #fff);
   }
 
   .accounting-section__attention span,
   .accounting-section__attention small {
-    color: var(--portal-muted, #64748b);
-    font-size: 0.8rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
   }
 
   .accounting-section__attention strong {
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
     font-size: 1.45rem;
     font-variant-numeric: tabular-nums;
   }
@@ -257,7 +258,7 @@
   .accounting-section__form > p {
     max-width: 60rem;
     margin: 0;
-    color: var(--portal-muted, #64748b);
+    color: var(--portal-muted, #67675f);
   }
 
   .accounting-section__fields {
@@ -269,8 +270,8 @@
   .accounting-section__fields label {
     display: grid;
     gap: 0.35rem;
-    color: var(--portal-muted, #64748b);
-    font-size: 0.78rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
     font-weight: 650;
   }
 
@@ -278,10 +279,10 @@
   .accounting-section__fields select {
     min-height: 2.75rem;
     padding: 0.55rem 0.7rem;
-    border: 1px solid var(--portal-border-strong, #b8c3d1);
+    border: 1px solid var(--portal-border-strong, #c4c4bf);
     border-radius: 0.5rem;
     background: var(--portal-surface, #fff);
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
     font: inherit;
   }
 
@@ -307,13 +308,13 @@
   }
 
   .accounting-section__empty span {
-    color: var(--portal-muted, #64748b);
+    color: var(--portal-muted, #67675f);
   }
 
   .accounting-section__fields input:focus-visible,
   .accounting-section__fields select:focus-visible,
   .accounting-section__actions button:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--portal-accent, #0f5f73) 32%, transparent);
+    outline: 3px solid color-mix(in srgb, var(--portal-accent, #53524c) 32%, transparent);
     outline-offset: 2px;
   }
 

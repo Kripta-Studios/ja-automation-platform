@@ -82,37 +82,29 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   return (
     <>
       {/* ═══ HERO ═══ */}
-      <section id="home" className="relative">
-        <HeroCrossfade />
-        <div className="absolute inset-0 z-10 flex items-center pt-24 lg:items-start lg:pt-28">
-          <div className="container-ja">
-            <div className="max-w-2xl lg:max-w-3xl">
-              <Image
-                src={logoImg}
-                alt={imageAlt('logo')}
-                className="mb-6 h-28 w-auto drop-shadow-[0_8px_24px_rgba(0,0,0,0.35)] sm:h-32 lg:h-40"
-                priority
-                sizes="(max-width: 640px) 112px, (max-width: 1024px) 128px, 160px"
-              />
-              <p className="eyebrow text-white/70 mb-5">{hero('eyebrow')}</p>
-              <h1 className="heading-display text-white mb-6">{hero('h1')}</h1>
-              <p className="text-lg text-white/80 leading-relaxed mb-8 max-w-xl">{hero('body')}</p>
-              <div className="translate-y-6 sm:translate-y-7 lg:translate-y-10">
-                <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-                  <Link href="/contact?intent=project" className="btn btn-primary">
-                    {hero('cta')}
-                  </Link>
-                  <Link href="/capabilities" className="btn btn-secondary-dark">
-                    {hero('ctaSecondary')}
-                  </Link>
-                </div>
-                <Link
-                  href="/contact?intent=support"
-                  className="inline-flex items-center gap-2 text-sm text-white/60 transition-colors hover:text-white/90"
-                >
-                  {hero('supportLink')}
-                </Link>
-              </div>
+      <section id="home" className="home-intro">
+        <div className="container-ja home-intro-grid">
+          <div className="home-intro-copy">
+            <p className="eyebrow">{hero('eyebrow')}</p>
+            <h1 className="heading-display">{hero('h1')}</h1>
+            <p className="text-lead">{hero('body')}</p>
+            <div className="home-intro-actions">
+              <Link href="/contact?intent=project" className="btn btn-primary">
+                {hero('cta')} <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+              <Link href="/capabilities" className="btn btn-secondary">
+                {hero('ctaSecondary')}
+              </Link>
+            </div>
+            <Link href="/contact?intent=support" className="home-support-link">
+              {hero('supportLink')} <ArrowRight size={14} aria-hidden="true" />
+            </Link>
+          </div>
+          <div className="home-intro-media">
+            <HeroCrossfade />
+            <div className="home-intro-caption">
+              <Image src={logoImg} alt={imageAlt('logo')} className="h-12 w-auto" />
+              <span>{proof('since')}</span>
             </div>
           </div>
         </div>

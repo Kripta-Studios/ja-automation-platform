@@ -1,0 +1,159 @@
+[WebServer] (node:256460) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ next start --port 4173 --hostname 127.0.0.1
+[WebServer] (node:256473) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+[WebServer] (node:256516) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite build
+[WebServer] (node:256529) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer] (node:256529) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer] [plugin builtin:vite-reporter] 
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[WebServer] (node:256529) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] .svelte-kit/output/server/chunks/auth.js (3652:0): A comment
+[WebServer] 
+[WebServer] "/**
+[WebServer] * Wraps a cipher: validates args, ensures encrypt() can only be called once.
+[WebServer] * Used internally by the exported cipher constructors.
+[WebServer] * Output-buffer support is inferred from the wrapped `encrypt` / `decrypt`
+[WebServer] * arity (`fn.length === 2`), so wrapped output-capable methods must use a normal
+[WebServer] * second parameter, not a default/rest parameter. AAD support is explicit in
+[WebServer] * `params.withAAD`; optional AAD starts after the nonce slot when one is present.
+[WebServer] * @__NO_SIDE_EFFECTS__
+[WebServer] * @param params - Static cipher metadata. See {@link CipherParams}.
+[WebServer] * @param constructor - Cipher constructor.
+[WebServer] * @returns Wrapped constructor with validation.
+[WebServer] */"
+[WebServer] 
+[WebServer] in ".svelte-kit/output/server/chunks/auth.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+[WebServer] "node:sqlite" is imported by ".svelte-kit/output/server/chunks/src.js", but could not be resolved – treating it as an external dependency.
+[WebServer] Generated an empty chunk: "chunks/env.js".
+[WebServer] [PLUGIN_TIMINGS] Your build spent 100% of 12.9s inside plugin hooks (19.0s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-sveltekit-compile writeBundle (69%, 8.9s, 1 call)
+[WebServer]   - vite-plugin-sveltekit-compile closeBundle (50%, 6.5s, 1 call)
+[WebServer]   - vite-plugin-svelte:compile transform (20%, 2.6s, 64 calls)
+[WebServer]   - vite:css transform (9%, 1.1s, 33 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 100% is below.
+[WebServer] Not measurable — 1 hook whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (4434 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer] 
+[WebServer] (node:257242) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ node build
+[WebServer] (node:257275) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a0c86d-5aad-70a4-9d4c-ae6e53012367",
+    "01a0c86d-5aae-76e0-82f3-cf9e93eefa8d",
+    "01a0c86d-5aae-76e0-82f3-dc0d773c9921",
+    "01a0c86d-5aaf-707d-ae84-51defe7a9cbf"
+  ],
+  "invoiceDrafts": [
+    "01a0c86d-5bc8-708f-aa41-8f65ed872d37",
+    "01a0c86d-5bcc-701b-a9e0-af64f6bac224",
+    "01a0c86d-5bd1-7030-9aa6-81517f32626c"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a0c86d-5bdb-74b9-a02f-67718805aacc",
+    "01a0c86d-5bde-7692-9edb-7fa6fb52d6ef",
+    "01a0c86d-5be1-73d9-a7a9-1a52f696fcd3"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a0c86d-5bdb-74b9-a02f-67718805aacc",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a0c86d-5bbc-739d-be6d-42c8f94775d3",
+    "01a0c86d-5bbf-72b0-b226-c71b5ba23a9e"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0c86d-5aad-70a4-9d4c-ae6e53012367",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a0c86d-5bea-772e-8765-c28fdf774f4c"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0c86d-5aad-70a4-9d4c-ae6e53012367",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a0c86d-5bed-740a-b913-4e1c5e220a1d"
+    }
+  ],
+  "periodReportIds": [
+    "01a0c86d-5bed-740a-b913-54c1a0e1ed1d",
+    "01a0c86d-5bed-740a-b913-5998f9ca0243"
+  ],
+  "accountingPackId": "01a0c86d-5c2c-74d8-9c2b-5160192c9922",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-8ad90e7a648b52ea7fb1f9e2ccbcdc8d949f063c",
+  "closeoutId": "01a0c86d-5cc0-722d-a338-2250f9a88dae"
+}
+
+Running 8 tests using 1 worker
+
+(node:257424) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -  1 [phone-360] › tests/e2e/manual-current-capture.spec.ts:53:1 › capture fresh synthetic EN and PT-BR manuals for seven personas
+  ✓  2 [phone-360] › tests/e2e/portal-density.spec.ts:85:1 › project and finance administration opens one chosen task (13.8s)
+(node:257888) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -  3 [phone-390] › tests/e2e/manual-current-capture.spec.ts:53:1 › capture fresh synthetic EN and PT-BR manuals for seven personas
+  ✓  4 [phone-390] › tests/e2e/portal-density.spec.ts:85:1 › project and finance administration opens one chosen task (14.1s)
+(node:258430) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -  5 [tablet-768] › tests/e2e/manual-current-capture.spec.ts:53:1 › capture fresh synthetic EN and PT-BR manuals for seven personas
+  ✓  6 [tablet-768] › tests/e2e/portal-density.spec.ts:85:1 › project and finance administration opens one chosen task (14.0s)
+(node:258890) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  7 [desktop] › tests/e2e/manual-current-capture.spec.ts:53:1 › capture fresh synthetic EN and PT-BR manuals for seven personas (2.3m)
+  ✓  8 [desktop] › tests/e2e/portal-density.spec.ts:85:1 › project and finance administration opens one chosen task (14.5s)
+
+  3 skipped
+  5 passed (3.7m)

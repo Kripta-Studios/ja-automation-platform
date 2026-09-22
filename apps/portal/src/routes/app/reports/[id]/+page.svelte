@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { base } from '$app/paths';
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
@@ -425,7 +426,7 @@
     <a href={base + '/app/reports'} data-origin-back>← {t('Reports')}</a>
     <a href={base + '/app/projects/' + display(report.project_id)}>{t('Open project')}</a>
     <button type="button" class="no-print print-trigger" onclick={printReport}>
-      <span aria-hidden="true">⎙</span>
+      <PrintIcon />
       {t('Print Report')}
     </button>
   </nav>
@@ -1334,7 +1335,7 @@
     gap: 1.25rem;
     margin-top: 1.5rem;
     padding: clamp(1rem, 2vw, 1.5rem);
-    border: 1px solid var(--portal-border, #d5dbe3);
+    border: 1px solid var(--portal-border, #dcdbd9);
     border-radius: 1rem;
     background: var(--portal-surface, #fff);
   }
@@ -1361,9 +1362,9 @@
     display: grid;
     gap: 0.8rem;
     padding: 1rem;
-    border: 1px solid var(--portal-border, #d5dbe3);
+    border: 1px solid var(--portal-border, #dcdbd9);
     border-radius: 0.75rem;
-    background: var(--portal-surface-muted, #f8fafc);
+    background: var(--portal-surface-muted, #fafaf9);
   }
 
   .report-attachment-card-header p {
@@ -1385,7 +1386,7 @@
   }
 
   .report-attachment-meta dt {
-    color: var(--portal-muted, #526172);
+    color: var(--portal-muted, #63625b);
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.04em;
@@ -1406,7 +1407,7 @@
     display: grid;
     gap: 1rem;
     padding-top: 1rem;
-    border-top: 1px solid var(--portal-border, #d5dbe3);
+    border-top: 1px solid var(--portal-border, #dcdbd9);
   }
 
   .report-attachment-upload-fields {

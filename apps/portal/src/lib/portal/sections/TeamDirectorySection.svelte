@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { disclosure } from '../ui/disclosure.js';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { enhance } from '$app/forms';
   import { base } from '$app/paths';
@@ -975,10 +976,11 @@
                   {/if}
                 </div>{/if}
             {/if}
-            <section aria-labelledby={`team-assignments-${workerId(worker)}`}>
-              <h3 id={`team-assignments-${workerId(worker)}`}>
-                {translate('Project assignments')}
-              </h3>
+            <details class="team-directory__assignment-details" use:disclosure>
+              <summary
+                >{translate('Project assignments')}
+                <span class="disclosure-count">{assignmentsForWorker.length}</span></summary
+              >
               <div class="team-directory__assignment-list">
                 {#each assignmentsForWorker as assignment}<article
                     class="team-directory__assignment"
@@ -1007,7 +1009,7 @@
                     {translate('No project assignments recorded.')}
                   </p>{/each}
               </div>
-            </section>
+            </details>
           </SectionCard>
         {:else}<p class="team-directory__empty team-directory__empty--large">
             {translate('No active specialists found.')}
@@ -1700,21 +1702,21 @@
   }
   .team-directory__eyebrow {
     margin: 0 0 0.35rem;
-    color: var(--portal-muted, #64748b);
-    font-size: 0.72rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
     font-weight: 800;
     letter-spacing: 0.12em;
   }
   .team-directory h2,
   .team-directory h3 {
     margin: 0;
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
   }
   .team-directory__header p:last-child,
   .team-directory__provisioning-heading p:last-child,
   .team-directory__invitation-result p {
     margin: 0.35rem 0 0;
-    color: var(--portal-muted, #526174);
+    color: var(--portal-muted, #63625b);
   }
   .team-directory__protected-toolbar {
     display: flex;
@@ -1725,25 +1727,25 @@
   .team-directory__protected-toolbar {
     justify-content: space-between;
     padding: 0.85rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.65rem;
-    background: var(--portal-wash, #f4f7fa);
+    background: var(--portal-wash, #f7f7f6);
   }
   .team-directory__count {
     display: grid;
     min-width: 2.75rem;
     min-height: 2.75rem;
     place-items: center;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 999px;
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
     font-weight: 800;
   }
   .team-directory__tabs {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;
-    border-bottom: 2px solid var(--portal-border, #d7dee8);
+    border-bottom: 2px solid var(--portal-border, #dfdedc);
   }
   .team-directory__tab {
     display: inline-flex;
@@ -1754,7 +1756,7 @@
     border-bottom: 3px solid transparent;
     padding: 0.65rem 1rem;
     background: transparent;
-    color: var(--portal-muted, #64748b);
+    color: var(--portal-muted, #67675f);
     font: inherit;
     font-weight: 800;
     text-decoration: none;
@@ -1762,19 +1764,19 @@
   }
   .team-directory__tab:hover,
   .team-directory__tab:focus-visible {
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
   }
   .team-directory__tab--active {
-    border-bottom-color: var(--portal-accent, #0f5f73);
-    color: var(--portal-accent, #0f5f73);
+    border-bottom-color: var(--portal-accent, #53524c);
+    color: var(--portal-accent, #53524c);
   }
   .team-directory__tab-count {
     min-width: 1.55rem;
     padding: 0.12rem 0.45rem;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--portal-accent, #0f5f73) 12%, transparent);
+    background: color-mix(in srgb, var(--portal-accent, #53524c) 12%, transparent);
     text-align: center;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
   }
   .team-directory__feedback {
     display: flex;
@@ -1782,14 +1784,14 @@
     gap: 0.5rem;
     align-items: baseline;
     padding: 0.7rem 0.9rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.65rem;
-    background: var(--portal-wash, #f5f8fa);
-    color: var(--portal-ink, #16202a);
+    background: var(--portal-wash, #f8f8f7);
+    color: var(--portal-ink, #20201d);
   }
   .team-directory__feedback--success {
-    border-color: #37967f;
-    background: #effaf6;
+    border-color: #86847a;
+    background: #f8f8f7;
   }
   .team-directory__feedback--error {
     border-color: #b42318;
@@ -1797,7 +1799,7 @@
     color: #7a271a;
   }
   .team-directory__feedback--pending {
-    border-color: var(--portal-accent, #0f5f73);
+    border-color: var(--portal-accent, #53524c);
   }
   .team-directory__provisioning,
   .team-directory__mailboxes {
@@ -1806,9 +1808,9 @@
   }
   .team-directory__provisioning {
     padding: 1rem;
-    border: 1px solid color-mix(in srgb, var(--portal-accent, #0f5f73) 32%, transparent);
+    border: 1px solid color-mix(in srgb, var(--portal-accent, #53524c) 32%, transparent);
     border-radius: 0.8rem;
-    background: color-mix(in srgb, var(--portal-surface, #fff) 88%, #dff6f2);
+    background: color-mix(in srgb, var(--portal-surface, #fff) 88%, #f1f1f0);
   }
   .team-directory__create-form,
   .team-directory__mailbox-create-form {
@@ -1816,7 +1818,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.65rem 0.8rem;
     padding-top: 1rem;
-    border-top: 1px solid var(--portal-border, #d7dee8);
+    border-top: 1px solid var(--portal-border, #dfdedc);
   }
   .team-directory__create-form label,
   .team-directory__mailbox-create-form label,
@@ -1824,8 +1826,8 @@
   .team-directory__field label,
   .team-directory__controls > label:first-child {
     display: block;
-    color: var(--portal-muted, #526174);
-    font-size: 0.8rem;
+    color: var(--portal-muted, #63625b);
+    font-size: 0.8125rem;
     font-weight: 800;
   }
   .team-directory__create-form input,
@@ -1842,11 +1844,11 @@
     min-width: 0;
     min-height: var(--ja-target-min, 2.75rem);
     margin-top: 0.3rem;
-    border: 1px solid var(--ja-control-border, #64748b);
+    border: 1px solid var(--ja-control-border, #67675f);
     border-radius: 0.5rem;
     padding: 0.55rem 0.7rem;
     background: var(--portal-surface, #fff);
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
     font: inherit;
   }
   .team-directory__protected-form textarea {
@@ -1868,15 +1870,15 @@
     gap: 0.3rem;
     margin: 0.5rem 0 0;
     padding-left: 1.25rem;
-    color: var(--portal-muted, #526174);
+    color: var(--portal-muted, #63625b);
     font-size: 0.85rem;
   }
   .team-directory__invitation-result {
     align-items: flex-start;
     padding: 0.9rem;
-    border: 1px solid #37967f;
+    border: 1px solid #86847a;
     border-radius: 0.65rem;
-    background: #effaf6;
+    background: #f8f8f7;
   }
   .team-directory__invitation-result > div {
     min-width: 0;
@@ -1885,7 +1887,7 @@
     display: block;
     margin-top: 0.5rem;
     overflow-wrap: anywhere;
-    color: var(--portal-accent, #0f5f73);
+    color: var(--portal-accent, #53524c);
     font-weight: 750;
   }
   .team-directory__controls {
@@ -1894,7 +1896,7 @@
     align-items: end;
     gap: 0.75rem;
     padding: 0.9rem 1rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.75rem;
     background: var(--portal-surface, #fff);
   }
@@ -1906,7 +1908,7 @@
     min-height: var(--ja-target-min, 2.75rem);
     align-items: center;
     gap: 0.5rem;
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
     font-size: 0.82rem;
     font-weight: 700;
   }
@@ -1915,7 +1917,7 @@
     width: 1.2rem;
     height: 1.2rem;
     margin: 0;
-    accent-color: var(--portal-accent, #0f5f73);
+    accent-color: var(--portal-accent, #53524c);
   }
   .team-directory input:focus-visible,
   .team-directory select:focus-visible,
@@ -1923,7 +1925,7 @@
   .team-directory button:focus-visible,
   .team-directory a:focus-visible,
   .team-directory summary:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--portal-accent, #0f5f73) 32%, transparent);
+    outline: 3px solid color-mix(in srgb, var(--portal-accent, #53524c) 32%, transparent);
     outline-offset: 2px;
   }
   .team-directory__list {
@@ -1943,10 +1945,10 @@
     width: 2.75rem;
     height: 2.75rem;
     place-items: center;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 50%;
-    background: var(--portal-wash, #eef7f6);
-    color: var(--portal-accent, #0f5f73);
+    background: var(--portal-wash, #f5f5f5);
+    color: var(--portal-accent, #53524c);
     font-weight: 850;
   }
   .team-directory__identity-copy {
@@ -1960,7 +1962,7 @@
     min-height: var(--ja-target-min, 2.75rem);
     align-items: center;
     overflow-wrap: anywhere;
-    color: var(--portal-accent, #0f5f73);
+    color: var(--portal-accent, #53524c);
     font-size: 0.82rem;
     font-weight: 700;
   }
@@ -1973,14 +1975,14 @@
   .team-directory__facts div {
     min-width: 0;
     padding: 0.7rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.5rem;
-    background: color-mix(in srgb, var(--portal-surface, #fff) 92%, var(--portal-wash, #eef2f5));
+    background: color-mix(in srgb, var(--portal-surface, #fff) 92%, var(--portal-wash, #f2f2f1));
   }
   .team-directory__facts dt,
   .team-directory__mailbox-card-facts dt {
-    color: var(--portal-muted, #64748b);
-    font-size: 0.7rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
     font-weight: 800;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -2007,10 +2009,10 @@
     min-height: var(--ja-target-min, 2.75rem);
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--portal-accent, #0f5f73);
+    border: 1px solid var(--portal-accent, #53524c);
     border-radius: 0.55rem;
     padding: 0.55rem 0.85rem;
-    background: var(--portal-accent, #0f5f73);
+    background: var(--portal-accent, #53524c);
     color: #fff;
     font: inherit;
     font-weight: 800;
@@ -2026,15 +2028,15 @@
   }
   .team-directory__action--quiet {
     background: transparent;
-    color: var(--portal-accent, #0f5f73);
+    color: var(--portal-accent, #53524c);
   }
   .team-directory__editor {
     display: grid;
     gap: 1rem;
     padding: 1rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.65rem;
-    background: var(--portal-wash, #f5f8fa);
+    background: var(--portal-wash, #f8f8f7);
   }
   .team-directory__form {
     display: grid;
@@ -2050,7 +2052,7 @@
     box-sizing: border-box;
     width: 100%;
     min-height: var(--ja-target-min, 2.75rem);
-    border: 1px solid var(--ja-control-border, #64748b);
+    border: 1px solid var(--ja-control-border, #67675f);
     border-radius: 0.5rem;
     padding: 0.55rem 0.7rem;
     font: inherit;
@@ -2063,21 +2065,21 @@
     display: grid;
     gap: 0.2rem;
     padding: 0.7rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.5rem;
-    background: var(--portal-wash, #f5f8fa);
+    background: var(--portal-wash, #f8f8f7);
   }
   .team-directory__assignment span,
   .team-directory__assignment small,
   .team-directory__empty,
   .team-directory__form-help {
-    color: var(--portal-muted, #526174);
+    color: var(--portal-muted, #63625b);
     line-height: 1.4;
   }
   .team-directory__empty {
     margin: 0;
     padding: 0.6rem;
-    border: 1px dashed var(--portal-border, #d7dee8);
+    border: 1px dashed var(--portal-border, #dfdedc);
     font-size: 0.82rem;
   }
   .team-directory__empty--large {
@@ -2087,14 +2089,14 @@
   .team-directory__owner-lock {
     margin: 0;
     padding: 0.75rem;
-    border: 1px solid color-mix(in srgb, #0f5f73 42%, transparent);
+    border: 1px solid color-mix(in srgb, #53524c 42%, transparent);
     border-radius: 0.55rem;
-    background: #eef7f6;
-    color: var(--portal-ink, #16202a);
+    background: #f5f5f5;
+    color: var(--portal-ink, #20201d);
   }
   .team-directory__owner-lock p {
     margin: 0.35rem 0 0;
-    color: var(--portal-muted, #526174);
+    color: var(--portal-muted, #63625b);
   }
   .team-directory__mailbox-workspace {
     display: grid;
@@ -2111,7 +2113,7 @@
     gap: 0.8rem;
     padding: 0.85rem 1rem;
     border-radius: 0.65rem;
-    background: #0f5f73;
+    background: #53524c;
     color: #fff;
   }
   .team-directory__bulk-info {
@@ -2137,12 +2139,12 @@
     border-radius: 0.45rem;
     padding: 0.4rem 0.6rem;
     background: var(--portal-surface, #fff);
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
     font: inherit;
   }
   .team-directory__mailbox-table-wrapper {
     overflow-x: auto;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.75rem;
     background: var(--portal-surface, #fff);
   }
@@ -2157,24 +2159,24 @@
     padding: 0.8rem 1rem;
     text-align: left;
     vertical-align: top;
-    border-bottom: 1px solid var(--portal-border, #d7dee8);
+    border-bottom: 1px solid var(--portal-border, #dfdedc);
   }
   .team-directory__mailbox-table th {
-    background: var(--portal-wash, #f5f8fa);
-    color: var(--portal-muted, #64748b);
-    font-size: 0.75rem;
+    background: var(--portal-wash, #f8f8f7);
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
     font-weight: 800;
     letter-spacing: 0.05em;
     text-transform: uppercase;
   }
   .team-directory__mailbox-table tbody tr:hover {
-    background: color-mix(in srgb, var(--portal-wash, #f5f8fa) 40%, transparent);
+    background: color-mix(in srgb, var(--portal-wash, #f8f8f7) 40%, transparent);
   }
   .team-directory__mailbox-row--provisioned {
-    background: color-mix(in srgb, var(--portal-wash, #f5f8fa) 42%, transparent);
+    background: color-mix(in srgb, var(--portal-wash, #f8f8f7) 42%, transparent);
   }
   .team-directory__mailbox-row--owner {
-    background: #eef7f6;
+    background: #f5f5f5;
   }
   .team-directory__select-column {
     width: 3.5rem;
@@ -2194,7 +2196,7 @@
     overflow-wrap: anywhere;
   }
   .team-directory__email-cell span {
-    color: var(--portal-muted, #64748b);
+    color: var(--portal-muted, #67675f);
     font-size: 0.82rem;
   }
   .team-directory__mailbox-management {
@@ -2213,15 +2215,15 @@
     min-width: min(31rem, 100%);
     margin-top: 0.6rem;
     padding: 0.8rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.65rem;
-    background: var(--portal-wash, #f5f8fa);
+    background: var(--portal-wash, #f8f8f7);
   }
   .team-directory__protected-form {
     display: grid;
     gap: 0.35rem;
     padding: 0.8rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.55rem;
     background: var(--portal-surface, #fff);
   }
@@ -2230,10 +2232,10 @@
   }
   .team-directory__protected-form small {
     overflow-wrap: anywhere;
-    color: var(--portal-muted, #526174);
+    color: var(--portal-muted, #63625b);
   }
   .team-directory__protected-form--danger {
-    border-color: color-mix(in srgb, #b42318 48%, var(--portal-border, #d7dee8));
+    border-color: color-mix(in srgb, #b42318 48%, var(--portal-border, #dfdedc));
     background: #fff9f7;
   }
   .team-directory__danger-copy {
@@ -2252,14 +2254,14 @@
     gap: 0 0.7rem;
     align-items: center;
     padding: 1.1rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.75rem;
-    background: var(--portal-wash, #f5f8fa);
+    background: var(--portal-wash, #f8f8f7);
   }
   .team-directory__directory-state p {
     grid-column: 2;
     margin: 0.25rem 0 0;
-    color: var(--portal-muted, #526174);
+    color: var(--portal-muted, #63625b);
   }
   .team-directory__directory-state--error {
     border-color: #b42318;
@@ -2271,7 +2273,7 @@
     height: 2rem;
     place-items: center;
     border-radius: 50%;
-    background: var(--portal-accent, #0f5f73);
+    background: var(--portal-accent, #53524c);
     color: #fff;
     font-weight: 900;
   }
@@ -2286,7 +2288,7 @@
     display: grid;
     gap: 0.8rem;
     padding: 0.9rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.75rem;
     background: var(--portal-surface, #fff);
   }
@@ -2303,7 +2305,7 @@
   }
   .team-directory__mailbox-card-email {
     overflow-wrap: anywhere;
-    color: var(--portal-accent, #0f5f73);
+    color: var(--portal-accent, #53524c);
     font-size: 0.82rem;
   }
   .team-directory__mailbox-card-facts {
@@ -2314,14 +2316,14 @@
   }
   .team-directory__mailbox-card-facts div {
     padding: 0.6rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.5rem;
   }
   .team-directory__input-addon {
     display: flex;
     min-width: 0;
     align-items: center;
-    border: 1px solid var(--ja-control-border, #64748b);
+    border: 1px solid var(--ja-control-border, #67675f);
     border-radius: 0.5rem;
     overflow: hidden;
     background: var(--portal-surface, #fff);
@@ -2337,8 +2339,8 @@
     min-height: 2.75rem;
     align-items: center;
     padding: 0 0.7rem;
-    background: var(--portal-wash, #eef7f6);
-    color: var(--portal-muted, #526174);
+    background: var(--portal-wash, #f5f5f5);
+    color: var(--portal-muted, #63625b);
     font-size: 0.82rem;
     font-weight: 700;
     white-space: nowrap;
@@ -2368,12 +2370,12 @@
     }
     .team-directory__tab {
       justify-content: space-between;
-      border: 1px solid var(--portal-border, #d7dee8);
+      border: 1px solid var(--portal-border, #dfdedc);
       border-radius: 0.5rem;
     }
     .team-directory__tab--active {
-      border-color: var(--portal-accent, #0f5f73);
-      background: var(--portal-wash, #eef7f6);
+      border-color: var(--portal-accent, #53524c);
+      background: var(--portal-wash, #f5f5f5);
     }
     .team-directory__controls,
     .team-directory__facts,

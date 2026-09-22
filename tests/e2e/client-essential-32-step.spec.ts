@@ -103,10 +103,7 @@ function runFixtureArtifactWorker() {
 }
 
 async function openFinanceConfiguration(page: Page, action: string): Promise<void> {
-  await page
-    .getByRole('navigation', { name: 'Finance configuration', exact: true })
-    .getByRole('button', { name: action, exact: true })
-    .click();
+  await page.getByLabel('Commercial policies', { exact: true }).selectOption({ label: action });
 }
 
 async function openExpenseClassify(page: Page, expenseId: string): Promise<Locator> {
@@ -399,6 +396,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
       async () => {
         await signInFresh(page, 'owner');
         await navigate(page, '/projects');
+        await page.locator('.workspace-actions-disclosure > summary').click();
         await page.getByRole('button', { name: 'New Client', exact: true }).click();
         const form = page.locator(
           '[data-project-workflow="new-client"] form[action="?/createClient"]',
@@ -542,6 +540,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           throw new Error('BLOCKED by steps 3–5: no UAT project identity was created');
         await signInFresh(page, 'owner');
         await navigate(page, '/projects');
+        await page.locator('.workspace-actions-disclosure > summary').click();
         await page.getByRole('button', { name: 'Assign Worker', exact: true }).click();
         const form = page.locator(
           '[data-project-workflow="assign-worker"] form[action="?/assignWorker"]',
@@ -1702,6 +1701,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
       async () => {
         await signInFresh(page, 'finance');
         await navigate(page, '/accounting');
+        await page.locator('.accounting-section__create summary').click();
         const form = page.locator('form[action="?/createAccountingPack"]');
         await expect(form).toBeVisible();
         await form.locator('input[name="periodStart"]').fill(seededPeriod.start);

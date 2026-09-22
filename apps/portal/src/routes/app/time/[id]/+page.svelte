@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
@@ -55,7 +56,7 @@
         >{t('Open project')}</a
       >{/if}
     <button type="button" class="no-print print-trigger" onclick={printReport}>
-      <span aria-hidden="true">⎙</span>
+      <PrintIcon />
       {t('Print Report')}
     </button>
   </nav>

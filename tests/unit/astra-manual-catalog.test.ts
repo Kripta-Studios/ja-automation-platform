@@ -29,7 +29,7 @@ const roleMatrix = [
 
 describe('Help manual catalog', () => {
   it('keeps seven personas but publishes three shared references with exact EN/PT-BR assets', () => {
-    expect(manualRevision).toBe('2026-09-19');
+    expect(manualRevision).toBe('2026-09-22');
     expect(manualPersonas).toHaveLength(7);
     expect(manualAudiences).toEqual([
       'work-projects',

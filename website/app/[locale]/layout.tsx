@@ -2,23 +2,21 @@ import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { Manrope, IBM_Plex_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 import { routing, type Locale } from '@/lib/i18n/routing';
 import { localizedAlternates } from '@/lib/i18n/metadata';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import '@/app/globals.css';
 
-const manrope = Manrope({
-  subsets: ['latin'],
-  variable: '--font-manrope',
+const geist = localFont({
+  src: '../../public/fonts/geist-latin.woff2',
+  variable: '--font-geist',
   display: 'swap',
 });
-
-const ibmPlexMono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500'],
-  variable: '--font-ibm-plex-mono',
+const geistMono = localFont({
+  src: '../../public/fonts/geist-mono-latin.woff2',
+  variable: '--font-geist-mono',
   display: 'swap',
 });
 
@@ -81,10 +79,10 @@ export default async function LocaleLayout({
   return (
     <html
       lang={locale === 'pt' ? 'pt-BR' : locale}
-      className={`${manrope.variable} ${ibmPlexMono.variable}`}
+      className={`${geist.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
-      <body className="font-[family-name:var(--font-manrope)]">
+      <body className="font-[family-name:var(--font-geist)]">
         <NextIntlClientProvider messages={messages}>
           <a href="#main-content" className="skip-link">
             {(messages as Record<string, Record<string, string>>).nav?.skipToContent ??

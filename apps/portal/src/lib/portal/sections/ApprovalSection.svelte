@@ -737,7 +737,11 @@
   </div>
 
   {#if completedRows.length > 0}
-    <SectionCard title={translate('Completed review follow-up')} class="approval-list-surface">
+    <SectionCard
+      title={translate('Completed review follow-up')}
+      collapsible
+      class="approval-list-surface"
+    >
       <p class="approval-purpose">
         {translate(
           'These approved records are immutable operational history. Open a record to inspect it or start the audited correction path where permitted.',
@@ -971,7 +975,7 @@
 
   .approval-context {
     justify-content: space-between;
-    border-bottom: 1px solid var(--border, #d7dee8);
+    border-bottom: 1px solid var(--border, #dfdedc);
     padding-bottom: 1rem;
   }
 
@@ -981,13 +985,13 @@
   }
 
   .approval-context p:last-child {
-    color: var(--muted, #5d6878);
+    color: var(--muted, #6b6a62);
     margin-top: 0.35rem;
   }
 
   .approval-eyebrow {
-    color: var(--accent, #0d5c63);
-    font-size: 0.72rem;
+    color: var(--accent, #4f4e48);
+    font-size: 0.8125rem;
     font-weight: 700;
     letter-spacing: 0.09em;
     text-transform: uppercase;
@@ -995,8 +999,8 @@
 
   .approval-count {
     align-items: center;
-    background: var(--surface-3, #eef3f6);
-    border: 1px solid var(--border, #d7dee8);
+    background: var(--surface-3, #f3f3f2);
+    border: 1px solid var(--border, #dfdedc);
     border-radius: 999px;
     display: inline-flex;
     font-variant-numeric: tabular-nums;
@@ -1013,9 +1017,9 @@
   }
 
   .approval-attention-card {
-    background: var(--surface-2, #f7f9fb);
-    border: 1px solid var(--border, #d7dee8);
-    border-left: 3px solid var(--accent, #0d5c63);
+    background: var(--surface-2, #f9f9f8);
+    border: 1px solid var(--border, #dfdedc);
+    border-left: 3px solid var(--accent, #4f4e48);
     border-radius: 0.6rem;
     display: grid;
     gap: 0.2rem;
@@ -1026,8 +1030,8 @@
 
   .approval-attention-card:hover,
   .approval-attention-card:focus-visible {
-    border-color: var(--accent, #0d5c63);
-    outline: 3px solid color-mix(in srgb, var(--accent, #0d5c63) 28%, transparent);
+    border-color: var(--accent, #4f4e48);
+    outline: 3px solid color-mix(in srgb, var(--accent, #4f4e48) 28%, transparent);
     outline-offset: 2px;
   }
 
@@ -1043,11 +1047,11 @@
   .approval-attention-card small,
   .approval-finance-note,
   .approval-record-link small {
-    color: var(--muted, #5d6878);
+    color: var(--muted, #6b6a62);
   }
 
   .approval-tabs {
-    border-bottom: 1px solid var(--border, #d7dee8);
+    border-bottom: 1px solid var(--border, #dfdedc);
     display: flex;
     gap: 0.4rem;
     overflow-x: auto;
@@ -1058,7 +1062,7 @@
     background: transparent;
     border: 0;
     border-bottom: 3px solid transparent;
-    color: var(--muted, #5d6878);
+    color: var(--muted, #6b6a62);
     display: inline-flex;
     gap: 0.55rem;
     min-height: 2.9rem;
@@ -1067,14 +1071,14 @@
   }
 
   .approval-tabs button.active {
-    border-bottom-color: var(--accent, #0d5c63);
-    color: var(--ink, #172333);
+    border-bottom-color: var(--accent, #4f4e48);
+    color: var(--ink, #232320);
   }
 
   .approval-tabs button strong {
-    background: var(--surface-3, #eef3f6);
+    background: var(--surface-3, #f3f3f2);
     border-radius: 999px;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     min-width: 1.55rem;
     padding: 0.15rem 0.35rem;
     text-align: center;
@@ -1105,7 +1109,7 @@
   .finance-review-form span,
   .approval-action-menu span,
   .approval-row-actions > form span {
-    font-size: 0.78rem;
+    font-size: 0.8125rem;
     font-weight: 700;
   }
 
@@ -1114,14 +1118,14 @@
   .finance-review-form select,
   .approval-action-menu input,
   .approval-row-actions > form input {
-    border: 1px solid var(--border, #c8d1dc);
+    border: 1px solid var(--border, #d2d1ce);
     border-radius: 0.4rem;
     min-height: 2.75rem;
     padding: 0.55rem 0.7rem;
   }
 
   .approval-row {
-    border-bottom: 1px solid var(--border, #d7dee8);
+    border-bottom: 1px solid var(--border, #dfdedc);
     display: grid;
     gap: 0.9rem;
     padding: 1rem 0;
@@ -1151,8 +1155,8 @@
   }
 
   .approval-record-link span {
-    color: var(--accent, #0d5c63);
-    font-size: 0.8rem;
+    color: var(--accent, #4f4e48);
+    font-size: 0.8125rem;
     font-weight: 700;
   }
 
@@ -1186,7 +1190,7 @@
 
   .approval-action-menu summary {
     align-items: center;
-    border: 1px solid var(--border, #c8d1dc);
+    border: 1px solid var(--border, #d2d1ce);
     border-radius: 0.4rem;
     display: inline-flex;
     list-style: none;
@@ -1198,12 +1202,12 @@
   }
 
   .approval-action-menu[open] summary {
-    border-color: var(--accent, #0d5c63);
+    border-color: var(--accent, #4f4e48);
   }
 
   .approval-action-menu > form {
     background: var(--surface, #fff);
-    border: 1px solid var(--border, #c8d1dc);
+    border: 1px solid var(--border, #d2d1ce);
     border-radius: 0.5rem;
     box-shadow: 0 10px 28px rgb(19 34 52 / 14%);
     display: grid;
@@ -1214,13 +1218,13 @@
   }
 
   .approval-read-only {
-    color: var(--muted, #5d6878);
+    color: var(--muted, #6b6a62);
     font-size: 0.85rem;
     font-weight: 700;
   }
 
   .approval-empty {
-    color: var(--muted, #5d6878);
+    color: var(--muted, #6b6a62);
     display: grid;
     gap: 0.3rem;
     padding: 1.5rem 0;
@@ -1232,7 +1236,7 @@
   }
 
   .approval-purpose {
-    color: var(--muted, #5d6878);
+    color: var(--muted, #6b6a62);
     margin: 0 0 1rem;
   }
 
@@ -1244,12 +1248,12 @@
   }
 
   .approval-register-search span {
-    font-size: 0.78rem;
+    font-size: 0.8125rem;
     font-weight: 700;
   }
 
   .approval-register-search input {
-    border: 1px solid var(--border, #c8d1dc);
+    border: 1px solid var(--border, #d2d1ce);
     border-radius: 0.4rem;
     min-height: 2.75rem;
     padding: 0.55rem 0.7rem;
@@ -1265,7 +1269,7 @@
   }
 
   .operational-pagination span {
-    color: var(--muted, #5d6878);
+    color: var(--muted, #6b6a62);
     font-size: 0.85rem;
   }
 
@@ -1278,7 +1282,7 @@
   .approval-filters select:focus-visible,
   .approval-row input:focus-visible,
   .approval-row select:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--accent, #0d5c63) 38%, transparent);
+    outline: 3px solid color-mix(in srgb, var(--accent, #4f4e48) 38%, transparent);
     outline-offset: 2px;
   }
 

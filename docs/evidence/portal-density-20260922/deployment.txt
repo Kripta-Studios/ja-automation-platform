@@ -1,0 +1,1884 @@
+[2026-09-22T11:28:24+02:00] Nuevo ZIP detectado: /home/kripta/jaautomation-density-20260922.zip (SHA-256 0ba62783814af13aa36f3f9c0e6a6d3394499b12cad478dde89aec79f5dc672f)
+[2026-09-22T11:28:27+02:00] Release extraído en /opt/jaautomation/releases/ja-automation-0ba62783814af13aa36f3f9c0e6a6d3394499b12cad478dde89aec79f5dc672f
+[2026-09-22T11:28:27+02:00] Validando Compose del nuevo release (zip-0ba62783814af13aa36f3f9c0e6a6d33)
+[2026-09-22T11:28:27+02:00] Validando las units de jobs incluidas en el nuevo release
+[2026-09-22T11:28:27+02:00] Construyendo imágenes site y portal; los contenedores actuales siguen atendiendo
+time="2026-09-22T11:28:27+02:00" level=warning msg="Docker Compose is configured to build using Bake, but buildx isn't installed"
+#0 building with "default" instance using docker driver
+
+#1 [portal internal] load build definition from Dockerfile.portal
+#1 transferring dockerfile:
+#1 transferring dockerfile: 2.87kB 0.0s done
+#1 DONE 0.1s
+
+#2 [portal internal] load metadata for docker.io/library/node:24.19.0-bookworm-slim
+#2 DONE 1.3s
+
+#3 [portal internal] load .dockerignore
+#3 transferring context: 334B done
+#3 DONE 0.0s
+
+#4 [portal build  1/13] FROM docker.io/library/node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df
+#4 resolve docker.io/library/node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df 0.0s done
+#4 DONE 0.1s
+
+#5 [portal internal] load build context
+#5 transferring context: 21.68MB 0.2s done
+#5 DONE 0.2s
+
+#6 [portal build  2/13] WORKDIR /workspace
+#6 DONE 0.3s
+
+#7 [portal stage-2 2/8] RUN apt-get update  && apt-get install -y --no-install-recommends ca-certificates chromium  && rm -rf /var/lib/apt/lists/*  && groupadd --gid 10001 jaautomation  && useradd --system --uid 10001 --gid 10001 --create-home jaautomation
+#7 0.607 Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
+#7 0.627 Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+#7 0.629 Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [34.8 kB]
+#7 0.742 Get:4 http://deb.debian.org/debian bookworm/main amd64 Packages [8790 kB]
+#7 0.853 Get:5 http://deb.debian.org/debian bookworm-updates/main amd64 Packages [6924 B]
+#7 0.893 Get:6 http://deb.debian.org/debian-security bookworm-security/main amd64 Packages [340 kB]
+#7 1.572 Fetched 9379 kB in 1s (9499 kB/s)
+#7 1.572 Reading package lists...
+#7 2.024 Reading package lists...
+#7 ...
+
+#8 [portal build  3/13] RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
+#8 0.361 Preparing pnpm@11.22.0 for immediate activation...
+#8 DONE 1.9s
+
+#9 [portal build  4/13] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
+#9 DONE 0.1s
+
+#10 [portal build  5/13] COPY apps/portal ./apps/portal
+#10 DONE 0.1s
+
+#7 [portal stage-2 2/8] RUN apt-get update  && apt-get install -y --no-install-recommends ca-certificates chromium  && rm -rf /var/lib/apt/lists/*  && groupadd --gid 10001 jaautomation  && useradd --system --uid 10001 --gid 10001 --create-home jaautomation
+#7 2.024 Reading package lists...
+#7 ...
+
+#11 [portal build  6/13] COPY packages ./packages
+#11 DONE 0.1s
+
+#12 [portal build  7/13] COPY migrations ./migrations
+#12 DONE 0.1s
+
+#7 [portal stage-2 2/8] RUN apt-get update  && apt-get install -y --no-install-recommends ca-certificates chromium  && rm -rf /var/lib/apt/lists/*  && groupadd --gid 10001 jaautomation  && useradd --system --uid 10001 --gid 10001 --create-home jaautomation
+#7 2.024 Reading package lists...
+#7 2.463 Building dependency tree...#7 ...
+
+#13 [portal build  8/13] COPY deployment ./deployment
+#13 DONE 0.0s
+
+#7 [portal stage-2 2/8] RUN apt-get update  && apt-get install -y --no-install-recommends ca-certificates chromium  && rm -rf /var/lib/apt/lists/*  && groupadd --gid 10001 jaautomation  && useradd --system --uid 10001 --gid 10001 --create-home jaautomation
+#7 2.463 Building dependency tree...
+#7 2.595 Reading state information...
+#7 2.711 The following additional packages will be installed:
+#7 ...
+
+#14 [portal build  9/13] COPY docs/manuals/Employee_Field_Guide_EN.pdf docs/manuals/Employee_Field_Guide_ES.pdf docs/manuals/Employee_Field_Guide_PT-BR.pdf      docs/manuals/Work_Projects_Guide.pdf docs/manuals/Work_Projects_Guide_PT-BR.pdf      docs/manuals/Supplier_Operations_Guide.pdf docs/manuals/Supplier_Operations_Guide_PT-BR.pdf      docs/manuals/Administration_Finance_Guide.pdf docs/manuals/Administration_Finance_Guide_PT-BR.pdf ./manuals/
+#14 DONE 0.1s
+
+#7 [portal stage-2 2/8] RUN apt-get update  && apt-get install -y --no-install-recommends ca-certificates chromium  && rm -rf /var/lib/apt/lists/*  && groupadd --gid 10001 jaautomation  && useradd --system --uid 10001 --gid 10001 --create-home jaautomation
+#7 2.711   adwaita-icon-theme at-spi2-common chromium-common dbus dbus-bin dbus-daemon
+#7 2.711   dbus-session-bus-common dbus-system-bus-common dbus-user-session
+#7 2.711   dconf-gsettings-backend dconf-service dmsetup fontconfig fontconfig-config
+#7 2.711   fonts-dejavu-core gtk-update-icon-cache hicolor-icon-theme libapparmor1
+#7 2.711   libargon2-1 libasound2 libasound2-data libasyncns0 libatk-bridge2.0-0
+#7 2.711   libatk1.0-0 libatspi2.0-0 libavahi-client3 libavahi-common-data
+#7 2.711   libavahi-common3 libbrotli1 libbsd0 libcairo-gobject2 libcairo2 libcolord2
+#7 2.711   libcryptsetup12 libcups2 libdatrie1 libdav1d6 libdbus-1-3 libdconf1
+#7 2.711   libdeflate0 libdevmapper1.02.1 libdouble-conversion3 libdrm-amdgpu1
+#7 2.711   libdrm-common libdrm-intel1 libdrm-nouveau2 libdrm-radeon1 libdrm2 libedit2
+#7 2.711   libelf1 libepoxy0 libexpat1 libfdisk1 libflac12 libfontconfig1 libfontenc1
+#7 2.711   libfreetype6 libfribidi0 libgbm1 libgdk-pixbuf-2.0-0 libgdk-pixbuf2.0-common
+#7 2.711   libgl1 libgl1-mesa-dri libglapi-mesa libglib2.0-0 libglvnd0 libglx-mesa0
+#7 2.711   libglx0 libgraphite2-3 libgssapi-krb5-2 libgtk-3-0 libgtk-3-common
+#7 2.711   libharfbuzz-subset0 libharfbuzz0b libice6 libicu72 libip4tc2 libjbig0
+#7 2.711   libjpeg62-turbo libjson-c5 libk5crypto3 libkeyutils1 libkmod2 libkrb5-3
+#7 2.711   libkrb5support0 liblcms2-2 liblerc4 libllvm15 libminizip1 libmp3lame0
+#7 2.711   libmpg123-0 libncursesw6 libnspr4 libnss3 libogg0 libopenh264-7 libopenjp2-7
+#7 2.711   libopus0 libpam-systemd libpango-1.0-0 libpangocairo-1.0-0 libpangoft2-1.0-0
+#7 2.711   libpciaccess0 libpixman-1-0 libpng16-16 libproc2-0 libpulse0
+#7 2.712   libsensors-config libsensors5 libsm6 libsndfile1 libsqlite3-0 libssl3
+#7 2.712   libsystemd-shared libthai-data libthai0 libtiff6 libvorbis0a libvorbisenc2
+#7 2.712   libwayland-client0 libwayland-cursor0 libwayland-egl1 libwayland-server0
+#7 2.712   libwebp7 libx11-6 libx11-data libx11-xcb1 libxau6 libxaw7 libxcb-dri2-0
+#7 2.712   libxcb-dri3-0 libxcb-glx0 libxcb-present0 libxcb-randr0 libxcb-render0
+#7 2.712   libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0 libxcb1 libxcomposite1
+#7 2.712   libxcursor1 libxdamage1 libxdmcp6 libxext6 libxfixes3 libxft2 libxi6
+#7 2.712   libxinerama1 libxkbcommon0 libxkbfile1 libxml2 libxmu6 libxmuu1 libxnvctrl0
+#7 2.712   libxpm4 libxrandr2 libxrender1 libxshmfence1 libxt6 libxtst6 libxv1
+#7 2.712   libxxf86dga1 libxxf86vm1 libz3-4 openssl procps shared-mime-info systemd
+#7 2.712   systemd-sysv x11-common x11-utils xdg-utils xkb-data
+#7 2.712 Suggested packages:
+#7 2.712   chromium-l10n chromium-shell chromium-driver libasound2-plugins alsa-utils
+#7 2.712   colord cups-common low-memory-monitor krb5-doc krb5-user gvfs liblcms2-utils
+#7 2.712   opus-tools pciutils pulseaudio lm-sensors systemd-container systemd-homed
+#7 2.712   systemd-userdbd systemd-boot systemd-resolved libfido2-1 libqrencode4
+#7 2.712   libtss2-esys-3.0.2-0 libtss2-mu0 libtss2-rc0 polkitd | policykit-1
+#7 2.712   mesa-utils
+#7 2.712 Recommended packages:
+#7 2.712   librsvg2-common chromium-sandbox upower udev fonts-liberation
+#7 2.712   notification-daemon system-config-printer alsa-ucm-conf alsa-topology-conf
+#7 2.712   at-spi2-core libgdk-pixbuf2.0-bin libglib2.0-data xdg-user-dirs libgtk-3-bin
+#7 2.712   krb5-locales libgpm2 psmisc systemd-timesyncd | time-daemon libnss-systemd
+#7 2.712   libfile-mimeinfo-perl libnet-dbus-perl libx11-protocol-perl
+#7 2.712   x11-xserver-utils
+#7 3.336 The following NEW packages will be installed:
+#7 3.336   adwaita-icon-theme at-spi2-common ca-certificates chromium chromium-common
+#7 3.336   dbus dbus-bin dbus-daemon dbus-session-bus-common dbus-system-bus-common
+#7 3.338   dbus-user-session dconf-gsettings-backend dconf-service dmsetup fontconfig
+#7 3.338   fontconfig-config fonts-dejavu-core gtk-update-icon-cache hicolor-icon-theme
+#7 3.338   libapparmor1 libargon2-1 libasound2 libasound2-data libasyncns0
+#7 3.338   libatk-bridge2.0-0 libatk1.0-0 libatspi2.0-0 libavahi-client3
+#7 3.338   libavahi-common-data libavahi-common3 libbrotli1 libbsd0 libcairo-gobject2
+#7 3.338   libcairo2 libcolord2 libcryptsetup12 libcups2 libdatrie1 libdav1d6
+#7 3.338   libdbus-1-3 libdconf1 libdeflate0 libdevmapper1.02.1 libdouble-conversion3
+#7 3.338   libdrm-amdgpu1 libdrm-common libdrm-intel1 libdrm-nouveau2 libdrm-radeon1
+#7 3.338   libdrm2 libedit2 libelf1 libepoxy0 libexpat1 libfdisk1 libflac12
+#7 3.338   libfontconfig1 libfontenc1 libfreetype6 libfribidi0 libgbm1
+#7 3.338   libgdk-pixbuf-2.0-0 libgdk-pixbuf2.0-common libgl1 libgl1-mesa-dri
+#7 3.338   libglapi-mesa libglib2.0-0 libglvnd0 libglx-mesa0 libglx0 libgraphite2-3
+#7 3.338   libgssapi-krb5-2 libgtk-3-0 libgtk-3-common libharfbuzz-subset0
+#7 3.338   libharfbuzz0b libice6 libicu72 libip4tc2 libjbig0 libjpeg62-turbo libjson-c5
+#7 3.338   libk5crypto3 libkeyutils1 libkmod2 libkrb5-3 libkrb5support0 liblcms2-2
+#7 3.338   liblerc4 libllvm15 libminizip1 libmp3lame0 libmpg123-0 libncursesw6 libnspr4
+#7 3.338   libnss3 libogg0 libopenh264-7 libopenjp2-7 libopus0 libpam-systemd
+#7 3.338   libpango-1.0-0 libpangocairo-1.0-0 libpangoft2-1.0-0 libpciaccess0
+#7 3.338   libpixman-1-0 libpng16-16 libproc2-0 libpulse0 libsensors-config libsensors5
+#7 3.338   libsm6 libsndfile1 libsqlite3-0 libssl3 libsystemd-shared libthai-data
+#7 3.338   libthai0 libtiff6 libvorbis0a libvorbisenc2 libwayland-client0
+#7 3.338   libwayland-cursor0 libwayland-egl1 libwayland-server0 libwebp7 libx11-6
+#7 3.338   libx11-data libx11-xcb1 libxau6 libxaw7 libxcb-dri2-0 libxcb-dri3-0
+#7 3.338   libxcb-glx0 libxcb-present0 libxcb-randr0 libxcb-render0 libxcb-shape0
+#7 3.338   libxcb-shm0 libxcb-sync1 libxcb-xfixes0 libxcb1 libxcomposite1 libxcursor1
+#7 3.338   libxdamage1 libxdmcp6 libxext6 libxfixes3 libxft2 libxi6 libxinerama1
+#7 3.338   libxkbcommon0 libxkbfile1 libxml2 libxmu6 libxmuu1 libxnvctrl0 libxpm4
+#7 3.338   libxrandr2 libxrender1 libxshmfence1 libxt6 libxtst6 libxv1 libxxf86dga1
+#7 3.338   libxxf86vm1 libz3-4 openssl procps shared-mime-info systemd systemd-sysv
+#7 3.338   x11-common x11-utils xdg-utils xkb-data
+#7 3.380 0 upgraded, 176 newly installed, 0 to remove and 2 not upgraded.
+#7 3.380 Need to get 208 MB of archives.
+#7 3.380 After this operation, 734 MB of additional disk space will be used.
+#7 3.380 Get:1 http://deb.debian.org/debian bookworm/main amd64 libssl3 amd64 3.0.20-1~deb12u2 [2036 kB]
+#7 3.419 Get:2 http://deb.debian.org/debian bookworm/main amd64 libargon2-1 amd64 0~20171227-0.3+deb12u1 [19.4 kB]
+#7 3.419 Get:3 http://deb.debian.org/debian bookworm/main amd64 dmsetup amd64 2:1.02.185-2 [82.0 kB]
+#7 3.420 Get:4 http://deb.debian.org/debian bookworm/main amd64 libdevmapper1.02.1 amd64 2:1.02.185-2 [133 kB]
+#7 3.424 Get:5 http://deb.debian.org/debian bookworm/main amd64 libjson-c5 amd64 0.16-2 [44.1 kB]
+#7 3.427 Get:6 http://deb.debian.org/debian bookworm/main amd64 libcryptsetup12 amd64 2:2.6.1-4~deb12u2 [223 kB]
+#7 3.427 Get:7 http://deb.debian.org/debian bookworm/main amd64 libfdisk1 amd64 2.38.1-5+deb12u3 [194 kB]
+#7 3.427 Get:8 http://deb.debian.org/debian bookworm/main amd64 libkmod2 amd64 30+20221128-1 [57.9 kB]
+#7 3.427 Get:9 http://deb.debian.org/debian bookworm/main amd64 libapparmor1 amd64 3.0.8-3 [41.2 kB]
+#7 3.428 Get:10 http://deb.debian.org/debian bookworm/main amd64 libip4tc2 amd64 1.8.9-2 [19.0 kB]
+#7 3.430 Get:11 http://deb.debian.org/debian bookworm/main amd64 libsystemd-shared amd64 252.39-1~deb12u2 [1696 kB]
+#7 3.432 Get:12 http://deb.debian.org/debian bookworm/main amd64 systemd amd64 252.39-1~deb12u2 [3044 kB]
+#7 3.457 Get:13 http://deb.debian.org/debian bookworm/main amd64 systemd-sysv amd64 252.39-1~deb12u2 [42.9 kB]
+#7 3.459 Get:14 http://deb.debian.org/debian bookworm/main amd64 libdbus-1-3 amd64 1.14.10-1~deb12u1 [201 kB]
+#7 3.460 Get:15 http://deb.debian.org/debian bookworm/main amd64 dbus-bin amd64 1.14.10-1~deb12u1 [105 kB]
+#7 3.461 Get:16 http://deb.debian.org/debian bookworm/main amd64 dbus-session-bus-common all 1.14.10-1~deb12u1 [78.2 kB]
+#7 3.462 Get:17 http://deb.debian.org/debian-security bookworm-security/main amd64 libexpat1 amd64 2.5.0-1+deb12u3 [104 kB]
+#7 3.463 Get:18 http://deb.debian.org/debian bookworm/main amd64 dbus-daemon amd64 1.14.10-1~deb12u1 [184 kB]
+#7 3.465 Get:19 http://deb.debian.org/debian bookworm/main amd64 dbus-system-bus-common all 1.14.10-1~deb12u1 [79.3 kB]
+#7 3.465 Get:20 http://deb.debian.org/debian bookworm/main amd64 dbus amd64 1.14.10-1~deb12u1 [97.4 kB]
+#7 3.466 Get:21 http://deb.debian.org/debian bookworm/main amd64 libncursesw6 amd64 6.4-4 [134 kB]
+#7 3.467 Get:22 http://deb.debian.org/debian bookworm/main amd64 libproc2-0 amd64 2:4.0.2-3 [62.8 kB]
+#7 3.470 Get:23 http://deb.debian.org/debian bookworm/main amd64 procps amd64 2:4.0.2-3 [709 kB]
+#7 3.476 Get:24 http://deb.debian.org/debian bookworm/main amd64 openssl amd64 3.0.20-1~deb12u2 [1439 kB]
+#7 3.491 Get:25 http://deb.debian.org/debian-security bookworm-security/main amd64 ca-certificates all 20250419~deb12u1 [162 kB]
+#7 3.493 Get:26 http://deb.debian.org/debian bookworm/main amd64 libpam-systemd amd64 252.39-1~deb12u2 [226 kB]
+#7 3.494 Get:27 http://deb.debian.org/debian bookworm/main amd64 hicolor-icon-theme all 0.17-2 [11.4 kB]
+#7 3.497 Get:28 http://deb.debian.org/debian bookworm/main amd64 libgdk-pixbuf2.0-common all 2.42.10+dfsg-1+deb12u4 [307 kB]
+#7 3.498 Get:29 http://deb.debian.org/debian bookworm/main amd64 libglib2.0-0 amd64 2.74.6-2+deb12u9 [1403 kB]
+#7 3.504 Get:30 http://deb.debian.org/debian bookworm/main amd64 libicu72 amd64 72.1-3+deb12u1 [9376 kB]
+#7 3.556 Get:31 http://deb.debian.org/debian bookworm/main amd64 libxml2 amd64 2.9.14+dfsg-1.3~deb12u6 [689 kB]
+#7 3.562 Get:32 http://deb.debian.org/debian bookworm/main amd64 shared-mime-info amd64 2.2-1 [729 kB]
+#7 3.568 Get:33 http://deb.debian.org/debian bookworm/main amd64 libjpeg62-turbo amd64 1:2.1.5-2 [166 kB]
+#7 3.571 Get:34 http://deb.debian.org/debian bookworm/main amd64 libpng16-16 amd64 1.6.39-2+deb12u5 [277 kB]
+#7 3.573 Get:35 http://deb.debian.org/debian bookworm/main amd64 libdeflate0 amd64 1.14-1 [61.4 kB]
+#7 3.573 Get:36 http://deb.debian.org/debian bookworm/main amd64 libjbig0 amd64 2.1-6.1 [31.7 kB]
+#7 3.574 Get:37 http://deb.debian.org/debian bookworm/main amd64 liblerc4 amd64 4.0.0+ds-2 [170 kB]
+#7 3.575 Get:38 http://deb.debian.org/debian bookworm/main amd64 libwebp7 amd64 1.2.4-0.2+deb12u1 [286 kB]
+#7 3.578 Get:39 http://deb.debian.org/debian bookworm/main amd64 libtiff6 amd64 4.5.0-6+deb12u4 [316 kB]
+#7 3.578 Get:40 http://deb.debian.org/debian bookworm/main amd64 libgdk-pixbuf-2.0-0 amd64 2.42.10+dfsg-1+deb12u4 [139 kB]
+#7 3.578 Get:41 http://deb.debian.org/debian bookworm/main amd64 gtk-update-icon-cache amd64 3.24.38-2~deb12u3 [44.2 kB]
+#7 3.580 Get:42 http://deb.debian.org/debian bookworm/main amd64 adwaita-icon-theme all 43-1 [5124 kB]
+#7 3.623 Get:43 http://deb.debian.org/debian bookworm/main amd64 at-spi2-common all 2.46.0-5 [162 kB]
+#7 3.624 Get:44 http://deb.debian.org/debian bookworm/main amd64 libasound2-data all 1.2.8-1 [20.5 kB]
+#7 3.624 Get:45 http://deb.debian.org/debian bookworm/main amd64 libasound2 amd64 1.2.8-1+b1 [362 kB]
+#7 3.625 Get:46 http://deb.debian.org/debian bookworm/main amd64 libatk1.0-0 amd64 2.46.0-5 [49.6 kB]
+#7 3.626 Get:47 http://deb.debian.org/debian bookworm/main amd64 libxau6 amd64 1:1.0.9-1 [19.7 kB]
+#7 3.626 Get:48 http://deb.debian.org/debian bookworm/main amd64 libbsd0 amd64 0.11.7-2 [117 kB]
+#7 3.628 Get:49 http://deb.debian.org/debian bookworm/main amd64 libxdmcp6 amd64 1:1.1.2-3 [26.3 kB]
+#7 3.628 Get:50 http://deb.debian.org/debian bookworm/main amd64 libxcb1 amd64 1.15-1 [144 kB]
+#7 3.629 Get:51 http://deb.debian.org/debian bookworm/main amd64 libx11-data all 2:1.8.4-2+deb12u2 [292 kB]
+#7 3.629 Get:52 http://deb.debian.org/debian bookworm/main amd64 libx11-6 amd64 2:1.8.4-2+deb12u2 [760 kB]
+#7 3.634 Get:53 http://deb.debian.org/debian bookworm/main amd64 libxext6 amd64 2:1.3.4-1+b1 [52.9 kB]
+#7 3.637 Get:54 http://deb.debian.org/debian bookworm/main amd64 libxi6 amd64 2:1.8-1+b1 [84.2 kB]
+#7 3.638 Get:55 http://deb.debian.org/debian bookworm/main amd64 libatspi2.0-0 amd64 2.46.0-5 [75.4 kB]
+#7 3.638 Get:56 http://deb.debian.org/debian bookworm/main amd64 libatk-bridge2.0-0 amd64 2.46.0-5 [64.6 kB]
+#7 3.639 Get:57 http://deb.debian.org/debian bookworm/main amd64 libbrotli1 amd64 1.0.9-2+b6 [275 kB]
+#7 3.641 Get:58 http://deb.debian.org/debian bookworm/main amd64 libfreetype6 amd64 2.12.1+dfsg-5+deb12u4 [398 kB]
+#7 3.645 Get:59 http://deb.debian.org/debian bookworm/main amd64 fonts-dejavu-core all 2.37-6 [1068 kB]
+#7 3.651 Get:60 http://deb.debian.org/debian bookworm/main amd64 fontconfig-config amd64 2.14.1-4 [315 kB]
+#7 3.653 Get:61 http://deb.debian.org/debian bookworm/main amd64 libfontconfig1 amd64 2.14.1-4 [386 kB]
+#7 3.655 Get:62 http://deb.debian.org/debian bookworm/main amd64 libpixman-1-0 amd64 0.42.2-1 [546 kB]
+#7 3.659 Get:63 http://deb.debian.org/debian bookworm/main amd64 libxcb-render0 amd64 1.15-1 [115 kB]
+#7 3.661 Get:64 http://deb.debian.org/debian bookworm/main amd64 libxcb-shm0 amd64 1.15-1 [105 kB]
+#7 3.661 Get:65 http://deb.debian.org/debian bookworm/main amd64 libxrender1 amd64 1:0.9.10-1.1 [33.2 kB]
+#7 3.661 Get:66 http://deb.debian.org/debian bookworm/main amd64 libcairo2 amd64 1.16.0-7 [575 kB]
+#7 3.664 Get:67 http://deb.debian.org/debian bookworm/main amd64 libavahi-common-data amd64 0.8-10+deb12u1 [107 kB]
+#7 3.666 Get:68 http://deb.debian.org/debian bookworm/main amd64 libavahi-common3 amd64 0.8-10+deb12u1 [42.1 kB]
+#7 3.667 Get:69 http://deb.debian.org/debian bookworm/main amd64 libavahi-client3 amd64 0.8-10+deb12u1 [45.8 kB]
+#7 3.667 Get:70 http://deb.debian.org/debian bookworm/main amd64 libkrb5support0 amd64 1.20.1-2+deb12u5 [33.2 kB]
+#7 3.667 Get:71 http://deb.debian.org/debian bookworm/main amd64 libk5crypto3 amd64 1.20.1-2+deb12u5 [79.7 kB]
+#7 3.668 Get:72 http://deb.debian.org/debian bookworm/main amd64 libkeyutils1 amd64 1.6.3-2 [8808 B]
+#7 3.673 Get:73 http://deb.debian.org/debian bookworm/main amd64 libkrb5-3 amd64 1.20.1-2+deb12u5 [332 kB]
+#7 3.674 Get:74 http://deb.debian.org/debian bookworm/main amd64 libgssapi-krb5-2 amd64 1.20.1-2+deb12u5 [135 kB]
+#7 3.675 Get:75 http://deb.debian.org/debian bookworm/main amd64 libcups2 amd64 2.4.2-3+deb12u9 [245 kB]
+#7 3.677 Get:76 http://deb.debian.org/debian bookworm/main amd64 libdav1d6 amd64 1.0.0-2+deb12u1 [513 kB]
+#7 3.680 Get:77 http://deb.debian.org/debian bookworm/main amd64 libdouble-conversion3 amd64 3.2.1-1 [41.5 kB]
+#7 3.681 Get:78 http://deb.debian.org/debian bookworm/main amd64 libogg0 amd64 1.3.5-3 [23.4 kB]
+#7 3.685 Get:79 http://deb.debian.org/debian bookworm/main amd64 libflac12 amd64 1.4.2+ds-2 [198 kB]
+#7 3.687 Get:80 http://deb.debian.org/debian bookworm/main amd64 libdrm-common all 2.4.114-1 [7112 B]
+#7 3.688 Get:81 http://deb.debian.org/debian bookworm/main amd64 libdrm2 amd64 2.4.114-1+b1 [37.5 kB]
+#7 3.688 Get:82 http://deb.debian.org/debian bookworm/main amd64 libwayland-server0 amd64 1.21.0-1 [35.9 kB]
+#7 3.689 Get:83 http://deb.debian.org/debian bookworm/main amd64 libgbm1 amd64 22.3.6-1+deb12u2 [38.1 kB]
+#7 3.689 Get:84 http://deb.debian.org/debian bookworm/main amd64 libgraphite2-3 amd64 1.3.14-1+deb12u1 [74.6 kB]
+#7 3.690 Get:85 http://deb.debian.org/debian bookworm/main amd64 libharfbuzz0b amd64 6.0.0+dfsg-3 [1945 kB]
+#7 3.709 Get:86 http://deb.debian.org/debian bookworm/main amd64 libharfbuzz-subset0 amd64 6.0.0+dfsg-3 [1931 kB]
+#7 3.729 Get:87 http://deb.debian.org/debian bookworm/main amd64 liblcms2-2 amd64 2.14-2+deb12u1 [154 kB]
+#7 3.729 Get:88 http://deb.debian.org/debian bookworm/main amd64 libminizip1 amd64 1.1-8+deb12u1 [20.1 kB]
+#7 3.730 Get:89 http://deb.debian.org/debian bookworm/main amd64 libnspr4 amd64 2:4.35-1 [113 kB]
+#7 3.734 Get:90 http://deb.debian.org/debian bookworm/main amd64 libsqlite3-0 amd64 3.40.1-2+deb12u2 [839 kB]
+#7 3.735 Get:91 http://deb.debian.org/debian-security bookworm-security/main amd64 libnss3 amd64 2:3.87.1-1+deb12u4 [1331 kB]
+#7 3.743 Get:92 http://deb.debian.org/debian bookworm/main amd64 libopenh264-7 amd64 2.3.1+dfsg-3+deb12u2 [393 kB]
+#7 3.748 Get:93 http://deb.debian.org/debian bookworm/main amd64 libopenjp2-7 amd64 2.5.0-2+deb12u3 [189 kB]
+#7 3.749 Get:94 http://deb.debian.org/debian bookworm/main amd64 libopus0 amd64 1.3.1-3 [195 kB]
+#7 3.750 Get:95 http://deb.debian.org/debian bookworm/main amd64 fontconfig amd64 2.14.1-4 [449 kB]
+#7 3.752 Get:96 http://deb.debian.org/debian bookworm/main amd64 libfribidi0 amd64 1.0.8-2.1 [65.0 kB]
+#7 3.752 Get:97 http://deb.debian.org/debian bookworm/main amd64 libthai-data all 0.1.29-1 [176 kB]
+#7 3.753 Get:98 http://deb.debian.org/debian bookworm/main amd64 libdatrie1 amd64 0.2.13-2+b1 [43.3 kB]
+#7 3.754 Get:99 http://deb.debian.org/debian bookworm/main amd64 libthai0 amd64 0.1.29-1 [57.5 kB]
+#7 3.754 Get:100 http://deb.debian.org/debian bookworm/main amd64 libpango-1.0-0 amd64 1.50.12+ds-1 [212 kB]
+#7 3.755 Get:101 http://deb.debian.org/debian bookworm/main amd64 libasyncns0 amd64 0.8-6+b3 [12.9 kB]
+#7 3.758 Get:102 http://deb.debian.org/debian bookworm/main amd64 libmp3lame0 amd64 3.100-6 [365 kB]
+#7 3.761 Get:103 http://deb.debian.org/debian bookworm/main amd64 libmpg123-0 amd64 1.31.2-1+deb12u1 [147 kB]
+#7 3.762 Get:104 http://deb.debian.org/debian bookworm/main amd64 libvorbis0a amd64 1.3.7-1 [93.0 kB]
+#7 3.766 Get:105 http://deb.debian.org/debian bookworm/main amd64 libvorbisenc2 amd64 1.3.7-1 [80.6 kB]
+#7 3.768 Get:106 http://deb.debian.org/debian bookworm/main amd64 libsndfile1 amd64 1.2.0-1+deb12u1 [197 kB]
+#7 3.772 Get:107 http://deb.debian.org/debian bookworm/main amd64 libx11-xcb1 amd64 2:1.8.4-2+deb12u2 [192 kB]
+#7 3.772 Get:108 http://deb.debian.org/debian bookworm/main amd64 libpulse0 amd64 16.1+dfsg1-2+b1 [274 kB]
+#7 3.776 Get:109 http://deb.debian.org/debian bookworm/main amd64 libxcomposite1 amd64 1:0.4.5-1 [16.6 kB]
+#7 3.776 Get:110 http://deb.debian.org/debian bookworm/main amd64 libxdamage1 amd64 1:1.1.6-1 [15.1 kB]
+#7 3.776 Get:111 http://deb.debian.org/debian bookworm/main amd64 libxfixes3 amd64 1:6.0.0-2 [22.7 kB]
+#7 3.777 Get:112 http://deb.debian.org/debian bookworm/main amd64 xkb-data all 2.35.1-1 [764 kB]
+#7 3.781 Get:113 http://deb.debian.org/debian bookworm/main amd64 libxkbcommon0 amd64 1.5.0-1 [106 kB]
+#7 3.782 Get:114 http://deb.debian.org/debian bookworm/main amd64 libxnvctrl0 amd64 525.85.05-3~deb12u1 [13.5 kB]
+#7 3.782 Get:115 http://deb.debian.org/debian bookworm/main amd64 libxrandr2 amd64 2:1.5.2-2+b1 [39.2 kB]
+#7 3.782 Get:116 http://deb.debian.org/debian bookworm/main amd64 libcairo-gobject2 amd64 1.16.0-7 [112 kB]
+#7 3.783 Get:117 http://deb.debian.org/debian bookworm/main amd64 libcolord2 amd64 1.4.6-2.2 [137 kB]
+#7 3.786 Get:118 http://deb.debian.org/debian bookworm/main amd64 libepoxy0 amd64 1.5.10-1 [189 kB]
+#7 3.789 Get:119 http://deb.debian.org/debian bookworm/main amd64 libpangoft2-1.0-0 amd64 1.50.12+ds-1 [47.4 kB]
+#7 3.792 Get:120 http://deb.debian.org/debian bookworm/main amd64 libpangocairo-1.0-0 amd64 1.50.12+ds-1 [34.2 kB]
+#7 3.792 Get:121 http://deb.debian.org/debian bookworm/main amd64 libwayland-client0 amd64 1.21.0-1 [28.3 kB]
+#7 3.795 Get:122 http://deb.debian.org/debian bookworm/main amd64 libwayland-cursor0 amd64 1.21.0-1 [14.4 kB]
+#7 3.795 Get:123 http://deb.debian.org/debian bookworm/main amd64 libwayland-egl1 amd64 1.21.0-1 [8640 B]
+#7 3.795 Get:124 http://deb.debian.org/debian bookworm/main amd64 libxcursor1 amd64 1:1.2.1-1 [40.9 kB]
+#7 3.798 Get:125 http://deb.debian.org/debian bookworm/main amd64 libxinerama1 amd64 2:1.1.4-3 [17.8 kB]
+#7 3.800 Get:126 http://deb.debian.org/debian bookworm/main amd64 dbus-user-session amd64 1.14.10-1~deb12u1 [78.1 kB]
+#7 3.802 Get:127 http://deb.debian.org/debian bookworm/main amd64 libdconf1 amd64 0.40.0-4 [40.9 kB]
+#7 3.804 Get:128 http://deb.debian.org/debian bookworm/main amd64 dconf-service amd64 0.40.0-4 [31.6 kB]
+#7 3.805 Get:129 http://deb.debian.org/debian bookworm/main amd64 dconf-gsettings-backend amd64 0.40.0-4 [27.8 kB]
+#7 3.806 Get:130 http://deb.debian.org/debian bookworm/main amd64 libgtk-3-common all 3.24.38-2~deb12u3 [3895 kB]
+#7 3.832 Get:131 http://deb.debian.org/debian bookworm/main amd64 libgtk-3-0 amd64 3.24.38-2~deb12u3 [2847 kB]
+#7 3.850 Get:132 http://deb.debian.org/debian bookworm/main amd64 libfontenc1 amd64 1:1.1.4-1 [24.3 kB]
+#7 3.850 Get:133 http://deb.debian.org/debian bookworm/main amd64 libglvnd0 amd64 1.6.0-1 [51.8 kB]
+#7 3.851 Get:134 http://deb.debian.org/debian bookworm/main amd64 libglapi-mesa amd64 22.3.6-1+deb12u2 [35.9 kB]
+#7 3.851 Get:135 http://deb.debian.org/debian bookworm/main amd64 libxcb-dri2-0 amd64 1.15-1 [107 kB]
+#7 3.852 Get:136 http://deb.debian.org/debian bookworm/main amd64 libxcb-dri3-0 amd64 1.15-1 [107 kB]
+#7 3.855 Get:137 http://deb.debian.org/debian bookworm/main amd64 libxcb-glx0 amd64 1.15-1 [122 kB]
+#7 3.855 Get:138 http://deb.debian.org/debian bookworm/main amd64 libxcb-present0 amd64 1.15-1 [105 kB]
+#7 3.856 Get:139 http://deb.debian.org/debian bookworm/main amd64 libxcb-randr0 amd64 1.15-1 [117 kB]
+#7 3.857 Get:140 http://deb.debian.org/debian bookworm/main amd64 libxcb-sync1 amd64 1.15-1 [109 kB]
+#7 3.857 Get:141 http://deb.debian.org/debian bookworm/main amd64 libxcb-xfixes0 amd64 1.15-1 [109 kB]
+#7 3.863 Get:142 http://deb.debian.org/debian bookworm/main amd64 libxshmfence1 amd64 1.3-1 [8820 B]
+#7 3.864 Get:143 http://deb.debian.org/debian bookworm/main amd64 libxxf86vm1 amd64 1:1.1.4-1+b2 [20.8 kB]
+#7 3.864 Get:144 http://deb.debian.org/debian bookworm/main amd64 libdrm-amdgpu1 amd64 2.4.114-1+b1 [20.9 kB]
+#7 3.865 Get:145 http://deb.debian.org/debian bookworm/main amd64 libpciaccess0 amd64 0.17-2 [51.4 kB]
+#7 3.865 Get:146 http://deb.debian.org/debian bookworm/main amd64 libdrm-intel1 amd64 2.4.114-1+b1 [64.0 kB]
+#7 3.866 Get:147 http://deb.debian.org/debian bookworm/main amd64 libdrm-nouveau2 amd64 2.4.114-1+b1 [19.1 kB]
+#7 3.866 Get:148 http://deb.debian.org/debian bookworm/main amd64 libdrm-radeon1 amd64 2.4.114-1+b1 [21.8 kB]
+#7 3.866 Get:149 http://deb.debian.org/debian bookworm/main amd64 libelf1 amd64 0.188-2.1 [174 kB]
+#7 3.868 Get:150 http://deb.debian.org/debian bookworm/main amd64 libedit2 amd64 3.1-20221030-2 [93.0 kB]
+#7 3.869 Get:151 http://deb.debian.org/debian bookworm/main amd64 libz3-4 amd64 4.8.12-3.1 [7216 kB]
+#7 3.929 Get:152 http://deb.debian.org/debian bookworm/main amd64 libllvm15 amd64 1:15.0.6-4+b1 [23.1 MB]
+#7 4.090 Get:153 http://deb.debian.org/debian bookworm/main amd64 libsensors-config all 1:3.6.0-7.1 [14.3 kB]
+#7 4.090 Get:154 http://deb.debian.org/debian bookworm/main amd64 libsensors5 amd64 1:3.6.0-7.1 [34.2 kB]
+#7 4.090 Get:155 http://deb.debian.org/debian bookworm/main amd64 libgl1-mesa-dri amd64 22.3.6-1+deb12u2 [7240 kB]
+#7 4.134 Get:156 http://deb.debian.org/debian bookworm/main amd64 libglx-mesa0 amd64 22.3.6-1+deb12u2 [148 kB]
+#7 4.134 Get:157 http://deb.debian.org/debian bookworm/main amd64 libglx0 amd64 1.6.0-1 [34.4 kB]
+#7 4.134 Get:158 http://deb.debian.org/debian bookworm/main amd64 libgl1 amd64 1.6.0-1 [88.4 kB]
+#7 4.134 Get:159 http://deb.debian.org/debian bookworm/main amd64 x11-common all 1:7.7+23 [252 kB]
+#7 4.135 Get:160 http://deb.debian.org/debian bookworm/main amd64 libice6 amd64 2:1.0.10-1 [58.5 kB]
+#7 4.136 Get:161 http://deb.debian.org/debian bookworm/main amd64 libsm6 amd64 2:1.2.3-1 [35.1 kB]
+#7 4.136 Get:162 http://deb.debian.org/debian bookworm/main amd64 libxt6 amd64 1:1.2.1-1.1 [186 kB]
+#7 4.137 Get:163 http://deb.debian.org/debian bookworm/main amd64 libxmu6 amd64 2:1.1.3-3 [60.1 kB]
+#7 4.139 Get:164 http://deb.debian.org/debian bookworm/main amd64 libxpm4 amd64 1:3.5.12-1.1+deb12u1 [48.6 kB]
+#7 4.143 Get:165 http://deb.debian.org/debian bookworm/main amd64 libxaw7 amd64 2:1.0.14-1 [201 kB]
+#7 4.146 Get:166 http://deb.debian.org/debian bookworm/main amd64 libxcb-shape0 amd64 1.15-1 [106 kB]
+#7 4.149 Get:167 http://deb.debian.org/debian bookworm/main amd64 libxft2 amd64 2.3.6-1 [61.8 kB]
+#7 4.149 Get:168 http://deb.debian.org/debian bookworm/main amd64 libxkbfile1 amd64 1:1.1.0-1 [75.2 kB]
+#7 4.149 Get:169 http://deb.debian.org/debian bookworm/main amd64 libxmuu1 amd64 2:1.1.3-3 [23.9 kB]
+#7 4.150 Get:170 http://deb.debian.org/debian bookworm/main amd64 libxtst6 amd64 2:1.2.3-1.1 [28.0 kB]
+#7 4.150 Get:171 http://deb.debian.org/debian bookworm/main amd64 libxv1 amd64 2:1.0.11-1.1 [24.8 kB]
+#7 4.153 Get:172 http://deb.debian.org/debian bookworm/main amd64 libxxf86dga1 amd64 2:1.1.5-1 [22.1 kB]
+#7 4.153 Get:173 http://deb.debian.org/debian bookworm/main amd64 x11-utils amd64 7.7+5 [202 kB]
+#7 4.154 Get:174 http://deb.debian.org/debian bookworm/main amd64 xdg-utils all 1.1.3-4.1 [75.5 kB]
+#7 4.155 Get:175 http://deb.debian.org/debian-security bookworm-security/main amd64 chromium-common amd64 153.0.8010.52-1~deb12u1 [30.8 MB]
+#7 4.358 Get:176 http://deb.debian.org/debian-security bookworm-security/main amd64 chromium amd64 153.0.8010.52-1~deb12u1 [79.7 MB]
+#7 5.047 debconf: delaying package configuration, since apt-utils is not installed
+#7 5.086 Fetched 208 MB in 2s (137 MB/s)
+#7 5.141 Selecting previously unselected package libssl3:amd64.
+#7 5.141 (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6096 files and directories currently installed.)
+#7 5.185 Preparing to unpack .../00-libssl3_3.0.20-1~deb12u2_amd64.deb ...
+#7 5.191 Unpacking libssl3:amd64 (3.0.20-1~deb12u2) ...
+#7 5.379 Selecting previously unselected package libargon2-1:amd64.
+#7 5.379 Preparing to unpack .../01-libargon2-1_0~20171227-0.3+deb12u1_amd64.deb ...
+#7 5.383 Unpacking libargon2-1:amd64 (0~20171227-0.3+deb12u1) ...
+#7 5.430 Selecting previously unselected package dmsetup.
+#7 5.431 Preparing to unpack .../02-dmsetup_2%3a1.02.185-2_amd64.deb ...
+#7 5.434 Unpacking dmsetup (2:1.02.185-2) ...
+#7 5.488 Selecting previously unselected package libdevmapper1.02.1:amd64.
+#7 5.490 Preparing to unpack .../03-libdevmapper1.02.1_2%3a1.02.185-2_amd64.deb ...
+#7 5.495 Unpacking libdevmapper1.02.1:amd64 (2:1.02.185-2) ...
+#7 5.557 Selecting previously unselected package libjson-c5:amd64.
+#7 5.560 Preparing to unpack .../04-libjson-c5_0.16-2_amd64.deb ...
+#7 5.563 Unpacking libjson-c5:amd64 (0.16-2) ...
+#7 5.606 Selecting previously unselected package libcryptsetup12:amd64.
+#7 5.608 Preparing to unpack .../05-libcryptsetup12_2%3a2.6.1-4~deb12u2_amd64.deb ...
+#7 5.615 Unpacking libcryptsetup12:amd64 (2:2.6.1-4~deb12u2) ...
+#7 5.698 Selecting previously unselected package libfdisk1:amd64.
+#7 5.702 Preparing to unpack .../06-libfdisk1_2.38.1-5+deb12u3_amd64.deb ...
+#7 5.704 Unpacking libfdisk1:amd64 (2.38.1-5+deb12u3) ...
+#7 5.769 Selecting previously unselected package libkmod2:amd64.
+#7 5.769 Preparing to unpack .../07-libkmod2_30+20221128-1_amd64.deb ...
+#7 5.772 Unpacking libkmod2:amd64 (30+20221128-1) ...
+#7 5.816 Selecting previously unselected package libapparmor1:amd64.
+#7 5.817 Preparing to unpack .../08-libapparmor1_3.0.8-3_amd64.deb ...
+#7 5.824 Unpacking libapparmor1:amd64 (3.0.8-3) ...
+#7 5.865 Selecting previously unselected package libip4tc2:amd64.
+#7 5.865 Preparing to unpack .../09-libip4tc2_1.8.9-2_amd64.deb ...
+#7 5.870 Unpacking libip4tc2:amd64 (1.8.9-2) ...
+#7 5.922 Selecting previously unselected package libsystemd-shared:amd64.
+#7 5.923 Preparing to unpack .../10-libsystemd-shared_252.39-1~deb12u2_amd64.deb ...
+#7 5.927 Unpacking libsystemd-shared:amd64 (252.39-1~deb12u2) ...
+#7 6.073 Setting up libssl3:amd64 (3.0.20-1~deb12u2) ...
+#7 6.154 Selecting previously unselected package systemd.
+#7 6.154 (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6182 files and directories currently installed.)
+#7 6.170 Preparing to unpack .../systemd_252.39-1~deb12u2_amd64.deb ...
+#7 6.193 Unpacking systemd (252.39-1~deb12u2) ...
+#7 6.486 Setting up libargon2-1:amd64 (0~20171227-0.3+deb12u1) ...
+#7 6.584 Setting up libjson-c5:amd64 (0.16-2) ...
+#7 6.597 Setting up libfdisk1:amd64 (2.38.1-5+deb12u3) ...
+#7 6.624 Setting up libkmod2:amd64 (30+20221128-1) ...
+#7 6.642 Setting up libapparmor1:amd64 (3.0.8-3) ...
+#7 6.676 Setting up libip4tc2:amd64 (1.8.9-2) ...
+#7 6.708 Setting up libsystemd-shared:amd64 (252.39-1~deb12u2) ...
+#7 6.733 Setting up libdevmapper1.02.1:amd64 (2:1.02.185-2) ...
+#7 6.793 Setting up libcryptsetup12:amd64 (2:2.6.1-4~deb12u2) ...
+#7 6.816 Setting up systemd (252.39-1~deb12u2) ...
+#7 6.918 Created symlink /etc/systemd/system/getty.target.wants/getty@tty1.service → /lib/systemd/system/getty@.service.
+#7 6.926 Created symlink /etc/systemd/system/multi-user.target.wants/remote-fs.target → /lib/systemd/system/remote-fs.target.
+#7 6.933 Created symlink /etc/systemd/system/sysinit.target.wants/systemd-pstore.service → /lib/systemd/system/systemd-pstore.service.
+#7 6.941 Initializing machine ID from random generator.
+#7 6.978 Creating group 'systemd-journal' with GID 999.
+#7 6.978 Creating group 'systemd-network' with GID 998.
+#7 6.978 Creating user 'systemd-network' (systemd Network Management) with UID 998 and GID 998.
+#7 7.116 Setting up dmsetup (2:1.02.185-2) ...
+#7 7.184 Selecting previously unselected package systemd-sysv.
+#7 7.184 (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 7031 files and directories currently installed.)
+#7 7.192 Preparing to unpack .../000-systemd-sysv_252.39-1~deb12u2_amd64.deb ...
+#7 7.194 Unpacking systemd-sysv (252.39-1~deb12u2) ...
+#7 7.253 Selecting previously unselected package libdbus-1-3:amd64.
+#7 7.254 Preparing to unpack .../001-libdbus-1-3_1.14.10-1~deb12u1_amd64.deb ...
+#7 7.258 Unpacking libdbus-1-3:amd64 (1.14.10-1~deb12u1) ...
+#7 7.313 Selecting previously unselected package dbus-bin.
+#7 7.315 Preparing to unpack .../002-dbus-bin_1.14.10-1~deb12u1_amd64.deb ...
+#7 7.317 Unpacking dbus-bin (1.14.10-1~deb12u1) ...
+#7 7.371 Selecting previously unselected package dbus-session-bus-common.
+#7 7.373 Preparing to unpack .../003-dbus-session-bus-common_1.14.10-1~deb12u1_all.deb ...
+#7 7.376 Unpacking dbus-session-bus-common (1.14.10-1~deb12u1) ...
+#7 7.444 Selecting previously unselected package libexpat1:amd64.
+#7 7.451 Preparing to unpack .../004-libexpat1_2.5.0-1+deb12u3_amd64.deb ...
+#7 7.465 Unpacking libexpat1:amd64 (2.5.0-1+deb12u3) ...
+#7 7.541 Selecting previously unselected package dbus-daemon.
+#7 7.542 Preparing to unpack .../005-dbus-daemon_1.14.10-1~deb12u1_amd64.deb ...
+#7 7.546 Unpacking dbus-daemon (1.14.10-1~deb12u1) ...
+#7 7.661 Selecting previously unselected package dbus-system-bus-common.
+#7 7.665 Preparing to unpack .../006-dbus-system-bus-common_1.14.10-1~deb12u1_all.deb ...
+#7 7.668 Unpacking dbus-system-bus-common (1.14.10-1~deb12u1) ...
+#7 7.798 Selecting previously unselected package dbus.
+#7 7.801 Preparing to unpack .../007-dbus_1.14.10-1~deb12u1_amd64.deb ...
+#7 7.812 Unpacking dbus (1.14.10-1~deb12u1) ...
+#7 8.002 Selecting previously unselected package libncursesw6:amd64.
+#7 8.004 Preparing to unpack .../008-libncursesw6_6.4-4_amd64.deb ...
+#7 8.017 Unpacking libncursesw6:amd64 (6.4-4) ...
+#7 8.124 Selecting previously unselected package libproc2-0:amd64.
+#7 8.127 Preparing to unpack .../009-libproc2-0_2%3a4.0.2-3_amd64.deb ...
+#7 8.139 Unpacking libproc2-0:amd64 (2:4.0.2-3) ...
+#7 8.217 Selecting previously unselected package procps.
+#7 8.221 Preparing to unpack .../010-procps_2%3a4.0.2-3_amd64.deb ...
+#7 8.245 Unpacking procps (2:4.0.2-3) ...
+#7 8.356 Selecting previously unselected package openssl.
+#7 8.358 Preparing to unpack .../011-openssl_3.0.20-1~deb12u2_amd64.deb ...
+#7 8.361 Unpacking openssl (3.0.20-1~deb12u2) ...
+#7 8.491 Selecting previously unselected package ca-certificates.
+#7 8.493 Preparing to unpack .../012-ca-certificates_20250419~deb12u1_all.deb ...
+#7 8.498 Unpacking ca-certificates (20250419~deb12u1) ...
+#7 8.660 Selecting previously unselected package libpam-systemd:amd64.
+#7 8.660 Preparing to unpack .../013-libpam-systemd_252.39-1~deb12u2_amd64.deb ...
+#7 8.685 Unpacking libpam-systemd:amd64 (252.39-1~deb12u2) ...
+#7 8.781 Selecting previously unselected package hicolor-icon-theme.
+#7 8.781 Preparing to unpack .../014-hicolor-icon-theme_0.17-2_all.deb ...
+#7 8.795 Unpacking hicolor-icon-theme (0.17-2) ...
+#7 8.914 Selecting previously unselected package libgdk-pixbuf2.0-common.
+#7 8.916 Preparing to unpack .../015-libgdk-pixbuf2.0-common_2.42.10+dfsg-1+deb12u4_all.deb ...
+#7 8.919 Unpacking libgdk-pixbuf2.0-common (2.42.10+dfsg-1+deb12u4) ...
+#7 9.025 Selecting previously unselected package libglib2.0-0:amd64.
+#7 9.027 Preparing to unpack .../016-libglib2.0-0_2.74.6-2+deb12u9_amd64.deb ...
+#7 9.029 Unpacking libglib2.0-0:amd64 (2.74.6-2+deb12u9) ...
+#7 9.192 Selecting previously unselected package libicu72:amd64.
+#7 9.194 Preparing to unpack .../017-libicu72_72.1-3+deb12u1_amd64.deb ...
+#7 9.198 Unpacking libicu72:amd64 (72.1-3+deb12u1) ...
+#7 9.770 Selecting previously unselected package libxml2:amd64.
+#7 9.772 Preparing to unpack .../018-libxml2_2.9.14+dfsg-1.3~deb12u6_amd64.deb ...
+#7 9.777 Unpacking libxml2:amd64 (2.9.14+dfsg-1.3~deb12u6) ...
+#7 9.862 Selecting previously unselected package shared-mime-info.
+#7 9.867 Preparing to unpack .../019-shared-mime-info_2.2-1_amd64.deb ...
+#7 9.870 Unpacking shared-mime-info (2.2-1) ...
+#7 9.988 Selecting previously unselected package libjpeg62-turbo:amd64.
+#7 9.993 Preparing to unpack .../020-libjpeg62-turbo_1%3a2.1.5-2_amd64.deb ...
+#7 10.00 Unpacking libjpeg62-turbo:amd64 (1:2.1.5-2) ...
+#7 10.10 Selecting previously unselected package libpng16-16:amd64.
+#7 10.10 Preparing to unpack .../021-libpng16-16_1.6.39-2+deb12u5_amd64.deb ...
+#7 10.11 Unpacking libpng16-16:amd64 (1.6.39-2+deb12u5) ...
+#7 10.17 Selecting previously unselected package libdeflate0:amd64.
+#7 10.17 Preparing to unpack .../022-libdeflate0_1.14-1_amd64.deb ...
+#7 10.17 Unpacking libdeflate0:amd64 (1.14-1) ...
+#7 10.23 Selecting previously unselected package libjbig0:amd64.
+#7 10.23 Preparing to unpack .../023-libjbig0_2.1-6.1_amd64.deb ...
+#7 10.23 Unpacking libjbig0:amd64 (2.1-6.1) ...
+#7 10.28 Selecting previously unselected package liblerc4:amd64.
+#7 10.28 Preparing to unpack .../024-liblerc4_4.0.0+ds-2_amd64.deb ...
+#7 10.28 Unpacking liblerc4:amd64 (4.0.0+ds-2) ...
+#7 10.33 Selecting previously unselected package libwebp7:amd64.
+#7 10.33 Preparing to unpack .../025-libwebp7_1.2.4-0.2+deb12u1_amd64.deb ...
+#7 10.34 Unpacking libwebp7:amd64 (1.2.4-0.2+deb12u1) ...
+#7 10.39 Selecting previously unselected package libtiff6:amd64.
+#7 10.39 Preparing to unpack .../026-libtiff6_4.5.0-6+deb12u4_amd64.deb ...
+#7 10.39 Unpacking libtiff6:amd64 (4.5.0-6+deb12u4) ...
+#7 10.45 Selecting previously unselected package libgdk-pixbuf-2.0-0:amd64.
+#7 10.45 Preparing to unpack .../027-libgdk-pixbuf-2.0-0_2.42.10+dfsg-1+deb12u4_amd64.deb ...
+#7 10.45 Unpacking libgdk-pixbuf-2.0-0:amd64 (2.42.10+dfsg-1+deb12u4) ...
+#7 10.49 Selecting previously unselected package gtk-update-icon-cache.
+#7 10.49 Preparing to unpack .../028-gtk-update-icon-cache_3.24.38-2~deb12u3_amd64.deb ...
+#7 10.49 Unpacking gtk-update-icon-cache (3.24.38-2~deb12u3) ...
+#7 10.54 Selecting previously unselected package adwaita-icon-theme.
+#7 10.54 Preparing to unpack .../029-adwaita-icon-theme_43-1_all.deb ...
+#7 10.55 Unpacking adwaita-icon-theme (43-1) ...
+#7 11.54 Selecting previously unselected package at-spi2-common.
+#7 11.55 Preparing to unpack .../030-at-spi2-common_2.46.0-5_all.deb ...
+#7 11.56 Unpacking at-spi2-common (2.46.0-5) ...
+#7 11.66 Selecting previously unselected package libasound2-data.
+#7 ...
+
+#15 [portal build 10/13] RUN pnpm install --frozen-lockfile
+#15 0.919 Scope: all 10 workspace projects
+#15 1.050 ? Verifying lockfile against supply-chain policies (729 entries)...
+#15 1.069 Lockfile is up to date, resolution step is skipped
+#15 1.219 Progress: resolved 1, reused 0, downloaded 0, added 0
+#15 1.255 Packages: +340
+#15 1.255 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#15 2.225 Progress: resolved 340, reused 0, downloaded 28, added 0
+#15 2.552 Packages are hard linked from the content-addressable store to the virtual store.
+#15 2.552   Content-addressable store is at: /root/.local/share/pnpm/store/v11
+#15 2.552   Virtual store is at:             node_modules/.pnpm
+#15 3.239 Progress: resolved 340, reused 0, downloaded 118, added 8
+#15 4.250 Progress: resolved 340, reused 0, downloaded 193, added 12
+#15 4.692 
+#15 4.692    ╭──────────────────────────────────────────────╮
+#15 4.692    │                                              │
+#15 4.692    │     Update available! 11.22.0 → 12.5.1.      │
+#15 4.692    │     Changelog: https://pnpm.io/v/12.5.1      │
+#15 4.692    │   To update, run: corepack use pnpm@12.5.1   │
+#15 4.692    │                                              │
+#15 4.692    ╰──────────────────────────────────────────────╯
+#15 4.692 
+#15 5.256 Progress: resolved 340, reused 0, downloaded 243, added 16
+#15 6.253 Progress: resolved 340, reused 0, downloaded 340, added 95
+#15 7.170 Progress: resolved 340, reused 0, downloaded 340, added 340, done
+#15 8.047 ✓ Lockfile passes supply-chain policies (729 entries in 6.9s)
+#15 8.118 .../esbuild@0.28.2/node_modules/esbuild postinstall$ node install.js
+#15 8.119 .../esbuild@0.25.12/node_modules/esbuild postinstall$ node install.js
+#15 8.218 .../esbuild@0.28.2/node_modules/esbuild postinstall: Done
+#15 8.253 .../esbuild@0.25.12/node_modules/esbuild postinstall: Done
+#15 8.388 
+#15 8.388 devDependencies:
+#15 8.388 + @axe-core/playwright 4.13.0
+#15 8.388 + @eslint/js 9.39.1
+#15 8.388 + @ja/billing-engine 0.1.0 <- packages/billing-engine
+#15 8.388 + @ja/database 0.1.0 <- packages/database
+#15 8.388 + @ja/domain 0.1.0 <- packages/domain
+#15 8.388 + @ja/money 0.1.0 <- packages/money
+#15 8.388 + @ja/reporting 0.1.0 <- packages/reporting
+#15 8.388 + @ja/schemas 0.1.0 <- packages/schemas
+#15 8.388 + @playwright/test 1.62.1
+#15 8.388 + @types/node 24.10.1
+#15 8.388 + better-auth 1.7.0
+#15 8.388 + eslint 9.39.1
+#15 8.388 + eslint-config-prettier 10.1.8
+#15 8.388 + eslint-plugin-svelte 3.13.1
+#15 8.388 + playwright 1.62.1
+#15 8.388 + prettier 3.7.4
+#15 8.388 + prettier-plugin-svelte 3.4.1
+#15 8.388 + sharp 0.35.4
+#15 8.388 + svelte 5.56.9
+#15 8.388 + typescript 6.0.3
+#15 8.388 + typescript-eslint 8.52.0
+#15 8.388 + vite 8.2.1
+#15 8.388 + vitest 4.1.11
+#15 8.388 
+#15 8.498 Done in 8.2s using pnpm v11.22.0
+#15 DONE 9.1s
+
+#7 [portal stage-2 2/8] RUN apt-get update  && apt-get install -y --no-install-recommends ca-certificates chromium  && rm -rf /var/lib/apt/lists/*  && groupadd --gid 10001 jaautomation  && useradd --system --uid 10001 --gid 10001 --create-home jaautomation
+#7 11.67 Preparing to unpack .../031-libasound2-data_1.2.8-1_all.deb ...
+#7 11.67 Unpacking libasound2-data (1.2.8-1) ...
+#7 11.75 Selecting previously unselected package libasound2:amd64.
+#7 11.75 Preparing to unpack .../032-libasound2_1.2.8-1+b1_amd64.deb ...
+#7 11.75 Unpacking libasound2:amd64 (1.2.8-1+b1) ...
+#7 11.86 Selecting previously unselected package libatk1.0-0:amd64.
+#7 11.87 Preparing to unpack .../033-libatk1.0-0_2.46.0-5_amd64.deb ...
+#7 11.87 Unpacking libatk1.0-0:amd64 (2.46.0-5) ...
+#7 11.92 Selecting previously unselected package libxau6:amd64.
+#7 11.92 Preparing to unpack .../034-libxau6_1%3a1.0.9-1_amd64.deb ...
+#7 11.92 Unpacking libxau6:amd64 (1:1.0.9-1) ...
+#7 11.97 Selecting previously unselected package libbsd0:amd64.
+#7 11.97 Preparing to unpack .../035-libbsd0_0.11.7-2_amd64.deb ...
+#7 11.98 Unpacking libbsd0:amd64 (0.11.7-2) ...
+#7 12.03 Selecting previously unselected package libxdmcp6:amd64.
+#7 12.04 Preparing to unpack .../036-libxdmcp6_1%3a1.1.2-3_amd64.deb ...
+#7 12.04 Unpacking libxdmcp6:amd64 (1:1.1.2-3) ...
+#7 12.08 Selecting previously unselected package libxcb1:amd64.
+#7 12.09 Preparing to unpack .../037-libxcb1_1.15-1_amd64.deb ...
+#7 12.09 Unpacking libxcb1:amd64 (1.15-1) ...
+#7 12.13 Selecting previously unselected package libx11-data.
+#7 12.13 Preparing to unpack .../038-libx11-data_2%3a1.8.4-2+deb12u2_all.deb ...
+#7 12.13 Unpacking libx11-data (2:1.8.4-2+deb12u2) ...
+#7 12.21 Selecting previously unselected package libx11-6:amd64.
+#7 12.22 Preparing to unpack .../039-libx11-6_2%3a1.8.4-2+deb12u2_amd64.deb ...
+#7 12.22 Unpacking libx11-6:amd64 (2:1.8.4-2+deb12u2) ...
+#7 12.29 Selecting previously unselected package libxext6:amd64.
+#7 12.29 Preparing to unpack .../040-libxext6_2%3a1.3.4-1+b1_amd64.deb ...
+#7 12.30 Unpacking libxext6:amd64 (2:1.3.4-1+b1) ...
+#7 12.35 Selecting previously unselected package libxi6:amd64.
+#7 12.35 Preparing to unpack .../041-libxi6_2%3a1.8-1+b1_amd64.deb ...
+#7 12.35 Unpacking libxi6:amd64 (2:1.8-1+b1) ...
+#7 12.39 Selecting previously unselected package libatspi2.0-0:amd64.
+#7 12.39 Preparing to unpack .../042-libatspi2.0-0_2.46.0-5_amd64.deb ...
+#7 12.39 Unpacking libatspi2.0-0:amd64 (2.46.0-5) ...
+#7 12.43 Selecting previously unselected package libatk-bridge2.0-0:amd64.
+#7 12.43 Preparing to unpack .../043-libatk-bridge2.0-0_2.46.0-5_amd64.deb ...
+#7 12.44 Unpacking libatk-bridge2.0-0:amd64 (2.46.0-5) ...
+#7 12.48 Selecting previously unselected package libbrotli1:amd64.
+#7 12.48 Preparing to unpack .../044-libbrotli1_1.0.9-2+b6_amd64.deb ...
+#7 12.49 Unpacking libbrotli1:amd64 (1.0.9-2+b6) ...
+#7 12.56 Selecting previously unselected package libfreetype6:amd64.
+#7 12.56 Preparing to unpack .../045-libfreetype6_2.12.1+dfsg-5+deb12u4_amd64.deb ...
+#7 12.56 Unpacking libfreetype6:amd64 (2.12.1+dfsg-5+deb12u4) ...
+#7 12.62 Selecting previously unselected package fonts-dejavu-core.
+#7 12.62 Preparing to unpack .../046-fonts-dejavu-core_2.37-6_all.deb ...
+#7 12.63 Unpacking fonts-dejavu-core (2.37-6) ...
+#7 12.74 Selecting previously unselected package fontconfig-config.
+#7 12.74 Preparing to unpack .../047-fontconfig-config_2.14.1-4_amd64.deb ...
+#7 12.88 Unpacking fontconfig-config (2.14.1-4) ...
+#7 12.95 Selecting previously unselected package libfontconfig1:amd64.
+#7 12.96 Preparing to unpack .../048-libfontconfig1_2.14.1-4_amd64.deb ...
+#7 12.96 Unpacking libfontconfig1:amd64 (2.14.1-4) ...
+#7 13.01 Selecting previously unselected package libpixman-1-0:amd64.
+#7 13.01 Preparing to unpack .../049-libpixman-1-0_0.42.2-1_amd64.deb ...
+#7 13.01 Unpacking libpixman-1-0:amd64 (0.42.2-1) ...
+#7 13.09 Selecting previously unselected package libxcb-render0:amd64.
+#7 13.09 Preparing to unpack .../050-libxcb-render0_1.15-1_amd64.deb ...
+#7 13.09 Unpacking libxcb-render0:amd64 (1.15-1) ...
+#7 13.15 Selecting previously unselected package libxcb-shm0:amd64.
+#7 13.15 Preparing to unpack .../051-libxcb-shm0_1.15-1_amd64.deb ...
+#7 13.16 Unpacking libxcb-shm0:amd64 (1.15-1) ...
+#7 13.19 Selecting previously unselected package libxrender1:amd64.
+#7 13.19 Preparing to unpack .../052-libxrender1_1%3a0.9.10-1.1_amd64.deb ...
+#7 13.20 Unpacking libxrender1:amd64 (1:0.9.10-1.1) ...
+#7 13.25 Selecting previously unselected package libcairo2:amd64.
+#7 13.26 Preparing to unpack .../053-libcairo2_1.16.0-7_amd64.deb ...
+#7 13.26 Unpacking libcairo2:amd64 (1.16.0-7) ...
+#7 13.32 Selecting previously unselected package libavahi-common-data:amd64.
+#7 13.32 Preparing to unpack .../054-libavahi-common-data_0.8-10+deb12u1_amd64.deb ...
+#7 13.32 Unpacking libavahi-common-data:amd64 (0.8-10+deb12u1) ...
+#7 13.37 Selecting previously unselected package libavahi-common3:amd64.
+#7 13.37 Preparing to unpack .../055-libavahi-common3_0.8-10+deb12u1_amd64.deb ...
+#7 13.37 Unpacking libavahi-common3:amd64 (0.8-10+deb12u1) ...
+#7 13.41 Selecting previously unselected package libavahi-client3:amd64.
+#7 13.41 Preparing to unpack .../056-libavahi-client3_0.8-10+deb12u1_amd64.deb ...
+#7 13.41 Unpacking libavahi-client3:amd64 (0.8-10+deb12u1) ...
+#7 13.45 Selecting previously unselected package libkrb5support0:amd64.
+#7 13.45 Preparing to unpack .../057-libkrb5support0_1.20.1-2+deb12u5_amd64.deb ...
+#7 13.45 Unpacking libkrb5support0:amd64 (1.20.1-2+deb12u5) ...
+#7 13.48 Selecting previously unselected package libk5crypto3:amd64.
+#7 13.48 Preparing to unpack .../058-libk5crypto3_1.20.1-2+deb12u5_amd64.deb ...
+#7 13.49 Unpacking libk5crypto3:amd64 (1.20.1-2+deb12u5) ...
+#7 13.52 Selecting previously unselected package libkeyutils1:amd64.
+#7 13.52 Preparing to unpack .../059-libkeyutils1_1.6.3-2_amd64.deb ...
+#7 13.52 Unpacking libkeyutils1:amd64 (1.6.3-2) ...
+#7 13.55 Selecting previously unselected package libkrb5-3:amd64.
+#7 13.55 Preparing to unpack .../060-libkrb5-3_1.20.1-2+deb12u5_amd64.deb ...
+#7 13.55 Unpacking libkrb5-3:amd64 (1.20.1-2+deb12u5) ...
+#7 13.61 Selecting previously unselected package libgssapi-krb5-2:amd64.
+#7 13.61 Preparing to unpack .../061-libgssapi-krb5-2_1.20.1-2+deb12u5_amd64.deb ...
+#7 13.61 Unpacking libgssapi-krb5-2:amd64 (1.20.1-2+deb12u5) ...
+#7 13.65 Selecting previously unselected package libcups2:amd64.
+#7 13.65 Preparing to unpack .../062-libcups2_2.4.2-3+deb12u9_amd64.deb ...
+#7 13.66 Unpacking libcups2:amd64 (2.4.2-3+deb12u9) ...
+#7 13.71 Selecting previously unselected package libdav1d6:amd64.
+#7 13.71 Preparing to unpack .../063-libdav1d6_1.0.0-2+deb12u1_amd64.deb ...
+#7 13.71 Unpacking libdav1d6:amd64 (1.0.0-2+deb12u1) ...
+#7 13.78 Selecting previously unselected package libdouble-conversion3:amd64.
+#7 13.78 Preparing to unpack .../064-libdouble-conversion3_3.2.1-1_amd64.deb ...
+#7 13.78 Unpacking libdouble-conversion3:amd64 (3.2.1-1) ...
+#7 13.82 Selecting previously unselected package libogg0:amd64.
+#7 13.82 Preparing to unpack .../065-libogg0_1.3.5-3_amd64.deb ...
+#7 13.83 Unpacking libogg0:amd64 (1.3.5-3) ...
+#7 13.87 Selecting previously unselected package libflac12:amd64.
+#7 13.87 Preparing to unpack .../066-libflac12_1.4.2+ds-2_amd64.deb ...
+#7 13.88 Unpacking libflac12:amd64 (1.4.2+ds-2) ...
+#7 13.94 Selecting previously unselected package libdrm-common.
+#7 13.94 Preparing to unpack .../067-libdrm-common_2.4.114-1_all.deb ...
+#7 13.94 Unpacking libdrm-common (2.4.114-1) ...
+#7 13.98 Selecting previously unselected package libdrm2:amd64.
+#7 13.98 Preparing to unpack .../068-libdrm2_2.4.114-1+b1_amd64.deb ...
+#7 13.99 Unpacking libdrm2:amd64 (2.4.114-1+b1) ...
+#7 14.02 Selecting previously unselected package libwayland-server0:amd64.
+#7 14.02 Preparing to unpack .../069-libwayland-server0_1.21.0-1_amd64.deb ...
+#7 14.02 Unpacking libwayland-server0:amd64 (1.21.0-1) ...
+#7 14.05 Selecting previously unselected package libgbm1:amd64.
+#7 14.05 Preparing to unpack .../070-libgbm1_22.3.6-1+deb12u2_amd64.deb ...
+#7 14.06 Unpacking libgbm1:amd64 (22.3.6-1+deb12u2) ...
+#7 14.10 Selecting previously unselected package libgraphite2-3:amd64.
+#7 14.10 Preparing to unpack .../071-libgraphite2-3_1.3.14-1+deb12u1_amd64.deb ...
+#7 14.10 Unpacking libgraphite2-3:amd64 (1.3.14-1+deb12u1) ...
+#7 14.13 Selecting previously unselected package libharfbuzz0b:amd64.
+#7 14.13 Preparing to unpack .../072-libharfbuzz0b_6.0.0+dfsg-3_amd64.deb ...
+#7 14.14 Unpacking libharfbuzz0b:amd64 (6.0.0+dfsg-3) ...
+#7 14.21 Selecting previously unselected package libharfbuzz-subset0:amd64.
+#7 14.22 Preparing to unpack .../073-libharfbuzz-subset0_6.0.0+dfsg-3_amd64.deb ...
+#7 14.22 Unpacking libharfbuzz-subset0:amd64 (6.0.0+dfsg-3) ...
+#7 14.31 Selecting previously unselected package liblcms2-2:amd64.
+#7 14.31 Preparing to unpack .../074-liblcms2-2_2.14-2+deb12u1_amd64.deb ...
+#7 14.31 Unpacking liblcms2-2:amd64 (2.14-2+deb12u1) ...
+#7 14.36 Selecting previously unselected package libminizip1:amd64.
+#7 14.36 Preparing to unpack .../075-libminizip1_1.1-8+deb12u1_amd64.deb ...
+#7 14.36 Unpacking libminizip1:amd64 (1.1-8+deb12u1) ...
+#7 14.40 Selecting previously unselected package libnspr4:amd64.
+#7 14.40 Preparing to unpack .../076-libnspr4_2%3a4.35-1_amd64.deb ...
+#7 14.40 Unpacking libnspr4:amd64 (2:4.35-1) ...
+#7 14.46 Selecting previously unselected package libsqlite3-0:amd64.
+#7 14.46 Preparing to unpack .../077-libsqlite3-0_3.40.1-2+deb12u2_amd64.deb ...
+#7 14.46 Unpacking libsqlite3-0:amd64 (3.40.1-2+deb12u2) ...
+#7 14.55 Selecting previously unselected package libnss3:amd64.
+#7 14.55 Preparing to unpack .../078-libnss3_2%3a3.87.1-1+deb12u4_amd64.deb ...
+#7 14.56 Unpacking libnss3:amd64 (2:3.87.1-1+deb12u4) ...
+#7 14.68 Selecting previously unselected package libopenh264-7:amd64.
+#7 14.68 Preparing to unpack .../079-libopenh264-7_2.3.1+dfsg-3+deb12u2_amd64.deb ...
+#7 14.69 Unpacking libopenh264-7:amd64 (2.3.1+dfsg-3+deb12u2) ...
+#7 14.75 Selecting previously unselected package libopenjp2-7:amd64.
+#7 14.75 Preparing to unpack .../080-libopenjp2-7_2.5.0-2+deb12u3_amd64.deb ...
+#7 14.75 Unpacking libopenjp2-7:amd64 (2.5.0-2+deb12u3) ...
+#7 14.79 Selecting previously unselected package libopus0:amd64.
+#7 14.79 Preparing to unpack .../081-libopus0_1.3.1-3_amd64.deb ...
+#7 14.80 Unpacking libopus0:amd64 (1.3.1-3) ...
+#7 14.86 Selecting previously unselected package fontconfig.
+#7 14.86 Preparing to unpack .../082-fontconfig_2.14.1-4_amd64.deb ...
+#7 14.87 Unpacking fontconfig (2.14.1-4) ...
+#7 14.91 Selecting previously unselected package libfribidi0:amd64.
+#7 14.91 Preparing to unpack .../083-libfribidi0_1.0.8-2.1_amd64.deb ...
+#7 14.91 Unpacking libfribidi0:amd64 (1.0.8-2.1) ...
+#7 14.96 Selecting previously unselected package libthai-data.
+#7 14.96 Preparing to unpack .../084-libthai-data_0.1.29-1_all.deb ...
+#7 14.97 Unpacking libthai-data (0.1.29-1) ...
+#7 15.02 Selecting previously unselected package libdatrie1:amd64.
+#7 15.02 Preparing to unpack .../085-libdatrie1_0.2.13-2+b1_amd64.deb ...
+#7 15.03 Unpacking libdatrie1:amd64 (0.2.13-2+b1) ...
+#7 15.07 Selecting previously unselected package libthai0:amd64.
+#7 15.08 Preparing to unpack .../086-libthai0_0.1.29-1_amd64.deb ...
+#7 15.08 Unpacking libthai0:amd64 (0.1.29-1) ...
+#7 15.12 Selecting previously unselected package libpango-1.0-0:amd64.
+#7 15.12 Preparing to unpack .../087-libpango-1.0-0_1.50.12+ds-1_amd64.deb ...
+#7 15.12 Unpacking libpango-1.0-0:amd64 (1.50.12+ds-1) ...
+#7 15.18 Selecting previously unselected package libasyncns0:amd64.
+#7 15.18 Preparing to unpack .../088-libasyncns0_0.8-6+b3_amd64.deb ...
+#7 15.19 Unpacking libasyncns0:amd64 (0.8-6+b3) ...
+#7 15.23 Selecting previously unselected package libmp3lame0:amd64.
+#7 15.23 Preparing to unpack .../089-libmp3lame0_3.100-6_amd64.deb ...
+#7 15.23 Unpacking libmp3lame0:amd64 (3.100-6) ...
+#7 15.32 Selecting previously unselected package libmpg123-0:amd64.
+#7 15.32 Preparing to unpack .../090-libmpg123-0_1.31.2-1+deb12u1_amd64.deb ...
+#7 15.32 Unpacking libmpg123-0:amd64 (1.31.2-1+deb12u1) ...
+#7 15.36 Selecting previously unselected package libvorbis0a:amd64.
+#7 15.37 Preparing to unpack .../091-libvorbis0a_1.3.7-1_amd64.deb ...
+#7 15.37 Unpacking libvorbis0a:amd64 (1.3.7-1) ...
+#7 15.41 Selecting previously unselected package libvorbisenc2:amd64.
+#7 15.41 Preparing to unpack .../092-libvorbisenc2_1.3.7-1_amd64.deb ...
+#7 15.42 Unpacking libvorbisenc2:amd64 (1.3.7-1) ...
+#7 15.45 Selecting previously unselected package libsndfile1:amd64.
+#7 15.45 Preparing to unpack .../093-libsndfile1_1.2.0-1+deb12u1_amd64.deb ...
+#7 15.46 Unpacking libsndfile1:amd64 (1.2.0-1+deb12u1) ...
+#7 15.51 Selecting previously unselected package libx11-xcb1:amd64.
+#7 15.52 Preparing to unpack .../094-libx11-xcb1_2%3a1.8.4-2+deb12u2_amd64.deb ...
+#7 15.52 Unpacking libx11-xcb1:amd64 (2:1.8.4-2+deb12u2) ...
+#7 15.58 Selecting previously unselected package libpulse0:amd64.
+#7 15.59 Preparing to unpack .../095-libpulse0_16.1+dfsg1-2+b1_amd64.deb ...
+#7 15.59 Unpacking libpulse0:amd64 (16.1+dfsg1-2+b1) ...
+#7 15.64 Selecting previously unselected package libxcomposite1:amd64.
+#7 15.65 Preparing to unpack .../096-libxcomposite1_1%3a0.4.5-1_amd64.deb ...
+#7 15.65 Unpacking libxcomposite1:amd64 (1:0.4.5-1) ...
+#7 15.70 Selecting previously unselected package libxdamage1:amd64.
+#7 15.70 Preparing to unpack .../097-libxdamage1_1%3a1.1.6-1_amd64.deb ...
+#7 15.71 Unpacking libxdamage1:amd64 (1:1.1.6-1) ...
+#7 15.76 Selecting previously unselected package libxfixes3:amd64.
+#7 15.76 Preparing to unpack .../098-libxfixes3_1%3a6.0.0-2_amd64.deb ...
+#7 15.76 Unpacking libxfixes3:amd64 (1:6.0.0-2) ...
+#7 15.81 Selecting previously unselected package xkb-data.
+#7 15.81 Preparing to unpack .../099-xkb-data_2.35.1-1_all.deb ...
+#7 15.81 Unpacking xkb-data (2.35.1-1) ...
+#7 15.95 Selecting previously unselected package libxkbcommon0:amd64.
+#7 15.96 Preparing to unpack .../100-libxkbcommon0_1.5.0-1_amd64.deb ...
+#7 15.96 Unpacking libxkbcommon0:amd64 (1.5.0-1) ...
+#7 16.00 Selecting previously unselected package libxnvctrl0:amd64.
+#7 16.00 Preparing to unpack .../101-libxnvctrl0_525.85.05-3~deb12u1_amd64.deb ...
+#7 16.01 Unpacking libxnvctrl0:amd64 (525.85.05-3~deb12u1) ...
+#7 16.04 Selecting previously unselected package libxrandr2:amd64.
+#7 16.04 Preparing to unpack .../102-libxrandr2_2%3a1.5.2-2+b1_amd64.deb ...
+#7 16.05 Unpacking libxrandr2:amd64 (2:1.5.2-2+b1) ...
+#7 16.09 Selecting previously unselected package libcairo-gobject2:amd64.
+#7 16.09 Preparing to unpack .../103-libcairo-gobject2_1.16.0-7_amd64.deb ...
+#7 16.09 Unpacking libcairo-gobject2:amd64 (1.16.0-7) ...
+#7 16.13 Selecting previously unselected package libcolord2:amd64.
+#7 16.13 Preparing to unpack .../104-libcolord2_1.4.6-2.2_amd64.deb ...
+#7 16.14 Unpacking libcolord2:amd64 (1.4.6-2.2) ...
+#7 16.19 Selecting previously unselected package libepoxy0:amd64.
+#7 16.19 Preparing to unpack .../105-libepoxy0_1.5.10-1_amd64.deb ...
+#7 16.20 Unpacking libepoxy0:amd64 (1.5.10-1) ...
+#7 16.23 Selecting previously unselected package libpangoft2-1.0-0:amd64.
+#7 16.24 Preparing to unpack .../106-libpangoft2-1.0-0_1.50.12+ds-1_amd64.deb ...
+#7 16.24 Unpacking libpangoft2-1.0-0:amd64 (1.50.12+ds-1) ...
+#7 16.29 Selecting previously unselected package libpangocairo-1.0-0:amd64.
+#7 16.29 Preparing to unpack .../107-libpangocairo-1.0-0_1.50.12+ds-1_amd64.deb ...
+#7 16.30 Unpacking libpangocairo-1.0-0:amd64 (1.50.12+ds-1) ...
+#7 16.34 Selecting previously unselected package libwayland-client0:amd64.
+#7 16.34 Preparing to unpack .../108-libwayland-client0_1.21.0-1_amd64.deb ...
+#7 16.34 Unpacking libwayland-client0:amd64 (1.21.0-1) ...
+#7 16.38 Selecting previously unselected package libwayland-cursor0:amd64.
+#7 16.38 Preparing to unpack .../109-libwayland-cursor0_1.21.0-1_amd64.deb ...
+#7 16.38 Unpacking libwayland-cursor0:amd64 (1.21.0-1) ...
+#7 16.42 Selecting previously unselected package libwayland-egl1:amd64.
+#7 16.42 Preparing to unpack .../110-libwayland-egl1_1.21.0-1_amd64.deb ...
+#7 16.42 Unpacking libwayland-egl1:amd64 (1.21.0-1) ...
+#7 16.47 Selecting previously unselected package libxcursor1:amd64.
+#7 16.48 Preparing to unpack .../111-libxcursor1_1%3a1.2.1-1_amd64.deb ...
+#7 16.48 Unpacking libxcursor1:amd64 (1:1.2.1-1) ...
+#7 16.52 Selecting previously unselected package libxinerama1:amd64.
+#7 16.53 Preparing to unpack .../112-libxinerama1_2%3a1.1.4-3_amd64.deb ...
+#7 16.53 Unpacking libxinerama1:amd64 (2:1.1.4-3) ...
+#7 16.57 Selecting previously unselected package dbus-user-session.
+#7 16.57 Preparing to unpack .../113-dbus-user-session_1.14.10-1~deb12u1_amd64.deb ...
+#7 16.57 Unpacking dbus-user-session (1.14.10-1~deb12u1) ...
+#7 16.60 Selecting previously unselected package libdconf1:amd64.
+#7 16.61 Preparing to unpack .../114-libdconf1_0.40.0-4_amd64.deb ...
+#7 16.61 Unpacking libdconf1:amd64 (0.40.0-4) ...
+#7 16.66 Selecting previously unselected package dconf-service.
+#7 16.66 Preparing to unpack .../115-dconf-service_0.40.0-4_amd64.deb ...
+#7 16.67 Unpacking dconf-service (0.40.0-4) ...
+#7 16.69 Selecting previously unselected package dconf-gsettings-backend:amd64.
+#7 16.69 Preparing to unpack .../116-dconf-gsettings-backend_0.40.0-4_amd64.deb ...
+#7 16.69 Unpacking dconf-gsettings-backend:amd64 (0.40.0-4) ...
+#7 16.73 Selecting previously unselected package libgtk-3-common.
+#7 16.73 Preparing to unpack .../117-libgtk-3-common_3.24.38-2~deb12u3_all.deb ...
+#7 16.73 Unpacking libgtk-3-common (3.24.38-2~deb12u3) ...
+#7 17.00 Selecting previously unselected package libgtk-3-0:amd64.
+#7 17.00 Preparing to unpack .../118-libgtk-3-0_3.24.38-2~deb12u3_amd64.deb ...
+#7 17.00 Unpacking libgtk-3-0:amd64 (3.24.38-2~deb12u3) ...
+#7 17.21 Selecting previously unselected package libfontenc1:amd64.
+#7 17.21 Preparing to unpack .../119-libfontenc1_1%3a1.1.4-1_amd64.deb ...
+#7 17.22 Unpacking libfontenc1:amd64 (1:1.1.4-1) ...
+#7 17.26 Selecting previously unselected package libglvnd0:amd64.
+#7 17.27 Preparing to unpack .../120-libglvnd0_1.6.0-1_amd64.deb ...
+#7 17.27 Unpacking libglvnd0:amd64 (1.6.0-1) ...
+#7 17.30 Selecting previously unselected package libglapi-mesa:amd64.
+#7 17.31 Preparing to unpack .../121-libglapi-mesa_22.3.6-1+deb12u2_amd64.deb ...
+#7 17.31 Unpacking libglapi-mesa:amd64 (22.3.6-1+deb12u2) ...
+#7 17.37 Selecting previously unselected package libxcb-dri2-0:amd64.
+#7 17.37 Preparing to unpack .../122-libxcb-dri2-0_1.15-1_amd64.deb ...
+#7 17.38 Unpacking libxcb-dri2-0:amd64 (1.15-1) ...
+#7 17.43 Selecting previously unselected package libxcb-dri3-0:amd64.
+#7 17.43 Preparing to unpack .../123-libxcb-dri3-0_1.15-1_amd64.deb ...
+#7 17.44 Unpacking libxcb-dri3-0:amd64 (1.15-1) ...
+#7 17.50 Selecting previously unselected package libxcb-glx0:amd64.
+#7 17.50 Preparing to unpack .../124-libxcb-glx0_1.15-1_amd64.deb ...
+#7 17.50 Unpacking libxcb-glx0:amd64 (1.15-1) ...
+#7 17.55 Selecting previously unselected package libxcb-present0:amd64.
+#7 17.55 Preparing to unpack .../125-libxcb-present0_1.15-1_amd64.deb ...
+#7 17.55 Unpacking libxcb-present0:amd64 (1.15-1) ...
+#7 17.59 Selecting previously unselected package libxcb-randr0:amd64.
+#7 17.60 Preparing to unpack .../126-libxcb-randr0_1.15-1_amd64.deb ...
+#7 17.61 Unpacking libxcb-randr0:amd64 (1.15-1) ...
+#7 17.65 Selecting previously unselected package libxcb-sync1:amd64.
+#7 17.65 Preparing to unpack .../127-libxcb-sync1_1.15-1_amd64.deb ...
+#7 17.66 Unpacking libxcb-sync1:amd64 (1.15-1) ...
+#7 17.68 Selecting previously unselected package libxcb-xfixes0:amd64.
+#7 17.69 Preparing to unpack .../128-libxcb-xfixes0_1.15-1_amd64.deb ...
+#7 17.69 Unpacking libxcb-xfixes0:amd64 (1.15-1) ...
+#7 17.72 Selecting previously unselected package libxshmfence1:amd64.
+#7 17.72 Preparing to unpack .../129-libxshmfence1_1.3-1_amd64.deb ...
+#7 17.73 Unpacking libxshmfence1:amd64 (1.3-1) ...
+#7 17.75 Selecting previously unselected package libxxf86vm1:amd64.
+#7 17.76 Preparing to unpack .../130-libxxf86vm1_1%3a1.1.4-1+b2_amd64.deb ...
+#7 17.76 Unpacking libxxf86vm1:amd64 (1:1.1.4-1+b2) ...
+#7 17.79 Selecting previously unselected package libdrm-amdgpu1:amd64.
+#7 17.80 Preparing to unpack .../131-libdrm-amdgpu1_2.4.114-1+b1_amd64.deb ...
+#7 17.80 Unpacking libdrm-amdgpu1:amd64 (2.4.114-1+b1) ...
+#7 17.84 Selecting previously unselected package libpciaccess0:amd64.
+#7 17.84 Preparing to unpack .../132-libpciaccess0_0.17-2_amd64.deb ...
+#7 17.84 Unpacking libpciaccess0:amd64 (0.17-2) ...
+#7 17.88 Selecting previously unselected package libdrm-intel1:amd64.
+#7 17.88 Preparing to unpack .../133-libdrm-intel1_2.4.114-1+b1_amd64.deb ...
+#7 17.89 Unpacking libdrm-intel1:amd64 (2.4.114-1+b1) ...
+#7 17.94 Selecting previously unselected package libdrm-nouveau2:amd64.
+#7 17.94 Preparing to unpack .../134-libdrm-nouveau2_2.4.114-1+b1_amd64.deb ...
+#7 17.95 Unpacking libdrm-nouveau2:amd64 (2.4.114-1+b1) ...
+#7 17.98 Selecting previously unselected package libdrm-radeon1:amd64.
+#7 17.99 Preparing to unpack .../135-libdrm-radeon1_2.4.114-1+b1_amd64.deb ...
+#7 17.99 Unpacking libdrm-radeon1:amd64 (2.4.114-1+b1) ...
+#7 18.02 Selecting previously unselected package libelf1:amd64.
+#7 18.03 Preparing to unpack .../136-libelf1_0.188-2.1_amd64.deb ...
+#7 18.04 Unpacking libelf1:amd64 (0.188-2.1) ...
+#7 18.09 Selecting previously unselected package libedit2:amd64.
+#7 18.09 Preparing to unpack .../137-libedit2_3.1-20221030-2_amd64.deb ...
+#7 18.09 Unpacking libedit2:amd64 (3.1-20221030-2) ...
+#7 18.13 Selecting previously unselected package libz3-4:amd64.
+#7 18.14 Preparing to unpack .../138-libz3-4_4.8.12-3.1_amd64.deb ...
+#7 18.14 Unpacking libz3-4:amd64 (4.8.12-3.1) ...
+#7 18.67 Selecting previously unselected package libllvm15:amd64.
+#7 18.67 Preparing to unpack .../139-libllvm15_1%3a15.0.6-4+b1_amd64.deb ...
+#7 18.68 Unpacking libllvm15:amd64 (1:15.0.6-4+b1) ...
+#7 19.64 Selecting previously unselected package libsensors-config.
+#7 19.64 Preparing to unpack .../140-libsensors-config_1%3a3.6.0-7.1_all.deb ...
+#7 19.65 Unpacking libsensors-config (1:3.6.0-7.1) ...
+#7 19.68 Selecting previously unselected package libsensors5:amd64.
+#7 19.68 Preparing to unpack .../141-libsensors5_1%3a3.6.0-7.1_amd64.deb ...
+#7 19.69 Unpacking libsensors5:amd64 (1:3.6.0-7.1) ...
+#7 19.72 Selecting previously unselected package libgl1-mesa-dri:amd64.
+#7 19.72 Preparing to unpack .../142-libgl1-mesa-dri_22.3.6-1+deb12u2_amd64.deb ...
+#7 19.73 Unpacking libgl1-mesa-dri:amd64 (22.3.6-1+deb12u2) ...
+#7 20.16 Selecting previously unselected package libglx-mesa0:amd64.
+#7 20.16 Preparing to unpack .../143-libglx-mesa0_22.3.6-1+deb12u2_amd64.deb ...
+#7 20.16 Unpacking libglx-mesa0:amd64 (22.3.6-1+deb12u2) ...
+#7 20.20 Selecting previously unselected package libglx0:amd64.
+#7 20.20 Preparing to unpack .../144-libglx0_1.6.0-1_amd64.deb ...
+#7 20.21 Unpacking libglx0:amd64 (1.6.0-1) ...
+#7 20.25 Selecting previously unselected package libgl1:amd64.
+#7 20.25 Preparing to unpack .../145-libgl1_1.6.0-1_amd64.deb ...
+#7 20.25 Unpacking libgl1:amd64 (1.6.0-1) ...
+#7 20.30 Selecting previously unselected package x11-common.
+#7 20.30 Preparing to unpack .../146-x11-common_1%3a7.7+23_all.deb ...
+#7 20.30 Unpacking x11-common (1:7.7+23) ...
+#7 20.35 Selecting previously unselected package libice6:amd64.
+#7 20.36 Preparing to unpack .../147-libice6_2%3a1.0.10-1_amd64.deb ...
+#7 20.36 Unpacking libice6:amd64 (2:1.0.10-1) ...
+#7 20.39 Selecting previously unselected package libsm6:amd64.
+#7 20.39 Preparing to unpack .../148-libsm6_2%3a1.2.3-1_amd64.deb ...
+#7 20.40 Unpacking libsm6:amd64 (2:1.2.3-1) ...
+#7 20.42 Selecting previously unselected package libxt6:amd64.
+#7 20.42 Preparing to unpack .../149-libxt6_1%3a1.2.1-1.1_amd64.deb ...
+#7 20.43 Unpacking libxt6:amd64 (1:1.2.1-1.1) ...
+#7 20.47 Selecting previously unselected package libxmu6:amd64.
+#7 20.47 Preparing to unpack .../150-libxmu6_2%3a1.1.3-3_amd64.deb ...
+#7 20.47 Unpacking libxmu6:amd64 (2:1.1.3-3) ...
+#7 20.51 Selecting previously unselected package libxpm4:amd64.
+#7 20.51 Preparing to unpack .../151-libxpm4_1%3a3.5.12-1.1+deb12u1_amd64.deb ...
+#7 20.51 Unpacking libxpm4:amd64 (1:3.5.12-1.1+deb12u1) ...
+#7 20.54 Selecting previously unselected package libxaw7:amd64.
+#7 20.54 Preparing to unpack .../152-libxaw7_2%3a1.0.14-1_amd64.deb ...
+#7 20.54 Unpacking libxaw7:amd64 (2:1.0.14-1) ...
+#7 20.59 Selecting previously unselected package libxcb-shape0:amd64.
+#7 20.59 Preparing to unpack .../153-libxcb-shape0_1.15-1_amd64.deb ...
+#7 20.59 Unpacking libxcb-shape0:amd64 (1.15-1) ...
+#7 20.63 Selecting previously unselected package libxft2:amd64.
+#7 20.63 Preparing to unpack .../154-libxft2_2.3.6-1_amd64.deb ...
+#7 20.64 Unpacking libxft2:amd64 (2.3.6-1) ...
+#7 20.67 Selecting previously unselected package libxkbfile1:amd64.
+#7 20.67 Preparing to unpack .../155-libxkbfile1_1%3a1.1.0-1_amd64.deb ...
+#7 20.67 Unpacking libxkbfile1:amd64 (1:1.1.0-1) ...
+#7 20.71 Selecting previously unselected package libxmuu1:amd64.
+#7 20.71 Preparing to unpack .../156-libxmuu1_2%3a1.1.3-3_amd64.deb ...
+#7 20.72 Unpacking libxmuu1:amd64 (2:1.1.3-3) ...
+#7 20.74 Selecting previously unselected package libxtst6:amd64.
+#7 20.74 Preparing to unpack .../157-libxtst6_2%3a1.2.3-1.1_amd64.deb ...
+#7 20.75 Unpacking libxtst6:amd64 (2:1.2.3-1.1) ...
+#7 20.78 Selecting previously unselected package libxv1:amd64.
+#7 20.78 Preparing to unpack .../158-libxv1_2%3a1.0.11-1.1_amd64.deb ...
+#7 20.78 Unpacking libxv1:amd64 (2:1.0.11-1.1) ...
+#7 20.82 Selecting previously unselected package libxxf86dga1:amd64.
+#7 20.82 Preparing to unpack .../159-libxxf86dga1_2%3a1.1.5-1_amd64.deb ...
+#7 20.83 Unpacking libxxf86dga1:amd64 (2:1.1.5-1) ...
+#7 20.87 Selecting previously unselected package x11-utils.
+#7 20.88 Preparing to unpack .../160-x11-utils_7.7+5_amd64.deb ...
+#7 20.88 Unpacking x11-utils (7.7+5) ...
+#7 20.93 Selecting previously unselected package xdg-utils.
+#7 20.93 Preparing to unpack .../161-xdg-utils_1.1.3-4.1_all.deb ...
+#7 20.94 Unpacking xdg-utils (1.1.3-4.1) ...
+#7 20.98 Selecting previously unselected package chromium-common.
+#7 20.98 Preparing to unpack .../162-chromium-common_153.0.8010.52-1~deb12u1_amd64.deb ...
+#7 20.98 Unpacking chromium-common (153.0.8010.52-1~deb12u1) ...
+#7 21.83 Selecting previously unselected package chromium.
+#7 21.83 Preparing to unpack .../163-chromium_153.0.8010.52-1~deb12u1_amd64.deb ...
+#7 21.83 Unpacking chromium (153.0.8010.52-1~deb12u1) ...
+#7 ...
+
+#16 [portal build 11/13] RUN env     JA_DATABASE_PATH=/tmp/jaautomation-release-build.sqlite     JA_MIGRATIONS_PATH=/workspace/migrations     JA_TENANT_ID=release-build-tenant     JA_DEPLOYMENT_ID=release-build-deployment     JA_DEPLOYMENT_BINDING_SECRET=release-build-binding-secret-2026-08-client-essential     JA_RELEASE_BUILD=1     pnpm --filter @ja/portal build  && rm -f /tmp/jaautomation-release-build.sqlite /tmp/jaautomation-release-build.sqlite-shm /tmp/jaautomation-release-build.sqlite-wal
+#16 1.102 $ vite build
+#16 2.576 vite v8.2.1 building ssr environment for production...
+#16 2.587 [2Ktransforming...
+#16 5.834 /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+#16 5.834 
+#16 5.834 /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+#16 6.102 ✓ 1164 modules transformed.
+#16 6.350 rendering chunks...
+#16 11.09 vite v8.2.1 building client environment for production...
+#16 11.10 [2Ktransforming...
+#16 ...
+
+#7 [portal stage-2 2/8] RUN apt-get update  && apt-get install -y --no-install-recommends ca-certificates chromium  && rm -rf /var/lib/apt/lists/*  && groupadd --gid 10001 jaautomation  && useradd --system --uid 10001 --gid 10001 --create-home jaautomation
+#7 24.65 Setting up libexpat1:amd64 (2.5.0-1+deb12u3) ...
+#7 24.66 Setting up libgraphite2-3:amd64 (1.3.14-1+deb12u1) ...
+#7 24.67 Setting up liblcms2-2:amd64 (2.14-2+deb12u1) ...
+#7 24.67 Setting up libpixman-1-0:amd64 (0.42.2-1) ...
+#7 24.68 Setting up libwayland-server0:amd64 (1.21.0-1) ...
+#7 24.69 Setting up libpciaccess0:amd64 (0.17-2) ...
+#7 24.69 Setting up systemd-sysv (252.39-1~deb12u2) ...
+#7 24.71 Setting up libxau6:amd64 (1:1.0.9-1) ...
+#7 24.72 Setting up libdouble-conversion3:amd64 (3.2.1-1) ...
+#7 24.73 Setting up libkeyutils1:amd64 (1.6.3-2) ...
+#7 24.74 Setting up libicu72:amd64 (72.1-3+deb12u1) ...
+#7 24.75 Setting up libmpg123-0:amd64 (1.31.2-1+deb12u1) ...
+#7 24.76 Setting up libogg0:amd64 (1.3.5-3) ...
+#7 24.77 Setting up liblerc4:amd64 (4.0.0+ds-2) ...
+#7 24.79 Setting up hicolor-icon-theme (0.17-2) ...
+#7 24.94 Setting up libdatrie1:amd64 (0.2.13-2+b1) ...
+#7 24.95 Setting up libminizip1:amd64 (1.1-8+deb12u1) ...
+#7 24.96 Setting up libglib2.0-0:amd64 (2.74.6-2+deb12u9) ...
+#7 25.00 Setting up libglvnd0:amd64 (1.6.0-1) ...
+#7 25.00 Setting up libbrotli1:amd64 (1.0.9-2+b6) ...
+#7 25.01 Setting up libsqlite3-0:amd64 (3.40.1-2+deb12u2) ...
+#7 25.02 Setting up libgdk-pixbuf2.0-common (2.42.10+dfsg-1+deb12u4) ...
+#7 25.03 Setting up x11-common (1:7.7+23) ...
+#7 25.20 debconf: unable to initialize frontend: Dialog
+#7 25.20 debconf: (TERM is not set, so the dialog frontend is not usable.)
+#7 25.20 debconf: falling back to frontend: Readline
+#7 25.20 debconf: unable to initialize frontend: Readline
+#7 25.20 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+#7 25.20 debconf: falling back to frontend: Teletype
+#7 25.26 invoke-rc.d: could not determine current runlevel
+#7 25.27 invoke-rc.d: policy-rc.d denied execution of restart.
+#7 25.27 Setting up libsensors-config (1:3.6.0-7.1) ...
+#7 25.29 Setting up libdeflate0:amd64 (1.14-1) ...
+#7 25.30 Setting up xkb-data (2.35.1-1) ...
+#7 25.31 Setting up libjbig0:amd64 (2.1-6.1) ...
+#7 25.32 Setting up libcolord2:amd64 (1.4.6-2.2) ...
+#7 25.33 Setting up libkrb5support0:amd64 (1.20.1-2+deb12u5) ...
+#7 25.34 Setting up libdconf1:amd64 (0.40.0-4) ...
+#7 25.34 Setting up libasound2-data (1.2.8-1) ...
+#7 25.36 Setting up libfontenc1:amd64 (1:1.1.4-1) ...
+#7 25.37 Setting up libz3-4:amd64 (4.8.12-3.1) ...
+#7 25.38 Setting up libflac12:amd64 (1.4.2+ds-2) ...
+#7 25.39 Setting up libjpeg62-turbo:amd64 (1:2.1.5-2) ...
+#7 25.40 Setting up libx11-data (2:1.8.4-2+deb12u2) ...
+#7 25.40 Setting up libepoxy0:amd64 (1.5.10-1) ...
+#7 25.41 Setting up libnspr4:amd64 (2:4.35-1) ...
+#7 25.42 Setting up libavahi-common-data:amd64 (0.8-10+deb12u1) ...
+#7 25.44 Setting up libdbus-1-3:amd64 (1.14.10-1~deb12u1) ...
+#7 25.44 Setting up libfribidi0:amd64 (1.0.8-2.1) ...
+#7 25.45 Setting up libopus0:amd64 (1.3.1-3) ...
+#7 25.46 Setting up libproc2-0:amd64 (2:4.0.2-3) ...
+#7 25.46 Setting up libpng16-16:amd64 (1.6.39-2+deb12u5) ...
+#7 25.47 Setting up libvorbis0a:amd64 (1.3.7-1) ...
+#7 25.49 Setting up fonts-dejavu-core (2.37-6) ...
+#7 25.54 Setting up libsensors5:amd64 (1:3.6.0-7.1) ...
+#7 25.56 Setting up libncursesw6:amd64 (6.4-4) ...
+#7 25.57 Setting up libk5crypto3:amd64 (1.20.1-2+deb12u5) ...
+#7 25.57 Setting up libdav1d6:amd64 (1.0.0-2+deb12u1) ...
+#7 25.59 Setting up libglapi-mesa:amd64 (22.3.6-1+deb12u2) ...
+#7 25.59 Setting up libopenh264-7:amd64 (2.3.1+dfsg-3+deb12u2) ...
+#7 25.61 Setting up libwebp7:amd64 (1.2.4-0.2+deb12u1) ...
+#7 25.62 Setting up libasyncns0:amd64 (0.8-6+b3) ...
+#7 25.62 Setting up libxshmfence1:amd64 (1.3-1) ...
+#7 25.63 Setting up at-spi2-common (2.46.0-5) ...
+#7 25.63 Setting up libtiff6:amd64 (4.5.0-6+deb12u4) ...
+#7 25.64 Setting up dbus-session-bus-common (1.14.10-1~deb12u1) ...
+#7 25.65 Setting up procps (2:4.0.2-3) ...
+#7 25.69 Setting up libasound2:amd64 (1.2.8-1+b1) ...
+#7 25.71 Setting up libopenjp2-7:amd64 (2.5.0-2+deb12u3) ...
+#7 25.72 Setting up libthai-data (0.1.29-1) ...
+#7 25.73 Setting up libatk1.0-0:amd64 (2.46.0-5) ...
+#7 25.74 Setting up libkrb5-3:amd64 (1.20.1-2+deb12u5) ...
+#7 25.75 Setting up libwayland-egl1:amd64 (1.21.0-1) ...
+#7 25.75 Setting up dbus-system-bus-common (1.14.10-1~deb12u1) ...
+#7 25.85 Setting up openssl (3.0.20-1~deb12u2) ...
+#7 25.86 Setting up libbsd0:amd64 (0.11.7-2) ...
+#7 25.87 Setting up libdrm-common (2.4.114-1) ...
+#7 25.88 Setting up libelf1:amd64 (0.188-2.1) ...
+#7 25.89 Setting up libxml2:amd64 (2.9.14+dfsg-1.3~deb12u6) ...
+#7 25.90 Setting up xdg-utils (1.1.3-4.1) ...
+#7 25.92 update-alternatives: using /usr/bin/xdg-open to provide /usr/bin/open (open) in auto mode
+#7 25.92 update-alternatives: warning: skip creation of /usr/share/man/man1/open.1.gz because associated file /usr/share/man/man1/xdg-open.1.gz (of link group open) doesn't exist
+#7 25.92 Setting up dbus-bin (1.14.10-1~deb12u1) ...
+#7 25.95 Setting up libmp3lame0:amd64 (3.100-6) ...
+#7 25.96 Setting up libvorbisenc2:amd64 (1.3.7-1) ...
+#7 25.97 Setting up libxkbcommon0:amd64 (1.5.0-1) ...
+#7 25.98 Setting up libwayland-client0:amd64 (1.21.0-1) ...
+#7 25.99 Setting up libice6:amd64 (2:1.0.10-1) ...
+#7 26.00 Setting up libxdmcp6:amd64 (1:1.1.2-3) ...
+#7 26.00 Setting up libxcb1:amd64 (1.15-1) ...
+#7 26.01 Setting up libxcb-xfixes0:amd64 (1.15-1) ...
+#7 26.02 Setting up libxcb-render0:amd64 (1.15-1) ...
+#7 26.02 Setting up fontconfig-config (2.14.1-4) ...
+#7 26.09 debconf: unable to initialize frontend: Dialog
+#7 26.09 debconf: (TERM is not set, so the dialog frontend is not usable.)
+#7 26.09 debconf: falling back to frontend: Readline
+#7 26.09 debconf: unable to initialize frontend: Readline
+#7 26.09 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+#7 26.09 debconf: falling back to frontend: Teletype
+#7 26.26 Setting up libxcb-glx0:amd64 (1.15-1) ...
+#7 26.27 Setting up libedit2:amd64 (3.1-20221030-2) ...
+#7 26.27 Setting up libxcb-shape0:amd64 (1.15-1) ...
+#7 26.28 Setting up libavahi-common3:amd64 (0.8-10+deb12u1) ...
+#7 26.28 Setting up libnss3:amd64 (2:3.87.1-1+deb12u4) ...
+#7 26.28 Setting up libxcb-shm0:amd64 (1.15-1) ...
+#7 26.29 Setting up dbus-daemon (1.14.10-1~deb12u1) ...
+#7 26.33 Setting up libxcb-present0:amd64 (1.15-1) ...
+#7 26.34 Setting up libthai0:amd64 (0.1.29-1) ...
+#7 26.34 Setting up ca-certificates (20250419~deb12u1) ...
+#7 26.43 debconf: unable to initialize frontend: Dialog
+#7 26.43 debconf: (TERM is not set, so the dialog frontend is not usable.)
+#7 26.43 debconf: falling back to frontend: Readline
+#7 26.43 debconf: unable to initialize frontend: Readline
+#7 26.43 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+#7 26.43 debconf: falling back to frontend: Teletype
+#7 26.94 Updating certificates in /etc/ssl/certs...
+#7 27.98 150 added, 0 removed; done.
+#7 28.01 Setting up libfreetype6:amd64 (2.12.1+dfsg-5+deb12u4) ...
+#7 28.03 Setting up libxcb-sync1:amd64 (1.15-1) ...
+#7 28.04 Setting up dbus (1.14.10-1~deb12u1) ...
+#7 28.08 invoke-rc.d: could not determine current runlevel
+#7 28.09 invoke-rc.d: policy-rc.d denied execution of start.
+#7 28.09 Setting up shared-mime-info (2.2-1) ...
+#7 29.57 Setting up libgssapi-krb5-2:amd64 (1.20.1-2+deb12u5) ...
+#7 29.58 Setting up libxcb-dri2-0:amd64 (1.15-1) ...
+#7 29.59 Setting up libdrm2:amd64 (2.4.114-1+b1) ...
+#7 29.60 Setting up libwayland-cursor0:amd64 (1.21.0-1) ...
+#7 29.61 Setting up libxcb-randr0:amd64 (1.15-1) ...
+#7 29.61 Setting up libllvm15:amd64 (1:15.0.6-4+b1) ...
+#7 29.62 Setting up libpam-systemd:amd64 (252.39-1~deb12u2) ...
+#7 29.69 debconf: unable to initialize frontend: Dialog
+#7 29.69 debconf: (TERM is not set, so the dialog frontend is not usable.)
+#7 29.69 debconf: falling back to frontend: Readline
+#7 29.69 debconf: unable to initialize frontend: Readline
+#7 29.69 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+#7 29.69 debconf: falling back to frontend: Teletype
+#7 29.79 Setting up libx11-6:amd64 (2:1.8.4-2+deb12u2) ...
+#7 29.80 Setting up libharfbuzz0b:amd64 (6.0.0+dfsg-3) ...
+#7 29.81 Setting up libgdk-pixbuf-2.0-0:amd64 (2.42.10+dfsg-1+deb12u4) ...
+#7 29.85 Setting up libfontconfig1:amd64 (2.14.1-4) ...
+#7 29.86 Setting up libsndfile1:amd64 (1.2.0-1+deb12u1) ...
+#7 29.87 Setting up libxkbfile1:amd64 (1:1.1.0-1) ...
+#7 29.88 Setting up libxcomposite1:amd64 (1:0.4.5-1) ...
+#7 29.88 Setting up libsm6:amd64 (2:1.2.3-1) ...
+#7 29.89 Setting up libavahi-client3:amd64 (0.8-10+deb12u1) ...
+#7 29.89 Setting up libxmuu1:amd64 (2:1.1.3-3) ...
+#7 29.90 Setting up libdrm-amdgpu1:amd64 (2.4.114-1+b1) ...
+#7 29.91 Setting up libxcb-dri3-0:amd64 (1.15-1) ...
+#7 29.91 Setting up gtk-update-icon-cache (3.24.38-2~deb12u3) ...
+#7 29.92 Setting up libx11-xcb1:amd64 (2:1.8.4-2+deb12u2) ...
+#7 29.92 Setting up fontconfig (2.14.1-4) ...
+#7 29.93 Regenerating fonts cache... done.
+#7 31.98 Setting up libdrm-nouveau2:amd64 (2.4.114-1+b1) ...
+#7 31.99 Setting up libxdamage1:amd64 (1:1.1.6-1) ...
+#7 32.00 Setting up libxpm4:amd64 (1:3.5.12-1.1+deb12u1) ...
+#7 32.01 Setting up libxrender1:amd64 (1:0.9.10-1.1) ...
+#7 32.03 Setting up libgbm1:amd64 (22.3.6-1+deb12u2) ...
+#7 32.03 Setting up libpulse0:amd64 (16.1+dfsg1-2+b1) ...
+#7 32.05 Setting up libdrm-radeon1:amd64 (2.4.114-1+b1) ...
+#7 32.06 Setting up libpango-1.0-0:amd64 (1.50.12+ds-1) ...
+#7 32.06 Setting up libdrm-intel1:amd64 (2.4.114-1+b1) ...
+#7 32.07 Setting up libgl1-mesa-dri:amd64 (22.3.6-1+deb12u2) ...
+#7 32.10 Setting up libxext6:amd64 (2:1.3.4-1+b1) ...
+#7 32.11 Setting up libcairo2:amd64 (1.16.0-7) ...
+#7 32.11 Setting up libxxf86vm1:amd64 (1:1.1.4-1+b2) ...
+#7 32.13 Setting up libxnvctrl0:amd64 (525.85.05-3~deb12u1) ...
+#7 32.14 Setting up dbus-user-session (1.14.10-1~deb12u1) ...
+#7 32.15 Setting up adwaita-icon-theme (43-1) ...
+#7 32.25 update-alternatives: using /usr/share/icons/Adwaita/cursor.theme to provide /usr/share/icons/default/index.theme (x-cursor-theme) in auto mode
+#7 32.26 Setting up libxfixes3:amd64 (1:6.0.0-2) ...
+#7 32.27 Setting up libxinerama1:amd64 (2:1.1.4-3) ...
+#7 32.28 Setting up libxv1:amd64 (2:1.0.11-1.1) ...
+#7 32.29 Setting up libxrandr2:amd64 (2:1.5.2-2+b1) ...
+#7 32.30 Setting up libxt6:amd64 (1:1.2.1-1.1) ...
+#7 32.31 Setting up libcups2:amd64 (2.4.2-3+deb12u9) ...
+#7 32.32 Setting up libharfbuzz-subset0:amd64 (6.0.0+dfsg-3) ...
+#7 32.33 Setting up libcairo-gobject2:amd64 (1.16.0-7) ...
+#7 32.34 Setting up libpangoft2-1.0-0:amd64 (1.50.12+ds-1) ...
+#7 32.35 Setting up libpangocairo-1.0-0:amd64 (1.50.12+ds-1) ...
+#7 32.36 Setting up libxft2:amd64 (2.3.6-1) ...
+#7 32.37 Setting up libxmu6:amd64 (2:1.1.3-3) ...
+#7 32.38 Setting up libglx-mesa0:amd64 (22.3.6-1+deb12u2) ...
+#7 32.39 Setting up libxi6:amd64 (2:1.8-1+b1) ...
+#7 32.40 Setting up libglx0:amd64 (1.6.0-1) ...
+#7 32.41 Setting up libxtst6:amd64 (2:1.2.3-1.1) ...
+#7 32.42 Setting up libxcursor1:amd64 (1:1.2.1-1) ...
+#7 32.43 Setting up libxxf86dga1:amd64 (2:1.1.5-1) ...
+#7 32.44 Setting up dconf-service (0.40.0-4) ...
+#7 32.45 Setting up libxaw7:amd64 (2:1.0.14-1) ...
+#7 32.48 Setting up libatspi2.0-0:amd64 (2.46.0-5) ...
+#7 32.49 Setting up libatk-bridge2.0-0:amd64 (2.46.0-5) ...
+#7 32.50 Setting up libgl1:amd64 (1.6.0-1) ...
+#7 32.50 Setting up x11-utils (7.7+5) ...
+#7 32.54 Setting up chromium-common (153.0.8010.52-1~deb12u1) ...
+#7 32.55 Setting up dconf-gsettings-backend:amd64 (0.40.0-4) ...
+#7 32.56 Setting up libgtk-3-common (3.24.38-2~deb12u3) ...
+#7 32.57 Setting up libgtk-3-0:amd64 (3.24.38-2~deb12u3) ...
+#7 32.63 Setting up chromium (153.0.8010.52-1~deb12u1) ...
+#7 32.66 update-alternatives: using /usr/bin/chromium to provide /usr/bin/x-www-browser (x-www-browser) in auto mode
+#7 32.66 update-alternatives: using /usr/bin/chromium to provide /usr/bin/gnome-www-browser (gnome-www-browser) in auto mode
+#7 32.67 Processing triggers for libc-bin (2.36-9+deb12u14) ...
+#7 32.80 Processing triggers for ca-certificates (20250419~deb12u1) ...
+#7 32.81 Updating certificates in /etc/ssl/certs...
+#7 33.69 0 added, 0 removed; done.
+#7 33.69 Running hooks in /etc/ca-certificates/update.d...
+#7 33.69 done.
+#7 33.80 useradd warning: jaautomation's uid 10001 is greater than SYS_UID_MAX 999
+#7 ...
+
+#16 [portal build 11/13] RUN env     JA_DATABASE_PATH=/tmp/jaautomation-release-build.sqlite     JA_MIGRATIONS_PATH=/workspace/migrations     JA_TENANT_ID=release-build-tenant     JA_DEPLOYMENT_ID=release-build-deployment     JA_DEPLOYMENT_BINDING_SECRET=release-build-binding-secret-2026-08-client-essential     JA_RELEASE_BUILD=1     pnpm --filter @ja/portal build  && rm -f /tmp/jaautomation-release-build.sqlite /tmp/jaautomation-release-build.sqlite-shm /tmp/jaautomation-release-build.sqlite-wal
+#16 11.10 [2Ktransforming...
+#16 14.12 /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+#16 14.12 
+#16 14.12 /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+#16 14.34 ✓ 399 modules transformed.
+#16 14.47 rendering chunks...
+#16 14.66 computing gzip size...
+#16 14.67 .svelte-kit/output/client/_app/version.json                                       0.02 kB │ gzip:   0.04 kB
+#16 14.67 .svelte-kit/output/client/.vite/manifest.json                                    19.03 kB │ gzip:   2.22 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/15.DlkQeItN.css                   0.29 kB │ gzip:   0.18 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/26.DBgCMfPT.css                   0.83 kB │ gzip:   0.38 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/11.BScqMmFi.css                   1.20 kB │ gzip:   0.48 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/21.CTTuxow5.css                   1.39 kB │ gzip:   0.45 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/18.Ci_d9lut.css                   1.72 kB │ gzip:   0.70 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/12.BW34JK-h.css                   1.92 kB │ gzip:   0.70 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/22.DMA26wD7.css                   2.38 kB │ gzip:   0.66 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/billing-readiness.DZJbrA4P.css    3.36 kB │ gzip:   0.95 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/25.DmDDKJxk.css                   3.37 kB │ gzip:   1.01 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/13.BZii0H6U.css                   5.00 kB │ gzip:   1.28 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/17.BtQLeuq-.css                   5.23 kB │ gzip:   1.26 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/ui.DB3pkSFP.css                   6.69 kB │ gzip:   1.59 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/24.BZNqNqjF.css                   7.35 kB │ gzip:   1.61 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/23.J4ugKtLk.css                   7.88 kB │ gzip:   1.71 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/20.A_phMCEg.css                  16.79 kB │ gzip:   3.21 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/PortalShell.BbjuI7YN.css        118.84 kB │ gzip:  13.68 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/assets/0.CErntwsU.css                  170.87 kB │ gzip:  31.61 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/BvRk9kiK.js                       0.00 kB │ gzip:   0.02 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/DgcQ3G_J.js                       0.02 kB │ gzip:   0.04 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/xihTtKlq.js                       0.06 kB │ gzip:   0.08 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/entry/start.DDS4gPAm.js                  0.08 kB │ gzip:   0.09 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/7.BD_pGwGR.js                      0.17 kB │ gzip:   0.14 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/8.CBOHStAa.js                      0.20 kB │ gzip:   0.15 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/cwaMq8PM.js                       0.24 kB │ gzip:   0.17 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/0.BNsF9Cmo.js                      0.27 kB │ gzip:   0.21 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/Cv-pavS9.js                       0.48 kB │ gzip:   0.33 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/Srv6vSaP.js                       0.53 kB │ gzip:   0.37 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/1.B_GbZInV.js                      0.60 kB │ gzip:   0.33 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/DoqlpXnD.js                       0.86 kB │ gzip:   0.55 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/Bjy-W4x22.js                      1.36 kB │ gzip:   0.65 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/Dfoeze9r.js                       1.75 kB │ gzip:   0.86 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/3.DIb2MTCF.js                      1.80 kB │ gzip:   0.99 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/DMtBK_H1.js                       1.92 kB │ gzip:   0.87 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/5.qkaodIsM.js                      2.25 kB │ gzip:   1.12 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/4.CCmGrYNM.js                      2.25 kB │ gzip:   1.12 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/BAnYDQhB.js                       2.36 kB │ gzip:   1.16 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/14.B2rZOlxQ.js                     2.54 kB │ gzip:   1.40 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/MvsIc4n6.js                       3.52 kB │ gzip:   1.34 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/19.D5k4w934.js                     3.98 kB │ gzip:   1.92 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/2.CQ_ZxZKo.js                      4.10 kB │ gzip:   2.06 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/Dli61b1F.js                       4.59 kB │ gzip:   1.67 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/27.LStkCXn1.js                     4.79 kB │ gzip:   2.15 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/26.D23P705p.js                     5.02 kB │ gzip:   2.01 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/16.6d03rmRa.js                     5.06 kB │ gzip:   2.28 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/10.BK3u3Xmj.js                     5.29 kB │ gzip:   2.29 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/DvkVBYqR.js                       7.02 kB │ gzip:   3.11 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/D36NvZ7I.js                       7.82 kB │ gzip:   2.89 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/18.B2QpEbxy.js                     8.06 kB │ gzip:   3.16 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/15.DCRZtYrr.js                     8.10 kB │ gzip:   3.48 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/DRQOwKVd.js                      10.03 kB │ gzip:   2.03 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/11.BN3yUPe6.js                    11.96 kB │ gzip:   4.13 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/entry/app.CGuuMBoO.js                   12.02 kB │ gzip:   3.35 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/BQF9Rz2J.js                      12.73 kB │ gzip:   4.52 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/C6Q4MyrD.js                      13.03 kB │ gzip:   4.47 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/C26NjYMY.js                      13.20 kB │ gzip:   3.99 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/DPMHYaKB.js                      13.99 kB │ gzip:   4.55 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/17.ClgC-WCQ.js                    14.31 kB │ gzip:   4.51 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/9.CtnjSu2E.js                     16.82 kB │ gzip:   6.03 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/21.CYAkn4yN.js                    17.40 kB │ gzip:   5.29 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/CV3M1CFA.js                      20.03 kB │ gzip:   6.84 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/24.CSOeMMIk.js                    24.05 kB │ gzip:   6.74 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/hP-kElGX.js                      28.43 kB │ gzip:  10.71 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/12.EBgRzuVs.js                    29.84 kB │ gzip:   8.79 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/13.DX7r-eC9.js                    31.60 kB │ gzip:  11.79 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/OuxFvkgM.js                      33.22 kB │ gzip:  10.78 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/CCfahGOu.js                      38.07 kB │ gzip:  14.26 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/25.CztM3eZS.js                    39.59 kB │ gzip:   9.41 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/23.XtKI5QKY.js                    43.58 kB │ gzip:  11.50 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/22.BwyXRXy3.js                    44.79 kB │ gzip:  12.71 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/nodes/20.DkuMy0_c.js                    52.42 kB │ gzip:  13.50 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/DaKzhnWC.js                      57.81 kB │ gzip:  22.15 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/E7G-7gNC.js                     488.78 kB │ gzip: 139.09 kB
+#16 14.67 .svelte-kit/output/client/_app/immutable/chunks/CivdS2Jo.js                     663.60 kB │ gzip: 154.65 kB
+#16 14.67 
+#16 14.67 [plugin builtin:vite-reporter] 
+#16 14.67 (!) Some chunks are larger than 500 kB after minification. Consider:
+#16 14.67 - Using dynamic import() to code-split the application
+#16 14.67 - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+#16 14.67 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+#16 14.67 ✓ built in 3.58s
+#16 14.67 [33m[PLUGIN_TIMINGS] [0mYour build spent 92% of 3.6s inside plugin hooks (3.3s).
+#16 14.67 Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+#16 14.67   - @tailwindcss/vite:generate:build transform (75%, 2.7s, 33 calls)
+#16 14.67   - vite-plugin-svelte:compile transform (72%, 2.6s, 64 calls)
+#16 14.67 Those rows are 100% of the build; the rest of the 92% is below.
+#16 14.67 Not measurable — 1 hook whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+#16 14.67   - vite-plugin-sveltekit-guard resolveId (1406 calls)
+#16 14.67 See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+#16 14.67 
+#16 15.59 computing gzip size...
+#16 15.62 .svelte-kit/output/server/.vite/manifest.json                                                                          56.86 kB │ gzip:   5.35 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/_page.DlkQeItN.css                                                      0.29 kB │ gzip:   0.18 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/_page.DBgCMfPT.css                                                      0.83 kB │ gzip:   0.38 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/_page.BScqMmFi.css                                                      1.20 kB │ gzip:   0.48 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/_page.CTTuxow5.css                                                      1.39 kB │ gzip:   0.45 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/_page.Ci_d9lut.css                                                      1.72 kB │ gzip:   0.70 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/_page.BW34JK-h.css                                                      1.92 kB │ gzip:   0.70 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/_page.DMA26wD7.css                                                      2.38 kB │ gzip:   0.66 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/PlanningCalendar.lV6qhZbc.css                                           3.33 kB │ gzip:   0.94 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/_page.DmDDKJxk.css                                                      3.37 kB │ gzip:   1.01 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/_page.BZii0H6U.css                                                      5.00 kB │ gzip:   1.28 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/_page.BtQLeuq-.css                                                      5.23 kB │ gzip:   1.26 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/ui.DB3pkSFP.css                                                         6.69 kB │ gzip:   1.59 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/_page.BZNqNqjF.css                                                      7.35 kB │ gzip:   1.61 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/_page.J4ugKtLk.css                                                      7.88 kB │ gzip:   1.71 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/_page.Dqb-Be9L.css                                                     16.67 kB │ gzip:   3.19 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/PortalShell.BbjuI7YN.css                                              118.84 kB │ gzip:  13.68 kB
+#16 15.62 .svelte-kit/output/server/_app/immutable/assets/_layout.BrT81AF5.css                                                  170.38 kB │ gzip:  31.57 kB
+#16 15.62 .svelte-kit/output/server/chunks/navigation.js                                                                          0.03 kB │ gzip:   0.05 kB
+#16 15.62 .svelte-kit/output/server/chunks/forms.js                                                                               0.05 kB │ gzip:   0.06 kB
+#16 15.62 .svelte-kit/output/server/chunks/kysely-adapter.js                                                                      0.12 kB │ gzip:   0.09 kB
+#16 15.62 .svelte-kit/output/server/chunks/paths.js                                                                               0.12 kB │ gzip:   0.09 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/invite/_token_/_page.ts.js                                                  0.13 kB │ gzip:   0.12 kB
+#16 15.62 .svelte-kit/output/server/remote-entry.js                                                                               0.16 kB │ gzip:   0.12 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/_page.server.ts.js                                                              0.16 kB │ gzip:   0.15 kB
+#16 15.62 .svelte-kit/output/server/env.js                                                                                        0.22 kB │ gzip:   0.14 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/health/live/_server.ts.js                                                   0.24 kB │ gzip:   0.21 kB
+#16 15.62 .svelte-kit/output/server/chunks/core.js                                                                                0.25 kB │ gzip:   0.18 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/_layout.server.ts.js                                                        0.26 kB │ gzip:   0.18 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/login/_page.server.ts.js                                                    0.26 kB │ gzip:   0.21 kB
+#16 15.62 .svelte-kit/output/server/chunks/env.js                                                                                 0.28 kB │ gzip:   0.17 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/_page.svelte.js                                                             0.29 kB │ gzip:   0.19 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/api/public/inquiry/_server.ts.js                                            0.30 kB │ gzip:   0.19 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/api/public/support/_server.ts.js                                            0.31 kB │ gzip:   0.19 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/api/public/aquarex/_server.ts.js                                            0.31 kB │ gzip:   0.19 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/_section_/_page.svelte.js                                                   0.32 kB │ gzip:   0.22 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/api/public/career-interest/_server.ts.js                                    0.32 kB │ gzip:   0.19 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/_layout.svelte.js                                                               0.33 kB │ gzip:   0.22 kB
+#16 15.62 .svelte-kit/output/server/chunks/mail-directory2.js                                                                     0.37 kB │ gzip:   0.18 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/documents/_id_/scan/_server.ts.js                                   0.37 kB │ gzip:   0.28 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/supplier/_layout.server.ts.js                                               0.39 kB │ gzip:   0.25 kB
+#16 15.62 .svelte-kit/output/server/chunks/target.js                                                                              0.39 kB │ gzip:   0.28 kB
+#16 15.62 .svelte-kit/output/server/internal.js                                                                                   0.40 kB │ gzip:   0.19 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/health/ready/_server.ts.js                                                  0.42 kB │ gzip:   0.28 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/api/public/contact/_server.ts.js                                            0.48 kB │ gzip:   0.28 kB
+#16 15.62 .svelte-kit/output/server/chunks/PrintIcon.js                                                                           0.52 kB │ gzip:   0.34 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/time/_id_/_page.server.ts.js                                                0.57 kB │ gzip:   0.36 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/expenses/_id_/_page.server.ts.js                                            0.58 kB │ gzip:   0.36 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/manifest.webmanifest/_server.ts.js                                      0.60 kB │ gzip:   0.36 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/manage/_layout.server.ts.js                                                 0.61 kB │ gzip:   0.35 kB
+#16 15.62 .svelte-kit/output/server/chunks/string.js                                                                              0.69 kB │ gzip:   0.43 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/_layout.server.ts.js                                                            0.76 kB │ gzip:   0.46 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/billing/invoices/_id_/_page.server.ts.js                                    0.85 kB │ gzip:   0.46 kB
+#16 15.62 .svelte-kit/output/server/chunks/kysely-migration-tables-DFfmKhq-.js                                                    0.95 kB │ gzip:   0.52 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/invoices/_id_/pdf/_server.ts.js                                     1.03 kB │ gzip:   0.51 kB
+#16 15.62 .svelte-kit/output/server/chunks/report-export-request.js                                                               1.04 kB │ gzip:   0.43 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/mfa-enrollment/_page.server.ts.js                                           1.05 kB │ gzip:   0.51 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/accounting-pack/_id_/_type_/_server.ts.js                           1.06 kB │ gzip:   0.55 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/reports/_id_/pdf/_server.ts.js                                      1.07 kB │ gzip:   0.52 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/projects/closeout/artifact/_artifactId_/_server.ts.js               1.09 kB │ gzip:   0.60 kB
+#16 15.62 .svelte-kit/output/server/chunks/expense-evidence.js                                                                    1.14 kB │ gzip:   0.58 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/supplier/report/_page.server.ts.js                                          1.21 kB │ gzip:   0.52 kB
+#16 15.62 .svelte-kit/output/server/chunks/internal.js                                                                            1.23 kB │ gzip:   0.50 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/projects/closeout/artifacts/_revisionId_/_server.ts.js              1.29 kB │ gzip:   0.66 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/billing/readiness/_server.ts.js                                     1.32 kB │ gzip:   0.63 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/health/_server.ts.js                                                1.33 kB │ gzip:   0.69 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/help/_page.server.ts.js                                                     1.39 kB │ gzip:   0.59 kB
+#16 15.62 .svelte-kit/output/server/chunks/supplier-context.js                                                                    1.40 kB │ gzip:   0.63 kB
+#16 15.62 .svelte-kit/output/server/chunks/payment-money.js                                                                       1.41 kB │ gzip:   0.68 kB
+#16 15.62 .svelte-kit/output/server/chunks/invitation-mail-token.js                                                               1.43 kB │ gzip:   0.62 kB
+#16 15.62 .svelte-kit/output/server/chunks/iso-date.js                                                                            1.48 kB │ gzip:   0.65 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/localized-pdf/_variantId_/retry/_server.ts.js                       1.49 kB │ gzip:   0.68 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/notifications/_id_/_page.server.ts.js                                       1.56 kB │ gzip:   0.65 kB
+#16 15.62 .svelte-kit/output/server/chunks/stores.js                                                                              1.59 kB │ gzip:   0.74 kB
+#16 15.62 .svelte-kit/output/server/chunks/invoice-draft.js                                                                       1.61 kB │ gzip:   0.66 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/reports/_id_/attachments/_documentId_/cancel/_server.ts.js          1.90 kB │ gzip:   0.78 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/invite/_token_/_page.svelte.js                                              1.92 kB │ gzip:   0.85 kB
+#16 15.62 .svelte-kit/output/server/chunks/portal-format.js                                                                       1.93 kB │ gzip:   0.97 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/offline/identity/_server.ts.js                                      1.95 kB │ gzip:   0.88 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/documents/_id_/_server.ts.js                                            1.95 kB │ gzip:   0.78 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/documents/_id_/_server.ts.js                                        1.96 kB │ gzip:   0.79 kB
+#16 15.62 .svelte-kit/output/server/chunks/billing-readiness.js                                                                   2.04 kB │ gzip:   0.62 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/sync/_server.ts.js                                                  2.16 kB │ gzip:   0.98 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/worker-statement/artifacts/_artifactId_/_server.ts.js               2.18 kB │ gzip:   0.81 kB
+#16 15.62 .svelte-kit/output/server/chunks/sqlite-adapter.js                                                                      2.23 kB │ gzip:   0.84 kB
+#16 15.62 .svelte-kit/output/server/chunks/action-message.js                                                                      2.29 kB │ gzip:   0.91 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/offline/identity/verify/_server.ts.js                               2.30 kB │ gzip:   0.95 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/supplier/report.csv/_server.ts.js                                       2.31 kB │ gzip:   1.06 kB
+#16 15.62 .svelte-kit/output/server/chunks/action-utils.js                                                                        2.57 kB │ gzip:   1.13 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/_error.svelte.js                                                            2.67 kB │ gzip:   0.98 kB
+#16 15.62 .svelte-kit/output/server/chunks/owner-finance.js                                                                       2.75 kB │ gzip:   1.02 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/finance/cash/_page.server.ts.js                                             2.84 kB │ gzip:   1.10 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/reports/_id_/attachments/_documentId_/_server.ts.js                 2.85 kB │ gzip:   1.06 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/supplier/_layout.svelte.js                                                  2.86 kB │ gzip:   1.14 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/manage/_layout.svelte.js                                                    2.86 kB │ gzip:   1.14 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/worker-statement/artifacts/_artifactId_/retry/_server.ts.js         2.88 kB │ gzip:   1.04 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/_page.server.ts.js                                                          3.00 kB │ gzip:   0.97 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/worker-statement/artifacts/_artifactId_/download/_server.ts.js      3.01 kB │ gzip:   1.21 kB
+#16 15.62 .svelte-kit/output/server/chunks/role-projections.js                                                                    3.09 kB │ gzip:   1.16 kB
+#16 15.62 .svelte-kit/output/server/entries/fallbacks/error.svelte.js                                                             3.18 kB │ gzip:   1.25 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/reports/_id_/attachments/_server.ts.js                              3.36 kB │ gzip:   1.19 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/expenses/export/_server.ts.js                                           3.38 kB │ gzip:   1.32 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/worker-statement/_format_/_server.ts.js                             3.52 kB │ gzip:   1.35 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/localized-pdf/_server.ts.js                                         3.67 kB │ gzip:   1.22 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/projects/_id_/finance-export/_server.ts.js                          3.70 kB │ gzip:   1.46 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/sync/attachment/_server.ts.js                                       3.89 kB │ gzip:   1.48 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/help/_manual_/download/_server.ts.js                                    3.91 kB │ gzip:   1.62 kB
+#16 15.62 .svelte-kit/output/server/chunks/owner-finance-copy.js                                                                  3.97 kB │ gzip:   1.42 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/login/two-factor/_page.svelte.js                                            4.04 kB │ gzip:   1.48 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/reports/_id_/_page.server.ts.js                                             4.10 kB │ gzip:   1.33 kB
+#16 15.62 .svelte-kit/output/server/chunks/d1-sqlite-dialect-BZmaVTp8.js                                                          4.12 kB │ gzip:   1.53 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/time/_id_/_page.svelte.js                                                   4.32 kB │ gzip:   1.45 kB
+#16 15.62 .svelte-kit/output/server/chunks/searchable-selects.js                                                                  4.35 kB │ gzip:   1.66 kB
+#16 15.62 .svelte-kit/output/server/chunks/standalone-locale.js                                                                   4.38 kB │ gzip:   1.53 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/notifications/_id_/_page.svelte.js                                          4.40 kB │ gzip:   1.49 kB
+#16 15.62 .svelte-kit/output/server/chunks/bun-sqlite-dialect-C7ftEUSI.js                                                         4.74 kB │ gzip:   1.69 kB
+#16 15.62 .svelte-kit/output/server/chunks/node-sqlite-dialect.js                                                                 4.74 kB │ gzip:   1.68 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/projects/_id_/closeout/_page.server.ts.js                                   4.94 kB │ gzip:   1.38 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/_layout.svelte.js                                                           5.02 kB │ gzip:   1.89 kB
+#16 15.62 .svelte-kit/output/server/chunks/health-readiness.js                                                                    5.04 kB │ gzip:   1.87 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/expenses/_id_/_page.svelte.js                                               5.06 kB │ gzip:   1.62 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/localized-pdf/_variantId_/download/_server.ts.js                    5.40 kB │ gzip:   1.87 kB
+#16 15.62 .svelte-kit/output/server/chunks/controlled-values.js                                                                   5.71 kB │ gzip:   1.81 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/supplier/report/_page.svelte.js                                             5.89 kB │ gzip:   1.61 kB
+#16 15.62 .svelte-kit/output/server/chunks/public-form.js                                                                         6.15 kB │ gzip:   2.33 kB
+#16 15.62 .svelte-kit/output/server/chunks/routing.js                                                                             6.17 kB │ gzip:   2.20 kB
+#16 15.62 .svelte-kit/output/server/chunks/exports.js                                                                             6.22 kB │ gzip:   1.84 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/service-worker.js/_server.ts.js                                         6.45 kB │ gzip:   2.17 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/worker-statement/_server.ts.js                                      6.47 kB │ gzip:   1.88 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/login/_page.svelte.js                                                       6.64 kB │ gzip:   2.31 kB
+#16 15.62 .svelte-kit/output/server/chunks/manual-catalog.js                                                                      6.70 kB │ gzip:   2.23 kB
+#16 15.62 .svelte-kit/output/server/chunks/portal-navigation.js                                                                   6.87 kB │ gzip:   2.08 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/invoice-collection-ledger/_format_/_server.ts.js                    6.98 kB │ gzip:   2.32 kB
+#16 15.62 .svelte-kit/output/server/chunks/error.js                                                                               7.16 kB │ gzip:   2.66 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/mfa-enrollment/_page.svelte.js                                              7.67 kB │ gzip:   2.49 kB
+#16 15.62 .svelte-kit/output/server/chunks/client.js                                                                              7.82 kB │ gzip:   2.84 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/invitations/accept/_server.ts.js                                    8.10 kB │ gzip:   2.45 kB
+#16 15.62 .svelte-kit/output/server/chunks/PlanningCalendar.js                                                                    8.11 kB │ gzip:   2.58 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/security/mfa/_server.ts.js                                          8.13 kB │ gzip:   2.53 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/projects/_id_/_page.server.ts.js                                            8.22 kB │ gzip:   2.29 kB
+#16 15.62 .svelte-kit/output/server/chunks/report-attachment-route.js                                                             8.40 kB │ gzip:   2.70 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/manage/_page.server.ts.js                                                   8.67 kB │ gzip:   2.65 kB
+#16 15.62 .svelte-kit/output/server/chunks/webmail-password.js                                                                    8.92 kB │ gzip:   3.15 kB
+#16 15.62 .svelte-kit/output/server/chunks/collections-workbench.js                                                               8.99 kB │ gzip:   2.52 kB
+#16 15.62 .svelte-kit/output/server/chunks/src2.js                                                                                9.33 kB │ gzip:   2.77 kB
+#16 15.62 .svelte-kit/output/server/chunks/cash-calendar.js                                                                       9.35 kB │ gzip:   2.89 kB
+#16 15.62 .svelte-kit/output/server/chunks/stalwart-client.js                                                                     9.36 kB │ gzip:   2.98 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/supplier/_page.server.ts.js                                                10.26 kB │ gzip:   2.74 kB
+#16 15.62 .svelte-kit/output/server/chunks/worker-statement-api.js                                                               10.29 kB │ gzip:   2.97 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/finance/preview/_page.server.ts.js                                         10.38 kB │ gzip:   3.32 kB
+#16 15.62 .svelte-kit/output/server/chunks/RecordBrowser.js                                                                      10.41 kB │ gzip:   3.11 kB
+#16 15.62 .svelte-kit/output/server/chunks/copy.js                                                                               11.46 kB │ gzip:   2.09 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/reports/review/_page.server.ts.js                                          13.05 kB │ gzip:   3.64 kB
+#16 15.62 .svelte-kit/output/server/chunks/PortalChrome.js                                                                       13.11 kB │ gzip:   3.73 kB
+#16 15.62 .svelte-kit/output/server/entries/hooks.server.js                                                                      14.01 kB │ gzip:   4.68 kB
+#16 15.62 .svelte-kit/output/server/chunks/copy3.js                                                                              14.43 kB │ gzip:   4.18 kB
+#16 15.62 .svelte-kit/output/server/chunks/dist3.js                                                                              14.70 kB │ gzip:   4.15 kB
+#16 15.62 .svelte-kit/output/server/chunks/copy2.js                                                                              14.77 kB │ gzip:   4.63 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/finance/cash/_page.svelte.js                                               15.11 kB │ gzip:   3.80 kB
+#16 15.62 .svelte-kit/output/server/chunks/portal-i18n.js                                                                        15.49 kB │ gzip:   3.88 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/billing/invoices/_id_/_page.svelte.js                                      16.22 kB │ gzip:   3.92 kB
+#16 15.62 .svelte-kit/output/server/chunks/offline-controller.js                                                                 16.64 kB │ gzip:   4.69 kB
+#16 15.62 .svelte-kit/output/server/chunks/uneval.js                                                                             16.68 kB │ gzip:   4.55 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/reports/period/_id_/_page.server.ts.js                                     17.47 kB │ gzip:   4.69 kB
+#16 15.62 .svelte-kit/output/server/chunks/period-followup-repository.js                                                         17.90 kB │ gzip:   4.03 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/manage/_page.svelte.js                                                     18.73 kB │ gzip:   4.16 kB
+#16 15.62 .svelte-kit/output/server/chunks/internal2.js                                                                          24.14 kB │ gzip:   7.01 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/projects/_id_/closeout/_page.svelte.js                                     24.50 kB │ gzip:   5.08 kB
+#16 15.62 .svelte-kit/output/server/chunks/mail-directory.js                                                                     25.63 kB │ gzip:   5.84 kB
+#16 15.62 .svelte-kit/output/server/entries/endpoints/app/api/internal/outbox-delivery/_server.ts.js                             27.18 kB │ gzip:   8.05 kB
+#16 15.62 .svelte-kit/output/server/chunks/private-artifact-access.js                                                            27.89 kB │ gzip:   6.73 kB
+#16 15.62 .svelte-kit/output/server/chunks/billing-actions.js                                                                    27.90 kB │ gzip:   4.51 kB
+#16 15.62 .svelte-kit/output/server/chunks/shared.js                                                                             29.97 kB │ gzip:   8.08 kB
+#16 15.62 .svelte-kit/output/server/chunks/vanilla.js                                                                            31.44 kB │ gzip:   8.41 kB
+#16 15.62 .svelte-kit/output/server/chunks/ui.js                                                                                 31.85 kB │ gzip:   6.11 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/reports/review/_page.svelte.js                                             31.90 kB │ gzip:   5.83 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/help/_page.svelte.js                                                       32.36 kB │ gzip:  10.40 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/finance/preview/_page.svelte.js                                            34.38 kB │ gzip:   7.91 kB
+#16 15.62 .svelte-kit/output/server/chunks/utils.js                                                                              37.48 kB │ gzip:  10.85 kB
+#16 15.62 .svelte-kit/output/server/chunks/dist.js                                                                               37.90 kB │ gzip:  10.65 kB
+#16 15.62 .svelte-kit/output/server/chunks/default-query-compiler.js                                                             45.42 kB │ gzip:   7.94 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/supplier/_page.svelte.js                                                   48.20 kB │ gzip:   7.11 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/reports/period/_id_/_page.svelte.js                                        49.35 kB │ gzip:   9.11 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/reports/_id_/_page.svelte.js                                               49.37 kB │ gzip:   9.41 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/projects/_id_/_page.svelte.js                                              54.06 kB │ gzip:   9.73 kB
+#16 15.62 .svelte-kit/output/server/chunks/remote.js                                                                             55.49 kB │ gzip:  12.14 kB
+#16 15.62 .svelte-kit/output/server/chunks/factory.js                                                                            77.74 kB │ gzip:  16.75 kB
+#16 15.62 .svelte-kit/output/server/chunks/context.js                                                                            95.92 kB │ gzip:  25.09 kB
+#16 15.62 .svelte-kit/output/server/chunks/portal-repository.js                                                                 109.74 kB │ gzip:  27.97 kB
+#16 15.62 .svelte-kit/output/server/index.js                                                                                    134.60 kB │ gzip:  34.08 kB
+#16 15.62 .svelte-kit/output/server/entries/pages/app/_section_/_page.server.ts.js                                              135.71 kB │ gzip:  20.80 kB
+#16 15.62 .svelte-kit/output/server/chunks/index-server.js                                                                      137.83 kB │ gzip:  35.50 kB
+#16 15.62 .svelte-kit/output/server/chunks/dist2.js                                                                             208.22 kB │ gzip:  35.19 kB
+#16 15.62 .svelte-kit/output/server/chunks/compiled-query.js                                                                    240.37 kB │ gzip:  39.33 kB
+#16 15.62 .svelte-kit/output/server/chunks/coverage-translations.js                                                             405.72 kB │ gzip: 116.32 kB
+#16 15.62 .svelte-kit/output/server/chunks/PortalShell.js                                                                       630.81 kB │ gzip: 100.96 kB
+#16 15.62 .svelte-kit/output/server/chunks/auth.js                                                                              807.12 kB │ gzip: 182.70 kB
+#16 15.62 .svelte-kit/output/server/chunks/src.js                                                                             1,354.52 kB │ gzip: 257.29 kB
+#16 15.62 
+#16 15.62 ✓ built in 13.04s
+#16 15.62 
+#16 15.62 Run npm run preview to preview your production build locally.
+#16 15.62 
+#16 15.62 > Using @sveltejs/adapter-node
+#16 18.11 .svelte-kit/output/server/chunks/auth.js (3652:0): A comment
+#16 18.11 
+#16 18.11 "/**
+#16 18.11 * Wraps a cipher: validates args, ensures encrypt() can only be called once.
+#16 18.11 * Used internally by the exported cipher constructors.
+#16 18.11 * Output-buffer support is inferred from the wrapped `encrypt` / `decrypt`
+#16 18.11 * arity (`fn.length === 2`), so wrapped output-capable methods must use a normal
+#16 18.11 * second parameter, not a default/rest parameter. AAD support is explicit in
+#16 18.11 * `params.withAAD`; optional AAD starts after the nonce slot when one is present.
+#16 18.11 * @__NO_SIDE_EFFECTS__
+#16 18.11 * @param params - Static cipher metadata. See {@link CipherParams}.
+#16 18.11 * @param constructor - Cipher constructor.
+#16 18.11 * @returns Wrapped constructor with validation.
+#16 18.11 */"
+#16 18.11 
+#16 18.11 in ".svelte-kit/output/server/chunks/auth.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+#16 18.70 "node:sqlite" is imported by ".svelte-kit/output/server/chunks/src.js", but could not be resolved – treating it as an external dependency.
+#16 20.90 Generated an empty chunk: "chunks/env.js".
+#16 21.71   ✔ done
+#16 21.71 [33m[PLUGIN_TIMINGS] [0mYour build spent 100% of 13.0s inside plugin hooks (18.7s).
+#16 21.71 Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+#16 21.71   - vite-plugin-sveltekit-compile writeBundle (69%, 9.0s, 1 call)
+#16 21.71   - vite-plugin-sveltekit-compile closeBundle (47%, 6.1s, 1 call)
+#16 21.71   - vite-plugin-svelte:compile transform (20%, 2.5s, 64 calls)
+#16 21.71 Those rows are 100% of the build; the rest of the 100% is below.
+#16 21.71 Not measurable — 3 hooks whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+#16 21.71   - vite-plugin-sveltekit-guard resolveId (4434 calls)
+#16 21.71   - vite-plugin-svelte:preprocess transform (64 calls)
+#16 21.71   - @tailwindcss/vite:generate:build transform (33 calls)
+#16 21.71 See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+#16 21.71 
+#16 DONE 22.1s
+
+#7 [portal stage-2 2/8] RUN apt-get update  && apt-get install -y --no-install-recommends ca-certificates chromium  && rm -rf /var/lib/apt/lists/*  && groupadd --gid 10001 jaautomation  && useradd --system --uid 10001 --gid 10001 --create-home jaautomation
+#7 DONE 34.0s
+
+#17 [portal stage-2 3/8] WORKDIR /app
+#17 DONE 0.2s
+
+#18 [portal build 12/13] RUN env     JA_DATABASE_PATH=/tmp/jaautomation-release-build.sqlite     JA_MIGRATIONS_PATH=/workspace/migrations     JA_TENANT_ID=release-build-tenant     JA_DEPLOYMENT_ID=release-build-deployment     JA_DEPLOYMENT_BINDING_SECRET=release-build-binding-secret-2026-08-client-essential     JA_RELEASE_BUILD=1     pnpm jobs:build  && rm -f /tmp/jaautomation-release-build.sqlite /tmp/jaautomation-release-build.sqlite-shm /tmp/jaautomation-release-build.sqlite-wal
+#18 0.906 $ vite build --config deployment/vite.jobs.config.ts
+#18 1.120 vite v8.2.1 building ssr environment for production...
+#18 1.129 [2Ktransforming...✓ 162 modules transformed.
+#18 1.236 rendering chunks...
+#18 1.297 computing gzip size...
+#18 1.325 deployment/jobs-build/alerts.mjs                 1.28 kB
+#18 1.325 deployment/jobs-build/storage-safety.mjs         3.51 kB
+#18 1.325 deployment/jobs-build/backup-verify.mjs          7.22 kB
+#18 1.325 deployment/jobs-build/backup.mjs                 7.93 kB
+#18 1.325 deployment/jobs-build/continuity-backup.mjs     72.04 kB
+#18 1.325 deployment/jobs-build/jobs-run.mjs           1,604.92 kB │ gzip: 312.30 kB
+#18 1.325 
+#18 1.326 ✓ built in 205ms
+#18 DONE 1.4s
+
+#19 [portal build 13/13] RUN pnpm --filter @ja/portal deploy --prod --legacy /portal
+#19 2.324 [WARN] Shared workspace lockfile detected but configuration forces legacy deploy implementation.
+#19 2.418 Packages are copied from the content-addressable store to the virtual store.
+#19 2.418   Content-addressable store is at: /root/.local/share/pnpm/store/v11
+#19 2.418   Virtual store is at:             ../portal/node_modules/.pnpm
+#19 2.420 ✓ Lockfile passes supply-chain policies (verified 26s ago)
+#19 2.450 Progress: resolved 1, reused 0, downloaded 0, added 0
+#19 2.547 .                                        | [WARN] deprecated eslint@9.39.1
+#19 3.451 Progress: resolved 30, reused 0, downloaded 0, added 0
+#19 4.719 Progress: resolved 36, reused 0, downloaded 0, added 0
+#19 9.113 Progress: resolved 37, reused 0, downloaded 0, added 0
+#19 10.11 Progress: resolved 185, reused 0, downloaded 0, added 0
+#19 11.12 Progress: resolved 190, reused 0, downloaded 0, added 0
+#19 12.12 Progress: resolved 287, reused 0, downloaded 0, added 0
+#19 13.13 Progress: resolved 361, reused 0, downloaded 0, added 0
+#19 14.12 Progress: resolved 438, reused 0, downloaded 0, added 0
+#19 15.17 Progress: resolved 455, reused 0, downloaded 0, added 0
+#19 16.17 Progress: resolved 456, reused 0, downloaded 0, added 0
+#19 19.24 Progress: resolved 457, reused 0, downloaded 0, added 0
+#19 20.25 Progress: resolved 462, reused 0, downloaded 0, added 0
+#19 21.25 Progress: resolved 473, reused 0, downloaded 0, added 0
+#19 21.94 [WARN] 2 deprecated subdependencies found: @esbuild-kit/core-utils@3.3.2, @esbuild-kit/esm-loader@2.6.5
+#19 21.94 Progress: resolved 500, reused 0, downloaded 0, added 0, done
+#19 21.94 [WARN] Issues with peer dependencies found. Run "pnpm peers check" to list them.
+#19 22.01 .                                        | +201 ++++++++++++++++++++
+#19 DONE 53.6s
+
+#20 [portal stage-2 4/8] COPY --from=build --chown=jaautomation:jaautomation /portal ./
+#20 DONE 3.4s
+
+#21 [portal stage-2 5/8] COPY --from=build --chown=jaautomation:jaautomation /workspace/migrations ./migrations
+#21 DONE 0.3s
+
+#22 [portal stage-2 6/8] COPY --from=build --chown=jaautomation:jaautomation /workspace/deployment/jobs-build/ ./deployment/
+#22 DONE 0.0s
+
+#23 [portal stage-2 7/8] COPY --from=build --chown=jaautomation:jaautomation /workspace/packages/reporting/assets ./reporting-assets
+#23 DONE 0.1s
+
+#24 [portal stage-2 8/8] COPY --from=build --chown=jaautomation:jaautomation /workspace/manuals ./manuals
+#24 DONE 0.1s
+
+#25 [portal] exporting to image
+#25 exporting layers
+#25 exporting layers 38.9s done
+#25 exporting manifest sha256:e34baf7769f953d2cefde288f3755562fa800d982bbc94f54998a4b78f40c01e 0.0s done
+#25 exporting config sha256:cd5ae66d499b8be7835e9d2184080538e4febc1eaf6758f84c8cf4741db0d781 0.0s done
+#25 exporting attestation manifest sha256:a502bbf80a960a8835537f6f0c2f4b7e6f6af1bc3d1d5fb2c315ad269f78bc5a 0.0s done
+#25 exporting manifest list sha256:90479685252749cb58d0beddd9e6cd6310ef62840fe2150b66b0815bc124e005 0.0s done
+#25 naming to docker.io/library/ja-automation-portal:zip-0ba62783814af13aa36f3f9c0e6a6d33 done
+#25 unpacking to docker.io/library/ja-automation-portal:zip-0ba62783814af13aa36f3f9c0e6a6d33
+#25 unpacking to docker.io/library/ja-automation-portal:zip-0ba62783814af13aa36f3f9c0e6a6d33 12.9s done
+#25 DONE 51.8s
+
+#26 [portal] resolving provenance for metadata file
+#26 DONE 0.0s
+
+#27 [site internal] load build definition from Dockerfile.site
+#27 transferring dockerfile: 1.58kB done
+#27 DONE 0.0s
+
+#2 [site internal] load metadata for docker.io/library/node:24.19.0-bookworm-slim
+#2 DONE 1.7s
+
+#28 [site internal] load .dockerignore
+#28 transferring context: 334B done
+#28 DONE 0.0s
+
+#6 [site build  2/15] WORKDIR /workspace
+#6 CACHED
+
+#4 [site build  1/15] FROM docker.io/library/node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df
+#4 resolve docker.io/library/node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df 0.0s done
+#4 CACHED
+
+#29 [site internal] load build context
+#29 transferring context: 11.93MB 0.2s done
+#29 DONE 0.2s
+
+#30 [site stage-1 2/8] RUN useradd --system --uid 10002 --create-home jasite
+#30 0.271 useradd warning: jasite's uid 10002 is greater than SYS_UID_MAX 999
+#30 DONE 0.7s
+
+#31 [site build  3/15] RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
+#31 0.419 Preparing pnpm@11.22.0 for immediate activation...
+#31 ...
+
+#32 [site stage-1 3/8] WORKDIR /app
+#32 DONE 0.1s
+
+#31 [site build  3/15] RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
+#31 DONE 1.8s
+
+#33 [site build  4/15] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
+#33 DONE 0.1s
+
+#34 [site build  5/15] COPY packages/billing-engine/package.json ./packages/billing-engine/package.json
+#34 DONE 0.0s
+
+#35 [site build  6/15] COPY packages/database/package.json ./packages/database/package.json
+#35 DONE 0.0s
+
+#36 [site build  7/15] COPY packages/domain/package.json ./packages/domain/package.json
+#36 DONE 0.0s
+
+#37 [site build  8/15] COPY packages/invoice-templates/package.json ./packages/invoice-templates/package.json
+#37 DONE 0.1s
+
+#38 [site build  9/15] COPY packages/money/package.json ./packages/money/package.json
+#38 DONE 0.1s
+
+#39 [site build 10/15] COPY packages/reporting/package.json ./packages/reporting/package.json
+#39 DONE 0.0s
+
+#40 [site build 11/15] COPY packages/schemas/package.json ./packages/schemas/package.json
+#40 DONE 0.0s
+
+#41 [site build 12/15] COPY website ./website
+#41 DONE 0.1s
+
+#42 [site build 13/15] RUN pnpm install --frozen-lockfile --filter @ja/site...
+#42 0.998 ? Verifying lockfile against supply-chain policies (729 entries)...
+#42 1.006 Lockfile is up to date, resolution step is skipped
+#42 1.121 Progress: resolved 1, reused 0, downloaded 0, added 0
+#42 1.169 .                                        | +483 ++++++++++++++++++++++++++++++++
+#42 2.123 Progress: resolved 483, reused 0, downloaded 0, added 0
+#42 3.126 Progress: resolved 483, reused 0, downloaded 41, added 0
+#42 3.612 
+#42 3.612    ╭──────────────────────────────────────────────╮
+#42 3.612    │                                              │
+#42 3.612    │     Update available! 11.22.0 → 12.5.1.      │
+#42 3.612    │     Changelog: https://pnpm.io/v/12.5.1      │
+#42 3.612    │   To update, run: corepack use pnpm@12.5.1   │
+#42 3.612    │                                              │
+#42 3.612    ╰──────────────────────────────────────────────╯
+#42 3.612 
+#42 3.893 Packages are hard linked from the content-addressable store to the virtual store.
+#42 3.893   Content-addressable store is at: /root/.local/share/pnpm/store/v11
+#42 3.893   Virtual store is at:             node_modules/.pnpm
+#42 4.157 Progress: resolved 483, reused 0, downloaded 86, added 4
+#42 5.161 Progress: resolved 483, reused 0, downloaded 188, added 12
+#42 6.159 Progress: resolved 483, reused 0, downloaded 376, added 24
+#42 7.232 Progress: resolved 483, reused 0, downloaded 483, added 338
+#42 7.421 ✓ Lockfile passes supply-chain policies (729 entries in 6.4s)
+#42 7.446 Progress: resolved 483, reused 0, downloaded 483, added 483, done
+#42 7.737 .../node_modules/@parcel/watcher install$ node scripts/build-from-source.js
+#42 7.738 .../node_modules/@swc/core postinstall$ node postinstall.js
+#42 7.843 .../node_modules/@parcel/watcher install: Done
+#42 7.850 .../node_modules/unrs-resolver postinstall$ node postinstall.js
+#42 7.899 .../node_modules/@swc/core postinstall: Done
+#42 7.902 .../esbuild@0.25.12/node_modules/esbuild postinstall$ node install.js
+#42 7.904 .../esbuild@0.28.2/node_modules/esbuild postinstall$ node install.js
+#42 7.983 .../node_modules/unrs-resolver postinstall: Done
+#42 7.992 .../esbuild@0.25.12/node_modules/esbuild postinstall: Done
+#42 8.025 .../esbuild@0.28.2/node_modules/esbuild postinstall: Done
+#42 8.224 Done in 7.8s using pnpm v11.22.0
+#42 DONE 8.7s
+
+#43 [site build 14/15] RUN pnpm --filter @ja/site build
+#43 1.262 $ next build
+#43 1.702 ▲ Next.js 16.3.3 (Turbopack)
+#43 1.748 ✓ Running next.config.ts took 45ms
+#43 1.753 Attention: Next.js now collects completely anonymous telemetry regarding usage.
+#43 1.753 This information is used to shape Next.js' roadmap and prioritize features.
+#43 1.753 You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+#43 1.753 https://nextjs.org/telemetry
+#43 1.753 
+#43 1.768 
+#43 1.805   Creating an optimized production build ...
+#43 11.30 ✓ Compiled successfully in 8.8s
+#43 11.30   Running TypeScript ...
+#43 14.53   Finished TypeScript in 3.2s ...
+#43 14.54   Collecting page data using 3 workers ...
+#43 15.13   Generating static pages using 3 workers (0/255) ...
+#43 17.13   Generating static pages using 3 workers (63/255) 
+#43 18.34   Generating static pages using 3 workers (127/255) 
+#43 19.84   Generating static pages using 3 workers (191/255) 
+#43 20.89 ✓ Generating static pages using 3 workers (255/255) in 5.8s
+#43 20.93   Finalizing page optimization ...
+#43 22.01 
+#43 22.01 Route (app)
+#43 22.01 ┌ ○ /
+#43 22.01 ├ ○ /_not-found
+#43 22.01 ├   /[locale]
+#43 22.01 │ ├ ● /en
+#43 22.01 │ ├ ● /pt
+#43 22.01 │ └ ● /es
+#43 22.01 ├   /[locale]/about
+#43 22.01 │ ├ ● /en/about
+#43 22.01 │ ├ ● /pt/about
+#43 22.01 │ └ ● /es/about
+#43 22.01 ├   /[locale]/capabilities
+#43 22.01 │ ├ ● /en/capabilities
+#43 22.01 │ ├ ● /pt/capabilities
+#43 22.01 │ └ ● /es/capabilities
+#43 22.01 ├   /[locale]/capabilities/[slug]
+#43 22.01 │ ├ ● /en/capabilities/plc-hmi-scada
+#43 22.01 │ ├ ● /en/capabilities/robotics-integration
+#43 22.01 │ ├ ● /en/capabilities/simulation-offline-engineering
+#43 22.01 │ └ ● [+24 more paths]
+#43 22.01 ├   /[locale]/careers
+#43 22.01 │ ├ ● /en/careers
+#43 22.01 │ ├ ● /pt/careers
+#43 22.01 │ └ ● /es/careers
+#43 22.01 ├   /[locale]/contact
+#43 22.01 │ ├ ● /en/contact
+#43 22.01 │ ├ ● /pt/contact
+#43 22.01 │ └ ● /es/contact
+#43 22.01 ├   /[locale]/industries
+#43 22.01 │ ├ ● /en/industries
+#43 22.01 │ ├ ● /pt/industries
+#43 22.01 │ └ ● /es/industries
+#43 22.01 ├   /[locale]/industries/[slug]
+#43 22.01 │ ├ ● /en/industries/automotive
+#43 22.01 │ ├ ● /en/industries/food-beverage
+#43 22.01 │ ├ ● /en/industries/energy-process
+#43 22.01 │ └ ● [+15 more paths]
+#43 22.01 ├   /[locale]/privacy
+#43 22.01 │ ├ ● /en/privacy
+#43 22.01 │ ├ ● /pt/privacy
+#43 22.01 │ └ ● /es/privacy
+#43 22.01 ├ ƒ /[locale]/projects
+#43 22.01 ├   /[locale]/projects/[slug]
+#43 22.01 │ ├ ● /en/projects/amazon-fulfillment-parcel-sortation
+#43 22.01 │ ├ ● /en/projects/mercadolibre-distribution-center-conveyors
+#43 22.01 │ ├ ● /en/projects/shopee-logistics-hub-electrical-commissioning
+#43 22.01 │ └ ● [+171 more paths]
+#43 22.01 ├   /[locale]/solutions/aquarex
+#43 22.01 │ ├ ● /en/solutions/aquarex
+#43 22.01 │ ├ ● /pt/solutions/aquarex
+#43 22.01 │ └ ● /es/solutions/aquarex
+#43 22.01 ├   /[locale]/terms
+#43 22.01 │ ├ ● /en/terms
+#43 22.01 │ ├ ● /pt/terms
+#43 22.01 │ └ ● /es/terms
+#43 22.01 ├ ○ /robots.txt
+#43 22.01 └ ○ /sitemap.xml
+#43 22.01 
+#43 22.01 
+#43 22.01 ƒ Proxy (Middleware)
+#43 22.01 
+#43 22.01 ○  (Static)   prerendered as static content
+#43 22.01 ●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+#43 22.01 ƒ  (Dynamic)  server-rendered on demand
+#43 22.01 
+#43 DONE 22.3s
+
+#44 [site build 15/15] RUN pnpm --filter @ja/site deploy --prod --legacy /tmp/site-runtime
+#44 1.147 [WARN] Shared workspace lockfile detected but configuration forces legacy deploy implementation.
+#44 1.270 Packages are copied from the content-addressable store to the virtual store.
+#44 1.270   Content-addressable store is at: /root/.local/share/pnpm/store/v11
+#44 1.270   Virtual store is at:             ../tmp/site-runtime/node_modules/.pnpm
+#44 1.274 ✓ Lockfile passes supply-chain policies (verified 24s ago)
+#44 1.312 Progress: resolved 1, reused 0, downloaded 0, added 0
+#44 1.451 website                                  | [WARN] deprecated eslint@9.39.1
+#44 2.329 Progress: resolved 30, reused 0, downloaded 0, added 0
+#44 3.342 Progress: resolved 37, reused 0, downloaded 0, added 0
+#44 4.345 Progress: resolved 39, reused 0, downloaded 0, added 0
+#44 5.347 Progress: resolved 40, reused 0, downloaded 0, added 0
+#44 6.929 Progress: resolved 41, reused 0, downloaded 0, added 0
+#44 7.933 Progress: resolved 190, reused 0, downloaded 0, added 0
+#44 8.988 Progress: resolved 202, reused 0, downloaded 0, added 0
+#44 9.995 Progress: resolved 214, reused 0, downloaded 0, added 0
+#44 10.99 Progress: resolved 357, reused 0, downloaded 0, added 0
+#44 11.99 Progress: resolved 401, reused 0, downloaded 0, added 0
+#44 13.23 Progress: resolved 414, reused 0, downloaded 0, added 0
+#44 14.23 Progress: resolved 618, reused 0, downloaded 0, added 0
+#44 15.32 Progress: resolved 655, reused 0, downloaded 0, added 0
+#44 16.35 Progress: resolved 656, reused 0, downloaded 0, added 0
+#44 20.38 Progress: resolved 657, reused 0, downloaded 0, added 0
+#44 20.69 [WARN] 2 deprecated subdependencies found: @esbuild-kit/core-utils@3.3.2, @esbuild-kit/esm-loader@2.6.5
+#44 20.69 Progress: resolved 666, reused 0, downloaded 0, added 0, done
+#44 20.69 [WARN] Issues with peer dependencies found. Run "pnpm peers check" to list them.
+#44 20.73 .                                        |  +94 +++++++++
+#44 44.64 .../node_modules/@swc/core postinstall$ node postinstall.js
+#44 44.64 .../node_modules/@parcel/watcher install$ node scripts/build-from-source.js
+#44 44.72 .../node_modules/@swc/core postinstall: Done
+#44 44.72 .../node_modules/@parcel/watcher install: Done
+#44 DONE 45.1s
+
+#45 [site stage-1 4/8] COPY --from=build --chown=jasite:jasite /workspace/website/public ./website/public
+#45 DONE 0.1s
+
+#46 [site stage-1 5/8] COPY --from=build --chown=jasite:jasite /workspace/website/.next/standalone/website ./website
+#46 DONE 0.7s
+
+#47 [site stage-1 6/8] COPY --from=build --chown=jasite:jasite /workspace/website/.next/static ./website/.next/static
+#47 DONE 0.1s
+
+#48 [site stage-1 7/8] COPY --from=build --chown=jasite:jasite /tmp/site-runtime/node_modules ./website/node_modules
+#48 DONE 3.0s
+
+#49 [site stage-1 8/8] RUN mkdir -p ./website/.next/cache && chown -R jasite:jasite ./website/.next/cache
+#49 DONE 0.6s
+
+#50 [site] exporting to image
+#50 exporting layers
+#50 exporting layers 19.1s done
+#50 exporting manifest sha256:cab2482a0aee374062b46a11a5d2129517d75540692ffbdc7fa2390ea1c7cf80 done
+#50 exporting config sha256:337351cb72e0049f3bc87190c8c4fc255c975ba467b5f82affef5547b09c70b0 done
+#50 exporting attestation manifest sha256:c15aa6cf577b5bf98baa983adefb61f61b06745aca940375148857b251091ef6 0.0s done
+#50 exporting manifest list sha256:a62d5910876475dd2e8a2e5775cb17eb553c876714b82968b549424a0db32b2c 0.0s done
+#50 naming to docker.io/library/ja-automation-site:zip-0ba62783814af13aa36f3f9c0e6a6d33 done
+#50 unpacking to docker.io/library/ja-automation-site:zip-0ba62783814af13aa36f3f9c0e6a6d33
+#50 unpacking to docker.io/library/ja-automation-site:zip-0ba62783814af13aa36f3f9c0e6a6d33 6.4s done
+#50 DONE 25.6s
+
+#51 [site] resolving provenance for metadata file
+#51 DONE 0.0s
+ portal  Built
+ site  Built
+[2026-09-22T11:32:56+02:00] Imágenes anteriores conservadas con etiqueta rollback-20260922092827-0ba62783814a
+ Container deployment-jobs-1  Stopping
+ Container deployment-jobs-1  Stopped
+[2026-09-22T11:32:57+02:00] Creando backup online antes del reemplazo
+[2026-09-22T11:33:02+02:00] backup=/var/backups/jaautomation/2026-09-22T093257830Z-1c37b570-1fb9-4534-902a-6f6db275085f documents=59 sha256=17059712196690ae82f0bd1b6ba1da98599322169c060b9861636eafd38dd2fb
+{"event":"backup.reader.configured","snapshotsConfigured":29,"gid":10003}
+[2026-09-22T11:33:07+02:00] Clasificando y aislando el backlog anterior al corte de entrega
+{"outboxQuarantine":"applied","cutoverAt":"2026-09-04T01:44:43.998Z","total":0,"topics":[]}
+{"level":"info","ts":1790069590.6138225,"msg":"using config from file","file":"/etc/caddy/Caddyfile"}
+{"level":"info","ts":1790069590.625303,"msg":"adapted config to JSON","adapter":"caddyfile"}
+{"level":"warn","ts":1790069590.6253316,"msg":"Caddyfile input is not formatted; run 'caddy fmt --overwrite' to fix inconsistencies","adapter":"caddyfile","file":"/etc/caddy/Caddyfile","line":158}
+{"level":"info","ts":1790069590.6291168,"logger":"http.auto_https","msg":"server is listening only on the HTTPS port but has no TLS connection policies; adding one to enable TLS","server_name":"srv0","https_port":443}
+{"level":"info","ts":1790069590.6291783,"logger":"http.auto_https","msg":"enabling automatic HTTP->HTTPS redirects","server_name":"srv0"}
+{"level":"info","ts":1790069590.629381,"logger":"tls.cache.maintenance","msg":"started background certificate maintenance","cache":"0x38661cf5b00"}
+{"level":"info","ts":1790069590.6415834,"logger":"tls.cache.maintenance","msg":"stopped background certificate maintenance","cache":"0x38661cf5b00"}
+{"level":"info","ts":1790069590.641668,"logger":"http","msg":"servers shutting down with eternal grace period"}
+[2026-09-22T11:33:10+02:00] Activando el release con Docker Compose
+ Container deployment-site-1  Recreate
+ Container deployment-portal-1  Recreate
+time="2026-09-22T11:33:11+02:00" level=warning msg="secrets `uid`, `gid` and `mode` are not supported, they will be ignored"
+time="2026-09-22T11:33:11+02:00" level=warning msg="secrets `uid`, `gid` and `mode` are not supported, they will be ignored"
+ Container deployment-site-1  Recreated
+ Container deployment-portal-1  Recreated
+ Container deployment-jobs-1  Recreate
+ Container deployment-jobs-1  Recreated
+ Container deployment-portal-1  Starting
+ Container deployment-site-1  Starting
+ Container deployment-site-1  Started
+ Container deployment-portal-1  Started
+ Container deployment-jobs-1  Starting
+ Container deployment-jobs-1  Started
+[2026-09-22T11:33:12+02:00] Instalando atómicamente las units de jobs y backup del candidato
+[2026-09-22T11:33:13+02:00] Esperando salud local de site y portal
+[2026-09-22T11:33:24+02:00] Ejecutando el runner de jobs mediante systemd y validando el service actor
+[2026-09-22T11:33:26+02:00] Comprobando las dos URLs públicas
+[2026-09-22T11:33:26+02:00] DESPLIEGUE COMPLETADO: /home/kripta/jaautomation-density-20260922.zip -> /opt/jaautomation/releases/ja-automation-0ba62783814af13aa36f3f9c0e6a6d3394499b12cad478dde89aec79f5dc672f
+[2026-09-22T11:33:26+02:00] Web: https://j-aautomation.com/j-aautomation/en
+[2026-09-22T11:33:26+02:00] Portal: https://j-aautomation.com/j-aautomation/app/login

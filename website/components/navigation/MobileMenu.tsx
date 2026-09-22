@@ -1,9 +1,10 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/lib/i18n/navigation';
 import { LocaleSwitcher } from '@/components/navigation/LocaleSwitcher';
-import { ExternalLink, Mail } from 'lucide-react';
+import { ExternalLink, Mail, X } from 'lucide-react';
 import { contact } from '@/content/company';
 import { portalLoginUrl } from '@/lib/portal';
 
@@ -23,6 +24,35 @@ interface MobileMenuProps {
 
 export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const t = useTranslations('nav');
+  const sheet = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isOpen) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const panel = sheet.current;
+    const controls = () =>
+      Array.from(panel?.querySelectorAll<HTMLElement>('a[href], button, select') ?? []).filter(
+        (element) => element.getClientRects().length > 0,
+      );
+    controls()[0]?.focus();
+    const trapFocus = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return;
+      const items = controls();
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    panel?.addEventListener('keydown', trapFocus);
+    return () => {
+      panel?.removeEventListener('keydown', trapFocus);
+      previous?.focus();
+    };
+  }, [isOpen]);
 
   return (
     <>
@@ -41,10 +71,21 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
           transform transition-transform duration-300 ease-out
           ${isOpen ? 'translate-x-0' : 'translate-x-full'}
         `}
+        ref={sheet}
+        inert={!isOpen}
+        aria-hidden={!isOpen}
         role="dialog"
         aria-modal="true"
         aria-label={t('navigationMenu')}
       >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={t('closeMenu')}
+          className="absolute right-5 top-4 flex h-11 w-11 items-center justify-center rounded-full border border-ja-line text-ja-ink hover:bg-ja-surface"
+        >
+          <X size={22} aria-hidden="true" />
+        </button>
         <div className="flex flex-col h-full pt-20 pb-8 px-6 overflow-y-auto">
           {/* Navigation Links */}
           <nav className="flex flex-col gap-1 mb-8">

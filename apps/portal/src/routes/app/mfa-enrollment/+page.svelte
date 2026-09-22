@@ -149,14 +149,14 @@
     display: grid;
     place-items: center;
     padding: 2rem;
-    background: #f3f6fb;
-    color: #14213d;
+    background: #f6f6f5;
+    color: #22211f;
   }
   .mfa-card {
     width: min(100%, 42rem);
     padding: clamp(1.5rem, 5vw, 3rem);
     background: #fff;
-    border: 1px solid #d6e0ee;
+    border: 1px solid #e0e0dd;
     border-radius: 1rem;
     box-shadow: 0 1rem 3rem rgb(19 41 75 / 12%);
   }
@@ -172,7 +172,7 @@
   }
   .eyebrow {
     margin: 0 0 0.5rem;
-    color: #2857a7;
+    color: #57554f;
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -197,7 +197,7 @@
   input {
     min-height: 2.75rem;
     padding: 0.6rem 0.75rem;
-    border: 1px solid #9eb1cc;
+    border: 1px solid #b3b1ab;
     border-radius: 0.45rem;
     font: inherit;
   }
@@ -206,7 +206,7 @@
     padding: 0.65rem 1rem;
     border: 0;
     border-radius: 0.45rem;
-    background: #174ea6;
+    background: #4c4b45;
     color: #fff;
     cursor: pointer;
     font: inherit;
@@ -220,10 +220,10 @@
     display: block;
     overflow-wrap: anywhere;
     padding: 0.8rem;
-    border: 1px solid #d6e0ee;
+    border: 1px solid #e0e0dd;
     border-radius: 0.45rem;
-    background: #f8fbff;
-    color: #172b4d;
+    background: #fbfbfa;
+    color: #2b2a27;
     white-space: pre-wrap;
   }
   .recovery {
@@ -247,7 +247,7 @@
   }
   .signout {
     margin-top: 1.5rem;
-    background: #4b5563;
+    background: #585650;
   }
   @media (max-width: 32rem) {
     .mfa-enrollment {

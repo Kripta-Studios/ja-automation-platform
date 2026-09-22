@@ -14,6 +14,18 @@ Este guia reúne os caminhos do Proprietário, de Finanças e do Auditor. Use o 
 
 Acesso — Consulta: Proprietário, Finanças e Auditor em seus escopos autorizados separados. Criação: nenhuma neste capítulo de orientação. Aprovação: nenhuma. Alteração: nenhuma.
 
+## Site público e navegação no aplicativo
+
+O site público apresenta os serviços e projetos da J&A. Selecione **Entrar no portal da equipe** para abrir o aplicativo seguro. Escolha o idioma no cabeçalho. No celular, abra o menu para ver os nomes completos das seções.
+
+No aplicativo, a barra lateral clara destaca a seção atual. O menu da conta reúne o perfil e a opção de sair. A busca e as ações da página aparecem junto ao título no computador e se reorganizam nas telas menores. Apenas as seções autorizadas para sua conta ficam disponíveis. Os estados mantêm seu significado: um item pendente não está aprovado nem pronto para baixar.
+
+Os painéis secundários são abertos pelo título e pela seta. Tempo, Despesas e Relatórios mantêm pesquisa, projeto e status visíveis; abra o painel de filtros para outros critérios. Filtros secundários ativos reabrem o painel. Recolher um painel preserva os valores preenchidos. As atribuições da equipe e o histórico de aprovações concluídas podem ser abertos separadamente; ações pendentes e avisos continuam visíveis. Na configuração financeira, escolha uma política comercial no seletor de tarefa. Em Projetos, use Mais ações para administrar clientes e atribuições. Abra o painel de cadastro de documentos ou do pacote contábil quando precisar criar um item.
+
+<!-- screenshot:owner:public-home -->
+<!-- screenshot:finance:configuration-task -->
+<!-- screenshot:owner:project-actions -->
+
 ## Regras compartilhadas de identidade, sessão e registros de origem
 
 Acesso — Consulta: cada perfil vê somente os registros de projeto, financeiros e de evidência permitidos para sua conta. Criação: Proprietário e Finanças criam registros em seus fluxos autorizados; Auditor não cria registro de origem. Aprovação: o fluxo responsável de Proprietário ou Finanças, nunca uma visão somente leitura. Alteração: rascunhos ou fluxos explícitos de correção; histórico finalizado permanece rastreável.

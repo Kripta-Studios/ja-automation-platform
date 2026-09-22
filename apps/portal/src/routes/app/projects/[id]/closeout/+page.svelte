@@ -314,7 +314,7 @@
     gap: 1rem;
   }
   .preview-grid article {
-    border: 1px solid #d5dbe3;
+    border: 1px solid #dcdbd9;
     padding: 0.75rem;
   }
   .preview-grid h4 {

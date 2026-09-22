@@ -213,9 +213,9 @@
   }
   .timesheet-table th a:hover,
   .timesheet-table th a:focus-visible {
-    color: var(--ja-teal, #277e78);
+    color: var(--ja-teal, #706e66);
     text-decoration: underline;
-    outline: 3px solid color-mix(in srgb, var(--ja-teal, #277e78) 25%, transparent);
+    outline: 3px solid color-mix(in srgb, var(--ja-teal, #706e66) 25%, transparent);
     outline-offset: 2px;
   }
 </style>

@@ -11,6 +11,7 @@
 @import './styles/portal/details-invoices.css';
 @import './styles/portal/responsive.css';
 @import './styles/portal/polish.css';
+@import './styles/portal/density.css';
 
 .searchable-select-field {
   display: grid;
@@ -56,11 +57,11 @@
   width: 100%;
   min-width: 0;
   min-height: 44px;
-  border: 1px solid var(--ja-line, #cbd5e1);
+  border: 1px solid var(--ja-line, #d6d5d2);
   border-radius: 0.5rem;
   padding: 0.6rem;
   background: white;
-  color: #183247;
+  color: #302f2c;
 }
 .record-browser__pages {
   display: flex;
@@ -72,10 +73,10 @@
 .record-browser__pages button {
   min-height: 44px;
   padding: 0.55rem 0.9rem;
-  border: 1px solid #bbcbd6;
+  border: 1px solid #cbcac6;
   border-radius: 0.5rem;
   background: #fff;
-  color: #183247;
+  color: #302f2c;
 }
 .record-browser__pages button:disabled {
   opacity: 0.45;
@@ -103,23 +104,23 @@
   align-items: center;
   min-height: 44px;
   margin-bottom: 0.5rem;
-  color: #175579;
+  color: #4e4d47;
   font-weight: 650;
 }
 .standalone-workspace__content :is(button, .button, .secondary-button) {
   min-height: 44px;
-  border: 1px solid #bdced9;
+  border: 1px solid #cecdc9;
   border-radius: 0.55rem;
   padding: 0.65rem 1rem;
   font-weight: 600;
 }
 .standalone-workspace__content :is(input, select, textarea) {
   min-height: 44px;
-  border: 1px solid #bdced9;
+  border: 1px solid #cecdc9;
   border-radius: 0.45rem;
   padding: 0.6rem;
   background: #fff;
-  color: #183247;
+  color: #302f2c;
 }
 .standalone-workspace__content .detail-nav > a:first-child {
   display: none;

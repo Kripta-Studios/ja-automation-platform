@@ -1,0 +1,116 @@
+[WebServer] (node:248126) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ next start --port 4173 --hostname 127.0.0.1
+[WebServer] (node:248159) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+[WebServer] (node:248199) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ node build
+[WebServer] (node:248213) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a0c868-c040-74d5-a8eb-0bbb31df2462",
+    "01a0c868-c041-73f9-95ad-7f3a3cc032a4",
+    "01a0c868-c041-73f9-95ad-8fb1bd8781ee",
+    "01a0c868-c042-777c-a6a1-4c2b90b8e61d"
+  ],
+  "invoiceDrafts": [
+    "01a0c868-c151-7369-a5fe-952fdb2fff51",
+    "01a0c868-c156-73fe-ae0a-83550cbadab3",
+    "01a0c868-c15c-712c-9a04-a4bbdefd50b8"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a0c868-c163-7119-8abc-8dcdd057d13d",
+    "01a0c868-c165-7664-acc0-c87032b94b38",
+    "01a0c868-c169-7531-95c9-dac819bf8138"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a0c868-c163-7119-8abc-8dcdd057d13d",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a0c868-c146-744f-a5d3-20d20cfdc3ca",
+    "01a0c868-c149-7012-a0db-436210e5f1e6"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0c868-c040-74d5-a8eb-0bbb31df2462",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a0c868-c172-736d-bbf1-d2e1d7e2ce85"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0c868-c040-74d5-a8eb-0bbb31df2462",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a0c868-c174-75ce-8c8b-72dcb74c0419"
+    }
+  ],
+  "periodReportIds": [
+    "01a0c868-c175-71a4-8872-80042016fa4a",
+    "01a0c868-c175-71a4-8872-86e4c4e4f226"
+  ],
+  "accountingPackId": "01a0c868-c1b9-766c-a734-c527aa7a9501",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-626321aaec2674121ad958ebd8efb695cd668a74",
+  "closeoutId": "01a0c868-c23e-771b-aa2a-e8948682d17b"
+}
+
+Running 16 tests using 1 worker
+
+(node:248411) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -   1 [phone-360] › tests/e2e/manual-current-capture.spec.ts:53:1 › capture fresh synthetic EN and PT-BR manuals for seven personas
+  ✓   2 [phone-360] › tests/e2e/portal-density.spec.ts:18:1 › secondary register filters preserve criteria and leave primary work visible (11.3s)
+  ✓   3 [phone-360] › tests/e2e/portal-density.spec.ts:85:1 › project and finance administration opens one chosen task (13.4s)
+  ✓   4 [phone-360] › tests/e2e/portal-density.spec.ts:144:1 › project action drafts do not move to another paginated record (3.3s)
+(node:249379) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -   5 [phone-390] › tests/e2e/manual-current-capture.spec.ts:53:1 › capture fresh synthetic EN and PT-BR manuals for seven personas
+  ✓   6 [phone-390] › tests/e2e/portal-density.spec.ts:18:1 › secondary register filters preserve criteria and leave primary work visible (10.6s)
+  ✓   7 [phone-390] › tests/e2e/portal-density.spec.ts:85:1 › project and finance administration opens one chosen task (13.1s)
+  ✓   8 [phone-390] › tests/e2e/portal-density.spec.ts:144:1 › project action drafts do not move to another paginated record (3.3s)
+(node:250285) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -   9 [tablet-768] › tests/e2e/manual-current-capture.spec.ts:53:1 › capture fresh synthetic EN and PT-BR manuals for seven personas
+  ✓  10 [tablet-768] › tests/e2e/portal-density.spec.ts:18:1 › secondary register filters preserve criteria and leave primary work visible (11.0s)
+  ✓  11 [tablet-768] › tests/e2e/portal-density.spec.ts:85:1 › project and finance administration opens one chosen task (13.5s)
+  ✓  12 [tablet-768] › tests/e2e/portal-density.spec.ts:144:1 › project action drafts do not move to another paginated record (3.5s)
+(node:251141) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  13 [desktop] › tests/e2e/manual-current-capture.spec.ts:53:1 › capture fresh synthetic EN and PT-BR manuals for seven personas (2.3m)
+  ✓  14 [desktop] › tests/e2e/portal-density.spec.ts:18:1 › secondary register filters preserve criteria and leave primary work visible (12.2s)
+  ✓  15 [desktop] › tests/e2e/portal-density.spec.ts:85:1 › project and finance administration opens one chosen task (13.8s)
+  ✓  16 [desktop] › tests/e2e/portal-density.spec.ts:144:1 › project action drafts do not move to another paginated record (3.5s)
+
+  3 skipped
+  13 passed (4.3m)

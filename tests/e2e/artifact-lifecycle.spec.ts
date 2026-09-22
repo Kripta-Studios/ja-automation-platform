@@ -66,6 +66,7 @@ async function createPack(
   const fixture = readE2EFixturePointer();
   await page.goto(portal('/accounting'));
   await expect(page.getByRole('heading', { name: 'Accounting', exact: true })).toBeVisible();
+  await page.locator('.accounting-section__create summary').click();
   const form = page.locator('form[action="?/createAccountingPack"]');
   await expect(form).toHaveCount(1);
   await form.locator('input[name="periodStart"]').fill(periodStart);

@@ -1,7 +1,7 @@
 /* Detail and invoice views ------------------------------------------------ */
 .project-page,
 .invoice-preview-page {
-  background: #eef3f7;
+  background: #f3f3f2;
 }
 
 .detail-nav {
@@ -10,13 +10,13 @@
 
 .detail-nav a,
 .detail-nav button {
-  color: #426076;
+  color: #5f5e57;
   font-size: 0.68rem;
 }
 
 .detail-nav a:hover,
 .detail-nav button:hover {
-  color: #0d6070;
+  color: #53524c;
 }
 
 .project-header {
@@ -25,7 +25,7 @@
   border-radius: 1.2rem 1.2rem 0 0;
   background:
     radial-gradient(circle at 93% 15%, rgb(86 213 197 / 0.24), transparent 18rem),
-    linear-gradient(135deg, #102b3f, #174960);
+    linear-gradient(135deg, #282825, #43423d);
 }
 
 .project-header h1 {
@@ -33,8 +33,8 @@
 }
 
 .project-state {
-  color: #c5f0eb;
-  border-color: #56b6ad;
+  color: #e8e7e5;
+  border-color: #a5a49d;
   border-radius: 999px;
   background: rgb(13 49 64 / 0.38);
 }
@@ -45,18 +45,18 @@
 }
 
 .project-contract div {
-  border-color: #e0e7ed;
+  border-color: #e7e7e5;
 }
 
 .project-contract strong {
-  color: #1b3447;
+  color: #32312e;
   font-size: 0.88rem;
 }
 
 .project-contract span,
 .project-kpis span,
 .invoice-paper span {
-  color: #748596;
+  color: #88867d;
 }
 
 .project-finance {
@@ -65,28 +65,28 @@
 }
 
 .finance-heading {
-  border-color: #e4ebf0;
+  border-color: #ebebe9;
 }
 
 .finance-heading h2 {
-  color: #173146;
+  color: #2f2e2b;
   font-weight: 760;
 }
 
 .budget-ring {
-  box-shadow: 0 0 0 0.5rem #f2f6f8;
-  background: #e4edf0;
+  box-shadow: 0 0 0 0.5rem #f6f6f5;
+  background: #ececea;
 }
 
 .project-kpis {
   overflow: hidden;
-  border: 1px solid #e1e9ef;
+  border: 1px solid #e9e8e7;
   border-radius: 0.85rem;
 }
 
 .project-kpis article {
-  border-color: #e1e9ef;
-  background: #fbfdfe;
+  border-color: #e9e8e7;
+  background: #fdfdfd;
 }
 
 .project-kpis .accent {
@@ -98,23 +98,23 @@
 }
 
 .detail-panel article {
-  border-color: #e7edf1;
+  border-color: #ededeb;
 }
 
 .worker-mark {
-  color: #dff9f5;
+  color: #f4f4f3;
   border-radius: 0.55rem;
-  background: #277e78;
+  background: #706e66;
 }
 
 .invoice-preview-page {
   min-height: 100svh;
-  background: #173142;
+  background: #2f2e2b;
 }
 
 .invoice-preview-page .detail-nav a,
 .invoice-preview-page .detail-nav button {
-  color: #dceef1;
+  color: #ebebe9;
 }
 
 .invoice-paper {
@@ -130,9 +130,9 @@
 .invoice-identity [data-ui='status-badge'][data-invoice-status='issued'],
 .invoice-identity [data-ui='status-badge'][data-invoice-status='sent'],
 .invoice-identity [data-ui='status-badge'][data-invoice-status='partially_paid'] {
-  color: #1f5f85;
-  border-color: #5ca5ca;
-  background: #e0f1fa;
+  color: #585750;
+  border-color: #9d9b94;
+  background: #efefed;
 }
 
 .invoice-identity [data-ui='status-badge'][data-invoice-status='paid'] {
@@ -142,9 +142,9 @@
 }
 
 .invoice-identity [data-ui='status-badge'][data-invoice-status='draft'] {
-  color: #526174;
-  border-color: #aebbc8;
-  background: #f0f3f6;
+  color: #63625b;
+  border-color: #bcbbb6;
+  background: #f3f3f2;
 }
 
 .invoice-identity [data-ui='status-badge'][data-invoice-status='void'],
@@ -170,8 +170,8 @@
   padding: clamp(1rem, 3vw, 1.5rem);
   border: 1px solid rgb(220 237 240 / 24%);
   border-radius: 0.8rem;
-  color: #e8f4f5;
-  background: #102b3f;
+  color: #f2f2f1;
+  background: #282825;
   box-shadow: 0 1rem 2rem rgb(0 15 23 / 22%);
 }
 
@@ -188,7 +188,7 @@
 
 .invoice-pdf-panel__eyebrow {
   margin: 0 0 0.25rem;
-  color: #9bc5ca;
+  color: #bfbeb9;
   font:
     700 0.64rem Consolas,
     monospace;
@@ -210,7 +210,7 @@
   padding: 0.25rem 0.7rem;
   border: 1px solid currentColor;
   border-radius: 999px;
-  color: #bed6da;
+  color: #d3d3cf;
   background: rgb(255 255 255 / 8%);
   font-size: 0.76rem;
   font-weight: 800;
@@ -224,7 +224,7 @@
 
 .invoice-pdf-panel__status[data-invoice-pdf-status='running'],
 .invoice-pdf-panel__status[data-invoice-pdf-status='queued'] {
-  color: #a8d8f0;
+  color: #d2d1cd;
   background: rgb(84 165 207 / 16%);
 }
 
@@ -242,7 +242,7 @@
 .invoice-pdf-panel__message,
 .invoice-pdf-panel__fallback {
   margin: 0;
-  color: #bed6da;
+  color: #d3d3cf;
   font-size: 0.82rem;
   line-height: 1.5;
 }
@@ -263,10 +263,10 @@
   min-height: 2.75rem;
   min-width: 2.75rem;
   padding: 0.6rem 0.9rem;
-  border: 1px solid #c5f0eb;
+  border: 1px solid #e8e7e5;
   border-radius: 0.5rem;
-  color: #0e2b38;
-  background: #c5f0eb;
+  color: #272724;
+  background: #e8e7e5;
   cursor: pointer;
   font: inherit;
   font-size: 0.8rem;
@@ -275,20 +275,20 @@
 }
 
 .invoice-pdf-panel__action--secondary {
-  color: #dceef1;
+  color: #ebebe9;
   background: transparent;
 }
 
 .invoice-pdf-panel__action:hover,
 .invoice-pdf-panel__action:focus-visible {
   border-color: #fff;
-  color: #0e2b38;
+  color: #272724;
   background: #fff;
 }
 
 .invoice-pdf-panel__action--secondary:hover,
 .invoice-pdf-panel__action--secondary:focus-visible {
-  color: #0e2b38;
+  color: #272724;
 }
 
 .invoice-pdf-panel__action:focus-visible {
@@ -305,7 +305,7 @@
   display: block;
   width: 100%;
   min-height: min(72svh, 52rem);
-  border: 1px solid #446576;
+  border: 1px solid #63625b;
   border-radius: 0.55rem;
   background: #fff;
 }
@@ -320,8 +320,8 @@
 .record-detail-page {
   min-height: 100svh;
   padding: clamp(1rem, 3vw, 3rem);
-  color: #173146;
-  background: #eef3f7;
+  color: #2f2e2b;
+  background: #f3f3f2;
 }
 
 .record-detail-page > * {
@@ -339,7 +339,7 @@
   border-radius: 1.1rem;
   background:
     radial-gradient(circle at 92% 12%, rgb(86 213 197 / 0.2), transparent 16rem),
-    linear-gradient(135deg, #102b3f, #174960);
+    linear-gradient(135deg, #282825, #43423d);
   color: #fff;
   box-shadow: 0 1rem 2.5rem rgb(19 49 70 / 0.14);
 }
@@ -355,7 +355,7 @@
 
 .record-detail-header p {
   margin: 0;
-  color: #c4e0e3;
+  color: #dcdbd9;
   line-height: 1.55;
 }
 
@@ -367,7 +367,7 @@
 }
 
 .locked-note {
-  color: #c4e0e3;
+  color: #dcdbd9;
   font-size: 0.67rem;
   text-align: right;
 }
@@ -385,14 +385,14 @@
   gap: 0.5rem;
   min-height: 7rem;
   padding: 1rem;
-  border: 1px solid #e0e8ed;
+  border: 1px solid #e8e7e6;
   border-radius: 0.8rem;
   background: #fff;
   box-shadow: 0 0.45rem 1.2rem rgb(19 49 70 / 0.04);
 }
 
 .record-detail-grid article span {
-  color: #748596;
+  color: #88867d;
   font:
     700 0.62rem Consolas,
     monospace;
@@ -401,14 +401,14 @@
 
 .record-detail-grid article strong {
   overflow: hidden;
-  color: #173146;
+  color: #2f2e2b;
   font-size: 1.15rem;
   text-overflow: ellipsis;
 }
 
 .record-detail-grid article small {
   overflow: hidden;
-  color: #6f8290;
+  color: #858379;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -449,7 +449,7 @@
 .record-detail-copy > p {
   max-width: 78ch;
   margin: 0;
-  color: #354f61;
+  color: #4e4d47;
   line-height: 1.7;
   white-space: pre-wrap;
 }
@@ -460,7 +460,7 @@
   gap: 0.8rem 1.3rem;
   margin: 1.5rem 0 0;
   padding-top: 1.1rem;
-  border-top: 1px solid #e7edf1;
+  border-top: 1px solid #ededeb;
 }
 
 .record-facts div {
@@ -468,7 +468,7 @@
 }
 
 .record-facts dt {
-  color: #748596;
+  color: #88867d;
   font:
     700 0.62rem Consolas,
     monospace;
@@ -479,7 +479,7 @@
 .record-facts dd {
   margin: 0.35rem 0 0;
   overflow: hidden;
-  color: #1d3a4d;
+  color: #383733;
   font-size: 0.78rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -545,7 +545,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.9rem 0;
-  border-bottom: 1px solid #e7edf1;
+  border-bottom: 1px solid #ededeb;
 }
 
 .history-event > div {
@@ -554,13 +554,13 @@
 }
 
 .history-event small {
-  color: #748596;
+  color: #88867d;
 }
 
 .history-event code {
   max-width: 50%;
   overflow: auto;
-  color: #536575;
+  color: #67655e;
   font-size: 0.68rem;
   white-space: pre-wrap;
 }
@@ -597,7 +597,7 @@
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  border-bottom: 1px solid #e7edf1;
+  border-bottom: 1px solid #ededeb;
 }
 
 .project-record-link > div {
@@ -608,13 +608,13 @@
 }
 
 .project-record-link small {
-  color: #748596;
+  color: #88867d;
 }
 
 .project-record-link::after {
   content: none;
   flex: 0 0 auto;
-  color: #277e78;
+  color: #706e66;
   font:
     700 0.62rem Consolas,
     monospace;
@@ -622,7 +622,7 @@
 
 .project-record-link .record-card-open {
   flex: 0 0 auto;
-  color: #277e78;
+  color: #706e66;
   font:
     700 0.62rem Consolas,
     monospace;
@@ -637,7 +637,7 @@
 .report-edit-panel[data-ui='form-card'] > .ui-card-heading {
   margin-bottom: 0;
   padding-bottom: 0.9rem;
-  border-bottom: 1px solid #e4ebf0;
+  border-bottom: 1px solid #ebebe9;
 }
 
 .report-form-intro,
@@ -659,7 +659,7 @@
 
 .report-detail-form [data-ui='form-section'] {
   padding-top: 1.25rem;
-  border-top: 1px solid #e4ebf0;
+  border-top: 1px solid #ebebe9;
 }
 
 .report-detail-form [data-ui='form-section']:first-of-type {
@@ -668,7 +668,7 @@
 }
 
 .report-detail-form [data-ui='form-section'] > .ui-section-heading {
-  color: #173146;
+  color: #2f2e2b;
   font-size: 1rem;
   letter-spacing: -0.01em;
 }
@@ -686,13 +686,13 @@
   max-width: 100%;
   padding: 0.2rem 0.35rem;
   border-radius: 0.45rem;
-  background: #f8fbfc;
+  background: #fbfbfa;
 }
 
 .report-form-actions {
   justify-content: space-between;
   padding-top: 1.1rem;
-  border-top: 1px solid #e4ebf0;
+  border-top: 1px solid #ebebe9;
 }
 
 .report-form-actions > button,
@@ -700,7 +700,7 @@
   box-sizing: border-box;
   min-height: var(--ja-target-min, 2.75rem);
   padding: 0.65rem 1rem;
-  border: 1px solid #173146;
+  border: 1px solid #2f2e2b;
   border-radius: 0.45rem;
   font-weight: 800;
   text-decoration: none;
@@ -708,23 +708,23 @@
 
 .report-form-actions > button {
   color: #fff;
-  background: #173146;
+  background: #2f2e2b;
 }
 
 .report-form-actions > .secondary-action {
-  color: #173146;
+  color: #2f2e2b;
   background: #fff;
 }
 
 .report-form-actions > button:hover,
 .report-form-actions > button:focus-visible {
-  background: #0d6070;
+  background: #53524c;
 }
 
 .report-form-actions > .secondary-action:hover,
 .report-form-actions > .secondary-action:focus-visible {
-  color: #0d6070;
-  border-color: #0d6070;
+  color: #53524c;
+  border-color: #53524c;
 }
 
 .report-summary-panel {
@@ -741,7 +741,7 @@
 }
 
 .history-count {
-  color: #557082;
+  color: #706f67;
   font-size: 0.78rem;
   font-weight: 800;
   white-space: nowrap;
@@ -811,7 +811,7 @@
   .invoice-preview-page .invoice-paper .invoice-line-items tr {
     display: block;
     overflow: hidden;
-    border: 1px solid #dce4ed;
+    border: 1px solid #e4e4e2;
     border-radius: 0.65rem;
     background: #fff;
   }
@@ -826,7 +826,7 @@
     box-sizing: border-box;
     min-height: var(--ja-target-min, 2.75rem);
     padding: 0.65rem 0.75rem;
-    border-bottom: 1px solid #e6edf1;
+    border-bottom: 1px solid #edeceb;
     text-align: left;
     line-height: 1.4;
   }
@@ -836,7 +836,7 @@
   }
 
   .invoice-preview-page .invoice-paper .invoice-line-items td::before {
-    color: #637486;
+    color: #77756d;
     content: attr(data-label);
     font-size: 0.75rem;
     font-weight: 800;
@@ -977,17 +977,17 @@
 .invoice-paper .company-details {
   font-size: 0.8rem;
   line-height: 1.4;
-  color: #475569;
+  color: #575650;
 }
 
 .invoice-paper .company-details strong {
-  color: #0f2d3d;
+  color: #2a2926;
   font-size: 0.9rem;
 }
 
 .invoice-paper .qty-total-cell,
 .invoice-paper .total-amount-cell {
-  border: 2px solid #0d3b66 !important;
+  border: 2px solid #373632 !important;
   background: #ffffff;
   font-weight: 700;
   text-align: right;
@@ -999,7 +999,7 @@
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   gap: 2rem;
   padding: 1.5rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #e8e8e6;
   align-items: start;
   max-width: 100%;
   box-sizing: border-box;
@@ -1007,14 +1007,14 @@
 
 .invoice-paper .invoice-terms-card {
   font-size: 0.85rem;
-  color: #1e293b;
+  color: #2a2926;
   line-height: 1.5;
 }
 
 .invoice-paper .terms-heading {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #0f2d3d;
+  color: #2a2926;
   text-decoration: underline;
   margin-bottom: 0.6rem;
 }
@@ -1026,7 +1026,7 @@
 .invoice-paper .terms-notice {
   margin-top: 0.8rem;
   font-style: italic;
-  color: #64748b;
+  color: #67675f;
   font-size: 0.8rem;
 }
 
@@ -1034,15 +1034,15 @@
   max-width: 70rem;
   margin: 1rem auto;
   padding: 1rem 1.25rem;
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
+  background: #fafaf9;
+  border: 1px solid #d6d5d2;
   border-radius: 0.5rem;
 }
 
 .draft-edit-summary {
   font-weight: 700;
   cursor: pointer;
-  color: #0f2d3d;
+  color: #2a2926;
   font-size: 0.9rem;
 }
 
@@ -1069,13 +1069,13 @@
 .draft-field label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #475569;
+  color: #575650;
   text-transform: uppercase;
 }
 
 .draft-field input {
   padding: 0.45rem 0.6rem;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #d6d5d2;
   border-radius: 0.3rem;
   font-size: 0.85rem;
 }
@@ -1083,7 +1083,7 @@
 .save-draft-btn {
   margin-top: 1rem;
   padding: 0.5rem 1.2rem;
-  background: #0f2d3d;
+  background: #2a2926;
   color: #ffffff;
   border: none;
   border-radius: 0.3rem;
@@ -1092,7 +1092,7 @@
 }
 
 .save-draft-btn:hover {
-  background: #1a4968;
+  background: #44433e;
 }
 
 @media (max-width: 760px) {

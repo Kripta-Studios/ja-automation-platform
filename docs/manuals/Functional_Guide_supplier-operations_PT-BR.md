@@ -14,6 +14,17 @@ Este guia reúne os caminhos do Coordenador de fornecedor e do Técnico externo.
 
 Acesso — Consulta: Coordenador de fornecedor e Técnico externo somente na instalação de fornecedor vigente. Criação: nenhuma neste capítulo de orientação. Aprovação: nenhuma. Alteração: nenhuma.
 
+## Site público e navegação no aplicativo
+
+O site público apresenta os serviços e projetos da J&A. Selecione **Entrar no portal da equipe** para abrir o aplicativo seguro. Escolha o idioma no cabeçalho. No celular, abra o menu para ver os nomes completos das seções.
+
+No aplicativo, a barra lateral clara destaca a seção atual. O menu da conta reúne o perfil e a opção de sair. A busca e as ações da página aparecem junto ao título no computador e se reorganizam nas telas menores. Apenas as seções autorizadas para sua conta ficam disponíveis. Os estados mantêm seu significado: um item pendente não está aprovado nem pronto para baixar.
+
+Os painéis secundários são abertos pelo título e pela seta. Tempo, Despesas e Relatórios mantêm pesquisa, projeto e status visíveis; abra o painel de filtros para outros critérios. Filtros secundários ativos reabrem o painel. Recolher um painel preserva os valores preenchidos. As atribuições da equipe e o histórico de aprovações concluídas podem ser abertos separadamente; ações pendentes e avisos continuam visíveis. Na configuração financeira, escolha uma política comercial no seletor de tarefa. Em Projetos, use Mais ações para administrar clientes e atribuições. Abra o painel de cadastro de documentos ou do pacote contábil quando precisar criar um item.
+
+<!-- screenshot:supplier-coordinator:public-home -->
+<!-- screenshot:external-technician:register-filters -->
+
 ## Escopo compartilhado de instalação, sessão e navegação
 
 Acesso — Consulta: cada perfil de fornecedor vê somente a autorização vigente da instalação e os registros operacionais permitidos. Criação: o Coordenador cria registros de equipe e rascunhos de horas da equipe; o Técnico cria seus próprios registros. Aprovação: o Proprietário revisa horas originadas por fornecedor e autoriza acessos. Alteração: o autor edita rascunhos ou segue o fluxo de correção; nenhum perfil de fornecedor altera a autorização.

@@ -198,7 +198,7 @@
   }
   .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(7, minmax(40px, 1fr));
+    grid-template-columns: repeat(7, minmax(44px, 1fr));
     gap: 1px;
     overflow-x: auto;
   }

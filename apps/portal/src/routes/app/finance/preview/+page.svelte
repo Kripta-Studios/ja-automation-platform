@@ -380,12 +380,12 @@
   }
   .facts div {
     padding: 0.75rem;
-    background: #f2f6f8;
+    background: #f6f6f5;
     border-radius: 0.5rem;
   }
   dt {
     font-size: 0.875rem;
-    color: #44515d;
+    color: #53514c;
   }
   dd {
     margin: 0.5rem 0 0;
@@ -417,9 +417,9 @@
   .saved-check {
     margin-block: 1rem;
     padding: 1rem;
-    border: 1px solid #cbd8dc;
+    border: 1px solid #d7d7d4;
     border-radius: 0.65rem;
-    background: #f8fbfc;
+    background: #fbfbfa;
   }
   .saved-check__heading {
     display: flex;
@@ -440,7 +440,7 @@
   }
   .saved-check__heading strong.ready {
     background: #dff4eb;
-    color: #145d48;
+    color: #4f4e49;
   }
   .saved-check__warning {
     color: #8a3d11;

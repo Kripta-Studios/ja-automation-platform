@@ -2,7 +2,7 @@
 .timesheet-panel {
   margin-bottom: 1.15rem;
   padding: clamp(1.15rem, 2vw, 1.55rem);
-  border: 1px solid #dfe7ee;
+  border: 1px solid #e7e7e5;
   border-radius: var(--ja-radius);
   background: #fff;
   box-shadow: var(--ja-shadow-soft);
@@ -18,7 +18,7 @@
 
 .timesheet-heading h2 {
   margin: 0.3rem 0 0.35rem;
-  color: #183247;
+  color: #302f2c;
   font-size: clamp(1.25rem, 2vw, 1.65rem);
   letter-spacing: -0.035em;
 }
@@ -26,7 +26,7 @@
 .timesheet-heading p {
   max-width: 48rem;
   margin: 0;
-  color: var(--ja-text-secondary, #475569);
+  color: var(--ja-text-secondary, #575650);
   font-size: 0.78rem;
 }
 
@@ -42,19 +42,19 @@
   display: grid;
   gap: 0.25rem;
   padding: 0.7rem 0.75rem;
-  border: 1px solid #e1eaee;
+  border: 1px solid #e9e9e7;
   border-radius: 0.6rem;
-  background: #f8fbfc;
+  background: #fbfbfa;
 }
 
 .timesheet-guide strong {
-  color: #1c4053;
+  color: #3c3b37;
   font-size: 0.75rem;
   text-transform: uppercase;
 }
 
 .timesheet-guide span {
-  color: var(--ja-text-secondary, #475569);
+  color: var(--ja-text-secondary, #575650);
   font-size: 0.75rem;
   line-height: 1.4;
 }
@@ -69,7 +69,7 @@
 .timesheet-period label {
   display: grid;
   gap: 0.3rem;
-  color: #587181;
+  color: #727068;
   font-size: 0.75rem;
   font-weight: 750;
   letter-spacing: 0.04em;
@@ -79,9 +79,9 @@
 .timesheet-period input {
   min-height: var(--ja-target-min, 2.75rem);
   padding: 0.5rem 0.65rem;
-  border: 1px solid #d7e2e8;
+  border: 1px solid #e1e1df;
   border-radius: 0.5rem;
-  color: #20394c;
+  color: #373733;
   font: inherit;
   letter-spacing: normal;
   text-transform: none;
@@ -92,21 +92,21 @@
   min-height: var(--ja-target-min, 2.75rem);
   padding: 0.55rem 0.85rem;
   color: #fff;
-  border: 1px solid #173b52;
+  border: 1px solid #373733;
   border-radius: 0.5rem;
-  background: #173b52;
+  background: #373733;
   font-size: 0.72rem;
   font-weight: 760;
 }
 
 .timesheet-period button:hover,
 .timesheet-copy button:hover {
-  background: #0d6070;
+  background: #53524c;
 }
 
 .timesheet-table-wrap {
   overflow-x: auto;
-  border: 1px solid #e0e8ed;
+  border: 1px solid #e8e7e6;
   border-radius: 0.6rem;
 }
 
@@ -114,21 +114,21 @@
   width: 100%;
   min-width: 46rem;
   border-collapse: collapse;
-  color: #274253;
+  color: #403f3b;
   font-size: 0.76rem;
 }
 
 .timesheet-table th,
 .timesheet-table td {
   padding: 0.7rem 0.75rem;
-  border-bottom: 1px solid #e6edf1;
+  border-bottom: 1px solid #edeceb;
   text-align: left;
   vertical-align: middle;
 }
 
 .timesheet-table thead th {
-  color: #526174;
-  background: #f4f8fa;
+  color: #63625b;
+  background: #f8f8f7;
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -136,14 +136,14 @@
 }
 
 .timesheet-table tbody th {
-  color: #183247;
+  color: #302f2c;
   font-weight: 760;
 }
 
 .timesheet-table tbody th small {
   display: block;
   margin-top: 0.15rem;
-  color: #7b8d99;
+  color: #8f8e85;
   font-size: 0.75rem;
   font-weight: 500;
 }
@@ -156,12 +156,12 @@
 }
 
 .timesheet-table tfoot {
-  background: #f7fafb;
+  background: #fafaf9;
   font-weight: 760;
 }
 
 .timesheet-table .positive {
-  color: #0a756a;
+  color: #626059;
 }
 
 .timesheet-table .negative,
@@ -170,7 +170,7 @@
 }
 
 .timesheet-status {
-  color: #476777;
+  color: #66645d;
   font-size: 0.75rem;
   font-weight: 760;
   white-space: nowrap;
@@ -178,7 +178,7 @@
 
 .timesheet-copy {
   margin-top: 0.95rem;
-  border-top: 1px solid #e4ebef;
+  border-top: 1px solid #ebeae9;
   padding-top: 0.85rem;
 }
 
@@ -186,7 +186,7 @@
   min-height: var(--ja-target-min, 2.75rem);
   display: inline-flex;
   align-items: center;
-  color: #0d6070;
+  color: #53524c;
   cursor: pointer;
   font-size: 0.76rem;
   font-weight: 760;
@@ -203,7 +203,7 @@
 .timesheet-copy-body p {
   max-width: 44rem;
   margin: 0;
-  color: var(--ja-text-secondary, #475569);
+  color: var(--ja-text-secondary, #575650);
   font-size: 0.74rem;
 }
 
@@ -225,7 +225,7 @@
 .project-finance,
 .project-contract,
 .report-forms details {
-  border: 1px solid #dfe7ee;
+  border: 1px solid #e7e7e5;
   border-radius: var(--ja-radius);
   box-shadow: var(--ja-shadow-soft);
 }
@@ -249,13 +249,13 @@
 
 .panel-title {
   padding-bottom: 0.95rem;
-  border-bottom: 1px solid #e4eaf0;
+  border-bottom: 1px solid #eaeae8;
 }
 
 .panel-title h2,
 .entry-panel h2,
 .admin-form-grid h2 {
-  color: #183247;
+  color: #302f2c;
   font-size: 1.1rem;
   font-weight: 760;
   letter-spacing: -0.025em;
@@ -264,9 +264,9 @@
 .panel-title > span {
   min-width: 1.65rem;
   padding: 0.22rem 0.45rem;
-  color: #557082;
+  color: #706f67;
   border-radius: 999px;
-  background: #edf4f7;
+  background: #f3f3f2;
   font-size: 0.68rem;
   font-weight: 750;
   text-align: center;
@@ -276,10 +276,10 @@
   min-height: 20rem;
   position: relative;
   overflow: hidden;
-  color: #f6fbfd;
+  color: #fafafa;
   border: 0 !important;
-  background: linear-gradient(140deg, #173d55, #0f2738) !important;
-  box-shadow: 0 1.2rem 2.4rem rgb(16 47 70 / 0.19) !important;
+  background: linear-gradient(140deg, #393834, #252422) !important;
+  box-shadow: var(--ja-shadow-soft) !important;
 }
 
 .assignment::after {
@@ -309,12 +309,12 @@
 
 .assignment p {
   max-width: 34rem;
-  color: #c3d5de;
+  color: #d4d3d0;
 }
 
 .status-chip {
-  color: #a6e5dc;
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  color: #d9d8d5;
+  font-family: 'Geist Mono', 'SFMono-Regular', Consolas, monospace;
   font-size: 0.65rem;
   letter-spacing: 0.08em;
 }
@@ -339,8 +339,8 @@
 
 .dashboard-quick-actions a {
   margin-top: 0;
-  border: 1px solid #bfe2dc;
-  background: #eefaf8;
+  border: 1px solid #dcdbd8;
+  background: #f8f8f7;
 }
 
 .quick-actions a,
@@ -350,9 +350,9 @@
   margin-top: 0.65rem;
   min-height: var(--ja-target-min, 2.75rem);
   padding: 0.65rem 0.8rem;
-  color: #103044;
+  color: #2d2c29;
   border-radius: 0.55rem;
-  background: #d7f1ed;
+  background: #ececea;
   font-size: 0.7rem;
   font-weight: 800;
   text-transform: none;
@@ -360,36 +360,34 @@
 
 .quick-actions a:hover,
 .preview-link:hover {
-  color: #092132;
+  color: #1e1e1c;
   background: #fff;
   transform: translateY(-1px);
 }
 
 .sync-panel {
-  color: #dbe9ef !important;
-  border: 0 !important;
-  border-radius: var(--ja-radius) !important;
-  background: linear-gradient(145deg, #39566a, #274354) !important;
-  box-shadow: 0 1rem 2.2rem rgb(28 59 78 / 0.14) !important;
+  color: var(--ja-ink);
+  border: 1px solid var(--ja-border-subdued);
+  border-radius: var(--ja-radius);
+  background: var(--ja-surface);
+  box-shadow: var(--ja-shadow-soft);
 }
-
 .sync-panel .portal-kicker {
-  color: #8eddd4;
+  color: var(--ja-text-muted);
 }
-
 .sync-panel strong {
-  color: #fff;
+  color: var(--ja-ink);
+  font-weight: 550;
 }
-
 .sync-panel p {
-  color: #c4d7e0;
+  color: var(--ja-text-secondary);
 }
 
 .record-list article {
   min-height: 4.6rem;
   gap: 1rem;
   padding: 0.9rem 0;
-  border-color: #e6edf2;
+  border-color: #edeceb;
 }
 
 .record-list article:first-of-type {
@@ -397,7 +395,7 @@
 }
 
 .record-list article strong {
-  color: #21394b;
+  color: #383733;
   font-size: 0.84rem;
 }
 
@@ -412,12 +410,12 @@
 
 .record-card-link:hover strong,
 .record-card-link:focus-visible strong {
-  color: #0d6070;
+  color: #53524c;
 }
 
 .record-card-link::after {
   content: none;
-  color: #277e78;
+  color: #706e66;
   font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -425,7 +423,7 @@
 }
 
 .record-card-open {
-  color: #277e78;
+  color: #706e66;
   font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -461,19 +459,19 @@
   white-space: pre-wrap;
   text-align: right;
   font-size: 0.68rem;
-  color: #556c80;
+  color: #6d6c64;
   line-height: 1.4;
 }
 
 .record-list article small,
 .entry-panel > p {
-  color: #526174;
+  color: #63625b;
   font-size: 0.73rem;
 }
 
 .record-list article > span {
-  color: #047857;
-  border: 1px solid #bae4d5;
+  color: #616059;
+  border: 1px solid #dcdbd8;
   border-radius: 999px;
   background: #f0fbf6;
   font-size: 0.61rem;
@@ -486,8 +484,8 @@
   min-width: var(--ja-target-min, 2.75rem);
   min-height: var(--ja-target-min, 2.75rem);
   padding: 0.45rem 0.7rem;
-  color: #264053;
-  border: 1px solid #d3dfe7;
+  color: #3f3e39;
+  border: 1px solid #dfdedb;
   border-radius: 0.5rem;
   background: #fff;
   box-shadow: none;
@@ -497,6 +495,6 @@
 .record-list button:hover,
 .assignment button:hover {
   color: #fff;
-  border-color: #277e78;
-  background: #277e78;
+  border-color: #706e66;
+  background: #706e66;
 }

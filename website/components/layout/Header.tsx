@@ -80,16 +80,16 @@ export function Header() {
 
   const headerBg =
     scrolled || !isHome
-      ? 'bg-white/[0.96] backdrop-blur-sm border-b border-ja-line shadow-[0_1px_3px_rgba(0,0,0,0.04)]'
-      : 'bg-transparent border-b border-transparent';
+      ? 'bg-white border-b border-ja-line shadow-[0_1px_3px_rgba(0,0,0,0.04)]'
+      : 'bg-white border-b border-ja-line';
 
-  const textColor = scrolled || !isHome ? 'text-ja-ink' : 'text-white';
+  const textColor = 'text-ja-ink';
 
-  const logoFilter = scrolled || !isHome ? '' : 'brightness-0 invert';
+  const logoFilter = '';
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${headerBg}`}
+      className={`site-header fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${headerBg}`}
       role="banner"
     >
       <div className="container-ja">
@@ -114,9 +114,10 @@ export function Header() {
               <Link
                 key={link.key}
                 href={link.href}
+                aria-current={pathname.startsWith(link.href) ? 'page' : undefined}
                 className={`px-3 py-2 text-sm font-medium transition-colors duration-200 rounded-md
                   ${textColor}
-                  ${pathname.startsWith(link.href) ? 'opacity-100' : 'opacity-80 hover:opacity-100'}
+                  ${pathname.startsWith(link.href) ? 'bg-ja-surface opacity-100' : 'opacity-80 hover:bg-ja-surface hover:opacity-100'}
                 `}
               >
                 {t(link.key)}
@@ -124,7 +125,7 @@ export function Header() {
             ))}
 
             <div className="ml-2">
-              <LocaleSwitcher variant={scrolled || !isHome ? 'dark' : 'light'} />
+              <LocaleSwitcher variant="dark" />
             </div>
 
             <a

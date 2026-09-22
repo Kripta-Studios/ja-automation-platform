@@ -120,6 +120,12 @@ test('capture fresh synthetic EN and PT-BR manuals for seven personas', async ({
       });
       const page = await context.newPage();
       try {
+        const publicUrl = new URL(`http://127.0.0.1:4173/j-aautomation/${locale}`);
+        const publicResponse = await page.goto(publicUrl.toString(), { waitUntil: 'networkidle' });
+        expect(publicResponse?.status()).toBe(200);
+        await expect(page.locator('h1')).toBeVisible();
+        await page.evaluate(() => document.fonts.ready);
+        await capture(page, persona, locale, 'public-home', publicUrl);
         await signInManualPersona(page, account);
         for (const [key, route] of [
           ['home', ''],
@@ -156,9 +162,35 @@ test('capture fresh synthetic EN and PT-BR manuals for seven personas', async ({
           await expect(calendar.locator('[data-ui=planning-calendar]')).toBeVisible();
           await capture(page, persona, locale, 'projects-month', url, calendar);
         }
+        if (persona === 'worker') {
+          const url = await navigate(page, '/expenses', locale);
+          await capture(
+            page,
+            persona,
+            locale,
+            'register-filters',
+            url,
+            page.locator('.expense-filters'),
+          );
+        }
+        if (persona === 'owner') {
+          const url = await navigate(page, '/projects', locale);
+          await page.locator('.workspace-actions-disclosure > summary').click();
+          await capture(
+            page,
+            persona,
+            locale,
+            'project-actions',
+            url,
+            page.locator('nav.project-workflow-actions'),
+          );
+        }
         if (persona === 'finance') {
           const url = await navigate(page, '/finance', locale);
           await capture(page, persona, locale, 'finance', url);
+          const configUrl = await navigate(page, '/finance?view=commercial', locale);
+          await page.locator('.workspace-task-switcher').scrollIntoViewIfNeeded();
+          await capture(page, persona, locale, 'configuration-task', configUrl);
         }
         if (persona === 'auditor') {
           const url = await navigate(page, '/audit', locale);
@@ -171,6 +203,14 @@ test('capture fresh synthetic EN and PT-BR manuals for seven personas', async ({
         if (persona === 'external-technician') {
           const url = await navigate(page, '/time', locale);
           await capture(page, persona, locale, 'time', url);
+          await capture(
+            page,
+            persona,
+            locale,
+            'register-filters',
+            url,
+            page.locator('.time-filters'),
+          );
         }
         await page.setViewportSize(phone);
         const url = await navigate(page, '', locale);

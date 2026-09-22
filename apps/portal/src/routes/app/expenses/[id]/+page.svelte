@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
@@ -56,7 +57,7 @@
     <a href={base + '/app/expenses'} data-origin-back>← {t('Expenses')}</a>
     <a href={base + '/app/projects/' + String(record.project_id)}>{t('Open project')}</a>
     <button type="button" class="no-print print-trigger" onclick={printReport}>
-      <span aria-hidden="true">⎙</span>
+      <PrintIcon />
       {t('Print Report')}
     </button>
   </nav>

@@ -208,6 +208,7 @@ async function switchRole(
 
 async function assignWorker(page: Page, projectId: string, workerId: string): Promise<void> {
   await page.goto(portal('/projects'), { waitUntil: 'networkidle' });
+  await page.locator('.workspace-actions-disclosure > summary').click();
   await page.getByRole('button', { name: 'Assign Worker', exact: true }).click();
   const form = page.locator(
     '[data-project-workflow="assign-worker"] form[action="?/assignWorker"]',
@@ -234,6 +235,9 @@ async function createCompensationRule(
   }>,
 ): Promise<void> {
   await page.goto(portal('/finance?view=commercial'), { waitUntil: 'networkidle' });
+  await page
+    .getByLabel('Commercial policies', { exact: true })
+    .selectOption({ label: 'Worker compensation' });
   const form = page.locator('form[action="?/createCompensationRule"]');
   await expect(form).toBeVisible();
   await form.locator('select[name="workerId"]').selectOption(workerId);
@@ -261,6 +265,7 @@ async function createCompensationRule(
 async function clearOptionalAssignmentFields(page: Page, project: IsolatedProject): Promise<void> {
   for (const clear of [false, true]) {
     await page.goto(portal('/projects'), { waitUntil: 'networkidle' });
+    await page.locator('.workspace-actions-disclosure > summary').click();
     await page.getByRole('button', { name: 'Update Assignment', exact: true }).click();
     const form = page
       .locator('form[action="?/updateAssignment"]')

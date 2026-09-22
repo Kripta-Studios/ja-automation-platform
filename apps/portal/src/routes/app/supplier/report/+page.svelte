@@ -116,7 +116,7 @@
   }
   article {
     padding: 1rem 0;
-    border-bottom: 1px solid #ccd3db;
+    border-bottom: 1px solid #d4d3d0;
     break-inside: avoid;
     overflow-wrap: anywhere;
   }

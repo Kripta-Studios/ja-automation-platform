@@ -145,7 +145,9 @@ for (const role of ['owner', 'finance'] as const) {
     const panel = page.locator('.finance-config-panel');
     await expect(panel).toBeVisible();
     const intro = panel.locator('.finance-config-intro');
-    await panel.getByRole('button', { name: 'Project issuing authority', exact: true }).click();
+    await panel
+      .getByLabel('Commercial policies', { exact: true })
+      .selectOption({ label: 'Project issuing authority' });
     const authority = panel.locator('[data-project-legal-entity]');
     await authority.scrollIntoViewIfNeeded();
     const authorityIntroBox = await intro.boundingBox();
@@ -154,8 +156,8 @@ for (const role of ['owner', 'finance'] as const) {
       authorityBox!.y - (authorityIntroBox!.y + authorityIntroBox!.height),
     ).toBeGreaterThanOrEqual(23);
     await panel
-      .getByRole('button', { name: 'Project commercial and time policy', exact: true })
-      .click();
+      .getByLabel('Commercial policies', { exact: true })
+      .selectOption({ label: 'Project commercial and time policy' });
     const policy = panel.locator('[data-project-commercial-policy]');
     await policy.scrollIntoViewIfNeeded();
     const policyIntroBox = await intro.boundingBox();

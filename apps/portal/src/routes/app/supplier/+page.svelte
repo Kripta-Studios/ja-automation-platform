@@ -1020,7 +1020,7 @@
   }
   article {
     padding: 1rem 0;
-    border-bottom: 1px solid #ccd3db;
+    border-bottom: 1px solid #d4d3d0;
     overflow-wrap: anywhere;
   }
   a {
@@ -1056,17 +1056,17 @@
     border-radius: 0.5rem;
     background: var(--ja-surface, #fff);
     font-weight: 700;
-    color: var(--ja-text, #182230);
+    color: var(--ja-text, #22221f);
   }
   .supplier-jump-links button.active {
-    border-color: var(--ja-action, #1c5ea8);
-    background: var(--ja-action, #1c5ea8);
+    border-color: var(--ja-action, #595851);
+    background: var(--ja-action, #595851);
     color: #fff;
   }
   .supplier-action-help {
     padding: 0.85rem 1rem;
-    border-left: 0.25rem solid var(--ja-action, #1c5ea8);
-    background: var(--ja-surface-subtle, #f4f7fa);
+    border-left: 0.25rem solid var(--ja-action, #595851);
+    background: var(--ja-surface-subtle, #f7f7f6);
   }
   .directory-filters {
     display: grid;
@@ -1116,7 +1116,7 @@
     padding: 0.75rem;
     border: 1px solid var(--ja-card-border);
     border-radius: 0.5rem;
-    background: var(--ja-surface-subtle, #f4f7fa);
+    background: var(--ja-surface-subtle, #f7f7f6);
   }
   .batch-technician,
   .draft-selector {

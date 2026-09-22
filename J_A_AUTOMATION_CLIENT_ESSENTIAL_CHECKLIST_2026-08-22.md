@@ -862,3 +862,26 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Aceptación **32/32 PASS** del código desplegado con evidencia operativa nueva. Se actualiza una aserción que esperaba el enum interno a su etiqueta traducida y al trabajador correcto; se conserva la comprobación de porcentaje y tipo en la base de datos. Los intentos anteriores se documentan.
 
 [Recibo de producción](docs/PRODUCTION_DEPLOYMENT_2026-09-19_MANUALS_I18N.md), [catálogo de manuales](docs/manuals/README.md) y [evidencia y alcance](docs/evidence/manuals-i18n-20260919/README.md). Las sesiones autenticadas usan datos sintéticos aislados; no se fabrican operaciones de clientes reales. P04 sigue parcial con 22 snapshots en 11 días UTC y las aprobaciones externas permanecen pendientes.
+
+## 2026-09-21 — Renovación visual de web y portal
+
+- [x] Sistema visual inspirado en `trace-it`: tipografía Geist local, superficies cálidas, navegación lateral clara, formularios/tablas coherentes y dashboard compacto. No modifica reglas financieras ni permisos.
+- [x] Navegador: 30/30 casos aplicables en 360/390/768/1440, cinco perfiles, Axe, navegación y controles táctiles. Seis exclusiones previas de pruebas públicas exclusivas de escritorio. Fallos iniciales de contraste y tamaño de calendario corregidos y matriz completa repetida.
+- [x] 187/187 pruebas focalizadas de UI/i18n/validación; tipos de todos los paquetes y ESLint de archivos modificados correctos. Revisión independiente sin hallazgos materiales pendientes.
+- Manuales y despliegue: se registran tras ejecutar en [evidencia de la renovación](docs/evidence/design-refresh-20260921/README.md). Las aceptaciones externas anteriores conservan su estado.
+- [x] Cierre visual del inicio del trabajador: cuatro tamaños aprobados y revisión independiente. Capturas finales: 104/182 comprobaciones; nueve PDF actualizados con fuentes, imágenes, texto y hashes verificados. Descargas/errores/sesión en navegador y cuatro pruebas de autorización aprobadas.
+
+- [x] Despliegue completado el 22/09 a las 00:05:21 (Madrid): release `f693b66f…`, 592 archivos de ejecución idénticos y nueve PDF instalados verificados por hash. Web/portal saludables; comprobación pública EN/PT/ES y tipografías correctas.
+- [x] SQLite íntegro, cero errores FK; ocho tablas financieras comprobadas y 59 archivos privados conservados. Backup previo verificado en copia aislada. Dos ciclos automáticos posteriores sin fallos; verificaciones del VPS aprobadas.
+- [x] Chromium en producción: web EN/PT y login en 390/1440, sin desbordamiento ni errores en la ejecución final. Se conserva evidencia del 502 transitorio inicial y su repetición completa correcta.
+- [x] Caché de construcción Docker a 0 B, 6,812 GB liberados; imágenes/volúmenes conservados y watchers/timers activos.
+- Límites: no se repite ni se atribuye una nueva aprobación del recorrido funcional de 32 pasos a esta renovación visual; cobertura histórica de backups aún parcial (13/30 días). [Recibo del despliegue](docs/PRODUCTION_DEPLOYMENT_2026-09-22_INTERFACE.md).
+
+## 2026-09-22 — Menor densidad y paneles desplegables
+
+- [x] Tipografía/espaciado compartidos, filtros secundarios, tareas financieras, acciones de proyecto e historiales agrupados; valores, validación, impresión y permisos conservados.
+- [x] 64 casos responsive en 360/390/768/1440; 187 unidades focalizadas; 4 pruebas de seguridad de manuales; tipos/lint; revisión independiente. Regresión posterior 13 casos aprobados y último ajuste visual 5 casos aprobados con capturas finales.
+- [x] 112 capturas, 196 comprobaciones y 9 PDF regenerados y verificados. Producción activada 11:33:26 Madrid, release `0ba62783814a…`: 594 archivos de ejecución y nueve PDF coincidentes.
+- [x] SQLite íntegro, cero errores FK, ocho tablas históricas y 59 archivos conservados; respaldo previo y dos ciclos automáticos verificados. Segunda comprobación pública móvil/escritorio sin errores; 502 puntual inicial documentado.
+- [x] Caché Docker 0 B tras liberar 6,861 GB; imágenes/volúmenes conservados; timers/watchers activos.
+- Límites: aceptación completa de 32 pasos no repetida; cobertura histórica de respaldo 14/30 días. [Recibo y alcance](docs/PRODUCTION_DEPLOYMENT_2026-09-22_PORTAL_DENSITY.md).

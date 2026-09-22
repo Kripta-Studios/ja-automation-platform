@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { replaceState } from '$app/navigation';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
@@ -6,6 +7,7 @@
   import { notificationTargetPath } from './notifications/target';
   import { createAuthClient } from 'better-auth/client';
   import { passkeyClient } from '@better-auth/passkey/client';
+  import { disclosure } from './portal/ui/disclosure.js';
   import RecordBrowser from './portal/ui/RecordBrowser.svelte';
   import PlanningCalendar from './portal/ui/PlanningCalendar.svelte';
   import AvailabilityCalendar from './portal/sections/AvailabilityCalendar.svelte';
@@ -30,8 +32,8 @@
   } from './portal-navigation';
   import PortalChrome from './PortalChrome.svelte';
   import {
-    FormCard,
     FormSection,
+    SectionCard,
     FieldGroup,
     Field,
     TableRegion,
@@ -172,6 +174,7 @@
     )
       projectWorkflow = requested as ProjectWorkflow;
   });
+  let projectRegisterPage = $state<Row[]>([]);
   let documentPage = $state<Row[]>([]);
   let planningPage = $state<Row[]>([]);
   let assignmentPage = $state<Row[]>([]);
@@ -1044,7 +1047,7 @@
       </div>
       <div class="portal-heading-tools">
         <button type="button" class="no-print print-trigger" onclick={printReport}>
-          <span aria-hidden="true">⎙</span>
+          <PrintIcon />
           {translate('Print report')}
         </button>
         <form
@@ -1234,10 +1237,13 @@
           >{translate('Data management')} →</a
         >{/if}
       <div class="document-workspace">
-        <FormCard title={translate('Register a private artifact')} class="document-upload-panel">
+        <SectionCard
+          collapsible
+          title={translate('Register a private artifact')}
+          class="document-upload-panel"
+        >
           <div class="panel-title">
             <div>
-              <h2>{translate('Register a private artifact')}</h2>
               <p class="form-help">
                 {translate(
                   'Receipts, PLC backups and project reports are validated, hashed and kept outside the public site.',
@@ -1336,7 +1342,7 @@
               </FormSection>
             </form>
           {/if}
-        </FormCard>
+        </SectionCard>
         <section class="record-list full">
           <div class="panel-title">
             <div>
@@ -1879,45 +1885,55 @@
               <button
                 type="button"
                 class="primary-button"
-                class:active={projectWorkflow === 'new-client'}
-                onclick={() => (projectWorkflow = 'new-client')}>{translate('New Client')}</button
-              >
-              <button
-                type="button"
-                class="primary-button"
-                class:active={projectWorkflow === 'update-client'}
-                onclick={() => (projectWorkflow = 'update-client')}
-                >{translate('Update Client')}</button
-              >
-              <button
-                type="button"
-                class="primary-button"
                 class:active={projectWorkflow === 'new-project'}
                 onclick={() => (projectWorkflow = 'new-project')}>{translate('New Project')}</button
               >
-              {#if canManageAssignmentControls}
-                <button
-                  type="button"
-                  class="primary-button"
-                  class:active={projectWorkflow === 'assign-worker'}
-                  onclick={() => (projectWorkflow = 'assign-worker')}
-                  >{translate('Assign Worker')}</button
-                >
-                <button
-                  type="button"
-                  class="primary-button"
-                  class:active={projectWorkflow === 'update-assignment'}
-                  onclick={() => (projectWorkflow = 'update-assignment')}
-                  >{translate('Update Assignment')}</button
-                >
-                <button
-                  type="button"
-                  class="primary-button danger-outline"
-                  class:active={projectWorkflow === 'remove-assignment'}
-                  onclick={() => (projectWorkflow = 'remove-assignment')}
-                  >{translate('Remove Assignment')}</button
-                >
-              {/if}
+              <details
+                class="workspace-actions-disclosure"
+                open={Boolean(projectWorkflow && projectWorkflow !== 'new-project')}
+              >
+                <summary>{translate('More actions')}</summary>
+                <div class="workspace-secondary-actions">
+                  <button
+                    type="button"
+                    class="primary-button"
+                    class:active={projectWorkflow === 'new-client'}
+                    onclick={() => (projectWorkflow = 'new-client')}
+                    >{translate('New Client')}</button
+                  >
+                  <button
+                    type="button"
+                    class="primary-button"
+                    class:active={projectWorkflow === 'update-client'}
+                    onclick={() => (projectWorkflow = 'update-client')}
+                    >{translate('Update Client')}</button
+                  >
+
+                  {#if canManageAssignmentControls}
+                    <button
+                      type="button"
+                      class="primary-button"
+                      class:active={projectWorkflow === 'assign-worker'}
+                      onclick={() => (projectWorkflow = 'assign-worker')}
+                      >{translate('Assign Worker')}</button
+                    >
+                    <button
+                      type="button"
+                      class="primary-button"
+                      class:active={projectWorkflow === 'update-assignment'}
+                      onclick={() => (projectWorkflow = 'update-assignment')}
+                      >{translate('Update Assignment')}</button
+                    >
+                    <button
+                      type="button"
+                      class="primary-button danger-outline"
+                      class:active={projectWorkflow === 'remove-assignment'}
+                      onclick={() => (projectWorkflow = 'remove-assignment')}
+                      >{translate('Remove Assignment')}</button
+                    >
+                  {/if}
+                </div>
+              </details>
             </div>
           </nav>
           {#if projectWorkflow === 'new-client'}
@@ -2395,12 +2411,19 @@
             {/if}
           {/if}
         {/if}
-        <section class="record-list full">
-          <div class="panel-title">
-            <h2>{translate('Authorized projects')}</h2>
-            <span>{availableProjects.length}</span>
-          </div>
-          {#each availableProjects as row}
+        <SectionCard
+          title={translate('Authorized projects')}
+          collapsible
+          expanded={!projectWorkflow}
+          class="record-list full"
+        >
+          <RecordBrowser
+            rows={availableProjects}
+            bind:visible={projectRegisterPage}
+            {translate}
+            label="Project"
+          />
+          {#each projectRegisterPage as row (row.id)}
             <article class="project-list-link">
               <a href={`${base}/app/projects/${row.id}`}>
                 <div>
@@ -2413,127 +2436,133 @@
                 <span>{translate('OPEN PROJECT →')}</span>
               </a>
               {#if canManageProjects}
-                <div class="record-actions lifecycle-actions">
-                  {#if row.status === 'active' || row.status === 'paused'}
+                <details class="project-row-actions" use:disclosure>
+                  <summary>{translate('Actions')}</summary>
+                  <div class="record-actions lifecycle-actions">
+                    {#if row.status === 'active' || row.status === 'paused'}
+                      <form
+                        method="POST"
+                        action="?/transitionProject"
+                        data-action="transitionProject"
+                      >
+                        <input type="hidden" name="projectId" value={row.id} />
+                        <input type="hidden" name="version" value={row.version ?? 1} />
+                        <input
+                          type="hidden"
+                          name="status"
+                          value={row.status === 'active' ? 'closing' : 'closing'}
+                        />
+                        <label class="sr-only" for={`project-close-reason-${row.id}`}
+                          >{translate('Reason')}</label
+                        >
+                        <input
+                          id={`project-close-reason-${row.id}`}
+                          name="reason"
+                          required
+                          placeholder={translate('Reason')}
+                        />
+                        <button type="submit" class="secondary-button"
+                          >{translate('Begin close')}</button
+                        >
+                      </form>
+                    {:else if row.status === 'closing'}
+                      <form
+                        method="POST"
+                        action="?/transitionProject"
+                        data-action="transitionProject"
+                      >
+                        <input type="hidden" name="projectId" value={row.id} />
+                        <input type="hidden" name="version" value={row.version ?? 1} />
+                        <input type="hidden" name="status" value="closed" />
+                        <label class="sr-only" for={`project-finish-reason-${row.id}`}
+                          >{translate('Reason')}</label
+                        >
+                        <input
+                          id={`project-finish-reason-${row.id}`}
+                          name="reason"
+                          required
+                          placeholder={translate('Reason')}
+                        />
+                        <button type="submit" class="secondary-button"
+                          >{translate('Close project')}</button
+                        >
+                      </form>
+                    {:else if row.status === 'closed'}
+                      <form
+                        method="POST"
+                        action="?/transitionProject"
+                        data-action="transitionProject"
+                      >
+                        <input type="hidden" name="projectId" value={row.id} />
+                        <input type="hidden" name="version" value={row.version ?? 1} />
+                        <input type="hidden" name="status" value="archived" />
+                        <label class="sr-only" for={`project-archive-reason-${row.id}`}
+                          >{translate('Reason')}</label
+                        >
+                        <input
+                          id={`project-archive-reason-${row.id}`}
+                          name="reason"
+                          required
+                          placeholder={translate('Reason')}
+                        />
+                        <button type="submit" class="danger">{translate('Archive project')}</button>
+                      </form>
+                    {:else if row.status === 'archived'}
+                      <form
+                        method="POST"
+                        action="?/transitionProject"
+                        data-action="transitionProject"
+                      >
+                        <input type="hidden" name="projectId" value={row.id} />
+                        <input type="hidden" name="version" value={row.version ?? 1} />
+                        <input type="hidden" name="status" value="restore" />
+                        <label class="sr-only" for={`project-restore-reason-${row.id}`}
+                          >{translate('Reason')}</label
+                        >
+                        <input
+                          id={`project-restore-reason-${row.id}`}
+                          name="reason"
+                          required
+                          placeholder={translate('Reason')}
+                        />
+                        <button type="submit" class="secondary-button"
+                          >{translate('Restore project')}</button
+                        >
+                      </form>
+                    {/if}
                     <form
                       method="POST"
-                      action="?/transitionProject"
-                      data-action="transitionProject"
+                      action="?/deleteProject"
+                      data-action="deleteProject"
+                      onsubmit={(event) => {
+                        if (
+                          !confirm(
+                            translate(
+                              'Delete this project? This will permanently remove it if it has no financial activity.',
+                            ),
+                          )
+                        ) {
+                          event.preventDefault();
+                        }
+                      }}
                     >
                       <input type="hidden" name="projectId" value={row.id} />
-                      <input type="hidden" name="version" value={row.version ?? 1} />
-                      <input
-                        type="hidden"
-                        name="status"
-                        value={row.status === 'active' ? 'closing' : 'closing'}
-                      />
-                      <label class="sr-only" for={`project-close-reason-${row.id}`}
-                        >{translate('Reason')}</label
-                      >
-                      <input
-                        id={`project-close-reason-${row.id}`}
-                        name="reason"
-                        required
-                        placeholder={translate('Reason')}
-                      />
-                      <button type="submit" class="secondary-button"
-                        >{translate('Begin close')}</button
-                      >
+                      <button type="submit" class="danger">{translate('Delete project')}</button>
                     </form>
-                  {:else if row.status === 'closing'}
-                    <form
-                      method="POST"
-                      action="?/transitionProject"
-                      data-action="transitionProject"
-                    >
-                      <input type="hidden" name="projectId" value={row.id} />
-                      <input type="hidden" name="version" value={row.version ?? 1} />
-                      <input type="hidden" name="status" value="closed" />
-                      <label class="sr-only" for={`project-finish-reason-${row.id}`}
-                        >{translate('Reason')}</label
-                      >
-                      <input
-                        id={`project-finish-reason-${row.id}`}
-                        name="reason"
-                        required
-                        placeholder={translate('Reason')}
-                      />
-                      <button type="submit" class="secondary-button"
-                        >{translate('Close project')}</button
-                      >
-                    </form>
-                  {:else if row.status === 'closed'}
-                    <form
-                      method="POST"
-                      action="?/transitionProject"
-                      data-action="transitionProject"
-                    >
-                      <input type="hidden" name="projectId" value={row.id} />
-                      <input type="hidden" name="version" value={row.version ?? 1} />
-                      <input type="hidden" name="status" value="archived" />
-                      <label class="sr-only" for={`project-archive-reason-${row.id}`}
-                        >{translate('Reason')}</label
-                      >
-                      <input
-                        id={`project-archive-reason-${row.id}`}
-                        name="reason"
-                        required
-                        placeholder={translate('Reason')}
-                      />
-                      <button type="submit" class="danger">{translate('Archive project')}</button>
-                    </form>
-                  {:else if row.status === 'archived'}
-                    <form
-                      method="POST"
-                      action="?/transitionProject"
-                      data-action="transitionProject"
-                    >
-                      <input type="hidden" name="projectId" value={row.id} />
-                      <input type="hidden" name="version" value={row.version ?? 1} />
-                      <input type="hidden" name="status" value="restore" />
-                      <label class="sr-only" for={`project-restore-reason-${row.id}`}
-                        >{translate('Reason')}</label
-                      >
-                      <input
-                        id={`project-restore-reason-${row.id}`}
-                        name="reason"
-                        required
-                        placeholder={translate('Reason')}
-                      />
-                      <button type="submit" class="secondary-button"
-                        >{translate('Restore project')}</button
-                      >
-                    </form>
-                  {/if}
-                  <form
-                    method="POST"
-                    action="?/deleteProject"
-                    data-action="deleteProject"
-                    onsubmit={(event) => {
-                      if (
-                        !confirm(
-                          translate(
-                            'Delete this project? This will permanently remove it if it has no financial activity.',
-                          ),
-                        )
-                      ) {
-                        event.preventDefault();
-                      }
-                    }}
-                  >
-                    <input type="hidden" name="projectId" value={row.id} />
-                    <button type="submit" class="danger">{translate('Delete project')}</button>
-                  </form>
-                </div>
+                  </div>
+                </details>
               {/if}
             </article>
           {:else}<div class="empty">{translate('No projects available.')}</div>{/each}
-        </section>
+        </SectionCard>
         {#if canManageProjects}
-          <section class="record-list full client-management-list">
+          <SectionCard
+            title={translate('Clients')}
+            collapsible
+            class="record-list full client-management-list"
+          >
             <div class="panel-title">
               <div>
-                <h2>{translate('Clients')}</h2>
                 <p class="form-help">
                   {translate(
                     'Archived clients remain visible to management for safe restore; workers never receive this list.',
@@ -2615,7 +2644,7 @@
                 </div>
               </article>
             {:else}<div class="empty">{translate('No clients recorded.')}</div>{/each}
-          </section>
+          </SectionCard>
           <details class="admin-details">
             <summary class="primary-button">{translate('Add Client Contact')}</summary>
             <form method="POST" action="?/createClientContact" class="admin-form-grid">
@@ -2752,10 +2781,13 @@
               </form>
             </details>
           {/if}
-          <section class="record-list full assignment-history-list">
+          <SectionCard
+            title={translate('Assignment history')}
+            collapsible
+            class="record-list full assignment-history-list"
+          >
             <div class="panel-title">
               <div>
-                <h2>{translate('Assignment history')}</h2>
                 <p class="form-help">
                   {translate(
                     'Inactive rows remain available for audit and historical attribution.',
@@ -2791,7 +2823,7 @@
                 <span class="record-card-open">{translate('Open record →')}</span>
               </a>
             {:else}<div class="empty">{translate('No assignments recorded.')}</div>{/each}
-          </section>
+          </SectionCard>
         {/if}
         {#if data.contacts}
           <section class="record-list full">
@@ -3148,92 +3180,98 @@
             ><button>{translate('Publish assignment')}</button>
           </form>{/if}
         {#if data.user.role === 'owner_admin' || data.user.role === 'finance_admin'}
-          <details class="admin-details">
-            <summary class="primary-button">{translate('New Skill')}</summary>
-            <form method="POST" action="?/createSkill" class="admin-form-grid">
-              <h2>{translate('Add skill')}</h2>
-              <label>{translate('Code')}<input name="code" required /></label><label
-                >{translate('Name')}<input name="name" required /></label
-              ><button>{translate('Save skill')}</button>
-            </form>
-          </details>
-          <details class="admin-details">
-            <summary class="primary-button">{translate('Update Skill')}</summary>
-            <form method="POST" action="?/updateSkill" class="admin-form-grid">
-              <h2>{translate('Update skill')}</h2>
-              <label
-                >{translate('Skill')}<select name="skillId" required>
-                  {#each data.skills ?? [] as skill}<option value={skill.id}
-                      >{skill.code} — {skill.name}</option
-                    >{/each}
-                </select></label
-              >
-              <label>{translate('Name')}<input name="name" /></label>
-              <button>{translate('Update skill')}</button>
-            </form>
-          </details>
-          <details class="admin-details">
-            <summary class="primary-button">{translate('Delete Skill')}</summary>
-            <form method="POST" action="?/deleteSkill" class="admin-form-grid">
-              <h2>{translate('Delete skill')}</h2>
-              <label
-                >{translate('Skill')}<select name="skillId" required>
-                  {#each data.skills ?? [] as skill}<option value={skill.id}
-                      >{skill.code} — {skill.name}</option
-                    >{/each}
-                </select></label
-              >
-              <button class="danger">{translate('Delete skill')}</button>
-            </form>
-          </details>
-          <details class="admin-details">
-            <summary class="primary-button">{translate('Assign Skill')}</summary>
-            <form method="POST" action="?/setWorkerSkill" class="admin-form-grid">
-              <h2>{translate('Assign skill')}</h2>
-              <label
-                >{translate('Worker')}<select name="workerId" required
-                  >{#each data.workers ?? [] as worker}<option value={worker.id}
-                      >{worker.name}</option
-                    >{/each}</select
-                ></label
-              ><label
-                >{translate('Skill')}<select name="skillId" required
-                  >{#each data.skills ?? [] as skill}<option value={skill.id}
-                      >{skill.code} — {skill.name}</option
-                    >{/each}</select
-                ></label
-              ><label
-                >{translate('Proficiency')}<select name="proficiency"
-                  ><option value="1">1 · {translate('exposure')}</option><option value="2"
-                    >2 · {translate('developing')}</option
-                  ><option value="3">3 · {translate('capable')}</option><option value="4"
-                    >4 · {translate('advanced')}</option
-                  ><option value="5">5 · {translate('expert')}</option></select
-                ></label
-              ><button>{translate('Update skill matrix')}</button>
-            </form>
-          </details>
-          <details class="admin-details">
-            <summary class="primary-button">{translate('Remove Worker Skill')}</summary>
-            <form method="POST" action="?/deleteWorkerSkill" class="admin-form-grid">
-              <h2>{translate('Remove worker skill')}</h2>
-              <label
-                >{translate('Worker')}<select name="workerId" required>
-                  {#each data.workers ?? [] as worker}<option value={worker.id}
-                      >{worker.name}</option
-                    >{/each}
-                </select></label
-              >
-              <label
-                >{translate('Skill')}<select name="skillId" required>
-                  {#each data.skills ?? [] as skill}<option value={skill.id}
-                      >{skill.code} — {skill.name}</option
-                    >{/each}
-                </select></label
-              >
-              <button class="danger">{translate('Remove skill')}</button>
-            </form>
-          </details>
+          <SectionCard
+            title={translate('Manage worker skills')}
+            collapsible
+            class="full planning-skill-tools"
+          >
+            <details class="admin-details">
+              <summary class="primary-button">{translate('New Skill')}</summary>
+              <form method="POST" action="?/createSkill" class="admin-form-grid">
+                <h2>{translate('Add skill')}</h2>
+                <label>{translate('Code')}<input name="code" required /></label><label
+                  >{translate('Name')}<input name="name" required /></label
+                ><button>{translate('Save skill')}</button>
+              </form>
+            </details>
+            <details class="admin-details">
+              <summary class="primary-button">{translate('Update Skill')}</summary>
+              <form method="POST" action="?/updateSkill" class="admin-form-grid">
+                <h2>{translate('Update skill')}</h2>
+                <label
+                  >{translate('Skill')}<select name="skillId" required>
+                    {#each data.skills ?? [] as skill}<option value={skill.id}
+                        >{skill.code} — {skill.name}</option
+                      >{/each}
+                  </select></label
+                >
+                <label>{translate('Name')}<input name="name" /></label>
+                <button>{translate('Update skill')}</button>
+              </form>
+            </details>
+            <details class="admin-details">
+              <summary class="primary-button">{translate('Delete Skill')}</summary>
+              <form method="POST" action="?/deleteSkill" class="admin-form-grid">
+                <h2>{translate('Delete skill')}</h2>
+                <label
+                  >{translate('Skill')}<select name="skillId" required>
+                    {#each data.skills ?? [] as skill}<option value={skill.id}
+                        >{skill.code} — {skill.name}</option
+                      >{/each}
+                  </select></label
+                >
+                <button class="danger">{translate('Delete skill')}</button>
+              </form>
+            </details>
+            <details class="admin-details">
+              <summary class="primary-button">{translate('Assign Skill')}</summary>
+              <form method="POST" action="?/setWorkerSkill" class="admin-form-grid">
+                <h2>{translate('Assign skill')}</h2>
+                <label
+                  >{translate('Worker')}<select name="workerId" required
+                    >{#each data.workers ?? [] as worker}<option value={worker.id}
+                        >{worker.name}</option
+                      >{/each}</select
+                  ></label
+                ><label
+                  >{translate('Skill')}<select name="skillId" required
+                    >{#each data.skills ?? [] as skill}<option value={skill.id}
+                        >{skill.code} — {skill.name}</option
+                      >{/each}</select
+                  ></label
+                ><label
+                  >{translate('Proficiency')}<select name="proficiency"
+                    ><option value="1">1 · {translate('exposure')}</option><option value="2"
+                      >2 · {translate('developing')}</option
+                    ><option value="3">3 · {translate('capable')}</option><option value="4"
+                      >4 · {translate('advanced')}</option
+                    ><option value="5">5 · {translate('expert')}</option></select
+                  ></label
+                ><button>{translate('Update skill matrix')}</button>
+              </form>
+            </details>
+            <details class="admin-details">
+              <summary class="primary-button">{translate('Remove Worker Skill')}</summary>
+              <form method="POST" action="?/deleteWorkerSkill" class="admin-form-grid">
+                <h2>{translate('Remove worker skill')}</h2>
+                <label
+                  >{translate('Worker')}<select name="workerId" required>
+                    {#each data.workers ?? [] as worker}<option value={worker.id}
+                        >{worker.name}</option
+                      >{/each}
+                  </select></label
+                >
+                <label
+                  >{translate('Skill')}<select name="skillId" required>
+                    {#each data.skills ?? [] as skill}<option value={skill.id}
+                        >{skill.code} — {skill.name}</option
+                      >{/each}
+                  </select></label
+                >
+                <button class="danger">{translate('Remove skill')}</button>
+              </form>
+            </details>
+          </SectionCard>
         {/if}
         <section class="record-list full">
           <div class="panel-title">

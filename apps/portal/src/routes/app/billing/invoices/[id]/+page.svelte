@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { invalidateAll } from '$app/navigation';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
@@ -140,7 +141,7 @@
     <a href={`${base}/app/billing`} data-origin-back>← {t('Billing')}</a><button
       type="button"
       class="print-trigger"
-      onclick={() => window.print()}><span aria-hidden="true">⎙</span> {t('Print Report')}</button
+      onclick={() => window.print()}><PrintIcon /> {t('Print Report')}</button
     >
   </nav>
   <section class="invoice-pdf-panel no-print" aria-labelledby="invoice-pdf-heading">

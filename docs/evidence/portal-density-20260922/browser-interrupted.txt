@@ -1,0 +1,252 @@
+[WebServer] (node:1431042) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ next start --port 4173 --hostname 127.0.0.1
+[WebServer] (node:1431076) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+[WebServer] (node:1431176) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite build
+[WebServer] (node:1431189) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer] (node:1431189) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer] [plugin builtin:vite-reporter] 
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[WebServer] (node:1431189) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] .svelte-kit/output/server/chunks/auth.js (3652:0): A comment
+[WebServer] 
+[WebServer] "/**
+[WebServer] * Wraps a cipher: validates args, ensures encrypt() can only be called once.
+[WebServer] * Used internally by the exported cipher constructors.
+[WebServer] * Output-buffer support is inferred from the wrapped `encrypt` / `decrypt`
+[WebServer] * arity (`fn.length === 2`), so wrapped output-capable methods must use a normal
+[WebServer] * second parameter, not a default/rest parameter. AAD support is explicit in
+[WebServer] * `params.withAAD`; optional AAD starts after the nonce slot when one is present.
+[WebServer] * @__NO_SIDE_EFFECTS__
+[WebServer] * @param params - Static cipher metadata. See {@link CipherParams}.
+[WebServer] * @param constructor - Cipher constructor.
+[WebServer] * @returns Wrapped constructor with validation.
+[WebServer] */"
+[WebServer] 
+[WebServer] in ".svelte-kit/output/server/chunks/auth.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+[WebServer] "node:sqlite" is imported by ".svelte-kit/output/server/chunks/src.js", but could not be resolved – treating it as an external dependency.
+[WebServer] Generated an empty chunk: "chunks/env.js".
+[WebServer] [PLUGIN_TIMINGS] Your build spent 100% of 12.4s inside plugin hooks (19.0s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-sveltekit-compile writeBundle (70%, 8.6s, 1 call)
+[WebServer]   - vite-plugin-sveltekit-compile closeBundle (56%, 7.0s, 1 call)
+[WebServer]   - vite-plugin-svelte:compile transform (20%, 2.5s, 64 calls)
+[WebServer]   - vite:css transform (15%, 1.9s, 33 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 100% is below.
+[WebServer] Not measurable — 2 hooks whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (4433 calls)
+[WebServer]   - vite-plugin-svelte:preprocess transform (64 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer] 
+[WebServer] (node:1431712) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ node build
+[WebServer] (node:1431725) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a0c611-ad34-715a-97db-eeaf5f483651",
+    "01a0c611-ad37-7140-8482-ca95b50061eb",
+    "01a0c611-ad38-748b-844f-3e101839114a",
+    "01a0c611-ad3a-718e-8a55-62d117fa39e9"
+  ],
+  "invoiceDrafts": [
+    "01a0c611-ae61-760a-8a00-36f1874534d8",
+    "01a0c611-ae65-70c9-8c94-a2712d0fc914",
+    "01a0c611-ae69-7071-abd9-c7eb0d9da30a"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a0c611-ae71-70fc-a4c8-ccfd3c251535",
+    "01a0c611-ae74-73ca-a44c-8cefbc925ed4",
+    "01a0c611-ae77-73f8-808b-594cf4a032a6"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a0c611-ae71-70fc-a4c8-ccfd3c251535",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a0c611-ae56-720e-8298-ac4f7530f309",
+    "01a0c611-ae58-76a5-b1a7-c38d0074d404"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0c611-ad34-715a-97db-eeaf5f483651",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a0c611-ae82-76d2-9699-633236f64ccc"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0c611-ad34-715a-97db-eeaf5f483651",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a0c611-ae85-70de-8ca5-4da96a076d0e"
+    }
+  ],
+  "periodReportIds": [
+    "01a0c611-ae86-713a-832f-0ee07e26cf37",
+    "01a0c611-ae86-713a-832f-121bc461e70d"
+  ],
+  "accountingPackId": "01a0c611-aebd-725a-93b0-6513dbb96aee",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-63d8a774dc1099e45c7c2ecb604170951d796b41",
+  "closeoutId": "01a0c611-af53-776f-8ccf-10154d0aaf36"
+}
+
+Running 64 tests using 1 worker
+
+(node:1431801) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [phone-360] › tests/e2e/portal-density.spec.ts:18:1 › secondary register filters preserve criteria and leave primary work visible (11.3s)
+  ✓   2 [phone-360] › tests/e2e/portal-density.spec.ts:51:1 › secondary forms stay accessible to keyboard, validation and printing (5.8s)
+  ✓   3 [phone-360] › tests/e2e/portal-density.spec.ts:85:1 › project and finance administration opens one chosen task (11.5s)
+  ✓   4 [phone-360] › tests/e2e/portal-density.spec.ts:113:1 › reference directories print fully and linked history opens on demand (4.8s)
+  ✓   5 [phone-360] › tests/e2e/supplier-directory-ui.spec.ts:23:1 › supplier directory edits, cancels, removes and restores with shared navigation (4.6s)
+  ✘   6 [phone-360] › tests/e2e/supplier-directory-ui.spec.ts:140:3 › commercial configuration spacing and readable instructions for owner (30.4s)
+(node:1434196) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   7 [phone-360] › tests/e2e/supplier-directory-ui.spec.ts:140:3 › commercial configuration spacing and readable instructions for finance (30.2s)
+(node:1435116) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   8 [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › worker Client Essential surfaces pass axe, responsive and keyboard matrix (13.3s)
+  ✓   9 [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › manager Client Essential surfaces pass axe, responsive and keyboard matrix (10.7s)
+  ✓  10 [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › finance Client Essential surfaces pass axe, responsive and keyboard matrix (11.1s)
+  ✓  11 [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › owner Client Essential surfaces pass axe, responsive and keyboard matrix (14.3s)
+  ✘  12 [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › auditor Client Essential surfaces pass axe, responsive and keyboard matrix (10.8s)
+
+
+  1) [phone-360] › tests/e2e/supplier-directory-ui.spec.ts:140:3 › commercial configuration spacing and readable instructions for owner 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.selectOption: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('.finance-config-panel').getByLabel('Commercial policies', { exact: true })
+
+
+      148 |     await panel
+      149 |       .getByLabel('Commercial policies', { exact: true })
+    > 150 |       .selectOption({ label: 'Project issuing authority' });
+          |        ^
+      151 |     const authority = panel.locator('[data-project-legal-entity]');
+      152 |     await authority.scrollIntoViewIfNeeded();
+      153 |     const authorityIntroBox = await intro.boundingBox();
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/supplier-directory-ui.spec.ts:150:8
+
+    Error Context: test-results/supplier-directory-ui-comm-50abb-able-instructions-for-owner-phone-360/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/supplier-directory-ui-comm-50abb-able-instructions-for-owner-phone-360/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/supplier-directory-ui-comm-50abb-able-instructions-for-owner-phone-360/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [phone-360] › tests/e2e/supplier-directory-ui.spec.ts:140:3 › commercial configuration spacing and readable instructions for finance 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.selectOption: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('.finance-config-panel').getByLabel('Commercial policies', { exact: true })
+
+
+      148 |     await panel
+      149 |       .getByLabel('Commercial policies', { exact: true })
+    > 150 |       .selectOption({ label: 'Project issuing authority' });
+          |        ^
+      151 |     const authority = panel.locator('[data-project-legal-entity]');
+      152 |     await authority.scrollIntoViewIfNeeded();
+      153 |     const authorityIntroBox = await intro.boundingBox();
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/supplier-directory-ui.spec.ts:150:8
+
+    Error Context: test-results/supplier-directory-ui-comm-8594c-le-instructions-for-finance-phone-360/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/supplier-directory-ui-comm-8594c-le-instructions-for-finance-phone-360/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/supplier-directory-ui-comm-8594c-le-instructions-for-finance-phone-360/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › auditor Client Essential surfaces pass axe, responsive and keyboard matrix 
+
+    Test was interrupted.
+
+    Error: frame.evaluate: Test ended.
+
+      135 |
+      136 | async function expectNoAxeViolations(page: Page, context: string): Promise<void> {
+    > 137 |   const result = await new AxeBuilder({ page })
+          |                  ^
+      138 |     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      139 |     .analyze();
+      140 |   expect(result.violations, `${context}: ${JSON.stringify(result.violations, null, 2)}`).toEqual(
+        at AxeBuilder.runPartialRecursive (/home/kripta/ja-automation-platform-vps-hotfix/node_modules/.pnpm/@axe-core+playwright@4.13.0_playwright-core@1.62.1/node_modules/@axe-core/playwright/dist/index.mjs:283:34)
+        at AxeBuilder.analyze (/home/kripta/ja-automation-platform-vps-hotfix/node_modules/.pnpm/@axe-core+playwright@4.13.0_playwright-core@1.62.1/node_modules/@axe-core/playwright/dist/index.mjs:210:28)
+        at expectNoAxeViolations (/home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/ui-multirole-accessibility-matrix.spec.ts:137:18)
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/ui-multirole-accessibility-matrix.spec.ts:452:7
+
+    Error Context: test-results/ui-multirole-accessibility-eae50-ponsive-and-keyboard-matrix-phone-360/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ui-multirole-accessibility-eae50-ponsive-and-keyboard-matrix-phone-360/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/ui-multirole-accessibility-eae50-ponsive-and-keyboard-matrix-phone-360/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [phone-360] › tests/e2e/supplier-directory-ui.spec.ts:140:3 › commercial configuration spacing and readable instructions for owner 
+    [phone-360] › tests/e2e/supplier-directory-ui.spec.ts:140:3 › commercial configuration spacing and readable instructions for finance 
+  1 interrupted
+    [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › auditor Client Essential surfaces pass axe, responsive and keyboard matrix 
+  52 did not run
+  9 passed (3.2m)

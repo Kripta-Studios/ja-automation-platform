@@ -5,7 +5,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { Principal } from '@ja/domain';
 import { readSupplierProfile } from '@ja/database';
 
-export const manualRevision = '2026-09-19';
+export const manualRevision = '2026-09-22';
 export const manualLocales = ['en', 'es', 'pt'] as const;
 export type ManualLocale = (typeof manualLocales)[number];
 export const manualRoles = [

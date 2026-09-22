@@ -231,7 +231,7 @@
     bottom: 0;
     margin-inline: -1rem;
     padding: 0.75rem 1rem;
-    border-top: 1px solid var(--ja-line, #dce4ed);
+    border-top: 1px solid var(--ja-line, #e4e4e2);
     background: var(--ja-white, #fff);
   }
 
@@ -242,7 +242,7 @@
   .time-entry-actions {
     margin-inline: -1rem;
     padding-inline: 1rem;
-    border-top: 1px solid var(--ja-line, #dce4ed);
+    border-top: 1px solid var(--ja-line, #e4e4e2);
     background: var(--ja-white, #fff);
   }
 
@@ -652,17 +652,17 @@
 
   .bottom-nav {
     height: 4.5rem;
-    border-color: #dfe7ee;
+    border-color: #e7e7e5;
     box-shadow: 0 -0.5rem 1.5rem rgb(16 32 47 / 0.07);
   }
 
   .bottom-nav a {
-    color: #536575;
+    color: #67655e;
   }
 
   .bottom-nav a.active {
-    color: #277e78;
-    border-color: #55cfc0;
+    color: #706e66;
+    border-color: #b7b6b1;
   }
 }
 
@@ -1121,7 +1121,7 @@
     z-index: 1;
     margin-inline: -1rem;
     padding: 0.75rem 1rem;
-    border-top: 1px solid var(--ja-line, #dce4ed);
+    border-top: 1px solid var(--ja-line, #e4e4e2);
     background: var(--ja-white, #fff);
   }
 

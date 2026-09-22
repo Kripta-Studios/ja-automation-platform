@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { SectionCard } from '../ui';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
@@ -516,55 +517,6 @@
         placeholder={translate('Project, worker or report')}
       /></label
     >
-    {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
-      <label
-        ><span>{translate('Worker')}</span><select
-          name="worker"
-          bind:value={workerFilter}
-          onchange={() => {
-            dailyPage = 1;
-            technicalPage = 1;
-          }}
-          ><option value="">{translate('All workers')}</option
-          >{#each workerOptions as [id, label]}<option value={id}>{label}</option>{/each}</select
-        ></label
-      >
-    {/if}
-    <label
-      ><span>{translate('Client')}</span><select
-        name="client"
-        bind:value={clientFilter}
-        onchange={() => {
-          dailyPage = 1;
-          technicalPage = 1;
-        }}
-        ><option value="">{translate('All clients')}</option>{#each clientOptions as client}<option
-            value={client}>{client}</option
-          >{/each}</select
-      ></label
-    >
-    <label
-      ><span>{translate('From')}</span><input
-        name="from"
-        type="date"
-        bind:value={fromFilter}
-        onchange={() => {
-          dailyPage = 1;
-          technicalPage = 1;
-        }}
-      /></label
-    >
-    <label
-      ><span>{translate('To')}</span><input
-        name="to"
-        type="date"
-        bind:value={toFilter}
-        onchange={() => {
-          dailyPage = 1;
-          technicalPage = 1;
-        }}
-      /></label
-    >
     <label
       ><span>{translate('Project')}</span><select
         name="project"
@@ -596,22 +548,83 @@
         ></select
       ></label
     >
-    <label>
-      <span>{translate('Sort by')}</span>
-      <select
-        name="order"
-        bind:value={order}
-        onchange={() => {
-          dailyPage = 1;
-          technicalPage = 1;
-        }}
-      >
-        <option value="newest">{translate('Newest first')}</option>
-        <option value="oldest">{translate('Oldest first')}</option>
-        <option value="name">{translate('Name')}</option>
-        <option value="status">{translate('Status')}</option>
-      </select>
-    </label>
+    <SectionCard
+      title={translate('Filter reports')}
+      collapsible
+      expanded={Boolean(
+        workerFilter || clientFilter || fromFilter || toFilter || order !== 'newest',
+      )}
+      class="register-filter-disclosure"
+    >
+      <div class="secondary-filter-fields report-register-filters-secondary">
+        {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
+          <label
+            ><span>{translate('Worker')}</span><select
+              name="worker"
+              bind:value={workerFilter}
+              onchange={() => {
+                dailyPage = 1;
+                technicalPage = 1;
+              }}
+              ><option value="">{translate('All workers')}</option
+              >{#each workerOptions as [id, label]}<option value={id}>{label}</option
+                >{/each}</select
+            ></label
+          >
+        {/if}
+        <label
+          ><span>{translate('Client')}</span><select
+            name="client"
+            bind:value={clientFilter}
+            onchange={() => {
+              dailyPage = 1;
+              technicalPage = 1;
+            }}
+            ><option value="">{translate('All clients')}</option
+            >{#each clientOptions as client}<option value={client}>{client}</option>{/each}</select
+          ></label
+        >
+        <label
+          ><span>{translate('From')}</span><input
+            name="from"
+            type="date"
+            bind:value={fromFilter}
+            onchange={() => {
+              dailyPage = 1;
+              technicalPage = 1;
+            }}
+          /></label
+        >
+        <label
+          ><span>{translate('To')}</span><input
+            name="to"
+            type="date"
+            bind:value={toFilter}
+            onchange={() => {
+              dailyPage = 1;
+              technicalPage = 1;
+            }}
+          /></label
+        >
+
+        <label>
+          <span>{translate('Sort by')}</span>
+          <select
+            name="order"
+            bind:value={order}
+            onchange={() => {
+              dailyPage = 1;
+              technicalPage = 1;
+            }}
+          >
+            <option value="newest">{translate('Newest first')}</option>
+            <option value="oldest">{translate('Oldest first')}</option>
+            <option value="name">{translate('Name')}</option>
+            <option value="status">{translate('Status')}</option>
+          </select>
+        </label>
+      </div>
+    </SectionCard>
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
     <a class="secondary-button" href={`${base}/app/reports?view=${activeTab}&q=`}
       >{translate('Clear filters')}</a
@@ -1409,10 +1422,10 @@
     display: grid;
     gap: 0.3rem;
     padding: 0.8rem 0.9rem;
-    border: 1px solid var(--ja-border, #d9e1e5);
-    border-left: 0.25rem solid var(--ja-teal, #277e78);
+    border: 1px solid var(--ja-border, #e1e1de);
+    border-left: 0.25rem solid var(--ja-teal, #706e66);
     border-radius: 0.55rem;
-    background: var(--ja-surface-subtle, #f5f8f8);
+    background: var(--ja-surface-subtle, #f8f8f7);
   }
   .report-audience-guidance span,
   .report-audience-guidance small {
@@ -1423,7 +1436,7 @@
     gap: 0.55rem;
     margin: 0;
     padding: 0.85rem;
-    border: 1px solid var(--ja-border, #d9e1e5);
+    border: 1px solid var(--ja-border, #e1e1de);
     border-radius: 0.65rem;
   }
   .report-generator-technical__option {
@@ -1433,8 +1446,8 @@
     align-items: start;
   }
   .report-primary-action-secondary {
-    border-color: var(--ja-teal, #277e78);
-    background: var(--ja-teal, #277e78);
+    border-color: var(--ja-teal, #706e66);
+    background: var(--ja-teal, #706e66);
   }
   .report-panel-header {
     align-items: flex-start;
@@ -1448,8 +1461,8 @@
   }
   .report-attention-card:hover,
   .report-attention-card:focus-visible {
-    border-color: var(--ja-teal, #277e78);
-    outline: 3px solid color-mix(in srgb, var(--ja-teal, #277e78) 25%, transparent);
+    border-color: var(--ja-teal, #706e66);
+    outline: 3px solid color-mix(in srgb, var(--ja-teal, #706e66) 25%, transparent);
     outline-offset: 2px;
   }
   .report-register-filters {
@@ -1470,7 +1483,7 @@
     box-sizing: border-box;
     min-height: 2.75rem;
     padding: 0.55rem 0.7rem;
-    border: 1px solid var(--ja-control-border, #9eabb7);
+    border: 1px solid var(--ja-control-border, #adaca5);
     border-radius: 0.45rem;
     background: var(--ja-white, #fff);
     font: inherit;
@@ -1484,7 +1497,7 @@
     margin-top: 0.9rem;
   }
   .operational-pagination span {
-    color: var(--ja-steel, #637486);
+    color: var(--ja-steel, #77756d);
     font-size: 0.85rem;
   }
   @media (max-width: 480px) {

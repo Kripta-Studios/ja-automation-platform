@@ -119,7 +119,10 @@ export function loadFreshManualCapture(): {
       !manualPersonas.includes(shot.persona) ||
       !['en', 'pt'].includes(shot.locale) ||
       !shot.key?.trim() ||
-      !shot.route?.startsWith('/app') ||
+      !(
+        shot.route?.startsWith('/app') ||
+        (shot.key === 'public-home' && shot.route === `/${shot.locale}`)
+      ) ||
       !sha256.test(shot.sha256 ?? '') ||
       !Number.isInteger(shot.viewport?.width) ||
       !Number.isInteger(shot.viewport?.height) ||
@@ -247,6 +250,26 @@ function markdown(value: string, renderCapture?: (persona: string, key: string) 
 }
 
 const captureCaptions: Record<string, Readonly<{ en: string; pt: string; es: string }>> = {
+  'register-filters': {
+    en: 'Register filters: primary controls and expandable secondary criteria',
+    pt: 'Filtros do registro: controles principais e critérios secundários expansíveis',
+    es: 'Filtros del registro: controles principales y criterios secundarios desplegables',
+  },
+  'configuration-task': {
+    en: 'Finance configuration: choose one policy before editing its fields',
+    pt: 'Configuração financeira: escolha uma política antes de editar seus campos',
+    es: 'Configuración financiera: elige una política antes de editar sus campos',
+  },
+  'project-actions': {
+    en: 'Projects: create a project or expand secondary management actions',
+    pt: 'Projetos: crie um projeto ou abra as ações secundárias de administração',
+    es: 'Proyectos: crea un proyecto o despliega las acciones secundarias de gestión',
+  },
+  'public-home': {
+    en: 'Public website: services, projects and the Employee Portal entry',
+    pt: 'Site público: serviços, projetos e acesso ao Portal do Funcionário',
+    es: 'Web pública: servicios, proyectos y acceso al Portal del Empleado',
+  },
   home: {
     en: 'Start here: navigation and work available to this account',
     pt: 'Comece aqui: navegação e trabalho disponível para esta conta',
@@ -346,7 +369,10 @@ function figureHtml(shot: Capture, locale: 'en' | 'pt' | 'es'): string {
   const png = readFileSync(resolve(root, shot.path)).toString('base64');
   const label = captureCaptions[shot.key]?.[locale];
   if (!label) throw new Error(`Screenshot caption missing: ${shot.key}/${locale}`);
-  const persona = personaLabels[shot.persona][locale];
+  const persona =
+    shot.key === 'public-home'
+      ? { en: 'Public website', pt: 'Site público', es: 'Web pública' }[locale]
+      : personaLabels[shot.persona][locale];
   return `<figure class="${shot.viewport.width < 600 ? 'phone' : 'desktop'}"><img alt="${escape(`${persona}: ${label}`)}" src="data:image/png;base64,${png}"><figcaption><strong>${escape(persona)} · ${escape(label)}</strong><br><code>${escape(shot.route)}</code> · ${shot.viewport.width} × ${shot.viewport.height}</figcaption></figure>`;
 }
 function screenshotHtml(captures: readonly Capture[], locale: 'en' | 'pt' | 'es'): string {
@@ -381,6 +407,9 @@ function html(
   source: Source,
   manifest: Manifest,
 ): { html: string; captures: readonly Capture[] } {
+  const font = readFileSync(
+    resolve(root, 'apps/portal/static/app/fonts/geist-latin.woff2'),
+  ).toString('base64');
   const sourcePath = resolve(manualsDir, input.sourceName);
   if (!existsSync(sourcePath)) throw new Error(`Manual Markdown missing: ${input.sourceName}`);
   const availableShots = manifest.screenshots.filter(
@@ -444,25 +473,25 @@ function html(
         : 'Real application screens with synthetic data; no customer information.';
   return {
     captures: shots,
-    html: `<!doctype html><html lang="${input.locale === 'pt' ? 'pt-BR' : input.locale}"><head><meta charset="utf-8"><title>${escape(input.title)}</title><style>
-  @page{size:A4;margin:16mm 15mm}body{font-family:Arial,"Noto Sans",sans-serif;color:#172033;font-size:10pt;line-height:1.48}
-  h1,h2,h3{color:#073b5c;break-after:avoid}h1{font-size:23pt;border-bottom:3px solid #1597c5;padding-bottom:3mm}h2{font-size:14pt;margin-top:8mm}h3{font-size:11pt}
-  p,li{margin:0 0 2.5mm}ul,ol{padding-left:6mm}code{font-family:monospace;background:#edf1f4;padding:0.3mm 0.7mm}
-  aside{background:#eef8fc;border-left:4px solid #1597c5;padding:3mm 4mm;margin:4mm 0}
+    html: `<!doctype html><html lang="${input.locale === 'pt' ? 'pt-BR' : input.locale}"><head><meta charset="utf-8"><title>${escape(input.title)}</title><style>@font-face{font-family:Geist;src:url(data:font/woff2;base64,${font}) format('woff2');font-weight:100 900}
+  @page{size:A4;margin:16mm 15mm}body{font-family:Geist,Arial,"Noto Sans",sans-serif;color:#292925;font-size:10pt;line-height:1.48}
+  h1,h2,h3{color:#292925;break-after:avoid}h1{font-size:23pt;border-bottom:3px solid #b42318;padding-bottom:3mm}h2{font-size:14pt;margin-top:8mm}h3{font-size:11pt}
+  p,li{margin:0 0 2.5mm}ul,ol{padding-left:6mm}code{font-family:monospace;background:#eeeee9;padding:0.3mm 0.7mm}
+  aside{background:#f4f4f2;border-left:4px solid #b42318;padding:3mm 4mm;margin:4mm 0}
   .cover{min-height:245mm;display:flex;flex-direction:column;justify-content:space-between;page-break-after:always}
-  .cover h1{font-size:26pt;margin-top:28mm}.cover h2{margin-top:8mm}.cover li{margin-bottom:3mm}.meta{color:#52677f;font-size:9pt;border-top:2px solid #1597c5;padding-top:4mm}
-  .toc{page-break-after:always}.toc h2{font-size:20pt}.toc li{margin:3mm 0}.toc a{color:#075d88;text-decoration:none}
-  a{color:#075d88}table{width:100%;border-collapse:collapse;font-size:8.5pt;margin:4mm 0;table-layout:fixed}th,td{border:1px solid #cbd5e1;padding:2mm;vertical-align:top;overflow-wrap:anywhere}th{background:#eef8fc}tr{break-inside:avoid}
+  .cover h1{font-size:26pt;margin-top:28mm}.cover h2{margin-top:8mm}.cover li{margin-bottom:3mm}.meta{color:#626258;font-size:9pt;border-top:2px solid #b42318;padding-top:4mm}
+  .toc{page-break-after:always}.toc h2{font-size:20pt}.toc li{margin:3mm 0}.toc a{color:#91261f;text-decoration:none}
+  a{color:#91261f}table{width:100%;border-collapse:collapse;font-size:8.5pt;margin:4mm 0;table-layout:fixed}th,td{border:1px solid #deded7;padding:2mm;vertical-align:top;overflow-wrap:anywhere}th{background:#f4f4f2}tr{break-inside:avoid}
   .screens{page-break-before:always}
-  figure{break-inside:avoid;margin:6mm 0;border:1px solid #cbd5e1;padding:2mm;background:#f8fafc}
+  figure{break-inside:avoid;margin:6mm 0;border:1px solid #deded7;padding:2mm;background:#f8f8f5}
   figure img{display:block;width:100%;height:auto;max-height:174mm;object-fit:contain;background:white}
   figure.phone{max-width:90mm;margin-left:auto;margin-right:auto}
-  figcaption{font-size:8pt;color:#52677f;margin-top:1mm;overflow-wrap:anywhere}</style></head><body>
+  figcaption{font-size:8pt;color:#626258;margin-top:1mm;overflow-wrap:anywhere}</style></head><body>
   <section class="cover"><div><p>J&amp;A Automation</p><h1>${escape(input.title)}</h1><p>${syntheticLabel}</p>${intro}</div>
   <div class="meta">${revisionLabel} ${manualRevision} · ${captureLabel}: ${escape(manifest.capturedAt)}</div></section>
   <nav class="toc"><h2>${contentsLabel}</h2><ol>${toc}</ol></nav>
   <main>${contents}${input.grouped ? '' : screenshotHtml(shots, input.locale)}</main>
-  <p style="font-size:7pt;color:#52677f">${input.locale === 'pt' ? 'Origem' : input.locale === 'es' ? 'Fuente' : 'Source'} ${escape(source.sourceDigest.slice(0, 16))}</p></body></html>`,
+  <p style="font-size:7pt;color:#626258">${input.locale === 'pt' ? 'Origem' : input.locale === 'es' ? 'Fuente' : 'Source'} ${escape(source.sourceDigest.slice(0, 16))}</p></body></html>`,
   };
 }
 
@@ -494,6 +523,7 @@ export async function generateRoleManuals(locale: 'en' | 'pt'): Promise<void> {
       const page = await browser.newPage();
       const rendered = html(manual, source, manifest);
       await page.setContent(rendered.html, { waitUntil: 'networkidle' });
+      await page.evaluate(() => document.fonts.ready);
       const file = resolve(manualsDir, manual.outputName);
       await page.pdf({
         path: file,
@@ -503,7 +533,7 @@ export async function generateRoleManuals(locale: 'en' | 'pt'): Promise<void> {
         outline: true,
         displayHeaderFooter: true,
         headerTemplate: '<span></span>',
-        footerTemplate: `<div style="font:7pt Arial,sans-serif;color:#52677f;width:100%;text-align:center">J&amp;A Automation · <span class="pageNumber"></span> / <span class="totalPages"></span></div>`,
+        footerTemplate: `<div style="font:7pt Arial,sans-serif;color:#626258;width:100%;text-align:center">J&amp;A Automation · <span class="pageNumber"></span> / <span class="totalPages"></span></div>`,
         margin: { top: '16mm', bottom: '18mm', left: '15mm', right: '15mm' },
       });
       await page.close();

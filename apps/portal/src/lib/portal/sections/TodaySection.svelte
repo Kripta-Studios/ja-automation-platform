@@ -74,7 +74,8 @@
       <p>{translate('Current projects, field records, and billing readiness in one view.')}</p>
     </div>
     <a class="dashboard-project-count" href={`${base}/app/projects`}>
-      <strong>{data.dashboard.activeProjects} {translate('active projects')}</strong>
+      <strong>{data.dashboard.activeProjects}</strong>
+      <span>{translate('active projects')} <span aria-hidden="true">↗</span></span>
     </a>
   </div>
 {/if}
@@ -141,7 +142,7 @@
       >{/each}
   </section>
 {:else}
-  <div class="portal-grid">
+  <div class="portal-grid worker-home-grid">
     <section class="assignment">
       <span class="status-chip"><b></b>{translate('Today')}</span>
       {#if planningReference}

@@ -12,10 +12,10 @@
   min-height: 100svh;
   padding: clamp(2rem, 6vw, 6.5rem);
   overflow: hidden;
-  color: #f8fcff;
+  color: #fcfbfb;
   background:
     radial-gradient(circle at 25% 15%, rgb(81 159 180 / 0.25), transparent 26rem),
-    linear-gradient(145deg, #092033 0%, #102f46 58%, #124354 100%);
+    linear-gradient(145deg, #1e1d1b 0%, #2c2b28 58%, #3c3c37 100%);
 }
 
 .login-showcase::before {
@@ -63,7 +63,7 @@
 }
 
 .login-intro .portal-kicker {
-  color: #92d9d3;
+  color: #cccbc7;
 }
 
 .login-intro h1 {
@@ -79,7 +79,7 @@
 .login-intro > p:last-child {
   max-width: 34rem;
   margin: 0;
-  color: #bbced9;
+  color: #cdccc8;
   font-size: clamp(1rem, 1.4vw, 1.16rem);
   line-height: 1.68;
 }
@@ -99,13 +99,13 @@
 }
 
 .login-proof strong {
-  color: #89d7cd;
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  color: #c8c7c3;
+  font-family: 'Geist Mono', 'SFMono-Regular', Consolas, monospace;
   font-size: 0.75rem;
 }
 
 .login-proof span {
-  color: #eaf5f9;
+  color: #f3f3f2;
   font-size: 0.79rem;
   line-height: 1.7;
 }
@@ -131,7 +131,7 @@
   justify-content: center;
   padding: clamp(1.5rem, 7vw, 6rem);
   color: var(--ja-ink);
-  background: #fbfcfe;
+  background: #fcfcfc;
 }
 
 .login-page .login-card {
@@ -140,7 +140,7 @@
   gap: 1.05rem;
   margin-inline: auto;
   padding: clamp(1.6rem, 3vw, 2.6rem);
-  border: 1px solid #e6ebf1;
+  border: 1px solid #ebebe9;
   border-radius: 1.3rem;
   background: #fff;
   box-shadow: var(--ja-shadow);
@@ -168,7 +168,7 @@
 .login-field {
   display: grid;
   gap: 0.46rem;
-  color: #304153;
+  color: #42413c;
   font-size: 0.78rem;
   font-weight: 750;
 }
@@ -178,22 +178,22 @@
   min-height: 3.25rem;
   padding: 0.75rem 0.9rem;
   color: var(--ja-ink);
-  border: 1px solid #d7e0e8;
+  border: 1px solid #e0e0dd;
   border-radius: 0.7rem;
-  background: #f9fbfc;
+  background: #fbfbfa;
   outline: none;
 }
 
 .login-field input::placeholder {
-  color: #9aa8b6;
+  color: #aaa9a2;
 }
 
 .login-field input:hover {
-  border-color: #aebdca;
+  border-color: #bebdb8;
 }
 
 .login-field input:focus {
-  border-color: #47a89f;
+  border-color: #98968e;
   background: #fff;
   box-shadow: 0 0 0 4px rgb(71 168 159 / 0.13);
 }
@@ -250,8 +250,8 @@
 .record-actions button:hover,
 .compact-form button:hover,
 .payment-form button:hover {
-  border-color: #0a1824;
-  background: #0a1824;
+  border-color: #171715;
+  background: #171715;
   box-shadow: 0 0.65rem 1.3rem rgb(16 32 47 / 0.22);
   transform: translateY(-1px);
 }
@@ -328,15 +328,15 @@ button:disabled {
 }
 
 .login-security span {
-  color: #34aa9c;
+  color: #95938b;
   font-size: 0.6rem;
 }
 
 .login-access-note {
   margin: 0.15rem 0 0;
   padding-top: 0.9rem;
-  color: #536575;
-  border-top: 1px solid #e4eaf0;
+  color: #67655e;
+  border-top: 1px solid #eaeae8;
   font-size: 0.74rem;
   line-height: 1.55;
 }
@@ -348,7 +348,7 @@ button:disabled {
 .login-page > .login-panel > .login-footer {
   width: min(100%, 29rem);
   margin: 1.5rem auto 0;
-  color: #536575;
+  color: #67655e;
   font-size: 0.71rem;
   text-align: center;
 }
@@ -356,15 +356,15 @@ button:disabled {
 /* The legacy form rule above intentionally covers generic actions. Keep the
    passkey action a secondary, teal control in the final refresh layer. */
 .login-page .login-passkey {
-  border-color: #a9c8cf;
-  background: #f1f8f9;
-  color: #0f5965;
+  border-color: #c5c4bf;
+  background: #f7f7f6;
+  color: #4d4c47;
 }
 
 .login-page .login-passkey:hover {
-  border-color: #83b5bd;
-  background: #e6f3f5;
-  color: #0a4a55;
+  border-color: #afada7;
+  background: #f1f1f0;
+  color: #403f3a;
 }
 
 .login-panel-tools {
@@ -379,10 +379,10 @@ button:disabled {
   align-items: center;
   gap: 0.35rem;
   padding: 0.28rem 0.65rem;
-  color: #486577;
-  border: 1px solid #dbe5ec;
+  color: #64635c;
+  border: 1px solid #e5e4e2;
   border-radius: 0.45rem;
-  background: #f5f8fa;
+  background: #f8f8f7;
   font-size: 0.72rem;
   font-weight: 700;
   text-decoration: none;
@@ -391,8 +391,8 @@ button:disabled {
 
 .login-top-webmail:hover {
   color: #fff;
-  border-color: #0e3048;
-  background: #0e3048;
+  border-color: #2c2c29;
+  background: #2c2c29;
 }
 
 .login-page .login-webmail-btn {
@@ -402,10 +402,10 @@ button:disabled {
   min-height: var(--ja-target-min);
   gap: 0.55rem;
   padding: 0.65rem 1rem;
-  color: #174059;
-  border: 1px solid #c7d9e5;
+  color: #3c3b37;
+  border: 1px solid #d8d7d4;
   border-radius: 0.65rem;
-  background: #f4f8fb;
+  background: #f8f8f7;
   font-size: 0.8rem;
   font-weight: 700;
   text-decoration: none;
@@ -414,8 +414,8 @@ button:disabled {
 
 .login-page .login-webmail-btn:hover {
   color: #fff;
-  border-color: #0e3048;
-  background: #0e3048;
+  border-color: #2c2c29;
+  background: #2c2c29;
 }
 
 .login-page .login-webmail-btn svg {

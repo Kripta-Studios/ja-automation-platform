@@ -7,7 +7,7 @@
 
 .admin-details {
   background: var(--ja-surface, var(--ja-white, #fff));
-  border: 1px solid var(--ja-border-subdued, var(--ja-line, #e2e8f0));
+  border: 1px solid var(--ja-border-subdued, var(--ja-line, #e8e8e6));
   border-radius: var(--ja-radius);
   padding: 1rem;
 }
@@ -16,14 +16,14 @@
   display: grid;
   gap: 0.75rem;
   padding: 1rem;
-  border: 1px solid var(--ja-border-strong, #cbd5e1);
+  border: 1px solid var(--ja-border-strong, #d6d5d2);
   border-radius: var(--ja-radius, 1rem);
-  background: var(--ja-surface-raised, #f1f5f9);
+  background: var(--ja-surface-raised, #f5f5f4);
 }
 
 .project-workflow-actions p {
   margin: 0;
-  color: var(--ja-text-secondary, #475569);
+  color: var(--ja-text-secondary, #575650);
 }
 
 .project-workflow-actions > div {
@@ -39,10 +39,10 @@
   width: 100%;
   min-height: var(--ja-target-min, 2.75rem);
   padding: 0.58rem 0.9rem;
-  border: 1px solid var(--ja-primary, #0f766e);
+  border: 1px solid var(--ja-primary, #64625b);
   border-radius: 0.6rem;
   color: #fff;
-  background: var(--ja-primary, #0f766e);
+  background: var(--ja-primary, #64625b);
   box-shadow: 0 0.3rem 0.8rem rgb(16 32 47 / 0.12);
   font-size: 0.75rem;
   font-weight: 800;
@@ -54,24 +54,24 @@
 .project-workflow-actions button:hover,
 .project-workflow-actions button:focus-visible {
   color: #fff;
-  border-color: var(--ja-primary-hover, #115e59);
-  background: var(--ja-primary-hover, #115e59);
+  border-color: var(--ja-primary-hover, #51504a);
+  background: var(--ja-primary-hover, #51504a);
 }
 
 .project-workflow-actions button.active {
   color: #fff;
-  border-color: var(--ja-primary-hover, #115e59);
-  background: var(--ja-primary-hover, #115e59);
+  border-color: var(--ja-primary-hover, #51504a);
+  background: var(--ja-primary-hover, #51504a);
   box-shadow:
     0 0.3rem 0.8rem rgb(16 32 47 / 0.12),
-    0 0 0 3px color-mix(in srgb, var(--ja-primary, #0f766e) 28%, transparent);
+    0 0 0 3px color-mix(in srgb, var(--ja-primary, #64625b) 28%, transparent);
 }
 
 .project-workflow-actions button.active:hover,
 .project-workflow-actions button.active:focus-visible {
   color: #fff;
-  border-color: var(--ja-primary-hover, #115e59);
-  background: var(--ja-primary-hover, #115e59);
+  border-color: var(--ja-primary-hover, #51504a);
+  background: var(--ja-primary-hover, #51504a);
 }
 
 .project-workflow-actions .danger-outline {
@@ -124,28 +124,28 @@
   font-weight: 600;
   cursor: pointer;
   user-select: none;
-  color: var(--ja-text-primary, var(--ja-ink, #0f172a));
+  color: var(--ja-text-primary, var(--ja-ink, #181716));
   padding: 0.625rem 0.875rem;
-  border: 1px solid var(--ja-border-subdued, var(--ja-line, #e2e8f0));
+  border: 1px solid var(--ja-border-subdued, var(--ja-line, #e8e8e6));
   border-radius: var(--ja-control-radius, 0.5rem);
   background: var(--ja-surface, var(--ja-white, #fff));
   transition: background 0.2s;
 }
 
 .admin-details summary:hover {
-  border-color: var(--ja-border-strong, #cbd5e1);
-  background: var(--ja-surface-raised, #f1f5f9);
+  border-color: var(--ja-border-strong, #d6d5d2);
+  background: var(--ja-surface-raised, #f5f5f4);
 }
 
 .admin-details[open] summary {
   margin-bottom: 1rem;
   border-color: color-mix(
     in srgb,
-    var(--ja-primary, #0f766e) 45%,
-    var(--ja-border-subdued, #e2e8f0)
+    var(--ja-primary, #64625b) 45%,
+    var(--ja-border-subdued, #e8e8e6)
   );
   border-radius: var(--ja-control-radius, 0.5rem);
-  background: color-mix(in srgb, var(--ja-primary, #0f766e) 6%, var(--ja-surface, #fff));
+  background: color-mix(in srgb, var(--ja-primary, #64625b) 6%, var(--ja-surface, #fff));
 }
 
 /* Forms, reporting and management ---------------------------------------- */
@@ -172,7 +172,7 @@
 .filter-form label,
 .worker-form label {
   gap: 0.42rem;
-  color: #485d6e;
+  color: #5e5c56;
   font-size: 0.67rem;
   font-weight: 800;
   letter-spacing: 0.055em;
@@ -197,8 +197,8 @@
   min-width: 0;
   min-height: 2.8rem;
   padding: 0.62rem 0.7rem;
-  color: var(--ja-text-primary, #0f172a);
-  border: 1px solid var(--ja-control-border, #cbd5e1);
+  color: var(--ja-text-primary, #181716);
+  border: 1px solid var(--ja-control-border, #d6d5d2);
   border-radius: var(--ja-control-radius, 0.5rem);
   background: var(--ja-surface, #fff);
   outline: none;
@@ -246,9 +246,9 @@
 .filter-form select:focus,
 .record-actions input:focus,
 .record-actions select:focus {
-  border-color: var(--ja-border-focus, #0284c7);
+  border-color: var(--ja-border-focus, #727068);
   background: var(--ja-surface, #fff);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ja-border-focus, #0284c7) 14%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ja-border-focus, #727068) 14%, transparent);
 }
 
 .entry-panel button,
@@ -269,9 +269,9 @@
 }
 
 .action-message.success {
-  color: #18674f;
-  border-color: #bde5d5;
-  border-left-color: #1ba37a;
+  color: #585751;
+  border-color: #dddcda;
+  border-left-color: #89877e;
   background: #f1fbf6;
 }
 
@@ -330,7 +330,7 @@
 .admin-form-grid,
 .filter-form {
   padding: 1.15rem;
-  border: 1px solid #dfe7ee;
+  border: 1px solid #e7e7e5;
   background: #fff;
 }
 
@@ -350,27 +350,27 @@
 }
 
 .report-forms summary:hover {
-  background: #f7fafc;
+  background: #fafaf9;
 }
 
 .report-forms summary > span {
-  color: #27887e;
+  color: #78766d;
 }
 
 .report-form {
-  border-top: 1px solid #e1e8ef;
-  background: #fbfcfe;
+  border-top: 1px solid #e8e8e6;
+  background: #fcfcfc;
 }
 
 .check {
   padding: 0.65rem 0.75rem;
-  border: 1px solid #dfe8ed;
+  border: 1px solid #e8e7e5;
   border-radius: 0.55rem;
-  background: #f8fbfc;
+  background: #fbfbfa;
 }
 
 .check input {
-  accent-color: #27887e;
+  accent-color: #78766d;
 }
 
 .safety-check {
@@ -386,7 +386,7 @@
 
 .report-type.technical,
 .activity-code.plc {
-  background: #277e78;
+  background: #706e66;
 }
 
 .activity-code.all-in {
@@ -394,14 +394,14 @@
 }
 
 .finance-note {
-  border-left: 0.28rem solid #48aa9f;
+  border-left: 0.28rem solid #999890;
   border-radius: 0 0.7rem 0.7rem 0;
   box-shadow: var(--ja-shadow-soft);
 }
 
 .empty {
   min-height: 14rem;
-  color: #8192a0;
+  color: #94938a;
   font-size: 0.84rem;
 }
 
@@ -529,7 +529,7 @@
 
 .worker-identity-hint {
   margin: 0;
-  color: var(--portal-muted, #526174);
+  color: var(--portal-muted, #63625b);
   font-size: 0.75rem;
   line-height: 1.4;
 }
@@ -553,7 +553,7 @@
   flex-wrap: wrap;
   gap: 1.25rem 2rem;
   padding: clamp(1rem, 2vw, 1.5rem);
-  background: var(--ja-surface-raised, #f1f5f9);
+  background: var(--ja-surface-raised, #f5f5f4);
   border: 1px solid var(--ja-card-border);
   border-radius: var(--ja-control-radius, 0.5rem);
 }
@@ -606,9 +606,9 @@
   margin: 0;
   padding: 1rem 1.25rem;
   line-height: 1.65;
-  border-left: 3px solid var(--ja-steel, #637486);
+  border-left: 3px solid var(--ja-steel, #77756d);
   border-radius: 0.35rem;
-  background: var(--ja-surface-raised, #f1f5f9);
+  background: var(--ja-surface-raised, #f5f5f4);
 }
 .finance-config-panel .form-actions {
   gap: 0.75rem;

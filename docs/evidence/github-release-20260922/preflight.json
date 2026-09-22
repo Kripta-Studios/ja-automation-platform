@@ -1,0 +1,24 @@
+{
+  "runtimeFilesIdenticalToProduction": 594,
+  "installedManualCount": 9,
+  "validatedSourceDigest": "acb208a0418e0129ed413d71c9ecba7b9a97235c6802eac431046a7de53022f0",
+  "priorValidation": {
+    "browserMatrix": 64,
+    "focusedUnitTests": 187,
+    "manualSecurityTests": 4,
+    "finalVisualAndCaptureTests": 5
+  },
+  "mailWarningsObservedBeforeThisRelease": [
+    {
+      "at": "2026-09-22T02:25:20Z",
+      "event": "store.http-store-error",
+      "reason": "Optional PhishTank feed returned HTTP 404"
+    },
+    {
+      "at": "2026-09-22T06:30:31Z",
+      "event": "registry.build-warning",
+      "reason": "Configured DNS resolver cannot validate DNSSEC; DANE disabled by mail server"
+    }
+  ],
+  "mailTlsAndProtocolTests": "passed; no emails sent"
+}

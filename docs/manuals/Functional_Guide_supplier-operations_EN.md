@@ -14,6 +14,17 @@ This guide combines the Supplier Coordinator and External Technician paths. Both
 
 Access — Consult: Supplier Coordinator and External Technician only in their active supplier installation. Create: none in this orientation chapter. Approve: none. Modify: none.
 
+## Public website and workspace navigation
+
+The public website presents J&A services and projects. Select **Employee Portal login** to open the secure application. Choose your language in the header. On a phone, open the menu to see the complete navigation labels.
+
+Inside the application, the light sidebar marks your current section. The account menu contains your profile and sign-out action. Search and the page actions appear beside the page title on desktop and stack on smaller screens. Only the sections authorized for your account are available. Status labels retain their meaning: a pending item is not approved or ready to download.
+
+Secondary panels open when you select their heading and chevron. Time, Expenses and Reports keep search, project and status visible; expand the filter panel for additional criteria. Active secondary filters reopen the panel. Collapsing a panel keeps entered values. Team assignment lists and completed approval history open separately, while pending actions and warnings remain visible. In Finance configuration, choose one commercial policy from the task selector. In Projects, use More actions for client and assignment maintenance. Open the document-registration or Accounting Pack panel when you need to create an item.
+
+<!-- screenshot:supplier-coordinator:public-home -->
+<!-- screenshot:external-technician:register-filters -->
+
 ## Shared installation scope, session and navigation
 
 Access — Consult: each supplier profile sees only its effective installation grant and permitted operational records. Create: the coordinator creates team records and team-hour drafts; the technician creates their own records. Approve: Owner reviews supplier-origin time and authorizes grants. Modify: the record author edits drafts or follows the correction workflow; neither supplier profile changes the grant.

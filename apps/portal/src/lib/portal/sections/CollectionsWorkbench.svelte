@@ -202,8 +202,8 @@
     min-width: 80px;
   }
   button[aria-pressed='true'] {
-    border-color: var(--color-primary, #1768ac);
-    box-shadow: inset 0 -3px var(--color-primary, #1768ac);
+    border-color: var(--color-primary, #605e58);
+    box-shadow: inset 0 -3px var(--color-primary, #605e58);
   }
   table {
     width: 100%;
@@ -214,7 +214,7 @@
     padding: 0.8rem;
     text-align: left;
     vertical-align: top;
-    border-bottom: 1px solid var(--border, #dce2ea);
+    border-bottom: 1px solid var(--border, #e3e2e0);
   }
   th {
     white-space: nowrap;

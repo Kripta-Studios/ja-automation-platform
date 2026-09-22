@@ -138,12 +138,12 @@
     gap: 1rem;
   }
   .metrics div {
-    background: #f2f6f8;
+    background: #f6f6f5;
     padding: 0.75rem;
     border-radius: 0.5rem;
   }
   dt {
-    color: #44515d;
+    color: #53514c;
     font-size: 0.875rem;
   }
   dd {
@@ -164,7 +164,7 @@
     gap: 1rem;
   }
   article {
-    border: 1px solid #ccd7de;
+    border: 1px solid #d7d6d3;
     padding: 1rem;
     border-radius: 0.5rem;
     min-width: 0;

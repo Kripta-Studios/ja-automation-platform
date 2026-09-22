@@ -612,14 +612,14 @@
     padding: clamp(1rem, 4vw, 2.75rem);
     display: grid;
     gap: 1rem;
-    color: #1d3a4d;
+    color: #383733;
   }
 
   .review-nav a,
   .review-report-actions a,
   .review-sources a,
   .readiness-card a {
-    color: #17665e;
+    color: #585751;
     font-weight: 750;
   }
 
@@ -653,7 +653,7 @@
   .review-header h1 {
     max-width: 48rem;
     margin: 0;
-    color: #173146;
+    color: #2f2e2b;
     font-size: clamp(1.65rem, 4vw, 2.45rem);
     line-height: 1.08;
   }
@@ -666,7 +666,7 @@
 
   .review-kicker {
     margin: 0 0 0.35rem;
-    color: #63788a;
+    color: #7a7870;
     font:
       700 0.7rem Consolas,
       monospace;
@@ -678,7 +678,7 @@
     display: grid;
     gap: 0.35rem;
     min-width: 8rem;
-    color: #536b7b;
+    color: #6c6a62;
     font-size: 0.72rem;
     font-weight: 700;
   }
@@ -695,10 +695,10 @@
     min-height: 2.75rem;
     width: max-content;
     padding: 0.65rem 1rem;
-    border: 1px solid #17665e;
+    border: 1px solid #585751;
     border-radius: 0.5rem;
     color: #fff;
-    background: #277e78;
+    background: #706e66;
     font-weight: 800;
     cursor: pointer;
   }
@@ -707,15 +707,15 @@
   :global(.review-filter-card) button:focus-visible,
   :global(.followup-form) button:hover,
   :global(.followup-form) button:focus-visible {
-    background: #17665e;
+    background: #585751;
   }
 
   .review-feedback {
     margin: 0;
     padding: 0.8rem 1rem;
-    border-left: 0.3rem solid #277e78;
+    border-left: 0.3rem solid #706e66;
     border-radius: 0 0.5rem 0.5rem 0;
-    background: #f1fbfa;
+    background: #f9f9f9;
   }
 
   .review-help,
@@ -723,7 +723,7 @@
   .restricted-note,
   .stale-note {
     margin: 0.35rem 0 0;
-    color: #536b7b;
+    color: #6c6a62;
     font-size: 0.82rem;
     line-height: 1.5;
   }
@@ -739,9 +739,9 @@
     justify-content: space-between;
     gap: 1rem;
     padding: 1rem 1.1rem;
-    border: 1px solid #d6e4e7;
+    border: 1px solid #e3e2e0;
     border-radius: 0.65rem;
-    background: #f8fbfc;
+    background: #fbfbfa;
   }
 
   .period-context div {
@@ -750,7 +750,7 @@
   }
 
   .period-context span {
-    color: #63788a;
+    color: #7a7870;
     font:
       700 0.68rem Consolas,
       monospace;
@@ -778,7 +778,7 @@
     gap: 1rem;
     min-width: 0;
     padding: 1rem;
-    border: 1px solid #d6e4e7;
+    border: 1px solid #e3e2e0;
     border-radius: 0.65rem;
     background: #fff;
   }
@@ -787,7 +787,7 @@
   .readiness-card h3,
   .invoice-section h3 {
     margin: 0;
-    color: #173146;
+    color: #2f2e2b;
     font-size: 1.05rem;
   }
 
@@ -802,11 +802,11 @@
     min-width: 0;
     padding: 0.7rem;
     border-radius: 0.45rem;
-    background: #f2f6f8;
+    background: #f6f6f5;
   }
 
   dt {
-    color: #63788a;
+    color: #7a7870;
     font-size: 0.7rem;
     font-weight: 700;
   }
@@ -834,17 +834,17 @@
     display: grid;
     gap: 0.65rem;
     padding-top: 0.95rem;
-    border-top: 1px solid #e2ebee;
+    border-top: 1px solid #eaeae8;
   }
 
   .review-section-heading h4 {
     margin: 0;
-    color: #173146;
+    color: #2f2e2b;
     font-size: 0.95rem;
   }
 
   .review-section-heading > span {
-    color: #63788a;
+    color: #7a7870;
     font-weight: 750;
   }
 
@@ -872,27 +872,27 @@
     display: grid;
     gap: 0.3rem;
     padding: 0.75rem;
-    border-left: 0.25rem solid #277e78;
+    border-left: 0.25rem solid #706e66;
     border-radius: 0 0.45rem 0.45rem 0;
-    background: #f1fbfa;
+    background: #f9f9f9;
   }
 
   .latest-event span {
-    color: #536b7b;
+    color: #6c6a62;
     font-size: 0.78rem;
   }
 
   .history-details summary {
     width: max-content;
     padding: 0.6rem 0;
-    color: #17665e;
+    color: #585751;
     font-weight: 800;
     cursor: pointer;
   }
 
   :global(.followup-form) {
     margin-top: 0.35rem;
-    background: #f8fbfc;
+    background: #fbfbfa;
   }
 
   :global(.followup-form) :global(.ui-card-heading) {
@@ -911,9 +911,9 @@
     max-width: 100%;
     min-height: 2.75rem;
     padding: 0.62rem 0.7rem;
-    border: 1px solid #d7e1e9;
+    border: 1px solid #e1e0de;
     border-radius: 0.5rem;
-    color: #213c50;
+    color: #3a3935;
     background: #fff;
     font: inherit;
   }
@@ -926,7 +926,7 @@
   .readiness-card header p,
   .invoice-section p {
     margin: 0.3rem 0 0;
-    color: #536b7b;
+    color: #6c6a62;
     font-size: 0.8rem;
   }
 
@@ -943,12 +943,12 @@
   .readiness-card small,
   .invoice-section small {
     display: block;
-    color: #536b7b;
+    color: #6c6a62;
   }
 
   .empty-state {
     margin: 0;
-    color: #536b7b;
+    color: #6c6a62;
   }
 
   @media (max-width: 700px) {

@@ -420,32 +420,6 @@
         placeholder={translate('Vendor, project or date')}
       />
     </label>
-    {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
-      <label>
-        <span>{translate('Worker')}</span>
-        <select name="worker" bind:value={workerFilter} onchange={() => (registerPage = 1)}>
-          <option value="">{translate('All workers')}</option>
-          {#each data.workers ?? [] as worker}
-            <option value={String(worker.id)}>{worker.name}</option>
-          {/each}
-        </select>
-      </label>
-    {/if}
-    <label>
-      <span>{translate('Client')}</span>
-      <select name="client" bind:value={clientFilter} onchange={() => (registerPage = 1)}>
-        <option value="">{translate('All clients')}</option>
-        {#each clientOptions as client}<option value={client}>{client}</option>{/each}
-      </select>
-    </label>
-    <label>
-      <span>{translate('From')}</span>
-      <input name="from" type="date" bind:value={fromFilter} onchange={() => (registerPage = 1)} />
-    </label>
-    <label>
-      <span>{translate('To')}</span>
-      <input name="to" type="date" bind:value={toFilter} onchange={() => (registerPage = 1)} />
-    </label>
     <label>
       <span>{translate('Project')}</span>
       <select name="project" bind:value={projectFilter} onchange={() => (registerPage = 1)}>
@@ -453,23 +427,6 @@
         {#each availableProjects as project}
           <option value={String(project.id)}>{project.project_number} — {project.name}</option>
         {/each}
-      </select>
-    </label>
-    <label>
-      <span>{translate('Category')}</span>
-      <select name="category" bind:value={categoryFilter} onchange={() => (registerPage = 1)}>
-        <option value="">{translate('All categories')}</option>
-        {#each expenseCategories as [value, label]}<option {value}>{translate(label)}</option
-          >{/each}
-      </select>
-    </label>
-    <label>
-      <span>{translate('Currency')}</span>
-      <select name="currency" bind:value={currencyFilter} onchange={() => (registerPage = 1)}>
-        <option value="">{translate('All currencies')}</option>
-        <option value="USD">USD</option><option value="EUR">EUR</option><option value="BRL"
-          >BRL</option
-        >
       </select>
     </label>
     <label>
@@ -483,38 +440,107 @@
         <option value="needs_changes">{translate('Needs changes')}</option>
       </select>
     </label>
-    <label>
-      <span>{translate('Receipt evidence')}</span>
-      <select name="receipt" bind:value={receiptFilter} onchange={() => (registerPage = 1)}>
-        <option value="">{translate('All receipts')}</option>
-        <option value="missing">{translate('Required receipt missing')}</option>
-        <option value="attached">{translate('Receipt attached')}</option>
-        <option value="not_required">{translate('Receipt not required')}</option>
-      </select>
-    </label>
-    {#if canViewReimbursement}
-      <label>
-        <span>{translate('Reimbursement status')}</span>
-        <select
-          name="reimbursement"
-          bind:value={reimbursementFilter}
-          onchange={() => (registerPage = 1)}
-        >
-          <option value="">{translate('All statuses')}</option>
-          <option value="pending">{translate('Pending or scheduled')}</option>
-          <option value="reimbursed">{translate('Reimbursed')}</option>
-        </select>
-      </label>
-    {/if}
-    <label>
-      <span>{translate('Sort by')}</span>
-      <select name="order" bind:value={order} onchange={() => (registerPage = 1)}>
-        <option value="newest">{translate('Newest first')}</option>
-        <option value="oldest">{translate('Oldest first')}</option>
-        <option value="name">{translate('Name')}</option>
-        <option value="status">{translate('Status')}</option>
-      </select>
-    </label>
+    <SectionCard
+      title={translate('Filter expenses')}
+      collapsible
+      expanded={Boolean(
+        workerFilter ||
+        clientFilter ||
+        fromFilter ||
+        toFilter ||
+        categoryFilter ||
+        currencyFilter ||
+        receiptFilter ||
+        reimbursementFilter ||
+        order !== 'newest',
+      )}
+      class="register-filter-disclosure"
+    >
+      <div class="expense-filter-fields">
+        {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
+          <label>
+            <span>{translate('Worker')}</span>
+            <select name="worker" bind:value={workerFilter} onchange={() => (registerPage = 1)}>
+              <option value="">{translate('All workers')}</option>
+              {#each data.workers ?? [] as worker}
+                <option value={String(worker.id)}>{worker.name}</option>
+              {/each}
+            </select>
+          </label>
+        {/if}
+        <label>
+          <span>{translate('Client')}</span>
+          <select name="client" bind:value={clientFilter} onchange={() => (registerPage = 1)}>
+            <option value="">{translate('All clients')}</option>
+            {#each clientOptions as client}<option value={client}>{client}</option>{/each}
+          </select>
+        </label>
+        <label>
+          <span>{translate('From')}</span>
+          <input
+            name="from"
+            type="date"
+            bind:value={fromFilter}
+            onchange={() => (registerPage = 1)}
+          />
+        </label>
+        <label>
+          <span>{translate('To')}</span>
+          <input name="to" type="date" bind:value={toFilter} onchange={() => (registerPage = 1)} />
+        </label>
+
+        <label>
+          <span>{translate('Category')}</span>
+          <select name="category" bind:value={categoryFilter} onchange={() => (registerPage = 1)}>
+            <option value="">{translate('All categories')}</option>
+            {#each expenseCategories as [value, label]}<option {value}>{translate(label)}</option
+              >{/each}
+          </select>
+        </label>
+        <label>
+          <span>{translate('Currency')}</span>
+          <select name="currency" bind:value={currencyFilter} onchange={() => (registerPage = 1)}>
+            <option value="">{translate('All currencies')}</option>
+            <option value="USD">USD</option><option value="EUR">EUR</option><option value="BRL"
+              >BRL</option
+            >
+          </select>
+        </label>
+
+        <label>
+          <span>{translate('Receipt evidence')}</span>
+          <select name="receipt" bind:value={receiptFilter} onchange={() => (registerPage = 1)}>
+            <option value="">{translate('All receipts')}</option>
+            <option value="missing">{translate('Required receipt missing')}</option>
+            <option value="attached">{translate('Receipt attached')}</option>
+            <option value="not_required">{translate('Receipt not required')}</option>
+          </select>
+        </label>
+        {#if canViewReimbursement}
+          <label>
+            <span>{translate('Reimbursement status')}</span>
+            <select
+              name="reimbursement"
+              bind:value={reimbursementFilter}
+              onchange={() => (registerPage = 1)}
+            >
+              <option value="">{translate('All statuses')}</option>
+              <option value="pending">{translate('Pending or scheduled')}</option>
+              <option value="reimbursed">{translate('Reimbursed')}</option>
+            </select>
+          </label>
+        {/if}
+        <label>
+          <span>{translate('Sort by')}</span>
+          <select name="order" bind:value={order} onchange={() => (registerPage = 1)}>
+            <option value="newest">{translate('Newest first')}</option>
+            <option value="oldest">{translate('Oldest first')}</option>
+            <option value="name">{translate('Name')}</option>
+            <option value="status">{translate('Status')}</option>
+          </select>
+        </label>
+      </div>
+    </SectionCard>
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
     <a class="secondary-button" href={`${base}/app/expenses?q=`}>{translate('Clear filters')}</a>
   </form>
@@ -544,9 +570,12 @@
       </div>
     </section>
 
-    <section class="expense-export-panel" aria-labelledby="expense-export-title">
+    <SectionCard
+      title={translate('Create report with another scope')}
+      collapsible
+      class="expense-export-disclosure"
+    >
       <div>
-        <h3 id="expense-export-title">{translate('Create report with another scope')}</h3>
         <p>
           {translate('Choose a separate period and scope without changing the register above.')}
         </p>
@@ -614,7 +643,7 @@
         <a class="secondary-button" href={exportHref('xlsx')}>{translate('Download Excel')}</a>
         <a class="secondary-button" href={exportHref('csv')}>{translate('Download CSV')}</a>
       </div>
-    </section>
+    </SectionCard>
   {/if}
 
   <SectionCard title={translate('Recent expenses')} class="expense-list-surface">
@@ -959,8 +988,8 @@
   }
   .expense-status-card:hover,
   .expense-status-card:focus-visible {
-    border-color: var(--ja-teal, #277e78);
-    outline: 3px solid color-mix(in srgb, var(--ja-teal, #277e78) 25%, transparent);
+    border-color: var(--ja-teal, #706e66);
+    outline: 3px solid color-mix(in srgb, var(--ja-teal, #706e66) 25%, transparent);
     outline-offset: 2px;
   }
   .expense-record-statuses a {
@@ -973,7 +1002,7 @@
   }
   .expense-record-statuses a:focus-visible {
     border-radius: 999px;
-    outline: 3px solid color-mix(in srgb, var(--ja-teal, #277e78) 30%, transparent);
+    outline: 3px solid color-mix(in srgb, var(--ja-teal, #706e66) 30%, transparent);
     outline-offset: 2px;
   }
   .expense-export-panel {
@@ -981,16 +1010,16 @@
     gap: 0.9rem;
     margin: 1rem 0;
     padding: 1rem;
-    border: 1px solid var(--portal-border, #d8e2e8);
+    border: 1px solid var(--portal-border, #e2e1df);
     border-radius: 0.75rem;
-    background: var(--portal-surface-soft, #f8fbfc);
+    background: var(--portal-surface-soft, #fbfbfa);
   }
   .expense-export-panel h3,
   .expense-export-panel p {
     margin: 0;
   }
   .expense-export-panel p {
-    color: var(--portal-muted, #64748b);
+    color: var(--portal-muted, #67675f);
     font-size: 0.86rem;
   }
   .expense-export-fields {
@@ -1003,7 +1032,7 @@
     gap: 0.3rem;
   }
   .expense-export-fields span {
-    font-size: 0.78rem;
+    font-size: 0.8125rem;
     font-weight: 600;
   }
   .expense-export-actions {
@@ -1037,7 +1066,7 @@
     margin-top: 1rem;
   }
   .operational-pagination span {
-    color: var(--ja-steel, #637486);
+    color: var(--ja-steel, #77756d);
     font-size: 0.85rem;
   }
   @media (max-width: 480px) {

@@ -414,8 +414,8 @@
 
   .client-directory__eyebrow {
     margin: 0 0 0.35rem;
-    color: var(--portal-muted, #64748b);
-    font-size: 0.72rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
     font-weight: 800;
     letter-spacing: 0.12em;
   }
@@ -423,12 +423,12 @@
   .client-directory h2,
   .client-directory h3 {
     margin: 0;
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
   }
 
   .client-directory__header p:last-child {
     margin: 0.35rem 0 0;
-    color: var(--portal-muted, #64748b);
+    color: var(--portal-muted, #67675f);
   }
 
   .client-directory__count {
@@ -436,15 +436,15 @@
     min-width: 2.75rem;
     min-height: 2.75rem;
     place-items: center;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 999px;
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
     font-weight: 800;
   }
 
   .client-directory__filter {
     padding: 0.9rem 1rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.75rem;
     background: var(--portal-surface, #fff);
   }
@@ -452,8 +452,8 @@
   .client-directory__filter label {
     display: grid;
     gap: 0.35rem;
-    color: var(--portal-muted, #64748b);
-    font-size: 0.8rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
     font-weight: 700;
   }
 
@@ -462,18 +462,18 @@
     width: 100%;
     min-width: 0;
     min-height: var(--ja-target-min, 2.75rem);
-    border: 1px solid var(--ja-control-border, #64748b);
+    border: 1px solid var(--ja-control-border, #67675f);
     border-radius: 0.5rem;
     padding: 0.55rem 0.7rem;
     background: var(--portal-surface, #fff);
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
     font: inherit;
   }
 
   .client-directory input:focus-visible,
   .client-directory button:focus-visible,
   .client-directory a:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--portal-accent, #0f5f73) 32%, transparent);
+    outline: 3px solid color-mix(in srgb, var(--portal-accent, #53524c) 32%, transparent);
     outline-offset: 2px;
   }
 
@@ -505,11 +505,11 @@
   .client-directory__project small,
   .client-directory__empty,
   .client-directory__sites {
-    color: var(--portal-muted, #526174);
+    color: var(--portal-muted, #63625b);
   }
 
   .client-directory__number {
-    font-size: 0.78rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -529,14 +529,14 @@
   .client-directory__facts div {
     min-width: 0;
     padding: 0.7rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.5rem;
-    background: color-mix(in srgb, var(--portal-surface, #fff) 92%, var(--portal-wash, #eef2f5));
+    background: color-mix(in srgb, var(--portal-surface, #fff) 92%, var(--portal-wash, #f2f2f1));
   }
 
   .client-directory__facts dt {
-    color: var(--portal-muted, #64748b);
-    font-size: 0.7rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
     font-weight: 800;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -589,14 +589,14 @@
     align-items: center;
     justify-content: center;
     min-height: var(--ja-target-min, 2.75rem);
-    border: 1px solid var(--ja-primary, #0f766e);
+    border: 1px solid var(--ja-primary, #64625b);
     border-radius: 0.6rem;
     padding: 0.58rem 0.9rem;
-    background: var(--ja-primary, #0f766e);
+    background: var(--ja-primary, #64625b);
     color: #fff;
     box-shadow: 0 0.3rem 0.8rem rgb(16 32 47 / 0.12);
     font: inherit;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     line-height: 1.1;
     cursor: pointer;
@@ -608,7 +608,7 @@
   }
 
   .client-directory__action--quiet {
-    color: var(--ja-primary-hover, #115e59);
+    color: var(--ja-primary-hover, #51504a);
     background: var(--ja-surface, #fff);
     box-shadow: none;
   }
@@ -619,7 +619,7 @@
     gap: 0.65rem;
     margin: 0 0 0.75rem;
     padding: 0.75rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.55rem;
     background: var(--portal-surface, #fff);
   }
@@ -627,8 +627,8 @@
   .client-directory__contact-form label:not(.client-directory__check) {
     display: grid;
     gap: 0.3rem;
-    color: var(--portal-muted, #526174);
-    font-size: 0.8rem;
+    color: var(--portal-muted, #63625b);
+    font-size: 0.8125rem;
     font-weight: 800;
   }
 
@@ -661,9 +661,9 @@
   .client-directory__project {
     min-width: 0;
     padding: 0.7rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.5rem;
-    background: var(--portal-wash, #f5f8fa);
+    background: var(--portal-wash, #f8f8f7);
   }
 
   .client-directory__contact a {
@@ -671,7 +671,7 @@
     min-height: var(--ja-target-min, 2.75rem);
     align-items: center;
     overflow-wrap: anywhere;
-    color: var(--portal-accent, #0f5f73);
+    color: var(--portal-accent, #53524c);
     font-size: 0.82rem;
     font-weight: 700;
   }
@@ -684,8 +684,8 @@
   .client-directory__sites span {
     display: block;
     margin-bottom: 0.15rem;
-    color: var(--portal-ink, #16202a);
-    font-size: 0.7rem;
+    color: var(--portal-ink, #20201d);
+    font-size: 0.8125rem;
     font-weight: 800;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -694,7 +694,7 @@
   .client-directory__empty {
     margin: 0;
     padding: 0.6rem;
-    border: 1px dashed var(--portal-border, #d7dee8);
+    border: 1px dashed var(--portal-border, #dfdedc);
     font-size: 0.82rem;
   }
 

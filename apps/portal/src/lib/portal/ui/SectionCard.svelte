@@ -1,10 +1,14 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { disclosure } from './disclosure.js';
 
   type SurfaceProps = { title: string; ariaLabel?: never } | { title?: never; ariaLabel: string };
 
   type PrimitiveProps = SurfaceProps & {
     headingId?: string;
+    collapsible?: boolean;
+    expanded?: boolean;
+    description?: string;
     class?: string;
     children?: Snippet;
   } & Record<string, unknown>;
@@ -13,6 +17,9 @@
     title,
     ariaLabel,
     headingId,
+    collapsible = false,
+    expanded = false,
+    description,
     class: className = '',
     children,
     ...rest
@@ -60,8 +67,29 @@
   aria-labelledby={heading}
   aria-label={heading ? undefined : accessibleName}
 >
-  {#if normalizedTitle}
-    <h2 class="ui-card-heading" id={heading}>{normalizedTitle}</h2>
+  {#if collapsible}
+    <details class="ui-disclosure" open={expanded} use:disclosure>
+      <summary class="ui-disclosure-summary">
+        <span class="ui-disclosure-label">
+          <h2 class="ui-card-heading" id={heading}>{accessibleName}</h2>
+          {#if description}<span class="ui-disclosure-description">{description}</span>{/if}
+        </span>
+        <svg
+          class="ui-disclosure-chevron"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg
+        >
+      </summary>
+      <div class="ui-disclosure-body">{@render children?.()}</div>
+    </details>
+  {:else}
+    {#if normalizedTitle}
+      <h2 class="ui-card-heading" id={heading}>{normalizedTitle}</h2>
+    {/if}
+    {#if description}<p class="ui-card-description">{description}</p>{/if}
+    {@render children?.()}
   {/if}
-  {@render children?.()}
 </section>

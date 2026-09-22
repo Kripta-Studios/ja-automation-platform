@@ -6,6 +6,7 @@ test('Owner creates a client with email and blank optional contact name', async 
 }, info) => {
   await signIn(page, 'owner');
   await page.goto(portal('/projects?lang=en'));
+  await page.locator('.workspace-actions-disclosure > summary').click();
   await page.getByRole('button', { name: 'New Client', exact: true }).click();
   const form = page.locator('form[action="?/createClient"]');
   await form.locator('[name=legalName]').fill(`UX client ${info.project.name}`);
@@ -64,9 +65,9 @@ test('Registers paginate and finance configuration presents a chosen action', as
     await expect(page.locator('.record-browser__pages').first()).toBeVisible();
   }
   await page.goto(portal('/finance?view=commercial&lang=en'));
-  const actions = page.getByRole('navigation', { name: 'Finance configuration', exact: true });
+  const actions = page.getByLabel('Commercial policies', { exact: true });
   await expect(actions).toBeVisible();
-  await actions.getByRole('button', { name: 'Internal loaded cost', exact: true }).click();
+  await actions.selectOption({ label: 'Internal loaded cost' });
   await expect(
     page.getByRole('heading', { name: 'Internal loaded cost', exact: true }),
   ).toBeVisible();

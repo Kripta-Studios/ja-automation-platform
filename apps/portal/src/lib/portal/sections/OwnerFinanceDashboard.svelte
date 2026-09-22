@@ -240,7 +240,7 @@
     font-weight: 600;
   }
   .scope {
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
   }
   .overview-cards {
     display: grid;
@@ -285,7 +285,7 @@
     flex-wrap: wrap;
     gap: 20px;
     margin: 18px 0;
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
   }
   .bar-legend span {
     display: flex;
@@ -313,7 +313,7 @@
     height: 160px;
     align-items: stretch;
     border-bottom: 1px solid var(--ja-border-strong);
-    background: repeating-linear-gradient(to top, transparent 0, transparent 39px, #e2e8f0 40px);
+    background: repeating-linear-gradient(to top, transparent 0, transparent 39px, #e8e8e6 40px);
   }
   .bar-link {
     width: 50%;
@@ -328,7 +328,7 @@
     max-width: none;
   }
   i[data-tone='paid'] {
-    background: #0f766e;
+    background: #64625b;
   }
   i[data-tone='payable'] {
     background: #92400e;
@@ -337,10 +337,10 @@
     background: #b42318;
   }
   i[data-tone='not_due'] {
-    background: #0369a1;
+    background: #5b5a53;
   }
   i[data-tone='unconfirmed'] {
-    background: #64748b;
+    background: #67675f;
   }
   .bar-link:hover .bar {
     opacity: 0.7;
@@ -348,11 +348,11 @@
   .month > strong {
     display: block;
     margin: 12px 0 6px;
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
   }
   .month-values {
     display: grid;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     overflow-wrap: anywhere;
   }
   .month-values a {

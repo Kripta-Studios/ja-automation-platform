@@ -14,6 +14,17 @@ Este guia reúne os caminhos do Colaborador e do Gerente de projetos. Leia as re
 
 Acesso — Consulta: Colaborador e Gerente de projetos no escopo autorizado. Criação: nenhuma neste capítulo de orientação. Aprovação: nenhuma. Alteração: nenhuma.
 
+## Site público e navegação no aplicativo
+
+O site público apresenta os serviços e projetos da J&A. Selecione **Entrar no portal da equipe** para abrir o aplicativo seguro. Escolha o idioma no cabeçalho. No celular, abra o menu para ver os nomes completos das seções.
+
+No aplicativo, a barra lateral clara destaca a seção atual. O menu da conta reúne o perfil e a opção de sair. A busca e as ações da página aparecem junto ao título no computador e se reorganizam nas telas menores. Apenas as seções autorizadas para sua conta ficam disponíveis. Os estados mantêm seu significado: um item pendente não está aprovado nem pronto para baixar.
+
+Os painéis secundários são abertos pelo título e pela seta. Tempo, Despesas e Relatórios mantêm pesquisa, projeto e status visíveis; abra o painel de filtros para outros critérios. Filtros secundários ativos reabrem o painel. Recolher um painel preserva os valores preenchidos. As atribuições da equipe e o histórico de aprovações concluídas podem ser abertos separadamente; ações pendentes e avisos continuam visíveis. Na configuração financeira, escolha uma política comercial no seletor de tarefa. Em Projetos, use Mais ações para administrar clientes e atribuições. Abra o painel de cadastro de documentos ou do pacote contábil quando precisar criar um item.
+
+<!-- screenshot:worker:public-home -->
+<!-- screenshot:worker:register-filters -->
+
 ## Regras compartilhadas de calendário, UTC, sessão e navegação
 
 Acesso — Consulta: Colaborador e Gerente de projetos para registros de suas atribuições vigentes. Criação: cada pessoa pode criar suas próprias entradas operacionais permitidas. Aprovação: o revisor autorizado do projeto ou o Proprietário, conforme a origem do registro. Alteração: o autor enquanto o registro for rascunho ou pelo fluxo de correção autorizado.

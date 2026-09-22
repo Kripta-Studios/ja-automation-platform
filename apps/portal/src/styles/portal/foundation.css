@@ -1,3 +1,18 @@
+@font-face {
+  font-family: 'Geist';
+  src: url('/j-aautomation/app/fonts/geist-latin.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/j-aautomation/app/fonts/geist-mono-latin.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* --------------------------------------------------------------------------
    Portal foundations: a calm Industrial Tech surface for dense operational
    screens.  The semantic tokens are intentionally separate from the legacy
@@ -5,30 +20,30 @@
    changing financial, role or lifecycle behaviour.
    -------------------------------------------------------------------------- */
 :root {
-  --ja-canvas: #f8fafc;
+  --ja-canvas: #f4f4f2;
   --ja-surface: #ffffff;
-  --ja-surface-raised: #f1f5f9;
-  --ja-border-subdued: #e2e8f0;
-  --ja-border-strong: #cbd5e1;
+  --ja-surface-raised: #eeeee9;
+  --ja-border-subdued: #e4e4df;
+  --ja-border-strong: #d1d1c9;
   /* Enabled controls need a boundary that remains perceivable against the
      white/tinted surfaces used by forms (WCAG 1.4.11, >= 3:1).  Keep the
      softer border-strong token for cards and separators. */
-  --ja-control-border-strong: #64748b;
-  --ja-border-focus: #0284c7;
-  --ja-text-primary: #0f172a;
-  --ja-text-secondary: #475569;
-  --ja-text-muted: #64748b;
-  --ja-primary: #0f766e;
-  --ja-primary-hover: #115e59;
+  --ja-control-border-strong: #898980;
+  --ja-border-focus: #4568ff;
+  --ja-text-primary: #20201d;
+  --ja-text-secondary: #57574f;
+  --ja-text-muted: #6b6b62;
+  --ja-primary: #292925;
+  --ja-primary-hover: #111110;
   /* Retains WCAG AA contrast on the tinted success surface used by badges. */
-  --ja-status-success: #047857;
+  --ja-status-success: #616059;
   /* Foreground is intentionally separate from the amber accent used for
      borders and indicator rails: #92400e is >= 4.5:1 on white and amber
      notification tints. */
   --ja-status-warning: #d97706;
   --ja-status-warning-foreground: #92400e;
   --ja-status-danger: #dc2626;
-  --ja-status-info: #0369a1;
+  --ja-status-info: #5b5a53;
   --ja-red: #b42318;
   --ja-red-dark: #8f1d14;
   --ja-ink: var(--ja-text-primary);
@@ -44,10 +59,10 @@
   --ja-danger: var(--ja-status-danger);
   --ja-marine: var(--ja-text-primary);
   --ja-graphite: var(--ja-text-primary);
-  --ja-control-radius: 0.5rem;
+  --ja-control-radius: 0.625rem;
   --ja-radius: 1rem;
-  --ja-shadow: 0 1.25rem 3.5rem rgb(15 23 42 / 0.08);
-  --ja-shadow-soft: 0 1px 3px rgb(15 23 42 / 0.05), 0 1px 2px -1px rgb(15 23 42 / 0.05);
+  --ja-shadow: 0 16px 48px rgb(25 25 20 / 0.07);
+  --ja-shadow-soft: 0 1px 2px rgb(25 25 20 / 0.035);
   --ja-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ja-target-min: 2.75rem;
 }
@@ -56,19 +71,13 @@ html,
 body {
   background: var(--ja-paper);
   color: var(--ja-ink);
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+  font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 body {
-  line-height: 1.45;
+  line-height: 1.5;
+  letter-spacing: -0.011em;
 }
 
 button,
@@ -98,10 +107,10 @@ textarea {
   gap: 0.45rem;
   min-height: var(--ja-target-min, 2.75rem);
   padding: 0.58rem 0.9rem;
-  border: 1px solid var(--ja-primary, #0f766e);
+  border: 1px solid var(--ja-primary, #64625b);
   border-radius: 0.6rem;
   color: #fff;
-  background: var(--ja-primary, #0f766e);
+  background: var(--ja-primary, #64625b);
   box-shadow: 0 0.3rem 0.8rem rgb(16 32 47 / 0.12);
   font-size: 0.75rem;
   font-weight: 800;
@@ -124,8 +133,8 @@ textarea {
     ):not(.responsive-sheet-close):not(.login-passkey):not(.localized-pdf-refresh):focus-visible
 ):not(:disabled) {
   color: #fff;
-  border-color: var(--ja-primary-hover, #115e59);
-  background: var(--ja-primary-hover, #115e59);
+  border-color: var(--ja-primary-hover, #51504a);
+  background: var(--ja-primary-hover, #51504a);
 }
 
 button.danger,
@@ -230,7 +239,7 @@ a {
 
 .portal-kicker {
   color: var(--ja-red);
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-family: 'Geist Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
   font-size: 0.66rem;
   font-weight: 800;
   letter-spacing: 0.15em;

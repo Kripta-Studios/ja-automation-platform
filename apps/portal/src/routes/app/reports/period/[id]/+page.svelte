@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
@@ -220,7 +221,7 @@
     <a href={`${base}/app/reports`} data-origin-back>← {t('Reports')}</a><a
       href={`${base}/app/projects/${String(project.id)}`}>{t('Open project')}</a
     ><button type="button" class="no-print print-trigger" onclick={printReport}
-      ><span aria-hidden="true">⎙</span> {t('Print Report')}</button
+      ><PrintIcon /> {t('Print Report')}</button
     >
   </nav>
 
@@ -1111,8 +1112,8 @@
 <style>
   .customer-signoff {
     margin-top: 1rem;
-    border: 1px solid #cbdde2;
-    border-top: 0.3rem solid #277e78;
+    border: 1px solid #dbdbd8;
+    border-top: 0.3rem solid #706e66;
     box-shadow: 0 0.55rem 1.4rem rgb(19 49 70 / 0.05);
   }
 
@@ -1122,12 +1123,12 @@
     justify-content: space-between;
     gap: 1.5rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid #e2ebee;
+    border-bottom: 1px solid #eaeae8;
   }
 
   .customer-signoff__header h2 {
     margin: 0.25rem 0 0.4rem;
-    color: #173146;
+    color: #2f2e2b;
   }
 
   .customer-signoff__lede,
@@ -1135,7 +1136,7 @@
   .customer-signoff__immutable,
   .customer-signoff__preview span {
     margin: 0;
-    color: #536b7b;
+    color: #6c6a62;
     font-size: 0.78rem;
     line-height: 1.55;
   }
@@ -1160,15 +1161,15 @@
   }
 
   .customer-signoff__status[data-signoff-state='ready_for_signature'] {
-    border-color: #9bc6da;
-    color: #15536a;
-    background: #eef8fc;
+    border-color: #c1c0bb;
+    color: #4b4a44;
+    background: #f7f6f6;
   }
 
   .customer-signoff__status[data-signoff-state='signed'] {
-    border-color: #80c6ac;
-    color: #155b49;
-    background: #eefaf5;
+    border-color: #b9b7b2;
+    color: #4e4d47;
+    background: #f7f7f7;
   }
 
   .customer-signoff__status[data-signoff-state='invalid'] {
@@ -1198,21 +1199,21 @@
   }
 
   .customer-signoff__notice[data-signoff-notice='ready'] {
-    border-left-color: #277e78;
-    background: #f1fbfa;
+    border-left-color: #706e66;
+    background: #f9f9f9;
   }
 
   .customer-signoff__notice[data-signoff-notice='ready'] strong {
-    color: #17665e;
+    color: #585751;
   }
 
   .customer-signoff__notice[data-signoff-notice='signed'] {
-    border-left-color: #1ba37a;
+    border-left-color: #89877e;
     background: #f1fbf6;
   }
 
   .customer-signoff__notice[data-signoff-notice='signed'] strong {
-    color: #155b49;
+    color: #4e4d47;
   }
 
   .customer-signoff__notice[data-signoff-notice='invalid'] {
@@ -1237,7 +1238,7 @@
   }
 
   .customer-signoff__facts dt {
-    color: #748596;
+    color: #88867d;
     font:
       700 0.62rem Consolas,
       monospace;
@@ -1248,7 +1249,7 @@
   .customer-signoff__facts dd {
     margin: 0.3rem 0 0;
     overflow-wrap: anywhere;
-    color: #1d3a4d;
+    color: #383733;
     font-size: 0.8rem;
   }
 
@@ -1256,7 +1257,7 @@
     display: flex;
     gap: 0.45rem;
     align-items: flex-start;
-    color: #155b49;
+    color: #4e4d47;
   }
 
   .customer-signoff__preview {
@@ -1265,7 +1266,7 @@
     justify-content: space-between;
     gap: 1rem;
     padding-top: 0.95rem;
-    border-top: 1px solid #e2ebee;
+    border-top: 1px solid #eaeae8;
   }
 
   .customer-signoff__pdf,
@@ -1278,10 +1279,10 @@
     display: inline-flex;
     align-items: center;
     padding: 0.65rem 0.85rem;
-    border: 1px solid #277e78;
+    border: 1px solid #706e66;
     border-radius: 0.5rem;
-    color: #17665e;
-    background: #f1fbfa;
+    color: #585751;
+    background: #f9f9f9;
     font-size: 0.78rem;
     font-weight: 800;
     text-decoration: none;
@@ -1289,15 +1290,15 @@
 
   .customer-signoff__pdf:hover,
   .customer-signoff__pdf:focus-visible {
-    color: #0e4d47;
-    border-color: #17665e;
-    background: #e4f5f2;
+    color: #42413c;
+    border-color: #585751;
+    background: #f2f2f1;
   }
 
   .customer-signoff__pdf:focus-visible,
   .customer-signoff__form button:focus-visible,
   .customer-signoff__invalidate summary:focus-visible {
-    outline: 3px solid #0d6070;
+    outline: 3px solid #53524c;
     outline-offset: 2px;
   }
 
@@ -1306,21 +1307,21 @@
     gap: 0.9rem;
     max-width: 42rem;
     padding: 1rem;
-    border: 1px solid #dbe7eb;
+    border: 1px solid #e6e6e4;
     border-radius: 0.7rem;
-    background: #f8fbfc;
+    background: #fbfbfa;
   }
 
   .customer-signoff__form h3 {
     margin: 0 0 0.25rem;
-    color: #173146;
+    color: #2f2e2b;
     font-size: 1rem;
   }
 
   .customer-signoff__form label {
     display: grid;
     gap: 0.4rem;
-    color: #485d6e;
+    color: #5e5c56;
     font-size: 0.68rem;
     font-weight: 800;
     letter-spacing: 0.055em;
@@ -1332,9 +1333,9 @@
     min-height: 2.75rem;
     box-sizing: border-box;
     padding: 0.65rem 0.7rem;
-    border: 1px solid #d7e1e9;
+    border: 1px solid #e1e0de;
     border-radius: 0.52rem;
-    color: #213c50;
+    color: #3a3935;
     background: #fff;
     font: inherit;
     font-size: 0.82rem;
@@ -1347,24 +1348,24 @@
 
   .customer-signoff__form input:focus,
   .customer-signoff__form textarea:focus {
-    border-color: #4ea89f;
+    border-color: #99978f;
     outline: none;
     box-shadow: 0 0 0 3px rgb(78 168 159 / 0.12);
   }
 
   .customer-signoff__form input:focus-visible,
   .customer-signoff__form textarea:focus-visible {
-    outline: 3px solid #0d6070;
+    outline: 3px solid #53524c;
     outline-offset: 2px;
   }
 
   .customer-signoff__form button {
     width: max-content;
     padding: 0.65rem 0.9rem;
-    border: 1px solid #17665e;
+    border: 1px solid #585751;
     border-radius: 0.5rem;
     color: #fff;
-    background: #277e78;
+    background: #706e66;
     font-size: 0.76rem;
     font-weight: 800;
     cursor: pointer;
@@ -1372,17 +1373,17 @@
 
   .customer-signoff__form button:hover,
   .customer-signoff__form button:focus-visible {
-    background: #17665e;
+    background: #585751;
   }
 
   .optional-label {
-    color: #748596;
+    color: #88867d;
     font-weight: 600;
     letter-spacing: normal;
   }
 
   .customer-signoff__invalidate {
-    border-top: 1px solid #e2ebee;
+    border-top: 1px solid #eaeae8;
     padding-top: 0.9rem;
   }
 
@@ -1439,7 +1440,7 @@
     margin-top: 1.5rem;
     padding: 1.75rem 2rem;
     background: #ffffff;
-    border: 1px solid #cbdde2;
+    border: 1px solid #dbdbd8;
     border-radius: 0.5rem;
   }
 
@@ -1460,19 +1461,19 @@
   .signature-field > span {
     font-weight: 700;
     font-size: 0.9rem;
-    color: #173146;
+    color: #2f2e2b;
   }
 
   .signature-line {
     font-family: monospace;
     font-size: 1rem;
-    color: #536b7b;
+    color: #6c6a62;
     letter-spacing: 0.05em;
   }
 
   .signature-field > small {
     font-size: 0.78rem;
-    color: #64748b;
+    color: #67675f;
   }
 
   @media (prefers-reduced-motion: reduce) {

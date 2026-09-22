@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { SectionCard } from '../ui';
   import { page } from '$app/stores';
   import { base } from '$app/paths';
   import { onMount } from 'svelte';
@@ -266,42 +267,6 @@
         placeholder={translate('Project, activity or date')}
       />
     </label>
-    {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
-      <label>
-        <span>{translate('Worker')}</span>
-        <select name="worker">
-          <option value="">{translate('All workers')}</option>
-          {#each data.workers ?? [] as worker}
-            <option
-              value={String(worker.id)}
-              selected={String(data.timeFilter?.workerId ?? '') === String(worker.id)}
-              >{worker.name}</option
-            >
-          {/each}
-        </select>
-      </label>
-    {/if}
-    <label>
-      <span>{translate('Client')}</span>
-      <select name="client" bind:value={clientFilter} onchange={() => (registerPage = 1)}>
-        <option value="">{translate('All clients')}</option>
-        {#each clientOptions as client}<option value={client}>{client}</option>{/each}
-      </select>
-    </label>
-    <label
-      ><span>{translate('From')}</span><input
-        name="from"
-        type="date"
-        value={data.timeFilter?.from ?? ''}
-      /></label
-    >
-    <label
-      ><span>{translate('To')}</span><input
-        name="to"
-        type="date"
-        value={data.timeFilter?.to ?? ''}
-      /></label
-    >
     <label>
       <span>{translate('Project')}</span>
       <select name="project">
@@ -326,26 +291,79 @@
         <option value="needs_changes">{translate('Needs changes')}</option>
       </select>
     </label>
-    <label>
-      <span>{translate('Sort by')}</span>
-      <select name="order" bind:value={order} onchange={() => (registerPage = 1)}>
-        <option value="newest">{translate('Newest first')}</option>
-        <option value="oldest">{translate('Oldest first')}</option>
-        <option value="name">{translate('Name')}</option>
-        <option value="status">{translate('Status')}</option>
-      </select>
-    </label>
-    <label>
-      <span>{translate('Category')}</span>
-      <select name="category">
-        <option value="">{translate('All categories')}</option>
-        {#each filterCategories as category}
-          <option value={category.value} selected={data.timeFilter?.category === category.value}
-            >{translate(category.label)}</option
-          >
-        {/each}
-      </select>
-    </label>
+    <SectionCard
+      title={translate('Filter time entries')}
+      collapsible
+      expanded={Boolean(
+        data.timeFilter?.workerId ||
+        data.timeFilter?.from ||
+        data.timeFilter?.to ||
+        data.timeFilter?.category ||
+        clientFilter ||
+        order !== 'newest',
+      )}
+      class="register-filter-disclosure"
+    >
+      <div class="secondary-filter-fields time-filters-secondary">
+        {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
+          <label>
+            <span>{translate('Worker')}</span>
+            <select name="worker">
+              <option value="">{translate('All workers')}</option>
+              {#each data.workers ?? [] as worker}
+                <option
+                  value={String(worker.id)}
+                  selected={String(data.timeFilter?.workerId ?? '') === String(worker.id)}
+                  >{worker.name}</option
+                >
+              {/each}
+            </select>
+          </label>
+        {/if}
+        <label>
+          <span>{translate('Client')}</span>
+          <select name="client" bind:value={clientFilter} onchange={() => (registerPage = 1)}>
+            <option value="">{translate('All clients')}</option>
+            {#each clientOptions as client}<option value={client}>{client}</option>{/each}
+          </select>
+        </label>
+        <label
+          ><span>{translate('From')}</span><input
+            name="from"
+            type="date"
+            value={data.timeFilter?.from ?? ''}
+          /></label
+        >
+        <label
+          ><span>{translate('To')}</span><input
+            name="to"
+            type="date"
+            value={data.timeFilter?.to ?? ''}
+          /></label
+        >
+
+        <label>
+          <span>{translate('Sort by')}</span>
+          <select name="order" bind:value={order} onchange={() => (registerPage = 1)}>
+            <option value="newest">{translate('Newest first')}</option>
+            <option value="oldest">{translate('Oldest first')}</option>
+            <option value="name">{translate('Name')}</option>
+            <option value="status">{translate('Status')}</option>
+          </select>
+        </label>
+        <label>
+          <span>{translate('Category')}</span>
+          <select name="category">
+            <option value="">{translate('All categories')}</option>
+            {#each filterCategories as category}
+              <option value={category.value} selected={data.timeFilter?.category === category.value}
+                >{translate(category.label)}</option
+              >
+            {/each}
+          </select>
+        </label>
+      </div>
+    </SectionCard>
     <div class="time-filter-actions">
       <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
       {#if data.timeFilter?.category || data.timeFilter?.projectId || data.timeFilter?.workerId || data.timeFilter?.from || data.timeFilter?.to || clientFilter || search || statusFilter}
@@ -619,7 +637,7 @@
     justify-content: flex-start;
   }
   .operational-action-copy {
-    color: var(--ja-steel, #637486);
+    color: var(--ja-steel, #77756d);
     margin: -0.4rem 0 0;
     max-width: 72ch;
     font-size: 0.86rem;
@@ -630,8 +648,8 @@
   }
   .time-status-card:hover,
   .time-status-card:focus-visible {
-    border-color: var(--ja-teal, #277e78);
-    outline: 3px solid color-mix(in srgb, var(--ja-teal, #277e78) 25%, transparent);
+    border-color: var(--ja-teal, #706e66);
+    outline: 3px solid color-mix(in srgb, var(--ja-teal, #706e66) 25%, transparent);
     outline-offset: 2px;
   }
   .operational-pagination {
@@ -643,7 +661,7 @@
     margin-top: 1rem;
   }
   .operational-pagination span {
-    color: var(--ja-steel, #637486);
+    color: var(--ja-steel, #77756d);
     font-size: 0.85rem;
   }
   @media (max-width: 480px) {

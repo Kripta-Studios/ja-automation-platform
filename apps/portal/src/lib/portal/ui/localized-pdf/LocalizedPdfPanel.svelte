@@ -320,7 +320,7 @@
     display: grid;
     gap: 1.15rem;
     padding: 1.25rem;
-    border: 1px solid color-mix(in srgb, var(--portal-ink, #14231f) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--portal-ink, #21201e) 14%, transparent);
     border-radius: 1rem;
     background: color-mix(in srgb, var(--portal-paper, #fff) 92%, var(--portal-accent, #d8f06a));
     box-shadow: 0 14px 32px rgb(20 35 31 / 8%);
@@ -350,7 +350,7 @@
 
   h2 {
     margin: 0;
-    color: var(--portal-ink, #14231f);
+    color: var(--portal-ink, #21201e);
     font-size: 1.1rem;
   }
 
@@ -368,9 +368,9 @@
     gap: 0.4rem;
     min-height: 2.25rem;
     padding: 0.4rem 0.7rem;
-    border: 1px solid color-mix(in srgb, var(--portal-ink, #14231f) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--portal-ink, #21201e) 16%, transparent);
     border-radius: 0.65rem;
-    color: var(--portal-ink, #14231f);
+    color: var(--portal-ink, #21201e);
     background: transparent;
     cursor: pointer;
     font: inherit;
@@ -401,7 +401,7 @@
   }
 
   .localized-pdf-request label {
-    color: var(--portal-ink, #14231f);
+    color: var(--portal-ink, #21201e);
     font-size: 0.8rem;
     font-weight: 700;
   }
@@ -415,9 +415,9 @@
     min-height: 2.55rem;
     min-width: 10rem;
     padding: 0.45rem 0.7rem;
-    border: 1px solid color-mix(in srgb, var(--portal-ink, #14231f) 22%, transparent);
+    border: 1px solid color-mix(in srgb, var(--portal-ink, #21201e) 22%, transparent);
     border-radius: 0.65rem;
-    color: var(--portal-ink, #14231f);
+    color: var(--portal-ink, #21201e);
     background: var(--portal-paper, #fff);
     font: inherit;
   }
@@ -438,7 +438,7 @@
     min-height: 2.55rem;
     padding: 0.5rem 0.85rem;
     border-radius: 0.65rem;
-    color: #10211c;
+    color: #1e1e1c;
     background: var(--portal-accent, #d8f06a);
   }
 
@@ -451,7 +451,7 @@
 
   .localized-pdf-text-action {
     padding: 0.15rem 0.25rem;
-    color: var(--portal-ink, #14231f);
+    color: var(--portal-ink, #21201e);
     background: transparent;
     text-decoration: underline;
     text-underline-offset: 0.15em;
@@ -481,13 +481,13 @@
     gap: 0.7rem;
     align-items: center;
     padding: 0.75rem 0.85rem;
-    border: 1px solid color-mix(in srgb, var(--portal-ink, #14231f) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--portal-ink, #21201e) 10%, transparent);
     border-radius: 0.72rem;
     background: rgb(255 255 255 / 52%);
   }
 
   .localized-pdf-variants li.localized-pdf-selected {
-    border-color: color-mix(in srgb, var(--portal-ink, #14231f) 35%, transparent);
+    border-color: color-mix(in srgb, var(--portal-ink, #21201e) 35%, transparent);
     box-shadow: inset 3px 0 0 var(--portal-accent, #d8f06a);
   }
 
@@ -498,7 +498,7 @@
   }
 
   .localized-pdf-variant-label strong {
-    color: var(--portal-ink, #14231f);
+    color: var(--portal-ink, #21201e);
     font-size: 0.88rem;
   }
 
@@ -523,8 +523,8 @@
   }
 
   .localized-pdf-status-info {
-    color: #245570;
-    background: #d9edf5;
+    color: #504f49;
+    background: #eaeae8;
   }
 
   .localized-pdf-status-danger {
@@ -546,7 +546,7 @@
   }
 
   .localized-pdf-variant-actions a {
-    color: var(--portal-ink, #14231f);
+    color: var(--portal-ink, #21201e);
     font-weight: 700;
     text-decoration: underline;
     text-underline-offset: 0.15em;

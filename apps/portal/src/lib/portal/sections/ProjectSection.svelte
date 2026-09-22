@@ -462,7 +462,7 @@
   {/if}
 
   {#if canManageClients && clients.length > 0}
-    <SectionCard title={translate('Clients')} class="project-section__client-surface">
+    <SectionCard title={translate('Clients')} collapsible class="project-section__client-surface">
       <div class="project-section__clients" data-client-directory>
         {#each clients as client}
           <article
@@ -502,8 +502,8 @@
 
   .project-section__eyebrow {
     margin: 0 0 0.35rem;
-    color: var(--portal-muted, #64748b);
-    font-size: 0.72rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -511,7 +511,7 @@
 
   .project-section__context h2 {
     margin: 0;
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
     font-size: clamp(1.55rem, 2vw, 2rem);
     letter-spacing: -0.025em;
   }
@@ -519,7 +519,7 @@
   .project-section__context p:last-child {
     max-width: 42rem;
     margin: 0.4rem 0 0;
-    color: var(--portal-muted, #64748b);
+    color: var(--portal-muted, #67675f);
   }
 
   .project-section__primary {
@@ -543,7 +543,7 @@
     gap: 0.22rem;
     min-height: 6rem;
     padding: 0.9rem 1rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.75rem;
     background: var(--portal-surface, #fff);
     color: inherit;
@@ -556,8 +556,8 @@
   .project-section__attention-card:hover,
   .project-section__attention-card:focus-visible,
   .project-section__attention-card[aria-current='page'] {
-    border-color: var(--portal-accent, #277e78);
-    outline: 3px solid color-mix(in srgb, var(--portal-accent, #277e78) 20%, transparent);
+    border-color: var(--portal-accent, #706e66);
+    outline: 3px solid color-mix(in srgb, var(--portal-accent, #706e66) 20%, transparent);
     outline-offset: 1px;
   }
 
@@ -565,18 +565,18 @@
     border-color: color-mix(
       in srgb,
       var(--portal-warning, #b7791f) 38%,
-      var(--portal-border, #d7dee8)
+      var(--portal-border, #dfdedc)
     );
   }
 
   .project-section__attention-card span,
   .project-section__attention-card small {
-    color: var(--portal-muted, #64748b);
-    font-size: 0.8rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
   }
 
   .project-section__attention-card strong {
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
     font-size: 1.45rem;
     font-variant-numeric: tabular-nums;
   }
@@ -586,17 +586,17 @@
     grid-template-columns: minmax(16rem, 2fr) minmax(12rem, 1fr);
     gap: 0.75rem;
     padding: 0.9rem 1rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.75rem;
-    background: color-mix(in srgb, var(--portal-surface, #fff) 92%, var(--portal-wash, #eef2f5));
+    background: color-mix(in srgb, var(--portal-surface, #fff) 92%, var(--portal-wash, #f2f2f1));
   }
 
   .project-section__filters label,
   .project-section__actions label {
     display: grid;
     gap: 0.35rem;
-    color: var(--portal-muted, #64748b);
-    font-size: 0.78rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
     font-weight: 650;
   }
 
@@ -605,10 +605,10 @@
   .project-section__actions input {
     min-height: var(--ja-target-min, 2.75rem);
     padding: 0.55rem 0.7rem;
-    border: 1px solid var(--portal-border-strong, #b8c3d1);
+    border: 1px solid var(--portal-border-strong, #c4c4bf);
     border-radius: 0.5rem;
     background: var(--portal-surface, #fff);
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
     font: inherit;
   }
 
@@ -620,20 +620,20 @@
   .project-section__table th,
   .project-section__table td {
     padding: 0.85rem 0.75rem;
-    border-bottom: 1px solid var(--portal-border, #d7dee8);
+    border-bottom: 1px solid var(--portal-border, #dfdedc);
     text-align: left;
     vertical-align: top;
   }
 
   .project-section__table th {
-    color: var(--portal-muted, #64748b);
-    font-size: 0.72rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
     letter-spacing: 0.07em;
     text-transform: uppercase;
   }
 
   .project-section__table td {
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
     font-size: 0.9rem;
   }
 
@@ -646,16 +646,16 @@
 
   .project-section__table td > small {
     margin-top: 0.25rem;
-    color: var(--portal-muted, #64748b);
+    color: var(--portal-muted, #67675f);
   }
 
   .project-section__project-link {
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
     text-decoration: none;
   }
 
   .project-section__project-link strong {
-    color: var(--portal-accent, #0f5f73);
+    color: var(--portal-accent, #53524c);
   }
 
   .project-section__project-link:focus-visible,
@@ -664,7 +664,7 @@
   .project-section__filters select:focus-visible,
   .project-section__actions input:focus-visible,
   .project-section__actions button:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--portal-accent, #0f5f73) 32%, transparent);
+    outline: 3px solid color-mix(in srgb, var(--portal-accent, #53524c) 32%, transparent);
     outline-offset: 2px;
   }
 
@@ -679,9 +679,9 @@
     align-items: center;
     width: fit-content;
     padding: 0.5rem 0.65rem;
-    border: 1px solid var(--portal-border-strong, #b8c3d1);
+    border: 1px solid var(--portal-border-strong, #c4c4bf);
     border-radius: 0.45rem;
-    color: var(--portal-ink, #16202a);
+    color: var(--portal-ink, #20201d);
     cursor: pointer;
     font-size: 0.82rem;
     font-weight: 700;
@@ -698,7 +698,7 @@
     min-width: 15rem;
     margin-top: 0.5rem;
     padding: 0.75rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.6rem;
     background: var(--portal-surface, #fff);
     box-shadow: 0 0.4rem 1.2rem rgb(15 23 42 / 9%);
@@ -714,7 +714,7 @@
   }
 
   .project-section__empty span {
-    color: var(--portal-muted, #64748b);
+    color: var(--portal-muted, #67675f);
   }
 
   .project-section__empty {
@@ -736,7 +736,7 @@
     justify-content: space-between;
     gap: 0.75rem;
     padding: 0.9rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.6rem;
   }
 
@@ -746,7 +746,7 @@
   }
 
   .project-section__client span {
-    color: var(--portal-muted, #64748b);
+    color: var(--portal-muted, #67675f);
   }
 
   @media (max-width: 52rem) {

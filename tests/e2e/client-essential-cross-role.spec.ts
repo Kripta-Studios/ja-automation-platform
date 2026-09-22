@@ -109,8 +109,8 @@ async function enableCustomerSignoffPolicy(
 ): Promise<void> {
   await page.goto(portal('/finance?view=commercial'));
   await page
-    .getByRole('button', { name: 'Project commercial and time policy', exact: true })
-    .click();
+    .getByLabel('Commercial policies', { exact: true })
+    .selectOption({ label: 'Project commercial and time policy' });
   const policyForm = page.locator('form[data-project-commercial-policy-form]');
   await expect(policyForm).toBeVisible();
   await policyForm.locator('select[name="projectId"]').selectOption(projectId);
@@ -122,8 +122,8 @@ async function enableCustomerSignoffPolicy(
   await expect(page.getByRole('status').filter({ hasText: /policy/i })).toBeVisible();
   await page.goto(portal(`/finance?view=commercial&project=${encodeURIComponent(projectId)}`));
   await page
-    .getByRole('button', { name: 'Project commercial and time policy', exact: true })
-    .click();
+    .getByLabel('Commercial policies', { exact: true })
+    .selectOption({ label: 'Project commercial and time policy' });
   await expect(page.locator('[data-project-commercial-policy-row]').last()).toContainText(
     'Customer sign-off',
   );
@@ -951,6 +951,7 @@ test.describe('Client Essential · Finance and billing control', () => {
 
     await page.goto(portal('/accounting'));
     await expect(page.getByRole('heading', { name: 'Accounting', exact: true })).toBeVisible();
+    await page.locator('.accounting-section__create summary').click();
     await expect(page.locator('form[action="?/createAccountingPack"]')).toBeVisible();
     await expect(
       page.getByRole('heading', { name: 'Accounting Pack register', exact: true }),
@@ -965,8 +966,8 @@ test.describe('Client Essential · Finance and billing control', () => {
 
     await page.goto(portal('/finance?view=commercial'));
     await page
-      .getByRole('button', { name: 'Project commercial and time policy', exact: true })
-      .click();
+      .getByLabel('Commercial policies', { exact: true })
+      .selectOption({ label: 'Project commercial and time policy' });
     const policyForm = page.locator('form[data-project-commercial-policy-form]');
     await expect(policyForm).toBeVisible();
     const projectSelect = policyForm.locator('select[name="projectId"]');
@@ -1884,8 +1885,8 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
       page.getByRole('heading', { name: 'Finance configuration', exact: true }),
     ).toBeVisible();
     await page
-      .getByRole('button', { name: 'Project commercial and time policy', exact: true })
-      .click();
+      .getByLabel('Commercial policies', { exact: true })
+      .selectOption({ label: 'Project commercial and time policy' });
     await expect(
       page.getByRole('heading', { name: 'Project commercial and time policy', exact: true }),
     ).toBeVisible();

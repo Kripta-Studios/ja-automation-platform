@@ -14,6 +14,17 @@ This guide combines the Worker and Project Manager paths. Read the shared rules 
 
 Access — Consult: Worker and Project Manager in their authorized scope. Create: none in this orientation chapter. Approve: none. Modify: none.
 
+## Public website and workspace navigation
+
+The public website presents J&A services and projects. Select **Employee Portal login** to open the secure application. Choose your language in the header. On a phone, open the menu to see the complete navigation labels.
+
+Inside the application, the light sidebar marks your current section. The account menu contains your profile and sign-out action. Search and the page actions appear beside the page title on desktop and stack on smaller screens. Only the sections authorized for your account are available. Status labels retain their meaning: a pending item is not approved or ready to download.
+
+Secondary panels open when you select their heading and chevron. Time, Expenses and Reports keep search, project and status visible; expand the filter panel for additional criteria. Active secondary filters reopen the panel. Collapsing a panel keeps entered values. Team assignment lists and completed approval history open separately, while pending actions and warnings remain visible. In Finance configuration, choose one commercial policy from the task selector. In Projects, use More actions for client and assignment maintenance. Open the document-registration or Accounting Pack panel when you need to create an item.
+
+<!-- screenshot:worker:public-home -->
+<!-- screenshot:worker:register-filters -->
+
 ## Shared calendar, UTC, session and navigation rules
 
 Access — Consult: Worker and Project Manager for records in their effective assignments. Create: each person may create their own permitted operational entries. Approve: the authorized project reviewer or Owner, according to the record source. Modify: the record author while it is a draft or through an authorized correction path.

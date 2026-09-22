@@ -164,14 +164,13 @@
 </script>
 
 <FormCard title={translate('Finance configuration')} class="finance-config-panel">
-  <nav class="project-workflow-actions" aria-label={translate('Finance configuration')}>
-    {#each configurationActions as action}<button
-        type="button"
-        class="secondary-button"
-        aria-pressed={selectedAction === action}
-        onclick={() => (selectedAction = action)}>{translate(action)}</button
-      >{/each}
-  </nav>
+  <div class="workspace-task-switcher">
+    <label for="finance-configuration-task">{translate('Commercial policies')}</label>
+    <select id="finance-configuration-task" bind:value={selectedAction} data-searchable="false">
+      {#each configurationActions as action}<option value={action}>{translate(action)}</option
+        >{/each}
+    </select>
+  </div>
   <div class="finance-config-intro">
     <div>
       <p class="portal-kicker">{translate('Commercial policies')}</p>

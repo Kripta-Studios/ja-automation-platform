@@ -240,21 +240,30 @@
           )}
         </p>
         <dl>
-          <div><dt>{translate('Pending records')}</dt><dd>{reviewCount(
-                'pendingRecordCount',
-              )}</dd></div>
-          <div><dt>{translate('Unclassified expenses')}</dt><dd>{reviewCount(
-                'unclassifiedExpenseCount',
-              )}</dd></div>
-          <div><dt>{translate('Missing documents')}</dt><dd>{reviewCount(
-                'missingDocumentCount',
-              )}</dd></div>
-          <div><dt>{translate('Reconciliation issues')}</dt><dd>{reviewCount(
-                'sourceMismatchCount',
-              ) + reviewCount('missingCostRuleCount')}</dd></div>
-          <div><dt>{translate('Changes since generation')}</dt><dd>{pack.sourceStale
+          <div>
+            <dt>{translate('Pending records')}</dt>
+            <dd>{reviewCount('pendingRecordCount')}</dd>
+          </div>
+          <div>
+            <dt>{translate('Unclassified expenses')}</dt>
+            <dd>{reviewCount('unclassifiedExpenseCount')}</dd>
+          </div>
+          <div>
+            <dt>{translate('Missing documents')}</dt>
+            <dd>{reviewCount('missingDocumentCount')}</dd>
+          </div>
+          <div>
+            <dt>{translate('Reconciliation issues')}</dt>
+            <dd>{reviewCount('sourceMismatchCount') + reviewCount('missingCostRuleCount')}</dd>
+          </div>
+          <div>
+            <dt>{translate('Changes since generation')}</dt>
+            <dd>
+              {pack.sourceStale
                 ? translate('Yes — generate a new version')
-                : translate('None detected')}</dd></div>
+                : translate('None detected')}
+            </dd>
+          </div>
         </dl>
         {#if packState === 'ready' && reconciliation.reconciles === true && !pack.sourceStale}
           <form method="POST" action="?/finalizeAccountingPack">
@@ -290,13 +299,13 @@
   .accounting-pack-review {
     width: min(100%, 38rem);
     padding: 0.65rem;
-    border: 1px solid var(--portal-border, #d7dee8);
+    border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.6rem;
-    background: var(--portal-wash, #f7f9fb);
+    background: var(--portal-wash, #f9f9f8);
   }
 
   .accounting-pack-review p {
-    color: var(--portal-muted, #64748b);
+    color: var(--portal-muted, #67675f);
   }
 
   .accounting-pack-review dl {

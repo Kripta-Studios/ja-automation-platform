@@ -1,0 +1,1 @@
+$ svelte-kit sync && tsc --noEmit -p tsconfig.json

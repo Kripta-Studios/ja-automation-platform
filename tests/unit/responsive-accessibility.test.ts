@@ -45,9 +45,9 @@ describe('Client Essential responsive accessibility contract', () => {
 
     // Keep this assertion structural: Prettier may render the same import as
     // a single line or a multiline block as the shell grows. The shell still
-    // needs the shared form primitive and six named scroll regions.
+    // needs the shared section primitive and six named scroll regions.
     expect(shell).toMatch(
-      /import\s*\{[\s\S]*?FormCard,[\s\S]*?TableRegion,[\s\S]*?ToastRegion,[\s\S]*?\}\s*from\s*['"]\.\/portal\/ui['"]/u,
+      /import\s*\{[\s\S]*?SectionCard,[\s\S]*?TableRegion,[\s\S]*?ToastRegion,[\s\S]*?\}\s*from\s*['"]\.\/portal\/ui['"]/u,
     );
     expect(shell.match(/<TableRegion[\s\S]*?mobileMode="scroll"/gu)?.length).toBe(6);
     expect(shell).toContain('class="table-wrap worker-pay-table"');
@@ -116,7 +116,7 @@ describe('Client Essential responsive accessibility contract', () => {
     const foundation = source('apps/portal/src/styles/portal/foundation.css');
     const polish = source('apps/portal/src/styles/portal/polish.css');
 
-    expect(foundation).toContain('--ja-border-focus: #0284c7');
+    expect(foundation).toContain('--ja-border-focus: #4568ff');
     expect(foundation).toContain('border: 1px solid var(--ja-control-border)');
     expect(foundation).toContain('box-shadow: 0 0 0 3px color-mix');
     expect(polish).toContain('.admin-details > summary::after');

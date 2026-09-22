@@ -110,7 +110,7 @@ export function HeroCrossfade() {
         priority={activeIndex === 0}
         className="object-cover"
         style={{ objectPosition: heroFrames[activeIndex].objectPosition }}
-        sizes="100vw"
+        sizes="(min-width: 1024px) 48vw, 100vw"
         quality={85}
       />
 
@@ -126,14 +126,14 @@ export function HeroCrossfade() {
             opacity: isFading ? 1 : 0,
             transition: `opacity ${FADE_DURATION_MS}ms ease-in-out`,
           }}
-          sizes="100vw"
+          sizes="(min-width: 1024px) 48vw, 100vw"
           quality={85}
         />
       )}
 
       {/* Sector Label */}
-      <div className="absolute bottom-8 right-8 lg:bottom-12 lg:right-12 z-10" aria-hidden="true">
-        <span className="font-[family-name:var(--font-ibm-plex-mono)] text-xs tracking-[0.16em] text-white/60 uppercase transition-opacity duration-200">
+      <div className="absolute top-6 right-6 left-6 z-10 text-right" aria-hidden="true">
+        <span className="font-[family-name:var(--font-ibm-plex-mono)] inline-block rounded-full bg-black/65 px-3 py-2 text-[10px] tracking-[0.1em] text-white uppercase transition-opacity duration-200">
           {t(currentSector)}
         </span>
       </div>

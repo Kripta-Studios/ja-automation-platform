@@ -428,13 +428,13 @@
 
 <style>
   :global(body) {
-    background: #f4f7fa;
+    background: #f7f7f6;
   }
   .help-page {
     max-width: 1120px;
     margin: 0 auto;
     padding: 2.5rem clamp(1rem, 4vw, 3rem) 4rem;
-    color: #172033;
+    color: #21201e;
   }
   .help-header {
     display: flex;
@@ -445,7 +445,7 @@
   }
   .eyebrow,
   .card-kicker {
-    color: #0c6b8f;
+    color: #5d5c55;
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -453,19 +453,19 @@
     margin: 0 0 0.45rem;
   }
   h1 {
-    color: #073b5c;
+    color: #353430;
     font-size: clamp(1.8rem, 4vw, 2.6rem);
     line-height: 1.1;
     margin: 0 0 0.75rem;
   }
   h2 {
-    color: #073b5c;
+    color: #353430;
     font-size: 1.2rem;
     line-height: 1.25;
     margin: 0;
   }
   h3 {
-    color: #073b5c;
+    color: #353430;
     font-size: 1rem;
     margin: 0 0 0.35rem;
   }
@@ -475,7 +475,7 @@
   }
   .lead {
     max-width: 720px;
-    color: #475569;
+    color: #575650;
     margin: 0;
   }
   .language-control {
@@ -483,7 +483,7 @@
   }
   .language-control > span {
     display: block;
-    color: #475569;
+    color: #575650;
     font-size: 0.8rem;
     font-weight: 700;
     margin-bottom: 0.35rem;
@@ -499,8 +499,8 @@
     min-width: 2.75rem;
     min-height: 2.75rem;
     box-sizing: border-box;
-    color: #075985;
-    border: 1px solid #b8c9d6;
+    color: #4e4d47;
+    border: 1px solid #c9c8c4;
     border-radius: 0.4rem;
     padding: 0.35rem 0.55rem;
     text-decoration: none;
@@ -508,15 +508,15 @@
     font-weight: 700;
   }
   .language-links a.current {
-    background: #075985;
+    background: #4e4d47;
     color: white;
-    border-color: #075985;
+    border-color: #4e4d47;
   }
   .notice,
   .manual-card,
   .tasks {
     background: white;
-    border: 1px solid #d7e1e8;
+    border: 1px solid #e1e0de;
     border-radius: 0.75rem;
     box-shadow: 0 3px 14px rgba(23, 32, 51, 0.05);
   }
@@ -528,7 +528,7 @@
     margin-bottom: 0.45rem;
   }
   .notice-login {
-    border-left: 4px solid #1597c5;
+    border-left: 4px solid #848279;
   }
   .manual-grid {
     display: grid;
@@ -549,15 +549,15 @@
     margin-bottom: 0.7rem;
   }
   .revision {
-    color: #64748b;
+    color: #67675f;
     font-size: 0.72rem;
     white-space: nowrap;
   }
   .manual-card > p {
-    color: #475569;
+    color: #575650;
   }
   .role-guidance {
-    color: #475569;
+    color: #575650;
     font-size: 0.88rem;
     margin-bottom: 0.75rem;
   }
@@ -575,8 +575,8 @@
     margin-bottom: 0.75rem;
   }
   .role-badges span {
-    background: #e8f4fa;
-    color: #075985;
+    background: #f2f2f1;
+    color: #4e4d47;
     border-radius: 999px;
     padding: 0.25rem 0.55rem;
     font-weight: 700;
@@ -594,7 +594,7 @@
     box-sizing: border-box;
     align-items: center;
     border-radius: 0.45rem;
-    background: #075985;
+    background: #4e4d47;
     color: white;
     padding: 0.55rem 0.8rem;
     text-decoration: none;
@@ -608,7 +608,7 @@
     outline-offset: 2px;
   }
   .available {
-    color: #64748b;
+    color: #67675f;
     font-size: 0.78rem;
   }
   .download-feedback {
@@ -635,8 +635,8 @@
     font-weight: 700;
   }
   .download-feedback button {
-    border: 1px solid #075985;
-    background: #075985;
+    border: 1px solid #4e4d47;
+    background: #4e4d47;
     color: white;
     cursor: pointer;
   }
@@ -653,27 +653,27 @@
     gap: 0.8rem;
   }
   .task-grid article {
-    background: #f7fafc;
-    border: 1px solid #e2e8f0;
+    background: #fafaf9;
+    border: 1px solid #e8e8e6;
     border-radius: 0.55rem;
     padding: 0.85rem;
   }
   .task-grid p {
-    color: #475569;
+    color: #575650;
     font-size: 0.9rem;
     margin: 0;
   }
   .notice-private {
     margin-top: 1.25rem;
-    background: #eef8fc;
-    border-color: #b8dcea;
+    background: #f7f6f6;
+    border-color: #d7d7d3;
   }
   .notice-private p:last-child {
     margin-bottom: 0;
   }
   .empty {
     background: white;
-    border: 1px solid #d7e1e8;
+    border: 1px solid #e1e0de;
     border-radius: 0.75rem;
     padding: 1rem 1.25rem;
   }

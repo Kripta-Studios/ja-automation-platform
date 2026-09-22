@@ -249,10 +249,10 @@
     min-height: var(--ja-target-min, 2.75rem);
     margin-top: 0.7rem;
     padding: 0.55rem 0.8rem;
-    border: 1px solid var(--portal-border-strong, var(--ja-steel, #b8c3d1));
+    border: 1px solid var(--portal-border-strong, var(--ja-steel, #c4c4bf));
     border-radius: 0.5rem;
     background: var(--portal-surface, var(--ja-white, #fff));
-    color: var(--portal-accent, var(--ja-accent, #0f5f73));
+    color: var(--portal-accent, var(--ja-accent, #53524c));
     font: inherit;
     font-weight: 750;
     text-decoration: none;
@@ -269,7 +269,7 @@
 
   .ui-table-region-card-action:focus-visible,
   .ui-table-region-desktop:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--portal-accent, #0f5f73) 32%, transparent);
+    outline: 3px solid color-mix(in srgb, var(--portal-accent, #53524c) 32%, transparent);
     outline-offset: 2px;
   }
 </style>

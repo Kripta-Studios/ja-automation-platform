@@ -1,0 +1,261 @@
+[WebServer] (node:604282) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ next start --port 4173 --hostname 127.0.0.1
+[WebServer] (node:604324) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+[WebServer] (node:604364) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ node build
+[WebServer] (node:604426) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a0c920-b8cd-76ee-9614-0b0018b3bdad",
+    "01a0c920-b8ce-73fe-ad68-be3824d02eae",
+    "01a0c920-b8cf-7702-b53d-5bd75e319d38",
+    "01a0c920-b8cf-7702-b53d-6a25518a0b7d"
+  ],
+  "invoiceDrafts": [
+    "01a0c920-b9b0-7546-9030-99eaa22fd474",
+    "01a0c920-b9b4-74d9-8cf6-91abc0de40e3",
+    "01a0c920-b9b8-7058-a80e-58a10c307d01"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a0c920-b9c0-7317-a3a3-20b6d6f02fb2",
+    "01a0c920-b9c3-777e-b0b1-99739c3a78a7",
+    "01a0c920-b9c7-70ec-a3c6-c44b5b95130b"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a0c920-b9c0-7317-a3a3-20b6d6f02fb2",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a0c920-b9a5-71cc-88c4-9759b136ede1",
+    "01a0c920-b9a7-71b8-b37c-79f7babd4755"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0c920-b8cd-76ee-9614-0b0018b3bdad",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a0c920-b9d1-776a-81ee-45b7d49e67ae"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0c920-b8cd-76ee-9614-0b0018b3bdad",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a0c920-b9d5-7778-a386-47fe96040840"
+    }
+  ],
+  "periodReportIds": [
+    "01a0c920-b9d6-7249-b800-64ada6c6b377",
+    "01a0c920-b9d6-7249-b800-69cc494e899d"
+  ],
+  "accountingPackId": "01a0c920-ba19-723d-a821-4eb449c2d6e3",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-d8f016f6b342b676c3a197d574c32ae6811b66fd",
+  "closeoutId": "01a0c920-ba9d-754f-8963-07d4103a3bec"
+}
+
+Running 12 tests using 1 worker
+
+(node:604561) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   1 [phone-360] › tests/e2e/owner-record-management.spec.ts:7:1 › Owner reopens, edits and deletes an approved expense from the interface (5.4s)
+(node:604851) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   2 [phone-360] › tests/e2e/owner-record-management.spec.ts:77:1 › Worker cannot open Owner data management (2.7s)
+  ✓   3 [phone-360] › tests/e2e/owner-record-management.spec.ts:84:1 › project pickers search ignoring case and accents and retain selected values (3.5s)
+(node:605245) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   4 [phone-390] › tests/e2e/owner-record-management.spec.ts:7:1 › Owner reopens, edits and deletes an approved expense from the interface (5.3s)
+(node:605507) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   5 [phone-390] › tests/e2e/owner-record-management.spec.ts:77:1 › Worker cannot open Owner data management (2.1s)
+  ✓   6 [phone-390] › tests/e2e/owner-record-management.spec.ts:84:1 › project pickers search ignoring case and accents and retain selected values (3.3s)
+(node:605766) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   7 [tablet-768] › tests/e2e/owner-record-management.spec.ts:7:1 › Owner reopens, edits and deletes an approved expense from the interface (5.0s)
+(node:606033) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   8 [tablet-768] › tests/e2e/owner-record-management.spec.ts:77:1 › Worker cannot open Owner data management (2.1s)
+  ✓   9 [tablet-768] › tests/e2e/owner-record-management.spec.ts:84:1 › project pickers search ignoring case and accents and retain selected values (2.9s)
+(node:606300) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  10 [desktop] › tests/e2e/owner-record-management.spec.ts:7:1 › Owner reopens, edits and deletes an approved expense from the interface (4.9s)
+(node:606629) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  11 [desktop] › tests/e2e/owner-record-management.spec.ts:77:1 › Worker cannot open Owner data management (2.0s)
+  ✓  12 [desktop] › tests/e2e/owner-record-management.spec.ts:84:1 › project pickers search ignoring case and accents and retain selected values (3.3s)
+
+
+  1) [phone-360] › tests/e2e/owner-record-management.spec.ts:7:1 › Owner reopens, edits and deletes an approved expense from the interface 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('status')
+    Expected substring: "Changes saved"
+    Error: strict mode violation: getByRole('status') resolved to 2 elements:
+        1) <p role="status" class="management-feedback svelte-yv8pgo">Changes saved</p> aka getByText('Changes saved')
+        2) <span role="status">1–8 / 41</span> aka getByText('1–8 /')
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for getByRole('status')
+
+
+      72 |   await row.getByRole('button', { name: 'Delete', exact: true }).click();
+      73 |   await expect(page.locator(`article[id="${id}"]`)).toHaveCount(0);
+    > 74 |   await expect(page.getByRole('status')).toContainText('Changes saved');
+         |                                          ^
+      75 | });
+      76 |
+      77 | test('Worker cannot open Owner data management', async ({ page }) => {
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/owner-record-management.spec.ts:74:42
+
+    Error Context: test-results/owner-record-management-Ow-4218d--expense-from-the-interface-phone-360/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/owner-record-management-Ow-4218d--expense-from-the-interface-phone-360/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/owner-record-management-Ow-4218d--expense-from-the-interface-phone-360/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [phone-390] › tests/e2e/owner-record-management.spec.ts:7:1 › Owner reopens, edits and deletes an approved expense from the interface 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('status')
+    Expected substring: "Changes saved"
+    Error: strict mode violation: getByRole('status') resolved to 2 elements:
+        1) <p role="status" class="management-feedback svelte-yv8pgo">Changes saved</p> aka getByText('Changes saved')
+        2) <span role="status">1–8 / 41</span> aka getByText('1–8 /')
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for getByRole('status')
+
+
+      72 |   await row.getByRole('button', { name: 'Delete', exact: true }).click();
+      73 |   await expect(page.locator(`article[id="${id}"]`)).toHaveCount(0);
+    > 74 |   await expect(page.getByRole('status')).toContainText('Changes saved');
+         |                                          ^
+      75 | });
+      76 |
+      77 | test('Worker cannot open Owner data management', async ({ page }) => {
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/owner-record-management.spec.ts:74:42
+
+    Error Context: test-results/owner-record-management-Ow-4218d--expense-from-the-interface-phone-390/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/owner-record-management-Ow-4218d--expense-from-the-interface-phone-390/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/owner-record-management-Ow-4218d--expense-from-the-interface-phone-390/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [tablet-768] › tests/e2e/owner-record-management.spec.ts:7:1 › Owner reopens, edits and deletes an approved expense from the interface 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('status')
+    Expected substring: "Changes saved"
+    Error: strict mode violation: getByRole('status') resolved to 2 elements:
+        1) <p role="status" class="management-feedback svelte-yv8pgo">Changes saved</p> aka getByText('Changes saved')
+        2) <span role="status">1–8 / 41</span> aka getByText('1–8 /')
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for getByRole('status')
+
+
+      72 |   await row.getByRole('button', { name: 'Delete', exact: true }).click();
+      73 |   await expect(page.locator(`article[id="${id}"]`)).toHaveCount(0);
+    > 74 |   await expect(page.locator('.management-feedback[role="status"]')).toContainText('Changes saved');
+         |                                          ^
+      75 | });
+      76 |
+      77 | test('Worker cannot open Owner data management', async ({ page }) => {
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/owner-record-management.spec.ts:74:42
+
+    Error Context: test-results/owner-record-management-Ow-4218d--expense-from-the-interface-tablet-768/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/owner-record-management-Ow-4218d--expense-from-the-interface-tablet-768/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/owner-record-management-Ow-4218d--expense-from-the-interface-tablet-768/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [desktop] › tests/e2e/owner-record-management.spec.ts:7:1 › Owner reopens, edits and deletes an approved expense from the interface 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('status')
+    Expected substring: "Changes saved"
+    Error: strict mode violation: getByRole('status') resolved to 2 elements:
+        1) <p role="status" class="management-feedback svelte-yv8pgo">Changes saved</p> aka getByText('Changes saved')
+        2) <span role="status">1–8 / 41</span> aka getByText('1–8 /')
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for getByRole('status')
+
+
+      72 |   await row.getByRole('button', { name: 'Delete', exact: true }).click();
+      73 |   await expect(page.locator(`article[id="${id}"]`)).toHaveCount(0);
+    > 74 |   await expect(page.locator('.management-feedback[role="status"]')).toContainText('Changes saved');
+         |                                          ^
+      75 | });
+      76 |
+      77 | test('Worker cannot open Owner data management', async ({ page }) => {
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/owner-record-management.spec.ts:74:42
+
+    Error Context: test-results/owner-record-management-Ow-4218d--expense-from-the-interface-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/owner-record-management-Ow-4218d--expense-from-the-interface-desktop/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/owner-record-management-Ow-4218d--expense-from-the-interface-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    [phone-360] › tests/e2e/owner-record-management.spec.ts:7:1 › Owner reopens, edits and deletes an approved expense from the interface 
+    [phone-390] › tests/e2e/owner-record-management.spec.ts:7:1 › Owner reopens, edits and deletes an approved expense from the interface 
+    [tablet-768] › tests/e2e/owner-record-management.spec.ts:7:1 › Owner reopens, edits and deletes an approved expense from the interface 
+    [desktop] › tests/e2e/owner-record-management.spec.ts:7:1 › Owner reopens, edits and deletes an approved expense from the interface 
+  8 passed (59.1s)

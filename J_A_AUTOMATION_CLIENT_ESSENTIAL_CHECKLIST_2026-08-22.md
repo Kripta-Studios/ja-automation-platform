@@ -896,14 +896,12 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Caché Docker a 0 B tras liberar 9.57GB; imágenes y volúmenes conservados. Correo, Caddy, contenedores, timers y bind de música activos. [Evidencia de publicación](docs/evidence/github-release-20260922/README.md).
 
 
-## 2026-09-22 — Intervalos reales y filtros/selectores del portal (CORE-04, UI_PLAN; verificación final pendiente)
+## 2026-09-22 — Intervalos reales y filtros/selectores del portal (CORE-04, UI_PLAN)
 
-- [x] Implementación: fecha inicial de hoy según el navegador, inicio/fin locales del proyecto, pausa opcional y duración neta automática; rutas de colaborador/proveedor, edición y payload offline conservan los campos canónicos existentes. Los registros antiguos que solo contienen duración no reciben horas inventadas.
-- [x] Informes: intervalos de origen en nuevos retratos y vistas web/PDF/CSV autorizadas; DTO de cliente sin dinero y privacidad del trabajador conservados. Validadores reconcilian duración y relojes, incluyendo compatibilidad con históricos válidos de cero minutos netos. Pruebas dirigidas preservan retratos finalizados y JSON de artefactos anteriores; no se regeneran archivos históricos emitidos.
-- [x] UI implementada: búsqueda dentro del selector, resumen visible de filtros activos, reinicio de criterios y estado guardado, mensajes de cero coincidencias y filtros de informes con una autoridad única. La presencia del código no constituye aprobación de la matriz final de navegador.
-- [x] Evidencia completada anterior a los últimos ajustes de UI: selecciones Vitest de 63/63 y 20/20; recorrido de horas Worker/Owner 8/8 en 360/390/768/1440 px. Regresión posterior de validadores/PDF: cuatro casos dirigidos aprobados. No se suman selecciones potencialmente solapadas ni se atribuyen todas al árbol final.
-- [x] Tipos de los diez proyectos participantes, ESLint focalizado y diffcheck aprobados; Svelte-check con cero errores y cero avisos. Revisión independiente del código UI: `SHIP` condicionado a la repetición de navegador aprobada; falta archivar las salidas finales.
-- [ ] Matriz UI combinada y repetición final: primera pasada completada con 53 aprobados, ocho fallos de dos selectores/preparaciones de disclosure desactualizados en cuatro anchos y tres exclusiones intencionales de fallback. Ambos casos de prueba corregidos; nueva compilación y repetición dirigida de 36 casos en curso (`/tmp/ja-ui-final-rerun.log`). Pendiente su resultado final; la primera matriz no se declara aprobada.
-- [ ] Nueve fuentes activas de manual actualizadas; pendiente captura sobre el digest final, regeneración/verificación de PDF y archivo de evidencias definitivas.
-- [ ] Publicación y producción pendientes: commit/release exactos, revisión final, comparación con baseline, conservación de históricos/archivos privados, salud, navegación autenticada, respaldo y ciclos automáticos.
-- Alcance y límites: [evidencia en preparación](docs/evidence/time-interval-20260922/README.md). No declara despliegue, cierre de aceptación completa de 32 pasos ni aceptación externa/humana; se mantienen los pendientes históricos.
+- [x] Fecha actual por defecto, inicio/fin locales del proyecto, pausa opcional y duración neta calculada. Edición, proveedor y payload offline conservan los campos canónicos; sin migración ni horas inventadas para registros antiguos.
+- [x] Intervalos en nuevos informes web/PDF/CSV y extractos autorizados; retratos finalizados, importes exactos, privacidad y artefactos históricos preservados. Selecciones Vitest de 63/63 y 20/20; revisión independiente con 71 casos y dictamen SHIP.
+- [x] Búsqueda integrada en selectores, filtros activos legibles, reinicio coherente, estados sin coincidencias y filtros de informes que respetan rol y listado. Casos nuevos aprobados en 360/390/768/1440 px; recorridos finales Owner 12/12. Se conservan los fallos iniciales y correcciones de pruebas en la evidencia.
+- [x] Tipos, ESLint y diffcheck aprobados; Svelte-check: cero errores y avisos. Fuente publicada: `2c67713`.
+- [x] Captura final en fixture limpio: 116 imágenes y 202 comprobaciones; nueve PDF activos regenerados y verificados, con fuentes incrustadas y digest de fuente coincidente.
+- [ ] Despliegue, comparación de históricos/archivos privados, comprobaciones de web/correo/respaldo/jobs y limpieza de caché de construcción Docker.
+- Evidencia: [intervalos e interfaz](docs/evidence/time-interval-20260922/README.md). No sustituye la aceptación completa de 32 pasos ni los pendientes externos históricos.

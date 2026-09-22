@@ -1,111 +1,111 @@
 {
-  "validatedAt": "2026-09-22T10:40:36.207311+00:00",
+  "validatedAt": "2026-09-22T12:47:30.227106+00:00",
   "scope": "6 EN/PT-BR references and 3 quick guides with refreshed website/portal screenshots",
-  "sourceDigest": "89b84e99ba4817e04bcb267836fa829df7456864b480f90fdea478ae5cbcff93",
-  "sourceCommit": "eb80da46db921d42893eeeb0b91f828357f5c5fd",
-  "captureManifestSha256": "d42ab283683bfa7ce0c3ca666b4e1099861488f534ad2796fcab73e83fc86ac5",
-  "screenshots": 112,
-  "captureChecks": 196,
+  "sourceDigest": "04ea21bf50ad14b97fc1b76c1388cccca8fc1497a240c133aa86e9728780fdcc",
+  "sourceCommit": "2c677137322ac9d60422dddcd08d97d04d892c01",
+  "captureManifestSha256": "86c09103ee0a427b4507abf240fc1425d6fb03d311dc5d965ca9899c77452ca2",
+  "screenshots": 116,
+  "captureChecks": 202,
   "checkedPdfs": 9,
   "manuals": [
     {
       "file": "Work_Projects_Guide.pdf",
-      "pages": 13,
-      "bytes": 1615578,
-      "sha256": "ec3cfe8938a413cab9447a384ee208c0e25cbfd95d0cfaaf191d7955288a0789",
+      "pages": 15,
+      "bytes": 1676450,
+      "sha256": "51df045a1b809cc8163e55494180486ce859f86f6110cdc1e512e24a1bd5103f",
       "embeddedFonts": 8,
-      "images": 12,
-      "extractedWords": 2132,
+      "images": 14,
+      "extractedWords": 2455,
       "source": "Functional_Guide_work-projects_EN.md",
-      "sourceSha256": "d7f45ca82a1bab496bc84a097e1394f5de1b4aa5460da8ad3b450183f543a23d"
+      "sourceSha256": "34cb9aa27c939efa3e75c6ffa50ba9ae90b84335a83e7fb9f399295313bf7c2b"
     },
     {
       "file": "Supplier_Operations_Guide.pdf",
       "pages": 14,
-      "bytes": 1569948,
-      "sha256": "787703d9c1995c69679961a35afdfcc2a9ef83255c4d614f9a27979de008fd86",
+      "bytes": 1575949,
+      "sha256": "38296dae73606da703d630ffd853f82d43e173cb56d37542e9e37c8970f4cb0f",
       "embeddedFonts": 8,
       "images": 12,
-      "extractedWords": 1911,
+      "extractedWords": 2282,
       "source": "Functional_Guide_supplier-operations_EN.md",
-      "sourceSha256": "5bcd35f7f0bc8b9d328b4ee5a328b116cdbb73b54b979d85fcef54ebc96f8968"
+      "sourceSha256": "6bdeb5cfc8574f0521b2ab32773013356410ced6d5e05cbec41f2a52a12a6615"
     },
     {
       "file": "Administration_Finance_Guide.pdf",
       "pages": 12,
-      "bytes": 1798749,
-      "sha256": "8aa0bbbb1c33c4f448c4ecc0f2eed375a05b8d5c7cccf0fbf5ac7b03cb244eb8",
+      "bytes": 1813304,
+      "sha256": "48d089f7b4a981457dde2638b1613db2012febc96ad437c445681b55d9d45ae5",
       "embeddedFonts": 9,
       "images": 11,
-      "extractedWords": 2180,
+      "extractedWords": 2430,
       "source": "Functional_Guide_administration-finance_EN.md",
-      "sourceSha256": "eef41eef1d4269058e46817c907019ba2ca1c2319fd2971d315a39cf9e205b1c"
+      "sourceSha256": "e4d185a18842fec698b9eed53ea88fd28bbbe8db2c4097a711e3139ee6163769"
     },
     {
       "file": "Employee_Field_Guide_EN.pdf",
-      "pages": 10,
-      "bytes": 1356414,
-      "sha256": "2c26ca65a03258d978fba50428f05ca25d814f045b5b5741227d8e24271658b2",
+      "pages": 13,
+      "bytes": 1419854,
+      "sha256": "5455dca25b4c959cff6035d3e08ce226ad3de8e7b2d9a6b4cacba790c6fb989c",
       "embeddedFonts": 7,
-      "images": 9,
-      "extractedWords": 1132,
+      "images": 12,
+      "extractedWords": 1397,
       "source": "Employee_Field_Guide_EN.md",
-      "sourceSha256": "4b813f647f3d597aa9573bab2badf1019ef97a04b077bce1b736a1cdde772737"
+      "sourceSha256": "9b8e35b2f5148adf7cf1b87a9fb86cee4b5d83c2cb381f36645202219d813c80"
     },
     {
       "file": "Employee_Field_Guide_PT-BR.pdf",
-      "pages": 10,
-      "bytes": 1392839,
-      "sha256": "e9bc1ac792a7a5a723ccc5bdd97df95394d2dca3469f2277251541eae6a2efef",
+      "pages": 14,
+      "bytes": 1457188,
+      "sha256": "fab40c6f5d60a311d2caf5f11b47c306937b70551527d13929455d3142b20458",
       "embeddedFonts": 7,
-      "images": 9,
-      "extractedWords": 1231,
+      "images": 12,
+      "extractedWords": 1503,
       "source": "Employee_Field_Guide_PT-BR.md",
-      "sourceSha256": "c5685d62aa6d67952fec210b1b8e8e6397683a4af1d379947c08f5e27dec2479"
+      "sourceSha256": "6a8a568e33699df25bf89702a4acbca7cd908327ffa9b94e02376389b92bd5e7"
     },
     {
       "file": "Employee_Field_Guide_ES.pdf",
-      "pages": 10,
-      "bytes": 1366800,
-      "sha256": "3a10cc043bb26a089b197ddceabae65bf6ed91972fa93bc50b4e910ead6505da",
+      "pages": 14,
+      "bytes": 1432446,
+      "sha256": "983e12b17085329a6992c91331f1a6dc2ede62c86eadccee3fded1418fc9507f",
       "embeddedFonts": 7,
-      "images": 9,
-      "extractedWords": 1267,
+      "images": 12,
+      "extractedWords": 1562,
       "source": "Employee_Field_Guide_ES.md",
-      "sourceSha256": "1dd4f81a1f4c95c0296ee3cc949c1042444aee9a199ffb645e3ebe2b46660a9b"
+      "sourceSha256": "d3110b7c3eeb0298b9ce77f457d61699110f3c9169bc27e3fd34d88952d892a0"
     },
     {
       "file": "Work_Projects_Guide_PT-BR.pdf",
-      "pages": 13,
-      "bytes": 1654625,
-      "sha256": "0c243bf1fcb5fe829549745bb1601845663abd3773738129200cfe5b01ea0b3b",
+      "pages": 15,
+      "bytes": 1716071,
+      "sha256": "222b5b2f4f013ad418cc9da880eaa4e1fd10d14e4b999371aab7bd76fafc6981",
       "embeddedFonts": 8,
-      "images": 12,
-      "extractedWords": 2238,
+      "images": 14,
+      "extractedWords": 2572,
       "source": "Functional_Guide_work-projects_PT-BR.md",
-      "sourceSha256": "d04b7479c5a2961521ab91977a4e6bbb0892b89e9a30f5c6f528796974ad3f56"
+      "sourceSha256": "813aa9548b5e1641dd7df5eab276d246495cffb328495e1b96f16b76c0c188cd"
     },
     {
       "file": "Supplier_Operations_Guide_PT-BR.pdf",
       "pages": 14,
-      "bytes": 1620947,
-      "sha256": "21323859058280e77d51c995b0bfe2bda83f6eb14c655404b38b5bb1dc15caf9",
+      "bytes": 1624983,
+      "sha256": "b3684b3a69902ae847cade618b521dad34343ab70353eb3bcae9be913beacab1",
       "embeddedFonts": 8,
       "images": 12,
-      "extractedWords": 1999,
+      "extractedWords": 2404,
       "source": "Functional_Guide_supplier-operations_PT-BR.md",
-      "sourceSha256": "f01a32172c366dde8af0ac33f1d96141252660a40a21aa664501a461b62d402b"
+      "sourceSha256": "39ba7799d673c036b80e2fd9dcd27fcb811fabde9cbdfddb2a8a0008c754ad14"
     },
     {
       "file": "Administration_Finance_Guide_PT-BR.pdf",
       "pages": 12,
-      "bytes": 1841204,
-      "sha256": "0fd1b4dc38c431fd22d2abeffd458072c6db5eadd8f100baf88f905676723614",
+      "bytes": 1852864,
+      "sha256": "e5e111ca3e41161e0acd2775bb290d0e073f57cd3c3071652e6fbaf4c0984644",
       "embeddedFonts": 9,
       "images": 11,
-      "extractedWords": 2272,
+      "extractedWords": 2533,
       "source": "Functional_Guide_administration-finance_PT-BR.md",
-      "sourceSha256": "dcafbc9476f05b9c8403bfe9395e7fa44ef366da617015c2902fe835d66b8821"
+      "sourceSha256": "f53a265bb19a009a21ea3e210fe4d5c6f909d208039457290e9ef8e9bdd1ab89"
     }
   ]
 }

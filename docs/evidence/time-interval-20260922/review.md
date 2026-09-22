@@ -1,6 +1,6 @@
 # Independent review — time intervals and interface controls
 
-Reviewer: `/root/time_review`, read-only independent review. Source verdict: **SHIP**, with no remaining P0/P1/P2 findings. The last validation gate is the corrected Owner CRUD journey at four widths; its result is recorded separately.
+Reviewer: `/root/time_review`, read-only independent review. Source verdict: **SHIP**, with no remaining P0/P1/P2 findings. The final corrected Owner lifecycle/picker/role matrix passed all 12 cases at four widths; see `browser-final.txt`.
 
 Reviewed canonical clock validation, offline overlap/day limits, duration-only compatibility, immutable report snapshots, supplier output and privacy allowlists. Reviewed picker focus/lifecycle, keyboard/touch behavior, native FormData, unsupported-browser fallback, disabled options and mobile sizing. Reviewed Time/Expense/Report filter authority, counters, role-specific choices, empty states and reset.
 

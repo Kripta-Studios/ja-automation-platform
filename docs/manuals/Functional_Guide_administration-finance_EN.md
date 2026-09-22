@@ -24,6 +24,12 @@ Secondary panels open when you select their heading and chevron. Time, Expenses 
 
 Open a project, worker or client selector to search inside its dropdown. Type part of a name or identifier; matching ignores case and accents. Use the arrow keys and Enter to select, or Escape to close without changing the value. Active register filters appear in a compact summary even when additional filters are collapsed. **Clear filters** restores the unfiltered view. Reports use one set of search, status and sort controls for the selected tab.
 
+Use **Go to section** in the header, or **Ctrl/⌘ K**, to find a destination available to your profile. Type part of its name, use the arrow keys and Enter, or Escape to return to your previous position. This searches section names; the workspace search still finds records.
+
+In Time, Expenses and Reports, **Today**, **This week**, **This month** and **Last month** set date filters using your browser's local calendar. Weeks run Monday to Sunday. The other filters stay selected. Select the × on one active filter to remove only that criterion; **Clear filters** removes all criteria. In the weekly timesheet, **Previous week**, **This week** and **Next week** change the displayed week and the register dates together, retaining project, category and status filters.
+
+<!-- screenshot:owner:section-navigator -->
+
 <!-- screenshot:owner:public-home -->
 <!-- screenshot:finance:configuration-task -->
 <!-- screenshot:owner:project-actions -->

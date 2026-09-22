@@ -1,4 +1,4 @@
-# Employee field guide — revision 2026-09-19
+# Employee field guide — revision 2026-09-22
 
 > Use only the portal address and verified support route stated in your invitation. This guide uses synthetic examples. Never share a password, MFA code, recovery code, receipt or session.
 
@@ -15,6 +15,12 @@ MFA is optional. If you choose it, open **Profile**, follow **Set up MFA**, stor
 Start on **Today** and select only the project where the work happened. If it is missing, ask a manager to check your assignment; do not record hours or expenses on another project. On a shared device, finish with **Sign out**.
 
 Project, worker and client selectors include search inside the dropdown. Use the arrows and Enter to select or Escape to close without changing the selection.
+
+Use **Go to section** in the header, or **Ctrl/⌘ K**, to find a destination available to your profile. Type part of its name, use the arrow keys and Enter, or Escape to return to your previous position. This searches section names; the workspace search still finds records.
+
+In Time, Expenses and Reports, **Today**, **This week**, **This month** and **Last month** set date filters using your browser's local calendar. Weeks run Monday to Sunday. The other filters stay selected. Select the × on one active filter to remove only that criterion; **Clear filters** removes all criteria. In the weekly timesheet, **Previous week**, **This week** and **Next week** change the displayed week and the register dates together, retaining project, category and status filters.
+
+<!-- screenshot:worker:section-navigator -->
 
 ## 3. Record actual work and travel
 

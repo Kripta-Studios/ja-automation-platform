@@ -914,3 +914,14 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Galería local probada a 390/1440 px; filtros de formato/idioma/búsqueda correctos. 30 impresiones reales del navegador, con detalle cliente/interno y 3 idiomas, verificadas en fixture desechable.
 - [x] Colección de 86 archivos: 64 PDF (30 impresiones del navegador), 6 XLSX, 13 CSV, 1 JSON y 2 ZIP. Nueve manuales regenerados con 116 capturas/202 comprobaciones vinculadas a `5b65dfd`; generación final de navegador 2/2 aprobada.
 - [x] Commit `1d730f3` desplegado a las 16:28:05 Madrid: 2.441 archivos del ZIP y 601 de ejecución coincidentes; nueve PDF instalados correctos. SQLite/FK, ocho tablas históricas y 59 archivos privados conservados; dos ciclos automáticos, respaldo, navegador público y correo/TLS verificados. Caché Docker 0 B tras recuperar 6.854GB. Los timeouts transitorios de readiness y los pendientes históricos quedan documentados en [la evidencia](docs/evidence/manual-examples-20260922/README.md).
+
+
+## 2026-09-22 — Navegación y revisión integral de textos (UI_PLAN, CORE-04, CORE-13)
+
+- [x] Buscador de secciones por rol con Ctrl/⌘ K, fechas rápidas, filtros eliminables individualmente y navegación semanal. 24/24 pruebas de teclado, accesibilidad y presentación en 360/390/768/1440 px.
+- [x] Catálogo de 2.739 claves por idioma y 754 textos de la web por idioma revisados. Estados condicionales, avisos, terminología económica y de horas, variantes BCP47 y opciones dinámicas corregidos. Selección i18n 105/105; seguimiento de etiquetas dinámicas 23/23 (selecciones solapadas).
+- [x] Navegador: 105 rutas para siete perfiles/EN/ES/PT-BR y 78 visitas adicionales a listados y detalles ES/PT, sin restos ingleses conocidos. Captura final comprueba categorías, detalle de viaje y título técnico en los tres idiomas. Revisión independiente SHIP.
+- [x] Typecheck, Svelte-check (0 errores/avisos), ESLint, formato y diffcheck aprobados. Fuente de ejecución final: `767d1f9`; sin migraciones ni cambios en cálculos, permisos o datos históricos.
+- [x] Nueve manuales regenerados desde 142 capturas y 239 comprobaciones; la guía española incluye pantallas españolas. PDF, fuentes incrustadas, imágenes, texto y hashes verificados. Índices sin numeración duplicada.
+- [x] Colección regenerada de 86 ejemplos: 64 PDF (30 impresiones reales), 6 XLSX, 13 CSV, 1 JSON y 2 ZIP. Galería probada a 390/1440 px, con filtros y descargas portátiles.
+- Evidencia y comprobaciones posteriores al despliegue: [navegación y traducciones](docs/evidence/workspace-ux-20260922/README.md). Esta revisión no sustituye la aceptación contractual de 32 pasos ni cierra los pendientes externos históricos.

@@ -1,4 +1,4 @@
-# Guia de campo para colaboradores — revisão 2026-09-19
+# Guia de campo para colaboradores — revisão 2026-09-22
 
 > Use somente o endereço do portal e o contato de suporte admin@j-aautomation.com. Este guia usa exemplos sintéticos. Nunca compartilhe senha, código MFA, código de recuperação, comprovante ou sessão.
 
@@ -16,9 +16,15 @@ Comece em **Hoje (Today)** e selecione somente o projeto onde o trabalho ocorreu
 
 Os seletores de projetos, trabalhadores e clientes incluem a pesquisa dentro do menu. Use as setas e Enter para selecionar ou Escape para fechar sem alterar a seleção.
 
+Use **Ir para uma seção** no cabeçalho, ou **Ctrl/⌘ K**, para encontrar um destino disponível para seu perfil. Digite parte do nome, use as setas e Enter, ou Escape para voltar à posição anterior. Essa busca procura nomes de seções; a busca do espaço de trabalho continua encontrando registros.
+
+Em Horas, Despesas e Relatórios, **Hoje**, **Esta semana**, **Este mês** e **Mês passado** definem as datas pelo calendário local do navegador. As semanas vão de segunda a domingo. Os demais filtros são mantidos. Selecione × em um filtro ativo para remover apenas esse critério; **Limpar filtros** remove todos os critérios. Na folha semanal, **Semana anterior**, **Esta semana** e **Próxima semana** alteram a semana e as datas do registro juntas, mantendo os filtros de projeto, categoria e status.
+
+<!-- screenshot:worker:section-navigator -->
+
 ## 3. Registre o trabalho e a viagem reais
 
-Abra **Tempo (Time)**. Escolha **Registrar tempo** e o projeto atribuído. A data começa no dia de hoje no fuso local do navegador; altere-a para a data real do trabalho quando necessário. Informe categoria, descrição factual, **Hora de início** e **Hora de término** usando o horário local no fuso do projeto, sem converter para UTC. O término deve ser posterior ao início no mesmo dia. Informe o **Intervalo (minutos)** opcional ou deixe em branco ou zero quando não houver pausa. O portal calcula a duração líquida como término menos início menos pausa; a pausa deve ser menor que o período entre início e término. Por exemplo, 08:15–16:15 com pausa de 60 minutos registra 7 horas. Salve o rascunho. Um mínimo do cliente ou uma jornada planejada de dez horas nunca muda o tempo real informado. Registre a viagem separadamente quando o projeto permitir; o pagamento da viagem e a cobrança do cliente podem ter regras diferentes. Revise a data, os horários, a duração líquida e a descrição factual antes de enviar.
+Abra **Horas (Time)**. Escolha **Registrar horas** e o projeto atribuído. A data começa no dia de hoje no fuso local do navegador; altere-a para a data real do trabalho quando necessário. Informe categoria, descrição factual, **Hora de início** e **Hora de término** usando o horário local no fuso do projeto, sem converter para UTC. O término deve ser posterior ao início no mesmo dia. Informe o **Intervalo (minutos)** opcional ou deixe em branco ou zero quando não houver pausa. O portal calcula a duração líquida como término menos início menos pausa; a pausa deve ser menor que o período entre início e término. Por exemplo, 08:15–16:15 com pausa de 60 minutos registra 7 horas. Salve o rascunho. Um mínimo do cliente ou uma jornada planejada de dez horas nunca muda as horas reais informadas. Registre a viagem separadamente quando o projeto permitir; o pagamento da viagem e a cobrança do cliente podem ter regras diferentes. Revise a data, os horários, a duração líquida e a descrição factual antes de enviar.
 
 Registros antigos podem conter somente uma duração. Seus horários ficam vazios até você escolher **Adicionar horários de início e término** em um rascunho editável ou correção autorizada e informar os horários reais. Não deduza os horários de um turno planejado nem da duração.
 

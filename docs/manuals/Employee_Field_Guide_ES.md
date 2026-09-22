@@ -1,4 +1,4 @@
-# Guía de campo para empleados — revisión 2026-09-19
+# Guía de campo para empleados — revisión 2026-09-22
 
 > Usa solo la dirección del portal y el contacto de soporte admin@j-aautomation.com. Esta guía usa ejemplos sintéticos. No compartas contraseña, código MFA, código de recuperación, recibo ni sesión.
 
@@ -16,9 +16,15 @@ Empieza en **Hoy (Today)** y elige únicamente el proyecto donde ocurrió el tra
 
 Los selectores de proyectos, trabajadores y clientes incluyen la búsqueda dentro del desplegable. Usa las flechas y Enter para seleccionar o Escape para cerrar sin cambiar la selección.
 
+Usa **Ir a una sección** en la cabecera, o **Ctrl/⌘ K**, para encontrar un destino disponible para tu perfil. Escribe parte del nombre, usa las flechas y Enter o Escape para volver a la posición anterior. Esta búsqueda localiza nombres de secciones; la búsqueda del espacio de trabajo sigue localizando registros.
+
+En Horas, Gastos e Informes, **Hoy**, **Esta semana**, **Este mes** y **Mes pasado** establecen fechas según el calendario local del navegador. Las semanas van de lunes a domingo. Los demás filtros se conservan. Pulsa × en un filtro activo para quitar solo ese criterio; **Borrar filtros** elimina todos los criterios. En la hoja semanal, **Semana anterior**, **Esta semana** y **Semana siguiente** cambian la semana y las fechas del listado conjuntamente, conservando los filtros de proyecto, categoría y estado.
+
+<!-- screenshot:worker:section-navigator -->
+
 ## 3. Registra el trabajo y el viaje reales
 
-Abre **Tiempo (Time)**. Elige **Registrar tiempo (Log time)** y el proyecto asignado. La fecha inicial es la de hoy en la zona horaria local del navegador; cámbiala por la fecha real del trabajo cuando sea necesario. Indica categoría, descripción factual, **Hora de inicio** y **Hora de fin** según el reloj local de la zona horaria del proyecto, sin convertir a UTC. El fin debe ser posterior al inicio del mismo día. Indica la **Pausa (minutos)** opcional o déjala vacía o en cero si no hay pausa. El portal calcula la duración neta como fin menos inicio menos pausa; la pausa debe ser menor que el intervalo. Por ejemplo, 08:15–16:15 con una pausa de 60 minutos registra 7 horas. Guarda el borrador. Un mínimo del cliente o una jornada planificada de diez horas nunca cambia el tiempo real que declaras. Registra el viaje por separado cuando el proyecto lo permita; el pago del viaje y la facturación al cliente pueden tener reglas distintas. Revisa fecha, intervalo, duración neta y descripción factual antes de enviarlo.
+Abre **Horas (Time)**. Elige **Registrar horas (Log time)** y el proyecto asignado. La fecha inicial es la de hoy en la zona horaria local del navegador; cámbiala por la fecha real del trabajo cuando sea necesario. Indica categoría, descripción factual, **Hora de inicio** y **Hora de fin** según el reloj local de la zona horaria del proyecto, sin convertir a UTC. El fin debe ser posterior al inicio del mismo día. Indica la **Pausa (minutos)** opcional o déjala vacía o en cero si no hay pausa. El portal calcula la duración neta como fin menos inicio menos pausa; la pausa debe ser menor que el intervalo. Por ejemplo, 08:15–16:15 con una pausa de 60 minutos registra 7 horas. Guarda el borrador. Un mínimo del cliente o una jornada planificada de diez horas nunca cambia las horas reales que declaras. Registra el viaje por separado cuando el proyecto lo permita; el pago del viaje y la facturación al cliente pueden tener reglas distintas. Revisa fecha, intervalo, duración neta y descripción factual antes de enviarlo.
 
 Los registros antiguos pueden contener solo una duración. Sus horas quedan vacías hasta que elijas **Añadir hora de inicio y fin (Add start and end times)** en un borrador editable o una corrección autorizada e indiques las horas reales. No las deduzcas de un turno previsto ni de la duración.
 

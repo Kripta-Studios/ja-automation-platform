@@ -10,7 +10,7 @@
       "file": "closeout/EXAMPLE-P-002-closeout-client-r1.zip",
       "renderer": "ProjectCloseoutService.prepare/confirmClientPublication/finalize/download",
       "description": "client project closeout; authentic frozen ZIP with JSON, PDF summary, document index and selected synthetic reference.",
-      "sha256": "c7c700280565fa98a80c4cf2f5d436bc2fe9a6ced2d3c03b6367e8ec879841c6",
+      "sha256": "aa65429215733407c2618db339355d610389ac7ca1fa66c5d5df4d4c2cb15358",
       "bytes": 263903
     },
     {
@@ -21,7 +21,7 @@
       "file": "closeout/EXAMPLE-P-002-closeout-internal-r1.zip",
       "renderer": "ProjectCloseoutService.prepare/confirmClientPublication/finalize/download",
       "description": "internal project closeout; authentic frozen ZIP with JSON, PDF summary, document index and selected synthetic reference.",
-      "sha256": "7a06bf1c9e0ad4bf87c9bdbd3f4c0c93bf3ddfb9784c1cea163f1d865b5ff24f",
+      "sha256": "683c80256d33908446fa3a9b5e36b656ade27e94c54b2edc853fa6eb99b94590",
       "bytes": 8900
     }
   ]

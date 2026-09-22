@@ -24,6 +24,12 @@ Os painéis secundários são abertos pelo título e pela seta. Tempo, Despesas 
 
 Abra um seletor de projeto, trabalhador ou cliente para pesquisar dentro do menu. Digite parte do nome ou identificador; a pesquisa ignora maiúsculas e acentos. Use as setas e Enter para selecionar ou Escape para fechar sem alterar o valor. Os filtros ativos aparecem em um resumo compacto mesmo com os filtros adicionais recolhidos. **Limpar filtros** restaura a visualização sem filtros. Os relatórios usam um único conjunto de pesquisa, estado e ordenação para a aba selecionada.
 
+Use **Ir para uma seção** no cabeçalho, ou **Ctrl/⌘ K**, para encontrar um destino disponível para seu perfil. Digite parte do nome, use as setas e Enter, ou Escape para voltar à posição anterior. Essa busca procura nomes de seções; a busca do espaço de trabalho continua encontrando registros.
+
+Em Horas, Despesas e Relatórios, **Hoje**, **Esta semana**, **Este mês** e **Mês passado** definem as datas pelo calendário local do navegador. As semanas vão de segunda a domingo. Os demais filtros são mantidos. Selecione × em um filtro ativo para remover apenas esse critério; **Limpar filtros** remove todos os critérios. Na folha semanal, **Semana anterior**, **Esta semana** e **Próxima semana** alteram a semana e as datas do registro juntas, mantendo os filtros de projeto, categoria e status.
+
+<!-- screenshot:owner:section-navigator -->
+
 <!-- screenshot:owner:public-home -->
 <!-- screenshot:finance:configuration-task -->
 <!-- screenshot:owner:project-actions -->
@@ -50,7 +56,7 @@ Use **Projetos → Equipe** para atribuições datadas e alterações de funçã
 
 Em **Aprovações**, confira tempo, despesas e relatórios Diário ou Técnico / PLC enviados com suas evidências de origem. Aprove ou solicite correções com motivo factual. Horas originadas por fornecedor exigem análise do Proprietário. Preserve registros devolvidos por rascunhos de correção. O Proprietário administra aprovação operacional e limites administrativos; Finanças trata a parte econômica descrita abaixo.
 
-Ao revisar tempo efetivo, compare início/fim registrados, pausa e duração líquida. **Registrar tempo** começa com a data de hoje no fuso local do navegador e permite alterá-la para a data real do trabalho. Início e fim usam o horário local do projeto sem conversão para UTC; o término é posterior no mesmo dia, e a pausa opcional é menor que esse período. Os minutos líquidos são calculados automaticamente. Turnos de planejamento e disponibilidade continuam em UTC. Registros antigos que contêm somente duração mantêm seu significado; acrescente horários apenas com base no trabalho real conhecido, usando **Adicionar horários de início e término** em rascunho editável ou correção autorizada.
+Ao revisar tempo efetivo, compare início/fim registrados, pausa e duração líquida. **Registrar horas** começa com a data de hoje no fuso local do navegador e permite alterá-la para a data real do trabalho. Início e fim usam o horário local do projeto sem conversão para UTC; o término é posterior no mesmo dia, e a pausa opcional é menor que esse período. Os minutos líquidos são calculados automaticamente. Turnos de planejamento e disponibilidade continuam em UTC. Registros antigos que contêm somente duração mantêm seu significado; acrescente horários apenas com base no trabalho real conhecido, usando **Adicionar horários de início e término** em rascunho editável ou correção autorizada.
 
 <!-- screenshot:owner:planning-month -->
 <!-- screenshot:owner:planning-editor -->

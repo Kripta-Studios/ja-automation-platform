@@ -644,7 +644,7 @@
     },
     {
       "file": "closeout/EXAMPLE-P-002-closeout-client-r1.zip",
-      "sha256": "c7c700280565fa98a80c4cf2f5d436bc2fe9a6ced2d3c03b6367e8ec879841c6",
+      "sha256": "aa65429215733407c2618db339355d610389ac7ca1fa66c5d5df4d4c2cb15358",
       "format": "zip",
       "pages": 1,
       "textCharacters": 496,
@@ -659,7 +659,7 @@
     },
     {
       "file": "closeout/EXAMPLE-P-002-closeout-internal-r1.zip",
-      "sha256": "7a06bf1c9e0ad4bf87c9bdbd3f4c0c93bf3ddfb9784c1cea163f1d865b5ff24f",
+      "sha256": "683c80256d33908446fa3a9b5e36b656ade27e94c54b2edc853fa6eb99b94590",
       "format": "zip",
       "pages": 1,
       "textCharacters": 532,
@@ -673,7 +673,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-time-register-en.pdf",
-      "sha256": "305052cc57d1647b041e9caeb23819887ace45814adf14731242c3deface439b",
+      "sha256": "ab16f8f819d755865991c437fae00d1ad71227f0eb587ec4ad3441ea5bd40dd0",
       "format": "pdf",
       "pages": 7,
       "textCharacters": 3568,
@@ -681,7 +681,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-project-en.pdf",
-      "sha256": "77f8d059a7e71a360d3d491ef98b9af41f6f0e4587944cb22b1affebbeed92eb",
+      "sha256": "6e21cb17334920d4b23477bbd41109eb87be3148517f579cabf2d8060e3f9fa2",
       "format": "pdf",
       "pages": 2,
       "textCharacters": 1204,
@@ -689,7 +689,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-time-entry-en.pdf",
-      "sha256": "1e0827fb9aa80386db01c530f35f4133cc147bb3c45262e0eefeda390cef2260",
+      "sha256": "3f43cbbc18e5e7e16b34c55f7d8c77f8a84cd090177999e70330cd2bca883f7f",
       "format": "pdf",
       "pages": 1,
       "textCharacters": 493,
@@ -697,7 +697,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-expense-en.pdf",
-      "sha256": "105b514a919e3c9860b6cc29cd137ee7153807b71bd5a46d985b5f7a093d15ba",
+      "sha256": "f73dcbd72223ddb6c1b54c22d6d091ef74fcd2d2965c05bf6359ad15ea7168a9",
       "format": "pdf",
       "pages": 1,
       "textCharacters": 523,
@@ -705,7 +705,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-daily-report-en.pdf",
-      "sha256": "a4c954c45c56b9fa71fa515efdce1ccc13fbd385e04a942679c574c7ea36172a",
+      "sha256": "21ba830b16e3689b071039e16c07d8914afa3486b58ea1851eea88a136b87162",
       "format": "pdf",
       "pages": 4,
       "textCharacters": 2340,
@@ -713,7 +713,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-technical-report-en.pdf",
-      "sha256": "d15c50fccc6c30838440b8f8bf0d199a1d5cb10141fb4e4032a0753a22b3e6dd",
+      "sha256": "b1bb7f540b172b8f3b00c4e497dee43aba21f01781121e348ba68f1a2f9a713d",
       "format": "pdf",
       "pages": 5,
       "textCharacters": 2699,
@@ -721,7 +721,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-period-report-customer-en.pdf",
-      "sha256": "c085a663f42e63e2de68a1ff1d8cf205ae4a8e010a1c28920b478dfbda4e9a8b",
+      "sha256": "5630819f12383b828e3320e7a359275ed6e1c81cc190d2393fd4986166f80c9b",
       "format": "pdf",
       "pages": 4,
       "textCharacters": 3777,
@@ -729,7 +729,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-period-report-internal-en.pdf",
-      "sha256": "f77ea04fc1b061ae369ead57045abb89c5cf7c3bd3dcf9a1c414b25fa5f8d111",
+      "sha256": "b31310d2a96223e83c5297496123988839a6a841a757e490e89f0e4e2643924f",
       "format": "pdf",
       "pages": 6,
       "textCharacters": 5767,
@@ -737,7 +737,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-invoice-en.pdf",
-      "sha256": "1f9f28154db54d18d313998e70cf79d43458008b2900a2cfd36e49a74ce0b0cb",
+      "sha256": "07f0d9473d656b04544f13335ae6db8ecdff578f555836108de5b127d01fbaef",
       "format": "pdf",
       "pages": 2,
       "textCharacters": 1266,
@@ -745,7 +745,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-supplier-report-en.pdf",
-      "sha256": "e1c987f05efb239d5145c735f99d03ece91585c31bedd39872dca4df4f510ef3",
+      "sha256": "500d80d0b1dacddbd76328e7f834326686c44557b962ddeb54efb273ba3322fe",
       "format": "pdf",
       "pages": 1,
       "textCharacters": 337,
@@ -753,31 +753,31 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-time-register-es.pdf",
-      "sha256": "f198fe20cfcea188d84a632be3f3ec0c0d36228c1d2d3cc14f2541f0d08267a9",
+      "sha256": "16af2c5d0feda4d904f5b041af48eb423956b5b9e3a803d4fa581553a6b28986",
       "format": "pdf",
       "pages": 7,
-      "textCharacters": 3910,
+      "textCharacters": 3906,
       "preview": "previews/browser-time-register-es.png"
     },
     {
       "file": "browser-print/EXAMPLE-browser-project-es.pdf",
-      "sha256": "00c167629c0fe22dc778f1223e0d4277216ccbacec5fee4fe820cb7f35eb993e",
+      "sha256": "499bb09976961f10cebde128a0f70736ce83af4d41d2b1c2cb188961ee675152",
       "format": "pdf",
       "pages": 2,
-      "textCharacters": 1302,
+      "textCharacters": 1303,
       "preview": "previews/browser-project-es.png"
     },
     {
       "file": "browser-print/EXAMPLE-browser-time-entry-es.pdf",
-      "sha256": "dd9e9216fd1aeb7c6307c87829aebc9831d4e9dda833fe07765aca3904884fd3",
+      "sha256": "03ad69a2932651aefc2a440779fa18fa0cb5345131fc4a0568c2b5c5a298861d",
       "format": "pdf",
       "pages": 1,
-      "textCharacters": 534,
+      "textCharacters": 535,
       "preview": "previews/browser-time-entry-es.png"
     },
     {
       "file": "browser-print/EXAMPLE-browser-expense-es.pdf",
-      "sha256": "12891849397b96334edd5d4336b389acffbb7a3ea9866a33d8147602b39dc5cb",
+      "sha256": "b9e51ddefb7d807af3b43cd81b01efb102e9865320c6ec3d9d85e945aa7c1b4e",
       "format": "pdf",
       "pages": 1,
       "textCharacters": 581,
@@ -785,7 +785,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-daily-report-es.pdf",
-      "sha256": "ba285f7e152eb5e19411a24632813561190e0d8bccd2afc89ee2dcee1ef43ed5",
+      "sha256": "4d68ca48b20c67c47934300018ef584bef49de138451892484fa686a7257b636",
       "format": "pdf",
       "pages": 4,
       "textCharacters": 2619,
@@ -793,7 +793,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-technical-report-es.pdf",
-      "sha256": "e332084735c6db43fa404b30f5246cdc7fd181ca23c91f583d435c528c9f38a5",
+      "sha256": "7d931f51edf6b3e50f3a3854275ae879c025e77727b436625bc8d1b0bda1d0b2",
       "format": "pdf",
       "pages": 5,
       "textCharacters": 2962,
@@ -801,23 +801,23 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-period-report-customer-es.pdf",
-      "sha256": "865a26d9b324623f039afb3c347367a024f0d04d8ae9fcd7d3dc3dadd511d1bf",
+      "sha256": "578633adac1341942244224f38f4bc3d33598f0535048da137f12b7893ee5fe8",
       "format": "pdf",
       "pages": 4,
-      "textCharacters": 4010,
+      "textCharacters": 4016,
       "preview": "previews/browser-period-report-customer-es.png"
     },
     {
       "file": "browser-print/EXAMPLE-browser-period-report-internal-es.pdf",
-      "sha256": "117cd023731eaebcff2e62b5a337252f5ac96854f5ce6d1565ed07e7b6af1b28",
+      "sha256": "76929469733c544dc042e4e6830b11d10d056dcc4a45f308ac4bcccce39767d1",
       "format": "pdf",
       "pages": 6,
-      "textCharacters": 6294,
+      "textCharacters": 6293,
       "preview": "previews/browser-period-report-internal-es.png"
     },
     {
       "file": "browser-print/EXAMPLE-browser-invoice-es.pdf",
-      "sha256": "4930dadf5eab9a9aa8df10a9c2186b935a0c4cf495026808f9509f31eb691794",
+      "sha256": "4580a42ad2af0e998715e091591a18923521a351715ffc2b01e99f7feb516f09",
       "format": "pdf",
       "pages": 2,
       "textCharacters": 1449,
@@ -825,7 +825,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-supplier-report-es.pdf",
-      "sha256": "c614e8d5b67636dedc6e6a47bcc762412c6d3138a5ed7ebb35203cf9fe95d0ea",
+      "sha256": "d811cd69a29d214b843f3bc1f8cbcc489f16c50dab3afd53460126b8f69241b6",
       "format": "pdf",
       "pages": 1,
       "textCharacters": 346,
@@ -833,31 +833,31 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-time-register-pt-BR.pdf",
-      "sha256": "bc2a9ce490a3b0b522a506a07fa41ac76cda273b97e223032b9957f8190dd438",
+      "sha256": "1b4f32de05d9a32bc5cba173c2e0fd4923727cefa28147ad7bba574206e5df50",
       "format": "pdf",
       "pages": 7,
-      "textCharacters": 3863,
+      "textCharacters": 3875,
       "preview": "previews/browser-time-register-pt.png"
     },
     {
       "file": "browser-print/EXAMPLE-browser-project-pt-BR.pdf",
-      "sha256": "d6b4637cb222b166687c85c8e24a799f2e8edebae42c194e626bbaf20e5e0aa4",
+      "sha256": "9d6e7d918d97ae58dd51a1335556993a2a579f1d8abff22f42516ddd3e6cb127",
       "format": "pdf",
       "pages": 2,
-      "textCharacters": 1316,
+      "textCharacters": 1323,
       "preview": "previews/browser-project-pt.png"
     },
     {
       "file": "browser-print/EXAMPLE-browser-time-entry-pt-BR.pdf",
-      "sha256": "aae81644e154f15dd32b15f9cb91991d894a762989de3c2b0eba060b00b0c2a4",
+      "sha256": "474818c240bbf4eebd354b92949191100972fc379ae74ada1aa80cda3e3def24",
       "format": "pdf",
       "pages": 1,
-      "textCharacters": 529,
+      "textCharacters": 536,
       "preview": "previews/browser-time-entry-pt.png"
     },
     {
       "file": "browser-print/EXAMPLE-browser-expense-pt-BR.pdf",
-      "sha256": "f890321c4e5b77626c5c3b33006aa30db707bfbeeed0631029e8f60a3598b21c",
+      "sha256": "9922833b5a9eba56ba9fc56017b35a191bb65b394173c0b226e5411242ba0538",
       "format": "pdf",
       "pages": 1,
       "textCharacters": 588,
@@ -865,7 +865,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-daily-report-pt-BR.pdf",
-      "sha256": "6071c0269381520c440b5c390362d1b95e4762964c63acbfdb21455710155c34",
+      "sha256": "182ee5aaecf2ff56f2273391b84017d1f5a898a01a1eedc68ff56ecc0a6a28a5",
       "format": "pdf",
       "pages": 4,
       "textCharacters": 2588,
@@ -873,7 +873,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-technical-report-pt-BR.pdf",
-      "sha256": "fbf5289c88f7eb8c623dadbc1d1aa8bea368ac96769f089ecfd43807abaf991a",
+      "sha256": "09974d7b74f8076e4eaac991dd5c64455b1120da446c7ac6816b98c72ac5302b",
       "format": "pdf",
       "pages": 5,
       "textCharacters": 2952,
@@ -881,15 +881,15 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-period-report-customer-pt-BR.pdf",
-      "sha256": "6a7661c3a570dba9f44d26318e4509d492d39237a9390b8d0ef78ec92d96655e",
+      "sha256": "e5b537dd7a9e5412a22f1b82f8e74ca6f949563d64098f60d4a73b653d16bdfd",
       "format": "pdf",
       "pages": 4,
-      "textCharacters": 4024,
+      "textCharacters": 4030,
       "preview": "previews/browser-period-report-customer-pt.png"
     },
     {
       "file": "browser-print/EXAMPLE-browser-period-report-internal-pt-BR.pdf",
-      "sha256": "b92e0e160776c15134360f5c48666259ccf7cae133068b7e9c08dd45632d8f92",
+      "sha256": "15393e3e28845c538800e21bdb8b94ab1297a506a2cae504877dfeca80e0f272",
       "format": "pdf",
       "pages": 6,
       "textCharacters": 6289,
@@ -897,7 +897,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-invoice-pt-BR.pdf",
-      "sha256": "3dbdcf455d4f5da7d196a6bef88d14e931ea819b18e5b505785aa94742047683",
+      "sha256": "58a61c1e66d81cbf4353f65199e40b3dbda6a8d3224b536f1f4eec712cc41ae2",
       "format": "pdf",
       "pages": 2,
       "textCharacters": 1433,
@@ -905,7 +905,7 @@
     },
     {
       "file": "browser-print/EXAMPLE-browser-supplier-report-pt-BR.pdf",
-      "sha256": "6ebdc19d1360d8191c4493eb182ab5b7b5e8775af6e97a241e9b0c91e07282ca",
+      "sha256": "b85037bbcb979367fbd9d036d1e3bd97ff0fc6eec87b9b86c1c26023b447c607",
       "format": "pdf",
       "pages": 1,
       "textCharacters": 358,

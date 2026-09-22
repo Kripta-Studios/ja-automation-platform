@@ -465,7 +465,8 @@ function html(
   const toc = sections
     .map((match) => {
       const anchor = anchorFor(match[1]);
-      return `<li><a href="#${anchor}">${inline(match[1])}</a></li>`;
+      const label = match[1].replace(/^\d+\.\s+/u, '');
+      return `<li><a href="#${anchor}">${inline(label)}</a></li>`;
     })
     .join('');
   const captureLabel =

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { visibleEnglishLeftovers } from './support/visible-locale-audit';
 import { createDatabase } from '@ja/database';
 import { randomUUID } from 'node:crypto';
 import { e2eCredentials, portal, signIn } from './auth.js';
@@ -75,6 +76,8 @@ test('seven personas see real accessible routes in EN, ES, and PT-BR', async ({
     },
   ];
   const checks: Array<{ persona: string; locale: Locale; route: string; status: number }> = [];
+  const textFindings: Array<{ persona: string; locale: Locale; route: string; text: string[] }> =
+    [];
   for (const entry of matrix) {
     const context = await browser.newContext({
       locale: 'en-US',
@@ -98,6 +101,8 @@ test('seven personas see real accessible routes in EN, ES, and PT-BR', async ({
             await expect(invoiced).toBeVisible();
             expect((await invoiced.innerText()).trim()).toMatch(/,\d{2}\b/);
           }
+          const text = await visibleEnglishLeftovers(page, locale);
+          if (text.length) textFindings.push({ persona: entry.persona, locale, route, text });
           checks.push({ persona: entry.persona, locale, route, status: 200 });
         }
         if (entry.availability) {
@@ -149,6 +154,8 @@ test('seven personas see real accessible routes in EN, ES, and PT-BR', async ({
           await expect(page.locator('main').first()).toBeVisible();
           if (route === '/help')
             await expect(page.getByRole('heading', { name: helpHeadings[locale] })).toBeVisible();
+          const text = await visibleEnglishLeftovers(page, locale);
+          if (text.length) textFindings.push({ persona: entry.persona, locale, route, text });
           checks.push({ persona: entry.persona, locale, route, status: 200 });
         }
       }
@@ -157,10 +164,11 @@ test('seven personas see real accessible routes in EN, ES, and PT-BR', async ({
     }
   }
   await info.attach('locale-persona-routes.json', {
-    body: JSON.stringify({ checks }, null, 2),
+    body: JSON.stringify({ checks, textFindings }, null, 2),
     contentType: 'application/json',
   });
   expect(checks).toHaveLength(105);
+  expect(textFindings).toEqual([]);
 });
 
 test('the portal locale controls accessible browser validation, not the browser language', async ({

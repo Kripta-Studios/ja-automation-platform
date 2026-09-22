@@ -21,8 +21,8 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
       body: 'Registra las horas de este proyecto/fecha. Entra en el portal de J&A Automation para revisar el registro actual.',
     },
     pt: {
-      subject: 'Lembrete de registo de horas em falta',
-      body: 'Registe as horas deste projeto/data. Entre no portal J&A Automation para rever o registo atual.',
+      subject: 'Lembrete de horas pendentes',
+      body: 'Registre as horas deste projeto/data. Entre no portal J&A Automation para revisar o registro atual.',
     },
   },
   approval_requested_time: {
@@ -36,7 +36,7 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
     },
     pt: {
       subject: 'Pedido de aprovação de horas',
-      body: 'Reveja o registo de horas enviado no portal J&A Automation.',
+      body: 'Revise o registro de horas enviado no portal J&A Automation.',
     },
   },
   approval_returned_time: {
@@ -49,8 +49,8 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
       body: 'Revisa el motivo y envía el registro de horas corregido en el portal de J&A Automation.',
     },
     pt: {
-      subject: 'Registo de horas devolvido',
-      body: 'Reveja o motivo e envie o registo de horas corrigido no portal J&A Automation.',
+      subject: 'Registro de horas devolvido',
+      body: 'Revise o motivo e envie o registro de horas corrigido no portal J&A Automation.',
     },
   },
   approval_requested_expense: {
@@ -64,7 +64,7 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
     },
     pt: {
       subject: 'Pedido de aprovação de despesa',
-      body: 'Reveja a despesa enviada no portal J&A Automation.',
+      body: 'Revise a despesa enviada no portal J&A Automation.',
     },
   },
   approval_returned_expense: {
@@ -78,7 +78,7 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
     },
     pt: {
       subject: 'Despesa devolvida',
-      body: 'Reveja o motivo e envie a despesa corrigida no portal J&A Automation.',
+      body: 'Revise o motivo e envie a despesa corrigida no portal J&A Automation.',
     },
   },
   approval_requested_daily: {
@@ -92,7 +92,7 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
     },
     pt: {
       subject: 'Pedido de aprovação de relatório diário',
-      body: 'Reveja o relatório diário enviado no portal J&A Automation.',
+      body: 'Revise o relatório diário enviado no portal J&A Automation.',
     },
   },
   approval_returned_daily: {
@@ -106,7 +106,7 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
     },
     pt: {
       subject: 'Relatório diário devolvido',
-      body: 'Reveja o motivo e envie o relatório diário corrigido no portal J&A Automation.',
+      body: 'Revise o motivo e envie o relatório diário corrigido no portal J&A Automation.',
     },
   },
   approval_requested_technical: {
@@ -120,7 +120,7 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
     },
     pt: {
       subject: 'Pedido de aprovação de relatório técnico',
-      body: 'Reveja o relatório técnico enviado no portal J&A Automation.',
+      body: 'Revise o relatório técnico enviado no portal J&A Automation.',
     },
   },
   approval_returned_technical: {
@@ -134,7 +134,7 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
     },
     pt: {
       subject: 'Relatório técnico devolvido',
-      body: 'Reveja o motivo e envie o relatório técnico corrigido no portal J&A Automation.',
+      body: 'Revise o motivo e envie o relatório técnico corrigido no portal J&A Automation.',
     },
   },
   period_ready: {
@@ -147,8 +147,8 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
       body: 'Un periodo de facturación está listo para revisar en el portal de J&A Automation.',
     },
     pt: {
-      subject: 'Período de faturação pronto',
-      body: 'Um período de faturação está pronto para revisão no portal J&A Automation.',
+      subject: 'Período de faturamento pronto',
+      body: 'Um período de faturamento está pronto para revisão no portal J&A Automation.',
     },
   },
   period_blocked: {
@@ -161,8 +161,8 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
       body: 'Un periodo de facturación está bloqueado y necesita revisión en el portal de J&A Automation.',
     },
     pt: {
-      subject: 'Período de faturação bloqueado',
-      body: 'Um período de faturação está bloqueado e precisa de revisão no portal J&A Automation.',
+      subject: 'Período de faturamento bloqueado',
+      body: 'Um período de faturamento está bloqueado e precisa de revisão no portal J&A Automation.',
     },
   },
   signature_outstanding: {
@@ -176,7 +176,7 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
     },
     pt: {
       subject: 'Assinatura do cliente pendente',
-      body: 'A aprovação do cliente continua pendente para um relatório de período. Reveja-o no portal J&A Automation.',
+      body: 'A aprovação do cliente continua pendente para um relatório de período. Revise-o no portal J&A Automation.',
     },
   },
   invoice_overdue: {
@@ -190,7 +190,7 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
     },
     pt: {
       subject: 'Fatura vencida',
-      body: 'Uma fatura está vencida. Reveja o registo atual no portal J&A Automation.',
+      body: 'Uma fatura está vencida. Revise o registro atual no portal J&A Automation.',
     },
   },
   missing_receipt: {
@@ -203,8 +203,8 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
       body: 'Añade el recibo requerido al gasto en el portal de J&A Automation.',
     },
     pt: {
-      subject: 'Recibo em falta',
-      body: 'Adicione o recibo necessário ao registo da despesa no portal J&A Automation.',
+      subject: 'Comprovante ausente',
+      body: 'Adicione o comprovante necessário ao registro da despesa no portal J&A Automation.',
     },
   },
   budget_exception: {
@@ -246,7 +246,7 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
     },
     pt: {
       subject: 'O estado da sua liquidação mudou',
-      body: 'O estado da sua liquidação mudou. Reveja o seu registo de pagamentos no portal J&A Automation.',
+      body: 'O estado da sua liquidação mudou. Revise o seu registro de pagamentos no portal J&A Automation.',
     },
   },
   worker_payment_status: {
@@ -260,7 +260,7 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
     },
     pt: {
       subject: 'O estado do seu pagamento mudou',
-      body: 'O estado do seu pagamento mudou. Reveja o registo da despesa no portal J&A Automation.',
+      body: 'O estado do seu pagamento mudou. Revise o registro da despesa no portal J&A Automation.',
     },
   },
   assignment_published: {
@@ -274,7 +274,7 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
     },
     pt: {
       subject: 'Atribuição ao projeto atualizada',
-      body: 'A sua atribuição ao projeto foi atualizada. Entre no portal J&A Automation para a rever.',
+      body: 'A sua atribuição ao projeto foi atualizada. Entre no portal J&A Automation para revisá-la.',
     },
   },
   report_submitted: {
@@ -287,8 +287,8 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
       body: 'Un informe está pendiente de revisión. Entra en el portal de J&A Automation para revisar el registro actual.',
     },
     pt: {
-      subject: 'Relatório a aguardar revisão',
-      body: 'Um relatório aguarda revisão. Entre no portal J&A Automation para rever o registo atual.',
+      subject: 'Relatório aguardando revisão',
+      body: 'Um relatório aguarda revisão. Entre no portal J&A Automation para revisar o registro atual.',
     },
   },
   report_approved: {
@@ -302,7 +302,7 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
     },
     pt: {
       subject: 'Relatório aprovado',
-      body: 'Um relatório foi aprovado. Entre no portal J&A Automation para rever o registo atual.',
+      body: 'Um relatório foi aprovado. Entre no portal J&A Automation para revisar o registro atual.',
     },
   },
   report_needs_changes: {
@@ -316,7 +316,7 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
     },
     pt: {
       subject: 'Relatório devolvido para alterações',
-      body: 'Um relatório foi devolvido para alterações. Entre no portal J&A Automation para rever o motivo.',
+      body: 'Um relatório foi devolvido para alterações. Entre no portal J&A Automation para revisar o motivo.',
     },
   },
 };
@@ -332,12 +332,13 @@ const fallback: Readonly<Record<NotificationLocale, CopyPair>> = {
   },
   pt: {
     subject: 'Notificação da J&A Automation',
-    body: 'Entre no portal J&A Automation para rever o registo atual.',
+    body: 'Entre no portal J&A Automation para revisar o registro atual.',
   },
 };
 
 export function normalizeNotificationLocale(value: unknown): NotificationLocale {
-  return value === 'es' || value === 'pt' ? value : 'en';
+  const language = typeof value === 'string' ? value.trim().toLowerCase().split('-')[0] : '';
+  return language === 'es' || language === 'pt' ? language : 'en';
 }
 
 export function notificationCopy(

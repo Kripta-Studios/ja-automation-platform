@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { page } from '$app/stores';
+  import { onMount } from 'svelte';
+  import { datePresetRange } from '../ui/date-presets';
   import { base } from '$app/paths';
   import { TableRegion } from '../ui';
   import type { TableCardRow } from '../ui';
@@ -18,6 +21,20 @@
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
   } = $props();
 
+  let currentWeek = $state('');
+  onMount(() => {
+    currentWeek = datePresetRange('week').from;
+  });
+  function weekHref(week: string): string {
+    const params = new URLSearchParams($page.url.searchParams);
+    params.set('week', week);
+    // The selected week and register describe the same period after a week jump.
+    params.set('from', week);
+    params.set('to', shiftWeek(week, 6));
+    params.delete('edit');
+    params.delete('action');
+    return `${base}/app/time?${params}`;
+  }
   const displayMinutes = (value: number | null | undefined): string =>
     value === null || value === undefined ? '—' : hours(value);
   const expectedTotal = (
@@ -83,6 +100,15 @@
       <button type="submit">{translate('Open week')}</button>
     </form>
   </div>
+  <nav class="timesheet-week-navigation" aria-label={translate('Week of')}>
+    <a href={weekHref(shiftWeek(data.weekStart ?? '', -7))}>← {translate('Previous week')}</a>
+    {#if currentWeek}<a
+        href={weekHref(currentWeek)}
+        aria-current={data.weekStart === currentWeek ? 'date' : undefined}
+        >{translate('This week')}</a
+      >{/if}
+    <a href={weekHref(shiftWeek(data.weekStart ?? '', 7))}>{translate('Next week')} →</a>
+  </nav>
   <div class="timesheet-guide" aria-label={translate('How to read this timesheet')}>
     <div>
       <strong>{translate('Actual')}</strong><span>{translate('Minutes you really recorded.')}</span>
@@ -217,5 +243,38 @@
     text-decoration: underline;
     outline: 3px solid color-mix(in srgb, var(--ja-teal, #706e66) 25%, transparent);
     outline-offset: 2px;
+  }
+
+  .timesheet-week-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.75rem 0 1rem;
+  }
+  .timesheet-week-navigation a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--ja-control-border, #86877b);
+    border-radius: 0.5rem;
+    color: var(--ja-ink, #24251f);
+    text-decoration: none;
+    background: white;
+    font-size: 0.875rem;
+  }
+  .timesheet-week-navigation a[aria-current] {
+    background: var(--ja-canvas, #f6f6f1);
+    font-weight: 600;
+  }
+  .timesheet-week-navigation a:focus-visible {
+    outline: 2px solid var(--ja-accent, #2349b5);
+    outline-offset: 3px;
+  }
+  @media print {
+    .timesheet-week-navigation {
+      display: none;
+    }
   }
 </style>

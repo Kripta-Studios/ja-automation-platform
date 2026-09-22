@@ -86,15 +86,15 @@ describe('UI_PLAN shell integration', () => {
 
   it('covers UI_PLAN wording in the canonical ES/PT catalogs', () => {
     for (const value of [
-      "'Revenue cap': 'Límite de presupuesto (Cap)'",
+      "'Revenue cap': 'Límite de ingresos'",
       "'Daily rate': 'Tarifa diaria'",
       "'Fixed fee / milestones': 'Precio cerrado / Hitos'",
-      "'All streams': 'Todos los conceptos'",
+      "'All streams': 'Todos los flujos'",
       "'Open PDF': 'Abrir PDF'",
-      "'Revenue cap': 'Limite de orçamento (Cap)'",
+      "'Revenue cap': 'Limite de receita'",
       "'Daily rate': 'Taxa diária'",
       "'Fixed fee / milestones': 'Preço fechado / Marcos'",
-      "'All streams': 'Todos os conceitos'",
+      "'All streams': 'Todos os fluxos'",
       "'Open PDF': 'Abrir PDF'",
     ]) {
       expect(catalog).toContain(value);

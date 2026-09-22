@@ -408,7 +408,7 @@ const exact: Record<string, readonly [string, string]> = {
   'Delete Skill': ['Eliminar competencia', 'Excluir competência'],
   'open assignment': ['abrir asignación', 'abrir atribuição'],
   'workspace access': ['acceso al espacio de trabajo', 'acesso ao espaço de trabalho'],
-  'Actual recorded': ['Tiempo real registrado', 'Tempo real registrado'],
+  'Actual recorded': ['Horas reales registradas', 'Horas trabalhadas registradas'],
   'Customer period report': [
     'Informe del período para el cliente',
     'Relatório do período para o cliente',
@@ -660,7 +660,7 @@ const exact: Record<string, readonly [string, string]> = {
     'Todo incluido y reembolsable combinados',
     'Tudo incluído e reembolsável combinados',
   ],
-  'Approved actual time': ['Tiempo real aprobado', 'Tempo real aprovado'],
+  'Approved actual time': ['Horas reales aprobadas', 'Horas trabalhadas aprovadas'],
   'Approved estimate': ['Estimación aprobada', 'Estimativa aprovada'],
   'Approved hours': ['Horas aprobadas', 'Horas aprovadas'],
   'Approved unbilled WIP': [
@@ -828,8 +828,8 @@ const exact: Record<string, readonly [string, string]> = {
     'Não há registros técnicos neste período.',
   ],
   'No time entries in this period.': [
-    'No hay registros de tiempo en este período.',
-    'Não há registros de tempo neste período.',
+    'No hay registros de horas en este período.',
+    'Não há registros de horas neste período.',
   ],
   'Not approved': ['No aprobado', 'Não aprovado'],
   'Not configured': ['No configurado', 'Não configurado'],
@@ -849,7 +849,7 @@ const exact: Record<string, readonly [string, string]> = {
   'Payment amount': ['Importe del pago', 'Valor do pagamento'],
   'Payment reference': ['Referencia del pago', 'Referência do pagamento'],
   Pending: ['Pendiente', 'Pendente'],
-  'Pending actual time': ['Tiempo real pendiente', 'Tempo real pendente'],
+  'Pending actual time': ['Horas reales pendientes', 'Horas trabalhadas pendentes'],
   'Pending estimate': ['Estimación pendiente', 'Estimativa pendente'],
   'Pending pay:': ['Pago pendiente:', 'Pagamento pendente:'],
   'Percentage rule active': ['Regla porcentual activa', 'Regra percentual ativa'],
@@ -956,10 +956,10 @@ const exact: Record<string, readonly [string, string]> = {
     'Revisión de datos económicos del tiempo',
     'Revisão dos dados econômicos do tempo',
   ],
-  'Time entry': ['Registro de tiempo', 'Registro de tempo'],
+  'Time entry': ['Registro de horas', 'Registro de horas'],
   'Time record(s) have no matching compensation rule and require Finance review.': [
-    'Hay registros de tiempo sin regla de compensación coincidente que requieren revisión financiera.',
-    'Há registros de tempo sem regra de remuneração correspondente que exigem revisão financeira.',
+    'Hay registros de horas sin regla de compensación coincidente que requieren revisión financiera.',
+    'Há registros de horas sem regra de remuneração correspondente que exigem revisão financeira.',
   ],
   'Tools / consumables': ['Herramientas / consumibles', 'Ferramentas / consumíveis'],
   Total: ['Importe total', 'Total geral'],
@@ -1075,8 +1075,8 @@ const extraExact: Record<string, readonly [string, string]> = {
   ],
   'Forecasts use actual records first and only use configured planning data for the remaining work. They never create actual time or billing sources.':
     [
-      'Las previsiones usan primero los registros reales y solo utilizan datos de planificación configurados para el trabajo restante. Nunca crean tiempo real ni fuentes de facturación.',
-      'As previsões usam primeiro os registros reais e só usam dados de planejamento configurados para o trabalho restante. Nunca criam tempo real nem fontes de faturamento.',
+      'Las previsiones usan primero los registros reales y solo utilizan datos de planificación configurados para el trabajo restante. Nunca crean horas reales ni fuentes de facturación.',
+      'As previsões usam primeiro os registros reais e só usam dados de planejamento configurados para o trabalho restante. Nunca criam horas trabalhadas nem fontes de faturamento.',
     ],
   'Identify the plant, line, station, and automation equipment involved.': [
     'Identifica la planta, la línea, la estación y el equipo de automatización implicados.',
@@ -1179,8 +1179,8 @@ const extraExact: Record<string, readonly [string, string]> = {
       'Isso cria apenas um rascunho revisável. Aprovação, emissão, envio e pagamento continuam sendo ações financeiras explícitas e nunca ocorrem a partir de Imprimir relatório.',
     ],
   'This is planning context; actual time remains independently recorded.': [
-    'Este es un contexto de planificación; el tiempo real sigue registrándose de forma independiente.',
-    'Este é um contexto de planejamento; o tempo real continua sendo registrado de forma independente.',
+    'Este es un contexto de planificación; las horas reales siguen registrándose de forma independiente.',
+    'Este é um contexto de planejamento; as horas trabalhadas continuam sendo registradas de forma independente.',
   ],
   'This report must be a draft or need changes before it can autosave': [
     'Este informe debe estar en borrador o necesitar cambios antes de poder guardarse automáticamente',
@@ -1854,8 +1854,8 @@ const actionExact: Record<string, readonly [string, string]> = {
     'As datas não coincidem com a cadência deste fluxo (por exemplo, semanal é segunda a domingo). Escolha o período correto; o aplicativo não o substituirá automaticamente.',
   ],
   'action.billing.readiness.pendingTimeApproval': [
-    'Hay registros de tiempo de este período pendientes de aprobación. Apruébalos o recházalos en Aprobaciones y vuelve a crear el borrador.',
-    'Há registros de tempo deste período pendentes de aprovação. Aprove ou rejeite-os em Aprovações e crie o rascunho novamente.',
+    'Hay registros de horas de este período pendientes de aprobación. Apruébalos o recházalos en Aprobaciones y vuelve a crear el borrador.',
+    'Há registros de horas deste período pendentes de aprovação. Aprove ou rejeite-os em Aprovações e crie o rascunho novamente.',
   ],
   'action.billing.readiness.pendingExpenseApproval': [
     'Hay gastos de este período pendientes de aprobación. Apruébalos o recházalos en Aprobaciones y vuelve a crear el borrador.',
@@ -2121,14 +2121,14 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Borrador de informe PLC guardado.',
     'Rascunho de relatório PLC salvo.',
   ],
-  'action.time.draftSaved': ['Borrador de tiempo guardado.', 'Rascunho de tempo salvo.'],
-  'action.time.draftUpdated': ['Borrador de tiempo actualizado.', 'Rascunho de tempo atualizado.'],
+  'action.time.draftSaved': ['Borrador de horas guardado.', 'Rascunho de horas salvo.'],
+  'action.time.draftUpdated': ['Borrador de horas actualizado.', 'Rascunho de horas atualizado.'],
   'action.time.layoutCopied': ['Estructura de tiempo copiada.', 'Layout de tempo copiado.'],
   'action.time.removedOrVoided': [
-    'Registro de tiempo eliminado o anulado.',
-    'Registro de tempo excluído ou anulado.',
+    'Registro de horas eliminado o anulado.',
+    'Registro de horas excluído ou anulado.',
   ],
-  'action.time.submitted': ['Registro de tiempo enviado.', 'Registro de tempo enviado.'],
+  'action.time.submitted': ['Registro de horas enviado.', 'Registro de horas enviado.'],
 };
 
 const validationEntities: Record<string, readonly [string, string]> = {
@@ -2217,9 +2217,9 @@ const validationEntities: Record<string, readonly [string, string]> = {
   technicalChangeDecision: ['la decisión del cambio técnico', 'a decisão da alteração técnica'],
   technicalChangeFields: ['el cambio técnico', 'a alteração técnica'],
   technicalReportFields: ['el informe técnico', 'o relatório técnico'],
-  timeFields: ['el registro de tiempo', 'o registro de tempo'],
-  timeRecord: ['el registro de tiempo', 'o registro de tempo'],
-  timeSourceWeekDifferent: ['la semana del registro de tiempo', 'a semana do registro de tempo'],
+  timeFields: ['el registro de horas', 'o registro de horas'],
+  timeRecord: ['el registro de horas', 'o registro de horas'],
+  timeSourceWeekDifferent: ['la semana del registro de horas', 'a semana do registro de horas'],
   workerProfile: ['el perfil del trabajador', 'o perfil do colaborador'],
   workerSkillFields: ['la competencia del trabajador', 'a competência do colaborador'],
   workerSkillIdsRequired: ['las competencias del trabajador', 'as competências do colaborador'],
@@ -2277,8 +2277,8 @@ function validationMessage(locale: 'es' | 'pt', suffix: string): string {
   }
   if (suffix === 'timeSourceWeekDifferent') {
     return locale === 'es'
-      ? 'La semana del registro de tiempo debe coincidir con la semana seleccionada.'
-      : 'A semana do registro de tempo deve coincidir com a semana selecionada.';
+      ? 'La semana del registro de horas debe coincidir con la semana seleccionada.'
+      : 'A semana do registro de horas deve coincidir com a semana selecionada.';
   }
   if (suffix === 'milestoneDecisionType') {
     return locale === 'es'

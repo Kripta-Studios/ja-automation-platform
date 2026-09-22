@@ -6,6 +6,7 @@
   import { ResponsiveSheet, StatusBadge } from '../ui';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import FilterSummary from '../ui/FilterSummary.svelte';
+  import DatePresets from '../ui/DatePresets.svelte';
   import { normalizePortalLocale } from '../../portal-i18n';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
@@ -369,29 +370,60 @@
   );
   const activeFilterItems = $derived(
     [
-      search ? { label: translate('Search register'), value: search } : null,
+      search
+        ? {
+            removeHref: registerHref({ q: '' }),
+            label: translate('Search register'),
+            value: search,
+          }
+        : null,
       projectFilter
         ? {
+            removeHref: registerHref({ project: '' }),
             label: translate('Project'),
-            value:
+            value: String(
               availableProjects.find((project) => String(project.id) === projectFilter)?.name ??
-              projectFilter,
+                projectFilter,
+            ),
           }
         : null,
       statusFilter
-        ? { label: translate('Status'), value: reportFilterStatusLabel(statusFilter) }
+        ? {
+            removeHref: registerHref({ status: '' }),
+            label: translate('Status'),
+            value: reportFilterStatusLabel(statusFilter),
+          }
         : null,
       workerFilter
         ? {
+            removeHref: registerHref({ worker: '' }),
             label: translate('Worker'),
             value: workerOptions.find(([id]) => id === workerFilter)?.[1] ?? workerFilter,
           }
         : null,
-      clientFilter ? { label: translate('Client'), value: clientFilter } : null,
-      fromFilter ? { label: translate('From'), value: fromFilter } : null,
-      toFilter ? { label: translate('To'), value: toFilter } : null,
-      order !== 'newest' ? { label: translate('Sort by'), value: reportOrderLabel(order) } : null,
-    ].filter((item): item is { label: string; value: string } => item !== null),
+      clientFilter
+        ? {
+            removeHref: registerHref({ client: '' }),
+            label: translate('Client'),
+            value: clientFilter,
+          }
+        : null,
+      fromFilter
+        ? { removeHref: registerHref({ from: '' }), label: translate('From'), value: fromFilter }
+        : null,
+      toFilter
+        ? { removeHref: registerHref({ to: '' }), label: translate('To'), value: toFilter }
+        : null,
+      order !== 'newest'
+        ? {
+            onremove: () => {
+              order = 'newest';
+            },
+            label: translate('Sort by'),
+            value: reportOrderLabel(order),
+          }
+        : null,
+    ].filter((item) => item !== null),
   );
 
   function rowText(row: Row, key: string): string {
@@ -597,7 +629,8 @@
     if (client) params.set('client', client);
     if (from) params.set('from', from);
     if (to) params.set('to', to);
-    if (queryText) params.set('q', queryText);
+    params.set('q', queryText);
+    if ($page.url.searchParams.has('lang')) params.set('lang', $page.url.searchParams.get('lang')!);
     return `${base}/app/reports?${params.toString()}`;
   }
 </script>
@@ -793,6 +826,12 @@
       </div>
     </SectionCard>
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
+    <DatePresets
+      from={fromFilter}
+      to={toFilter}
+      href={(range) => registerHref(range)}
+      {translate}
+    />
     <FilterSummary
       items={activeFilterItems}
       resultCount={visibleResultCount}

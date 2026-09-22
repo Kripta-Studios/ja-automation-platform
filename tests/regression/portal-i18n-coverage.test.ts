@@ -286,7 +286,7 @@ describe('portal i18n coverage contract', () => {
         'Relatório do período do projeto',
       ],
       ['Global profile', 'Perfil global', 'Perfil global'],
-      ['Log actual time', 'Registrar tiempo real', 'Registrar tempo real'],
+      ['Log actual time', 'Registrar horas reales', 'Registrar horas trabalhadas'],
       ['Expected minutes / day', 'Minutos previstos / día', 'Minutos esperados / dia'],
       ['Close period start', 'Cerrar el inicio del período', 'Fechar o início do período'],
       ['Close period end', 'Cerrar el final del período', 'Fechar o fim do período'],
@@ -308,12 +308,12 @@ describe('portal i18n coverage contract', () => {
 
   it('keeps inherited report and action labels natural in ES and PT-BR', () => {
     const expected: ReadonlyArray<readonly [string, string, string]> = [
-      ['ACTUAL TIME', 'TIEMPO REAL', 'TEMPO REAL'],
+      ['ACTUAL TIME', 'HORAS REALES', 'HORAS TRABALHADAS'],
       ['Daily report required', 'Informe diario obligatorio', 'Relatório diário obrigatório'],
       ['PENDING REPORTS', 'INFORMES PENDIENTES', 'RELATÓRIOS PENDENTES'],
       ['PROJECT REPORT', 'INFORME DEL PROYECTO', 'RELATÓRIO DO PROJETO'],
       ['Record expense', 'Registrar gasto', 'Registrar despesa'],
-      ['Recorded actual time', 'Tiempo real registrado', 'Tempo real registrado'],
+      ['Recorded actual time', 'Horas reales registradas', 'Horas trabalhadas registradas'],
       ['Save daily report', 'Guardar informe diario', 'Salvar relatório diário'],
     ];
     for (const [key, es, pt] of expected) {

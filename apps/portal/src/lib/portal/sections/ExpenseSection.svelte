@@ -5,6 +5,7 @@
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import { ResponsiveSheet, SectionCard, StatusBadge } from '../ui';
   import FilterSummary from '../ui/FilterSummary.svelte';
+  import DatePresets from '../ui/DatePresets.svelte';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { money } from '../portal-format';
   import {
@@ -198,6 +199,7 @@
   const advancedFilters = $derived.by(() =>
     [
       {
+        removeHref: registerHref({ worker: '' }),
         label: translate('Worker'),
         value: workerFilter
           ? String(
@@ -205,10 +207,11 @@
             )
           : '',
       },
-      { label: translate('Client'), value: clientFilter },
-      { label: translate('From'), value: fromFilter },
-      { label: translate('To'), value: toFilter },
+      { removeHref: registerHref({ client: '' }), label: translate('Client'), value: clientFilter },
+      { removeHref: registerHref({ from: '' }), label: translate('From'), value: fromFilter },
+      { removeHref: registerHref({ to: '' }), label: translate('To'), value: toFilter },
       {
+        removeHref: registerHref({ category: '' }),
         label: translate('Category'),
         value: categoryFilter
           ? translate(
@@ -216,8 +219,13 @@
             )
           : '',
       },
-      { label: translate('Currency'), value: currencyFilter },
       {
+        removeHref: registerHref({ currency: '' }),
+        label: translate('Currency'),
+        value: currencyFilter,
+      },
+      {
+        removeHref: registerHref({ receipt: '' }),
         label: translate('Receipt evidence'),
         value: receiptFilter
           ? translate(
@@ -226,6 +234,7 @@
           : '',
       },
       {
+        removeHref: registerHref({ reimbursement: '' }),
         label: translate('Reimbursement status'),
         value:
           reimbursementFilter === 'pending'
@@ -239,8 +248,9 @@
   const activeFilters = $derived.by(() => {
     const project = availableProjects.find((row) => String(row.id) === projectFilter);
     return [
-      { label: translate('Search'), value: search.trim() },
+      { removeHref: registerHref({ q: '' }), label: translate('Search'), value: search.trim() },
       {
+        removeHref: registerHref({ project: '' }),
         label: translate('Project'),
         value: projectFilter
           ? project
@@ -249,6 +259,7 @@
           : '',
       },
       {
+        removeHref: registerHref({ status: '' }),
         label: translate('Status'),
         value:
           statusFilter === 'attention'
@@ -373,7 +384,8 @@
     if (currency) params.set('currency', currency);
     if (from) params.set('from', from);
     if (to) params.set('to', to);
-    if (queryText) params.set('q', queryText);
+    params.set('q', queryText);
+    if ($page.url.searchParams.has('lang')) params.set('lang', $page.url.searchParams.get('lang')!);
     if (status) params.set('status', status);
     if (reimbursement && canViewReimbursement) params.set('reimbursement', reimbursement);
     if (receipt) params.set('receipt', receipt);
@@ -632,6 +644,12 @@
       </div>
     </SectionCard>
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
+    <DatePresets
+      from={fromFilter}
+      to={toFilter}
+      href={(range) => registerHref(range)}
+      {translate}
+    />
     <FilterSummary
       items={activeFilters}
       resultCount={visibleRecords.length}

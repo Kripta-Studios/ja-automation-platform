@@ -1,7 +1,22 @@
-import { extractedSectionCoverageKeys } from './coverage-literal-overrides';
+import {
+  extractedSectionCoverageKeys,
+  explicitCoverageLiteralOverrides,
+} from './coverage-literal-overrides';
 
 /** Generated from literal translation calls and action message keys. Keep this inventory in sync with the source. */
 export const PORTAL_LITERAL_KEYS = [
+  'Remove filter',
+  'Quick date filters',
+  'This week',
+  'This month',
+  'Last month',
+  'Previous week',
+  'Next week',
+  'Go to section',
+  'Find a section',
+  'No matching sections',
+  'Search the sections available to your profile.',
+
   'Help',
   'Finance Overview',
   'Report: {title}',
@@ -1425,6 +1440,7 @@ export const PORTAL_LITERAL_KEYS = [
   'workspace access',
   'you@company.com',
   ...extractedSectionCoverageKeys,
+  ...Object.keys(explicitCoverageLiteralOverrides),
 ] as const;
 
 export const PORTAL_ACTION_KEYS = [

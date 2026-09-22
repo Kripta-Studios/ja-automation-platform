@@ -1,9 +1,11 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
+  import { SvelteSet } from 'svelte/reactivity';
   import { page } from '$app/stores';
   import { portalLocales, type PortalLocale } from './portal-i18n';
   import { translateControlledValue } from './i18n/controlled-values';
   import { accountNavigationFor, portalLandingForRole, type NavItem } from './portal-navigation';
+  import SectionNavigator from './portal/ui/SectionNavigator.svelte';
   import PortalNavIcon from './PortalNavIcon.svelte';
 
   type ChromeData = {
@@ -110,6 +112,22 @@
       security: securityAdmin,
     }),
   );
+  const sectionDestinations = $derived.by(() => {
+    const visible = [
+      ...navigation,
+      ...secondaryNavigation,
+      ...(showAdmin && (isManager || isFinance) ? visibleAdmin : []),
+      ...(showAdmin && canAudit ? securityAdmin : []),
+      { section: 'help', label: 'Help', icon: '?' },
+    ];
+    const seen = new SvelteSet<string>();
+    return visible.filter((item) => {
+      const href = itemHref(item);
+      if (seen.has(href)) return false;
+      seen.add(href);
+      return true;
+    });
+  });
   const roleLabel = (value: string | undefined): string => {
     const normalized =
       value === 'owner_admin'
@@ -447,6 +465,15 @@
     {#if queue > 0}<span class="queue">{queue} {translate('queued')}</span>{/if}
     {#if syncMessage}<span class="sync-message" role="status">{translate(syncMessage)}</span>{/if}
   </div>
+  <SectionNavigator
+    items={sectionDestinations}
+    itemHref={(item) => {
+      const target = new URL(itemHref(item), $page.url);
+      target.searchParams.set('lang', locale);
+      return `${target.pathname}${target.search}`;
+    }}
+    {translate}
+  />
   <a
     href="https://webmail.j-aautomation.com/"
     target="_blank"

@@ -114,7 +114,7 @@ const generatedCoverageLiterals: Record<string, readonly [string, string]> = {
   ],
   'Approve milestone': ['Approve hito', 'Approve marco'],
   'Approve report': ['Approve informe', 'Approve relatório'],
-  'Approved actual time': ['Tiempo real aprobado', 'Tempo real aprovado'],
+  'Approved actual time': ['Horas reales aprobadas', 'Horas trabalhadas aprovadas'],
   'Approved and submitted field time': [
     'aprobado and enviado field tiempo',
     'aprovado and enviado field tempo',
@@ -489,8 +489,8 @@ const generatedCoverageLiterals: Record<string, readonly [string, string]> = {
   ],
   'Forecasts use actual records first and only use configured planning data for the remaining work. They never create actual time or billing sources.':
     [
-      'Las previsiones usan primero los registros reales y solo utilizan datos de planificación configurados para el trabajo restante. Nunca crean tiempo real ni fuentes de facturación.',
-      'As previsões usam primeiro os registros reais e só usam dados de planejamento configurados para o trabalho restante. Nunca criam tempo real nem fontes de faturamento.',
+      'Las previsiones usan primero los registros reales y solo utilizan datos de planificación configurados para el trabajo restante. Nunca crean horas reales ni fuentes de facturación.',
+      'As previsões usam primeiro os registros reais e só usam dados de planejamento configurados para o trabalho restante. Nunca criam horas trabalhadas nem fontes de faturamento.',
     ],
   'Fri minutes': ['Fri minutos', 'Fri minutos'],
   Fuel: ['Combustible', 'Combustível'],
@@ -769,8 +769,8 @@ const generatedCoverageLiterals: Record<string, readonly [string, string]> = {
     'Não há dados econômicos do tempo neste período.',
   ],
   'No time entries in this period.': [
-    'No hay registros de tiempo en este período.',
-    'Não há registros de tempo neste período.',
+    'No hay registros de horas en este período.',
+    'Não há registros de horas neste período.',
   ],
   'Non-billable': ['No facturable', 'Não faturável'],
   None: ['Ninguno', 'Nenhum'],
@@ -883,7 +883,7 @@ const generatedCoverageLiterals: Record<string, readonly [string, string]> = {
   'Payment method': ['pago method', 'pagamento method'],
   'Payment reference': ['Referencia del pago', 'Referência do pagamento'],
   'Payment terms (days)': ['pago terms (days)', 'pagamento terms (days)'],
-  'Pending actual time': ['Tiempo real pendiente', 'Tempo real pendente'],
+  'Pending actual time': ['Horas reales pendientes', 'Horas trabalhadas pendentes'],
   'Pending estimate': ['Estimación pendiente', 'Estimativa pendente'],
   'Pending pay:': ['Pago pendiente:', 'Pagamento pendente:'],
   'Per diem': ['Dieta', 'Diária'],
@@ -1280,8 +1280,8 @@ const generatedCoverageLiterals: Record<string, readonly [string, string]> = {
       'Isso cria apenas um rascunho revisável. Aprovação, emissão, envio e pagamento continuam sendo ações financeiras explícitas e nunca ocorrem a partir de Imprimir relatório.',
     ],
   'This is planning context; actual time remains independently recorded.': [
-    'Este es un contexto de planificación; el tiempo real sigue registrándose de forma independiente.',
-    'Este é um contexto de planejamento; o tempo real continua sendo registrado de forma independente.',
+    'Este es un contexto de planificación; las horas reales siguen registrándose de forma independiente.',
+    'Este é um contexto de planejamento; as horas trabalhadas continuam sendo registradas de forma independente.',
   ],
   'This report must be a draft or need changes before it can autosave': [
     'Este informe debe estar en borrador o necesitar cambios antes de poder guardarse automáticamente',

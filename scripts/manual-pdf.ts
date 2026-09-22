@@ -13,7 +13,7 @@ import { readManualSourceIdentity } from './manual-source-identity.ts';
 
 type Capture = Readonly<{
   persona: ManualPersona;
-  locale: 'en' | 'pt';
+  locale: 'en' | 'pt' | 'es';
   key: string;
   route: string;
   path: string;
@@ -117,7 +117,7 @@ export function loadFreshManualCapture(): {
   for (const shot of manifest.screenshots) {
     if (
       !manualPersonas.includes(shot.persona) ||
-      !['en', 'pt'].includes(shot.locale) ||
+      !['en', 'pt', 'es'].includes(shot.locale) ||
       !shot.key?.trim() ||
       !(
         shot.route?.startsWith('/app') ||
@@ -250,6 +250,11 @@ function markdown(value: string, renderCapture?: (persona: string, key: string) 
 }
 
 const captureCaptions: Record<string, Readonly<{ en: string; pt: string; es: string }>> = {
+  'section-navigator': {
+    en: 'Find an authorized section with the keyboard or the header shortcut.',
+    pt: 'Encontre uma seção autorizada pelo teclado ou pelo atalho do cabeçalho.',
+    es: 'Encuentra una sección autorizada con el teclado o el acceso de la cabecera.',
+  },
   'register-filters': {
     en: 'Register filters: primary controls and expandable secondary criteria',
     pt: 'Filtros do registro: controles principais e critérios secundários expansíveis',
@@ -396,7 +401,7 @@ function screenshotHtml(captures: readonly Capture[], locale: 'en' | 'pt' | 'es'
     locale === 'pt'
       ? 'Capturadas com login do perfil indicado em uma instância isolada; não mostram dados de clientes.'
       : locale === 'es'
-        ? 'Capturadas con el perfil indicado en una instancia aislada; las pantallas de ejemplo están en inglés y no muestran datos de clientes.'
+        ? 'Capturadas en español con el perfil indicado en una instancia aislada; no muestran datos de clientes.'
         : 'Captured with this role signed into an isolated application; no customer data is shown.';
   return `<section class="screens"><h2>${heading}</h2><p>${context}</p>${captures
     .map((shot) => figureHtml(shot, locale))
@@ -423,9 +428,7 @@ function html(
   const sourcePath = resolve(manualsDir, input.sourceName);
   if (!existsSync(sourcePath)) throw new Error(`Manual Markdown missing: ${input.sourceName}`);
   const availableShots = manifest.screenshots.filter(
-    (shot) =>
-      input.personas.includes(shot.persona) &&
-      shot.locale === (input.locale === 'es' ? 'en' : input.locale),
+    (shot) => input.personas.includes(shot.persona) && shot.locale === input.locale,
   );
   const sourceText = readFileSync(sourcePath, 'utf8');
   const headings = [...sourceText.matchAll(/^#{2,3}\s+(.+)$/gmu)];

@@ -11,6 +11,7 @@
   import TimesheetPanel from './TimesheetPanel.svelte';
   import TimeIntervalFields from '../ui/TimeIntervalFields.svelte';
   import FilterSummary from '../ui/FilterSummary.svelte';
+  import DatePresets from '../ui/DatePresets.svelte';
   import { localToday } from '../ui/time-entry-clock';
   import { canDeleteTimeDraft } from './time-entry-actions';
   import {
@@ -192,15 +193,25 @@
     const category = String(data.timeFilter?.category ?? '');
     return [
       {
+        removeHref: filterHref({ worker: '' }),
         label: translate('Worker'),
         value: workerId
           ? String(data.workers?.find((row) => String(row.id) === workerId)?.name ?? workerId)
           : '',
       },
-      { label: translate('Client'), value: clientFilter },
-      { label: translate('From'), value: String(data.timeFilter?.from ?? '') },
-      { label: translate('To'), value: String(data.timeFilter?.to ?? '') },
+      { removeHref: filterHref({ client: '' }), label: translate('Client'), value: clientFilter },
       {
+        removeHref: filterHref({ from: '' }),
+        label: translate('From'),
+        value: String(data.timeFilter?.from ?? ''),
+      },
+      {
+        removeHref: filterHref({ to: '' }),
+        label: translate('To'),
+        value: String(data.timeFilter?.to ?? ''),
+      },
+      {
+        removeHref: filterHref({ category: '' }),
         label: translate('Category'),
         value: category
           ? translate(filterCategories.find((item) => item.value === category)?.label ?? category)
@@ -212,8 +223,9 @@
     const projectId = String(data.timeFilter?.projectId ?? '');
     const project = availableProjects.find((row) => String(row.id) === projectId);
     return [
-      { label: translate('Search'), value: search.trim() },
+      { removeHref: filterHref({ q: '' }), label: translate('Search'), value: search.trim() },
       {
+        removeHref: filterHref({ project: '' }),
         label: translate('Project'),
         value: projectId
           ? project
@@ -222,6 +234,7 @@
           : '',
       },
       {
+        removeHref: filterHref({ status: '' }),
         label: translate('Status'),
         value:
           statusFilter === 'attention'
@@ -265,7 +278,8 @@
     if (client) params.set('client', client);
     if (from) params.set('from', from);
     if (to) params.set('to', to);
-    if (queryText) params.set('q', queryText);
+    params.set('q', queryText);
+    if ($page.url.searchParams.has('lang')) params.set('lang', $page.url.searchParams.get('lang')!);
     const query = params.toString();
     return `${base}/app/time${query ? `?${query}` : ''}`;
   }
@@ -465,6 +479,12 @@
     <div class="time-filter-actions">
       <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
     </div>
+    <DatePresets
+      from={String(data.timeFilter?.from ?? '')}
+      to={String(data.timeFilter?.to ?? '')}
+      href={(range) => filterHref(range)}
+      {translate}
+    />
     <FilterSummary
       items={activeFilters}
       resultCount={filteredRecords.length}

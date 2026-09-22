@@ -6,7 +6,12 @@
     onclear,
     translate = (key: string) => key,
   }: {
-    items: readonly Readonly<{ label: string; value: string }>[];
+    items: readonly Readonly<{
+      label: string;
+      value: string;
+      removeHref?: string;
+      onremove?: () => void;
+    }>[];
     resultCount?: number;
     clearHref?: string;
     onclear?: () => void;
@@ -29,7 +34,33 @@
   </div>
   {#if items.length}
     <ul aria-label={translate('Active filters')}>
-      {#each items as item}<li><span>{item.label}:</span> {item.value}</li>{/each}
+      {#each items as item}
+        <li>
+          {#if item.removeHref || item.onremove}
+            {#if item.removeHref}
+              <a
+                class="filter-chip"
+                href={item.removeHref}
+                onclick={item.onremove}
+                aria-label={`${translate('Remove filter')}: ${item.label}: ${item.value}`}
+              >
+                <span>{item.label}:</span>
+                {item.value}<b aria-hidden="true">×</b>
+              </a>
+            {:else}
+              <button
+                class="filter-chip"
+                type="button"
+                onclick={item.onremove}
+                aria-label={`${translate('Remove filter')}: ${item.label}: ${item.value}`}
+              >
+                <span>{item.label}:</span>
+                {item.value}<b aria-hidden="true">×</b>
+              </button>
+            {/if}
+          {:else}<span>{item.label}:</span> {item.value}{/if}
+        </li>
+      {/each}
     </ul>
   {/if}
 </div>
@@ -91,6 +122,22 @@
     border-radius: 0.5rem;
     background: var(--ja-canvas, #f6f6f1);
     overflow-wrap: anywhere;
+  }
+  .filter-summary li:has(.filter-chip) {
+    padding: 0;
+    border: 0;
+  }
+  .filter-summary .filter-chip {
+    gap: 0.375rem;
+    height: 100%;
+    background: var(--ja-canvas, #f6f6f1);
+    text-decoration: none;
+    text-align: start;
+    overflow-wrap: anywhere;
+  }
+  .filter-chip b {
+    font-size: 1.25rem;
+    margin-inline-start: 0.25rem;
   }
   .filter-summary li span {
     font-weight: 600;

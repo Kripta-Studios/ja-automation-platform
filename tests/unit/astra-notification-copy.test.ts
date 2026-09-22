@@ -18,6 +18,13 @@ describe('ASTRA notification copy', () => {
     expect(notificationCopy('period_blocked', 'en').body).toMatch(/blocked/i);
   });
 
+  it('accepts supported regional language tags', () => {
+    expect(normalizeNotificationLocale('pt-BR')).toBe('pt');
+    expect(normalizeNotificationLocale('es-ES')).toBe('es');
+    expect(notificationCopy('invoice_overdue', 'pt-BR').subject).toBe('Fatura vencida');
+    expect(notificationCopy('invoice_overdue', 'es-MX').subject).toBe('Factura vencida');
+  });
+
   it('falls back explicitly to English for an unsupported recipient locale or kind', () => {
     expect(normalizeNotificationLocale('fr')).toBe('en');
     expect(notificationCopy('future_kind', 'fr')).toEqual({
@@ -33,7 +40,7 @@ describe('ASTRA notification copy', () => {
     });
     expect(notificationCopy('future_kind', 'pt')).toEqual({
       subject: 'Notificação da J&A Automation',
-      body: 'Entre no portal J&A Automation para rever o registo atual.',
+      body: 'Entre no portal J&A Automation para revisar o registro atual.',
     });
   });
 });

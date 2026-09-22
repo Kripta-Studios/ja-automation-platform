@@ -19,7 +19,7 @@ type Persona =
   | 'worker'
   | 'supplier-coordinator'
   | 'external-technician';
-type Locale = 'en' | 'pt';
+type Locale = 'en' | 'es' | 'pt';
 type Capture = {
   persona: Persona;
   locale: Locale;
@@ -34,6 +34,12 @@ type Capture = {
 
 const desktop = { width: 1440, height: 900 };
 const phone = { width: 390, height: 844 };
+const documentLanguages = { en: 'en-US', es: 'es-ES', pt: 'pt-BR' } as const;
+const navigatorLabels = {
+  en: 'Go to section',
+  es: 'Ir a una sección',
+  pt: 'Ir para uma seção',
+} as const;
 const personas: ReadonlyArray<{ persona: Persona; account: ManualPersonaAccount }> = [
   { persona: 'owner', account: 'owner' },
   { persona: 'finance', account: 'finance' },
@@ -50,7 +56,7 @@ function urlFor(route: string, locale: Locale) {
   return url;
 }
 
-test('capture fresh synthetic EN and PT-BR manuals for seven personas', async ({
+test('capture fresh synthetic manuals for seven personas and the Spanish worker guide', async ({
   browser,
 }, info) => {
   test.skip(info.project.name !== 'desktop', 'This run includes desktop and phone screenshots.');
@@ -68,7 +74,7 @@ test('capture fresh synthetic EN and PT-BR manuals for seven personas', async ({
     expect(response?.status(), `${route} ${locale}`).toBe(200);
     await expect(page.locator('html'), `${route} must render in ${locale}`).toHaveAttribute(
       'lang',
-      locale === 'pt' ? 'pt-BR' : 'en-US',
+      documentLanguages[locale],
     );
     await expect(page.locator('main').first()).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
@@ -112,11 +118,12 @@ test('capture fresh synthetic EN and PT-BR manuals for seven personas', async ({
   for (const { persona, account } of personas) {
     if (persona === 'supplier-coordinator')
       supplierProjectId = seedSupplierPersonas(pointer.databasePath);
-    for (const locale of ['en', 'pt'] as const) {
+    const locales: Locale[] = persona === 'worker' ? ['en', 'es', 'pt'] : ['en', 'pt'];
+    for (const locale of locales) {
       const context = await browser.newContext({
         viewport: desktop,
         deviceScaleFactor: 1,
-        locale: locale === 'pt' ? 'pt-BR' : 'en-US',
+        locale: documentLanguages[locale],
       });
       const page = await context.newPage();
       try {
@@ -134,6 +141,18 @@ test('capture fresh synthetic EN and PT-BR manuals for seven personas', async ({
         ] as const) {
           const url = await navigate(page, route, locale);
           await capture(page, persona, locale, key, url);
+          if (key === 'home') {
+            await page
+              .getByRole('button', {
+                name: navigatorLabels[locale],
+                exact: true,
+              })
+              .click();
+            const navigator = page.locator('dialog[open]');
+            await expect(navigator).toBeVisible();
+            await capture(page, persona, locale, 'section-navigator', url, navigator);
+            await page.keyboard.press('Escape');
+          }
         }
         if (persona === 'owner' || persona === 'manager') {
           const url = await navigate(page, '/planning', locale);
@@ -242,7 +261,7 @@ test('capture fresh synthetic EN and PT-BR manuals for seven personas', async ({
   }
 
   expect(readManualSourceIdentity(root).sourceDigest).toBe(identity.sourceDigest);
-  expect(screenshots.filter((capture) => capture.key === 'home')).toHaveLength(14);
+  expect(screenshots.filter((capture) => capture.key === 'home')).toHaveLength(15);
   const manifest = {
     ...identity,
     capturedAt: new Date().toISOString(),

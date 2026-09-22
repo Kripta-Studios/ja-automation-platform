@@ -79,11 +79,17 @@ describe('UI_PLAN contrast and controlled-value contracts', () => {
       /function projectStatusLabel[\s\S]*?controlledValue\?\.\('status', status\)/,
     );
     expect(client).not.toMatch(/<span>\{value\(project, 'status'\)\}/);
-    expect(client).toContain('border: 1px solid var(--ja-control-border, #64748b)');
+    const clientBorder = client.match(
+      /border: 1px solid var\(--ja-control-border, (#[0-9a-f]{6})\)/i,
+    );
+    expect(clientBorder).not.toBeNull();
+    expect(contrastRatio(clientBorder![1], '#ffffff')).toBeGreaterThanOrEqual(3);
     expect(team).toContain("controlledValue?: (domain: 'status' | 'availability' | 'role'");
     expect(team).toContain("controlledValue?.('availability', explicit)");
     expect(team).toContain("controlledValue?.('status', status)");
     expect(team).toMatch(/function statusLabel[\s\S]*?controlledValue\?\.\('status', status\)/);
-    expect(team).toContain('border: 1px solid var(--ja-control-border, #64748b)');
+    const teamBorder = team.match(/border: 1px solid var\(--ja-control-border, (#[0-9a-f]{6})\)/i);
+    expect(teamBorder).not.toBeNull();
+    expect(contrastRatio(teamBorder![1], '#ffffff')).toBeGreaterThanOrEqual(3);
   });
 });

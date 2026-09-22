@@ -39,9 +39,9 @@
     >
     <label
       >{portalText(data.locale, 'Language')}<select name="lang" value={data.locale}
-        ><option value="en">English</option><option value="es">Español</option><option value="pt"
-          >Português</option
-        ></select
+        ><option value="en">{portalText(data.locale, 'English')}</option><option value="es"
+          >{portalText(data.locale, 'Spanish')}</option
+        ><option value="pt">{portalText(data.locale, 'Portuguese')}</option></select
       ></label
     ><button class="primary-button">{c.apply}</button>
   </form>

@@ -143,6 +143,9 @@ const CUSTOMER_SNAPSHOT_FIELDS = Object.freeze({
     'workerDisplay',
     'category',
     'minutes',
+    'startTime',
+    'endTime',
+    'breakMinutes',
     'activitySummary',
     'approvalState',
   ],
@@ -274,6 +277,42 @@ export function assertCustomerPeriodSnapshotSafe(
         `$.timeSummary[${index}].version`,
         'must be a positive integer',
       );
+    if (
+      row.startTime !== undefined ||
+      row.endTime !== undefined ||
+      row.breakMinutes !== undefined
+    ) {
+      const clock = /^(?:[01]\d|2[0-3]):[0-5]\d$/u;
+      if (
+        typeof row.startTime !== 'string' ||
+        typeof row.endTime !== 'string' ||
+        !clock.test(row.startTime) ||
+        !clock.test(row.endTime)
+      )
+        customerSnapshotValidationError(
+          `$.timeSummary[${index}]`,
+          'must include valid start and end times',
+        );
+      if (
+        row.breakMinutes !== undefined &&
+        (!Number.isSafeInteger(row.breakMinutes) ||
+          Number(row.breakMinutes) < 0 ||
+          Number(row.breakMinutes) > 1440)
+      )
+        customerSnapshotValidationError(
+          `$.timeSummary[${index}].breakMinutes`,
+          'must be valid minutes',
+        );
+      const clockMinutes = (value: string): number =>
+        Number(value.slice(0, 2)) * 60 + Number(value.slice(3));
+      const elapsed = clockMinutes(row.endTime as string) - clockMinutes(row.startTime as string);
+      const pause = row.breakMinutes === undefined ? 0 : Number(row.breakMinutes);
+      if (elapsed <= 0 || pause > elapsed || row.minutes !== elapsed - pause)
+        customerSnapshotValidationError(
+          `$.timeSummary[${index}]`,
+          'must have a positive same-day interval and matching net minutes after the break',
+        );
+    }
   }
   assertCustomerArray(
     root.technicalReports,

@@ -212,6 +212,26 @@ test('capture fresh synthetic EN and PT-BR manuals for seven personas', async ({
             page.locator('.time-filters'),
           );
         }
+        if (persona === 'worker') {
+          const url = await navigate(page, '/time', locale);
+          await page.locator('[data-time-primary-cta]').click();
+          const form = page.locator('form[data-time-entry-surface]');
+          await expect(form.locator('[name="workDate"]')).not.toHaveValue('');
+          await form.locator('[name="startTime"]').fill('09:00');
+          await form.locator('[name="endTime"]').fill('17:00');
+          await form.locator('[name="breakMinutes"]').fill('30');
+          await expect(form.locator('output')).toHaveText('7 h 30 min');
+          await capture(page, persona, locale, 'time-entry', url, form);
+          await form.locator('select[name="projectId"]').click();
+          await capture(
+            page,
+            persona,
+            locale,
+            'project-picker',
+            url,
+            page.locator('.searchable-select-popover:popover-open'),
+          );
+        }
         await page.setViewportSize(phone);
         const url = await navigate(page, '', locale);
         await capture(page, persona, locale, 'home-phone', url);

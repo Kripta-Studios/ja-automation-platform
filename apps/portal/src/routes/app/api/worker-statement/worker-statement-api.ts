@@ -240,6 +240,13 @@ export function buildWorkerStatementSnapshot(
         category: rowString(row.category),
         activitySummary: rowString(row.activity_summary),
         actualMinutes: Number(row.minutes),
+        ...(row.start_time && row.end_time
+          ? {
+              startTime: rowString(row.start_time),
+              endTime: rowString(row.end_time),
+              ...(row.break_minutes != null ? { breakMinutes: Number(row.break_minutes) } : {}),
+            }
+          : {}),
         approvalState: rowString(row.approval_state),
       })),
       settlements: settlements.map((row) => ({

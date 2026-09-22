@@ -13,27 +13,116 @@
 @import './styles/portal/polish.css';
 @import './styles/portal/density.css';
 
-.searchable-select-field {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-.searchable-select-field > label {
-  min-width: 0;
+.searchable-select-popover {
+  position: fixed;
+  inset: auto;
   margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  color: var(--ja-ink, #302f2c);
+  background: #fff;
+  border: 1px solid var(--ja-line, #d6d5d2);
+  border-radius: 0.8rem;
+  box-shadow:
+    0 12px 35px #28241d24,
+    0 2px 6px #28241d12;
+  overflow: hidden;
+  font-family: inherit;
+}
+.searchable-select-popover:popover-open {
+  display: flex;
+  flex-direction: column;
 }
 .searchable-select-search {
-  display: grid;
-  gap: 6px;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem;
+  border-bottom: 1px solid var(--ja-line, #d6d5d2);
+  flex: 0 0 auto;
 }
 .searchable-select-search input {
   width: 100%;
   min-width: 0;
   min-height: 44px;
   box-sizing: border-box;
+  background: var(--ja-canvas, #f6f5f2);
+  color: inherit;
+  border: 1px solid transparent;
+  border-radius: 0.45rem;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  font-size: 16px;
 }
-.searchable-select-search small:empty {
-  display: none;
+.searchable-select-search input:focus-visible {
+  box-shadow: none;
+  outline: 2px solid var(--ja-red, #b82214);
+  outline-offset: 1px;
+}
+.searchable-select-close {
+  flex: 0 0 44px;
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1.4rem;
+}
+.searchable-select-options {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
+  padding: 0.3rem;
+}
+.searchable-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 44px;
+  padding: 0.6rem 0.65rem;
+  border-radius: 0.4rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
+}
+.searchable-select-option[aria-selected='true'] {
+  font-weight: 600;
+}
+.searchable-select-option.is-highlighted {
+  background: #f2eee7;
+  color: #241f18;
+}
+.searchable-select-option[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: default;
+}
+.searchable-select-check {
+  flex: 0 0 1rem;
+  color: var(--ja-red, #b82214);
+}
+.searchable-select-group {
+  padding: 0.6rem 0.65rem 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #69645c;
+}
+.searchable-select-status {
+  padding: 0.6rem 0.85rem;
+  border-top: 1px solid #eeebe5;
+  color: #69645c;
+  font-size: 0.8rem;
+  flex: 0 0 auto;
+}
+@media print {
+  .searchable-select-popover {
+    display: none !important;
+  }
 }
 
 .record-browser {

@@ -22,6 +22,8 @@ Inside the application, the light sidebar marks your current section. The accoun
 
 Secondary panels open when you select their heading and chevron. Time, Expenses and Reports keep search, project and status visible; expand the filter panel for additional criteria. Active secondary filters reopen the panel. Collapsing a panel keeps entered values. Team assignment lists and completed approval history open separately, while pending actions and warnings remain visible. In Finance configuration, choose one commercial policy from the task selector. In Projects, use More actions for client and assignment maintenance. Open the document-registration or Accounting Pack panel when you need to create an item.
 
+Open a project, worker or client selector to search inside its dropdown. Type part of a name or identifier; matching ignores case and accents. Use the arrow keys and Enter to select, or Escape to close without changing the value. Active register filters appear in a compact summary even when additional filters are collapsed. **Clear filters** restores the unfiltered view. Reports use one set of search, status and sort controls for the selected tab.
+
 <!-- screenshot:owner:public-home -->
 <!-- screenshot:finance:configuration-task -->
 <!-- screenshot:owner:project-actions -->
@@ -48,6 +50,8 @@ Use **Projects → Team** for dated assignments and role changes; ending access 
 
 In **Approvals**, inspect submitted time, expenses and Daily or Technical / PLC reports with their source evidence. Approve or request changes with a factual reason. Supplier-origin time requires Owner review. Preserve returned records through correction drafts. The Owner manages operational approval and administrative boundaries; Finance handles the economic treatment described below.
 
+When reviewing actual time, compare the recorded start/end clocks, any break and the net duration. **Log time** starts with today's date in the browser's local timezone and allows correction to the actual work date. Start and end use the project's local clock without UTC conversion; the end is later on the same day, and the optional break is shorter than that interval. Net minutes are calculated automatically. Planning shifts and availability remain in UTC. Older duration-only entries retain their meaning; add clocks only from known actual work through **Add start and end times** in an editable draft or authorized correction.
+
 <!-- screenshot:owner:planning-month -->
 <!-- screenshot:owner:planning-editor -->
 <!-- screenshot:owner:help -->
@@ -59,6 +63,8 @@ Access — Consult: Finance consults authorized Finance Overview, Projects, Bill
 Open **Projects** first and confirm the client, project and effective dates. In **Commercial Configuration**, inspect the legal entity, billing stream, tax profile, rates and effective dates. Change only the approved rule and period; later configuration must not silently rewrite older records. Availability in **Profile** is planning context in UTC, not a reason to publish a shift or calculate compensation.
 
 In **Economic Review**, open **Source records** and reconcile invoiced revenue, direct labor, expenses and margin to the contributing rows. Review worker compensation and reimbursement separately from customer billing. **Finalize compensation** closes the reviewed calculation; it is not a bank transfer.
+
+New customer and internal period reports display recorded time intervals, net hours and breaks in the web detail and PDF. The worker's private statement does the same within its existing access boundary. If no clocks were recorded, only the duration is shown. Issued files and finalized snapshots are not rewritten to add intervals; Daily and Technical / PLC narratives remain independent records. Actual duration and interval evidence do not change customer minimums, rates or compensation rules.
 
 In **Billing**, resolve readiness messages against approved sources and customer sign-off before creating or issuing an invoice. Check entity, currency, numbering, tax and lines, and review the generated PDF. Edit only a draft. Once issued, use controlled void, credit/adjustment or replacement actions with a reason; never edit an issued snapshot in place.
 

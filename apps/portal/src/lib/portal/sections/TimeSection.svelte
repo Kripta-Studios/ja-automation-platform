@@ -1,12 +1,17 @@
 <script lang="ts">
   import { SectionCard } from '../ui';
   import { page } from '$app/stores';
+  import { enhance } from '$app/forms';
+  import type { SubmitFunction } from '@sveltejs/kit';
   import { base } from '$app/paths';
   import { onMount } from 'svelte';
   import { ResponsiveSheet } from '../ui';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import TimesheetPanel from './TimesheetPanel.svelte';
+  import TimeIntervalFields from '../ui/TimeIntervalFields.svelte';
+  import FilterSummary from '../ui/FilterSummary.svelte';
+  import { localToday } from '../ui/time-entry-clock';
   import { canDeleteTimeDraft } from './time-entry-actions';
   import {
     operationalMatches,
@@ -56,8 +61,36 @@
   const filterCategories = [...primaryCategories, ...moreCategories];
 
   let surface = $state<Surface | null>(null);
+  let surfaceError = $state('');
+  let saving = $state(false);
+  const submitTime: SubmitFunction = ({ cancel }) => {
+    if (!navigator.onLine || saving) {
+      cancel();
+      return;
+    }
+    saving = true;
+    surfaceError = '';
+    return async ({ result, update }) => {
+      try {
+        if (result.type === 'error') {
+          surfaceError = translate('The action could not be completed. Try again shortly.');
+          return;
+        }
+        await update({ reset: false });
+        if (result.type === 'success') closeSurface();
+        else if (result.type === 'failure') {
+          surfaceError = translate(
+            String(result.data?.message ?? 'Check the submitted values and try again.'),
+          );
+        }
+      } finally {
+        saving = false;
+      }
+    };
+  };
   let editTimeId = $state<string | null>(null);
   let createCategory = $state('regular');
+  let createDate = $state('');
   let editCategory = $state('regular');
   let search = $state('');
   let clientFilter = $state('');
@@ -73,7 +106,8 @@
       order?: OperationalOrder;
       page?: number;
     }>(registerStateKey());
-    if (typeof saved?.search === 'string') search = saved.search;
+    if (!$page.url.searchParams.has('q') && typeof saved?.search === 'string')
+      search = saved.search;
     if (saved?.order && ['newest', 'oldest', 'name', 'status'].includes(saved.order)) {
       order = saved.order;
     }
@@ -153,6 +187,64 @@
     ),
   );
   const pagedRecords = $derived(operationalPage(filteredRecords, registerPage));
+  const advancedFilters = $derived.by(() => {
+    const workerId = String(data.timeFilter?.workerId ?? '');
+    const category = String(data.timeFilter?.category ?? '');
+    return [
+      {
+        label: translate('Worker'),
+        value: workerId
+          ? String(data.workers?.find((row) => String(row.id) === workerId)?.name ?? workerId)
+          : '',
+      },
+      { label: translate('Client'), value: clientFilter },
+      { label: translate('From'), value: String(data.timeFilter?.from ?? '') },
+      { label: translate('To'), value: String(data.timeFilter?.to ?? '') },
+      {
+        label: translate('Category'),
+        value: category
+          ? translate(filterCategories.find((item) => item.value === category)?.label ?? category)
+          : '',
+      },
+    ].filter((item) => item.value);
+  });
+  const activeFilters = $derived.by(() => {
+    const projectId = String(data.timeFilter?.projectId ?? '');
+    const project = availableProjects.find((row) => String(row.id) === projectId);
+    return [
+      { label: translate('Search'), value: search.trim() },
+      {
+        label: translate('Project'),
+        value: projectId
+          ? project
+            ? `${project.project_number} — ${project.name}`
+            : projectId
+          : '',
+      },
+      {
+        label: translate('Status'),
+        value:
+          statusFilter === 'attention'
+            ? translate('Needs attention')
+            : statusFilter
+              ? controlledValue('status', statusFilter)
+              : '',
+      },
+      ...advancedFilters,
+    ].filter((item) => item.value);
+  });
+  const clearFiltersHref = $derived(
+    `${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&q=`,
+  );
+
+  function clearFilters(): void {
+    search = '';
+    clientFilter = '';
+    statusFilter = '';
+    order = 'newest';
+    registerPage = 1;
+    writeOperationalRegisterState(registerStateKey(), { search: '', order: 'newest', page: 1 });
+  }
 
   function filterHref(overrides: Record<string, string>): string {
     const params = new URLSearchParams();
@@ -179,12 +271,15 @@
   }
 
   function openCreate(): void {
+    surfaceError = '';
+    createDate = localToday();
     surface = 'create';
     editTimeId = null;
     createCategory = 'regular';
   }
 
   function openEdit(row: Row): void {
+    surfaceError = '';
     surface = 'edit';
     editTimeId = String(row.id);
     editCategory = String(row.category ?? 'regular');
@@ -293,6 +388,9 @@
     </label>
     <SectionCard
       title={translate('Filter time entries')}
+      description={advancedFilters.length
+        ? `${translate('Active filters')}: ${advancedFilters.length}`
+        : undefined}
       collapsible
       expanded={Boolean(
         data.timeFilter?.workerId ||
@@ -366,12 +464,14 @@
     </SectionCard>
     <div class="time-filter-actions">
       <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
-      {#if data.timeFilter?.category || data.timeFilter?.projectId || data.timeFilter?.workerId || data.timeFilter?.from || data.timeFilter?.to || clientFilter || search || statusFilter}
-        <a href={`${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&q=`}
-          >{translate('Clear filters')}</a
-        >
-      {/if}
     </div>
+    <FilterSummary
+      items={activeFilters}
+      resultCount={filteredRecords.length}
+      clearHref={clearFiltersHref}
+      onclear={clearFilters}
+      {translate}
+    />
   </form>
 
   <section class="time-record-list" aria-labelledby="time-records-title">
@@ -382,13 +482,6 @@
       </div>
       <span class="time-record-count">{filteredRecords.length}</span>
     </div>
-    {#if data.timeFilter?.category || data.timeFilter?.projectId || data.timeFilter?.workerId || data.timeFilter?.from || data.timeFilter?.to || clientFilter}
-      <p class="form-help time-filter-note">
-        {translate('Filtered view:')}
-        {filteredRecords.length}
-        {translate('matching records')}.
-      </p>
-    {/if}
     <div class="time-records">
       {#each pagedRecords.rows as row}
         <article
@@ -398,10 +491,9 @@
           <a class="time-record-link" href={`${base}/app/time/${String(row.id)}`}>
             <strong>{row.work_date} · {row.project_number}</strong>
             <small
-              >{controlledValue('category', row.category)} · {row.minutes} min · {controlledValue(
-                'status',
-                row.approval_state,
-              )}</small
+              >{controlledValue('category', row.category)} · {#if row.start_time && row.end_time}{row.start_time}
+                – {row.end_time} ·
+              {/if}{row.minutes} min · {controlledValue('status', row.approval_state)}</small
             >
             <span class="time-record-summary">{row.activity_summary}</span>
             <span>{translate('Open record →')}</span>
@@ -458,8 +550,13 @@
         </article>
       {:else}
         <div class="time-empty" role="status">
-          <strong>{translate('No time recorded.')}</strong>
-          <span>{translate('Your actual time entries will appear here.')}</span>
+          {#if activeFilters.length || records.length}
+            <strong>{translate('No matching records.')}</strong>
+            <span>{translate('Clear filters to see more records.')}</span>
+          {:else}
+            <strong>{translate('No time recorded.')}</strong>
+            <span>{translate('Your actual time entries will appear here.')}</span>
+          {/if}
         </div>
       {/each}
     </div>
@@ -496,12 +593,14 @@
   class="time-entry-sheet"
   onclose={closeSurface}
 >
+  {#if surfaceError}<p role="alert" class="time-form-error">{surfaceError}</p>{/if}
   {#if surface === 'create'}
     <form
       method="POST"
       action="?/createTime"
       class="expense-entry-form time-entry-form"
       data-time-entry-surface
+      use:enhance={submitTime}
       onsubmit={(event) => saveOfflineDraft(event, 'time')}
     >
       {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
@@ -530,7 +629,7 @@
       </label>
       <label>
         <span>{translate('Date')}</span>
-        <input name="workDate" type="date" required />
+        <input name="workDate" type="date" required bind:value={createDate} />
       </label>
       <label>
         <span>{translate('Operational category')}</span>
@@ -555,10 +654,7 @@
           />
         </label>
       {/if}
-      <label>
-        <span>{translate('Actual duration (minutes)')}</span>
-        <input name="minutes" type="number" min="1" max="1440" required inputmode="numeric" />
-      </label>
+      <TimeIntervalFields {translate} />
       <label>
         <span>{translate('Activity summary')}</span>
         <textarea name="summary" minlength="3" maxlength="5000" required></textarea>
@@ -567,7 +663,7 @@
         <button type="button" class="secondary-button" onclick={closeSurface}
           >{translate('Cancel')}</button
         >
-        <button type="submit">{translate('Save draft')}</button>
+        <button type="submit" disabled={saving}>{translate('Save draft')}</button>
       </div>
     </form>
   {:else if surface === 'edit' && editRow}
@@ -578,6 +674,7 @@
       data-entity-id={String(editRow.id)}
       data-version={String(editRow.version)}
       data-time-entry-surface
+      use:enhance={submitTime}
       onsubmit={(event) => saveOfflineDraft(event, 'time')}
     >
       <input type="hidden" name="id" value={editRow.id} />
@@ -612,10 +709,15 @@
           />
         </label>
       {/if}
-      <label>
-        <span>{translate('Actual duration (minutes)')}</span>
-        <input name="minutes" type="number" min="0" max="1440" value={editRow.minutes} required />
-      </label>
+      {#key editRow.id}
+        <TimeIntervalFields
+          {translate}
+          initialStart={String(editRow.start_time ?? '')}
+          initialEnd={String(editRow.end_time ?? '')}
+          initialBreak={Number(editRow.break_minutes ?? 0)}
+          legacyMinutes={Number(editRow.minutes ?? 0)}
+        />
+      {/key}
       <label>
         <span>{translate('Activity summary')}</span>
         <textarea name="summary" minlength="3" maxlength="5000" required
@@ -626,13 +728,17 @@
         <button type="button" class="secondary-button" onclick={closeSurface}
           >{translate('Cancel')}</button
         >
-        <button type="submit">{translate('Save changes')}</button>
+        <button type="submit" disabled={saving}>{translate('Save changes')}</button>
       </div>
     </form>
   {/if}
 </ResponsiveSheet>
 
 <style>
+  .time-form-error {
+    color: var(--ja-danger, #9f2424);
+    padding: 0.75rem 0;
+  }
   .time-primary-action-top {
     justify-content: flex-start;
   }

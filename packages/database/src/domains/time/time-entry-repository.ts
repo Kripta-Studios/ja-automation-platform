@@ -102,6 +102,136 @@ export type TimeEntryRepositoryDependencies = Readonly<{
   }>;
 }>;
 
+export type EffectiveTimeEntry = Readonly<{
+  id?: string;
+  workerId: string;
+  workDate: string;
+  minutes: number;
+  startTime: string | null;
+  endTime: string | null;
+  breakMinutes: number | null;
+}>;
+
+function parseClockMinutes(value: string, field: string, validationError: ErrorFactory): number {
+  if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value))
+    throw validationError(`${field} must use strict HH:mm format`);
+  return Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
+}
+
+/**
+ * Validate canonical time totals and intervals while the caller holds the
+ * immediate write transaction. Every time-entry write path, including
+ * offline sync, must pass through this function before mutating SQLite.
+ */
+export function validateEffectiveTimeEntry(
+  sqlite: DatabaseSync,
+  validationError: ErrorFactory,
+  candidate: EffectiveTimeEntry,
+): void {
+  if (!Number.isInteger(candidate.minutes) || candidate.minutes < 0 || candidate.minutes > 1440)
+    throw validationError('Minutes must be an integer from 0 to 1440');
+
+  const startPresent = candidate.startTime !== null;
+  const endPresent = candidate.endTime !== null;
+  if (startPresent !== endPresent)
+    throw validationError('Start and end time must be provided together');
+
+  let candidateStartMinutes: number | undefined;
+  let candidateEndMinutes: number | undefined;
+  if (startPresent && endPresent) {
+    candidateStartMinutes = parseClockMinutes(
+      candidate.startTime as string,
+      'Start time',
+      validationError,
+    );
+    candidateEndMinutes = parseClockMinutes(
+      candidate.endTime as string,
+      'End time',
+      validationError,
+    );
+    if (candidateEndMinutes <= candidateStartMinutes)
+      throw validationError('End time must be later on the same day');
+    const elapsedMinutes = candidateEndMinutes - candidateStartMinutes;
+    if (
+      candidate.breakMinutes === null ||
+      !Number.isInteger(candidate.breakMinutes) ||
+      candidate.breakMinutes < 0 ||
+      candidate.breakMinutes > elapsedMinutes
+    )
+      throw validationError('Break minutes must be an integer within the shift');
+    if (candidate.minutes !== elapsedMinutes - candidate.breakMinutes)
+      throw validationError('Minutes must equal elapsed time less break minutes');
+  } else if (
+    candidate.breakMinutes !== null &&
+    (!Number.isInteger(candidate.breakMinutes) || candidate.breakMinutes < 0)
+  ) {
+    throw validationError('Break minutes are invalid');
+  }
+
+  const aggregate = sqlite
+    .prepare(
+      `SELECT COALESCE(SUM(minutes),0) AS minutes
+       FROM time_entry
+       WHERE worker_id=? AND work_date=?
+         AND approval_state NOT IN ('void','rejected')
+         AND NOT EXISTS(
+           SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id
+            WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id
+              AND correction.approval_state<>'rejected'
+         )
+         AND (? IS NULL OR id<>?)`,
+    )
+    .get(candidate.workerId, candidate.workDate, candidate.id ?? null, candidate.id ?? null) as
+    | { minutes: number }
+    | undefined;
+  const existingMinutes = Number(aggregate?.minutes ?? 0);
+  if (existingMinutes + candidate.minutes > 1440)
+    throw validationError('A worker cannot enter more than 1440 minutes per day');
+
+  if (candidateStartMinutes === undefined || candidateEndMinutes === undefined) return;
+  const existingRows = sqlite
+    .prepare(
+      `SELECT id,start_time,end_time,break_minutes,minutes
+       FROM time_entry
+       WHERE worker_id=? AND work_date=?
+         AND approval_state NOT IN ('void','rejected')
+         AND NOT EXISTS(
+           SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id
+            WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id
+              AND correction.approval_state<>'rejected'
+         )
+         AND (? IS NULL OR id<>?)`,
+    )
+    .all(
+      candidate.workerId,
+      candidate.workDate,
+      candidate.id ?? null,
+      candidate.id ?? null,
+    ) as Array<{
+    id: string;
+    start_time: string | null;
+    end_time: string | null;
+    break_minutes: number | null;
+    minutes: number;
+  }>;
+  for (const row of existingRows) {
+    const rowHasStart = row.start_time !== null;
+    const rowHasEnd = row.end_time !== null;
+    if (rowHasStart !== rowHasEnd)
+      throw validationError('An existing time entry has an incomplete interval');
+    if (!rowHasStart) continue;
+    const rowStart = parseClockMinutes(
+      row.start_time as string,
+      'Existing start time',
+      validationError,
+    );
+    const rowEnd = parseClockMinutes(row.end_time as string, 'Existing end time', validationError);
+    if (rowEnd <= rowStart) throw validationError('An existing time entry has an invalid interval');
+    if (rowStart < candidateEndMinutes && rowEnd > candidateStartMinutes)
+      throw validationError('Time intervals cannot overlap for the same worker and date');
+  }
+}
+
 export class TimeEntryRepository {
   private readonly deps: TimeEntryRepositoryDependencies;
 
@@ -124,108 +254,7 @@ export class TimeEntryRepository {
     endTime: string | null;
     breakMinutes: number | null;
   }): void {
-    if (!Number.isInteger(candidate.minutes) || candidate.minutes < 0 || candidate.minutes > 1440)
-      throw this.deps.errors.validation('Minutes must be an integer from 0 to 1440');
-
-    const startPresent = candidate.startTime !== null;
-    const endPresent = candidate.endTime !== null;
-    if (startPresent !== endPresent)
-      throw this.deps.errors.validation('Start and end time must be provided together');
-
-    let candidateStartMinutes: number | undefined;
-    let candidateEndMinutes: number | undefined;
-    if (startPresent && endPresent) {
-      candidateStartMinutes = this.parseClockMinutes(candidate.startTime as string, 'Start time');
-      candidateEndMinutes = this.parseClockMinutes(candidate.endTime as string, 'End time');
-      if (candidateEndMinutes <= candidateStartMinutes)
-        throw this.deps.errors.validation('End time must be later on the same day');
-      const elapsedMinutes = candidateEndMinutes - candidateStartMinutes;
-      if (
-        candidate.breakMinutes === null ||
-        !Number.isInteger(candidate.breakMinutes) ||
-        candidate.breakMinutes < 0 ||
-        candidate.breakMinutes > elapsedMinutes
-      )
-        throw this.deps.errors.validation('Break minutes must be an integer within the shift');
-      if (candidate.minutes !== elapsedMinutes - candidate.breakMinutes)
-        throw this.deps.errors.validation('Minutes must equal elapsed time less break minutes');
-    } else if (
-      candidate.breakMinutes !== null &&
-      (!Number.isInteger(candidate.breakMinutes) || candidate.breakMinutes < 0)
-    ) {
-      throw this.deps.errors.validation('Break minutes are invalid');
-    }
-
-    const aggregate = this.deps.sqlite
-      .prepare(
-        `SELECT COALESCE(SUM(minutes),0) AS minutes
-         FROM time_entry
-         WHERE worker_id=? AND work_date=?
-           AND approval_state NOT IN ('void','rejected')
-           AND NOT EXISTS(
-             SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id
-              WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id
-                AND correction.approval_state<>'rejected'
-           )
-           AND (? IS NULL OR id<>?)`,
-      )
-      .get(candidate.workerId, candidate.workDate, candidate.id ?? null, candidate.id ?? null) as
-      | { minutes: number }
-      | undefined;
-    const existingMinutes = Number(aggregate?.minutes ?? 0);
-    if (existingMinutes + candidate.minutes > 1440)
-      throw this.deps.errors.validation('A worker cannot enter more than 1440 minutes per day');
-
-    // Interval overlap is checked in TypeScript after loading the same-day
-    // rows.  This avoids relying on lexical comparisons for legacy rows and
-    // makes the accepted HH:mm contract explicit.  Adjacency is allowed.
-    if (candidateStartMinutes === undefined || candidateEndMinutes === undefined) return;
-    const existingRows = this.deps.sqlite
-      .prepare(
-        `SELECT id,start_time,end_time,break_minutes,minutes
-         FROM time_entry
-         WHERE worker_id=? AND work_date=?
-           AND approval_state NOT IN ('void','rejected')
-           AND NOT EXISTS(
-             SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id
-              WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id
-                AND correction.approval_state<>'rejected'
-           )
-           AND (? IS NULL OR id<>?)`,
-      )
-      .all(
-        candidate.workerId,
-        candidate.workDate,
-        candidate.id ?? null,
-        candidate.id ?? null,
-      ) as Array<{
-      id: string;
-      start_time: string | null;
-      end_time: string | null;
-      break_minutes: number | null;
-      minutes: number;
-    }>;
-    for (const row of existingRows) {
-      const rowHasStart = row.start_time !== null;
-      const rowHasEnd = row.end_time !== null;
-      if (rowHasStart !== rowHasEnd)
-        throw this.deps.errors.validation('An existing time entry has an incomplete interval');
-      if (!rowHasStart) continue;
-      const rowStart = this.parseClockMinutes(row.start_time as string, 'Existing start time');
-      const rowEnd = this.parseClockMinutes(row.end_time as string, 'Existing end time');
-      if (rowEnd <= rowStart)
-        throw this.deps.errors.validation('An existing time entry has an invalid interval');
-      if (rowStart < candidateEndMinutes && rowEnd > candidateStartMinutes)
-        throw this.deps.errors.validation(
-          'Time intervals cannot overlap for the same worker and date',
-        );
-    }
-  }
-
-  private parseClockMinutes(value: string, field: string): number {
-    if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value))
-      throw this.deps.errors.validation(`${field} must use strict HH:mm format`);
-    return Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
+    validateEffectiveTimeEntry(this.deps.sqlite, this.deps.errors.validation, candidate);
   }
 
   /**
@@ -908,7 +937,7 @@ export class TimeEntryRepository {
     this.deps.assertReadable(principal);
     return this.deps.sqlite
       .prepare(
-        'SELECT t.id,t.project_id,t.work_date,t.category,t.activity_code,t.minutes,t.activity_summary,t.approval_state,t.billability_state,t.version,p.project_number,p.name project_name FROM time_entry t JOIN project p ON p.id=t.project_id WHERE t.worker_id=? ORDER BY t.work_date DESC,t.created_at DESC LIMIT 400',
+        'SELECT t.id,t.project_id,t.work_date,t.category,t.activity_code,t.minutes,t.start_time,t.end_time,t.break_minutes,t.activity_summary,t.approval_state,t.billability_state,t.version,p.project_number,p.name project_name FROM time_entry t JOIN project p ON p.id=t.project_id WHERE t.worker_id=? ORDER BY t.work_date DESC,t.created_at DESC LIMIT 400',
       )
       .all(principal.userId);
   }
@@ -922,7 +951,7 @@ export class TimeEntryRepository {
       weekEnd,
       rows: this.deps.sqlite
         .prepare(
-          'SELECT t.id,t.project_id,t.work_date,t.category,t.activity_code,t.minutes,t.activity_summary,t.approval_state,t.billability_state,t.version,p.project_number,p.name project_name FROM time_entry t JOIN project p ON p.id=t.project_id WHERE t.worker_id=? AND t.work_date BETWEEN ? AND ? ORDER BY t.work_date,t.created_at,t.id',
+          'SELECT t.id,t.project_id,t.work_date,t.category,t.activity_code,t.minutes,t.start_time,t.end_time,t.break_minutes,t.activity_summary,t.approval_state,t.billability_state,t.version,p.project_number,p.name project_name FROM time_entry t JOIN project p ON p.id=t.project_id WHERE t.worker_id=? AND t.work_date BETWEEN ? AND ? ORDER BY t.work_date,t.created_at,t.id',
         )
         .all(principal.userId, weekStart, weekEnd),
     };

@@ -24,13 +24,31 @@ export const GET: RequestHandler = ({ locals, url, cookies }) => {
       supplierId: url.searchParams.get('supplierId') || undefined,
       ...supplierPeriod(url),
     });
+    const hasIntervals = report.rows.some((row) => row.startTime && row.endTime);
     const body = supplierCsv([
-      [c.project, c.worker, c.date, c.category, c.minutes, c.summary, c.state, c.recordedBy],
+      [
+        c.project,
+        c.worker,
+        c.date,
+        c.category,
+        ...(hasIntervals ? [c.startTime, c.endTime, c.breakMinutes] : []),
+        c.minutes,
+        c.summary,
+        c.state,
+        c.recordedBy,
+      ],
       ...report.rows.map((row) => [
         report.project.name,
         row.workerName,
         row.workDate,
         supplierCategoryLabel(locale, row.category),
+        ...(hasIntervals
+          ? [
+              row.startTime ?? '',
+              row.endTime ?? '',
+              row.startTime && row.endTime ? (row.breakMinutes ?? 0) : '',
+            ]
+          : []),
         row.minutes,
         row.summary,
         row.isSuperseded

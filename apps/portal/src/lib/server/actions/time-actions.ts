@@ -4,6 +4,9 @@ import { actionFail, actionFailure, actionSuccess } from './action-message';
 import { formObject, type PortalActionEvent } from '$lib/server/action-utils';
 import { mondayOf } from '$lib/server/portal-week';
 
+export const parseTimeUpdateForm = (input: Record<string, unknown>) =>
+  timeInputSchema.and(versionedRecordSchema).safeParse(input);
+
 export const timeActions = {
   createTime: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'time')
@@ -65,13 +68,21 @@ export const timeActions = {
   updateTime: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'time')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const parsed = timeInputSchema.and(versionedRecordSchema).safeParse(await formObject(request));
+    const parsed = parseTimeUpdateForm(await formObject(request));
     if (!parsed.success)
       return actionFail(400, 'action.validation.timeFields', {}, 'Check time fields', {
         fields: parsed.error.flatten().fieldErrors,
       });
     const context = openPortalRepository(locals);
     try {
+      const interval =
+        parsed.data.startTime !== undefined && parsed.data.endTime !== undefined
+          ? {
+              startTime: parsed.data.startTime,
+              endTime: parsed.data.endTime,
+              breakMinutes: parsed.data.breakMinutes ?? 0,
+            }
+          : {};
       context.repository.updateTimeEntry(context.principal, {
         id: parsed.data.id,
         version: parsed.data.version,
@@ -80,6 +91,7 @@ export const timeActions = {
         activityCode: parsed.data.activityCode,
         minutes: parsed.data.minutes,
         summary: parsed.data.summary,
+        ...interval,
       });
       return actionSuccess('action.time.draftUpdated', {}, 'Time draft updated');
     } catch (error) {

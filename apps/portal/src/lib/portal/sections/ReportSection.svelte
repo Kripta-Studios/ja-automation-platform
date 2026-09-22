@@ -5,6 +5,7 @@
   import { onMount } from 'svelte';
   import { ResponsiveSheet, StatusBadge } from '../ui';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
+  import FilterSummary from '../ui/FilterSummary.svelte';
   import { normalizePortalLocale } from '../../portal-i18n';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
@@ -159,7 +160,7 @@
   const customerPeriodReports = $derived(
     periodReports.filter((report) => String(report.audience ?? '').toLowerCase() === 'customer'),
   );
-  const signoffRows = $derived(
+  const signoffScopeRows = $derived(
     customerPeriodReports
       .filter(
         (report) =>
@@ -170,7 +171,7 @@
       )
       .map((report) => ({ ...report, browser_status: signoffState(report) })),
   );
-  const generatedRows = $derived(
+  const generatedScopeRows = $derived(
     periodReports
       .filter(
         (report) =>
@@ -181,16 +182,101 @@
       )
       .map((report) => ({ ...report, browser_status: String(report.state ?? '') })),
   );
+  const signoffRows = $derived.by(() =>
+    operationalSort(
+      signoffScopeRows.filter(
+        (report) =>
+          operationalStatusMatches(report.browser_status, statusFilter, [
+            'needs_report',
+            'ready_for_signature',
+          ]) &&
+          operationalMatches(report, search, [
+            'project_number',
+            'project_name',
+            'client_name',
+            'report_type',
+            'period_start',
+            'period_end',
+            'browser_status',
+          ]),
+      ),
+      order,
+      ['period_start', 'period_end'],
+      ['project_number', 'project_name', 'client_name', 'report_type'],
+      ['browser_status'],
+    ),
+  );
+  const generatedRows = $derived.by(() =>
+    workerFilter
+      ? []
+      : operationalSort(
+          generatedScopeRows.filter(
+            (report) =>
+              operationalStatusMatches(report.browser_status, statusFilter, [
+                'draft',
+                'queued',
+                'running',
+                'review',
+                'failed',
+              ]) &&
+              operationalMatches(report, search, [
+                'project_number',
+                'project_name',
+                'client_name',
+                'report_type',
+                'audience',
+                'period_start',
+                'period_end',
+                'browser_status',
+              ]),
+          ),
+          order,
+          ['period_start', 'period_end'],
+          ['project_number', 'project_name', 'client_name', 'report_type'],
+          ['browser_status'],
+        ),
+  );
+  const canGeneratePeriodReports = $derived(
+    !isAuditor && ['owner_admin', 'finance_admin'].includes(String(data.user.role ?? '')),
+  );
+  const generatedStatusOptions = $derived(
+    canGeneratePeriodReports
+      ? [...new Set(periodReports.map((report) => rowText(report, 'state')).filter(Boolean))].sort()
+      : [],
+  );
+  const statusOptions = $derived([
+    ...new Set(
+      activeTab === 'signoff'
+        ? ['needs_report', 'ready_for_signature', 'signed', 'invalid', ...generatedStatusOptions]
+        : [
+            'attention',
+            'draft',
+            'submitted',
+            'approved',
+            'needs_changes',
+            ...generatedStatusOptions,
+          ],
+    ),
+  ]);
   const pendingReportCount = $derived(
     fieldReportsForActiveTab.filter((row) =>
       ['draft', 'submitted', 'needs_changes'].includes(String(row.approval_state)),
     ).length,
   );
   const readySignoffCount = $derived(
-    signoffRows.filter((report) => signoffState(report) === 'ready_for_signature').length,
+    signoffScopeRows.filter((report) => signoffState(report) === 'ready_for_signature').length,
   );
-  const canGeneratePeriodReports = $derived(
-    !isAuditor && ['owner_admin', 'finance_admin'].includes(String(data.user.role ?? '')),
+  const controlledBrowserResetKey = $derived(
+    JSON.stringify([
+      search,
+      projectFilter,
+      workerFilter,
+      clientFilter,
+      fromFilter,
+      toFilter,
+      statusFilter,
+      order,
+    ]),
   );
   $effect(() => {
     const querySearch = $page.url.searchParams.get('q');
@@ -203,6 +289,9 @@
     statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
     dailyPage = 1;
     technicalPage = 1;
+  });
+  $effect(() => {
+    if (activeTab === 'signoff' && workerFilter) workerFilter = '';
   });
   const filteredDailyReports = $derived.by(() =>
     operationalSort(
@@ -268,6 +357,42 @@
   );
   const pagedDailyReports = $derived(operationalPage(filteredDailyReports, dailyPage));
   const pagedTechnicalReports = $derived(operationalPage(filteredTechnicalReports, technicalPage));
+  const activeTabResultCount = $derived(
+    activeTab === 'signoff'
+      ? signoffRows.length
+      : activeTab === 'technical'
+        ? filteredTechnicalReports.length
+        : filteredDailyReports.length,
+  );
+  const visibleResultCount = $derived(
+    activeTabResultCount + (canGeneratePeriodReports ? generatedRows.length : 0),
+  );
+  const activeFilterItems = $derived(
+    [
+      search ? { label: translate('Search register'), value: search } : null,
+      projectFilter
+        ? {
+            label: translate('Project'),
+            value:
+              availableProjects.find((project) => String(project.id) === projectFilter)?.name ??
+              projectFilter,
+          }
+        : null,
+      statusFilter
+        ? { label: translate('Status'), value: reportFilterStatusLabel(statusFilter) }
+        : null,
+      workerFilter
+        ? {
+            label: translate('Worker'),
+            value: workerOptions.find(([id]) => id === workerFilter)?.[1] ?? workerFilter,
+          }
+        : null,
+      clientFilter ? { label: translate('Client'), value: clientFilter } : null,
+      fromFilter ? { label: translate('From'), value: fromFilter } : null,
+      toFilter ? { label: translate('To'), value: toFilter } : null,
+      order !== 'newest' ? { label: translate('Sort by'), value: reportOrderLabel(order) } : null,
+    ].filter((item): item is { label: string; value: string } => item !== null),
+  );
 
   function rowText(row: Row, key: string): string {
     const value = row[key];
@@ -310,6 +435,25 @@
       default:
         return translate('Needs report');
     }
+  }
+
+  function reportFilterStatusLabel(value: string): string {
+    if (['needs_report', 'ready_for_signature', 'signed', 'invalid'].includes(value))
+      return signoffLabel(value as SignoffState);
+    if (value === 'attention') return translate('Needs attention');
+    return (
+      controlledValue('status', value) ||
+      controlledValue('artifactState', value) ||
+      translate(value)
+    );
+  }
+
+  function reportOrderLabel(value: OperationalOrder): string {
+    if (value === 'oldest') return translate('Oldest first');
+    if (value === 'name') return translate('Name');
+    if (value === 'status') return translate('Status');
+    if (value === 'priority') return translate('Needs attention first');
+    return translate('Newest first');
   }
 
   function signoffVariant(state: SignoffState): 'success' | 'warning' | 'danger' | 'info' {
@@ -366,8 +510,35 @@
   }
 
   function setTab(tab: ReportTab): void {
+    const signoffOnly = ['needs_report', 'ready_for_signature', 'signed', 'invalid'];
+    const fieldOnly = ['attention', 'submitted', 'needs_changes'];
+    if (
+      (tab === 'signoff' && fieldOnly.includes(statusFilter)) ||
+      (tab !== 'signoff' && signoffOnly.includes(statusFilter))
+    )
+      statusFilter = '';
+    if (tab === 'signoff') workerFilter = '';
     tabOverride = { url: $page.url.href, tab };
     surface = null;
+  }
+
+  function clearReportFilters(): void {
+    search = '';
+    projectFilter = '';
+    workerFilter = '';
+    clientFilter = '';
+    fromFilter = '';
+    toFilter = '';
+    statusFilter = '';
+    order = 'newest';
+    dailyPage = 1;
+    technicalPage = 1;
+    writeOperationalRegisterState(registerStateKey(), {
+      search: '',
+      order: 'newest',
+      dailyPage: 1,
+      technicalPage: 1,
+    });
   }
 
   function handleTabKey(event: KeyboardEvent, current: ReportTab): void {
@@ -493,7 +664,7 @@
     </a>
     <a class="report-attention-card" href={registerHref({ view: 'signoff', status: '' })}>
       <span>{translate('Customer sign-off')}</span>
-      <strong>{signoffRows.length}</strong>
+      <strong>{signoffScopeRows.length}</strong>
       <small>{translate('Period confirmations in scope')}</small>
     </a>
   </div>
@@ -539,13 +710,9 @@
           dailyPage = 1;
           technicalPage = 1;
         }}
-        ><option value="">{translate('All statuses')}</option><option value="attention"
-          >{translate('Needs attention')}</option
-        ><option value="draft">{translate('Draft')}</option><option value="submitted"
-          >{translate('Submitted')}</option
-        ><option value="approved">{translate('Approved')}</option><option value="needs_changes"
-          >{translate('Needs changes')}</option
-        ></select
+        ><option value="">{translate('All statuses')}</option>{#each statusOptions as item}<option
+            value={item}>{reportFilterStatusLabel(item)}</option
+          >{/each}</select
       ></label
     >
     <SectionCard
@@ -557,7 +724,7 @@
       class="register-filter-disclosure"
     >
       <div class="secondary-filter-fields report-register-filters-secondary">
-        {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
+        {#if activeTab !== 'signoff' && ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
           <label
             ><span>{translate('Worker')}</span><select
               name="worker"
@@ -626,9 +793,13 @@
       </div>
     </SectionCard>
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
-    <a class="secondary-button" href={`${base}/app/reports?view=${activeTab}&q=`}
-      >{translate('Clear filters')}</a
-    >
+    <FilterSummary
+      items={activeFilterItems}
+      resultCount={visibleResultCount}
+      clearHref={`${base}/app/reports?view=${activeTab}&q=`}
+      onclear={clearReportFilters}
+      {translate}
+    />
   </form>
 
   <div class="report-tab-list" aria-label={translate('Report types')} role="tablist">
@@ -713,8 +884,13 @@
           </article>
         {:else}
           <div class="report-empty" role="status">
-            <strong>{translate('No daily reports recorded.')}</strong>
-            <span>{translate('Your field summaries will appear here after you save them.')}</span>
+            {#if activeFilterItems.length}
+              <strong>{translate('No matching records.')}</strong>
+              <span>{translate('Clear filters to see more records.')}</span>
+            {:else}
+              <strong>{translate('No daily reports recorded.')}</strong>
+              <span>{translate('Your field summaries will appear here after you save them.')}</span>
+            {/if}
           </div>
         {/each}
       </div>
@@ -810,10 +986,15 @@
           </article>
         {:else}
           <div class="report-empty" role="status">
-            <strong>{translate('No technical reports recorded.')}</strong>
-            <span
-              >{translate('PLC and controls records will appear here after you save them.')}</span
-            >
+            {#if activeFilterItems.length}
+              <strong>{translate('No matching records.')}</strong>
+              <span>{translate('Clear filters to see more records.')}</span>
+            {:else}
+              <strong>{translate('No technical reports recorded.')}</strong>
+              <span
+                >{translate('PLC and controls records will appear here after you save them.')}</span
+              >
+            {/if}
           </div>
         {/each}
       </div>
@@ -873,6 +1054,9 @@
           {translate}
           label="Client sign-off register"
           contextKey="client-signoff"
+          controlled
+          resetKey={controlledBrowserResetKey}
+          showEmpty={false}
         />
         {#each signoffPage as report}
           {@const state = signoffState(report)}
@@ -926,12 +1110,17 @@
           </article>
         {:else}
           <div class="report-empty" role="status">
-            <strong>{translate('No client sign-off records yet.')}</strong>
-            <span
-              >{translate(
-                'Customer confirmation records will appear here when the period is ready.',
-              )}</span
-            >
+            {#if activeFilterItems.length}
+              <strong>{translate('No matching records.')}</strong>
+              <span>{translate('Clear filters to see more records.')}</span>
+            {:else}
+              <strong>{translate('No client sign-off records yet.')}</strong>
+              <span
+                >{translate(
+                  'Customer confirmation records will appear here when the period is ready.',
+                )}</span
+              >
+            {/if}
           </div>
         {/each}
       </div>
@@ -989,9 +1178,12 @@
         {translate}
         label="Generated period report register"
         contextKey="generated-period-files"
+        controlled
+        resetKey={controlledBrowserResetKey}
+        showEmpty={false}
       />
       {#each periodReportPage as report}
-        <article class="report-period-card">
+        <article class="report-period-card" data-period-state={rowText(report, 'state')}>
           {#if hasPeriodSnapshot(report)}
             <a
               class="report-register-link"
@@ -1041,7 +1233,14 @@
           {/if}
         </article>
       {:else}
-        <div class="report-empty" role="status">{translate('No generated period files yet.')}</div>
+        <div class="report-empty" role="status">
+          {#if activeFilterItems.length}
+            <strong>{translate('No matching records.')}</strong>
+            <span>{translate('Clear filters to see more records.')}</span>
+          {:else}
+            {translate('No generated period files yet.')}
+          {/if}
+        </div>
       {/each}
     </section>
   {/if}

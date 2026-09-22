@@ -232,6 +232,13 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             category: String(row.category),
             activitySummary: String(row.activity_summary ?? ''),
             actualMinutes: Number(row.minutes),
+            ...(row.start_time && row.end_time
+              ? {
+                  startTime: String(row.start_time),
+                  endTime: String(row.end_time),
+                  ...(row.break_minutes != null ? { breakMinutes: Number(row.break_minutes) } : {}),
+                }
+              : {}),
             approvalState: String(row.approval_state),
           }));
         const payExpenses = context.repository

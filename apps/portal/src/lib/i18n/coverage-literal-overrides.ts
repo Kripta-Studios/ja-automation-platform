@@ -1,5 +1,35 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'Start time': ['Hora de inicio', 'Hora de início'],
+  'End time': ['Hora de fin', 'Hora de término'],
+  'Break (minutes)': ['Pausa (minutos)', 'Intervalo (minutos)'],
+  "Use the project's local time. Start and end must be on the selected date.": [
+    'Usa la hora local del proyecto. El inicio y el fin deben ser del día seleccionado.',
+    'Use o horário local do projeto. O início e o fim devem ser na data selecionada.',
+  ],
+  'Active filters': ['Filtros activos', 'Filtros ativos'],
+  'Clear filters to see more records.': [
+    'Borra los filtros para ver más registros.',
+    'Limpe os filtros para ver mais registros.',
+  ],
+  'Calculated duration': ['Duración calculada', 'Duração calculada'],
+  'Time range': ['Horario', 'Horário'],
+  'Add start and end times': [
+    'Añadir hora de inicio y fin',
+    'Adicionar horários de início e término',
+  ],
+  'This record has a duration but no recorded start and end times.': [
+    'Este registro tiene una duración, pero no tiene horas de inicio y fin registradas.',
+    'Este registro tem uma duração, mas não tem horários de início e término registrados.',
+  ],
+  'The duration is calculated from the start and end times, less any break.': [
+    'La duración se calcula entre el inicio y el fin, descontando la pausa.',
+    'A duração é calculada entre o início e o término, descontando o intervalo.',
+  ],
+  'End time must be later on the same day, with a break shorter than the interval.': [
+    'La hora de fin debe ser posterior en el mismo día y la pausa debe ser menor que el tramo horario.',
+    'O término deve ser posterior no mesmo dia e a pausa deve ser menor que o período.',
+  ],
   Calendar: ['Calendario', 'Calendário'],
   'Calendar navigation': ['Navegación del calendario', 'Navegação do calendário'],
   'Previous month': ['Mes anterior', 'Mês anterior'],

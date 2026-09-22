@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { renderInvoiceTemplate, type InvoiceTemplateSnapshot } from '@ja/invoice-templates';
+import { activityWithInterval, actualTimeInterval } from './time-interval.ts';
 import {
   formatReportDate,
   formatReportInteger,
@@ -1455,6 +1456,9 @@ export type WorkerStatementSnapshot = Readonly<{
     category: string;
     activitySummary: string;
     actualMinutes: number;
+    startTime?: string;
+    endTime?: string;
+    breakMinutes?: number;
     approvalState: string;
   }>[];
   settlements: readonly Readonly<{
@@ -1590,6 +1594,9 @@ function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] 
       category: activity.category,
       activitySummary: activity.activitySummary,
       actualMinutes: activity.actualMinutes,
+      startTime: activity.startTime ?? '',
+      endTime: activity.endTime ?? '',
+      breakMinutes: activity.breakMinutes ?? '',
       approvalState: activity.approvalState,
       currency: snapshot.currency,
       amountMinor: (activityCompensation[index] ?? 0n).toString(),
@@ -1634,9 +1641,18 @@ function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] 
 }
 
 export function workerStatementCsv(snapshot: WorkerStatementSnapshot): Uint8Array {
+  const columns = snapshot.activities.some((activity) => actualTimeInterval(activity))
+    ? [...workerStatementColumns, 'startTime', 'endTime', 'breakMinutes']
+    : workerStatementColumns;
   return new TextEncoder().encode(
-    toCsv(workerStatementRows(snapshot), workerStatementColumns, {
-      numericColumns: ['amountMinor', 'actualMinutes', 'approvedMinutes', 'pendingMinutes'],
+    toCsv(workerStatementRows(snapshot), columns, {
+      numericColumns: [
+        'amountMinor',
+        'actualMinutes',
+        'approvedMinutes',
+        'pendingMinutes',
+        'breakMinutes',
+      ],
     }),
   );
 }
@@ -1675,7 +1691,7 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
       formatReportDate(row.date, locale) || '—',
       project,
       translateWorkerStatementCategory(row.category, locale) || '—',
-      row.activitySummary ?? '—',
+      activityWithInterval(row.activitySummary ?? '—', row, locale),
       minutesAsHours(row.actualMinutes) || String(row.actualMinutes ?? '—'),
       translateReportStatus(row.approvalState, locale) || '—',
       exactMoneyText(snapshot.currency, activityCompensation[index] ?? 0n, locale),
@@ -2464,7 +2480,11 @@ export function periodReportPdf(
       type: copy.sourceTime,
       date: formatReportDate(row.work_date ?? row.workDate ?? row.date, locale),
       worker: String(row.workerDisplay ?? row.worker ?? row.workerName ?? row.worker_name ?? ''),
-      detail: String(row.activity_summary ?? row.activitySummary ?? row.category ?? ''),
+      detail: activityWithInterval(
+        String(row.activity_summary ?? row.activitySummary ?? row.category ?? ''),
+        row,
+        locale,
+      ),
       minutes: Number(row.minutes ?? 0),
       status: row.approval_state ?? row.approvalState,
     })),

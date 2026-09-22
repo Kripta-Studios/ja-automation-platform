@@ -22,6 +22,8 @@ Inside the application, the light sidebar marks your current section. The accoun
 
 Secondary panels open when you select their heading and chevron. Time, Expenses and Reports keep search, project and status visible; expand the filter panel for additional criteria. Active secondary filters reopen the panel. Collapsing a panel keeps entered values. Team assignment lists and completed approval history open separately, while pending actions and warnings remain visible. In Finance configuration, choose one commercial policy from the task selector. In Projects, use More actions for client and assignment maintenance. Open the document-registration or Accounting Pack panel when you need to create an item.
 
+Open a project, worker or client selector to search inside its dropdown. Type part of a name or identifier; matching ignores case and accents. Use the arrow keys and Enter to select, or Escape to close without changing the value. Active register filters appear in a compact summary even when additional filters are collapsed. **Clear filters** restores the unfiltered view. Reports use one set of search, status and sort controls for the selected tab.
+
 <!-- screenshot:worker:public-home -->
 <!-- screenshot:worker:register-filters -->
 
@@ -31,7 +33,7 @@ Access — Consult: Worker and Project Manager for records in their effective as
 
 Sign in with your own account. The portal shows only the destinations allowed for your role and effective project assignments. **Help** downloads the guide assigned to the account. **Activity Inbox** opens a permitted source record; reading an alert is not an approval. Optional passkeys and MFA are configured in **Profile** when available. Sign out on a shared device and never share a password, session or recovery code.
 
-Times in forms and calendars are **UTC**. In **Projects**, use previous/next month or **Today**, select a day to open its agenda, and select an event to open the authorized project. A project end date includes that whole day. A timed shift end is exclusive. A planned shift is expected work; it does not create actual time, compensation, invoice evidence or customer acceptance.
+Planning shifts and availability windows use **UTC**. Actual time entries use the local clock in the project's timezone; start and end are stored as entered, without conversion to UTC. In **Projects**, use previous/next month or **Today**, select a day to open its agenda, and select an event to open the authorized project. A project end date includes that whole day. A timed shift end is exclusive. A planned shift is expected work; it does not create actual time, compensation, invoice evidence or customer acceptance.
 
 Use the project and worker filters before opening an entry. If a day or project is absent, verify the month, filter and assignment dates. Do not switch to another person or project to bypass a denial.
 
@@ -70,7 +72,14 @@ Use **Reports** to review factual Daily and Technical / PLC records for the assi
 
 Access — Consult: Worker and Project Manager for their own permitted entries and authorized project evidence. Create: Worker or Project Manager creates their own actual time, reports and expenses; the Worker records only their own work. Approve: the assigned Project Manager or Owner performs operational review; Finance handles financial treatment or reimbursement. Modify: the author edits a draft or uses the correction flow when the record is returned; approved history is not edited in place.
 
-For **Time**, choose **Log time**, the assigned project, the actual work date, category, minutes and a factual summary. Record travel separately when the form permits it. **Save draft** keeps an unfinished entry; **Submit** sends it for review and does not approve or pay it. A planned date or shift is not actual time.
+In **Time**, choose **Log time** and the assigned project. The work date defaults to today in your browser's local timezone; change it to the actual work date when necessary. Enter the category, factual description, **Start time** and **End time** using the local clock in the project's timezone, without converting to UTC. The end must be later on the same day. Enter an optional **Break (minutes)**, or leave it blank or zero for no break. The portal calculates net duration as end minus start minus break; the break must be shorter than the interval. For example, 08:15–16:15 with a 60-minute break records 7 hours. Record travel separately when the form permits it. **Save draft** keeps an unfinished entry; **Submit** sends it for review and does not approve or pay it. A planned date or shift is not actual time.
+
+Older entries may contain only a duration. Their clocks remain empty until you choose **Add start and end times** in an editable draft or authorized correction and enter the actual times. Do not infer them from a planned shift or the duration.
+
+New period reports and your private worker statement show recorded start/end intervals, net hours and any recorded break in their web views and PDFs. Entries without clocks retain their duration; previously issued files and finalized history are unchanged. Daily and Technical / PLC narratives remain separate records and do not acquire an assumed time interval.
+
+<!-- screenshot:worker:time-entry -->
+<!-- screenshot:worker:project-picker -->
 
 In **Reports**, use **Daily** for completed work, blockers and next steps. Use **Technical / PLC** for the problem, diagnosis, change, validation and backup evidence, with the author. Save and submit the report. A customer report and **Client Sign-off** are separate: the customer signs its own acceptance after the reviewed period; internal review is not customer acceptance.
 

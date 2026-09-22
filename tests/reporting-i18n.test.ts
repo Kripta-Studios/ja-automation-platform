@@ -412,6 +412,55 @@ const workerCopy = {
 } as const;
 
 describe('localized report PDF renderers', () => {
+  it.each(['en', 'pt-BR'] as const)(
+    'renders recorded intervals and net hours in %s customer/internal/worker PDFs with duration-only fallback',
+    (locale) => {
+      const base = periodSnapshot(locale);
+      const timeSummary = base.timeSummary.map((row) => ({
+        ...row,
+        minutes: 420,
+        startTime: '08:15',
+        endTime: '16:15',
+        breakMinutes: 60,
+      }));
+      for (const audience of ['customer', 'internal']) {
+        const pdf = periodReportPdf({ ...base, audience, timeSummary });
+        expectPdf(pdf);
+        const text = textFromPdf(pdf, '-raw').replace(/\s+/g, ' ').trim();
+        expect(containsPdfCopy(text, '08:15–16:15')).toBe(true);
+        expect(containsPdfCopy(text, `${locale === 'en' ? 'Break' : 'Intervalo'}: 60 min`)).toBe(
+          true,
+        );
+        expect(text).toContain(locale === 'en' ? '7.0 h' : '7,0 h');
+        expect(text).toContain('Commissioned line sensors');
+      }
+      const worker = workerStatementSnapshot(locale);
+      const workerPdf = workerStatementPdf({
+        ...worker,
+        activities: worker.activities.map((row) => ({
+          ...row,
+          actualMinutes: 420,
+          startTime: '08:15',
+          endTime: '16:15',
+          breakMinutes: 60,
+        })),
+      });
+      expectPdf(workerPdf);
+      const workerText = textFromPdf(workerPdf, '-raw');
+      expect(containsPdfCopy(workerText, '08:15–16:15')).toBe(true);
+      expect(
+        containsPdfCopy(workerText, `${locale === 'en' ? 'Break' : 'Intervalo'}: 60 min`),
+      ).toBe(true);
+      expect(containsPdfCopy(workerText, '7.00')).toBe(true);
+      const legacyPeriod = expectPdf(periodReportPdf(base));
+      const legacyWorker = expectPdf(workerStatementPdf(worker));
+      expect(legacyPeriod).not.toMatch(/08:15|16:15|60 min/u);
+      expect(legacyWorker).not.toMatch(/08:15|16:15|60 min/u);
+      expect(legacyPeriod).toContain('Commissioned line sensors');
+    },
+    60000,
+  );
+
   it('normalizes full locale aliases while retaining the internal pt code', () => {
     expect(normalizeReportLocale('en-US')).toBe('en');
     expect(normalizeReportLocale('es-ES')).toBe('es');

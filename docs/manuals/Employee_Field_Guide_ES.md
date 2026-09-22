@@ -14,9 +14,15 @@ MFA es opcional. Si decides activarlo, abre **Perfil (Profile)** y selecciona **
 
 Empieza en **Hoy (Today)** y elige únicamente el proyecto donde ocurrió el trabajo. Si no aparece, pide a un responsable que revise tu asignación; no registres horas ni gastos en otro proyecto. En un dispositivo compartido, termina con **Cerrar sesión (Sign out)**.
 
+Los selectores de proyectos, trabajadores y clientes incluyen la búsqueda dentro del desplegable. Usa las flechas y Enter para seleccionar o Escape para cerrar sin cambiar la selección.
+
 ## 3. Registra el trabajo y el viaje reales
 
-En **Tiempo (Time)**, indica la fecha de servicio, la actividad y la duración real, y guarda el borrador. Un mínimo del cliente o una jornada planificada de diez horas nunca cambia el tiempo real que declaras. Registra el viaje por separado cuando el proyecto lo permita; el pago del viaje y la facturación al cliente pueden tener reglas distintas. Revisa fecha, duración y descripción factual antes de enviarlo.
+Abre **Tiempo (Time)**. Elige **Registrar tiempo (Log time)** y el proyecto asignado. La fecha inicial es la de hoy en la zona horaria local del navegador; cámbiala por la fecha real del trabajo cuando sea necesario. Indica categoría, descripción factual, **Hora de inicio** y **Hora de fin** según el reloj local de la zona horaria del proyecto, sin convertir a UTC. El fin debe ser posterior al inicio del mismo día. Indica la **Pausa (minutos)** opcional o déjala vacía o en cero si no hay pausa. El portal calcula la duración neta como fin menos inicio menos pausa; la pausa debe ser menor que el intervalo. Por ejemplo, 08:15–16:15 con una pausa de 60 minutos registra 7 horas. Guarda el borrador. Un mínimo del cliente o una jornada planificada de diez horas nunca cambia el tiempo real que declaras. Registra el viaje por separado cuando el proyecto lo permita; el pago del viaje y la facturación al cliente pueden tener reglas distintas. Revisa fecha, intervalo, duración neta y descripción factual antes de enviarlo.
+
+Los registros antiguos pueden contener solo una duración. Sus horas quedan vacías hasta que elijas **Añadir hora de inicio y fin (Add start and end times)** en un borrador editable o una corrección autorizada e indiques las horas reales. No las deduzcas de un turno previsto ni de la duración.
+
+<!-- screenshot:worker:time-entry -->
 
 Borrador permite revisar. Enviado espera revisión. Si un revisor lo devuelve, lee el motivo y envía la corrección solicitada. Un registro aprobado permanece en el historial: usa el flujo de corrección con un motivo y deja que el revisor autorizado lo actualice. No borres, dupliques ni sobrescribas horas aprobadas.
 
@@ -35,6 +41,8 @@ Usa **Informes (Reports)** para el informe que requiera el trabajo. **Diario (Da
 **Mi pago (My Pay)** es tu vista privada y muestra solo tu compensación y tus gastos reembolsables. Un importe **estimado** es un cálculo de trabajo. **Aprobado** significa que la revisión autorizada aceptó el importe. **Programado** significa que hay un pago previsto para la fecha esperada indicada. **Pagado** significa que el registro tiene una fecha real de pago; una fecha programada no demuestra que se haya pagado. Consulta al administrador si no entiendes un estado, una fecha esperada o una fecha real.
 
 Este estado privado no es una nómina ni un documento fiscal. Nunca deduzcas una tarifa del cliente ni la paga de otra persona a partir de él o de una factura del cliente.
+
+Los nuevos informes de período y tu estado privado de trabajador muestran el intervalo de inicio/fin registrado, las horas netas y la pausa registrada en sus vistas web y PDF. Los registros sin horas conservan su duración; los archivos ya emitidos y el historial finalizado no cambian. Los relatos Diario y PLC / Técnico siguen siendo registros separados y no reciben un intervalo supuesto.
 
 ## 7. Conexión y captura sin conexión
 

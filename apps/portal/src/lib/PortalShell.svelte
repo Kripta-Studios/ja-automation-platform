@@ -882,7 +882,10 @@
             workDate: formValue(formData, 'workDate'),
             category: formValue(formData, 'category'),
             activityCode: formValue(formData, 'activityCode'),
-            minutes: formNumber(formData, 'minutes'),
+            minutes: formNumber(formData, 'minutes') ?? 0,
+            startTime: formValue(formData, 'startTime'),
+            endTime: formValue(formData, 'endTime'),
+            breakMinutes: formNumber(formData, 'breakMinutes') ?? 0,
             summary: formValue(formData, 'summary'),
           })
         : entityType === 'daily_report'
@@ -1645,7 +1648,16 @@
                   >
                   <td>{controlledValue('category', activity.category)}</td>
                   <td>{String(activity.activitySummary ?? '—')}</td>
-                  <td>{hours(activity.actualMinutes ?? 0)}</td>
+                  <td>
+                    {#if activity.startTime && activity.endTime}
+                      <strong>{String(activity.startTime)} – {String(activity.endTime)}</strong><br
+                      />
+                    {/if}
+                    {hours(activity.actualMinutes ?? 0)}
+                    {#if Number(activity.breakMinutes ?? 0) > 0}
+                      · {translate('Break')}: {String(activity.breakMinutes)} {translate('min')}
+                    {/if}
+                  </td>
                   <td>{controlledValue('status', activity.approvalState)}</td>
                 </tr>
               {:else}

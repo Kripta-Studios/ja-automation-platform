@@ -702,7 +702,8 @@ test.describe('Client Essential · Worker operational truth', () => {
     await expect(travelForm.getByText('Travel operational detail')).toBeVisible();
     await expect(travelForm.locator('input[name="activityCode"]')).toBeVisible();
     await travelForm.locator('input[name="activityCode"]').fill('Airport to commissioning site');
-    await travelForm.locator('input[name="minutes"]').fill('45');
+    await travelForm.locator('input[name="startTime"]').fill('06:00');
+    await travelForm.locator('input[name="endTime"]').fill('06:45');
     await travelForm
       .locator('textarea[name="summary"]')
       .fill('Travelled from the airport to the commissioning site.');
@@ -718,7 +719,8 @@ test.describe('Client Essential · Worker operational truth', () => {
     await standbyForm.locator('select[name="category"]').selectOption('standby');
     await expect(standbyForm.getByText('Standby reason')).toBeVisible();
     await standbyForm.locator('input[name="activityCode"]').fill('Awaiting controlled test window');
-    await standbyForm.locator('input[name="minutes"]').fill('30');
+    await standbyForm.locator('input[name="startTime"]').fill('06:45');
+    await standbyForm.locator('input[name="endTime"]').fill('07:15');
     await standbyForm
       .locator('textarea[name="summary"]')
       .fill('Held available for the controlled test window.');

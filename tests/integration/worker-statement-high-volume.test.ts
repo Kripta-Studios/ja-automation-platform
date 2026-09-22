@@ -472,6 +472,60 @@ afterEach(() => {
 });
 
 describe('worker statement high-volume exports', () => {
+  it('freezes actual intervals in the worker API snapshot while retaining legacy duration-only rows', async () => {
+    const value = fixture();
+    const timed = value.repository.createTimeEntry(value.worker, {
+      projectId: value.projectId,
+      workDate: '2026-08-11',
+      category: 'regular',
+      startTime: '08:15',
+      endTime: '16:15',
+      breakMinutes: 60,
+      minutes: 420,
+      summary: 'Recorded interval',
+    });
+    const legacy = value.repository.createTimeEntry(value.worker, {
+      projectId: value.projectId,
+      workDate: '2026-08-12',
+      category: 'regular',
+      minutes: 60,
+      summary: 'Historical duration',
+    });
+    const query = 'periodStart=2026-08-01&periodEnd=2026-08-31';
+    const artifact = await requestedCsvArtifact(query);
+    const stored = value.sqlite.prepare(
+      'SELECT snapshot_json FROM worker_statement_artifact WHERE artifact_id=?',
+    );
+    const frozen = (stored.get(artifact.artifactId) as { snapshot_json: string }).snapshot_json;
+    const snapshot = JSON.parse(frozen) as { activities: Array<Record<string, unknown>> };
+    expect(snapshot.activities.find((row) => row.id === timed.id)).toMatchObject({
+      startTime: '08:15',
+      endTime: '16:15',
+      breakMinutes: 60,
+      actualMinutes: 420,
+    });
+    const old = snapshot.activities.find((row) => row.id === legacy.id)!;
+    expect(old).toMatchObject({ actualMinutes: 60 });
+    expect(old).not.toHaveProperty('startTime');
+    expect(old).not.toHaveProperty('endTime');
+    expect(old).not.toHaveProperty('breakMinutes');
+    value.repository.createTimeEntry(value.worker, {
+      projectId: value.projectId,
+      workDate: '2026-08-13',
+      category: 'regular',
+      startTime: '09:00',
+      endTime: '10:00',
+      breakMinutes: 0,
+      minutes: 60,
+      summary: 'Later source',
+    });
+    const newer = await requestedCsvArtifact(query);
+    expect(newer.artifactId).not.toBe(artifact.artifactId);
+    expect((stored.get(artifact.artifactId) as { snapshot_json: string }).snapshot_json).toBe(
+      frozen,
+    );
+  });
+
   it('does not let lifetime rows outside the period trigger the old 250-row truncation path', async () => {
     const value = fixture();
     const worker = value.worker;

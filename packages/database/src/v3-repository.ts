@@ -80,6 +80,7 @@ import {
 } from './domains/commercial/time-commercial-slices.ts';
 import { NotificationRepository } from './domains/notifications/index.ts';
 import { assertNoSupplierFinancialAccess } from './domains/workforce/supplier-access.ts';
+import { validateEffectiveTimeEntry } from './domains/time/time-entry-repository.ts';
 
 export class V3AccessDeniedError extends Error {}
 export class V3ConflictError extends Error {}
@@ -6640,7 +6641,7 @@ export class V3Repository {
       );
       const time = this.sqlite
         .prepare(
-          `SELECT t.id,t.version,t.work_date,t.category,t.minutes,t.activity_summary,t.approval_state,u.name worker_name
+          `SELECT t.id,t.version,t.work_date,t.category,t.minutes,t.start_time,t.end_time,t.break_minutes,t.activity_summary,t.approval_state,u.name worker_name
            FROM time_entry t JOIN user u ON u.id=t.worker_id
            WHERE t.project_id=? AND t.work_date BETWEEN ? AND ?
              AND NOT EXISTS (
@@ -6659,6 +6660,9 @@ export class V3Repository {
         work_date: string;
         category: string;
         minutes: number;
+        start_time: string | null;
+        end_time: string | null;
+        break_minutes: number | null;
         activity_summary: string | null;
         approval_state: string;
         worker_name: string;
@@ -6935,6 +6939,13 @@ export class V3Repository {
             date: row.work_date,
             category: row.category,
             minutes: row.minutes,
+            ...(row.start_time && row.end_time
+              ? {
+                  startTime: row.start_time,
+                  endTime: row.end_time,
+                  ...(row.break_minutes !== null ? { breakMinutes: row.break_minutes } : {}),
+                }
+              : {}),
             ...(includeActivity ? { activitySummary: row.activity_summary } : {}),
             worker: row.worker_name,
             approvalState: row.approval_state,
@@ -6984,6 +6995,13 @@ export class V3Repository {
             date: row.work_date,
             category: row.category,
             minutes: row.minutes,
+            ...(row.start_time && row.end_time
+              ? {
+                  startTime: row.start_time,
+                  endTime: row.end_time,
+                  ...(row.break_minutes !== null ? { breakMinutes: row.break_minutes } : {}),
+                }
+              : {}),
             ...(includeActivity ? { activitySummary: row.activity_summary } : {}),
             workerDisplay: row.worker_name,
             approvalState: row.approval_state,
@@ -10451,9 +10469,23 @@ export class V3Repository {
         .prepare('SELECT p.timezone FROM project p WHERE p.id=?')
         .get(input.projectId) as { timezone: string } | undefined;
       if (!assignment) throw new V3ValidationError('Project not found');
+      validateEffectiveTimeEntry(
+        this.sqlite,
+        (message) => {
+          throw new V3ValidationError(message);
+        },
+        {
+          workerId: principal.userId,
+          workDate: input.workDate,
+          minutes: input.minutes,
+          startTime: input.startTime ?? null,
+          endTime: input.endTime ?? null,
+          breakMinutes: input.startTime === undefined ? null : (input.breakMinutes ?? 0),
+        },
+      );
       this.sqlite
         .prepare(
-          'INSERT INTO time_entry(id,project_id,worker_id,work_date,category,activity_code,minutes,project_timezone,activity_summary,approval_state,billability_state,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          'INSERT INTO time_entry(id,project_id,worker_id,work_date,category,activity_code,minutes,project_timezone,activity_summary,start_time,end_time,break_minutes,approval_state,billability_state,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
         )
         .run(
           mutation.entityId,
@@ -10465,6 +10497,9 @@ export class V3Repository {
           input.minutes,
           assignment.timezone,
           input.summary,
+          input.startTime ?? null,
+          input.endTime ?? null,
+          input.startTime === undefined ? null : (input.breakMinutes ?? 0),
           'draft',
           'pending',
           timestampValue,
@@ -10658,9 +10693,11 @@ export class V3Repository {
           : mutation.entityType === 'expense'
             ? 'spent_on'
             : 'work_date';
+      const timeIntervalColumns =
+        mutation.entityType === 'time' ? ',start_time,end_time,break_minutes' : '';
       const row = this.sqlite
         .prepare(
-          `SELECT id,${ownerColumn} owner_id,project_id,${objectDateColumn} object_date,version,approval_state FROM ${table} WHERE id=?`,
+          `SELECT id,${ownerColumn} owner_id,project_id,${objectDateColumn} object_date,version,approval_state${timeIntervalColumns} FROM ${table} WHERE id=?`,
         )
         .get(mutation.entityId) as
         | {
@@ -10670,6 +10707,9 @@ export class V3Repository {
             object_date: string;
             version: number;
             approval_state: string;
+            start_time?: string | null;
+            end_time?: string | null;
+            break_minutes?: number | null;
           }
         | undefined;
       if (!row) {
@@ -10701,29 +10741,48 @@ export class V3Repository {
         });
       const now = timestamp();
       if (mutation.entityType === 'time') {
-        const minutes = mutation.payload.minutes;
-        const category = mutation.payload.category;
-        const summary = mutation.payload.summary;
-        if (
-          typeof minutes !== 'number' ||
-          !Number.isInteger(minutes) ||
-          minutes < 0 ||
-          minutes > 1440 ||
-          typeof category !== 'string' ||
-          typeof summary !== 'string'
-        )
+        const parsed = timeInputSchema.safeParse({
+          ...mutation.payload,
+          projectId: row.project_id,
+          workDate: row.object_date,
+        });
+        if (!parsed.success)
           return this.persistMutationResult(principal, mutation, {
             outcome: 'rejected',
             reason: 'Invalid time payload',
           });
+        const input = parsed.data;
+        if (row.start_time && input.startTime === undefined)
+          return this.persistMutationResult(principal, mutation, {
+            outcome: 'rejected',
+            reason: 'Existing time intervals require start and end time',
+          });
+        validateEffectiveTimeEntry(
+          this.sqlite,
+          (message) => {
+            throw new V3ValidationError(message);
+          },
+          {
+            id: mutation.entityId,
+            workerId: row.owner_id,
+            workDate: row.object_date,
+            minutes: input.minutes,
+            startTime: input.startTime ?? null,
+            endTime: input.endTime ?? null,
+            breakMinutes: input.startTime === undefined ? null : (input.breakMinutes ?? 0),
+          },
+        );
         this.sqlite
           .prepare(
-            'UPDATE time_entry SET minutes=?,category=?,activity_summary=?,updated_at=?,version=version+1 WHERE id=? AND version=?',
+            'UPDATE time_entry SET minutes=?,category=?,activity_summary=?,start_time=?,end_time=?,break_minutes=?,updated_at=?,version=version+1 WHERE id=? AND version=?',
           )
           .run(
-            minutes,
-            requireText(category, 'Category', 100),
-            requireText(summary, 'Activity summary'),
+            input.minutes,
+            requireText(input.category, 'Category', 100),
+            requireText(input.summary, 'Activity summary'),
+            input.startTime ?? null,
+            input.endTime ?? null,
+            input.startTime === undefined ? null : (input.breakMinutes ?? 0),
             now,
             mutation.entityId,
             mutation.baseVersion,

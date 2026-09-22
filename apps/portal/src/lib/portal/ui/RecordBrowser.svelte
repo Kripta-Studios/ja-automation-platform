@@ -18,6 +18,9 @@
     focusId = '',
     contextKey = '',
     filtersEnabled = true,
+    controlled = false,
+    resetKey = '',
+    showEmpty = true,
   }: {
     rows: T[];
     visible?: T[];
@@ -29,6 +32,9 @@
     focusId?: string;
     contextKey?: string;
     filtersEnabled?: boolean;
+    controlled?: boolean;
+    resetKey?: string;
+    showEmpty?: boolean;
   } = $props();
   let search = $state('');
   let order = $state('priority');
@@ -37,7 +43,9 @@
     [...new Set([...rows.map(recordState), status].filter(Boolean))].sort(),
   );
   const filtered = $derived(
-    browseRecords(rows, filtersEnabled ? search : '', filtersEnabled ? status : '', order),
+    controlled
+      ? [...rows]
+      : browseRecords(rows, filtersEnabled ? search : '', filtersEnabled ? status : '', order),
   );
   $effect(() => {
     visible = filtered.slice(current * pageSize, (current + 1) * pageSize);
@@ -50,18 +58,21 @@
     `ja-record-browser:${$route.data.user?.id ?? $route.data.managementUser?.id ?? ''}:${$route.url.pathname}${$route.url.search}:${label}:${contextKey}`,
   );
   onMount(() => {
-    const saved = focusId
-      ? null
-      : readOperationalRegisterState<{
-          search?: string;
-          status?: string;
-          order?: string;
-          page?: number;
-        }>(storageKey);
-    if (filtersEnabled && typeof saved?.search === 'string') search = saved.search;
-    if (filtersEnabled && typeof saved?.status === 'string') status = saved.status;
-    if (typeof saved?.order === 'string') order = saved.order;
-    if (Number.isInteger(saved?.page) && Number(saved?.page) >= 0) page = Number(saved?.page);
+    const saved =
+      focusId || controlled
+        ? null
+        : readOperationalRegisterState<{
+            search?: string;
+            status?: string;
+            order?: string;
+            page?: number;
+          }>(storageKey);
+    if (!controlled) {
+      if (filtersEnabled && typeof saved?.search === 'string') search = saved.search;
+      if (filtersEnabled && typeof saved?.status === 'string') status = saved.status;
+      if (typeof saved?.order === 'string') order = saved.order;
+      if (Number.isInteger(saved?.page) && Number(saved?.page) >= 0) page = Number(saved?.page);
+    }
     criteria = JSON.stringify([search, status, order, pageSize]);
     hydrated = true;
   });
@@ -71,7 +82,14 @@
     criteria = next;
   });
   $effect(() => {
-    if (hydrated) writeOperationalRegisterState(storageKey, { search, status, order, page });
+    if (hydrated && !controlled)
+      writeOperationalRegisterState(storageKey, { search, status, order, page });
+  });
+  let appliedResetKey = $state('');
+  $effect(() => {
+    if (!controlled || appliedResetKey === resetKey) return;
+    page = 0;
+    appliedResetKey = resetKey;
   });
   // Detail links must reveal their target even when it lives beyond the first page.
   let appliedFocus = $state('');
@@ -86,47 +104,51 @@
 </script>
 
 <div class="record-browser" aria-label={translate(label)}>
-  <div class="record-browser__controls">
-    {#if filtersEnabled}
+  {#if !controlled}<div class="record-browser__controls">
+      {#if filtersEnabled}
+        <label
+          >{translate('Search')}<input
+            type="search"
+            bind:value={search}
+            aria-label={`${translate('Search')}: ${translate(label)}`}
+          /></label
+        >
+        <label
+          >{translate('Status')}<select bind:value={status}
+            ><option value="">{translate('All')}</option>{#each statuses as item}<option
+                value={item}>{translate(item)}</option
+              >{/each}</select
+          ></label
+        >
+      {/if}
       <label
-        >{translate('Search')}<input
-          type="search"
-          bind:value={search}
-          aria-label={`${translate('Search')}: ${translate(label)}`}
-        /></label
-      >
-      <label
-        >{translate('Status')}<select bind:value={status}
-          ><option value="">{translate('All')}</option>{#each statuses as item}<option value={item}
-              >{translate(item)}</option
-            >{/each}</select
+        >{translate('Sort by')}<select bind:value={order}
+          ><option value="priority">{translate('Needs attention first')}</option><option
+            value="oldest">{translate('Oldest first')}</option
+          ><option value="newest">{translate('Newest first')}</option><option value="name"
+            >{translate('Name')}</option
+          ><option value="status">{translate('Status')}</option></select
         ></label
       >
-    {/if}
-    <label
-      >{translate('Sort by')}<select bind:value={order}
-        ><option value="priority">{translate('Needs attention first')}</option><option
-          value="oldest">{translate('Oldest first')}</option
-        ><option value="newest">{translate('Newest first')}</option><option value="name"
-          >{translate('Name')}</option
-        ><option value="status">{translate('Status')}</option></select
-      ></label
-    >
-  </div>
+    </div>{/if}
   <nav class="record-browser__pages" aria-label={`${translate(label)}: ${translate('Pages')}`}>
-    <button type="button" disabled={current === 0} onclick={() => (page = current - 1)}
-      >← {translate('Previous')}</button
-    >
+    {#if pages > 1}<button
+        type="button"
+        disabled={current === 0}
+        onclick={() => (page = current - 1)}>← {translate('Previous')}</button
+      >{/if}
     <span role="status"
       >{filtered.length ? current * pageSize + 1 : 0}–{Math.min(
         (current + 1) * pageSize,
         filtered.length,
       )} / {filtered.length}</span
     >
-    <button type="button" disabled={current + 1 >= pages} onclick={() => (page = current + 1)}
-      >{translate('Next')} →</button
-    >
+    {#if pages > 1}<button
+        type="button"
+        disabled={current + 1 >= pages}
+        onclick={() => (page = current + 1)}>{translate('Next')} →</button
+      >{/if}
   </nav>
   {@render children?.(filtered.slice(current * pageSize, (current + 1) * pageSize))}
-  {#if !filtered.length}<p role="status">{translate('No matching records.')}</p>{/if}
+  {#if showEmpty && !filtered.length}<p role="status">{translate('No matching records.')}</p>{/if}
 </div>

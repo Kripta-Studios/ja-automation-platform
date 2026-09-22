@@ -22,6 +22,8 @@ No aplicativo, a barra lateral clara destaca a seção atual. O menu da conta re
 
 Os painéis secundários são abertos pelo título e pela seta. Tempo, Despesas e Relatórios mantêm pesquisa, projeto e status visíveis; abra o painel de filtros para outros critérios. Filtros secundários ativos reabrem o painel. Recolher um painel preserva os valores preenchidos. As atribuições da equipe e o histórico de aprovações concluídas podem ser abertos separadamente; ações pendentes e avisos continuam visíveis. Na configuração financeira, escolha uma política comercial no seletor de tarefa. Em Projetos, use Mais ações para administrar clientes e atribuições. Abra o painel de cadastro de documentos ou do pacote contábil quando precisar criar um item.
 
+Abra um seletor de projeto, trabalhador ou cliente para pesquisar dentro do menu. Digite parte do nome ou identificador; a pesquisa ignora maiúsculas e acentos. Use as setas e Enter para selecionar ou Escape para fechar sem alterar o valor. Os filtros ativos aparecem em um resumo compacto mesmo com os filtros adicionais recolhidos. **Limpar filtros** restaura a visualização sem filtros. Os relatórios usam um único conjunto de pesquisa, estado e ordenação para a aba selecionada.
+
 <!-- screenshot:worker:public-home -->
 <!-- screenshot:worker:register-filters -->
 
@@ -31,7 +33,7 @@ Acesso — Consulta: Colaborador e Gerente de projetos para registros de suas at
 
 Entre com sua própria conta. O portal mostra somente os destinos permitidos para seu perfil e suas atribuições de projeto vigentes. **Ajuda** baixa o guia atribuído à conta. A **Caixa de atividades** abre um registro de origem permitido; ler uma notificação não é aprová-la. Passkeys e MFA opcionais podem ser configurados em **Perfil**, quando disponíveis. Encerre a sessão em dispositivo compartilhado e nunca compartilhe senha, sessão ou código de recuperação.
 
-Os horários em formulários e calendários estão em **UTC**. Em **Projetos**, use mês anterior/próximo ou **Hoje**, selecione um dia para abrir a agenda e selecione um evento para abrir o projeto autorizado. A data final do projeto inclui todo o dia. O fim de um turno com horário é exclusivo. Um turno planejado é trabalho esperado; não cria tempo efetivo, remuneração, evidência de fatura nem aceite do cliente.
+Turnos de planejamento e janelas de disponibilidade usam **UTC**. Registros de tempo efetivo usam o horário local no fuso do projeto; início e fim são armazenados como informados, sem conversão para UTC. Em **Projetos**, use mês anterior/próximo ou **Hoje**, selecione um dia para abrir a agenda e selecione um evento para abrir o projeto autorizado. A data final do projeto inclui todo o dia. O fim de um turno com horário é exclusivo. Um turno planejado é trabalho esperado; não cria tempo efetivo, remuneração, evidência de fatura nem aceite do cliente.
 
 Use os filtros de projeto e colaborador antes de abrir um item. Se um dia ou projeto não aparecer, confira mês, filtro e datas da atribuição. Não troque de pessoa ou projeto para contornar uma negativa.
 
@@ -70,7 +72,14 @@ Use **Relatórios** para revisar registros factuais Diário e Técnico / PLC do 
 
 Acesso — Consulta: Colaborador e Gerente de projetos para suas próprias entradas permitidas e evidências dos projetos autorizados. Criação: Colaborador ou Gerente de projetos cria seu próprio tempo efetivo, relatórios e despesas; o Colaborador registra somente o próprio trabalho. Aprovação: o Gerente de projetos ou Proprietário faz a análise operacional; Finanças trata o aspecto financeiro ou reembolso. Alteração: o autor edita um rascunho ou usa o fluxo de correção quando o registro retorna; histórico aprovado não é editado diretamente.
 
-Em **Tempo**, escolha **Registrar tempo**, o projeto atribuído, data real do trabalho, categoria, minutos e resumo factual. Registre viagem separadamente quando o formulário permitir. **Salvar rascunho** mantém uma entrada incompleta; **Enviar** encaminha para análise e não aprova nem paga. Data ou turno planejado não é tempo efetivo.
+Em **Tempo**, escolha **Registrar tempo** e o projeto atribuído. A data começa no dia de hoje no fuso local do navegador; altere-a para a data real do trabalho quando necessário. Informe categoria, descrição factual, **Hora de início** e **Hora de término** usando o horário local no fuso do projeto, sem converter para UTC. O término deve ser posterior ao início no mesmo dia. Informe o **Intervalo (minutos)** opcional ou deixe em branco ou zero quando não houver pausa. O portal calcula a duração líquida como término menos início menos pausa; a pausa deve ser menor que o período entre início e término. Por exemplo, 08:15–16:15 com pausa de 60 minutos registra 7 horas. Registre viagem separadamente quando o formulário permitir. **Salvar rascunho** mantém uma entrada incompleta; **Enviar** encaminha para análise e não aprova nem paga. Data ou turno planejado não é tempo efetivo.
+
+Registros antigos podem conter somente uma duração. Seus horários ficam vazios até você escolher **Adicionar horários de início e término** em um rascunho editável ou correção autorizada e informar os horários reais. Não deduza os horários de um turno planejado nem da duração.
+
+Novos relatórios de período e seu demonstrativo privado de colaborador mostram início/fim registrados, horas líquidas e a pausa registrada nas telas e nos PDFs. Registros sem horários mantêm a duração; arquivos já emitidos e histórico finalizado permanecem inalterados. Os relatos Diário e Técnico / PLC continuam separados e não recebem horários presumidos.
+
+<!-- screenshot:worker:time-entry -->
+<!-- screenshot:worker:project-picker -->
 
 Em **Relatórios**, use **Diário** para trabalho concluído, impedimentos e próximos passos. Use **Técnico / PLC** para problema, diagnóstico, alteração, validação e evidência de backup, com o autor. Salve e envie o relatório. O relatório do cliente e a **Conformidade do cliente** são separados: o cliente assina sua própria conformidade após o período revisado; a análise interna não é o aceite do cliente.
 

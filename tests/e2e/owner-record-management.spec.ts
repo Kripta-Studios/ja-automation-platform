@@ -41,7 +41,9 @@ test('Owner reopens, edits and deletes an approved expense from the interface', 
   }
   await page.goto(portal('/manage?type=expense&lang=en'));
   await expect(page.getByRole('heading', { name: 'Data management', exact: true })).toBeVisible();
-  await page.getByRole('searchbox').fill(vendor);
+  await page
+    .getByRole('searchbox', { name: 'Search: Operational records', exact: true })
+    .fill(vendor);
   let row = page.locator(`article[id="${id}"]`);
   await expect(row).toBeVisible();
   await row.getByText('Manage record', { exact: true }).click();
@@ -55,8 +57,12 @@ test('Owner reopens, edits and deletes an approved expense from the interface', 
   await expect(sheet).toBeVisible();
   await sheet.getByLabel('Vendor', { exact: true }).fill(vendor + ' corrected');
   await sheet.getByRole('button', { name: 'Save changes' }).click();
+  await page.locator('.expense-filters input[name="q"]').fill(vendor + ' corrected');
   await expect(page.locator(`[data-expense-record="${id}"]`)).toContainText(vendor + ' corrected');
   await page.goto(portal('/manage?type=expense&lang=en'));
+  await page
+    .getByRole('searchbox', { name: 'Search: Operational records', exact: true })
+    .fill(vendor);
   row = page.locator(`article[id="${id}"]`);
   await row.getByText('Manage record', { exact: true }).click();
   await row.getByLabel('Correction reason').fill('Delete browser test record');
@@ -65,7 +71,7 @@ test('Owner reopens, edits and deletes an approved expense from the interface', 
   expect(box!.height).toBeGreaterThanOrEqual(44);
   await row.getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(page.locator(`article[id="${id}"]`)).toHaveCount(0);
-  await expect(page.getByRole('status')).toContainText('Changes saved');
+  await expect(page.locator('.management-feedback[role="status"]')).toContainText('Changes saved');
 });
 
 test('Worker cannot open Owner data management', async ({ page }) => {
@@ -90,24 +96,34 @@ test('project pickers search ignoring case and accents and retain selected value
   }
   await page.goto(portal('/expenses?lang=en'));
   await page.getByRole('button', { name: 'Record expense', exact: true }).click();
-  const dialog = page.getByRole('dialog');
+  const dialog = page.locator('[data-ui="responsive-sheet"]');
   const picker = dialog.locator('select[name="projectId"]');
-  const search = dialog.getByRole('searchbox', { name: 'Search: Project', exact: true });
+  await expect(dialog.locator('[data-select-search]:visible')).toHaveCount(0);
+  await picker.click();
+  const popup = dialog.locator('.searchable-select-popover:popover-open');
+  const search = popup.getByRole('combobox', { name: 'Search: Project', exact: true });
   await expect(search).toBeVisible();
-  await search.fill('mALaGA');
-  await expect(picker.locator(`option[value="${projectId}"]`)).toHaveJSProperty('hidden', false);
-  await picker.selectOption(projectId);
+  await search.fill('mALaGA Automation Search ' + testInfo.project.name);
+  await expect(popup.getByRole('option')).toHaveCount(1);
+  await popup
+    .getByRole('option', {
+      name: 'Málaga Automation Search ' + testInfo.project.name,
+      exact: false,
+    })
+    .click();
+  await expect(picker).toHaveValue(projectId);
+  await expect(popup).toHaveCount(0);
+  await picker.click();
   await search.fill('no matching project');
   await expect(picker).toHaveValue(projectId);
-  await expect(
-    dialog
-      .locator('.searchable-select-field')
-      .filter({ has: page.locator('select[name="projectId"]') })
-      .getByRole('status'),
-  ).toContainText('0 results');
+  await expect(popup.getByRole('status')).toContainText('No matches');
   await search.fill('');
   await expect(picker).toHaveValue(projectId);
   await expect(picker.locator('option[hidden]')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(popup).toHaveCount(0);
+  await expect(dialog).toBeVisible();
+  await expect(picker).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
 });

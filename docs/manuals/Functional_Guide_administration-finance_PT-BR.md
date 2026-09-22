@@ -22,6 +22,8 @@ No aplicativo, a barra lateral clara destaca a seção atual. O menu da conta re
 
 Os painéis secundários são abertos pelo título e pela seta. Tempo, Despesas e Relatórios mantêm pesquisa, projeto e status visíveis; abra o painel de filtros para outros critérios. Filtros secundários ativos reabrem o painel. Recolher um painel preserva os valores preenchidos. As atribuições da equipe e o histórico de aprovações concluídas podem ser abertos separadamente; ações pendentes e avisos continuam visíveis. Na configuração financeira, escolha uma política comercial no seletor de tarefa. Em Projetos, use Mais ações para administrar clientes e atribuições. Abra o painel de cadastro de documentos ou do pacote contábil quando precisar criar um item.
 
+Abra um seletor de projeto, trabalhador ou cliente para pesquisar dentro do menu. Digite parte do nome ou identificador; a pesquisa ignora maiúsculas e acentos. Use as setas e Enter para selecionar ou Escape para fechar sem alterar o valor. Os filtros ativos aparecem em um resumo compacto mesmo com os filtros adicionais recolhidos. **Limpar filtros** restaura a visualização sem filtros. Os relatórios usam um único conjunto de pesquisa, estado e ordenação para a aba selecionada.
+
 <!-- screenshot:owner:public-home -->
 <!-- screenshot:finance:configuration-task -->
 <!-- screenshot:owner:project-actions -->
@@ -48,6 +50,8 @@ Use **Projetos → Equipe** para atribuições datadas e alterações de funçã
 
 Em **Aprovações**, confira tempo, despesas e relatórios Diário ou Técnico / PLC enviados com suas evidências de origem. Aprove ou solicite correções com motivo factual. Horas originadas por fornecedor exigem análise do Proprietário. Preserve registros devolvidos por rascunhos de correção. O Proprietário administra aprovação operacional e limites administrativos; Finanças trata a parte econômica descrita abaixo.
 
+Ao revisar tempo efetivo, compare início/fim registrados, pausa e duração líquida. **Registrar tempo** começa com a data de hoje no fuso local do navegador e permite alterá-la para a data real do trabalho. Início e fim usam o horário local do projeto sem conversão para UTC; o término é posterior no mesmo dia, e a pausa opcional é menor que esse período. Os minutos líquidos são calculados automaticamente. Turnos de planejamento e disponibilidade continuam em UTC. Registros antigos que contêm somente duração mantêm seu significado; acrescente horários apenas com base no trabalho real conhecido, usando **Adicionar horários de início e término** em rascunho editável ou correção autorizada.
+
 <!-- screenshot:owner:planning-month -->
 <!-- screenshot:owner:planning-editor -->
 <!-- screenshot:owner:help -->
@@ -59,6 +63,8 @@ Acesso — Consulta: Finanças consulta Visão financeira, Projetos, Faturamento
 Abra **Projetos** primeiro e confirme cliente, projeto e datas de vigência. Em **Configuração comercial**, confira entidade legal, fluxo de faturamento, perfil fiscal, tarifas e vigências. Altere apenas a regra e o período aprovados; configuração posterior não pode reescrever registros antigos. Disponibilidade em **Perfil** é contexto de planejamento UTC, não autorização para publicar turno nem regra de remuneração.
 
 Em **Revisão econômica**, abra **Registros de origem** e concilie receita faturada, mão de obra direta, despesas e margem às linhas contribuintes. Revise remuneração e reembolso de colaboradores separadamente do faturamento do cliente. **Finalizar remuneração** fecha o cálculo revisado; não é transferência bancária.
+
+Novos relatórios de período do cliente e internos mostram início/fim registrados, horas líquidas e pausas no detalhe web e no PDF. O demonstrativo privado do colaborador faz o mesmo dentro dos limites de acesso existentes. Sem horários registrados, somente a duração é exibida. Arquivos emitidos e retratos finalizados não são reescritos para acrescentar horários; relatos Diário e Técnico / PLC continuam independentes. Duração efetiva e evidências de horários não alteram mínimos do cliente, tarifas nem regras de remuneração.
 
 Em **Faturamento**, resolva mensagens de prontidão com fontes aprovadas e aceite do cliente antes de criar ou emitir uma fatura. Confira entidade, moeda, numeração, impostos e linhas e revise o PDF gerado. Edite somente rascunho. Depois de emitida, use anulação, crédito/ajuste ou substituição controlados com motivo; nunca edite diretamente um retrato emitido.
 

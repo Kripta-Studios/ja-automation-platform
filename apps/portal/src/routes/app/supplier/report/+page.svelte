@@ -61,6 +61,12 @@
           <dl>
             <dt>{c.category}</dt>
             <dd>{supplierCategoryLabel(data.locale, row.category)}</dd>
+            {#if row.startTime && row.endTime}
+              <dt>{c.interval}</dt>
+              <dd>{row.startTime} – {row.endTime}</dd>
+              <dt>{c.breakMinutes}</dt>
+              <dd>{row.breakMinutes ?? 0}</dd>
+            {/if}
             <dt>{c.minutes}</dt>
             <dd>{row.minutes}</dd>
             <dt>{c.state}</dt>

@@ -320,6 +320,16 @@ const captureCaptions: Record<string, Readonly<{ en: string; pt: string; es: str
     pt: 'Equipe do fornecedor: instalação autorizada e trabalho dos técnicos',
     es: 'Equipo del proveedor: instalación autorizada y trabajo de los técnicos',
   },
+  'project-picker': {
+    en: 'Project picker: search within the dropdown and select a result',
+    pt: 'Seletor de projeto: pesquise no menu e selecione um resultado',
+    es: 'Selector de proyecto: busca dentro del desplegable y selecciona un resultado',
+  },
+  'time-entry': {
+    en: 'Log time: today, start/end times, break and calculated duration',
+    pt: 'Registrar tempo: hoje, início/fim, pausa e duração calculada',
+    es: 'Registrar tiempo: hoy, inicio/fin, pausa y duración calculada',
+  },
   time: {
     en: 'Time: enter only your own factual operational work',
     pt: 'Horas: registre somente seu trabalho operacional real',

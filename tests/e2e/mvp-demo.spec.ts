@@ -302,7 +302,8 @@ test('worker phone flow records operational truth without commercial configurati
   await expect(timeForm.locator('input[name="activityCode"]')).toBeVisible();
   await expect(timeForm.getByText('Travel operational detail')).toBeVisible();
   await timeForm.locator('input[name="activityCode"]').fill('Airport to site transfer');
-  await timeForm.locator('input[name="minutes"]').fill('45');
+  await timeForm.locator('input[name="startTime"]').fill('06:00');
+  await timeForm.locator('input[name="endTime"]').fill('06:45');
   await timeForm
     .locator('textarea[name="summary"]')
     .fill('Travelled from the airport to the commissioning site.');
@@ -454,7 +455,8 @@ test('worker can create an offline time draft and sync it once online', async ({
   await time.locator('select[name="projectId"]').selectOption({ index: 1 });
   await time.locator('input[name="workDate"]').fill('2026-08-19');
   await time.locator('select[name="category"]').selectOption('regular');
-  await time.locator('input[name="minutes"]').fill('45');
+  await time.locator('input[name="startTime"]').fill('07:00');
+  await time.locator('input[name="endTime"]').fill('07:45');
   await time
     .locator('textarea[name="summary"]')
     .fill('Offline field draft for reconnect verification.');

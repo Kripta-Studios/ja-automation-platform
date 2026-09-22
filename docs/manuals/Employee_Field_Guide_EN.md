@@ -14,9 +14,15 @@ MFA is optional. If you choose it, open **Profile**, follow **Set up MFA**, stor
 
 Start on **Today** and select only the project where the work happened. If it is missing, ask a manager to check your assignment; do not record hours or expenses on another project. On a shared device, finish with **Sign out**.
 
+Project, worker and client selectors include search inside the dropdown. Use the arrows and Enter to select or Escape to close without changing the selection.
+
 ## 3. Record actual work and travel
 
-Open **Time**, enter the service date, activity and actual duration, and save the draft. A customer minimum or a planned ten-hour day never changes the actual time you report. Record travel separately when the project permits it; travel pay and customer billing can follow different rules. Review the date, duration and factual description before submitting.
+Open **Time**. Choose **Log time** and the assigned project. The work date defaults to today in your browser's local timezone; change it to the actual work date when necessary. Enter the category, factual description, **Start time** and **End time** using the local clock in the project's timezone, without converting to UTC. The end must be later on the same day. Enter an optional **Break (minutes)**, or leave it blank or zero for no break. The portal calculates net duration as end minus start minus break; the break must be shorter than the interval. For example, 08:15–16:15 with a 60-minute break records 7 hours. Save the draft. A customer minimum or a planned ten-hour day never changes the actual time you report. Record travel separately when the project permits it; travel pay and customer billing can follow different rules. Review the date, interval, net duration and factual description before submitting.
+
+Older entries may contain only a duration. Their clocks remain empty until you choose **Add start and end times** in an editable draft or authorized correction and enter the actual times. Do not infer them from a planned shift or the duration.
+
+<!-- screenshot:worker:time-entry -->
 
 Draft means you can still review it. Submitted means it awaits review. If a reviewer returns it, read the reason and submit the requested correction. An approved record stays in history: use the correction flow with a reason and let the authorized reviewer update it. Do not delete, duplicate or overwrite approved time.
 
@@ -35,6 +41,8 @@ Use **Reports** for the report required by the work. **Daily** records a factual
 **My Pay** is your private view and shows only your own compensation and reimbursable expenses. An **estimated** amount is a working calculation. **Approved** means the authorized review accepted the amount. **Scheduled** means a payment is planned for the shown expected date. **Paid** means the payment record has an actual paid date; a scheduled date is not proof of payment. Ask the administrator if a status, expected date or actual date is unclear.
 
 This private statement is not a payslip or tax document. Never infer a customer rate or another worker’s pay from it or from a customer invoice.
+
+New period reports and your private worker statement show recorded start/end intervals, net hours and any recorded break in their web views and PDFs. Entries without clocks retain their duration; previously issued files and finalized history are unchanged. Daily and Technical / PLC narratives remain separate records and do not acquire an assumed time interval.
 
 ## 7. Connection and offline capture
 

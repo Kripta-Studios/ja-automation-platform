@@ -18,6 +18,7 @@ import {
   type WorkerStatementSnapshot,
 } from './exports.ts';
 import { ensureNoSymlinkComponents } from './private-storage.ts';
+import { recordedIntervalMinutes } from './time-interval.ts';
 
 /** The durable job kind used for one Worker-statement format. */
 export const WORKER_STATEMENT_JOB_KIND = 'worker_statement_artifact_render' as const;
@@ -283,6 +284,14 @@ export function assertWorkerStatementSnapshot(
       typeof (activity as Record<string, unknown>).activitySummary !== 'string' ||
       !requiredInteger((activity as Record<string, unknown>).actualMinutes) ||
       !requiredString((activity as Record<string, unknown>).approvalState)
+    )
+      throw new Error('WORKER_STATEMENT_SNAPSHOT_INVALID');
+    const interval = activity as Record<string, unknown>;
+    if (
+      (interval.startTime !== undefined ||
+        interval.endTime !== undefined ||
+        interval.breakMinutes !== undefined) &&
+      recordedIntervalMinutes(interval) !== interval.actualMinutes
     )
       throw new Error('WORKER_STATEMENT_SNAPSHOT_INVALID');
   }

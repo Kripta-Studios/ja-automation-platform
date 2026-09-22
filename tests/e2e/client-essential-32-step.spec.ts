@@ -885,7 +885,8 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         );
         await form.locator('input[name="workDate"]').fill(date);
         await form.locator('select[name="category"]').selectOption('regular');
-        await form.locator('input[name="minutes"]').fill('480');
+        await form.locator('input[name="startTime"]').fill('08:00');
+        await form.locator('input[name="endTime"]').fill('16:00');
         createdTimeSummary = 'Client Essential UAT actual time · 480 minutes';
         await form.locator('textarea[name="summary"]').fill(createdTimeSummary);
         await form.getByRole('button', { name: 'Save draft', exact: true }).click();

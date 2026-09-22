@@ -7490,6 +7490,7 @@ export class PortalRepository {
     const rows = this.sqlite
       .prepare(
         `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
+                t.start_time,t.end_time,t.break_minutes,
                 t.activity_summary,t.approval_state,t.billability_state,
                 EXISTS(
                   SELECT 1 FROM record_correction_link rcl
@@ -7843,6 +7844,7 @@ export class PortalRepository {
       .prepare(
         `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
                 t.activity_summary,t.approval_state,t.billability_state,t.version,
+                t.start_time,t.end_time,t.break_minutes,
                 p.project_number,p.name project_name
          FROM time_entry t
          JOIN project p ON p.id=t.project_id

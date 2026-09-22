@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { createDatabase, V3Repository } from '@ja/database';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { assertCustomerPeriodSnapshotSafe } from '../../packages/database/src/domains/reports/customer-conformity-repository.ts';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
@@ -69,6 +70,130 @@ function exhaustJob(value: ReturnType<typeof fixture>, jobId: string) {
 }
 
 describe('atomic versioned period-report rendering requests', () => {
+  it('captures actual intervals in new operational snapshots without inventing legacy clocks or rewriting history', () => {
+    const value = fixture();
+    const legacy = value.repository.createTimeEntry(value.worker, {
+      projectId: value.project.id,
+      workDate: '2026-08-10',
+      category: 'regular',
+      minutes: 60,
+      summary: 'Legacy activity',
+    });
+    const interval = value.repository.createTimeEntry(value.worker, {
+      projectId: value.project.id,
+      workDate: '2026-08-11',
+      category: 'regular',
+      minutes: 420,
+      startTime: '08:15',
+      endTime: '16:15',
+      breakMinutes: 60,
+      summary: 'Actual interval',
+    });
+    for (const entry of [legacy, interval]) {
+      value.repository.submitTime(value.worker, entry.id, entry.version);
+      value.repository.operationalApproveTime(value.manager, entry.id, 'approved');
+    }
+    const first = value.v3.refreshAndQueuePeriodReports(value.finance, value.input);
+    for (const audience of ['customer', 'internal']) {
+      const report = first.reports.find((row) => row.audience === audience)!;
+      const snapshot = report.snapshot as Record<string, unknown>;
+      const times = snapshot.timeSummary as Array<Record<string, unknown>>;
+      expect(times.find((row) => row.id === interval.id)).toMatchObject({
+        startTime: '08:15',
+        endTime: '16:15',
+        breakMinutes: 60,
+        minutes: 420,
+      });
+      const old = times.find((row) => row.id === legacy.id)!;
+      expect(old).toMatchObject({ minutes: 60 });
+      expect(old).not.toHaveProperty('startTime');
+      expect(old).not.toHaveProperty('endTime');
+      expect(old).not.toHaveProperty('breakMinutes');
+      expect(times.reduce((total, row) => total + Number(row.minutes), 0)).toBe(480);
+      if (audience === 'customer') {
+        expect(() => assertCustomerPeriodSnapshotSafe(snapshot)).not.toThrow();
+        const tainted = structuredClone(snapshot);
+        (tainted.timeSummary as Array<Record<string, unknown>>)[0]!.amountMinor = 123;
+        expect(() => assertCustomerPeriodSnapshotSafe(tainted)).toThrow(/forbidden|not allowed/i);
+        const incomplete = structuredClone(snapshot);
+        delete (incomplete.timeSummary as Array<Record<string, unknown>>).find(
+          (row) => row.id === interval.id,
+        )!.endTime;
+        expect(() => assertCustomerPeriodSnapshotSafe(incomplete)).toThrow(/start and end times/i);
+        for (const invalid of [
+          { startTime: '16:15', endTime: '08:15' },
+          { startTime: '08:15', endTime: '08:15' },
+          { breakMinutes: 480 },
+          { breakMinutes: 481 },
+          { minutes: 480 },
+        ]) {
+          const inconsistent = structuredClone(snapshot);
+          Object.assign(
+            (inconsistent.timeSummary as Array<Record<string, unknown>>).find(
+              (row) => row.id === interval.id,
+            )!,
+            invalid,
+          );
+          expect(() => assertCustomerPeriodSnapshotSafe(inconsistent)).toThrow(
+            /same-day interval and matching net minutes/i,
+          );
+        }
+        const noBreak = structuredClone(snapshot);
+        const noBreakRow = (noBreak.timeSummary as Array<Record<string, unknown>>).find(
+          (row) => row.id === interval.id,
+        )!;
+        delete noBreakRow.breakMinutes;
+        noBreakRow.minutes = 480;
+        expect(() => assertCustomerPeriodSnapshotSafe(noBreak)).not.toThrow();
+        noBreakRow.breakMinutes = 480;
+        noBreakRow.minutes = 0;
+        expect(() => assertCustomerPeriodSnapshotSafe(noBreak)).not.toThrow();
+      }
+    }
+    const own = value.repository.listWorkerStatementTime(
+      value.worker,
+      value.input.periodStart,
+      value.input.periodEnd,
+    );
+    expect(own.find((row) => row.id === interval.id)).toMatchObject({
+      start_time: '08:15',
+      end_time: '16:15',
+      break_minutes: 60,
+      minutes: 420,
+    });
+    expect(
+      value.repository.listWorkerStatementTime(
+        value.outsider,
+        value.input.periodStart,
+        value.input.periodEnd,
+      ),
+    ).toEqual([]);
+    const frozen = value.sqlite
+      .prepare('SELECT id,snapshot_json FROM period_report ORDER BY id')
+      .all();
+    value.v3.refreshAndQueuePeriodReports(value.finance, value.input);
+    expect(
+      value.sqlite.prepare('SELECT id,snapshot_json FROM period_report ORDER BY id').all(),
+    ).toEqual(frozen);
+    value.sqlite.prepare("UPDATE period_report SET state='final'").run();
+    const later = value.repository.createTimeEntry(value.worker, {
+      projectId: value.project.id,
+      workDate: '2026-08-12',
+      category: 'regular',
+      startTime: '09:00',
+      endTime: '10:00',
+      breakMinutes: 0,
+      minutes: 60,
+      summary: 'Recorded after report finalization',
+    });
+    value.repository.submitTime(value.worker, later.id, later.version);
+    value.repository.operationalApproveTime(value.manager, later.id, 'approved');
+    expect(() => value.v3.refreshAndQueuePeriodReports(value.finance, value.input)).toThrow();
+    expect(
+      value.sqlite.prepare('SELECT id,snapshot_json FROM period_report ORDER BY id').all(),
+    ).toEqual(frozen);
+  });
+
   it('deduplicates the same pending version across database connections', () => {
     const value = fixture();
     const first = value.v3.refreshAndQueuePeriodReports(value.finance, value.input);

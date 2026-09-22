@@ -310,7 +310,8 @@ async function recordAndSubmitOwnTime(
   await form.locator('select[name="projectId"]').selectOption(project.id);
   await form.locator('input[name="workDate"]').fill(workDate);
   await form.locator('select[name="category"]').selectOption('regular');
-  await form.locator('input[name="minutes"]').fill(String(SIX_HOURS_MINUTES));
+  await form.locator('input[name="startTime"]').fill('08:00');
+  await form.locator('input[name="endTime"]').fill('14:00');
   await form.locator('textarea[name="summary"]').fill(summary);
   await submitAction(page, 'createTime', () =>
     form.getByRole('button', { name: 'Save draft', exact: true }).click(),

@@ -4,6 +4,7 @@
   import { base } from '$app/paths';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import { ResponsiveSheet, SectionCard, StatusBadge } from '../ui';
+  import FilterSummary from '../ui/FilterSummary.svelte';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { money } from '../portal-format';
   import {
@@ -84,7 +85,8 @@
       order?: OperationalOrder;
       page?: number;
     }>(registerStateKey());
-    if (typeof saved?.search === 'string') search = saved.search;
+    if (!$page.url.searchParams.has('q') && typeof saved?.search === 'string')
+      search = saved.search;
     if (saved?.order && ['newest', 'oldest', 'name', 'status'].includes(saved.order)) {
       order = saved.order;
     }
@@ -140,7 +142,9 @@
     fromFilter = $page.url.searchParams.get('from')?.trim() ?? '';
     toFilter = $page.url.searchParams.get('to')?.trim() ?? '';
     statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
-    reimbursementFilter = $page.url.searchParams.get('reimbursement')?.trim() ?? '';
+    reimbursementFilter = canViewReimbursement
+      ? ($page.url.searchParams.get('reimbursement')?.trim() ?? '')
+      : '';
     receiptFilter = $page.url.searchParams.get('receipt')?.trim() ?? '';
     registerPage = 1;
   });
@@ -191,6 +195,89 @@
     );
   });
   const pagedRecords = $derived(operationalPage(visibleRecords, registerPage));
+  const advancedFilters = $derived.by(() =>
+    [
+      {
+        label: translate('Worker'),
+        value: workerFilter
+          ? String(
+              data.workers?.find((row) => String(row.id) === workerFilter)?.name ?? workerFilter,
+            )
+          : '',
+      },
+      { label: translate('Client'), value: clientFilter },
+      { label: translate('From'), value: fromFilter },
+      { label: translate('To'), value: toFilter },
+      {
+        label: translate('Category'),
+        value: categoryFilter
+          ? translate(
+              expenseCategories.find(([value]) => value === categoryFilter)?.[1] ?? categoryFilter,
+            )
+          : '',
+      },
+      { label: translate('Currency'), value: currencyFilter },
+      {
+        label: translate('Receipt evidence'),
+        value: receiptFilter
+          ? translate(
+              receiptStateLabels[receiptFilter as keyof typeof receiptStateLabels] ?? receiptFilter,
+            )
+          : '',
+      },
+      {
+        label: translate('Reimbursement status'),
+        value:
+          reimbursementFilter === 'pending'
+            ? translate('Pending or scheduled')
+            : reimbursementFilter
+              ? controlledValue('status', reimbursementFilter)
+              : '',
+      },
+    ].filter((item) => item.value),
+  );
+  const activeFilters = $derived.by(() => {
+    const project = availableProjects.find((row) => String(row.id) === projectFilter);
+    return [
+      { label: translate('Search'), value: search.trim() },
+      {
+        label: translate('Project'),
+        value: projectFilter
+          ? project
+            ? `${project.project_number} — ${project.name}`
+            : projectFilter
+          : '',
+      },
+      {
+        label: translate('Status'),
+        value:
+          statusFilter === 'attention'
+            ? translate('Needs attention')
+            : statusFilter
+              ? controlledValue('status', statusFilter)
+              : '',
+      },
+      ...advancedFilters,
+    ].filter((item) => item.value);
+  });
+  const clearFiltersHref = `${base}/app/expenses?q=`;
+
+  function clearFilters(): void {
+    search = '';
+    projectFilter = '';
+    workerFilter = '';
+    clientFilter = '';
+    categoryFilter = '';
+    currencyFilter = '';
+    fromFilter = '';
+    toFilter = '';
+    statusFilter = '';
+    reimbursementFilter = '';
+    receiptFilter = '';
+    order = 'newest';
+    registerPage = 1;
+    writeOperationalRegisterState(registerStateKey(), { search: '', order: 'newest', page: 1 });
+  }
 
   const pendingReviewCount = $derived(
     records.filter((row) =>
@@ -442,6 +529,9 @@
     </label>
     <SectionCard
       title={translate('Filter expenses')}
+      description={advancedFilters.length
+        ? `${translate('Active filters')}: ${advancedFilters.length}`
+        : undefined}
       collapsible
       expanded={Boolean(
         workerFilter ||
@@ -542,7 +632,13 @@
       </div>
     </SectionCard>
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
-    <a class="secondary-button" href={`${base}/app/expenses?q=`}>{translate('Clear filters')}</a>
+    <FilterSummary
+      items={activeFilters}
+      resultCount={visibleRecords.length}
+      clearHref={clearFiltersHref}
+      onclear={clearFilters}
+      {translate}
+    />
   </form>
 
   {#if !restrictedOperational}
@@ -751,8 +847,13 @@
       </div>
     {:else}
       <div class="expense-empty" role="status">
-        <strong>{translate('No expenses recorded.')}</strong>
-        <span>{translate('Your submitted expenses will appear here.')}</span>
+        {#if activeFilters.length || records.length}
+          <strong>{translate('No matching records.')}</strong>
+          <span>{translate('Clear filters to see more records.')}</span>
+        {:else}
+          <strong>{translate('No expenses recorded.')}</strong>
+          <span>{translate('Your submitted expenses will appear here.')}</span>
+        {/if}
       </div>
     {/if}
     {#if pagedRecords.totalPages > 1}

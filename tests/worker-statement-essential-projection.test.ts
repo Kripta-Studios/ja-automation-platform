@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assertWorkerStatementSnapshot,
   runWorkerStatementArtifactJob,
   workerStatementCsv,
   type WorkerStatementJobArtifact,
@@ -62,6 +63,77 @@ const snapshot: WorkerStatementSnapshot = {
 };
 
 describe('Client Essential Worker statement allowlist', () => {
+  it('accepts legacy snapshots and validates optional clock pairs at the artifact boundary', () => {
+    expect(() => assertWorkerStatementSnapshot(snapshot)).not.toThrow();
+    const timed = {
+      ...snapshot,
+      activities: snapshot.activities.map((row) => ({
+        ...row,
+        startTime: '08:15',
+        endTime: '16:15',
+        breakMinutes: 60,
+      })),
+    };
+    expect(() => assertWorkerStatementSnapshot(timed)).not.toThrow();
+    expect(() =>
+      assertWorkerStatementSnapshot({
+        ...snapshot,
+        activities: timed.activities.map((row) => ({
+          ...row,
+          breakMinutes: 480,
+          actualMinutes: 0,
+        })),
+      }),
+    ).not.toThrow();
+    for (const malformed of [
+      { startTime: '08:15' },
+      { startTime: '25:15', endTime: '16:15' },
+      { startTime: '08:15', endTime: '16:15', breakMinutes: -1 },
+      { startTime: '08:15', endTime: '16:15', breakMinutes: 0.5 },
+      { startTime: '16:15', endTime: '08:15', breakMinutes: 60 },
+      { startTime: '08:15', endTime: '08:15', breakMinutes: 0 },
+      { startTime: '08:15', endTime: '16:15', breakMinutes: 480 },
+      { startTime: '08:15', endTime: '16:15', breakMinutes: 481 },
+      { startTime: '08:15', endTime: '16:15', breakMinutes: 60, actualMinutes: 480 },
+    ]) {
+      expect(() =>
+        assertWorkerStatementSnapshot({
+          ...snapshot,
+          activities: snapshot.activities.map((row) => ({ ...row, ...malformed })),
+        }),
+      ).toThrow(/SNAPSHOT_INVALID/u);
+    }
+    expect(() =>
+      assertWorkerStatementSnapshot({
+        ...snapshot,
+        activities: snapshot.activities.map((row) => ({
+          ...row,
+          startTime: '08:15',
+          endTime: '15:15',
+        })),
+      }),
+    ).not.toThrow();
+  });
+
+  it('adds interval CSV columns only for actual clocks while preserving net minutes and legacy headers', () => {
+    const legacy = Buffer.from(workerStatementCsv(snapshot)).toString('utf8');
+    expect(legacy.split('\n')[0]).not.toMatch(/startTime|endTime|breakMinutes/u);
+    const timed = {
+      ...snapshot,
+      activities: snapshot.activities.map((row) => ({
+        ...row,
+        startTime: '08:15',
+        endTime: '16:15',
+        breakMinutes: 60,
+      })),
+    };
+    const csv = Buffer.from(workerStatementCsv(timed)).toString('utf8');
+    expect(csv.split('\n')[0]).toMatch(/startTime,endTime,breakMinutes/u);
+    expect(csv).toContain('08:15,16:15,60');
+    expect(csv).toContain('420');
+    expect(csv).not.toMatch(/clientRate|internalCost|margin/u);
+  });
+
   it('exports own activity and expected/actual timelines using exact money strings', () => {
     const csv = Buffer.from(workerStatementCsv(snapshot)).toString('utf8');
 

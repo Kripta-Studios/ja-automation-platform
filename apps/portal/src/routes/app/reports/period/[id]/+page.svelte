@@ -965,11 +965,17 @@
           <div>
             <strong>{display(item.date)} · {controlled('timeCategory', item.category)}</strong
             ><small
-              >{display(item.worker)} · {display(item.activitySummary)} · {controlled(
+              >{display(item.worker ?? item.workerDisplay)} · {display(item.activitySummary)} · {controlled(
                 'status',
                 item.approvalState,
               )}</small
             >
+            {#if typeof item.startTime === 'string' && typeof item.endTime === 'string'}
+              <small
+                >{item.startTime}–{item.endTime}{#if typeof item.breakMinutes === 'number'}
+                  · {t('Break')}: {item.breakMinutes} {t('min')}{/if}</small
+              >
+            {/if}
           </div>
           <b>{hours(item.minutes)}</b>
         </article>{:else}<div class="empty">{t('No time entries in this period.')}</div>{/each}

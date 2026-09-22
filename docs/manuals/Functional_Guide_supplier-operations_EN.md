@@ -22,6 +22,8 @@ Inside the application, the light sidebar marks your current section. The accoun
 
 Secondary panels open when you select their heading and chevron. Time, Expenses and Reports keep search, project and status visible; expand the filter panel for additional criteria. Active secondary filters reopen the panel. Collapsing a panel keeps entered values. Team assignment lists and completed approval history open separately, while pending actions and warnings remain visible. In Finance configuration, choose one commercial policy from the task selector. In Projects, use More actions for client and assignment maintenance. Open the document-registration or Accounting Pack panel when you need to create an item.
 
+Open a project, worker or client selector to search inside its dropdown. Type part of a name or identifier; matching ignores case and accents. Use the arrow keys and Enter to select, or Escape to close without changing the value. Active register filters appear in a compact summary even when additional filters are collapsed. **Clear filters** restores the unfiltered view. Reports use one set of search, status and sort controls for the selected tab.
+
 <!-- screenshot:supplier-coordinator:public-home -->
 <!-- screenshot:external-technician:register-filters -->
 
@@ -46,7 +48,9 @@ Access — Consult: Supplier Coordinator sees authorized installations, its own 
 
 In **Supplier team**, select the authorized installation and choose **Add technician**. Enter the technician’s real name, optional email and assignment dates. This creates a personnel record, not login credentials. Use **Assign existing technician** only for a person already in your supplier team. Check the installation, selected person and effective dates before saving. The Owner configures the login and authorization.
 
-Under **Record team hours**, select one or more technicians. Enter the actual work date, category, minutes or the permitted UTC start/end interval and a factual description. Save the selected drafts, inspect every named subject and submit only the selected drafts to J&A. The technician is the subject; the coordinator account remains the recorded actor. A draft is not approved work.
+Under **Record team hours**, select one or more technicians. The work date defaults to today in your browser's local timezone and remains editable. Confirm the actual date, category and factual description, then enter start and end using the local clock in the installation project's timezone, without converting to UTC. The end must be later on the same day. An optional break in minutes is subtracted automatically to calculate net duration; leave it blank or zero for no break, and keep it shorter than the interval. Save the selected drafts, inspect every named subject and submit only the selected drafts to J&A. The technician is the subject; the coordinator account remains the recorded actor. A draft is not approved work.
+
+An older duration-only draft keeps its duration and has no assumed clocks. To add known actual times in that editor, choose the start/end interval option under **Duration mode** and complete the interval and break. Use only the permitted draft or correction path; approved history is preserved.
 
 For the `needs_changes` state, choose **Create correction draft**, correct the requested fact and resubmit while the original stays in history. A rejected entry needs a new draft. Do not approve your own team’s hours, submit a substitute technician or attempt finance exports.
 
@@ -58,7 +62,7 @@ For the `needs_changes` state, choose **Create correction draft**, correct the r
 
 Access — Consult: External Technician sees the own invited profile and records in an authorized installation. Create: External Technician creates own time, expense and report drafts. Approve: no supplier profile approves its own work; Owner reviews supplier-origin operational time. Modify: External Technician edits a draft or uses the returned correction path; approved history is preserved.
 
-In **Time**, choose the permitted installation, actual work date, category, duration and factual description. **Save draft** keeps an unfinished record; **Submit** sends it to J&A review. A planned date is not actual work. If an item is returned, read the reason and correct that record; do not duplicate or alter approved history.
+In **Time**, choose **Log time** and the permitted installation. The work date defaults to today in your browser's local timezone; change it to the actual work date when necessary. Enter the category, factual description, **Start time** and **End time** using the local clock in the project's timezone, without converting to UTC. The end must be later on the same day. Enter an optional **Break (minutes)**, or leave it blank or zero for no break. The portal calculates net duration as end minus start minus break; the break must be shorter than the interval. For example, 08:15–16:15 with a 60-minute break records 7 hours. Older entries may contain only a duration. Their clocks remain empty until you choose **Add start and end times** in an editable draft or authorized correction and enter the actual times. Do not infer them from a planned shift or the duration. **Save draft** keeps an unfinished record; **Submit** sends it to J&A review. A planned date is not actual work. If an item is returned, read the reason and correct that record; do not duplicate or alter approved history.
 
 In **Expenses**, enter the actual payer, amount, currency, date and work reason. Attach a readable permitted receipt and keep the original until the portal confirms storage. In **Reports**, use **Daily** for factual work, blockers and next steps, or **Technical / PLC** for the problem, diagnosis, change, validation and evidence. Do not state that a test passed when it did not. Internal review is not customer acceptance, payment or permission to disclose a file.
 
@@ -73,6 +77,8 @@ Access — Consult: Supplier Coordinator and External Technician may consult the
 If **Profile** shows an **Availability calendar**, use previous/next month or **Today**. Select a day to open **Add availability**, or select an agenda window to open **Edit availability**. Choose Available, Unavailable or Tentative, enter the UTC start and end and add a factual note. The calendar shows up to the latest 200 windows. Save and reopen to verify the result; reload after an optimistic-version conflict.
 
 Availability is planning information. It is not actual time, an installation grant, an approval or a compensation rule. A coordinator cannot make a technician authorized by adding availability, and a technician cannot make a new installation appear by editing a calendar.
+
+UTC applies to these availability windows and planning shifts, not the actual work clocks entered above. Newly generated period reports for authorized reviewers show recorded start/end times alongside net hours and breaks in their web views and PDFs. Duration-only entries have no inferred clocks, and previously issued reports remain unchanged. This does not grant supplier profiles access to private worker statements.
 
 ## Operational reports and evidence
 

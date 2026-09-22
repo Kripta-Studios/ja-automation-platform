@@ -278,24 +278,114 @@ export const assignmentInputSchema = z.object({
     .transform((value) => (value === '' ? undefined : value)),
 });
 
-export const timeInputSchema = z.object({
-  projectId: uuidSchema,
-  workDate: z.iso.date(),
-  category: z.enum([
-    'regular',
-    'commissioning',
-    'overtime',
-    'weekend_holiday',
-    'travel',
-    'standby',
-    'remote_support',
-    'training',
-    'internal',
-  ]),
-  activityCode: z.string().trim().max(100).optional(),
-  minutes: z.coerce.number().int().min(0).max(1440),
-  summary: z.string().trim().min(3).max(5000),
-});
+const optionalClockTime = z
+  .union([z.literal(''), z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, 'Use HH:mm')])
+  .optional()
+  .transform((value) => value || undefined);
+
+export const timeInputSchema = z
+  .object({
+    projectId: uuidSchema,
+    workDate: z.iso.date(),
+    category: z.enum([
+      'regular',
+      'commissioning',
+      'overtime',
+      'weekend_holiday',
+      'travel',
+      'standby',
+      'remote_support',
+      'training',
+      'internal',
+    ]),
+    activityCode: z.string().trim().max(100).optional(),
+    minutes: z
+      .union([z.literal(''), z.coerce.number().int().min(0).max(1440)])
+      .optional()
+      .transform((value) => (value === '' ? undefined : value)),
+    startTime: optionalClockTime,
+    endTime: optionalClockTime,
+    breakMinutes: z
+      .union([z.literal(''), z.coerce.number().int().min(0).max(1440)])
+      .optional()
+      .transform((value) => (value === '' ? undefined : value)),
+    summary: z.string().trim().min(3).max(5000),
+  })
+  .superRefine((input, context) => {
+    const hasStart = input.startTime !== undefined;
+    const hasEnd = input.endTime !== undefined;
+    if (hasStart !== hasEnd) {
+      context.addIssue({
+        code: 'custom',
+        path: [hasStart ? 'endTime' : 'startTime'],
+        message: 'Start and end time are required together',
+      });
+      return;
+    }
+    if (!hasStart || !hasEnd) {
+      if (input.minutes === undefined) {
+        context.addIssue({
+          code: 'custom',
+          path: ['minutes'],
+          message: 'Minutes are required when no time interval is provided',
+        });
+      }
+      if (input.breakMinutes !== undefined && input.breakMinutes !== 0) {
+        context.addIssue({
+          code: 'custom',
+          path: ['breakMinutes'],
+          message: 'Break minutes require a time interval',
+        });
+      }
+      return;
+    }
+    const startTime = input.startTime as string;
+    const endTime = input.endTime as string;
+    const startMinutes = Number(startTime.slice(0, 2)) * 60 + Number(startTime.slice(3));
+    const endMinutes = Number(endTime.slice(0, 2)) * 60 + Number(endTime.slice(3));
+    const breakMinutes = input.breakMinutes ?? 0;
+    if (endMinutes <= startMinutes) {
+      context.addIssue({
+        code: 'custom',
+        path: ['endTime'],
+        message: 'End time must be later on the same day',
+      });
+    } else if (breakMinutes >= endMinutes - startMinutes) {
+      context.addIssue({
+        code: 'custom',
+        path: ['breakMinutes'],
+        message: 'Break must leave positive working time',
+      });
+    }
+  })
+  .transform((input) => {
+    if (input.startTime === undefined || input.endTime === undefined) {
+      const {
+        startTime: _startTime,
+        endTime: _endTime,
+        breakMinutes: _breakMinutes,
+        ...legacy
+      } = input;
+      return {
+        ...legacy,
+        minutes: input.minutes as number,
+        startTime: undefined,
+        endTime: undefined,
+        breakMinutes: undefined,
+      };
+    }
+    const startMinutes =
+      Number(input.startTime.slice(0, 2)) * 60 + Number(input.startTime.slice(3));
+    const endMinutes = Number(input.endTime.slice(0, 2)) * 60 + Number(input.endTime.slice(3));
+    const breakMinutes = input.breakMinutes ?? 0;
+    return {
+      ...input,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      breakMinutes,
+      minutes: endMinutes - startMinutes - breakMinutes,
+    };
+  });
 
 export const versionedRecordSchema = z.object({
   id: uuidSchema,

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import TimeIntervalFields from '$lib/portal/ui/TimeIntervalFields.svelte';
+  import { localToday } from '$lib/portal/ui/time-entry-clock';
   import { portalText } from '$lib/portal-i18n';
   import { SectionCard, StatusBadge, ResponsiveSheet } from '$lib/portal/ui';
   import RecordBrowser from '$lib/portal/ui/RecordBrowser.svelte';
@@ -170,7 +172,10 @@
     editor = { kind: 'status', operation, id: row.id, name: row.name, status };
   }
   const base = '/j-aautomation/app';
-  const today = new Date().toISOString().slice(0, 10);
+  let today = $state('');
+  $effect(() => {
+    if (workspaceAction) today = localToday();
+  });
   const actionUrl = (operation: string) =>
     `?/${operation}&${new URLSearchParams({ projectId: data.projectId, from: data.from, to: data.to, lang: data.locale, workspaceAction }).toString()}`;
   const value = (operation: string, key: string, fallback = '') =>
@@ -773,40 +778,13 @@
             ></select
           ></label
         >
-        <label data-ui="field"
-          >{c.durationHours}<input
-            inputmode="decimal"
-            name="durationHours"
-            placeholder={c.durationExample}
-            value={value('createTimeBatch', 'durationHours')}
-          /></label
-        >
-        <fieldset class="time-interval">
-          <legend>{c.intervalAlternative}</legend>
-          <label data-ui="field"
-            >{c.startTime}<input
-              type="time"
-              name="startTime"
-              value={value('createTimeBatch', 'startTime')}
-            /></label
-          >
-          <label data-ui="field"
-            >{c.endTime}<input
-              type="time"
-              name="endTime"
-              value={value('createTimeBatch', 'endTime')}
-            /></label
-          >
-          <label data-ui="field"
-            >{c.breakMinutes}<input
-              type="number"
-              min="0"
-              max="1439"
-              name="breakMinutes"
-              value={value('createTimeBatch', 'breakMinutes', '0')}
-            /></label
-          >
-        </fieldset>
+        <input type="hidden" name="durationMode" value="interval" />
+        <TimeIntervalFields
+          translate={(key) => portalText(data.locale, key)}
+          initialStart={value('createTimeBatch', 'startTime')}
+          initialEnd={value('createTimeBatch', 'endTime')}
+          initialBreak={Number(value('createTimeBatch', 'breakMinutes', '0'))}
+        />
         <label data-ui="field"
           >{c.summary}<textarea name="summary" required maxlength="2000"
             >{value('createTimeBatch', 'summary')}</textarea
@@ -856,7 +834,10 @@
               <span>{c.selectDraft}</span>
             </label>
           {/if}
-          <p>{entry.minutes} · {c.minutes} · {supplierStateLabel(data.locale, entry.state)}</p>
+          <p>
+            {#if entry.startTime && entry.endTime}{entry.startTime} – {entry.endTime} ·
+            {/if}{entry.minutes} · {c.minutes} · {supplierStateLabel(data.locale, entry.state)}
+          </p>
           <p>{entry.summary}</p>
           <p>{c.recordedBy}: {entry.recordedByName || entry.workerName}</p>
           {#if !data.owner && entry.state === 'needs_changes'}
@@ -911,61 +892,77 @@
                     ></select
                   ></label
                 >
-                <label data-ui="field"
-                  >{c.durationMode}<select
-                    name="durationMode"
-                    value={updateValue(
-                      String(entry.id),
-                      'durationMode',
-                      entry.startTime && entry.endTime ? 'interval' : 'duration',
-                    )}
-                    required
-                    ><option value="duration">{c.durationOnly}</option><option value="interval"
-                      >{c.interval}</option
-                    ></select
-                  ></label
-                >
-                <label data-ui="field"
-                  >{c.durationHours}<input
-                    inputmode="decimal"
-                    name="durationHours"
-                    value={updateValue(
-                      String(entry.id),
-                      'durationHours',
-                      entry.startTime ? '' : String(Number(entry.minutes) / 60),
-                    )}
-                  /></label
-                >
-                <fieldset class="time-interval">
-                  <legend>{c.interval}</legend>
-                  <label data-ui="field"
-                    >{c.startTime}<input
-                      type="time"
-                      name="startTime"
-                      value={updateValue(String(entry.id), 'startTime', entry.startTime ?? '')}
-                    /></label
-                  >
-                  <label data-ui="field"
-                    >{c.endTime}<input
-                      type="time"
-                      name="endTime"
-                      value={updateValue(String(entry.id), 'endTime', entry.endTime ?? '')}
-                    /></label
-                  >
-                  <label data-ui="field"
-                    >{c.breakMinutes}<input
-                      type="number"
-                      min="0"
-                      max="1439"
-                      name="breakMinutes"
-                      value={updateValue(
+                {#if entry.startTime && entry.endTime}
+                  <input type="hidden" name="durationMode" value="interval" />
+                  <TimeIntervalFields
+                    translate={(key) => portalText(data.locale, key)}
+                    initialStart={updateValue(String(entry.id), 'startTime', entry.startTime)}
+                    initialEnd={updateValue(String(entry.id), 'endTime', entry.endTime)}
+                    initialBreak={Number(
+                      updateValue(
                         String(entry.id),
                         'breakMinutes',
                         String(entry.breakMinutes ?? 0),
+                      ),
+                    )}
+                  />
+                {:else}
+                  <label data-ui="field"
+                    >{c.durationMode}<select
+                      name="durationMode"
+                      value={updateValue(
+                        String(entry.id),
+                        'durationMode',
+                        entry.startTime && entry.endTime ? 'interval' : 'duration',
+                      )}
+                      required
+                      ><option value="duration">{c.durationOnly}</option><option value="interval"
+                        >{c.interval}</option
+                      ></select
+                    ></label
+                  >
+                  <label data-ui="field"
+                    >{c.durationHours}<input
+                      inputmode="decimal"
+                      name="durationHours"
+                      value={updateValue(
+                        String(entry.id),
+                        'durationHours',
+                        entry.startTime ? '' : String(Number(entry.minutes) / 60),
                       )}
                     /></label
                   >
-                </fieldset>
+                  <fieldset class="time-interval">
+                    <legend>{c.interval}</legend>
+                    <label data-ui="field"
+                      >{c.startTime}<input
+                        type="time"
+                        name="startTime"
+                        value={updateValue(String(entry.id), 'startTime', entry.startTime ?? '')}
+                      /></label
+                    >
+                    <label data-ui="field"
+                      >{c.endTime}<input
+                        type="time"
+                        name="endTime"
+                        value={updateValue(String(entry.id), 'endTime', entry.endTime ?? '')}
+                      /></label
+                    >
+                    <label data-ui="field"
+                      >{c.breakMinutes}<input
+                        type="number"
+                        min="0"
+                        max="1439"
+                        name="breakMinutes"
+                        value={updateValue(
+                          String(entry.id),
+                          'breakMinutes',
+                          String(entry.breakMinutes ?? 0),
+                        )}
+                      /></label
+                    >
+                  </fieldset>
+                {/if}
                 <label data-ui="field"
                   >{c.summary}<textarea name="summary" required
                     >{form?.operation === 'updateTime' && form.values?.id === entry.id

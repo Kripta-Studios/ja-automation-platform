@@ -1,0 +1,88 @@
+{
+  "at": "2026-09-22T14:31:02.315881+00:00",
+  "services": {
+    "caddy": "active",
+    "stalwart": "active",
+    "jaautomation-backup.timer": "active",
+    "jaautomation-jobs.timer": "active",
+    "jaautomation-zip-deploy.timer": "active",
+    "jaautomation-zip-deploy.path": "active",
+    "home-kripta-musica-new.mount": "active"
+  },
+  "runningContainers": [
+    {
+      "name": "deployment-jobs-1",
+      "status": "Up 3 minutes"
+    },
+    {
+      "name": "deployment-portal-1",
+      "status": "Up 3 minutes (healthy)"
+    },
+    {
+      "name": "deployment-site-1",
+      "status": "Up 3 minutes (healthy)"
+    },
+    {
+      "name": "navidrome-navidrome-1",
+      "status": "Up 49 minutes"
+    },
+    {
+      "name": "trace-it-frontend-1",
+      "status": "Up 49 minutes (healthy)"
+    },
+    {
+      "name": "trace-it-backend-1",
+      "status": "Up 49 minutes (healthy)"
+    },
+    {
+      "name": "trace-it-erp-erp-1",
+      "status": "Up 49 minutes (healthy)"
+    },
+    {
+      "name": "trace-it-criminal-records-1",
+      "status": "Up 49 minutes (healthy)"
+    },
+    {
+      "name": "trace-it-db-1",
+      "status": "Up 49 minutes (healthy)"
+    },
+    {
+      "name": "lois-jobs",
+      "status": "Up 49 minutes (healthy)"
+    },
+    {
+      "name": "lois-booking",
+      "status": "Up 49 minutes (healthy)"
+    },
+    {
+      "name": "lois-web",
+      "status": "Up 49 minutes (healthy)"
+    },
+    {
+      "name": "adlaudem-preview-web-1",
+      "status": "Up 49 minutes (healthy)"
+    },
+    {
+      "name": "adlaudem-preview-db-1",
+      "status": "Up 49 minutes (healthy)"
+    },
+    {
+      "name": "lois-db",
+      "status": "Up 49 minutes (healthy)"
+    }
+  ],
+  "buildCache": {
+    "Active": "0",
+    "Reclaimable": "0B",
+    "Size": "0B",
+    "TotalCount": "0",
+    "Type": "Build Cache"
+  },
+  "diskAvailableGiB": {
+    "sda1": 24.7,
+    "sdb": 58.35
+  },
+  "mailServiceUnchanged": true,
+  "musicBind": "/dev/sdb[/navidrome-music/new] /home/kripta/musica/new ext4   rw,relatime,discard",
+  "cleanupScope": "Docker builder cache only; images, volumes, mail, application and user data not pruned."
+}

@@ -1,0 +1,77 @@
+{
+  "at": "2026-09-22T14:28:46.495144+00:00",
+  "release": "/opt/jaautomation/releases/ja-automation-c1285f14e4a94148bbfc36a8df403b7a1c7ffc4eb0fb9c51edd36cb84829c251",
+  "sourceFilesMatched": 601,
+  "integrity": "ok",
+  "foreignKeys": 0,
+  "tables": {
+    "invoice": {
+      "rows": 14,
+      "sha256": "339acd278349e31f00a869954f92f8d307436aa592bdb72f779aa464a9d55730",
+      "unchanged": true
+    },
+    "invoice_line": {
+      "rows": 62,
+      "sha256": "efd1d73060aeb9f36622b99f0ec97082dd6b64b10d329baf47af9a99d5fbbfa5",
+      "unchanged": true
+    },
+    "payment": {
+      "rows": 6,
+      "sha256": "16573b58fee8d0ae1ac69bb16c34d884708e4d6c777b9ca418839e87280f2e82",
+      "unchanged": true
+    },
+    "finance_snapshot": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "unchanged": true
+    },
+    "finance_internal_cost_snapshot": {
+      "rows": 33,
+      "sha256": "f7768243f385d7d8c3a97230d502a8fedd738804dfecf409159a6cf17021065a",
+      "unchanged": true
+    },
+    "invoice_commercial_source_manifest": {
+      "rows": 54,
+      "sha256": "a0ea6f7ce61ac5af6be887223e5a2e122cdbafe3110456d480a20f4ff57c2915",
+      "unchanged": true
+    },
+    "accounting_pack_revision_snapshot": {
+      "rows": 1,
+      "sha256": "ed1861cab10268fed3f98131262ee1e32080d40aa39907f80cb1e60b743ec852",
+      "unchanged": true
+    },
+    "worker_compensation_payment_event": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "unchanged": true
+    }
+  },
+  "preservedPrivateArtifacts": 59,
+  "verifiedInstalledPdfs": 9,
+  "urls": {
+    "/j-aautomation/en": {
+      "status": 200,
+      "bytes": 243615
+    },
+    "/j-aautomation/pt": {
+      "status": 200,
+      "bytes": 251747
+    },
+    "/j-aautomation/es": {
+      "status": 200,
+      "bytes": 253046
+    },
+    "/j-aautomation/app/login": {
+      "status": 200,
+      "bytes": 5246
+    },
+    "/j-aautomation/app/fonts/geist-latin.woff2": {
+      "status": 200,
+      "bytes": 29400
+    },
+    "/j-aautomation/app/fonts/geist-mono-latin.woff2": {
+      "status": 200,
+      "bytes": 23128
+    }
+  }
+}

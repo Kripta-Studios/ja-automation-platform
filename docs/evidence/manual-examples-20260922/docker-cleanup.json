@@ -1,0 +1,6 @@
+{
+  "command": "docker builder prune -af",
+  "reclaimed": "6.854GB",
+  "remainingBuildCache": "0B",
+  "imagesAndVolumesPruned": false
+}

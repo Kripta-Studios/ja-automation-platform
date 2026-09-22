@@ -77,3 +77,38 @@ screenshots, 202 checks, and all 30 print PDFs. Nine active manuals were regener
 PDF hash/source-binding, embedded-font, image, page and extracted-text checks. See the
 [manual quality manifest](../../manuals/validation/pdf-quality.json). The independent review
 [SHIP verdict](review.md) is followed by these successful final gates.
+
+## Production receipt
+
+Commit **`1d730f342cc294729ee0b4e96cbf1258f0e6adc8`** was pushed and deployed successfully at
+**2026-09-22 16:28:05 Europe/Madrid**. Archive SHA-256:
+`c1285f14e4a94148bbfc36a8df403b7a1c7ffc4eb0fb9c51edd36cb84829c251`. The active release is
+`/opt/jaautomation/releases/ja-automation-c1285f14e4a94148bbfc36a8df403b7a1c7ffc4eb0fb9c51edd36cb84829c251`.
+
+- All **2,441 archive files** and **601 runtime source files** match;
+  all nine installed manuals match their validated hashes.
+- SQLite integrity is `ok`, FK violations are zero, the eight financial table hashes are unchanged,
+  and all **59 private artifacts** retain their bytes.
+- Public EN/PT website and portal login checks at 390/1440 px passed with HTTP 200, expected fonts,
+  no overflow and no browser/network errors. Authenticated behavior was checked on isolated fixtures.
+- Two automatic jobs cycles and production health/readiness passed. Four historical dead-letter
+  jobs and two historical failed localized-PDF records remain; these were not silently repaired.
+- The pre-deployment backup passes database/FK and **59-document** validation.
+  Historical backup coverage remains **14/30 days**.
+- SMTP, STARTTLS, SMTPS and IMAPS TLS checks passed; both webmails returned 200. The Stalwart
+  service PID/start time is unchanged. No mailbox authentication, reading or sending was performed.
+- All required services/timers/watchers and the music bind mount are active; containers are running
+  and those with health checks are healthy. New site/portal/jobs log scans found no structured
+  errors or unhandled exceptions in the recorded observation window.
+- Docker **builder cache only** was pruned: **6.854GB reclaimed**, **0 B remaining**. Images,
+  volumes and application/mail/user data were retained. Free disk: **24.7 GiB
+  on sda1**, **58.35 GiB on sdb**.
+
+Transient readiness timeouts are explicitly recorded in `build-health-observation.json`: three
+5-second checks timed out on the old portal during compilation, and the first new-container check
+also timed out. Both recovered healthy; a public login check during the old-container recovery
+returned 200 in 0.25 seconds. Build contention is a possible cause, not a confirmed root cause.
+This receipt does not claim permanent absence of load-related readiness latency or resolve the
+previous mail threat-feed/DNSSEC-DANE warnings.
+
+The final evidence-only commit does not change deployed application or manual files.

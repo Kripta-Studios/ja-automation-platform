@@ -1,0 +1,69 @@
+{
+  "at": "2026-09-22T14:25:50.305160+00:00",
+  "phase": "Old production portal during new image build",
+  "health": {
+    "Status": "healthy",
+    "FailingStreak": 0,
+    "Log": [
+      {
+        "Start": "2026-09-22T16:23:10.067525634+02:00",
+        "End": "2026-09-22T16:23:13.030688745+02:00",
+        "ExitCode": 0,
+        "Output": ""
+      },
+      {
+        "Start": "2026-09-22T16:23:43.032226002+02:00",
+        "End": "2026-09-22T16:23:48.092070082+02:00",
+        "ExitCode": -1,
+        "Output": "Health check exceeded timeout (5s)"
+      },
+      {
+        "Start": "2026-09-22T16:24:18.094636681+02:00",
+        "End": "2026-09-22T16:24:23.189765248+02:00",
+        "ExitCode": -1,
+        "Output": "Health check exceeded timeout (5s)"
+      },
+      {
+        "Start": "2026-09-22T16:24:53.191956757+02:00",
+        "End": "2026-09-22T16:24:58.241170215+02:00",
+        "ExitCode": -1,
+        "Output": "Health check exceeded timeout (5s)"
+      },
+      {
+        "Start": "2026-09-22T16:25:28.244725298+02:00",
+        "End": "2026-09-22T16:25:30.543576923+02:00",
+        "ExitCode": 0,
+        "Output": ""
+      }
+    ]
+  },
+  "publicLogin": {
+    "http": 200,
+    "seconds": 0.252025
+  },
+  "note": "Three 5-second readiness-probe timeouts were observed during compilation; the same old container recovered healthy before activation. Build contention is a possible cause, not a proven root cause.",
+  "newPortalAfterActivation": {
+    "Status": "healthy",
+    "FailingStreak": 0,
+    "Log": [
+      {
+        "Start": "2026-09-22T16:28:23.628438651+02:00",
+        "End": "2026-09-22T16:28:30.678830734+02:00",
+        "ExitCode": -1,
+        "Output": "Health check exceeded timeout (5s)"
+      },
+      {
+        "Start": "2026-09-22T16:29:00.680137139+02:00",
+        "End": "2026-09-22T16:29:02.910647062+02:00",
+        "ExitCode": 0,
+        "Output": ""
+      },
+      {
+        "Start": "2026-09-22T16:29:32.911810058+02:00",
+        "End": "2026-09-22T16:29:35.059033658+02:00",
+        "ExitCode": 0,
+        "Output": ""
+      }
+    ]
+  }
+}

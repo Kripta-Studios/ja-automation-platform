@@ -1,0 +1,41 @@
+{
+  "selectionsMayOverlap": true,
+  "results": [
+    {
+      "suiteLog": "astra-project-closeout.log",
+      "passed": 18,
+      "sha256": "a1060481e172124dcd98c8c6ddc0463a94731a4907e17e3ae4a97170fa6eab1b",
+      "summary": "Test Files  1 passed (1)\n      Tests  18 passed (18)\n   Start at  16:03:15\n   Duration  44.90s (transform 1.14s, setup 0ms, import 1.42s, tests 43.25s, environment 0ms)"
+    },
+    {
+      "suiteLog": "version-lifecycle-tests.log",
+      "passed": 26,
+      "sha256": "b194890fd19f135c355f59c58f24d488156627a1f57c43c144ce56f78c30c176",
+      "summary": "Test Files  5 passed (5)\n      Tests  26 passed (26)\n   Start at  16:05:00\n   Duration  31.21s (transform 3.22s, setup 0ms, import 4.54s, tests 41.61s, environment 0ms)"
+    },
+    {
+      "suiteLog": "accounting-hours-version-regression.log",
+      "passed": 35,
+      "sha256": "0702fa57a5319ab9a91bb5936ddb845414ef8e4040166803d52ffb15e6670687",
+      "summary": "Test Files  2 passed (2)\n      Tests  35 passed (35)\n   Start at  16:16:03\n   Duration  65.97s (transform 307ms, setup 0ms, import 428ms, tests 65.27s, environment 0ms)"
+    },
+    {
+      "suiteLog": "accounting-pack-lifecycle.log",
+      "passed": 12,
+      "sha256": "721d4cfe493f403619ecc0e4d42e387187b206b5511130af4e6455128bdfb498",
+      "summary": "Test Files  1 passed (1)\n      Tests  12 passed (12)\n   Start at  16:03:39\n   Duration  39.72s (transform 1.36s, setup 0ms, import 1.68s, tests 37.87s, environment 0ms)"
+    },
+    {
+      "suiteLog": "version-lifecycle-focused.log",
+      "passed": 12,
+      "sha256": "db2b981370ca773199e210dc14619332d3d4d8c07dbe39a7c71c6725a38b66af",
+      "summary": "Test Files  3 passed (3)\n      Tests  12 passed (12)\n   Start at  16:03:00\n   Duration  29.95s (transform 1.22s, setup 0ms, import 1.90s, tests 27.61s, environment 0ms)"
+    },
+    {
+      "suiteLog": "tests.log",
+      "passed": 12,
+      "sha256": "4ed284eea09304dd665d2255040061031c600d57cfb7f0a4004d2b34534892d9",
+      "summary": "Test Files  2 passed (2)\n      Tests  12 passed (12)\n   Start at  15:56:12\n   Duration  3.67s (transform 459ms, setup 0ms, import 648ms, tests 3.26s, environment 0ms)"
+    }
+  ]
+}

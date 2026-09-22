@@ -1,0 +1,28 @@
+{
+  "synthetic": true,
+  "source": "fresh isolated repository lifecycle",
+  "artifacts": [
+    {
+      "id": "closeout-client",
+      "family": "project-closeout",
+      "format": "zip",
+      "locale": "en",
+      "file": "closeout/EXAMPLE-P-002-closeout-client-r1.zip",
+      "renderer": "ProjectCloseoutService.prepare/confirmClientPublication/finalize/download",
+      "description": "client project closeout; authentic frozen ZIP with JSON, PDF summary, document index and selected synthetic reference.",
+      "sha256": "c7c700280565fa98a80c4cf2f5d436bc2fe9a6ced2d3c03b6367e8ec879841c6",
+      "bytes": 263903
+    },
+    {
+      "id": "closeout-internal",
+      "family": "project-closeout",
+      "format": "zip",
+      "locale": "en",
+      "file": "closeout/EXAMPLE-P-002-closeout-internal-r1.zip",
+      "renderer": "ProjectCloseoutService.prepare/confirmClientPublication/finalize/download",
+      "description": "internal project closeout; authentic frozen ZIP with JSON, PDF summary, document index and selected synthetic reference.",
+      "sha256": "7a06bf1c9e0ad4bf87c9bdbd3f4c0c93bf3ddfb9784c1cea163f1d865b5ff24f",
+      "bytes": 8900
+    }
+  ]
+}

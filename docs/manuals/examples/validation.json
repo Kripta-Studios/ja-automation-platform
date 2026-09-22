@@ -1,0 +1,920 @@
+{
+  "status": "passed",
+  "checks": [
+    {
+      "file": "accounting-pack-expense_csv.csv",
+      "sha256": "6e6d69aa1598a96ca379d5f15337b57fd5a940d2efbefe2b26b44119fdbd2e29",
+      "format": "csv",
+      "rows": 3,
+      "columns": 24
+    },
+    {
+      "file": "accounting-pack-invoice_csv.csv",
+      "sha256": "5d096de76382d4a97c2fbf72e0b4efbfd1e952d12b40433dff5004993981ba00",
+      "format": "csv",
+      "rows": 5,
+      "columns": 13
+    },
+    {
+      "file": "accounting-pack-json.json",
+      "sha256": "08654cb8ba2a7725e60c76e5201cb0d6068147d80d75c5db080d8623af1e087b",
+      "format": "json"
+    },
+    {
+      "file": "accounting-pack-pdf-en.pdf",
+      "sha256": "ced1a06494956bf7f018e4307490c0d8f42d3cd7e86f1b289e6069ef20f0fb66",
+      "format": "pdf",
+      "pages": 3,
+      "textCharacters": 2095,
+      "preview": "previews/accounting-pack-pdf-en.png"
+    },
+    {
+      "file": "accounting-pack-pdf-es.pdf",
+      "sha256": "2100ce26114cff9726c82eddf755f7b997c1798b93bd893487361543080fba6f",
+      "format": "pdf",
+      "pages": 3,
+      "textCharacters": 2265,
+      "preview": "previews/accounting-pack-pdf-es.png"
+    },
+    {
+      "file": "accounting-pack-pdf-pt.pdf",
+      "sha256": "2da915fb7f4cf0fcb9611dcb4978ea537b2249d632173165d20e5f04b11a0539",
+      "format": "pdf",
+      "pages": 3,
+      "textCharacters": 2255,
+      "preview": "previews/accounting-pack-pdf-pt.png"
+    },
+    {
+      "file": "accounting-pack-xlsx.xlsx",
+      "sha256": "bfc5c0fb69810859c0272227965921532c2a49efe515c5656fb60ed45b24d5c8",
+      "format": "xlsx",
+      "sheets": [
+        {
+          "name": "Invoice register",
+          "rows": 5,
+          "columns": 16,
+          "freezePanes": "A2",
+          "filter": "A1:P5"
+        },
+        {
+          "name": "Collections",
+          "rows": 4,
+          "columns": 11,
+          "freezePanes": "A2",
+          "filter": "A1:K4"
+        },
+        {
+          "name": "Worker direct costs",
+          "rows": 3,
+          "columns": 9,
+          "freezePanes": "A2",
+          "filter": "A1:I3"
+        },
+        {
+          "name": "Expenses",
+          "rows": 3,
+          "columns": 29,
+          "freezePanes": "A2",
+          "filter": "A1:AC3"
+        }
+      ]
+    },
+    {
+      "file": "invoice-collection-ledger.csv",
+      "sha256": "7fb446ad387c053c10e76af5b319ec8da451584fc10c1083ea9d906b73bf9c83",
+      "format": "csv",
+      "rows": 5,
+      "columns": 39
+    },
+    {
+      "file": "invoice-collection-ledger.xlsx",
+      "sha256": "afdab26a2ee5207cba9f647cc6be063f700a9b1260149f04c637049ed5a02ea9",
+      "format": "xlsx",
+      "sheets": [
+        {
+          "name": "Invoice collection ledger",
+          "rows": 5,
+          "columns": 51,
+          "freezePanes": "A2",
+          "filter": "A1:AY5"
+        },
+        {
+          "name": "Payments",
+          "rows": 4,
+          "columns": 12,
+          "freezePanes": "A2",
+          "filter": "A1:L4"
+        },
+        {
+          "name": "Reversals",
+          "rows": 1,
+          "columns": 1,
+          "freezePanes": "A2",
+          "filter": "A1:A1"
+        }
+      ]
+    },
+    {
+      "file": "collections-customers.csv",
+      "sha256": "c24c5ed80b67ad7e7e119b8890bc2d3f913444b552b4d6af8447b3976297ae54",
+      "format": "csv",
+      "rows": 2,
+      "columns": 18
+    },
+    {
+      "file": "collections-forecast.csv",
+      "sha256": "45d097cadcd078b71968ac6d80af5cbb46fd947146f3c034d66f753f3c03643b",
+      "format": "csv",
+      "rows": 2,
+      "columns": 12
+    },
+    {
+      "file": "collections-priorities.csv",
+      "sha256": "80baa0d8534f095e4989354c183bb863e6994ad3f6d334a3417f59be8711ae73",
+      "format": "csv",
+      "rows": 3,
+      "columns": 11
+    },
+    {
+      "file": "daily-field-report-en.pdf",
+      "sha256": "b19e30ae27d75369304ee7a6406347c825ad098a59d3dea09b80823ace2441c6",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 467,
+      "preview": "previews/daily-report-en.png"
+    },
+    {
+      "file": "daily-field-report-es.pdf",
+      "sha256": "b261c76bf7939ff90f5cc55f1d4ed7f082e9853e7ade6cb69d0a84360dac131d",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 491,
+      "preview": "previews/daily-report-es.png"
+    },
+    {
+      "file": "daily-field-report-pt.pdf",
+      "sha256": "c2f8909dc7623f99ac3555a2672e25e0deef4f1c2cc81ef7fa7a46ac446d3b60",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 499,
+      "preview": "previews/daily-report-pt.png"
+    },
+    {
+      "file": "expense-register.csv",
+      "sha256": "62d74d6ed4f51e1c9c91f08e8d6a1275f19c3e141b163351080c366c5d1d1233",
+      "format": "csv",
+      "rows": 3,
+      "columns": 12
+    },
+    {
+      "file": "expense-register.pdf",
+      "sha256": "cb3abea24c0ed1bdf1c10907e1c0623fdcc7d899a270527355e63e1823552542",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 695,
+      "preview": "previews/expense-register-pdf.png"
+    },
+    {
+      "file": "expense-register.xlsx",
+      "sha256": "d4b71f26a54a1fd2559d31cdef009944059e9e43595d7234e74c55b5ca4f85a5",
+      "format": "xlsx",
+      "sheets": [
+        {
+          "name": "Expenses",
+          "rows": 3,
+          "columns": 12,
+          "freezePanes": "A2",
+          "filter": "A1:L3"
+        },
+        {
+          "name": "Totals by currency",
+          "rows": 2,
+          "columns": 2,
+          "freezePanes": "A2",
+          "filter": "A1:B2"
+        }
+      ]
+    },
+    {
+      "file": "invoice-credit-adjustment-en.pdf",
+      "sha256": "189d310ed4e505640270c50757c0e4a04f5ea6bd8efaa16978256807867524f6",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 1175,
+      "preview": "previews/invoice-credit-adjustment-en.png"
+    },
+    {
+      "file": "invoice-credit-adjustment-es.pdf",
+      "sha256": "4164fc06e03bded7b25eba62c99b7f0d075eb9851439bd4f6de340944c2d03cf",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 1269,
+      "preview": "previews/invoice-credit-adjustment-es.png"
+    },
+    {
+      "file": "invoice-credit-adjustment-pt.pdf",
+      "sha256": "de1eb89d4c4e2111731c67ff80760d19f3b3bd750752a462f4dab1546dce33e1",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 1239,
+      "preview": "previews/invoice-credit-adjustment-pt.png"
+    },
+    {
+      "file": "invoice-expenses-detailed-en.pdf",
+      "sha256": "19d3af78ccf869b772786d7731aabe051bf0ab0c5abcae4dddafdcee177befa9",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 1219,
+      "preview": "previews/invoice-expenses-detailed-en.png"
+    },
+    {
+      "file": "invoice-expenses-detailed-es.pdf",
+      "sha256": "1c61f28d47292cf0bc27b432fb164b6156b1fbd9f08ae2f5893142648c5230f7",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 1325,
+      "preview": "previews/invoice-expenses-detailed-es.png"
+    },
+    {
+      "file": "invoice-expenses-detailed-pt.pdf",
+      "sha256": "b686b8a4acac7607d394376e24c2c99905e4cc527d8590bf59d4e68c77336edf",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 1301,
+      "preview": "previews/invoice-expenses-detailed-pt.png"
+    },
+    {
+      "file": "invoice-fixed-milestone-en.pdf",
+      "sha256": "a689d5363330eab4137084d942b320a04b3ec421804d1894e1e0a730ba87662b",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 1165,
+      "preview": "previews/invoice-fixed-milestone-en.png"
+    },
+    {
+      "file": "invoice-fixed-milestone-es.pdf",
+      "sha256": "5c0135e968493c4ceb072075e5b084814ce890e4633d784bd26ce29da04e4407",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 1263,
+      "preview": "previews/invoice-fixed-milestone-es.png"
+    },
+    {
+      "file": "invoice-fixed-milestone-pt.pdf",
+      "sha256": "60e77a334246e40c20c2519d195aee5aa84d550ca1b9c68c24adf1b4065ee753",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 1237,
+      "preview": "previews/invoice-fixed-milestone-pt.png"
+    },
+    {
+      "file": "invoice-labor-detailed-en.pdf",
+      "sha256": "c9fdda62272cd19781ea9910e176a625912a4cbcfca50bd71b8c076f83f957da",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 1229,
+      "preview": "previews/invoice-labor-detailed-en.png"
+    },
+    {
+      "file": "invoice-labor-detailed-es.pdf",
+      "sha256": "16016b3da5f8e972aeb12a003e0088dea8847cf1bc45e2bef2d87dff0958f3f6",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 1355,
+      "preview": "previews/invoice-labor-detailed-es.png"
+    },
+    {
+      "file": "invoice-labor-detailed-pt.pdf",
+      "sha256": "086e7c51fdc47c1b97b28baf668c33755091dd05dee5e50431f5f0ffc312a248",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 1325,
+      "preview": "previews/invoice-labor-detailed-pt.png"
+    },
+    {
+      "file": "invoice-labor-summary-en.pdf",
+      "sha256": "581e4819693e4b966803cfa8f59725d630e681b7017cddbbb8890839e1a733e9",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 1138,
+      "preview": "previews/invoice-labor-summary-en.png"
+    },
+    {
+      "file": "invoice-labor-summary-es.pdf",
+      "sha256": "9e279681286f4b87620d08b86c63fb60fc0347022ab5e4d128c54e7f6063fb6a",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 1251,
+      "preview": "previews/invoice-labor-summary-es.png"
+    },
+    {
+      "file": "invoice-labor-summary-pt.pdf",
+      "sha256": "3c8e1538a90e10ab9d7652c519825da756e4c92142e211d2eb57ba8360266e8d",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 1223,
+      "preview": "previews/invoice-labor-summary-pt.png"
+    },
+    {
+      "file": "period-report-customer-en.pdf",
+      "sha256": "b7fdac2cb6941dd05159175b5b2671cb20bd6a7e87ab23ee79fdbd4f7e939b85",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1279,
+      "preview": "previews/period-customer-en.png"
+    },
+    {
+      "file": "period-report-customer-es.pdf",
+      "sha256": "e060805aac6107fa2a73a87e6c40505d4bdcd99aae8ff2b8401eec91f8c54830",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1318,
+      "preview": "previews/period-customer-es.png"
+    },
+    {
+      "file": "period-report-customer-pt.pdf",
+      "sha256": "7318cf31c8f17feec3a3b436ebe14d80424a69c4b7257ffa1e4e7992acc05c08",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1381,
+      "preview": "previews/period-customer-pt.png"
+    },
+    {
+      "file": "period-report-internal-en.pdf",
+      "sha256": "6021f29c08914b522c4f02ddde4ef9bafe8266f36d6688a3a1b08eb9591aa0f7",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1663,
+      "preview": "previews/period-internal-en.png"
+    },
+    {
+      "file": "period-report-internal-es.pdf",
+      "sha256": "7fdc52204ddcc5dbfd0def2c5c3a7a8b4c9c4408245f631c16a3126e93e81874",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1710,
+      "preview": "previews/period-internal-es.png"
+    },
+    {
+      "file": "period-report-internal-pt.pdf",
+      "sha256": "ec40b8ae7d6a577f60b876aaa2be96e92e9fc000a97ebfb04bc0b3b7d6cac58f",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1760,
+      "preview": "previews/period-internal-pt.png"
+    },
+    {
+      "file": "project-finance-en.xlsx",
+      "sha256": "17bb0c935cc470e360f78cd41267da5427a7c07c035d95fcaaa13fac7d928b18",
+      "format": "xlsx",
+      "sheets": [
+        {
+          "name": "Summary",
+          "rows": 39,
+          "columns": 7,
+          "freezePanes": "A2",
+          "filter": "A1:G39"
+        },
+        {
+          "name": "Labor",
+          "rows": 3,
+          "columns": 17,
+          "freezePanes": "A2",
+          "filter": "A1:Q3"
+        },
+        {
+          "name": "Expenses",
+          "rows": 3,
+          "columns": 16,
+          "freezePanes": "A2",
+          "filter": "A1:P3"
+        },
+        {
+          "name": "Unbilled WIP",
+          "rows": 1,
+          "columns": 6,
+          "freezePanes": "A2",
+          "filter": "A1:F1"
+        },
+        {
+          "name": "Daily minimum",
+          "rows": 1,
+          "columns": 6,
+          "freezePanes": "A2",
+          "filter": "A1:F1"
+        },
+        {
+          "name": "Invoices",
+          "rows": 5,
+          "columns": 12,
+          "freezePanes": "A2",
+          "filter": "A1:L5"
+        },
+        {
+          "name": "Milestones",
+          "rows": 2,
+          "columns": 5,
+          "freezePanes": "A2",
+          "filter": "A1:E2"
+        },
+        {
+          "name": "Alerts",
+          "rows": 1,
+          "columns": 2,
+          "freezePanes": "A2",
+          "filter": "A1:B1"
+        }
+      ]
+    },
+    {
+      "file": "project-finance-es.xlsx",
+      "sha256": "88ce744b885d87e59c2492ca0a37afbccf6d3051f8be4936aa3eece915169b59",
+      "format": "xlsx",
+      "sheets": [
+        {
+          "name": "Resumen",
+          "rows": 39,
+          "columns": 7,
+          "freezePanes": "A2",
+          "filter": "A1:G39"
+        },
+        {
+          "name": "Mano de obra",
+          "rows": 3,
+          "columns": 17,
+          "freezePanes": "A2",
+          "filter": "A1:Q3"
+        },
+        {
+          "name": "Gastos",
+          "rows": 3,
+          "columns": 16,
+          "freezePanes": "A2",
+          "filter": "A1:P3"
+        },
+        {
+          "name": "WIP no facturado",
+          "rows": 1,
+          "columns": 6,
+          "freezePanes": "A2",
+          "filter": "A1:F1"
+        },
+        {
+          "name": "Minimo diario",
+          "rows": 1,
+          "columns": 6,
+          "freezePanes": "A2",
+          "filter": "A1:F1"
+        },
+        {
+          "name": "Facturas",
+          "rows": 5,
+          "columns": 12,
+          "freezePanes": "A2",
+          "filter": "A1:L5"
+        },
+        {
+          "name": "Hitos",
+          "rows": 2,
+          "columns": 5,
+          "freezePanes": "A2",
+          "filter": "A1:E2"
+        },
+        {
+          "name": "Alertas",
+          "rows": 1,
+          "columns": 2,
+          "freezePanes": "A2",
+          "filter": "A1:B1"
+        }
+      ]
+    },
+    {
+      "file": "project-finance-pt.xlsx",
+      "sha256": "9a01eec4a3dec6586aee49360a4ac34dabe4b56dbf3475fa1416249b51c4edbb",
+      "format": "xlsx",
+      "sheets": [
+        {
+          "name": "Resumo",
+          "rows": 39,
+          "columns": 7,
+          "freezePanes": "A2",
+          "filter": "A1:G39"
+        },
+        {
+          "name": "Mao de obra",
+          "rows": 3,
+          "columns": 17,
+          "freezePanes": "A2",
+          "filter": "A1:Q3"
+        },
+        {
+          "name": "Despesas",
+          "rows": 3,
+          "columns": 16,
+          "freezePanes": "A2",
+          "filter": "A1:P3"
+        },
+        {
+          "name": "WIP nao faturado",
+          "rows": 1,
+          "columns": 6,
+          "freezePanes": "A2",
+          "filter": "A1:F1"
+        },
+        {
+          "name": "Minimo diario",
+          "rows": 1,
+          "columns": 6,
+          "freezePanes": "A2",
+          "filter": "A1:F1"
+        },
+        {
+          "name": "Faturas",
+          "rows": 5,
+          "columns": 12,
+          "freezePanes": "A2",
+          "filter": "A1:L5"
+        },
+        {
+          "name": "Marcos",
+          "rows": 2,
+          "columns": 5,
+          "freezePanes": "A2",
+          "filter": "A1:E2"
+        },
+        {
+          "name": "Alertas",
+          "rows": 1,
+          "columns": 2,
+          "freezePanes": "A2",
+          "filter": "A1:B1"
+        }
+      ]
+    },
+    {
+      "file": "supplier-operational-report-en.csv",
+      "sha256": "476c45156233aff9c83378420359f015bd29f9e5ae573719760eaaeda05cc2cc",
+      "format": "csv",
+      "rows": 3,
+      "columns": 11
+    },
+    {
+      "file": "supplier-operational-report-es.csv",
+      "sha256": "ee4c1f5395778f5bfab84585200c09bef9841fab1bab27a7c9a09c7081029492",
+      "format": "csv",
+      "rows": 3,
+      "columns": 11
+    },
+    {
+      "file": "supplier-operational-report-pt.csv",
+      "sha256": "d0a3ba86607811469df770a10139280ece73402eea297a6b9a688ca2fc4794cf",
+      "format": "csv",
+      "rows": 3,
+      "columns": 11
+    },
+    {
+      "file": "technical-plc-report-en.pdf",
+      "sha256": "4f4c84a7443e07982c38ab52ed19ce7a0bdfa0e3dba5e93d56f5fa82184150a2",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1558,
+      "preview": "previews/technical-report-en.png"
+    },
+    {
+      "file": "technical-plc-report-es.pdf",
+      "sha256": "090cc5021391857884febaaf5899f1728d3ae561c42667c2bad0d1a2dadccdda",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1633,
+      "preview": "previews/technical-report-es.png"
+    },
+    {
+      "file": "technical-plc-report-pt.pdf",
+      "sha256": "ad9b56022bad06056ade4b2776172a13e8b2c4004c79fafa3852c617f786ec7d",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1651,
+      "preview": "previews/technical-report-pt.png"
+    },
+    {
+      "file": "worker-statement-en.csv",
+      "sha256": "744b4841f20958687dc78c1bd50841fdebc562bb824e1dcf383d15ee46bdd668",
+      "format": "csv",
+      "rows": 6,
+      "columns": 29
+    },
+    {
+      "file": "worker-statement-es.csv",
+      "sha256": "744b4841f20958687dc78c1bd50841fdebc562bb824e1dcf383d15ee46bdd668",
+      "format": "csv",
+      "rows": 6,
+      "columns": 29
+    },
+    {
+      "file": "worker-statement-pt.csv",
+      "sha256": "744b4841f20958687dc78c1bd50841fdebc562bb824e1dcf383d15ee46bdd668",
+      "format": "csv",
+      "rows": 6,
+      "columns": 29
+    },
+    {
+      "file": "worker-statement-en.pdf",
+      "sha256": "2f9e4f2c01655544bb2e5a87354da6a78348663947811692134ae7df05b6e876",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1094,
+      "preview": "previews/worker-statement-pdf-en.png"
+    },
+    {
+      "file": "worker-statement-es.pdf",
+      "sha256": "a7267869e6884b118f9480a4b293be4946d86dcc2cc785d5355a1e2c31974ffe",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1155,
+      "preview": "previews/worker-statement-pdf-es.png"
+    },
+    {
+      "file": "worker-statement-pt.pdf",
+      "sha256": "7b68b46b37357768cf5fccb1791fd3e4e635909749429adbc93a8e8afba3f6d4",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1226,
+      "preview": "previews/worker-statement-pdf-pt.png"
+    },
+    {
+      "file": "closeout/EXAMPLE-P-002-closeout-client-r1.zip",
+      "sha256": "c7c700280565fa98a80c4cf2f5d436bc2fe9a6ced2d3c03b6367e8ec879841c6",
+      "format": "zip",
+      "pages": 1,
+      "textCharacters": 496,
+      "preview": "previews/closeout-client.png",
+      "members": [
+        "closeout.json",
+        "document-index.csv",
+        "closeout-summary.pdf",
+        "documents/01-EXAMPLE-technical-handover.pdf",
+        "manifest.json"
+      ]
+    },
+    {
+      "file": "closeout/EXAMPLE-P-002-closeout-internal-r1.zip",
+      "sha256": "7a06bf1c9e0ad4bf87c9bdbd3f4c0c93bf3ddfb9784c1cea163f1d865b5ff24f",
+      "format": "zip",
+      "pages": 1,
+      "textCharacters": 532,
+      "preview": "previews/closeout-internal.png",
+      "members": [
+        "closeout.json",
+        "document-index.csv",
+        "closeout-summary.pdf",
+        "manifest.json"
+      ]
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-time-register-en.pdf",
+      "sha256": "305052cc57d1647b041e9caeb23819887ace45814adf14731242c3deface439b",
+      "format": "pdf",
+      "pages": 7,
+      "textCharacters": 3568,
+      "preview": "previews/browser-time-register-en.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-project-en.pdf",
+      "sha256": "77f8d059a7e71a360d3d491ef98b9af41f6f0e4587944cb22b1affebbeed92eb",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1204,
+      "preview": "previews/browser-project-en.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-time-entry-en.pdf",
+      "sha256": "1e0827fb9aa80386db01c530f35f4133cc147bb3c45262e0eefeda390cef2260",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 493,
+      "preview": "previews/browser-time-entry-en.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-expense-en.pdf",
+      "sha256": "105b514a919e3c9860b6cc29cd137ee7153807b71bd5a46d985b5f7a093d15ba",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 523,
+      "preview": "previews/browser-expense-en.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-daily-report-en.pdf",
+      "sha256": "a4c954c45c56b9fa71fa515efdce1ccc13fbd385e04a942679c574c7ea36172a",
+      "format": "pdf",
+      "pages": 4,
+      "textCharacters": 2340,
+      "preview": "previews/browser-daily-report-en.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-technical-report-en.pdf",
+      "sha256": "d15c50fccc6c30838440b8f8bf0d199a1d5cb10141fb4e4032a0753a22b3e6dd",
+      "format": "pdf",
+      "pages": 5,
+      "textCharacters": 2699,
+      "preview": "previews/browser-technical-report-en.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-period-report-customer-en.pdf",
+      "sha256": "c085a663f42e63e2de68a1ff1d8cf205ae4a8e010a1c28920b478dfbda4e9a8b",
+      "format": "pdf",
+      "pages": 4,
+      "textCharacters": 3777,
+      "preview": "previews/browser-period-report-customer-en.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-period-report-internal-en.pdf",
+      "sha256": "f77ea04fc1b061ae369ead57045abb89c5cf7c3bd3dcf9a1c414b25fa5f8d111",
+      "format": "pdf",
+      "pages": 6,
+      "textCharacters": 5767,
+      "preview": "previews/browser-period-report-internal-en.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-invoice-en.pdf",
+      "sha256": "1f9f28154db54d18d313998e70cf79d43458008b2900a2cfd36e49a74ce0b0cb",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1266,
+      "preview": "previews/browser-invoice-en.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-supplier-report-en.pdf",
+      "sha256": "e1c987f05efb239d5145c735f99d03ece91585c31bedd39872dca4df4f510ef3",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 337,
+      "preview": "previews/browser-supplier-report-en.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-time-register-es.pdf",
+      "sha256": "f198fe20cfcea188d84a632be3f3ec0c0d36228c1d2d3cc14f2541f0d08267a9",
+      "format": "pdf",
+      "pages": 7,
+      "textCharacters": 3910,
+      "preview": "previews/browser-time-register-es.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-project-es.pdf",
+      "sha256": "00c167629c0fe22dc778f1223e0d4277216ccbacec5fee4fe820cb7f35eb993e",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1302,
+      "preview": "previews/browser-project-es.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-time-entry-es.pdf",
+      "sha256": "dd9e9216fd1aeb7c6307c87829aebc9831d4e9dda833fe07765aca3904884fd3",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 534,
+      "preview": "previews/browser-time-entry-es.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-expense-es.pdf",
+      "sha256": "12891849397b96334edd5d4336b389acffbb7a3ea9866a33d8147602b39dc5cb",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 581,
+      "preview": "previews/browser-expense-es.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-daily-report-es.pdf",
+      "sha256": "ba285f7e152eb5e19411a24632813561190e0d8bccd2afc89ee2dcee1ef43ed5",
+      "format": "pdf",
+      "pages": 4,
+      "textCharacters": 2619,
+      "preview": "previews/browser-daily-report-es.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-technical-report-es.pdf",
+      "sha256": "e332084735c6db43fa404b30f5246cdc7fd181ca23c91f583d435c528c9f38a5",
+      "format": "pdf",
+      "pages": 5,
+      "textCharacters": 2962,
+      "preview": "previews/browser-technical-report-es.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-period-report-customer-es.pdf",
+      "sha256": "865a26d9b324623f039afb3c347367a024f0d04d8ae9fcd7d3dc3dadd511d1bf",
+      "format": "pdf",
+      "pages": 4,
+      "textCharacters": 4010,
+      "preview": "previews/browser-period-report-customer-es.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-period-report-internal-es.pdf",
+      "sha256": "117cd023731eaebcff2e62b5a337252f5ac96854f5ce6d1565ed07e7b6af1b28",
+      "format": "pdf",
+      "pages": 6,
+      "textCharacters": 6294,
+      "preview": "previews/browser-period-report-internal-es.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-invoice-es.pdf",
+      "sha256": "4930dadf5eab9a9aa8df10a9c2186b935a0c4cf495026808f9509f31eb691794",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1449,
+      "preview": "previews/browser-invoice-es.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-supplier-report-es.pdf",
+      "sha256": "c614e8d5b67636dedc6e6a47bcc762412c6d3138a5ed7ebb35203cf9fe95d0ea",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 346,
+      "preview": "previews/browser-supplier-report-es.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-time-register-pt-BR.pdf",
+      "sha256": "bc2a9ce490a3b0b522a506a07fa41ac76cda273b97e223032b9957f8190dd438",
+      "format": "pdf",
+      "pages": 7,
+      "textCharacters": 3863,
+      "preview": "previews/browser-time-register-pt.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-project-pt-BR.pdf",
+      "sha256": "d6b4637cb222b166687c85c8e24a799f2e8edebae42c194e626bbaf20e5e0aa4",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1316,
+      "preview": "previews/browser-project-pt.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-time-entry-pt-BR.pdf",
+      "sha256": "aae81644e154f15dd32b15f9cb91991d894a762989de3c2b0eba060b00b0c2a4",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 529,
+      "preview": "previews/browser-time-entry-pt.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-expense-pt-BR.pdf",
+      "sha256": "f890321c4e5b77626c5c3b33006aa30db707bfbeeed0631029e8f60a3598b21c",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 588,
+      "preview": "previews/browser-expense-pt.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-daily-report-pt-BR.pdf",
+      "sha256": "6071c0269381520c440b5c390362d1b95e4762964c63acbfdb21455710155c34",
+      "format": "pdf",
+      "pages": 4,
+      "textCharacters": 2588,
+      "preview": "previews/browser-daily-report-pt.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-technical-report-pt-BR.pdf",
+      "sha256": "fbf5289c88f7eb8c623dadbc1d1aa8bea368ac96769f089ecfd43807abaf991a",
+      "format": "pdf",
+      "pages": 5,
+      "textCharacters": 2952,
+      "preview": "previews/browser-technical-report-pt.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-period-report-customer-pt-BR.pdf",
+      "sha256": "6a7661c3a570dba9f44d26318e4509d492d39237a9390b8d0ef78ec92d96655e",
+      "format": "pdf",
+      "pages": 4,
+      "textCharacters": 4024,
+      "preview": "previews/browser-period-report-customer-pt.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-period-report-internal-pt-BR.pdf",
+      "sha256": "b92e0e160776c15134360f5c48666259ccf7cae133068b7e9c08dd45632d8f92",
+      "format": "pdf",
+      "pages": 6,
+      "textCharacters": 6289,
+      "preview": "previews/browser-period-report-internal-pt.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-invoice-pt-BR.pdf",
+      "sha256": "3dbdcf455d4f5da7d196a6bef88d14e931ea819b18e5b505785aa94742047683",
+      "format": "pdf",
+      "pages": 2,
+      "textCharacters": 1433,
+      "preview": "previews/browser-invoice-pt.png"
+    },
+    {
+      "file": "browser-print/EXAMPLE-browser-supplier-report-pt-BR.pdf",
+      "sha256": "6ebdc19d1360d8191c4493eb182ab5b7b5e8775af6e97a241e9b0c91e07282ca",
+      "format": "pdf",
+      "pages": 1,
+      "textCharacters": 358,
+      "preview": "previews/browser-supplier-report-pt.png"
+    }
+  ],
+  "tools": {
+    "pdf": "Poppler",
+    "xlsx": "openpyxl 3.1.5",
+    "csvJsonZip": "Python standard library"
+  }
+}

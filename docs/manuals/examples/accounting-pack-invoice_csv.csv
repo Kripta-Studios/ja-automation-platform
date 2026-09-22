@@ -1,0 +1,5 @@
+invoiceNumber,client,project,projectNumber,stream,servicePeriod,issueDate,dueDate,subtotalMinor,taxMinor,totalMinor,grossMinor,currency
+EXAMPLE-LABOR-001,EXAMPLE — Example Manufacturing Ltd,EXAMPLE — Packaging Cell Commissioning,EXAMPLE-P-001,labor,2026-09-01 → 2026-09-30,2026-09-30,2026-10-30,'193750,0,'193750,193750,USD
+EXAMPLE-EXPENSE-001,EXAMPLE — Example Manufacturing Ltd,EXAMPLE — Packaging Cell Commissioning,EXAMPLE-P-001,expense,2026-09-01 → 2026-09-30,2026-09-30,2026-10-30,'21000,0,'21000,21000,USD
+EXAMPLE-MILESTONE-001,EXAMPLE — Example Manufacturing Ltd,EXAMPLE — Packaging Cell Commissioning,EXAMPLE-P-001,milestone,2026-09-01 → 2026-09-30,2026-09-30,2026-10-30,'500000,0,'500000,500000,USD
+EXAMPLE-CREDIT-001,EXAMPLE — Example Manufacturing Ltd,EXAMPLE — Packaging Cell Commissioning,EXAMPLE-P-001,credit,2026-09-01 → 2026-09-30,2026-09-30,2026-09-30,'-12500,0,'-12500,-12500,USD

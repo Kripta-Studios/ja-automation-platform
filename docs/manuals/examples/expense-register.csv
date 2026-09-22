@@ -1,0 +1,3 @@
+Date,Client,Project,Worker,Vendor,Category,Description,Currency,Amount,Payer,Status,Reimbursement
+2026-09-08,EXAMPLE — Example Manufacturing Ltd,EXAMPLE-P-001 EXAMPLE — Packaging Cell Commissioning,Alex Rivera,EXAMPLE Hotel — NOT PAYABLE,hotel,EXAMPLE lodging receipt,USD,'124.00,worker,approved,approved
+2026-09-09,EXAMPLE — Example Manufacturing Ltd,EXAMPLE-P-001 EXAMPLE — Packaging Cell Commissioning,Marina Costa,EXAMPLE Transit — NOT PAYABLE,travel,EXAMPLE local transport receipt,USD,'86.00,worker,approved,scheduled

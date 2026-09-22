@@ -1,0 +1,2 @@
+balanceAsOf,clientId,clientNumber,clientName,currency,openDocuments,grossReceivablesMinor,creditBalancesMinor,netOutstandingMinor,overdueMinor,oldestDaysOverdue,currentMinor,1_30Minor,31_60Minor,61_90Minor,over_90Minor,undatedMinor,creditMinor
+2026-11-15,example-client-001,EXAMPLE-C-001,EXAMPLE — Example Manufacturing Ltd,USD,'3,'293750,'-12500,'281250,'293750,'31,'0,'43750,'250000,'0,'0,'0,'-12500

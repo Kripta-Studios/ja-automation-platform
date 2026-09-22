@@ -1,0 +1,8 @@
+Running 2 tests using 1 worker
+
+(node:102244) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [desktop] › tests/e2e/manual-current-capture.spec.ts:53:1 › capture fresh synthetic EN and PT-BR manuals for seven personas (2.4m)
+  ✓  2 [desktop] › tests/e2e/manual-export-print-examples.spec.ts:10:1 › publish synthetic examples of the real browser print layouts (48.8s)
+
+  2 passed (3.9m)

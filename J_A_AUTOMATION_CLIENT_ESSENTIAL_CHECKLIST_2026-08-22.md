@@ -910,6 +910,7 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 
 - [x] Inventario de generadores reales: cinco plantillas de factura, períodos cliente/interno, informes diarios/técnicos, liquidación propia, paquete contable, gastos, revisión económica, cobros, proveedor y cierre. Datos sintéticos aislados; sin lectura de registros de producción para crear ejemplos.
 - [x] Tablas y resúmenes PDF más legibles, Excel con cabeceras y tipos monetarios/fechas, precisión de valores grandes conservada. Resumen de cierre paginado sin recortar entradas; Unicode fuera de WinAnsi explícito y conservado en JSON/copia del PDF.
-- [x] Versiones por familia, rechazo de trabajos obsoletos antes de escribir, recuperación versionada y conservación de artefactos finalizados. Pruebas de ciclo de vida, privacidad y dinero exacto aprobadas; revisión independiente y corrección de hallazgos en curso antes de publicación.
+- [x] Versiones por familia, rechazo de trabajos obsoletos antes de escribir, recuperación versionada y conservación de artefactos finalizados. Pruebas de ciclo de vida, privacidad y dinero exacto aprobadas; revisión independiente SHIP sin P0/P1/P2 pendientes. Corrección probada de 450 minutos → 7,50 horas en el PDF contable.
 - [x] Galería local probada a 390/1440 px; filtros de formato/idioma/búsqueda correctos. 30 impresiones reales del navegador, con detalle cliente/interno y 3 idiomas, verificadas en fixture desechable.
-- [ ] Publicación, regeneración final de manuales y verificación del despliegue: evidencia en `docs/evidence/manual-examples-20260922`.
+- [x] Colección de 86 archivos: 64 PDF (30 impresiones del navegador), 6 XLSX, 13 CSV, 1 JSON y 2 ZIP. Nueve manuales regenerados con 116 capturas/202 comprobaciones vinculadas a `5b65dfd`; generación final de navegador 2/2 aprobada.
+- [ ] Publicación final y verificación del despliegue: evidencia en `docs/evidence/manual-examples-20260922`.

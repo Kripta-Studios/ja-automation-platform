@@ -1,6 +1,6 @@
 {
-  "at": "2026-09-22T10:32:29.316962+00:00",
-  "release": "/opt/jaautomation/releases/ja-automation-370f46e5a798f59ab437bede05b2eb833c27c4bf545214637688773b6ce30940",
+  "at": "2026-09-22T10:44:58.232820+00:00",
+  "release": "/opt/jaautomation/releases/ja-automation-079e1eebe07dcac9e8ffc5fd06fe4e20b6f6d23cf7a10d3c5776dc44befbd12c",
   "sourceFilesMatched": 594,
   "integrity": "ok",
   "foreignKeys": 0,
@@ -63,7 +63,7 @@
     },
     "/j-aautomation/app/login": {
       "status": 200,
-      "bytes": 5247
+      "bytes": 5246
     },
     "/j-aautomation/app/fonts/geist-latin.woff2": {
       "status": 200,

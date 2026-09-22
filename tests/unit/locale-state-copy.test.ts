@@ -3,6 +3,9 @@ import { reviewCopy } from '../../apps/portal/src/routes/app/reports/review/copy
 import { notificationCopy } from '../../apps/portal/src/lib/notifications/copy';
 import { portalText } from '../../apps/portal/src/lib/portal-i18n';
 import { copy as financePreviewCopy } from '../../apps/portal/src/routes/app/finance/preview/copy';
+import { readFileSync } from 'node:fs';
+import { portalCatalog } from '../../apps/portal/src/lib/portal-i18n';
+import { portalTitles, portalViewTitles } from '../../apps/portal/src/lib/portal-navigation';
 
 function leaves(value: unknown, prefix = ''): Record<string, string> {
   if (typeof value === 'string') return { [prefix]: value };
@@ -14,6 +17,35 @@ function leaves(value: unknown, prefix = ''): Record<string, string> {
 }
 
 describe('conditional workflow copy in all portal languages', () => {
+  it('registers every dynamic section and view heading with localized text', () => {
+    const titles = [
+      ...Object.values(portalTitles),
+      ...Object.values(portalViewTitles).flatMap((views) => Object.values(views)),
+    ];
+    for (const title of titles) {
+      expect(portalCatalog.en).toHaveProperty(title);
+      for (const locale of ['es', 'pt'] as const) expect(portalText(locale, title)).not.toBe(title);
+    }
+  });
+  it('registers and translates operational category labels passed through dynamic options', () => {
+    const source = readFileSync('apps/portal/src/lib/portal/sections/TimeSection.svelte', 'utf8');
+    const labels = [...source.matchAll(/\{ value: '[^']+', label: '([^']+)' \}/gu)].map(
+      (match) => match[1],
+    );
+    expect(labels).toHaveLength(9);
+    for (const label of labels) {
+      expect(portalCatalog.en).toHaveProperty(label);
+      for (const locale of ['es', 'pt'] as const) expect(portalText(locale, label)).not.toBe(label);
+    }
+    expect(portalText('es', 'Work')).toBe('Trabajo');
+    expect(portalText('pt', 'Work')).toBe('Trabalho');
+    expect(portalText('es', 'Standby')).toBe('Guardia / espera');
+    expect(portalText('pt', 'Standby')).toBe('Plantão / espera');
+    for (const label of ['Travel operational detail', 'Standby reason']) {
+      expect(portalCatalog.en).toHaveProperty(label);
+      for (const locale of ['es', 'pt'] as const) expect(portalText(locale, label)).not.toBe(label);
+    }
+  });
   it('preserves every commercial example label and its financial meaning', () => {
     for (const locale of ['es', 'pt'] as const) {
       expect(Object.keys(financePreviewCopy[locale]).sort()).toEqual(

@@ -1,5 +1,8 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  Work: ['Trabajo', 'Trabalho'],
+  Standby: ['Guardia / espera', 'Plantão / espera'],
+  'Travel operational detail': ['Detalle operativo del viaje', 'Detalhe operacional da viagem'],
   'The action could not be completed. Try again shortly.': [
     'No se pudo completar la acción. Vuelve a intentarlo en unos instantes.',
     'Não foi possível concluir a ação. Tente novamente em instantes.',

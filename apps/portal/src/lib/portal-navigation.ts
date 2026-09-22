@@ -252,7 +252,7 @@ export const portalViewTitles: Record<string, Record<string, string>> = {
     team: 'Team access',
   },
   reports: {
-    technical: 'PLC / Technical reports',
+    technical: 'PLC / technical reports',
   },
   billing: {
     invoices: 'Invoices',

@@ -232,9 +232,38 @@ test('capture fresh synthetic manuals for seven personas and the Spanish worker 
           );
         }
         if (persona === 'worker') {
+          await navigate(page, '/reports?view=technical', locale);
+          await expect(
+            page.getByRole('heading', {
+              name: {
+                en: 'PLC / technical reports',
+                es: 'Informes PLC / técnicos',
+                pt: 'Relatórios PLC / técnicos',
+              }[locale],
+              exact: true,
+            }),
+          ).toBeVisible();
           const url = await navigate(page, '/time', locale);
           await page.locator('[data-time-primary-cta]').click();
           const form = page.locator('form[data-time-entry-surface]');
+          await expect(form.locator('option[value="regular"]')).toHaveText(
+            { en: 'Work', es: 'Trabajo', pt: 'Trabalho' }[locale],
+          );
+          await expect(form.locator('option[value="standby"]')).toHaveText(
+            { en: 'Standby', es: 'Guardia / espera', pt: 'Plantão / espera' }[locale],
+          );
+          await form.locator('select[name="category"]').selectOption('travel');
+          await expect(
+            form.getByLabel(
+              {
+                en: 'Travel operational detail',
+                es: 'Detalle operativo del viaje',
+                pt: 'Detalhe operacional da viagem',
+              }[locale],
+              { exact: true },
+            ),
+          ).toBeVisible();
+          await form.locator('select[name="category"]').selectOption('regular');
           await expect(form.locator('[name="workDate"]')).not.toHaveValue('');
           await form.locator('[name="startTime"]').fill('09:00');
           await form.locator('[name="endTime"]').fill('17:00');

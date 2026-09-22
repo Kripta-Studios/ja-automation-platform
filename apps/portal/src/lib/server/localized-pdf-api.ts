@@ -22,11 +22,13 @@ import {
 } from '@ja/database';
 import {
   LOCALIZED_PDF_JOB_KIND,
-  REPORT_TEMPLATE_VERSION,
+  localizedPdfTemplateVersion,
   type LocalizedPdfJobVariant,
 } from '@ja/reporting';
 
-export const LOCALIZED_PDF_GENERATION_VERSION = `localized-${REPORT_TEMPLATE_VERSION}-identity`;
+export function localizedPdfGenerationVersion(ownerType: LocalizedPdfOwnerType): string {
+  return `localized-${ownerType}-${localizedPdfTemplateVersion(ownerType)}-identity`;
+}
 
 export const LOCALIZED_PDF_OWNER_TYPES: readonly LocalizedPdfOwnerType[] = [
   'invoice',

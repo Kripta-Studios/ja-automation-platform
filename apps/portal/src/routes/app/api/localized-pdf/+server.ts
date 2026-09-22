@@ -1,16 +1,16 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import {
-  LOCALIZED_PDF_GENERATION_VERSION,
   isLocalizedPdfLocale,
   isLocalizedPdfOwnerType,
   localizedPdfDownloadLocation,
   mapLocalizedPdfError,
   normalizedLocalizedPdfLocale,
   enqueueLocalizedPdfRender,
+  localizedPdfGenerationVersion,
   publicLocalizedPdfVariant,
 } from '$lib/server/localized-pdf-api';
 import type { LocalizedPdfOwnerType } from '@ja/database';
-import { REPORT_TEMPLATE_VERSION } from '@ja/reporting';
+import { localizedPdfTemplateVersion } from '@ja/reporting';
 import { openPortalRepository } from '$lib/server/portal-repository';
 
 function unauthorized(): Response {
@@ -78,8 +78,8 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
         ownerType: values.ownerType,
         ownerId: values.ownerId,
         locale: normalizedLocalizedPdfLocale(values.locale),
-        templateVersion: REPORT_TEMPLATE_VERSION,
-        generationVersion: LOCALIZED_PDF_GENERATION_VERSION,
+        templateVersion: localizedPdfTemplateVersion(values.ownerType),
+        generationVersion: localizedPdfGenerationVersion(values.ownerType),
       },
       (persisted) => {
         // The repository invokes this hook inside its write transaction. If enqueueing fails,

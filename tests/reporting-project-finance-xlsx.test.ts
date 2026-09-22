@@ -1,6 +1,11 @@
 import { inflateRawSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import { accountingPackXlsx, projectFinanceXlsx, toCsv } from '@ja/reporting';
+import {
+  accountingPackXlsx,
+  projectFinanceXlsx,
+  expenseRegisterExport,
+  toCsv,
+} from '@ja/reporting';
 import { xlsxFromSheets } from '../packages/reporting/src/exports.ts';
 
 function unzip(bytes: Uint8Array): Map<string, string> {
@@ -94,6 +99,48 @@ describe('project finance XLSX export', () => {
       ]),
     );
     expect(cellByHeader(files, 1, 'unsafe')).toContain('t="inlineStr"');
+  });
+
+  it('exports sortable expense dates and numeric money without rounding high-precision amounts', () => {
+    const record = {
+      spent_on: '2026-09-08',
+      currency: 'EUR',
+      amount_minor: '12550',
+      vendor: '=UNTRUSTED()',
+      who_paid: 'worker',
+      approval_state: 'approved',
+    };
+    const files = unzip(
+      expenseRegisterExport(
+        [record, { ...record, amount_minor: '9007199254740993' }],
+        'xlsx',
+        '2026-09',
+      ),
+    );
+    expect(cellByHeader(files, 1, 'Date')).toMatch(/s="1"><v>\d+<\/v>/);
+    expect(cellByHeader(files, 1, 'Amount')).toContain('s="2"><v>125.5</v>');
+    expect(cellByHeader(files, 1, 'Amount', 3)).toContain('t="inlineStr"');
+    expect(cellByHeader(files, 1, 'Amount', 3)).toContain('90071992547409.93');
+    expect(cellByHeader(files, 1, 'Vendor')).toContain('t="inlineStr"');
+    expect(files.get('xl/worksheets/sheet1.xml')).not.toContain('<f>');
+    const ordinary = unzip(expenseRegisterExport([record], 'xlsx', '2026-09'));
+    expect(cellByHeader(ordinary, 2, 'Amount')).toContain('s="2"><v>125.5</v>');
+  });
+
+  it('preserves values exceeding spreadsheet precision as literal text', () => {
+    const files = unzip(
+      xlsxFromSheets([
+        {
+          name: 'Precision',
+          rows: [{ decimal: '12345678901234.56', integer: 1234567890123456 }],
+          numericColumns: ['decimal', 'integer'],
+        },
+      ]),
+    );
+    expect(cellByHeader(files, 1, 'decimal')).toContain('t="inlineStr"');
+    expect(cellByHeader(files, 1, 'decimal')).toContain('12345678901234.56');
+    expect(cellByHeader(files, 1, 'integer')).toContain('t="inlineStr"');
+    expect(cellByHeader(files, 1, 'integer')).toContain('1234567890123456');
   });
 
   it('uses explicit CSV numeric columns while neutralizing untrusted text and preserving signed minor units', () => {
@@ -354,7 +401,7 @@ describe('project finance XLSX export', () => {
     const labor = files.get('xl/worksheets/sheet2.xml') ?? '';
     expect(labor).toContain('Alex Worker');
     expect(labor).toContain('<c r="D2"><v>1.5</v></c>');
-    expect(labor).toContain('<c r="H2"><v>1234.56</v></c>');
+    expect(labor).toContain('<c r="H2" s="2"><v>1234.56</v></c>');
     expect(labor).toContain('123456');
     expect(cellByHeader(files, 2, 'clientRevenue')).toContain('<v>1234.56</v>');
     expect(cellByHeader(files, 2, 'internalCost')).toContain('<v>800</v>');
@@ -377,8 +424,8 @@ describe('project finance XLSX export', () => {
 
     const invoices = files.get('xl/worksheets/sheet6.xml') ?? '';
     expect(invoices).toContain('JA-INV-000001');
-    expect(invoices).toContain('<c r="G2"><v>1210</v></c>');
-    expect(invoices).toContain('<c r="H2"><v>400</v></c>');
+    expect(invoices).toContain('<c r="G2" s="2"><v>1210</v></c>');
+    expect(invoices).toContain('<c r="H2" s="2"><v>400</v></c>');
     expect(cellByHeader(files, 6, 'total')).toContain('<v>1210</v>');
     expect(cellByHeader(files, 6, 'collected')).toContain('<v>400</v>');
     expect(cellByHeader(files, 7, 'amount')).toContain('<v>500</v>');

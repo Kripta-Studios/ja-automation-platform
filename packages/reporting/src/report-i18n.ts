@@ -712,6 +712,7 @@ const metricLabels: Record<ReportLocale, Record<string, string>> = {
     travel_cost_minor: 'Travel cost',
     other_direct_cost_minor: 'Other direct cost',
     contribution_minor: 'Contribution',
+    credits_minor: 'Credits',
     currency: 'Currency',
   },
   pt: {
@@ -750,6 +751,7 @@ const metricLabels: Record<ReportLocale, Record<string, string>> = {
     travel_cost_minor: 'Custo de viagem',
     other_direct_cost_minor: 'Outro custo direto',
     contribution_minor: 'Contribuição',
+    credits_minor: 'Créditos',
     currency: 'Moeda',
   },
   es: {
@@ -788,6 +790,7 @@ const metricLabels: Record<ReportLocale, Record<string, string>> = {
     travel_cost_minor: 'Coste de viajes',
     other_direct_cost_minor: 'Otro coste directo',
     contribution_minor: 'Contribución',
+    credits_minor: 'Créditos',
     currency: 'Moneda',
   },
 };

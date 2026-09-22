@@ -13,8 +13,8 @@ import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createDatabase, LocalizedPdfRepository, V3Repository } from '@ja/database';
 import {
-  LOCALIZED_PDF_RENDERER_VERSION,
-  REPORT_TEMPLATE_VERSION,
+  localizedPdfRendererVersion,
+  localizedPdfTemplateVersion,
   runLocalizedPdfVariantJob,
   type LocalizedPdfJobExecution,
   type LocalizedPdfJobRepository,
@@ -50,8 +50,8 @@ function fakeVariant(
     snapshotJson: JSON.stringify(snapshot),
     storageKey: `localized-pdf/${ownerType}/variant-${ownerType}.pdf`,
     semanticFilename: `${ownerType}-es.pdf`,
-    templateVersion: REPORT_TEMPLATE_VERSION,
-    generationVersion: `localized-${REPORT_TEMPLATE_VERSION}`,
+    templateVersion: localizedPdfTemplateVersion(ownerType),
+    generationVersion: `localized-${ownerType}-${localizedPdfTemplateVersion(ownerType)}`,
     currentAttemptNumber: 1,
     status: 'queued',
   };
@@ -69,7 +69,9 @@ function fakeRepository(initial: LocalizedPdfJobVariant) {
     },
     completeVariant: (_variantId, input) => {
       expect(input.execution).toEqual(execution);
-      expect(input.rendererVersion).toBe(LOCALIZED_PDF_RENDERER_VERSION);
+      expect(input.rendererVersion).toBe(
+        localizedPdfRendererVersion(initial.ownerType, initial.templateVersion),
+      );
       variant = { ...variant, status: 'ready' };
       return variant;
     },
@@ -183,6 +185,32 @@ describe('localized PDF durable renderer', () => {
     }
   }, 30_000);
 
+  it('terminally rejects a queued artifact whose family template is unavailable', () => {
+    const root = mkdtempSync(join(tmpdir(), 'ja-localized-pdf-stale-version-'));
+    roots.push(root);
+    const current = fakeVariant('daily_report', {
+      work_date: '2026-08-22',
+      summary: 'Stale renderer contract',
+    });
+    const initial = { ...current, templateVersion: '2026.09.02.2' };
+    const fake = fakeRepository(initial);
+
+    expect(() =>
+      runLocalizedPdfVariantJob({
+        repository: fake.repository,
+        payload: { variantId: initial.variantId, requestedAttempt: 1 },
+        execution,
+        documentRoot: root,
+      }),
+    ).toThrow('HANDLER_FAILED');
+    expect(fake.state().failed).toMatchObject({
+      errorCode: 'LOCALIZED_PDF_RENDERER_VERSION_UNAVAILABLE',
+      failureClass: 'LOCALIZED_PDF_RENDERER_VERSION_UNAVAILABLE',
+      retryable: false,
+    });
+    expect(existsSync(join(root, initial.storageKey))).toBe(false);
+  });
+
   it('does not overwrite a different artifact and records a locale-scoped failure', () => {
     const root = mkdtempSync(join(tmpdir(), 'ja-localized-pdf-collision-'));
     roots.push(root);
@@ -253,8 +281,8 @@ describe('localized PDF durable renderer', () => {
             ownerType: 'daily_report',
             ownerId: 'daily',
             locale: 'en',
-            templateVersion: REPORT_TEMPLATE_VERSION,
-            generationVersion: `localized-${REPORT_TEMPLATE_VERSION}`,
+            templateVersion: localizedPdfTemplateVersion('daily_report'),
+            generationVersion: `localized-daily_report-${localizedPdfTemplateVersion('daily_report')}`,
           },
         );
         const target = join(root, variant.storageKey);

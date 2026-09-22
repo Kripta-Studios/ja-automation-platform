@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AccessDeniedError, ConflictError } from '@ja/database';
+import { FIELD_REPORT_TEMPLATE_VERSION } from '@ja/domain';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const openPortalRepository = vi.fn();
@@ -109,6 +110,15 @@ describe('localized PDF HTTP lifecycle', () => {
       '/app/api/localized-pdf/variant-pt/download',
     );
     expect(response.headers.get('retry-after')).toBe('2');
+    expect(context.localizedPdf.requestLocalizedPdf).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        ownerType: 'daily_report',
+        templateVersion: FIELD_REPORT_TEMPLATE_VERSION,
+        generationVersion: `localized-daily_report-${FIELD_REPORT_TEMPLATE_VERSION}-identity`,
+      }),
+      expect.any(Function),
+    );
     expect(context.v3.enqueueJob).toHaveBeenCalledWith(
       'localized_pdf_variant_render',
       'localized-pdf:variant-pt:attempt:1',

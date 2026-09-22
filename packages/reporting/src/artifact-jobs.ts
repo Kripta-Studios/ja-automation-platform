@@ -15,10 +15,14 @@ import {
   accountingPackArtifactBuilders,
   invoicePdf,
   periodReportPdf,
-  REPORT_TEMPLATE_VERSION,
   type AccountingPackExportType,
   type ReportLocale,
 } from './exports.ts';
+import {
+  INVOICE_TEMPLATE_VERSION,
+  PERIOD_REPORT_TEMPLATE_VERSION,
+  accountingPackExportTemplateVersion,
+} from './report-versions.ts';
 import { runLocalizedPdfVariantJob, type LocalizedPdfJobRepository } from './localized-pdf-jobs.ts';
 import {
   runWorkerStatementArtifactJob,
@@ -361,7 +365,7 @@ export function runArtifactJobs(context: ArtifactJobContext): {
       if (!invoiceId) throw new Error('Invoice PDF job has no invoice id');
       const snapshot = context.v3.invoiceSnapshotFromJob(invoiceId, execution);
       const bytes = invoicePdf(snapshot as Parameters<typeof invoicePdf>[0]);
-      const key = `invoices/${invoiceId}/${REPORT_TEMPLATE_VERSION}.pdf`;
+      const key = `invoices/${invoiceId}/${INVOICE_TEMPLATE_VERSION}.pdf`;
       const metadata = writeArtifact(root, key, bytes);
       context.v3.recordInvoicePdfFromJob(
         invoiceId,
@@ -400,6 +404,8 @@ export function runArtifactJobs(context: ArtifactJobContext): {
         : undefined;
       if (!projectId || !periodStart || !periodEnd)
         throw new Error('Period report job has incomplete period data');
+      if (values.templateVersion !== PERIOD_REPORT_TEMPLATE_VERSION)
+        throw new Error('PERIOD_REPORT_RENDERER_VERSION_UNAVAILABLE');
       const reports = context.v3.refreshPeriodReportsFromJob(
         {
           projectId,
@@ -421,7 +427,7 @@ export function runArtifactJobs(context: ArtifactJobContext): {
           Number.isSafeInteger(snapshotVersion) && snapshotVersion > 0
             ? `v${snapshotVersion}`
             : 'v-current';
-        const key = `reports/${report.id}/${versionSegment}-${REPORT_TEMPLATE_VERSION}.pdf`;
+        const key = `reports/${report.id}/${versionSegment}-${PERIOD_REPORT_TEMPLATE_VERSION}.pdf`;
         const metadata = writeArtifact(root, key, bytes);
         context.v3.recordPeriodReportPdfFromJob(
           report.id,
@@ -452,6 +458,13 @@ export function runArtifactJobs(context: ArtifactJobContext): {
         typeof payload === 'object' && payload !== null ? (payload as Record<string, unknown>) : {};
       const packId = String(values.packId ?? '');
       if (!packId) throw new Error('Accounting Pack job has no pack id');
+      const templateVersions =
+        values.templateVersions &&
+        typeof values.templateVersions === 'object' &&
+        !Array.isArray(values.templateVersions)
+          ? (values.templateVersions as Record<string, unknown>)
+          : null;
+      if (!templateVersions) throw new Error('ACCOUNTING_PACK_RENDERER_VERSION_UNAVAILABLE');
       const snapshot = context.v3.accountingPackSnapshotFromJob(packId, execution) as {
         periodStart: string;
         periodEnd: string;
@@ -477,11 +490,16 @@ export function runArtifactJobs(context: ArtifactJobContext): {
       const builders = accountingPackArtifactBuilders(snapshot).filter(
         (builder) => !requestedFormats || requestedFormats.has(builder.type),
       );
+      for (const artifact of builders) {
+        if (templateVersions[artifact.type] !== accountingPackExportTemplateVersion(artifact.type))
+          throw new Error('ACCOUNTING_PACK_RENDERER_VERSION_UNAVAILABLE');
+      }
       const failures: Array<{ type: AccountingPackExportType; message: string }> = [];
       for (const artifact of builders) {
         try {
           const bytes = artifact.build();
-          const key = `accounting-packs/${packId}/${artifact.type}-${REPORT_TEMPLATE_VERSION}.${artifact.extension}`;
+          const templateVersion = accountingPackExportTemplateVersion(artifact.type);
+          const key = `accounting-packs/${packId}/${artifact.type}-${templateVersion}.${artifact.extension}`;
           const metadata = writeArtifact(root, key, bytes);
           context.v3.recordAccountingPackExportFromJob(
             packId,

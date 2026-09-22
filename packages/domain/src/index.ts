@@ -1,5 +1,21 @@
 import { v7 as uuidv7 } from 'uuid';
 
+export {
+  ACCOUNTING_PACK_DATA_TEMPLATE_VERSION,
+  ACCOUNTING_PACK_PDF_TEMPLATE_VERSION,
+  FIELD_REPORT_TEMPLATE_VERSION,
+  INVOICE_TEMPLATE_VERSION,
+  PERIOD_REPORT_TEMPLATE_VERSION,
+  SPREADSHEET_TEMPLATE_VERSION,
+  WORKER_STATEMENT_TEMPLATE_VERSION,
+  accountingPackExportTemplateVersion,
+  localizedPdfRendererVersion,
+  localizedPdfTemplateVersion,
+  workerStatementRendererVersion,
+  type AccountingPackVersionedExportType,
+  type LocalizedPdfOwnerType,
+} from './report-versions.ts';
+
 export const roles = [
   'owner_admin',
   'finance_admin',

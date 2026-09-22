@@ -15,7 +15,7 @@ import {
 } from '@ja/database';
 import type { Principal } from '@ja/domain';
 import {
-  REPORT_TEMPLATE_VERSION,
+  WORKER_STATEMENT_TEMPLATE_VERSION,
   normalizeReportLocale,
   type ReportLocale,
   type WorkerStatementSnapshot,
@@ -315,9 +315,9 @@ export function workerStatementRequestInput(
     snapshot,
     periodStart: snapshot.periodStart,
     periodEnd: snapshot.periodEnd,
-    templateVersion: REPORT_TEMPLATE_VERSION,
+    templateVersion: WORKER_STATEMENT_TEMPLATE_VERSION,
     generationVersion: workerStatementGenerationVersion(
-      REPORT_TEMPLATE_VERSION,
+      WORKER_STATEMENT_TEMPLATE_VERSION,
       options?.refresh === true,
       options?.now,
     ),

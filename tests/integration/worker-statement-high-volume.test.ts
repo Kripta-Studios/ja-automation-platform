@@ -10,7 +10,7 @@ import {
   createDatabase,
 } from '@ja/database';
 import type { Principal, Role } from '@ja/domain';
-import { runWorkerStatementArtifactJob } from '@ja/reporting';
+import { WORKER_STATEMENT_TEMPLATE_VERSION, runWorkerStatementArtifactJob } from '@ja/reporting';
 import { provisionServiceActor } from '../../packages/database/src/domains/jobs/service-actor-repository.ts';
 import {
   B5_TEST_DEPLOYMENT_ID,
@@ -199,7 +199,7 @@ function queuedArtifact(
     {
       periodStart: '2026-08-01',
       periodEnd: '2026-08-31',
-      templateVersion: 'worker-statement-test-v1',
+      templateVersion: WORKER_STATEMENT_TEMPLATE_VERSION,
       generationVersion: `worker-statement-${requestKey}`,
       requestKey,
       snapshot: {

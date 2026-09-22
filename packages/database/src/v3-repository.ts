@@ -9,7 +9,13 @@ import {
   percentageOfEligibleClientLabor,
   type OvertimeMethod,
 } from '@ja/billing-engine';
-import { canManageBilling, newId, type Principal } from '@ja/domain';
+import {
+  PERIOD_REPORT_TEMPLATE_VERSION,
+  accountingPackExportTemplateVersion,
+  canManageBilling,
+  newId,
+  type Principal,
+} from '@ja/domain';
 import {
   applyBasisPoints,
   divideRounded,
@@ -110,6 +116,14 @@ type V3Currency = Currency;
 // attempt. Other durable kinds retain the shared bounded retry budget.
 const WORKER_STATEMENT_ARTIFACT_RENDER_JOB_KIND = 'worker_statement_artifact_render' as const;
 type ReportLocale = 'en' | 'pt' | 'es';
+
+const accountingPackTemplateVersions = () => ({
+  pdf: accountingPackExportTemplateVersion('pdf'),
+  xlsx: accountingPackExportTemplateVersion('xlsx'),
+  invoice_csv: accountingPackExportTemplateVersion('invoice_csv'),
+  expense_csv: accountingPackExportTemplateVersion('expense_csv'),
+  json: accountingPackExportTemplateVersion('json'),
+});
 
 export type ReportAttachmentType = 'daily' | 'technical';
 export type ReportAttachmentKind =
@@ -6315,13 +6329,14 @@ export class V3Repository {
           );
       this.enqueueJob(
         'period_close_report',
-        `billing-close:${billingRuleId}:${periodStart}:${periodEnd}:${rule.policy_version}`,
+        `billing-close:${billingRuleId}:${periodStart}:${periodEnd}:${rule.policy_version}:${PERIOD_REPORT_TEMPLATE_VERSION}`,
         {
           billingRuleId,
           periodStart,
           periodEnd,
           projectId: rule.project_id,
           reportLocale: normalizeReportLocale(reportLocale),
+          templateVersion: PERIOD_REPORT_TEMPLATE_VERSION,
         },
       );
       this.audit(principal, 'billing_period.close', 'billing_period', effectiveBillingPeriodId, {
@@ -6359,6 +6374,7 @@ export class V3Repository {
         projectId: input.projectId,
         periodStart: input.periodStart,
         periodEnd: input.periodEnd,
+        templateVersion: PERIOD_REPORT_TEMPLATE_VERSION,
         ...(input.reportLocale ? { reportLocale: normalizeReportLocale(input.reportLocale) } : {}),
         contentMode: input.contentMode ?? 'hours_activity_all_technical',
         technicalReportIds: [...new Set(input.technicalReportIds ?? [])].sort(),
@@ -9399,7 +9415,7 @@ export class V3Repository {
       const queued = this.enqueueJob(
         'accounting_pack_artifact_render',
         `accounting-pack:${id}`,
-        { packId: id },
+        { packId: id, templateVersions: accountingPackTemplateVersions() },
         now,
       );
       const job = this.sqlite.prepare('SELECT state FROM job WHERE id=?').get(queued.id) as
@@ -9546,7 +9562,9 @@ export class V3Repository {
       throw new V3ValidationError('Accounting Pack export type is invalid');
     const cleanKey = requireText(idempotencyKey, 'Retry idempotency key');
     if (cleanKey.length > 200) throw new V3ValidationError('Retry idempotency key is too long');
-    const durableKey = `accounting-pack-retry:${packId}:${exportType}:${createHash('sha256')
+    const durableKey = `accounting-pack-retry:${packId}:${exportType}:${accountingPackExportTemplateVersion(exportType)}:${createHash(
+      'sha256',
+    )
       .update(cleanKey)
       .digest('hex')}`;
     const existingRetry = this.sqlite
@@ -9589,7 +9607,11 @@ export class V3Repository {
       const queued = this.enqueueJob(
         'accounting_pack_artifact_render',
         durableKey,
-        { packId, formats: [exportType] },
+        {
+          packId,
+          formats: [exportType],
+          templateVersions: accountingPackTemplateVersions(),
+        },
         timestamp(),
       );
       this.audit(principal, 'accounting_pack.export_retry', 'accounting_pack_run', packId, {

@@ -3,6 +3,7 @@ import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  accountingPackExportTemplateVersion,
   renderAccountingPackArtifacts,
   REPORT_TEMPLATE_VERSION,
   runArtifactJobs,
@@ -128,7 +129,19 @@ describe('requested reporting artifact implementation', () => {
         runDueJobs: (_limit, handlers) => {
           try {
             expect(handlers.accounting_pack_artifact_render).toBeTypeOf('function');
-            handlers.accounting_pack_artifact_render({ packId: 'pack-1' }, proof);
+            handlers.accounting_pack_artifact_render(
+              {
+                packId: 'pack-1',
+                templateVersions: {
+                  pdf: accountingPackExportTemplateVersion('pdf'),
+                  xlsx: accountingPackExportTemplateVersion('xlsx'),
+                  invoice_csv: accountingPackExportTemplateVersion('invoice_csv'),
+                  expense_csv: accountingPackExportTemplateVersion('expense_csv'),
+                  json: accountingPackExportTemplateVersion('json'),
+                },
+              },
+              proof,
+            );
             return { processed: 1, failed: 0, overdueMarked: 0 };
           } catch {
             return { processed: 0, failed: 1, overdueMarked: 0 };

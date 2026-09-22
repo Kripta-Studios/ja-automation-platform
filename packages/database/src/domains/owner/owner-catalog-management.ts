@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
-import { newId, type Principal } from '@ja/domain';
+import { PERIOD_REPORT_TEMPLATE_VERSION, newId, type Principal } from '@ja/domain';
 import { ConflictError, ValidationError } from '../../repository.ts';
 import { OwnerRecordManagement } from './owner-record-management.ts';
 import { runImmediateTransaction } from '../../core/transaction.ts';
@@ -327,6 +327,7 @@ export class OwnerCatalogManagement {
             projectId: String(report.project_id),
             periodStart: String(report.period_start),
             periodEnd: String(report.period_end),
+            templateVersion: PERIOD_REPORT_TEMPLATE_VERSION,
           };
           v3.refreshPeriodReports(principal, period);
           v3.enqueueJob('period_close_report', `owner-technical-refresh:${id}:${newId()}`, period);

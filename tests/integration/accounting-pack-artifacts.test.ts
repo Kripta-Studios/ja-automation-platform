@@ -7,7 +7,12 @@ import { join } from 'node:path';
 import { Worker } from 'node:worker_threads';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDatabase, V3Repository } from '@ja/database';
-import type { Principal } from '@ja/domain';
+import {
+  ACCOUNTING_PACK_DATA_TEMPLATE_VERSION,
+  ACCOUNTING_PACK_PDF_TEMPLATE_VERSION,
+  SPREADSHEET_TEMPLATE_VERSION,
+  type Principal,
+} from '@ja/domain';
 import { runArtifactJobs } from '@ja/reporting';
 import {
   makeE2EFixturePointer,
@@ -509,6 +514,21 @@ describe('Accounting Pack artifact lifecycle', () => {
         .prepare('SELECT state FROM job WHERE kind=? AND idempotency_key=?')
         .get('accounting_pack_artifact_render', `accounting-pack:${pack.id}`),
     ).toEqual({ state: 'queued' });
+    const queuedPayload = sqlite
+      .prepare(
+        "SELECT payload_json FROM job WHERE kind='accounting_pack_artifact_render' AND idempotency_key=?",
+      )
+      .get(`accounting-pack:${pack.id}`) as { payload_json: string };
+    expect(JSON.parse(queuedPayload.payload_json)).toMatchObject({
+      packId: pack.id,
+      templateVersions: {
+        pdf: ACCOUNTING_PACK_PDF_TEMPLATE_VERSION,
+        xlsx: SPREADSHEET_TEMPLATE_VERSION,
+        invoice_csv: ACCOUNTING_PACK_DATA_TEMPLATE_VERSION,
+        expense_csv: ACCOUNTING_PACK_DATA_TEMPLATE_VERSION,
+        json: ACCOUNTING_PACK_DATA_TEMPLATE_VERSION,
+      },
+    });
     expect(
       sqlite
         .prepare('SELECT count(*) AS count FROM accounting_pack_export WHERE pack_run_id=?')
@@ -726,6 +746,16 @@ describe('Accounting Pack artifact lifecycle', () => {
     const replay = v3.retryAccountingPackExport(principal, pack.id, 'pdf', 'retry-pdf-once');
     expect(replay).toEqual({ ...first, created: false });
     expect(first).toMatchObject({ created: true, state: 'queued' });
+    const retryPayload = sqlite
+      .prepare('SELECT payload_json FROM job WHERE id=?')
+      .get(first.jobId) as {
+      payload_json: string;
+    };
+    expect(JSON.parse(retryPayload.payload_json)).toMatchObject({
+      packId: pack.id,
+      formats: ['pdf'],
+      templateVersions: { pdf: ACCOUNTING_PACK_PDF_TEMPLATE_VERSION },
+    });
     expect(
       sqlite
         .prepare(

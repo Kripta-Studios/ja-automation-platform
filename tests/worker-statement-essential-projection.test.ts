@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  WORKER_STATEMENT_TEMPLATE_VERSION,
   assertWorkerStatementSnapshot,
   runWorkerStatementArtifactJob,
   workerStatementCsv,
@@ -187,8 +188,8 @@ describe('Client Essential Worker statement allowlist', () => {
       snapshotJson: JSON.stringify(snapshot),
       storageKey: 'worker-statements/worker/statement.csv',
       semanticFilename: 'ja-worker-statement-own-worker-2026-08-01-2026-08-31.csv',
-      templateVersion: 'client-essential-v1',
-      generationVersion: 'worker-statement-client-essential-v1',
+      templateVersion: WORKER_STATEMENT_TEMPLATE_VERSION,
+      generationVersion: `worker-statement-${WORKER_STATEMENT_TEMPLATE_VERSION}`,
       currentAttemptNumber: 1,
       status: 'queued',
     };
@@ -218,5 +219,48 @@ describe('Client Essential Worker statement allowlist', () => {
     ).toThrow('HANDLER_FAILED');
     expect(failure?.errorCode).toBe('WORKER_STATEMENT_RENDER_FAILED');
     expect(failure?.failureClass).toBe('renderer   path with . unsafe text');
+  });
+
+  it('terminally rejects a queued statement from an unavailable template version', () => {
+    const artifact: WorkerStatementJobArtifact = {
+      artifactId: 'worker-statement-stale-version',
+      workerId: snapshot.worker.id,
+      periodStart: snapshot.periodStart,
+      periodEnd: snapshot.periodEnd,
+      format: 'csv',
+      snapshotJson: JSON.stringify(snapshot),
+      storageKey: 'worker-statements/worker/stale.csv',
+      semanticFilename: 'ja-worker-statement-stale.csv',
+      templateVersion: '2026.09.02.2',
+      generationVersion: 'worker-statement-2026.09.02.2',
+      currentAttemptNumber: 1,
+      status: 'queued',
+    };
+    let failure: Readonly<Record<string, unknown>> | undefined;
+    const repository = {
+      claimWorkerStatementArtifact: () => ({ artifact, attemptNumber: 1 }),
+      completeWorkerStatementArtifact: () => artifact,
+      failWorkerStatementArtifact: (
+        _artifactId: string,
+        input: Readonly<Record<string, unknown>>,
+      ) => {
+        failure = input;
+        return artifact;
+      },
+    };
+
+    expect(() =>
+      runWorkerStatementArtifactJob({
+        repository,
+        payload: { artifactId: artifact.artifactId, requestedAttempt: 1 },
+        execution: { jobId: 'job-stale', jobRunId: 'run-stale', leaseFence: 1 },
+        documentRoot: 'unused',
+      }),
+    ).toThrow('HANDLER_FAILED');
+    expect(failure).toMatchObject({
+      errorCode: 'WORKER_STATEMENT_RENDERER_VERSION_UNAVAILABLE',
+      failureClass: 'WORKER_STATEMENT_RENDERER_VERSION_UNAVAILABLE',
+      retryable: false,
+    });
   });
 });

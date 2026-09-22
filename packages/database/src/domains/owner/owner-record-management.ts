@@ -1,6 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { Principal } from '@ja/domain';
-import { newId } from '@ja/domain';
+import { PERIOD_REPORT_TEMPLATE_VERSION, newId, type Principal } from '@ja/domain';
 import { AccessDeniedError, ConflictError, ValidationError } from '../../repository.ts';
 import { assertLiveSession } from '../../core/authorization.ts';
 import { runImmediateTransaction } from '../../core/transaction.ts';
@@ -214,6 +213,7 @@ export class OwnerRecordManagement {
           projectId: String(report.project_id),
           periodStart: String(report.period_start),
           periodEnd: String(report.period_end),
+          templateVersion: PERIOD_REPORT_TEMPLATE_VERSION,
         };
         v3.refreshPeriodReports(principal, period);
         v3.enqueueJob(

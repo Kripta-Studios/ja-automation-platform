@@ -22,6 +22,15 @@ against the current persisted profile and live session. Supplier profiles retain
 family even though the underlying account role is Worker. Sharing a manual does not change the
 application's financial, project, supplier or personal-data permissions.
 
+## Example exports
+
+[Browse the complete synthetic export collection](examples/README.md) or
+[download all examples as a ZIP](examples/all-examples.zip). The collection includes
+native PDF, XLSX, CSV, JSON and project-closeout ZIP exports, plus separately labelled
+browser print examples in English, Spanish and Brazilian Portuguese. Extract the ZIP
+and open `index.html` for a searchable preview gallery. These files contain fictional
+data and do not grant access to private application records.
+
 ## Sources and illustrations
 
 The active detailed sources are `Functional_Guide_<family>_EN.md` and

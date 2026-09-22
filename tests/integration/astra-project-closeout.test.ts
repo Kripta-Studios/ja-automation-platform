@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   existsSync,
@@ -658,7 +659,12 @@ describe('ASTRA project closeout revisions', () => {
     expect([...internal.keys()].some((name) => name.startsWith('documents/'))).toBe(false);
     const summary = client.get('closeout-summary.pdf')?.toString('utf8') ?? '';
     expect(summary).toContain('%PDF-1.4');
-    expect(summary).toContain('B5 lifecycle fixture');
+    expect(
+      execFileSync('pdftotext', ['-', '-'], {
+        input: client.get('closeout-summary.pdf')!,
+        encoding: 'utf8',
+      }),
+    ).toContain('B5 lifecycle fixture');
     expect(summary).toContain('%%EOF');
     expect(JSON.parse(client.get('manifest.json')!.toString('utf8')).files).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'closeout-summary.pdf' })]),

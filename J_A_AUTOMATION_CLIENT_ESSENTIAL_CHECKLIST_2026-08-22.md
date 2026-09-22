@@ -905,3 +905,11 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Captura final en fixture limpio: 116 imágenes y 202 comprobaciones; nueve PDF activos regenerados y verificados, con fuentes incrustadas y digest de fuente coincidente.
 - [x] Commit `955f748` desplegado a las 14:53:40 Madrid: 2.227 archivos idénticos al ZIP, nueve PDF verificados, integridad SQLite/FK correctas, ocho tablas históricas y 59 archivos privados conservados. Navegación pública y dos ciclos jobs aprobados; respaldo íntegro (cobertura histórica aún 14/30 días). Correo/TLS y webmails correctos, PID sin reinicio. Caché de construcción Docker a 0 B tras recuperar 6,858 GB; imágenes, volúmenes y datos preservados.
 - Evidencia: [intervalos e interfaz](docs/evidence/time-interval-20260922/README.md). No sustituye la aceptación completa de 32 pasos ni los pendientes externos históricos.
+
+## 2026-09-22 — Ejemplos completos de exportación y legibilidad (CORE-13)
+
+- [x] Inventario de generadores reales: cinco plantillas de factura, períodos cliente/interno, informes diarios/técnicos, liquidación propia, paquete contable, gastos, revisión económica, cobros, proveedor y cierre. Datos sintéticos aislados; sin lectura de registros de producción para crear ejemplos.
+- [x] Tablas y resúmenes PDF más legibles, Excel con cabeceras y tipos monetarios/fechas, precisión de valores grandes conservada. Resumen de cierre paginado sin recortar entradas; Unicode fuera de WinAnsi explícito y conservado en JSON/copia del PDF.
+- [x] Versiones por familia, rechazo de trabajos obsoletos antes de escribir, recuperación versionada y conservación de artefactos finalizados. Pruebas de ciclo de vida, privacidad y dinero exacto aprobadas; revisión independiente y corrección de hallazgos en curso antes de publicación.
+- [x] Galería local probada a 390/1440 px; filtros de formato/idioma/búsqueda correctos. 30 impresiones reales del navegador, con detalle cliente/interno y 3 idiomas, verificadas en fixture desechable.
+- [ ] Publicación, regeneración final de manuales y verificación del despliegue: evidencia en `docs/evidence/manual-examples-20260922`.

@@ -7,7 +7,12 @@ import {
   assertFencedJobExecution,
   provisionServiceActor,
 } from '../../packages/database/src/domains/jobs/index.ts';
-import { runArtifactJobs, type ArtifactJobV3 } from '@ja/reporting';
+import {
+  PERIOD_REPORT_TEMPLATE_VERSION,
+  accountingPackExportTemplateVersion,
+  runArtifactJobs,
+  type ArtifactJobV3,
+} from '@ja/reporting';
 import {
   B5_TEST_DEPLOYMENT_ID,
   B5_TEST_TENANT_ID,
@@ -298,6 +303,7 @@ describe('service actor artifact execution boundary', () => {
       v3.enqueueJob('period_close_report', 'service-artifact:period', {
         ...PERIOD,
         reportLocale: 'en',
+        templateVersion: PERIOD_REPORT_TEMPLATE_VERSION,
       });
       v3.enqueueJob('auto_draft', 'service-artifact:draft', {
         billingRuleId: 'billing-rule-job',
@@ -307,6 +313,13 @@ describe('service actor artifact execution boundary', () => {
       v3.enqueueJob('accounting_pack_artifact_render', 'service-artifact:pack', {
         packId: 'pack-job',
         formats: ['pdf', 'xlsx', 'invoice_csv', 'expense_csv', 'json'],
+        templateVersions: {
+          pdf: accountingPackExportTemplateVersion('pdf'),
+          xlsx: accountingPackExportTemplateVersion('xlsx'),
+          invoice_csv: accountingPackExportTemplateVersion('invoice_csv'),
+          expense_csv: accountingPackExportTemplateVersion('expense_csv'),
+          json: accountingPackExportTemplateVersion('json'),
+        },
       });
 
       sqlite

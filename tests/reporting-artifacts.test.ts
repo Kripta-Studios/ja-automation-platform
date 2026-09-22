@@ -6,9 +6,17 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  ACCOUNTING_PACK_DATA_TEMPLATE_VERSION,
+  ACCOUNTING_PACK_PDF_TEMPLATE_VERSION,
+  FIELD_REPORT_TEMPLATE_VERSION,
+  INVOICE_TEMPLATE_VERSION,
+  PERIOD_REPORT_TEMPLATE_VERSION,
   REPORT_TEMPLATE_VERSION,
   REPORT_LOCALES,
+  SPREADSHEET_TEMPLATE_VERSION,
+  WORKER_STATEMENT_TEMPLATE_VERSION,
   accountingPackArtifacts,
+  accountingPackPdf,
   invoicePdf,
   periodReportPdf,
 } from '@ja/reporting';
@@ -32,6 +40,52 @@ const textFromPdf = (bytes: Uint8Array, layout = true): string => {
 };
 
 describe('production reporting artifacts', () => {
+  it('keeps issued families stable while versioning redesigned report and spreadsheet families', () => {
+    expect(INVOICE_TEMPLATE_VERSION).toBe('2026.09.02.2');
+    expect(ACCOUNTING_PACK_PDF_TEMPLATE_VERSION).toBe('2026.09.22.1');
+    expect(ACCOUNTING_PACK_DATA_TEMPLATE_VERSION).toBe('2026.09.02.2');
+    expect(PERIOD_REPORT_TEMPLATE_VERSION).toBe('2026.09.22.1');
+    expect(WORKER_STATEMENT_TEMPLATE_VERSION).toBe('2026.09.22.1');
+    expect(FIELD_REPORT_TEMPLATE_VERSION).toBe('2026.09.22.1');
+    expect(SPREADSHEET_TEMPLATE_VERSION).toBe('2026.09.22.1');
+    expect(REPORT_TEMPLATE_VERSION).toBe(INVOICE_TEMPLATE_VERSION);
+  });
+
+  it('uses source field units for Accounting Pack worker hours', () => {
+    const minutes = textFromPdf(
+      accountingPackPdf({
+        periodStart: '2026-08-01',
+        periodEnd: '2026-08-31',
+        currency: 'USD',
+        totals: {},
+        workerCosts: [
+          { worker: 'Marina', actualApprovedMinutes: 450 },
+          { worker: 'Alex', approved_minutes: 480 },
+        ],
+      }),
+    );
+    expect(minutes).toContain('7.50 h');
+    expect(minutes).toContain('8.00 h');
+    expect(minutes).toContain('15.50 h');
+    expect(minutes).not.toContain('450.00 h');
+
+    const legacyHours = textFromPdf(
+      accountingPackPdf({
+        periodStart: '2026-08-01',
+        periodEnd: '2026-08-31',
+        currency: 'USD',
+        totals: {},
+        workerCosts: [
+          { worker: 'Legacy Fraction', hours: 7.5 },
+          { worker: 'Legacy Sixty', hours: 60 },
+        ],
+      }),
+    );
+    expect(legacyHours).toContain('7.50 h');
+    expect(legacyHours).toContain('60.00 h');
+    expect(legacyHours).toContain('67.50 h');
+  });
+
   it('renders long immutable invoice snapshots as multipage PDFs with traceable template output', () => {
     const pdf = invoicePdf({
       number: 'JA-INV-000001',
@@ -174,7 +228,8 @@ describe('production reporting artifacts', () => {
     // pdftotext preserves the table's status/date column between these two
     // words; assert the customer-visible source content without coupling the
     // privacy contract to a particular text-extraction column order.
-    expect(text).toMatch(/operational activity[\s\S]*retained/u);
+    expect(text).toContain('Customer-visible operational');
+    expect(text).toContain('activity retained');
     expect(text).toContain('PLC validation');
     expect(text).toContain('record retained');
     expect(text).toContain('Operational change');

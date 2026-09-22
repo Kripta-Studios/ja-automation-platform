@@ -1,3 +1,4 @@
+import { closeoutSummaryPdf, CLOSEOUT_SUMMARY_RENDERER_VERSION } from './closeout-summary-pdf.ts';
 import { createHash } from 'node:crypto';
 import {
   closeSync,
@@ -202,38 +203,6 @@ function zip(entries: readonly { name: string; bytes: Buffer }[]): Buffer {
     u32(offset),
     u16(0),
   ]);
-}
-function simplePdf(title: string, lines: readonly string[]): Buffer {
-  const clean = (value: string) =>
-    value
-      .replace(/[()\\]/gu, '')
-      .replace(/[\r\n]+/gu, ' ')
-      .slice(0, 105);
-  const body = [
-    `BT /F1 14 Tf 72 740 Td (${clean(title)}) Tj`,
-    '/F1 9 Tf 0 -28 Td',
-    ...lines.slice(0, 34).map((line) => `(${clean(line)}) Tj 0 -15 Td`),
-    'ET',
-  ].join('\n');
-  const objects = [
-    '<< /Type /Catalog /Pages 2 0 R >>',
-    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
-    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-    `<< /Length ${Buffer.byteLength(body)} >>\nstream\n${body}\nendstream`,
-  ];
-  let output = '%PDF-1.4\n';
-  const positions = [0];
-  objects.forEach((object, index) => {
-    positions.push(Buffer.byteLength(output));
-    output += `${index + 1} 0 obj\n${object}\nendobj\n`;
-  });
-  const xref = Buffer.byteLength(output);
-  output += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${positions
-    .slice(1)
-    .map((p) => `${String(p).padStart(10, '0')} 00000 n \n`)
-    .join('')}trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-  return Buffer.from(output, 'utf8');
 }
 
 export class ProjectCloseoutService {
@@ -1003,7 +972,7 @@ export class ProjectCloseoutService {
       { name: 'document-index.csv', bytes: Buffer.from(indexCsv) },
       {
         name: 'closeout-summary.pdf',
-        bytes: simplePdf(
+        bytes: closeoutSummaryPdf(
           `J&A project closeout ${audience} revision ${row.revision_number}`,
           reportLines,
         ),
@@ -1011,6 +980,7 @@ export class ProjectCloseoutService {
     );
     const manifest = {
       schemaVersion: 1,
+      summaryRendererVersion: CLOSEOUT_SUMMARY_RENDERER_VERSION,
       audience,
       revisionId: row.id,
       revisionNumber: row.revision_number,

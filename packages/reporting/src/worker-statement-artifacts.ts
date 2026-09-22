@@ -11,13 +11,12 @@ import {
   writeSync,
 } from 'node:fs';
 import { basename, dirname, relative, resolve } from 'node:path';
-import {
-  REPORT_TEMPLATE_VERSION,
-  workerStatementCsv,
-  workerStatementPdf,
-  type WorkerStatementSnapshot,
-} from './exports.ts';
+import { workerStatementCsv, workerStatementPdf, type WorkerStatementSnapshot } from './exports.ts';
 import { ensureNoSymlinkComponents } from './private-storage.ts';
+import {
+  WORKER_STATEMENT_TEMPLATE_VERSION,
+  workerStatementRendererVersion,
+} from './report-versions.ts';
 import { recordedIntervalMinutes } from './time-interval.ts';
 
 /** The durable job kind used for one Worker-statement format. */
@@ -27,9 +26,9 @@ export const WORKER_STATEMENT_JOB_KIND = 'worker_statement_artifact_render' as c
 export const WORKER_STATEMENT_JOB_CAPABILITY = 'artifact.worker_statement.render' as const;
 
 /** Renderer identity persisted with each immutable Worker-statement artifact. */
-export const WORKER_STATEMENT_RENDERER_VERSION = `worker-statement-${REPORT_TEMPLATE_VERSION}`;
+export const WORKER_STATEMENT_RENDERER_VERSION = workerStatementRendererVersion();
 
-export const WORKER_STATEMENT_GENERATION_VERSION = `worker-statement-${REPORT_TEMPLATE_VERSION}`;
+export const WORKER_STATEMENT_GENERATION_VERSION = `worker-statement-${WORKER_STATEMENT_TEMPLATE_VERSION}`;
 
 export const WORKER_STATEMENT_FORMATS = ['pdf', 'csv'] as const;
 export type WorkerStatementFormat = (typeof WORKER_STATEMENT_FORMATS)[number];
@@ -420,6 +419,8 @@ function validateArtifact(artifact: WorkerStatementJobArtifact): void {
 
 function renderArtifact(artifact: WorkerStatementJobArtifact): Uint8Array {
   validateArtifact(artifact);
+  if (artifact.templateVersion !== WORKER_STATEMENT_TEMPLATE_VERSION)
+    throw new Error('WORKER_STATEMENT_RENDERER_VERSION_UNAVAILABLE');
   const snapshot = parseSnapshot(artifact.snapshotJson);
   if (
     artifact.snapshotHash !== undefined &&
@@ -506,12 +507,15 @@ export function runWorkerStatementArtifactJob(
   } catch (error) {
     // A stale fence belongs to another worker and must not be converted into a second failure.
     if (errorMessage(error) === 'LEASE_LOST') throw error;
+    const staleRenderer = errorMessage(error) === 'WORKER_STATEMENT_RENDERER_VERSION_UNAVAILABLE';
     try {
       input.repository.failWorkerStatementArtifact(payload.artifactId, {
         attemptNumber: claim.attemptNumber,
-        errorCode: 'WORKER_STATEMENT_RENDER_FAILED',
+        errorCode: staleRenderer
+          ? 'WORKER_STATEMENT_RENDERER_VERSION_UNAVAILABLE'
+          : 'WORKER_STATEMENT_RENDER_FAILED',
         failureClass: failureClass(error),
-        retryable: true,
+        retryable: !staleRenderer,
         execution: input.execution,
       });
     } catch (failureError) {

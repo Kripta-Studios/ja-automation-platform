@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { createDatabase, V3Repository } from '@ja/database';
+import { PERIOD_REPORT_TEMPLATE_VERSION } from '@ja/domain';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { assertCustomerPeriodSnapshotSafe } from '../../packages/database/src/domains/reports/customer-conformity-repository.ts';
 import {
@@ -211,6 +212,12 @@ describe('atomic versioned period-report rendering requests', () => {
       expect(
         other.prepare("SELECT COUNT(*) count FROM job WHERE kind='period_close_report'").get(),
       ).toEqual({ count: 1 });
+      const persisted = other
+        .prepare('SELECT payload_json FROM job WHERE id=?')
+        .get(first.jobId) as { payload_json: string };
+      expect(JSON.parse(persisted.payload_json)).toMatchObject({
+        templateVersion: PERIOD_REPORT_TEMPLATE_VERSION,
+      });
     } finally {
       other.close();
     }
@@ -301,7 +308,10 @@ describe('atomic versioned period-report rendering requests', () => {
       const payload = value.sqlite
         .prepare('SELECT payload_json FROM job WHERE id=?')
         .get(retry.jobId) as { payload_json: string };
-      expect(JSON.parse(payload.payload_json)).toMatchObject({ retryOfJobId: oldJobId });
+      expect(JSON.parse(payload.payload_json)).toMatchObject({
+        retryOfJobId: oldJobId,
+        templateVersion: PERIOD_REPORT_TEMPLATE_VERSION,
+      });
       expect(
         value.sqlite
           .prepare(

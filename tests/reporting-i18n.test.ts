@@ -685,4 +685,60 @@ describe('localized report PDF renderers', () => {
     expect(containsPdfCopy(text, 'C-0001-P-001')).toBe(true);
     expect(containsPdfCopy(text, 'legalEntityId')).toBe(false);
   });
+
+  it('derives Accounting Pack worker hours from source field units', () => {
+    const minuteText = expectPdf(
+      accountingPackPdf({
+        ...packSnapshot('en'),
+        workerCosts: [
+          {
+            worker: 'Marina Minutes',
+            project: 'P-001',
+            actualApprovedMinutes: 450,
+            approvedCompensationMinor: '10000',
+          },
+          {
+            worker: 'Alex Minutes',
+            project: 'P-002',
+            approved_minutes: 480,
+            approvedCompensationMinor: '10000',
+          },
+        ],
+      }),
+    );
+    expect(containsPdfCopy(minuteText, '7.50 h')).toBe(true);
+    expect(containsPdfCopy(minuteText, '8.00 h')).toBe(true);
+    expect(containsPdfCopy(minuteText, '15.50 h')).toBe(true);
+    expect(minuteText).not.toContain('450.00 h');
+
+    const legacyHoursText = expectPdf(
+      accountingPackPdf({
+        ...packSnapshot('en'),
+        workerCosts: [
+          { worker: 'Legacy Fraction', project: 'P-003', hours: 7.5 },
+          { worker: 'Legacy Sixty', project: 'P-004', hours: 60 },
+        ],
+      }),
+    );
+    expect(containsPdfCopy(legacyHoursText, '7.50 h')).toBe(true);
+    expect(containsPdfCopy(legacyHoursText, '60.00 h')).toBe(true);
+    expect(containsPdfCopy(legacyHoursText, '67.50 h')).toBe(true);
+  });
+
+  it('localizes Accounting Pack credits without exposing a raw metric key', () => {
+    for (const [locale, label] of [
+      ['en', 'Credits'],
+      ['pt-BR', 'Créditos'],
+      ['es', 'Créditos'],
+    ] as const) {
+      const text = expectPdf(
+        accountingPackPdf({
+          ...packSnapshot(locale),
+          totals: { currency: 'USD', creditsMinor: '2500' },
+        }),
+      );
+      expect(containsPdfCopy(text, label)).toBe(true);
+      expect(text).not.toMatch(/creditsMinor|credits_minor/u);
+    }
+  });
 });

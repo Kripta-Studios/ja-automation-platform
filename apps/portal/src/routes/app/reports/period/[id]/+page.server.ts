@@ -128,9 +128,11 @@ export const load: PageServerLoad = ({ locals, params }) => {
       .find((row) => String(row.id) === params.id);
     let pdfReady = false;
     const conformity =
-      locals.user.role === 'worker' ? null : currentConformityForReport(context, params.id);
+      locals.user.role === 'worker' || metadata?.audience !== 'customer'
+        ? null
+        : currentConformityForReport(context, params.id);
     const followup =
-      locals.user.role === 'worker'
+      locals.user.role === 'worker' || metadata?.audience !== 'customer'
         ? null
         : new PeriodFollowupRepository(context.sqlite).getReportFollowup(
             context.principal,

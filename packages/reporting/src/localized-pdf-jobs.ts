@@ -17,10 +17,10 @@ import {
   dailyReportPdf,
   invoicePdf,
   periodReportPdf,
-  REPORT_TEMPLATE_VERSION,
   technicalReportPdf,
   type ReportLocale,
 } from './exports.ts';
+import { localizedPdfRendererVersion, localizedPdfTemplateVersion } from './report-versions.ts';
 import { ensureNoSymlinkComponents } from './private-storage.ts';
 
 /** The durable job kind used by the B5 runner for one language variant. */
@@ -29,8 +29,8 @@ export const LOCALIZED_PDF_JOB_KIND = 'localized_pdf_variant_render' as const;
 /** The capability bound to LOCALIZED_PDF_JOB_KIND in the B5 service actor registry. */
 export const LOCALIZED_PDF_JOB_CAPABILITY = 'artifact.localized_pdf.render' as const;
 
-/** Renderer identity is persisted with the immutable variant manifest. */
-export const LOCALIZED_PDF_RENDERER_VERSION = `localized-pdf-${REPORT_TEMPLATE_VERSION}`;
+/** @deprecated Use localizedPdfRendererVersion(ownerType) for a family-scoped identity. */
+export const LOCALIZED_PDF_RENDERER_VERSION = localizedPdfRendererVersion('invoice');
 
 export type LocalizedPdfJobExecution = Readonly<{
   jobId: string;
@@ -127,6 +127,7 @@ function failureClass(error: unknown): string {
     case 'LOCALIZED_PDF_MAGIC_INVALID':
     case 'LOCALIZED_PDF_SNAPSHOT_INVALID':
     case 'LOCALIZED_PDF_COMPLETION_FAILED':
+    case 'LOCALIZED_PDF_RENDERER_VERSION_UNAVAILABLE':
       return message;
     default:
       return 'LOCALIZED_PDF_RENDER_FAILED';
@@ -364,6 +365,8 @@ function snapshotArray(row: Record<string, unknown>, ...keys: string[]): Record<
 }
 
 function renderVariant(variant: LocalizedPdfJobVariant): Uint8Array {
+  if (variant.templateVersion !== localizedPdfTemplateVersion(variant.ownerType))
+    throw new Error('LOCALIZED_PDF_RENDERER_VERSION_UNAVAILABLE');
   const row = nestedSnapshot(parseSnapshot(variant.snapshotJson));
   const locale = variant.locale;
   switch (variant.ownerType) {
@@ -525,7 +528,10 @@ export function runLocalizedPdfVariantJob(
         contentSha256: metadata.contentSha256,
         byteLength: metadata.byteLength,
         storageKey: claim.variant.storageKey,
-        rendererVersion: LOCALIZED_PDF_RENDERER_VERSION,
+        rendererVersion: localizedPdfRendererVersion(
+          claim.variant.ownerType,
+          claim.variant.templateVersion,
+        ),
         mediaType: 'application/pdf',
         execution: input.execution,
       });
@@ -538,12 +544,15 @@ export function runLocalizedPdfVariantJob(
     // A failed render is scoped to this locale/attempt. A stale fence is deliberately not
     // converted into a second failure transition because another worker owns the lease.
     if (errorMessage(error) === 'LEASE_LOST') throw error;
+    const staleRenderer = errorMessage(error) === 'LOCALIZED_PDF_RENDERER_VERSION_UNAVAILABLE';
     try {
       input.repository.failVariant(payload.variantId, {
         attemptNumber: claim.attemptNumber,
-        errorCode: 'LOCALIZED_PDF_RENDER_FAILED',
+        errorCode: staleRenderer
+          ? 'LOCALIZED_PDF_RENDERER_VERSION_UNAVAILABLE'
+          : 'LOCALIZED_PDF_RENDER_FAILED',
         failureClass: failureClass(error),
-        retryable: true,
+        retryable: !staleRenderer,
         execution: input.execution,
       });
     } catch (failureError) {

@@ -3,6 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, afterEach } from 'vitest';
 import { runArtifactJobs, writeArtifact } from '../packages/reporting/src/artifact-jobs.ts';
+import {
+  PERIOD_REPORT_TEMPLATE_VERSION,
+  accountingPackExportTemplateVersion,
+} from '../packages/domain/src/report-versions.ts';
 
 const roots: string[] = [];
 const originalScannerResult = process.env.JA_MALWARE_SCANNER_RESULT;
@@ -63,6 +67,7 @@ describe('shared artifact job orchestration', () => {
               periodStart: '2026-08-01',
               periodEnd: '2026-08-14',
               reportLocale: 'pt',
+              templateVersion: PERIOD_REPORT_TEMPLATE_VERSION,
             },
             execution,
           );
@@ -153,5 +158,123 @@ describe('shared artifact job orchestration', () => {
       /real directory|symlink/u,
     );
     expect(existsSync(join(nestedOutside, 'report.pdf'))).toBe(false);
+  });
+
+  it('rejects pre-deployment period and Accounting Pack jobs before reading snapshots', () => {
+    let periodReads = 0;
+    let accountingReads = 0;
+    const execution = {
+      jobId: 'job-stale-version',
+      runId: 'run-stale-version',
+      tenantId: 'tenant',
+      deploymentId: 'deployment',
+      requiredCapability: 'artifact.report.render',
+      fenceVersion: 1,
+    };
+    const result = runArtifactJobs({
+      repository: { createInvoiceDraftFromJob: () => undefined },
+      v3: {
+        runDueJobs: (_limit, handlers) => {
+          expect(() =>
+            handlers.period_close_report(
+              {
+                projectId: 'project-1',
+                periodStart: '2026-08-01',
+                periodEnd: '2026-08-31',
+              },
+              execution,
+            ),
+          ).toThrow('PERIOD_REPORT_RENDERER_VERSION_UNAVAILABLE');
+          expect(() =>
+            handlers.accounting_pack_artifact_render({ packId: 'pack-1' }, execution),
+          ).toThrow('ACCOUNTING_PACK_RENDERER_VERSION_UNAVAILABLE');
+          return { processed: 0, failed: 2, overdueMarked: 0 };
+        },
+        invoiceSnapshotFromJob: () => ({}),
+        recordInvoicePdfFromJob: () => undefined,
+        refreshPeriodReportsFromJob: () => {
+          periodReads += 1;
+          return [];
+        },
+        recordPeriodReportPdfFromJob: () => undefined,
+        accountingPackSnapshotFromJob: () => {
+          accountingReads += 1;
+          return {};
+        },
+        recordAccountingPackExportFromJob: () => ({ id: 'export-1', created: true }),
+        recordDocumentScanFromJob: () => undefined,
+      },
+    });
+
+    expect(result).toMatchObject({ processed: 0, failed: 2 });
+    expect(periodReads).toBe(0);
+    expect(accountingReads).toBe(0);
+  });
+
+  it('uses the current family version in period and Accounting Pack storage keys', () => {
+    const root = mkdtempSync(join(tmpdir(), 'ja-artifact-family-version-'));
+    roots.push(root);
+    const keys: string[] = [];
+    const execution = {
+      jobId: 'job-family-version',
+      runId: 'run-family-version',
+      tenantId: 'tenant',
+      deploymentId: 'deployment',
+      requiredCapability: 'artifact.report.render',
+      fenceVersion: 1,
+    };
+    runArtifactJobs({
+      documentRoot: root,
+      repository: { createInvoiceDraftFromJob: () => undefined },
+      v3: {
+        runDueJobs: (_limit, handlers) => {
+          handlers.period_close_report(
+            {
+              projectId: 'project-1',
+              periodStart: '2026-08-01',
+              periodEnd: '2026-08-31',
+              templateVersion: PERIOD_REPORT_TEMPLATE_VERSION,
+            },
+            execution,
+          );
+          handlers.accounting_pack_artifact_render(
+            {
+              packId: 'pack-1',
+              formats: ['xlsx'],
+              templateVersions: {
+                xlsx: accountingPackExportTemplateVersion('xlsx'),
+              },
+            },
+            execution,
+          );
+          return { processed: 2, failed: 0, overdueMarked: 0 };
+        },
+        invoiceSnapshotFromJob: () => ({}),
+        recordInvoicePdfFromJob: () => undefined,
+        refreshPeriodReportsFromJob: () => [
+          { id: 'report-1', audience: 'internal', snapshotVersion: 2, snapshot: {} },
+        ],
+        recordPeriodReportPdfFromJob: (_id, key) => keys.push(key),
+        accountingPackSnapshotFromJob: () => ({
+          periodStart: '2026-08-01',
+          periodEnd: '2026-08-31',
+          invoiceRegister: [],
+          collections: [],
+          workerCosts: [],
+          expenseRegister: [],
+          totals: {},
+        }),
+        recordAccountingPackExportFromJob: (_packId, _type, key) => {
+          keys.push(key);
+          return { id: 'export-1', created: true };
+        },
+        recordDocumentScanFromJob: () => undefined,
+      },
+    });
+
+    expect(keys).toEqual([
+      `reports/report-1/v2-${PERIOD_REPORT_TEMPLATE_VERSION}.pdf`,
+      `accounting-packs/pack-1/xlsx-${accountingPackExportTemplateVersion('xlsx')}.xlsx`,
+    ]);
   });
 });

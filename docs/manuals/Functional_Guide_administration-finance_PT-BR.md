@@ -117,3 +117,7 @@ Acesso — Consulta: o escopo vigente e o limite de privacidade do perfil. Cria�
 - **Auditor:** consulta evidências autorizadas e Auditoria global em modo somente leitura; não cria projeto, atribuição, disponibilidade, aprovação, fatura, pagamento ou encerramento e não administra usuários nem configurações organizacionais de segurança; não aprova nem altera registros de negócio auditados. Idioma e controles de autenticação da própria conta continuam sujeitos ao **Perfil**. Ações e downloads de Pacotes contábeis continuam exclusivos de Proprietário/Finanças.
 
 Conhecer um procedimento, ver um rótulo de navegação ou abrir um link de origem não concede a permissão correspondente.
+
+Abra **Notificações** pelo navegador de seções ou pelo menu da conta. **Todas** e **Não lidas** filtram os últimos 50 avisos carregados na caixa. Use **Marcar como lido** para o aviso escolhido; abrir a caixa não marca todos como lidos. **Detalhes da notificação** e os links para o registro mantêm as verificações de acesso. Marcar um aviso como lido não aprova seu registro de negócio.
+
+<!-- screenshot:owner:activity-inbox -->

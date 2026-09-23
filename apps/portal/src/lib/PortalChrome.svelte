@@ -4,13 +4,18 @@
   import { page } from '$app/stores';
   import { portalLocales, type PortalLocale } from './portal-i18n';
   import { translateControlledValue } from './i18n/controlled-values';
-  import { accountNavigationFor, portalLandingForRole, type NavItem } from './portal-navigation';
+  import {
+    accountNavigationFor,
+    activeNavItem,
+    portalGlobalNavigationForRole,
+    type NavItem,
+  } from './portal-navigation';
   import SectionNavigator from './portal/ui/SectionNavigator.svelte';
   import PortalNavIcon from './PortalNavIcon.svelte';
 
   type ChromeData = {
     section: string;
-    user: { name: string; role?: string };
+    user: { name: string; role?: string; workforceProfile?: string };
   };
 
   let {
@@ -104,13 +109,22 @@
   } as const;
 
   const iconPath = (item: NavItem): string => navIconPaths[item.label] ?? 'M5 12h14M12 5l7 7-7 7';
+  const globalNavigation = $derived(
+    portalGlobalNavigationForRole(data.user.role, data.user.workforceProfile),
+  );
+  const notificationsItem = $derived(
+    globalNavigation.find((item) => item.section === 'notifications'),
+  );
   const accountNavigation = $derived(
-    accountNavigationFor({
-      primary: navigation,
-      secondary: secondaryNavigation,
-      admin: visibleAdmin,
-      security: securityAdmin,
-    }),
+    accountNavigationFor(
+      {
+        primary: navigation,
+        secondary: secondaryNavigation,
+        admin: visibleAdmin,
+        security: securityAdmin,
+      },
+      globalNavigation,
+    ),
   );
   const sectionDestinations = $derived.by(() => {
     const visible = [
@@ -118,6 +132,7 @@
       ...secondaryNavigation,
       ...(showAdmin && (isManager || isFinance) ? visibleAdmin : []),
       ...(showAdmin && canAudit ? securityAdmin : []),
+      ...globalNavigation,
       { section: 'help', label: 'Help', icon: '?' },
     ];
     const seen = new SvelteSet<string>();
@@ -247,38 +262,16 @@
     drawerWasOpen = false;
   }
 
-  function itemIsCurrent(item: NavItem): boolean {
-    const allItems = [...navigation, ...secondaryNavigation, ...visibleAdmin, ...securityAdmin];
-    const itemTarget = itemHref(item);
-
-    const current = $page.url;
-    const target = new URL(itemTarget, current.origin);
-    const routeSignature = (url: URL): string => {
-      const params = new URLSearchParams(url.search);
-      params.delete('lang');
-      params.delete('q');
-      const search = params.toString();
-      return `${url.pathname}${search ? `?${search}` : ''}`;
-    };
-    const targetSignature = routeSignature(target);
-    const currentSignature = routeSignature(current);
-    const rootSignature = routeSignature(new URL(`${base}/app/`, current.origin));
-    const landingSignature = routeSignature(
-      new URL(portalLandingForRole(base, data.user.role), current.origin),
-    );
-    if (currentSignature === rootSignature && targetSignature === landingSignature) return true;
-    const exact = allItems.find(
-      (candidate) =>
-        routeSignature(new URL(itemHref(candidate), current.origin)) === currentSignature,
-    );
-    if (exact) return exact === item;
-    if (targetSignature !== currentSignature && item.section !== data.section) return false;
-
-    return (
-      item.section === data.section &&
-      allItems.find((candidate) => candidate.section === data.section) === item
-    );
-  }
+  const currentNavItem = $derived(
+    activeNavItem(sectionDestinations, {
+      base,
+      section: data.section,
+      url: $page.url,
+      role: data.user.role,
+      itemHref,
+    }),
+  );
+  const itemIsCurrent = (item: NavItem): boolean => currentNavItem === item;
 
   onMount(() => {
     const media = window.matchMedia('(max-width: 63.99rem)');
@@ -474,6 +467,28 @@
     }}
     {translate}
   />
+  {#if notificationsItem}
+    <a
+      class="portal-notifications-link"
+      class:active={itemIsCurrent(notificationsItem)}
+      href={itemHref(notificationsItem)}
+      title={translate('Notifications')}
+      aria-label={translate('Notifications')}
+      aria-current={itemIsCurrent(notificationsItem) ? 'page' : undefined}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        width="20"
+        height="20"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"><path d={navIconPaths.Notifications} /></svg
+      >
+    </a>
+  {/if}
   <a
     href="https://webmail.j-aautomation.com/"
     target="_blank"
@@ -549,12 +564,36 @@
               ? 'Compensation, expenses and pay history'
               : item.section === 'documents'
                 ? 'Private files shared with your workspace'
-                : 'Personal details, MFA and availability'}
+                : item.section === 'profile'
+                  ? 'Personal details, MFA and availability'
+                  : ''}
           {@const accountIcon =
             item.section === 'pay' ? '€' : item.section === 'documents' ? '□' : '◎'}
-          <a role="menuitem" href={itemHref(item)} onclick={() => (accountOpen = false)}>
-            <span class="account-menu-icon" aria-hidden="true">{accountIcon}</span>
-            <span><b>{translate(item.label)}</b><small>{translate(accountDetail)}</small></span>
+          <a
+            role="menuitem"
+            href={itemHref(item)}
+            aria-current={itemIsCurrent(item) ? 'page' : undefined}
+            onclick={() => (accountOpen = false)}
+          >
+            <span class="account-menu-icon" aria-hidden="true">
+              {#if item.section === 'notifications'}
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"><path d={navIconPaths.Notifications} /></svg
+                >
+              {:else}{accountIcon}{/if}
+            </span>
+            <span
+              ><b>{translate(item.label)}</b>{#if accountDetail}<small
+                  >{translate(accountDetail)}</small
+                >{/if}</span
+            >
           </a>
         {/each}
         <div class="account-menu-divider" role="separator"></div>
@@ -588,3 +627,36 @@
     {/if}
   </div>
 </header>
+
+<style>
+  .portal-notifications-link {
+    box-sizing: border-box;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--ja-border-subdued, #d6d5d2);
+    border-radius: 0.65rem;
+    color: var(--ja-ink, #24251f);
+    background: white;
+    text-decoration: none;
+  }
+
+  .portal-notifications-link:hover,
+  .portal-notifications-link.active {
+    background: var(--ja-canvas, #f6f6f1);
+  }
+
+  .portal-notifications-link:focus-visible {
+    outline: 2px solid var(--ja-accent, #2349b5);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 520px) {
+    /* The fully labelled inbox remains in Account and Go to section on phones. */
+    .portal-notifications-link {
+      display: none;
+    }
+  }
+</style>

@@ -2,7 +2,6 @@
   import { SectionCard } from '../ui';
   import { page } from '$app/stores';
   import { enhance } from '$app/forms';
-  import type { SubmitFunction } from '@sveltejs/kit';
   import { base } from '$app/paths';
   import { onMount } from 'svelte';
   import { ResponsiveSheet } from '../ui';
@@ -13,6 +12,8 @@
   import FilterSummary from '../ui/FilterSummary.svelte';
   import DatePresets from '../ui/DatePresets.svelte';
   import { localToday } from '../ui/time-entry-clock';
+  import { normalizePortalLocale } from '../../portal-i18n';
+  import { createOperationalSubmit, operationalFieldValidation } from '../ui/operational-submit';
   import { canDeleteTimeDraft } from './time-entry-actions';
   import {
     operationalMatches,
@@ -64,31 +65,18 @@
   let surface = $state<Surface | null>(null);
   let surfaceError = $state('');
   let saving = $state(false);
-  const submitTime: SubmitFunction = ({ cancel }) => {
-    if (!navigator.onLine || saving) {
-      cancel();
-      return;
-    }
-    saving = true;
-    surfaceError = '';
-    return async ({ result, update }) => {
-      try {
-        if (result.type === 'error') {
-          surfaceError = translate('The action could not be completed. Try again shortly.');
-          return;
-        }
-        await update({ reset: false });
-        if (result.type === 'success') closeSurface();
-        else if (result.type === 'failure') {
-          surfaceError = translate(
-            String(result.data?.message ?? 'Check the submitted values and try again.'),
-          );
-        }
-      } finally {
-        saving = false;
-      }
-    };
-  };
+  const submitTime = createOperationalSubmit({
+    locale: () => normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
+    translate: (value) => translate(value),
+    setSaving: (value) => {
+      saving = value;
+    },
+    setError: (value) => {
+      surfaceError = value;
+    },
+    onSuccess: closeSurface,
+    offlineHandled: () => data.offlineEnabled !== false,
+  });
   let editTimeId = $state<string | null>(null);
   let createCategory = $state('regular');
   let createDate = $state('');
@@ -606,6 +594,7 @@
 </div>
 
 <ResponsiveSheet
+  protectChanges
   open={surface !== null}
   title={surface === 'edit' ? translate('Edit time entry') : translate('Log time')}
   description={translate('Operational entry only. Commercial rules are applied separately.')}
@@ -613,13 +602,19 @@
   class="time-entry-sheet"
   onclose={closeSurface}
 >
-  {#if surfaceError}<p role="alert" class="time-form-error">{surfaceError}</p>{/if}
+  {#if surfaceError}
+    <p role="alert" class="time-form-error" tabindex="-1" data-operational-form-error>
+      {surfaceError}
+    </p>
+  {/if}
   {#if surface === 'create'}
     <form
       method="POST"
       action="?/createTime"
       class="expense-entry-form time-entry-form"
+      aria-busy={saving}
       data-time-entry-surface
+      use:operationalFieldValidation
       use:enhance={submitTime}
       onsubmit={(event) => saveOfflineDraft(event, 'time')}
     >
@@ -680,10 +675,12 @@
         <textarea name="summary" minlength="3" maxlength="5000" required></textarea>
       </label>
       <div class="expense-entry-actions time-entry-actions">
-        <button type="button" class="secondary-button" onclick={closeSurface}
+        <button type="button" data-sheet-close class="secondary-button" onclick={closeSurface}
           >{translate('Cancel')}</button
         >
-        <button type="submit" disabled={saving}>{translate('Save draft')}</button>
+        <button type="submit" disabled={saving}
+          >{translate(saving ? 'Saving…' : 'Save draft')}</button
+        >
       </div>
     </form>
   {:else if surface === 'edit' && editRow}
@@ -691,9 +688,11 @@
       method="POST"
       action="?/updateTime"
       class="expense-entry-form time-entry-form"
+      aria-busy={saving}
       data-entity-id={String(editRow.id)}
       data-version={String(editRow.version)}
       data-time-entry-surface
+      use:operationalFieldValidation
       use:enhance={submitTime}
       onsubmit={(event) => saveOfflineDraft(event, 'time')}
     >
@@ -745,10 +744,12 @@
         >
       </label>
       <div class="expense-entry-actions time-entry-actions">
-        <button type="button" class="secondary-button" onclick={closeSurface}
+        <button type="button" data-sheet-close class="secondary-button" onclick={closeSurface}
           >{translate('Cancel')}</button
         >
-        <button type="submit" disabled={saving}>{translate('Save changes')}</button>
+        <button type="submit" disabled={saving}
+          >{translate(saving ? 'Saving…' : 'Save changes')}</button
+        >
       </div>
     </form>
   {/if}
@@ -756,7 +757,7 @@
 
 <style>
   .time-form-error {
-    color: var(--ja-danger, #9f2424);
+    color: var(--ja-red-dark, #8f1d14);
     padding: 0.75rem 0;
   }
   .time-primary-action-top {

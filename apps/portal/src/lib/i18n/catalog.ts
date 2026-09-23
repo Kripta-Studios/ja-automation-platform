@@ -28,6 +28,44 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'We could not confirm the save. Check the register before submitting again.':
+    'We could not confirm the save. Check the register before submitting again.',
+  'Your changes were saved, but the register could not be refreshed. Close this form and refresh the page.':
+    'Your changes were saved, but the register could not be refreshed. Close this form and refresh the page.',
+
+  'Discard your unsaved changes? Your entered information will be lost.':
+    'Discard your unsaved changes? Your entered information will be lost.',
+  'Review your latest 50 notifications. Filters apply to this list.':
+    'Review your latest 50 notifications. Filters apply to this list.',
+  'Notification filters': 'Notification filters',
+  Unread: 'Unread',
+  'Notification details': 'Notification details',
+  'Could not update the notification. Please try again.':
+    'Could not update the notification. Please try again.',
+  'Could not refresh the inbox. Reload to check the notification status.':
+    'Could not refresh the inbox. Reload to check the notification status.',
+  'No unread notifications in this list.': 'No unread notifications in this list.',
+  'View all notifications': 'View all notifications',
+  'Review this field.': 'Review this field.',
+  'Reconnect to save changes. Your entries are still here.':
+    'Reconnect to save changes. Your entries are still here.',
+  'Your workday': 'Your workday',
+  '{count} assignments today': '{count} assignments today',
+  'Planning is a reference. Record the time you actually worked.':
+    'Planning is a reference. Record the time you actually worked.',
+  'All times in UTC': 'All times in UTC',
+  'You can still record actual work for your assigned projects.':
+    'You can still record actual work for your assigned projects.',
+  'Your assigned projects': 'Your assigned projects',
+  'Upcoming assignments': 'Upcoming assignments',
+  'Showing {shown} of {total}': 'Showing {shown} of {total}',
+  'Published assignments after today, in date order.':
+    'Published assignments after today, in date order.',
+  'No upcoming assignments published.': 'No upcoming assignments published.',
+  'Show more assignments': 'Show more assignments',
+  'Some assignments have incomplete dates. Ask your coordinator to review them.':
+    'Some assignments have incomplete dates. Ask your coordinator to review them.',
+
   'Technical changes': 'Technical changes',
   Component: 'Component',
   'Original behavior': 'Original behavior',
@@ -362,6 +400,44 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'We could not confirm the save. Check the register before submitting again.':
+    'No pudimos confirmar el guardado. Revisa el listado antes de volver a enviar.',
+  'Your changes were saved, but the register could not be refreshed. Close this form and refresh the page.':
+    'Los cambios se han guardado, pero no se pudo actualizar el listado. Cierra este formulario y recarga la página.',
+
+  'Discard your unsaved changes? Your entered information will be lost.':
+    '¿Descartar los cambios sin guardar? Se perderán los datos que has introducido.',
+  'Review your latest 50 notifications. Filters apply to this list.':
+    'Consulta tus últimas 50 notificaciones. Los filtros se aplican a esta lista.',
+  'Notification filters': 'Filtros de notificaciones',
+  Unread: 'Sin leer',
+  'Notification details': 'Detalle de la notificación',
+  'Could not update the notification. Please try again.':
+    'No se pudo actualizar la notificación. Inténtalo de nuevo.',
+  'Could not refresh the inbox. Reload to check the notification status.':
+    'No se pudo actualizar la bandeja. Recarga para comprobar el estado de la notificación.',
+  'No unread notifications in this list.': 'No hay notificaciones sin leer en esta lista.',
+  'View all notifications': 'Ver todas las notificaciones',
+  'Review this field.': 'Revisa este campo.',
+  'Reconnect to save changes. Your entries are still here.':
+    'Vuelve a conectarte para guardar los cambios. Los datos siguen aquí.',
+  'Your workday': 'Tu jornada',
+  '{count} assignments today': '{count} asignaciones hoy',
+  'Planning is a reference. Record the time you actually worked.':
+    'La planificación es una referencia. Registra el tiempo que realmente has trabajado.',
+  'All times in UTC': 'Todos los horarios en UTC',
+  'You can still record actual work for your assigned projects.':
+    'Puedes registrar el trabajo realizado en tus proyectos asignados.',
+  'Your assigned projects': 'Tus proyectos asignados',
+  'Upcoming assignments': 'Próximas asignaciones',
+  'Showing {shown} of {total}': 'Mostrando {shown} de {total}',
+  'Published assignments after today, in date order.':
+    'Asignaciones publicadas posteriores a hoy, por orden de fecha.',
+  'No upcoming assignments published.': 'No hay próximas asignaciones publicadas.',
+  'Show more assignments': 'Mostrar más asignaciones',
+  'Some assignments have incomplete dates. Ask your coordinator to review them.':
+    'Algunas asignaciones tienen fechas incompletas. Pide a tu coordinador que las revise.',
+
   'Technical changes': 'Cambios técnicos',
   Component: 'Componente',
   'Original behavior': 'Comportamiento original',
@@ -690,6 +766,44 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'We could not confirm the save. Check the register before submitting again.':
+    'Não foi possível confirmar o salvamento. Verifique a lista antes de enviar novamente.',
+  'Your changes were saved, but the register could not be refreshed. Close this form and refresh the page.':
+    'As alterações foram salvas, mas não foi possível atualizar a lista. Feche este formulário e recarregue a página.',
+
+  'Discard your unsaved changes? Your entered information will be lost.':
+    'Descartar as alterações não salvas? Os dados preenchidos serão perdidos.',
+  'Review your latest 50 notifications. Filters apply to this list.':
+    'Consulte suas últimas 50 notificações. Os filtros se aplicam a esta lista.',
+  'Notification filters': 'Filtros de notificações',
+  Unread: 'Não lidas',
+  'Notification details': 'Detalhes da notificação',
+  'Could not update the notification. Please try again.':
+    'Não foi possível atualizar a notificação. Tente novamente.',
+  'Could not refresh the inbox. Reload to check the notification status.':
+    'Não foi possível atualizar a caixa de entrada. Recarregue para verificar o estado da notificação.',
+  'No unread notifications in this list.': 'Não há notificações não lidas nesta lista.',
+  'View all notifications': 'Ver todas as notificações',
+  'Review this field.': 'Revise este campo.',
+  'Reconnect to save changes. Your entries are still here.':
+    'Reconecte-se para salvar as alterações. Os dados continuam aqui.',
+  'Your workday': 'Sua jornada',
+  '{count} assignments today': '{count} alocações hoje',
+  'Planning is a reference. Record the time you actually worked.':
+    'O planejamento é uma referência. Registre o tempo que você realmente trabalhou.',
+  'All times in UTC': 'Todos os horários em UTC',
+  'You can still record actual work for your assigned projects.':
+    'Você pode registrar o trabalho realizado nos seus projetos atribuídos.',
+  'Your assigned projects': 'Seus projetos atribuídos',
+  'Upcoming assignments': 'Próximas alocações',
+  'Showing {shown} of {total}': 'Exibindo {shown} de {total}',
+  'Published assignments after today, in date order.':
+    'Alocações publicadas após hoje, em ordem de data.',
+  'No upcoming assignments published.': 'Nenhuma próxima alocação publicada.',
+  'Show more assignments': 'Mostrar mais alocações',
+  'Some assignments have incomplete dates. Ask your coordinator to review them.':
+    'Algumas alocações têm datas incompletas. Peça ao seu coordenador para revisá-las.',
+
   'Technical changes': 'Alterações técnicas',
   Component: 'Componente',
   'Original behavior': 'Comportamento original',

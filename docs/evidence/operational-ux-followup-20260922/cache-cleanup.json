@@ -1,0 +1,1710 @@
+{
+  "at": "2026-09-22T21:59:10.636669+00:00",
+  "scope": "Only the 50 previously audited unused and unshared cache record IDs from the b30ae7 build. No image, volume, release or data prune.",
+  "authorizedIds": [
+    "0x9k0vh7h3opy61uiq1j9iimx",
+    "17tgxux3cybitmlftafgl6y98",
+    "38c3msmy31rm9t7mdfe7dy5mx",
+    "4vdgoqd6vdgx138nb8gms3ez8",
+    "6fjvfydg6eedvi8c6a2tdltix",
+    "874ewawadxd7rfje0odzes18v",
+    "8gm75ybrhzsagey4drknqx7ld",
+    "91i5xvvlsbrzj2f7hunwoeqsu",
+    "cym1a06e56fpzbqft3n7f83bo",
+    "dx8b8kmrwy41djf4ngab3uxkr",
+    "gyxr79xsajjucqk9zs89ifwbq",
+    "hes4xh1obsat2dcjjer3bisrw",
+    "hrcywbdq0js0otyp0y09jk9m6",
+    "i9dky7g9gru6f9kcw48pyjjtt",
+    "ibuivuj5p099x8w1g61ixg3j5",
+    "ihohdf85jitrrok87w4ivtlph",
+    "jg3gfl6w4krbdhuoo64eqpjvr",
+    "k38kpqgssxge0wb05ttynnyxs",
+    "k8f9vn0dt4uzi0yubzy5iilnh",
+    "klu30g95fyilqfr2v8oihsbj4",
+    "ktg2atyc1hyaktrgpdtdhpdc8",
+    "ktmzqb8roypks4kxqncez5ttu",
+    "ktn7ja84tepqyq1dl6owf04y0",
+    "llqwtjisp4svibed4intg4d7n",
+    "m2r1eyvub2n0nw3ejipkha7yq",
+    "mh2kj6sady1soowpm469ohfrk",
+    "ngoku9d6zkkoxhbxsv9nm3ros",
+    "nn50to3r5xyallhs1e7rc5dll",
+    "nnrb4thg74feh8jqswgwiszmf",
+    "nx0osfynitbmuns68qtqnkojh",
+    "nznuwg84axw39cigmjq2m2fov",
+    "pbw61s0wlvjq0w9apkmzrgkmq",
+    "psko1qmmtrxa5dfmhi78ddtd1",
+    "pxbo16spd804e4slz3xh0xowa",
+    "q5tgs0dm01jhaj4r4xw5vqeuk",
+    "qbvgxu519bau1ys1nfqo0ccch",
+    "qx1wahyttf0duguaggmal51d1",
+    "r9liyzjklqdcuib2sr20pq455",
+    "sax5uy7uhf4nhy8qqrq1j0sg5",
+    "sefb986z37trihsox25lesvkq",
+    "smdkdr8ga790l2wkn4ltxzq4t",
+    "vz79peaofvthqmnyzf7h3yhul",
+    "w3ftfx1m4p01u9exvqhm2714o",
+    "w671jtwplzwl36jpgtw80afz8",
+    "wjupkrichz2bdvua856xye8zf",
+    "wuaagjr9yg0ajckjy0ysoq8t1",
+    "yck87es3xj5cr8w77q94ne19u",
+    "yd0uhfhwgwht6w06413wgf19e",
+    "zd9zytfy0mr99qe7d6otyt0f0",
+    "zj54h1n6jtp16hdi45kabhjuh"
+  ],
+  "command": [
+    "docker",
+    "builder",
+    "prune",
+    "--all",
+    "--force",
+    "--filter",
+    "id=^(0x9k0vh7h3opy61uiq1j9iimx|17tgxux3cybitmlftafgl6y98|38c3msmy31rm9t7mdfe7dy5mx|4vdgoqd6vdgx138nb8gms3ez8|6fjvfydg6eedvi8c6a2tdltix|874ewawadxd7rfje0odzes18v|8gm75ybrhzsagey4drknqx7ld|91i5xvvlsbrzj2f7hunwoeqsu|cym1a06e56fpzbqft3n7f83bo|dx8b8kmrwy41djf4ngab3uxkr|gyxr79xsajjucqk9zs89ifwbq|hes4xh1obsat2dcjjer3bisrw|hrcywbdq0js0otyp0y09jk9m6|i9dky7g9gru6f9kcw48pyjjtt|ibuivuj5p099x8w1g61ixg3j5|ihohdf85jitrrok87w4ivtlph|jg3gfl6w4krbdhuoo64eqpjvr|k38kpqgssxge0wb05ttynnyxs|k8f9vn0dt4uzi0yubzy5iilnh|klu30g95fyilqfr2v8oihsbj4|ktg2atyc1hyaktrgpdtdhpdc8|ktmzqb8roypks4kxqncez5ttu|ktn7ja84tepqyq1dl6owf04y0|llqwtjisp4svibed4intg4d7n|m2r1eyvub2n0nw3ejipkha7yq|mh2kj6sady1soowpm469ohfrk|ngoku9d6zkkoxhbxsv9nm3ros|nn50to3r5xyallhs1e7rc5dll|nnrb4thg74feh8jqswgwiszmf|nx0osfynitbmuns68qtqnkojh|nznuwg84axw39cigmjq2m2fov|pbw61s0wlvjq0w9apkmzrgkmq|psko1qmmtrxa5dfmhi78ddtd1|pxbo16spd804e4slz3xh0xowa|q5tgs0dm01jhaj4r4xw5vqeuk|qbvgxu519bau1ys1nfqo0ccch|qx1wahyttf0duguaggmal51d1|r9liyzjklqdcuib2sr20pq455|sax5uy7uhf4nhy8qqrq1j0sg5|sefb986z37trihsox25lesvkq|smdkdr8ga790l2wkn4ltxzq4t|vz79peaofvthqmnyzf7h3yhul|w3ftfx1m4p01u9exvqhm2714o|w671jtwplzwl36jpgtw80afz8|wjupkrichz2bdvua856xye8zf|wuaagjr9yg0ajckjy0ysoq8t1|yck87es3xj5cr8w77q94ne19u|yd0uhfhwgwht6w06413wgf19e|zd9zytfy0mr99qe7d6otyt0f0|zj54h1n6jtp16hdi45kabhjuh)$"
+  ],
+  "beforeCache": [
+    {
+      "ID": "0x9k0vh7h3opy61uiq1j9iimx",
+      "Type": "regular",
+      "Size": 42844160,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:35.93473445Z",
+      "LastUsedAt": "2026-09-22T21:50:36.734817933Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "17tgxux3cybitmlftafgl6y98",
+      "Type": "regular",
+      "Size": 107771374,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:36.680541879Z",
+      "LastUsedAt": "2026-09-22T21:50:08.398148807Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "38c3msmy31rm9t7mdfe7dy5mx",
+      "Type": "source.local",
+      "Size": 8192,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:41.908315413Z",
+      "LastUsedAt": "2026-09-22T21:50:36.774774925Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "4vdgoqd6vdgx138nb8gms3ez8",
+      "Type": "regular",
+      "Size": 8192,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:42.778386396Z",
+      "LastUsedAt": "2026-09-22T21:50:36.738585898Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "6fjvfydg6eedvi8c6a2tdltix",
+      "Type": "regular",
+      "Size": 286720,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:44.917016534Z",
+      "LastUsedAt": "2026-09-22T21:50:08.383155056Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "874ewawadxd7rfje0odzes18v",
+      "Type": "regular",
+      "Size": 24576,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.097034147Z",
+      "LastUsedAt": "2026-09-22T21:50:08.396078775Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "8gm75ybrhzsagey4drknqx7ld",
+      "Type": "regular",
+      "Size": 41553920,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:44.809126803Z",
+      "LastUsedAt": "2026-09-22T21:50:08.413476877Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "91i5xvvlsbrzj2f7hunwoeqsu",
+      "Type": "regular",
+      "Size": 41553920,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:44.813860395Z",
+      "LastUsedAt": "2026-09-22T21:50:36.753567959Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "cym1a06e56fpzbqft3n7f83bo",
+      "Type": "source.local",
+      "Size": 8192,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:40.636621982Z",
+      "LastUsedAt": "2026-09-22T21:50:08.440853119Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "dx8b8kmrwy41djf4ngab3uxkr",
+      "Type": "regular",
+      "Size": 68808,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:43.102049269Z",
+      "LastUsedAt": "2026-09-22T21:50:08.377923397Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "gyxr79xsajjucqk9zs89ifwbq",
+      "Type": "source.local",
+      "Size": 8192,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:41.900737271Z",
+      "LastUsedAt": "2026-09-22T21:50:08.444353925Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "hes4xh1obsat2dcjjer3bisrw",
+      "Type": "regular",
+      "Size": 938692608,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:35.832272399Z",
+      "LastUsedAt": "2026-09-22T21:50:08.427880281Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "hrcywbdq0js0otyp0y09jk9m6",
+      "Type": "regular",
+      "Size": 961437696,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:37.750488185Z",
+      "LastUsedAt": "2026-09-22T21:50:36.748004031Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "i9dky7g9gru6f9kcw48pyjjtt",
+      "Type": "regular",
+      "Size": 24576,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:44.998086954Z",
+      "LastUsedAt": "2026-09-22T21:50:08.420340939Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "ibuivuj5p099x8w1g61ixg3j5",
+      "Type": "regular",
+      "Size": 8285,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:43.163065133Z",
+      "LastUsedAt": "2026-09-22T21:50:08.391091865Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "ihohdf85jitrrok87w4ivtlph",
+      "Type": "regular",
+      "Size": 28232655,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:42.136216291Z",
+      "LastUsedAt": "2026-09-22T21:47:42.18755507Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "jg3gfl6w4krbdhuoo64eqpjvr",
+      "Type": "regular",
+      "Size": 12382208,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.290961959Z",
+      "LastUsedAt": "2026-09-22T21:50:08.410299009Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "k38kpqgssxge0wb05ttynnyxs",
+      "Type": "regular",
+      "Size": 23017461,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:36.116671539Z",
+      "LastUsedAt": "2026-09-22T21:50:08.414885251Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "k8f9vn0dt4uzi0yubzy5iilnh",
+      "Type": "regular",
+      "Size": 24576,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.038743513Z",
+      "LastUsedAt": "2026-09-22T21:50:08.404481082Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "klu30g95fyilqfr2v8oihsbj4",
+      "Type": "regular",
+      "Size": 20480,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:44.960239394Z",
+      "LastUsedAt": "2026-09-22T21:50:08.400330228Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "ktg2atyc1hyaktrgpdtdhpdc8",
+      "Type": "regular",
+      "Size": 50502756,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:42.214772929Z",
+      "LastUsedAt": "2026-09-22T21:47:42.260394781Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "ktmzqb8roypks4kxqncez5ttu",
+      "Type": "regular",
+      "Size": 2074590,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:48.816519262Z",
+      "LastUsedAt": "2026-09-22T21:50:36.781474778Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "ktn7ja84tepqyq1dl6owf04y0",
+      "Type": "regular",
+      "Size": 604733982,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:39.626761178Z",
+      "LastUsedAt": "2026-09-22T21:50:08.447767482Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "llqwtjisp4svibed4intg4d7n",
+      "Type": "regular",
+      "Size": 292937728,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:35.641176472Z",
+      "LastUsedAt": "2026-09-22T21:50:08.437190463Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "m2r1eyvub2n0nw3ejipkha7yq",
+      "Type": "regular",
+      "Size": 938413,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:48.774353507Z",
+      "LastUsedAt": "2026-09-22T21:50:36.767046616Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "mh2kj6sady1soowpm469ohfrk",
+      "Type": "regular",
+      "Size": 28550258,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:48.963919107Z",
+      "LastUsedAt": "2026-09-22T21:50:36.799024598Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "ngoku9d6zkkoxhbxsv9nm3ros",
+      "Type": "regular",
+      "Size": 978387786,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:27.591606873Z",
+      "LastUsedAt": "2026-09-22T21:50:36.804042328Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "nn50to3r5xyallhs1e7rc5dll",
+      "Type": "regular",
+      "Size": 1785856,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:37.724237375Z",
+      "LastUsedAt": "2026-09-22T21:50:36.736808515Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "nnrb4thg74feh8jqswgwiszmf",
+      "Type": "regular",
+      "Size": 1042419712,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:03.590972935Z",
+      "LastUsedAt": "2026-09-22T21:50:08.411862923Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "nx0osfynitbmuns68qtqnkojh",
+      "Type": "regular",
+      "Size": 32939,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:40.111303874Z",
+      "LastUsedAt": "2026-09-22T21:50:08.432915281Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "nznuwg84axw39cigmjq2m2fov",
+      "Type": "source.local",
+      "Size": 24395776,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:42.151601263Z",
+      "LastUsedAt": "2026-09-22T21:50:36.777940422Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "pbw61s0wlvjq0w9apkmzrgkmq",
+      "Type": "regular",
+      "Size": 8285,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:27.953993815Z",
+      "LastUsedAt": "2026-09-22T21:50:36.742375803Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "psko1qmmtrxa5dfmhi78ddtd1",
+      "Type": "regular",
+      "Size": 286720,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:44.921652837Z",
+      "LastUsedAt": "2026-09-22T21:50:36.7834647Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "pxbo16spd804e4slz3xh0xowa",
+      "Type": "regular",
+      "Size": 3323,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:42.17704608Z",
+      "LastUsedAt": "2026-09-22T21:47:42.229015487Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "q5tgs0dm01jhaj4r4xw5vqeuk",
+      "Type": "regular",
+      "Size": 4567403,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:36.75226031Z",
+      "LastUsedAt": "2026-09-22T21:50:08.386397233Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "qbvgxu519bau1ys1nfqo0ccch",
+      "Type": "regular",
+      "Size": 942874624,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:02.983770403Z",
+      "LastUsedAt": "2026-09-22T21:50:36.744053846Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "qx1wahyttf0duguaggmal51d1",
+      "Type": "regular",
+      "Size": 24576,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.189819854Z",
+      "LastUsedAt": "2026-09-22T21:50:08.422533181Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "r9liyzjklqdcuib2sr20pq455",
+      "Type": "regular",
+      "Size": 24576,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.131505919Z",
+      "LastUsedAt": "2026-09-22T21:50:08.446088779Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "sax5uy7uhf4nhy8qqrq1j0sg5",
+      "Type": "regular",
+      "Size": 450,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:42.287201063Z",
+      "LastUsedAt": "2026-09-22T21:50:36.740289331Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "sefb986z37trihsox25lesvkq",
+      "Type": "regular",
+      "Size": 1712981,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:42.246254114Z",
+      "LastUsedAt": "2026-09-22T21:47:42.30105964Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "smdkdr8ga790l2wkn4ltxzq4t",
+      "Type": "regular",
+      "Size": 344064,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.302311107Z",
+      "LastUsedAt": "2026-09-22T21:50:36.787576514Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "vz79peaofvthqmnyzf7h3yhul",
+      "Type": "regular",
+      "Size": 847872,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.254729924Z",
+      "LastUsedAt": "2026-09-22T21:50:36.808470641Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "w3ftfx1m4p01u9exvqhm2714o",
+      "Type": "regular",
+      "Size": 602969,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:48.862130775Z",
+      "LastUsedAt": "2026-09-22T21:50:36.796631098Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "w671jtwplzwl36jpgtw80afz8",
+      "Type": "regular",
+      "Size": 3108864,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.197547185Z",
+      "LastUsedAt": "2026-09-22T21:50:36.758747508Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "wjupkrichz2bdvua856xye8zf",
+      "Type": "regular",
+      "Size": 723900700,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:48.480656363Z",
+      "LastUsedAt": "2026-09-22T21:50:36.789707575Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "wuaagjr9yg0ajckjy0ysoq8t1",
+      "Type": "regular",
+      "Size": 15040512,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.464221598Z",
+      "LastUsedAt": "2026-09-22T21:50:36.779681805Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "yck87es3xj5cr8w77q94ne19u",
+      "Type": "source.local",
+      "Size": 8192,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:40.571385093Z",
+      "LastUsedAt": "2026-09-22T21:50:36.794258377Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "yd0uhfhwgwht6w06413wgf19e",
+      "Type": "regular",
+      "Size": 4808704,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.12599671Z",
+      "LastUsedAt": "2026-09-22T21:50:36.731308017Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "zd9zytfy0mr99qe7d6otyt0f0",
+      "Type": "source.local",
+      "Size": 12718080,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:42.144540439Z",
+      "LastUsedAt": "2026-09-22T21:50:08.418684697Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "zj54h1n6jtp16hdi45kabhjuh",
+      "Type": "regular",
+      "Size": 24576,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.065624674Z",
+      "LastUsedAt": "2026-09-22T21:50:08.406835343Z",
+      "UsageCount": 1
+    }
+  ],
+  "beforeDisk": {
+    "total": 160970244096,
+    "used": 143589462016,
+    "free": 10789384192
+  },
+  "beforeProtected": {
+    "images": [
+      {
+        "id": "sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0",
+        "tags": [
+          "postgres@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0"
+        ]
+      },
+      {
+        "id": "sha256:07690e185d7d9a5c51e1211eb5299b7d35da0b3a7ea79c42d4a216347c760141",
+        "tags": [
+          "ghcr.io/martinhdeez/trace-it/backend@sha256:07690e185d7d9a5c51e1211eb5299b7d35da0b3a7ea79c42d4a216347c760141"
+        ]
+      },
+      {
+        "id": "sha256:18fa8316172ae296fcb6918c32368e472fac38a7a77f7faacbdc22f2fb35192f",
+        "tags": [
+          "ja-automation-site:rollback-20260922104147-079e1eebe07d",
+          "ja-automation-site:zip-370f46e5a798f59ab437bede05b2eb83"
+        ]
+      },
+      {
+        "id": "sha256:1bf371aefa4682e0a2147a54bc68831978a5fe6417fa4da9ab490e338fa4bd49",
+        "tags": [
+          "ja-automation-site:rollback-20260922142313-c1285f14e4a9",
+          "ja-automation-site:zip-3d43a7ce49587ef3c34393615e5094f6"
+        ]
+      },
+      {
+        "id": "sha256:24340b851aea6c8f65dd85841914118124f43cf626024caa071a86e1f096d517",
+        "tags": [
+          "ja-automation-site:rollback-20260922124854-3d43a7ce4958",
+          "ja-automation-site:zip-079e1eebe07dcac9e8ffc5fd06fe4e20"
+        ]
+      },
+      {
+        "id": "sha256:26d24bbf4dda035d854cee1a2d4ab06945b87e9d2774577cd6accc3af1394b44",
+        "tags": [
+          "ghcr.io/martinhdeez/trace-it/erp@sha256:26d24bbf4dda035d854cee1a2d4ab06945b87e9d2774577cd6accc3af1394b44"
+        ]
+      },
+      {
+        "id": "sha256:425295601e5c0147395c7dd268afef3861608f4e2a46040b8cebb23a1808b4ca",
+        "tags": [
+          "lois-booking:production"
+        ]
+      },
+      {
+        "id": "sha256:490b0ab60f2e459c9232a8f050b47319e4b92133642a8ad412a1fdb6c19e0f15",
+        "tags": [
+          "ja-automation-site:rollback-20260922214739-b30ae7b55a3f",
+          "ja-automation-site:zip-f65e3d9aa8b0014bf1735533f0027c07"
+        ]
+      },
+      {
+        "id": "sha256:518266d179042ded1525b42e09ce824f2869286be7f714de643c0d86596d95a8",
+        "tags": [
+          "ja-automation-site:rollback-20260922154511-f65e3d9aa8b0",
+          "ja-automation-site:zip-c1285f14e4a94148bbfc36a8df403b7a"
+        ]
+      },
+      {
+        "id": "sha256:558b04e36a665b594794bb3ac1db175ee296484800c6b925c3b205bfcc2d4a85",
+        "tags": [
+          "adlaudem-preview:3b888c1"
+        ]
+      },
+      {
+        "id": "sha256:5d40745b0a352f86ef652c755047de91a345fe3946a60d7c492a0e310c5420e6",
+        "tags": [
+          "lois-perruqueiros-lois-web:latest"
+        ]
+      },
+      {
+        "id": "sha256:7091461db634ee9fb32ee522a712a24b275fc779e8d6400c051b6fe490d95218",
+        "tags": [
+          "ghcr.io/martinhdeez/trace-it/frontend@sha256:7091461db634ee9fb32ee522a712a24b275fc779e8d6400c051b6fe490d95218"
+        ]
+      },
+      {
+        "id": "sha256:85f7b7b062fc234e9ae5e7703d573773095d664845cd6323c59da3584088c9c1",
+        "tags": [
+          "ja-automation-portal:rollback-20260922214739-b30ae7b55a3f",
+          "ja-automation-portal:zip-f65e3d9aa8b0014bf1735533f0027c07"
+        ]
+      },
+      {
+        "id": "sha256:8bba9e08c2ae8ff5b7f77bd69066bef197553c5876ed1016b5de0c22ab34e024",
+        "tags": [
+          "ghcr.io/martinhdeez/trace-it/backend@sha256:8bba9e08c2ae8ff5b7f77bd69066bef197553c5876ed1016b5de0c22ab34e024"
+        ]
+      },
+      {
+        "id": "sha256:90479685252749cb58d0beddd9e6cd6310ef62840fe2150b66b0815bc124e005",
+        "tags": [
+          "ja-automation-portal:rollback-20260922102644-370f46e5a798",
+          "ja-automation-portal:zip-0ba62783814af13aa36f3f9c0e6a6d33"
+        ]
+      },
+      {
+        "id": "sha256:9570bf3235922c0d20c8db72f96da8b957a7dfb6777c0fd28d54f9dd5451e740",
+        "tags": [
+          "ja-automation-portal:zip-b30ae7b55a3f8afbe25aeae50e627f0b"
+        ]
+      },
+      {
+        "id": "sha256:97f38aad3827d1bd3f59b151d1640fed36ea2afd54bf97171aa7ef1a877aa8ea",
+        "tags": [
+          "ja-automation-site:rollback-20260922092827-0ba62783814a",
+          "ja-automation-site:zip-f693b66f52e5e0700ac02a7f9ea14151"
+        ]
+      },
+      {
+        "id": "sha256:9fa40b3d8dec43ceb2213d1fa551da3dcfef6ac6d19c2e534efb92527c2bafd2",
+        "tags": [
+          "deluan/navidrome:latest"
+        ]
+      },
+      {
+        "id": "sha256:a62d5910876475dd2e8a2e5775cb17eb553c876714b82968b549424a0db32b2c",
+        "tags": [
+          "ja-automation-site:rollback-20260922102644-370f46e5a798",
+          "ja-automation-site:zip-0ba62783814af13aa36f3f9c0e6a6d33"
+        ]
+      },
+      {
+        "id": "sha256:ab6102b2f1eeb78a679ce0fee9af33efbd4cf62b254f030b3b028abee00fb4cd",
+        "tags": [
+          "ghcr.io/martinhdeez/trace-it/backend@sha256:ab6102b2f1eeb78a679ce0fee9af33efbd4cf62b254f030b3b028abee00fb4cd"
+        ]
+      },
+      {
+        "id": "sha256:cacd1d0209ec5fab6ab97a1b948a60d4273ac84f6cafe74bc6846a7333b4e2c6",
+        "tags": [
+          "ja-automation-site:zip-b30ae7b55a3f8afbe25aeae50e627f0b"
+        ]
+      },
+      {
+        "id": "sha256:d152c971640d27629c1e13fdf2162ac2f60bba35afc34f8bf0f98fbed7de52a6",
+        "tags": [
+          "ghcr.io/martinhdeez/trace-it/backend@sha256:d152c971640d27629c1e13fdf2162ac2f60bba35afc34f8bf0f98fbed7de52a6"
+        ]
+      },
+      {
+        "id": "sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2",
+        "tags": [
+          "postgres:18-alpine"
+        ]
+      },
+      {
+        "id": "sha256:d5ae4839392480609069ce7b8da5b4f04d46451f71ae09da8d097d2e30af9a68",
+        "tags": [
+          "ja-automation-portal:rollback-20260922104147-079e1eebe07d",
+          "ja-automation-portal:zip-370f46e5a798f59ab437bede05b2eb83"
+        ]
+      },
+      {
+        "id": "sha256:d812c4748991274cb08d8220a476e059a6a0d1df6d298e839749903fcc140051",
+        "tags": [
+          "ja-automation-portal:rollback-20260922142313-c1285f14e4a9",
+          "ja-automation-portal:zip-3d43a7ce49587ef3c34393615e5094f6"
+        ]
+      },
+      {
+        "id": "sha256:e1d483b86dd202b43e6653cbdeaeaff92dec7d8caf60683c01c372778cf7a87c",
+        "tags": [
+          "ghcr.io/martinhdeez/trace-it/erp@sha256:e1d483b86dd202b43e6653cbdeaeaff92dec7d8caf60683c01c372778cf7a87c"
+        ]
+      },
+      {
+        "id": "sha256:e60cb61b6cc775f6fce441d5be3e15c906ec483d8d4f451db22c5ea081adccb1",
+        "tags": [
+          "ja-automation-portal:rollback-20260922092827-0ba62783814a",
+          "ja-automation-portal:zip-f693b66f52e5e0700ac02a7f9ea14151"
+        ]
+      },
+      {
+        "id": "sha256:efedf3595f1d6f415c08568ba171029bf54052e754cc9f030e3f2412b21f3d67",
+        "tags": [
+          "postgres:16-bookworm"
+        ]
+      },
+      {
+        "id": "sha256:f117f5faa653e4ef15e15f061f476f5a82e4b794df39594415745183172a84d4",
+        "tags": [
+          "ja-automation-portal:rollback-20260922124854-3d43a7ce4958",
+          "ja-automation-portal:zip-079e1eebe07dcac9e8ffc5fd06fe4e20"
+        ]
+      },
+      {
+        "id": "sha256:f38b63ba76486a801b9d479ff81141c057cf34f0a347e9fa76208e3cb725b8c9",
+        "tags": [
+          "ja-automation-portal:rollback-20260922154511-f65e3d9aa8b0",
+          "ja-automation-portal:zip-c1285f14e4a94148bbfc36a8df403b7a"
+        ]
+      },
+      {
+        "id": "sha256:fe3d2792b63d681bc1ac5adc49d43416defe8515864cb13a4599fbfbcd11974b",
+        "tags": [
+          "ghcr.io/martinhdeez/trace-it/frontend@sha256:fe3d2792b63d681bc1ac5adc49d43416defe8515864cb13a4599fbfbcd11974b"
+        ]
+      }
+    ],
+    "containers": [
+      "0d165c644428276051fa5cb968cf49b6ca98b4cf12dcf7bb37fd2704276c2cc2",
+      "0eaa4d40fcd957465f7776fd9ec64859aa0495e278a44446ac9b7e0cfd779e2f",
+      "159cc02c31212b8c47d1c53aac68e8665474cc0454d9357b56965be0e65aa433",
+      "43301b0ffd75d38fa0b642990eea15510655970d5a7b1f741bd0f1d9d988d1ff",
+      "45cd42a782dd645420dd8157f4e6b773679f0ea5840214f31c04733e9941d8f8",
+      "7b3097d2ce23a32a3cc7bca849b5b978e4fd163e804a9a5e4b224b2cbbe5e87e",
+      "82593b4d9cfc3deef52e611e4f70443be2d99c3c1965c0448ad0fa7142c2429f",
+      "944b07caea452ef5cbcd41bb57685759b951ffcc3529377aab56dbe976f55494",
+      "9a13270c1097bc59b6a04cfd5ccd2f1674b343abf31a11e5a32c337ac34c2e6b",
+      "9d2cf151fcce82bb20296f14c4bf7b8d92ebb0e8f7ff90cc8e9e1ba68ad1b543",
+      "a2bbc453dc1b08061bb9407a30920e0b632a485abdddc8d477488786fb9074c6",
+      "a2eb6d99674db61cee9453e675eb7a11d8fc77b1b4ab3feff1fc6732fe93530a",
+      "b320b4d68f863715361d5b3f9084b819115d9bf97a6965d8f856c911a5b8fcb3",
+      "b5554e83af8a6d37dcbaa183465927e43acc14c9edd4d2566593aaacda41b614",
+      "b82bf417d21b83aa83dc89fd15ac197eaa65e01f2e46d93af8c59e38e2ad58d4",
+      "c56435fcde6ba4b5fb3412dcc92ecc3ab601f18130f73886bb542c403209e877",
+      "d7b555e209f5f6d28083cc070bb51a60a58fd9f6fddc79dcba242fc247599266"
+    ],
+    "volumes": [
+      "adlaudem-preview_db_data",
+      "lois-perruqueiros_lois-db-data",
+      "trace-it_database",
+      "trace-it_ingestion"
+    ],
+    "current": "/opt/jaautomation/releases/ja-automation-b30ae7b55a3f8afbe25aeae50e627f0b2c717439a898326932406cc197536d02",
+    "releases": [
+      "ja-automation-079e1eebe07dcac9e8ffc5fd06fe4e20b6f6d23cf7a10d3c5776dc44befbd12c",
+      "ja-automation-0ba62783814af13aa36f3f9c0e6a6d3394499b12cad478dde89aec79f5dc672f",
+      "ja-automation-370f46e5a798f59ab437bede05b2eb833c27c4bf545214637688773b6ce30940",
+      "ja-automation-3d43a7ce49587ef3c34393615e5094f6ed025629e97659aa535a333c9e8adb90",
+      "ja-automation-b30ae7b55a3f8afbe25aeae50e627f0b2c717439a898326932406cc197536d02",
+      "ja-automation-c1285f14e4a94148bbfc36a8df403b7a1c7ffc4eb0fb9c51edd36cb84829c251",
+      "ja-automation-f65e3d9aa8b0014bf1735533f0027c0747495fb509810e0823e65f6bd4f2b31a",
+      "ja-automation-f693b66f52e5e0700ac02a7f9ea1415178fb4626a412c7a5389cc3f9a2601f34"
+    ]
+  },
+  "status": "completed",
+  "exitCode": 0,
+  "stdout": "Deleted build cache objects:\nyck87es3xj5cr8w77q94ne19u\n38c3msmy31rm9t7mdfe7dy5mx\ngyxr79xsajjucqk9zs89ifwbq\nzd9zytfy0mr99qe7d6otyt0f0\nnx0osfynitbmuns68qtqnkojh\nhrcywbdq0js0otyp0y09jk9m6\ncym1a06e56fpzbqft3n7f83bo\nnznuwg84axw39cigmjq2m2fov\nhes4xh1obsat2dcjjer3bisrw\nmh2kj6sady1soowpm469ohfrk\nnn50to3r5xyallhs1e7rc5dll\nw3ftfx1m4p01u9exvqhm2714o\nllqwtjisp4svibed4intg4d7n\nktn7ja84tepqyq1dl6owf04y0\nnnrb4thg74feh8jqswgwiszmf\n0x9k0vh7h3opy61uiq1j9iimx\nq5tgs0dm01jhaj4r4xw5vqeuk\nktmzqb8roypks4kxqncez5ttu\nqbvgxu519bau1ys1nfqo0ccch\n17tgxux3cybitmlftafgl6y98\njg3gfl6w4krbdhuoo64eqpjvr\nm2r1eyvub2n0nw3ejipkha7yq\nwuaagjr9yg0ajckjy0ysoq8t1\nk38kpqgssxge0wb05ttynnyxs\nwjupkrichz2bdvua856xye8zf\nqx1wahyttf0duguaggmal51d1\npbw61s0wlvjq0w9apkmzrgkmq\nsmdkdr8ga790l2wkn4ltxzq4t\nr9liyzjklqdcuib2sr20pq455\nibuivuj5p099x8w1g61ixg3j5\nvz79peaofvthqmnyzf7h3yhul\ndx8b8kmrwy41djf4ngab3uxkr\n874ewawadxd7rfje0odzes18v\nngoku9d6zkkoxhbxsv9nm3ros\nzj54h1n6jtp16hdi45kabhjuh\nw671jtwplzwl36jpgtw80afz8\nyd0uhfhwgwht6w06413wgf19e\nk8f9vn0dt4uzi0yubzy5iilnh\ni9dky7g9gru6f9kcw48pyjjtt\npsko1qmmtrxa5dfmhi78ddtd1\nklu30g95fyilqfr2v8oihsbj4\n91i5xvvlsbrzj2f7hunwoeqsu\n6fjvfydg6eedvi8c6a2tdltix\n8gm75ybrhzsagey4drknqx7ld\n4vdgoqd6vdgx138nb8gms3ez8\nsax5uy7uhf4nhy8qqrq1j0sg5\nsefb986z37trihsox25lesvkq\nktg2atyc1hyaktrgpdtdhpdc8\npxbo16spd804e4slz3xh0xowa\nihohdf85jitrrok87w4ivtlph\n\nTotal reclaimed space: 6.936GB\n",
+  "stderr": "DEPRECATED: The legacy builder is deprecated and will be removed in a future release.\n            Install the buildx component to build images with BuildKit:\n            https://docs.docker.com/go/buildx/\n\n",
+  "completedAt": "2026-09-22T22:00:47.547794+00:00",
+  "afterCache": [],
+  "afterDisk": {
+    "total": 160970244096,
+    "used": 133570883584,
+    "free": 20807962624
+  },
+  "afterProtected": {
+    "images": [
+      {
+        "id": "sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0",
+        "tags": [
+          "postgres@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0"
+        ]
+      },
+      {
+        "id": "sha256:07690e185d7d9a5c51e1211eb5299b7d35da0b3a7ea79c42d4a216347c760141",
+        "tags": [
+          "ghcr.io/martinhdeez/trace-it/backend@sha256:07690e185d7d9a5c51e1211eb5299b7d35da0b3a7ea79c42d4a216347c760141"
+        ]
+      },
+      {
+        "id": "sha256:18fa8316172ae296fcb6918c32368e472fac38a7a77f7faacbdc22f2fb35192f",
+        "tags": [
+          "ja-automation-site:rollback-20260922104147-079e1eebe07d",
+          "ja-automation-site:zip-370f46e5a798f59ab437bede05b2eb83"
+        ]
+      },
+      {
+        "id": "sha256:1bf371aefa4682e0a2147a54bc68831978a5fe6417fa4da9ab490e338fa4bd49",
+        "tags": [
+          "ja-automation-site:rollback-20260922142313-c1285f14e4a9",
+          "ja-automation-site:zip-3d43a7ce49587ef3c34393615e5094f6"
+        ]
+      },
+      {
+        "id": "sha256:24340b851aea6c8f65dd85841914118124f43cf626024caa071a86e1f096d517",
+        "tags": [
+          "ja-automation-site:rollback-20260922124854-3d43a7ce4958",
+          "ja-automation-site:zip-079e1eebe07dcac9e8ffc5fd06fe4e20"
+        ]
+      },
+      {
+        "id": "sha256:26d24bbf4dda035d854cee1a2d4ab06945b87e9d2774577cd6accc3af1394b44",
+        "tags": [
+          "ghcr.io/martinhdeez/trace-it/erp@sha256:26d24bbf4dda035d854cee1a2d4ab06945b87e9d2774577cd6accc3af1394b44"
+        ]
+      },
+      {
+        "id": "sha256:425295601e5c0147395c7dd268afef3861608f4e2a46040b8cebb23a1808b4ca",
+        "tags": [
+          "lois-booking:production"
+        ]
+      },
+      {
+        "id": "sha256:490b0ab60f2e459c9232a8f050b47319e4b92133642a8ad412a1fdb6c19e0f15",
+        "tags": [
+          "ja-automation-site:rollback-20260922214739-b30ae7b55a3f",
+          "ja-automation-site:zip-f65e3d9aa8b0014bf1735533f0027c07"
+        ]
+      },
+      {
+        "id": "sha256:518266d179042ded1525b42e09ce824f2869286be7f714de643c0d86596d95a8",
+        "tags": [
+          "ja-automation-site:rollback-20260922154511-f65e3d9aa8b0",
+          "ja-automation-site:zip-c1285f14e4a94148bbfc36a8df403b7a"
+        ]
+      },
+      {
+        "id": "sha256:558b04e36a665b594794bb3ac1db175ee296484800c6b925c3b205bfcc2d4a85",
+        "tags": [
+          "adlaudem-preview:3b888c1"
+        ]
+      },
+      {
+        "id": "sha256:5d40745b0a352f86ef652c755047de91a345fe3946a60d7c492a0e310c5420e6",
+        "tags": [
+          "lois-perruqueiros-lois-web:latest"
+        ]
+      },
+      {
+        "id": "sha256:7091461db634ee9fb32ee522a712a24b275fc779e8d6400c051b6fe490d95218",
+        "tags": [
+          "ghcr.io/martinhdeez/trace-it/frontend@sha256:7091461db634ee9fb32ee522a712a24b275fc779e8d6400c051b6fe490d95218"
+        ]
+      },
+      {
+        "id": "sha256:85f7b7b062fc234e9ae5e7703d573773095d664845cd6323c59da3584088c9c1",
+        "tags": [
+          "ja-automation-portal:rollback-20260922214739-b30ae7b55a3f",
+          "ja-automation-portal:zip-f65e3d9aa8b0014bf1735533f0027c07"
+        ]
+      },
+      {
+        "id": "sha256:8bba9e08c2ae8ff5b7f77bd69066bef197553c5876ed1016b5de0c22ab34e024",
+        "tags": [
+          "ghcr.io/martinhdeez/trace-it/backend@sha256:8bba9e08c2ae8ff5b7f77bd69066bef197553c5876ed1016b5de0c22ab34e024"
+        ]
+      },
+      {
+        "id": "sha256:90479685252749cb58d0beddd9e6cd6310ef62840fe2150b66b0815bc124e005",
+        "tags": [
+          "ja-automation-portal:rollback-20260922102644-370f46e5a798",
+          "ja-automation-portal:zip-0ba62783814af13aa36f3f9c0e6a6d33"
+        ]
+      },
+      {
+        "id": "sha256:9570bf3235922c0d20c8db72f96da8b957a7dfb6777c0fd28d54f9dd5451e740",
+        "tags": [
+          "ja-automation-portal:zip-b30ae7b55a3f8afbe25aeae50e627f0b"
+        ]
+      },
+      {
+        "id": "sha256:97f38aad3827d1bd3f59b151d1640fed36ea2afd54bf97171aa7ef1a877aa8ea",
+        "tags": [
+          "ja-automation-site:rollback-20260922092827-0ba62783814a",
+          "ja-automation-site:zip-f693b66f52e5e0700ac02a7f9ea14151"
+        ]
+      },
+      {
+        "id": "sha256:9fa40b3d8dec43ceb2213d1fa551da3dcfef6ac6d19c2e534efb92527c2bafd2",
+        "tags": [
+          "deluan/navidrome:latest"
+        ]
+      },
+      {
+        "id": "sha256:a62d5910876475dd2e8a2e5775cb17eb553c876714b82968b549424a0db32b2c",
+        "tags": [
+          "ja-automation-site:rollback-20260922102644-370f46e5a798",
+          "ja-automation-site:zip-0ba62783814af13aa36f3f9c0e6a6d33"
+        ]
+      },
+      {
+        "id": "sha256:ab6102b2f1eeb78a679ce0fee9af33efbd4cf62b254f030b3b028abee00fb4cd",
+        "tags": [
+          "ghcr.io/martinhdeez/trace-it/backend@sha256:ab6102b2f1eeb78a679ce0fee9af33efbd4cf62b254f030b3b028abee00fb4cd"
+        ]
+      },
+      {
+        "id": "sha256:cacd1d0209ec5fab6ab97a1b948a60d4273ac84f6cafe74bc6846a7333b4e2c6",
+        "tags": [
+          "ja-automation-site:zip-b30ae7b55a3f8afbe25aeae50e627f0b"
+        ]
+      },
+      {
+        "id": "sha256:d152c971640d27629c1e13fdf2162ac2f60bba35afc34f8bf0f98fbed7de52a6",
+        "tags": [
+          "ghcr.io/martinhdeez/trace-it/backend@sha256:d152c971640d27629c1e13fdf2162ac2f60bba35afc34f8bf0f98fbed7de52a6"
+        ]
+      },
+      {
+        "id": "sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2",
+        "tags": [
+          "postgres:18-alpine"
+        ]
+      },
+      {
+        "id": "sha256:d5ae4839392480609069ce7b8da5b4f04d46451f71ae09da8d097d2e30af9a68",
+        "tags": [
+          "ja-automation-portal:rollback-20260922104147-079e1eebe07d",
+          "ja-automation-portal:zip-370f46e5a798f59ab437bede05b2eb83"
+        ]
+      },
+      {
+        "id": "sha256:d812c4748991274cb08d8220a476e059a6a0d1df6d298e839749903fcc140051",
+        "tags": [
+          "ja-automation-portal:rollback-20260922142313-c1285f14e4a9",
+          "ja-automation-portal:zip-3d43a7ce49587ef3c34393615e5094f6"
+        ]
+      },
+      {
+        "id": "sha256:e1d483b86dd202b43e6653cbdeaeaff92dec7d8caf60683c01c372778cf7a87c",
+        "tags": [
+          "ghcr.io/martinhdeez/trace-it/erp@sha256:e1d483b86dd202b43e6653cbdeaeaff92dec7d8caf60683c01c372778cf7a87c"
+        ]
+      },
+      {
+        "id": "sha256:e60cb61b6cc775f6fce441d5be3e15c906ec483d8d4f451db22c5ea081adccb1",
+        "tags": [
+          "ja-automation-portal:rollback-20260922092827-0ba62783814a",
+          "ja-automation-portal:zip-f693b66f52e5e0700ac02a7f9ea14151"
+        ]
+      },
+      {
+        "id": "sha256:efedf3595f1d6f415c08568ba171029bf54052e754cc9f030e3f2412b21f3d67",
+        "tags": [
+          "postgres:16-bookworm"
+        ]
+      },
+      {
+        "id": "sha256:f117f5faa653e4ef15e15f061f476f5a82e4b794df39594415745183172a84d4",
+        "tags": [
+          "ja-automation-portal:rollback-20260922124854-3d43a7ce4958",
+          "ja-automation-portal:zip-079e1eebe07dcac9e8ffc5fd06fe4e20"
+        ]
+      },
+      {
+        "id": "sha256:f38b63ba76486a801b9d479ff81141c057cf34f0a347e9fa76208e3cb725b8c9",
+        "tags": [
+          "ja-automation-portal:rollback-20260922154511-f65e3d9aa8b0",
+          "ja-automation-portal:zip-c1285f14e4a94148bbfc36a8df403b7a"
+        ]
+      },
+      {
+        "id": "sha256:fe3d2792b63d681bc1ac5adc49d43416defe8515864cb13a4599fbfbcd11974b",
+        "tags": [
+          "ghcr.io/martinhdeez/trace-it/frontend@sha256:fe3d2792b63d681bc1ac5adc49d43416defe8515864cb13a4599fbfbcd11974b"
+        ]
+      }
+    ],
+    "containers": [
+      "0d165c644428276051fa5cb968cf49b6ca98b4cf12dcf7bb37fd2704276c2cc2",
+      "0eaa4d40fcd957465f7776fd9ec64859aa0495e278a44446ac9b7e0cfd779e2f",
+      "159cc02c31212b8c47d1c53aac68e8665474cc0454d9357b56965be0e65aa433",
+      "43301b0ffd75d38fa0b642990eea15510655970d5a7b1f741bd0f1d9d988d1ff",
+      "45cd42a782dd645420dd8157f4e6b773679f0ea5840214f31c04733e9941d8f8",
+      "7b3097d2ce23a32a3cc7bca849b5b978e4fd163e804a9a5e4b224b2cbbe5e87e",
+      "82593b4d9cfc3deef52e611e4f70443be2d99c3c1965c0448ad0fa7142c2429f",
+      "944b07caea452ef5cbcd41bb57685759b951ffcc3529377aab56dbe976f55494",
+      "9a13270c1097bc59b6a04cfd5ccd2f1674b343abf31a11e5a32c337ac34c2e6b",
+      "9d2cf151fcce82bb20296f14c4bf7b8d92ebb0e8f7ff90cc8e9e1ba68ad1b543",
+      "a2bbc453dc1b08061bb9407a30920e0b632a485abdddc8d477488786fb9074c6",
+      "a2eb6d99674db61cee9453e675eb7a11d8fc77b1b4ab3feff1fc6732fe93530a",
+      "b320b4d68f863715361d5b3f9084b819115d9bf97a6965d8f856c911a5b8fcb3",
+      "b5554e83af8a6d37dcbaa183465927e43acc14c9edd4d2566593aaacda41b614",
+      "b82bf417d21b83aa83dc89fd15ac197eaa65e01f2e46d93af8c59e38e2ad58d4",
+      "c56435fcde6ba4b5fb3412dcc92ecc3ab601f18130f73886bb542c403209e877",
+      "d7b555e209f5f6d28083cc070bb51a60a58fd9f6fddc79dcba242fc247599266"
+    ],
+    "volumes": [
+      "adlaudem-preview_db_data",
+      "lois-perruqueiros_lois-db-data",
+      "trace-it_database",
+      "trace-it_ingestion"
+    ],
+    "current": "/opt/jaautomation/releases/ja-automation-b30ae7b55a3f8afbe25aeae50e627f0b2c717439a898326932406cc197536d02",
+    "releases": [
+      "ja-automation-079e1eebe07dcac9e8ffc5fd06fe4e20b6f6d23cf7a10d3c5776dc44befbd12c",
+      "ja-automation-0ba62783814af13aa36f3f9c0e6a6d3394499b12cad478dde89aec79f5dc672f",
+      "ja-automation-370f46e5a798f59ab437bede05b2eb833c27c4bf545214637688773b6ce30940",
+      "ja-automation-3d43a7ce49587ef3c34393615e5094f6ed025629e97659aa535a333c9e8adb90",
+      "ja-automation-b30ae7b55a3f8afbe25aeae50e627f0b2c717439a898326932406cc197536d02",
+      "ja-automation-c1285f14e4a94148bbfc36a8df403b7a1c7ffc4eb0fb9c51edd36cb84829c251",
+      "ja-automation-f65e3d9aa8b0014bf1735533f0027c0747495fb509810e0823e65f6bd4f2b31a",
+      "ja-automation-f693b66f52e5e0700ac02a7f9ea1415178fb4626a412c7a5389cc3f9a2601f34"
+    ]
+  },
+  "removedIds": [
+    "0x9k0vh7h3opy61uiq1j9iimx",
+    "17tgxux3cybitmlftafgl6y98",
+    "38c3msmy31rm9t7mdfe7dy5mx",
+    "4vdgoqd6vdgx138nb8gms3ez8",
+    "6fjvfydg6eedvi8c6a2tdltix",
+    "874ewawadxd7rfje0odzes18v",
+    "8gm75ybrhzsagey4drknqx7ld",
+    "91i5xvvlsbrzj2f7hunwoeqsu",
+    "cym1a06e56fpzbqft3n7f83bo",
+    "dx8b8kmrwy41djf4ngab3uxkr",
+    "gyxr79xsajjucqk9zs89ifwbq",
+    "hes4xh1obsat2dcjjer3bisrw",
+    "hrcywbdq0js0otyp0y09jk9m6",
+    "i9dky7g9gru6f9kcw48pyjjtt",
+    "ibuivuj5p099x8w1g61ixg3j5",
+    "ihohdf85jitrrok87w4ivtlph",
+    "jg3gfl6w4krbdhuoo64eqpjvr",
+    "k38kpqgssxge0wb05ttynnyxs",
+    "k8f9vn0dt4uzi0yubzy5iilnh",
+    "klu30g95fyilqfr2v8oihsbj4",
+    "ktg2atyc1hyaktrgpdtdhpdc8",
+    "ktmzqb8roypks4kxqncez5ttu",
+    "ktn7ja84tepqyq1dl6owf04y0",
+    "llqwtjisp4svibed4intg4d7n",
+    "m2r1eyvub2n0nw3ejipkha7yq",
+    "mh2kj6sady1soowpm469ohfrk",
+    "ngoku9d6zkkoxhbxsv9nm3ros",
+    "nn50to3r5xyallhs1e7rc5dll",
+    "nnrb4thg74feh8jqswgwiszmf",
+    "nx0osfynitbmuns68qtqnkojh",
+    "nznuwg84axw39cigmjq2m2fov",
+    "pbw61s0wlvjq0w9apkmzrgkmq",
+    "psko1qmmtrxa5dfmhi78ddtd1",
+    "pxbo16spd804e4slz3xh0xowa",
+    "q5tgs0dm01jhaj4r4xw5vqeuk",
+    "qbvgxu519bau1ys1nfqo0ccch",
+    "qx1wahyttf0duguaggmal51d1",
+    "r9liyzjklqdcuib2sr20pq455",
+    "sax5uy7uhf4nhy8qqrq1j0sg5",
+    "sefb986z37trihsox25lesvkq",
+    "smdkdr8ga790l2wkn4ltxzq4t",
+    "vz79peaofvthqmnyzf7h3yhul",
+    "w3ftfx1m4p01u9exvqhm2714o",
+    "w671jtwplzwl36jpgtw80afz8",
+    "wjupkrichz2bdvua856xye8zf",
+    "wuaagjr9yg0ajckjy0ysoq8t1",
+    "yck87es3xj5cr8w77q94ne19u",
+    "yd0uhfhwgwht6w06413wgf19e",
+    "zd9zytfy0mr99qe7d6otyt0f0",
+    "zj54h1n6jtp16hdi45kabhjuh"
+  ],
+  "protectedUnchanged": true,
+  "onlyAuthorizedIdsRemoved": true,
+  "attempts": [
+    {
+      "command": [
+        "docker",
+        "builder",
+        "prune",
+        "--all",
+        "--force",
+        "--filter",
+        "id=^(0x9k0vh7h3opy61uiq1j9iimx|17tgxux3cybitmlftafgl6y98|38c3msmy31rm9t7mdfe7dy5mx|4vdgoqd6vdgx138nb8gms3ez8|6fjvfydg6eedvi8c6a2tdltix|874ewawadxd7rfje0odzes18v|8gm75ybrhzsagey4drknqx7ld|91i5xvvlsbrzj2f7hunwoeqsu|cym1a06e56fpzbqft3n7f83bo|dx8b8kmrwy41djf4ngab3uxkr|gyxr79xsajjucqk9zs89ifwbq|hes4xh1obsat2dcjjer3bisrw|hrcywbdq0js0otyp0y09jk9m6|i9dky7g9gru6f9kcw48pyjjtt|ibuivuj5p099x8w1g61ixg3j5|ihohdf85jitrrok87w4ivtlph|jg3gfl6w4krbdhuoo64eqpjvr|k38kpqgssxge0wb05ttynnyxs|k8f9vn0dt4uzi0yubzy5iilnh|klu30g95fyilqfr2v8oihsbj4|ktg2atyc1hyaktrgpdtdhpdc8|ktmzqb8roypks4kxqncez5ttu|ktn7ja84tepqyq1dl6owf04y0|llqwtjisp4svibed4intg4d7n|m2r1eyvub2n0nw3ejipkha7yq|mh2kj6sady1soowpm469ohfrk|ngoku9d6zkkoxhbxsv9nm3ros|nn50to3r5xyallhs1e7rc5dll|nnrb4thg74feh8jqswgwiszmf|nx0osfynitbmuns68qtqnkojh|nznuwg84axw39cigmjq2m2fov|pbw61s0wlvjq0w9apkmzrgkmq|psko1qmmtrxa5dfmhi78ddtd1|pxbo16spd804e4slz3xh0xowa|q5tgs0dm01jhaj4r4xw5vqeuk|qbvgxu519bau1ys1nfqo0ccch|qx1wahyttf0duguaggmal51d1|r9liyzjklqdcuib2sr20pq455|sax5uy7uhf4nhy8qqrq1j0sg5|sefb986z37trihsox25lesvkq|smdkdr8ga790l2wkn4ltxzq4t|vz79peaofvthqmnyzf7h3yhul|w3ftfx1m4p01u9exvqhm2714o|w671jtwplzwl36jpgtw80afz8|wjupkrichz2bdvua856xye8zf|wuaagjr9yg0ajckjy0ysoq8t1|yck87es3xj5cr8w77q94ne19u|yd0uhfhwgwht6w06413wgf19e|zd9zytfy0mr99qe7d6otyt0f0|zj54h1n6jtp16hdi45kabhjuh)$",
+        "--filter",
+        "inuse=false",
+        "--filter",
+        "shared=false"
+      ],
+      "exitCode": 0,
+      "stdout": "Total reclaimed space: 0B\n",
+      "stderr": "DEPRECATED: The legacy builder is deprecated and will be removed in a future release.\n            Install the buildx component to build images with BuildKit:\n            https://docs.docker.com/go/buildx/\n\n",
+      "completedAt": "2026-09-22T21:59:10.850767+00:00",
+      "removedIds": [],
+      "note": "No-op: inuse/shared are presence fields in BuildKit, so the explicit false string filters matched no records."
+    },
+    {
+      "command": [
+        "docker",
+        "builder",
+        "prune",
+        "--all",
+        "--force",
+        "--filter",
+        "id=^(0x9k0vh7h3opy61uiq1j9iimx|17tgxux3cybitmlftafgl6y98|38c3msmy31rm9t7mdfe7dy5mx|4vdgoqd6vdgx138nb8gms3ez8|6fjvfydg6eedvi8c6a2tdltix|874ewawadxd7rfje0odzes18v|8gm75ybrhzsagey4drknqx7ld|91i5xvvlsbrzj2f7hunwoeqsu|cym1a06e56fpzbqft3n7f83bo|dx8b8kmrwy41djf4ngab3uxkr|gyxr79xsajjucqk9zs89ifwbq|hes4xh1obsat2dcjjer3bisrw|hrcywbdq0js0otyp0y09jk9m6|i9dky7g9gru6f9kcw48pyjjtt|ibuivuj5p099x8w1g61ixg3j5|ihohdf85jitrrok87w4ivtlph|jg3gfl6w4krbdhuoo64eqpjvr|k38kpqgssxge0wb05ttynnyxs|k8f9vn0dt4uzi0yubzy5iilnh|klu30g95fyilqfr2v8oihsbj4|ktg2atyc1hyaktrgpdtdhpdc8|ktmzqb8roypks4kxqncez5ttu|ktn7ja84tepqyq1dl6owf04y0|llqwtjisp4svibed4intg4d7n|m2r1eyvub2n0nw3ejipkha7yq|mh2kj6sady1soowpm469ohfrk|ngoku9d6zkkoxhbxsv9nm3ros|nn50to3r5xyallhs1e7rc5dll|nnrb4thg74feh8jqswgwiszmf|nx0osfynitbmuns68qtqnkojh|nznuwg84axw39cigmjq2m2fov|pbw61s0wlvjq0w9apkmzrgkmq|psko1qmmtrxa5dfmhi78ddtd1|pxbo16spd804e4slz3xh0xowa|q5tgs0dm01jhaj4r4xw5vqeuk|qbvgxu519bau1ys1nfqo0ccch|qx1wahyttf0duguaggmal51d1|r9liyzjklqdcuib2sr20pq455|sax5uy7uhf4nhy8qqrq1j0sg5|sefb986z37trihsox25lesvkq|smdkdr8ga790l2wkn4ltxzq4t|vz79peaofvthqmnyzf7h3yhul|w3ftfx1m4p01u9exvqhm2714o|w671jtwplzwl36jpgtw80afz8|wjupkrichz2bdvua856xye8zf|wuaagjr9yg0ajckjy0ysoq8t1|yck87es3xj5cr8w77q94ne19u|yd0uhfhwgwht6w06413wgf19e|zd9zytfy0mr99qe7d6otyt0f0|zj54h1n6jtp16hdi45kabhjuh)$"
+      ],
+      "exitCode": 0,
+      "stdout": "Deleted build cache objects:\nyck87es3xj5cr8w77q94ne19u\n38c3msmy31rm9t7mdfe7dy5mx\ngyxr79xsajjucqk9zs89ifwbq\nzd9zytfy0mr99qe7d6otyt0f0\nnx0osfynitbmuns68qtqnkojh\nhrcywbdq0js0otyp0y09jk9m6\ncym1a06e56fpzbqft3n7f83bo\nnznuwg84axw39cigmjq2m2fov\nhes4xh1obsat2dcjjer3bisrw\nmh2kj6sady1soowpm469ohfrk\nnn50to3r5xyallhs1e7rc5dll\nw3ftfx1m4p01u9exvqhm2714o\nllqwtjisp4svibed4intg4d7n\nktn7ja84tepqyq1dl6owf04y0\nnnrb4thg74feh8jqswgwiszmf\n0x9k0vh7h3opy61uiq1j9iimx\nq5tgs0dm01jhaj4r4xw5vqeuk\nktmzqb8roypks4kxqncez5ttu\nqbvgxu519bau1ys1nfqo0ccch\n17tgxux3cybitmlftafgl6y98\njg3gfl6w4krbdhuoo64eqpjvr\nm2r1eyvub2n0nw3ejipkha7yq\nwuaagjr9yg0ajckjy0ysoq8t1\nk38kpqgssxge0wb05ttynnyxs\nwjupkrichz2bdvua856xye8zf\nqx1wahyttf0duguaggmal51d1\npbw61s0wlvjq0w9apkmzrgkmq\nsmdkdr8ga790l2wkn4ltxzq4t\nr9liyzjklqdcuib2sr20pq455\nibuivuj5p099x8w1g61ixg3j5\nvz79peaofvthqmnyzf7h3yhul\ndx8b8kmrwy41djf4ngab3uxkr\n874ewawadxd7rfje0odzes18v\nngoku9d6zkkoxhbxsv9nm3ros\nzj54h1n6jtp16hdi45kabhjuh\nw671jtwplzwl36jpgtw80afz8\nyd0uhfhwgwht6w06413wgf19e\nk8f9vn0dt4uzi0yubzy5iilnh\ni9dky7g9gru6f9kcw48pyjjtt\npsko1qmmtrxa5dfmhi78ddtd1\nklu30g95fyilqfr2v8oihsbj4\n91i5xvvlsbrzj2f7hunwoeqsu\n6fjvfydg6eedvi8c6a2tdltix\n8gm75ybrhzsagey4drknqx7ld\n4vdgoqd6vdgx138nb8gms3ez8\nsax5uy7uhf4nhy8qqrq1j0sg5\nsefb986z37trihsox25lesvkq\nktg2atyc1hyaktrgpdtdhpdc8\npxbo16spd804e4slz3xh0xowa\nihohdf85jitrrok87w4ivtlph\n\nTotal reclaimed space: 6.936GB\n",
+      "stderr": "DEPRECATED: The legacy builder is deprecated and will be removed in a future release.\n            Install the buildx component to build images with BuildKit:\n            https://docs.docker.com/go/buildx/\n\n",
+      "completedAt": "2026-09-22T22:00:47.547794+00:00",
+      "removedIds": [
+        "0x9k0vh7h3opy61uiq1j9iimx",
+        "17tgxux3cybitmlftafgl6y98",
+        "38c3msmy31rm9t7mdfe7dy5mx",
+        "4vdgoqd6vdgx138nb8gms3ez8",
+        "6fjvfydg6eedvi8c6a2tdltix",
+        "874ewawadxd7rfje0odzes18v",
+        "8gm75ybrhzsagey4drknqx7ld",
+        "91i5xvvlsbrzj2f7hunwoeqsu",
+        "cym1a06e56fpzbqft3n7f83bo",
+        "dx8b8kmrwy41djf4ngab3uxkr",
+        "gyxr79xsajjucqk9zs89ifwbq",
+        "hes4xh1obsat2dcjjer3bisrw",
+        "hrcywbdq0js0otyp0y09jk9m6",
+        "i9dky7g9gru6f9kcw48pyjjtt",
+        "ibuivuj5p099x8w1g61ixg3j5",
+        "ihohdf85jitrrok87w4ivtlph",
+        "jg3gfl6w4krbdhuoo64eqpjvr",
+        "k38kpqgssxge0wb05ttynnyxs",
+        "k8f9vn0dt4uzi0yubzy5iilnh",
+        "klu30g95fyilqfr2v8oihsbj4",
+        "ktg2atyc1hyaktrgpdtdhpdc8",
+        "ktmzqb8roypks4kxqncez5ttu",
+        "ktn7ja84tepqyq1dl6owf04y0",
+        "llqwtjisp4svibed4intg4d7n",
+        "m2r1eyvub2n0nw3ejipkha7yq",
+        "mh2kj6sady1soowpm469ohfrk",
+        "ngoku9d6zkkoxhbxsv9nm3ros",
+        "nn50to3r5xyallhs1e7rc5dll",
+        "nnrb4thg74feh8jqswgwiszmf",
+        "nx0osfynitbmuns68qtqnkojh",
+        "nznuwg84axw39cigmjq2m2fov",
+        "pbw61s0wlvjq0w9apkmzrgkmq",
+        "psko1qmmtrxa5dfmhi78ddtd1",
+        "pxbo16spd804e4slz3xh0xowa",
+        "q5tgs0dm01jhaj4r4xw5vqeuk",
+        "qbvgxu519bau1ys1nfqo0ccch",
+        "qx1wahyttf0duguaggmal51d1",
+        "r9liyzjklqdcuib2sr20pq455",
+        "sax5uy7uhf4nhy8qqrq1j0sg5",
+        "sefb986z37trihsox25lesvkq",
+        "smdkdr8ga790l2wkn4ltxzq4t",
+        "vz79peaofvthqmnyzf7h3yhul",
+        "w3ftfx1m4p01u9exvqhm2714o",
+        "w671jtwplzwl36jpgtw80afz8",
+        "wjupkrichz2bdvua856xye8zf",
+        "wuaagjr9yg0ajckjy0ysoq8t1",
+        "yck87es3xj5cr8w77q94ne19u",
+        "yd0uhfhwgwht6w06413wgf19e",
+        "zd9zytfy0mr99qe7d6otyt0f0",
+        "zj54h1n6jtp16hdi45kabhjuh"
+      ]
+    }
+  ],
+  "secondAttemptBeforeCache": [
+    {
+      "ID": "0x9k0vh7h3opy61uiq1j9iimx",
+      "Type": "regular",
+      "Size": 42844160,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:35.93473445Z",
+      "LastUsedAt": "2026-09-22T21:50:36.734817933Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "17tgxux3cybitmlftafgl6y98",
+      "Type": "regular",
+      "Size": 107771374,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:36.680541879Z",
+      "LastUsedAt": "2026-09-22T21:50:08.398148807Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "38c3msmy31rm9t7mdfe7dy5mx",
+      "Type": "source.local",
+      "Size": 8192,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:41.908315413Z",
+      "LastUsedAt": "2026-09-22T21:50:36.774774925Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "4vdgoqd6vdgx138nb8gms3ez8",
+      "Type": "regular",
+      "Size": 8192,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:42.778386396Z",
+      "LastUsedAt": "2026-09-22T21:50:36.738585898Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "6fjvfydg6eedvi8c6a2tdltix",
+      "Type": "regular",
+      "Size": 286720,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:44.917016534Z",
+      "LastUsedAt": "2026-09-22T21:50:08.383155056Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "874ewawadxd7rfje0odzes18v",
+      "Type": "regular",
+      "Size": 24576,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.097034147Z",
+      "LastUsedAt": "2026-09-22T21:50:08.396078775Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "8gm75ybrhzsagey4drknqx7ld",
+      "Type": "regular",
+      "Size": 41553920,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:44.809126803Z",
+      "LastUsedAt": "2026-09-22T21:50:08.413476877Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "91i5xvvlsbrzj2f7hunwoeqsu",
+      "Type": "regular",
+      "Size": 41553920,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:44.813860395Z",
+      "LastUsedAt": "2026-09-22T21:50:36.753567959Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "cym1a06e56fpzbqft3n7f83bo",
+      "Type": "source.local",
+      "Size": 8192,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:40.636621982Z",
+      "LastUsedAt": "2026-09-22T21:50:08.440853119Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "dx8b8kmrwy41djf4ngab3uxkr",
+      "Type": "regular",
+      "Size": 68808,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:43.102049269Z",
+      "LastUsedAt": "2026-09-22T21:50:08.377923397Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "gyxr79xsajjucqk9zs89ifwbq",
+      "Type": "source.local",
+      "Size": 8192,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:41.900737271Z",
+      "LastUsedAt": "2026-09-22T21:50:08.444353925Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "hes4xh1obsat2dcjjer3bisrw",
+      "Type": "regular",
+      "Size": 938692608,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:35.832272399Z",
+      "LastUsedAt": "2026-09-22T21:50:08.427880281Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "hrcywbdq0js0otyp0y09jk9m6",
+      "Type": "regular",
+      "Size": 961437696,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:37.750488185Z",
+      "LastUsedAt": "2026-09-22T21:50:36.748004031Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "i9dky7g9gru6f9kcw48pyjjtt",
+      "Type": "regular",
+      "Size": 24576,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:44.998086954Z",
+      "LastUsedAt": "2026-09-22T21:50:08.420340939Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "ibuivuj5p099x8w1g61ixg3j5",
+      "Type": "regular",
+      "Size": 8285,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:43.163065133Z",
+      "LastUsedAt": "2026-09-22T21:50:08.391091865Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "ihohdf85jitrrok87w4ivtlph",
+      "Type": "regular",
+      "Size": 28232655,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:42.136216291Z",
+      "LastUsedAt": "2026-09-22T21:47:42.18755507Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "jg3gfl6w4krbdhuoo64eqpjvr",
+      "Type": "regular",
+      "Size": 12382208,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.290961959Z",
+      "LastUsedAt": "2026-09-22T21:50:08.410299009Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "k38kpqgssxge0wb05ttynnyxs",
+      "Type": "regular",
+      "Size": 23017461,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:36.116671539Z",
+      "LastUsedAt": "2026-09-22T21:50:08.414885251Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "k8f9vn0dt4uzi0yubzy5iilnh",
+      "Type": "regular",
+      "Size": 24576,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.038743513Z",
+      "LastUsedAt": "2026-09-22T21:50:08.404481082Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "klu30g95fyilqfr2v8oihsbj4",
+      "Type": "regular",
+      "Size": 20480,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:44.960239394Z",
+      "LastUsedAt": "2026-09-22T21:50:08.400330228Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "ktg2atyc1hyaktrgpdtdhpdc8",
+      "Type": "regular",
+      "Size": 50502756,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:42.214772929Z",
+      "LastUsedAt": "2026-09-22T21:47:42.260394781Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "ktmzqb8roypks4kxqncez5ttu",
+      "Type": "regular",
+      "Size": 2074590,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:48.816519262Z",
+      "LastUsedAt": "2026-09-22T21:50:36.781474778Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "ktn7ja84tepqyq1dl6owf04y0",
+      "Type": "regular",
+      "Size": 604733982,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:39.626761178Z",
+      "LastUsedAt": "2026-09-22T21:50:08.447767482Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "llqwtjisp4svibed4intg4d7n",
+      "Type": "regular",
+      "Size": 292937728,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:35.641176472Z",
+      "LastUsedAt": "2026-09-22T21:50:08.437190463Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "m2r1eyvub2n0nw3ejipkha7yq",
+      "Type": "regular",
+      "Size": 938413,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:48.774353507Z",
+      "LastUsedAt": "2026-09-22T21:50:36.767046616Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "mh2kj6sady1soowpm469ohfrk",
+      "Type": "regular",
+      "Size": 28550258,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:48.963919107Z",
+      "LastUsedAt": "2026-09-22T21:50:36.799024598Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "ngoku9d6zkkoxhbxsv9nm3ros",
+      "Type": "regular",
+      "Size": 978387786,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:27.591606873Z",
+      "LastUsedAt": "2026-09-22T21:50:36.804042328Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "nn50to3r5xyallhs1e7rc5dll",
+      "Type": "regular",
+      "Size": 1785856,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:37.724237375Z",
+      "LastUsedAt": "2026-09-22T21:50:36.736808515Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "nnrb4thg74feh8jqswgwiszmf",
+      "Type": "regular",
+      "Size": 1042419712,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:03.590972935Z",
+      "LastUsedAt": "2026-09-22T21:50:08.411862923Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "nx0osfynitbmuns68qtqnkojh",
+      "Type": "regular",
+      "Size": 32939,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:40.111303874Z",
+      "LastUsedAt": "2026-09-22T21:50:08.432915281Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "nznuwg84axw39cigmjq2m2fov",
+      "Type": "source.local",
+      "Size": 24395776,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:42.151601263Z",
+      "LastUsedAt": "2026-09-22T21:50:36.777940422Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "pbw61s0wlvjq0w9apkmzrgkmq",
+      "Type": "regular",
+      "Size": 8285,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:27.953993815Z",
+      "LastUsedAt": "2026-09-22T21:50:36.742375803Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "psko1qmmtrxa5dfmhi78ddtd1",
+      "Type": "regular",
+      "Size": 286720,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:44.921652837Z",
+      "LastUsedAt": "2026-09-22T21:50:36.7834647Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "pxbo16spd804e4slz3xh0xowa",
+      "Type": "regular",
+      "Size": 3323,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:42.17704608Z",
+      "LastUsedAt": "2026-09-22T21:47:42.229015487Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "q5tgs0dm01jhaj4r4xw5vqeuk",
+      "Type": "regular",
+      "Size": 4567403,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:36.75226031Z",
+      "LastUsedAt": "2026-09-22T21:50:08.386397233Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "qbvgxu519bau1ys1nfqo0ccch",
+      "Type": "regular",
+      "Size": 942874624,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:48:02.983770403Z",
+      "LastUsedAt": "2026-09-22T21:50:36.744053846Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "qx1wahyttf0duguaggmal51d1",
+      "Type": "regular",
+      "Size": 24576,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.189819854Z",
+      "LastUsedAt": "2026-09-22T21:50:08.422533181Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "r9liyzjklqdcuib2sr20pq455",
+      "Type": "regular",
+      "Size": 24576,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.131505919Z",
+      "LastUsedAt": "2026-09-22T21:50:08.446088779Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "sax5uy7uhf4nhy8qqrq1j0sg5",
+      "Type": "regular",
+      "Size": 450,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:42.287201063Z",
+      "LastUsedAt": "2026-09-22T21:50:36.740289331Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "sefb986z37trihsox25lesvkq",
+      "Type": "regular",
+      "Size": 1712981,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:42.246254114Z",
+      "LastUsedAt": "2026-09-22T21:47:42.30105964Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "smdkdr8ga790l2wkn4ltxzq4t",
+      "Type": "regular",
+      "Size": 344064,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.302311107Z",
+      "LastUsedAt": "2026-09-22T21:50:36.787576514Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "vz79peaofvthqmnyzf7h3yhul",
+      "Type": "regular",
+      "Size": 847872,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.254729924Z",
+      "LastUsedAt": "2026-09-22T21:50:36.808470641Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "w3ftfx1m4p01u9exvqhm2714o",
+      "Type": "regular",
+      "Size": 602969,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:48.862130775Z",
+      "LastUsedAt": "2026-09-22T21:50:36.796631098Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "w671jtwplzwl36jpgtw80afz8",
+      "Type": "regular",
+      "Size": 3108864,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.197547185Z",
+      "LastUsedAt": "2026-09-22T21:50:36.758747508Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "wjupkrichz2bdvua856xye8zf",
+      "Type": "regular",
+      "Size": 723900700,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:49:48.480656363Z",
+      "LastUsedAt": "2026-09-22T21:50:36.789707575Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "wuaagjr9yg0ajckjy0ysoq8t1",
+      "Type": "regular",
+      "Size": 15040512,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.464221598Z",
+      "LastUsedAt": "2026-09-22T21:50:36.779681805Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "yck87es3xj5cr8w77q94ne19u",
+      "Type": "source.local",
+      "Size": 8192,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:40.571385093Z",
+      "LastUsedAt": "2026-09-22T21:50:36.794258377Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "yd0uhfhwgwht6w06413wgf19e",
+      "Type": "regular",
+      "Size": 4808704,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.12599671Z",
+      "LastUsedAt": "2026-09-22T21:50:36.731308017Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "zd9zytfy0mr99qe7d6otyt0f0",
+      "Type": "source.local",
+      "Size": 12718080,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:42.144540439Z",
+      "LastUsedAt": "2026-09-22T21:50:08.418684697Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "zj54h1n6jtp16hdi45kabhjuh",
+      "Type": "regular",
+      "Size": 24576,
+      "InUse": false,
+      "Shared": false,
+      "CreatedAt": "2026-09-22T21:47:45.065624674Z",
+      "LastUsedAt": "2026-09-22T21:50:08.406835343Z",
+      "UsageCount": 1
+    }
+  ],
+  "allAuthorizedIdsRemoved": true
+}

@@ -99,7 +99,13 @@ for (const role of ['worker', 'owner'] as const) {
       expect(
         db.prepare('SELECT id FROM time_entry WHERE activity_summary=?').get(`${summary} overlap`),
       ).toBeUndefined();
-      await form.getByRole('button', { name: 'Cancel', exact: true }).click();
+      const discard = page.waitForEvent('dialog');
+      const cancel = form.getByRole('button', { name: 'Cancel', exact: true }).click();
+      const confirmation = await discard;
+      expect(confirmation.message()).toContain('unsaved changes');
+      await confirmation.accept();
+      await cancel;
+      await expect(form).not.toBeVisible();
       await row.getByRole('button', { name: 'Edit draft', exact: true }).click();
       form = page.locator('form[data-time-entry-surface]');
       await expect(form.locator('[name="startTime"]')).toHaveValue('09:00');

@@ -1,12 +1,18 @@
 <script lang="ts" generics="T extends Record<string, unknown>">
   import type { Snippet } from 'svelte';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { page as route } from '$app/stores';
   import {
     readOperationalRegisterState,
     writeOperationalRegisterState,
   } from '../sections/operational-register';
-  import { browseRecords, recordState } from './record-browser';
+  import {
+    browseRecords,
+    focusRecordBrowser,
+    recordState,
+    restoreRecordBrowserState,
+    type RecordBrowserState,
+  } from './record-browser';
   let {
     rows,
     visible = $bindable<T[]>([]),
@@ -52,38 +58,48 @@
   });
   const pages = $derived(Math.max(1, Math.ceil(filtered.length / pageSize)));
   const current = $derived(Math.min(page, pages - 1));
+  const defaults: RecordBrowserState = untrack(() => ({
+    search: '',
+    status,
+    order: 'priority',
+    page: 0,
+  }));
   let criteria = '';
-  let hydrated = $state(false);
+  let mounted = $state(false);
+  let restoredKey = $state<string | null>(null);
+  let appliedFocus = '';
   const storageKey = $derived(
     `ja-record-browser:${$route.data.user?.id ?? $route.data.managementUser?.id ?? ''}:${$route.url.pathname}${$route.url.search}:${label}:${contextKey}`,
   );
   onMount(() => {
-    const saved =
-      focusId || controlled
-        ? null
-        : readOperationalRegisterState<{
-            search?: string;
-            status?: string;
-            order?: string;
-            page?: number;
-          }>(storageKey);
-    if (!controlled) {
-      if (filtersEnabled && typeof saved?.search === 'string') search = saved.search;
-      if (filtersEnabled && typeof saved?.status === 'string') status = saved.status;
-      if (typeof saved?.order === 'string') order = saved.order;
-      if (Number.isInteger(saved?.page) && Number(saved?.page) >= 0) page = Number(saved?.page);
+    mounted = true;
+  });
+
+  // A SvelteKit query/context navigation can reuse this component. Restore the
+  // incoming context before any writer can copy the outgoing filters into it.
+  $effect(() => {
+    if (!mounted || controlled) return;
+    const key = storageKey;
+    const snapshot = { search, status, order, page };
+    const nextCriteria = JSON.stringify([search, status, order, pageSize]);
+    if (restoredKey !== key) {
+      const saved = readOperationalRegisterState<Record<string, unknown>>(key);
+      const restored = restoreRecordBrowserState(saved, defaults, filtersEnabled);
+      criteria = JSON.stringify([restored.search, restored.status, restored.order, pageSize]);
+      appliedFocus = '';
+      restoredKey = key;
+      search = restored.search;
+      status = restored.status;
+      order = restored.order;
+      page = restored.page;
+      return;
     }
-    criteria = JSON.stringify([search, status, order, pageSize]);
-    hydrated = true;
-  });
-  $effect(() => {
-    const next = JSON.stringify([search, status, order, pageSize]);
-    if (criteria && criteria !== next) page = 0;
-    criteria = next;
-  });
-  $effect(() => {
-    if (hydrated && !controlled)
-      writeOperationalRegisterState(storageKey, { search, status, order, page });
+    if (criteria !== nextCriteria) {
+      criteria = nextCriteria;
+      page = 0;
+      snapshot.page = 0;
+    }
+    writeOperationalRegisterState(key, snapshot);
   });
   let appliedResetKey = $state('');
   $effect(() => {
@@ -91,15 +107,32 @@
     page = 0;
     appliedResetKey = resetKey;
   });
-  // Detail links must reveal their target even when it lives beyond the first page.
-  let appliedFocus = $state('');
+  // Focus is an explicit navigation request, not a permanent filter lock.
+  // Retry when the row arrives, but never broaden the server/parent projection.
   $effect(() => {
-    if (!focusId || appliedFocus === focusId) return;
-    const index = filtered.findIndex((row) => String(row.id) === focusId);
-    if (index >= 0) {
-      page = Math.floor(index / pageSize);
-      appliedFocus = focusId;
+    const key = storageKey;
+    if (!mounted || (!controlled && restoredKey !== key)) return;
+    const request = focusId ? JSON.stringify([key, focusId]) : '';
+    if (!request) {
+      appliedFocus = '';
+      return;
     }
+    if (appliedFocus === request) return;
+    const focused = focusRecordBrowser(
+      rows,
+      { search, status, order, page },
+      focusId,
+      pageSize,
+      filtersEnabled,
+      controlled,
+    );
+    if (!focused) return;
+    appliedFocus = request;
+    criteria = JSON.stringify([focused.search, focused.status, focused.order, pageSize]);
+    search = focused.search;
+    status = focused.status;
+    order = focused.order;
+    page = focused.page;
   });
 </script>
 

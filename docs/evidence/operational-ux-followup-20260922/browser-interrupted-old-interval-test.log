@@ -1,0 +1,438 @@
+[WebServer] (node:8665) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ next build
+
+[WebServer] (node:8713) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:8713) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:9084) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:9076) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:9094) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:9282) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ next start --port 4173 --hostname 127.0.0.1
+
+[WebServer] (node:9328) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+
+[WebServer] (node:9372) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite build
+
+[WebServer] (node:9385) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+[WebServer] (node:9385) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+[WebServer] [plugin builtin:vite-reporter] 
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+[WebServer] [PLUGIN_TIMINGS] Your build spent 91% of 3.7s inside plugin hooks (3.4s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-svelte:compile transform (72%, 2.7s, 69 calls)
+[WebServer]   - vite:css transform (30%, 1.1s, 40 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 91% is below.
+[WebServer] Not measurable — 2 hooks whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (1468 calls)
+[WebServer]   - vite-plugin-svelte:preprocess transform (69 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer] 
+
+[WebServer] (node:9385) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] .svelte-kit/output/server/chunks/auth.js (3652:0): A comment
+[WebServer] 
+[WebServer] "/**
+[WebServer] * Wraps a cipher: validates args, ensures encrypt() can only be called once.
+[WebServer] * Used internally by the exported cipher constructors.
+[WebServer] * Output-buffer support is inferred from the wrapped `encrypt` / `decrypt`
+[WebServer] * arity (`fn.length === 2`), so wrapped output-capable methods must use a normal
+[WebServer] * second parameter, not a default/rest parameter. AAD support is explicit in
+[WebServer] * `params.withAAD`; optional AAD starts after the nonce slot when one is present.
+[WebServer] * @__NO_SIDE_EFFECTS__
+[WebServer] * @param params - Static cipher metadata. See {@link CipherParams}.
+[WebServer] * @param constructor - Cipher constructor.
+[WebServer] * @returns Wrapped constructor with validation.
+[WebServer] */"
+[WebServer] 
+[WebServer] in ".svelte-kit/output/server/chunks/auth.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+
+[WebServer] "node:sqlite" is imported by ".svelte-kit/output/server/chunks/src.js", but could not be resolved – treating it as an external dependency.
+
+[WebServer] Generated an empty chunk: "chunks/env.js".
+
+[WebServer] [PLUGIN_TIMINGS] Your build spent 100% of 13.3s inside plugin hooks (21.3s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-sveltekit-compile writeBundle (67%, 8.8s, 1 call)
+[WebServer]   - vite-plugin-sveltekit-compile closeBundle (63%, 8.4s, 1 call)
+[WebServer]   - vite-plugin-svelte:compile transform (22%, 2.9s, 69 calls)
+[WebServer]   - @tailwindcss/vite:generate:build transform (13%, 1.8s, 40 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 100% is below.
+[WebServer] Not measurable — 1 hook whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (4503 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer] 
+
+[WebServer] (node:10060) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ node build
+
+[WebServer] (node:10073) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a0ccf9-30d0-7069-b6c7-e1ee586ecb2d",
+    "01a0ccf9-30d1-748d-8f34-c0fdc5ee68b0",
+    "01a0ccf9-30d2-74cb-9b1e-85cf139d5a76",
+    "01a0ccf9-30d2-74cb-9b1e-942062753bf1"
+  ],
+  "invoiceDrafts": [
+    "01a0ccf9-31e4-767b-9294-ca45c298e8f9",
+    "01a0ccf9-31eb-7448-8844-451f04b009c5",
+    "01a0ccf9-31f3-75c2-b18b-3498b65249c1"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a0ccf9-3209-728b-bf33-e3a944afcd02",
+    "01a0ccf9-320c-718e-82f3-3bf9abcbc5ff",
+    "01a0ccf9-3210-760b-a226-13a671f925e1"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a0ccf9-3209-728b-bf33-e3a944afcd02",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a0ccf9-31d8-773c-8d87-48b13b5bf48d",
+    "01a0ccf9-31d9-71ec-ad49-bec2158c62c2"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0ccf9-30d0-7069-b6c7-e1ee586ecb2d",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a0ccf9-3219-741d-89ad-f74b21dd419c"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0ccf9-30d0-7069-b6c7-e1ee586ecb2d",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a0ccf9-321d-7329-8de2-10fa550eef94"
+    }
+  ],
+  "periodReportIds": [
+    "01a0ccf9-321e-706c-bfac-185dddb08237",
+    "01a0ccf9-321e-706c-bfac-1ccb315eb6e7"
+  ],
+  "accountingPackId": "01a0ccf9-3265-756c-aae4-33add25f46d5",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-e99424f296a37b6cca999ea06f4e7b496bd150b2",
+  "closeoutId": "01a0ccf9-3300-7283-8342-b9f56f49f30e"
+}
+
+Running 68 tests using 1 worker
+
+(node:10282) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/68] [phone-360] › tests/e2e/form-resilience.spec.ts:40:1 › expense validation retains the receipt and values, then creation and editing succeed
+[2/68] [phone-360] › tests/e2e/form-resilience.spec.ts:113:3 › daily report retains all fields after server validation and saves after correction
+[3/68] [phone-360] › tests/e2e/form-resilience.spec.ts:113:3 › technical report retains all fields after server validation and saves after correction
+[4/68] [phone-360] › tests/e2e/form-resilience.spec.ts:164:1 › owner expense save blocks duplicate submits and retains the form after network and server errors
+[5/68] [phone-360] › tests/e2e/form-resilience.spec.ts:232:1 › disabled offline mode keeps expense values and receipt with explicit reconnect feedback
+[6/68] [phone-360] › tests/e2e/manual-current-capture.spec.ts:59:1 › capture fresh synthetic manuals for seven personas and the Spanish worker guide
+[7/68] [phone-360] › tests/e2e/record-browser-state.spec.ts:62:1 › management SPA tabs restore their own search, sort and page without leaking state
+[8/68] [phone-360] › tests/e2e/record-browser-state.spec.ts:103:1 › focused management records override only hiding filters and keep saved ordering
+[9/68] [phone-360] › tests/e2e/record-browser-state.spec.ts:146:1 › billing stream preferences stay scoped to project and signed-in user
+[10/68] [phone-360] › tests/e2e/record-browser-state.spec.ts:199:1 › controlled notification paging preserves server order and resets on its parent filter
+[11/68] [phone-360] › tests/e2e/sheet-change-tracking.spec.ts:4:1 › searching a selector does not dirty a sheet, but selecting a real value does
+[12/68] [phone-360] › tests/e2e/time-form-resilience.spec.ts:35:1 › time blocks duplicate writes, freezes the submitted interval and focuses network failure feedback
+[13/68] [phone-360] › tests/e2e/time-form-resilience.spec.ts:99:1 › time server validation focuses its field and removes the obsolete summary after correction
+[14/68] [phone-360] › tests/e2e/time-form-resilience.spec.ts:120:1 › time cross-field interval corrections and reset clear only obsolete validation without moving focus
+[15/68] [phone-360] › tests/e2e/time-form-resilience.spec.ts:157:1 › time reports disabled offline mode without losing the local interval or attempting a POST
+[16/68] [phone-360] › tests/e2e/time-interval.spec.ts:9:3 › worker: current local date, clock interval, pause and edit
+  1) [phone-360] › tests/e2e/time-interval.spec.ts:9:3 › worker: current local date, clock interval, pause and edit 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('article.time-record').filter({ hasText: 'Clock interval worker phone-360' }).getByRole('button', { name: 'Edit draft', exact: true })
+        - locator resolved to <button type="button" class="secondary-button">Edit draft</button>
+      - attempting click action
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <select required="" name="category">…</select> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+      - retrying click action
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <div class="expense-entry-actions time-entry-actions">…</div> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+      - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <select required="" name="category">…</select> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        12 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <select required="" name="category">…</select> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+           - waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <div class="expense-entry-actions time-entry-actions">…</div> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+           - waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <select required="" name="category">…</select> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+           - waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <select required="" name="category">…</select> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <select required="" name="category">…</select> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+      - retrying click action
+        - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <div class="expense-entry-actions time-entry-actions">…</div> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+      - retrying click action
+        - waiting 500ms
+
+
+      101 |       ).toBeUndefined();
+      102 |       await form.getByRole('button', { name: 'Cancel', exact: true }).click();
+    > 103 |       await row.getByRole('button', { name: 'Edit draft', exact: true }).click();
+          |                                                                          ^
+      104 |       form = page.locator('form[data-time-entry-surface]');
+      105 |       await expect(form.locator('[name="startTime"]')).toHaveValue('09:00');
+      106 |       await expect(form.locator('[name="breakMinutes"]')).toHaveValue('15');
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/time-interval.spec.ts:103:74
+
+    Error Context: test-results/time-interval-worker-curre-36e9f-ock-interval-pause-and-edit-phone-360/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/time-interval-worker-curre-36e9f-ock-interval-pause-and-edit-phone-360/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/time-interval-worker-curre-36e9f-ock-interval-pause-and-edit-phone-360/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:13070) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[17/68] [phone-360] › tests/e2e/time-interval.spec.ts:9:3 › owner: current local date, clock interval, pause and edit
+  2) [phone-360] › tests/e2e/time-interval.spec.ts:9:3 › owner: current local date, clock interval, pause and edit 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('article.time-record').filter({ hasText: 'Clock interval owner phone-360' }).getByRole('button', { name: 'Edit draft', exact: true })
+        - locator resolved to <button type="button" class="secondary-button">Edit draft</button>
+      - attempting click action
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <input type="date" required="" name="workDate"/> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+      - retrying click action
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <div class="expense-entry-actions time-entry-actions">…</div> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+      - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <input type="date" required="" name="workDate"/> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        12 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <input type="date" required="" name="workDate"/> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+           - waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <div class="expense-entry-actions time-entry-actions">…</div> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+           - waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <input type="date" required="" name="workDate"/> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+           - waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <input type="date" required="" name="workDate"/> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <input type="date" required="" name="workDate"/> from <div role="dialog" tabindex="-1" aria-modal="true" data-ui="responsive-sheet" class="responsive-sheet time-entry-sheet" aria-labelledby="responsive-sheet-s3-title" aria-describedby="responsive-sheet-s3-description">…</div> subtree intercepts pointer events
+      - retrying click action
+        - waiting 500ms
+
+
+      101 |       ).toBeUndefined();
+      102 |       await form.getByRole('button', { name: 'Cancel', exact: true }).click();
+    > 103 |       await row.getByRole('button', { name: 'Edit draft', exact: true }).click();
+          |                                                                          ^
+      104 |       form = page.locator('form[data-time-entry-surface]');
+      105 |       await expect(form.locator('[name="startTime"]')).toHaveValue('09:00');
+      106 |       await expect(form.locator('[name="breakMinutes"]')).toHaveValue('15');
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/time-interval.spec.ts:103:74
+
+    Error Context: test-results/time-interval-owner-curren-cac24-ock-interval-pause-and-edit-phone-360/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/time-interval-owner-curren-cac24-ock-interval-pause-and-edit-phone-360/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/time-interval-owner-curren-cac24-ock-interval-pause-and-edit-phone-360/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:13921) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[18/68] [phone-390] › tests/e2e/form-resilience.spec.ts:40:1 › expense validation retains the receipt and values, then creation and editing succeed
+[19/68] [phone-390] › tests/e2e/form-resilience.spec.ts:113:3 › daily report retains all fields after server validation and saves after correction
+[20/68] [phone-390] › tests/e2e/form-resilience.spec.ts:113:3 › technical report retains all fields after server validation and saves after correction
+[21/68] [phone-390] › tests/e2e/form-resilience.spec.ts:164:1 › owner expense save blocks duplicate submits and retains the form after network and server errors
+  3) [phone-390] › tests/e2e/form-resilience.spec.ts:164:1 › owner expense save blocks duplicate submits and retains the form after network and server errors 
+
+    Test was interrupted.
+
+    Error: frame.evaluate: Test ended.
+
+      221 |   await expect(form.locator('[name="vendor"]')).toHaveValue('Preserved during network failure');
+      222 |   await expect(page).toHaveURL((url) => url.pathname.endsWith('/expenses'));
+    > 223 |   const failureAccessibility = await new AxeBuilder({ page })
+          |                                ^
+      224 |     .include('[data-ui="responsive-sheet"]')
+      225 |     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      226 |     .analyze();
+        at AxeBuilder.runPartialRecursive (/home/kripta/ja-automation-platform-vps-hotfix/node_modules/.pnpm/@axe-core+playwright@4.13.0_playwright-core@1.62.1/node_modules/@axe-core/playwright/dist/index.mjs:283:34)
+        at AxeBuilder.analyze (/home/kripta/ja-automation-platform-vps-hotfix/node_modules/.pnpm/@axe-core+playwright@4.13.0_playwright-core@1.62.1/node_modules/@axe-core/playwright/dist/index.mjs:210:28)
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/form-resilience.spec.ts:223:32
+
+    Error Context: test-results/form-resilience-owner-expe-1685d-r-network-and-server-errors-phone-390/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/form-resilience-owner-expe-1685d-r-network-and-server-errors-phone-390/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/form-resilience-owner-expe-1685d-r-network-and-server-errors-phone-390/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [phone-360] › tests/e2e/time-interval.spec.ts:9:3 › worker: current local date, clock interval, pause and edit 
+    [phone-360] › tests/e2e/time-interval.spec.ts:9:3 › owner: current local date, clock interval, pause and edit 
+  1 interrupted
+    [phone-390] › tests/e2e/form-resilience.spec.ts:164:1 › owner expense save blocks duplicate submits and retains the form after network and server errors 
+  1 skipped
+  47 did not run
+  17 passed (3.3m)

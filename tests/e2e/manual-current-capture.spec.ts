@@ -215,6 +215,11 @@ test('capture fresh synthetic manuals for seven personas and the Spanish worker 
           const url = await navigate(page, '/audit', locale);
           await capture(page, persona, locale, 'audit', url);
         }
+        if (['owner', 'finance', 'manager', 'auditor', 'worker'].includes(persona)) {
+          const url = await navigate(page, '/notifications', locale);
+          await expect(page.locator('.notification-inbox')).toBeVisible();
+          await capture(page, persona, locale, 'activity-inbox', url);
+        }
         if (persona === 'supplier-coordinator') {
           const url = await navigate(page, `/supplier?projectId=${supplierProjectId}`, locale);
           await capture(page, persona, locale, 'supplier-team', url);
@@ -279,6 +284,12 @@ test('capture fresh synthetic manuals for seven personas and the Spanish worker 
             url,
             page.locator('.searchable-select-popover:popover-open'),
           );
+          // These are unsaved synthetic illustration values. Explicitly discard them before
+          // navigating; the production guard must remain active during the capture.
+          await page.keyboard.press('Escape');
+          page.once('dialog', (dialog) => dialog.accept());
+          await page.locator('[data-ui="responsive-sheet"] [data-sheet-close]').click();
+          await expect(form).not.toBeVisible();
         }
         await page.setViewportSize(phone);
         const url = await navigate(page, '', locale);

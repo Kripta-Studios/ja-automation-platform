@@ -2,6 +2,9 @@
   import { SectionCard } from '../ui';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
+  import { enhance } from '$app/forms';
+  import { localToday } from '../ui/time-entry-clock';
+  import { createOperationalSubmit, operationalFieldValidation } from '../ui/operational-submit';
   import { onMount } from 'svelte';
   import { ResponsiveSheet, StatusBadge } from '../ui';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
@@ -66,6 +69,22 @@
       : resolveReportTab($page.url.searchParams.get('view')),
   );
   let surface = $state<Surface>(null);
+  let surfaceError = $state('');
+  let saving = $state(false);
+  let createDate = $state('');
+  let createProject = $state('');
+  const submitReport = createOperationalSubmit({
+    locale: () => normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
+    translate: (value) => translate(value),
+    setSaving: (value) => {
+      saving = value;
+    },
+    setError: (value) => {
+      surfaceError = value;
+    },
+    onSuccess: closeSurface,
+    offlineHandled: () => data.offlineEnabled !== false,
+  });
   let search = $state('');
   let projectFilter = $state('');
   let workerFilter = $state('');
@@ -597,10 +616,16 @@
   }
 
   function openCreate(type: 'daily' | 'technical'): void {
+    surfaceError = '';
+    createDate = localToday();
+    createProject = availableProjects.some((project) => String(project.id) === projectFilter)
+      ? projectFilter
+      : '';
     surface = type;
   }
 
   function openGenerator(): void {
+    surfaceError = '';
     if (canGeneratePeriodReports) surface = 'generate';
   }
 
@@ -1298,13 +1323,22 @@
   closeLabel={translate('Close report form')}
   class="report-entry-sheet"
   onclose={closeSurface}
+  protectChanges={surface !== 'generate'}
 >
+  {#if surfaceError}
+    <p class="operational-form-error" role="alert" tabindex="-1" data-operational-form-error>
+      {surfaceError}
+    </p>
+  {/if}
   {#if surface === 'daily'}
     <form
       method="POST"
       action="?/createDailyReport"
       class="report-entry-form report-form"
       data-report-entry-surface="daily"
+      aria-busy={saving}
+      use:operationalFieldValidation
+      use:enhance={submitReport}
       onsubmit={(event) => saveOfflineDraft(event, 'daily_report')}
     >
       {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
@@ -1328,7 +1362,7 @@
       </div>
       <label>
         <span>{translate('Project')}</span>
-        <select name="projectId" required>
+        <select name="projectId" required bind:value={createProject}>
           <option value="">{translate('Select assignment')}</option>
           {#each availableProjects as project}
             <option value={String(project.id)}>{project.project_number} — {project.name}</option>
@@ -1340,6 +1374,7 @@
           ><span>{translate('Work date')}</span><input
             name="workDate"
             type="date"
+            bind:value={createDate}
             required
           /></label
         >
@@ -1389,10 +1424,12 @@
         <span>{translate('Safety-related change')}</span></label
       >
       <div class="report-entry-actions">
-        <button type="button" class="secondary-button" onclick={closeSurface}
+        <button type="button" class="secondary-button" data-sheet-close onclick={closeSurface}
           >{translate('Cancel')}</button
         >
-        <button type="submit">{translate('Save daily report')}</button>
+        <button type="submit" disabled={saving}
+          >{translate(saving ? 'Saving…' : 'Save daily report')}</button
+        >
       </div>
     </form>
   {:else if surface === 'technical'}
@@ -1401,6 +1438,9 @@
       action="?/createTechnicalReport"
       class="report-entry-form report-form"
       data-report-entry-surface="technical"
+      aria-busy={saving}
+      use:operationalFieldValidation
+      use:enhance={submitReport}
       onsubmit={(event) => saveOfflineDraft(event, 'technical_report')}
     >
       {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
@@ -1424,7 +1464,7 @@
       </div>
       <label>
         <span>{translate('Project')}</span>
-        <select name="projectId" required>
+        <select name="projectId" required bind:value={createProject}>
           <option value="">{translate('Select assignment')}</option>
           {#each availableProjects as project}
             <option value={String(project.id)}>{project.project_number} — {project.name}</option>
@@ -1436,6 +1476,7 @@
           ><span>{translate('Work date')}</span><input
             name="reportDate"
             type="date"
+            bind:value={createDate}
             required
           /></label
         >
@@ -1523,10 +1564,12 @@
         >
       </label>
       <div class="report-entry-actions">
-        <button type="button" class="secondary-button" onclick={closeSurface}
+        <button type="button" class="secondary-button" data-sheet-close onclick={closeSurface}
           >{translate('Cancel')}</button
         >
-        <button type="submit">{translate('Save PLC report')}</button>
+        <button type="submit" disabled={saving}
+          >{translate(saving ? 'Saving…' : 'Save PLC report')}</button
+        >
       </div>
     </form>
   {:else if surface === 'generate' && canGeneratePeriodReports}
@@ -1638,7 +1681,7 @@
         </fieldset>
       {/if}
       <div class="report-entry-actions">
-        <button type="button" class="secondary-button" onclick={closeSurface}
+        <button type="button" class="secondary-button" data-sheet-close onclick={closeSurface}
           >{translate('Cancel')}</button
         >
         <button type="submit">{translate('Refresh reports')}</button>
@@ -1648,6 +1691,10 @@
 </ResponsiveSheet>
 
 <style>
+  .operational-form-error {
+    color: var(--ja-red-dark, #8f1d14);
+    padding: 0.75rem 0;
+  }
   .report-primary-action-top {
     justify-content: flex-start;
     gap: 0.65rem;

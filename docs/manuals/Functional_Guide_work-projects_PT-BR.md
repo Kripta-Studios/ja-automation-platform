@@ -117,3 +117,13 @@ Acesso — Consulta: cada perfil vê somente seu escopo de projeto vigente e sua
 - **Proprietário:** a autoridade administrativa e entre projetos está fora desta família; a análise do Proprietário é exigida onde indicado para registros de fornecedor ou correções escaladas.
 
 Ver um menu, ler um guia ou conhecer um procedimento nunca amplia a permissão da conta nem seu escopo de projeto.
+
+## Recuperação de formulários e avisos
+
+**Hoje** separa todas as atribuições que coincidem com o dia UTC atual dos próximos trabalhos. Um turno noturno pode aparecer nos dois dias afetados. Confira as datas completas e a indicação UTC; use **Mostrar mais alocações** para ver outras atribuições futuras. O planejamento nunca cria horas reais. Abra um projeto somente pelo seu link autorizado.
+
+Os formulários de Horas, Despesas e relatórios Diário/Técnico mantêm os valores informados após uma falha de validação ou conexão. Corrija os campos destacados; o resumo se atualiza quando os erros são resolvidos. Durante o salvamento, aguarde o resultado antes de editar. Se não for possível confirmar o salvamento, confira o registro antes de enviar novamente. Se o salvamento for confirmado, mas a atualização da lista falhar, feche o formulário e recarregue; não envie de novo. Fechar, Escape, Voltar ou recarregar pede confirmação antes de descartar alterações. Pesquisar em um seletor sem escolher outro valor não altera o formulário. Essa proteção não equivale a salvar um rascunho nem permite recuperar dados após fechar o navegador.
+
+Abra **Notificações** pelo navegador de seções ou pelo menu da conta. **Todas** e **Não lidas** filtram os últimos 50 avisos carregados na caixa. Use **Marcar como lido** para o aviso escolhido; abrir a caixa não marca todos como lidos. **Detalhes da notificação** e os links para o registro mantêm as verificações de acesso. Marcar um aviso como lido não aprova seu registro de negócio.
+
+<!-- screenshot:worker:activity-inbox -->

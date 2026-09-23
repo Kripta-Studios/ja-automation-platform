@@ -1,6 +1,62 @@
 import { normalizeSelectSearch } from '../searchable-selects';
 
 type Row = Record<string, unknown>;
+export type RecordBrowserState = {
+  search: string;
+  status: string;
+  order: string;
+  page: number;
+};
+
+/** Validate persisted preferences before restoring a register's own context. */
+export function restoreRecordBrowserState(
+  saved: Record<string, unknown> | null,
+  defaults: RecordBrowserState,
+  filtersEnabled: boolean,
+): RecordBrowserState {
+  return {
+    search: filtersEnabled && typeof saved?.search === 'string' ? saved.search : defaults.search,
+    status: filtersEnabled && typeof saved?.status === 'string' ? saved.status : defaults.status,
+    order:
+      typeof saved?.order === 'string' &&
+      ['priority', 'oldest', 'newest', 'name', 'status'].includes(saved.order)
+        ? saved.order
+        : defaults.order,
+    page: Number.isSafeInteger(saved?.page) && Number(saved?.page) >= 0 ? Number(saved?.page) : 0,
+  };
+}
+
+/**
+ * A requested row may override only local criteria that hide that authorized
+ * row. Controlled lists remain under their parent's filter/order authority.
+ */
+export function focusRecordBrowser<T extends Row>(
+  rows: readonly T[],
+  state: RecordBrowserState,
+  focusId: string,
+  pageSize: number,
+  filtersEnabled: boolean,
+  controlled: boolean,
+): RecordBrowserState | null {
+  const target = rows.find((row) => String(row.id) === focusId);
+  if (!focusId || !target) return null;
+  const next = { ...state };
+  if (!controlled && filtersEnabled) {
+    if (next.status && recordState(target) !== next.status) next.status = '';
+    if (!browseRecords([target], next.search, '', next.order).length) next.search = '';
+  }
+  const filtered = controlled
+    ? [...rows]
+    : browseRecords(
+        rows,
+        filtersEnabled ? next.search : '',
+        filtersEnabled ? next.status : '',
+        next.order,
+      );
+  const index = filtered.findIndex((row) => String(row.id) === focusId);
+  return index < 0 ? null : { ...next, page: Math.floor(index / pageSize) };
+}
+
 function first(row: Row, keys: string[]): string {
   for (const key of keys) {
     if (row[key] !== undefined && row[key] !== null && String(row[key]).trim())

@@ -572,10 +572,23 @@ describe('progressive form validation contract', () => {
 
     first.invalid = false;
     first.value = 'corrected';
+    first.focus();
     first.dispatchEvent(new FakeEvent('input', first));
     expect(form.querySelector('[data-field-error-for="first"]')).toBeNull();
     expect(form.querySelector('[data-field-error-for="second"]')).not.toBeNull();
     expect(first.getAttribute('aria-invalid')).not.toBe('true');
+    expect(form.querySelector('[data-validation-summary]')?.textContent).toBe(
+      'Please correct the following fields: Second is required',
+    );
+    expect(documentFixture.activeElement).toBe(first);
+    second.invalid = false;
+    second.value = 'also corrected';
+    second.focus();
+    second.dispatchEvent(new FakeEvent('input', second));
+    expect(form.querySelector('[data-validation-summary]')).toBeNull();
+    expect(form.querySelectorAll('[data-validation-generated-error]')).toHaveLength(0);
+    expect(second.getAttribute('aria-invalid')).not.toBe('true');
+    expect(documentFixture.activeElement).toBe(second);
     if (typeof cleanup === 'function') cleanup();
     else if (
       cleanup &&
@@ -584,6 +597,80 @@ describe('progressive form validation contract', () => {
       typeof cleanup.destroy === 'function'
     )
       cleanup.destroy();
+  });
+
+  it('clears validation on a dynamically added select change while retaining helper descriptions', async () => {
+    const form = new FakeForm(documentFixture);
+    documentFixture.body.appendChild(form);
+    (await formValidationAction())(form as unknown as HTMLFormElement);
+    const choice = new FakeNode('SELECT', documentFixture);
+    choice.name = 'projectId';
+    choice.invalid = true;
+    choice.validityFlags = { valueMissing: true };
+    choice.setAttribute('aria-describedby', 'project-help');
+    form.appendChild(choice);
+    form.dispatchEvent(new FakeEvent('submit', form));
+    expect(form.querySelector('[data-validation-summary]')).not.toBeNull();
+    choice.invalid = false;
+    choice.value = 'authorized-project';
+    choice.focus();
+    choice.dispatchEvent(new FakeEvent('change', choice));
+    expect(form.querySelector('[data-validation-summary]')).toBeNull();
+    expect(form.querySelectorAll('[data-validation-generated-error]')).toHaveLength(0);
+    expect(choice.getAttribute('aria-describedby')).toBe('project-help');
+    expect(documentFixture.activeElement).toBe(choice);
+  });
+
+  it('refreshes cross-field errors after reactive validity settles without moving focus', async () => {
+    const form = new FakeForm(documentFixture);
+    documentFixture.body.appendChild(form);
+    const start = new FakeNode('INPUT', documentFixture);
+    start.name = 'startTime';
+    const end = new FakeNode('INPUT', documentFixture);
+    end.name = 'endTime';
+    end.invalid = true;
+    end.validationMessage = 'End must follow start.';
+    form.append(start, end);
+    (await formValidationAction())(form as unknown as HTMLFormElement);
+    form.dispatchEvent(new FakeEvent('submit', form));
+    start.focus();
+    start.dispatchEvent(new FakeEvent('input', start));
+    end.validationMessage = 'Break must be shorter than the interval.';
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+    expect(form.querySelector('[data-field-error-for]')?.textContent).toBe(
+      'Break must be shorter than the interval.',
+    );
+    expect(form.querySelector('[data-validation-summary]')?.textContent).toContain(
+      'Break must be shorter than the interval.',
+    );
+    start.dispatchEvent(new FakeEvent('input', start));
+    end.invalid = false;
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+    expect(form.querySelector('[data-validation-summary]')).toBeNull();
+    expect(end.getAttribute('aria-invalid')).not.toBe('true');
+    expect(documentFixture.activeElement).toBe(start);
+  });
+
+  it('clears reported errors after reset but leaves a canceled reset untouched', async () => {
+    const form = new FakeForm(documentFixture);
+    documentFixture.body.appendChild(form);
+    const control = new FakeNode('TEXTAREA', documentFixture);
+    control.invalid = true;
+    control.validityFlags = { valueMissing: true };
+    form.appendChild(control);
+    (await formValidationAction())(form as unknown as HTMLFormElement);
+    form.dispatchEvent(new FakeEvent('submit', form));
+    const canceledReset = new FakeEvent('reset', form);
+    form.dispatchEvent(canceledReset);
+    canceledReset.preventDefault();
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+    expect(form.querySelector('[data-validation-summary]')).not.toBeNull();
+    expect(control.getAttribute('aria-invalid')).toBe('true');
+    form.dispatchEvent(new FakeEvent('reset', form));
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+    expect(form.querySelector('[data-validation-summary]')).toBeNull();
+    expect(form.querySelectorAll('[data-validation-generated-error]')).toHaveLength(0);
+    expect(control.getAttribute('aria-invalid')).not.toBe('true');
   });
 
   it('handles a native invalid event once with one summary, one error and focus', async () => {

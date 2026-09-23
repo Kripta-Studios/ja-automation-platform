@@ -57,9 +57,11 @@ describe('UI_PLAN shell integration', () => {
     expect(shell).toContain('role="listbox"');
     expect(shell).toContain('role="option"');
     expect(shell).toContain('role="group"');
-    expect(shell).toContain('event.ctrlKey || event.metaKey');
-    expect(shell).toContain("event.key.toLowerCase() !== 'k'");
-    expect(shell).toContain("document.addEventListener('keydown', handleGlobalKeydown)");
+    const navigator = read('apps/portal/src/lib/portal/ui/SectionNavigator.svelte');
+    expect(navigator).toContain('event.ctrlKey || event.metaKey');
+    expect(navigator).toContain("event.key.toLowerCase() === 'k'");
+    expect(navigator).toContain("document.addEventListener('keydown', shortcut)");
+    expect(shell).not.toContain('handleGlobalKeydown');
     expect(shell).toContain('aria-controls="portal-search-popover"');
     expect(shell).toContain('Only records in your access scope');
   });

@@ -43,7 +43,10 @@ describe('Client Essential reports UI', () => {
     expect(source).toContain('operationalStatusMatches(');
     expect(source).toContain('fieldReportsForActiveTab');
     expect(source).toContain("registerHref({ view: activeFieldTab, status: 'attention' })");
-    expect(source).toContain('value="attention"');
+    expect(source).toContain('const statusOptions = $derived([');
+    expect(source).toContain("'attention',");
+    expect(source).toContain('{#each statusOptions as item}');
+    expect(source).toContain('value={item}');
     expect(source).toContain("translate('Needs attention')");
     expect(source).toContain('bind:value={order}');
   });
@@ -104,8 +107,8 @@ describe('Client Essential reports UI', () => {
     const source = read('lib/portal/sections/ReportSection.svelte');
 
     expect(source).toContain('import RecordBrowser');
-    expect(source).toContain('const signoffRows = $derived(');
-    expect(source).toContain('const generatedRows = $derived(');
+    expect(source).toContain('const signoffRows = $derived.by(');
+    expect(source).toContain('const generatedRows = $derived.by(');
     expect(source).toContain('bind:visible={signoffPage}');
     expect(source).toContain('contextKey="client-signoff"');
     expect(source).toContain('{#each signoffPage as report}');

@@ -1,0 +1,690 @@
+[WebServer] (node:828866) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ next build
+
+[WebServer] (node:828920) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:828920) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:829141) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:829142) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:829144) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:829280) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ next start --port 4173 --hostname 127.0.0.1
+
+[WebServer] (node:829293) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+
+[WebServer] (node:829364) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite build
+
+[WebServer] (node:829378) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+[WebServer] (node:829378) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+[WebServer] [plugin builtin:vite-reporter] 
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+[WebServer] [PLUGIN_TIMINGS] Your build spent 89% of 3.6s inside plugin hooks (3.2s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-svelte:compile transform (70%, 2.5s, 69 calls)
+[WebServer]   - vite:css transform (56%, 2.0s, 40 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 89% is below.
+[WebServer] Not measurable — 2 hooks whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (1466 calls)
+[WebServer]   - vite-plugin-svelte:preprocess transform (69 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer] 
+
+[WebServer] (node:829378) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] .svelte-kit/output/server/chunks/auth.js (3652:0): A comment
+[WebServer] 
+[WebServer] "/**
+[WebServer] * Wraps a cipher: validates args, ensures encrypt() can only be called once.
+[WebServer] * Used internally by the exported cipher constructors.
+[WebServer] * Output-buffer support is inferred from the wrapped `encrypt` / `decrypt`
+[WebServer] * arity (`fn.length === 2`), so wrapped output-capable methods must use a normal
+[WebServer] * second parameter, not a default/rest parameter. AAD support is explicit in
+[WebServer] * `params.withAAD`; optional AAD starts after the nonce slot when one is present.
+[WebServer] * @__NO_SIDE_EFFECTS__
+[WebServer] * @param params - Static cipher metadata. See {@link CipherParams}.
+[WebServer] * @param constructor - Cipher constructor.
+[WebServer] * @returns Wrapped constructor with validation.
+[WebServer] */"
+[WebServer] 
+[WebServer] in ".svelte-kit/output/server/chunks/auth.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+
+[WebServer] "node:sqlite" is imported by ".svelte-kit/output/server/chunks/src.js", but could not be resolved – treating it as an external dependency.
+
+[WebServer] Generated an empty chunk: "chunks/env.js".
+
+[WebServer] [PLUGIN_TIMINGS] Your build spent 100% of 13.0s inside plugin hooks (22.1s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-sveltekit-compile closeBundle (73%, 9.5s, 1 call)
+[WebServer]   - vite-plugin-sveltekit-compile writeBundle (66%, 8.6s, 1 call)
+[WebServer]   - vite-plugin-svelte:compile transform (21%, 2.7s, 69 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 100% is below.
+[WebServer] Not measurable — 1 hook whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (4501 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer] 
+
+[WebServer] (node:830210) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ node build
+
+[WebServer] (node:830224) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a0cb07-70c7-72de-b34a-78ebf7cdb311",
+    "01a0cb07-70c9-760d-ae5a-054125214f6d",
+    "01a0cb07-70ca-75b8-bded-852abecdc6b4",
+    "01a0cb07-70ca-75b8-bded-97c6da19c20d"
+  ],
+  "invoiceDrafts": [
+    "01a0cb07-721c-7474-b14a-b96c0eb45adb",
+    "01a0cb07-7226-72de-a851-d0de8e88132b",
+    "01a0cb07-722b-757c-bf2f-3069f1ee66ae"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a0cb07-7238-7379-a7ca-9f0c5cfeb7a8",
+    "01a0cb07-723b-7529-9caa-28651caf15a9",
+    "01a0cb07-723e-7354-81d0-72f64fe387d1"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a0cb07-7238-7379-a7ca-9f0c5cfeb7a8",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a0cb07-720b-74fe-a062-1972a3b0d4e5",
+    "01a0cb07-720f-749c-8e95-e1ef8ab0b1ab"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0cb07-70c7-72de-b34a-78ebf7cdb311",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a0cb07-7248-7620-8b81-ea47adb2fcec"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0cb07-70c7-72de-b34a-78ebf7cdb311",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a0cb07-724a-75aa-b0b3-0e5dd2d0559a"
+    }
+  ],
+  "periodReportIds": [
+    "01a0cb07-724b-75e9-a615-2e1276626dc5",
+    "01a0cb07-724b-75e9-a615-300ff7fdf7a3"
+  ],
+  "accountingPackId": "01a0cb07-7289-77ec-952a-5aadda81eabe",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-5444ace388dc5bf257f6239974277bf4251fa6d3",
+  "closeoutId": "01a0cb07-7323-762e-9c4b-ae51de3dd826"
+}
+
+Running 92 tests using 1 worker
+
+(node:830439) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/92] [phone-360] › tests/e2e/astra-notifications.spec.ts:7:1 › Worker sees localized notices and opens the authorized project
+[2/92] [phone-360] › tests/e2e/form-resilience.spec.ts:39:1 › expense validation retains the receipt and values, then creation and editing succeed
+[3/92] [phone-360] › tests/e2e/form-resilience.spec.ts:109:3 › daily report retains all fields after server validation and saves after correction
+[4/92] [phone-360] › tests/e2e/form-resilience.spec.ts:109:3 › technical report retains all fields after server validation and saves after correction
+[5/92] [phone-360] › tests/e2e/form-resilience.spec.ts:160:1 › owner expense save blocks duplicate submits and retains the form after network and server errors
+[6/92] [phone-360] › tests/e2e/form-resilience.spec.ts:228:1 › disabled offline mode keeps expense values and receipt with explicit reconnect feedback
+[7/92] [phone-360] › tests/e2e/navigation-state.spec.ts:4:1 › filtered Clients, Team and Finance views keep the correct navigation destination
+[8/92] [phone-360] › tests/e2e/navigation-state.spec.ts:24:1 › personal notifications are reachable through Account and the section navigator
+[9/92] [phone-360] › tests/e2e/notification-inbox.spec.ts:8:1 › unread inbox preserves failures, marks only the selected notice and remains accessible
+[10/92] [phone-360] › tests/e2e/notification-inbox.spec.ts:79:1 › operational sheets protect changed text on cancel, Escape and navigation
+  1) [phone-360] › tests/e2e/notification-inbox.spec.ts:79:1 › operational sheets protect changed text on cancel, Escape and navigation 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator:  getByRole('dialog', { name: 'Log time', exact: true }).locator('textarea').first()
+    Expected: "Keep my field notes"
+    Received: ""
+
+
+      119 |   await unloadConfirmation.dismiss();
+      120 |   await reload;
+    > 121 |   await expect(notes).toHaveValue('Keep my field notes');
+          |                       ^
+      122 |   // A repeated navigation shortcut cannot steal focus from the modal.
+      123 |   await notes.focus();
+      124 |   await page.keyboard.press('Control+k');
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/notification-inbox.spec.ts:121:23
+
+    Error Context: test-results/notification-inbox-operati-6cccf-ancel-Escape-and-navigation-phone-360/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/notification-inbox-operati-6cccf-ancel-Escape-and-navigation-phone-360/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/notification-inbox-operati-6cccf-ancel-Escape-and-navigation-phone-360/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:833014) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[11/92] [phone-360] › tests/e2e/notification-inbox.spec.ts:133:1 › project register uses one search and status filter
+[12/92] [phone-360] › tests/e2e/operational-filter-summary.spec.ts:9:3 › time: filter summary survives disclosure and reset restores the register
+[13/92] [phone-360] › tests/e2e/operational-filter-summary.spec.ts:9:3 › expenses: filter summary survives disclosure and reset restores the register
+[14/92] [phone-360] › tests/e2e/today-agenda.spec.ts:8:1 › Worker Today separates the complete UTC agenda, upcoming work and an honest empty state
+[15/92] [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › worker Client Essential surfaces pass axe, responsive and keyboard matrix
+[16/92] [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › manager Client Essential surfaces pass axe, responsive and keyboard matrix
+[17/92] [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › finance Client Essential surfaces pass axe, responsive and keyboard matrix
+[18/92] [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › owner Client Essential surfaces pass axe, responsive and keyboard matrix
+[19/92] [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › auditor Client Essential surfaces pass axe, responsive and keyboard matrix
+[20/92] [phone-360] › tests/e2e/workspace-navigation.spec.ts:9:1 › section navigation is role scoped, keyboard accessible and responsive
+[21/92] [phone-360] › tests/e2e/workspace-navigation.spec.ts:47:1 › date shortcuts preserve filters and chips remove exactly one criterion
+[22/92] [phone-360] › tests/e2e/workspace-navigation.spec.ts:79:1 › week jumps cross years and preserve non-date criteria
+[23/92] [phone-360] › tests/e2e/workspace-navigation.spec.ts:102:1 › owner and finance can find their destinations in Portuguese
+(node:836956) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[24/92] [phone-390] › tests/e2e/astra-notifications.spec.ts:7:1 › Worker sees localized notices and opens the authorized project
+  2) [phone-390] › tests/e2e/astra-notifications.spec.ts:7:1 › Worker sees localized notices and opens the authorized project 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('link').filter({ hasText: 'Recordatorio de horas pendientes' }).first()
+    Expected: "/j-aautomation/app/projects/01a0cb07-70c7-72de-b34a-78ebf7cdb311"
+    Received: "/j-aautomation/app/notifications/8bb01587-817a-48de-9319-99da51e3a83b?lang=es"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for getByRole('link').filter({ hasText: 'Recordatorio de horas pendientes' }).first()
+        14 × locator resolved to <a class="record-card-link svelte-u2ysw5" href="/j-aautomation/app/notifications/8bb01587-817a-48de-9319-99da51e3a83b?lang=es">…</a>
+           - unexpected value "/j-aautomation/app/notifications/8bb01587-817a-48de-9319-99da51e3a83b?lang=es"
+
+
+      51 |     .first();
+      52 |   await expect(notice).toBeVisible();
+    > 53 |   await expect(notice).toHaveAttribute('href', `/j-aautomation/app/projects/${projectId}`);
+         |                        ^
+      54 |   await notice.click();
+      55 |   await expect(page).toHaveURL(new RegExp(`/projects/${projectId}$`));
+      56 |   await page.goto(portal(`/notifications/${notificationId}?lang=es`));
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/astra-notifications.spec.ts:53:24
+
+    Error Context: test-results/astra-notifications-Worker-db339-pens-the-authorized-project-phone-390/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/astra-notifications-Worker-db339-pens-the-authorized-project-phone-390/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/astra-notifications-Worker-db339-pens-the-authorized-project-phone-390/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:837275) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[25/92] [phone-390] › tests/e2e/form-resilience.spec.ts:39:1 › expense validation retains the receipt and values, then creation and editing succeed
+  3) [phone-390] › tests/e2e/form-resilience.spec.ts:39:1 › expense validation retains the receipt and values, then creation and editing succeed 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('[data-ui="responsive-sheet"]')
+    Expected: 0
+    Received: 1
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for locator('[data-ui="responsive-sheet"]')
+        14 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+      87 |   });
+      88 |   await form.getByRole('button', { name: 'Save draft', exact: true }).click();
+    > 89 |   await expect(sheet).toHaveCount(0);
+         |                       ^
+      90 |   await page.locator('.expense-filters [name="q"]').fill(vendor);
+      91 |   const row = page.locator('[data-expense-record]').filter({ hasText: vendor });
+      92 |   await expect(row).toHaveCount(1);
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/form-resilience.spec.ts:89:23
+
+    Error Context: test-results/form-resilience-expense-va-2f1e7-reation-and-editing-succeed-phone-390/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/form-resilience-expense-va-2f1e7-reation-and-editing-succeed-phone-390/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/form-resilience-expense-va-2f1e7-reation-and-editing-succeed-phone-390/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:837650) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[26/92] [phone-390] › tests/e2e/form-resilience.spec.ts:109:3 › daily report retains all fields after server validation and saves after correction
+[27/92] [phone-390] › tests/e2e/form-resilience.spec.ts:109:3 › technical report retains all fields after server validation and saves after correction
+[28/92] [phone-390] › tests/e2e/form-resilience.spec.ts:160:1 › owner expense save blocks duplicate submits and retains the form after network and server errors
+[29/92] [phone-390] › tests/e2e/form-resilience.spec.ts:228:1 › disabled offline mode keeps expense values and receipt with explicit reconnect feedback
+[30/92] [phone-390] › tests/e2e/navigation-state.spec.ts:4:1 › filtered Clients, Team and Finance views keep the correct navigation destination
+[31/92] [phone-390] › tests/e2e/navigation-state.spec.ts:24:1 › personal notifications are reachable through Account and the section navigator
+[32/92] [phone-390] › tests/e2e/notification-inbox.spec.ts:8:1 › unread inbox preserves failures, marks only the selected notice and remains accessible
+[33/92] [phone-390] › tests/e2e/notification-inbox.spec.ts:79:1 › operational sheets protect changed text on cancel, Escape and navigation
+  4) [phone-390] › tests/e2e/notification-inbox.spec.ts:79:1 › operational sheets protect changed text on cancel, Escape and navigation 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator:  getByRole('dialog', { name: 'Log time', exact: true }).locator('textarea').first()
+    Expected: "Keep my field notes"
+    Received: ""
+
+
+      119 |   await expect(page).toHaveURL(originalUrl);
+      120 |   await expect(notes).toHaveValue('Keep my field notes');
+    > 121 |   await expect(sheet).toBeVisible();
+          |                       ^
+      122 |   const reloadDialog = page.waitForEvent('dialog');
+      123 |   const reload = page.evaluate(() => window.location.reload());
+      124 |   const unloadConfirmation = await reloadDialog;
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/notification-inbox.spec.ts:121:23
+
+    Error Context: test-results/notification-inbox-operati-6cccf-ancel-Escape-and-navigation-phone-390/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/notification-inbox-operati-6cccf-ancel-Escape-and-navigation-phone-390/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/notification-inbox-operati-6cccf-ancel-Escape-and-navigation-phone-390/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:839622) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[34/92] [phone-390] › tests/e2e/notification-inbox.spec.ts:133:1 › project register uses one search and status filter
+[35/92] [phone-390] › tests/e2e/operational-filter-summary.spec.ts:9:3 › time: filter summary survives disclosure and reset restores the register
+[36/92] [phone-390] › tests/e2e/operational-filter-summary.spec.ts:9:3 › expenses: filter summary survives disclosure and reset restores the register
+[37/92] [phone-390] › tests/e2e/today-agenda.spec.ts:8:1 › Worker Today separates the complete UTC agenda, upcoming work and an honest empty state
+[38/92] [phone-390] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › worker Client Essential surfaces pass axe, responsive and keyboard matrix
+[39/92] [phone-390] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › manager Client Essential surfaces pass axe, responsive and keyboard matrix
+[40/92] [phone-390] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › finance Client Essential surfaces pass axe, responsive and keyboard matrix
+[41/92] [phone-390] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › owner Client Essential surfaces pass axe, responsive and keyboard matrix
+[42/92] [phone-390] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › auditor Client Essential surfaces pass axe, responsive and keyboard matrix
+[43/92] [phone-390] › tests/e2e/workspace-navigation.spec.ts:9:1 › section navigation is role scoped, keyboard accessible and responsive
+[44/92] [phone-390] › tests/e2e/workspace-navigation.spec.ts:47:1 › date shortcuts preserve filters and chips remove exactly one criterion
+[45/92] [phone-390] › tests/e2e/workspace-navigation.spec.ts:79:1 › week jumps cross years and preserve non-date criteria
+[46/92] [phone-390] › tests/e2e/workspace-navigation.spec.ts:102:1 › owner and finance can find their destinations in Portuguese
+(node:843360) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[47/92] [tablet-768] › tests/e2e/astra-notifications.spec.ts:7:1 › Worker sees localized notices and opens the authorized project
+  5) [tablet-768] › tests/e2e/astra-notifications.spec.ts:7:1 › Worker sees localized notices and opens the authorized project 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('link').filter({ hasText: 'Recordatorio de horas pendientes' }).first()
+    Expected: "/j-aautomation/app/projects/01a0cb07-70c7-72de-b34a-78ebf7cdb311"
+    Received: "/j-aautomation/app/notifications/3a64f580-1171-4b25-9654-0aedba5e808e?lang=es"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for getByRole('link').filter({ hasText: 'Recordatorio de horas pendientes' }).first()
+        14 × locator resolved to <a class="record-card-link svelte-u2ysw5" href="/j-aautomation/app/notifications/3a64f580-1171-4b25-9654-0aedba5e808e?lang=es">…</a>
+           - unexpected value "/j-aautomation/app/notifications/3a64f580-1171-4b25-9654-0aedba5e808e?lang=es"
+
+
+      51 |     .first();
+      52 |   await expect(notice).toBeVisible();
+    > 53 |   await expect(notice).toHaveAttribute('href', `/j-aautomation/app/projects/${projectId}`);
+         |                        ^
+      54 |   await notice.click();
+      55 |   await expect(page).toHaveURL(new RegExp(`/projects/${projectId}$`));
+      56 |   await page.goto(portal(`/notifications/${notificationId}?lang=es`));
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/astra-notifications.spec.ts:53:24
+
+    Error Context: test-results/astra-notifications-Worker-db339-pens-the-authorized-project-tablet-768/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/astra-notifications-Worker-db339-pens-the-authorized-project-tablet-768/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/astra-notifications-Worker-db339-pens-the-authorized-project-tablet-768/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:843673) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[48/92] [tablet-768] › tests/e2e/form-resilience.spec.ts:39:1 › expense validation retains the receipt and values, then creation and editing succeed
+  6) [tablet-768] › tests/e2e/form-resilience.spec.ts:39:1 › expense validation retains the receipt and values, then creation and editing succeed 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('[data-ui="responsive-sheet"]')
+    Expected: 0
+    Received: 1
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for locator('[data-ui="responsive-sheet"]')
+        14 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+      87 |       raw: { width: 2, height: 2, channels: 4 },
+      88 |     })
+    > 89 |       .png()
+         |             ^
+      90 |       .toBuffer(),
+      91 |   });
+      92 |   await form.getByRole('button', { name: 'Save draft', exact: true }).click();
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/form-resilience.spec.ts:89:23
+
+    Error Context: test-results/form-resilience-expense-va-2f1e7-reation-and-editing-succeed-tablet-768/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/form-resilience-expense-va-2f1e7-reation-and-editing-succeed-tablet-768/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/form-resilience-expense-va-2f1e7-reation-and-editing-succeed-tablet-768/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:844072) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[49/92] [tablet-768] › tests/e2e/form-resilience.spec.ts:109:3 › daily report retains all fields after server validation and saves after correction
+[50/92] [tablet-768] › tests/e2e/form-resilience.spec.ts:109:3 › technical report retains all fields after server validation and saves after correction
+[51/92] [tablet-768] › tests/e2e/form-resilience.spec.ts:160:1 › owner expense save blocks duplicate submits and retains the form after network and server errors
+[52/92] [tablet-768] › tests/e2e/form-resilience.spec.ts:228:1 › disabled offline mode keeps expense values and receipt with explicit reconnect feedback
+[53/92] [tablet-768] › tests/e2e/navigation-state.spec.ts:4:1 › filtered Clients, Team and Finance views keep the correct navigation destination
+[54/92] [tablet-768] › tests/e2e/navigation-state.spec.ts:24:1 › personal notifications are reachable through Account and the section navigator
+[55/92] [tablet-768] › tests/e2e/notification-inbox.spec.ts:8:1 › unread inbox preserves failures, marks only the selected notice and remains accessible
+[56/92] [tablet-768] › tests/e2e/notification-inbox.spec.ts:79:1 › operational sheets protect changed text on cancel, Escape and navigation
+  7) [tablet-768] › tests/e2e/notification-inbox.spec.ts:79:1 › operational sheets protect changed text on cancel, Escape and navigation 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator:  getByRole('dialog', { name: 'Log time', exact: true }).locator('textarea').first()
+    Expected: "Keep my field notes"
+    Received: ""
+
+
+      119 |   await expect(page).toHaveURL(originalUrl);
+      120 |   await expect(notes).toHaveValue('Keep my field notes');
+    > 121 |   await expect(sheet).toBeVisible();
+          |                       ^
+      122 |   const reloadDialog = page.waitForEvent('dialog');
+      123 |   const reload = page.evaluate(() => window.location.reload());
+      124 |   const unloadConfirmation = await reloadDialog;
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/notification-inbox.spec.ts:121:23
+
+    Error Context: test-results/notification-inbox-operati-6cccf-ancel-Escape-and-navigation-tablet-768/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/notification-inbox-operati-6cccf-ancel-Escape-and-navigation-tablet-768/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/notification-inbox-operati-6cccf-ancel-Escape-and-navigation-tablet-768/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:846095) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[57/92] [tablet-768] › tests/e2e/notification-inbox.spec.ts:133:1 › project register uses one search and status filter
+[58/92] [tablet-768] › tests/e2e/operational-filter-summary.spec.ts:9:3 › time: filter summary survives disclosure and reset restores the register
+[59/92] [tablet-768] › tests/e2e/operational-filter-summary.spec.ts:9:3 › expenses: filter summary survives disclosure and reset restores the register
+[60/92] [tablet-768] › tests/e2e/today-agenda.spec.ts:8:1 › Worker Today separates the complete UTC agenda, upcoming work and an honest empty state
+[61/92] [tablet-768] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › worker Client Essential surfaces pass axe, responsive and keyboard matrix
+[62/92] [tablet-768] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › manager Client Essential surfaces pass axe, responsive and keyboard matrix
+[63/92] [tablet-768] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › finance Client Essential surfaces pass axe, responsive and keyboard matrix
+[64/92] [tablet-768] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › owner Client Essential surfaces pass axe, responsive and keyboard matrix
+[65/92] [tablet-768] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › auditor Client Essential surfaces pass axe, responsive and keyboard matrix
+[66/92] [tablet-768] › tests/e2e/workspace-navigation.spec.ts:9:1 › section navigation is role scoped, keyboard accessible and responsive
+[67/92] [tablet-768] › tests/e2e/workspace-navigation.spec.ts:47:1 › date shortcuts preserve filters and chips remove exactly one criterion
+[68/92] [tablet-768] › tests/e2e/workspace-navigation.spec.ts:79:1 › week jumps cross years and preserve non-date criteria
+[69/92] [tablet-768] › tests/e2e/workspace-navigation.spec.ts:102:1 › owner and finance can find their destinations in Portuguese
+(node:849933) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[70/92] [desktop] › tests/e2e/astra-notifications.spec.ts:7:1 › Worker sees localized notices and opens the authorized project
+  8) [desktop] › tests/e2e/astra-notifications.spec.ts:7:1 › Worker sees localized notices and opens the authorized project 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('link').filter({ hasText: 'Recordatorio de horas pendientes' }).first()
+    Expected: "/j-aautomation/app/projects/01a0cb07-70c7-72de-b34a-78ebf7cdb311"
+    Received: "/j-aautomation/app/notifications/1acf081e-dc24-49c2-abf2-001e37ef04fe?lang=es"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for getByRole('link').filter({ hasText: 'Recordatorio de horas pendientes' }).first()
+        14 × locator resolved to <a class="record-card-link svelte-u2ysw5" href="/j-aautomation/app/notifications/1acf081e-dc24-49c2-abf2-001e37ef04fe?lang=es">…</a>
+           - unexpected value "/j-aautomation/app/notifications/1acf081e-dc24-49c2-abf2-001e37ef04fe?lang=es"
+
+
+      51 |     .first();
+      52 |   await expect(notice).toBeVisible();
+    > 53 |   await expect(notice).toHaveAttribute('href', `/j-aautomation/app/projects/${projectId}`);
+         |                        ^
+      54 |   await notice.click();
+      55 |   await expect(page).toHaveURL(new RegExp(`/projects/${projectId}$`));
+      56 |   await page.goto(portal(`/notifications/${notificationId}?lang=es`));
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/astra-notifications.spec.ts:53:24
+
+    Error Context: test-results/astra-notifications-Worker-db339-pens-the-authorized-project-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/astra-notifications-Worker-db339-pens-the-authorized-project-desktop/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/astra-notifications-Worker-db339-pens-the-authorized-project-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:850324) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[71/92] [desktop] › tests/e2e/form-resilience.spec.ts:39:1 › expense validation retains the receipt and values, then creation and editing succeed
+  9) [desktop] › tests/e2e/form-resilience.spec.ts:39:1 › expense validation retains the receipt and values, then creation and editing succeed 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('[data-ui="responsive-sheet"]')
+    Expected: 0
+    Received: 1
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for locator('[data-ui="responsive-sheet"]')
+        14 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+      87 |       raw: { width: 2, height: 2, channels: 4 },
+      88 |     })
+    > 89 |       .png()
+         |             ^
+      90 |       .toBuffer(),
+      91 |   });
+      92 |   await form.getByRole('button', { name: 'Save draft', exact: true }).click();
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/form-resilience.spec.ts:89:23
+
+    Error Context: test-results/form-resilience-expense-va-2f1e7-reation-and-editing-succeed-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/form-resilience-expense-va-2f1e7-reation-and-editing-succeed-desktop/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/form-resilience-expense-va-2f1e7-reation-and-editing-succeed-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:850769) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[72/92] [desktop] › tests/e2e/form-resilience.spec.ts:109:3 › daily report retains all fields after server validation and saves after correction
+[73/92] [desktop] › tests/e2e/form-resilience.spec.ts:109:3 › technical report retains all fields after server validation and saves after correction
+[74/92] [desktop] › tests/e2e/form-resilience.spec.ts:160:1 › owner expense save blocks duplicate submits and retains the form after network and server errors
+[75/92] [desktop] › tests/e2e/form-resilience.spec.ts:228:1 › disabled offline mode keeps expense values and receipt with explicit reconnect feedback
+[76/92] [desktop] › tests/e2e/navigation-state.spec.ts:4:1 › filtered Clients, Team and Finance views keep the correct navigation destination
+[77/92] [desktop] › tests/e2e/navigation-state.spec.ts:24:1 › personal notifications are reachable through Account and the section navigator
+[78/92] [desktop] › tests/e2e/notification-inbox.spec.ts:8:1 › unread inbox preserves failures, marks only the selected notice and remains accessible
+[79/92] [desktop] › tests/e2e/notification-inbox.spec.ts:79:1 › operational sheets protect changed text on cancel, Escape and navigation
+  10) [desktop] › tests/e2e/notification-inbox.spec.ts:79:1 › operational sheets protect changed text on cancel, Escape and navigation 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator:  getByRole('dialog', { name: 'Log time', exact: true }).locator('textarea').first()
+    Expected: "Keep my field notes"
+    Received: ""
+
+
+      119 |   }
+      120 |   const originalUrl = page.url();
+    > 121 |   const backDialog = page.waitForEvent('dialog');
+          |                       ^
+      122 |   await page.evaluate(() => history.back());
+      123 |   const confirmation = await backDialog;
+      124 |   expect(confirmation.message()).toContain('unsaved changes');
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/notification-inbox.spec.ts:121:23
+
+    Error Context: test-results/notification-inbox-operati-6cccf-ancel-Escape-and-navigation-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/notification-inbox-operati-6cccf-ancel-Escape-and-navigation-desktop/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/notification-inbox-operati-6cccf-ancel-Escape-and-navigation-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:852889) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[80/92] [desktop] › tests/e2e/notification-inbox.spec.ts:133:1 › project register uses one search and status filter
+[81/92] [desktop] › tests/e2e/operational-filter-summary.spec.ts:9:3 › time: filter summary survives disclosure and reset restores the register
+[82/92] [desktop] › tests/e2e/operational-filter-summary.spec.ts:9:3 › expenses: filter summary survives disclosure and reset restores the register
+[83/92] [desktop] › tests/e2e/today-agenda.spec.ts:8:1 › Worker Today separates the complete UTC agenda, upcoming work and an honest empty state
+[84/92] [desktop] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › worker Client Essential surfaces pass axe, responsive and keyboard matrix
+[85/92] [desktop] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › manager Client Essential surfaces pass axe, responsive and keyboard matrix
+[86/92] [desktop] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › finance Client Essential surfaces pass axe, responsive and keyboard matrix
+[87/92] [desktop] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › owner Client Essential surfaces pass axe, responsive and keyboard matrix
+[88/92] [desktop] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › auditor Client Essential surfaces pass axe, responsive and keyboard matrix
+[89/92] [desktop] › tests/e2e/workspace-navigation.spec.ts:9:1 › section navigation is role scoped, keyboard accessible and responsive
+[90/92] [desktop] › tests/e2e/workspace-navigation.spec.ts:47:1 › date shortcuts preserve filters and chips remove exactly one criterion
+[91/92] [desktop] › tests/e2e/workspace-navigation.spec.ts:79:1 › week jumps cross years and preserve non-date criteria
+[92/92] [desktop] › tests/e2e/workspace-navigation.spec.ts:102:1 › owner and finance can find their destinations in Portuguese
+  10 failed
+    [phone-360] › tests/e2e/notification-inbox.spec.ts:79:1 › operational sheets protect changed text on cancel, Escape and navigation 
+    [phone-390] › tests/e2e/astra-notifications.spec.ts:7:1 › Worker sees localized notices and opens the authorized project 
+    [phone-390] › tests/e2e/form-resilience.spec.ts:39:1 › expense validation retains the receipt and values, then creation and editing succeed 
+    [phone-390] › tests/e2e/notification-inbox.spec.ts:79:1 › operational sheets protect changed text on cancel, Escape and navigation 
+    [tablet-768] › tests/e2e/astra-notifications.spec.ts:7:1 › Worker sees localized notices and opens the authorized project 
+    [tablet-768] › tests/e2e/form-resilience.spec.ts:39:1 › expense validation retains the receipt and values, then creation and editing succeed 
+    [tablet-768] › tests/e2e/notification-inbox.spec.ts:79:1 › operational sheets protect changed text on cancel, Escape and navigation 
+    [desktop] › tests/e2e/astra-notifications.spec.ts:7:1 › Worker sees localized notices and opens the authorized project 
+    [desktop] › tests/e2e/form-resilience.spec.ts:39:1 › expense validation retains the receipt and values, then creation and editing succeed 
+    [desktop] › tests/e2e/notification-inbox.spec.ts:79:1 › operational sheets protect changed text on cancel, Escape and navigation 
+  82 passed (13.1m)

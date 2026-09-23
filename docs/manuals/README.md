@@ -42,7 +42,7 @@ Illustrations are unaltered PNG screenshots taken through real Chromium against 
 application with authenticated synthetic accounts. They contain no production customer records.
 `validation/current-capture.json` binds every persona, locale, route, viewport and PNG hash to the
 runtime source digest. The grouped manuals place relevant screenshots beside their instructions, including the refreshed public website and its portal entry point. The 2026-09-22 edition includes searchable section navigation, date shortcuts, adjacent-week navigation, individually removable filters, expandable secondary panels and task selectors, with embedded Geist typography.
-Their captions name the profile actually used, including when the same manual serves several roles.
+The 2026-09-23 capture refresh also covers the UTC daily agenda, explicit notification read actions, retained form values after failures and unsaved-change protection. Their captions name the profile actually used, including when the same manual serves several roles.
 
 The Spanish quick guide uses fresh Spanish screenshots of the Worker workspace. Native date/time
 inputs may use the browser or operating system's regional format even when portal labels and

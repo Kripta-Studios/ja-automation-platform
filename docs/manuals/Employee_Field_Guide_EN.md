@@ -22,6 +22,8 @@ In Time, Expenses and Reports, **Today**, **This week**, **This month** and **La
 
 <!-- screenshot:worker:section-navigator -->
 
+**Today** separates every assignment overlapping the current UTC day from upcoming work. An overnight assignment can appear on both affected days. Read the full dates and UTC label; use **Show more assignments** for further upcoming assignments. Planned work never creates actual time. Open a project only through your authorized link.
+
 ## 3. Record actual work and travel
 
 Open **Time**. Choose **Log time** and the assigned project. The work date defaults to today in your browser's local timezone; change it to the actual work date when necessary. Enter the category, factual description, **Start time** and **End time** using the local clock in the project's timezone, without converting to UTC. The end must be later on the same day. Enter an optional **Break (minutes)**, or leave it blank or zero for no break. The portal calculates net duration as end minus start minus break; the break must be shorter than the interval. For example, 08:15–16:15 with a 60-minute break records 7 hours. Save the draft. A customer minimum or a planned ten-hour day never changes the actual time you report. Record travel separately when the project permits it; travel pay and customer billing can follow different rules. Review the date, interval, net duration and factual description before submitting.
@@ -61,3 +63,9 @@ In **Projects**, select a day in the project calendar to see its agenda and open
 ## 9. Help, Activity Inbox and access limits
 
 Open **Help** to download the guide assigned to your role. **Activity Inbox** at `/app/notifications` can link to a permitted source record; reading a notification is not approval. Workers use only their own assigned projects, records, files and My Pay. Finance, Billing, Accounting, Audit, staff follow-up, Closeout and approval queues are not Worker flows; an access denial is a boundary, not an error to bypass. Email is not the system of record: use the portal and admin@j-aautomation.com.
+
+Time, Expense and Daily/Technical entry forms keep their entered values after a validation or connection failure. Correct the highlighted fields; the validation summary clears as those errors are fixed. During a save, wait for the result before editing. If the portal cannot confirm the save, check the register before submitting again. If it confirms a save but cannot refresh the register, close the form and refresh; do not resubmit. Closing, Escape, Back or reloading asks before discarding changed entries. Searching a selector without choosing another value does not change the form. This protection is not a saved draft or recovery after closing the browser.
+
+Open **Notifications** from the section navigator or account menu. **All** and **Unread** filter the latest 50 notices loaded by the inbox. Use **Mark as read** for the selected notice; opening the inbox does not mark everything read. **Notification details** and source links retain their normal access checks. Marking a notice read does not approve its business record.
+
+<!-- screenshot:worker:activity-inbox -->

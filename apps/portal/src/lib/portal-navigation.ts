@@ -189,19 +189,88 @@ export function mobilePrimaryNavigationFor(navigation: PortalNavigation): readon
   return navigation.primary.slice(0, 4);
 }
 
+export type PortalNavigationLocation = {
+  base: string;
+  section: string;
+  url: URL;
+  role?: string | null;
+  itemHref: (item: NavItem) => string;
+};
+
+/**
+ * Identify one destination from its route and view, independently of filters,
+ * sorting, pagination or language. Pass the complete navigation, including
+ * secondary views, even when rendering only the compact primary phone bar.
+ */
+export function activeNavItem(
+  items: readonly NavItem[],
+  { base, section, url, role, itemHref }: PortalNavigationLocation,
+): NavItem | undefined {
+  const pathname = (target: URL): string => target.pathname.replace(/\/+$/u, '');
+  const root = `${base}/app`;
+  const current = pathname(url) === root ? new URL(portalLandingForRole(base, role), url) : url;
+  const currentPath = pathname(current);
+  const candidates = items.map((item) => ({ item, target: new URL(itemHref(item), url) }));
+  const matchingPaths = candidates.filter(({ target }) => {
+    const targetPath = pathname(target);
+    return (
+      targetPath === currentPath ||
+      (targetPath !== root && currentPath.startsWith(`${targetPath}/`))
+    );
+  });
+  // A supplier's operational report is a distinct destination beneath the
+  // supplier section. Prefer the closest route before comparing query views.
+  const closestPathLength = Math.max(...matchingPaths.map(({ target }) => pathname(target).length));
+  const available = matchingPaths.length
+    ? matchingPaths.filter(({ target }) => pathname(target).length === closestPathLength)
+    : candidates.filter(({ item }) => item.section === section);
+  const view = current.searchParams.get('view') ?? '';
+  return (
+    available.find(({ target }) => (target.searchParams.get('view') ?? '') === view) ??
+    available.find(({ target }) => !target.searchParams.get('view')) ??
+    available[0]
+  )?.item;
+}
+
+export function isNavItemActive(
+  item: NavItem,
+  items: readonly NavItem[],
+  location: PortalNavigationLocation,
+): boolean {
+  return activeNavItem(items, location) === item;
+}
+
+/** Personal inbox access follows the server's internal-workforce role boundary. */
+export function portalGlobalNavigationForRole(
+  role?: string | null,
+  workforceProfile?: string,
+): readonly NavItem[] {
+  if (
+    workforceProfile ||
+    !['worker', 'project_manager', 'finance_admin', 'owner_admin', 'auditor_read_only'].includes(
+      role ?? '',
+    )
+  )
+    return [];
+  return [item('notifications', 'Notifications', '♧')];
+}
+
 /**
  * Keep the account menu a small, role-safe projection of the navigation that
- * the shell already received. Profile is shown at most once; notifications
- * and other global destinations are intentionally not promoted here.
+ * the shell already received, including authorized personal destinations.
  */
-export function accountNavigationFor(navigation: PortalNavigation): NavItem[] {
+export function accountNavigationFor(
+  navigation: PortalNavigation,
+  globalNavigation: readonly NavItem[] = [],
+): NavItem[] {
   const seen = new Set<string>();
-  const allowedSections = new Set(['pay', 'documents', 'profile']);
+  const allowedSections = new Set(['pay', 'documents', 'profile', 'notifications']);
   const candidates = [
     ...navigation.primary,
     ...navigation.secondary,
     ...navigation.admin,
     ...navigation.security,
+    ...globalNavigation,
   ];
 
   return candidates.filter((item) => {

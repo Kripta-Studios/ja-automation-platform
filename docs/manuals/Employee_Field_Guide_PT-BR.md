@@ -22,6 +22,8 @@ Em Horas, Despesas e Relatórios, **Hoje**, **Esta semana**, **Este mês** e **M
 
 <!-- screenshot:worker:section-navigator -->
 
+**Hoje** separa todas as atribuições que coincidem com o dia UTC atual dos próximos trabalhos. Um turno noturno pode aparecer nos dois dias afetados. Confira as datas completas e a indicação UTC; use **Mostrar mais alocações** para ver outras atribuições futuras. O planejamento nunca cria horas reais. Abra um projeto somente pelo seu link autorizado.
+
 ## 3. Registre o trabalho e a viagem reais
 
 Abra **Horas (Time)**. Escolha **Registrar horas** e o projeto atribuído. A data começa no dia de hoje no fuso local do navegador; altere-a para a data real do trabalho quando necessário. Informe categoria, descrição factual, **Hora de início** e **Hora de término** usando o horário local no fuso do projeto, sem converter para UTC. O término deve ser posterior ao início no mesmo dia. Informe o **Intervalo (minutos)** opcional ou deixe em branco ou zero quando não houver pausa. O portal calcula a duração líquida como término menos início menos pausa; a pausa deve ser menor que o período entre início e término. Por exemplo, 08:15–16:15 com pausa de 60 minutos registra 7 horas. Salve o rascunho. Um mínimo do cliente ou uma jornada planejada de dez horas nunca muda as horas reais informadas. Registre a viagem separadamente quando o projeto permitir; o pagamento da viagem e a cobrança do cliente podem ter regras diferentes. Revise a data, os horários, a duração líquida e a descrição factual antes de enviar.
@@ -61,3 +63,9 @@ Em **Projetos**, selecione um dia no calendário para ver a agenda e abrir um pr
 ## 9. Ajuda, caixa de atividades e limites de acesso
 
 Abra **Ajuda (Help)** para baixar o guia atribuído à sua função. A **Caixa de atividades (Activity Inbox)** em `/app/notifications` pode levar a um registro permitido; ler uma notificação não é aprová-la. Colaboradores usam apenas seus projetos atribuídos, seus registros, seus arquivos e Meu pagamento. Finanças, Faturamento, Contabilidade, Auditoria, acompanhamento da equipe, Closeout e filas de aprovação não são fluxos de Worker; uma negação de acesso é um limite, não um erro a contornar. O e-mail não é o registro do sistema: use o portal e admin@j-aautomation.com.
+
+Os formulários de Horas, Despesas e relatórios Diário/Técnico mantêm os valores informados após uma falha de validação ou conexão. Corrija os campos destacados; o resumo se atualiza quando os erros são resolvidos. Durante o salvamento, aguarde o resultado antes de editar. Se não for possível confirmar o salvamento, confira o registro antes de enviar novamente. Se o salvamento for confirmado, mas a atualização da lista falhar, feche o formulário e recarregue; não envie de novo. Fechar, Escape, Voltar ou recarregar pede confirmação antes de descartar alterações. Pesquisar em um seletor sem escolher outro valor não altera o formulário. Essa proteção não equivale a salvar um rascunho nem permite recuperar dados após fechar o navegador.
+
+Abra **Notificações** pelo navegador de seções ou pelo menu da conta. **Todas** e **Não lidas** filtram os últimos 50 avisos carregados na caixa. Use **Marcar como lido** para o aviso escolhido; abrir a caixa não marca todos como lidos. **Detalhes da notificação** e os links para o registro mantêm as verificações de acesso. Marcar um aviso como lido não aprova seu registro de negócio.
+
+<!-- screenshot:worker:activity-inbox -->

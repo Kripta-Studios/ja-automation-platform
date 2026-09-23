@@ -1,5 +1,9 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { enhance } from '$app/forms';
+  import { normalizePortalLocale } from '../../portal-i18n';
+  import { localToday } from '../ui/time-entry-clock';
+  import { createOperationalSubmit, operationalFieldValidation } from '../ui/operational-submit';
   import { onMount } from 'svelte';
   import { base } from '$app/paths';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
@@ -44,6 +48,22 @@
   type Surface = 'create' | 'edit';
 
   let surface = $state<Surface | null>(null);
+  let surfaceError = $state('');
+  let saving = $state(false);
+  let createDate = $state('');
+  let createProject = $state('');
+  const submitExpense = createOperationalSubmit({
+    locale: () => normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
+    translate: (value) => translate(value),
+    setSaving: (value) => {
+      saving = value;
+    },
+    setError: (value) => {
+      surfaceError = value;
+    },
+    onSuccess: closeSurface,
+    offlineHandled: () => surface === 'create' && data.offlineEnabled !== false,
+  });
   let editExpenseId = $state<string | null>(null);
   $effect(() => {
     const id = $page.url.searchParams.get('edit');
@@ -333,6 +353,11 @@
   }
 
   function openCreate(): void {
+    surfaceError = '';
+    createDate = localToday();
+    createProject = availableProjects.some((project) => String(project.id) === projectFilter)
+      ? projectFilter
+      : '';
     surface = 'create';
     editExpenseId = null;
   }
@@ -354,6 +379,7 @@
   }
 
   function openEdit(row: Row): void {
+    surfaceError = '';
     surface = 'edit';
     editExpenseId = String(row.id);
   }
@@ -905,7 +931,13 @@
     closeLabel={translate('Close expense form')}
     class="expense-entry-sheet"
     onclose={closeSurface}
+    protectChanges
   >
+    {#if surfaceError}
+      <p class="operational-form-error" role="alert" tabindex="-1" data-operational-form-error>
+        {surfaceError}
+      </p>
+    {/if}
     {#if surface === 'create'}
       <form
         method="POST"
@@ -913,6 +945,9 @@
         enctype="multipart/form-data"
         class="expense-entry-form"
         data-expense-entry-surface
+        aria-busy={saving}
+        use:operationalFieldValidation
+        use:enhance={submitExpense}
         onsubmit={(event) => saveOfflineDraft(event, 'expense')}
       >
         {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
@@ -961,7 +996,7 @@
         {/if}
         <label>
           <span>{translate('Project')}</span>
-          <select name="projectId" required>
+          <select name="projectId" required bind:value={createProject}>
             <option value="">{translate('Select assignment')}</option>
             {#each availableProjects as project}
               <option value={String(project.id)}>{project.project_number} — {project.name}</option>
@@ -971,7 +1006,7 @@
         <div class="expense-form-grid">
           <label>
             <span>{translate('Date')}</span>
-            <input name="spentOn" type="date" required />
+            <input name="spentOn" type="date" required bind:value={createDate} />
           </label>
           <label>
             <span>{translate('Category')}</span>
@@ -1023,10 +1058,12 @@
           />
         </label>
         <div class="expense-entry-actions">
-          <button type="button" class="secondary-button" onclick={closeSurface}
+          <button type="button" class="secondary-button" data-sheet-close onclick={closeSurface}
             >{translate('Cancel')}</button
           >
-          <button type="submit">{translate('Save draft')}</button>
+          <button type="submit" disabled={saving}
+            >{translate(saving ? 'Saving…' : 'Save draft')}</button
+          >
         </div>
       </form>
     {:else if surface === 'edit' && editRow}
@@ -1035,6 +1072,9 @@
         action="?/updateExpense"
         class="expense-entry-form"
         data-expense-entry-surface
+        aria-busy={saving}
+        use:operationalFieldValidation
+        use:enhance={submitExpense}
       >
         <input type="hidden" name="id" value={editRow.id} />
         <input type="hidden" name="version" value={editRow.version} />
@@ -1087,10 +1127,12 @@
           >
         </label>
         <div class="expense-entry-actions">
-          <button type="button" class="secondary-button" onclick={closeSurface}
+          <button type="button" class="secondary-button" data-sheet-close onclick={closeSurface}
             >{translate('Cancel')}</button
           >
-          <button type="submit">{translate('Save changes')}</button>
+          <button type="submit" disabled={saving}
+            >{translate(saving ? 'Saving…' : 'Save changes')}</button
+          >
         </div>
       </form>
     {/if}
@@ -1098,6 +1140,10 @@
 </div>
 
 <style>
+  .operational-form-error {
+    color: var(--ja-red-dark, #8f1d14);
+    padding: 0.75rem 0;
+  }
   .expense-primary-action-top {
     justify-content: flex-start;
   }

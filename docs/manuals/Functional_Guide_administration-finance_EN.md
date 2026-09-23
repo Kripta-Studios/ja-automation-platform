@@ -117,3 +117,7 @@ Access — Consult: the role’s effective scope and privacy boundary. Create: o
 - **Auditor:** consult authorized evidence and global Audit in read-only mode; create no project, assignment, availability, approval, invoice, payment or closeout, and do not administer users or organizational security settings; approve nothing; modify nothing in audited business records. The account’s own language or authentication controls remain subject to **Profile**. Accounting Pack actions and artifact downloads remain Owner/Finance-only.
 
 Knowing a procedure, seeing a navigation label or opening a source link does not grant the corresponding permission.
+
+Open **Notifications** from the section navigator or account menu. **All** and **Unread** filter the latest 50 notices loaded by the inbox. Use **Mark as read** for the selected notice; opening the inbox does not mark everything read. **Notification details** and source links retain their normal access checks. Marking a notice read does not approve its business record.
+
+<!-- screenshot:owner:activity-inbox -->

@@ -1,0 +1,307 @@
+{
+  "at": "2026-09-23T06:34:26.199210+00:00",
+  "containers": [
+    {
+      "Command": "\"docker-entrypoint.s\u2026\"",
+      "CreatedAt": "2026-09-22 23:50:54 +0200 CEST",
+      "ID": "b5554e83af8a",
+      "Image": "ja-automation-portal:zip-b30ae7b55a3f8afbe25aeae50e627f0b",
+      "Labels": "com.docker.compose.config-hash=2e9b99ef0bf04de60546701c5bde3efe4f6191b52608681e0482454df06e350c,com.docker.compose.container-number=1,com.docker.compose.depends_on=portal:service_started:false,com.docker.compose.image=sha256:9570bf3235922c0d20c8db72f96da8b957a7dfb6777c0fd28d54f9dd5451e740,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/opt/jaautomation/releases/ja-automation-b30ae7b55a3f8afbe25aeae50e627f0b2c717439a898326932406cc197536d02/deployment/compose.production.yml,com.docker.compose.project.environment_file=/etc/jaautomation/jaautomation.env,com.docker.compose.project.working_dir=/opt/jaautomation/releases/ja-automation-b30ae7b55a3f8afbe25aeae50e627f0b2c717439a898326932406cc197536d02/deployment,com.docker.compose.project=deployment,com.docker.compose.replace=jobs-1,com.docker.compose.service=jobs,com.docker.compose.version=2.40.3",
+      "LocalVolumes": "0",
+      "Mounts": "/var/backups/j\u2026,/var/lib/jaaut\u2026",
+      "Names": "deployment-jobs-1",
+      "Networks": "deployment_default",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "5100/tcp",
+      "RunningFor": "9 hours ago",
+      "Size": "28.7kB (virtual 1.56GB)",
+      "State": "running",
+      "Status": "Up 3 minutes"
+    },
+    {
+      "Command": "\"docker-entrypoint.s\u2026\"",
+      "CreatedAt": "2026-09-22 23:50:53 +0200 CEST",
+      "ID": "7b3097d2ce23",
+      "Image": "ja-automation-portal:zip-b30ae7b55a3f8afbe25aeae50e627f0b",
+      "Labels": "com.docker.compose.config-hash=a71b7d2727b1d308584f6cf950e4f53f4fba431e32c73c629145959c22d9a5f2,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:9570bf3235922c0d20c8db72f96da8b957a7dfb6777c0fd28d54f9dd5451e740,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/opt/jaautomation/releases/ja-automation-b30ae7b55a3f8afbe25aeae50e627f0b2c717439a898326932406cc197536d02/deployment/compose.production.yml,com.docker.compose.project.environment_file=/etc/jaautomation/jaautomation.env,com.docker.compose.project.working_dir=/opt/jaautomation/releases/ja-automation-b30ae7b55a3f8afbe25aeae50e627f0b2c717439a898326932406cc197536d02/deployment,com.docker.compose.project=deployment,com.docker.compose.replace=portal-1,com.docker.compose.service=portal,com.docker.compose.version=2.40.3",
+      "LocalVolumes": "0",
+      "Mounts": "/var/lib/jaaut\u2026,/etc/jaautomat\u2026,/etc/jaautomat\u2026",
+      "Names": "deployment-portal-1",
+      "Networks": "deployment_default",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "127.0.0.1:5100->5100/tcp",
+      "RunningFor": "9 hours ago",
+      "Size": "28.7kB (virtual 1.56GB)",
+      "State": "running",
+      "Status": "Up 3 minutes (healthy)"
+    },
+    {
+      "Command": "\"docker-entrypoint.s\u2026\"",
+      "CreatedAt": "2026-09-22 23:50:53 +0200 CEST",
+      "ID": "944b07caea45",
+      "Image": "ja-automation-site:zip-b30ae7b55a3f8afbe25aeae50e627f0b",
+      "Labels": "com.docker.compose.config-hash=23ee0d98050aa03eb9a7c4d142835f2b35b9eb6cf0af0f39e10869e5138fa74a,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:cacd1d0209ec5fab6ab97a1b948a60d4273ac84f6cafe74bc6846a7333b4e2c6,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/opt/jaautomation/releases/ja-automation-b30ae7b55a3f8afbe25aeae50e627f0b2c717439a898326932406cc197536d02/deployment/compose.production.yml,com.docker.compose.project.environment_file=/etc/jaautomation/jaautomation.env,com.docker.compose.project.working_dir=/opt/jaautomation/releases/ja-automation-b30ae7b55a3f8afbe25aeae50e627f0b2c717439a898326932406cc197536d02/deployment,com.docker.compose.project=deployment,com.docker.compose.replace=site-1,com.docker.compose.service=site,com.docker.compose.version=2.40.3",
+      "LocalVolumes": "0",
+      "Mounts": "",
+      "Names": "deployment-site-1",
+      "Networks": "deployment_default",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "127.0.0.1:5101->3000/tcp",
+      "RunningFor": "9 hours ago",
+      "Size": "4.1kB (virtual 841MB)",
+      "State": "running",
+      "Status": "Up 3 minutes (healthy)"
+    },
+    {
+      "Command": "\"/app/navidrome\"",
+      "CreatedAt": "2026-09-22 12:15:35 +0200 CEST",
+      "ID": "0eaa4d40fcd9",
+      "Image": "deluan/navidrome:latest",
+      "Labels": "com.docker.compose.config-hash=2bdd21b1978bda6172ad52a15fdcbfc3df96bb6294cc3b15813898148566830f,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:9fa40b3d8dec43ceb2213d1fa551da3dcfef6ac6d19c2e534efb92527c2bafd2,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/kripta/navidrome/docker-compose.yml,com.docker.compose.project.working_dir=/home/kripta/navidrome,com.docker.compose.project=navidrome,com.docker.compose.replace=navidrome-1,com.docker.compose.service=navidrome,com.docker.compose.version=2.40.3,maintainer=deluan@navidrome.org,org.opencontainers.image.created=2026-04-12T17:50:52.687Z,org.opencontainers.image.description=\ud83c\udfa7 Your Personal Streaming Service,org.opencontainers.image.licenses=GPL-3.0,org.opencontainers.image.revision=aa84e645ba5be6d1f3d50b38c6e03558803e6627,org.opencontainers.image.source=https://github.com/navidrome/navidrome,org.opencontainers.image.title=navidrome,org.opencontainers.image.url=https://github.com/navidrome/navidrome,org.opencontainers.image.version=0.61.2",
+      "LocalVolumes": "0",
+      "Mounts": "/home/kripta/n\u2026,/home/kripta/m\u2026,/srv/mail/navi\u2026",
+      "Names": "navidrome-navidrome-1",
+      "Networks": "navidrome_default",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "0.0.0.0:4533->4533/tcp, [::]:4533->4533/tcp",
+      "RunningFor": "20 hours ago",
+      "Size": "12.3kB (virtual 243MB)",
+      "State": "running",
+      "Status": "Up 3 minutes"
+    },
+    {
+      "Command": "\"/docker-entrypoint.\u2026\"",
+      "CreatedAt": "2026-09-20 10:56:39 +0200 CEST",
+      "ID": "9d2cf151fcce",
+      "Image": "7091461db634",
+      "Labels": "com.docker.compose.config-hash=8ed75c1c0382696eeb108bf88f5bb56e250344283804e191f83f506e6ab38e19,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:7091461db634ee9fb32ee522a712a24b275fc779e8d6400c051b6fe490d95218,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/opt/trace-it/compose.yml,com.docker.compose.project.environment_file=/opt/trace-it/secrets/compose.env,com.docker.compose.project.working_dir=/opt/trace-it,com.docker.compose.project=trace-it,com.docker.compose.replace=frontend-1,com.docker.compose.service=frontend,com.docker.compose.version=2.40.3,maintainer=NGINX Docker Maintainers <docker-maint@nginx.com>,org.opencontainers.image.created=2026-02-23T01:48:31.459Z,org.opencontainers.image.description=Unprivileged NGINX Dockerfiles,org.opencontainers.image.licenses=Apache-2.0,org.opencontainers.image.revision=84c4c0463862640940efb1232344287a2d03bcf5,org.opencontainers.image.source=https://github.com/Martinhdeez/trace-it,org.opencontainers.image.title=docker-nginx-unprivileged,org.opencontainers.image.url=https://github.com/nginx/docker-nginx-unprivileged,org.opencontainers.image.version=1.28.2-alpine,org.trace-it.source-hash=bd11fb5cc8860263ffad303655bfc0c5b4a5f549658122f4dee49a061627a7a6",
+      "LocalVolumes": "0",
+      "Mounts": "/opt/trace-it/\u2026",
+      "Names": "trace-it-frontend-1",
+      "Networks": "trace-it_default",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "127.0.0.1:18173->8080/tcp",
+      "RunningFor": "2 days ago",
+      "Size": "16.4kB (virtual 60.1MB)",
+      "State": "running",
+      "Status": "Up 3 minutes (healthy)"
+    },
+    {
+      "Command": "\"/srv/backend-start.\u2026\"",
+      "CreatedAt": "2026-09-20 10:56:28 +0200 CEST",
+      "ID": "b320b4d68f86",
+      "Image": "8bba9e08c2ae",
+      "Labels": "com.docker.compose.config-hash=f328067904add3c78f1a27978a0a6ed4b74bdee66348953791ce3422ce09e030,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:8bba9e08c2ae8ff5b7f77bd69066bef197553c5876ed1016b5de0c22ab34e024,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/opt/trace-it/compose.yml,com.docker.compose.project.environment_file=/opt/trace-it/secrets/compose.env,com.docker.compose.project.working_dir=/opt/trace-it,com.docker.compose.project=trace-it,com.docker.compose.replace=backend-1,com.docker.compose.service=backend,com.docker.compose.version=2.40.3,org.opencontainers.image.revision=84c4c0463862640940efb1232344287a2d03bcf5,org.opencontainers.image.source=https://github.com/Martinhdeez/trace-it,org.trace-it.criminal-hash=e0579260fd079a5c285f416ae217f3c165c3847d83ae3231e9c5086b8ea06706,org.trace-it.source-hash=0f43cbd12b4bf75f5c3efe769b70452838155e5737c21c7081e75980df1ca756",
+      "LocalVolumes": "1",
+      "Mounts": "trace-it_inges\u2026,/opt/trace-it/\u2026",
+      "Names": "trace-it-backend-1",
+      "Networks": "trace-it_default",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "",
+      "RunningFor": "2 days ago",
+      "Size": "4.1kB (virtual 1.11GB)",
+      "State": "running",
+      "Status": "Up 3 minutes (healthy)"
+    },
+    {
+      "Command": "\"python server.py\"",
+      "CreatedAt": "2026-09-20 01:17:31 +0200 CEST",
+      "ID": "c56435fcde6b",
+      "Image": "26d24bbf4dda",
+      "Labels": "com.docker.compose.config-hash=793094812fc9dc2cefcb07c48475489ec4d497f923eea5ebf3bee8a41c3de62a,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:26d24bbf4dda035d854cee1a2d4ab06945b87e9d2774577cd6accc3af1394b44,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/opt/trace-it/erp/compose.release.yml,com.docker.compose.project.environment_file=/opt/trace-it/erp/current.env,com.docker.compose.project.working_dir=/opt/trace-it/erp,com.docker.compose.project=trace-it-erp,com.docker.compose.replace=erp-1,com.docker.compose.service=erp,com.docker.compose.version=2.40.3,org.opencontainers.image.revision=5d7f324d8df05c508bfad541908ec86b07f7c343,org.opencontainers.image.source=https://github.com/Martinhdeez/trace-it,org.trace-it.source-hash=8f6408e29ba7d4da07179823ece46ec6ea36e1bc88df2384f8f8d1137bdfc79a",
+      "LocalVolumes": "0",
+      "Mounts": "",
+      "Names": "trace-it-erp-erp-1",
+      "Networks": "trace-it_default",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "127.0.0.1:18009->8009/tcp",
+      "RunningFor": "3 days ago",
+      "Size": "4.1kB (virtual 141MB)",
+      "State": "running",
+      "Status": "Up 3 minutes (healthy)"
+    },
+    {
+      "Command": "\"python /processes/h\u2026\"",
+      "CreatedAt": "2026-09-20 01:16:39 +0200 CEST",
+      "ID": "a2eb6d99674d",
+      "Image": "ab6102b2f1ee",
+      "Labels": "com.docker.compose.config-hash=0d5bd3546560c80c5779015ac56fb429fecf00737d457b510aaa38487783070c,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:ab6102b2f1eeb78a679ce0fee9af33efbd4cf62b254f030b3b028abee00fb4cd,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/opt/trace-it/compose.yml,com.docker.compose.project.environment_file=/opt/trace-it/secrets/compose.env,com.docker.compose.project.working_dir=/opt/trace-it,com.docker.compose.project=trace-it,com.docker.compose.replace=criminal-records-1,com.docker.compose.service=criminal-records,com.docker.compose.version=2.40.3,org.opencontainers.image.revision=5d7f324d8df05c508bfad541908ec86b07f7c343,org.opencontainers.image.source=https://github.com/Martinhdeez/trace-it,org.trace-it.criminal-hash=e0579260fd079a5c285f416ae217f3c165c3847d83ae3231e9c5086b8ea06706,org.trace-it.source-hash=c95c49bc179afe0df081d767d02a7993c0a3a64e060f64685ee3151add8342f7",
+      "LocalVolumes": "0",
+      "Mounts": "",
+      "Names": "trace-it-criminal-records-1",
+      "Networks": "trace-it_default",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "127.0.0.1:18010->8010/tcp",
+      "RunningFor": "3 days ago",
+      "Size": "4.1kB (virtual 1.11GB)",
+      "State": "running",
+      "Status": "Up 3 minutes (healthy)"
+    },
+    {
+      "Command": "\"docker-entrypoint.s\u2026\"",
+      "CreatedAt": "2026-09-19 15:14:09 +0200 CEST",
+      "ID": "45cd42a782dd",
+      "Image": "postgres:16-bookworm",
+      "Labels": "com.docker.compose.config-hash=b76301f80bd77b48d2ac3fd3b065cf0ce43cf35aec320e4574234705c6eed8e5,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:efedf3595f1d6f415c08568ba171029bf54052e754cc9f030e3f2412b21f3d67,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/opt/trace-it/compose.yml,com.docker.compose.project.environment_file=/opt/trace-it/secrets/compose.env,com.docker.compose.project.working_dir=/opt/trace-it,com.docker.compose.project=trace-it,com.docker.compose.service=db,com.docker.compose.version=2.40.3",
+      "LocalVolumes": "1",
+      "Mounts": "trace-it_datab\u2026",
+      "Names": "trace-it-db-1",
+      "Networks": "trace-it_default",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "5432/tcp",
+      "RunningFor": "3 days ago",
+      "Size": "20.5kB (virtual 461MB)",
+      "State": "running",
+      "Status": "Up 3 minutes (healthy)"
+    },
+    {
+      "Command": "\"docker-entrypoint.s\u2026\"",
+      "CreatedAt": "2026-09-17 12:08:00 +0200 CEST",
+      "ID": "0d165c644428",
+      "Image": "lois-booking:production",
+      "Labels": "com.docker.compose.config-hash=25e3e2da7174b5518e9f0718e6bd3a7c78570e236e81b4de0cd48746a6c721b1,com.docker.compose.container-number=1,com.docker.compose.depends_on=lois-booking:service_healthy:false,lois-db:service_healthy:false,com.docker.compose.image=sha256:425295601e5c0147395c7dd268afef3861608f4e2a46040b8cebb23a1808b4ca,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/NexIA/Lois-Perruqueiros/docker-compose.vps.yml,com.docker.compose.project.working_dir=/home/NexIA/Lois-Perruqueiros,com.docker.compose.project=lois-perruqueiros,com.docker.compose.replace=lois-jobs,com.docker.compose.service=lois-jobs,com.docker.compose.version=2.40.3",
+      "LocalVolumes": "0",
+      "Mounts": "",
+      "Names": "lois-jobs",
+      "Networks": "lois-perruqueiros_default",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "3100/tcp",
+      "RunningFor": "5 days ago",
+      "Size": "12.3kB (virtual 297MB)",
+      "State": "running",
+      "Status": "Up 3 minutes (healthy)"
+    },
+    {
+      "Command": "\"docker-entrypoint.s\u2026\"",
+      "CreatedAt": "2026-09-17 12:06:23 +0200 CEST",
+      "ID": "d7b555e209f5",
+      "Image": "lois-booking:production",
+      "Labels": "com.docker.compose.config-hash=a156663b9764367c3ec1c4a2bf30028b0958671e0cafccfc2553565894c7fd31,com.docker.compose.container-number=1,com.docker.compose.depends_on=lois-db:service_healthy:false,com.docker.compose.image=sha256:425295601e5c0147395c7dd268afef3861608f4e2a46040b8cebb23a1808b4ca,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/NexIA/Lois-Perruqueiros/docker-compose.vps.yml,com.docker.compose.project.working_dir=/home/NexIA/Lois-Perruqueiros,com.docker.compose.project=lois-perruqueiros,com.docker.compose.replace=lois-booking,com.docker.compose.service=lois-booking,com.docker.compose.version=2.40.3",
+      "LocalVolumes": "0",
+      "Mounts": "",
+      "Names": "lois-booking",
+      "Networks": "lois-perruqueiros_default",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "127.0.0.1:3110->3100/tcp",
+      "RunningFor": "5 days ago",
+      "Size": "4.1kB (virtual 297MB)",
+      "State": "running",
+      "Status": "Up 3 minutes (healthy)"
+    },
+    {
+      "Command": "\"docker-entrypoint.s\u2026\"",
+      "CreatedAt": "2026-09-17 12:06:23 +0200 CEST",
+      "ID": "159cc02c3121",
+      "Image": "lois-perruqueiros-lois-web",
+      "Labels": "com.docker.compose.config-hash=9cfd8fa9b27bb2854e4e9206e71a76ab736205fa4632a03e88f93c5410abacb7,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:5d40745b0a352f86ef652c755047de91a345fe3946a60d7c492a0e310c5420e6,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/NexIA/Lois-Perruqueiros/docker-compose.vps.yml,com.docker.compose.project.working_dir=/home/NexIA/Lois-Perruqueiros,com.docker.compose.project=lois-perruqueiros,com.docker.compose.replace=lois-web,com.docker.compose.service=lois-web,com.docker.compose.version=2.40.3",
+      "LocalVolumes": "0",
+      "Mounts": "",
+      "Names": "lois-web",
+      "Networks": "lois-perruqueiros_default",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "127.0.0.1:3010->3000/tcp",
+      "RunningFor": "5 days ago",
+      "Size": "4.1kB (virtual 200MB)",
+      "State": "running",
+      "Status": "Up 3 minutes (healthy)"
+    },
+    {
+      "Command": "\"docker-entrypoint.s\u2026\"",
+      "CreatedAt": "2026-09-16 14:14:20 +0200 CEST",
+      "ID": "82593b4d9cfc",
+      "Image": "adlaudem-preview:3b888c1",
+      "Labels": "com.docker.compose.config-hash=60c6777d92dd12853a6dc22446dd52177ba05988499da556ded955a855d1ba0a,com.docker.compose.container-number=1,com.docker.compose.depends_on=db:service_healthy:false,com.docker.compose.image=sha256:558b04e36a665b594794bb3ac1db175ee296484800c6b925c3b205bfcc2d4a85,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/opt/adlaudem-preview/releases/3b888c1/compose.yml,com.docker.compose.project.environment_file=/etc/adlaudem/preview/deployment.env,com.docker.compose.project.working_dir=/opt/adlaudem-preview/releases/3b888c1,com.docker.compose.project=adlaudem-preview,com.docker.compose.service=web,com.docker.compose.version=2.40.3",
+      "LocalVolumes": "0",
+      "Mounts": "/srv/adlaudem/\u2026",
+      "Names": "adlaudem-preview-web-1",
+      "Networks": "adlaudem-preview_egress,adlaudem-preview_data",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "127.0.0.1:3108->3000/tcp",
+      "RunningFor": "6 days ago",
+      "Size": "16.4kB (virtual 317MB)",
+      "State": "running",
+      "Status": "Up 3 minutes (healthy)"
+    },
+    {
+      "Command": "\"docker-entrypoint.s\u2026\"",
+      "CreatedAt": "2026-09-16 14:13:35 +0200 CEST",
+      "ID": "43301b0ffd75",
+      "Image": "postgres:17.11-bookworm",
+      "Labels": "com.docker.compose.config-hash=af6e036deaf5ee0f2c0236fb745384f4faf18c8333ab0abc98b7e29c1957bcce,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/opt/adlaudem-preview/releases/3b888c1/compose.yml,com.docker.compose.project.environment_file=/etc/adlaudem/preview/deployment.env,com.docker.compose.project.working_dir=/opt/adlaudem-preview/releases/3b888c1,com.docker.compose.project=adlaudem-preview,com.docker.compose.service=db,com.docker.compose.version=2.40.3",
+      "LocalVolumes": "1",
+      "Mounts": "/opt/adlaudem-\u2026,adlaudem-previ\u2026",
+      "Names": "adlaudem-preview-db-1",
+      "Networks": "adlaudem-preview_data",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "5432/tcp",
+      "RunningFor": "6 days ago",
+      "Size": "28.7kB (virtual 463MB)",
+      "State": "running",
+      "Status": "Up 3 minutes (healthy)"
+    },
+    {
+      "Command": "\"docker-entrypoint.s\u2026\"",
+      "CreatedAt": "2026-09-13 23:28:04 +0200 CEST",
+      "ID": "a2bbc453dc1b",
+      "Image": "postgres:18-alpine",
+      "Labels": "com.docker.compose.config-hash=d90abfaf8ce2c55b6d38f719010dd702b075e9ddde986c2e02e5e4b0169fcb4d,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/NexIA/Lois-Perruqueiros/docker-compose.vps.yml,com.docker.compose.project.working_dir=/home/NexIA/Lois-Perruqueiros,com.docker.compose.project=lois-perruqueiros,com.docker.compose.service=lois-db,com.docker.compose.version=2.40.3",
+      "LocalVolumes": "1",
+      "Mounts": "lois-perruquei\u2026",
+      "Names": "lois-db",
+      "Networks": "lois-perruqueiros_default",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "5432/tcp",
+      "RunningFor": "9 days ago",
+      "Size": "20.5kB (virtual 313MB)",
+      "State": "running",
+      "Status": "Up 3 minutes (healthy)"
+    }
+  ],
+  "current": "/opt/jaautomation/releases/ja-automation-b30ae7b55a3f8afbe25aeae50e627f0b2c717439a898326932406cc197536d02",
+  "caddyPid": "913"
+}

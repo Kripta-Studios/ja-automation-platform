@@ -192,18 +192,53 @@ function renderInvalidState(form: HTMLFormElement, invalidControls: ValidationCo
   }
 }
 
-function clearCorrectedField(event: Event): void {
-  const control = event.currentTarget as ValidationControl;
-  const form = control.form;
-  if (!form || isInvalid(control)) return;
-  removeFieldError(form, control);
+function updateReportedErrors(form: HTMLFormElement): void {
+  const reportedControls = controls(form).filter((control) =>
+    control.hasAttribute('data-validation-error-id'),
+  );
+  for (const control of reportedControls) {
+    if (!isInvalid(control)) removeFieldError(form, control);
+    else {
+      const errorId = control.getAttribute('data-validation-error-id');
+      const error = errorId ? form.ownerDocument.getElementById(errorId) : null;
+      if (error) error.textContent = errorMessage(control);
+    }
+  }
+  const summary = form.querySelector('[data-validation-summary]');
+  if (!summary) return;
+  const remaining = reportedControls.filter((control) => isInvalid(control));
+  if (!remaining.length) {
+    summary.remove();
+    return;
+  }
+  summary.textContent = translate(
+    normalizePortalLocale(form.ownerDocument.documentElement.getAttribute('lang')),
+    'Please correct the following fields: {messages}',
+    { messages: remaining.map(errorMessage).join(' ') },
+  );
 }
 
 export function formValidation(form: HTMLFormElement): ActionResult {
   formIdentity(form);
-  const fieldControls = controls(form);
   let invalidRenderScheduled = false;
   let handlingSubmit = false;
+  let active = true;
+
+  const onEdit = (): void => {
+    // Delegation also covers conditional controls such as a legacy time entry's interval.
+    updateReportedErrors(form);
+    // Reactive cross-field validity can settle after the input event (end time / break).
+    queueMicrotask(() => {
+      if (active) updateReportedErrors(form);
+    });
+  };
+  const onReset = (event: Event): void => {
+    queueMicrotask(() => {
+      if (!active || event.defaultPrevented) return;
+      clearPreviousErrors(form, controls(form));
+      form.querySelector('[data-validation-summary]')?.remove();
+    });
+  };
 
   const onInvalid = (event: Event): void => {
     event.preventDefault();
@@ -222,19 +257,28 @@ export function formValidation(form: HTMLFormElement): ActionResult {
     handlingSubmit = true;
     const valid = form.checkValidity();
     handlingSubmit = false;
-    if (valid) return;
+    if (valid) {
+      clearPreviousErrors(form, controls(form));
+      form.querySelector('[data-validation-summary]')?.remove();
+      return;
+    }
     event.preventDefault();
     renderInvalidState(form, controls(form).filter(isInvalid));
   };
 
   form.addEventListener('invalid', onInvalid, true);
   form.addEventListener('submit', onSubmit);
-  for (const control of fieldControls) control.addEventListener('input', clearCorrectedField);
+  form.addEventListener('input', onEdit);
+  form.addEventListener('change', onEdit);
+  form.addEventListener('reset', onReset);
 
   const destroy = (): void => {
+    active = false;
     form.removeEventListener('invalid', onInvalid, true);
     form.removeEventListener('submit', onSubmit);
-    for (const control of fieldControls) control.removeEventListener('input', clearCorrectedField);
+    form.removeEventListener('input', onEdit);
+    form.removeEventListener('change', onEdit);
+    form.removeEventListener('reset', onReset);
   };
   return { destroy };
 }

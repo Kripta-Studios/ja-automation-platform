@@ -927,3 +927,23 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - Evidencia y comprobaciones posteriores al despliegue: [navegación y traducciones](docs/evidence/workspace-ux-20260922/README.md). Esta revisión no sustituye la aceptación contractual de 32 pasos ni cierra los pendientes externos históricos.
 
 - [x] Commit `d7fbd72` desplegado a las 17:49:09 Madrid: 2.538 archivos del ZIP y 604 de ejecución coincidentes, nueve PDF instalados verificados, SQLite/FK correctas, ocho tablas históricas y 59 archivos privados conservados. Doce páginas públicas, dos ciclos automáticos y respaldo íntegro aprobados; historial de backups aún 14/30 días. Caché Docker a 0 B tras recuperar 6.88GB; imágenes y volúmenes preservados. Servicios y contenedores ajenos conservados.
+
+
+## 2026-09-22 — Agenda, formularios resistentes y bandeja de actividad (CORE-04/06/07, UI_PLAN)
+
+- [x] Agenda del trabajador con todas las asignaciones del día UTC, turnos nocturnos y próximos trabajos; enlaces autorizados y estado vacío explícito.
+- [x] Gastos e informes conservan valores/adjuntos ante fallos, muestran validación localizada y evitan dobles envíos. Horas, gastos e informes protegen cambios sin guardar al cerrar, volver o recargar.
+- [x] Bandeja con filtros Todas/Sin leer y marcado explícito por aviso; navegación activa coherente, acceso por perfil y filtros de proyectos sin duplicados. Traducciones EN/ES/PT.
+- [x] 92 casos distintos de navegador validados en 360/390/768/1440: matriz inicial 82 aprobados/10 fallos de pruebas; repetición corregida 16/16. Axe, teclado y presentación para cinco perfiles. 192 comprobaciones focalizadas, tipos, Svelte (0 errores/avisos), lint/formato y revisión independiente SHIP.
+- Evidencia, alcance y recibo posterior al despliegue: [mejoras operativas](docs/evidence/operational-ux-20260922/README.md). No sustituye la aceptación contractual de 32 pasos ni modifica sus pendientes externos. Manuales existentes conservados; esta entrega no incluye su regeneración.
+
+- [x] Snapshot `0721986d94ba…` desplegado a las 23:51:05 Madrid, release `b30ae7b55a3f…`. 2.266 archivos del manifiesto y 604 fuentes de ejecución comprobados; navegador público 12/12. SQLite/FK, ocho tablas financieras y 59 archivos privados conservados; respaldo verificado y 17 ciclos automáticos sin fallos. Doce contenedores ajenos/PID de Caddy conservados y timers activos. Arranque frío inicial y cobertura histórica de respaldo 14/30 documentados.
+
+
+## 2026-09-23 — Cierre de UX operativa y manuales
+
+- [x] Horas conserva valores y tiempos ante errores/desconexión, bloquea dobles envíos y comparte validación localizada. Resumen de errores coherente al corregir campos y reset; buscar en un selector no genera cambios ficticios.
+- [x] Listados conservan preferencias separadas por usuario/proyecto/URL y revelan el registro autorizado solicitado, sin alterar el orden de listas controladas.
+- [x] Matriz final 65/65 casos aplicables aprobados: 64 recorridos en 360/390/768/1440 y una captura integral; tres exclusiones solo para repetir la captura fuera de escritorio. 63 pruebas focalizadas; tipos, Svelte, lint/formato y revisiones correctos.
+- [x] Nueve PDF actuales regenerados desde 153 capturas/261 comprobaciones, con hashes, fuentes, imágenes y texto verificados. Instrucciones de agenda, bandeja y recuperación actualizadas.
+- Recibo de despliegue y limpieza: [evidencia de cierre](docs/evidence/operational-ux-followup-20260922/README.md). No sustituye la aceptación contractual completa ni cierra pendientes externos históricos.

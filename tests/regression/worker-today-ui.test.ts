@@ -21,7 +21,8 @@ describe('Worker Today UI', () => {
     expect(source).toContain("translate('Today')");
     expect(source).toContain('planned_minutes');
     expect(source).toContain("translate('Planned')");
-    expect(source).not.toMatch(
+    // Privacy applies to data and rendered copy; CSS margin is layout, not a financial field.
+    expect(source.split('<style>')[0]).not.toMatch(
       /client\s*billab|client\s*rate|internal\s*cost|tax|margin|multiplier/i,
     );
   });

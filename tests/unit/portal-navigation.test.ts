@@ -3,6 +3,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
   accountNavigationFor,
+  activeNavItem,
+  isNavItemActive,
+  portalGlobalNavigationForRole,
   portalLandingForRole,
   portalNavigationForRole,
   type NavItem,
@@ -143,18 +146,72 @@ describe('portal role navigation contract', () => {
     );
   });
 
-  it('derives the account menu from the role allowlist without duplicate or global links', () => {
+  it('includes the authorized personal inbox in the account menu without duplicate destinations', () => {
     const accountLabels = (role: string): string[] =>
-      accountNavigationFor(portalNavigationForRole('/j-aautomation', role)).map(
-        (item) => item.label,
-      );
+      accountNavigationFor(
+        portalNavigationForRole('/j-aautomation', role),
+        portalGlobalNavigationForRole(role),
+      ).map((item) => item.label);
 
-    expect(accountLabels('worker')).toEqual(['My Pay', 'Profile']);
-    expect(accountLabels('project_manager')).toEqual(['My Pay', 'Documents', 'Profile']);
-    expect(accountLabels('finance_admin')).toEqual(['Documents', 'Profile']);
-    expect(accountLabels('owner_admin')).toEqual(['Documents', 'Profile']);
-    expect(accountLabels('auditor_read_only')).toEqual(['Profile']);
-    expect(accountLabels('worker')).not.toContain('Notifications');
+    expect(accountLabels('worker')).toEqual(['My Pay', 'Profile', 'Notifications']);
+    expect(accountLabels('project_manager')).toEqual([
+      'My Pay',
+      'Documents',
+      'Profile',
+      'Notifications',
+    ]);
+    expect(accountLabels('finance_admin')).toEqual(['Documents', 'Profile', 'Notifications']);
+    expect(accountLabels('owner_admin')).toEqual(['Documents', 'Profile', 'Notifications']);
+    expect(accountLabels('auditor_read_only')).toEqual(['Profile', 'Notifications']);
+    const global = portalGlobalNavigationForRole('worker');
+    expect(
+      accountNavigationFor(portalNavigationForRole('/j-aautomation', 'worker'), [
+        ...global,
+        ...global,
+      ]).filter((item) => item.section === 'notifications'),
+    ).toHaveLength(1);
+  });
+
+  it.each(['external_technician', 'supplier_coordinator', 'future_profile'])(
+    'does not advertise the inbox to the restricted %s workforce profile',
+    (profile) => {
+      for (const role of [
+        'worker',
+        'project_manager',
+        'finance_admin',
+        'owner_admin',
+        'auditor_read_only',
+      ]) {
+        const global = portalGlobalNavigationForRole(role, profile);
+        expect(global).toEqual([]);
+        expect(
+          accountNavigationFor(
+            portalNavigationForRole('/j-aautomation', role, profile),
+            global,
+          ).map((item) => item.section),
+        ).not.toContain('notifications');
+      }
+    },
+  );
+
+  it.each([undefined, null, 'future_role'])(
+    'does not advertise global destinations for an unrecognized role %s',
+    (role) => {
+      expect(portalGlobalNavigationForRole(role)).toEqual([]);
+    },
+  );
+
+  it('resolves the personal inbox separately from the operational sidebar', () => {
+    const items = [...flatten('worker'), ...portalGlobalNavigationForRole('worker')];
+    const current = activeNavItem(items, {
+      base: '/j-aautomation',
+      section: 'notifications',
+      url: new URL('https://example.test/j-aautomation/app/notifications?lang=es&status=unread'),
+      role: 'worker',
+      itemHref: (item) =>
+        item.href ?? `/j-aautomation/app/${item.section === 'today' ? '' : item.section}`,
+    });
+    expect(current?.label).toBe('Notifications');
   });
 
   it('lets the mobile footer size itself from its links without fixed columns or inline CSP styles', () => {
@@ -172,5 +229,91 @@ describe('portal role navigation contract', () => {
     expect(responsive).not.toContain('grid-template-columns: repeat(5, 1fr)');
     expect(responsive).toContain('grid-auto-flow: column');
     expect(responsive).toContain('grid-auto-columns: minmax(0, 1fr)');
+  });
+});
+
+describe('active portal navigation destination', () => {
+  const base = '/j-aautomation';
+  const itemHref = (item: NavItem): string =>
+    item.href ?? `${base}/app/${item.section === 'today' ? '' : item.section}`;
+  const location = (route: string, section: string, role = 'owner_admin') => ({
+    base,
+    section,
+    role,
+    url: new URL(`${base}/app/${route}`, 'https://example.test'),
+    itemHref,
+  });
+
+  it.each([
+    ['projects?view=clients&lang=es&status=active&q=company', 'Clients'],
+    ['projects?projectId=one&lang=pt&view=team&page=2', 'Team'],
+    ['projects?status=archived&clientId=one&sort=name', 'Projects'],
+    ['projects?view=unknown&status=active', 'Projects'],
+    ['projects/project-id?lang=es&tab=activity', 'Projects'],
+  ])('keeps %s attached to %s independently of filters', (route, label) => {
+    const items = flatten('owner_admin');
+    const current = location(route, 'projects');
+    expect(activeNavItem(items, current)?.label).toBe(label);
+    expect(items.filter((item) => isNavItemActive(item, items, current))).toHaveLength(1);
+  });
+
+  it.each([
+    ['finance_admin', 'overview', 'Finance Overview'],
+    ['finance_admin', 'economic', 'Economic Review'],
+    ['finance_admin', 'commercial', 'Commercial Configuration'],
+    ['owner_admin', 'economic', 'Economic Review'],
+    ['auditor_read_only', 'economic', 'Economic Review'],
+  ])('keeps %s in the selected finance %s view after filtering', (role, view, label) => {
+    const items = flatten(role);
+    const current = location(
+      `finance?clientId=one&view=${view}&status=open&lang=pt&projectId=two`,
+      'finance',
+      role,
+    );
+    expect(activeNavItem(items, current)?.label).toBe(label);
+    expect(items.filter((item) => isNavItemActive(item, items, current))).toHaveLength(1);
+  });
+
+  it.each([
+    ['worker', 'Today'],
+    ['project_manager', 'Dashboard'],
+    ['owner_admin', 'Dashboard'],
+    ['finance_admin', 'Finance Overview'],
+    ['auditor_read_only', 'Finance Overview'],
+  ])('selects the role landing for %s at the root URL', (role, label) => {
+    expect(activeNavItem(flatten(role), location('?lang=es', 'today', role))?.label).toBe(label);
+  });
+
+  it('does not select the mobile Projects destination while Clients or Team is open', () => {
+    const navigation = portalNavigationForRole(base, 'owner_admin');
+    const items = flatten('owner_admin');
+    for (const view of ['clients', 'team']) {
+      const current = location(`projects?view=${view}&status=active`, 'projects');
+      const active = activeNavItem(items, current);
+      expect(
+        navigation.primary.some(
+          (item) => item.section === active?.section && item.label === active?.label,
+        ),
+      ).toBe(false);
+    }
+  });
+
+  it('keeps the supplier team and operational report destinations distinct', () => {
+    const nav = portalNavigationForRole(base, 'worker', 'supplier_coordinator');
+    const items = [...nav.primary, ...nav.secondary];
+    expect(activeNavItem(items, location('supplier?lang=pt', 'supplier'))?.label).toBe(
+      'Supplier team',
+    );
+    expect(
+      activeNavItem(items, location('supplier/report?month=2026-09&lang=pt', 'supplier'))?.label,
+    ).toBe('Operational report');
+  });
+
+  it('uses the parent destination on report detail routes and no item for unrelated routes', () => {
+    const items = flatten('worker');
+    expect(
+      activeNavItem(items, location('reports/report-id?lang=pt', 'reports', 'worker'))?.label,
+    ).toBe('Reports');
+    expect(activeNavItem(items, location('help?lang=es', 'help', 'worker'))).toBeUndefined();
   });
 });

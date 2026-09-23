@@ -3,8 +3,6 @@
   import { replaceState } from '$app/navigation';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
-  import { notificationCopy } from './notifications/copy';
-  import { notificationTargetPath } from './notifications/target';
   import { createAuthClient } from 'better-auth/client';
   import { passkeyClient } from '@better-auth/passkey/client';
   import { disclosure } from './portal/ui/disclosure.js';
@@ -25,6 +23,7 @@
     type PortalLocale,
   } from './portal-i18n';
   import {
+    activeNavItem,
     mobilePrimaryNavigationFor,
     portalNavigationForRole,
     portalTitleFor,
@@ -42,6 +41,7 @@
   } from './portal/ui';
   import type { ToastItem } from './portal/ui';
   import TodaySection from './portal/sections/TodaySection.svelte';
+  import NotificationSection from './portal/sections/NotificationSection.svelte';
   import TimeSection from './portal/sections/TimeSection.svelte';
   import ExpenseSection from './portal/sections/ExpenseSection.svelte';
   import ReportSection from './portal/sections/ReportSection.svelte';
@@ -422,6 +422,15 @@
   const href = (section: string) =>
     section === 'today' ? `${base}/app/` : `${base}/app/${section}`;
   const itemHref = (item: NavItem) => item.href ?? href(item.section);
+  const activeDestination = $derived(
+    activeNavItem([...navigation, ...secondaryNavigation, ...visibleAdmin, ...securityAdmin], {
+      base,
+      section: data.section,
+      url: $page.url,
+      role: data.user.role,
+      itemHref,
+    }),
+  );
   const searchTerm = $derived(searchValue.trim().toLowerCase());
   const visibleSearchSuggestions = $derived(
     (data.searchSuggestions ?? [])
@@ -584,16 +593,6 @@
     }
   }
 
-  function handleGlobalKeydown(event: KeyboardEvent): void {
-    if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'k') return;
-    event.preventDefault();
-    searchOpen = true;
-    void tick().then(() => {
-      searchInput?.focus();
-      searchInput?.select();
-    });
-  }
-
   const offlineController = createOfflineController(base, {
     setOnline: (value) => (online = value),
     setQueue: (value) => (queue = value),
@@ -718,7 +717,6 @@
     locale = resolveStandaloneLocale(queryLocale, data.locale);
     persistStandaloneLocale(locale);
     document.documentElement.lang = documentLanguage(locale);
-    document.addEventListener('keydown', handleGlobalKeydown);
     if (location.hash === '#new-project') {
       const newProjectDetails = document.getElementById('new-project');
       if (newProjectDetails instanceof HTMLDetailsElement) newProjectDetails.open = true;
@@ -738,7 +736,6 @@
       if (result.data?.user) void refreshPasskeys();
     });
     return () => {
-      document.removeEventListener('keydown', handleGlobalKeydown);
       stopOfflineController?.();
       stopOfflineController = null;
     };
@@ -3669,43 +3666,7 @@
         </section>
       </div>
     {:else if data.section === 'notifications'}
-      <section class="record-list full">
-        <div class="panel-title">
-          <h2>{translate('Activity inbox')}</h2>
-          <span>{data.records?.length ?? 0}</span>
-        </div>
-        {#each data.records ?? [] as row}
-          {@const notificationKind = String(row.kind)}
-          {@const safeTarget = notificationTargetPath(row.target)}
-          {@const notificationTarget = safeTarget
-            ? base + safeTarget
-            : base + '/app/notifications/' + encodeURIComponent(String(row.id))}
-          <article class:unread={!row.read_at} class="notification-row">
-            <a class="record-card-link" href={notificationTarget}>
-              <strong>{notificationCopy(notificationKind, locale).subject}</strong>
-              <small>
-                {#if row.record_title}{String(row.record_title)} ·
-                {/if}
-                {#if row.project_number}{String(row.project_number)} ·
-                {/if}
-                {String(row.created_at).replace('T', ' ').slice(0, 16)}
-              </small>
-              {#if row.record_date}<span>{translate('Record date')}: {String(row.record_date)}</span
-                >{/if}
-              {#if Array.isArray(row.changed_fields) && row.changed_fields.length > 0}
-                <span class="change-summary"
-                  >{translate('Changed:')}
-                  {row.changed_fields
-                    .map((field) => field.replaceAll(/([A-Z])/g, ' $1').toLowerCase())
-                    .join(', ')}</span
-                >
-              {/if}
-              <span class="record-card-open">{translate('Open record →')}</span>
-            </a>
-            <span class="state-tag">{row.read_at ? translate('read') : translate('new')}</span>
-          </article>
-        {:else}<div class="empty">{translate('No notifications.')}</div>{/each}
-      </section>
+      <NotificationSection records={data.records ?? []} {base} {locale} {translate} />
     {:else if data.section === 'audit'}
       <section class="record-list full">
         <div class="panel-title">
@@ -3734,9 +3695,9 @@
   <nav class="bottom-nav" aria-label={translate('Mobile navigation')}>
     {#each mobileNavigation as item}
       <a
-        class:active={data.section === item.section}
+        class:active={activeDestination === item}
         href={itemHref(item)}
-        aria-current={data.section === item.section ? 'page' : undefined}>{translate(item.label)}</a
+        aria-current={activeDestination === item ? 'page' : undefined}>{translate(item.label)}</a
       >
     {/each}
     <button

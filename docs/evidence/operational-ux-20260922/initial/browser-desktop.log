@@ -1,0 +1,286 @@
+[WebServer] (node:819524) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ next build
+
+[WebServer] (node:819561) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:819561) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:819873) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:819875) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:819874) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:820045) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ next start --port 4173 --hostname 127.0.0.1
+
+[WebServer] (node:820058) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+
+[WebServer] (node:820099) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite build
+
+[WebServer] (node:820112) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+[WebServer] (node:820112) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+[WebServer] [plugin builtin:vite-reporter] 
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+[WebServer] [PLUGIN_TIMINGS] Your build spent 90% of 3.5s inside plugin hooks (3.2s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-svelte:compile transform (68%, 2.4s, 69 calls)
+[WebServer]   - vite:css transform (57%, 2.0s, 40 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 90% is below.
+[WebServer] Not measurable — 2 hooks whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (1466 calls)
+[WebServer]   - vite-plugin-svelte:preprocess transform (69 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer] 
+
+[WebServer] (node:820112) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] .svelte-kit/output/server/chunks/auth.js (3652:0): A comment
+[WebServer] 
+[WebServer] "/**
+[WebServer] * Wraps a cipher: validates args, ensures encrypt() can only be called once.
+[WebServer] * Used internally by the exported cipher constructors.
+[WebServer] * Output-buffer support is inferred from the wrapped `encrypt` / `decrypt`
+[WebServer] * arity (`fn.length === 2`), so wrapped output-capable methods must use a normal
+[WebServer] * second parameter, not a default/rest parameter. AAD support is explicit in
+[WebServer] * `params.withAAD`; optional AAD starts after the nonce slot when one is present.
+[WebServer] * @__NO_SIDE_EFFECTS__
+[WebServer] * @param params - Static cipher metadata. See {@link CipherParams}.
+[WebServer] * @param constructor - Cipher constructor.
+[WebServer] * @returns Wrapped constructor with validation.
+[WebServer] */"
+[WebServer] 
+[WebServer] in ".svelte-kit/output/server/chunks/auth.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+
+[WebServer] "node:sqlite" is imported by ".svelte-kit/output/server/chunks/src.js", but could not be resolved – treating it as an external dependency.
+
+[WebServer] Generated an empty chunk: "chunks/env.js".
+
+[WebServer] [PLUGIN_TIMINGS] Your build spent 100% of 13.0s inside plugin hooks (19.5s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-sveltekit-compile writeBundle (67%, 8.7s, 1 call)
+[WebServer]   - vite-plugin-sveltekit-compile closeBundle (53%, 6.9s, 1 call)
+[WebServer]   - vite-plugin-svelte:compile transform (20%, 2.6s, 69 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 100% is below.
+[WebServer] Not measurable — 1 hook whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (4501 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer] 
+
+[WebServer] (node:820695) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ node build
+
+[WebServer] (node:820755) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a0cb03-29c7-723d-a36a-a7e055b2b4fe",
+    "01a0cb03-29c8-729a-ac8a-0e82e744fb68",
+    "01a0cb03-29c8-729a-ac8a-1f769fc4d4dc",
+    "01a0cb03-29c9-7623-8b35-46e4aa808af1"
+  ],
+  "invoiceDrafts": [
+    "01a0cb03-2adb-7281-ab2d-39feba106362",
+    "01a0cb03-2ae0-7359-b8a7-313df4f06651",
+    "01a0cb03-2ae4-7227-ac19-a6d9ab9052c4"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a0cb03-2aec-75df-88b6-b8728c132571",
+    "01a0cb03-2aef-7681-a7a1-8832f8486f91",
+    "01a0cb03-2af2-7239-8de6-77428836bd6e"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a0cb03-2aec-75df-88b6-b8728c132571",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a0cb03-2ad1-74c8-bfb8-75ae2f62a9bd",
+    "01a0cb03-2ad3-74e2-8a88-9ce6fa406ddb"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0cb03-29c7-723d-a36a-a7e055b2b4fe",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a0cb03-2afb-75fa-b077-c635968ee910"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0cb03-29c7-723d-a36a-a7e055b2b4fe",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a0cb03-2aff-71ca-a49c-844d545820fa"
+    }
+  ],
+  "periodReportIds": [
+    "01a0cb03-2b00-76be-bffb-5f47bba84ecf",
+    "01a0cb03-2b00-76be-bffb-6272d22e3e94"
+  ],
+  "accountingPackId": "01a0cb03-2b3c-70e8-89e8-145d3701895e",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-737840522f81eee77b8a0826bd398c8db8f2c86e",
+  "closeoutId": "01a0cb03-2bdd-7416-8fe5-96e63fa81a14"
+}
+
+Running 15 tests using 1 worker
+
+(node:821011) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/15] [desktop] › tests/e2e/astra-notifications.spec.ts:7:1 › Worker sees localized notices and opens the authorized project
+[2/15] [desktop] › tests/e2e/form-resilience.spec.ts:38:1 › expense validation retains the receipt and values, then creation and editing succeed
+[3/15] [desktop] › tests/e2e/form-resilience.spec.ts:108:3 › daily report retains all fields after server validation and saves after correction
+[4/15] [desktop] › tests/e2e/form-resilience.spec.ts:108:3 › technical report retains all fields after server validation and saves after correction
+[5/15] [desktop] › tests/e2e/form-resilience.spec.ts:154:1 › owner expense save blocks duplicate submits and retains the form after network and server errors
+[6/15] [desktop] › tests/e2e/navigation-state.spec.ts:4:1 › filtered Clients, Team and Finance views keep the correct navigation destination
+[7/15] [desktop] › tests/e2e/navigation-state.spec.ts:24:1 › personal notifications are reachable through Account and the section navigator
+[8/15] [desktop] › tests/e2e/notification-inbox.spec.ts:8:1 › unread inbox preserves failures, marks only the selected notice and remains accessible
+  1) [desktop] › tests/e2e/notification-inbox.spec.ts:8:1 › unread inbox preserves failures, marks only the selected notice and remains accessible 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('navigation', { name: 'Filtros de notificaciones' }).getByRole('link', { name: /^Todo/ })
+
+
+      66 |   }
+      67 |   const nav = page.getByRole('navigation', { name: 'Filtros de notificaciones' });
+    > 68 |   await nav.getByRole('link', { name: /^Todo/ }).click();
+         |                                                  ^
+      69 |   await expect(page.locator(`[data-notification-id="${ids[0]}"]`)).toBeVisible();
+      70 |   await expect(page.locator(`[data-notification-id="${ids[0]}"]`).getByRole('button')).toHaveCount(
+      71 |     0,
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/notification-inbox.spec.ts:68:50
+
+    Error Context: test-results/notification-inbox-unread--9a966-tice-and-remains-accessible-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/notification-inbox-unread--9a966-tice-and-remains-accessible-desktop/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/notification-inbox-unread--9a966-tice-and-remains-accessible-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:823243) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[9/15] [desktop] › tests/e2e/notification-inbox.spec.ts:82:1 › operational sheets protect changed text on cancel, Escape and navigation
+[10/15] [desktop] › tests/e2e/notification-inbox.spec.ts:119:1 › project register uses one search and status filter
+  2) [desktop] › tests/e2e/notification-inbox.spec.ts:119:1 › project register uses one search and status filter 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('[data-ui="project-section"]').getByLabel('Status', { exact: true })
+    Expected: 1
+    Received: 3
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for locator('[data-ui="project-section"]').getByLabel('Status', { exact: true })
+        14 × locator resolved to 3 elements
+           - unexpected value "3"
+
+
+      122 |   const section = page.locator('[data-ui="project-section"]');
+      123 |   await expect(section.getByRole('searchbox')).toHaveCount(1);
+    > 124 |   await expect(section.getByLabel('Status', { exact: true })).toHaveCount(1);
+          |                                                               ^
+      125 |   await section.getByRole('searchbox').fill('NO_MATCH_PROJECT_000');
+      126 |   await expect(section.getByText('No projects found', { exact: true })).toBeVisible();
+      127 |   await section.getByRole('link', { name: 'Clear filters', exact: true }).click();
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/notification-inbox.spec.ts:124:63
+
+    Error Context: test-results/notification-inbox-project-8493c-ne-search-and-status-filter-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/notification-inbox-project-8493c-ne-search-and-status-filter-desktop/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/notification-inbox-project-8493c-ne-search-and-status-filter-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:823749) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[11/15] [desktop] › tests/e2e/today-agenda.spec.ts:8:1 › Worker Today separates the complete UTC agenda, upcoming work and an honest empty state
+[12/15] [desktop] › tests/e2e/workspace-navigation.spec.ts:9:1 › section navigation is role scoped, keyboard accessible and responsive
+[13/15] [desktop] › tests/e2e/workspace-navigation.spec.ts:47:1 › date shortcuts preserve filters and chips remove exactly one criterion
+[14/15] [desktop] › tests/e2e/workspace-navigation.spec.ts:79:1 › week jumps cross years and preserve non-date criteria
+[15/15] [desktop] › tests/e2e/workspace-navigation.spec.ts:102:1 › owner and finance can find their destinations in Portuguese
+  2 failed
+    [desktop] › tests/e2e/notification-inbox.spec.ts:8:1 › unread inbox preserves failures, marks only the selected notice and remains accessible 
+    [desktop] › tests/e2e/notification-inbox.spec.ts:119:1 › project register uses one search and status filter 
+  13 passed (2.3m)

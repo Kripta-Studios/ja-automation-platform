@@ -117,3 +117,13 @@ Access — Consult: each role sees only its effective project scope and its own 
 - **Owner:** administrative and cross-project authority is outside this guide’s role family; Owner review is required where stated for supplier-origin records or escalated corrections.
 
 Seeing a menu, reading a guide or knowing a procedure never expands the account’s permission or project scope.
+
+## Form recovery and activity notices
+
+**Today** separates every assignment overlapping the current UTC day from upcoming work. An overnight assignment can appear on both affected days. Read the full dates and UTC label; use **Show more assignments** for further upcoming assignments. Planned work never creates actual time. Open a project only through your authorized link.
+
+Time, Expense and Daily/Technical entry forms keep their entered values after a validation or connection failure. Correct the highlighted fields; the validation summary clears as those errors are fixed. During a save, wait for the result before editing. If the portal cannot confirm the save, check the register before submitting again. If it confirms a save but cannot refresh the register, close the form and refresh; do not resubmit. Closing, Escape, Back or reloading asks before discarding changed entries. Searching a selector without choosing another value does not change the form. This protection is not a saved draft or recovery after closing the browser.
+
+Open **Notifications** from the section navigator or account menu. **All** and **Unread** filter the latest 50 notices loaded by the inbox. Use **Mark as read** for the selected notice; opening the inbox does not mark everything read. **Notification details** and source links retain their normal access checks. Marking a notice read does not approve its business record.
+
+<!-- screenshot:worker:activity-inbox -->

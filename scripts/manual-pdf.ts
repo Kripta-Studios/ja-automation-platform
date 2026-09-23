@@ -250,6 +250,11 @@ function markdown(value: string, renderCapture?: (persona: string, key: string) 
 }
 
 const captureCaptions: Record<string, Readonly<{ en: string; pt: string; es: string }>> = {
+  'activity-inbox': {
+    en: 'Activity inbox: latest notices, All/Unread filters and explicit mark-read actions.',
+    pt: 'Caixa de atividades: avisos recentes, filtros Todas/Não lidas e ação Marcar como lido.',
+    es: 'Bandeja de actividad: avisos recientes, filtros Todas/Sin leer y marcado explícito.',
+  },
   'section-navigator': {
     en: 'Find an authorized section with the keyboard or the header shortcut.',
     pt: 'Encontre uma seção autorizada pelo teclado ou pelo atalho do cabeçalho.',

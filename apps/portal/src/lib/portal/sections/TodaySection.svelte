@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import { portalText } from '../../portal-i18n';
+  import { planningAgenda, planningInterval, type AgendaAssignment } from '../planning-agenda';
   import OwnerFinanceDashboard from './OwnerFinanceDashboard.svelte';
   import type { PortalData, PortalRow } from '../portal-data';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
@@ -47,7 +50,34 @@
     return `${hours} h ${remainingMinutes} min`;
   };
 
-  const planningReference = $derived(formatPlanningMinutes(data.records?.[0]?.planned_minutes));
+  let agendaDate = $state(new Date());
+  let upcomingLimit = $state(5);
+  const agenda = $derived(planningAgenda(data.records ?? [], agendaDate));
+  const upcomingShown = $derived(agenda.upcoming.slice(0, upcomingLimit));
+  const dateLocale = $derived(locale === 'pt' ? 'pt-BR' : locale);
+  const todayLabel = $derived(
+    new Intl.DateTimeFormat(dateLocale, {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(agendaDate),
+  );
+  const projectHref = (row: PortalRow): string | null => {
+    const projectId = String(row.project_id ?? '');
+    return projectId && availableProjects.some((project) => String(project.id) === projectId)
+      ? `${base}/app/projects/${encodeURIComponent(projectId)}?lang=${locale}`
+      : null;
+  };
+  onMount(() => {
+    // A workspace left open overnight must not keep yesterday labelled Today.
+    agendaDate = new Date();
+    const timer = window.setInterval(() => {
+      agendaDate = new Date();
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  });
 
   /**
    * Keep the dashboard invoice CTA on the already-authorized project target,
@@ -142,39 +172,393 @@
       >{/each}
   </section>
 {:else}
-  <div class="portal-grid worker-home-grid">
-    <section class="assignment">
-      <span class="status-chip"><b></b>{translate('Today')}</span>
-      {#if planningReference}
-        <small class="assignment-planning-context"
-          >{translate('Planned')}: {planningReference}</small
+  <div class="worker-agenda" data-worker-agenda>
+    <section class="agenda-intro" aria-labelledby="agenda-heading">
+      <div class="agenda-intro-heading">
+        <div>
+          <span class="portal-kicker">{translate('Field workspace')}</span>
+          <h2 id="agenda-heading">{translate('Your workday')}</h2>
+          <p class="agenda-date">{todayLabel} · UTC</p>
+        </div>
+        <span class="agenda-count"
+          >{portalText(locale, '{count} assignments today', { count: agenda.today.length })}</span
         >
-      {/if}
-      <div class="quick-actions">
-        <a href={`${base}/app/time`}>{translate('Log actual time')}</a><a
-          href={`${base}/app/reports`}>{translate('Write field report')}</a
-        ><a href={`${base}/app/expenses`}>{translate('Add expense')}</a>
       </div>
-      <h2>{data.records?.[0]?.project_name ?? translate('Field workspace')}</h2>
-      <p>
-        {data.records?.[0]
-          ? `${data.records[0].site} · ${String(data.records[0].starts_at).slice(11, 16)}–${String(data.records[0].ends_at).slice(11, 16)}`
-          : translate('No published assignment for today.')}
+      <nav class="quick-actions agenda-actions" aria-label={translate('Dashboard actions')}>
+        <a href={`${base}/app/time?lang=${locale}`}>{translate('Log actual time')}</a>
+        <a href={`${base}/app/reports?lang=${locale}`}>{translate('Write field report')}</a>
+        <a href={`${base}/app/expenses?lang=${locale}`}>{translate('Add expense')}</a>
+      </nav>
+      <p class="agenda-note">
+        {translate('Planning is a reference. Record the time you actually worked.')}
       </p>
     </section>
-    <section class="sync-panel">
-      <span class="portal-kicker">{translate('DEVICE STATUS')}</span><strong
-        >{online ? translate('Connected to J&A') : translate('Working offline')}</strong
-      >
-      <p>
-        {queue}
+
+    <div
+      class="agenda-device"
+      class:agenda-offline={!online}
+      aria-label={translate('DEVICE STATUS')}
+    >
+      <span class="agenda-connection-dot" aria-hidden="true"></span>
+      <strong>{online ? translate('Connected to J&A') : translate('Working offline')}</strong>
+      <span
+        >{queue}
         {translate(
           queue === 1
             ? 'local mutation waiting to synchronize.'
             : 'local mutations waiting to synchronize.',
-        )}
-      </p>
-      {#if syncMessage}<small>{translate(syncMessage)}</small>{/if}
+        )}</span
+      >
+      {#if syncMessage}<small role="status">{translate(syncMessage)}</small>{/if}
+    </div>
+
+    <section
+      class="agenda-section"
+      aria-labelledby="today-assignments-heading"
+      data-today-assignments
+    >
+      <div class="agenda-section-heading">
+        <h2 id="today-assignments-heading">{translate('Today')}</h2>
+        <span>{translate('All times in UTC')}</span>
+      </div>
+      {#each agenda.today as assignment}
+        {@render assignmentCard(assignment)}
+      {:else}
+        <div class="agenda-empty">
+          <h3>{translate('No published assignment for today.')}</h3>
+          <p>{translate('You can still record actual work for your assigned projects.')}</p>
+          {#if availableProjects.length}
+            <details class="agenda-projects">
+              <summary
+                >{translate('Your assigned projects')}
+                <span>({availableProjects.length})</span></summary
+              >
+              <ul>
+                {#each availableProjects as project}
+                  <li>
+                    <a
+                      href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?lang=${locale}`}
+                    >
+                      <span>{project.project_number}</span>
+                      {project.name}
+                    </a>
+                  </li>
+                {/each}
+              </ul>
+            </details>
+          {/if}
+        </div>
+      {/each}
     </section>
+
+    <section
+      class="agenda-section"
+      aria-labelledby="upcoming-assignments-heading"
+      data-upcoming-assignments
+    >
+      <div class="agenda-section-heading">
+        <h2 id="upcoming-assignments-heading">{translate('Upcoming assignments')}</h2>
+        <span aria-live="polite"
+          >{portalText(locale, 'Showing {shown} of {total}', {
+            shown: upcomingShown.length,
+            total: agenda.upcoming.length,
+          })}</span
+        >
+      </div>
+      <p class="agenda-scope">{translate('Published assignments after today, in date order.')}</p>
+      {#each upcomingShown as assignment}
+        {@render assignmentCard(assignment)}
+      {:else}
+        <p class="agenda-empty">{translate('No upcoming assignments published.')}</p>
+      {/each}
+      {#if upcomingShown.length < agenda.upcoming.length}
+        <button type="button" class="agenda-show-more" onclick={() => (upcomingLimit += 5)}>
+          {translate('Show more assignments')}
+        </button>
+      {/if}
+    </section>
+    {#if agenda.invalidCount}
+      <p class="agenda-date-warning" role="status">
+        {translate('Some assignments have incomplete dates. Ask your coordinator to review them.')}
+      </p>
+    {/if}
   </div>
 {/if}
+
+{#snippet assignmentCard(assignment: AgendaAssignment)}
+  {@const row = assignment.row}
+  {@const target = projectHref(row)}
+  {@const planned = formatPlanningMinutes(row.planned_minutes)}
+  <article class="agenda-assignment" data-agenda-assignment={row.id}>
+    <div class="agenda-assignment-content">
+      <p class="agenda-interval">{planningInterval(assignment, dateLocale)}</p>
+      {#if row.project_number}<span class="agenda-project-number">{row.project_number}</span>{/if}
+      <h3>{row.project_name ?? translate('Field workspace')}</h3>
+      {#if row.site}<p class="agenda-site">{row.site}</p>{/if}
+      {#if planned}<p class="agenda-planned">{translate('Planned')}: {planned}</p>{/if}
+    </div>
+    {#if target}<a class="agenda-project-link" href={target}
+        >{translate('Open project')} <span aria-hidden="true">→</span></a
+      >{/if}
+  </article>
+{/snippet}
+
+<style>
+  .worker-agenda {
+    display: grid;
+    gap: 1.25rem;
+    min-width: 0;
+  }
+  .agenda-intro {
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border: 1px solid var(--ja-border-strong);
+    border-radius: 1rem;
+    background: var(--ja-surface);
+  }
+  .agenda-intro-heading,
+  .agenda-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .agenda-intro h2 {
+    margin: 0.5rem 0;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    letter-spacing: -0.035em;
+  }
+  .agenda-date,
+  .agenda-note,
+  .agenda-scope,
+  .agenda-site,
+  .agenda-planned {
+    color: var(--ja-text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+  .agenda-date {
+    margin: 0;
+  }
+  .agenda-count {
+    padding: 0.5rem 0.75rem;
+    background: var(--ja-canvas);
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+  .agenda-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 1.25rem 0 0.75rem;
+  }
+  .agenda-actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--ja-control-border);
+    border-radius: 0.65rem;
+    background: var(--ja-surface);
+    color: var(--ja-text-primary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .agenda-actions a:first-child {
+    color: var(--ja-surface);
+    background: var(--ja-primary);
+    border-color: var(--ja-primary);
+  }
+  .agenda-note {
+    margin: 0;
+  }
+  .agenda-device {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--ja-border-subdued);
+    border-radius: 0.65rem;
+    color: var(--ja-text-secondary);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+  .agenda-device strong {
+    font-size: inherit;
+    font-weight: 600;
+    color: var(--ja-text-primary);
+  }
+  .agenda-device small {
+    flex-basis: 100%;
+    font-size: inherit;
+  }
+  .agenda-connection-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: #0f766e;
+    flex-shrink: 0;
+  }
+  .agenda-offline .agenda-connection-dot {
+    background: #92400e;
+  }
+  .agenda-section {
+    display: grid;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+  .agenda-section-heading h2 {
+    margin: 0;
+    font-size: 1.125rem;
+  }
+  .agenda-section-heading > span {
+    color: var(--ja-text-secondary);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+  .agenda-scope {
+    margin: -0.25rem 0 0;
+  }
+  .agenda-assignment {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem;
+    min-width: 0;
+    border: 1px solid var(--ja-border-strong);
+    border-radius: 0.75rem;
+    background: var(--ja-surface);
+  }
+  .agenda-assignment-content {
+    min-width: 0;
+  }
+  .agenda-interval {
+    margin: 0 0 0.75rem;
+    color: var(--ja-text-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.6;
+    font-variant-numeric: tabular-nums;
+  }
+  .agenda-project-number {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--ja-text-secondary);
+    line-height: 1.5;
+  }
+  .agenda-assignment h3 {
+    margin: 0.25rem 0;
+    font-size: 1rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+  .agenda-site,
+  .agenda-planned {
+    margin: 0.25rem 0 0;
+    overflow-wrap: anywhere;
+  }
+  .agenda-project-link,
+  .agenda-show-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-height: 44px;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--ja-control-border);
+    border-radius: 0.5rem;
+    color: var(--ja-text-primary);
+    background: var(--ja-surface);
+    text-decoration: none;
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    box-shadow: none;
+  }
+  .agenda-show-more {
+    justify-self: start;
+    cursor: pointer;
+  }
+  .agenda-empty {
+    margin: 0;
+    padding: 1.25rem;
+    border: 1px dashed var(--ja-control-border);
+    border-radius: 0.75rem;
+    color: var(--ja-text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+  .agenda-empty h3 {
+    font-size: 1rem;
+    margin: 0;
+    color: var(--ja-text-primary);
+  }
+  .agenda-empty p {
+    margin: 0.5rem 0;
+  }
+  .agenda-projects {
+    margin-top: 0.75rem;
+  }
+  .agenda-projects summary {
+    min-height: 44px;
+    padding-block: 0.625rem;
+    cursor: pointer;
+    color: var(--ja-text-primary);
+    font-weight: 600;
+  }
+  .agenda-projects ul {
+    display: grid;
+    gap: 0.25rem;
+    padding: 0;
+    list-style: none;
+  }
+  .agenda-projects a {
+    display: block;
+    min-height: 44px;
+    padding: 0.5rem;
+    color: var(--ja-text-primary);
+    overflow-wrap: anywhere;
+  }
+  .agenda-projects a span {
+    font-weight: 600;
+  }
+  .agenda-date-warning {
+    padding: 0.75rem 1rem;
+    color: var(--ja-text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+  .worker-agenda :is(a, button, summary):focus-visible {
+    outline: 3px solid var(--ja-border-focus);
+    outline-offset: 3px;
+  }
+  @media (max-width: 600px) {
+    .agenda-assignment {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 1rem;
+    }
+    .agenda-actions a {
+      flex: 1 1 100%;
+    }
+    .agenda-project-link {
+      align-self: start;
+    }
+    .agenda-device > span:not(.agenda-connection-dot) {
+      flex-basis: 100%;
+    }
+  }
+  @media print {
+    .agenda-actions,
+    .agenda-device,
+    .agenda-show-more {
+      display: none;
+    }
+  }
+</style>

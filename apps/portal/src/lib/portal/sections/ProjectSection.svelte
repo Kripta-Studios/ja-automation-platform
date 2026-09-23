@@ -283,6 +283,7 @@
     action={`${base}/app/projects`}
     aria-label={translate('Filter projects')}
   >
+    <input type="hidden" name="lang" value={locale} />
     <label>
       <span>{translate('Search projects')}</span>
       <input
@@ -306,7 +307,9 @@
       </select>
     </label>
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
-    <a class="secondary-button" href={`${base}/app/projects`}>{translate('Clear filters')}</a>
+    <a class="secondary-button" href={`${base}/app/projects?lang=${locale}&q=&status=`}
+      >{translate('Clear filters')}</a
+    >
   </form>
 
   <details class="admin-details" data-project-calendar>
@@ -330,117 +333,122 @@
   </details>
 
   <SectionCard title={translate('Authorized projects')} class="project-section__list-surface">
-    <RecordBrowser rows={visibleProjects} bind:visible={projectPage} {translate} label="Project" />
-    <TableRegion
-      ariaLabel={translate('Authorized projects list')}
-      mobileMode="cards"
-      cardRows={projectCardRows}
-    >
-      <table class="project-section__table">
-        <caption class="sr-only">{translate('Authorized projects')}</caption>
-        <thead>
-          <tr>
-            <th scope="col">{translate('Project')}</th>
-            <th scope="col">{translate('Client')}</th>
-            <th scope="col">{translate('Status')}</th>
-            <th scope="col">{translate('Schedule')}</th>
-            {#if canTransitionProject}<th scope="col">{translate('Actions')}</th>{/if}
-          </tr>
-        </thead>
-        <tbody>
-          {#each projectPage as project}
-            {@const status = projectStatus(project)}
-            {@const actions = lifecycleActions(project)}
-            <tr data-project-row={projectId(project)}>
-              <td>
-                {#if projectId(project)}
-                  <a class="project-section__project-link" href={projectHref(project)}>
+    <RecordBrowser
+      rows={visibleProjects}
+      bind:visible={projectPage}
+      {translate}
+      label="Project"
+      filtersEnabled={false}
+      showEmpty={false}
+    />
+    {#if !visibleProjects.length}
+      <div class="project-section__empty" role="status">
+        <strong>{translate('No projects found')}</strong>
+        <span>{translate('Try another filter or add an authorized project.')}</span>
+      </div>
+    {:else}
+      <TableRegion
+        ariaLabel={translate('Authorized projects list')}
+        mobileMode="cards"
+        cardRows={projectCardRows}
+      >
+        <table class="project-section__table">
+          <caption class="sr-only">{translate('Authorized projects')}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{translate('Project')}</th>
+              <th scope="col">{translate('Client')}</th>
+              <th scope="col">{translate('Status')}</th>
+              <th scope="col">{translate('Schedule')}</th>
+              {#if canTransitionProject}<th scope="col">{translate('Actions')}</th>{/if}
+            </tr>
+          </thead>
+          <tbody>
+            {#each projectPage as project}
+              {@const status = projectStatus(project)}
+              {@const actions = lifecycleActions(project)}
+              <tr data-project-row={projectId(project)}>
+                <td>
+                  {#if projectId(project)}
+                    <a class="project-section__project-link" href={projectHref(project)}>
+                      <strong>{projectNumber(project)}</strong>
+                      <span>{projectName(project)}</span>
+                    </a>
+                  {:else}
                     <strong>{projectNumber(project)}</strong>
                     <span>{projectName(project)}</span>
-                  </a>
-                {:else}
-                  <strong>{projectNumber(project)}</strong>
-                  <span>{projectName(project)}</span>
-                {/if}
-              </td>
-              <td>
-                <span>{clientLabel(project) || translate('Not assigned')}</span>
-                {#if projectReference(project)}<small>{projectReference(project)}</small>{/if}
-              </td>
-              <td>
-                <StatusBadge variant={statusVariant(status)} text={statusLabel(status)} />
-              </td>
-              <td>{projectSchedule(project) || translate('Not scheduled')}</td>
-              {#if canTransitionProject}
-                <td>
-                  {#if actions.length > 0}
-                    <details class="project-section__actions">
-                      <summary>{translate('Actions')}</summary>
-                      <div>
-                        {#each actions as action}
-                          <form method="POST" action={action.action}>
-                            <input type="hidden" name="projectId" value={projectId(project)} />
-                            <input
-                              type="hidden"
-                              name="version"
-                              value={value(project, 'version') || '1'}
-                            />
-                            {#each lifecycleFields(action) as [name, fieldValue]}
-                              <input type="hidden" {name} value={String(fieldValue)} />
-                            {/each}
-                            <label>
-                              <span>{translate('Reason')}</span>
-                              <input name="reason" required />
-                            </label>
-                            <button
-                              class={action.destructive ? 'danger' : 'secondary-button'}
-                              type="submit"
-                            >
-                              {action.label}
-                            </button>
-                          </form>
-                        {/each}
-                        {#if isOwnerOrFinance}
-                          <form
-                            method="POST"
-                            action="?/deleteProject"
-                            onsubmit={(event) => {
-                              if (
-                                !confirm(
-                                  translate(
-                                    'Delete this project? This will permanently remove it if it has no financial activity.',
-                                  ),
-                                )
-                              ) {
-                                event.preventDefault();
-                              }
-                            }}
-                          >
-                            <input type="hidden" name="projectId" value={projectId(project)} />
-                            <button class="danger" type="submit">
-                              {translate('Delete project')}
-                            </button>
-                          </form>
-                        {/if}
-                      </div>
-                    </details>
                   {/if}
                 </td>
-              {/if}
-            </tr>
-          {:else}
-            <tr>
-              <td colspan={canTransitionProject ? 5 : 4}>
-                <div class="project-section__empty">
-                  <strong>{translate('No projects found')}</strong>
-                  <span>{translate('Try another filter or add an authorized project.')}</span>
-                </div>
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </TableRegion>
+                <td>
+                  <span>{clientLabel(project) || translate('Not assigned')}</span>
+                  {#if projectReference(project)}<small>{projectReference(project)}</small>{/if}
+                </td>
+                <td>
+                  <StatusBadge variant={statusVariant(status)} text={statusLabel(status)} />
+                </td>
+                <td>{projectSchedule(project) || translate('Not scheduled')}</td>
+                {#if canTransitionProject}
+                  <td>
+                    {#if actions.length > 0}
+                      <details class="project-section__actions">
+                        <summary>{translate('Actions')}</summary>
+                        <div>
+                          {#each actions as action}
+                            <form method="POST" action={action.action}>
+                              <input type="hidden" name="projectId" value={projectId(project)} />
+                              <input
+                                type="hidden"
+                                name="version"
+                                value={value(project, 'version') || '1'}
+                              />
+                              {#each lifecycleFields(action) as [name, fieldValue]}
+                                <input type="hidden" {name} value={String(fieldValue)} />
+                              {/each}
+                              <label>
+                                <span>{translate('Reason')}</span>
+                                <input name="reason" required />
+                              </label>
+                              <button
+                                class={action.destructive ? 'danger' : 'secondary-button'}
+                                type="submit"
+                              >
+                                {action.label}
+                              </button>
+                            </form>
+                          {/each}
+                          {#if isOwnerOrFinance}
+                            <form
+                              method="POST"
+                              action="?/deleteProject"
+                              onsubmit={(event) => {
+                                if (
+                                  !confirm(
+                                    translate(
+                                      'Delete this project? This will permanently remove it if it has no financial activity.',
+                                    ),
+                                  )
+                                ) {
+                                  event.preventDefault();
+                                }
+                              }}
+                            >
+                              <input type="hidden" name="projectId" value={projectId(project)} />
+                              <button class="danger" type="submit">
+                                {translate('Delete project')}
+                              </button>
+                            </form>
+                          {/if}
+                        </div>
+                      </details>
+                    {/if}
+                  </td>
+                {/if}
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </TableRegion>
+    {/if}
   </SectionCard>
 
   {#if showPrimaryAction && primaryAction}

@@ -11,7 +11,7 @@ const { parse } = createRequire(join(portalRoot, 'package.json'))('svelte/compil
 
 // These are identifiers, language endonyms or standard units, not translated prose.
 const invariantText =
-  /^(?:[|·]?\s*J&A (?:Automation|Portal)(?: ·)?|webmail\.j-aautomation\.com ↗|USD|BRL|EUR|EN|ES|PT-BR|English|Español|Português(?: \(Brasil\))?|⌘\/Ctrl K|bytes|min ·|\d+ GB|SHA-256:)$/u;
+  /^(?:[|·]?\s*J&A (?:Automation|Portal)(?: ·)?|webmail\.j-aautomation\.com ↗|· UTC|USD|BRL|EUR|EN|ES|PT-BR|English|Español|Português(?: \(Brasil\))?|⌘\/Ctrl K|bytes|min ·|\d+ GB|SHA-256:)$/u;
 
 describe('visible portal locale coverage', () => {
   it('does not leave untranslated literal prose or accessibility labels in Svelte markup', () => {

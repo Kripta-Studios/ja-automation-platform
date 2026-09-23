@@ -1,0 +1,66 @@
+{
+  "at": "2026-09-23T11:34:19.476151+00:00",
+  "release": "/opt/jaautomation/releases/ja-automation-97502e4a6676a5a7c91435e42522c3b3fecc10132d0edc4846f2101f6fdfced4",
+  "sourceTree": "24527d941ea27fc8f806132c932107fd6930abf5",
+  "archiveSha256": "97502e4a6676a5a7c91435e42522c3b3fecc10132d0edc4846f2101f6fdfced4",
+  "manifestFilesVerified": 2365,
+  "runtimeSourceFilesMatch": 604,
+  "unrelatedContainersPreserved": [
+    "navidrome-navidrome-1",
+    "trace-it-frontend-1",
+    "trace-it-backend-1",
+    "trace-it-erp-erp-1",
+    "trace-it-criminal-records-1",
+    "trace-it-db-1",
+    "lois-jobs",
+    "lois-booking",
+    "lois-web",
+    "adlaudem-preview-web-1",
+    "adlaudem-preview-db-1",
+    "lois-db"
+  ],
+  "caddyPidPreserved": "913",
+  "healthyWebServices": 2,
+  "runningWorker": true,
+  "activeUnits": [
+    "jaautomation-zip-deploy.path",
+    "caddy",
+    "jaautomation-backup.timer",
+    "jaautomation-jobs.timer",
+    "jaautomation-zip-deploy.timer"
+  ],
+  "jobCyclesVerified": 3288,
+  "jobErrors": 0,
+  "lastTwoCycles": [
+    {
+      "timestamp": "2026-09-23T11:34:12.667Z",
+      "level": "info",
+      "event": "jobs.cycle",
+      "service": "jaautomation-jobs",
+      "processed": 0,
+      "failed": 0,
+      "overdueMarked": 0,
+      "outbox": {
+        "processed": 0,
+        "failed": 0,
+        "permanentlyFailed": 0
+      },
+      "actorId": "jobs-service-v1"
+    },
+    {
+      "timestamp": "2026-09-23T11:34:17.786Z",
+      "level": "info",
+      "event": "jobs.cycle",
+      "service": "jaautomation-jobs",
+      "processed": 0,
+      "failed": 0,
+      "overdueMarked": 0,
+      "outbox": {
+        "processed": 0,
+        "failed": 0,
+        "permanentlyFailed": 0
+      },
+      "actorId": "jobs-service-v1"
+    }
+  ]
+}

@@ -61,3 +61,30 @@ inspected. Unit/integration/security selection: 63 passed; types, Svelte (zero e
 lint, formatting and diff check passed. No runtime edit followed the successful browser build.
 The user's final instruction explicitly authorizes production activation, cache cleanup and
 pushing the complete work to the existing GitHub branch.
+
+## Production activation
+
+Activated on **2026-09-23 08:51:52 Europe/Madrid** at
+https://j-aautomation.com/j-aautomation/app.
+
+- Release archive SHA-256: `97502e4a6676a5a7c91435e42522c3b3fecc10132d0edc4846f2101f6fdfced4`.
+  The installed manifest contains 2,365 verified files; all 604 runtime source files match the
+  reviewed worktree snapshot `24527d941ea27fc8f806132c932107fd6930abf5`.
+- Public Chromium checks passed 12/12 for site/login, EN/ES/PT and 390/1440 px. Both web
+  containers are healthy. The worker is running; 3,288 successful cycles were available to the
+  post-deployment verifier, with zero cycle or outbox errors.
+- SQLite integrity is OK with zero foreign-key violations. Hashes for all eight financial tables
+  and all 59 private files are unchanged from the original pre-release snapshot.
+- The deployer's pre-activation backup was verified in an isolated copy with 59 documents.
+  Historical backup coverage is now 15/30 days; the older coverage gap remains documented.
+- Caddy kept the same PID, all five checked units are active, and the IDs/running state of all 12
+  unrelated containers were preserved.
+
+After activation, exactly 50 unused and unshared BuildKit records created by this build were
+enumerated and removed. The operation reclaimed 6.941 GB and left 14.41 GB free. Images,
+containers, volumes, releases, the active symlink and persistent data were compared before/after
+and remained unchanged. No image, volume or global system prune ran.
+
+Production receipts: `release-package.json`, `deployment.log`, `production-receipt.json`,
+`production-before.json`, `production-after.json`, `backup-after.json`,
+`production/browser.json` and `cache-after-deploy.json`.

@@ -1,0 +1,43 @@
+{
+  "at": "2026-09-23T11:34:13.696790+00:00",
+  "integrity": "ok",
+  "foreignKeys": 0,
+  "tables": {
+    "invoice": {
+      "rows": 14,
+      "sha256": "5f8d036b3a0874f4284551d3d81a0e857ac298b8698786c0bc62a256116f5386"
+    },
+    "invoice_line": {
+      "rows": 62,
+      "sha256": "7abbcf332d5d459d038ff4bd4a512c161ed7bc97afa332b6fb9d6b504b8e66a0"
+    },
+    "payment": {
+      "rows": 6,
+      "sha256": "2e40f577fee5385308609f30e735a68f0e4480045675bf11480a2c24bc7ed5b9"
+    },
+    "finance_snapshot": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "finance_internal_cost_snapshot": {
+      "rows": 33,
+      "sha256": "96706c8cf453718580457ef3c6f76836b0eaa2f9a2e46823f8a94d82314bacc5"
+    },
+    "invoice_commercial_source_manifest": {
+      "rows": 54,
+      "sha256": "3cabd610e992a7acaf0f63bea64107e415cb324996fdd722b0b560eaffa517e1"
+    },
+    "accounting_pack_revision_snapshot": {
+      "rows": 1,
+      "sha256": "03145a9ea3fb7ba94fb9521fb31adac4b34995c13b0a00b647b1e7524e2ac59d"
+    },
+    "worker_compensation_payment_event": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  },
+  "privateFiles": {
+    "count": 59,
+    "sha256": "a01dbe16ed5c393441f6cdfdad3d87f8c887b2ececa59da95d717ff89fbaab10"
+  }
+}

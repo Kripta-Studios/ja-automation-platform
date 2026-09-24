@@ -13,12 +13,34 @@
   let { workers, expertise, workerExpertise, selectedWorkerIds = [], translate }: Props = $props();
 
   let expertiseId = $state('');
+  let workerSearch = $state('');
   const eligibleWorkers = $derived(eligibleProjectWorkers(workers));
   const matchingWorkerIds = $derived(
     new Set(
       workersWithExpertise(workers, workerExpertise, expertiseId).map((worker) =>
         String(worker.id),
       ),
+    ),
+  );
+  const normalizedSearch = $derived(
+    workerSearch
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase(),
+  );
+  const visibleWorkerIds = $derived(
+    new Set(
+      eligibleWorkers
+        .filter((worker) => matchingWorkerIds.has(String(worker.id)))
+        .filter((worker) =>
+          `${String(worker.name ?? '')} ${String(worker.email ?? '')}`
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLocaleLowerCase()
+            .includes(normalizedSearch),
+        )
+        .map((worker) => String(worker.id)),
     ),
   );
 </script>
@@ -39,11 +61,15 @@
       {/each}
     </select>
   </label>
+  <label class="project-people-picker__filter">
+    <span>{translate('Search')} · {translate('Worker')}</span>
+    <input type="search" bind:value={workerSearch} autocomplete="off" />
+  </label>
   <div class="project-people-picker__list">
     {#each eligibleWorkers as worker (String(worker.id))}
       <label
         class="project-people-picker__choice"
-        hidden={expertiseId !== '' && !matchingWorkerIds.has(String(worker.id))}
+        hidden={!visibleWorkerIds.has(String(worker.id))}
       >
         <input
           type="checkbox"
@@ -54,8 +80,8 @@
         <span>{String(worker.name || worker.id)}</span>
       </label>
     {/each}
-    {#if eligibleWorkers.length === 0 || (expertiseId !== '' && matchingWorkerIds.size === 0)}
-      <p role="status" class="form-help">{translate('No active workers match this expertise.')}</p>
+    {#if visibleWorkerIds.size === 0}
+      <p role="status" class="form-help">{translate('No matching records.')}</p>
     {/if}
   </div>
 </fieldset>
@@ -78,6 +104,13 @@
     display: grid;
     gap: 0.4rem;
     max-width: 26rem;
+  }
+  .project-people-picker__filter + .project-people-picker__filter {
+    margin-top: 0.7rem;
+  }
+  .project-people-picker__filter input {
+    width: 100%;
+    min-width: 0;
   }
 
   .project-people-picker__list {

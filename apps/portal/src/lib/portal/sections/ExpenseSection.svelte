@@ -638,13 +638,19 @@
   {/if}
 
   <div class="expense-status-strip" aria-label={translate('Expense attention summary')}>
-    <a class="expense-status-card" href={registerHref({ status: 'attention', reimbursement: '' })}>
+    <a
+      class="expense-status-card"
+      href={`${registerHref({ status: 'attention', reimbursement: '' })}#expense-records`}
+    >
       <span>{translate('Needs attention')}</span>
       <strong>{pendingReviewCount}</strong>
       <small>{translate('Draft or review state')}</small>
     </a>
     {#if canViewReimbursement}
-      <a class="expense-status-card" href={registerHref({ status: '', reimbursement: 'pending' })}>
+      <a
+        class="expense-status-card"
+        href={`${registerHref({ status: '', reimbursement: 'pending' })}#expense-records`}
+      >
         <span>{translate('Reimbursement')}</span>
         <strong>{reimbursementCount}</strong>
         <small>{translate('Pending or scheduled')}</small>
@@ -652,7 +658,7 @@
     {/if}
     <a
       class="expense-status-card"
-      href={registerHref({ status: '', reimbursement: '', receipt: 'missing' })}
+      href={`${registerHref({ status: '', reimbursement: '', receipt: 'missing' })}#expense-records`}
     >
       <span>{translate('Required receipt missing')}</span>
       <strong>{missingReceiptCount}</strong>
@@ -917,7 +923,11 @@
     </SectionCard>
   {/if}
 
-  <SectionCard title={translate('Recent expenses')} class="expense-list-surface">
+  <SectionCard
+    id="expense-records"
+    title={translate('Recent expenses')}
+    class="expense-list-surface"
+  >
     {#if visibleRecords.length > 0}
       <div class="expense-list" aria-live="polite">
         {#each pagedRecords.rows as row}

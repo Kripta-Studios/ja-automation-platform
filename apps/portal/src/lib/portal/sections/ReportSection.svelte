@@ -709,18 +709,24 @@
   <div class="report-attention" aria-label={translate('Report attention summary')}>
     <a
       class="report-attention-card"
-      href={registerHref({ view: activeFieldTab, status: 'attention' })}
+      href={`${registerHref({ view: activeFieldTab, status: 'attention' })}#report-panel-${activeFieldTab}`}
     >
       <span>{translate('Needs attention')}</span>
       <strong>{pendingReportCount}</strong>
       <small>{translate('Draft or returned field reports')}</small>
     </a>
-    <a class="report-attention-card" href={registerHref({ view: 'signoff', status: '' })}>
+    <a
+      class="report-attention-card"
+      href={`${registerHref({ view: 'signoff', status: '' })}#report-panel-signoff`}
+    >
       <span>{translate('Ready for signature')}</span>
       <strong>{readySignoffCount}</strong>
       <small>{translate('Customer confirmations awaiting signature')}</small>
     </a>
-    <a class="report-attention-card" href={registerHref({ view: 'signoff', status: '' })}>
+    <a
+      class="report-attention-card"
+      href={`${registerHref({ view: 'signoff', status: '' })}#report-panel-signoff`}
+    >
       <span>{translate('Customer sign-off')}</span>
       <strong>{signoffScopeRows.length}</strong>
       <small>{translate('Period confirmations in scope')}</small>

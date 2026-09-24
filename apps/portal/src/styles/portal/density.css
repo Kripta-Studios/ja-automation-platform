@@ -4,8 +4,8 @@
   --ja-workspace-gap: clamp(1.35rem, 2.2vw, 2rem);
 }
 .portal-layout main {
-  font-size: 0.9375rem;
-  line-height: 1.6;
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 .portal-layout
   main
@@ -32,7 +32,11 @@
   margin-top: var(--ja-workspace-gap);
 }
 .portal-layout main :is([data-ui='section-card'], [data-ui='form-card']) {
-  padding: var(--ja-card-padding);
+  padding: clamp(0.9rem, 1.6vw, 1.35rem);
+  min-height: 0;
+}
+.portal-layout main [data-ui='section-card'].full {
+  min-height: 0;
 }
 .portal-layout main :is(.ui-card-heading, .ui-section-heading) {
   font-weight: 550;
@@ -55,6 +59,49 @@
   font-weight: 550;
   letter-spacing: 0;
   text-transform: none;
+}
+.portal-layout
+  main
+  :is(
+    .admin-form-grid,
+    .entry-panel,
+    .worker-form,
+    .filter-form,
+    .expense-entry-form,
+    .report-entry-form,
+    .report-entry-grid,
+    .expense-form-grid,
+    .time-filters,
+    .expense-filters,
+    .report-register-filters
+  )
+  label:has(> :is(input:not([type='checkbox']):not([type='radio']), select, textarea)) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 0.4rem;
+  min-width: 0;
+}
+.portal-layout
+  main
+  :is(
+    .admin-form-grid,
+    .entry-panel,
+    .worker-form,
+    .filter-form,
+    .expense-entry-form,
+    .report-entry-form,
+    .report-entry-grid,
+    .expense-form-grid,
+    .time-filters,
+    .expense-filters,
+    .report-register-filters
+  )
+  label
+  > :is(input:not([type='checkbox']):not([type='radio']), select, textarea) {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 .portal-layout
   main
@@ -133,7 +180,7 @@
 }
 .ui-disclosure-summary .ui-card-heading {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
 }
 .ui-disclosure-description,
 .ui-card-description {

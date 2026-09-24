@@ -2345,7 +2345,7 @@
                     >{#each data.workers ?? [] as worker}{#if worker.role === 'project_manager' && worker.status === 'active'}<option
                           value={worker.id}
                           selected={projectFormValue('projectManagerId') === worker.id}
-                          >{worker.name}</option
+                          >{worker.name} — {worker.email}</option
                         >{/if}{/each}</select
                   ></label
                 >

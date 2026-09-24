@@ -81,6 +81,7 @@
   let createCategory = $state('regular');
   let createDate = $state('');
   let createProject = $state('');
+  let createWorker = $state('');
   let createExpenseEnabled = $state(false);
   let createRequestId = $state('');
   let editCategory = $state('regular');
@@ -116,6 +117,32 @@
   });
 
   const records = $derived(data.records ?? []);
+  const selectedCreateWorker = $derived(
+    ['owner_admin', 'project_manager'].includes(String(data.user.role))
+      ? createWorker
+      : String(data.user.id),
+  );
+  const assignedCreateProjects = $derived(
+    availableProjects.filter((project) =>
+      (data.timeAssignments ?? []).some(
+        (assignment) =>
+          String(assignment.project_id) === String(project.id) &&
+          String(assignment.worker_id) === selectedCreateWorker &&
+          Boolean(createDate) &&
+          String(assignment.starts_on ?? '') <= createDate &&
+          (!assignment.ends_on || String(assignment.ends_on) >= createDate),
+      ),
+    ),
+  );
+  $effect(() => {
+    if (
+      surface === 'create' &&
+      createProject &&
+      !assignedCreateProjects.some((project) => String(project.id) === createProject)
+    ) {
+      createProject = '';
+    }
+  });
   const clientOptions = $derived(
     [...new Set(records.map((row) => String(row.client_name ?? '')).filter(Boolean))].sort(),
   );
@@ -279,7 +306,18 @@
     surfaceError = '';
     createDate = localToday();
     const filteredProjectId = String(data.timeFilter?.projectId ?? '');
-    createProject = availableProjects.some((project) => String(project.id) === filteredProjectId)
+    createWorker =
+      data.user.role === 'project_manager' &&
+      (data.workers ?? []).some((worker) => String(worker.id) === String(data.user.id))
+        ? String(data.user.id)
+        : '';
+    createProject = (data.timeAssignments ?? []).some(
+      (assignment) =>
+        String(assignment.project_id) === filteredProjectId &&
+        String(assignment.worker_id) === (createWorker || String(data.user.id)) &&
+        String(assignment.starts_on ?? '') <= createDate &&
+        (!assignment.ends_on || String(assignment.ends_on) >= createDate),
+    )
       ? filteredProjectId
       : '';
     surface = 'create';
@@ -336,17 +374,17 @@
   {/if}
 
   <div class="time-status-strip" aria-label={translate('Time attention summary')}>
-    <a class="time-status-card" href={filterHref({ status: '' })}>
+    <a class="time-status-card" href={`${filterHref({ status: '' })}#time-records`}>
       <span>{translate('Actual recorded')}</span>
       <strong>{totalActualMinutes} {translate('min')}</strong>
       <small>{translate('Minutes you really recorded.')}</small>
     </a>
-    <a class="time-status-card" href={filterHref({ status: 'attention' })}>
+    <a class="time-status-card" href={`${filterHref({ status: 'attention' })}#time-records`}>
       <span>{translate('Needs attention')}</span>
       <strong>{pendingCount}</strong>
       <small>{translate('Draft or review state')}</small>
     </a>
-    <a class="time-status-card" href={filterHref({ status: 'approved' })}>
+    <a class="time-status-card" href={`${filterHref({ status: 'approved' })}#time-records`}>
       <span>{translate('Approved')}</span>
       <strong>{approvedCount}</strong>
       <small>{translate('Rows approved by the workflow')}</small>
@@ -492,7 +530,7 @@
     />
   </form>
 
-  <section class="time-record-list" aria-labelledby="time-records-title">
+  <section id="time-records" class="time-record-list" aria-labelledby="time-records-title">
     <div class="time-list-heading">
       <div>
         <span class="time-eyebrow">{translate('ACTIVITY REGISTER')}</span>
@@ -629,7 +667,9 @@
       onsubmit={(event) => {
         if (createExpenseEnabled && !navigator.onLine) {
           event.preventDefault();
-          surfaceError = translate('Reconnect to save time and expense together. Your entries are still here.');
+          surfaceError = translate(
+            'Reconnect to save time and expense together. Your entries are still here.',
+          );
           return;
         }
         void saveOfflineDraft(event, 'time');
@@ -637,7 +677,10 @@
     >
       {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
         <label
-          ><span>{translate('Worker')}</span><select name="workerId" required
+          ><span>{translate('Worker')}</span><select
+            name="workerId"
+            required
+            bind:value={createWorker}
             ><option value="">{translate('Select worker')}</option
             >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
                 >{worker.name} — {worker.email}</option
@@ -654,10 +697,13 @@
         <span>{translate('Assigned project')}</span>
         <select name="projectId" required bind:value={createProject}>
           <option value="">{translate('Select assignment')}</option>
-          {#each availableProjects as project}
+          {#each assignedCreateProjects as project}
             <option value={String(project.id)}>{project.project_number} — {project.name}</option>
           {/each}
         </select>
+        {#if selectedCreateWorker && assignedCreateProjects.length === 0}
+          <small>{translate('No matching records.')}</small>
+        {/if}
       </label>
       <label>
         <span>{translate('Date')}</span>
@@ -699,7 +745,11 @@
         <input type="hidden" name="requestId" value={createRequestId} />
         <div class="expense-entry-intro">
           <strong>{translate('Expense for this shift')}</strong>
-          <span>{translate('The expense will use the same worker, project and date. Add a receipt from the expense detail after saving if needed.')}</span>
+          <span
+            >{translate(
+              'The expense will use the same worker, project and date. Add a receipt from the expense detail after saving if needed.',
+            )}</span
+          >
         </div>
         <label>
           <span>{translate('Vendor')}</span>
@@ -734,7 +784,12 @@
         <div class="expense-form-grid">
           <label>
             <span>{translate('Amount')}</span>
-            <input name="expenseAmount" inputmode="decimal" pattern="[0-9]+([.][0-9][0-9]?)?" required />
+            <input
+              name="expenseAmount"
+              inputmode="decimal"
+              pattern="[0-9]+([.][0-9][0-9]?)?"
+              required
+            />
           </label>
           <label>
             <span>{translate('Currency')}</span>

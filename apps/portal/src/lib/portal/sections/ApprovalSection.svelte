@@ -428,12 +428,18 @@
   </header>
 
   <div class="approval-attention" aria-label={translate('Approval attention summary')}>
-    <a class="approval-attention-card" href={approvalHref({ status: 'attention' })}>
+    <a
+      class="approval-attention-card"
+      href={`${approvalHref({ status: 'attention' })}#approval-queue`}
+    >
       <span>{translate('Needs attention')}</span>
       <strong>{attentionCount}</strong>
       <small>{translate('Submitted or correction-ready records')}</small>
     </a>
-    <a class="approval-attention-card" href={approvalHref({ tab: 'reports', status: 'submitted' })}>
+    <a
+      class="approval-attention-card"
+      href={`${approvalHref({ tab: 'reports', status: 'submitted' })}#approval-queue`}
+    >
       <span>{translate('Reports')}</span>
       <strong>{reportCount}</strong>
       <small>{translate('Daily and technical reports in scope')}</small>

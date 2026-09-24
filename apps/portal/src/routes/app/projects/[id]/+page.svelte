@@ -133,11 +133,7 @@
   let handledDraftFailure = '';
   $effect(() => {
     const failure = form as DraftFailure | null;
-    if (
-      failure?.success !== false ||
-      !failure.billingRuleId ||
-      !Array.isArray(failure.reasons)
-    )
+    if (failure?.success !== false || !failure.billingRuleId || !Array.isArray(failure.reasons))
       return;
     const key = `${failure.billingRuleId}:${failure.periodStart ?? ''}:${failure.periodEnd ?? ''}:${failure.reasons.map((reason) => reason.code ?? '').join(',')}`;
     if (key !== handledDraftFailure) {
@@ -1226,7 +1222,7 @@
               >{#each data.workers ?? [] as worker}{#if worker.role === 'project_manager'}<option
                     value={worker.id}
                     selected={String(worker.id) === String(project.project_manager_id)}
-                    >{display(worker.name)}</option
+                    >{display(worker.name)} — {display(worker.email)}</option
                   >{/if}{/each}</select
             ></label
           >
@@ -1410,7 +1406,8 @@
                 <li>{t(billingReadinessMessageKey(reason?.code))}</li>
               {/each}
             </ul>
-            <a href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=billing#project-panel-billing`}
+            <a
+              href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=billing#project-panel-billing`}
               >{t('Project billing setup')}</a
             >
           </aside>

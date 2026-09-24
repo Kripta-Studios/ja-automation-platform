@@ -732,6 +732,16 @@
       (row) => value(row, 'reimbursementState', 'reimbursement_state') !== 'reimbursed',
     ).length,
   );
+  const pendingReimbursementView = $derived(
+    $page.url.searchParams.get('reimbursement') === 'pending',
+  );
+  const visibleReimbursements = $derived(
+    pendingReimbursementView
+      ? reimbursements.filter(
+          (row) => value(row, 'reimbursementState', 'reimbursement_state') !== 'reimbursed',
+        )
+      : reimbursements,
+  );
 
   const workspaceTitle = $derived(
     activeView === 'commercial'
@@ -884,7 +894,7 @@
         </a>
         <a
           class="finance-overview__attention-card finance-overview__attention-card--notice"
-          href={financeHref('economic', 'settlements', '#finance-reimbursements')}
+          href={`${financeHref('economic', 'settlements')}&reimbursement=pending#finance-reimbursements`}
         >
           <span>{translate('Reimbursement review')}</span>
           <strong>{attentionReimbursements}</strong>
@@ -2235,9 +2245,16 @@
               'Worker reimbursement and client expense recovery are separate from customer billing and invoice collection.',
             )}
           </p>
+          {#if pendingReimbursementView}
+            <a
+              class="secondary-button"
+              href={financeHref('economic', 'settlements', '#finance-reimbursements')}
+              >{translate('All')}</a
+            >
+          {/if}
           <div class="finance-overview__reimbursement-list">
             <RecordBrowser
-              rows={reimbursements}
+              rows={visibleReimbursements}
               bind:visible={reimbursementPage}
               {translate}
               label="Worker reimbursement queue"

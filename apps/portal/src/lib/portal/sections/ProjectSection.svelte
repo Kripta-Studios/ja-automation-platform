@@ -279,7 +279,7 @@
     <a
       class="project-section__attention-card"
       aria-current={statusFilter === 'active' ? 'page' : undefined}
-      href={`${base}/app/projects?status=active`}
+      href={`${base}/app/projects?status=active#section-card-authorized-projects-title`}
     >
       <span>{translate('Active')}</span>
       <strong>{activeCount}</strong>
@@ -288,7 +288,7 @@
     <a
       class="project-section__attention-card"
       aria-current={statusFilter === 'planned' ? 'page' : undefined}
-      href={`${base}/app/projects?status=planned`}
+      href={`${base}/app/projects?status=planned#section-card-authorized-projects-title`}
     >
       <span>{translate('Planned')}</span>
       <strong>{plannedCount}</strong>
@@ -297,7 +297,7 @@
     <a
       class="project-section__attention-card project-section__attention-card--notice"
       aria-current={statusFilter === 'attention' ? 'page' : undefined}
-      href={`${base}/app/projects?status=attention`}
+      href={`${base}/app/projects?status=attention#section-card-authorized-projects-title`}
     >
       <span>{translate('Needs attention')}</span>
       <strong>{attentionCount}</strong>

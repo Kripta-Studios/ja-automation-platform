@@ -105,6 +105,27 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
     };
     switch (section) {
       case 'time': {
+        const timeProjects = context.repository.listAssignedProjects(context.principal);
+        const timeProjectIds = timeProjects.map((project) => String(project.id));
+        const timeAssignments = timeProjectIds.length
+          ? context.sqlite
+              .prepare(
+                `SELECT pm.project_id,pm.user_id AS worker_id,pm.starts_on,pm.ends_on
+                   FROM project_member pm
+                   JOIN project p ON p.id=pm.project_id
+                  WHERE pm.project_id IN (${timeProjectIds.map(() => '?').join(',')})
+                    AND pm.status='active'
+                    AND p.status IN ('active','planned','paused')`,
+              )
+              .all(...timeProjectIds)
+              .filter((assignment) =>
+                context.principal.role === 'worker'
+                  ? String(assignment.worker_id) === context.principal.userId
+                  : (common.workers as Array<{ id: string }>).some(
+                      (worker) => String(worker.id) === String(assignment.worker_id),
+                    ),
+              )
+          : [];
         const weekStart = mondayOf(url.searchParams.get('week'));
         const weekEnd = context.repository.listOwnTimeWeek(context.principal, weekStart).weekEnd;
         const week =
@@ -165,7 +186,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         const to = url.searchParams.get('to')?.trim() || undefined;
         return {
           ...common,
-          projects: context.repository.listAssignedProjects(context.principal),
+          projects: timeProjects,
+          timeAssignments,
           records: context.repository
             .listTimeForScope(context.principal, {
               category,

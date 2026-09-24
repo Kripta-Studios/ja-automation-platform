@@ -42,6 +42,7 @@ export const sectionActions: Actions = {
   createDraft: billingActions.createDraft,
   createInvoiceAdjustment: billingActions.createInvoiceAdjustment,
   approveInvoice: billingActions.approveInvoice,
+  recalculateApprovedInvoice: billingActions.recalculateApprovedInvoice,
   deleteInvoice: billingActions.deleteInvoice,
   issueInvoice: billingActions.issueInvoice,
   recordPayment: billingActions.recordPayment,
@@ -98,6 +99,10 @@ export const sectionActions: Actions = {
   approveRecord: approvalActions.approveRecord,
   financeApprove: approvalActions.financeApprove,
   classifyExpenseCommercially: financeActions.classifyExpenseCommercially,
+  setAssignmentCommercialFallback: financeActions.setAssignmentCommercialFallback,
+  setAssignmentCommercialRuleReferences: financeActions.setAssignmentCommercialRuleReferences,
+  createAssignmentExpensePolicy: financeActions.createAssignmentExpensePolicy,
+  createCanonicalLegalEntityRevision: financeActions.createCanonicalLegalEntityRevision,
   assignProjectLegalEntity: financeActions.assignProjectLegalEntity,
   setExpensePlanningDates: financeActions.setExpensePlanningDates,
   setCompensationSettlementExpectedPaymentOn:

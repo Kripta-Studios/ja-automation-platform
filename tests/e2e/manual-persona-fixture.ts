@@ -99,6 +99,7 @@ export function seedSupplierPersonas(databasePath: string): string {
       currency: string;
     };
     const projectId = repository.createProject(owner, {
+      costCenterCode: 'QA-MANUAL-PERSONA-FIXTURE-1',
       clientId: client.id,
       name: projectName,
       timezone: 'UTC',

@@ -26,6 +26,16 @@ export const projectMembers = sqliteTable(
     workerCompensationRuleId: text('worker_compensation_rule_id'),
     internalCostRuleId: text('internal_cost_rule_id'),
     clientBillRuleId: text('client_bill_rule_id'),
+    allowGlobalCompensationFallback: integer('allow_global_compensation_fallback', {
+      mode: 'boolean',
+    })
+      .notNull()
+      .default(false),
+    allowGlobalInternalCostFallback: integer('allow_global_internal_cost_fallback', {
+      mode: 'boolean',
+    })
+      .notNull()
+      .default(false),
     version: integer('version').notNull().default(1),
     ...lifecycle,
   },
@@ -33,6 +43,28 @@ export const projectMembers = sqliteTable(
     uniqueIndex('project_member_unique').on(table.projectId, table.userId, table.startsOn),
   ],
 );
+
+export const crewLeaderGrants = sqliteTable('crew_leader_grant', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => projects.id),
+  chiefUserId: text('chief_user_id')
+    .notNull()
+    .references(() => users.id),
+  workerUserId: text('worker_user_id')
+    .notNull()
+    .references(() => users.id),
+  startsOn: text('starts_on').notNull(),
+  endsOn: text('ends_on'),
+  status: text('status').notNull().default('active'),
+  createdByUserId: text('created_by_user_id')
+    .notNull()
+    .references(() => users.id),
+  createdAt: text('created_at').notNull(),
+  revokedByUserId: text('revoked_by_user_id').references(() => users.id),
+  revokedAt: text('revoked_at'),
+});
 
 export const skills = sqliteTable('skill', {
   id: text('id').primaryKey(),

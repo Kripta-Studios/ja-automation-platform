@@ -703,6 +703,18 @@ export class LocalizedPdfRepository {
             identity.deploymentId,
           ) as Record<string, unknown> | undefined;
         if (row) {
+          // Draft and approved invoices have mutable line rows, while their
+          // snapshot_json contains only draft customizations. A localized job
+          // bound to the invoice row alone would produce a PDF with the total
+          // but no lines. Only an issued invoice has the frozen full snapshot.
+          if (
+            !['issued', 'sent', 'partially_paid', 'paid', 'overdue', 'void', 'credited'].includes(
+              String(row.state ?? ''),
+            ) ||
+            typeof row.snapshot_json !== 'string' ||
+            row.snapshot_json.length === 0
+          )
+            throw new ConflictError('Issued invoice snapshot required for a localized PDF');
           projectId = projectIdFromRow(row);
           ownerRevisionId = `${ownerId}:v${Number(row.version ?? 1)}`;
         }

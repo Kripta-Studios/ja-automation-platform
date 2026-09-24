@@ -22,6 +22,7 @@ export const BILLING_READINESS_MESSAGE_KEYS = {
     'action.billing.readiness.canonicalLegalEntityRevisionRequired',
   missing_accountant_approved_number_policy: 'action.billing.readiness.missingInvoiceNumberPolicy',
   inactive_billing_configuration: 'action.billing.readiness.inactiveBillingConfiguration',
+  stale_billing_configuration: 'action.billing.readiness.staleBillingConfiguration',
 } as const;
 
 export type BillingReadinessMessageKey =

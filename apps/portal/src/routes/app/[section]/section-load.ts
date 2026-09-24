@@ -1,5 +1,10 @@
 import { randomBytes } from 'node:crypto';
-import { MailIdentityRepository, listInvoiceEmailDeliveries } from '@ja/database';
+import {
+  AssignmentExpensePolicyRepository,
+  CrewLeaderRepository,
+  MailIdentityRepository,
+  listInvoiceEmailDeliveries,
+} from '@ja/database';
 import { error, redirect } from '@sveltejs/kit';
 import { defaultLookbackPeriod } from '$lib/server/iso-date';
 import { openPortalRepository } from '$lib/server/portal-repository';
@@ -194,9 +199,28 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         };
       case 'expenses': {
         const records = context.repository.listExpensesForScope(context.principal);
+        const assignedProjects = context.repository.listAssignedProjects(context.principal);
+        // A supplier coordinator may be delegated a crew on a project without
+        // receiving the separate supplier-project grant used for their own
+        // work. Add only currently authorized crew projects to expense intake;
+        // the worker/date is checked again for every saved expense.
+        const crewProjects =
+          context.principal.role === 'worker'
+            ? new CrewLeaderRepository(context.sqlite).projects(context.principal)
+            : [];
+        const assignedIds = new Set(assignedProjects.map((project) => String(project.id)));
+        const delegatedProjects = crewProjects.flatMap((project) => {
+          if (assignedIds.has(project.id)) return [];
+          const row = context.sqlite
+            .prepare(
+              'SELECT id,project_number,name,status,currency,timezone,start_date,planned_end_date,actual_end_date,version FROM project WHERE id=?',
+            )
+            .get(project.id);
+          return row ? [row] : [];
+        });
         return {
           ...common,
-          projects: context.repository.listAssignedProjects(context.principal),
+          projects: [...assignedProjects, ...delegatedProjects],
           records,
         };
       }
@@ -356,6 +380,30 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 WHERE p.user_id=?`,
             )
           : null;
+        const projectWorkers =
+          context.principal.role !== 'worker'
+            ? context.repository.listAllWorkers(context.principal).map((worker) => ({
+                ...worker,
+                ...(canonicalOwner
+                  ? {
+                      ...(supplierDirectoryForUser?.get(String(worker.id)) ?? {}),
+                      ...(portalAccessForUser?.get(String(worker.id), String(worker.id)) ?? {}),
+                    }
+                  : {}),
+              }))
+            : [];
+        const eligibleWorkerIds = projectWorkers
+          .filter((worker) => worker.status === 'active')
+          .map((worker) => String(worker.id));
+        const workerExpertise = eligibleWorkerIds.length
+          ? context.sqlite
+              .prepare(
+                `SELECT ws.worker_id,ws.skill_id
+                   FROM worker_skill ws
+                  WHERE ws.worker_id IN (${eligibleWorkerIds.map(() => '?').join(',')})`,
+              )
+              .all(...eligibleWorkerIds)
+          : [];
         return {
           ...common,
           projects: directoryProjects,
@@ -369,18 +417,12 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             context.principal.role === 'worker'
               ? []
               : context.repository.listAllClientContacts(context.principal),
-          workers:
+          workers: projectWorkers,
+          allSkills:
             context.principal.role !== 'worker'
-              ? context.repository.listAllWorkers(context.principal).map((worker) => ({
-                  ...worker,
-                  ...(canonicalOwner
-                    ? {
-                        ...(supplierDirectoryForUser?.get(String(worker.id)) ?? {}),
-                        ...(portalAccessForUser?.get(String(worker.id), String(worker.id)) ?? {}),
-                      }
-                    : {}),
-                }))
+              ? context.repository.listSkills(context.principal)
               : [],
+          workerSkills: workerExpertise,
           suppliers: canonicalOwner
             ? context.sqlite
                 .prepare("SELECT id,name FROM supplier WHERE status='active' ORDER BY name")
@@ -542,6 +584,84 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             )
           : [];
         const settlementIds = new Set(settlements.map((settlement) => String(settlement.id)));
+        const financeToday = new Date().toISOString().slice(0, 10);
+        const requestedAsOf = url.searchParams.get('asOf') ?? '';
+        const parsedAsOf = new Date(`${requestedAsOf}T00:00:00.000Z`);
+        const commercialAsOf =
+          /^\d{4}-\d{2}-\d{2}$/u.test(requestedAsOf) &&
+          Number.isFinite(parsedAsOf.getTime()) &&
+          parsedAsOf.toISOString().slice(0, 10) === requestedAsOf
+            ? requestedAsOf
+            : financeToday;
+        const commercialCategory =
+          url.searchParams.get('category')?.trim().slice(0, 80) || 'regular';
+        const commercialTermsSummary = selected
+          ? (
+              context.sqlite
+                .prepare(
+                  `SELECT pm.id,pm.user_id,u.name,pm.version,pm.starts_on,pm.ends_on,
+                          p.currency project_currency,
+                          pm.client_bill_rule_id,pm.worker_compensation_rule_id,
+                          pm.internal_cost_rule_id,
+                          pm.allow_global_compensation_fallback,
+                          pm.allow_global_internal_cost_fallback
+                     FROM project_member pm
+                     JOIN user u ON u.id=pm.user_id
+                     JOIN project p ON p.id=pm.project_id
+                    WHERE pm.project_id=? AND pm.status='active' AND u.status='active'
+                      AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
+                    ORDER BY u.name,pm.id`,
+                )
+                .all(selected, commercialAsOf, commercialAsOf) as Array<{
+                id: string;
+                user_id: string;
+                name: string;
+                version: number;
+                starts_on: string;
+                ends_on: string | null;
+                project_currency: string;
+                client_bill_rule_id: string | null;
+                worker_compensation_rule_id: string | null;
+                internal_cost_rule_id: string | null;
+                allow_global_compensation_fallback: number;
+                allow_global_internal_cost_fallback: number;
+              }>
+            ).map((member) => {
+              const terms = context.v3.resolveAssignmentCommercialTerms(
+                context.principal,
+                selected,
+                member.user_id,
+                commercialCategory,
+                commercialAsOf,
+              );
+              return {
+                assignmentId: member.id,
+                assignmentVersion: member.version,
+                assignmentStartsOn: member.starts_on,
+                assignmentEndsOn: member.ends_on,
+                projectCurrency: member.project_currency,
+                workerId: member.user_id,
+                workerName: member.name,
+                clientBillRuleId: member.client_bill_rule_id,
+                workerCompensationRuleId: member.worker_compensation_rule_id,
+                internalCostRuleId: member.internal_cost_rule_id,
+                allowGlobalCompensation: member.allow_global_compensation_fallback === 1,
+                allowGlobalInternalCost: member.allow_global_internal_cost_fallback === 1,
+                clientRateMinor: terms.clientLaborRate?.hourlyRateMinor ?? null,
+                clientCurrency: terms.clientLaborRate?.currency ?? null,
+                clientSource: terms.clientLaborRate?.provenance.source ?? null,
+                clientRuleId: terms.clientLaborRate?.id ?? null,
+                payRateMinor: terms.workerCompensation?.rateMinor ?? null,
+                payCurrency: terms.workerCompensation?.currency ?? null,
+                payMethod: terms.workerCompensation?.ruleType ?? null,
+                paySource: terms.workerCompensation?.provenance.source ?? null,
+                payRuleId: terms.workerCompensation?.id ?? null,
+                internalRateMinor: terms.internalCost?.hourlyRateMinor ?? null,
+                internalCurrency: terms.internalCost?.currency ?? null,
+                issueCodes: terms.issues.map((issue) => issue.code),
+              };
+            })
+          : [];
         return {
           ...common,
           projects,
@@ -561,6 +681,17 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                   (expense) =>
                     String(expense.project_id ?? expense.projectId ?? '') === String(selected),
                 )
+                .map((expense) => ({
+                  ...expense,
+                  policyPreview:
+                    canManageCanonicalAuthority &&
+                    Number(expense.expense_policy_required ?? 0) === 1
+                      ? new AssignmentExpensePolicyRepository(context.sqlite).preview(
+                          context.principal,
+                          String(expense.id),
+                        )
+                      : null,
+                }))
             : [],
           commercialPolicies: selected
             ? context.repository.listProjectCommercialPolicies(context.principal, selected)
@@ -578,9 +709,22 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 .listCompensationPaymentEvents(context.principal)
                 .filter((payment) => settlementIds.has(String(payment.settlement_id)))
             : [],
-          financeToday: new Date().toISOString().slice(0, 10),
+          financeToday,
+          commercialTermsSummary,
+          commercialAsOf,
+          commercialCategory,
+          assignmentExpensePolicies:
+            selected && canManageCanonicalAuthority
+              ? new AssignmentExpensePolicyRepository(context.sqlite).listForProject(
+                  context.principal,
+                  selected,
+                )
+              : [],
           reimbursements: selected
             ? context.v3.listReimbursementQueue(context.principal, selected)
+            : [],
+          legalEntities: canManageCanonicalAuthority
+            ? context.repository.listLegalEntities(context.principal)
             : [],
           canonicalLegalEntityOptions: canManageCanonicalAuthority
             ? context.v3.listCanonicalLegalEntityRevisionOptions(context.principal)
@@ -590,6 +734,9 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               ? context.v3.listProjectLegalEntityAssignments(context.principal, selected)
               : [],
           canonicalAssignmentCommandToken: canManageCanonicalAuthority
+            ? randomBytes(32).toString('base64url')
+            : undefined,
+          canonicalRevisionCommandToken: canManageCanonicalAuthority
             ? randomBytes(32).toString('base64url')
             : undefined,
           canonicalAuthorityAsOf: canManageCanonicalAuthority

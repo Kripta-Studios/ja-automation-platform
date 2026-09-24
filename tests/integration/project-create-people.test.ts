@@ -1,0 +1,202 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  AccessDeniedError,
+  ValidationError,
+  closeB5LifecycleSecurityFixture,
+  createB5LifecycleSecurityFixture,
+  type B5LifecycleSecurityFixture,
+} from '../fixtures/b5-lifecycle-security-fixture.js';
+
+const fixtures: B5LifecycleSecurityFixture[] = [];
+
+afterEach(() => {
+  vi.useRealTimers();
+  for (const fixture of fixtures.splice(0)) closeB5LifecycleSecurityFixture(fixture);
+});
+
+function fixture(): B5LifecycleSecurityFixture {
+  const value = createB5LifecycleSecurityFixture();
+  fixtures.push(value);
+  return value;
+}
+
+function projectInput(value: B5LifecycleSecurityFixture, name: string) {
+  return {
+    clientId: value.client.id,
+    costCenterCode: `QA-${name}`,
+    name,
+    timezone: 'Europe/Madrid',
+    currency: 'EUR' as const,
+    billingModel: 'tm' as const,
+  };
+}
+
+describe('people selected during project creation', () => {
+  it('requires a cost center for every new project, including direct repository writes', () => {
+    const value = fixture();
+    for (const costCenterCode of [undefined, '', '   ']) {
+      expect(() =>
+        value.repository.createProject(value.owner, {
+          ...projectInput(value, 'Missing cost center'),
+          costCenterCode,
+        }),
+      ).toThrow(/Cost center code is required/);
+    }
+    expect(
+      value.sqlite
+        .prepare("SELECT COUNT(*) count FROM project WHERE name='Missing cost center'")
+        .get(),
+    ).toEqual({ count: 0 });
+  });
+
+  it('rejects worker start dates before project start or after planned end', () => {
+    const value = fixture();
+    for (const assignmentDate of ['2026-09-23', '2026-10-01']) {
+      expect(() =>
+        value.repository.createProject(value.owner, {
+          ...projectInput(value, `Out-of-period ${assignmentDate}`),
+          startDate: '2026-09-24',
+          plannedEndDate: '2026-09-30',
+          initialWorkerIds: ['b5-worker'],
+          initialWorkersStartOn: assignmentDate,
+        }),
+      ).toThrow(/Worker assignment start date must be within project dates/);
+    }
+    const boundary = value.repository.createProject(value.owner, {
+      ...projectInput(value, 'End boundary assignment'),
+      startDate: '2026-09-24',
+      plannedEndDate: '2026-09-30',
+      initialWorkerIds: ['b5-worker'],
+      initialWorkersStartOn: '2026-09-30',
+    });
+    expect(
+      value.sqlite
+        .prepare('SELECT starts_on FROM project_member WHERE project_id=?')
+        .get(boundary.id),
+    ).toEqual({ starts_on: '2026-09-30' });
+    expect(
+      value.sqlite
+        .prepare("SELECT COUNT(*) count FROM project WHERE name LIKE 'Out-of-period %'")
+        .get(),
+    ).toEqual({ count: 0 });
+  });
+
+  it('saves all selected active workers with one effective date and no invented rates', () => {
+    const value = fixture();
+    const created = value.repository.createProject(value.owner, {
+      ...projectInput(value, 'People at create'),
+      startDate: '2026-10-01',
+      initialWorkerIds: ['b5-worker', 'b5-outsider'],
+      initialWorkersStartOn: '2026-10-03',
+    });
+
+    expect(
+      value.sqlite
+        .prepare(
+          `SELECT user_id,starts_on,assignment_role,can_review FROM project_member
+            WHERE project_id=? ORDER BY user_id`,
+        )
+        .all(created.id),
+    ).toEqual([
+      { user_id: 'b5-outsider', starts_on: '2026-10-03', assignment_role: 'worker', can_review: 0 },
+      { user_id: 'b5-worker', starts_on: '2026-10-03', assignment_role: 'worker', can_review: 0 },
+    ]);
+    expect(
+      value.sqlite
+        .prepare('SELECT COUNT(*) count FROM client_labor_rate WHERE project_id=?')
+        .get(created.id),
+    ).toEqual({ count: 0 });
+    expect(
+      value.sqlite
+        .prepare('SELECT COUNT(*) count FROM compensation_rule WHERE project_id=?')
+        .get(created.id),
+    ).toEqual({ count: 0 });
+  });
+
+  it('uses the project-local start date when no dates are supplied', () => {
+    const value = fixture();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-23T23:00:00.000Z'));
+    const created = value.repository.createProject(value.owner, {
+      ...projectInput(value, 'Project local day'),
+      initialWorkerIds: ['b5-outsider'],
+    });
+    expect(
+      value.sqlite.prepare('SELECT start_date FROM project WHERE id=?').get(created.id),
+    ).toEqual({ start_date: '2026-09-24' });
+    expect(
+      value.sqlite
+        .prepare('SELECT starts_on FROM project_member WHERE project_id=?')
+        .get(created.id),
+    ).toEqual({ starts_on: '2026-09-24' });
+  });
+
+  it('allows an empty team while rejecting duplicates, inactive workers and finance assignments', () => {
+    const value = fixture();
+    const empty = value.repository.createProject(value.finance, projectInput(value, 'Empty draft'));
+    expect(
+      value.sqlite
+        .prepare('SELECT COUNT(*) count FROM project_member WHERE project_id=?')
+        .get(empty.id),
+    ).toEqual({ count: 0 });
+    expect(() =>
+      value.repository.createProject(value.owner, {
+        ...projectInput(value, 'Duplicate worker'),
+        initialWorkerIds: ['b5-worker', 'b5-worker'],
+      }),
+    ).toThrow(/Selected worker 2 is duplicated/);
+    value.sqlite.prepare("UPDATE user SET status='suspended' WHERE id='b5-outsider'").run();
+    expect(() =>
+      value.repository.createProject(value.owner, {
+        ...projectInput(value, 'Inactive worker'),
+        initialWorkerIds: ['b5-worker', 'b5-outsider'],
+      }),
+    ).toThrow(ValidationError);
+    expect(() =>
+      value.repository.createProject(value.finance, {
+        ...projectInput(value, 'Unauthorized workers'),
+        initialWorkerIds: ['b5-worker'],
+      }),
+    ).toThrow(AccessDeniedError);
+    expect(
+      value.sqlite
+        .prepare(
+          "SELECT COUNT(*) count FROM project WHERE name IN ('Duplicate worker','Inactive worker','Unauthorized workers')",
+        )
+        .get(),
+    ).toEqual({ count: 0 });
+  });
+
+  it('rolls back project, first membership and sequence when a later insert fails', () => {
+    const value = fixture();
+    value.sqlite.exec(`
+      CREATE TRIGGER qa_reject_second_worker BEFORE INSERT ON project_member
+      WHEN NEW.user_id='b5-outsider'
+      BEGIN SELECT RAISE(ABORT, 'QA membership insertion failure'); END;
+    `);
+    const before = value.sqlite
+      .prepare('SELECT COUNT(*) count FROM project WHERE client_id=?')
+      .get(value.client.id);
+    expect(() =>
+      value.repository.createProject(value.owner, {
+        ...projectInput(value, 'Atomic worker insert'),
+        initialWorkerIds: ['b5-worker', 'b5-outsider'],
+      }),
+    ).toThrow(/QA membership insertion failure/);
+    expect(
+      value.sqlite
+        .prepare('SELECT COUNT(*) count FROM project WHERE client_id=?')
+        .get(value.client.id),
+    ).toEqual(before);
+    expect(
+      value.sqlite
+        .prepare("SELECT COUNT(*) count FROM project WHERE name='Atomic worker insert'")
+        .get(),
+    ).toEqual({ count: 0 });
+    expect(
+      value.sqlite
+        .prepare("SELECT COUNT(*) count FROM project_member WHERE user_id='b5-worker'")
+        .get(),
+    ).toEqual({ count: 1 }); // The fixture's original project assignment only.
+  });
+});

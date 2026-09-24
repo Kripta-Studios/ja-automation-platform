@@ -1,5 +1,683 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'Entries recorded on {dia}': ['Registros del {dia}', 'Registros de {dia}'],
+  'If a worker is not listed, ask the owner to assign them to a project you manage first.': [
+    'Si no aparece un trabajador, pide al propietario que primero lo asigne a un proyecto que gestionas.',
+    'Se um trabalhador não aparecer, peça ao proprietário que primeiro o atribua a um projeto que você gerencia.',
+  ],
+  'Legal entities and invoice numbering policies require owner access.': [
+    'Las entidades jurídicas y las políticas de numeración de facturas requieren acceso de propietario.',
+    'As entidades jurídicas e as políticas de numeração de faturas exigem acesso de proprietário.',
+  ],
+  'open ended': ['sin fecha de fin', 'sem data de término'],
+  person: ['persona', 'pessoa'],
+  ' onward': [' en adelante', ' em diante'],
+  ' to {dia}': [' hasta {dia}', ' até {dia}'],
+  ' · customer markup {percent}%': [' · recargo al cliente del {percent} %', ' · acréscimo ao cliente de {percent}%'],
+  ' · source {id}': [' · registro {id}', ' · registro {id}'],
+  'Approved operational source': ['Registro operativo aprobado', 'Registro operacional aprovado'],
+  'Customer rate {clientRate} · worker pay {payMethod} · internal cost {cost}': ['Tarifa al cliente {clientRate} · pago al trabajador {payMethod} · coste interno {cost}', 'Tarifa ao cliente {clientRate} · pagamento ao trabalhador {payMethod} · custo interno {cost}'],
+  Excluded: ['Excluido', 'Excluído'],
+  'No assignment expense policy selected': ['No se ha seleccionado una política de gastos para la asignación', 'Nenhuma política de despesas foi selecionada para a atribuição'],
+  'Pending approval': ['Pendiente de aprobación', 'Pendente de aprovação'],
+  'Policy v{version}: worker reimbursement {workerReimbursement} · customer recovery {clientRecovery}{markup} · effective {effectiveFrom}{ending}': ['Política v{version}: reembolso al trabajador {workerReimbursement} · cobro al cliente {clientRecovery}{markup} · vigente desde {effectiveFrom}{ending}', 'Política v{version}: reembolso ao trabalhador {workerReimbursement} · cobrança ao cliente {clientRecovery}{markup} · vigente desde {effectiveFrom}{ending}'],
+  'Required expense policy is unavailable': ['La política de gastos obligatoria no está disponible', 'A política de despesas obrigatória não está disponível'],
+  'Time and expenses together': ['Horas y gastos juntos', 'Horas e despesas juntos'],
+  unavailable: ['no disponible', 'indisponível'],
+  '. This is expected for a configured fixed or all-in commercial model.': [
+    '. Esto es normal con un modelo comercial de precio fijo o todo incluido.',
+    '. Isso é esperado em um modelo comercial de preço fixo ou tudo incluído.',
+  ],
+  '; individual hours let you enter a different amount per person.': [
+    '; las horas individuales permiten indicar una cantidad distinta por persona.',
+    '; as horas individuais permitem informar uma quantidade diferente por pessoa.',
+  ],
+  'Add expense for': ['Añadir gasto de', 'Adicionar despesa de'],
+  'Allocate exact amount by worker and shift': [
+    'Distribuir el importe exacto por trabajador y turno',
+    'Distribuir o valor exato por trabalhador e turno',
+  ],
+  'Allocate one crew receipt': [
+    'Distribuir un recibo del equipo',
+    'Distribuir um comprovante da equipe',
+  ],
+  'Amount for': ['Importe de', 'Valor de'],
+  'Amounts come from the same saved finance projection used by the project finance workspace. This screen explains its source rows and effective terms; it does not recalculate invoice amounts.':
+    [
+      'Los importes proceden de la misma proyección financiera guardada que utiliza el espacio financiero del proyecto. Esta pantalla explica los registros de origen y las condiciones vigentes; no recalcula los importes de las facturas.',
+      'Os valores vêm da mesma projeção financeira salva usada na área financeira do projeto. Esta tela explica os registros de origem e as condições vigentes; ela não recalcula os valores das faturas.',
+    ],
+  'Approved milestones are included only while they remain un-invoiced.': [
+    'Los hitos aprobados solo se incluyen mientras no estén facturados.',
+    'Os marcos aprovados só são incluídos enquanto não estiverem faturados.',
+  ],
+  'Approved operational sources': [
+    'Registros operativos aprobados',
+    'Registros operacionais aprovados',
+  ],
+  'Approved, unbilled': ['Aprobado, sin facturar', 'Aprovado, não faturado'],
+  'Assign a crew chief': ['Designar un jefe de equipo', 'Designar um chefe de equipe'],
+  'Assign at least two active workers to this project before choosing a chief.': [
+    'Asigna al menos dos trabajadores activos a este proyecto antes de elegir un jefe de equipo.',
+    'Atribua pelo menos dois trabalhadores ativos a este projeto antes de escolher um chefe de equipe.',
+  ],
+  'Assign chief': ['Designar jefe de equipo', 'Designar chefe de equipe'],
+  'BY PERSON': ['POR PERSONA', 'POR PESSOA'],
+  'Billing configuration in this period': [
+    'Configuración de facturación de este período',
+    'Configuração de faturamento deste período',
+  ],
+  'Canonical operational revenue': [
+    'Ingresos operativos de referencia',
+    'Receita operacional de referência',
+  ],
+  Chief: ['Jefe de equipo', 'Chefe de equipe'],
+  'Choose a saved receipt': ['Elige un recibo guardado', 'Escolha um comprovante salvo'],
+  'Choose chief': ['Elige un jefe de equipo', 'Escolha um chefe de equipe'],
+  'Choose two workers already assigned to the project. The chief can enter their colleague’s hours only while this delegation and both project assignments are active.':
+    [
+      'Elige dos trabajadores ya asignados al proyecto. El jefe solo puede registrar las horas de su compañero mientras estén vigentes la delegación y ambas asignaciones al proyecto.',
+      'Escolha dois trabalhadores já atribuídos ao projeto. O chefe só pode registrar as horas do colega enquanto a delegação e as duas atribuições ao projeto estiverem ativas.',
+    ],
+  'Choose worker': ['Elige un trabajador', 'Escolha um trabalhador'],
+  'Configuration issues': ['Problemas de configuración', 'Problemas de configuração'],
+  'Configuration that still needs attention': [
+    'Configuración pendiente de revisión',
+    'Configuração que ainda precisa de atenção',
+  ],
+  Cost: ['Coste', 'Custo'],
+  'Crew delegations': ['Delegaciones del equipo', 'Delegações da equipe'],
+  'Crew time · J&A Automation': [
+    'Horas del equipo · J&A Automation',
+    'Horas da equipe · J&A Automation',
+  ],
+  'Daily minimum adjustments': ['Ajustes del mínimo diario', 'Ajustes do mínimo diário'],
+  'Different hours for each member': [
+    'Horas distintas para cada miembro',
+    'Horas diferentes para cada integrante',
+  ],
+  'Each adjustment applies once per person and project day. It raises billable quantity only; it does not invent actual time.':
+    [
+      'Cada ajuste se aplica una sola vez por persona y día del proyecto. Solo aumenta la cantidad facturable; no crea horas reales.',
+      'Cada ajuste é aplicado uma vez por pessoa e dia do projeto. Ele aumenta apenas a quantidade faturável; não cria horas trabalhadas.',
+    ],
+  'Effective until (optional)': ['Vigente hasta (opcional)', 'Vigente até (opcional)'],
+  'Entries saved as drafts can be submitted later. Submission does not approve your own crew hours.':
+    [
+      'Los registros guardados como borrador pueden enviarse después. Enviarlos no aprueba tus propias horas de equipo.',
+      'Os registros salvos como rascunho podem ser enviados depois. O envio não aprova suas próprias horas da equipe.',
+    ],
+  'Expense cost': ['Coste de gastos', 'Custo das despesas'],
+  'Expense recovery': ['Gastos cobrables al cliente', 'Despesas recuperáveis do cliente'],
+  'Expenses and recovery sources (': [
+    'Gastos y registros de cobro (',
+    'Despesas e registros de cobrança (',
+  ],
+  'First save a receipt expense for one delegated worker using the “Add expense” link above. Select that expense here and split its amount across at least two crew time rows. The receipt stays':
+    [
+      'Primero guarda un gasto con recibo para un trabajador delegado mediante el enlace «Añadir gasto» de arriba. Selecciónalo aquí y distribuye el importe entre al menos dos registros de horas del equipo. El recibo sigue siendo',
+      'Primeiro salve uma despesa com comprovante para um trabalhador delegado pelo link “Adicionar despesa” acima. Selecione-a aqui e distribua o valor entre pelo menos dois registros de horas da equipe. O comprovante continua sendo',
+    ],
+  'Hours for': ['Horas de', 'Horas de'],
+  'Hours per member': ['Horas por miembro', 'Horas por integrante'],
+  'How to enter hours': ['Cómo registrar las horas', 'Como registrar as horas'],
+  'Internal labor cost': ['Coste interno de mano de obra', 'Custo interno de mão de obra'],
+  Interval: ['Intervalo', 'Intervalo'],
+  'Log team hours': ['Registrar horas del equipo', 'Registrar horas da equipe'],
+  'Milestone sources': ['Registros de hitos', 'Registros de marcos'],
+  'Needs review:': ['Requiere revisión:', 'Precisa de revisão:'],
+  'No active billing configuration covers this period.': [
+    'No hay ninguna configuración de facturación activa para este período.',
+    'Nenhuma configuração de faturamento ativa cobre este período.',
+  ],
+  'No active delegated workers are available for this project and date. Ask the owner to assign your crew.':
+    [
+      'No hay trabajadores delegados activos para este proyecto y fecha. Pide al propietario que asigne tu equipo.',
+      'Não há trabalhadores delegados ativos para este projeto e esta data. Peça ao proprietário para atribuir sua equipe.',
+    ],
+  'No crew delegations for this project.': [
+    'No hay delegaciones de equipo para este proyecto.',
+    'Não há delegações de equipe para este projeto.',
+  ],
+  'No crew hours recorded for this date.': [
+    'No hay horas del equipo registradas para esta fecha.',
+    'Não há horas da equipe registradas para esta data.',
+  ],
+  'No expense source in this period.': [
+    'No hay registros de gastos en este período.',
+    'Não há registros de despesas neste período.',
+  ],
+  'No time or expense source exists in this period.': [
+    'No hay registros de horas ni gastos en este período.',
+    'Não há registros de horas nem de despesas neste período.',
+  ],
+  'No time source in this period.': [
+    'No hay registros de horas en este período.',
+    'Não há registros de horas neste período.',
+  ],
+  'Operational source revenue': [
+    'Ingresos de registros operativos',
+    'Receita dos registros operacionais',
+  ],
+  'PROJECT FINANCE EXPLANATION': [
+    'EXPLICACIÓN FINANCIERA DEL PROYECTO',
+    'EXPLICAÇÃO FINANCEIRA DO PROJETO',
+  ],
+  'Pending WIP': ['Trabajo en curso pendiente', 'Trabalho em andamento pendente'],
+  'Period totals': ['Totales del período', 'Totais do período'],
+  'Project crew time': ['Horas del equipo del proyecto', 'Horas da equipe do projeto'],
+  'Project crew time · J&A Automation': [
+    'Horas del equipo del proyecto · J&A Automation',
+    'Horas da equipe do projeto · J&A Automation',
+  ],
+  'Project workforce': ['Equipo del proyecto', 'Equipe do projeto'],
+  'Rate-rule IDs and versions are not included in the canonical finance projection yet. Source rows below show the canonical configured/unavailable statuses and pay method; use Project billing setup to review or change future terms.':
+    [
+      'La proyección financiera de referencia aún no incluye los identificadores ni las versiones de las reglas de tarifas. Los registros de abajo muestran el estado configurado o no disponible y el método de pago; usa la configuración de facturación del proyecto para revisar o cambiar las condiciones futuras.',
+      'A projeção financeira de referência ainda não inclui os identificadores e as versões das regras de tarifas. Os registros abaixo mostram os estados configurados ou indisponíveis e a forma de pagamento; use a configuração de faturamento do projeto para revisar ou alterar condições futuras.',
+    ],
+  'Receipt expense': ['Gasto con recibo', 'Despesa com comprovante'],
+  Reconciliation: ['Conciliación', 'Conciliação'],
+  'Record actual hours for each delegated person. Each row stays tied to its worker and follows the normal approval process.':
+    [
+      'Registra las horas reales de cada persona delegada. Cada registro queda asociado a su trabajador y sigue el proceso habitual de aprobación.',
+      'Registre as horas reais de cada pessoa delegada. Cada registro permanece vinculado ao trabalhador e segue o processo normal de aprovação.',
+    ],
+  Recorded: ['Registradas', 'Registradas'],
+  'Recorded time and calculation sources (': [
+    'Horas registradas y fuentes del cálculo (',
+    'Horas registradas e fontes do cálculo (',
+  ],
+  'Recorded work': ['Trabajo registrado', 'Trabalho registrado'],
+  'Recorded work and finance treatment': [
+    'Trabajo registrado y tratamiento financiero',
+    'Trabalho registrado e tratamento financeiro',
+  ],
+  'Same hours for each selected member': [
+    'Mismas horas para cada miembro seleccionado',
+    'Mesmas horas para cada integrante selecionado',
+  ],
+  'Save a receipt expense and at least two crew time rows for this project and date to allocate a shared receipt.':
+    [
+      'Guarda un gasto con recibo y al menos dos registros de horas del equipo para este proyecto y fecha antes de distribuir un recibo compartido.',
+      'Salve uma despesa com comprovante e pelo menos dois registros de horas da equipe para este projeto e esta data antes de distribuir um comprovante compartilhado.',
+    ],
+  'Save receipt allocation': [
+    'Guardar distribución del recibo',
+    'Salvar distribuição do comprovante',
+  ],
+  'Saved receipt allocations': [
+    'Distribuciones de recibos guardadas',
+    'Distribuições de comprovantes salvas',
+  ],
+  'Show project': ['Mostrar proyecto', 'Mostrar projeto'],
+  'Source rows reconcile exactly': [
+    'Los registros de origen cuadran exactamente',
+    'Os registros de origem conciliam exatamente',
+  ],
+  'Submit for approval now': ['Enviar ahora para aprobación', 'Enviar agora para aprovação'],
+  'Team member': ['Miembro del equipo', 'Integrante da equipe'],
+  'Team members': ['Miembros del equipo', 'Integrantes da equipe'],
+  'The amounts must add up exactly to the selected receipt. Include the worker and shift already linked to it.':
+    [
+      'Los importes deben sumar exactamente el total del recibo seleccionado. Incluye al trabajador y el turno ya asociados.',
+      'Os valores devem somar exatamente o total do comprovante selecionado. Inclua o trabalhador e o turno já vinculados.',
+    ],
+  'The project billing model changes the customer candidate from operational source revenue by': [
+    'El modelo de facturación del proyecto modifica el importe previsto para el cliente respecto a los ingresos de registros operativos en',
+    'O modelo de faturamento do projeto altera o valor previsto para o cliente em relação à receita dos registros operacionais em',
+  ],
+  'These are the canonical project-finance results.': [
+    'Estos son los resultados financieros de referencia del proyecto.',
+    'Estes são os resultados financeiros de referência do projeto.',
+  ],
+  'Use one worker for a single entry, or select several. Shared hours apply': [
+    'Selecciona un trabajador para un registro individual o varios trabajadores. Las horas compartidas se aplican',
+    'Selecione um trabalhador para um registro individual ou vários trabalhadores. As horas compartilhadas se aplicam',
+  ],
+  'View time': ['Ver horas', 'Ver horas'],
+  'Worker pay basis': ['Base de remuneración del trabajador', 'Base de remuneração do trabalhador'],
+  'actual ·': ['reales ·', 'trabalhadas ·'],
+  'approved operational': ['operativos aprobados', 'operacionais aprovados'],
+  'approved ·': ['aprobadas ·', 'aprovadas ·'],
+  billable: ['facturables', 'faturáveis'],
+  'billable ·': ['facturables ·', 'faturáveis ·'],
+  'can record for': ['puede registrar horas de', 'pode registrar horas de'],
+  'customer revenue': ['ingresos del cliente', 'receita do cliente'],
+  excluded: ['excluidos', 'excluídos'],
+  'for billing and reimbursement; the split only records which workers and shifts it covered. Worker reimbursement and customer billing follow the selected expense’s payer and worker policy.':
+    [
+      'para facturación y reembolso; la distribución solo indica a qué trabajadores y turnos corresponde. El reembolso al trabajador y el cobro al cliente siguen la política del trabajador y de quien pagó el gasto.',
+      'para faturamento e reembolso; a distribuição apenas indica a quais trabalhadores e turnos ele corresponde. O reembolso ao trabalhador e a cobrança ao cliente seguem a política do trabalhador e de quem pagou a despesa.',
+    ],
+  invoiced: ['facturados', 'faturados'],
+  'minutes ·': ['minutos ·', 'minutos ·'],
+  'one expense': ['un solo gasto', 'uma única despesa'],
+  pending: ['pendientes', 'pendentes'],
+  people: ['personas', 'pessoas'],
+  'to each selected worker': ['a cada trabajador seleccionado', 'a cada trabalhador selecionado'],
+  'top-up': ['complemento', 'complemento'],
+  '· effective': ['· vigente desde', '· vigente desde'],
+  '· milestone': ['· hito', '· marco'],
+  '· one expense': ['· un solo gasto', '· uma única despesa'],
+  '← Back to crew hours': ['← Volver a las horas del equipo', '← Voltar às horas da equipe'],
+  '← Back to project finance': [
+    '← Volver a las finanzas del proyecto',
+    '← Voltar às finanças do projeto',
+  ],
+  'Expense budget': ['Presupuesto de gastos', 'Orçamento de despesas'],
+  'Expense budget used': ['Presupuesto de gastos utilizado', 'Orçamento de despesas utilizado'],
+  'Project billing setup': [
+    'Configuración de facturación del proyecto',
+    'Configuração de faturamento do projeto',
+  ],
+  'Set each assigned person’s customer charge, compensation and expense treatment here. Save each person before continuing.':
+    [
+      'Configura aquí el precio al cliente, la remuneración y los gastos de cada persona asignada. Guarda cada persona antes de continuar.',
+      'Configure aqui a cobrança ao cliente, a remuneração e as despesas de cada pessoa atribuída. Salve cada pessoa antes de continuar.',
+    ],
+  'Check person terms fields': [
+    'Revisa los datos comerciales de la persona',
+    'Verifique os dados comerciais da pessoa',
+  ],
+  'Terms effective from': ['Condiciones vigentes desde', 'Condições válidas a partir de'],
+  'Customer hourly rate': ['Tarifa por hora al cliente', 'Tarifa por hora ao cliente'],
+  'Worker compensation method': [
+    'Método de remuneración del trabajador',
+    'Método de remuneração do trabalhador',
+  ],
+  'Worker compensation percentage': [
+    'Porcentaje de remuneración del trabajador',
+    'Percentual de remuneração do trabalhador',
+  ],
+  'Worker compensation rate': [
+    'Importe de remuneración del trabajador',
+    'Valor de remuneração do trabalhador',
+  ],
+  'Expense payer': ['Quién paga el gasto', 'Quem paga a despesa'],
+  'Expense treatment applies to the selected payer only. Policies for other payers remain active.':
+    [
+      'El tratamiento de gastos se aplica solo a quien paga seleccionado. Las políticas de otros pagadores siguen vigentes.',
+      'O tratamento de despesas vale apenas para o pagador selecionado. As políticas de outros pagadores continuam ativas.',
+    ],
+  'Other active expense payer policies': [
+    'Otras políticas de pagadores activas',
+    'Outras políticas de pagadores ativas',
+  ],
+  'To stop reimbursing worker-paid claims, select Worker and No reimbursement.': [
+    'Para dejar de reembolsar los gastos pagados por el trabajador, selecciona Trabajador y Sin reembolso.',
+    'Para deixar de reembolsar despesas pagas pelo trabalhador, selecione Trabalhador e Sem reembolso.',
+  ],
+  'Existing terms on the same date are immutable. Choose a later effective date to change them.': [
+    'Las condiciones ya vigentes en la misma fecha son inmutables. Elige una fecha posterior para cambiarlas.',
+    'As condições já vigentes na mesma data são imutáveis. Escolha uma data posterior para alterá-las.',
+  ],
+  Worker: ['Trabajador', 'Trabalhador'],
+  Client: ['Cliente', 'Cliente'],
+  'At cost': ['Al coste', 'Pelo custo'],
+  'Reimburse worker': ['Reembolsar al trabajador', 'Reembolsar o trabalhador'],
+  'Charge customer for expense': ['Cobrar el gasto al cliente', 'Cobrar a despesa do cliente'],
+  'No reimbursement': ['Sin reembolso', 'Sem reembolso'],
+  'Cost plus markup': ['Coste más recargo', 'Custo mais acréscimo'],
+  'Do not charge customer': ['No cobrar al cliente', 'Não cobrar do cliente'],
+  'Client pays directly': ['El cliente paga directamente', 'O cliente paga diretamente'],
+  'Expense markup percentage': [
+    'Porcentaje de recargo del gasto',
+    'Percentual de acréscimo da despesa',
+  ],
+  'Save person terms': ['Guardar condiciones de la persona', 'Salvar condições da pessoa'],
+  'Copy draft terms from': [
+    'Copiar condiciones provisionales de',
+    'Copiar condições provisórias de',
+  ],
+  'Apply to selected people': [
+    'Aplicar a las personas seleccionadas',
+    'Aplicar às pessoas selecionadas',
+  ],
+  'Save selected people': ['Guardar personas seleccionadas', 'Salvar pessoas selecionadas'],
+  'Apply draft defaults to this person': [
+    'Aplicar valores provisionales a esta persona',
+    'Aplicar valores provisórios a esta pessoa',
+  ],
+  'This copies unsaved draft values only. Review and save each person separately; existing agreements are unchanged until saved.':
+    [
+      'Esto solo copia valores aún no guardados. Revisa y guarda a cada persona por separado; los acuerdos existentes no cambian hasta entonces.',
+      'Isto copia apenas valores ainda não salvos. Revise e salve cada pessoa separadamente; os acordos existentes não mudam até lá.',
+    ],
+  'This copies unsaved draft values only. Review selected people, then save them together or individually. Existing agreements are unchanged until saved.':
+    [
+      'Esto solo copia valores aún no guardados. Revisa a las personas seleccionadas y guárdalas juntas o individualmente. Los acuerdos existentes no cambian hasta guardar.',
+      'Isto copia apenas valores ainda não salvos. Revise as pessoas selecionadas e salve-as juntas ou individualmente. Os acordos existentes não mudam até salvar.',
+    ],
+  'Advanced commercial rules': ['Reglas comerciales avanzadas', 'Regras comerciais avançadas'],
+  'Assign people here, then set each person’s customer rate, pay and expense terms in this project’s Billing setup.':
+    [
+      'Asigna personas aquí y configura su tarifa al cliente, remuneración y gastos en Facturación de este proyecto.',
+      'Atribua pessoas aqui e configure a tarifa ao cliente, remuneração e despesas em Faturamento deste projeto.',
+    ],
+  'Billing setup saved': [
+    'Configuración de facturación guardada',
+    'Configuração de faturamento salva',
+  ],
+  'Invoice issuance still needs these prerequisites:': [
+    'Para emitir facturas aún faltan estos requisitos:',
+    'Para emitir faturas ainda faltam estes requisitos:',
+  ],
+  'Assign an issuing legal entity revision to this project.': [
+    'Asigna a este proyecto una revisión de la entidad legal emisora.',
+    'Atribua a este projeto uma revisão da entidade legal emissora.',
+  ],
+  'Approve an invoice numbering policy for the issuer.': [
+    'Aprueba una política de numeración de facturas para el emisor.',
+    'Aprove uma política de numeração de faturas para o emissor.',
+  ],
+  'Choose a tax profile effective for this billing date.': [
+    'Elige un perfil fiscal vigente para esta fecha de facturación.',
+    'Escolha um perfil tributário válido para esta data de faturamento.',
+  ],
+  'Complete the project billing setup.': [
+    'Completa la configuración de facturación del proyecto.',
+    'Conclua a configuração de faturamento do projeto.',
+  ],
+  'Open finance configuration': ['Abrir configuración financiera', 'Abrir configuração financeira'],
+  'Issuing prerequisites are configured. Invoice readiness also checks approved sources and period rules.':
+    [
+      'Los requisitos de emisión están configurados. La preparación de la factura también comprueba los registros aprobados y las reglas del período.',
+      'Os requisitos de emissão estão configurados. A preparação da fatura também verifica os registros aprovados e as regras do período.',
+    ],
+  'Configure this project’s invoices': [
+    'Configurar las facturas de este proyecto',
+    'Configurar as faturas deste projeto',
+  ],
+  'Choose how approved hours and recoverable expenses become customer invoices. Each person’s rates and expense agreement stay separate.':
+    [
+      'Elige cómo las horas aprobadas y los gastos repercutibles pasan a las facturas del cliente. Las tarifas y los acuerdos de gastos de cada persona se mantienen separados.',
+      'Escolha como as horas aprovadas e as despesas recuperáveis entram nas faturas do cliente. As tarifas e os acordos de despesas de cada pessoa permanecem separados.',
+    ],
+  Step: ['Paso', 'Etapa'],
+  '1. Invoice arrangement': ['1. Organización de facturas', '1. Organização das faturas'],
+  '2. Billing details': ['2. Datos de facturación', '2. Dados de faturamento'],
+  '3. Review each person': ['3. Revisar cada persona', '3. Revisar cada pessoa'],
+  '4. Review and save': ['4. Revisar y guardar', '4. Revisar e salvar'],
+  'Start from a saved template': [
+    'Partir de una plantilla guardada',
+    'Começar com um modelo salvo',
+  ],
+  'Configure from scratch': ['Configurar desde cero', 'Configurar do zero'],
+  'A template fills defaults only. Review the project and each person before saving.': [
+    'La plantilla solo rellena valores predeterminados. Revisa el proyecto y cada persona antes de guardar.',
+    'O modelo preenche apenas valores padrão. Revise o projeto e cada pessoa antes de salvar.',
+  ],
+  'Current commercial model': ['Modelo comercial actual', 'Modelo comercial atual'],
+  'Current PO cap': ['Límite actual de la orden de compra', 'Limite atual do pedido de compra'],
+  'Edit project commercial model or cap': [
+    'Editar el modelo comercial o el límite del proyecto',
+    'Editar o modelo comercial ou o limite do projeto',
+  ],
+  'One invoice with two sections': ['Una factura con dos secciones', 'Uma fatura com duas seções'],
+  'Approved labor and billable expenses appear on the same invoice, with separate section totals.':
+    [
+      'Las horas aprobadas y los gastos facturables aparecen en la misma factura, con subtotales por sección.',
+      'As horas aprovadas e as despesas faturáveis aparecem na mesma fatura, com subtotais por seção.',
+    ],
+  'Two separate invoices': ['Dos facturas separadas', 'Duas faturas separadas'],
+  'Labor and expenses use separate invoice drafts and may use different cadence and tax profiles.':
+    [
+      'Las horas y los gastos usan borradores de factura separados y pueden tener distinta frecuencia y perfil fiscal.',
+      'As horas e as despesas usam rascunhos de fatura separados e podem ter periodicidade e perfil tributário diferentes.',
+    ],
+  'Configuration effective from': [
+    'Configuración vigente desde',
+    'Configuração válida a partir de',
+  ],
+  'Issuing legal entity': ['Entidad legal emisora', 'Entidade legal emissora'],
+  'Select entity': ['Seleccionar entidad', 'Selecionar entidade'],
+  'Project currency': ['Moneda del proyecto', 'Moeda do projeto'],
+  'Labor tax profile': ['Perfil fiscal de horas', 'Perfil tributário de horas'],
+  'Expense tax profile': ['Perfil fiscal de gastos', 'Perfil tributário de despesas'],
+  'Select tax profile': ['Seleccionar perfil fiscal', 'Selecionar perfil tributário'],
+  'Labor billing cadence': [
+    'Frecuencia de facturación de horas',
+    'Periodicidade de faturamento de horas',
+  ],
+  'Expense billing cadence': [
+    'Frecuencia de facturación de gastos',
+    'Periodicidade de faturamento de despesas',
+  ],
+  'Labor cadence anchor date': ['Fecha de referencia para horas', 'Data de referência para horas'],
+  'Expense cadence anchor date': [
+    'Fecha de referencia para gastos',
+    'Data de referência para despesas',
+  ],
+  'Invoice layout': ['Diseño de factura', 'Layout da fatura'],
+  'Line grouping': ['Agrupación de líneas', 'Agrupamento de linhas'],
+  Detailed: ['Detallado', 'Detalhado'],
+  Standard: ['Estándar', 'Padrão'],
+  'Billing contact': ['Contacto de facturación', 'Contato de faturamento'],
+  'Use client default': [
+    'Usar el contacto predeterminado del cliente',
+    'Usar o contato padrão do cliente',
+  ],
+  'Automatically prepare drafts for review': [
+    'Preparar automáticamente borradores para revisión',
+    'Preparar automaticamente rascunhos para revisão',
+  ],
+  'Invoices are never issued or sent automatically.': [
+    'Las facturas nunca se emiten ni se envían automáticamente.',
+    'As faturas nunca são emitidas ou enviadas automaticamente.',
+  ],
+  'An active issuing entity and tax profile in the project currency are required before invoices can be configured.':
+    [
+      'Se necesita una entidad emisora y un perfil fiscal activos en la moneda del proyecto antes de configurar las facturas.',
+      'É necessária uma entidade emissora e um perfil tributário ativos na moeda do projeto antes de configurar as faturas.',
+    ],
+  'Configure legal entities and tax profiles': [
+    'Configurar entidades legales y perfiles fiscales',
+    'Configurar entidades legais e perfis tributários',
+  ],
+  'These rates and expense policies are configured per assignment. This setup does not change them.':
+    [
+      'Estas tarifas y políticas de gastos se configuran por asignación. Esta configuración no las modifica.',
+      'Estas tarifas e políticas de despesas são configuradas por atribuição. Esta configuração não as altera.',
+    ],
+  'Customer rate': ['Tarifa al cliente', 'Tarifa do cliente'],
+  'Expense policy': ['Política de gastos', 'Política de despesas'],
+  Configured: ['Configurado', 'Configurado'],
+  'Needs review': ['Necesita revisión', 'Precisa de revisão'],
+  'No workers are assigned. Add people before issuing invoices.': [
+    'No hay trabajadores asignados. Añade personas antes de emitir facturas.',
+    'Não há trabalhadores atribuídos. Adicione pessoas antes de emitir faturas.',
+  ],
+  'person(s) still need commercial terms before their records can be billed.': [
+    'persona(s) aún necesitan condiciones comerciales antes de facturar sus registros.',
+    'pessoa(s) ainda precisam de condições comerciais antes de faturar seus registros.',
+  ],
+  'Edit people and rates': ['Editar personas y tarifas', 'Editar pessoas e tarifas'],
+  'Invoice arrangement': ['Organización de facturas', 'Organização das faturas'],
+  'People needing terms': ['Personas pendientes de condiciones', 'Pessoas pendentes de condições'],
+  'Save these defaults as a reusable template': [
+    'Guardar estos valores como plantilla reutilizable',
+    'Salvar estes valores como modelo reutilizável',
+  ],
+  'Template name': ['Nombre de la plantilla', 'Nome do modelo'],
+  'Selected template': ['Plantilla seleccionada', 'Modelo selecionado'],
+  'Defaults were adjusted for this project; review the choices above.': [
+    'Se modificaron los valores predeterminados para este proyecto; revisa las opciones anteriores.',
+    'Os valores padrão foram ajustados para este projeto; revise as opções acima.',
+  ],
+  'Template defaults are unchanged; per-person agreements remain independent.': [
+    'Los valores de la plantilla no cambiaron; los acuerdos por persona siguen siendo independientes.',
+    'Os valores padrão do modelo não mudaram; os acordos por pessoa continuam independentes.',
+  ],
+  'Saving changes future invoice preparation. Issued invoices keep their original totals and rules.':
+    [
+      'Guardar cambia la preparación de facturas futuras. Las facturas emitidas conservan sus importes y reglas originales.',
+      'Salvar altera a preparação de faturas futuras. As faturas emitidas mantêm os valores e regras originais.',
+    ],
+  'Save billing setup': [
+    'Guardar configuración de facturación',
+    'Salvar configuração de faturamento',
+  ],
+  'Billing setup is read only for this role.': [
+    'La configuración de facturación es de solo lectura para este rol.',
+    'A configuração de faturamento é somente leitura para esta função.',
+  ],
+  'Check billing setup fields': [
+    'Revisa los campos de facturación',
+    'Revise os campos de faturamento',
+  ],
+  'Invoices and advanced settings': [
+    'Facturas y configuración avanzada',
+    'Faturas e configurações avançadas',
+  ],
+  'Review drafts and issued invoices here. Advanced billing rules remain available for Finance.': [
+    'Revisa aquí los borradores y las facturas emitidas. Las reglas avanzadas siguen disponibles para Finanzas.',
+    'Revise aqui os rascunhos e as faturas emitidas. As regras avançadas continuam disponíveis para Finanças.',
+  ],
+  'Add an expense with these hours': [
+    'Añadir un gasto junto con estas horas',
+    'Adicionar uma despesa junto com estas horas',
+  ],
+  'Expense for this shift': ['Gasto de este turno', 'Despesa deste turno'],
+  'The expense will use the same worker, project and date. Add a receipt from the expense detail after saving if needed.':
+    [
+      'El gasto usará el mismo trabajador, proyecto y fecha. Si hace falta, añade el recibo desde el detalle del gasto después de guardar.',
+      'A despesa usará o mesmo colaborador, projeto e data. Se necessário, adicione o comprovante no detalhe da despesa após salvar.',
+    ],
+  'Reconnect to save time and expense together. Your entries are still here.': [
+    'Vuelve a conectarte para guardar las horas y el gasto juntos. Tus datos siguen aquí.',
+    'Reconecte-se para salvar as horas e a despesa juntas. Seus dados continuam aqui.',
+  ],
+  'Time expense occurred (optional)': [
+    'Hora del gasto (opcional)',
+    'Horário da despesa (opcional)',
+  ],
+  'Time expense occurred': ['Hora del gasto', 'Horário da despesa'],
+  'Local time at the project site; leave blank if unknown.': [
+    'Hora local del proyecto; déjala en blanco si no la sabes.',
+    'Horário local do projeto; deixe em branco se não souber.',
+  ],
+  'Related logged hours (optional)': [
+    'Horas registradas relacionadas (opcional)',
+    'Horas registradas relacionadas (opcional)',
+  ],
+  'Related logged hours': ['Horas registradas relacionadas', 'Horas registradas relacionadas'],
+  'Expense only / no linked hours': [
+    'Solo gasto / sin horas vinculadas',
+    'Somente despesa / sem horas vinculadas',
+  ],
+  'Loading logged hours…': ['Cargando horas registradas…', 'Carregando horas registradas…'],
+  'Loading linked hours…': ['Cargando horas vinculadas…', 'Carregando horas vinculadas…'],
+  'Only hours for this worker, project and date are shown.': [
+    'Solo se muestran horas de este trabajador, proyecto y fecha.',
+    'Somente horas deste colaborador, projeto e data são exibidas.',
+  ],
+  'Current linked hours': ['Horas vinculadas actuales', 'Horas vinculadas atuais'],
+  'Open time record': ['Abrir registro de horas', 'Abrir registro de horas'],
+  'Logged hours could not be loaded. You can still save an expense without a link.': [
+    'No se pudieron cargar las horas. Aún puedes guardar el gasto sin vincularlo.',
+    'Não foi possível carregar as horas. Você ainda pode salvar a despesa sem vinculá-la.',
+  ],
+  'Add related expense': ['Añadir gasto relacionado', 'Adicionar despesa relacionada'],
+  'How labor terms are selected': [
+    'Cómo se seleccionan las condiciones laborales',
+    'Como são selecionadas as condições de mão de obra',
+  ],
+  'Review each assigned person on a work date. These are selected rules, not a forecast or an invoice total.':
+    [
+      'Revisa a cada persona asignada en una fecha de trabajo. Estas son las reglas aplicables, no una previsión ni el total de una factura.',
+      'Revise cada pessoa alocada em uma data de trabalho. Estas são as regras aplicáveis, não uma previsão nem o total de uma fatura.',
+    ],
+  'Review terms': ['Revisar condiciones', 'Revisar condições'],
+  'Person-specific labor terms': [
+    'Condiciones laborales por persona',
+    'Condições de mão de obra por pessoa',
+  ],
+  'Customer charge': ['Cargo al cliente', 'Cobrança ao cliente'],
+  'per hour': ['por hora', 'por hora'],
+  'Worker pay': ['Pago al trabajador', 'Pagamento ao colaborador'],
+  Method: ['Método', 'Método'],
+  'Internal cost rate': ['Tarifa de coste interno', 'Taxa de custo interno'],
+  'Configuration required': ['Configuración pendiente', 'Configuração necessária'],
+  'No active project people on this date.': [
+    'No hay personas activas en el proyecto en esta fecha.',
+    'Não há pessoas ativas no projeto nesta data.',
+  ],
+  'No active assignment for this date': [
+    'No hay asignación activa en esta fecha',
+    'Não há alocação ativa nesta data',
+  ],
+  'Overlapping active assignments': [
+    'Hay asignaciones activas superpuestas',
+    'Há alocações ativas sobrepostas',
+  ],
+  'Customer hourly rate required': [
+    'Falta la tarifa por hora del cliente',
+    'Falta a taxa por hora do cliente',
+  ],
+  'Worker compensation rule required': [
+    'Falta la regla de remuneración del trabajador',
+    'Falta a regra de remuneração do colaborador',
+  ],
+  'Internal cost rule required': [
+    'Falta la regla de coste interno',
+    'Falta a regra de custo interno',
+  ],
+  'Overlapping customer rates': [
+    'Hay tarifas del cliente superpuestas',
+    'Há taxas do cliente sobrepostas',
+  ],
+  'Overlapping worker compensation rules': [
+    'Hay reglas de remuneración superpuestas',
+    'Há regras de remuneração sobrepostas',
+  ],
+  'Overlapping internal cost rules': [
+    'Hay reglas de coste interno superpuestas',
+    'Há regras de custo interno sobrepostas',
+  ],
+  'Customer-rate override does not apply': [
+    'La tarifa de cliente de la asignación no se aplica',
+    'A taxa de cliente da alocação não se aplica',
+  ],
+  'Compensation override does not apply': [
+    'La remuneración de la asignación no se aplica',
+    'A remuneração da alocação não se aplica',
+  ],
+  'Internal-cost override does not apply': [
+    'El coste interno de la asignación no se aplica',
+    'O custo interno da alocação não se aplica',
+  ],
+  'Assignment override': ['Condición de la asignación', 'Condição da alocação'],
+  'Person on this project': ['Persona en este proyecto', 'Pessoa neste projeto'],
+  'Project default': ['Valor predeterminado del proyecto', 'Padrão do projeto'],
+  'Person global fallback': ['Valor general de la persona', 'Valor geral da pessoa'],
+  'Create issuing legal entity revision': [
+    'Crear revisión de la entidad emisora',
+    'Criar revisão da entidade emissora',
+  ],
+  'Use verified legal and tax details. A revision is permanent evidence for later invoices.': [
+    'Usa datos legales y fiscales verificados. La revisión queda como evidencia permanente para facturas posteriores.',
+    'Use dados legais e fiscais verificados. A revisão permanece como evidência para faturas futuras.',
+  ],
+  'Select legal entity': ['Seleccionar entidad legal', 'Selecionar entidade legal'],
+  'Effective from': ['Vigente desde', 'Vigente a partir de'],
+  'Registered legal name': ['Razón social registrada', 'Razão social registrada'],
+  'Tax identifier': ['Identificador fiscal', 'Identificador fiscal'],
+  'Registration identifier': ['Número de registro', 'Identificador de registro'],
+  'Address line 1': ['Dirección, línea 1', 'Endereço, linha 1'],
+  'Address line 2': ['Dirección, línea 2', 'Endereço, linha 2'],
+  'City / locality': ['Ciudad / localidad', 'Cidade / localidade'],
+  'Country code (2 letters)': ['Código de país (2 letras)', 'Código do país (2 letras)'],
+  'Base currency': ['Moneda base', 'Moeda base'],
+  'Must match the selected legal entity.': [
+    'Debe coincidir con la entidad legal seleccionada.',
+    'Deve corresponder à entidade legal selecionada.',
+  ],
+  'Reason for this revision': ['Motivo de esta revisión', 'Motivo desta revisão'],
+  'Save legal entity revision': [
+    'Guardar revisión de la entidad legal',
+    'Salvar revisão da entidade legal',
+  ],
   Work: ['Trabajo', 'Trabalho'],
   Standby: ['Guardia / espera', 'Plantão / espera'],
   'Travel operational detail': ['Detalle operativo del viaje', 'Detalhe operacional da viagem'],
@@ -1304,6 +1982,27 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   ],
   'Correction draft': ['Borrador de corrección', 'Rascunho de correção'],
   'Correction reason': ['Motivo de la corrección', 'Motivo da correção'],
+  'Recalculation reason': ['Motivo del recálculo', 'Motivo do recálculo'],
+  'Recalculate and review draft': [
+    'Recalcular y revisar borrador',
+    'Recalcular e revisar rascunho',
+  ],
+  Superseded: ['Sustituida', 'Substituída'],
+  'Superseded approved invoice': ['Factura aprobada sustituida', 'Fatura aprovada substituída'],
+  'This approved version was replaced. Its amounts and lines remain available for review.': [
+    'Esta versión aprobada fue sustituida. Sus importes y líneas siguen disponibles para revisión.',
+    'Esta versão aprovada foi substituída. Seus valores e itens continuam disponíveis para revisão.',
+  ],
+  'Open recent-period calculation explanation': [
+    'Abrir la explicación de cálculo del período reciente',
+    'Abrir a explicação de cálculo do período recente',
+  ],
+  'Current customer rate': ['Tarifa actual del cliente', 'Tarifa atual do cliente'],
+  'How this project is calculated': [
+    'Cómo se calcula este proyecto',
+    'Como este projeto é calculado',
+  ],
+  Continue: ['Continuar', 'Continuar'],
   'Create corrected draft': ['Crear borrador corregido', 'Criar rascunho corrigido'],
   'Cost center': ['Centro de coste', 'Centro de custo'],
   'Cost center code': ['Código del centro de coste', 'Código do centro de custo'],
@@ -2465,6 +3164,26 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
     'Bandeja de clasificación de gastos',
     'Caixa de classificação de despesas',
   ],
+  'Classify this expense before Finance review.': [
+    'Clasifica este gasto antes de la revisión financiera.',
+    'Classifique esta despesa antes da revisão financeira.',
+  ],
+  'Classify expense in Finance →': [
+    'Clasificar gasto en Finanzas →',
+    'Classificar despesa em Finanças →',
+  ],
+  'Set a project issuing authority covering this expense date before classification.': [
+    'Configura una entidad emisora del proyecto que cubra la fecha de este gasto antes de clasificarlo.',
+    'Configure uma entidade emissora do projeto que cubra a data desta despesa antes de classificá-la.',
+  ],
+  'Configure project issuing authority →': [
+    'Configurar entidad emisora del proyecto →',
+    'Configurar entidade emissora do projeto →',
+  ],
+  'Review project issuing authority →': [
+    'Revisar entidad emisora del proyecto →',
+    'Revisar entidade emissora do projeto →',
+  ],
   'Needs classification': ['Requiere clasificación', 'Requer classificação'],
   'Tax rate': ['Tipo impositivo', 'Alíquota'],
   '0% allowed': ['0% permitido', '0% permitido'],
@@ -3035,6 +3754,146 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
       'El porcentaje se aplica sólo a la base de mano de obra elegible seleccionada. El trabajo no facturable, las categorías excluidas y los importes no cobrados se excluyen según esa base; un cobro parcial del cliente genera únicamente la parte elegible cobrada.',
       'O percentual aplica-se somente à base elegível de mão de obra selecionada. Trabalho não faturável, categorias excluídas e valores não recebidos são excluídos conforme essa base; um recebimento parcial do cliente gera somente a parcela elegível recebida.',
     ],
+  'Record expense for': ['Registrar gasto de', 'Registrar despesa de'],
+  'my own expense': ['mi propio gasto', 'minha própria despesa'],
+  'Loading crew member…': ['Cargando miembro del equipo…', 'Carregando membro da equipe…'],
+  'A separate expense is recorded for the selected person.': [
+    'Se registra un gasto separado para la persona seleccionada.',
+    'Uma despesa separada é registrada para a pessoa selecionada.',
+  ],
+  'Crew workers could not be loaded. Try again or record your own expense.': [
+    'No se pudieron cargar los trabajadores del equipo. Inténtalo de nuevo o registra tu propio gasto.',
+    'Não foi possível carregar os trabalhadores da equipe. Tente novamente ou registre sua própria despesa.',
+  ],
+  'Configure this person': ['Configurar esta persona', 'Configurar esta pessoa'],
+  'Customer hourly rule': [
+    'Regla de tarifa horaria del cliente',
+    'Regra de tarifa horária do cliente',
+  ],
+  'Worker compensation rule': [
+    'Regla de remuneración del trabajador',
+    'Regra de remuneração do trabalhador',
+  ],
+  'Internal cost rule': ['Regla de costo interno', 'Regra de custo interno'],
+  'Resolve by project and date': ['Resolver por proyecto y fecha', 'Resolver por projeto e data'],
+  'Save person rules': ['Guardar reglas de la persona', 'Salvar regras da pessoa'],
+  'Global worker pay fallback': [
+    'Usar remuneración general del trabajador si falta una regla del proyecto',
+    'Usar remuneração geral do trabalhador se faltar uma regra do projeto',
+  ],
+  'Global internal cost fallback': [
+    'Usar costo interno general si falta una regla del proyecto',
+    'Usar custo interno geral se faltar uma regra do projeto',
+  ],
+  Off: ['Desactivado', 'Desativado'],
+  On: ['Activado', 'Ativado'],
+  'Save fallback options': ['Guardar opciones alternativas', 'Salvar opções alternativas'],
+  'Person expense policies': [
+    'Políticas de gastos por persona',
+    'Políticas de despesas por pessoa',
+  ],
+  'Choose separately whether the worker is reimbursed and whether the customer pays. Rules apply by person, payer, category, and expense date.':
+    [
+      'Elige por separado si se reembolsa al trabajador y si paga el cliente. Las reglas se aplican por persona, pagador, categoría y fecha del gasto.',
+      'Escolha separadamente se o trabalhador é reembolsado e se o cliente paga. As regras se aplicam por pessoa, pagador, categoria e data da despesa.',
+    ],
+  'Assigned person': ['Persona asignada', 'Pessoa designada'],
+  'Select person': ['Seleccionar persona', 'Selecionar pessoa'],
+  'Who paid': ['Quién pagó', 'Quem pagou'],
+  'Company card': ['Tarjeta de empresa', 'Cartão da empresa'],
+  'Company direct': ['Pago directo de la empresa', 'Pagamento direto da empresa'],
+  'Third party': ['Tercero', 'Terceiro'],
+  'Expense category': ['Categoría del gasto', 'Categoria da despesa'],
+  'Leave blank for all categories.': [
+    'Déjalo en blanco para todas las categorías.',
+    'Deixe em branco para todas as categorias.',
+  ],
+  'Worker reimbursement': ['Reembolso al trabajador', 'Reembolso ao trabalhador'],
+  'Reimburse at cost': ['Reembolsar el coste', 'Reembolsar pelo custo'],
+  'Do not reimburse': ['No reembolsar', 'Não reembolsar'],
+  'Customer expense recovery': ['Cobro del gasto al cliente', 'Cobrança da despesa ao cliente'],
+  'Bill at cost': ['Facturar al coste', 'Faturar pelo custo'],
+  'Bill with markup': ['Facturar con recargo', 'Faturar com acréscimo'],
+  'Included in labor price': [
+    'Incluido en el precio de la mano de obra',
+    'Incluído no preço da mão de obra',
+  ],
+  'Do not bill customer': ['No facturar al cliente', 'Não faturar ao cliente'],
+  'Customer paid directly': ['Pagado directamente por el cliente', 'Pago diretamente pelo cliente'],
+  'Markup (basis points)': ['Recargo (puntos básicos)', 'Acréscimo (pontos-base)'],
+  'Required only for bill with markup; 1000 means 10%.': [
+    'Sólo se exige al facturar con recargo; 1000 equivale al 10 %.',
+    'Exigido apenas ao faturar com acréscimo; 1000 equivale a 10%.',
+  ],
+  'Save person expense policy': [
+    'Guardar política de gastos de la persona',
+    'Salvar política de despesas da pessoa',
+  ],
+  'Person expense policy history': [
+    'Historial de políticas de gastos por persona',
+    'Histórico de políticas de despesas por pessoa',
+  ],
+  'Select a project with an assigned person to configure expense policy.': [
+    'Selecciona un proyecto con una persona asignada para configurar la política de gastos.',
+    'Selecione um projeto com uma pessoa designada para configurar a política de despesas.',
+  ],
+  'No person expense policies are configured for this project.': [
+    'Este proyecto no tiene políticas de gastos por persona configuradas.',
+    'Este projeto não tem políticas de despesas por pessoa configuradas.',
+  ],
+  'Configured person expense policy': [
+    'Política de gastos configurada para la persona',
+    'Política de despesas configurada para a pessoa',
+  ],
+  'Worker amount': ['Importe para el trabajador', 'Valor para o trabalhador'],
+  'Customer amount': ['Importe para el cliente', 'Valor para o cliente'],
+  'Expense policy configuration required': [
+    'Es necesario configurar la política de gastos',
+    'É necessário configurar a política de despesas',
+  ],
+  'No matching policy': ['No hay una política aplicable', 'Não há uma política aplicável'],
+  'No project assignment covers this expense date.': [
+    'Ninguna asignación al proyecto cubre la fecha de este gasto.',
+    'Nenhuma atribuição ao projeto cobre a data desta despesa.',
+  ],
+  'Multiple project assignments cover this expense date.': [
+    'Hay varias asignaciones al proyecto para la fecha de este gasto.',
+    'Há várias atribuições ao projeto para a data desta despesa.',
+  ],
+  'No person expense policy matches this payer, category and expense date.': [
+    'Ninguna política de gastos de la persona coincide con el pagador, la categoría y la fecha de este gasto.',
+    'Nenhuma política de despesas da pessoa corresponde ao pagador, à categoria e à data desta despesa.',
+  ],
+  'This expense is no longer available.': [
+    'Este gasto ya no está disponible.',
+    'Esta despesa já não está disponível.',
+  ],
+  'Expense currency conversion is required before classification.': [
+    'Es necesario convertir la moneda del gasto antes de clasificarlo.',
+    'É necessário converter a moeda da despesa antes de classificá-la.',
+  ],
+  'Expense policy needs review.': [
+    'Hay que revisar la política de gastos.',
+    'É necessário revisar a política de despesas.',
+  ],
+  'Configure person expense policy': [
+    'Configurar política de gastos de la persona',
+    'Configurar política de despesas da pessoa',
+  ],
+  'Override this expense policy': [
+    'Aplicar una excepción a esta política de gastos',
+    'Aplicar uma exceção a esta política de despesas',
+  ],
+  'One-time customer treatment': [
+    'Tratamiento excepcional para el cliente',
+    'Tratamento excepcional para o cliente',
+  ],
+  'Allowance per diem': ['Dieta diaria', 'Ajuda de custo diária'],
+  'Informational only': ['Sólo informativo', 'Somente informativo'],
+  'One-time markup (basis points)': [
+    'Recargo excepcional (puntos básicos)',
+    'Acréscimo excepcional (pontos-base)',
+  ],
 };
 
 export const extractedSectionCoverageKeys = Object.keys(extractedSectionCoverageOverrides);

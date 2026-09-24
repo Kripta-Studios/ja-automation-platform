@@ -66,6 +66,7 @@ function setup() {
   });
   for (let i = 0; i < 4; i++)
     repository.createProject(owner, {
+      costCenterCode: 'QA-OWNER-TRAINING-TEST-1',
       clientId: client.id,
       name: `Project ${i} · Demo`,
       currency: 'USD',

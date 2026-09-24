@@ -385,6 +385,7 @@ beforeEach(() => {
     paymentTermsDays: 30,
   });
   const project = repository.createProject(owner, {
+    costCenterCode: 'QA-REPORTING-ESSENTIAL-CATALOG-TEST-1',
     clientId: client.id,
     name: 'Statement Project',
     timezone: 'UTC',

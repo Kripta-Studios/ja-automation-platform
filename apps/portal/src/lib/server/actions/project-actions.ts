@@ -6,11 +6,18 @@ import {
   milestoneInputSchema,
   projectInputSchema,
   scheduleInputSchema,
+  uuidSchema,
   versionedRecordSchema,
 } from '@ja/schemas';
+import { z } from 'zod';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess } from './action-message';
 import { formObject, type PortalActionEvent } from '$lib/server/action-utils';
+
+const initialProjectPeopleSchema = z.object({
+  initialWorkerIds: z.array(uuidSchema).max(100),
+  initialWorkersStartOn: z.union([z.literal(''), z.iso.date()]).optional(),
+});
 
 export const projectActions = {
   createClient: async ({ locals, request, params }: PortalActionEvent) => {
@@ -153,6 +160,7 @@ export const projectActions = {
         fixedPriceMinor: money('fixedPriceMinor'),
         laborBudgetMinutes: integer('laborBudgetMinutes', true),
         travelBudgetMinor: money('travelBudgetMinor'),
+        expenseBudgetMinor: money('expenseBudgetMinor'),
         otherCostBudgetMinor: money('otherCostBudgetMinor'),
         plannedMinutes: integer('plannedMinutes', true),
         contractNumber: text('contractNumber'),
@@ -180,20 +188,58 @@ export const projectActions = {
   createProject: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const parsed = projectInputSchema.safeParse(await formObject(request));
-    if (!parsed.success)
+    const data = await request.formData();
+    const initialWorkerIds = data.getAll('initialWorkerId').map((value) => value.toString());
+    const values = Object.fromEntries(data) as Record<string, unknown>;
+    delete values.initialWorkerId;
+    delete values.initialWorkersStartOn;
+    const people = initialProjectPeopleSchema.safeParse({
+      initialWorkerIds,
+      initialWorkersStartOn: data.get('initialWorkersStartOn')?.toString() ?? undefined,
+    });
+    const parsed = projectInputSchema.safeParse(values);
+    const retainedValues = {
+      ...values,
+      initialWorkerIds,
+      initialWorkersStartOn: data.get('initialWorkersStartOn')?.toString() ?? '',
+    };
+    if (!parsed.success || !people.success)
       return actionFail(400, 'action.validation.projectFields', {}, 'Check project fields', {
-        fields: parsed.error.flatten().fieldErrors,
+        fields: {
+          ...(!parsed.success ? parsed.error.flatten().fieldErrors : {}),
+          ...(!people.success ? people.error.flatten().fieldErrors : {}),
+        },
+        values: retainedValues,
       });
     const context = openPortalRepository(locals);
     try {
-      const result = context.repository.createProject(context.principal, parsed.data);
+      const result = context.repository.createProject(context.principal, {
+        ...parsed.data,
+        initialWorkerIds: people.data.initialWorkerIds,
+        initialWorkersStartOn: people.data.initialWorkersStartOn || undefined,
+      });
       return actionSuccess(
         'action.projects.projectCreated',
-        { projectNumber: result.projectNumber },
+        { projectNumber: result.projectNumber, projectId: result.id },
         `Created ${result.projectNumber}`,
       );
     } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === 'Project currency must match the client currency'
+      )
+        return actionFail(400, 'action.validation.projectFields', {}, 'Check project fields', {
+          fields: { currency: [error.message] },
+          values: retainedValues,
+        });
+      if (
+        error instanceof Error &&
+        /^Selected worker \d+|^Worker assignment start date/u.test(error.message)
+      )
+        return actionFail(400, 'action.validation.projectFields', {}, 'Check project fields', {
+          fields: { initialWorkerIds: [error.message] },
+          values: retainedValues,
+        });
       return actionFailure(error);
     } finally {
       context.sqlite.close();

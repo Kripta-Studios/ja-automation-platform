@@ -1,5 +1,7 @@
 .git
 .gitignore
+docs/manuals/Portal_Test_Accounts.private.md
+docs/manuals/Business_Data_Classification.private.md
 .tmp
 .release
 .pnpm-store
@@ -25,4 +27,3 @@ data
 **/*.sqlite-*
 documents
 uploads
-

@@ -9,6 +9,7 @@ export const billingRules = sqliteTable('billing_rule', {
     .references(() => projects.id),
   legalEntityId: text('legal_entity_id'),
   streamType: text('stream_type').notNull(),
+  includeExpenses: integer('include_expenses', { mode: 'boolean' }).notNull().default(false),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
   cadenceType: text('cadence_type').notNull(),
   anchorDate: text('anchor_date'),

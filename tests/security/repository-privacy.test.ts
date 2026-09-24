@@ -140,6 +140,7 @@ describe('repository authorization and privacy', () => {
       billingAddress: 'Security Client billing address',
     });
     const project = repository.createProject(owner, {
+      costCenterCode: 'QA-REPOSITORY-PRIVACY-TEST-1',
       clientId: client.id,
       name: 'Security Project',
       startDate: '2026-08-01',
@@ -203,6 +204,7 @@ describe('repository authorization and privacy', () => {
     );
     expect(() =>
       repository.createProject(auditor, {
+        costCenterCode: 'QA-REPOSITORY-PRIVACY-TEST-2',
         clientId: client.id,
         name: 'Should fail',
         timezone: 'UTC',
@@ -249,6 +251,7 @@ describe('repository authorization and privacy', () => {
       billingAddress: 'Privacy Client billing address',
     });
     const project = repository.createProject(owner, {
+      costCenterCode: 'QA-REPOSITORY-PRIVACY-TEST-3',
       clientId: client.id,
       name: 'Privacy Project',
       timezone: 'UTC',

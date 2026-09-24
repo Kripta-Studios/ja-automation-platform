@@ -3,7 +3,13 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { PortalRepository, V3AccessDeniedError, V3Repository, createDatabase } from '@ja/database';
+import {
+  AssignmentExpensePolicyRepository,
+  PortalRepository,
+  V3AccessDeniedError,
+  V3Repository,
+  createDatabase,
+} from '@ja/database';
 import type { Principal, Role } from '@ja/domain';
 import {
   installB5TestDeploymentIdentity,
@@ -195,6 +201,7 @@ describe('V3 finance and privacy paths', () => {
       paymentTermsDays: 30,
     });
     const project = repository.createProject(owner, {
+      costCenterCode: 'QA-V3-FINANCE-TEST-1',
       clientId: client.id,
       name: 'V3 Commissioning',
       timezone: 'UTC',
@@ -209,7 +216,7 @@ describe('V3 finance and privacy paths', () => {
       startsOn: '2026-08-01',
       canReview: true,
     });
-    repository.assignWorker(owner, {
+    const assignmentA = repository.assignWorker(owner, {
       projectId: project.id,
       workerId: 'worker-a',
       startsOn: '2026-08-01',
@@ -222,6 +229,36 @@ describe('V3 finance and privacy paths', () => {
     const manager = repository.principalFor('manager');
     const workerA = repository.principalFor('worker-a');
     const workerB = repository.principalFor('worker-b');
+    const expensePolicies = new AssignmentExpensePolicyRepository(sqlite);
+    for (const terms of [
+      {
+        payer: 'worker' as const,
+        category: 'hotel',
+        workerReimbursement: 'at_cost' as const,
+        clientRecovery: 'markup' as const,
+        markupBps: 1_000,
+      },
+      {
+        payer: 'company_card' as const,
+        category: 'rental_car',
+        workerReimbursement: 'none' as const,
+        clientRecovery: 'included' as const,
+        markupBps: 0,
+      },
+      {
+        payer: 'client' as const,
+        category: 'materials',
+        workerReimbursement: 'none' as const,
+        clientRecovery: 'client_direct' as const,
+        markupBps: 0,
+      },
+    ])
+      expensePolicies.create(finance, {
+        projectMemberId: assignmentA.id,
+        effectiveFrom: '2026-08-01',
+        reason: 'Explicit V3 finance scenario expense terms',
+        ...terms,
+      });
 
     v3.createCompensationRule(finance, {
       workerId: 'worker-a',
@@ -351,7 +388,7 @@ describe('V3 finance and privacy paths', () => {
       sqlite
         .prepare('SELECT amount_minor,reimbursement_amount_minor FROM expense WHERE id=?')
         .get(editableExpense.id),
-    ).toEqual({ amount_minor: 1234, reimbursement_amount_minor: 1234 });
+    ).toEqual({ amount_minor: 1234, reimbursement_amount_minor: null });
     repository.updateExpense(workerA, {
       id: editableExpense.id,
       version: editableExpense.version,
@@ -361,7 +398,7 @@ describe('V3 finance and privacy paths', () => {
       sqlite
         .prepare('SELECT amount_minor,reimbursement_amount_minor FROM expense WHERE id=?')
         .get(editableExpense.id),
-    ).toEqual({ amount_minor: 2345, reimbursement_amount_minor: 2345 });
+    ).toEqual({ amount_minor: 2345, reimbursement_amount_minor: null });
 
     const reimbursable = repository.createExpense(workerA, {
       projectId: project.id,
@@ -441,6 +478,112 @@ describe('V3 finance and privacy paths', () => {
     expect(financeView.directLaborCostMinor).toBe('72200');
     expect(financeView.approvedCostMinor).toBe('87200');
     expect(financeView.contributionMarginMinor).toBe('27800');
+    sqlite
+      .prepare('UPDATE project SET planned_minutes=?,revenue_budget_minor=? WHERE id=?')
+      .run(60_000, 200_000, project.id);
+    const partialBudgetForecast = v3.projectFinance(finance, project.id);
+    expect(partialBudgetForecast.budgetMinor).toBe('200000');
+    expect(partialBudgetForecast.remainingCapMinor).toBeNull();
+    expect(partialBudgetForecast.estimateToCompleteMinor).toBeNull();
+    expect(partialBudgetForecast.forecastAvailable).toBe(false);
+    expect(partialBudgetForecast.forecastBasis).toBe(
+      'Expense budget not configured; labor estimate only',
+    );
+    const mixedPlanProject = repository.createProject(owner, {
+      costCenterCode: 'QA-V3-MIXED-PLAN-1',
+      clientId: client.id,
+      name: 'Person-specific planned hours',
+      timezone: 'UTC',
+      currency: 'USD',
+      billingModel: 'tm',
+    });
+    const plannedA = repository.assignWorker(owner, {
+      projectId: mixedPlanProject.id,
+      workerId: 'worker-a',
+      startsOn: '2099-10-01',
+    });
+    const plannedB = repository.assignWorker(owner, {
+      projectId: mixedPlanProject.id,
+      workerId: 'worker-b',
+      startsOn: '2099-10-01',
+    });
+    sqlite.prepare('UPDATE project_member SET planned_minutes=? WHERE id=?').run(480, plannedA.id);
+    sqlite.prepare('UPDATE project_member SET planned_minutes=? WHERE id=?').run(960, plannedB.id);
+    sqlite
+      .prepare('UPDATE project SET travel_budget_minor=0,expense_budget_minor=10000 WHERE id=?')
+      .run(mixedPlanProject.id);
+    for (const worker of [
+      { id: 'worker-a', client: 5_500n, cost: 3_000n },
+      { id: 'worker-b', client: 7_000n, cost: 4_500n },
+    ]) {
+      v3.createClientLaborRate(finance, {
+        projectId: mixedPlanProject.id,
+        workerId: worker.id,
+        currency: 'USD',
+        hourlyRateMinor: worker.client,
+        effectiveFrom: '2099-10-01',
+      });
+      v3.createInternalCostRule(finance, {
+        projectId: mixedPlanProject.id,
+        workerId: worker.id,
+        currency: 'USD',
+        hourlyRateMinor: worker.cost,
+        effectiveFrom: '2099-10-01',
+      });
+    }
+    const mixedPlanForecast = v3.projectFinance(finance, mixedPlanProject.id);
+    expect(mixedPlanForecast.plannedMinutes).toBe(1_440);
+    expect(mixedPlanForecast.plannedRemainingMinutes).toBe(1_440);
+    expect(mixedPlanForecast.estimateToCompleteLaborCostMinor).toBe('96000');
+    expect(mixedPlanForecast.estimateToCompleteMinor).toBe('106000');
+    expect(mixedPlanForecast.estimateAtCompletionRevenueMinor).toBe('156000');
+    expect(mixedPlanForecast.expenseBudgetMinor).toBe('10000');
+    expect(mixedPlanForecast.forecastAvailable).toBe(true);
+    expect(mixedPlanForecast.forecastBasis).toBe(
+      'Actual plus each person’s remaining planned hours and effective rates',
+    );
+    sqlite
+      .prepare(
+        `INSERT INTO planning_assignment(
+           id,project_id,worker_id,starts_at,ends_at,planned_minutes,status)
+         VALUES(?,?,?,?,?,?,?)`,
+      )
+      .run(
+        'mixed-worker-a-detail',
+        mixedPlanProject.id,
+        'worker-a',
+        '2099-10-01T08:00:00.000Z',
+        '2099-10-01T16:00:00.000Z',
+        480,
+        'planned',
+      );
+    const partiallyDetailedForecast = v3.projectFinance(finance, mixedPlanProject.id);
+    expect(partiallyDetailedForecast.plannedMinutes).toBe(1_440);
+    expect(partiallyDetailedForecast.estimateAtCompletionRevenueMinor).toBe('156000');
+    expect(partiallyDetailedForecast.estimateToCompleteLaborCostMinor).toBe('96000');
+    // Existing production data can contain two active rows for a person on the
+    // forecast date. That is a configuration blocker, not a Finance page 500.
+    sqlite
+      .prepare(
+        `INSERT INTO project_member(
+           id,project_id,user_id,assignment_role,starts_on,created_at,updated_at,status)
+         SELECT ?,project_id,user_id,assignment_role,?,created_at,updated_at,status
+         FROM project_member WHERE id=?`,
+      )
+      .run('duplicate-forecast-assignment', '2026-08-02', assignmentA.id);
+    const ambiguousForecast = v3.projectFinance(finance, project.id);
+    expect(ambiguousForecast.state).toBe('incomplete');
+    expect(ambiguousForecast.reasons).toContainEqual({
+      code: 'ambiguous_assignment',
+      sourceId: 'worker-a',
+    });
+    expect(ambiguousForecast.estimateToCompleteMinor).toBeNull();
+    expect(v3.financePortfolio(finance).projects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ projectId: project.id, state: 'incomplete' }),
+      ]),
+    );
+    sqlite.prepare('DELETE FROM project_member WHERE id=?').run('duplicate-forecast-assignment');
     expect(financeView.expenseEconomics).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: allIn.id, revenueMinor: '0', costMinor: '5000' }),
@@ -537,6 +680,7 @@ describe('V3 finance and privacy paths', () => {
       paymentTermsDays: 30,
     });
     const project = repository.createProject(owner, {
+      costCenterCode: 'QA-V3-FINANCE-TEST-2',
       clientId: client.id,
       name: 'Billing Project',
       timezone: 'UTC',
@@ -566,6 +710,15 @@ describe('V3 finance and privacy paths', () => {
     });
     const manager = repository.principalFor('manager');
     const worker = repository.principalFor('worker');
+    new AssignmentExpensePolicyRepository(sqlite).create(finance, {
+      projectMemberId: workerAssignment.id,
+      payer: 'worker',
+      category: 'hotel',
+      effectiveFrom: '2026-08-01',
+      workerReimbursement: 'at_cost',
+      clientRecovery: 'at_cost',
+      reason: 'Explicit V3 billing hotel recovery terms',
+    });
     v3.createCompensationRule(finance, {
       workerId: 'worker',
       projectId: project.id,

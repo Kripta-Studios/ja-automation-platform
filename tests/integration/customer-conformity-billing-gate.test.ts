@@ -1601,6 +1601,7 @@ describe('Client Essential customer sign-off security boundary', () => {
           principal,
           'foreign-project.pdf',
           value.repository.createProject(value.owner, {
+            costCenterCode: 'QA-CUSTOMER-CONFORMITY-BILLING-GATE-TEST-1',
             clientId: value.client.id,
             name: 'Foreign customer-signoff evidence project',
             timezone: 'Europe/Madrid',

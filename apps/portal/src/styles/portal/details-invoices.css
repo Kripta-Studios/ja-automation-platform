@@ -758,6 +758,15 @@
   min-width: 0;
 }
 
+.invoice-line-group + .invoice-line-group {
+  margin-top: 1.5rem;
+}
+
+.invoice-line-group h3 {
+  margin: 0.75rem 0 0;
+  font-size: 0.95rem;
+}
+
 .invoice-preview-page .invoice-paper .invoice-line-items th,
 .invoice-preview-page .invoice-paper .invoice-line-items td {
   font-size: 0.75rem;

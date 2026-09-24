@@ -31,6 +31,11 @@ function batchDuration(values: Record<string, string>): {
       throw new ValidationError('The time interval or break is invalid');
     return { minutes, startTime, endTime, breakMinutes };
   }
+  const submittedMinutes = (values.minutes ?? '').trim();
+  if (/^\d{1,4}$/u.test(submittedMinutes)) {
+    const minutes = Number(submittedMinutes);
+    if (minutes >= 1 && minutes <= 1440) return { minutes };
+  }
   const normalizedHours = (values.durationHours ?? '').trim().replace(',', '.');
   if (!/^\d{1,2}(?:\.\d{1,2})?$/u.test(normalizedHours))
     throw new ValidationError('Enter hours, or a start and end time');
@@ -226,7 +231,41 @@ function action(operation: string): Actions[string] {
             .split(',')
             .map((id) => id.trim())
             .filter(Boolean);
-          const duration = batchDuration(values);
+          const individual = text('batchMode') === 'individual';
+          if (!individual && !['', 'shared'].includes(text('batchMode')))
+            throw new ValidationError('Choose shared or individual hours');
+          let workerMinutes: Record<string, number> | undefined;
+          if (individual) {
+            let hours: unknown;
+            try {
+              hours = JSON.parse(text('workerHours'));
+            } catch {
+              throw new ValidationError('Enter hours for every selected technician');
+            }
+            if (!hours || typeof hours !== 'object' || Array.isArray(hours))
+              throw new ValidationError('Enter hours for every selected technician');
+            const selected = new Set(workerIds);
+            if (
+              Object.keys(hours).length !== selected.size ||
+              Object.keys(hours).some((id) => !selected.has(id))
+            )
+              throw new ValidationError('Enter hours for every selected technician');
+            workerMinutes = {};
+            for (const workerId of selected) {
+              const normalized = String((hours as Record<string, unknown>)[workerId] ?? '')
+                .trim()
+                .replace(',', '.');
+              if (!/^\d{1,2}(?:\.\d{1,2})?$/u.test(normalized))
+                throw new ValidationError('Enter valid hours for every selected technician');
+              const minutes = Math.round(Number(normalized) * 60);
+              if (minutes < 1 || minutes > 1440)
+                throw new ValidationError(
+                  'Individual hours must be greater than zero and no more than 24',
+                );
+              workerMinutes[workerId] = minutes;
+            }
+          }
+          const duration = individual ? { minutes: 1 } : batchDuration(values);
           const batch = ctx.supplier.createTimeBatch(ctx.principal, {
             requestId: text('requestId'),
             workerIds,
@@ -234,6 +273,7 @@ function action(operation: string): Actions[string] {
             workDate: text('workDate'),
             category: text('category'),
             summary: text('summary'),
+            workerMinutes,
             ...duration,
           });
           const project = ctx.sqlite
@@ -243,7 +283,9 @@ function action(operation: string): Actions[string] {
             createdCount: batch.created.length,
             projectName: project?.name ?? text('projectId'),
             workDate: text('workDate'),
-            totalMinutes: duration.minutes * batch.created.length,
+            totalMinutes: workerMinutes
+              ? Object.values(workerMinutes).reduce((sum, minutes) => sum + minutes, 0)
+              : duration.minutes * batch.created.length,
             replayed: batch.replayed,
           };
           break;

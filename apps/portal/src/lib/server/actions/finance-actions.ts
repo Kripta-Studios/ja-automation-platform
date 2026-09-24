@@ -15,6 +15,8 @@ import {
   uuidSchema,
 } from '@ja/schemas';
 import { randomUUID } from 'node:crypto';
+import { AssignmentExpensePolicyRepository, ConflictError } from '@ja/database';
+import { z } from 'zod';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess } from './action-message';
 import { decimalToMinor, formObject, type PortalActionEvent } from '$lib/server/action-utils';
@@ -24,7 +26,204 @@ function parseRuleId(value: FormDataEntryValue | null): string | undefined {
   return parsed.success ? parsed.data : undefined;
 }
 
+const canonicalLegalEntityRevisionForm = z.object({
+  legacyLegalEntityId: z.string().trim().min(1).max(200),
+  effectiveFrom: z.iso.date(),
+  effectiveTo: z.union([z.literal(''), z.iso.date()]).transform((value) => value || undefined),
+  legalName: z.string().trim().min(1).max(300),
+  taxIdentifier: z.string().trim().min(1).max(100),
+  registrationIdentifier: z
+    .string()
+    .trim()
+    .max(100)
+    .transform((value) => value || undefined),
+  addressLine1: z.string().trim().min(1).max(300),
+  addressLine2: z
+    .string()
+    .trim()
+    .max(300)
+    .transform((value) => value || undefined),
+  locality: z.string().trim().min(1).max(160),
+  region: z
+    .string()
+    .trim()
+    .max(160)
+    .transform((value) => value || undefined),
+  postalCode: z.string().trim().min(1).max(80),
+  countryCode: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z]{2}$/u),
+  baseCurrency: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z]{3}$/u),
+  timezone: z.string().trim().min(1).max(100),
+  reason: z.string().trim().min(5).max(2000),
+  idempotencyKey: z.string().trim().min(16).max(240),
+});
+
+const assignmentCommercialFallbackForm = z.object({
+  projectMemberId: z.string().trim().min(1).max(200),
+  expectedVersion: z.coerce.number().int().positive(),
+  allowGlobalCompensation: z.enum(['yes', 'no']),
+  allowGlobalInternalCost: z.enum(['yes', 'no']),
+});
+
+const assignmentCommercialReferencesForm = z.object({
+  projectMemberId: z.string().trim().min(1).max(200),
+  expectedVersion: z.coerce.number().int().positive(),
+  clientBillRuleId: z.string().trim().max(200),
+  workerCompensationRuleId: z.string().trim().max(200),
+  internalCostRuleId: z.string().trim().max(200),
+});
+
+const assignmentExpensePolicyForm = z.object({
+  projectMemberId: z.string().trim().min(1).max(200),
+  payer: z.enum(['worker', 'company_card', 'company_direct', 'client', 'third_party']),
+  category: z
+    .string()
+    .trim()
+    .max(80)
+    .transform((value) => value || undefined),
+  effectiveFrom: z.iso.date(),
+  effectiveTo: z.union([z.literal(''), z.iso.date()]).transform((value) => value || undefined),
+  workerReimbursement: z.enum(['at_cost', 'none']),
+  clientRecovery: z.enum(['at_cost', 'markup', 'included', 'non_billable', 'client_direct']),
+  markupBps: z
+    .union([z.literal(''), z.coerce.number().int().min(1).max(10_000)])
+    .optional()
+    .transform((value) => (value === '' ? undefined : value)),
+  reason: z.string().trim().min(3).max(2000),
+});
+
 export const financeActions = {
+  createAssignmentExpensePolicy: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const parsed = assignmentExpensePolicyForm.safeParse(await formObject(request));
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.validation.assignmentExpensePolicy',
+        {},
+        'Check expense policy fields',
+        {
+          fields: parsed.error.flatten().fieldErrors,
+        },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      const result = new AssignmentExpensePolicyRepository(context.sqlite).create(
+        context.principal,
+        parsed.data,
+      );
+      return actionSuccess(
+        'action.finance.assignmentExpensePolicyCreated',
+        result,
+        'Person expense policy saved',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  setAssignmentCommercialFallback: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const parsed = assignmentCommercialFallbackForm.safeParse(await formObject(request));
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.validation.assignmentCommercialFallback',
+        {},
+        'Check assignment options',
+        {
+          fields: parsed.error.flatten().fieldErrors,
+        },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      const result = context.v3.setAssignmentCommercialFallback(context.principal, {
+        projectMemberId: parsed.data.projectMemberId,
+        expectedVersion: parsed.data.expectedVersion,
+        allowGlobalCompensation: parsed.data.allowGlobalCompensation === 'yes',
+        allowGlobalInternalCost: parsed.data.allowGlobalInternalCost === 'yes',
+      });
+      return actionSuccess(
+        'action.finance.assignmentCommercialFallbackSaved',
+        result,
+        'Assignment fallback options saved',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  setAssignmentCommercialRuleReferences: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const parsed = assignmentCommercialReferencesForm.safeParse(await formObject(request));
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.validation.assignmentCommercialReferences',
+        {},
+        'Check assignment rules',
+        {
+          fields: parsed.error.flatten().fieldErrors,
+        },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      const result = context.v3.setAssignmentCommercialRuleReferences(context.principal, {
+        projectMemberId: parsed.data.projectMemberId,
+        expectedVersion: parsed.data.expectedVersion,
+        clientBillRuleId: parsed.data.clientBillRuleId || null,
+        workerCompensationRuleId: parsed.data.workerCompensationRuleId || null,
+        internalCostRuleId: parsed.data.internalCostRuleId || null,
+      });
+      return actionSuccess(
+        'action.finance.assignmentCommercialReferencesSaved',
+        result,
+        'Assignment rules saved',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  createCanonicalLegalEntityRevision: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const parsed = canonicalLegalEntityRevisionForm.safeParse(await formObject(request));
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.validation.canonicalLegalEntityRevision',
+        {},
+        'Check legal-entity revision fields',
+        { fields: parsed.error.flatten().fieldErrors },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      if (!['owner_admin', 'finance_admin'].includes(context.principal.role))
+        return actionFail(403, 'action.error.forbidden', {}, 'Finance role required');
+      const result = context.v3.createCanonicalLegalEntityRevision(context.principal, parsed.data);
+      return actionSuccess(
+        'action.finance.canonicalLegalEntityRevisionCreated',
+        { revisionId: result.revisionId, idempotent: result.idempotent },
+        'Issuing legal entity revision saved',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
   assignProjectLegalEntity: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'finance')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
@@ -60,6 +259,8 @@ export const financeActions = {
     // These are UI-only controls that synchronize canonical fields. Never pass
     // convenience values across the strict domain schema boundary.
     delete form.expensePreset;
+    delete form.expenseOverridePreset;
+    delete form.expenseOverrideMarkup;
     delete form.taxPercent;
     const parsed = expenseCommercialClassificationInputSchema.safeParse(form);
     if (!parsed.success)
@@ -81,6 +282,16 @@ export const financeActions = {
         'Expense commercial classification saved',
       );
     } catch (error) {
+      if (
+        error instanceof ConflictError &&
+        error.message === 'No canonical legal-entity assignment is effective on this date'
+      )
+        return actionFail(
+          409,
+          'action.finance.projectIssuingAuthorityRequired',
+          {},
+          'Set a project issuing authority effective on this expense date before classifying it.',
+        );
       return actionFailure(error);
     } finally {
       context.sqlite.close();

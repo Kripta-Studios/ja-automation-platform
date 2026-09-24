@@ -76,6 +76,32 @@ describe('Client Essential identifier portal contract', () => {
     );
   });
 
+  it('accepts blank optional budget fields submitted by the new time-and-materials project form', () => {
+    expect(
+      projectInputSchema.parse({
+        ...projectFields,
+        costCenterCode: 'CC-TM-001',
+        description: '',
+        projectAlias: '',
+        projectManagerId: '',
+        startDate: '',
+        plannedEndDate: '',
+        clientDailyMinimumHours: '',
+        budgetType: 'none',
+        revenueBudgetMinor: '',
+        poCapMinor: '',
+        laborBudgetMinutes: '',
+        travelBudgetMinor: '',
+      }),
+    ).toMatchObject({
+      billingModel: 'tm',
+      revenueBudgetMinor: undefined,
+      poCapMinor: undefined,
+      laborBudgetMinutes: undefined,
+      travelBudgetMinor: undefined,
+    });
+  });
+
   it('exposes the fields through the authorized create/edit surfaces and maps updates server-side', () => {
     expect(shell).toContain('name="clientCode"');
     expect(shell).toContain('maxlength="40"');

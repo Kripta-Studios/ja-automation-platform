@@ -123,6 +123,24 @@
     ),
   );
   let selectedDraftIds = $state<string[]>([]);
+  let batchMode = $state<'shared' | 'individual'>(
+    untrack(() =>
+      form?.operation === 'createTimeBatch' && form.values?.batchMode === 'individual'
+        ? 'individual'
+        : 'shared',
+    ),
+  );
+  let workerHours = $state<Record<string, string>>(
+    untrack(() => {
+      if (form?.operation !== 'createTimeBatch') return {};
+      try {
+        const parsed = JSON.parse(String(form.values?.workerHours ?? '{}'));
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+      } catch {
+        return {};
+      }
+    }),
+  );
   const batchLimit = 100;
   const filteredAssigned = $derived(
     data.assigned.filter((technician) =>
@@ -736,6 +754,13 @@
         />
         <input type="hidden" name="projectId" value={data.projectId} />
         <input type="hidden" name="workerIds" value={selectedWorkerIds.join(',')} />
+        <input
+          type="hidden"
+          name="workerHours"
+          value={JSON.stringify(
+            Object.fromEntries(selectedWorkerIds.map((id) => [id, workerHours[id] ?? ''])),
+          )}
+        />
         <div class="batch-team">
           <label data-ui="field"
             >{c.findTechnician}<input type="search" bind:value={teamSearch} /></label
@@ -778,13 +803,41 @@
             ></select
           ></label
         >
-        <input type="hidden" name="durationMode" value="interval" />
-        <TimeIntervalFields
-          translate={(key) => portalText(data.locale, key)}
-          initialStart={value('createTimeBatch', 'startTime')}
-          initialEnd={value('createTimeBatch', 'endTime')}
-          initialBreak={Number(value('createTimeBatch', 'breakMinutes', '0'))}
-        />
+        <fieldset>
+          <legend>{c.batchHoursLegend}</legend>
+          <label class="check"
+            ><input type="radio" name="batchMode" value="shared" bind:group={batchMode} />
+            {c.sharedHours}</label
+          >
+          <label class="check"
+            ><input type="radio" name="batchMode" value="individual" bind:group={batchMode} />
+            {c.individualHours}</label
+          >
+        </fieldset>
+        {#if batchMode === 'shared'}
+          <TimeIntervalFields
+            translate={(key) => portalText(data.locale, key)}
+            initialStart={value('createTimeBatch', 'startTime')}
+            initialEnd={value('createTimeBatch', 'endTime')}
+            initialBreak={Number(value('createTimeBatch', 'breakMinutes', '0'))}
+          />
+        {:else}
+          <div class="batch-technicians">
+            {#each data.assigned.filter( (technician) => selectedWorkerIds.includes(String(technician.id)), ) as technician}
+              <label data-ui="field"
+                >{technician.name} · {c.personHours}
+                <input
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  placeholder="7.5"
+                  required
+                  bind:value={workerHours[String(technician.id)]}
+                />
+              </label>
+            {/each}
+          </div>
+        {/if}
         <label data-ui="field"
           >{c.summary}<textarea name="summary" required maxlength="2000"
             >{value('createTimeBatch', 'summary')}</textarea

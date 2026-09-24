@@ -5,6 +5,7 @@
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalLocale } from '../../portal-i18n';
   import type { PortalData, PortalRow as Row } from '../portal-data';
+  import { expensePolicyIssueLabels } from '../expense-policy-issues';
   import FinanceConfigurationSection from './FinanceConfigurationSection.svelte';
   import { Field, SectionCard, StatusBadge, TableRegion, formValidation } from '../ui';
   import type { TableCardRow } from '../ui';
@@ -78,6 +79,10 @@
   });
   let expenseInboxFilter = $state<ExpenseInboxFilter>('all');
   let selectedExpenseId = $state('');
+  const linkedExpenseId = $derived($page.url.searchParams.get('expense')?.trim() ?? '');
+  $effect(() => {
+    if (linkedExpenseId) selectedExpenseId = linkedExpenseId;
+  });
   const finance = $derived(data.finance as FinanceProjection | null | undefined);
   const financeProjectionIncomplete = $derived(
     Boolean(finance) &&
@@ -222,6 +227,35 @@
     );
   }
 
+  function hasExpenseIssuingAuthority(row: Row | Record<string, unknown>): boolean {
+    const spentOn = value(row, 'spentOn', 'spent_on');
+    return Boolean(
+      spentOn &&
+      data.projectLegalEntityAssignments?.some((assignment) => {
+        const from = value(assignment, 'effectiveFrom', 'effective_from');
+        const to = value(assignment, 'effectiveTo', 'effective_to');
+        return from <= spentOn && (!to || to >= spentOn);
+      }),
+    );
+  }
+
+  function issuingAuthorityHref(): string {
+    const params = new URLSearchParams({
+      view: 'commercial',
+      project: String(data.selectedProjectId ?? ''),
+    });
+    return `${base}/app/finance?${params.toString()}#project-issuing-authority`;
+  }
+
+  function personExpensePolicyHref(row: Row | Record<string, unknown>): string {
+    const params = new URLSearchParams({
+      view: 'commercial',
+      project: projectId(row),
+      expense: value(row, 'id'),
+    });
+    return `${base}/app/finance?${params.toString()}#person-expense-policies`;
+  }
+
   function expenseBillingState(row: Row | Record<string, unknown>): string {
     return value(row, 'billingState', 'billing_state') || 'unlocked';
   }
@@ -244,9 +278,39 @@
     },
     all_in: { clientTreatment: 'all_in', billingTreatment: 'all_in' },
     non_billable: { clientTreatment: 'non_billable', billingTreatment: 'internal_non_billable' },
+    reimbursable_plus_markup: {
+      clientTreatment: 'reimbursable',
+      billingTreatment: 'reimbursable_plus_markup',
+    },
+    client_direct: { clientTreatment: 'non_billable', billingTreatment: 'client_direct' },
+    allowance_per_diem: { clientTreatment: 'reimbursable', billingTreatment: 'allowance_per_diem' },
+    informational: { clientTreatment: 'non_billable', billingTreatment: 'informational' },
   } as const;
 
   type ExpensePreset = keyof typeof expensePresets;
+
+  type PolicyPreview = {
+    policy?: {
+      id?: string;
+      version?: number;
+      workerReimbursement?: string;
+      clientRecovery?: string;
+    } | null;
+    issues?: string[];
+    clientTreatment?: string | null;
+    billingTreatment?: string | null;
+    markupBps?: number | null;
+    workerReimbursementMinor?: string | null;
+    clientRecoveryMinor?: string | null;
+  };
+
+  function requiresExpensePolicy(row: Row | Record<string, unknown>): boolean {
+    return Number(row.expense_policy_required ?? row.expensePolicyRequired ?? 0) === 1;
+  }
+
+  function expensePolicyPreview(row: Row | Record<string, unknown>): PolicyPreview | null {
+    return (row.policyPreview as PolicyPreview | null | undefined) ?? null;
+  }
 
   function expensePreset(row: Row | Record<string, unknown>): ExpensePreset {
     const clientTreatment = value(row, 'clientTreatment', 'client_treatment');
@@ -269,6 +333,59 @@
     const billingTreatment = form.elements.namedItem('billingTreatment') as HTMLInputElement | null;
     if (clientTreatment) clientTreatment.value = selected.clientTreatment;
     if (billingTreatment) billingTreatment.value = selected.billingTreatment;
+    const markup = form.elements.namedItem('markupBps') as HTMLInputElement | null;
+    const overrideMarkup = form.elements.namedItem(
+      'expenseOverrideMarkup',
+    ) as HTMLInputElement | null;
+    if (overrideMarkup) {
+      const needsMarkup = preset === 'reimbursable_plus_markup';
+      overrideMarkup.disabled = !needsMarkup;
+      overrideMarkup.required = needsMarkup;
+      if (!needsMarkup && markup) markup.value = '0';
+      if (needsMarkup && markup) markup.value = overrideMarkup.value || '0';
+    }
+  }
+
+  function syncExpenseOverride(event: Event): void {
+    const checkbox = event.currentTarget as HTMLInputElement;
+    const form = checkbox.form;
+    if (!form) return;
+    const select = form.elements.namedItem('expenseOverridePreset') as HTMLSelectElement | null;
+    const overrideMarkup = form.elements.namedItem(
+      'expenseOverrideMarkup',
+    ) as HTMLInputElement | null;
+    const client = form.elements.namedItem('clientTreatment') as HTMLInputElement | null;
+    const billing = form.elements.namedItem('billingTreatment') as HTMLInputElement | null;
+    const markup = form.elements.namedItem('markupBps') as HTMLInputElement | null;
+    if (!select) return;
+    select.disabled = !checkbox.checked;
+    if (checkbox.checked) {
+      syncExpensePreset({ currentTarget: select } as unknown as Event);
+    } else {
+      if (client) client.value = client.dataset.policyValue ?? client.value;
+      if (billing) billing.value = billing.dataset.policyValue ?? billing.value;
+      if (markup) markup.value = markup.dataset.policyValue ?? '0';
+      if (overrideMarkup) {
+        overrideMarkup.disabled = true;
+        overrideMarkup.required = false;
+      }
+    }
+  }
+
+  function prepareExpenseClassification(event: SubmitEvent): void {
+    const form = event.currentTarget as HTMLFormElement;
+    const checked = (form.elements.namedItem('overrideExpensePolicy') as HTMLInputElement | null)
+      ?.checked;
+    if (!checked) return;
+    const select = form.elements.namedItem('expenseOverridePreset') as HTMLSelectElement | null;
+    if (!select) return;
+    syncExpensePreset({ currentTarget: select } as unknown as Event);
+    const markup = form.elements.namedItem('markupBps') as HTMLInputElement | null;
+    const overrideMarkup = form.elements.namedItem(
+      'expenseOverrideMarkup',
+    ) as HTMLInputElement | null;
+    if (select.value === 'reimbursable_plus_markup' && markup && overrideMarkup)
+      markup.value = overrideMarkup.value;
   }
 
   function projectNumber(row: Row | Record<string, unknown>): string {
@@ -299,6 +416,23 @@
     if (data.selectedProjectId) query.set('project', data.selectedProjectId);
     const serialized = query.toString();
     return `${base}/app/${section}${serialized ? `?${serialized}` : ''}`;
+  }
+
+  function projectCalculationHref(): string {
+    const projectId = String(data.selectedProjectId ?? '').trim();
+    if (!projectId) return `${base}/app/finance?view=economic`;
+    // Finance overview is an all-history projection. The explanation is
+    // deliberately period-specific, so link to the exact recent lookback it
+    // will display instead of implying that all-history totals were carried.
+    const today = /^\d{4}-\d{2}-\d{2}$/u.test(String(data.financeToday ?? ''))
+      ? String(data.financeToday)
+      : new Date().toISOString().slice(0, 10);
+    const date = new Date(`${today}T00:00:00.000Z`);
+    const previousMonth = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - 1, 1));
+    const periodStart = `${previousMonth.getUTCFullYear()}-${String(previousMonth.getUTCMonth() + 1).padStart(2, '0')}-01`;
+    const query = new URLSearchParams({ periodStart, periodEnd: today });
+    const serialized = query.toString();
+    return `${base}/app/projects/${encodeURIComponent(projectId)}/calculation${serialized ? `?${serialized}` : ''}`;
   }
 
   function sourceRecordHref(row: Row | Record<string, unknown>, kind: 'time' | 'expenses'): string {
@@ -475,6 +609,11 @@
         value: displayBps(finance.hoursConsumedBps),
       },
       {
+        key: 'expense-budget-used',
+        label: translate('Expense budget used'),
+        value: displayBps(finance.expenseBudgetConsumedBps),
+      },
+      {
         key: 'travel-budget-used',
         label: translate('Travel budget used'),
         value: displayBps(finance.travelBudgetConsumedBps),
@@ -611,6 +750,7 @@
 
   const filteredFinanceExpenses = $derived.by(() => {
     return financeExpenses.filter((expense) => {
+      if (linkedExpenseId) return value(expense, 'id') === linkedExpenseId;
       const preset = expensePreset(expense);
       const classification = expenseClassificationState(expense);
       if (expenseInboxFilter === 'needs') return classification !== 'classified';
@@ -690,6 +830,14 @@
           : translate('No project selected')}
       />
     </header>
+
+    {#if finance && data.selectedProjectId}
+      <p class="finance-overview__calculation-link">
+        <a class="secondary-button" data-project-calculation-link href={projectCalculationHref()}
+          >{translate('Open recent-period calculation explanation')}</a
+        >
+      </p>
+    {/if}
 
     {#if finance && financeProjectionIncomplete}
       <section
@@ -899,6 +1047,19 @@
               <strong>{displayHours(finance.plannedMinutes)}</strong>
               <small>{translate('Planning input only; it never creates actual time')}</small>
             </article>
+            {#if finance.expenseBudgetMinor != null}
+              <article class="finance-overview__metric" data-metric="expense-budget-used">
+                <span>{translate('Expense budget used')}</span>
+                <strong>{displayBps(finance.expenseBudgetConsumedBps)}</strong>
+                <progress
+                  class="finance-overview__progress"
+                  data-tone={consumptionTone(finance.expenseBudgetConsumedBps)}
+                  aria-label={translate('Expense budget used')}
+                  max={100}
+                  value={progressValue(finance.expenseBudgetConsumedBps)}
+                ></progress>
+              </article>
+            {/if}
             <article class="finance-overview__metric" data-metric="travel-budget-used">
               <span>{translate('Travel budget used')}</span>
               <strong>{displayBps(finance.travelBudgetConsumedBps)}</strong>
@@ -1306,6 +1467,7 @@
       {#if showCommercial}
         {#if financeExpenses.length}
           <div
+            id="expense-classification"
             class="finance-overview__expense-controls"
             data-finance-expense-controls
             aria-label={translate('Finance expense classification and planning')}
@@ -1368,6 +1530,10 @@
               {@const expenseVersion = value(expense, 'version') || '1'}
               {@const classificationState = expenseClassificationState(expense)}
               {@const locked = expenseIsLocked(expense)}
+              {@const policyRequired = requiresExpensePolicy(expense)}
+              {@const policyPreview = expensePolicyPreview(expense)}
+              {@const policyReady = Boolean(policyPreview?.policy && !policyPreview.issues?.length)}
+              {@const issuerReady = hasExpenseIssuingAuthority(expense)}
               {@const reimbursementState =
                 value(expense, 'reimbursementState', 'reimbursement_state') || 'pending'}
               <article
@@ -1437,20 +1603,32 @@
                       class="finance-overview__expense-form"
                       data-finance-expense-classification
                       use:formValidation
+                      onsubmit={prepareExpenseClassification}
                     >
                       <input type="hidden" name="expenseId" value={expenseId} />
                       <input type="hidden" name="expectedVersion" value={expenseVersion} />
                       <input
                         type="hidden"
                         name="clientTreatment"
-                        value={expensePresets[expensePreset(expense)].clientTreatment}
+                        data-policy-value={policyPreview?.clientTreatment ?? ''}
+                        value={policyRequired
+                          ? (policyPreview?.clientTreatment ?? '')
+                          : expensePresets[expensePreset(expense)].clientTreatment}
                       />
                       <input
                         type="hidden"
                         name="billingTreatment"
-                        value={expensePresets[expensePreset(expense)].billingTreatment}
+                        data-policy-value={policyPreview?.billingTreatment ?? ''}
+                        value={policyRequired
+                          ? (policyPreview?.billingTreatment ?? '')
+                          : expensePresets[expensePreset(expense)].billingTreatment}
                       />
-                      <input type="hidden" name="markupBps" value="0" />
+                      <input
+                        type="hidden"
+                        name="markupBps"
+                        data-policy-value={policyPreview?.markupBps ?? 0}
+                        value={policyRequired ? (policyPreview?.markupBps ?? 0) : 0}
+                      />
                       <input
                         type="hidden"
                         name="idempotencyKey"
@@ -1460,21 +1638,124 @@
                         <strong>{translate('Finance classification')}</strong>
                         <span>{translate('Commercial configuration only')}</span>
                       </div>
-                      <label>
-                        <span>{translate('Expense treatment preset')}</span>
-                        <select
-                          name="expensePreset"
-                          value={expensePreset(expense)}
-                          onchange={syncExpensePreset}
-                          required
+                      {#if !issuerReady}
+                        <p class="muted" data-expense-issuer-blocker>
+                          {translate(
+                            'Set a project issuing authority covering this expense date before classification.',
+                          )}
+                          <a href={issuingAuthorityHref()}
+                            >{translate('Configure project issuing authority →')}</a
+                          >
+                        </p>
+                      {:else}
+                        <a href={issuingAuthorityHref()}
+                          >{translate('Review project issuing authority →')}</a
                         >
-                          <option value="reimbursable_at_cost">
-                            {translate('Reimbursable at cost')}
-                          </option>
-                          <option value="all_in">{translate('All-in')}</option>
-                          <option value="non_billable">{translate('Non-billable')}</option>
-                        </select>
-                      </label>
+                      {/if}
+                      {#if policyRequired}
+                        {#if policyReady}
+                          <div class="finance-overview__form-title" data-expense-policy-preview>
+                            <strong>{translate('Configured person expense policy')}</strong>
+                            <span>
+                              {translate('Worker reimbursement')}: {translate(
+                                policyPreview?.policy?.workerReimbursement ?? '',
+                              )} · {translate('Customer expense recovery')}: {translate(
+                                policyPreview?.policy?.clientRecovery ?? '',
+                              )}
+                            </span>
+                            <small>
+                              {translate('Worker amount')}: {displayMoney(
+                                policyPreview?.workerReimbursementMinor,
+                                value(expense, 'currency'),
+                              )} · {translate('Customer amount')}: {displayMoney(
+                                policyPreview?.clientRecoveryMinor,
+                                value(expense, 'currency'),
+                              )}
+                            </small>
+                          </div>
+                          <label>
+                            <input
+                              type="checkbox"
+                              name="overrideExpensePolicy"
+                              value="true"
+                              onchange={syncExpenseOverride}
+                            />
+                            <span>{translate('Override this expense policy')}</span>
+                          </label>
+                          <label>
+                            <span>{translate('One-time customer treatment')}</span>
+                            <select
+                              name="expenseOverridePreset"
+                              onchange={syncExpensePreset}
+                              disabled
+                            >
+                              <option value="reimbursable_at_cost"
+                                >{translate('Bill at cost')}</option
+                              >
+                              <option value="reimbursable_plus_markup">
+                                {translate('Bill with markup')}
+                              </option>
+                              <option value="all_in">{translate('Included in labor price')}</option>
+                              <option value="non_billable"
+                                >{translate('Do not bill customer')}</option
+                              >
+                              <option value="client_direct"
+                                >{translate('Customer paid directly')}</option
+                              >
+                              <option value="allowance_per_diem"
+                                >{translate('Allowance per diem')}</option
+                              >
+                              <option value="informational"
+                                >{translate('Informational only')}</option
+                              >
+                            </select>
+                          </label>
+                          <label>
+                            <span>{translate('One-time markup (basis points)')}</span>
+                            <input
+                              name="expenseOverrideMarkup"
+                              type="number"
+                              min="1"
+                              max="10000"
+                              step="1"
+                              disabled
+                              oninput={(event) => {
+                                const form = event.currentTarget.form;
+                                const target = form?.elements.namedItem(
+                                  'markupBps',
+                                ) as HTMLInputElement | null;
+                                if (target) target.value = event.currentTarget.value;
+                              }}
+                            />
+                          </label>
+                        {:else}
+                          <p class="muted" data-expense-policy-blocker>
+                            {translate('Expense policy configuration required')}: {expensePolicyIssueLabels(
+                              policyPreview?.issues,
+                              translate,
+                            ).join(', ')}.
+                            <a href={personExpensePolicyHref(expense)}
+                              >{translate('Configure person expense policy')}</a
+                            >
+                          </p>
+                        {/if}
+                      {:else}
+                        <label>
+                          <span>{translate('Expense treatment preset')}</span>
+                          <select
+                            name="expensePreset"
+                            value={expensePreset(expense)}
+                            onchange={syncExpensePreset}
+                            required
+                          >
+                            <option value="reimbursable_at_cost">
+                              {translate('Reimbursable at cost')}
+                            </option>
+                            <option value="all_in">{translate('All-in')}</option>
+                            <option value="non_billable">{translate('Non-billable')}</option>
+                          </select>
+                        </label>
+                      {/if}
                       <label>
                         <span>{translate('Tax rate')}</span>
                         <select
@@ -1491,10 +1772,19 @@
                       </label>
                       <label>
                         <span>{translate('Reason')}</span>
-                        <textarea name="reason" rows="2" minlength="1" maxlength="2000" required
+                        <textarea
+                          name="reason"
+                          rows="2"
+                          minlength={policyRequired ? 10 : 1}
+                          maxlength="2000"
+                          required
                         ></textarea>
                       </label>
-                      <button type="submit">{translate('Save Finance classification')}</button>
+                      <button
+                        type="submit"
+                        disabled={!issuerReady || (policyRequired && !policyReady)}
+                        >{translate('Save Finance classification')}</button
+                      >
                     </form>
 
                     <form

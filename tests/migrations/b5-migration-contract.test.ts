@@ -50,6 +50,17 @@ const CONTRACT_FILES = [
   '0047_supplier_time_batch_idempotency.sql',
   '0048_accounting_pack_signed_credit_balances.sql',
   '0049_availability_calendar_edits.sql',
+  '0050_expense_occurrence_time_shift_link.sql',
+  '0051_crew_leader_time.sql',
+  '0052_crew_expense_recorder.sql',
+  '0053_assignment_commercial_fallback.sql',
+  '0054_assignment_expense_policy.sql',
+  '0055_operational_time_expense_request.sql',
+  '0056_crew_shared_expense_allocation.sql',
+  '0057_combined_time_expense_billing.sql',
+  '0058_project_billing_setup_templates.sql',
+  '0059_approved_invoice_supersession.sql',
+  '0060_project_expense_budget.sql',
 ] as const;
 const TABLES = {
   client: [
@@ -380,7 +391,7 @@ const EXPECTED_PROJECTIONS: Record<string, { rowCount: number; sha256: string }>
     sha256: '1b4d05f536d30146c62eaeb83cd3a3f4d698c829fa11675f0c80aeeb0600a0e2',
   },
 };
-const EXPECTED_MANIFEST_SHA256 = '102e5cd7a8c52dee6177dba76808cf522e028ba52cf99d87b51c3794a50be452';
+const EXPECTED_MANIFEST_SHA256 = '825791045b46cd3028e1faf6333ebe2eed1d88156398e6201cad93ee2dd76f59';
 const EXPECTED_MIGRATION_HASHES: Record<string, string> = {
   '0019_lifecycle_security.sql': '93a56b070237e6be436ff1b0b2ae3bf3a78767bdef58f03619f634520dac1b8c',
   '0020_finance_v2.sql': '21c8e230e98c71d96dbf790284ed56fa6d417638443d17e0ccd9b580655824db',
@@ -440,6 +451,27 @@ const EXPECTED_MIGRATION_HASHES: Record<string, string> = {
     '1f134cc853222b5685311057137fb5cb1aeb4fc68dc3849a2bae0e6124d52455',
   '0049_availability_calendar_edits.sql':
     '32b5f4bf8bb4a713f40ec71e2431eb477027dce7b69071b3545dd13c443b3b8c',
+  '0050_expense_occurrence_time_shift_link.sql':
+    'd9ce827594dbabafd1b0ffe416119e93da50190d0f1de312f0f55d0e92018998',
+  '0051_crew_leader_time.sql': '4c7f0f428636b27e2be9572db73e3a604309a775a724c27d7295f358010a6285',
+  '0052_crew_expense_recorder.sql':
+    '0503338e6567a74f2d34d63721e3d43e4c74e8de8e8333746e09109de3101b28',
+  '0053_assignment_commercial_fallback.sql':
+    '0da06c27afde0a80150551cbca534253931ed4fc013f9f20e7a82a6f62476ebb',
+  '0054_assignment_expense_policy.sql':
+    'ba8f0c4814c8ec0678a5b15352c06baa28bd96cb5337115ff1079cc7e043f876',
+  '0055_operational_time_expense_request.sql':
+    'ff8daf490b956368fe0c2d4a5112197cf787ee977969d483c779f90956140803',
+  '0056_crew_shared_expense_allocation.sql':
+    'ea5a43f3b081a9f1a0fe2d9f45c8dfe25c9f87dce16c9eea375cd3b6348c79cb',
+  '0057_combined_time_expense_billing.sql':
+    '55db40af7c64f6e5c9a611520793af9d20e1cbfbf66a90416b2305a1dcd573bc',
+  '0058_project_billing_setup_templates.sql':
+    '6bc2cf0f26e13bb4d126406f3819c1be689683f432b2eda9b628a6f3861bf7d8',
+  '0059_approved_invoice_supersession.sql':
+    'd90d15b32e2dc00df4a7b609fbecbd0fb430a7f1a178cdae192731caec3c29bb',
+  '0060_project_expense_budget.sql':
+    'b1c10947c653333364f767ebab3f0d73d1201f1497b287435298bcf96c2fd3e3',
 };
 
 const tempDirectories: string[] = [];
@@ -646,7 +678,7 @@ describe('frozen B5 migration contract', () => {
     expect(manifest.legacyFixture.tables).toEqual(EXPECTED_PROJECTIONS);
     expect(manifest.migrations.map((entry) => entry.version)).toEqual([
       19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
-      42, 43, 44, 45, 46, 47, 48, 49,
+      42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
     ]);
     for (const [file, expectedHash] of Object.entries(EXPECTED_MIGRATION_HASHES))
       expect(sha256(readFileSync(join(MIGRATIONS, file))), file).toBe(expectedHash);
@@ -696,7 +728,7 @@ describe('frozen B5 migration contract', () => {
         data_classification: 'confidential',
       });
       expect(sqlite.prepare('SELECT MAX(version) AS version FROM schema_migration').get()).toEqual({
-        version: 49,
+        version: 60,
       });
       expect(sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
       expect(integrityCheck(sqlite)).toBe('ok');
@@ -801,7 +833,7 @@ describe('frozen B5 migration contract', () => {
         },
       ]);
       expect(sqlite.prepare('SELECT MAX(version) AS version FROM schema_migration').get()).toEqual({
-        version: 49,
+        version: 60,
       });
       expect(sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
       expect(integrityCheck(sqlite)).toBe('ok');
@@ -835,7 +867,7 @@ describe('frozen B5 migration contract', () => {
     try {
       expect(
         upgraded.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get(),
-      ).toEqual({ version: 49 });
+      ).toEqual({ version: 60 });
       expect(
         upgraded.sqlite
           .prepare(
@@ -910,7 +942,7 @@ describe('frozen B5 migration contract', () => {
     try {
       expect(
         upgraded.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get(),
-      ).toEqual({ version: 49 });
+      ).toEqual({ version: 60 });
       expect(
         upgraded.sqlite
           .prepare('SELECT id,state,snapshot_json,calculation_hash FROM invoice ORDER BY id')
@@ -939,7 +971,7 @@ describe('frozen B5 migration contract', () => {
       upgraded.sqlite.close();
     }
   });
-  it('upgrades a populated schema-18 copy transactionally through migration 49', () => {
+  it('upgrades a populated schema-18 copy transactionally through migration 60', () => {
     process.env.JA_TENANT_ID = 'test-tenant';
     process.env.JA_DEPLOYMENT_ID = 'test-deployment';
     const directory = mkdtempSync(join(tmpdir(), 'ja-b5-populated-upgrade-'));
@@ -958,7 +990,7 @@ describe('frozen B5 migration contract', () => {
         sqlite
           .prepare('SELECT MIN(version) min,MAX(version) max,COUNT(*) count FROM schema_migration')
           .get(),
-      ).toEqual({ min: 1, max: 49, count: 49 });
+      ).toEqual({ min: 1, max: 60, count: 60 });
       expect(
         sqlite.prepare('SELECT tenant_id,deployment_id FROM deployment_identity').get(),
       ).toEqual({
@@ -967,7 +999,7 @@ describe('frozen B5 migration contract', () => {
       });
       expect(
         sqlite.prepare('SELECT COUNT(*) count FROM migration_contract_metadata').get(),
-      ).toEqual({ count: 31 });
+      ).toEqual({ count: 42 });
       for (const [table, columns] of Object.entries(TABLES))
         expect(projection(sqlite, table, columns), table).toEqual(beforeProjections[table]);
       expect(
@@ -1048,10 +1080,10 @@ describe('frozen B5 migration contract', () => {
         upgraded.sqlite
           .prepare('SELECT MAX(version) max,COUNT(*) count FROM schema_migration')
           .get(),
-      ).toEqual({ max: 49, count: 49 });
+      ).toEqual({ max: 60, count: 60 });
       expect(
         upgraded.sqlite.prepare('SELECT COUNT(*) count FROM migration_contract_metadata').get(),
-      ).toEqual({ count: 31 });
+      ).toEqual({ count: 42 });
       expect(migrationMetadata(upgraded.sqlite)).toEqual([
         { migration_version: 19, migration_name: 'lifecycle_security' },
         { migration_version: 20, migration_name: 'finance_v2' },
@@ -1096,6 +1128,17 @@ describe('frozen B5 migration contract', () => {
         { migration_version: 47, migration_name: 'supplier_time_batch_idempotency' },
         { migration_version: 48, migration_name: 'accounting_pack_signed_credit_balances' },
         { migration_version: 49, migration_name: 'availability_calendar_edits' },
+        { migration_version: 50, migration_name: 'expense_occurrence_time_shift_link' },
+        { migration_version: 51, migration_name: 'crew_leader_time' },
+        { migration_version: 52, migration_name: 'crew_expense_recorder' },
+        { migration_version: 53, migration_name: 'assignment_commercial_fallback' },
+        { migration_version: 54, migration_name: 'assignment_expense_policy' },
+        { migration_version: 55, migration_name: 'operational_time_expense_request' },
+        { migration_version: 56, migration_name: 'crew_shared_expense_allocation' },
+        { migration_version: 57, migration_name: 'combined_time_expense_billing' },
+        { migration_version: 58, migration_name: 'project_billing_setup_templates' },
+        { migration_version: 59, migration_name: 'approved_invoice_supersession' },
+        { migration_version: 60, migration_name: 'project_expense_budget' },
       ]);
       for (const [table, columns] of Object.entries(TABLES))
         expect(projection(upgraded.sqlite, table, columns), table).toEqual(
@@ -1157,10 +1200,10 @@ describe('frozen B5 migration contract', () => {
         retried.sqlite
           .prepare('SELECT MAX(version) max,COUNT(*) count FROM schema_migration')
           .get(),
-      ).toEqual({ max: 49, count: 49 });
+      ).toEqual({ max: 60, count: 60 });
       expect(
         retried.sqlite.prepare('SELECT COUNT(*) count FROM migration_contract_metadata').get(),
-      ).toEqual({ count: 31 });
+      ).toEqual({ count: 42 });
       expect(migrationMetadata(retried.sqlite)).toEqual([
         { migration_version: 19, migration_name: 'lifecycle_security' },
         { migration_version: 20, migration_name: 'finance_v2' },
@@ -1205,6 +1248,17 @@ describe('frozen B5 migration contract', () => {
         { migration_version: 47, migration_name: 'supplier_time_batch_idempotency' },
         { migration_version: 48, migration_name: 'accounting_pack_signed_credit_balances' },
         { migration_version: 49, migration_name: 'availability_calendar_edits' },
+        { migration_version: 50, migration_name: 'expense_occurrence_time_shift_link' },
+        { migration_version: 51, migration_name: 'crew_leader_time' },
+        { migration_version: 52, migration_name: 'crew_expense_recorder' },
+        { migration_version: 53, migration_name: 'assignment_commercial_fallback' },
+        { migration_version: 54, migration_name: 'assignment_expense_policy' },
+        { migration_version: 55, migration_name: 'operational_time_expense_request' },
+        { migration_version: 56, migration_name: 'crew_shared_expense_allocation' },
+        { migration_version: 57, migration_name: 'combined_time_expense_billing' },
+        { migration_version: 58, migration_name: 'project_billing_setup_templates' },
+        { migration_version: 59, migration_name: 'approved_invoice_supersession' },
+        { migration_version: 60, migration_name: 'project_expense_budget' },
       ]);
       expect(retried.sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
       expect(integrityCheck(retried.sqlite)).toBe('ok');
@@ -1213,7 +1267,7 @@ describe('frozen B5 migration contract', () => {
     }
   });
 
-  it('upgrades a populated v22 copy with the historical metadata CHECK through 49', () => {
+  it('upgrades a populated v22 copy with the historical metadata CHECK through 60', () => {
     process.env.JA_TENANT_ID = 'test-tenant';
     process.env.JA_DEPLOYMENT_ID = 'test-deployment';
     const v22Migrations = copyMigrationTree(22);
@@ -1252,16 +1306,16 @@ describe('frozen B5 migration contract', () => {
         upgraded.sqlite
           .prepare('SELECT MAX(version) max,COUNT(*) count FROM schema_migration')
           .get(),
-      ).toEqual({ max: 49, count: 49 });
+      ).toEqual({ max: 60, count: 60 });
       expect(quotedMetadataRows(upgraded.sqlite).slice(0, 4)).toEqual(beforeMetadata);
-      expect(quotedMetadataRows(upgraded.sqlite)).toHaveLength(31);
+      expect(quotedMetadataRows(upgraded.sqlite)).toHaveLength(42);
       expect(
         upgraded.sqlite
           .prepare(
             "SELECT sql FROM sqlite_master WHERE type='table' AND name='migration_contract_metadata'",
           )
           .get(),
-      ).toMatchObject({ sql: expect.stringContaining('BETWEEN 19 AND 49') });
+      ).toMatchObject({ sql: expect.stringContaining('BETWEEN 19 AND 60') });
       expect(upgraded.sqlite.prepare('PRAGMA foreign_key_list(finance_v2_cutover)').all()).toEqual([
         expect.objectContaining({
           table: 'migration_contract_metadata',

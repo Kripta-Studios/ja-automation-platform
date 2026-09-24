@@ -271,6 +271,53 @@ describe('supplier workforce canonical time', () => {
     expect(() => suppliers.createTimeBatch(coordinator, batchInput)).toThrow(AccessDeniedError);
   });
 
+  it('records distinct technician hours in one idempotent batch', () => {
+    const { fixture, suppliers, coordinator, technician } = setup();
+    const second = suppliers.addTechnician(coordinator, {
+      projectId: fixture.project.id,
+      name: 'Technician Two',
+      startsOn: '2026-01-01',
+    });
+    const input = {
+      requestId: 'different-hours-batch-request',
+      workerIds: [technician.id, second.id],
+      workerMinutes: { [technician.id]: 450, [second.id]: 360 },
+      projectId: fixture.project.id,
+      workDate: operationalDate,
+      category: 'work',
+      minutes: 1,
+      summary: 'Installation with individual hours',
+    } as const;
+    const batch = suppliers.createTimeBatch(coordinator, input);
+    expect(batch.created).toHaveLength(2);
+    expect(suppliers.createTimeBatch(coordinator, input).replayed).toBe(true);
+    expect(
+      fixture.sqlite
+        .prepare(
+          'SELECT worker_id workerId,minutes,start_time startTime,end_time endTime FROM time_entry WHERE activity_summary=? ORDER BY worker_id',
+        )
+        .all(input.summary),
+    ).toEqual(
+      [
+        { workerId: technician.id, minutes: 450, startTime: null, endTime: null },
+        { workerId: second.id, minutes: 360, startTime: null, endTime: null },
+      ].sort((a, b) => a.workerId.localeCompare(b.workerId)),
+    );
+    expect(() =>
+      suppliers.createTimeBatch(coordinator, {
+        ...input,
+        workerMinutes: { [technician.id]: 450, [second.id]: 420 },
+      }),
+    ).toThrow('already used with different values');
+    expect(() =>
+      suppliers.createTimeBatch(coordinator, {
+        ...input,
+        requestId: 'missing-individual-hours-request',
+        workerMinutes: { [technician.id]: 450 },
+      }),
+    ).toThrow('Enter valid hours for every selected technician');
+  });
+
   it('revokes a coordinator installation across ordinary own time and report methods', () => {
     const { fixture, suppliers, coordinator, technician } = setup();
     const ownTime = fixture.repository.createTimeEntry(coordinator, {
@@ -685,6 +732,7 @@ describe('supplier workforce canonical time', () => {
       startsOn: '2026-01-01',
     });
     const otherProject = fixture.repository.createProject(fixture.owner, {
+      costCenterCode: 'QA-SUPPLIER-WORKFORCE-TEST-1',
       clientId: fixture.client.id,
       name: 'Unassigned supplier project',
       timezone: 'Europe/Madrid',

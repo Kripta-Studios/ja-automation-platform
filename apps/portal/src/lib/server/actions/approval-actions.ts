@@ -41,6 +41,22 @@ export const approvalActions = {
       return actionFail(400, 'action.validation.financeDecision', {}, 'Invalid finance decision');
     const context = openPortalRepository(locals);
     try {
+      if (parsed.data.type === 'expense') {
+        // A stale page can still submit after classification changes. Keep the
+        // prerequisite explicit at the action boundary as well as in the UI.
+        if (!['owner_admin', 'finance_admin'].includes(context.principal.role))
+          return actionFail(403, 'action.error.forbidden', {}, 'Finance role required');
+        const expense = context.sqlite
+          .prepare('SELECT commercial_classification_state FROM expense WHERE id=?')
+          .get(parsed.data.id) as { commercial_classification_state: string } | undefined;
+        if (expense && expense.commercial_classification_state !== 'classified')
+          return actionFail(
+            409,
+            'action.approval.expenseClassificationRequired',
+            {},
+            'Classify this expense in Finance before recording Finance review.',
+          );
+      }
       if (parsed.data.type === 'time')
         context.repository.financeApproveTime(
           context.principal,

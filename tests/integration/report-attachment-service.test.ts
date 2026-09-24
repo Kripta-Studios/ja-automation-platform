@@ -112,6 +112,7 @@ function fixture(): AttachmentFixture {
     paymentTermsDays: 30,
   });
   const project = repository.createProject(owner, {
+    costCenterCode: 'QA-REPORT-ATTACHMENT-SERVICE-TEST-1',
     clientId: client.id,
     name: 'Report Attachment Project',
     timezone: 'UTC',
@@ -120,6 +121,7 @@ function fixture(): AttachmentFixture {
     expectedMinutesPerDay: 600,
   });
   const alternateProject = repository.createProject(owner, {
+    costCenterCode: 'QA-REPORT-ATTACHMENT-SERVICE-TEST-2',
     clientId: client.id,
     name: 'Alternate Attachment Project',
     timezone: 'UTC',

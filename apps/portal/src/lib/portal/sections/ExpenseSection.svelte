@@ -52,6 +52,24 @@
   let saving = $state(false);
   let createDate = $state('');
   let createProject = $state('');
+  let createWorker = $state('');
+  let createRequestId = $state('');
+  let crewWorkerOptions = $state<Array<{ id: string; name: string }>>([]);
+  let crewWorkersLoading = $state(false);
+  let createTimeEntryId = $state('');
+  let handledTimeLink = $state('');
+  let editDate = $state('');
+  let linkedTimeOptions = $state<
+    Array<{
+      id: string;
+      workerId: string;
+      workerName: string;
+      minutes: number;
+      category: string;
+      summary: string;
+    }>
+  >([]);
+  let linkedTimeLoading = $state(false);
   const submitExpense = createOperationalSubmit({
     locale: () => normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
     translate: (value) => translate(value),
@@ -66,9 +84,23 @@
   });
   let editExpenseId = $state<string | null>(null);
   $effect(() => {
+    const timeEntryId = $page.url.searchParams.get('timeEntry')?.trim() ?? '';
+    if (timeEntryId && timeEntryId !== handledTimeLink) {
+      handledTimeLink = timeEntryId;
+      openCreate();
+    }
+  });
+  $effect(() => {
     const id = $page.url.searchParams.get('edit');
-    if (id && records.some((row) => String(row.id) === id && row.approval_state === 'draft')) {
+    if (
+      id &&
+      records.some(
+        (row) =>
+          String(row.id) === id && row.approval_state === 'draft' && !row.shared_receipt_allocated,
+      )
+    ) {
       editExpenseId = id;
+      editDate = String(records.find((row) => String(row.id) === id)?.spent_on ?? '');
       surface = 'edit';
     }
   });
@@ -172,6 +204,85 @@
   const editRow = $derived.by(
     () => records.find((row) => String(row.id) === editExpenseId) as Row | undefined,
   );
+  $effect(() => {
+    if (surface !== 'create' || data.user.role !== 'worker' || !createProject || !createDate) {
+      crewWorkerOptions = [];
+      crewWorkersLoading = false;
+      return;
+    }
+    const controller = new AbortController();
+    crewWorkersLoading = true;
+    const params = new URLSearchParams({ projectId: createProject, date: createDate });
+    void fetch(`${base}/app/api/expenses/crew-workers?${params}`, {
+      signal: controller.signal,
+      credentials: 'same-origin',
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Crew workers could not be loaded');
+        const payload = (await response.json()) as { workers?: typeof crewWorkerOptions };
+        crewWorkerOptions = payload.workers ?? [];
+        if (
+          createWorker &&
+          createWorker !== data.user.id &&
+          !crewWorkerOptions.some((worker) => worker.id === createWorker)
+        ) {
+          createWorker = data.user.id;
+          createTimeEntryId = '';
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          crewWorkerOptions = [];
+          createWorker = data.user.id;
+          createTimeEntryId = '';
+          surfaceError = translate(
+            'Crew workers could not be loaded. Try again or record your own expense.',
+          );
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) crewWorkersLoading = false;
+      });
+    return () => controller.abort();
+  });
+  $effect(() => {
+    const projectId = surface === 'edit' ? String(editRow?.project_id ?? '') : createProject;
+    const date = surface === 'edit' ? editDate : createDate;
+    const workerId =
+      surface === 'edit' ? String(editRow?.worker_id ?? '') : createWorker || String(data.user.id);
+    linkedTimeOptions = [];
+    if (!surface || !projectId || !date || !workerId) return;
+    const controller = new AbortController();
+    linkedTimeLoading = true;
+    const params = new URLSearchParams({ projectId, date, workerId });
+    void fetch(`${base}/app/api/expenses/time-options?${params}`, {
+      signal: controller.signal,
+      credentials: 'same-origin',
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Could not load time records');
+        const payload = (await response.json()) as { rows?: typeof linkedTimeOptions };
+        linkedTimeOptions = payload.rows ?? [];
+        if (
+          surface === 'create' &&
+          createTimeEntryId &&
+          !linkedTimeOptions.some((time) => time.id === createTimeEntryId)
+        )
+          createTimeEntryId = '';
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          if (surface === 'create') createTimeEntryId = '';
+          surfaceError = translate(
+            'Logged hours could not be loaded. You can still save an expense without a link.',
+          );
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) linkedTimeLoading = false;
+      });
+    return () => controller.abort();
+  });
   const visibleRecords = $derived.by(() => {
     return operationalSort(
       records.filter((row) => {
@@ -354,10 +465,21 @@
 
   function openCreate(): void {
     surfaceError = '';
-    createDate = localToday();
-    createProject = availableProjects.some((project) => String(project.id) === projectFilter)
-      ? projectFilter
+    const requestedDate = $page.url.searchParams.get('date')?.trim() ?? '';
+    const requestedProject = $page.url.searchParams.get('project')?.trim() || projectFilter;
+    const requestedWorker = $page.url.searchParams.get('worker')?.trim() ?? '';
+    createDate = /^\d{4}-\d{2}-\d{2}$/u.test(requestedDate) ? requestedDate : localToday();
+    createProject = availableProjects.some((project) => String(project.id) === requestedProject)
+      ? requestedProject
       : '';
+    createWorker =
+      data.user.role === 'worker'
+        ? requestedWorker || data.user.id
+        : (data.workers ?? []).some((worker) => String(worker.id) === requestedWorker)
+          ? requestedWorker
+          : '';
+    createRequestId = crypto.randomUUID();
+    createTimeEntryId = $page.url.searchParams.get('timeEntry')?.trim() ?? '';
     surface = 'create';
     editExpenseId = null;
   }
@@ -379,7 +501,9 @@
   }
 
   function openEdit(row: Row): void {
+    if (row.shared_receipt_allocated) return;
     surfaceError = '';
+    editDate = String(row.spent_on ?? '');
     surface = 'edit';
     editExpenseId = String(row.id);
   }
@@ -387,6 +511,13 @@
   function closeSurface(): void {
     surface = null;
     editExpenseId = null;
+    createTimeEntryId = '';
+    if (typeof window !== 'undefined' && $page.url.searchParams.has('timeEntry')) {
+      const cleaned = new URL(window.location.href);
+      cleaned.searchParams.delete('timeEntry');
+      cleaned.searchParams.delete('date');
+      window.history.replaceState(window.history.state, '', cleaned);
+    }
     clearReceiptPreview();
   }
 
@@ -832,20 +963,25 @@
                   />
                 </a>
               {/if}
+              {#if row.shared_receipt_allocated}
+                <StatusBadge variant="neutral" text="Shared crew receipt · allocation locked" />
+              {/if}
             </div>
-            {#if String(row.worker_id) === data.user.id || data.user.role === 'owner_admin'}
+            {#if data.user.role === 'worker' || data.user.role === 'owner_admin'}
               <div class="expense-record-actions">
                 {#if row.approval_state === 'draft'}
-                  <button type="button" class="secondary-button" onclick={() => openEdit(row)}>
-                    {translate('Edit')}
-                  </button>
+                  {#if !row.shared_receipt_allocated}
+                    <button type="button" class="secondary-button" onclick={() => openEdit(row)}>
+                      {translate('Edit')}
+                    </button>
+                  {/if}
                   <form method="POST" action="?/submitExpense">
                     <input type="hidden" name="id" value={row.id} />
                     <input type="hidden" name="version" value={row.version} />
                     <button type="submit">{translate('Submit')}</button>
                   </form>
                 {/if}
-                {#if row.approval_state === 'draft'}
+                {#if row.approval_state === 'draft' && !row.shared_receipt_allocated && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
                   <form
                     method="POST"
                     action="?/deleteDraft"
@@ -950,15 +1086,39 @@
         use:enhance={submitExpense}
         onsubmit={(event) => saveOfflineDraft(event, 'expense')}
       >
+        <input type="hidden" name="requestId" value={createRequestId} />
         {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
           <label
-            ><span>{translate('Worker')}</span><select name="workerId" required
+            ><span>{translate('Worker')}</span><select
+              name="workerId"
+              required
+              bind:value={createWorker}
               ><option value="">{translate('Select worker')}</option
               >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
                   >{worker.name} — {worker.email}</option
                 >{/each}</select
             ></label
           >
+        {/if}
+        {#if data.user.role === 'worker' && (crewWorkerOptions.length > 0 || (createWorker && createWorker !== data.user.id))}
+          <label>
+            <span>{translate('Record expense for')}</span>
+            <select
+              name="workerId"
+              required
+              bind:value={createWorker}
+              disabled={crewWorkersLoading}
+            >
+              <option value={data.user.id}>{data.user.name} — {translate('my own expense')}</option>
+              {#if createWorker !== data.user.id && !crewWorkerOptions.some((worker) => worker.id === createWorker)}
+                <option value={createWorker} disabled>{translate('Loading crew member…')}</option>
+              {/if}
+              {#each crewWorkerOptions as worker (worker.id)}
+                <option value={worker.id}>{worker.name}</option>
+              {/each}
+            </select>
+            <small>{translate('A separate expense is recorded for the selected person.')}</small>
+          </label>
         {/if}
 
         <div class="expense-entry-intro">
@@ -1017,6 +1177,34 @@
             </select>
           </label>
         </div>
+        <div class="expense-form-grid">
+          <label>
+            <span>{translate('Time expense occurred (optional)')}</span>
+            <input name="occurredTimeLocal" type="time" step="60" />
+            <small>{translate('Local time at the project site; leave blank if unknown.')}</small>
+          </label>
+          <label>
+            <span>{translate('Related logged hours (optional)')}</span>
+            <select name="timeEntryId" bind:value={createTimeEntryId}>
+              <option value="">{translate('Expense only / no linked hours')}</option>
+              {#if createTimeEntryId && !linkedTimeOptions.some((time) => time.id === createTimeEntryId)}
+                <option value={createTimeEntryId} disabled
+                  >{translate('Loading linked hours…')}</option
+                >
+              {/if}
+              {#each linkedTimeOptions as time (time.id)}
+                <option value={time.id}>
+                  {time.workerName} · {Math.floor(time.minutes / 60)} h {time.minutes % 60} min · {time.summary}
+                </option>
+              {/each}
+            </select>
+            <small
+              >{linkedTimeLoading
+                ? translate('Loading logged hours…')
+                : translate('Only hours for this worker, project and date are shown.')}</small
+            >
+          </label>
+        </div>
         <label>
           <span>{translate('Vendor')}</span>
           <input name="vendor" required maxlength="200" />
@@ -1061,7 +1249,11 @@
           <button type="button" class="secondary-button" data-sheet-close onclick={closeSurface}
             >{translate('Cancel')}</button
           >
-          <button type="submit" disabled={saving}
+          <button
+            type="submit"
+            disabled={saving ||
+              crewWorkersLoading ||
+              (Boolean(createTimeEntryId) && linkedTimeLoading)}
             >{translate(saving ? 'Saving…' : 'Save draft')}</button
           >
         </div>
@@ -1089,7 +1281,7 @@
         <div class="expense-form-grid">
           <label>
             <span>{translate('Date')}</span>
-            <input name="spentOn" type="date" value={rowText(editRow, 'spent_on')} required />
+            <input name="spentOn" type="date" bind:value={editDate} required />
           </label>
           <label>
             <span>{translate('Category')}</span>
@@ -1098,6 +1290,38 @@
                 <option {value}>{translate(label)}</option>
               {/each}
             </select>
+          </label>
+        </div>
+        <div class="expense-form-grid">
+          <label>
+            <span>{translate('Time expense occurred (optional)')}</span>
+            <input
+              name="occurredTimeLocal"
+              type="time"
+              step="60"
+              value={rowText(editRow, 'occurred_time_local')}
+            />
+          </label>
+          <label>
+            <span>{translate('Related logged hours (optional)')}</span>
+            <select name="timeEntryId" value={rowText(editRow, 'time_entry_id')}>
+              <option value="">{translate('Expense only / no linked hours')}</option>
+              {#if editRow.time_entry_id && !linkedTimeOptions.some((time) => time.id === editRow?.time_entry_id)}
+                <option value={String(editRow.time_entry_id)}
+                  >{translate('Current linked hours')}</option
+                >
+              {/if}
+              {#each linkedTimeOptions as time (time.id)}
+                <option value={time.id}>
+                  {time.workerName} · {Math.floor(time.minutes / 60)} h {time.minutes % 60} min · {time.summary}
+                </option>
+              {/each}
+            </select>
+            <small
+              >{linkedTimeLoading
+                ? translate('Loading logged hours…')
+                : translate('Only hours for this worker, project and date are shown.')}</small
+            >
           </label>
         </div>
         <label>

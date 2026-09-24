@@ -77,6 +77,7 @@ function createIsolatedProject(projectName: string): IsolatedProject {
     const repository = new PortalRepository(database.sqlite);
     const name = `Manual same-project compensation ${randomUUID()}`;
     const created = repository.createProject(repository.principalFor(owner.id), {
+      costCenterCode: 'QA-MANUAL-MULTIWORKER-LIFECYCLE-SPEC-1',
       clientId: lifecycle.client.id,
       name,
       timezone: lifecycle.project.timezone,
@@ -273,7 +274,8 @@ async function clearOptionalAssignmentFields(page: Page, project: IsolatedProjec
       .filter({ hasText: project.hourlyWorker.name });
     await expect(form).toBeVisible();
     await form.locator('input[name="endsOn"]').fill(clear ? '' : '2099-12-31');
-    await form.locator('input[name="plannedMinutes"]').fill(clear ? '' : '60');
+    await form.getByLabel('Planned hours', { exact: true }).fill(clear ? '' : '1');
+    await expect(form.locator('input[name="plannedMinutes"]')).toHaveValue(clear ? '' : '60');
     await form.locator('input[name="canReview"][type="checkbox"]').setChecked(!clear);
     await submitAction(page, 'updateAssignment', () =>
       form.getByRole('button', { name: 'Update assignment', exact: true }).click(),
@@ -310,6 +312,7 @@ async function recordAndSubmitOwnTime(
   await form.locator('select[name="projectId"]').selectOption(project.id);
   await form.locator('input[name="workDate"]').fill(workDate);
   await form.locator('select[name="category"]').selectOption('regular');
+  await form.getByLabel('Add start and end times').check();
   await form.locator('input[name="startTime"]').fill('08:00');
   await form.locator('input[name="endTime"]').fill('14:00');
   await form.locator('textarea[name="summary"]').fill(summary);
@@ -485,7 +488,7 @@ test.describe('Manual evidence · two workers on one project retain distinct com
     expect(hourlyOwnResponse.status(), 'a Worker must read their own time entry').toBe(200);
     const hourlyOtherResponse = await page.request.get(portal(`/time/${dailyTimeId}`));
     expect(hourlyOtherResponse.status(), 'a Worker must not read another Worker’s time entry').toBe(
-      404,
+      403,
     );
     await page.goto(portal(`/pay?start=${PERIOD_START}&end=${PERIOD_END}`), {
       waitUntil: 'networkidle',
@@ -505,7 +508,7 @@ test.describe('Manual evidence · two workers on one project retain distinct com
     expect(
       dailyOtherResponse.status(),
       'the second Worker must not read the first Worker’s time entry',
-    ).toBe(404);
+    ).toBe(403);
     await page.goto(portal(`/pay?start=${PERIOD_START}&end=${PERIOD_END}`), {
       waitUntil: 'networkidle',
     });

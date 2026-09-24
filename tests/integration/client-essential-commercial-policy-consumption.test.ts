@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { LocalizedPdfRepository } from '@ja/database';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
@@ -76,6 +77,69 @@ function finance(value: B5LifecycleSecurityFixture, workDate: string) {
 }
 
 describe('Client Essential effective commercial policy consumption', () => {
+  it('rejects a line-less localized draft PDF and lets the draft refresh from new work', () => {
+    const value = fixture();
+    value.repository.createProjectCommercialPolicy(value.finance, {
+      projectId: value.project.id,
+      effectiveFrom: '2026-08-01',
+      overtimeEnabled: false,
+      overtimeThresholdMinutes: null,
+      travelClientBillable: true,
+      customerSignoffRequired: false,
+    });
+    approvedTime(value, '2026-08-01', 60);
+    const legalEntity = value.repository.createLegalEntity(value.owner, {
+      code: 'PDF',
+      legalName: 'Localized draft entity',
+      currency: 'EUR',
+      billingAddress: 'Localized draft billing address',
+      companyIdentifiers: 'PDF-EU-1',
+    });
+    const taxProfile = value.repository.createTaxProfile(value.finance, {
+      name: 'Localized draft zero tax',
+      currency: 'EUR',
+      effectiveFrom: '2026-01-01',
+      components: [{ name: 'Zero tax', basisPoints: 0 }],
+    });
+    const billingRule = value.repository.createBillingRule(value.finance, {
+      projectId: value.project.id,
+      legalEntityId: legalEntity.id,
+      streamType: 'labor',
+      cadenceType: 'custom',
+      taxProfileId: taxProfile.id,
+      currency: 'EUR',
+      effectiveFrom: '2026-08-01',
+    });
+    const draft = value.repository.createInvoiceDraft(
+      value.finance,
+      billingRule.id,
+      '2026-08-01',
+      '2026-08-05',
+    );
+    expect(() =>
+      new LocalizedPdfRepository(value.sqlite).requestVariant(value.finance, {
+        ownerType: 'invoice',
+        ownerId: draft.id,
+        locale: 'en',
+        templateVersion: 'invoice-v1',
+        generationVersion: 'renderer-1',
+      }),
+    ).toThrow('Issued invoice snapshot required for a localized PDF');
+    approvedTime(value, '2026-08-02', 30);
+
+    const refreshed = value.repository.createInvoiceDraft(
+      value.finance,
+      billingRule.id,
+      '2026-08-01',
+      '2026-08-05',
+    );
+    expect(refreshed.refreshed).toBe(true);
+    expect(refreshed.id).not.toBe(draft.id);
+    expect(
+      value.sqlite.prepare('SELECT variant_id FROM localized_pdf_variant WHERE owner_id=?').get(draft.id),
+    ).toBeUndefined();
+  });
+
   it('derives exact Work/Commissioning overtime boundaries without changing actual time or legacy overtime', () => {
     const value = fixture();
     value.repository.createProjectCommercialPolicy(value.finance, {

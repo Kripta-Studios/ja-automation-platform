@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Principal } from '@ja/domain';
+import { AssignmentExpensePolicyRepository } from '../../packages/database/src/domains/expenses/assignment-expense-policy-repository.ts';
 import {
   AccessDeniedError,
   ConflictError,
@@ -61,6 +62,18 @@ function fixture(): B5LifecycleSecurityFixture {
     billingAddress: 'Legacy address retained for explicit canonical migration input',
     companyIdentifiers: 'EXPENSE-LEGACY-TAX',
   });
+  const member = value.sqlite
+    .prepare('SELECT id FROM project_member WHERE project_id=? AND user_id=?')
+    .get(value.project.id, value.worker.userId) as { id: string };
+  new AssignmentExpensePolicyRepository(value.sqlite).create(authenticatedFinance(value), {
+    projectMemberId: member.id,
+    payer: 'worker',
+    category: 'hotel',
+    effectiveFrom: '2026-01-01',
+    workerReimbursement: 'at_cost',
+    clientRecovery: 'at_cost',
+    reason: 'Fixture lodging is reimbursed and recoverable',
+  });
   return Object.assign(value, { legacyLegalEntityId: legacy.id });
 }
 
@@ -89,7 +102,7 @@ function authenticatedFinance(value: B5LifecycleSecurityFixture): Principal {
   const expiresAt = new Date(Date.now() + 3_600_000).toISOString();
   value.sqlite
     .prepare(
-      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
+      'INSERT OR IGNORE INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
     )
     .run(
       'expense-classification-session',
@@ -100,6 +113,21 @@ function authenticatedFinance(value: B5LifecycleSecurityFixture): Principal {
       now,
     );
   return { ...value.finance, sessionId: 'expense-classification-session' };
+}
+
+function useNoWorkerReimbursementForForeignExpense(value: B5LifecycleSecurityFixture): void {
+  const member = value.sqlite
+    .prepare('SELECT id FROM project_member WHERE project_id=? AND user_id=?')
+    .get(value.project.id, value.worker.userId) as { id: string };
+  new AssignmentExpensePolicyRepository(value.sqlite).create(authenticatedFinance(value), {
+    projectMemberId: member.id,
+    payer: 'worker',
+    category: 'hotel',
+    effectiveFrom: '2026-08-01',
+    workerReimbursement: 'none',
+    clientRecovery: 'at_cost',
+    reason: 'Foreign expense awaits exact conversion and has no worker reimbursement',
+  });
 }
 
 function canonicalCommand<TResult>(
@@ -263,6 +291,66 @@ function expectOwnReimbursementOnly(row: Record<string, unknown>): void {
 }
 
 describe('Client Essential CORE-06 expense commercial classification boundary', () => {
+  it('rejects forged policy contradictions and foreign reimbursement at the repository boundary', () => {
+    const value = expenseFixture();
+    const finance = authenticatedFinance(value);
+    canonicalAuthority(value, finance, 'wp03:policy-boundary');
+    const foreign = value.repository.createExpense(value.worker, {
+      ...operationalExpenseInput(value),
+      currency: 'USD',
+    });
+    expect(() =>
+      value.repository.classifyExpenseCommercially(finance, {
+        expenseId: foreign.id,
+        expectedVersion: foreign.version,
+        clientTreatment: 'reimbursable',
+        billingTreatment: 'reimbursable_at_cost',
+        markupBps: 0,
+        taxBps: 0,
+        reason: 'Attempt foreign reimbursement without conversion',
+        idempotencyKey: 'wp03:policy-boundary:foreign',
+      }),
+    ).toThrow(/exact currency conversion/u);
+    const local = value.repository.createExpense(value.worker, operationalExpenseInput(value));
+    const classify = (version: number, treatment: 'reimbursable' | 'all_in', key: string) =>
+      value.repository.classifyExpenseCommercially(finance, {
+        expenseId: local.id,
+        expectedVersion: version,
+        clientTreatment: treatment,
+        billingTreatment: treatment === 'all_in' ? 'all_in' : 'reimbursable_at_cost',
+        markupBps: 0,
+        taxBps: 0,
+        reason: 'Explicit project expense policy boundary',
+        idempotencyKey: key,
+      });
+    expect(() => classify(local.version, 'all_in', 'wp03:policy-boundary:first-forgery')).toThrow(
+      /conflicts with the assignment policy/u,
+    );
+    const first = classify(local.version, 'reimbursable', 'wp03:policy-boundary:valid');
+    expect(() => classify(first.version, 'all_in', 'wp03:policy-boundary:reclass-forgery')).toThrow(
+      /conflicts with the assignment policy/u,
+    );
+    value.repository.submitExpense(value.worker, local.id, first.version);
+    value.repository.operationalApproveExpense(value.manager, local.id, 'approved');
+    const correction = value.repository.createCorrectionDraft(value.worker, {
+      recordType: 'expense',
+      originalId: local.id,
+      requestId: 'wp03-policy-correction-clears-bound-policy',
+      reason: 'Correct the source amount before a new finance decision',
+      patch: { amountMinor: 13_000 },
+    });
+    expect(
+      value.sqlite
+        .prepare(
+          'SELECT assignment_expense_policy_id,commercial_classification_state,reimbursement_amount_minor FROM expense WHERE id=?',
+        )
+        .get(correction.correctionId),
+    ).toEqual({
+      assignment_expense_policy_id: null,
+      commercial_classification_state: 'unclassified',
+      reimbursement_amount_minor: null,
+    });
+  });
   it('creates an operational expense without requiring or fabricating commercial treatment', () => {
     const value = fixture();
     const repository = expenseContract(value);
@@ -484,6 +572,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
         clientTreatment: 'non_billable',
         billingTreatment: 'internal_non_billable',
         reason: 'Stale classification must not overwrite the active revision',
+        overrideExpensePolicy: true,
         idempotencyKey: 'wp03:expense-classification:happy:v1',
       }),
     ).toThrow(ConflictError);
@@ -496,6 +585,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
       markupBps: 0,
       taxBps: 0,
       reason: 'Finance superseded the prior classification after recovery decision',
+      overrideExpensePolicy: true,
       idempotencyKey: 'wp03:expense-classification:happy:v2',
     });
     expect(revised).toMatchObject({
@@ -554,6 +644,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
       markupBps: 1_000,
       taxBps: 2_100,
       reason: 'Finance changed treatment; dependent amounts require canonical recalculation',
+      overrideExpensePolicy: true,
       idempotencyKey: 'wp03:expense-classification:derived-values:v1',
     });
 
@@ -626,6 +717,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
       markupBps: 1_000,
       taxBps: 0,
       reason: 'Recover the same-currency approved expense with ten percent markup',
+      overrideExpensePolicy: true,
       idempotencyKey: 'wp03:expense-classification:markup-billing:v1',
     });
     expect(
@@ -696,6 +788,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
     const value = expenseFixture();
     const repository = expenseContract(value);
     const finance = authenticatedFinance(value);
+    useNoWorkerReimbursementForForeignExpense(value);
     canonicalAuthority(value, finance, 'wp03:expense-classification:foreign-fail-closed');
     const created = repository.createExpense(value.worker, {
       ...operationalExpenseInput(value),
@@ -837,7 +930,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
         source.source_id,
         source.source_version,
       );
-    expect(() => value.repository.issueInvoice(finance, draft.id)).toThrow(ConflictError);
+    expect(() => value.repository.issueInvoice(finance, draft.id)).toThrow(ReadinessError);
     expect(
       value.sqlite.prepare('SELECT state,invoice_number FROM invoice WHERE id=?').get(draft.id),
     ).toEqual({ state: 'approved', invoice_number: null });
@@ -847,6 +940,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
     const value = expenseFixture();
     const repository = expenseContract(value);
     const finance = authenticatedFinance(value);
+    useNoWorkerReimbursementForForeignExpense(value);
     canonicalAuthority(value, finance, 'wp03:expense-classification:unclassified-foreign');
     const created = repository.createExpense(value.worker, {
       ...operationalExpenseInput(value),
@@ -891,56 +985,60 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
     });
   });
 
-  it('keeps worker reimbursements in source currency and refuses a mixed-currency pay total', () => {
+  it('does not create a foreign-currency worker obligation without exact conversion', () => {
     const value = expenseFixture();
     const repository = expenseContract(value);
-    const eurExpense = repository.createExpense(value.worker, operationalExpenseInput(value));
-    const usdExpense = repository.createExpense(value.worker, {
+    const finance = authenticatedFinance(value);
+    canonicalAuthority(value, finance, 'wp03:expense-classification:foreign-worker-block');
+    const local = repository.createExpense(value.worker, operationalExpenseInput(value));
+    const foreign = repository.createExpense(value.worker, {
       ...operationalExpenseInput(value),
       currency: 'USD',
       amountMinor: 20_001n,
       description: 'USD lodging awaiting Finance conversion',
     });
-    for (const expense of [eurExpense, usdExpense]) {
-      repository.submitExpense(value.worker, expense.id, expense.version);
-      repository.operationalApproveExpense(value.manager, expense.id, 'approved');
-    }
-
-    const statementExpenses = value.repository.listWorkerStatementExpenses(
-      value.worker,
-      '2026-08-01',
-      '2026-08-31',
+    const classified = repository.classifyExpenseCommercially(finance, {
+      expenseId: local.id,
+      expectedVersion: local.version,
+      clientTreatment: 'reimbursable',
+      billingTreatment: 'reimbursable_at_cost',
+      markupBps: 0,
+      taxBps: 0,
+      reason: 'The EUR expense has exact configured reimbursement',
+      idempotencyKey: 'wp03:expense-classification:foreign-worker-block:local',
+    });
+    repository.submitExpense(value.worker, local.id, classified.version);
+    repository.operationalApproveExpense(value.manager, local.id, 'approved');
+    expect(() =>
+      repository.classifyExpenseCommercially(finance, {
+        expenseId: foreign.id,
+        expectedVersion: foreign.version,
+        clientTreatment: 'reimbursable',
+        billingTreatment: 'reimbursable_at_cost',
+        markupBps: 0,
+        taxBps: 0,
+        reason: 'Foreign reimbursement lacks exact conversion',
+        idempotencyKey: 'wp03:expense-classification:foreign-worker-block:foreign',
+      }),
+    ).toThrow(/exact currency conversion/u);
+    expect(
+      value.repository
+        .listWorkerStatementExpenses(value.worker, '2026-08-01', '2026-08-31')
+        .map((row) => row.id),
+    ).toEqual([local.id]);
+    expect(value.v3.listReimbursementQueue(finance, value.project.id).map((row) => row.id)).toEqual(
+      [local.id],
     );
-    expect(statementExpenses).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: eurExpense.id,
-          currency: 'EUR',
-          reimbursementAmountMinor: '12345',
-        }),
-        expect.objectContaining({
-          id: usdExpense.id,
-          currency: 'USD',
-          reimbursementAmountMinor: '20001',
-        }),
-      ]),
-    );
-    expect(value.v3.listReimbursementQueue(value.finance, value.project.id)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: usdExpense.id,
-          currency: 'USD',
-          amountMinor: '20001',
-          reimbursementAmountMinor: '20001',
-        }),
-      ]),
-    );
-    expect(() => value.repository.workerPay(value.worker, '2026-08-01', '2026-08-31')).toThrow(
-      /multiple compensation currencies/i,
-    );
-    expect(() => value.v3.workerPay(value.worker, '2026-08-01', '2026-08-31')).toThrow(
-      /multiple compensation currencies/i,
-    );
+    expect(
+      value.sqlite
+        .prepare(
+          'SELECT reimbursement_amount_minor,commercial_classification_state FROM expense WHERE id=?',
+        )
+        .get(foreign.id),
+    ).toEqual({
+      reimbursement_amount_minor: null,
+      commercial_classification_state: 'unclassified',
+    });
   });
 
   it('does not let a rejected foreign expense poison valid EUR Worker Pay', () => {

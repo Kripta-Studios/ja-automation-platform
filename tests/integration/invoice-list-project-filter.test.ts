@@ -11,6 +11,7 @@ describe('invoice list project filtering', () => {
     const value = createB5LifecycleSecurityFixture();
     try {
       const secondProject = value.repository.createProject(value.owner, {
+        costCenterCode: 'QA-INVOICE-LIST-PROJECT-FILTER-TEST-1',
         clientId: value.client.id,
         name: 'B5 lifecycle fixture',
         timezone: 'Europe/Madrid',

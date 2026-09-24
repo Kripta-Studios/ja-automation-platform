@@ -28,6 +28,23 @@
       value === null || value === undefined ? null : String(value),
     );
   const record = $derived(data.record as Row);
+  const canAddRelatedExpense = $derived(
+    !['rejected', 'void'].includes(String(record.approval_state)) &&
+      (data.user?.role === 'owner_admin' ||
+        data.user?.role === 'project_manager' ||
+        (data.user?.role === 'worker' && String(record.worker_id) === String(data.user.id))),
+  );
+  const relatedExpenseHref = $derived.by(() => {
+    const params = new URLSearchParams({
+      project: String(record.project_id),
+      worker: String(record.worker_id),
+      date: String(record.work_date),
+      timeEntry: String(record.id),
+    });
+    const language = $page.url.searchParams.get('lang');
+    if (language) params.set('lang', language);
+    return `${base}/app/expenses?${params.toString()}`;
+  });
   const hours = (minutes: unknown) => String((Number(minutes ?? 0) / 60).toFixed(1)) + ' h';
   function printReport(): void {
     if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement)
@@ -55,6 +72,9 @@
     {#if !data.user?.workforceProfile}<a href={base + '/app/projects/' + String(record.project_id)}
         >{t('Open project')}</a
       >{/if}
+    {#if canAddRelatedExpense}
+      <a href={relatedExpenseHref}>{t('Add related expense')}</a>
+    {/if}
     <button type="button" class="no-print print-trigger" onclick={printReport}>
       <PrintIcon />
       {t('Print Report')}
@@ -112,5 +132,26 @@
         <dd>{record.approved_at ?? t('Not approved')}</dd>
       </div>
     </dl>
+  </section>
+  <section class="detail-panel record-detail-copy">
+    <div class="panel-title"><h2>{t('Related reports')}</h2></div>
+    {#if data.relatedReports?.length}
+      <ul>
+        {#each data.relatedReports as report}
+          <li>
+            <a href={`${base}/app/reports/${report.id}`}
+              >{t(report.type === 'technical' ? 'Technical report' : 'Daily report')}</a
+            >
+            · {controlled('status', report.status)}
+          </li>
+        {/each}
+      </ul>
+    {:else}
+      <p>{t('No related reports yet.')}</p>
+    {/if}
+    <a
+      href={`${base}/app/reports?project=${encodeURIComponent(String(record.project_id))}&from=${encodeURIComponent(String(record.work_date))}&to=${encodeURIComponent(String(record.work_date))}`}
+      >{t('View project reports')}</a
+    >
   </section>
 </main>

@@ -398,6 +398,15 @@
     return value(row, 'type') === 'expense' ? 'expense' : 'time';
   }
 
+  function expenseClassificationHref(row: Row): string {
+    const params = new URLSearchParams({
+      view: 'commercial',
+      project: value(row, 'project_id'),
+      expense: value(row, 'id'),
+    });
+    return `${base}/app/finance?${params.toString()}#expense-classification`;
+  }
+
   function correctionType(row: Row): string {
     const type = value(row, 'type');
     if (type === 'time') return 'time_entry';
@@ -906,7 +915,14 @@
                 </a>
                 <StatusBadge variant="warning" text={translate('Approved operationally')} />
               </div>
-              {#if isAuditor}
+              {#if rowType(row) === 'expense' && value(row, 'commercial_classification_state') !== 'classified'}
+                <div class="finance-review-form" data-finance-classification-required>
+                  <span>{translate('Classify this expense before Finance review.')}</span>
+                  <a href={expenseClassificationHref(row)}
+                    >{translate('Classify expense in Finance →')}</a
+                  >
+                </div>
+              {:else if isAuditor}
                 <span class="approval-read-only">{translate('Read-only review')}</span>
               {:else}
                 <form method="POST" action="?/financeApprove" class="finance-review-form">

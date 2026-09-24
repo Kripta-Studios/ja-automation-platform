@@ -94,6 +94,7 @@ describe('explicit invoice email lifecycle', () => {
       billingAddress: 'Lifecycle Client billing address',
     });
     const project = repository.createProject(owner, {
+      costCenterCode: 'QA-INVOICE-EMAIL-TEST-1',
       clientId: client.id,
       name: 'Lifecycle Project',
       timezone: 'UTC',

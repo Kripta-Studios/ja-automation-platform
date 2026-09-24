@@ -1,23 +1,12 @@
-# Project manager guide
+# Project manager: current operational guide
 
-## Scope and navigation
+**Deployed edition, 24 September 2026.** See the [full current guide](Current_Deployed_Workflows_2026-09-24.md) and [role-flow diagram](Role_Workflows.pdf). This guide uses an actual authenticated Project Manager test-account capture of the synthetic QA project.
 
-Sign in with your own account. Your project access follows active assignments and effective dates. **Projects**, **Planning**, **Approvals**, **Reports** and **Profile** show only authorized operational work. Billing, commercial rates, accounting and audit are separate authorities. Use **Help** for this guide and **Activity Inbox** for links to permitted source records; reading an alert is not approval.
+1. Open **Projects**, choose an assigned project, and check its client, cost center, dates and **Team**. Projects and people outside your effective scope are not available.
+2. Use **Planning** for intended assignments and availability. A published shift does not create worked hours, expenses, payroll or invoice items.
+3. Use **Time**, **Expenses** and **Reports** to inspect the factual source records for your project. Review submitted items in **Approvals** only when your project permission allows it; return inaccurate entries with a reason.
+4. Confirm that approved operational records appear in the project's reports and that the correct project/person/date links survive navigation. Finance decides commercial treatment; this operational view does not expose other workers' pay or customer rates.
 
-## Clickable project and planning calendars
+![The Project Manager test account sees the QA project's Team tab and its one existing assignment.](assets/deployed-2026-09-24/qa-project-manager-team.png)
 
-In **Projects**, expand **Project calendar** to view authorized projects. Previous/next month and **Today** move the month. Select a day to see its agenda; open a project event to inspect the actual project and team. In a project, the **Team** calendar shows that project's planned shifts. A project end date is inclusive; shift end timestamps are exclusive.
-
-Open **Planning**, select the correct project and worker filters, then select a date in the calendar. The start/end fields are prepared for that day; review them before publishing. Select an existing shift in the agenda to open its project and team; editing a published shift is an Owner action. Check the worker's availability and overlapping shifts before **Publish assignment** for a project in your scope. A blocked overlap or unavailable window requires a different date or a corrected availability record, not a second conflicting shift. Times are displayed and entered in **UTC**. Publishing a shift does not generate actual time, a payment or customer acceptance.
-
-## People, skills and availability
-
-Open **Profile** for your own skills and availability. The calendar opens **Add availability** from a day and **Edit availability** from an existing window. Choose Available, Unavailable or Tentative, enter the UTC window and note, then save and verify. The view shows the latest 200 windows. A stale version asks you to reload before retrying. You may inspect and manage an active teammate only when the person belongs to one of your effectively assigned projects; use the selected person's profile, not your own identifier. Self-declared skills remain unverified until administrative review. You cannot inspect unrelated workforce profiles.
-
-## Operational review
-
-In **Approvals**, inspect submitted time, receipts or reports and their evidence before approving or requesting changes. The queue prioritizes pending items. **Project approvals** covers authorized milestones; a separate Finance review decides financial treatment. In **Reports**, review factual Daily and Technical / PLC records and period follow-up for your project. Internal approval is not customer signature, invoice issuance or a bank transfer. Preserve history through the correction workflow and a reason.
-
-## Troubleshooting
-
-If a project or worker is missing, verify your assignment dates and project filter. If a shift cannot publish, inspect availability and overlaps. If a profile edit is rejected as stale, reload it. Do not substitute another project, worker or date. Send unresolved access or evidence questions with the record reference to **admin@j-aautomation.com**.
+**Current deployed limitation:** this Project Manager test-account screen does not show an **Assign worker** action. Ask Owner to add a worker to a new project. A local UI repair is not yet the deployed behavior. At capture the project had zero actual hours and reports; the image is not evidence that a completed review cycle passed.

@@ -1,6 +1,17 @@
 import { error, redirect } from '@sveltejs/kit';
 import { lastCompletePeriodForCadence, type BillingCadence } from '@ja/billing-engine';
 import { invoicePeriodSchema } from '@ja/schemas';
+import { newId } from '@ja/domain';
+import { z } from 'zod';
+import {
+  AccessDeniedError,
+  ConflictError,
+  ProjectBillingSetupRepository,
+  ValidationError,
+  V3ValidationError,
+  V3ConflictError,
+  projectCalendarDate,
+} from '@ja/database';
 import { actionFail, actionFailure, actionSuccess } from '$lib/server/actions/action-message';
 import { createInvoiceDraftResolvingPeriod } from '$lib/server/invoice-draft';
 import { defaultLookbackPeriod } from '$lib/server/iso-date';
@@ -61,8 +72,18 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
           .listBillingRules(context.principal)
           .filter((rule) => String(rule.project_id) === params.id)
       : [];
+    const latestLaborRule = [...billingRules]
+      .filter((rule) => rule.stream_type === 'labor' && Number(rule.enabled) === 1)
+      .sort((a, b) => String(b.effective_from).localeCompare(String(a.effective_from)))[0];
+    const latestExpenseRule = [...billingRules]
+      .filter((rule) => rule.stream_type === 'expense' && Number(rule.enabled) === 1)
+      .sort((a, b) => String(b.effective_from).localeCompare(String(a.effective_from)))[0];
+    const billingSetup = financeVisible
+      ? new ProjectBillingSetupRepository(context.sqlite, context.repository)
+      : null;
+    const projectRow = overview.project as { client_id?: string };
     const invoiceDraftPeriod = cadencePeriod(
-      billingRules[0] as Record<string, unknown> | undefined,
+      (latestLaborRule ?? billingRules[0]) as Record<string, unknown> | undefined,
     );
     return {
       user: locals.user,
@@ -75,6 +96,41 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
           ? context.repository.listAllWorkers(context.principal)
           : [],
       billingRules,
+      billingSetup: billingSetup
+        ? {
+            version: billingSetup.currentVersion(context.principal, params.id),
+            rulesFingerprint: billingSetup.rulesFingerprint(context.principal, params.id),
+            issuingPrerequisites: latestLaborRule
+              ? billingSetup.issuingPrerequisites(
+                  context.principal,
+                  params.id,
+                  String(latestLaborRule.effective_from),
+                  String(latestLaborRule.legal_entity_id ?? ''),
+                  [
+                    String(latestLaborRule.tax_profile_id ?? ''),
+                    ...(Number(latestLaborRule.include_expenses) === 1 || !latestExpenseRule
+                      ? []
+                      : [String(latestExpenseRule.tax_profile_id ?? '')]),
+                  ],
+                )
+              : ['billing_setup_required'],
+            requestKey: newId(),
+            legalEntities: context.repository.listLegalEntities(context.principal),
+            taxProfiles: context.repository.listTaxProfiles(context.principal),
+            contacts: projectRow.client_id
+              ? context.repository.listClientContacts(context.principal, projectRow.client_id)
+              : [],
+            templates: billingSetup.listTemplates(
+              context.principal,
+              String(overview.project.currency) as 'EUR' | 'USD' | 'BRL',
+            ),
+            people: billingSetup.peopleReview(
+              context.principal,
+              params.id,
+              projectCalendarDate(String(overview.project.timezone)),
+            ),
+          }
+        : null,
       overview: financeVisible
         ? {
             ...overview,
@@ -87,14 +143,294 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
           }
         : overview,
     };
-  } catch {
-    error(404, 'detail.project.notFound');
+  } catch (caught) {
+    if (caught instanceof AccessDeniedError) error(403, 'detail.project.forbidden');
+    if (caught instanceof ValidationError && /not found/i.test(caught.message))
+      error(404, 'detail.project.notFound');
+    error(500, 'detail.project.unavailable');
   } finally {
     context.sqlite.close();
   }
 };
 
+const amount = z
+  .string()
+  .trim()
+  .regex(/^\d{1,10}(?:[.,]\d{1,2})?$/);
+const personTermsSchema = z
+  .object({
+    projectId: z.uuid(),
+    projectMemberId: z.uuid(),
+    workerId: z.string().min(1).max(200),
+    expectedFingerprint: z.string().regex(/^[0-9a-f]{64}$/),
+    effectiveFrom: z.iso.date(),
+    customerHourlyRate: amount,
+    workerPayType: z.enum([
+      'Hourly',
+      'Daily',
+      'FixedPerBillingPeriod',
+      'FixedProjectAmount',
+      'PercentageOfEligibleClientLabor',
+    ]),
+    workerPayAmount: amount,
+    percentageBasis: z.enum([
+      'CLIENT_LABOR_BEFORE_TAX',
+      'CLIENT_LABOR_AFTER_APPROVED_DISCOUNT',
+      'ISSUED_ELIGIBLE_LABOR',
+      'COLLECTED_ELIGIBLE_LABOR',
+    ]),
+    expensePayer: z.enum(['worker', 'company_card', 'company_direct', 'client', 'third_party']),
+    workerReimbursement: z.enum(['at_cost', 'none']),
+    clientRecovery: z.enum(['at_cost', 'markup', 'included', 'non_billable', 'client_direct']),
+    markupPercent: z.union([z.literal(''), amount]),
+  })
+  .strict()
+  .superRefine((value, issue) => {
+    if (value.expensePayer !== 'worker' && value.workerReimbursement !== 'none')
+      issue.addIssue({
+        code: 'custom',
+        path: ['workerReimbursement'],
+        message: 'Only worker-paid expenses can reimburse a worker',
+      });
+    if ((value.expensePayer === 'client') !== (value.clientRecovery === 'client_direct'))
+      issue.addIssue({
+        code: 'custom',
+        path: ['clientRecovery'],
+        message: 'Client-paid expenses require client-direct recovery',
+      });
+    if (
+      value.clientRecovery === 'markup' &&
+      (!value.markupPercent || Number(value.markupPercent.replace(',', '.')) <= 0)
+    )
+      issue.addIssue({
+        code: 'custom',
+        path: ['markupPercent'],
+        message: 'A positive markup percentage is required',
+      });
+    if (
+      value.clientRecovery !== 'markup' &&
+      value.markupPercent &&
+      Number(value.markupPercent.replace(',', '.')) > 0
+    )
+      issue.addIssue({
+        code: 'custom',
+        path: ['markupPercent'],
+        message: 'Markup is only available with markup recovery',
+      });
+  });
 export const actions: Actions = {
+  savePeopleTerms: async ({ request, locals, params }) => {
+    if (!locals.user) return actionFail(401, 'action.error.forbidden');
+    if (locals.user.role !== 'owner_admin' && locals.user.role !== 'finance_admin')
+      return actionFail(403, 'action.error.financeRoleRequired');
+    const raw = Object.fromEntries(await request.formData());
+    let candidate: unknown;
+    try {
+      candidate = JSON.parse(String(raw.rows ?? ''));
+    } catch {
+      return actionFail(
+        400,
+        'action.validation.billingStream',
+        {},
+        'Invalid people terms payload',
+        {
+          action: 'savePeopleTerms',
+        },
+      );
+    }
+    const parsed = z.array(personTermsSchema).min(1).max(50).safeParse(candidate);
+    if (!parsed.success)
+      return actionFail(400, 'action.validation.billingStream', {}, 'Check selected people terms', {
+        action: 'savePeopleTerms',
+        values: { rows: String(raw.rows ?? '') },
+        fields: Object.fromEntries(
+          parsed.error.issues.map((issue) => [issue.path.join('.'), [issue.message]]),
+        ),
+      });
+    if (parsed.data.some((row) => row.projectId !== params.id))
+      return actionFail(403, 'action.error.forbidden');
+    const context = openPortalRepository(locals);
+    try {
+      const result = new ProjectBillingSetupRepository(
+        context.sqlite,
+        context.repository,
+      ).savePeopleTerms(context.principal, parsed.data);
+      return {
+        ...actionSuccess(
+          'action.finance.assignmentCommercialReferencesSaved',
+          result,
+          'Selected people terms saved',
+        ),
+        action: 'savePeopleTerms',
+      };
+    } catch (caught) {
+      if (
+        caught instanceof ValidationError ||
+        caught instanceof ConflictError ||
+        caught instanceof V3ValidationError ||
+        caught instanceof V3ConflictError
+      )
+        return actionFail(400, 'action.validation.billingStream', {}, caught.message, {
+          action: 'savePeopleTerms',
+          values: { rows: String(raw.rows ?? '') },
+        });
+      return actionFailure(caught);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  savePersonTerms: async ({ request, locals, params }) => {
+    if (!locals.user) return actionFail(401, 'action.error.forbidden');
+    if (locals.user.role !== 'owner_admin' && locals.user.role !== 'finance_admin')
+      return actionFail(403, 'action.error.financeRoleRequired');
+    const raw = Object.fromEntries(await request.formData());
+    const values = Object.fromEntries(
+      Object.entries(raw).map(([key, value]) => [key, typeof value === 'string' ? value : '']),
+    );
+    const parsed = personTermsSchema.safeParse(raw);
+    if (!parsed.success)
+      return actionFail(400, 'action.validation.billingStream', {}, 'Check person terms fields', {
+        action: 'savePersonTerms',
+        values,
+        fields: parsed.error.flatten().fieldErrors,
+      });
+    if (parsed.data.projectId !== params.id) return actionFail(403, 'action.error.forbidden');
+    const context = openPortalRepository(locals);
+    try {
+      const result = new ProjectBillingSetupRepository(
+        context.sqlite,
+        context.repository,
+      ).savePersonTerms(context.principal, parsed.data);
+      return {
+        ...actionSuccess(
+          'action.finance.assignmentCommercialReferencesSaved',
+          result,
+          'Person commercial terms saved',
+        ),
+        action: 'savePersonTerms',
+        workerId: parsed.data.workerId,
+      };
+    } catch (caught) {
+      if (
+        caught instanceof ValidationError ||
+        caught instanceof ConflictError ||
+        caught instanceof V3ValidationError ||
+        caught instanceof V3ConflictError
+      )
+        return actionFail(
+          caught instanceof ConflictError || caught instanceof V3ConflictError ? 409 : 400,
+          'action.validation.billingStream',
+          {},
+          caught.message,
+          { action: 'savePersonTerms', values },
+        );
+      return actionFailure(caught);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  saveBillingSetup: async ({ request, locals, params }) => {
+    if (!locals.user) return actionFail(401, 'action.error.forbidden');
+    if (locals.user.role !== 'owner_admin' && locals.user.role !== 'finance_admin')
+      return actionFail(403, 'action.error.financeRoleRequired');
+    const raw = Object.fromEntries(await request.formData());
+    const values = Object.fromEntries(
+      Object.entries(raw).map(([key, value]) => [key, typeof value === 'string' ? value : '']),
+    );
+    const schema = z
+      .object({
+        projectId: z.uuid(),
+        expectedVersion: z.coerce.number().int().nonnegative(),
+        expectedRulesFingerprint: z.string().regex(/^[0-9a-f]{64}$/),
+        requestKey: z.uuid(),
+        selectedTemplateId: z.union([z.literal(''), z.uuid()]).optional(),
+        mode: z.enum(['combined', 'separate']),
+        effectiveFrom: z.iso.date(),
+        legalEntityId: z.uuid(),
+        laborTaxProfileId: z.uuid(),
+        expenseTaxProfileId: z.union([z.literal(''), z.uuid()]),
+        cadenceType: z.enum(['weekly', 'every_14_days', 'semi_monthly', 'monthly', 'manual']),
+        expenseCadenceType: z.enum([
+          'weekly',
+          'every_14_days',
+          'semi_monthly',
+          'monthly',
+          'manual',
+        ]),
+        anchorDate: z.union([z.literal(''), z.iso.date()]).optional(),
+        expenseAnchorDate: z.union([z.literal(''), z.iso.date()]).optional(),
+        invoiceLayout: z.enum(['default', 'labor-detailed', 'labor-summary']),
+        groupingMode: z.enum(['detail', 'summary', 'by_worker', 'by_day', 'by_category']),
+        billingContactId: z.union([z.literal(''), z.uuid()]).optional(),
+        recipientEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
+        paymentTermsDays: z.coerce.number().int().min(0).max(365),
+        autoGenerateDraft: z.enum(['true', 'false']).transform((value) => value === 'true'),
+        saveAsTemplate: z.enum(['true', 'false']).transform((value) => value === 'true'),
+        templateName: z.string().trim().max(100).optional(),
+      })
+      .strict()
+      .superRefine((value, issue) => {
+        if (value.cadenceType === 'every_14_days' && !value.anchorDate)
+          issue.addIssue({
+            code: 'custom',
+            path: ['anchorDate'],
+            message: 'Choose a labor cadence anchor date',
+          });
+        if (
+          value.mode === 'separate' &&
+          value.expenseCadenceType === 'every_14_days' &&
+          !value.expenseAnchorDate
+        )
+          issue.addIssue({
+            code: 'custom',
+            path: ['expenseAnchorDate'],
+            message: 'Choose an expense cadence anchor date',
+          });
+        if (value.saveAsTemplate && (value.templateName?.length ?? 0) < 2)
+          issue.addIssue({
+            code: 'custom',
+            path: ['templateName'],
+            message: 'Use at least two characters for the template name',
+          });
+      })
+      .safeParse(raw);
+    if (!schema.success)
+      return actionFail(400, 'action.validation.billingStream', {}, 'Check billing setup fields', {
+        action: 'saveBillingSetup',
+        values,
+        fields: schema.error.flatten().fieldErrors,
+      });
+    if (schema.data.projectId !== params.id) return actionFail(403, 'action.error.forbidden');
+    const context = openPortalRepository(locals);
+    try {
+      const setup = new ProjectBillingSetupRepository(context.sqlite, context.repository);
+      const result = setup.save(context.principal, {
+        ...schema.data,
+        selectedTemplateId: schema.data.selectedTemplateId || undefined,
+        anchorDate: schema.data.anchorDate || undefined,
+        expenseAnchorDate: schema.data.expenseAnchorDate || undefined,
+        billingContactId: schema.data.billingContactId || undefined,
+        recipientEmail: schema.data.recipientEmail || undefined,
+      });
+      return actionSuccess(
+        'action.billing.streamSaved',
+        { version: result.version },
+        'Project billing setup saved',
+      );
+    } catch (caught) {
+      if (caught instanceof ValidationError || caught instanceof ConflictError)
+        return actionFail(
+          caught instanceof ConflictError ? 409 : 400,
+          'action.validation.billingStream',
+          {},
+          caught.message,
+          { action: 'saveBillingSetup', values },
+        );
+      return actionFailure(caught);
+    } finally {
+      context.sqlite.close();
+    }
+  },
   createInvoiceDraft: async ({ request, locals, params }) => {
     if (!locals.user) return actionFail(401, 'action.error.forbidden');
     if (locals.user.role !== 'owner_admin' && locals.user.role !== 'finance_admin')
@@ -199,6 +535,7 @@ export const actions: Actions = {
       fixedPriceMinor: moneyMinor('fixedPriceMinor'),
       laborBudgetMinutes: integer('laborBudgetMinutes', true),
       travelBudgetMinor: moneyMinor('travelBudgetMinor'),
+      expenseBudgetMinor: moneyMinor('expenseBudgetMinor'),
       otherCostBudgetMinor: moneyMinor('otherCostBudgetMinor'),
       plannedMinutes: integer('plannedMinutes', true),
       contractNumber: text('contractNumber'),

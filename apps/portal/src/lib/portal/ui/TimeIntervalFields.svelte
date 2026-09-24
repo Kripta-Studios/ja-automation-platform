@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { intervalMinutes } from './time-entry-clock';
+  import { durationMinutes, intervalMinutes } from './time-entry-clock';
 
   let {
     translate,
@@ -16,14 +16,17 @@
     legacyMinutes?: number;
   } = $props();
   const isLegacy = $derived(legacyMinutes !== undefined && !initialStart && !initialEnd);
-  let useInterval = $state(
-    untrack(() => legacyMinutes === undefined || !!initialStart || !!initialEnd),
+  let useInterval = $state(untrack(() => !!initialStart || !!initialEnd));
+  let hours = $state(
+    untrack(() => (legacyMinutes === undefined ? '' : String(legacyMinutes / 60))),
   );
   let start = $state(untrack(() => initialStart));
   let end = $state(untrack(() => initialEnd));
   let pause = $state<number | undefined>(untrack(() => initialBreak));
   let endInput = $state<HTMLInputElement>();
+  let hoursInput = $state<HTMLInputElement>();
   const minutes = $derived(intervalMinutes(start, end, pause ?? 0));
+  const enteredMinutes = $derived(durationMinutes(hours));
   $effect(() => {
     endInput?.setCustomValidity(
       useInterval && start && end && minutes === null
@@ -33,17 +36,24 @@
         : '',
     );
   });
+  $effect(() => {
+    hoursInput?.setCustomValidity(
+      !useInterval && hours && enteredMinutes === null
+        ? translate('Enter a valid number of hours from 0 to 24.')
+        : '',
+    );
+  });
 </script>
 
 {#if isLegacy}
   <p class="time-range-help">
     {translate('This record has a duration but no recorded start and end times.')}
   </p>
-  <label class="time-range-choice">
-    <input type="checkbox" bind:checked={useInterval} />
-    <span>{translate('Add start and end times')}</span>
-  </label>
 {/if}
+<label class="time-range-choice">
+  <input type="checkbox" bind:checked={useInterval} />
+  <span>{translate('Add start and end times')}</span>
+</label>
 {#if useInterval}
   <fieldset class="time-range-fields">
     <legend>{translate('Time range')}</legend>
@@ -90,16 +100,25 @@
   </fieldset>
 {:else}
   <label
-    ><span>{translate('Actual duration (minutes)')}</span><input
-      name="minutes"
-      type="number"
-      min="0"
-      max="1440"
-      step="1"
+    ><span>{translate('Actual hours')}</span><input
+      type="text"
+      inputmode="decimal"
       required
-      value={legacyMinutes}
+      bind:value={hours}
+      bind:this={hoursInput}
     /></label
   >
+  <input name="minutes" type="hidden" value={enteredMinutes ?? ''} />
+  <p class="time-range-help">
+    {translate('Actual duration')}: {enteredMinutes === null
+      ? '—'
+      : `${Math.floor(enteredMinutes / 60)} h ${enteredMinutes % 60} min`}
+  </p>
+  <p class="time-range-help">
+    {translate(
+      'Enter decimal hours, for example 7.5 for 7 h 30 min. The amount is rounded to the nearest minute.',
+    )}
+  </p>
 {/if}
 
 <style>

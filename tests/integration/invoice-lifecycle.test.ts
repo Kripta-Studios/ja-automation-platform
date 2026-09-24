@@ -85,6 +85,7 @@ describe('invoice lifecycle coverage', () => {
       billingAddress: 'Lifecycle Client billing address',
     });
     const project = repository.createProject(owner, {
+      costCenterCode: 'QA-INVOICE-LIFECYCLE-TEST-1',
       clientId: client.id,
       name: 'Lifecycle Project',
       timezone: 'UTC',
@@ -667,6 +668,31 @@ describe('invoice lifecycle coverage', () => {
       billingStatus: 'void',
       collectedMinor: '0',
       outstandingMinor: '0',
+    });
+    // Emulate a migrated, already-issued invoice from before canonical revision IDs
+    // existed. The isolated fixture temporarily removes immutability guards solely
+    // to construct that historical database shape; production rows are never edited.
+    const issuedSnapshot = JSON.parse(
+      (
+        sqlite.prepare('SELECT snapshot_json FROM invoice WHERE id=?').get(original.id) as {
+          snapshot_json: string;
+        }
+      ).snapshot_json,
+    ) as Record<string, unknown>;
+    issuedSnapshot.legalEntity = {
+      ...(issuedSnapshot.legalEntity as Record<string, unknown>),
+      legalName: 'Historical Legacy Issuer',
+      billingAddress: 'Historical issued address',
+    };
+    sqlite.exec('DROP TRIGGER IF EXISTS issued_invoice_no_update');
+    sqlite.exec('DROP TRIGGER IF EXISTS issued_invoice_snapshot_no_update');
+    sqlite
+      .prepare('UPDATE invoice SET legal_entity_revision_id=NULL,snapshot_json=? WHERE id=?')
+      .run(JSON.stringify(issuedSnapshot), original.id);
+    expect(repository.invoicePreview(finance, original.id).invoice).toMatchObject({
+      legal_entity_revision_id: null,
+      display_issuer_name: 'Historical Legacy Issuer',
+      display_issuer_address: 'Historical issued address',
     });
     sqlite.close();
   });

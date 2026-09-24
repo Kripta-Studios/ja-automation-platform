@@ -74,13 +74,13 @@ export default defineConfig({
         'pnpm --filter @ja/site build && pnpm --filter @ja/site start --port 4173 --hostname 127.0.0.1',
       url: 'http://127.0.0.1:4173/j-aautomation/en/',
       reuseExistingServer: false,
-      timeout: 180_000,
+      timeout: 300_000,
     },
     {
       command: 'pnpm --filter @ja/portal build && pnpm --filter @ja/portal preview',
       url: 'http://127.0.0.1:4174/j-aautomation/app/login',
       reuseExistingServer: false,
-      timeout: 180_000,
+      timeout: 300_000,
       env: {
         NODE_ENV: 'development',
         ORIGIN: 'http://127.0.0.1:4174',

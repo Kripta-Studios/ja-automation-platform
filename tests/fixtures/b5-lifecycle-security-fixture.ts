@@ -100,6 +100,7 @@ export function createB5LifecycleSecurityFixture() {
       paymentTermsDays: 30,
     });
     const project = repository.createProject(owner, {
+      costCenterCode: 'QA-B5-LIFECYCLE-SECURITY-FIXTURE-1',
       clientId: client.id,
       name: 'B5 lifecycle fixture',
       timezone: 'Europe/Madrid',

@@ -634,7 +634,7 @@ describe('Client Essential approval lifecycle', () => {
     ]);
   });
 
-  it('keeps an approved worker expense effective until its correction is approved', () => {
+  it('keeps an approved legacy worker expense effective until its correction is approved', () => {
     const value = fixture();
     const original = value.repository.createExpense(value.worker, {
       projectId: value.project.id,
@@ -647,6 +647,13 @@ describe('Client Essential approval lifecycle', () => {
       whoPaid: 'worker',
       receiptRequired: false,
     });
+    // Exercise the pre-0054 reimbursement lifecycle without inventing new
+    // reimbursement terms for this historical source.
+    value.sqlite
+      .prepare(
+        'UPDATE expense SET expense_policy_required=0,reimbursement_amount_minor=amount_minor WHERE id=?',
+      )
+      .run(original.id);
     value.repository.submitExpense(value.worker, original.id, original.version);
     value.repository.operationalApproveExpense(value.manager, original.id, 'approved');
     const statement = () =>
@@ -722,6 +729,11 @@ describe('Client Essential approval lifecycle', () => {
       whoPaid: 'worker',
       receiptRequired: false,
     });
+    held.sqlite
+      .prepare(
+        'UPDATE expense SET expense_policy_required=0,reimbursement_amount_minor=amount_minor WHERE id=?',
+      )
+      .run(heldOriginal.id);
     held.repository.submitExpense(held.worker, heldOriginal.id, heldOriginal.version);
     held.repository.operationalApproveExpense(held.manager, heldOriginal.id, 'approved');
     const heldCorrection = held.repository.createCorrectionDraft(held.worker, {

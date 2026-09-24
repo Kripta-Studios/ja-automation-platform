@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { intervalMinutes, localToday } from '../../apps/portal/src/lib/portal/ui/time-entry-clock';
+import {
+  durationMinutes,
+  intervalMinutes,
+  localToday,
+} from '../../apps/portal/src/lib/portal/ui/time-entry-clock';
 
 describe('time entry calendar and clock', () => {
   it('uses local calendar fields, including month/year boundaries', () => {
@@ -18,5 +22,13 @@ describe('time entry calendar and clock', () => {
       ['09:00', '10:00', 0.5],
     ] as const)
       expect(intervalMinutes(start, end, pause)).toBeNull();
+  });
+  it('converts decimal hours to truthful whole-minute durations', () => {
+    expect(durationMinutes('7.5')).toBe(450);
+    expect(durationMinutes('7,25')).toBe(435);
+    expect(durationMinutes('0.5')).toBe(30);
+    expect(durationMinutes('24')).toBe(1440);
+    for (const value of ['', '-1', '24.1', 'nope', '1:30'])
+      expect(durationMinutes(value)).toBeNull();
   });
 });

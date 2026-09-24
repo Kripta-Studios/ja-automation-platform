@@ -690,6 +690,7 @@ describe('B5 migration adversarial SQL contract', () => {
   it('binds a correction to the original project and user subject', () => {
     const value = fixture();
     const secondProject = value.repository.createProject(value.owner, {
+      costCenterCode: 'QA-B5-ADVERSARIAL-MIGRATION-TEST-1',
       clientId: value.client.id,
       name: 'B5 correction subject project',
       timezone: 'Europe/Madrid',

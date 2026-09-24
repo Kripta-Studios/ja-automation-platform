@@ -41,6 +41,12 @@ const expenseCategorySchema = z.enum([
 const expenseUpdateSchema = versionedRecordSchema
   .extend({
     spentOn: z.iso.date().optional(),
+    occurredTimeLocal: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+      .nullable()
+      .optional(),
+    timeEntryId: z.uuid().nullable().optional(),
     vendor: z.string().trim().min(1).max(200).optional(),
     category: expenseCategorySchema.optional(),
     description: z.string().trim().max(5000).optional(),
@@ -61,6 +67,8 @@ export function parseExpenseUpdateForm(object: Record<string, unknown>) {
     if (payload[key] === '') delete payload[key];
   }
   if (payload.description === '') delete payload.description;
+  if (payload.occurredTimeLocal === '') payload.occurredTimeLocal = null;
+  if (payload.timeEntryId === '') payload.timeEntryId = null;
   return expenseUpdateSchema.safeParse(payload);
 }
 
@@ -72,6 +80,8 @@ export const expenseActions = {
     const workerId =
       typeof object.workerId === 'string' && object.workerId ? object.workerId : undefined;
     delete object.workerId;
+    const requestId = typeof object.requestId === 'string' ? object.requestId : undefined;
+    delete object.requestId;
     const receipt = object.receipt;
     const receiptFile = receipt instanceof File ? receipt : undefined;
     delete object.receipt;
@@ -186,7 +196,22 @@ export const expenseActions = {
         return actionFail(400, 'action.validation.expenseFields', {}, 'Check expense fields', {
           fields: parsed.error.flatten().fieldErrors,
         });
-      context.repository.createExpense(context.principal, parsed.data, workerId);
+      const created = context.repository.createExpense(
+        context.principal,
+        parsed.data,
+        workerId,
+        requestId,
+      );
+      if (created.replayed && createdReceiptId) {
+        const removedKey = context.repository.removeUnreferencedReceipt(
+          context.principal,
+          createdReceiptId,
+        );
+        if (removedKey) {
+          const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
+          await removePrivateFileIfPresent(root, removedKey);
+        }
+      }
       return actionSuccess('action.expense.draftSaved', {}, 'Expense draft saved');
     } catch (error) {
       if (reservationId) {

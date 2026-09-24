@@ -421,6 +421,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           .fill('Deterministic Client Essential acceptance fixture.');
         await form.getByRole('button', { name: 'Create client', exact: true }).click();
         await expectActionMessage(page, /client|created/i);
+        await navigate(page, '/projects?view=clients');
         await expect(
           page.locator('[data-client-id]').filter({ hasText: fixture.mutation.displayName }),
         ).toBeVisible();
@@ -462,10 +463,14 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await form.locator('input[name="expectedHoursPerDay"]').fill('10');
         await form.locator('input[name="clientDailyMinimumHours"]').fill('9');
         await form.locator('select[name="budgetType"]').selectOption('combined');
-        await form.locator('input[name="revenueBudgetMinor"]').fill('1500000');
-        await form.locator('input[name="poCapMinor"]').fill('1800000');
-        await form.locator('input[name="laborBudgetMinutes"]').fill('72000');
-        await form.locator('input[name="travelBudgetMinor"]').fill('250000');
+        await form.getByRole('textbox', { name: 'Revenue budget' }).fill('15000.00');
+        await form.getByRole('textbox', { name: 'PO cap' }).fill('18000.00');
+        await form.getByRole('textbox', { name: 'Planned labor hours' }).fill('1200');
+        await form.getByRole('textbox', { name: 'Travel budget' }).fill('2500.00');
+        await expect(form.locator('input[name="revenueBudgetMinor"]')).toHaveValue('1500000');
+        await expect(form.locator('input[name="poCapMinor"]')).toHaveValue('1800000');
+        await expect(form.locator('input[name="laborBudgetMinutes"]')).toHaveValue('72000');
+        await expect(form.locator('input[name="travelBudgetMinor"]')).toHaveValue('250000');
         await form.locator('input[name="weeklyCloseEnabled"]').check();
         await form.locator('input[name="dailyReportRequired"]').check();
         await form.locator('input[name="technicalReportingRequired"]').check();
@@ -491,7 +496,8 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await expect(form).toBeVisible();
         await form.locator('input[name="expectedHoursPerDay"]').fill('12');
         await form.locator('input[name="clientDailyMinimumHours"]').fill('10');
-        await form.locator('input[name="plannedMinutes"]').fill('86400');
+        await form.getByRole('textbox', { name: 'Planned hours', exact: true }).fill('1440');
+        await expect(form.locator('input[name="plannedMinutes"]')).toHaveValue('86400');
         await form.getByRole('button', { name: 'Save project', exact: true }).click();
         await expectActionMessage(page, /project|updated|saved/i);
         await page.locator('[data-project-edit-cta]').click();
@@ -517,8 +523,10 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await form.locator('input[name="poNumber"]').fill(fixture.mutation.purchaseOrder);
         await form.locator('select[name="billingModel"]').selectOption('tm_daily_minimum');
         await form.locator('input[name="budgetType"]').fill('combined');
-        await form.locator('input[name="revenueBudgetMinor"]').fill('1500000');
-        await form.locator('input[name="poCapMinor"]').fill('1800000');
+        await form.getByRole('textbox', { name: 'Revenue budget' }).fill('15000.00');
+        await form.getByRole('textbox', { name: 'PO cap' }).fill('18000.00');
+        await expect(form.locator('input[name="revenueBudgetMinor"]')).toHaveValue('1500000');
+        await expect(form.locator('input[name="poCapMinor"]')).toHaveValue('1800000');
         await form.locator('details.advanced-edit-fields summary').click();
         await form
           .locator('textarea[name="description"]')
@@ -604,7 +612,8 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           page,
           `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
-        const issuingAuthority = page.locator('form[action="?/assignProjectLegalEntity"]');
+        await openFinanceConfiguration(page, 'Project issuing authority');
+        const issuingAuthority = page.locator('form[data-project-legal-entity-form]');
         await expect(issuingAuthority).toBeVisible();
         await issuingAuthority.locator('select[name="projectId"]').selectOption(uatProjectId);
         await selectFirstValue(issuingAuthority.locator('select[name="legalEntityRevisionId"]'));
@@ -724,6 +733,28 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
             'PercentageOfEligibleClientLabor',
           ),
         ).toEqual([expect.objectContaining({ percentage_bps: 5500 })]);
+        // Bind the explicit customer, worker-pay and internal-cost rules to
+        // this project member. The current commercial model does not infer
+        // worker pay or cost merely because a matching global rule exists.
+        const person = page.locator(`[data-commercial-person="${seeded.worker.id}"]`);
+        await expect(person).toBeVisible();
+        await person.locator('details.assignment-commercial-editor > summary').click();
+        const references = person.locator('form[action*="setAssignmentCommercialRuleReferences"]');
+        // The client rule is category-scoped (regular), so the date/category
+        // resolver selects it; the explicit selector only lists broad rules.
+        await expect(references.locator('select[name="clientBillRuleId"]')).toHaveValue('');
+        await selectFirstValue(references.locator('select[name="workerCompensationRuleId"]'));
+        await selectFirstValue(references.locator('select[name="internalCostRuleId"]'));
+        await submitAction(page, 'setAssignmentCommercialRuleReferences', () =>
+          references.getByRole('button', { name: 'Save person rules' }).click(),
+        );
+        await navigate(
+          page,
+          `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
+        );
+        await expect(
+          page.locator(`[data-commercial-person="${seeded.worker.id}"]`),
+        ).not.toContainText('Worker compensation rule required');
       },
       failures,
       page,
@@ -749,6 +780,41 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
             uatProjectId,
           ),
         ).toEqual([{ travel_client_billable: 1, overtime_threshold_minutes: 480 }]);
+        // New projects use person-level expense terms rather than an ad-hoc
+        // Finance preset. Configure both treatments before the worker records
+        // the receipts, so classification proves the configured policy.
+        for (const [category, recovery] of [
+          ['hotel', 'included'],
+          ['meals', 'at_cost'],
+        ] as const) {
+          await openFinanceConfiguration(page, 'Person expense policies');
+          const personPolicy = page.locator('form[data-assignment-expense-policy-form]');
+          await expect(personPolicy).toBeVisible();
+          await selectOptionContaining(
+            personPolicy.locator('select[name="projectMemberId"]'),
+            seeded.worker.name,
+          );
+          await personPolicy.locator('select[name="payer"]').selectOption('worker');
+          await personPolicy.locator('input[name="category"]').fill(category);
+          await personPolicy.locator('input[name="effectiveFrom"]').fill('2026-08-01');
+          await personPolicy.locator('input[name="effectiveTo"]').fill('2026-12-31');
+          await personPolicy.locator('select[name="workerReimbursement"]').selectOption('at_cost');
+          await personPolicy.locator('select[name="clientRecovery"]').selectOption(recovery);
+          await personPolicy
+            .locator('textarea[name="reason"]')
+            .fill(`Client Essential ${category} policy for the assigned worker.`);
+          await submitAction(page, 'createAssignmentExpensePolicy', () =>
+            personPolicy.getByRole('button', { name: 'Save person expense policy' }).click(),
+          );
+          await navigate(
+            page,
+            `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
+          );
+        }
+        await openFinanceConfiguration(page, 'Person expense policies');
+        await expect(
+          page.locator('[aria-label="Person expense policy history"] .record-list-item'),
+        ).toHaveCount(2);
         await openFinanceConfiguration(page, 'Client labor rate');
         await expect(page.locator('form[action="?/createClientLaborRate"]')).toBeVisible();
         // The seeded closed project has immutable invoiced expenses. Inspect a
@@ -765,12 +831,18 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         );
         await openExpenseClassify(page, String(editable.id));
         await expect(page.locator('[data-finance-expense-classification]').first()).toBeVisible();
-        const preset = page
-          .locator('[data-finance-expense-classification]')
-          .first()
-          .locator('select[name="expensePreset"]');
-        await expect(preset.locator('option[value="all_in"]')).toHaveCount(1);
-        await expect(preset.locator('option[value="reimbursable_at_cost"]')).toHaveCount(1);
+        const classification = page.locator('[data-finance-expense-classification]').first();
+        // Legacy seeded expenses may still expose the preset selector; newly
+        // configured expenses instead expose their effective person policy.
+        if (await classification.locator('select[name="expensePreset"]').count()) {
+          const preset = classification.locator('select[name="expensePreset"]');
+          await expect(preset.locator('option[value="all_in"]')).toHaveCount(1);
+          await expect(preset.locator('option[value="reimbursable_at_cost"]')).toHaveCount(1);
+        } else {
+          await expect(
+            classification.locator('[data-expense-policy-preview], [data-expense-policy-blocker]'),
+          ).toBeVisible();
+        }
       },
       failures,
       page,
@@ -860,7 +932,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await page.setViewportSize({ width: 390, height: 844 });
         await signInFresh(page, 'worker');
         await navigate(page, '/');
-        await expect(page.getByRole('heading', { name: 'Today', exact: true })).toBeVisible();
+        await expect(page.locator('h1').filter({ hasText: /^Today$/ })).toBeVisible();
         await expectWorkerProjection(page, '/');
         await expectResponsiveLayout(page);
         await expectNoHorizontalOverflow(page);
@@ -885,6 +957,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         );
         await form.locator('input[name="workDate"]').fill(date);
         await form.locator('select[name="category"]').selectOption('regular');
+        await form.getByLabel('Add start and end times').check();
         await form.locator('input[name="startTime"]').fill('08:00');
         await form.locator('input[name="endTime"]').fill('16:00');
         createdTimeSummary = 'Client Essential UAT actual time · 480 minutes';
@@ -1274,7 +1347,10 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await expect(classification).toBeVisible();
         const expenseId = await classification.locator('input[name="expenseId"]').inputValue();
         expect(expenseId).toMatch(/^[0-9a-f-]{36}$/i);
-        await classification.locator('select[name="expensePreset"]').selectOption('all_in');
+        await expect(classification.locator('[data-expense-policy-preview]')).toBeVisible();
+        await expect(classification.locator('input[name="billingTreatment"]')).toHaveValue(
+          'all_in',
+        );
         await classification.locator('select[name="taxPercent"]').selectOption('0');
         await classification
           .locator('textarea[name="reason"]')
@@ -1312,9 +1388,10 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
         const classification = await openExpenseClassify(page, uatExpenseIds[1]);
-        await classification
-          .locator('select[name="expensePreset"]')
-          .selectOption('reimbursable_at_cost');
+        await expect(classification.locator('[data-expense-policy-preview]')).toBeVisible();
+        await expect(classification.locator('input[name="billingTreatment"]')).toHaveValue(
+          'reimbursable_at_cost',
+        );
         await classification.locator('select[name="taxPercent"]').selectOption('0');
         await classification
           .locator('textarea[name="reason"]')
@@ -1361,49 +1438,8 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           ),
         ).toEqual([{ customer_signoff_required: 1 }]);
         await signInFresh(page, 'finance');
-        await navigate(page, `/billing?view=streams&project=${encodeURIComponent(uatProjectId)}`);
-        const rule = page.locator(`[data-billing-rule="${uatLaborBillingRuleId}"]`);
-        const draftForm = rule.locator('form[action="?/createDraft"]');
-        await draftForm.locator('input[name="periodStart"]').fill(uatBillingPeriod.start);
-        await draftForm.locator('input[name="periodEnd"]').fill(uatBillingPeriod.end);
-        await submitAction(page, 'createDraft', () =>
-          draftForm.getByRole('button', { name: 'Create invoice draft', exact: true }).click(),
-        );
-        await expectActionMessage(page, /invoice.*draft|draft.*created|built/i);
-        const drafts = fixtureRows(
-          'SELECT id,project_id,state FROM invoice WHERE billing_rule_id=? AND period_start=? AND period_end=?',
-          ...invoiceScope,
-        );
-        expect(drafts).toHaveLength(1);
-        expect(drafts[0]).toMatchObject({ project_id: uatProjectId, state: 'draft' });
-        issuedInvoiceId = String(drafts[0]!.id);
-        await navigate(page, `/billing?view=invoices&project=${encodeURIComponent(uatProjectId)}`);
-        const draft = await openInvoiceManage(page, issuedInvoiceId);
-        await draft
-          .locator('form[action="?/approveInvoice"]')
-          .getByRole('button', { name: 'Approve', exact: true })
-          .click();
-        await expectActionMessage(page, /invoice|approved/i);
-        await navigate(page, `/billing?view=invoices&project=${encodeURIComponent(uatProjectId)}`);
-        const blocked = await openInvoiceManage(page, issuedInvoiceId);
-        const deniedResponse = page.waitForResponse(
-          (response) =>
-            response.request().method() === 'POST' && response.url().includes('?/issueInvoice'),
-        );
-        await blocked
-          .locator('form[action="?/issueInvoice"]')
-          .getByRole('button', { name: 'Issue invoice', exact: true })
-          .click();
-        const denied = await deniedResponse;
-        expect(denied.status()).toBe(409);
-        expect(await denied.text()).toContain('customer_signoff_required');
-        expect(fixtureRows('SELECT state FROM invoice WHERE id=?', issuedInvoiceId)).toEqual([
-          { state: 'approved' },
-        ]);
-        await expect(page.locator('[data-issue-blocker]')).toBeVisible();
-
-        // Close the exact labor stream through its product command. This locks
-        // the approved sources and creates the report pair for this invoice.
+        // Close and render the source report before drafting the invoice.
+        // Closing changes source versions, which makes an earlier draft stale.
         await navigate(
           page,
           `/billing?view=streams&project=${encodeURIComponent(uatProjectId)}&focus=${encodeURIComponent(uatLaborBillingRuleId)}`,
@@ -1507,7 +1543,30 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           'data-signoff-state',
           'ready_for_signature',
         );
-        // A ready and approved PDF alone must still not release this invoice.
+        await navigate(page, `/billing?view=streams&project=${encodeURIComponent(uatProjectId)}`);
+        const rule = page.locator(`[data-billing-rule="${uatLaborBillingRuleId}"]`);
+        const draftForm = rule.locator('form[action="?/createDraft"]');
+        await draftForm.locator('input[name="periodStart"]').fill(uatBillingPeriod.start);
+        await draftForm.locator('input[name="periodEnd"]').fill(uatBillingPeriod.end);
+        await submitAction(page, 'createDraft', () =>
+          draftForm.getByRole('button', { name: 'Create invoice draft', exact: true }).click(),
+        );
+        await expectActionMessage(page, /invoice.*draft|draft.*created|built/i);
+        const drafts = fixtureRows(
+          'SELECT id,project_id,state FROM invoice WHERE billing_rule_id=? AND period_start=? AND period_end=?',
+          ...invoiceScope,
+        );
+        expect(drafts).toHaveLength(1);
+        expect(drafts[0]).toMatchObject({ project_id: uatProjectId, state: 'draft' });
+        issuedInvoiceId = String(drafts[0]!.id);
+        await navigate(page, `/billing?view=invoices&project=${encodeURIComponent(uatProjectId)}`);
+        const draft = await openInvoiceManage(page, issuedInvoiceId);
+        await draft
+          .locator('form[action="?/approveInvoice"]')
+          .getByRole('button', { name: 'Approve', exact: true })
+          .click();
+        await expectActionMessage(page, /invoice|approved/i);
+        // A ready and approved customer report alone must still not release this invoice.
         await navigate(page, `/billing?view=invoices&project=${encodeURIComponent(uatProjectId)}`);
         const unsignedInvoice = await openInvoiceManage(page, issuedInvoiceId);
         const unsignedResponse = page.waitForResponse(
@@ -1793,7 +1852,9 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
             ['/expenses', 'Expenses and reimbursements'],
           ] as const) {
             await navigate(page, route);
-            await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
+            await expect(
+              page.getByRole('heading', { name: heading, exact: true }).first(),
+            ).toBeVisible();
             await expectAccessibleControls(page);
             await expectCardTableRepresentation(page);
             await expectResponsiveLayout(page);

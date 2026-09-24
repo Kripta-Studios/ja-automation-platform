@@ -36,7 +36,11 @@ export type PortalData = {
   compensationRules?: PortalRow[];
   clientLaborRates?: PortalRow[];
   internalCostRules?: PortalRow[];
+  assignmentExpensePolicies?: PortalRow[];
   commercialPolicies?: PortalRow[];
+  commercialTermsSummary?: PortalRow[];
+  commercialAsOf?: string;
+  commercialCategory?: string;
   financeExpenses?: PortalRow[];
   invoices?: PortalRow[];
   invoiceEmailDeliveries?: PortalRow[];
@@ -53,6 +57,7 @@ export type PortalData = {
   canonicalLegalEntityOptions?: PortalRow[];
   projectLegalEntityAssignments?: PortalRow[];
   canonicalAssignmentCommandToken?: string;
+  canonicalRevisionCommandToken?: string;
   canonicalAuthorityAsOf?: string;
   taxProfiles?: PortalRow[];
   selectedProjectId?: string;
@@ -133,6 +138,8 @@ export type PortalData = {
     hoursConsumedBps?: string | null;
     travelBudgetConsumedBps?: string | null;
     travelBudgetMinor?: string | null;
+    expenseBudgetConsumedBps?: string | null;
+    expenseBudgetMinor?: string | null;
     forecastAvailable?: boolean;
     alerts?: string[];
     contributionMarginBps?: string;
@@ -157,4 +164,8 @@ export type PortalData = {
   };
 };
 
-export type PortalActionResult = { success?: boolean; message?: string } | null;
+export type PortalActionResult = {
+  success?: boolean;
+  message?: string;
+  messageKey?: string;
+} | null;

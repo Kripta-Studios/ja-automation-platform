@@ -279,6 +279,8 @@ describe('project finance XLSX export', () => {
         receivableMinor: '81000',
         approvedUnbilledWipMinor: '33456',
         unapprovedWipMinor: '0',
+        expenseBudgetMinor: '95050',
+        expenseBudgetConsumedBps: '2575',
         alerts: ['MISSING_RATE'],
         reasons: [{ code: 'missing_client_rate', sourceId: 'time-1' }],
         approvedUnbilledSources: [
@@ -390,6 +392,13 @@ describe('project finance XLSX export', () => {
     expect(summary).toContain('123456');
     expect(summary).toContain('1.50');
     expect(summary).toContain('37.80%');
+    const summaryRows = [...summary.matchAll(/<row r="(\d+)"[^>]*>([\s\S]*?)<\/row>/gu)];
+    const expenseBudgetRow = summaryRows.find((row) => row[2]?.includes('Expense budget</t>'));
+    const expenseBudgetUsedRow = summaryRows.find((row) =>
+      row[2]?.includes('Expense budget consumed</t>'),
+    );
+    expect(expenseBudgetRow?.[2]).toContain('<v>950.5</v>');
+    expect(expenseBudgetUsedRow?.[2]).toContain('25.75%');
     expect(summary).not.toContain('laborRevenueMinor');
     expect(cellByHeader(files, 1, 'amount', 11)).toContain('<v>1234.56</v>');
     expect(cellByHeader(files, 1, 'exactMinorUnits', 11)).toContain('<is><t>123456</t></is>');

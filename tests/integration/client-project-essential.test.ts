@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   AccessDeniedError,
   ConflictError,
@@ -23,6 +23,28 @@ function fixture(): B5LifecycleSecurityFixture {
 }
 
 describe('Client Essential CORE-02 clients, projects and assignments', () => {
+  it('shows an assignment on the project civil date before UTC midnight', () => {
+    const value = fixture();
+    value.sqlite
+      .prepare('UPDATE project SET timezone=? WHERE id=?')
+      .run('Europe/Madrid', value.project.id);
+    value.repository.assignWorker(value.owner, {
+      projectId: value.project.id,
+      workerId: 'b5-outsider',
+      startsOn: '2026-09-24',
+    });
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-09-23T23:00:00.000Z'));
+      const worker = value.repository.principalFor('b5-outsider');
+      expect(value.repository.listAssignedProjects(worker)).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: value.project.id })]),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('keeps a blank end date open-ended and permits the assigned worker to record time', () => {
     const value = fixture();
     const assignment = value.repository.assignWorker(value.owner, {
@@ -191,6 +213,7 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
   it('creates an effective project-manager membership and exposes the project version in assigned listings', () => {
     const value = fixture();
     const created = value.repository.createProject(value.owner, {
+      costCenterCode: 'QA-CLIENT-PROJECT-ESSENTIAL-TEST-1',
       clientId: value.client.id,
       name: 'Managed project',
       timezone: 'Europe/Madrid',
@@ -778,6 +801,7 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
     });
 
     const emptyProject = value.repository.createProject(value.owner, {
+      costCenterCode: 'QA-CLIENT-PROJECT-ESSENTIAL-TEST-2',
       clientId: client.id,
       name: 'Mistaken Test Project',
       timezone: 'Europe/Madrid',
@@ -811,6 +835,7 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
   it('accepts decimal hours for expectedHoursPerDay and clientDailyMinimumHours and stores exact minutes in DB', () => {
     const value = fixture();
     const project = value.repository.createProject(value.owner, {
+      costCenterCode: 'QA-CLIENT-PROJECT-ESSENTIAL-TEST-3',
       clientId: value.client.id,
       name: 'Decimal Hours Project',
       timezone: 'Europe/Madrid',
@@ -854,6 +879,7 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
     // Validation prevents > 24 hours
     expect(() =>
       value.repository.createProject(value.owner, {
+        costCenterCode: 'QA-CLIENT-PROJECT-ESSENTIAL-TEST-4',
         clientId: value.client.id,
         name: 'Invalid Hours Project',
         timezone: 'Europe/Madrid',

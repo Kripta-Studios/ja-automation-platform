@@ -515,6 +515,7 @@ describe('Client Essential canonical project legal-entity authority', () => {
     const finance = steppedUp(value, value.finance, 'finance');
     const revisionIdValue = revisionId(createRevision(value, finance));
     const unconfiguredProject = value.repository.createProject(value.owner, {
+      costCenterCode: 'QA-CANONICAL-PROJECT-LEGAL-ENTITY-TEST-1',
       clientId: value.client.id,
       name: 'No canonical legal entity project',
       timezone: 'Europe/Madrid',

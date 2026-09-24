@@ -210,6 +210,7 @@ describe('period report explicit technical-report selection', () => {
       approvalState: 'approved',
     });
     const otherProject = value.repository.createProject(value.owner, {
+      costCenterCode: 'QA-REPORT-SELECTION-APPROVAL-TEST-1',
       clientId: value.client.id,
       name: 'Other report-selection project',
       timezone: 'Europe/Madrid',

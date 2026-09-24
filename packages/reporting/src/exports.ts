@@ -1271,6 +1271,7 @@ function projectFinanceSummaryRows(
   const budget = money('budgetMinor');
   const remaining = money('remainingCapMinor');
   const travelBudget = money('travelBudgetMinor');
+  const expenseBudget = money('expenseBudgetMinor');
   const etc = money('estimateToCompleteMinor');
   const eacCost = money('estimateAtCompletionCostMinor');
   const eacRevenue = money('estimateAtCompletionRevenueMinor');
@@ -1309,6 +1310,12 @@ function projectFinanceSummaryRows(
     summaryMoneyRow(labels.forecast, 'Remaining cap', currency, locale, remaining),
     summaryPercentageRow(labels.forecast, 'Budget consumed', finance.budgetConsumedBps),
     summaryMoneyRow(labels.forecast, 'Travel budget', currency, locale, travelBudget),
+    summaryMoneyRow(labels.forecast, 'Expense budget', currency, locale, expenseBudget),
+    summaryPercentageRow(
+      labels.forecast,
+      'Expense budget consumed',
+      finance.expenseBudgetConsumedBps,
+    ),
     summaryMoneyRow(labels.forecast, 'Estimate to complete', currency, locale, etc),
     summaryMoneyRow(labels.forecast, 'Estimate at completion cost', currency, locale, eacCost),
     summaryMoneyRow(

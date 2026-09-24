@@ -3,7 +3,6 @@ import { createHash, randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import {
   billableMinutesForDailyMinimum,
-  chooseMostSpecificRate,
   overtimeRate,
   periodForCadence,
   percentageOfEligibleClientLabor,
@@ -35,6 +34,13 @@ import { canonicalJson, sha256 as canonicalSha256 } from './core/canonical-json.
 import { verifyPrivatePdfArtifact } from './core/private-pdf-proof.ts';
 import { assertSafeStorageKey } from './core/storage-key.ts';
 import { runImmediateTransaction } from './core/transaction.ts';
+import {
+  resolveAssignmentCommercialTerms,
+  resolveClientLaborRule,
+  resolveInternalCostRule,
+  resolveWorkerCompensationRule,
+  type CommercialTermsIssue,
+} from './domains/commercial/assignment-commercial-terms.ts';
 import { runDueConfiguredDurableJobsSync, type DurableJobExecutionContext } from './runner.ts';
 import {
   DURABLE_JOB_CAPABILITY_BY_KIND,
@@ -1646,6 +1652,270 @@ export class V3Repository {
     });
   }
 
+  private commercialAssignmentForUpdate(
+    principal: Principal,
+    projectMemberId: string,
+    expectedVersion: number,
+  ) {
+    if (!Number.isInteger(expectedVersion) || expectedVersion < 1)
+      throw new V3ValidationError('Assignment version is required');
+    const row = this.sqlite
+      .prepare(
+        `SELECT pm.id,pm.project_id,pm.user_id,pm.starts_on,pm.ends_on,pm.status,
+                pm.version,pm.client_bill_rule_id,pm.worker_compensation_rule_id,
+                pm.internal_cost_rule_id,pm.allow_global_compensation_fallback,
+                pm.allow_global_internal_cost_fallback,p.currency
+         FROM project_member pm JOIN project p ON p.id=pm.project_id WHERE pm.id=?`,
+      )
+      .get(projectMemberId) as
+      | {
+          id: string;
+          project_id: string;
+          user_id: string;
+          starts_on: string;
+          ends_on: string | null;
+          status: string;
+          version: number;
+          client_bill_rule_id: string | null;
+          worker_compensation_rule_id: string | null;
+          internal_cost_rule_id: string | null;
+          allow_global_compensation_fallback: number;
+          allow_global_internal_cost_fallback: number;
+          currency: V3Currency;
+        }
+      | undefined;
+    if (!row || row.status !== 'active')
+      throw new V3ValidationError('Active project assignment not found');
+    this.assertProjectAccess(principal, row.project_id);
+    if (row.version !== expectedVersion)
+      throw new V3ConflictError('Project assignment changed before commercial update');
+    return row;
+  }
+
+  private assertCommercialAssignmentHasNoTime(assignment: {
+    project_id: string;
+    user_id: string;
+    starts_on: string;
+    ends_on: string | null;
+  }): void {
+    const time = this.sqlite
+      .prepare(
+        `SELECT id FROM time_entry WHERE project_id=? AND worker_id=? AND work_date>=?
+          AND (? IS NULL OR work_date<=?) LIMIT 1`,
+      )
+      .get(
+        assignment.project_id,
+        assignment.user_id,
+        assignment.starts_on,
+        assignment.ends_on,
+        assignment.ends_on,
+      );
+    if (time)
+      throw new V3ConflictError(
+        'Assignment commercial terms cannot change after time has been recorded; use a date-effective rule',
+      );
+  }
+
+  setAssignmentCommercialFallback(
+    principal: Principal,
+    input: Readonly<{
+      projectMemberId: string;
+      allowGlobalCompensation: boolean;
+      allowGlobalInternalCost: boolean;
+      expectedVersion: number;
+    }>,
+  ): Readonly<{
+    projectMemberId: string;
+    version: number;
+    allowGlobalCompensation: boolean;
+    allowGlobalInternalCost: boolean;
+  }> {
+    this.assertFinance(principal);
+    this.assertLiveSession(principal);
+    if (
+      typeof input.allowGlobalCompensation !== 'boolean' ||
+      typeof input.allowGlobalInternalCost !== 'boolean'
+    )
+      throw new V3ValidationError('Global fallback settings must be explicit booleans');
+    return this.transaction(() => {
+      const assignment = this.commercialAssignmentForUpdate(
+        principal,
+        input.projectMemberId,
+        input.expectedVersion,
+      );
+      const changed =
+        (assignment.allow_global_compensation_fallback === 1) !== input.allowGlobalCompensation ||
+        (assignment.allow_global_internal_cost_fallback === 1) !== input.allowGlobalInternalCost;
+      if (!changed)
+        return {
+          projectMemberId: assignment.id,
+          version: assignment.version,
+          allowGlobalCompensation: input.allowGlobalCompensation,
+          allowGlobalInternalCost: input.allowGlobalInternalCost,
+        };
+      this.assertCommercialAssignmentHasNoTime(assignment);
+      const result = this.sqlite
+        .prepare(
+          `UPDATE project_member SET allow_global_compensation_fallback=?,
+             allow_global_internal_cost_fallback=?,updated_at=?,version=version+1
+           WHERE id=? AND version=?`,
+        )
+        .run(
+          input.allowGlobalCompensation ? 1 : 0,
+          input.allowGlobalInternalCost ? 1 : 0,
+          timestamp(),
+          assignment.id,
+          assignment.version,
+        );
+      if (result.changes !== 1)
+        throw new V3ConflictError('Project assignment changed before commercial update');
+      this.audit(
+        principal,
+        'assignment.commercial_fallback_update',
+        'project_member',
+        assignment.id,
+        {
+          projectId: assignment.project_id,
+          allowGlobalCompensation: input.allowGlobalCompensation,
+          allowGlobalInternalCost: input.allowGlobalInternalCost,
+        },
+      );
+      return {
+        projectMemberId: assignment.id,
+        version: assignment.version + 1,
+        allowGlobalCompensation: input.allowGlobalCompensation,
+        allowGlobalInternalCost: input.allowGlobalInternalCost,
+      };
+    });
+  }
+
+  setAssignmentCommercialRuleReferences(
+    principal: Principal,
+    input: Readonly<{
+      projectMemberId: string;
+      clientBillRuleId?: string | null;
+      workerCompensationRuleId?: string | null;
+      internalCostRuleId?: string | null;
+      expectedVersion: number;
+    }>,
+  ): Readonly<{
+    projectMemberId: string;
+    version: number;
+    clientBillRuleId: string | null;
+    workerCompensationRuleId: string | null;
+    internalCostRuleId: string | null;
+  }> {
+    this.assertFinance(principal);
+    this.assertLiveSession(principal);
+    return this.transaction(() => {
+      const assignment = this.commercialAssignmentForUpdate(
+        principal,
+        input.projectMemberId,
+        input.expectedVersion,
+      );
+      const clientBillRuleId =
+        input.clientBillRuleId === undefined
+          ? assignment.client_bill_rule_id
+          : input.clientBillRuleId;
+      const workerCompensationRuleId =
+        input.workerCompensationRuleId === undefined
+          ? assignment.worker_compensation_rule_id
+          : input.workerCompensationRuleId;
+      const internalCostRuleId =
+        input.internalCostRuleId === undefined
+          ? assignment.internal_cost_rule_id
+          : input.internalCostRuleId;
+      const references = [
+        ['client', clientBillRuleId],
+        ['compensation', workerCompensationRuleId],
+        ['internal', internalCostRuleId],
+      ] as const;
+      for (const [kind, ruleId] of references) {
+        if (ruleId === null) continue;
+        if (typeof ruleId !== 'string' || !ruleId.trim() || ruleId !== ruleId.trim())
+          throw new V3ValidationError('Commercial rule ID is invalid');
+        const table =
+          kind === 'client'
+            ? 'client_labor_rate'
+            : kind === 'compensation'
+              ? 'compensation_rule'
+              : 'internal_cost_rule';
+        const rule = this.sqlite
+          .prepare(
+            `SELECT project_id,worker_id,currency,effective_from,effective_to${kind === 'client' ? ',category' : ''}
+             FROM ${table} WHERE id=?`,
+          )
+          .get(ruleId) as
+          | {
+              project_id: string | null;
+              worker_id: string | null;
+              currency: V3Currency;
+              effective_from: string;
+              effective_to: string | null;
+              category?: string | null;
+            }
+          | undefined;
+        if (
+          !rule ||
+          rule.currency !== assignment.currency ||
+          (kind === 'client' && rule.project_id !== assignment.project_id) ||
+          (kind !== 'client' &&
+            rule.project_id !== null &&
+            rule.project_id !== assignment.project_id) ||
+          (rule.worker_id !== null && rule.worker_id !== assignment.user_id) ||
+          (kind === 'client' && rule.category !== null) ||
+          rule.effective_from > assignment.starts_on ||
+          (rule.effective_to !== null &&
+            (assignment.ends_on === null || rule.effective_to < assignment.ends_on))
+        )
+          throw new V3ValidationError(
+            'Commercial rule is unavailable for the full assignment scope and dates',
+          );
+      }
+      const changed =
+        clientBillRuleId !== assignment.client_bill_rule_id ||
+        workerCompensationRuleId !== assignment.worker_compensation_rule_id ||
+        internalCostRuleId !== assignment.internal_cost_rule_id;
+      if (!changed)
+        return {
+          projectMemberId: assignment.id,
+          version: assignment.version,
+          clientBillRuleId,
+          workerCompensationRuleId,
+          internalCostRuleId,
+        };
+      this.assertCommercialAssignmentHasNoTime(assignment);
+      const result = this.sqlite
+        .prepare(
+          `UPDATE project_member SET client_bill_rule_id=?,worker_compensation_rule_id=?,
+            internal_cost_rule_id=?,updated_at=?,version=version+1 WHERE id=? AND version=?`,
+        )
+        .run(
+          clientBillRuleId,
+          workerCompensationRuleId,
+          internalCostRuleId,
+          timestamp(),
+          assignment.id,
+          assignment.version,
+        );
+      if (result.changes !== 1)
+        throw new V3ConflictError('Project assignment changed before commercial update');
+      this.audit(principal, 'assignment.commercial_rules_update', 'project_member', assignment.id, {
+        projectId: assignment.project_id,
+        clientBillRuleId,
+        workerCompensationRuleId,
+        internalCostRuleId,
+      });
+      return {
+        projectMemberId: assignment.id,
+        version: assignment.version + 1,
+        clientBillRuleId,
+        workerCompensationRuleId,
+        internalCostRuleId,
+      };
+    });
+  }
+
   createAssignmentRateOverride(principal: Principal, input: OverrideInput): { id: string } {
     this.assertFinance(principal);
     this.assertLiveSession(principal);
@@ -1762,6 +2032,12 @@ export class V3Repository {
     return row?.id ?? null;
   }
 
+  private assertCommercialRuleAvailable(issues: readonly CommercialTermsIssue[]): void {
+    const blocking = issues.find((item) => !item.code.startsWith('missing_'));
+    if (blocking)
+      throw new V3ConflictError(`Commercial terms require configuration: ${blocking.code}`);
+  }
+
   private compensationRuleFor(
     projectId: string,
     workerId: string,
@@ -1769,54 +2045,15 @@ export class V3Repository {
     workDate: string,
     activityCode?: string | null,
   ): CompensationRuleRow | null {
-    const assignmentId = this.assignmentId(projectId, workerId, workDate);
-    if (assignmentId) {
-      const override = this.sqlite
-        .prepare(
-          `SELECT compensation_rule_id
-           FROM assignment_rate_override
-           WHERE project_member_id=? AND (time_category=? OR time_category IS NULL)
-              AND (activity_code=? OR activity_code IS NULL)
-              AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)
-           ORDER BY (time_category IS NOT NULL) DESC, (activity_code IS NOT NULL) DESC,
-                    priority DESC, effective_from DESC, id DESC LIMIT 1`,
-        )
-        .get(assignmentId, category, activityCode ?? null, workDate, workDate) as
-        | { compensation_rule_id: string | null }
-        | undefined;
-      if (override?.compensation_rule_id) {
-        const specific = this.sqlite
-          .prepare(
-            `SELECT cr.id,cr.worker_id,cr.project_id,cr.currency,CAST(cr.rate_minor AS TEXT) rate_minor,
-                    cr.rate_basis,cr.daily_guarantee_minutes,cr.rule_type,cr.percentage_bps,
-                    cr.percentage_basis,cr.settlement_trigger,cr.overtime_method,
-                    cr.overtime_multiplier_bps,CAST(cr.overtime_rate_minor AS TEXT) overtime_rate_minor,
-                    cr.weekend_method,cr.travel_method,cr.standby_method,cr.effective_from
-               FROM compensation_rule cr
-              WHERE cr.id=? AND cr.worker_id=? AND (cr.project_id=? OR cr.project_id IS NULL)
-                AND cr.effective_from<=? AND (cr.effective_to IS NULL OR cr.effective_to>=?)`,
-          )
-          .get(override.compensation_rule_id, workerId, projectId, workDate, workDate) as
-          | CompensationRuleRow
-          | undefined;
-        if (specific) return specific;
-      }
-    }
-    return (
-      (this.sqlite
-        .prepare(
-          `SELECT cr.id,cr.worker_id,cr.project_id,cr.currency,CAST(cr.rate_minor AS TEXT) rate_minor,
-                  cr.rate_basis,cr.daily_guarantee_minutes,cr.rule_type,cr.percentage_bps,
-                  cr.percentage_basis,cr.settlement_trigger,cr.overtime_method,
-                  cr.overtime_multiplier_bps,CAST(cr.overtime_rate_minor AS TEXT) overtime_rate_minor,
-                  cr.weekend_method,cr.travel_method,cr.standby_method,cr.effective_from
-             FROM compensation_rule cr
-            WHERE cr.worker_id=? AND (cr.project_id=? OR cr.project_id IS NULL)
-              AND cr.effective_from<=? AND (cr.effective_to IS NULL OR cr.effective_to>=?)
-            ORDER BY (cr.project_id IS NOT NULL) DESC, cr.effective_from DESC, cr.id DESC LIMIT 1`,
-        )
-        .get(workerId, projectId, workDate, workDate) as CompensationRuleRow | undefined) ?? null
-    );
+    const result = resolveWorkerCompensationRule(this.sqlite, {
+      projectId,
+      workerId,
+      category,
+      workDate,
+      activityCode,
+    });
+    this.assertCommercialRuleAvailable(result.issues);
+    return result.selected?.rule ?? null;
   }
 
   private clientRateFor(
@@ -1826,62 +2063,69 @@ export class V3Repository {
     workDate: string,
     activityCode?: string | null,
   ): LaborRateRow | null {
-    const assignmentId = this.assignmentId(projectId, workerId, workDate);
-    if (assignmentId) {
-      const override = this.sqlite
-        .prepare(
-          `SELECT client_labor_rate_id
-           FROM assignment_rate_override
-           WHERE project_member_id=? AND (time_category=? OR time_category IS NULL)
-              AND (activity_code=? OR activity_code IS NULL)
-              AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)
-           ORDER BY (time_category IS NOT NULL) DESC, (activity_code IS NOT NULL) DESC,
-                    priority DESC, effective_from DESC, id DESC LIMIT 1`,
-        )
-        .get(assignmentId, category, activityCode ?? null, workDate, workDate) as
-        | { client_labor_rate_id: string | null }
-        | undefined;
-      if (override?.client_labor_rate_id) {
-        const specific = this.sqlite
-          .prepare(
-            `SELECT clr.id,clr.project_id,clr.worker_id,clr.category,clr.currency,
-                    CAST(clr.hourly_rate_minor AS TEXT) hourly_rate_minor,clr.effective_from,
-                    clr.effective_to,clr.rate_basis,clr.overtime_method,clr.overtime_multiplier_bps,
-                    CAST(clr.overtime_rate_minor AS TEXT) overtime_rate_minor,clr.eligible_for_percentage
-               FROM client_labor_rate clr
-              WHERE clr.id=? AND clr.project_id=? AND (clr.worker_id=? OR clr.worker_id IS NULL)
-                AND clr.effective_from<=? AND (clr.effective_to IS NULL OR clr.effective_to>=?)`,
-          )
-          .get(override.client_labor_rate_id, projectId, workerId, workDate, workDate) as
-          | LaborRateRow
-          | undefined;
-        if (specific) return specific;
-      }
-    }
-    const candidates = this.sqlite
-      .prepare(
-        `SELECT clr.id,clr.project_id,clr.worker_id,clr.category,clr.currency,
-                CAST(clr.hourly_rate_minor AS TEXT) hourly_rate_minor,clr.effective_from,
-                clr.effective_to,clr.rate_basis,clr.overtime_method,clr.overtime_multiplier_bps,
-                CAST(clr.overtime_rate_minor AS TEXT) overtime_rate_minor,clr.eligible_for_percentage
-           FROM client_labor_rate clr
-          WHERE clr.project_id=? AND (clr.worker_id=? OR clr.worker_id IS NULL)
-            AND (clr.category=? OR clr.category IS NULL)
-            AND clr.effective_from<=? AND (clr.effective_to IS NULL OR clr.effective_to>=?)`,
-      )
-      .all(projectId, workerId, category, workDate, workDate) as LaborRateRow[];
-    const selected = chooseMostSpecificRate(
-      candidates.map((row) => ({
-        ...row,
-        assignmentSpecific: false,
-        workerSpecific: row.worker_id !== null,
-        categorySpecific: row.category !== null,
-        activitySpecific: false,
-        priority: 0,
-        effectiveFrom: row.effective_from,
-      })),
-    );
-    return selected ? (selected as unknown as LaborRateRow) : null;
+    const result = resolveClientLaborRule(this.sqlite, {
+      projectId,
+      workerId,
+      category,
+      workDate,
+      activityCode,
+    });
+    this.assertCommercialRuleAvailable(result.issues);
+    return result.selected?.rule ?? null;
+  }
+
+  /** Finance-only explanation of effective source rules; no money is calculated here. */
+  resolveAssignmentCommercialTerms(
+    principal: Principal,
+    projectId: string,
+    workerId: string,
+    category: string,
+    workDate: string,
+    activityCode?: string | null,
+  ) {
+    this.assertFinanceReadable(principal);
+    this.assertProjectAccess(principal, projectId, true);
+    const selected = resolveAssignmentCommercialTerms(this.sqlite, {
+      projectId,
+      workerId,
+      category,
+      workDate,
+      activityCode,
+    });
+    // Return only documented finance projections and source provenance. No raw
+    // SQL rows are exposed to worker or project-manager routes.
+    return {
+      assignmentId: selected.assignmentId,
+      allowGlobalCompensation: selected.allowGlobalCompensation,
+      allowGlobalInternalCost: selected.allowGlobalInternalCost,
+      clientLaborRate: selected.clientLaborRate
+        ? {
+            id: selected.clientLaborRate.rule.id,
+            currency: selected.clientLaborRate.rule.currency,
+            hourlyRateMinor: selected.clientLaborRate.rule.hourly_rate_minor,
+            provenance: selected.clientLaborRate.provenance,
+          }
+        : null,
+      workerCompensation: selected.workerCompensation
+        ? {
+            id: selected.workerCompensation.rule.id,
+            currency: selected.workerCompensation.rule.currency,
+            rateMinor: selected.workerCompensation.rule.rate_minor,
+            rateBasis: selected.workerCompensation.rule.rate_basis,
+            ruleType: selected.workerCompensation.rule.rule_type,
+            provenance: selected.workerCompensation.provenance,
+          }
+        : null,
+      internalCost: selected.internalCost
+        ? {
+            id: selected.internalCost.rule.id,
+            currency: selected.internalCost.rule.currency,
+            hourlyRateMinor: selected.internalCost.rule.hourly_rate_minor,
+            provenance: selected.internalCost.provenance,
+          }
+        : null,
+      issues: selected.issues,
+    };
   }
 
   /**
@@ -2055,52 +2299,15 @@ export class V3Repository {
     workDate: string,
     activityCode?: string | null,
   ): InternalCostRow | null {
-    const assignmentId = this.assignmentId(projectId, workerId, workDate);
-    if (assignmentId) {
-      const override = this.sqlite
-        .prepare(
-          `SELECT internal_cost_rule_id
-           FROM assignment_rate_override
-           WHERE project_member_id=? AND (time_category=? OR time_category IS NULL)
-              AND (activity_code=? OR activity_code IS NULL)
-              AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)
-           ORDER BY (time_category IS NOT NULL) DESC, (activity_code IS NOT NULL) DESC,
-                    priority DESC, effective_from DESC, id DESC LIMIT 1`,
-        )
-        .get(assignmentId, category, activityCode ?? null, workDate, workDate) as
-        | { internal_cost_rule_id: string | null }
-        | undefined;
-      if (override?.internal_cost_rule_id) {
-        const specific = this.sqlite
-          .prepare(
-            `SELECT ic.id,ic.worker_id,ic.project_id,ic.currency,
-                    CAST(ic.hourly_rate_minor AS TEXT) hourly_rate_minor,ic.effective_from,
-                    ic.effective_to,ic.overtime_method,ic.overtime_multiplier_bps,
-                    CAST(ic.overtime_rate_minor AS TEXT) overtime_rate_minor
-               FROM internal_cost_rule ic
-              WHERE ic.id=? AND ic.worker_id=? AND (ic.project_id=? OR ic.project_id IS NULL)
-                AND ic.effective_from<=? AND (ic.effective_to IS NULL OR ic.effective_to>=?)`,
-          )
-          .get(override.internal_cost_rule_id, workerId, projectId, workDate, workDate) as
-          | InternalCostRow
-          | undefined;
-        if (specific) return specific;
-      }
-    }
-    return (
-      (this.sqlite
-        .prepare(
-          `SELECT ic.id,ic.worker_id,ic.project_id,ic.currency,
-                  CAST(ic.hourly_rate_minor AS TEXT) hourly_rate_minor,ic.effective_from,
-                  ic.effective_to,ic.overtime_method,ic.overtime_multiplier_bps,
-                  CAST(ic.overtime_rate_minor AS TEXT) overtime_rate_minor
-             FROM internal_cost_rule ic
-            WHERE ic.worker_id=? AND (ic.project_id=? OR ic.project_id IS NULL)
-              AND ic.effective_from<=? AND (ic.effective_to IS NULL OR ic.effective_to>=?)
-            ORDER BY (ic.project_id IS NOT NULL) DESC, ic.effective_from DESC, ic.id DESC LIMIT 1`,
-        )
-        .get(workerId, projectId, workDate, workDate) as InternalCostRow | undefined) ?? null
-    );
+    const result = resolveInternalCostRule(this.sqlite, {
+      projectId,
+      workerId,
+      category,
+      workDate,
+      activityCode,
+    });
+    this.assertCommercialRuleAvailable(result.issues);
+    return result.selected?.rule ?? null;
   }
 
   private clientRateAmount(row: Pick<TimeRow, 'category'>, rate: LaborRateRow): bigint {
@@ -2339,6 +2546,16 @@ export class V3Repository {
           row.work_date,
           row.activity_code,
         );
+        if (
+          row.billability_state === 'billable' &&
+          !clientRate &&
+          (rule.rule_type === 'PercentageOfEligibleClientLabor' ||
+            (row.category === 'overtime' &&
+              rule.overtime_method === 'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME'))
+        )
+          throw new V3ConflictError(
+            `Client labor rate is required before percentage compensation can settle for ${row.id}`,
+          );
         const current = byRule.get(rule.id) ?? {
           rule,
           sourceAmount: 0n,
@@ -3059,13 +3276,16 @@ export class V3Repository {
                 CAST(e.amount_minor AS TEXT) amount_minor,
                 CAST(e.project_currency_amount_minor AS TEXT) project_currency_amount_minor,
                 CAST(e.reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,
-                e.reimbursement_state,e.reimbursement_reference,p.project_number,p.name project_name,
+                e.reimbursement_state,e.reimbursement_reference,e.expense_policy_required,
+                p.project_number,p.name project_name,
                 p.currency project_currency,
                 u.name worker_name
          FROM expense e
          JOIN project p ON p.id=e.project_id
          JOIN user u ON u.id=e.worker_id
          WHERE e.who_paid='worker' AND e.approval_state IN ('approved','locked')
+           AND (e.expense_policy_required=0 OR
+                (e.commercial_classification_state='classified' AND e.reimbursement_amount_minor>0))
            AND NOT EXISTS (
              SELECT 1
                FROM record_correction_link rcl
@@ -3100,9 +3320,11 @@ export class V3Repository {
           : row.project_currency_amount_minor,
       ),
       reimbursementAmountMinor: String(
-        row.project_currency_amount_minor === null
-          ? row.amount_minor
-          : (row.reimbursement_amount_minor ?? row.project_currency_amount_minor),
+        row.expense_policy_required === 1
+          ? row.reimbursement_amount_minor
+          : row.project_currency_amount_minor === null
+            ? row.amount_minor
+            : (row.reimbursement_amount_minor ?? row.project_currency_amount_minor),
       ),
       reimbursementState: row.reimbursement_state,
       reimbursementReference: row.reimbursement_reference,
@@ -3316,12 +3538,17 @@ export class V3Repository {
         `SELECT e.approval_state,
                 CASE WHEN e.project_currency_amount_minor IS NULL THEN e.currency ELSE p.currency END currency,
                 CAST(CASE WHEN e.project_currency_amount_minor IS NULL
-                          THEN e.amount_minor
-                          ELSE COALESCE(e.reimbursement_amount_minor,e.project_currency_amount_minor)
+                          THEN CASE WHEN e.expense_policy_required=1
+                                    THEN e.reimbursement_amount_minor ELSE e.amount_minor END
+                          ELSE CASE WHEN e.expense_policy_required=1
+                                    THEN e.reimbursement_amount_minor
+                                    ELSE COALESCE(e.reimbursement_amount_minor,e.project_currency_amount_minor) END
                      END AS TEXT) amount
          FROM expense e JOIN project p ON p.id=e.project_id
          WHERE e.worker_id=? AND e.spent_on BETWEEN ? AND ? AND e.who_paid='worker'
            AND e.approval_state NOT IN ('rejected','void')
+           AND (e.expense_policy_required=0 OR
+                (e.commercial_classification_state='classified' AND e.reimbursement_amount_minor>0))
            AND NOT EXISTS (
              SELECT 1
                FROM record_correction_link rcl
@@ -3440,7 +3667,7 @@ export class V3Repository {
     const project = this.sqlite
       .prepare(
         `SELECT client_id,currency,client_daily_minimum_minutes,revenue_budget_minor,po_cap_minor,
-                labor_budget_minutes,travel_budget_minor,planned_minutes,billing_model,fixed_price_minor
+                labor_budget_minutes,travel_budget_minor,expense_budget_minor,planned_minutes,billing_model,fixed_price_minor
          FROM project WHERE id=?`,
       )
       .get(projectId) as
@@ -3452,6 +3679,7 @@ export class V3Repository {
           po_cap_minor: number | null;
           labor_budget_minutes: number | null;
           travel_budget_minor: number | null;
+          expense_budget_minor: number | null;
           planned_minutes: number | null;
           billing_model: string;
           fixed_price_minor: number | null;
@@ -3570,24 +3798,44 @@ export class V3Repository {
         minutes: slice.minutes,
         category: slice.category === 'overtime' ? 'overtime' : row.category,
       }));
+      const financeRule = <T>(resolve: () => T): T | null => {
+        try {
+          return resolve();
+        } catch (error) {
+          const prefix = 'Commercial terms require configuration: ';
+          if (!(error instanceof V3ConflictError) || !error.message.startsWith(prefix)) throw error;
+          const code = error.message.slice(prefix.length);
+          if (!timeFinanceReasons.some((issue) => issue.code === code && issue.sourceId === row.id))
+            timeFinanceReasons.push({ code, sourceId: row.id });
+          return null;
+        }
+      };
+      const financeRules = {
+        internalCostFor: (...args: Parameters<V3Repository['internalCostFor']>) =>
+          financeRule(() => this.internalCostFor(...args)),
+        compensationRuleFor: (...args: Parameters<V3Repository['compensationRuleFor']>) =>
+          financeRule(() => this.compensationRuleFor(...args)),
+        clientRateFor: (...args: Parameters<V3Repository['clientRateFor']>) =>
+          financeRule(() => this.clientRateFor(...args)),
+      };
       const economicRules = economicRows.map((economicRow) => {
         const internalRate =
           economicRow.category === 'overtime'
-            ? (this.internalCostFor(
+            ? (financeRules.internalCostFor(
                 projectId,
                 row.worker_id,
                 'overtime',
                 row.work_date,
                 row.activity_code,
               ) ??
-              this.internalCostFor(
+              financeRules.internalCostFor(
                 projectId,
                 row.worker_id,
                 row.category,
                 row.work_date,
                 row.activity_code,
               ))
-            : this.internalCostFor(
+            : financeRules.internalCostFor(
                 projectId,
                 row.worker_id,
                 row.category,
@@ -3596,21 +3844,21 @@ export class V3Repository {
               );
         const compensationRule =
           economicRow.category === 'overtime'
-            ? (this.compensationRuleFor(
+            ? (financeRules.compensationRuleFor(
                 projectId,
                 row.worker_id,
                 'overtime',
                 row.work_date,
                 row.activity_code,
               ) ??
-              this.compensationRuleFor(
+              financeRules.compensationRuleFor(
                 projectId,
                 row.worker_id,
                 row.category,
                 row.work_date,
                 row.activity_code,
               ))
-            : this.compensationRuleFor(
+            : financeRules.compensationRuleFor(
                 projectId,
                 row.worker_id,
                 row.category,
@@ -3631,21 +3879,21 @@ export class V3Repository {
       const pricedPotentialClientSlices = commerciallyPotentialBillableSlices.map((slice) => {
         const selectedRate =
           slice.category === 'overtime'
-            ? (this.clientRateFor(
+            ? (financeRules.clientRateFor(
                 projectId,
                 row.worker_id,
                 'overtime',
                 row.work_date,
                 row.activity_code,
               ) ??
-              this.clientRateFor(
+              financeRules.clientRateFor(
                 projectId,
                 row.worker_id,
                 row.category,
                 row.work_date,
                 row.activity_code,
               ))
-            : this.clientRateFor(
+            : financeRules.clientRateFor(
                 projectId,
                 row.worker_id,
                 row.category,
@@ -3729,21 +3977,21 @@ export class V3Repository {
       const compensation = economicRules.reduce((sum, item) => {
         const clientRate =
           item.row.category === 'overtime'
-            ? (this.clientRateFor(
+            ? (financeRules.clientRateFor(
                 projectId,
                 row.worker_id,
                 'overtime',
                 row.work_date,
                 row.activity_code,
               ) ??
-              this.clientRateFor(
+              financeRules.clientRateFor(
                 projectId,
                 row.worker_id,
                 row.category,
                 row.work_date,
                 row.activity_code,
               ))
-            : this.clientRateFor(
+            : financeRules.clientRateFor(
                 projectId,
                 row.worker_id,
                 row.category,
@@ -3901,6 +4149,8 @@ export class V3Repository {
         `SELECT e.id,e.spent_on,e.worker_id,e.category,e.currency,
                 CAST(e.amount_minor AS TEXT) amount_minor,
                 CAST(e.project_currency_amount_minor AS TEXT) project_currency_amount_minor,
+                CAST(e.reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,
+                e.expense_policy_required,
                 e.who_paid,e.client_treatment,e.billing_treatment,
                 CAST(e.billing_amount_minor AS TEXT) billing_amount_minor,
                 e.approval_state,e.finance_approved_at,e.invoice_id,e.version,
@@ -3925,6 +4175,8 @@ export class V3Repository {
       currency: string;
       amount_minor: string;
       project_currency_amount_minor: string | null;
+      reimbursement_amount_minor: string | null;
+      expense_policy_required: number;
       who_paid: string;
       client_treatment: string;
       billing_treatment: string;
@@ -3966,15 +4218,15 @@ export class V3Repository {
               : 'missing_expense_currency_conversion',
           sourceId: expense.id,
         });
-      const actualCost = projectionMissing
-        ? 0n
-        : BigInt(
-            isClassified
-              ? (expense.project_currency_amount_minor ?? 0)
-              : expense.currency === project.currency
-                ? expense.amount_minor
-                : (expense.project_currency_amount_minor ?? 0),
-          );
+      const incurredCost =
+        expense.who_paid === 'worker' && expense.expense_policy_required === 1
+          ? expense.reimbursement_amount_minor
+          : isClassified
+            ? expense.project_currency_amount_minor
+            : expense.currency === project.currency
+              ? expense.amount_minor
+              : expense.project_currency_amount_minor;
+      const actualCost = projectionMissing || isDirect ? 0n : BigInt(incurredCost ?? 0);
       const directCost = !isDirect && !projectionMissing ? actualCost : 0n;
       const revenue =
         isBillable && !projectionMissing
@@ -4156,50 +4408,130 @@ export class V3Repository {
          WHERE project_id=? AND status<>'cancelled' AND ends_at>=? AND starts_at<=?`,
       )
       .get(projectId, `${start}T00:00:00.000Z`, `${end}T23:59:59.999Z`) as { minutes: number };
-    const memberPlanning = this.sqlite
-      .prepare(
-        `SELECT COALESCE(SUM(planned_minutes),0) minutes
-         FROM project_member
-         WHERE project_id=? AND status='active'`,
-      )
-      .get(projectId) as { minutes: number };
-    const plannedMinutes =
-      project.planned_minutes ??
-      (planning.minutes > 0
-        ? planning.minutes
-        : memberPlanning.minutes > 0
-          ? memberPlanning.minutes
-          : null);
-    const plannedRemainingMinutes =
-      plannedMinutes === null ? null : Math.max(0, plannedMinutes - actualMinutes);
     const forecastDate = periodEnd ?? new Date().toISOString().slice(0, 10);
+    const memberPlans = this.sqlite
+      .prepare(
+        `SELECT user_id worker_id, SUM(planned_minutes) minutes
+         FROM project_member
+         WHERE project_id=? AND status='active' AND planned_minutes IS NOT NULL
+           AND (ends_on IS NULL OR ends_on>=?)
+         GROUP BY user_id`,
+      )
+      .all(projectId, forecastDate) as Array<{
+      worker_id: string;
+      minutes: number;
+    }>;
+    const detailedPlans = this.sqlite
+      .prepare(
+        `SELECT worker_id, SUM(planned_minutes) minutes
+         FROM planning_assignment
+         WHERE project_id=? AND status<>'cancelled' AND ends_at>=? AND starts_at<=?
+         GROUP BY worker_id`,
+      )
+      .all(projectId, `${start}T00:00:00.000Z`, `${end}T23:59:59.999Z`) as Array<{
+      worker_id: string;
+      minutes: number;
+    }>;
+    // A dated planning row refines that person's assignment plan. It must not
+    // hide other people's assignment plans when only part of the team has a
+    // detailed calendar.
+    const plansByWorker = new Map(memberPlans.map((row) => [row.worker_id, row]));
+    for (const row of detailedPlans) plansByWorker.set(row.worker_id, row);
+    const personPlans = [...plansByWorker.values()];
+    const personPlannedMinutes = personPlans.reduce((sum, row) => sum + row.minutes, 0);
+    const plannedMinutes =
+      personPlans.length > 0
+        ? personPlannedMinutes
+        : (project.planned_minutes ?? (planning.minutes > 0 ? planning.minutes : null));
+    const approvedMinutesByWorker = new Map<string, number>();
+    for (const row of time) {
+      if (row.approval_state !== 'approved' && row.approval_state !== 'locked') continue;
+      approvedMinutesByWorker.set(
+        row.worker_id,
+        (approvedMinutesByWorker.get(row.worker_id) ?? 0) + row.minutes,
+      );
+    }
+    const plannedRemainingMinutes =
+      plannedMinutes === null
+        ? null
+        : personPlans.length > 0
+          ? personPlans.reduce(
+              (sum, row) =>
+                sum + Math.max(0, row.minutes - (approvedMinutesByWorker.get(row.worker_id) ?? 0)),
+              0,
+            )
+          : Math.max(0, plannedMinutes - actualMinutes);
     const assignedWorkers = this.sqlite
       .prepare(
-        `SELECT DISTINCT user_id worker_id
+        `SELECT user_id worker_id, MIN(starts_on) starts_on
          FROM project_member
-         WHERE project_id=? AND status='active' AND starts_on<=?
-           AND (ends_on IS NULL OR ends_on>=?)`,
+         WHERE project_id=? AND status='active'
+           AND (ends_on IS NULL OR ends_on>=?)
+         GROUP BY user_id`,
       )
-      .all(projectId, forecastDate, forecastDate) as Array<{ worker_id: string }>;
+      .all(projectId, forecastDate) as Array<{ worker_id: string; starts_on: string }>;
     let fallbackCostRate = 0n;
     let fallbackClientRate = 0n;
     let fallbackRateCount = 0;
+    const forecastCommercialIssues: Array<{ code: string; sourceId: string }> = [];
+    const forecastRatesByWorker = new Map<string, { cost: bigint; client: bigint }>();
     for (const worker of assignedWorkers) {
-      const internalRate = this.internalCostFor(
+      const context = {
         projectId,
-        worker.worker_id,
-        'regular',
-        forecastDate,
+        workerId: worker.worker_id,
+        category: 'regular',
+        workDate: worker.starts_on > forecastDate ? worker.starts_on : forecastDate,
+      };
+      const internal = resolveInternalCostRule(this.sqlite, context);
+      const client = resolveClientLaborRule(this.sqlite, context);
+      const blocking = [...internal.issues, ...client.issues].find(
+        (issue) => !issue.code.startsWith('missing_'),
       );
-      const clientRate = this.clientRateFor(projectId, worker.worker_id, 'regular', forecastDate);
+      if (blocking) {
+        forecastCommercialIssues.push({ code: blocking.code, sourceId: worker.worker_id });
+        continue;
+      }
+      const internalRate = internal.selected?.rule ?? null;
+      const clientRate = client.selected?.rule ?? null;
       if (
         internalRate?.currency === project.currency &&
         clientRate?.currency === project.currency
       ) {
-        fallbackCostRate += this.internalCostAmount({ category: 'regular' }, internalRate);
-        fallbackClientRate += this.clientRateAmount({ category: 'regular' }, clientRate);
+        const cost = this.internalCostAmount({ category: 'regular' }, internalRate);
+        const clientCharge = this.clientRateAmount({ category: 'regular' }, clientRate);
+        forecastRatesByWorker.set(worker.worker_id, { cost, client: clientCharge });
+        fallbackCostRate += cost;
+        fallbackClientRate += clientCharge;
         fallbackRateCount += 1;
       }
+    }
+    // A mixed-rate project must forecast each person's remaining hours at that
+    // person's terms. Averaging rates first gives a plausible but incorrect
+    // answer when the assigned hours are unequal.
+    let personRemainingCost = 0n;
+    let personRemainingRevenue = 0n;
+    for (const row of personPlans) {
+      const remaining = Math.max(
+        0,
+        row.minutes - (approvedMinutesByWorker.get(row.worker_id) ?? 0),
+      );
+      if (remaining === 0) continue;
+      const rates = forecastRatesByWorker.get(row.worker_id);
+      if (!rates) {
+        forecastCommercialIssues.push({
+          code: 'missing_person_forecast_rate',
+          sourceId: row.worker_id,
+        });
+        continue;
+      }
+      personRemainingCost += hourlyRateForMinutes(
+        money(project.currency, rates.cost),
+        remaining,
+      ).minorUnits;
+      personRemainingRevenue += hourlyRateForMinutes(
+        money(project.currency, rates.client),
+        remaining,
+      ).minorUnits;
     }
     const averageCostRate =
       approvedMinutes > 0
@@ -4214,25 +4546,41 @@ export class V3Repository {
           ? divideRounded(fallbackClientRate, BigInt(fallbackRateCount))
           : null;
     const estimateToCompleteLaborCost =
-      plannedRemainingMinutes === null || averageCostRate === null
+      plannedRemainingMinutes === null || forecastCommercialIssues.length > 0
         ? null
-        : hourlyRateForMinutes(money(project.currency, averageCostRate), plannedRemainingMinutes)
-            .minorUnits;
+        : personPlans.length > 0
+          ? personRemainingCost
+          : averageCostRate === null
+            ? null
+            : hourlyRateForMinutes(
+                money(project.currency, averageCostRate),
+                plannedRemainingMinutes,
+              ).minorUnits;
     const estimateToCompleteLaborRevenue =
-      plannedRemainingMinutes === null || averageClientRate === null
+      plannedRemainingMinutes === null || forecastCommercialIssues.length > 0
         ? null
-        : hourlyRateForMinutes(money(project.currency, averageClientRate), plannedRemainingMinutes)
-            .minorUnits;
-    const remainingTravelBudget =
-      project.travel_budget_minor === null
-        ? 0n
-        : BigInt(project.travel_budget_minor) > travelCost
-          ? BigInt(project.travel_budget_minor) - travelCost
-          : 0n;
+        : personPlans.length > 0
+          ? personRemainingRevenue
+          : averageClientRate === null
+            ? null
+            : hourlyRateForMinutes(
+                money(project.currency, averageClientRate),
+                plannedRemainingMinutes,
+              ).minorUnits;
+    const remainingExpenseBudget =
+      project.expense_budget_minor !== null
+        ? BigInt(project.expense_budget_minor) > expenseCost
+          ? BigInt(project.expense_budget_minor) - expenseCost
+          : 0n
+        : project.travel_budget_minor !== null
+          ? BigInt(project.travel_budget_minor) > travelCost
+            ? BigInt(project.travel_budget_minor) - travelCost
+            : 0n
+          : null;
     const estimateToComplete =
-      estimateToCompleteLaborCost === null
+      estimateToCompleteLaborCost === null || remainingExpenseBudget === null
         ? null
-        : estimateToCompleteLaborCost + remainingTravelBudget;
+        : estimateToCompleteLaborCost + remainingExpenseBudget;
     const estimateAtCompletionCost =
       estimateToComplete === null ? null : directCost + estimateToComplete;
     const estimateAtCompletionRevenue =
@@ -4248,6 +4596,10 @@ export class V3Repository {
     const travelBudgetConsumedBps =
       project.travel_budget_minor && project.travel_budget_minor > 0
         ? divideRounded(travelCost * 10_000n, BigInt(project.travel_budget_minor))
+        : null;
+    const expenseBudgetConsumedBps =
+      project.expense_budget_minor && project.expense_budget_minor > 0
+        ? divideRounded(expenseCost * 10_000n, BigInt(project.expense_budget_minor))
         : null;
     const budgetConsumedBps =
       budget && budget > 0 ? divideRounded(revenue * 10_000n, BigInt(budget)) : null;
@@ -4278,8 +4630,12 @@ export class V3Repository {
     if (expenseFinanceReasons.length > 0) alerts.push('MISSING_EXPENSE_FINANCE_PROJECTION');
     return {
       state:
-        timeFinanceReasons.length > 0 || expenseFinanceReasons.length > 0 ? 'incomplete' : 'ready',
-      reasons: [...timeFinanceReasons, ...expenseFinanceReasons],
+        timeFinanceReasons.length > 0 ||
+        expenseFinanceReasons.length > 0 ||
+        forecastCommercialIssues.length > 0
+          ? 'incomplete'
+          : 'ready',
+      reasons: [...timeFinanceReasons, ...expenseFinanceReasons, ...forecastCommercialIssues],
       currency: project.currency,
       billingModel: project.billing_model,
       fixedPriceMinor:
@@ -4319,7 +4675,10 @@ export class V3Repository {
       unapprovedLaborWipMinor: unapprovedWip.toString(),
       unapprovedExpenseWipMinor: unapprovedExpenseWip.toString(),
       budgetMinor: budget === null ? null : String(budget),
-      remainingCapMinor: budget === null ? null : (BigInt(budget) - invoicedSubtotal).toString(),
+      remainingCapMinor:
+        project.po_cap_minor === null
+          ? null
+          : (BigInt(project.po_cap_minor) - invoicedSubtotal).toString(),
       budgetConsumedBps: budgetConsumedBps === null ? null : budgetConsumedBps.toString(),
       costBudgetConsumedBps:
         costBudgetConsumedBps === null ? null : costBudgetConsumedBps.toString(),
@@ -4328,6 +4687,10 @@ export class V3Repository {
         project.travel_budget_minor === null ? null : String(project.travel_budget_minor),
       travelBudgetConsumedBps:
         travelBudgetConsumedBps === null ? null : travelBudgetConsumedBps.toString(),
+      expenseBudgetMinor:
+        project.expense_budget_minor === null ? null : String(project.expense_budget_minor),
+      expenseBudgetConsumedBps:
+        expenseBudgetConsumedBps === null ? null : expenseBudgetConsumedBps.toString(),
       plannedMinutes,
       plannedRemainingMinutes,
       estimateToCompleteMinor: estimateToComplete === null ? null : estimateToComplete.toString(),
@@ -4349,7 +4712,13 @@ export class V3Repository {
       forecastBasis:
         plannedMinutes === null
           ? 'No detailed plan configured'
-          : 'Actual plus active planning assignments',
+          : forecastCommercialIssues.length > 0
+            ? 'Assignment terms require configuration'
+            : project.expense_budget_minor === null && project.travel_budget_minor === null
+              ? 'Expense budget not configured; labor estimate only'
+              : personPlans.length > 0
+                ? 'Actual plus each person’s remaining planned hours and effective rates'
+                : 'Actual plus aggregate planned hours at blended rates',
       alerts,
       dailyMinimumTopUpMinor: dailyMinimumTopUp.toString(),
       missingRateCount: missingRates,
@@ -5756,7 +6125,7 @@ export class V3Repository {
     return this.transaction(() => {
       const expense = this.sqlite
         .prepare(
-          "SELECT id,worker_id,CAST(amount_minor AS TEXT) amount_minor,CAST(reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,reimbursement_state,reimbursement_reference FROM expense WHERE id=? AND approval_state IN ('approved','locked') AND who_paid='worker' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=expense.id AND correction.approval_state<>'rejected')",
+          "SELECT id,worker_id,CAST(amount_minor AS TEXT) amount_minor,CAST(reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,reimbursement_state,reimbursement_reference,expense_policy_required,commercial_classification_state FROM expense WHERE id=? AND approval_state IN ('approved','locked') AND who_paid='worker' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=expense.id AND correction.approval_state<>'rejected')",
         )
         .get(input.expenseId) as
         | {
@@ -5766,10 +6135,22 @@ export class V3Repository {
             reimbursement_amount_minor: string | null;
             reimbursement_state: string;
             reimbursement_reference: string | null;
+            expense_policy_required: number;
+            commercial_classification_state: string;
           }
         | undefined;
       if (!expense) throw new V3ValidationError('Approved worker-paid expense required');
-      const expenseAmount = BigInt(expense.amount_minor);
+      if (
+        expense.expense_policy_required === 1 &&
+        (expense.commercial_classification_state !== 'classified' ||
+          BigInt(expense.reimbursement_amount_minor ?? '0') <= 0n)
+      )
+        throw new V3ValidationError('Configured worker reimbursement is required');
+      const expenseAmount = BigInt(
+        expense.expense_policy_required === 1
+          ? expense.reimbursement_amount_minor!
+          : expense.amount_minor,
+      );
       const amount = input.amountMinor ?? expenseAmount;
       if (amount <= 0n || amount > expenseAmount)
         throw new V3ValidationError('Reimbursement amount is outside the expense balance');
@@ -8073,6 +8454,8 @@ export class V3Repository {
                 e.currency,CAST(e.amount_minor AS TEXT) amount_minor,
                 CAST(e.tax_amount_minor AS TEXT) tax_amount_minor,
                 CAST(e.project_currency_amount_minor AS TEXT) project_currency_amount_minor,
+                CAST(e.reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,
+                e.expense_policy_required,
                 CAST(e.billing_amount_minor AS TEXT) billing_amount_minor,
                 e.reimbursement_state,e.receipt_document_id,e.billing_state,e.version,
                 e.invoice_id,p.project_number,p.currency project_currency,u.name worker_name
@@ -8102,6 +8485,8 @@ export class V3Repository {
         amount_minor: string;
         tax_amount_minor: string | null;
         project_currency_amount_minor: string | null;
+        reimbursement_amount_minor: string | null;
+        expense_policy_required: number;
         billing_amount_minor: string | null;
         reimbursement_state: string;
         receipt_document_id: string | null;
@@ -8137,13 +8522,19 @@ export class V3Repository {
         const netProjectMinor = BigInt(
           expense.project_currency_amount_minor ?? expense.amount_minor,
         );
+        const companyCostMinor =
+          expense.who_paid === 'client' || expense.treatment === 'client_direct'
+            ? 0n
+            : expense.who_paid === 'worker' && expense.expense_policy_required === 1
+              ? BigInt(expense.reimbursement_amount_minor ?? '0')
+              : netProjectMinor;
         const taxMinor = BigInt(expense.tax_amount_minor ?? 0);
-        if (expense.who_paid !== 'client' && expense.treatment !== 'client_direct') {
-          addAmount(expenseCostByCurrency, expense.project_currency, netProjectMinor);
+        if (companyCostMinor > 0n) {
+          addAmount(expenseCostByCurrency, expense.project_currency, companyCostMinor);
           addAmount(
             travelCategories.has(expense.category) ? travelCostByCurrency : otherCostByCurrency,
             expense.project_currency,
-            netProjectMinor,
+            companyCostMinor,
           );
         }
         return {
@@ -8166,6 +8557,7 @@ export class V3Repository {
           grossMinor: (BigInt(expense.amount_minor) + taxMinor).toString(),
           projectCurrency: expense.project_currency,
           projectCurrencyAmountMinor: netProjectMinor.toString(),
+          companyCostMinor: companyCostMinor.toString(),
           billingAmountMinor:
             expense.billing_amount_minor === null ? null : String(expense.billing_amount_minor),
           reimbursementStatus: expense.reimbursement_state,
@@ -8363,7 +8755,9 @@ export class V3Repository {
         .prepare(
           `SELECT e.id,e.worker_id,e.project_id,e.spent_on,e.currency,p.currency project_currency,
                 CAST(e.amount_minor AS TEXT) amount_minor,
-                CAST(e.project_currency_amount_minor AS TEXT) project_currency_amount_minor
+                CAST(e.project_currency_amount_minor AS TEXT) project_currency_amount_minor,
+                CAST(e.reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,
+                e.expense_policy_required
          FROM expense e JOIN project p ON p.id=e.project_id
          WHERE e.spent_on BETWEEN ? AND ? AND e.approval_state IN ('approved','locked')
            AND e.who_paid='worker'
@@ -8386,6 +8780,8 @@ export class V3Repository {
         project_currency: V3Currency;
         amount_minor: string;
         project_currency_amount_minor: string | null;
+        reimbursement_amount_minor: string | null;
+        expense_policy_required: number;
       }>;
       const reimbursementByWorkerProject = new Map<string, bigint>();
       for (const row of reimbursementRows) {
@@ -8398,7 +8794,11 @@ export class V3Repository {
         reimbursementByWorkerProject.set(
           key,
           (reimbursementByWorkerProject.get(key) ?? 0n) +
-            BigInt(row.project_currency_amount_minor ?? row.amount_minor),
+            BigInt(
+              row.expense_policy_required === 1
+                ? (row.reimbursement_amount_minor ?? '0')
+                : (row.project_currency_amount_minor ?? row.amount_minor),
+            ),
         );
       }
       const settledRows = this.sqlite
@@ -8658,10 +9058,10 @@ export class V3Repository {
           );
           const travelCost = scopedExpenses
             .filter((row) => isDirectExpense(row) && travelCategories.has(row.category))
-            .reduce((sum, row) => sum + BigInt(row.projectCurrencyAmountMinor), 0n);
+            .reduce((sum, row) => sum + BigInt(row.companyCostMinor), 0n);
           const otherDirectCost = scopedExpenses
             .filter((row) => isDirectExpense(row) && !travelCategories.has(row.category))
-            .reduce((sum, row) => sum + BigInt(row.projectCurrencyAmountMinor), 0n);
+            .reduce((sum, row) => sum + BigInt(row.companyCostMinor), 0n);
           const directCost = internalLabor + travelCost + otherDirectCost;
           const contribution = net - directCost;
           return {
@@ -8903,11 +9303,7 @@ export class V3Repository {
       const expenseSourceCostByCurrency = new Map<V3Currency, bigint>();
       for (const row of expenses) {
         if (row.whoPaid === 'client' || row.billingTreatment === 'client_direct') continue;
-        addAmount(
-          expenseSourceCostByCurrency,
-          row.projectCurrency,
-          BigInt(row.projectCurrencyAmountMinor),
-        );
+        addAmount(expenseSourceCostByCurrency, row.projectCurrency, BigInt(row.companyCostMinor));
       }
       const paymentSourceByCurrency = new Map<V3Currency, bigint>();
       for (const payment of paymentRows)
@@ -10615,6 +11011,14 @@ export class V3Repository {
       if (!parsed.success) throw new V3ValidationError('Invalid offline expense draft');
       const input = parsed.data;
       this.assertOfflineAssignment(principal, input.projectId, input.spentOn);
+      if (input.timeEntryId) {
+        const linkedTime = this.sqlite
+          .prepare(
+            "SELECT 1 FROM time_entry WHERE id=? AND project_id=? AND worker_id=? AND work_date=? AND approval_state NOT IN ('rejected','void')",
+          )
+          .get(input.timeEntryId, input.projectId, principal.userId, input.spentOn);
+        if (!linkedTime) throw new V3AccessDeniedError('A matching active time record is required');
+      }
       const project = this.sqlite
         .prepare('SELECT currency FROM project WHERE id=?')
         .get(input.projectId) as { currency: V3Currency } | undefined;
@@ -10634,19 +11038,17 @@ export class V3Repository {
       }
       // Offline intake has the same operational-only contract as the online
       // Worker action. Finance/Admin classifies commercial treatment later.
-      const reimbursementAmountMinor =
-        input.whoPaid === 'worker' && input.currency === project.currency
-          ? sqliteInteger(input.amountMinor, 'Reimbursement')
-          : null;
       this.sqlite
         .prepare(
-          'INSERT INTO expense(id,project_id,worker_id,spent_on,category,currency,amount_minor,client_treatment,vendor,description,who_paid,payment_method,receipt_required,receipt_document_id,approval_state,reimbursement_state,billing_treatment,markup_bps,billing_amount_minor,project_currency_amount_minor,tax_amount_minor,fx_rate_bps,reimbursement_amount_minor,commercial_classification_state,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          'INSERT INTO expense(id,project_id,worker_id,spent_on,occurred_time_local,time_entry_id,category,currency,amount_minor,client_treatment,vendor,description,who_paid,payment_method,receipt_required,receipt_document_id,approval_state,reimbursement_state,billing_treatment,markup_bps,billing_amount_minor,project_currency_amount_minor,tax_amount_minor,fx_rate_bps,reimbursement_amount_minor,commercial_classification_state,expense_policy_required,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
         )
         .run(
           mutation.entityId,
           input.projectId,
           principal.userId,
           input.spentOn,
+          input.occurredTimeLocal ?? null,
+          input.timeEntryId ?? null,
           input.category,
           input.currency,
           sqliteInteger(input.amountMinor, 'Expense amount'),
@@ -10665,8 +11067,9 @@ export class V3Repository {
           null,
           null,
           null,
-          reimbursementAmountMinor,
+          null,
           'unclassified',
+          1,
           timestampValue,
           timestampValue,
         );

@@ -136,6 +136,7 @@ describe('ASTRA C1 period follow-up repository', () => {
       paymentTermsDays: 30,
     });
     const secondProject = value.repository.createProject(value.owner, {
+      costCenterCode: 'QA-ASTRA-PERIOD-FOLLOWUP-TEST-1',
       clientId: secondClient.id,
       name: 'C1 second project',
       timezone: 'Europe/Madrid',

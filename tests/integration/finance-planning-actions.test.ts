@@ -134,6 +134,7 @@ describe('Finance-only expense classification and planning action contracts', ()
       billingTreatment: 'reimbursable_at_cost',
       markupBps: 0,
       taxBps: 0,
+      overrideExpensePolicy: false,
       reason: classificationForm.reason,
       idempotencyKey: classificationForm.idempotencyKey,
     });
@@ -166,6 +167,7 @@ describe('Finance-only expense classification and planning action contracts', ()
       billingTreatment: 'reimbursable_at_cost',
       markupBps: 0,
       taxBps: 0,
+      overrideExpensePolicy: false,
       reason: classificationForm.reason,
       idempotencyKey: classificationForm.idempotencyKey,
     });
@@ -343,6 +345,22 @@ describe('Finance-only expense classification and planning action contracts', ()
       status: 409,
       data: { success: false, messageKey: 'action.error.conflict' },
     });
+  });
+
+  it('names the missing project issuing authority when expense classification is blocked', async () => {
+    const classifyExpenseCommercially = vi.fn(() => {
+      throw new ConflictError('No canonical legal-entity assignment is effective on this date');
+    });
+    const value = context({ repository: { classifyExpenseCommercially } });
+    openPortalRepository.mockReturnValue(value);
+    const result = await financeActions.classifyExpenseCommercially(
+      event('classifyExpenseCommercially', classificationForm),
+    );
+    expect(result).toMatchObject({
+      status: 409,
+      data: { success: false, messageKey: 'action.finance.projectIssuingAuthorityRequired' },
+    });
+    expect(value.sqlite.close).toHaveBeenCalledOnce();
   });
 
   it('keeps every planning schema strict and versioned where the domain requires it', () => {

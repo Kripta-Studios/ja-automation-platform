@@ -24,6 +24,7 @@ async function openTimeForm(page: Page, role: 'worker' | 'owner' = 'worker'): Pr
     if (!workerId) throw new Error('The owner fixture needs an available worker.');
     await worker.selectOption(workerId);
   }
+  await form.getByRole('checkbox', { name: 'Add start and end times' }).check();
   await form.locator('[name="startTime"]').fill('09:00');
   await form.locator('[name="endTime"]').fill('13:00');
   await form.locator('[name="breakMinutes"]').fill('15');
@@ -94,6 +95,28 @@ test('time blocks duplicate writes, freezes the submitted interval and focuses n
   await expect(page).toHaveURL((url) => url.pathname.endsWith('/time'));
   await error.scrollIntoViewIfNeeded();
   await sheet.screenshot({ path: info.outputPath('time-save-failure.png') });
+});
+
+test('time and linked expense controls fit phone and tablet sheets with each value retained', async ({ page }, info) => {
+  test.skip(!requiredViewports.has(info.project.name));
+  const form = await openTimeForm(page);
+  await form.getByRole('checkbox', { name: 'Add an expense with these hours' }).check();
+  await form.locator('[name="expenseVendor"]').fill('Site parking');
+  await form.locator('[name="expenseOccurredTimeLocal"]').fill('14:25');
+  await form.locator('[name="expenseAmount"]').fill('4.50');
+  await form.locator('[name="expenseCurrency"]').selectOption('EUR');
+  await form.locator('[name="expenseDescription"]').fill('Parking during installation');
+  await expect(form.locator('[name="requestId"]')).toHaveValue(/^[a-f0-9-]{36}$/u);
+  await expect(form.locator('[name="expenseVendor"]')).toBeVisible();
+  await expect(form.locator('[name="expenseAmount"]')).toHaveValue('4.50');
+  await expect(form.locator('[name="expenseCurrency"]')).toHaveValue('EUR');
+  const metrics = await page.locator('[data-ui="responsive-sheet"]').evaluate((sheet) => ({
+    width: sheet.getBoundingClientRect().width,
+    scrollWidth: sheet.scrollWidth,
+    viewportWidth: window.innerWidth,
+  }));
+  expect(metrics.width).toBeLessThanOrEqual(metrics.viewportWidth + 1);
+  expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.width + 1);
 });
 
 test('time server validation focuses its field and removes the obsolete summary after correction', async ({

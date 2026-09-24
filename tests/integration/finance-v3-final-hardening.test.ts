@@ -83,6 +83,7 @@ function fixture() {
     paymentTermsDays: 30,
   });
   const project = repository.createProject(owner, {
+    costCenterCode: 'QA-FINANCE-V3-FINAL-HARDENING-TEST-1',
     clientId: client.id,
     name: 'Final Finance Project',
     timezone: 'UTC',

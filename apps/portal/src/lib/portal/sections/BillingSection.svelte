@@ -187,6 +187,7 @@
   const canManageBilling = $derived(
     !isAuditor && ['owner_admin', 'finance_admin'].includes(String(data.user.role ?? '')),
   );
+  const canManageIssuerAndNumbering = $derived(data.user.role === 'owner_admin');
 
   $effect(() => {
     const requestedView = $page.url.searchParams.get('view')?.trim();
@@ -572,6 +573,7 @@
   }
 
   function invoiceStatus(invoice: Row): string {
+    if (invoiceState(invoice) === 'superseded') return translate('Superseded');
     return (
       controlledValue('status', rowValue(invoice, 'state')) ||
       rowValue(invoice, 'state') ||
@@ -594,6 +596,8 @@
   }
 
   function invoiceTitle(invoice: Row): string {
+    if (invoiceState(invoice) === 'superseded')
+      return `${translate('Superseded approved invoice')} · ${rowValue(invoice, 'id').slice(0, 8)}`;
     return rowValue(invoice, 'invoice_number', 'invoiceNumber') || translate('Draft invoice');
   }
 
@@ -611,6 +615,10 @@
   }
 
   function nextStepCopy(state: string): string {
+    if (state === 'superseded')
+      return translate(
+        'This approved version was replaced. Its amounts and lines remain available for review.',
+      );
     if (state === 'draft')
       return translate(
         'Approve this draft after Finance has reviewed the lines. The client does not receive it yet.',
@@ -1157,6 +1165,12 @@
             <button
               type="button"
               aria-pressed={setupAction === action.id}
+              disabled={!canManageIssuerAndNumbering &&
+                (action.id === 'entity' || action.id === 'numbering')}
+              title={!canManageIssuerAndNumbering &&
+              (action.id === 'entity' || action.id === 'numbering')
+                ? translate('Owner access')
+                : undefined}
               onclick={() => (setupAction = action.id)}
             >
               {translate(action.label)}
@@ -1168,6 +1182,11 @@
             'Choose one action. The portal will show only the fields needed for that task.',
           )}
         </p>
+        {#if !canManageIssuerAndNumbering}
+          <p class="billing-section__setup-help">
+            {translate('Legal entities and invoice numbering policies require owner access.')}
+          </p>
+        {/if}
 
         <div class="billing-section__directories">
           <details class="billing-reference-directory" use:disclosure>
@@ -1358,7 +1377,7 @@
         {/if}
 
         <div class="billing-section__config-compact-grid">
-          {#if setupAction === 'entity'}
+          {#if setupAction === 'entity' && canManageIssuerAndNumbering}
             <form method="POST" action="?/createLegalEntity" class="billing-section__config-form">
               <h4>{translate('New legal entity')}</h4>
               <label><span>{translate('Code')}</span><input name="code" required /></label>
@@ -1466,7 +1485,7 @@
             </form>
           {/if}
 
-          {#if setupAction === 'numbering'}
+          {#if setupAction === 'numbering' && canManageIssuerAndNumbering}
             <form
               method="POST"
               action="?/createInvoiceNumberPolicy"
@@ -2421,6 +2440,19 @@
                       <button type="submit" class="danger">{translate('Discard draft')}</button>
                     </form>
                   {:else if invoiceStateValue === 'approved'}
+                    <form method="POST" action="?/recalculateApprovedInvoice">
+                      <input type="hidden" name="version" value={invoice.version} />
+                      <input type="hidden" name="invoiceId" value={invoiceId} />
+                      <label
+                        >{translate('Recalculation reason')}<input
+                          name="reason"
+                          minlength="3"
+                          maxlength="2000"
+                          required
+                        /></label
+                      >
+                      <button type="submit">{translate('Recalculate and review draft')}</button>
+                    </form>
                     {#if data.user.role === 'owner_admin'}
                       <form method="POST" action="?/deleteInvoice">
                         <input type="hidden" name="version" value={invoice.version} />

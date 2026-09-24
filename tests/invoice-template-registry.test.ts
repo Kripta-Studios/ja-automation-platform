@@ -93,6 +93,61 @@ describe('controlled invoice template registry', () => {
     expect(new Set(texts).size).toBe(5);
   });
 
+  it('renders exact labor and expense sections on one combined invoice', () => {
+    const snapshot = {
+      ...baseSnapshot('labor-detailed'),
+      calculation: {
+        currency: 'EUR',
+        subtotalMinor: '368000',
+        taxMinor: '0',
+        totalMinor: '368000',
+      },
+      lines: [
+        { description: 'Seven installers at 55', source_type: 'time', subtotal_minor: '308000' },
+        { description: 'One specialist at 70', source_type: 'time', subtotal_minor: '56000' },
+        { description: 'Hotel expense', source_type: 'expense', subtotal_minor: '4000' },
+      ],
+    };
+    const body = renderInvoiceTemplate(snapshot).body;
+    expect(body).toContain('Labor subtotal');
+    expect(body).toContain('Expenses subtotal');
+    expect(body).toContain('€3,640.00');
+    expect(body).toContain('€40.00');
+    const pdf = pdfText(invoicePdf(snapshot));
+    expect(pdf).toContain('Hotel expense');
+    expect(pdf).toContain('Labor subtotal');
+    expect(pdf).toContain('Expenses subtotal');
+    expect(pdf).toContain('3,680.00');
+    for (const [locale, laborLabel, expenseLabel] of [
+      ['es', 'Subtotal de mano de obra', 'Subtotal de gastos'],
+      ['pt', 'Subtotal de mão de obra', 'Subtotal de despesas'],
+    ] as const) {
+      const translated = { ...snapshot, locale };
+      const html = renderInvoiceTemplate(translated).body;
+      expect(html).toContain(laborLabel);
+      expect(html).toContain(expenseLabel);
+      const localizedPdf = pdfText(invoicePdf(translated));
+      expect(localizedPdf).toContain(laborLabel);
+      expect(localizedPdf).toContain(expenseLabel);
+    }
+  });
+
+  it('preserves a zero expense section subtotal instead of repeating the invoice total', () => {
+    const snapshot = {
+      ...baseSnapshot('labor-detailed'),
+      calculation: { currency: 'EUR', subtotalMinor: '10000', taxMinor: '0', totalMinor: '10000' },
+      lines: [
+        { description: 'Labor under cap', source_type: 'time', subtotal_minor: '10000' },
+        { description: 'Expense blocked by cap', source_type: 'expense', subtotal_minor: '0' },
+      ],
+    };
+    const body = renderInvoiceTemplate(snapshot).body;
+    expect(body).toMatch(/Expenses subtotal<\/strong> €0\.00/u);
+    expect(body).toMatch(/Labor subtotal<\/strong> €100\.00/u);
+    const pdf = pdfText(invoicePdf(snapshot));
+    expect(pdf).toMatch(/Expenses subtotal\s+€0\.00/u);
+  });
+
   it('accepts only explicit compatibility aliases and rejects substring/free-text IDs', () => {
     expect(resolveInvoiceTemplate('default').id).toBe('labor-detailed');
     expect(resolveInvoiceTemplate('fixed-fee').id).toBe('fixed-milestone');

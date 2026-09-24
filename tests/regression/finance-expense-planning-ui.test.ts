@@ -35,8 +35,8 @@ describe('Finance expense classification and planning UI', () => {
     expect(component).toContain('syncExpensePreset');
     expect(component).toContain('name="clientTreatment"');
     expect(component).toContain('name="billingTreatment"');
-    expect(component).toContain('name="markupBps" value="0"');
-    expect(component).not.toContain("translate('Markup')");
+    expect(component).toContain('name="markupBps"');
+    expect(component).toContain('value={policyRequired ? (policyPreview?.markupBps ?? 0) : 0}');
   });
 
   it('keeps finance write actions behind the Finance/Admin role gate and supports zero tax', () => {
@@ -48,7 +48,7 @@ describe('Finance expense classification and planning UI', () => {
       '{#if canWriteFinance && !locked && selectedExpenseId === expenseId}',
     );
     expect(component).toContain('name="taxBps"');
-    expect(component).toContain('value="0"');
+    expect(component).toContain("{ label: '0%', bps: '0' }");
     expect(component).toContain('0% allowed');
     expect(component).toContain('name="reason"');
     expect(component).toContain('name="idempotencyKey"');
@@ -70,5 +70,20 @@ describe('Finance expense classification and planning UI', () => {
     expect(component).toContain('data-settlement-planning-form');
     expect(component).not.toContain('name="clientRate"');
     expect(component).not.toContain('name="internalCost"');
+  });
+
+  it('blocks classification without effective issuing authority and links to its project form', () => {
+    const component = source();
+    const configuration = readFileSync(
+      resolve(
+        process.cwd(),
+        'apps/portal/src/lib/portal/sections/FinanceConfigurationSection.svelte',
+      ),
+      'utf8',
+    );
+    expect(component).toContain('data-expense-issuer-blocker');
+    expect(component).toContain('disabled={!issuerReady || (policyRequired && !policyReady)}');
+    expect(component).toContain('#project-issuing-authority');
+    expect(configuration).toContain('id="project-issuing-authority"');
   });
 });

@@ -26,6 +26,7 @@ export const projects = sqliteTable(
     poCapMinor: integer('po_cap_minor'),
     laborBudgetMinutes: integer('labor_budget_minutes'),
     travelBudgetMinor: integer('travel_budget_minor'),
+    expenseBudgetMinor: integer('expense_budget_minor'),
     poNumber: text('po_number'),
     dailyReportRequired: integer('daily_report_required', { mode: 'boolean' }),
     technicalReportingRequired: integer('technical_reporting_required', { mode: 'boolean' }),

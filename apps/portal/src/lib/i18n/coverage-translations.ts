@@ -8,6 +8,211 @@ import { explicitCoverageLiterals } from './coverage-literals';
  */
 
 const exact: Record<string, readonly [string, string]> = {
+  'action.finance.assignmentCommercialFallbackSaved': [
+    'Preferencia de reglas de la asignación guardada.',
+    'Preferência de regras da atribuição salva.',
+  ],
+  'action.finance.assignmentCommercialReferencesSaved': [
+    'Reglas comerciales de la asignación guardadas.',
+    'Regras comerciais da atribuição salvas.',
+  ],
+  'action.finance.assignmentExpensePolicyCreated': [
+    'Política de gastos de la asignación guardada.',
+    'Política de despesas da atribuição salva.',
+  ],
+  'action.finance.canonicalLegalEntityRevisionCreated': [
+    'Revisión de la entidad emisora guardada.',
+    'Revisão da entidade emissora salva.',
+  ],
+  'action.validation.assignmentCommercialFallback': [
+    'Revisa la preferencia de reglas de la asignación.',
+    'Revise a preferência de regras da atribuição.',
+  ],
+  'action.validation.assignmentCommercialReferences': [
+    'Revisa las reglas comerciales de la asignación.',
+    'Revise as regras comerciais da atribuição.',
+  ],
+  'action.validation.assignmentExpensePolicy': [
+    'Revisa la política de gastos de la asignación.',
+    'Revise a política de despesas da atribuição.',
+  ],
+  'action.validation.canonicalLegalEntityRevision': [
+    'Revisa la revisión de la entidad emisora.',
+    'Revise a revisão da entidade emissora.',
+  ],
+  'Check project fields': ['Revisa los campos del proyecto.', 'Revise os campos do projeto.'],
+  'All expertise': ['Todas las especialidades', 'Todas as especialidades'],
+  'Filter workers by expertise': [
+    'Filtrar trabajadores por especialidad',
+    'Filtrar trabalhadores por especialidade',
+  ],
+  'No active workers match this expertise.': [
+    'No hay trabajadores activos que coincidan con esta especialidad.',
+    'Nenhum trabalhador ativo corresponde a esta especialidade.',
+  ],
+  'Customer labor uses approved billable time and the selected customer rule. Worker pay follows its separate method; expense reimbursement and customer recovery are calculated independently. Invoice totals also apply the configured minimums, caps, tax, and rounding.':
+    [
+      'El trabajo facturado al cliente se calcula con las horas facturables aprobadas y la tarifa seleccionada. La remuneración del trabajador sigue un método independiente; el reembolso de gastos y su cobro al cliente se calculan por separado. Los totales de la factura también aplican los mínimos, límites, impuestos y redondeos configurados.',
+      'A mão de obra faturada ao cliente é calculada com as horas faturáveis aprovadas e a tarifa selecionada. O pagamento do trabalhador segue um método independente; o reembolso de despesas e a cobrança ao cliente são calculados separadamente. Os totais da fatura também aplicam os mínimos, limites, impostos e arredondamentos configurados.',
+    ],
+  Payer: ['Pagador', 'Pagador'],
+  'Postal code': ['Código postal', 'CEP'],
+  Region: ['Región', 'Região'],
+  'Ground transport': ['Transporte terrestre', 'Transporte terrestre'],
+  'Payment method (optional)': ['Método de pago (opcional)', 'Forma de pagamento (opcional)'],
+  'Phone/data': ['Teléfono/datos', 'Telefone/dados'],
+  'Select currency': ['Seleccionar moneda', 'Selecionar moeda'],
+  Tools: ['Herramientas', 'Ferramentas'],
+  'Visa/permit': ['Visado/permiso', 'Visto/permissão'],
+  'Actual duration': ['Duración real', 'Duração real'],
+  'Enter a valid number of hours from 0 to 24.': [
+    'Introduce una cantidad válida de horas entre 0 y 24.',
+    'Informe um número válido de horas entre 0 e 24.',
+  ],
+  'Enter decimal hours, for example 7.5 for 7 h 30 min. The amount is rounded to the nearest minute.':
+    [
+      'Introduce horas decimales, por ejemplo 7.5 para 7 h 30 min. La cantidad se redondea al minuto más cercano.',
+      'Informe horas decimais, por exemplo 7.5 para 7 h 30 min. A quantidade é arredondada para o minuto mais próximo.',
+    ],
+  'Issuing authority not configured': [
+    'Entidad emisora sin configurar',
+    'Entidade emissora não configurada',
+  ],
+  Budget: ['Presupuesto', 'Orçamento'],
+  'Configure person rates': ['Configurar tarifas por persona', 'Configurar tarifas por pessoa'],
+  'Crew hours': ['Horas del equipo', 'Horas da equipe'],
+  'Explicit fixed labor price': [
+    'Precio fijo explícito de mano de obra',
+    'Preço fixo explícito para mão de obra',
+  ],
+  'Other cost budget': ['Presupuesto de otros costes', 'Orçamento de outros custos'],
+  '2 · People': ['2 · Personas', '2 · Pessoas'],
+  '3 · Commercial defaults': [
+    '3 · Condiciones comerciales generales',
+    '3 · Condições comerciais gerais',
+  ],
+  '4 · Optional planning and budget': [
+    '4 · Planificación y presupuesto opcionales',
+    '4 · Planeamento e orçamento opcionais',
+  ],
+  'People (optional)': ['Personas (opcional)', 'Pessoas (opcional)'],
+  'Worker assignment start date (optional)': [
+    'Fecha de inicio de las asignaciones (opcional)',
+    'Data de início das atribuições (opcional)',
+  ],
+  'Defaults to the project start date.': [
+    'Si se deja en blanco, se usa la fecha de inicio del proyecto.',
+    'Se ficar em branco, será usada a data de início do projeto.',
+  ],
+  'An owner can assign people after this project is created.': [
+    'Un propietario puede asignar personas después de crear el proyecto.',
+    'Um proprietário pode atribuir pessoas após a criação do projeto.',
+  ],
+  'Choose workers now or leave the project without assignments. Set each person’s customer rate, pay and expense policy after creation.':
+    [
+      'Selecciona trabajadores ahora o deja el proyecto sin asignaciones. Después de crearlo, configura la tarifa al cliente, la remuneración y los gastos de cada persona.',
+      'Selecione trabalhadores agora ou deixe o projeto sem atribuições. Após a criação, configure a tarifa ao cliente, o pagamento e as despesas de cada pessoa.',
+    ],
+  'Set up the project and choose its people. After saving, configure each person’s commercial terms and review the project.':
+    [
+      'Configura el proyecto y elige a las personas. Después de guardarlo, define las condiciones comerciales de cada una y revisa el proyecto.',
+      'Configure o projeto e escolha as pessoas. Após salvar, defina as condições comerciais de cada uma e revise o projeto.',
+    ],
+  Expertise: ['Especialidad', 'Especialidade'],
+  'Expertise and availability': [
+    'Especialidades y disponibilidad',
+    'Especialidades e disponibilidade',
+  ],
+  'Required expertise': ['Especialidad requerida', 'Especialidade necessária'],
+  'Manage worker expertise': [
+    'Gestionar especialidades de los trabajadores',
+    'Gerenciar especialidades dos trabalhadores',
+  ],
+  'New expertise': ['Nueva especialidad', 'Nova especialidade'],
+  'Add expertise': ['Añadir especialidad', 'Adicionar especialidade'],
+  'Save expertise': ['Guardar especialidad', 'Salvar especialidade'],
+  'Update expertise': ['Actualizar especialidad', 'Atualizar especialidade'],
+  'Delete expertise': ['Eliminar especialidad', 'Excluir especialidade'],
+  'Assign expertise': ['Asignar especialidad', 'Atribuir especialidade'],
+  'Update expertise matrix': [
+    'Actualizar matriz de especialidades',
+    'Atualizar matriz de especialidades',
+  ],
+  'Remove worker expertise': [
+    'Quitar especialidad del trabajador',
+    'Remover especialidade do trabalhador',
+  ],
+  'Remove expertise': ['Quitar especialidad', 'Remover especialidade'],
+  'Select expertise': ['Seleccionar especialidad', 'Selecionar especialidade'],
+  'No expertise recorded.': [
+    'No hay especialidades registradas.',
+    'Nenhuma especialidade registrada.',
+  ],
+  'Assign expertise and availability windows for an individual worker. These controls do not expose compensation or client-rate data.':
+    [
+      'Asigna especialidades y periodos de disponibilidad a un trabajador. Estos controles no muestran datos de remuneración ni tarifas al cliente.',
+      'Atribua especialidades e períodos de disponibilidade a um trabalhador. Estes controles não exibem dados de remuneração nem tarifas cobradas do cliente.',
+    ],
+  'Continue project setup': [
+    'Continuar la configuración del proyecto',
+    'Continuar a configuração do projeto',
+  ],
+  'Project created': ['Proyecto creado', 'Projeto criado'],
+  'Now add people and configure how their work and expenses are calculated.': [
+    'Ahora añade personas y configura cómo se calculan su trabajo y gastos.',
+    'Agora adicione pessoas e configure como o trabalho e as despesas são calculados.',
+  ],
+  Basics: ['Datos básicos', 'Dados básicos'],
+  Saved: ['Guardado', 'Salvo'],
+  People: ['Personas', 'Pessoas'],
+  'Assign workers by expertise': [
+    'Asignar trabajadores por especialidad',
+    'Atribuir trabalhadores por especialidade',
+  ],
+  'Review assigned people': ['Revisar personas asignadas', 'Revisar pessoas atribuídas'],
+  'Commercial terms': ['Condiciones comerciales', 'Condições comerciais'],
+  'Configure per-person rates and expenses': [
+    'Configurar tarifas y gastos por persona',
+    'Configurar tarifas e despesas por pessoa',
+  ],
+  Review: ['Revisar', 'Revisar'],
+  'Review project configuration': [
+    'Revisar la configuración del proyecto',
+    'Revisar a configuração do projeto',
+  ],
+  'Time can be recorded while commercial terms are incomplete. Billing waits for the required rates and policies.':
+    [
+      'Se pueden registrar horas aunque falten condiciones comerciales. La facturación espera las tarifas y políticas necesarias.',
+      'As horas podem ser registradas mesmo com condições comerciais incompletas. A faturação aguarda as tarifas e políticas necessárias.',
+    ],
+  'Start with project basics. After saving, assign people, set their commercial terms, then review the project.':
+    [
+      'Empieza por los datos básicos. Después de guardar, asigna personas, define sus condiciones comerciales y revisa el proyecto.',
+      'Comece pelos dados básicos. Após salvar, atribua pessoas, defina as condições comerciais e revise o projeto.',
+    ],
+  '1 · Basics': ['1 · Datos básicos', '1 · Dados básicos'],
+  '2 · Commercial defaults': [
+    '2 · Condiciones comerciales generales',
+    '2 · Condições comerciais gerais',
+  ],
+  '3 · Optional planning and budget': [
+    '3 · Planificación y presupuesto opcionales',
+    '3 · Planeamento e orçamento opcionais',
+  ],
+  'Person-specific customer rates, worker pay and expense policies are configured after the people are assigned.':
+    [
+      'Las tarifas al cliente, la remuneración y las políticas de gastos por persona se configuran después de asignar a las personas.',
+      'As tarifas ao cliente, o pagamento e as políticas de despesas por pessoa são configurados após a atribuição das pessoas.',
+    ],
+  'Leave budgets blank when they are not agreed. A planning target does not limit billing; choose capped T&M and configure a cap only when the contract requires one.':
+    [
+      'Deja los presupuestos en blanco si no se han acordado. Una previsión no limita la facturación; elige tiempo y materiales con límite solo si el contrato lo exige.',
+      'Deixe os orçamentos em branco quando não forem acordados. Uma previsão não limita a faturação; escolha tempo e materiais com limite apenas quando o contrato o exigir.',
+    ],
+  'Revenue budget': ['Presupuesto de ingresos', 'Orçamento de receitas'],
+  'PO cap': ['Límite de la orden de compra', 'Limite da ordem de compra'],
+  'Planned labor hours': ['Horas de trabajo previstas', 'Horas de trabalho previstas'],
+  'Travel budget': ['Presupuesto de viajes', 'Orçamento de viagens'],
   Help: ['Ayuda', 'Ajuda'],
   'Finance Overview': ['Resumen financiero', 'Visão financeira'],
   'Report: {title}': ['Informe: {title}', 'Relatório: {title}'],
@@ -709,6 +914,14 @@ const exact: Record<string, readonly [string, string]> = {
   Daily: ['Diario', 'Diário'],
   'Daily guarantee coverage': ['Cobertura de garantía diaria', 'Cobertura da garantia diária'],
   'Daily reports': ['Informes diarios', 'Relatórios diários'],
+  'Daily report': ['Informe diario', 'Relatório diário'],
+  'Related reports': ['Informes relacionados', 'Relatórios relacionados'],
+  'No related reports yet.': [
+    'Todavía no hay informes relacionados.',
+    'Ainda não há relatórios relacionados.',
+  ],
+  'View project reports': ['Ver informes del proyecto', 'Ver relatórios do projeto'],
+  'Technical report': ['Informe técnico', 'Relatório técnico'],
   Debit: ['Débito', 'Débito'],
   Delete: ['Eliminar', 'Excluir'],
   'Delete contact': ['Eliminar contacto', 'Excluir contato'],
@@ -1510,6 +1723,7 @@ const invariantKeys = new Set([
   'FAT',
   'SAT',
   'Rockwell Automation',
+  'Europe/Madrid',
   'ControlLogix 5580',
   // Language names and combined technical acronyms are intentional display invariants.
   'Español',
@@ -1730,6 +1944,14 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Revisión financiera registrada.',
     'Revisão financeira registrada.',
   ],
+  'action.approval.expenseClassificationRequired': [
+    'Clasifica este gasto en Finanzas antes de registrar la revisión financiera.',
+    'Classifique esta despesa em Finanças antes de registrar a revisão financeira.',
+  ],
+  'action.finance.projectIssuingAuthorityRequired': [
+    'Configura una entidad emisora del proyecto válida en la fecha de este gasto antes de clasificarlo.',
+    'Configure uma entidade emissora do projeto válida na data desta despesa antes de classificá-la.',
+  ],
   'action.approvals.milestoneReviewRecorded': [
     'Revisión del hito registrada.',
     'Revisão do marco registrada.',
@@ -1780,6 +2002,10 @@ const actionExact: Record<string, readonly [string, string]> = {
     'A fatura já está marcada como enviada.',
   ],
   'action.billing.invoiceApproved': ['Factura aprobada.', 'Fatura aprovada.'],
+  'action.billing.invoiceRecalculated': [
+    'Factura recalculada como borrador. Revísala y apruébala de nuevo.',
+    'Fatura recalculada como rascunho. Revise-a e aprove-a novamente.',
+  ],
   'action.billing.invoiceDeleted': ['Factura eliminada.', 'Fatura excluída.'],
   'action.billing.invoiceDraftCreated': [
     'Borrador de factura creado.',
@@ -1858,8 +2084,8 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Há registros de horas deste período pendentes de aprovação. Aprove ou rejeite-os em Aprovações e crie o rascunho novamente.',
   ],
   'action.billing.readiness.pendingExpenseApproval': [
-    'Hay gastos de este período pendientes de aprobación. Apruébalos o recházalos en Aprobaciones y vuelve a crear el borrador.',
-    'Há despesas deste período pendentes de aprovação. Aprove ou rejeite-as em Aprovações e crie o rascunho novamente.',
+    'Hay gastos de este período pendientes de aprobación operativa o revisión financiera. Complétalas en Aprobaciones → Revisión financiera y vuelve a crear el borrador.',
+    'Há despesas deste período pendentes de aprovação operacional ou revisão financeira. Conclua as etapas em Aprovações → Revisão financeira e crie o rascunho novamente.',
   ],
   'action.billing.readiness.missingTaxProfile': [
     'Este flujo de facturación no tiene perfil fiscal. Añádelo en Configuración financiera y vuelve a crear el borrador.',
@@ -1932,6 +2158,10 @@ const actionExact: Record<string, readonly [string, string]> = {
   'action.billing.readiness.inactiveBillingConfiguration': [
     'El flujo de facturación o su configuración legal/fiscal no está activo. Revísalo en Configuración financiera.',
     'O fluxo de faturamento ou a configuração legal/fiscal não está ativo. Revise em Configuração financeira.',
+  ],
+  'action.billing.readiness.staleBillingConfiguration': [
+    'La configuración de facturación o los registros de origen cambiaron. Revisa las condiciones vigentes; si la factura ya está aprobada, usa «Recalcular y revisar borrador» y vuelve a aprobarla.',
+    'A configuração de faturamento ou os registros de origem mudaram. Revise as condições atuais; se a fatura já foi aprovada, use «Recalcular e revisar rascunho» e aprove-a novamente.',
   ],
   'action.conflict.billingPeriodIncomplete': [
     'Este período de facturación no está listo para un borrador. Revisa las causas abajo y corrígelas en Aprobaciones o Configuración financiera.',
@@ -2020,16 +2250,16 @@ const actionExact: Record<string, readonly [string, string]> = {
   ],
   'action.planning.assignmentPublished': ['Asignación publicada.', 'Atribuição publicada.'],
   'action.planning.availabilitySaved': ['Disponibilidad guardada.', 'Disponibilidade salva.'],
-  'action.planning.skillDeleted': ['Competencia eliminada.', 'Competência excluída.'],
-  'action.planning.skillSaved': ['Competencia guardada.', 'Competência salva.'],
-  'action.planning.skillUpdated': ['Competencia actualizada.', 'Competência atualizada.'],
+  'action.planning.skillDeleted': ['Especialidad eliminada.', 'Especialidade excluída.'],
+  'action.planning.skillSaved': ['Especialidad guardada.', 'Especialidade salva.'],
+  'action.planning.skillUpdated': ['Especialidad actualizada.', 'Especialidade atualizada.'],
   'action.planning.workerSkillDeleted': [
-    'Competencia del trabajador eliminada.',
-    'Competência do colaborador excluída.',
+    'Especialidad del trabajador eliminada.',
+    'Especialidade do trabalhador excluída.',
   ],
   'action.planning.workerSkillUpdated': [
-    'Competencia del trabajador actualizada.',
-    'Competência do colaborador atualizada.',
+    'Especialidad del trabajador actualizada.',
+    'Especialidade do trabalhador atualizada.',
   ],
   'action.projects.assignmentCreated': ['Asignación creada.', 'Atribuição criada.'],
   'action.projects.assignmentDeleted': ['Asignación eliminada.', 'Atribuição excluída.'],
@@ -2122,6 +2352,10 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Rascunho de relatório PLC salvo.',
   ],
   'action.time.draftSaved': ['Borrador de horas guardado.', 'Rascunho de horas salvo.'],
+  'action.time.expenseDraftsSaved': [
+    'Borradores de horas y gasto guardados.',
+    'Rascunhos de horas e despesa salvos.',
+  ],
   'action.time.draftUpdated': ['Borrador de horas actualizado.', 'Rascunho de horas atualizado.'],
   'action.time.layoutCopied': ['Estructura de tiempo copiada.', 'Layout de tempo copiado.'],
   'action.time.removedOrVoided': [
@@ -2209,8 +2443,8 @@ const validationEntities: Record<string, readonly [string, string]> = {
   reportDecision: ['la decisión del informe', 'a decisão do relatório'],
   scheduleFields: ['el calendario', 'o cronograma'],
   settlementPeriod: ['el período de liquidación', 'o período de liquidação'],
-  skillFields: ['la competencia', 'a competência'],
-  skillIdRequired: ['la competencia', 'a competência'],
+  skillFields: ['la especialidad', 'a especialidade'],
+  skillIdRequired: ['la especialidad', 'a especialidade'],
   taxProfileFields: ['el perfil fiscal', 'o perfil fiscal'],
   taxProfileIdRequired: ['el perfil fiscal', 'o perfil fiscal'],
   technicalChange: ['el cambio técnico', 'a alteração técnica'],
@@ -2221,8 +2455,8 @@ const validationEntities: Record<string, readonly [string, string]> = {
   timeRecord: ['el registro de horas', 'o registro de horas'],
   timeSourceWeekDifferent: ['la semana del registro de horas', 'a semana do registro de horas'],
   workerProfile: ['el perfil del trabajador', 'o perfil do colaborador'],
-  workerSkillFields: ['la competencia del trabajador', 'a competência do colaborador'],
-  workerSkillIdsRequired: ['las competencias del trabajador', 'as competências do colaborador'],
+  workerSkillFields: ['la especialidad del trabajador', 'a especialidade do colaborador'],
+  workerSkillIdsRequired: ['el trabajador y la especialidad', 'o trabalhador e a especialidade'],
 };
 
 function validationMessage(locale: 'es' | 'pt', suffix: string): string {
@@ -2404,6 +2638,10 @@ function englishActionMessage(key: string): string {
     'action.approval.decisionRecorded': 'Decision recorded.',
     'action.validation.financeDecision': 'Invalid finance decision.',
     'action.approval.financeReviewRecorded': 'Finance review recorded.',
+    'action.approval.expenseClassificationRequired':
+      'Classify this expense in Finance before recording Finance review.',
+    'action.finance.projectIssuingAuthorityRequired':
+      'Set a project issuing authority effective on this expense date before classifying it.',
     'action.validation.billingStream': 'Invalid billing stream.',
     'action.billing.streamSaved': 'Billing stream saved.',
     'action.validation.legalEntityFields': 'Check legal entity fields.',
@@ -2477,6 +2715,14 @@ function englishActionMessage(key: string): string {
     'action.validation.replacementInternalCostRule': 'Invalid replacement internal cost rule.',
     'action.finance.internalCostRuleSuperseded': 'Internal cost rule superseded.',
     'action.finance.internalCostRuleDeactivated': 'Internal cost rule deactivated.',
+    'action.finance.assignmentCommercialFallbackSaved': 'Assignment rule preference saved.',
+    'action.finance.assignmentCommercialReferencesSaved': 'Assignment commercial rules saved.',
+    'action.finance.assignmentExpensePolicyCreated': 'Assignment expense policy saved.',
+    'action.finance.canonicalLegalEntityRevisionCreated': 'Issuing authority revision saved.',
+    'action.validation.assignmentCommercialFallback': 'Check assignment rule preference.',
+    'action.validation.assignmentCommercialReferences': 'Check assignment commercial rules.',
+    'action.validation.assignmentExpensePolicy': 'Check assignment expense policy.',
+    'action.validation.canonicalLegalEntityRevision': 'Check issuing authority revision.',
     'action.validation.assignmentOverride': 'Invalid assignment override.',
     'action.finance.assignmentRateOverrideSaved': 'Assignment rate override saved.',
     'action.validation.notificationIdRequired': 'Notification is required.',
@@ -2501,15 +2747,15 @@ function englishActionMessage(key: string): string {
     'action.reports.technicalChangeSubmitted': 'Technical change submitted for review.',
     'action.validation.planningFields': 'Check planning fields.',
     'action.planning.assignmentPublished': 'Assignment published.',
-    'action.validation.skillFields': 'Check skill fields.',
-    'action.planning.skillSaved': 'Skill saved.',
-    'action.validation.workerSkillFields': 'Check worker skill fields.',
-    'action.planning.workerSkillUpdated': 'Worker skill updated.',
-    'action.validation.skillIdRequired': 'Skill ID required.',
-    'action.planning.skillUpdated': 'Skill updated.',
-    'action.planning.skillDeleted': 'Skill deleted.',
-    'action.validation.workerSkillIdsRequired': 'Worker ID and Skill ID required.',
-    'action.planning.workerSkillDeleted': 'Worker skill deleted.',
+    'action.validation.skillFields': 'Check expertise fields.',
+    'action.planning.skillSaved': 'Expertise saved.',
+    'action.validation.workerSkillFields': 'Check worker expertise fields.',
+    'action.planning.workerSkillUpdated': 'Worker expertise updated.',
+    'action.validation.skillIdRequired': 'Expertise is required.',
+    'action.planning.skillUpdated': 'Expertise updated.',
+    'action.planning.skillDeleted': 'Expertise deleted.',
+    'action.validation.workerSkillIdsRequired': 'Worker and expertise are required.',
+    'action.planning.workerSkillDeleted': 'Worker expertise deleted.',
     'action.validation.availabilityFields': 'Check availability fields.',
     'action.planning.availabilitySaved': 'Availability saved.',
     'action.validation.reportDecision': 'Invalid report decision.',
@@ -2547,6 +2793,7 @@ function englishActionMessage(key: string): string {
     'action.projects.assignmentDeleted': 'Assignment removed.',
     'action.validation.timeFields': 'Check time fields.',
     'action.time.draftSaved': 'Time draft saved.',
+    'action.time.expenseDraftsSaved': 'Time and expense drafts saved.',
     'action.validation.timeSourceWeekDifferent': 'Choose a different source week.',
     'action.time.draftUpdated': 'Time draft updated.',
     'action.validation.timeRecord': 'Invalid time record.',
@@ -2562,6 +2809,8 @@ function englishActionMessage(key: string): string {
     'action.closeout.reopened': 'Closeout reopened.',
     'action.access.invitation.created': 'Invitation created.',
     'action.billing.invoiceDraftCreated': 'Invoice draft created.',
+    'action.billing.invoiceRecalculated':
+      'Invoice recalculated as a draft. Review and approve it again.',
     'action.billing.invoiceDraftExisting': 'Existing invoice draft returned.',
     'action.billing.invoiceIssued': 'Invoice issued.',
     'action.billing.jobsProcessed': 'Background jobs processed.',
@@ -2619,7 +2868,7 @@ function englishActionMessage(key: string): string {
     'action.billing.readiness.pendingTimeApproval':
       'Time entries in this period are still waiting for approval. Approve or reject them in Approvals, then create the draft again.',
     'action.billing.readiness.pendingExpenseApproval':
-      'Expenses in this period are still waiting for approval. Approve or reject them in Approvals, then create the draft again.',
+      'Expenses in this period still need operational approval or Finance review. Complete both stages in Approvals → Finance review, then create the draft again.',
     'action.billing.readiness.missingTaxProfile':
       'This billing stream has no tax profile. Add one in Finance configuration, then create the draft again.',
     'action.billing.readiness.inactiveTaxProfile':
@@ -2656,6 +2905,8 @@ function englishActionMessage(key: string): string {
       'The approved invoice numbering policy is missing. Configure it in Billing before issuing.',
     'action.billing.readiness.inactiveBillingConfiguration':
       'This billing stream or its legal/tax configuration is not active. Review it in Finance configuration.',
+    'action.billing.readiness.staleBillingConfiguration':
+      'Billing configuration or source records changed. Review the current terms; if the invoice is already approved, use Recalculate and review draft, then approve it again.',
     'action.reports.dailyDraftSaved': 'Daily report draft saved.',
     'action.reports.periodReportApproved': 'Period report approved.',
     'action.reports.periodReportAlreadyApproved': 'Period report was already approved.',

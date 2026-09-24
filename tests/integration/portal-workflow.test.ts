@@ -2,7 +2,13 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { AccessDeniedError, PortalRepository, V3Repository, createDatabase } from '@ja/database';
+import {
+  AccessDeniedError,
+  AssignmentExpensePolicyRepository,
+  PortalRepository,
+  V3Repository,
+  createDatabase,
+} from '@ja/database';
 import type { Principal, Role } from '@ja/domain';
 import { installB5TestDeploymentIdentity } from '../fixtures/b5-test-environment.js';
 
@@ -99,6 +105,7 @@ describe('V3 operational and billing workflow', () => {
     });
     expect(client.clientNumber).toBe('C-0001');
     const project = repository.createProject(owner, {
+      costCenterCode: 'QA-PORTAL-WORKFLOW-TEST-1',
       clientId: client.id,
       name: 'Controls commissioning',
       timezone: 'America/New_York',
@@ -145,11 +152,29 @@ describe('V3 operational and billing workflow', () => {
       startsOn: '2026-08-01',
       canReview: true,
     });
-    repository.assignWorker(owner, {
+    const workerAssignment = repository.assignWorker(owner, {
       projectId: project.id,
       workerId: 'worker',
       startsOn: '2026-08-01',
       plannedMinutes: 12_000,
+    });
+    new AssignmentExpensePolicyRepository(sqlite).create(finance, {
+      projectMemberId: workerAssignment.id,
+      payer: 'worker',
+      category: 'hotel',
+      effectiveFrom: '2026-08-01',
+      workerReimbursement: 'at_cost',
+      clientRecovery: 'at_cost',
+      reason: 'Portal workflow hotel recovery terms',
+    });
+    new AssignmentExpensePolicyRepository(sqlite).create(finance, {
+      projectMemberId: workerAssignment.id,
+      payer: 'company_direct',
+      category: 'rental_car',
+      effectiveFrom: '2026-08-01',
+      workerReimbursement: 'none',
+      clientRecovery: 'included',
+      reason: 'Portal workflow vehicle included terms',
     });
     const manager = repository.principalFor('manager');
     const worker = repository.principalFor('worker');
@@ -421,6 +446,7 @@ describe('V3 operational and billing workflow', () => {
       billingAddress: 'Timesheet Client billing address',
     });
     const project = repository.createProject(owner, {
+      costCenterCode: 'QA-PORTAL-WORKFLOW-TEST-2',
       clientId: client.id,
       name: 'Weekly layout project',
       timezone: 'America/New_York',

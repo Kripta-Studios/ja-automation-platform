@@ -1,5 +1,8 @@
 # Owner and Finance user guide
 
+> **Deployed edition notice (24 September 2026):** This is an earlier detailed/reference edition. For the actual deployed project, duration-time, crew and invoice setup screens, use the [current dated guide](Current_Deployed_Workflows_2026-09-24.md) and [role workflow PDF](Role_Workflows.pdf). Earlier screenshots and start/end or Billing-stream instructions below may not match the live release.
+
+
 ## Updated workflows — September 2026
 
 Support for access and passwords: **admin@j-aautomation.com**. Owner can create an account using an external email and a chosen initial password in **Projects → Team access → Create user → Set email and password**. Select an existing person when the directory record already exists so the portal adds access without duplicating that person; otherwise select **Create a new person**. Copy the initial password before saving because it is not stored or shown again in plain text. Existing Worker accounts can receive the **Supplier coordinator** or **External technician** access profile from **Edit profile**, with a supplier selected. Assign installation/project permissions separately; a profile does not grant access to every project. Profile changes invalidate sessions so the person must sign in again.

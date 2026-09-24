@@ -30,6 +30,14 @@
     );
   const record = $derived(data.record as Row);
   const restrictedOperational = $derived(Boolean(data.user?.workforceProfile));
+  const canViewFinance = $derived(
+    !restrictedOperational && ['owner_admin', 'finance_admin'].includes(String(data.user?.role)),
+  );
+  const canViewOwnReimbursement = $derived(
+    !restrictedOperational &&
+      (canViewFinance ||
+        (data.user?.role === 'worker' && String(record.worker_id) === String(data.user?.id))),
+  );
   const money = (minor: unknown, currency: string) =>
     formatMoney(minor, currency, locale === 'pt' ? 'pt-BR' : locale);
   function printReport(): void {
@@ -78,15 +86,17 @@
     <article>
       <span>{t('CATEGORY')}</span><strong>{controlled('expenseCategory', record.category)}</strong>
     </article>
-    {#if !restrictedOperational}
+    {#if canViewFinance}
       <article>
         <span>{t('CLIENT TREATMENT')}</span><strong
           >{controlled('billingStream', record.client_treatment)}</strong
         >
       </article>
+    {/if}
+    {#if canViewOwnReimbursement && record.reimbursement_state}
       <article>
         <span>{t('REIMBURSEMENT')}</span><strong
-          >{controlled('status', record.reimbursement_state ?? 'pending')}</strong
+          >{controlled('status', record.reimbursement_state)}</strong
         >
       </article>
     {/if}
@@ -103,10 +113,30 @@
         <dd>{record.vendor ?? '—'}</dd>
       </div>
       <div>
+        <dt>{t('Time expense occurred')}</dt>
+        <dd>{record.occurred_time_local ?? '—'}</dd>
+      </div>
+      <div>
+        <dt>{t('Related logged hours')}</dt>
+        <dd>
+          {#if record.time_entry_id}
+            <a
+              href={base +
+                (data.user?.role === 'worker' && String(record.worker_id) !== String(data.user?.id)
+                  ? '/app/crew/time/'
+                  : '/app/time/') +
+                String(record.time_entry_id)}>{t('Open time record')}</a
+            >
+          {:else}
+            —
+          {/if}
+        </dd>
+      </div>
+      <div>
         <dt>{t('Payment method')}</dt>
         <dd>{record.payment_method ?? '—'}</dd>
       </div>
-      {#if !restrictedOperational}
+      {#if canViewFinance}
         <div>
           <dt>{t('Billing treatment')}</dt>
           <dd>{controlled('billingStream', record.billing_treatment ?? 'internal')}</dd>

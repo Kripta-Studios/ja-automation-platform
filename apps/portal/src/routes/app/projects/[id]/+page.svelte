@@ -1,6 +1,8 @@
 <script lang="ts">
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import PlanningCalendar from '$lib/portal/ui/PlanningCalendar.svelte';
+  import ProjectBudgetInput from '$lib/portal/sections/ProjectBudgetInput.svelte';
+  import ProjectBillingSetup from '$lib/portal/sections/ProjectBillingSetup.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
@@ -70,6 +72,13 @@
   }
 
   let { data, form } = $props();
+  type DraftFailure = {
+    success?: boolean;
+    reasons?: Array<{ code?: string }>;
+    billingRuleId?: string;
+    periodStart?: string;
+    periodEnd?: string;
+  };
   let localeOverride = $state<PortalLocale | null>(null);
   let activeTab = $derived(resolveTabFromUrl($page.url.searchParams.get('tab'), data.user?.role));
   let editOpen = $state(false);
@@ -99,11 +108,43 @@
   const canViewCommercial = $derived(isOwner || isFinance || isAuditor);
   const canWriteFinance = $derived(isOwner || isFinance);
   const billingRules = $derived((data.billingRules ?? []) as BillingRule[]);
+  const billingSetup = $derived(data.billingSetup ?? null);
   const finance = $derived(overview.financial);
   const financePeriodStart = $derived(String(data.periodStart ?? ''));
   const financePeriodEnd = $derived(String(data.periodEnd ?? ''));
   const invoiceDraftStart = $derived(String(data.invoiceDraftStart ?? financePeriodStart));
   const invoiceDraftEnd = $derived(String(data.invoiceDraftEnd ?? financePeriodEnd));
+  const draftFailure = $derived((form ?? null) as DraftFailure | null);
+  const selectedDraftRuleId = $derived(
+    draftFailure?.success === false && draftFailure.billingRuleId
+      ? draftFailure.billingRuleId
+      : String(billingRules[0]?.id ?? ''),
+  );
+  const selectedDraftStart = $derived(
+    draftFailure?.success === false && draftFailure.periodStart
+      ? draftFailure.periodStart
+      : invoiceDraftStart,
+  );
+  const selectedDraftEnd = $derived(
+    draftFailure?.success === false && draftFailure.periodEnd
+      ? draftFailure.periodEnd
+      : invoiceDraftEnd,
+  );
+  let handledDraftFailure = '';
+  $effect(() => {
+    const failure = form as DraftFailure | null;
+    if (
+      failure?.success !== false ||
+      !failure.billingRuleId ||
+      !Array.isArray(failure.reasons)
+    )
+      return;
+    const key = `${failure.billingRuleId}:${failure.periodStart ?? ''}:${failure.periodEnd ?? ''}:${failure.reasons.map((reason) => reason.code ?? '').join(',')}`;
+    if (key !== handledDraftFailure) {
+      handledDraftFailure = key;
+      invoiceOpen = true;
+    }
+  });
   const expenseCategories = $derived(
     [...new Set(overview.expenses.map((expense) => String(expense.category ?? '').trim()))]
       .filter(Boolean)
@@ -525,17 +566,24 @@
                 <h2 id="team-title">
                   <a href={`${base}/app/projects?view=team&project=${project.id}`}>{t('Team')}</a>
                 </h2>
-                {#if data.user.role === 'owner_admin'}<a
+                {#if data.user.role === 'owner_admin' || data.user.role === 'project_manager'}<a
                     class="secondary-button"
                     href={`${base}/app/projects?action=assign-worker&project=${project.id}`}
                     >{t('Assign worker')} →</a
+                  ><a class="secondary-button" href={`${base}/app/crew?project=${project.id}`}
+                    >{t('Crew hours')} →</a
+                  >{/if}
+                {#if canViewCommercial}<a
+                    class="secondary-button"
+                    href={`${base}/app/finance?view=commercial&project=${project.id}`}
+                    >{t('Configure person rates')} →</a
                   >{/if}
               </div>
               <span class="surface-count">{overview.workers.length}</span>
             </div>
             <p class="surface-intro">
               {t(
-                'Assignments, effective dates and planning only. Commercial rates stay in Finance.',
+                'Assign people here, then set each person’s customer rate, pay and expense terms in this project’s Billing setup.',
               )}
             </p>
             <div class="team-list">
@@ -931,11 +979,37 @@
         aria-labelledby="project-tab-billing"
         tabindex="0"
       >
+        {#if billingSetup}
+          {#key billingSetup.version}
+            <ProjectBillingSetup
+              projectId={String(project.id)}
+              currency={String(project.currency)}
+              timezone={String(project.timezone)}
+              commercialModel={String(project.billing_model ?? t('Not configured'))}
+              poCap={money(project.po_cap_minor, String(project.currency))}
+              rules={billingRules}
+              legalEntities={billingSetup.legalEntities}
+              taxProfiles={billingSetup.taxProfiles}
+              contacts={billingSetup.contacts}
+              templates={billingSetup.templates}
+              people={billingSetup.people}
+              version={billingSetup.version}
+              rulesFingerprint={billingSetup.rulesFingerprint}
+              issuingPrerequisites={billingSetup.issuingPrerequisites}
+              requestKey={billingSetup.requestKey}
+              canEdit={canWriteFinance}
+              canEditProject={isOwner}
+              onEditProject={() => (editOpen = true)}
+              {form}
+              {t}
+            />
+          {/key}
+        {/if}
         <section class="project-surface" aria-labelledby="billing-title">
           <div class="surface-heading">
             <div>
               <p class="portal-kicker">{t('FINANCE WORKFLOW')}</p>
-              <h2 id="billing-title">{t('Billing')}</h2>
+              <h2 id="billing-title">{t('Invoices and advanced settings')}</h2>
             </div>
             <a
               class="secondary-button"
@@ -945,7 +1019,7 @@
           </div>
           <p class="surface-intro">
             {t(
-              'Billing lifecycle remains in the finance workspace. Issued invoices are immutable snapshots.',
+              'Review drafts and issued invoices here. Advanced billing rules remain available for Finance.',
             )}
           </p>
           <div class="billing-stream-list">
@@ -1131,14 +1205,12 @@
               'Expected hours are planning context. The client daily minimum is a separate commercial top-up applied once per worker, project and day; it never changes actual recorded hours or worker compensation.',
             )}
           </p>
-          <label
-            >{t('Planned minutes')}<input
-              name="plannedMinutes"
-              type="number"
-              min="0"
-              value={display(project.planned_minutes, '')}
-            /></label
-          >
+          <ProjectBudgetInput
+            name="plannedMinutes"
+            label={t('Planned hours')}
+            value={String(project.planned_minutes ?? '')}
+            kind="hours"
+          />
         </div>
       </section>
       <section class="edit-form-section" aria-labelledby="edit-commercial-title">
@@ -1181,62 +1253,54 @@
               maxlength="80"
             /></label
           >
-          <label
-            >{t('Budget · minor units')}<input
-              name="budgetMinor"
-              type="number"
-              min="0"
-              value={display(project.budget_minor, '')}
-            /></label
-          >
-          <label
-            >{t('Revenue budget · minor units')}<input
-              name="revenueBudgetMinor"
-              type="number"
-              min="0"
-              value={display(project.revenue_budget_minor, '')}
-            /></label
-          >
-          <label
-            >{t('PO cap · minor units')}<input
-              name="poCapMinor"
-              type="number"
-              min="0"
-              value={display(project.po_cap_minor, '')}
-            /></label
-          >
-          <label
-            >{t('Explicit fixed labor price · minor units')}<input
-              name="fixedPriceMinor"
-              type="number"
-              min="0"
-              value={display(project.fixed_price_minor, '')}
-            /></label
-          >
-          <label
-            >{t('Labor budget minutes')}<input
-              name="laborBudgetMinutes"
-              type="number"
-              min="0"
-              value={display(project.labor_budget_minutes, '')}
-            /></label
-          >
-          <label
-            >{t('Travel budget · minor units')}<input
-              name="travelBudgetMinor"
-              type="number"
-              min="0"
-              value={display(project.travel_budget_minor, '')}
-            /></label
-          >
-          <label
-            >{t('Other cost budget · minor units')}<input
-              name="otherCostBudgetMinor"
-              type="number"
-              min="0"
-              value={display(project.other_cost_budget_minor, '')}
-            /></label
-          >
+          <ProjectBudgetInput
+            name="budgetMinor"
+            label={t('Budget')}
+            value={String(project.budget_minor ?? '')}
+            currency={String(project.currency ?? 'USD')}
+          />
+          <ProjectBudgetInput
+            name="revenueBudgetMinor"
+            label={t('Revenue budget')}
+            value={String(project.revenue_budget_minor ?? '')}
+            currency={String(project.currency ?? 'USD')}
+          />
+          <ProjectBudgetInput
+            name="poCapMinor"
+            label={t('PO cap')}
+            value={String(project.po_cap_minor ?? '')}
+            currency={String(project.currency ?? 'USD')}
+          />
+          <ProjectBudgetInput
+            name="fixedPriceMinor"
+            label={t('Explicit fixed labor price')}
+            value={String(project.fixed_price_minor ?? '')}
+            currency={String(project.currency ?? 'USD')}
+          />
+          <ProjectBudgetInput
+            name="laborBudgetMinutes"
+            label={t('Planned labor hours')}
+            value={String(project.labor_budget_minutes ?? '')}
+            kind="hours"
+          />
+          <ProjectBudgetInput
+            name="expenseBudgetMinor"
+            label={t('Expense budget')}
+            value={String(project.expense_budget_minor ?? '')}
+            currency={String(project.currency ?? 'USD')}
+          />
+          <ProjectBudgetInput
+            name="travelBudgetMinor"
+            label={t('Travel budget')}
+            value={String(project.travel_budget_minor ?? '')}
+            currency={String(project.currency ?? 'USD')}
+          />
+          <ProjectBudgetInput
+            name="otherCostBudgetMinor"
+            label={t('Other cost budget')}
+            value={String(project.other_cost_budget_minor ?? '')}
+            currency={String(project.currency ?? 'USD')}
+          />
         </div>
       </section>
       <details class="advanced-edit-fields">
@@ -1308,12 +1372,12 @@
     {#if billingRules.length > 0}
       <form
         method="POST"
-        action="?/createInvoiceDraft"
+        action="?/createInvoiceDraft&tab=billing"
         class="invoice-draft-form"
         onsubmit={submitForm}
       >
         <label
-          >{t('Billing stream')}<select name="billingRuleId" required
+          >{t('Billing stream')}<select name="billingRuleId" value={selectedDraftRuleId} required
             >{#each billingRules as rule}<option value={rule.id}
                 >{controlled('billingStream', rule.stream_type)} · {controlled(
                   'billingStream',
@@ -1326,7 +1390,7 @@
           >{t('Period start')}<input
             name="periodStart"
             type="date"
-            value={invoiceDraftStart}
+            value={selectedDraftStart}
             required
           /></label
         >
@@ -1334,7 +1398,7 @@
           >{t('Period end')}<input
             name="periodEnd"
             type="date"
-            value={invoiceDraftEnd}
+            value={selectedDraftEnd}
             required
           /></label
         >
@@ -1346,6 +1410,9 @@
                 <li>{t(billingReadinessMessageKey(reason?.code))}</li>
               {/each}
             </ul>
+            <a href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=billing#project-panel-billing`}
+              >{t('Project billing setup')}</a
+            >
           </aside>
         {/if}
         <p class="form-help">
@@ -1872,6 +1939,7 @@
     gap: 0.85rem;
   }
   .edit-field-grid label,
+  .edit-field-grid :global(label),
   .invoice-draft-form label {
     display: grid;
     gap: 0.35rem;
@@ -1887,6 +1955,7 @@
     line-height: 1.5;
   }
   .edit-field-grid input,
+  .edit-field-grid :global(input:not([type='hidden'])),
   .edit-field-grid select,
   .edit-field-grid textarea,
   .invoice-draft-form input,
@@ -1901,6 +1970,7 @@
     font: inherit;
   }
   .edit-field-grid input:focus-visible,
+  .edit-field-grid :global(input:not([type='hidden']):focus-visible),
   .edit-field-grid select:focus-visible,
   .edit-field-grid textarea:focus-visible,
   .invoice-draft-form input:focus-visible,

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   PortalRepository,
+  AssignmentExpensePolicyRepository,
   V3ConflictError,
   V3Repository,
   V3ValidationError,
@@ -153,6 +154,7 @@ function setup(options: { canonicalAuthority?: boolean } = {}) {
     paymentTermsDays: 30,
   });
   const project = repository.createProject(owner, {
+    costCenterCode: 'QA-FINANCE-TRUTH-REVERSAL-TEST-1',
     clientId: client.id,
     name: 'Finance Truth Project',
     timezone: 'UTC',
@@ -172,6 +174,19 @@ function setup(options: { canonicalAuthority?: boolean } = {}) {
     workerId: 'worker',
     startsOn: '2026-08-01',
   });
+  const expensePolicies = new AssignmentExpensePolicyRepository(sqlite);
+  for (const terms of [
+    { category: 'hotel', clientRecovery: 'at_cost' as const },
+    { category: 'materials', clientRecovery: 'non_billable' as const },
+  ])
+    expensePolicies.create(finance, {
+      projectMemberId: workerAssignment.id,
+      payer: 'worker',
+      effectiveFrom: '2026-08-01',
+      workerReimbursement: 'at_cost',
+      reason: 'Explicit finance truth fixture reimbursement terms',
+      ...terms,
+    });
   const manager = repository.principalFor('manager');
   const worker = repository.principalFor('worker');
   v3.createClientLaborRate(finance, {
@@ -1065,6 +1080,7 @@ describe('Client Essential finance truth and payment reversals', () => {
       markupBps: 0,
       taxBps: 0,
       reason: 'Classify the Accounting Pack direct cost source as internal non-billable',
+      overrideExpensePolicy: true,
       idempotencyKey: 'finance-truth:pack-expense-classification:v1',
     });
     repository.submitExpense(worker, expense.id, classifiedExpense.version);

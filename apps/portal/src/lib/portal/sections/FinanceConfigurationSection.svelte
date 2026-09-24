@@ -1,5 +1,6 @@
 <script lang="ts">
   import { base } from '$app/paths';
+  import { page } from '$app/stores';
   import { FormCard, FormSection, FieldGroup, Field, formValidation } from '../ui';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
@@ -139,6 +140,67 @@
   const policyDecision = (row: Row, ...keys: string[]): string =>
     booleanValue(row, ...keys) ? translate('Yes') : translate('No');
 
+  const termIssueLabel = (code: string): string => {
+    const labels: Record<string, string> = {
+      missing_assignment: 'No active assignment for this date',
+      ambiguous_assignment: 'Overlapping active assignments',
+      missing_client_rate: 'Customer hourly rate required',
+      missing_compensation_rule: 'Worker compensation rule required',
+      missing_internal_cost_rule: 'Internal cost rule required',
+      ambiguous_client_rate: 'Overlapping customer rates',
+      ambiguous_compensation_rule: 'Overlapping worker compensation rules',
+      ambiguous_internal_cost_rule: 'Overlapping internal cost rules',
+      unavailable_client_override: 'Customer-rate override does not apply',
+      unavailable_compensation_override: 'Compensation override does not apply',
+      unavailable_internal_cost_override: 'Internal-cost override does not apply',
+    };
+    return translate(labels[code] ?? code);
+  };
+
+  const ruleMoney = (row: Row, amountKey: string, currencyKey: string): string => {
+    const amount = row[amountKey];
+    const currency = row[currencyKey];
+    return amount !== null && amount !== undefined && currency
+      ? paymentMoney(amount, String(currency), documentLanguage(locale))
+      : '—';
+  };
+
+  const termsSourceLabel = (source: string): string => {
+    const labels: Record<string, string> = {
+      assignment_override: 'Assignment override',
+      assignment_rule: 'Selected for this person',
+      worker_project: 'Person on this project',
+      project_default: 'Project default',
+      worker_global: 'Person global fallback',
+    };
+    return source ? translate(labels[source] ?? source) : '—';
+  };
+
+  const assignmentRuleOptions = (rules: Row[] | undefined, terms: Row, kind: 'client' | 'worker') =>
+    (rules ?? []).filter((rule) => {
+      const projectId = rowValue(rule, 'projectId', 'project_id');
+      const workerId = rowValue(rule, 'workerId', 'worker_id');
+      const effectiveFrom = rowValue(rule, 'effectiveFrom', 'effective_from');
+      const effectiveTo = rowValue(rule, 'effectiveTo', 'effective_to');
+      const assignmentStart = rowValue(terms, 'assignmentStartsOn');
+      const assignmentEnd = rowValue(terms, 'assignmentEndsOn');
+      if (
+        effectiveFrom > assignmentStart ||
+        (effectiveTo && (!assignmentEnd || effectiveTo < assignmentEnd)) ||
+        rowValue(rule, 'currency') !== rowValue(terms, 'projectCurrency')
+      )
+        return false;
+      return kind === 'client'
+        ? projectId === String(data.selectedProjectId ?? '') &&
+            (!workerId || workerId === rowValue(terms, 'workerId')) &&
+            !rowValue(rule, 'category')
+        : workerId === rowValue(terms, 'workerId') &&
+            (!projectId || projectId === String(data.selectedProjectId ?? ''));
+    });
+
+  const assignmentRuleLabel = (rule: Row, moneyKey: string): string =>
+    `${ruleMoney(rule, moneyKey, 'currency')} · ${rowValue(rule, 'effectiveFrom', 'effective_from')} → ${rowValue(rule, 'effectiveTo', 'effective_to') || translate('open-ended')}`;
+
   const policyWriteRoles = ['owner_admin', 'finance_admin'];
   const canWritePolicy = $derived(!isAuditor && policyWriteRoles.includes(String(data.user.role)));
   const canManageCanonicalAuthority = $derived(
@@ -149,9 +211,13 @@
   let compensationRateBasis = $state('hourly');
   let clientOvertimeMethod = $state('BASE_RATE_MULTIPLIER');
   let internalOvertimeMethod = $state('BASE_RATE_MULTIPLIER');
+  let expensePolicyPayer = $state('worker');
+  let expensePolicyWorkerReimbursement = $state('at_cost');
+  let expensePolicyClientRecovery = $state('at_cost');
   const configurationActions = [
     'Project issuing authority',
     'Project commercial and time policy',
+    'Person expense policies',
     'Compensation statement rules',
     'Client labor rates',
     'Assignment budget context / internal loaded cost',
@@ -161,6 +227,11 @@
     'Internal loaded cost',
   ];
   let selectedAction = $state(configurationActions[0]);
+  $effect(() => {
+    if ($page.url.hash === '#project-issuing-authority')
+      selectedAction = 'Project issuing authority';
+    if ($page.url.hash === '#person-expense-policies') selectedAction = 'Person expense policies';
+  });
 </script>
 
 <FormCard title={translate('Finance configuration')} class="finance-config-panel">
@@ -186,8 +257,389 @@
       >{translate('Commercial agreement and example')} <span aria-hidden="true">↗</span></a
     >
   </div>
+  <FormSection
+    title={translate('How labor terms are selected')}
+    description={translate(
+      'Review each assigned person on a work date. These are selected rules, not a forecast or an invoice total.',
+    )}
+    data-commercial-terms-summary
+  >
+    <form method="GET" action={`${base}/app/finance`} class="admin-form-grid">
+      <input type="hidden" name="view" value="commercial" />
+      <input type="hidden" name="project" value={data.selectedProjectId ?? ''} />
+      <FieldGroup columns="2">
+        <Field id="commercial-summary-date" label={translate('Work date')}>
+          <input
+            id="commercial-summary-date"
+            name="asOf"
+            type="date"
+            value={data.commercialAsOf ?? data.financeToday ?? ''}
+            required
+          />
+        </Field>
+        <Field id="commercial-summary-category" label={translate('Time category')}>
+          <input
+            id="commercial-summary-category"
+            name="category"
+            value={data.commercialCategory ?? 'regular'}
+            required
+          />
+        </Field>
+      </FieldGroup>
+      <div class="form-actions"><button type="submit">{translate('Review terms')}</button></div>
+    </form>
+    {#if data.commercialTermsSummary?.length}
+      <div class="record-list" aria-label={translate('Person-specific labor terms')}>
+        {#each data.commercialTermsSummary as terms}
+          <article class="record-list-item" data-commercial-person={rowValue(terms, 'workerId')}>
+            <div>
+              <strong>{rowValue(terms, 'workerName')}</strong>
+              <small>
+                {translate('Customer charge')}: {ruleMoney(
+                  terms,
+                  'clientRateMinor',
+                  'clientCurrency',
+                )}
+                {translate('per hour')} · {translate('Source')}: {termsSourceLabel(
+                  rowValue(terms, 'clientSource'),
+                )}
+              </small>
+              <small>
+                {translate('Worker pay')}: {ruleMoney(terms, 'payRateMinor', 'payCurrency')}
+                · {translate('Method')}: {rowValue(terms, 'payMethod') || '—'}
+                · {translate('Source')}: {termsSourceLabel(rowValue(terms, 'paySource'))}
+              </small>
+              <small>
+                {translate('Internal cost rate')}: {ruleMoney(
+                  terms,
+                  'internalRateMinor',
+                  'internalCurrency',
+                )}
+              </small>
+              {#if Array.isArray(terms.issueCodes) && terms.issueCodes.length}
+                <small role="status">
+                  {translate('Configuration required')}: {terms.issueCodes
+                    .map(termIssueLabel)
+                    .join('; ')}
+                </small>
+              {/if}
+              {#if canWritePolicy}
+                <details class="assignment-commercial-editor">
+                  <summary>{translate('Configure this person')}</summary>
+                  <form
+                    method="POST"
+                    action={`?/setAssignmentCommercialRuleReferences&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+                    class="admin-form-grid"
+                    use:formValidation
+                  >
+                    <input
+                      type="hidden"
+                      name="projectMemberId"
+                      value={rowValue(terms, 'assignmentId')}
+                    />
+                    <input
+                      type="hidden"
+                      name="expectedVersion"
+                      value={rowValue(terms, 'assignmentVersion')}
+                    />
+                    <FieldGroup columns="2">
+                      <Field
+                        id={`assignment-client-${rowValue(terms, 'assignmentId')}`}
+                        label={translate('Customer hourly rule')}
+                      >
+                        <select
+                          id={`assignment-client-${rowValue(terms, 'assignmentId')}`}
+                          name="clientBillRuleId"
+                          value={rowValue(terms, 'clientBillRuleId')}
+                        >
+                          <option value="">{translate('Resolve by project and date')}</option>
+                          {#each assignmentRuleOptions(data.clientLaborRates, terms, 'client') as rule}
+                            <option value={rowValue(rule, 'id')}
+                              >{assignmentRuleLabel(rule, 'hourly_rate_minor')}</option
+                            >
+                          {/each}
+                        </select>
+                      </Field>
+                      <Field
+                        id={`assignment-pay-${rowValue(terms, 'assignmentId')}`}
+                        label={translate('Worker compensation rule')}
+                      >
+                        <select
+                          id={`assignment-pay-${rowValue(terms, 'assignmentId')}`}
+                          name="workerCompensationRuleId"
+                          value={rowValue(terms, 'workerCompensationRuleId')}
+                        >
+                          <option value="">{translate('Resolve by project and date')}</option>
+                          {#each assignmentRuleOptions(data.compensationRules, terms, 'worker') as rule}
+                            <option value={rowValue(rule, 'id')}
+                              >{assignmentRuleLabel(rule, 'rate_minor')}</option
+                            >
+                          {/each}
+                        </select>
+                      </Field>
+                      <Field
+                        id={`assignment-cost-${rowValue(terms, 'assignmentId')}`}
+                        label={translate('Internal cost rule')}
+                      >
+                        <select
+                          id={`assignment-cost-${rowValue(terms, 'assignmentId')}`}
+                          name="internalCostRuleId"
+                          value={rowValue(terms, 'internalCostRuleId')}
+                        >
+                          <option value="">{translate('Resolve by project and date')}</option>
+                          {#each assignmentRuleOptions(data.internalCostRules, terms, 'worker') as rule}
+                            <option value={rowValue(rule, 'id')}
+                              >{assignmentRuleLabel(rule, 'hourly_rate_minor')}</option
+                            >
+                          {/each}
+                        </select>
+                      </Field>
+                    </FieldGroup>
+                    <div class="form-actions">
+                      <button type="submit">{translate('Save person rules')}</button>
+                    </div>
+                  </form>
+                  <form
+                    method="POST"
+                    action={`?/setAssignmentCommercialFallback&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+                    class="admin-form-grid"
+                    use:formValidation
+                  >
+                    <input
+                      type="hidden"
+                      name="projectMemberId"
+                      value={rowValue(terms, 'assignmentId')}
+                    />
+                    <input
+                      type="hidden"
+                      name="expectedVersion"
+                      value={rowValue(terms, 'assignmentVersion')}
+                    />
+                    <FieldGroup columns="2">
+                      <Field
+                        id={`assignment-pay-fallback-${rowValue(terms, 'assignmentId')}`}
+                        label={translate('Global worker pay fallback')}
+                      >
+                        <select
+                          id={`assignment-pay-fallback-${rowValue(terms, 'assignmentId')}`}
+                          name="allowGlobalCompensation"
+                          value={terms.allowGlobalCompensation ? 'yes' : 'no'}
+                        >
+                          <option value="no">{translate('Off')}</option><option value="yes"
+                            >{translate('On')}</option
+                          >
+                        </select>
+                      </Field>
+                      <Field
+                        id={`assignment-cost-fallback-${rowValue(terms, 'assignmentId')}`}
+                        label={translate('Global internal cost fallback')}
+                      >
+                        <select
+                          id={`assignment-cost-fallback-${rowValue(terms, 'assignmentId')}`}
+                          name="allowGlobalInternalCost"
+                          value={terms.allowGlobalInternalCost ? 'yes' : 'no'}
+                        >
+                          <option value="no">{translate('Off')}</option><option value="yes"
+                            >{translate('On')}</option
+                          >
+                        </select>
+                      </Field>
+                    </FieldGroup>
+                    <div class="form-actions">
+                      <button type="submit">{translate('Save fallback options')}</button>
+                    </div>
+                  </form>
+                </details>
+              {/if}
+            </div>
+          </article>
+        {/each}
+      </div>
+      <p class="muted">
+        {translate(
+          'Customer labor uses approved billable time and the selected customer rule. Worker pay follows its separate method; expense reimbursement and customer recovery are calculated independently. Invoice totals also apply the configured minimums, caps, tax, and rounding.',
+        )}
+      </p>
+    {:else}
+      <p class="muted">{translate('No active project people on this date.')}</p>
+    {/if}
+  </FormSection>
+  {#if selectedAction === 'Person expense policies'}
+    <FormSection
+      id="person-expense-policies"
+      title={translate('Person expense policies')}
+      description={translate(
+        'Choose separately whether the worker is reimbursed and whether the customer pays. Rules apply by person, payer, category, and expense date.',
+      )}
+      data-assignment-expense-policies
+    >
+      {#if canWritePolicy && data.selectedProjectId && data.commercialTermsSummary?.length}
+        <form
+          method="POST"
+          action={`?/createAssignmentExpensePolicy&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId))}`}
+          class="admin-form-grid"
+          data-assignment-expense-policy-form
+          use:formValidation
+        >
+          <Field id="expense-policy-person" label={translate('Assigned person')} required>
+            <select id="expense-policy-person" name="projectMemberId" required>
+              <option value="">{translate('Select person')}</option>
+              {#each data.commercialTermsSummary as person}
+                <option value={rowValue(person, 'assignmentId')}
+                  >{rowValue(person, 'workerName')}</option
+                >
+              {/each}
+            </select>
+          </Field>
+          <FieldGroup columns="2">
+            <Field id="expense-policy-payer" label={translate('Who paid')} required>
+              <select
+                id="expense-policy-payer"
+                name="payer"
+                bind:value={expensePolicyPayer}
+                onchange={() => {
+                  if (expensePolicyPayer !== 'worker') expensePolicyWorkerReimbursement = 'none';
+                  if (expensePolicyPayer === 'client')
+                    expensePolicyClientRecovery = 'client_direct';
+                  else if (expensePolicyClientRecovery === 'client_direct')
+                    expensePolicyClientRecovery = 'at_cost';
+                }}
+                required
+              >
+                <option value="worker">{translate('Worker')}</option>
+                <option value="company_card">{translate('Company card')}</option>
+                <option value="company_direct">{translate('Company direct')}</option>
+                <option value="client">{translate('Client')}</option>
+                <option value="third_party">{translate('Third party')}</option>
+              </select>
+            </Field>
+            <Field
+              id="expense-policy-category"
+              label={translate('Expense category')}
+              help={translate('Leave blank for all categories.')}
+            >
+              <input id="expense-policy-category" name="category" maxlength="80" />
+            </Field>
+            <Field id="expense-policy-from" label={translate('Effective from')} required>
+              <input
+                id="expense-policy-from"
+                name="effectiveFrom"
+                type="date"
+                value={data.financeToday ?? ''}
+                required
+              />
+            </Field>
+            <Field id="expense-policy-to" label={translate('Effective to')}>
+              <input id="expense-policy-to" name="effectiveTo" type="date" />
+            </Field>
+            <Field id="expense-policy-worker" label={translate('Worker reimbursement')} required>
+              <select
+                id="expense-policy-worker"
+                name="workerReimbursement"
+                bind:value={expensePolicyWorkerReimbursement}
+                disabled={expensePolicyPayer !== 'worker'}
+                required
+              >
+                <option value="at_cost">{translate('Reimburse at cost')}</option>
+                <option value="none">{translate('Do not reimburse')}</option>
+              </select>
+              {#if expensePolicyPayer !== 'worker'}
+                <input type="hidden" name="workerReimbursement" value="none" />
+              {/if}
+            </Field>
+            <Field
+              id="expense-policy-customer"
+              label={translate('Customer expense recovery')}
+              required
+            >
+              <select
+                id="expense-policy-customer"
+                name="clientRecovery"
+                bind:value={expensePolicyClientRecovery}
+                disabled={expensePolicyPayer === 'client'}
+                required
+              >
+                <option value="at_cost">{translate('Bill at cost')}</option>
+                <option value="markup">{translate('Bill with markup')}</option>
+                <option value="included">{translate('Included in labor price')}</option>
+                <option value="non_billable">{translate('Do not bill customer')}</option>
+                <option value="client_direct">{translate('Customer paid directly')}</option>
+              </select>
+              {#if expensePolicyPayer === 'client'}
+                <input type="hidden" name="clientRecovery" value="client_direct" />
+              {/if}
+            </Field>
+            <Field
+              id="expense-policy-markup"
+              label={translate('Markup (basis points)')}
+              help={translate('Required only for bill with markup; 1000 means 10%.')}
+            >
+              <input
+                id="expense-policy-markup"
+                name="markupBps"
+                type="number"
+                min="1"
+                max="10000"
+                step="1"
+                required={expensePolicyClientRecovery === 'markup'}
+                disabled={expensePolicyClientRecovery !== 'markup'}
+              />
+            </Field>
+          </FieldGroup>
+          <Field id="expense-policy-reason" label={translate('Reason')} required>
+            <textarea
+              id="expense-policy-reason"
+              name="reason"
+              required
+              minlength="3"
+              maxlength="2000"
+            ></textarea>
+          </Field>
+          <div class="form-actions">
+            <button type="submit">{translate('Save person expense policy')}</button>
+          </div>
+        </form>
+      {:else}
+        <p class="muted">
+          {translate('Select a project with an assigned person to configure expense policy.')}
+        </p>
+      {/if}
+      {#if data.assignmentExpensePolicies?.length}
+        <div class="record-list" aria-label={translate('Person expense policy history')}>
+          {#each data.assignmentExpensePolicies as policy}
+            <article class="record-list-item">
+              <div>
+                <strong>{rowValue(policy, 'workerName')}</strong>
+                <small
+                  >{translate('Payer')}: {translate(rowValue(policy, 'payer'))} · {translate(
+                    'Category',
+                  )}: {rowValue(policy, 'category') || translate('All categories')}</small
+                >
+                <small
+                  >{translate('Worker reimbursement')}: {translate(
+                    rowValue(policy, 'workerReimbursement'),
+                  )} · {translate('Customer expense recovery')}: {translate(
+                    rowValue(policy, 'clientRecovery'),
+                  )}</small
+                >
+                <small
+                  >{rowValue(policy, 'effectiveFrom')} → {rowValue(policy, 'effectiveTo') ||
+                    translate('open-ended')}</small
+                >
+              </div>
+            </article>
+          {/each}
+        </div>
+      {:else}
+        <p class="muted">
+          {translate('No person expense policies are configured for this project.')}
+        </p>
+      {/if}
+    </FormSection>
+  {/if}
   {#if selectedAction === 'Project issuing authority'}
     <FormSection
+      id="project-issuing-authority"
       title={translate('Project issuing authority')}
       description={translate(
         'Choose the reviewed legal-entity revision that will issue invoices for this project. Previous assignments remain visible as immutable history.',
@@ -195,9 +647,194 @@
       data-project-legal-entity
     >
       {#if canManageCanonicalAuthority}
+        <details class="finance-authority-revision">
+          <summary>{translate('Create issuing legal entity revision')}</summary>
+          <p class="muted">
+            {translate(
+              'Use verified legal and tax details. A revision is permanent evidence for later invoices.',
+            )}
+          </p>
+          <form
+            method="POST"
+            action={`?/createCanonicalLegalEntityRevision&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+            class="admin-form-grid"
+            data-canonical-revision-form
+            use:formValidation
+          >
+            <input
+              type="hidden"
+              name="idempotencyKey"
+              value={data.canonicalRevisionCommandToken ?? ''}
+            />
+            <Field
+              id="authority-legacy-entity"
+              label={translate('Legal entity')}
+              required
+              data-field="legacyLegalEntityId"
+            >
+              <select id="authority-legacy-entity" name="legacyLegalEntityId" required>
+                <option value="">{translate('Select legal entity')}</option>
+                {#each data.legalEntities ?? [] as entity}
+                  <option value={rowValue(entity, 'id')}>
+                    {rowValue(entity, 'code')} · {rowValue(entity, 'legalName', 'legal_name')} · {rowValue(
+                      entity,
+                      'currency',
+                    )}
+                  </option>
+                {/each}
+              </select>
+            </Field>
+            <FieldGroup columns="2">
+              <Field
+                id="authority-effective-from"
+                label={translate('Effective from')}
+                required
+                data-field="effectiveFrom"
+              >
+                <input
+                  id="authority-effective-from"
+                  name="effectiveFrom"
+                  type="date"
+                  value={data.canonicalAuthorityAsOf ?? ''}
+                  required
+                />
+              </Field>
+              <Field
+                id="authority-effective-to"
+                label={translate('Effective to')}
+                data-field="effectiveTo"
+              >
+                <input id="authority-effective-to" name="effectiveTo" type="date" />
+              </Field>
+              <Field
+                id="authority-legal-name"
+                label={translate('Registered legal name')}
+                required
+                data-field="legalName"
+              >
+                <input id="authority-legal-name" name="legalName" required maxlength="300" />
+              </Field>
+              <Field
+                id="authority-tax-identifier"
+                label={translate('Tax identifier')}
+                required
+                data-field="taxIdentifier"
+              >
+                <input
+                  id="authority-tax-identifier"
+                  name="taxIdentifier"
+                  required
+                  maxlength="100"
+                />
+              </Field>
+              <Field
+                id="authority-registration-identifier"
+                label={translate('Registration identifier')}
+                data-field="registrationIdentifier"
+              >
+                <input
+                  id="authority-registration-identifier"
+                  name="registrationIdentifier"
+                  maxlength="100"
+                />
+              </Field>
+              <Field
+                id="authority-address-line1"
+                label={translate('Address line 1')}
+                required
+                data-field="addressLine1"
+              >
+                <input id="authority-address-line1" name="addressLine1" required maxlength="300" />
+              </Field>
+              <Field
+                id="authority-address-line2"
+                label={translate('Address line 2')}
+                data-field="addressLine2"
+              >
+                <input id="authority-address-line2" name="addressLine2" maxlength="300" />
+              </Field>
+              <Field
+                id="authority-locality"
+                label={translate('City / locality')}
+                required
+                data-field="locality"
+              >
+                <input id="authority-locality" name="locality" required maxlength="160" />
+              </Field>
+              <Field id="authority-region" label={translate('Region')} data-field="region">
+                <input id="authority-region" name="region" maxlength="160" />
+              </Field>
+              <Field
+                id="authority-postal-code"
+                label={translate('Postal code')}
+                required
+                data-field="postalCode"
+              >
+                <input id="authority-postal-code" name="postalCode" required maxlength="80" />
+              </Field>
+              <Field
+                id="authority-country-code"
+                label={translate('Country code (2 letters)')}
+                required
+                data-field="countryCode"
+              >
+                <input
+                  id="authority-country-code"
+                  name="countryCode"
+                  required
+                  maxlength="2"
+                  minlength="2"
+                  pattern="[A-Za-z][A-Za-z]"
+                />
+              </Field>
+              <Field
+                id="authority-currency"
+                label={translate('Base currency')}
+                help={translate('Must match the selected legal entity.')}
+                required
+                data-field="baseCurrency"
+              >
+                <input
+                  id="authority-currency"
+                  name="baseCurrency"
+                  required
+                  maxlength="3"
+                  minlength="3"
+                  pattern="[A-Za-z][A-Za-z][A-Za-z]"
+                />
+              </Field>
+              <Field
+                id="authority-timezone"
+                label={translate('Timezone')}
+                required
+                data-field="timezone"
+              >
+                <input
+                  id="authority-timezone"
+                  name="timezone"
+                  required
+                  placeholder={translate('Europe/Madrid')}
+                  maxlength="100"
+                />
+              </Field>
+            </FieldGroup>
+            <Field
+              id="authority-reason"
+              label={translate('Reason for this revision')}
+              required
+              data-field="reason"
+            >
+              <textarea id="authority-reason" name="reason" required minlength="5" maxlength="2000"
+              ></textarea>
+            </Field>
+            <div class="form-actions">
+              <button type="submit">{translate('Save legal entity revision')}</button>
+            </div>
+          </form>
+        </details>
         <form
           method="POST"
-          action="?/assignProjectLegalEntity"
+          action={`?/assignProjectLegalEntity&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
           class="admin-form-grid"
           data-project-legal-entity-form
           use:formValidation

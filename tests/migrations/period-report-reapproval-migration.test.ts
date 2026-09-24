@@ -73,6 +73,7 @@ function seedSignedReport(sqlite: ReturnType<typeof createDatabase>['sqlite']) {
     paymentTermsDays: 30,
   });
   const project = repository.createProject(owner, {
+    costCenterCode: 'QA-PERIOD-REPORT-REAPPROVAL-MIGRATION-TEST-1',
     clientId: client.id,
     name: 'Reapproval Project',
     timezone: 'Europe/Madrid',

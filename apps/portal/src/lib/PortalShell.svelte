@@ -48,6 +48,10 @@
   import ProjectSection, {
     type ProjectLifecycleAction,
   } from './portal/sections/ProjectSection.svelte';
+  import ExpertiseWorkerSelect from './portal/sections/ExpertiseWorkerSelect.svelte';
+  import ProjectPeoplePicker from './portal/sections/ProjectPeoplePicker.svelte';
+  import ProjectBudgetInput from './portal/sections/ProjectBudgetInput.svelte';
+  import ProjectSetupNextSteps from './portal/sections/ProjectSetupNextSteps.svelte';
   import ApprovalSection from './portal/sections/ApprovalSection.svelte';
   import BillingSection from './portal/sections/BillingSection.svelte';
   import FinanceOverviewSection from './portal/sections/FinanceOverviewSection.svelte';
@@ -173,6 +177,11 @@
       ].includes(requested ?? '')
     )
       projectWorkflow = requested as ProjectWorkflow;
+  });
+  $effect(() => {
+    if (form?.messageKey === 'action.validation.projectFields') projectWorkflow = 'new-project';
+    if (form?.messageKey === 'action.projects.projectCreated') projectWorkflow = 'new-project';
+    if (form?.messageKey === 'action.validation.clientFields') projectWorkflow = 'new-client';
   });
   let projectRegisterPage = $state<Row[]>([]);
   let documentPage = $state<Row[]>([]);
@@ -314,6 +323,67 @@
     };
     return translate(labels[field] ?? field);
   }
+  const projectFieldErrors = $derived.by(() => {
+    const result = form as
+      | { messageKey?: unknown; fields?: Record<string, string[] | undefined> }
+      | null
+      | undefined;
+    return result?.messageKey === 'action.validation.projectFields' && result.fields
+      ? result.fields
+      : {};
+  });
+  const projectFormValues = $derived.by(() => {
+    const result = form as
+      | { messageKey?: unknown; values?: Record<string, unknown> }
+      | null
+      | undefined;
+    return result?.messageKey === 'action.validation.projectFields' && result.values
+      ? result.values
+      : {};
+  });
+  const projectFormValue = (field: string, fallback = ''): string => {
+    const value = projectFormValues[field];
+    return typeof value === 'string' ? value : fallback;
+  };
+  const initialProjectWorkerIds = $derived(
+    Array.isArray(projectFormValues.initialWorkerIds)
+      ? projectFormValues.initialWorkerIds.filter((id): id is string => typeof id === 'string')
+      : [],
+  );
+  const createdProject = $derived.by(() => {
+    const result = form as
+      | { success?: boolean; messageKey?: string; messageParams?: Record<string, unknown> }
+      | null
+      | undefined;
+    if (!result?.success || result.messageKey !== 'action.projects.projectCreated') return null;
+    const projectId = result.messageParams?.projectId;
+    const projectNumber = result.messageParams?.projectNumber;
+    if (typeof projectId !== 'string' || !/^[0-9a-f-]{36}$/i.test(projectId)) return null;
+    return {
+      id: projectId,
+      number: typeof projectNumber === 'string' ? projectNumber : '',
+    };
+  });
+  function projectFieldLabel(field: string): string {
+    const labels: Record<string, string> = {
+      clientId: 'Client',
+      costCenterCode: 'Cost center code',
+      name: 'Name',
+      currency: 'Currency',
+      timezone: 'Site timezone',
+      billingModel: 'Billing model',
+      expectedHoursPerDay: 'Expected hours / day',
+      plannedEndDate: 'Planned end date (optional)',
+      revenueBudgetMinor: 'Revenue budget',
+      poCapMinor: 'PO cap',
+      laborBudgetMinutes: 'Planned labor hours',
+      travelBudgetMinor: 'Travel budget',
+      expenseBudgetMinor: 'Expense budget',
+      initialWorkerIds: 'People (optional)',
+      initialWorkersStartOn: 'Worker assignment start date (optional)',
+    };
+    return translate(labels[field] ?? field);
+  }
   const invitationPath = $derived.by(() => {
     const result = form as ActionResultWithMessageKey | undefined;
     if (!result?.success || result.messageKey !== 'action.access.invitation.created') return null;
@@ -418,6 +488,32 @@
   };
   const activeClients = $derived(
     (data.clients ?? []).filter((client) => String(client.status ?? 'active') !== 'archived'),
+  );
+  let newProjectClientId = $state('');
+  let newProjectCurrencyOverride = $state<string | null>(null);
+  let newProjectTimezoneOverride = $state<string | null>(null);
+  const selectedNewProjectClientId = $derived(
+    newProjectClientId ||
+      projectFormValue('clientId', $page.url.searchParams.get('client') ?? '') ||
+      String(activeClients[0]?.id ?? ''),
+  );
+  const selectedNewProjectClient = $derived(
+    activeClients.find((client) => String(client.id) === selectedNewProjectClientId),
+  );
+  const newProjectCurrency = $derived(
+    newProjectCurrencyOverride ??
+      (newProjectClientId
+        ? String(selectedNewProjectClient?.currency ?? 'USD')
+        : projectFormValue('currency', String(selectedNewProjectClient?.currency ?? 'USD'))),
+  );
+  const newProjectTimezone = $derived(
+    newProjectTimezoneOverride ??
+      (newProjectClientId
+        ? String(selectedNewProjectClient?.timezone ?? 'America/New_York')
+        : projectFormValue(
+            'timezone',
+            String(selectedNewProjectClient?.timezone ?? 'America/New_York'),
+          )),
   );
   const href = (section: string) =>
     section === 'today' ? `${base}/app/` : `${base}/app/${section}`;
@@ -1840,11 +1936,16 @@
         {base}
         {locale}
         projects={availableProjects}
+        workers={(data.workers ?? []).filter((worker) => worker.role === 'worker')}
+        assignments={data.assignments ?? []}
+        expertise={data.allSkills ?? []}
+        workerExpertise={data.workerSkills ?? []}
         role={data.user.role}
         capabilities={{
           canCreateProject: false,
           canTransitionProject: false,
           canManageClients: false,
+          canManageAssignments: canManageAssignmentControls,
         }}
         getProjectLifecycleActions={projectLifecycleActions}
         {translate}
@@ -1895,7 +1996,12 @@
                 type="button"
                 class="primary-button"
                 class:active={projectWorkflow === 'new-project'}
-                onclick={() => (projectWorkflow = 'new-project')}>{translate('New Project')}</button
+                onclick={() => {
+                  projectWorkflow = 'new-project';
+                  newProjectClientId = '';
+                  newProjectCurrencyOverride = null;
+                  newProjectTimezoneOverride = null;
+                }}>{translate('New Project')}</button
               >
               <details
                 class="workspace-actions-disclosure"
@@ -2155,55 +2261,159 @@
               class="admin-details project-workflow-panel"
               data-project-workflow="new-project"
             >
-              <form method="POST" action="?/createProject" class="admin-form-grid">
+              {#if createdProject}
+                <ProjectSetupNextSteps
+                  {base}
+                  projectId={createdProject.id}
+                  projectNumber={createdProject.number}
+                  canAssignWorkers={canManageAssignmentControls}
+                  {translate}
+                />
+              {/if}
+              <form
+                method="POST"
+                action="?/createProject"
+                class="admin-form-grid project-setup-form"
+              >
                 <h2>{translate('Create project')}</h2>
+                <p class="form-help wide-field">
+                  {translate(
+                    'Set up the project and choose its people. After saving, configure each person’s commercial terms and review the project.',
+                  )}
+                </p>
+                {#if Object.keys(projectFieldErrors).length > 0}
+                  <div class="form-help wide-field" role="alert" data-project-field-errors>
+                    <strong>{translate('Check project fields')}</strong>
+                    <ul>
+                      {#each Object.entries(projectFieldErrors) as [field, messages]}
+                        <li>
+                          {projectFieldLabel(field)}: {(messages ?? []).map(translate).join(' · ')}
+                        </li>
+                      {/each}
+                    </ul>
+                  </div>
+                {/if}
+                <h3 class="wide-field" style="grid-column: 1 / -1">{translate('1 · Basics')}</h3>
                 <label
-                  >{translate('Client')}<select name="clientId" required
-                    >{#each activeClients as client}<option
-                        value={client.id}
-                        selected={String(client.id) === $page.url.searchParams.get('client')}
+                  >{translate('Client')}<select
+                    name="clientId"
+                    required
+                    value={selectedNewProjectClientId}
+                    onchange={(event) => {
+                      newProjectClientId = event.currentTarget.value;
+                      newProjectCurrencyOverride = null;
+                      newProjectTimezoneOverride = null;
+                    }}
+                    >{#each activeClients as client}<option value={client.id}
                         >{client.client_number} — {client.display_name}</option
                       >{/each}</select
                   ></label
-                ><label>{translate('Name')}<input name="name" required /></label><label
+                ><label
+                  >{translate('Name')}<input
+                    name="name"
+                    value={projectFormValue('name')}
+                    required
+                  /></label
+                ><label
                   >{translate('Cost center code')}<input
                     name="costCenterCode"
                     maxlength="120"
+                    value={projectFormValue('costCenterCode')}
                     required
                   /></label
                 ><label
                   >{translate('Description')}<textarea name="description" rows="2"
-                  ></textarea></label
-                ><label>{translate('Project alias')}<input name="projectAlias" /></label><label
-                  >{translate('Currency')}<select name="currency"
-                    ><option>USD</option><option>BRL</option><option>EUR</option></select
+                    >{projectFormValue('description')}</textarea
+                  ></label
+                ><label
+                  >{translate('Project alias')}<input
+                    name="projectAlias"
+                    value={projectFormValue('projectAlias')}
+                  /></label
+                ><label
+                  >{translate('Currency')}<select
+                    name="currency"
+                    value={newProjectCurrency}
+                    onchange={(event) => (newProjectCurrencyOverride = event.currentTarget.value)}
+                    ><option value="USD">USD</option><option value="BRL">BRL</option><option
+                      value="EUR">EUR</option
+                    ></select
                   ></label
                 ><label
                   >{translate('Project manager')}<select name="projectManagerId"
                     ><option value="">{translate('Unassigned')}</option
                     >{#each data.workers ?? [] as worker}{#if worker.role === 'project_manager' && worker.status === 'active'}<option
-                          value={worker.id}>{worker.name}</option
+                          value={worker.id}
+                          selected={projectFormValue('projectManagerId') === worker.id}
+                          >{worker.name}</option
                         >{/if}{/each}</select
                   ></label
-                ><label
+                >
+                <h3 class="wide-field" style="grid-column: 1 / -1">{translate('2 · People')}</h3>
+                {#if canManageAssignmentControls}
+                  <ProjectPeoplePicker
+                    workers={data.workers ?? []}
+                    expertise={data.allSkills ?? []}
+                    workerExpertise={data.workerSkills ?? []}
+                    selectedWorkerIds={initialProjectWorkerIds}
+                    {translate}
+                  />
+                  <label class="wide-field"
+                    >{translate('Worker assignment start date (optional)')}<input
+                      name="initialWorkersStartOn"
+                      type="date"
+                      value={projectFormValue('initialWorkersStartOn')}
+                    /><small class="form-help"
+                      >{translate('Defaults to the project start date.')}</small
+                    ></label
+                  >
+                {:else}
+                  <p class="form-help wide-field">
+                    {translate('An owner can assign people after this project is created.')}
+                  </p>
+                {/if}
+                <h3 class="wide-field" style="grid-column: 1 / -1">
+                  {translate('3 · Commercial defaults')}
+                </h3>
+                <p class="form-help wide-field">
+                  {translate(
+                    'Person-specific customer rates, worker pay and expense policies are configured after the people are assigned.',
+                  )}
+                </p>
+                <label
                   >{translate('Billing model')}<select name="billingModel"
-                    ><option value="tm">{translate('Time & materials')}</option><option
-                      value="tm_daily_minimum">{translate('T&M · daily minimum')}</option
-                    ><option value="all_in"
+                    ><option value="tm" selected={projectFormValue('billingModel', 'tm') === 'tm'}
+                      >{translate('Time & materials')}</option
+                    ><option
+                      value="tm_daily_minimum"
+                      selected={projectFormValue('billingModel') === 'tm_daily_minimum'}
+                      >{translate('T&M · daily minimum')}</option
+                    ><option value="all_in" selected={projectFormValue('billingModel') === 'all_in'}
                       >{translate('Hourly labor with included expenses (all-in)')}</option
-                    ><option value="capped_tm">{translate('Capped T&M')}</option></select
+                    ><option
+                      value="capped_tm"
+                      selected={projectFormValue('billingModel') === 'capped_tm'}
+                      >{translate('Capped T&M')}</option
+                    ></select
                   ></label
                 ><label
                   >{translate('Site timezone')}<input
                     name="timezone"
-                    value="America/New_York"
+                    value={newProjectTimezone}
+                    oninput={(event) => (newProjectTimezoneOverride = event.currentTarget.value)}
                     required
                   /></label
-                ><label>{translate('Start date')}<input name="startDate" type="date" /></label
+                ><label
+                  >{translate('Start date')}<input
+                    name="startDate"
+                    type="date"
+                    value={projectFormValue('startDate')}
+                  /></label
                 ><label
                   >{translate('Planned end date (optional)')}<input
                     name="plannedEndDate"
                     type="date"
+                    value={projectFormValue('plannedEndDate')}
                   /></label
                 ><label
                   >{translate('Expected hours / day')}<input
@@ -2212,7 +2422,7 @@
                     step="0.25"
                     min="0"
                     max="24"
-                    value="10"
+                    value={projectFormValue('expectedHoursPerDay', '10')}
                     placeholder="10.0"
                     required
                   /></label
@@ -2223,6 +2433,7 @@
                     step="0.25"
                     min="0"
                     max="24"
+                    value={projectFormValue('clientDailyMinimumHours')}
                     placeholder="8.0"
                   /></label
                 >
@@ -2236,41 +2447,64 @@
                     'All-in keeps labor hourly unless an explicit fixed labor price is configured. It only means selected expenses are included instead of billed separately.',
                   )}
                 </p>
-                ><label
+                <h3 class="wide-field" style="grid-column: 1 / -1">
+                  {translate('4 · Optional planning and budget')}
+                </h3>
+                <p class="form-help wide-field">
+                  {translate(
+                    'Leave budgets blank when they are not agreed. A planning target does not limit billing; choose capped T&M and configure a cap only when the contract requires one.',
+                  )}
+                </p>
+                <label
                   >{translate('Budget type')}<select name="budgetType"
-                    ><option value="none">{translate('No budget')}</option><option value="revenue"
+                    ><option
+                      value="none"
+                      selected={projectFormValue('budgetType', 'none') === 'none'}
+                      >{translate('No budget')}</option
+                    ><option value="revenue" selected={projectFormValue('budgetType') === 'revenue'}
                       >{translate('Revenue')}</option
-                    ><option value="purchase_order">{translate('Purchase order')}</option><option
-                      value="labor">{translate('Labor')}</option
-                    ><option value="travel">{translate('Travel')}</option><option value="combined"
+                    ><option
+                      value="purchase_order"
+                      selected={projectFormValue('budgetType') === 'purchase_order'}
+                      >{translate('Purchase order')}</option
+                    ><option value="labor" selected={projectFormValue('budgetType') === 'labor'}
+                      >{translate('Labor')}</option
+                    ><option value="travel" selected={projectFormValue('budgetType') === 'travel'}
+                      >{translate('Travel')}</option
+                    ><option value="expense" selected={projectFormValue('budgetType') === 'expense'}
+                      >{translate('Expenses')}</option
+                    ><option
+                      value="combined"
+                      selected={projectFormValue('budgetType') === 'combined'}
                       >{translate('Combined')}</option
                     ></select
                   ></label
-                ><label
-                  >{translate('Revenue budget (minor)')}<input
-                    name="revenueBudgetMinor"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                  /></label
-                ><label
-                  >{translate('PO cap (minor)')}<input
-                    name="poCapMinor"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                  /></label
-                ><label
-                  >{translate('Labor budget minutes')}<input
-                    name="laborBudgetMinutes"
-                    type="number"
-                    min="0"
-                  /></label
-                ><label
-                  >{translate('Travel budget (minor)')}<input
-                    name="travelBudgetMinor"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                  /></label
-                ><label class="check"
+                ><ProjectBudgetInput
+                  name="revenueBudgetMinor"
+                  label={translate('Revenue budget')}
+                  value={projectFormValue('revenueBudgetMinor')}
+                  currency={newProjectCurrency}
+                /><ProjectBudgetInput
+                  name="poCapMinor"
+                  label={translate('PO cap')}
+                  value={projectFormValue('poCapMinor')}
+                  currency={newProjectCurrency}
+                /><ProjectBudgetInput
+                  name="laborBudgetMinutes"
+                  label={translate('Planned labor hours')}
+                  value={projectFormValue('laborBudgetMinutes')}
+                  kind="hours"
+                /><ProjectBudgetInput
+                  name="expenseBudgetMinor"
+                  label={translate('Expense budget')}
+                  value={projectFormValue('expenseBudgetMinor')}
+                  currency={newProjectCurrency}
+                /><ProjectBudgetInput
+                  name="travelBudgetMinor"
+                  label={translate('Travel budget')}
+                  value={projectFormValue('travelBudgetMinor')}
+                  currency={newProjectCurrency}
+                /><label class="check"
                   ><input name="weeklyCloseEnabled" type="checkbox" />
                   {translate('Weekly close required')}</label
                 ><label class="check"
@@ -2299,15 +2533,13 @@
                           >{project.project_number}</option
                         >{/each}</select
                     ></label
-                  ><label
-                    >{translate('Worker')}<select name="workerId" required
-                      >{#each data.workers ?? [] as worker}<option
-                          value={worker.id}
-                          selected={String(worker.id) === $page.url.searchParams.get('worker')}
-                          >{worker.name} — {controlledValue('role', worker.role)}</option
-                        >{/each}</select
-                    ></label
-                  ><label
+                  ><ExpertiseWorkerSelect
+                    workers={data.workers ?? []}
+                    expertise={data.allSkills ?? []}
+                    workerExpertise={data.workerSkills ?? []}
+                    selectedWorkerId={$page.url.searchParams.get('worker') ?? ''}
+                    {translate}
+                  /><label
                     >{translate('Role')}<input
                       name="assignmentRole"
                       value="worker"
@@ -2354,14 +2586,12 @@
                         value={String(assignment.ends_on ?? '')}
                       /></label
                     >
-                    <label
-                      >{translate('Planned minutes')}<input
-                        name="plannedMinutes"
-                        type="number"
-                        min="0"
-                        value={assignment.planned_minutes ?? ''}
-                      /></label
-                    >
+                    <ProjectBudgetInput
+                      name="plannedMinutes"
+                      label={translate('Planned hours')}
+                      value={String(assignment.planned_minutes ?? '')}
+                      kind="hours"
+                    />
                     <label class="check"
                       ><input type="hidden" name="canReviewPresent" value="1" /><input
                         name="canReview"
@@ -3177,65 +3407,64 @@
                 bind:value={planningEnds}
                 required
               /></label
-            ><label
-              >{translate('Planned minutes')}<input
-                name="plannedMinutes"
-                type="number"
-                min="1"
-                required
-              /></label
+            ><ProjectBudgetInput
+              name="plannedMinutes"
+              label={translate('Planned hours')}
+              kind="hours"
+              required
+            />
             ><label>{translate('Site')}<input name="site" /></label><label
-              >{translate('Required skill')}<input name="requiredSkill" /></label
+              >{translate('Required expertise')}<input name="requiredSkill" /></label
             ><button>{translate('Publish assignment')}</button>
           </form>{/if}
         {#if data.user.role === 'owner_admin' || data.user.role === 'finance_admin'}
           <SectionCard
-            title={translate('Manage worker skills')}
+            title={translate('Manage worker expertise')}
             collapsible
             class="full planning-skill-tools"
           >
             <details class="admin-details">
-              <summary class="primary-button">{translate('New Skill')}</summary>
+              <summary class="primary-button">{translate('New expertise')}</summary>
               <form method="POST" action="?/createSkill" class="admin-form-grid">
-                <h2>{translate('Add skill')}</h2>
+                <h2>{translate('Add expertise')}</h2>
                 <label>{translate('Code')}<input name="code" required /></label><label
                   >{translate('Name')}<input name="name" required /></label
-                ><button>{translate('Save skill')}</button>
+                ><button>{translate('Save expertise')}</button>
               </form>
             </details>
             <details class="admin-details">
-              <summary class="primary-button">{translate('Update Skill')}</summary>
+              <summary class="primary-button">{translate('Update expertise')}</summary>
               <form method="POST" action="?/updateSkill" class="admin-form-grid">
-                <h2>{translate('Update skill')}</h2>
+                <h2>{translate('Update expertise')}</h2>
                 <label
-                  >{translate('Skill')}<select name="skillId" required>
+                  >{translate('Expertise')}<select name="skillId" required>
                     {#each data.skills ?? [] as skill}<option value={skill.id}
                         >{skill.code} — {skill.name}</option
                       >{/each}
                   </select></label
                 >
                 <label>{translate('Name')}<input name="name" /></label>
-                <button>{translate('Update skill')}</button>
+                <button>{translate('Update expertise')}</button>
               </form>
             </details>
             <details class="admin-details">
-              <summary class="primary-button">{translate('Delete Skill')}</summary>
+              <summary class="primary-button">{translate('Delete expertise')}</summary>
               <form method="POST" action="?/deleteSkill" class="admin-form-grid">
-                <h2>{translate('Delete skill')}</h2>
+                <h2>{translate('Delete expertise')}</h2>
                 <label
-                  >{translate('Skill')}<select name="skillId" required>
+                  >{translate('Expertise')}<select name="skillId" required>
                     {#each data.skills ?? [] as skill}<option value={skill.id}
                         >{skill.code} — {skill.name}</option
                       >{/each}
                   </select></label
                 >
-                <button class="danger">{translate('Delete skill')}</button>
+                <button class="danger">{translate('Delete expertise')}</button>
               </form>
             </details>
             <details class="admin-details">
-              <summary class="primary-button">{translate('Assign Skill')}</summary>
+              <summary class="primary-button">{translate('Assign expertise')}</summary>
               <form method="POST" action="?/setWorkerSkill" class="admin-form-grid">
-                <h2>{translate('Assign skill')}</h2>
+                <h2>{translate('Assign expertise')}</h2>
                 <label
                   >{translate('Worker')}<select name="workerId" required
                     >{#each data.workers ?? [] as worker}<option value={worker.id}
@@ -3243,7 +3472,7 @@
                       >{/each}</select
                   ></label
                 ><label
-                  >{translate('Skill')}<select name="skillId" required
+                  >{translate('Expertise')}<select name="skillId" required
                     >{#each data.skills ?? [] as skill}<option value={skill.id}
                         >{skill.code} — {skill.name}</option
                       >{/each}</select
@@ -3256,13 +3485,13 @@
                       >4 · {translate('advanced')}</option
                     ><option value="5">5 · {translate('expert')}</option></select
                   ></label
-                ><button>{translate('Update skill matrix')}</button>
+                ><button>{translate('Update expertise matrix')}</button>
               </form>
             </details>
             <details class="admin-details">
-              <summary class="primary-button">{translate('Remove Worker Skill')}</summary>
+              <summary class="primary-button">{translate('Remove worker expertise')}</summary>
               <form method="POST" action="?/deleteWorkerSkill" class="admin-form-grid">
-                <h2>{translate('Remove worker skill')}</h2>
+                <h2>{translate('Remove worker expertise')}</h2>
                 <label
                   >{translate('Worker')}<select name="workerId" required>
                     {#each data.workers ?? [] as worker}<option value={worker.id}
@@ -3271,13 +3500,13 @@
                   </select></label
                 >
                 <label
-                  >{translate('Skill')}<select name="skillId" required>
+                  >{translate('Expertise')}<select name="skillId" required>
                     {#each data.skills ?? [] as skill}<option value={skill.id}
                         >{skill.code} — {skill.name}</option
                       >{/each}
                   </select></label
                 >
-                <button class="danger">{translate('Remove skill')}</button>
+                <button class="danger">{translate('Remove expertise')}</button>
               </form>
             </details>
           </SectionCard>
@@ -3372,7 +3601,7 @@
       <div class="management-stack">
         <section class="entry-panel">
           <span class="portal-kicker">{translate('WORKFORCE PROFILE')}</span>
-          <h2>{translate('Skills and availability')}</h2>
+          <h2>{translate('Expertise and availability')}</h2>
           <p>
             {translate(
               'Keep your own workforce profile current without exposing compensation or client rates.',
@@ -3394,13 +3623,13 @@
           {/if}
           {#if !isAuditor}
             <details class="admin-details profile-skill-details">
-              <summary class="primary-button">{translate('Add Skill')}</summary>
+              <summary class="primary-button">{translate('Add expertise')}</summary>
               <form method="POST" action="?/setWorkerSkill" class="admin-form-grid">
                 <input type="hidden" name="workerId" value={profileWorkerId} />
                 <label
-                  >{translate('Skill')}
+                  >{translate('Expertise')}
                   <select name="skillId" required>
-                    <option value="">{translate('Select skill')}</option>
+                    <option value="">{translate('Select expertise')}</option>
                     {#each data.allSkills ?? data.skills ?? [] as skill}
                       <option value={skill.id}>{skill.name}</option>
                     {/each}
@@ -3410,35 +3639,35 @@
                   >{translate('Proficiency (1-5)')}
                   <input name="proficiency" type="number" min="1" max="5" value="3" required />
                 </label>
-                <button>{translate('Add skill')}</button>
+                <button>{translate('Add expertise')}</button>
               </form>
             </details>
             <details class="admin-details profile-skill-details">
-              <summary class="primary-button">{translate('Remove Skill')}</summary>
+              <summary class="primary-button">{translate('Remove expertise')}</summary>
               <form method="POST" action="?/deleteWorkerSkill" class="admin-form-grid">
                 <input type="hidden" name="workerId" value={profileWorkerId} />
                 <label
-                  >{translate('Skill')}
+                  >{translate('Expertise')}
                   <select name="skillId" required>
-                    <option value="">{translate('Select skill')}</option>
+                    <option value="">{translate('Select expertise')}</option>
                     {#each data.skills ?? [] as skill}
                       <option value={skill.id}>{skill.name}</option>
                     {/each}
                   </select>
                 </label>
-                <button class="danger">{translate('Remove skill')}</button>
+                <button class="danger">{translate('Remove expertise')}</button>
               </form>
             </details>
           {/if}
           <TableRegion
             class="table-wrap worker-profile-table"
             mobileMode="scroll"
-            label={translate('Skills and availability')}
+            label={translate('Expertise and availability')}
           >
             <table>
               <thead
                 ><tr
-                  ><th>{translate('Skill')}</th><th>{translate('Proficiency')}</th><th
+                  ><th>{translate('Expertise')}</th><th>{translate('Proficiency')}</th><th
                     >{translate('Verified')}</th
                   ></tr
                 ></thead
@@ -3447,7 +3676,7 @@
                     ><td>{skill.name}</td><td>{skill.proficiency}/5</td><td
                       >{skill.verified_at ? translate('verified') : translate('self-reported')}</td
                     ></tr
-                  >{:else}<tr><td colspan="3">{translate('No skills recorded.')}</td></tr
+                  >{:else}<tr><td colspan="3">{translate('No expertise recorded.')}</td></tr
                   >{/each}</tbody
               >
             </table>
@@ -3472,13 +3701,13 @@
                   <h3 id="worker-profile-controls-title">{translate('Manage worker profiles')}</h3>
                   <p class="form-help">
                     {translate(
-                      'Assign skills and availability windows for an individual worker. These controls do not expose compensation or client-rate data.',
+                      'Assign expertise and availability windows for an individual worker. These controls do not expose compensation or client-rate data.',
                     )}
                   </p>
                 </div>
               </div>
               <details class="admin-details">
-                <summary class="primary-button">{translate('Manage worker skills')}</summary>
+                <summary class="primary-button">{translate('Manage worker expertise')}</summary>
                 <form method="POST" action="?/setWorkerSkill" class="admin-form-grid">
                   <label
                     >{translate('Worker')}<select name="workerId" required>
@@ -3490,8 +3719,8 @@
                     </select></label
                   >
                   <label
-                    >{translate('Skill')}<select name="skillId" required>
-                      <option value="">{translate('Select skill')}</option>
+                    >{translate('Expertise')}<select name="skillId" required>
+                      <option value="">{translate('Select expertise')}</option>
                       {#each data.allSkills ?? data.skills ?? [] as skill}
                         <option value={skill.id}>{skill.name}</option>
                       {/each}
@@ -3507,7 +3736,7 @@
                       required
                     /></label
                   >
-                  <button type="submit">{translate('Assign skill')}</button>
+                  <button type="submit">{translate('Assign expertise')}</button>
                 </form>
                 <form method="POST" action="?/deleteWorkerSkill" class="admin-form-grid">
                   <label
@@ -3520,14 +3749,14 @@
                     </select></label
                   >
                   <label
-                    >{translate('Skill')}<select name="skillId" required>
-                      <option value="">{translate('Select skill')}</option>
+                    >{translate('Expertise')}<select name="skillId" required>
+                      <option value="">{translate('Select expertise')}</option>
                       {#each data.allSkills ?? data.skills ?? [] as skill}
                         <option value={skill.id}>{skill.name}</option>
                       {/each}
                     </select></label
                   >
-                  <button class="danger" type="submit">{translate('Remove skill')}</button>
+                  <button class="danger" type="submit">{translate('Remove expertise')}</button>
                 </form>
               </details>
             </section>
@@ -3650,7 +3879,7 @@
                       bind:value={mfaCode}
                       inputmode="numeric"
                       autocomplete="one-time-code"
-                      pattern="[0-9]{6}"
+                      pattern={'[0-9]{6}'}
                       minlength="6"
                       maxlength="6"
                       required
@@ -3711,3 +3940,11 @@
     </button>
   </nav>
 </div>
+
+<style>
+  @media (max-width: 767px) {
+    :global(.portal-layout main .admin-form-grid.project-setup-form) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

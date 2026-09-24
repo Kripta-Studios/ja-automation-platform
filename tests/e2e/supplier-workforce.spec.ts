@@ -91,6 +91,7 @@ test('Owner delegates installation; supplier adds technician and submits private
       .run(coordinatorId, externalId);
     const repository = new PortalRepository(db.sqlite);
     alternateProjectId = repository.createProject(repository.principalFor(ownerId), {
+      costCenterCode: 'QA-SUPPLIER-WORKFORCE-SPEC-1',
       clientId: e2eLifecycleFixturesFor(testInfo.project.name).client.id,
       name: `A alternate installation ${randomUUID()}`,
       timezone: 'UTC',
@@ -101,6 +102,7 @@ test('Owner delegates installation; supplier adds technician and submits private
     }).id;
     projectName = `Supplier installation ${randomUUID()}`;
     projectId = repository.createProject(repository.principalFor(ownerId), {
+      costCenterCode: 'QA-SUPPLIER-WORKFORCE-SPEC-2',
       clientId: e2eLifecycleFixturesFor(testInfo.project.name).client.id,
       name: projectName,
       timezone: 'UTC',
@@ -181,6 +183,7 @@ test('Owner delegates installation; supplier adds technician and submits private
     await coordinator.getByRole('button', { name: 'Record team hours', exact: true }).click();
     let time = coordinator.locator('form[action^="?/createTimeBatch"]');
     await time.getByLabel(technicianName, { exact: true }).check();
+    await time.getByLabel('Add start and end times').check();
     await time.getByLabel('Start time').fill('08:00');
     await time.getByLabel('End time').fill('10:00');
     await time.getByLabel('Work performed').fill(note);

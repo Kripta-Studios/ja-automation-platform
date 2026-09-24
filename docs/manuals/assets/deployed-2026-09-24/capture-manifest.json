@@ -1,0 +1,126 @@
+{
+  "release": "zip-d215671b99323d6d8c4ce34b74b4f8e0",
+  "origin": "https://j-aautomation.com",
+  "captureType": "read-only authenticated browser, existing test accounts",
+  "shots": [
+    {
+      "file": "qa-project-finance-overview.png",
+      "role": "Finance-role test session",
+      "route": "/j-aautomation/app/projects/[QA project ID]",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": 200,
+      "sha256": "5130d465043128b74eb40f7336ad6dc82d2fc2ff5cfca83dd517d40621d1e211",
+      "capturedAt": "2026-09-24T13:48:16.289Z",
+      "redaction": "Playwright mask of test-account name controls and assigned test-person name; QA project fields are unaltered"
+    },
+    {
+      "file": "qa-project-team.png",
+      "role": "Finance-role test session",
+      "route": "/j-aautomation/app/projects/[QA project ID]",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": 200,
+      "sha256": "01488037d1757ee497812cd2a963477997c3a97d4d4746b3c1b846daa14577a2",
+      "capturedAt": "2026-09-24T13:48:18.119Z",
+      "redaction": "Playwright mask of test-account name controls and assigned test-person name; QA project fields are unaltered"
+    },
+    {
+      "file": "qa-project-billing-setup.png",
+      "role": "Finance-role test session",
+      "route": "/j-aautomation/app/projects/[QA project ID]",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": 200,
+      "sha256": "76eb65a4bf2bdd5550bd158b5936474654312f7f06f3a8f0e8682ba0f8352112",
+      "capturedAt": "2026-09-24T13:48:19.830Z",
+      "redaction": "Playwright mask of test-account name controls and assigned test-person name; QA project fields are unaltered"
+    },
+    {
+      "file": "qa-project-manager-team.png",
+      "role": "Project-manager-role test session",
+      "route": "/j-aautomation/app/projects/[QA project ID]",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": 200,
+      "sha256": "19f76aea28e6a880e6ab1f5248c0e5b17b4e54d445ec6ffab905a1f7c21eadd2",
+      "capturedAt": "2026-09-24T13:48:21.603Z",
+      "redaction": "Playwright mask of test-account name controls and assigned test-person name; QA project fields are unaltered"
+    },
+    {
+      "file": "qa-billing-empty-register.png",
+      "role": "Finance-role test session",
+      "route": "/j-aautomation/app/billing",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": 200,
+      "sha256": "a9d17b06f5e59404e2becc0a63e1d56da4b6ca4343119f65a230d3e095828fd4",
+      "capturedAt": "2026-09-24T13:56:38.727Z",
+      "redaction": "Playwright mask of test-account name controls; transient sync notification dismissed before capture"
+    },
+    {
+      "file": "qa-worker-time-phone.png",
+      "role": "Worker-role test session",
+      "route": "/j-aautomation/app/time",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "sha256": "3697272b3573a1721993b02c4640c3a4ca2ad65b562a61af810836ee5c905981",
+      "capturedAt": "2026-09-24T13:56:35.761Z",
+      "redaction": "Playwright mask of test-account name controls; transient sync notification dismissed before capture"
+    },
+    {
+      "file": "qa-worker-expenses-phone.png",
+      "role": "Worker-role test session",
+      "route": "/j-aautomation/app/expenses",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "sha256": "32f5975cb3b4def0a66890378c214a8aff9950dc0b592b0b8579d54c9be904d2",
+      "capturedAt": "2026-09-24T13:56:37.192Z",
+      "redaction": "Playwright mask of test-account name controls; transient sync notification dismissed before capture"
+    },
+    {
+      "file": "qa-chief-crew-tablet.png",
+      "role": "Chief-role test session",
+      "route": "/j-aautomation/app/crew",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "status": 200,
+      "sha256": "d3e0709d638d58e615b4521c1fbf6c282ca87dc7aaba143413a9a64fee56d7f5",
+      "capturedAt": "2026-09-24T13:48:29.330Z",
+      "redaction": "Playwright mask of test-account name controls and assigned test-person name; QA project fields are unaltered"
+    },
+    {
+      "file": "qa-project-invoice-arrangement.png",
+      "role": "Finance-role test session",
+      "route": "/j-aautomation/app/projects/[QA project ID]",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": 200,
+      "sha256": "ef2436aa48b88d7474373a72a7e6dd653df21fb6e25578c8e4bc3898edf3e255",
+      "capturedAt": "2026-09-24T13:48:31.487Z",
+      "redaction": "Playwright mask of test-account name controls and assigned test-person name; QA project fields are unaltered"
+    }
+  ],
+  "privacyReview": "Test-account name controls and assigned test-person names masked in the browser capture. Transient sync notifications dismissed before three captures. No credentials, mailbox, pay amounts, private attachments or real worker records visible.",
+  "publicRouteNote": "QA project UUID is withheld from this public manifest; the public-facing project number and synthetic cost center remain visible in screenshots."
+}

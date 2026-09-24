@@ -88,6 +88,24 @@ export const invoiceSources = sqliteTable('invoice_source', {
   lockedAt: text('locked_at'),
 });
 
+export const invoiceApprovedSupersessions = sqliteTable('invoice_approved_supersession', {
+  priorInvoiceId: text('prior_invoice_id')
+    .primaryKey()
+    .references(() => invoices.id),
+  replacementInvoiceId: text('replacement_invoice_id')
+    .notNull()
+    .unique()
+    .references(() => invoices.id),
+  priorApprovalVersion: integer('prior_approval_version').notNull(),
+  sourceLinksJson: text('source_links_json').notNull(),
+  sourceLinksSha256: text('source_links_sha256').notNull(),
+  priorSnapshotSha256: text('prior_snapshot_sha256').notNull(),
+  priorLinesSha256: text('prior_lines_sha256').notNull(),
+  reason: text('reason').notNull(),
+  actorId: text('actor_id').notNull(),
+  supersededAt: text('superseded_at').notNull(),
+});
+
 export const invoiceCommercialSourceManifest = sqliteTable(
   'invoice_commercial_source_manifest',
   {

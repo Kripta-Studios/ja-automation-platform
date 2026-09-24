@@ -1,21 +1,14 @@
-# Finance administrator guide
+# Finance administrator: current billing guide
 
-## Finance scope and source truth
+**Deployed edition, 24 September 2026.** See the [full current guide](Current_Deployed_Workflows_2026-09-24.md) and [role-flow diagram](Role_Workflows.pdf). The images below came from an authenticated Finance test account on the deployed app.
 
-Use your own account and the permitted **Finance Overview**, **Billing**, **Expenses**, **Accounting**, **Reports**, **Projects** and **Profile** views. Financial summaries are derived from effective-dated configuration and approved source records. A forecast, expected collection or scheduled settlement is not a bank balance or payment proof. This guide describes Finance work; Owner-only user administration, supplier appointment and Audit are separate permissions.
+1. Open the project's **Commercial** and **Billing** tabs. Check effective per-person customer rates, worker compensation, expense policy, currency and any cap. A blank budget is not a zero budget or an invoice blocker unless an explicit cap needs a value.
+2. In project **Billing**, start from a template or from scratch. Choose **one invoice with two sections** or **two separate invoices**, then review project cadence, invoice source treatment and each person's configuration. Changes to current rules must not rewrite an issued historical invoice.
+3. Review submitted and approved time, expenses and reports. Resolve any missing-rate, source, tax or issuer readiness warning before drafting. A preview is a calculation review, not an issued invoice.
+4. In **Billing → Create invoice**, select the project and period; check included and excluded source rows, labor and expense amounts, tax and recipient. Review the draft and its PDF before authorized approval and issue. Sending email requires a ready PDF and a permitted address; **Mark sent** records manual sending only. Record collection only from actual payment evidence.
 
-## Project context and workforce availability
+![The deployed project-local arrangement offers one two-section invoice or two separate invoices.](assets/deployed-2026-09-24/qa-project-invoice-arrangement.png)
 
-Open **Projects** to confirm the client, project and effective dates before financial work. Its calendar and agenda expose authorized project dates; opening an event takes you to the source. In **Profile**, select your own or an authorized worker profile. The **Availability calendar** presents the latest 200 windows. A day opens a new UTC window; an existing agenda item opens its editor. Choose Available, Unavailable or Tentative, enter a factual note and save. Reload after an optimistic-version conflict. Availability supports coordination; it is not actual work or a compensation rule. Finance does not publish operational shifts just because it can inspect a calendar.
+![The synthetic QA project and clean billing register display zero invoices.](assets/deployed-2026-09-24/qa-billing-empty-register.png)
 
-## Commercial configuration and billing
-
-In **Commercial Configuration**, select the project and inspect the legal entity, billing stream, tax profile, rates and effective dates. Change only the approved rule and period; later configuration must not silently rewrite older records. In **Billing**, resolve readiness messages against approved sources and customer signoff before creating or issuing an invoice. Check entity, currency, numbering and tax. Once issued, use controlled void, credit or replacement actions with a reason; never edit an issued snapshot in place.
-
-## Economic review, cash and settlements
-
-In **Economic Review**, open **Source records** to reconcile revenue, labor, expenses and margin. In **Cash calendar**, filter project and dates and open the source entry; expected collection and scheduled payments remain forecasts. Review worker compensation and reimbursement separately from customer billing. **Finalize compensation** closes the calculation after source review; **Register actual payment** records a real transfer with date, amount, currency and reference. A partial payment leaves a balance; **Reverse payment** appends an audited correction instead of erasing history.
-
-## Exceptions and records
-
-If a figure is surprising, inspect source rows and effective dates before acting. Pending jobs, quarantined documents and unconfirmed bank events cannot be treated as complete. A stale workforce edit requires reload. Escalate mismatched entity, tax or customer acceptance evidence to the Owner through the verified support route; do not use an Owner-only action or backdate data to clear a warning.
+**Current deployed limitation:** the Finance test account sees a New legal entity form, but its save returned HTTP 403. Owner setup is required before this QA project can complete invoice readiness; an actual accountant-approved numbering policy is also required. No live invoice was issued, emailed or paid in this capture.

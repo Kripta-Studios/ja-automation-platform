@@ -39,6 +39,51 @@ afterEach(() => {
 });
 
 describe('Project editing through actual HTML form payloads', () => {
+  it('saves, clears and distinguishes zero from an unset expense budget', async () => {
+    const value = fixture();
+    const projectId = value.project.id;
+    const version = () =>
+      Number(
+        (
+          value.sqlite.prepare('SELECT version FROM project WHERE id=?').get(projectId) as {
+            version: number;
+          }
+        ).version,
+      );
+    const updateBudget = async (amount: string) =>
+      projectActions.updateProject(
+        event({ projectId, version: String(version()), expenseBudgetMinor: amount }),
+      );
+    expect(await updateBudget('12345')).toMatchObject({ success: true });
+    expect(
+      value.sqlite.prepare('SELECT expense_budget_minor FROM project WHERE id=?').get(projectId),
+    ).toEqual({ expense_budget_minor: 12345 });
+    expect(await updateBudget('0')).toMatchObject({ success: true });
+    expect(
+      value.sqlite.prepare('SELECT expense_budget_minor FROM project WHERE id=?').get(projectId),
+    ).toEqual({ expense_budget_minor: 0 });
+    expect(await updateBudget('')).toMatchObject({ success: true });
+    expect(
+      value.sqlite.prepare('SELECT expense_budget_minor FROM project WHERE id=?').get(projectId),
+    ).toEqual({ expense_budget_minor: null });
+  });
+
+  it('does not allow the required cost center to be cleared on edit', async () => {
+    const value = fixture();
+    const before = value.sqlite.prepare('SELECT * FROM project WHERE id=?').get(value.project.id);
+    const result = await projectActions.updateProject(
+      event({
+        projectId: value.project.id,
+        version: String(value.project.version),
+        costCenterCode: '',
+      }),
+    );
+    expect(result).toMatchObject({ status: 400 });
+    expect(value.sqlite.prepare('SELECT * FROM project WHERE id=?').get(value.project.id)).toEqual(
+      before,
+    );
+  });
+
   it('clears contact flags when checkboxes are unchecked, but preserves omitted fields in partial updates', async () => {
     const value = fixture();
     const contact = value.repository.createClientContact(value.owner, {

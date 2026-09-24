@@ -482,6 +482,15 @@ export class TimeEntryRepository {
       )
         throw this.deps.errors.conflict('Only an unlocked never-submitted time draft can change');
       const workDate = input.workDate ?? current.work_date;
+      if (
+        workDate !== current.work_date &&
+        this.deps.sqlite
+          .prepare('SELECT 1 FROM crew_shared_expense_allocation WHERE time_entry_id=? LIMIT 1')
+          .get(input.id)
+      )
+        throw this.deps.errors.conflict(
+          'This crew time is linked to an allocated receipt; its work date cannot change',
+        );
       // A delegated correction must retain authority over the existing record
       // as well as any requested new date; otherwise a coordinator could move
       // an out-of-scope historical entry by guessing its id.
@@ -812,6 +821,14 @@ export class TimeEntryRepository {
         current.work_date,
         true,
       );
+      if (
+        this.deps.sqlite
+          .prepare('SELECT 1 FROM crew_shared_expense_allocation WHERE time_entry_id=? LIMIT 1')
+          .get(id)
+      )
+        throw this.deps.errors.conflict(
+          'This crew time is linked to an allocated receipt and cannot be deleted',
+        );
       if (
         current.invoice_id ||
         current.approval_state === 'locked' ||

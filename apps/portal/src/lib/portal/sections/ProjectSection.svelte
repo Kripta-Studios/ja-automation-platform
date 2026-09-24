@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import PlanningCalendar from '../ui/PlanningCalendar.svelte';
+  import ExpertiseWorkerSelect from './ExpertiseWorkerSelect.svelte';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { SectionCard, StatusBadge, TableRegion } from '../ui';
   import type { TableCardRow } from '../ui';
@@ -25,6 +26,7 @@
     canCreateProject?: boolean;
     canTransitionProject?: boolean;
     canManageClients?: boolean;
+    canManageAssignments?: boolean;
   };
 
   export type ProjectSectionPrimaryAction = {
@@ -39,6 +41,10 @@
     locale?: string;
     projects: PortalRow[];
     clients?: PortalRow[];
+    workers?: PortalRow[];
+    assignments?: PortalRow[];
+    expertise?: PortalRow[];
+    workerExpertise?: PortalRow[];
     role?: string;
     capabilities?: ProjectSectionCapabilities;
     primaryAction?: ProjectSectionPrimaryAction;
@@ -54,6 +60,10 @@
     locale = 'en',
     projects,
     clients = [],
+    workers = [],
+    assignments = [],
+    expertise = [],
+    workerExpertise = [],
     role = '',
     capabilities = {},
     primaryAction,
@@ -76,6 +86,9 @@
     isOwnerOrFinance && capabilities.canTransitionProject === true,
   );
   const canManageClients = $derived(isOwnerOrFinance && capabilities.canManageClients === true);
+  const canManageAssignments = $derived(
+    role === 'project_manager' && capabilities.canManageAssignments === true,
+  );
   const normalizedSearch = $derived(operationalSearchText(search).trim());
 
   function value(row: PortalRow, ...keys: string[]): string {
@@ -172,6 +185,21 @@
   const attentionCount = $derived(
     (projects ?? []).filter((project) => ['paused', 'closing'].includes(projectStatus(project)))
       .length,
+  );
+  const assignableProjects = $derived(
+    (projects ?? []).filter(
+      (project) =>
+        ['active', 'planned', 'paused'].includes(projectStatus(project)) &&
+        Boolean(projectId(project)),
+    ),
+  );
+  const assignableProjectIds = $derived(new Set(assignableProjects.map(projectId)));
+  const activeAssignments = $derived(
+    (assignments ?? []).filter(
+      (assignment) =>
+        value(assignment, 'status') === 'active' &&
+        assignableProjectIds.has(value(assignment, 'project_id')),
+    ),
   );
 
   const projectCardRows = $derived.by((): TableCardRow[] =>
@@ -374,6 +402,13 @@
                       <strong>{projectNumber(project)}</strong>
                       <span>{projectName(project)}</span>
                     </a>
+                    {#if canManageAssignments && assignableProjectIds.has(projectId(project))}
+                      <a
+                        class="project-section__assign-link"
+                        href={`${base}/app/projects?action=assign-worker&project=${encodeURIComponent(projectId(project))}#project-assignment`}
+                        >{translate('Assign worker')}</a
+                      >
+                    {/if}
                   {:else}
                     <strong>{projectNumber(project)}</strong>
                     <span>{projectName(project)}</span>
@@ -450,6 +485,110 @@
       </TableRegion>
     {/if}
   </SectionCard>
+
+  {#if canManageAssignments && assignableProjects.length > 0}
+    <section class="project-section__assignments" aria-label={translate('Project assignments')}>
+      <details
+        id="project-assignment"
+        class="admin-details"
+        data-project-workflow="assign-worker"
+        open={$page.url.searchParams.get('action') === 'assign-worker'}
+      >
+        <summary class="secondary-button">{translate('Assign worker')}</summary>
+        <form method="POST" action="?/assignWorker" class="project-section__assignment-form">
+          <h3>{translate('Assign worker')}</h3>
+          <label>
+            <span>{translate('Project')}</span>
+            <select name="projectId" required>
+              {#each assignableProjects as project}
+                <option
+                  value={projectId(project)}
+                  selected={projectId(project) === $page.url.searchParams.get('project')}
+                  >{projectNumber(project)} · {projectName(project)}</option
+                >
+              {/each}
+            </select>
+          </label>
+          <ExpertiseWorkerSelect
+            {workers}
+            {expertise}
+            {workerExpertise}
+            selectedWorkerId={$page.url.searchParams.get('worker') ?? ''}
+            {translate}
+          />
+          <label>
+            <span>{translate('Starts on')}</span>
+            <input name="startsOn" type="date" required />
+          </label>
+          <label>
+            <span>{translate('Ends on (optional)')}</span>
+            <input name="endsOn" type="date" />
+          </label>
+          <p class="form-help project-section__assignment-help">
+            {translate(
+              'If a worker is not listed, ask the owner to assign them to a project you manage first.',
+            )}
+          </p>
+          <button type="submit" disabled={workers.length === 0}>{translate('Assign')}</button>
+        </form>
+      </details>
+
+      {#if activeAssignments.length > 0}
+        <details class="admin-details" data-project-workflow="manage-assignment">
+          <summary class="secondary-button">{translate('Update assignment')}</summary>
+          <div class="project-section__assignment-list">
+            {#each activeAssignments as assignment (value(assignment, 'id'))}
+              <div class="project-section__assignment-item">
+                <h3>{value(assignment, 'project_number')} · {value(assignment, 'worker_name')}</h3>
+                <form
+                  method="POST"
+                  action="?/updateAssignment"
+                  class="project-section__assignment-form"
+                >
+                  <input type="hidden" name="assignmentId" value={value(assignment, 'id')} />
+                  <input type="hidden" name="version" value={value(assignment, 'version') || '1'} />
+                  <label>
+                    <span>{translate('Starts on')}</span>
+                    <input
+                      name="startsOn"
+                      type="date"
+                      value={value(assignment, 'starts_on')}
+                      required
+                    />
+                  </label>
+                  <label>
+                    <span>{translate('Ends on')}</span>
+                    <input name="endsOn" type="date" value={value(assignment, 'ends_on')} />
+                  </label>
+                  <button type="submit">{translate('Update assignment')}</button>
+                </form>
+                <details>
+                  <summary class="secondary-button">{translate('Remove assignment')}</summary>
+                  <form
+                    method="POST"
+                    action="?/removeAssignment"
+                    class="project-section__assignment-form"
+                  >
+                    <input type="hidden" name="assignmentId" value={value(assignment, 'id')} />
+                    <input
+                      type="hidden"
+                      name="version"
+                      value={value(assignment, 'version') || '1'}
+                    />
+                    <label>
+                      <span>{translate('Removal reason')}</span>
+                      <input name="reason" required maxlength="2000" />
+                    </label>
+                    <button type="submit" class="danger">{translate('Remove assignment')}</button>
+                  </form>
+                </details>
+              </div>
+            {/each}
+          </div>
+        </details>
+      {/if}
+    </section>
+  {/if}
 
   {#if showPrimaryAction && primaryAction}
     <div class="project-section__post-list-action">
@@ -538,6 +677,50 @@
   .project-section__post-list-action {
     display: flex;
     justify-content: flex-end;
+  }
+
+  .project-section__assignments,
+  .project-section__assignment-list {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .project-section__assignment-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    gap: 0.8rem;
+    padding: 1rem 0;
+  }
+
+  .project-section__assignment-form h3,
+  .project-section__assignment-help {
+    grid-column: 1 / -1;
+  }
+
+  .project-section__assignment-form label {
+    display: grid;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+
+  .project-section__assignment-form select,
+  .project-section__assignment-form input,
+  .project-section__assignment-form button {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 2.75rem;
+  }
+
+  .project-section__assignment-item {
+    border-top: 1px solid var(--portal-border, #d9ddd8);
+    padding-top: 0.8rem;
+  }
+
+  .project-section__assign-link {
+    display: inline-block;
+    margin-top: 0.3rem;
+    min-height: 2.75rem;
+    padding-block: 0.6rem;
   }
 
   .project-section__attention {

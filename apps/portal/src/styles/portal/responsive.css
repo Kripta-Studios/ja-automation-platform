@@ -670,6 +670,16 @@
    drawer. Removing its duplicate header icon prevents intrinsic header
    controls from widening the required 360/390px phone viewport. */
 @media (max-width: 400px) {
+  .portal-layout > header {
+    padding-inline: 0.25rem;
+    gap: 0.125rem;
+  }
+
+  .connection {
+    gap: 0;
+    font-size: 0;
+  }
+
   .portal-webmail-link {
     display: none;
   }

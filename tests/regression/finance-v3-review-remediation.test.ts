@@ -128,6 +128,7 @@ describe('V3 finance review remediation', () => {
       paymentTermsDays: 30,
     });
     const project = repository.createProject(owner, {
+      costCenterCode: 'QA-FINANCE-V3-REVIEW-REMEDIATION-TEST-1',
       clientId: client.id,
       name: 'Settlement Review Project',
       timezone: 'UTC',

@@ -65,6 +65,10 @@ export const currencySchema = z.enum(['USD', 'BRL', 'EUR']);
 export const reportLocaleSchema = z.enum(['en', 'pt', 'es']);
 export const uuidSchema = z.uuid();
 export const minorUnitsSchema = z.string().regex(/^\d+$/, 'Use non-negative integer minor units');
+const optionalMinorUnitsSchema = z
+  .union([z.literal(''), minorUnitsSchema])
+  .optional()
+  .transform((value) => (value ? BigInt(value) : undefined));
 const isoDateSchema = z.iso.date();
 const requiredText = (maximum: number) => z.string().trim().min(1).max(maximum);
 const optionalText = (maximum: number) =>
@@ -164,24 +168,18 @@ export const projectInputSchema = z
     startDate: z.union([z.literal(''), z.iso.date()]).optional(),
     plannedEndDate: z.union([z.literal(''), z.iso.date()]).optional(),
     budgetType: z
-      .enum(['none', 'revenue', 'purchase_order', 'labor', 'travel', 'combined'])
+      .enum(['none', 'revenue', 'purchase_order', 'labor', 'travel', 'expense', 'combined'])
       .default('none'),
-    revenueBudgetMinor: minorUnitsSchema
+    revenueBudgetMinor: optionalMinorUnitsSchema,
+    poCapMinor: optionalMinorUnitsSchema,
+    fixedPriceMinor: optionalMinorUnitsSchema,
+    laborBudgetMinutes: z
+      .union([z.literal(''), z.coerce.number().int().nonnegative()])
       .optional()
-      .transform((value) => (value ? BigInt(value) : undefined)),
-    poCapMinor: minorUnitsSchema
-      .optional()
-      .transform((value) => (value ? BigInt(value) : undefined)),
-    fixedPriceMinor: minorUnitsSchema
-      .optional()
-      .transform((value) => (value ? BigInt(value) : undefined)),
-    laborBudgetMinutes: z.coerce.number().int().nonnegative().optional(),
-    travelBudgetMinor: minorUnitsSchema
-      .optional()
-      .transform((value) => (value ? BigInt(value) : undefined)),
-    otherCostBudgetMinor: minorUnitsSchema
-      .optional()
-      .transform((value) => (value ? BigInt(value) : undefined)),
+      .transform((value) => (value === '' ? undefined : value)),
+    travelBudgetMinor: optionalMinorUnitsSchema,
+    expenseBudgetMinor: optionalMinorUnitsSchema,
+    otherCostBudgetMinor: optionalMinorUnitsSchema,
     weeklyCloseEnabled: z.coerce.boolean().default(false),
     dailyReportRequired: z.coerce.boolean().default(false),
     technicalReportingRequired: z.coerce.boolean().default(false),
@@ -396,6 +394,14 @@ export const expenseInputSchema = z
   .object({
     projectId: uuidSchema,
     spentOn: z.iso.date(),
+    occurredTimeLocal: z
+      .union([z.literal(''), z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)])
+      .optional()
+      .transform((value) => value || undefined),
+    timeEntryId: z
+      .union([z.literal(''), uuidSchema])
+      .optional()
+      .transform((value) => value || undefined),
     vendor: z.string().trim().min(1).max(200),
     category: z.enum([
       'hotel',
@@ -531,6 +537,10 @@ export const expenseCommercialClassificationInputSchema = z
     taxBps: z.coerce.number().int().min(0).max(100_000).default(0),
     reason: z.string().trim().min(1).max(2000),
     idempotencyKey: z.string().trim().min(8).max(240),
+    overrideExpensePolicy: z
+      .enum(['true'])
+      .optional()
+      .transform((value) => value === 'true'),
   })
   .strict();
 
@@ -592,6 +602,10 @@ export const billingRuleInputSchema = z.object({
   projectId: uuidSchema,
   legalEntityId: uuidSchema,
   streamType: z.enum(['labor', 'expense', 'milestone', 'other']),
+  includeExpenses: z
+    .union([z.boolean(), z.enum(['true', 'false', 'on', '1', '0'])])
+    .transform((value) => value === true || value === 'true' || value === 'on' || value === '1')
+    .default(false),
   cadenceType: z.enum([
     'weekly',
     'every_14_days',

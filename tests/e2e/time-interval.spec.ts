@@ -5,6 +5,46 @@ import { readE2EFixturePointer } from './environment.js';
 
 test.use({ timezoneId: 'America/Los_Angeles' });
 
+test('worker records decimal hours without invented clock times', async ({ page }, testInfo) => {
+  const widths = ['phone-360', 'phone-390', 'tablet-768', 'desktop'];
+  test.skip(!widths.includes(testInfo.project.name));
+  const workDate = `2026-09-${20 + widths.indexOf(testInfo.project.name)}`;
+  const summary = `Duration only ${testInfo.project.name}`;
+  const db = new DatabaseSync(readE2EFixturePointer().databasePath);
+  try {
+    await signIn(page, 'worker');
+    await page.goto(portal(`/time?from=${workDate}&to=${workDate}`));
+    await page.locator('[data-time-primary-cta]').click();
+    const form = page.locator('form[data-time-entry-surface]');
+    const projectId = await form
+      .locator('[name="projectId"] option[value]:not([value=""])')
+      .first()
+      .getAttribute('value');
+    if (!projectId) throw new Error('Worker needs an assigned project');
+    await form.locator('[name="projectId"]').selectOption(projectId);
+    await form.locator('[name="workDate"]').fill(workDate);
+    await expect(form.locator('[name="startTime"]')).toHaveCount(0);
+    await form.getByLabel('Actual hours').fill('7.5');
+    await expect(form.locator('[name="minutes"]')).toHaveValue('450');
+    await form.locator('[name="summary"]').fill(summary);
+    await form.getByRole('button', { name: 'Save draft', exact: true }).click();
+    await expect
+      .poll(
+        () =>
+          db.prepare('SELECT minutes FROM time_entry WHERE activity_summary=?').get(summary)
+            ?.minutes,
+      )
+      .toBe(450);
+    expect(
+      db
+        .prepare('SELECT start_time,end_time FROM time_entry WHERE activity_summary=?')
+        .get(summary),
+    ).toEqual({ start_time: null, end_time: null });
+  } finally {
+    db.close();
+  }
+});
+
 for (const role of ['worker', 'owner'] as const) {
   test(`${role}: current local date, clock interval, pause and edit`, async ({
     page,
@@ -38,6 +78,7 @@ for (const role of ['worker', 'owner'] as const) {
         .get(worker.id) as { project_id: string };
       await form.locator('[name="projectId"]').selectOption(project.project_id);
       await form.locator('[name="workDate"]').fill(workDate);
+      await form.getByRole('checkbox', { name: 'Add start and end times' }).check();
       await form.locator('[name="startTime"]').fill('09:00');
       await form.locator('[name="endTime"]').fill('08:00');
       await expect
@@ -88,6 +129,7 @@ for (const role of ['worker', 'owner'] as const) {
       if (role === 'owner') await form.locator('[name="workerId"]').selectOption(worker.id);
       await form.locator('[name="projectId"]').selectOption(project.project_id);
       await form.locator('[name="workDate"]').fill(workDate);
+      await form.getByRole('checkbox', { name: 'Add start and end times' }).check();
       await form.locator('[name="startTime"]').fill('09:00');
       await form.locator('[name="endTime"]').fill('13:00');
       await form.locator('[name="breakMinutes"]').fill('15');
@@ -130,6 +172,7 @@ for (const role of ['worker', 'owner'] as const) {
       await page.goto(portal(`/time?from=${workDate}&to=${workDate}`));
       await row.getByRole('button', { name: 'Edit draft', exact: true }).click();
       form = page.locator('form[data-time-entry-surface]');
+      await expect(form.getByLabel('Actual hours')).toHaveValue('4.75');
       await expect(form.locator('input[name="minutes"]')).toHaveValue('285');
       await expect(form.locator('[name="startTime"]')).toHaveCount(0);
       await form.getByRole('checkbox', { name: 'Add start and end times' }).check();

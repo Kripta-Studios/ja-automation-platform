@@ -59,4 +59,12 @@ describe('expense edit action input', () => {
     if (!result.success) return;
     expect(result.data.description).toBeUndefined();
   });
+
+  it('clears optional occurrence time and shift link when their controls are blank', () => {
+    const result = parseExpenseUpdateForm({ ...baseForm, occurredTimeLocal: '', timeEntryId: '' });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.occurredTimeLocal).toBeNull();
+    expect(result.data.timeEntryId).toBeNull();
+  });
 });

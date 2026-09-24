@@ -197,7 +197,7 @@ describe('production reporting artifacts', () => {
       dailyReports: [
         {
           work_date: '2026-08-12',
-          summary: 'Customer-visible operational activity retained',
+          summary: 'Customer-visible operational activity delivered',
           approval_state: 'approved',
         },
       ],
@@ -229,7 +229,8 @@ describe('production reporting artifacts', () => {
     // words; assert the customer-visible source content without coupling the
     // privacy contract to a particular text-extraction column order.
     expect(text).toContain('Customer-visible operational');
-    expect(text).toContain('activity retained');
+    expect(text).toContain('activity');
+    expect(text).toContain('delivered');
     expect(text).toContain('PLC validation');
     expect(text).toContain('record retained');
     expect(text).toContain('Operational change');

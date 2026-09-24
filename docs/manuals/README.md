@@ -1,75 +1,23 @@
-# Portal manuals
+# J&A Automation manuals
 
-Three shared manuals cover the seven operational profiles. Each opens with a role-specific
-reading path and links to its chapters. Every procedure identifies who may consult, create,
-approve or modify a record; every screenshot identifies the signed-in profile. Reading another
-role's procedure does not grant its permissions or access to its records.
+**Current deployed-app edition: 24 September 2026.** Start with the [current work guide](Current_Deployed_Workflows_2026-09-24.md) or its [PDF edition](Current_Deployed_Workflows_2026-09-24.pdf). The [role workflow diagram PDF](Role_Workflows.pdf) gives the normal Owner → project team → Worker/Chief → review → Finance → invoice route at a glance; its [HTML source](Role_Workflows.html) is also available. The guide is anchored to live release `zip-d215671b99323d6d8c4ce34b74b4f8e0` and to [nine dated test-account browser screenshots](assets/deployed-2026-09-24/capture-manifest.json). Screenshots show the real displayed UI and the synthetic QA project's actual empty state; they do not certify a completed invoice journey.
 
-| Manual                            | Profiles                                        | English                                          | Português (Brasil)                                   |
-| --------------------------------- | ----------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------- |
-| Work and projects                 | Worker, Project manager                         | [Download PDF](Work_Projects_Guide.pdf)          | [Baixar PDF](Work_Projects_Guide_PT-BR.pdf)          |
-| Supplier operations               | Supplier coordinator, External technician       | [Download PDF](Supplier_Operations_Guide.pdf)    | [Baixar PDF](Supplier_Operations_Guide_PT-BR.pdf)    |
-| Administration, finance and audit | Owner, Finance administrator, Read-only auditor | [Download PDF](Administration_Finance_Guide.pdf) | [Baixar PDF](Administration_Finance_Guide_PT-BR.pdf) |
+| Role | Current English instructions | Live screenshot focus |
+| --- | --- | --- |
+| Owner | [Project-to-invoice guide](Role_Guide_owner_EN.md) | Synthetic project, Team and project-local Billing captured with a Finance test account; Owner-only actions are described, not falsely attributed to that account. |
+| Project manager | [Operational guide](Role_Guide_manager_EN.md) | Assigned QA project and Team tab. The deployed test-manager UI lacks worker assignment. |
+| Worker | [Time, expense and report guide](Role_Guide_worker_EN.md) | Actual-hours and expense forms on a 390-pixel phone. |
+| Chief / delegated team lead | [Crew guide](Role_Guide_chief_EN.md) | Crew hours on a 768-pixel tablet; no test delegation currently exists. |
+| Finance administrator | [Billing guide](Role_Guide_finance_EN.md) | One/two-invoice arrangement and the empty invoice register. |
 
-Download the appropriate manual from [Help in the portal](https://j-aautomation.com/j-aautomation/app/help).
-Help shows the reading path for the signed-in profile. Owner can open all three manuals for
-training. The internal Worker also has the separate quick guide in
-[EN](Employee_Field_Guide_EN.pdf), [ES](Employee_Field_Guide_ES.pdf) and
-[PT-BR](Employee_Field_Guide_PT-BR.pdf).
+The current guide records the exact capture account, route, viewport, image hash and deployed image tag. Test credentials are kept separately in a private, ignored manual and are **not** embedded in public PDFs or PNGs. No real worker compensation, receipts, mailbox contents or password is included. Browser phone/tablet viewports are not physical iPhone/iPad Safari verification.
 
-The seven previous portal download links still resolve to their shared manual. Access is checked
-against the current persisted profile and live session. Supplier profiles retain their own
-family even though the underlying account role is Worker. Sharing a manual does not change the
-application's financial, project, supplier or personal-data permissions.
+## Existing portal PDFs and generated examples
 
-## Example exports
+The older `Work_Projects_Guide.pdf`, `Supplier_Operations_Guide.pdf`, `Administration_Finance_Guide.pdf`, individual role PDFs, PT-BR guides, and the synthetic [example exports](examples/README.md) remain available as **historical or illustrative editions**. Their embedded screenshots and instructions were generated from earlier local synthetic captures; some wording (notably mandatory start/end time and separate Billing streams) no longer matches this deployed release. Use the current dated guide for the workflow above until those editions are regenerated from a matching release. The portal's Help catalog may still serve an older PDF; that does not make its illustrations current live evidence.
 
-[Browse the complete synthetic export collection](examples/README.md) or
-[download all examples as a ZIP](examples/all-examples.zip). The collection includes
-native PDF, XLSX, CSV, JSON and project-closeout ZIP exports, plus separately labelled
-browser print examples in English, Spanish and Brazilian Portuguese. Extract the ZIP
-and open `index.html` for a searchable preview gallery. These files contain fictional
-data and do not grant access to private application records.
+The existing PDF pipeline is `scripts/capture-user-manuals.ts`, `scripts/generate-user-manuals.ts`, `scripts/generate-client-ready-manuals.ts` and `scripts/manual-pdf.ts`. It intentionally requires a current local runtime digest, complete authenticated synthetic capture manifest and image hashes. Do not point the fixture-resetting capture suite at production or regenerate those grouped PDFs from mismatched local code. The new dated PDF is rendered separately from the dated Markdown and the nine read-only production screenshots.
 
-## Sources and illustrations
+After editing the dated Markdown, regenerate only its companion HTML/PDF with `/opt/jaautomation/runtime/node/bin/node docs/manuals/render-current-guide.mjs` from the repository root. Recheck screenshot hashes against the manifest and inspect the PDF before publishing. This renderer reads the already captured PNGs; it does not log in or change application data.
 
-The active detailed sources are `Functional_Guide_<family>_EN.md` and
-`Functional_Guide_<family>_PT-BR.md`, where family is `work-projects`, `supplier-operations` or
-`administration-finance`. The earlier individual role sources and PDFs remain historical
-editions in this repository; they are neither listed in Help nor copied into the portal image.
-
-Illustrations are unaltered PNG screenshots taken through real Chromium against the running
-application with authenticated synthetic accounts. They contain no production customer records.
-`validation/current-capture.json` binds every persona, locale, route, viewport and PNG hash to the
-runtime source digest. The grouped manuals place relevant screenshots beside their instructions, including the refreshed public website and its portal entry point. The 2026-09-22 edition includes searchable section navigation, date shortcuts, adjacent-week navigation, individually removable filters, expandable secondary panels and task selectors, with embedded Geist typography.
-The 2026-09-23 capture refresh also covers the UTC daily agenda, explicit notification read actions, retained form values after failures and unsaved-change protection. Their captions name the profile actually used, including when the same manual serves several roles.
-
-The Spanish quick guide uses fresh Spanish screenshots of the Worker workspace. Native date/time
-inputs may use the browser or operating system's regional format even when portal labels and
-validation are in Brazilian Portuguese.
-
-## Regenerate and verify
-
-Freeze the application code and translations first, then run from the repository root with
-Node 24.19.0 and pnpm 11.22.0:
-
-```bash
-pnpm exec playwright test tests/e2e/manual-current-capture.spec.ts --project=desktop
-node --experimental-strip-types scripts/generate-user-manuals.ts
-node --experimental-strip-types scripts/generate-user-manuals.ts --locale=pt-BR
-node --experimental-strip-types scripts/generate-client-ready-manuals.ts
-```
-
-The generator rejects stale runtime digests, PNG hash mismatches, broken chapter links,
-screenshots outside a manual's family and missing representation of a family member. Partial
-builds retain an existing output only if its runtime digest, exact capture manifest, current
-Markdown and PDF hashes still match. Always complete all three generation commands for a release.
-
-The output is **six main PDFs plus three quick guides**. The A4 PDFs contain linked contents,
-role routes on the cover, tagged text, outlines and embedded screenshots. `manual-build.json`
-and `manual-build-PT-BR.json` record source, output and capture hashes; `validation/pdf-quality.json`
-records PDF quality checks. Inspect pages, embedded fonts, images and extractable text with
-`pdfinfo`, `pdffonts`, `pdfimages` and `pdftotext`, and visually review the final pages.
-
-Docker copies only these nine catalogued assets. The earlier individual PDFs are historical
-references, not additional downloads or permissions.
+To report an access or form problem, include the role, route, project number, actual on-screen error and time. Do not send a password, receipt or private customer/worker document in a support message.

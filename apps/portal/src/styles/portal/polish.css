@@ -1182,6 +1182,14 @@ button:not(:disabled):active,
   }
 }
 
+@media (max-width: 400px) {
+  .locale-switcher select {
+    width: 4rem;
+    min-width: 4rem;
+    padding-inline: 0.4rem 1.35rem;
+  }
+}
+
 /* Keep the worker's assignment and device state in one intentional row. */
 .portal-layout .worker-home-grid {
   grid-template-columns: minmax(0, 1.65fr) minmax(14rem, 1fr);

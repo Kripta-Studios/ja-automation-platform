@@ -80,6 +80,9 @@
   let editTimeId = $state<string | null>(null);
   let createCategory = $state('regular');
   let createDate = $state('');
+  let createProject = $state('');
+  let createExpenseEnabled = $state(false);
+  let createRequestId = $state('');
   let editCategory = $state('regular');
   let search = $state('');
   let clientFilter = $state('');
@@ -275,9 +278,15 @@
   function openCreate(): void {
     surfaceError = '';
     createDate = localToday();
+    const filteredProjectId = String(data.timeFilter?.projectId ?? '');
+    createProject = availableProjects.some((project) => String(project.id) === filteredProjectId)
+      ? filteredProjectId
+      : '';
     surface = 'create';
     editTimeId = null;
     createCategory = 'regular';
+    createExpenseEnabled = false;
+    createRequestId = crypto.randomUUID();
   }
 
   function openEdit(row: Row): void {
@@ -292,6 +301,7 @@
     editTimeId = null;
     createCategory = 'regular';
     editCategory = 'regular';
+    createExpenseEnabled = false;
   }
 
   function canDelete(row: Row): boolean {
@@ -616,7 +626,14 @@
       data-time-entry-surface
       use:operationalFieldValidation
       use:enhance={submitTime}
-      onsubmit={(event) => saveOfflineDraft(event, 'time')}
+      onsubmit={(event) => {
+        if (createExpenseEnabled && !navigator.onLine) {
+          event.preventDefault();
+          surfaceError = translate('Reconnect to save time and expense together. Your entries are still here.');
+          return;
+        }
+        void saveOfflineDraft(event, 'time');
+      }}
     >
       {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
         <label
@@ -635,7 +652,7 @@
       </div>
       <label>
         <span>{translate('Assigned project')}</span>
-        <select name="projectId" required>
+        <select name="projectId" required bind:value={createProject}>
           <option value="">{translate('Select assignment')}</option>
           {#each availableProjects as project}
             <option value={String(project.id)}>{project.project_number} — {project.name}</option>
@@ -674,6 +691,80 @@
         <span>{translate('Activity summary')}</span>
         <textarea name="summary" minlength="3" maxlength="5000" required></textarea>
       </label>
+      <label class="time-expense-toggle">
+        <input type="checkbox" name="withExpense" bind:checked={createExpenseEnabled} />
+        <span>{translate('Add an expense with these hours')}</span>
+      </label>
+      {#if createExpenseEnabled}
+        <input type="hidden" name="requestId" value={createRequestId} />
+        <div class="expense-entry-intro">
+          <strong>{translate('Expense for this shift')}</strong>
+          <span>{translate('The expense will use the same worker, project and date. Add a receipt from the expense detail after saving if needed.')}</span>
+        </div>
+        <label>
+          <span>{translate('Vendor')}</span>
+          <input name="expenseVendor" required maxlength="200" />
+        </label>
+        <div class="expense-form-grid">
+          <label>
+            <span>{translate('Category')}</span>
+            <select name="expenseCategory" required>
+              <option value="parking">{translate('Parking')}</option>
+              <option value="fuel">{translate('Fuel')}</option>
+              <option value="tolls">{translate('Tolls')}</option>
+              <option value="meals">{translate('Meals')}</option>
+              <option value="hotel">{translate('Hotel')}</option>
+              <option value="rental_car">{translate('Rental car')}</option>
+              <option value="airfare">{translate('Airfare')}</option>
+              <option value="ground_transport">{translate('Ground transport')}</option>
+              <option value="per_diem">{translate('Per diem')}</option>
+              <option value="materials">{translate('Materials')}</option>
+              <option value="tools">{translate('Tools')}</option>
+              <option value="shipping">{translate('Shipping')}</option>
+              <option value="phone_data">{translate('Phone/data')}</option>
+              <option value="visa_permit">{translate('Visa/permit')}</option>
+              <option value="other">{translate('Other')}</option>
+            </select>
+          </label>
+          <label>
+            <span>{translate('Time expense occurred (optional)')}</span>
+            <input name="expenseOccurredTimeLocal" type="time" step="60" />
+          </label>
+        </div>
+        <div class="expense-form-grid">
+          <label>
+            <span>{translate('Amount')}</span>
+            <input name="expenseAmount" inputmode="decimal" pattern="[0-9]+([.][0-9][0-9]?)?" required />
+          </label>
+          <label>
+            <span>{translate('Currency')}</span>
+            <select name="expenseCurrency" required>
+              <option value="">{translate('Select currency')}</option>
+              <option value="EUR">EUR</option>
+              <option value="USD">USD</option>
+              <option value="BRL">BRL</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          <span>{translate('Who paid')}</span>
+          <select name="expenseWhoPaid" required>
+            <option value="worker">{translate('Worker')}</option>
+            <option value="company_card">{translate('Company card')}</option>
+            <option value="company_direct">{translate('Company direct')}</option>
+            <option value="client">{translate('Client paid directly')}</option>
+            <option value="third_party">{translate('Third party')}</option>
+          </select>
+        </label>
+        <label>
+          <span>{translate('Description')}</span>
+          <textarea name="expenseDescription" minlength="3" maxlength="5000" required></textarea>
+        </label>
+        <label>
+          <span>{translate('Payment method (optional)')}</span>
+          <input name="expensePaymentMethod" maxlength="80" />
+        </label>
+      {/if}
       <div class="expense-entry-actions time-entry-actions">
         <button type="button" data-sheet-close class="secondary-button" onclick={closeSurface}
           >{translate('Cancel')}</button

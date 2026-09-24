@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { expensePolicyIssueLabels } from '../portal/expense-policy-issues';
 import {
   INVARIANT_TRANSLATION_KEYS,
   isCoverageInvariantKey,
@@ -59,6 +60,61 @@ describe('portal locale catalog', () => {
 
   it('keeps missing runtime keys safe for legacy callers', () => {
     expect(translate('es', 'customer-entered-value')).toBe('customer-entered-value');
+  });
+
+  it('localizes linked expenses and the finance terms and legal-revision controls', () => {
+    expect(translate('es', 'Add related expense')).toBe('Añadir gasto relacionado');
+    expect(translate('pt', 'Time expense occurred (optional)')).toBe(
+      'Horário da despesa (opcional)',
+    );
+    expect(translate('es', 'How labor terms are selected')).toBe(
+      'Cómo se seleccionan las condiciones laborales',
+    );
+    expect(translate('pt', 'Create issuing legal entity revision')).toBe(
+      'Criar revisão da entidade emissora',
+    );
+    expect(translate('es', 'Record expense for')).toBe('Registrar gasto de');
+    expect(translate('pt', 'A separate expense is recorded for the selected person.')).toBe(
+      'Uma despesa separada é registrada para a pessoa selecionada.',
+    );
+    expect(translate('es', 'Customer hourly rule')).toBe('Regla de tarifa horaria del cliente');
+    expect(translate('pt', 'Save fallback options')).toBe('Salvar opções alternativas');
+  });
+
+  it('keeps crew delegation and finance explanations readable in ES and PT', () => {
+    expect(translate('es', 'Assign a crew chief')).toBe('Designar un jefe de equipo');
+    expect(translate('pt', 'Same hours for each selected member')).toBe(
+      'Mesmas horas para cada integrante selecionado',
+    );
+    expect(translate('es', 'Allocate one crew receipt')).toBe('Distribuir un recibo del equipo');
+    expect(translate('pt', 'How this project is calculated')).toBe(
+      'Como este projeto é calculado',
+    );
+    expect(
+      translate('es', 'Customer rate {clientRate} · worker pay {payMethod} · internal cost {cost}', {
+        clientRate: '55 EUR',
+        payMethod: 'por hora',
+        cost: '30 EUR',
+      }),
+    ).toBe('Tarifa al cliente 55 EUR · pago al trabajador por hora · coste interno 30 EUR');
+    expect(translate('pt', 'Europe/Madrid')).toBe('Europe/Madrid');
+  });
+
+  it('explains expense policy conflicts and issuing-authority 409 in both translated locales', () => {
+    expect(
+      expensePolicyIssueLabels(['missing_policy'], (key) => translate('es', key)),
+    ).toEqual([
+      'Ninguna política de gastos de la persona coincide con el pagador, la categoría y la fecha de este gasto.',
+    ]);
+    expect(
+      expensePolicyIssueLabels(['missing_assignment'], (key) => translate('pt', key)),
+    ).toEqual(['Nenhuma atribuição ao projeto cobre a data desta despesa.']);
+    expect(translate('es', 'action.finance.projectIssuingAuthorityRequired')).toContain(
+      'entidad emisora del proyecto',
+    );
+    expect(translate('pt', 'action.finance.projectIssuingAuthorityRequired')).toContain(
+      'entidade emissora do projeto',
+    );
   });
 });
 

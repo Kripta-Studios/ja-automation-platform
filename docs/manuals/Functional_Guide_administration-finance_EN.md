@@ -1,5 +1,8 @@
 # Administration and finance functional guide
 
+> **Deployed edition notice (24 September 2026):** This is an earlier detailed/reference edition. For the actual deployed project, duration-time, crew and invoice setup screens, use the [current dated guide](Current_Deployed_Workflows_2026-09-24.md) and [role workflow PDF](Role_Workflows.pdf). Earlier screenshots and start/end or Billing-stream instructions below may not match the live release.
+
+
 ## Start here: choose your role
 
 This guide combines the Owner, Finance and Auditor paths. Use the role path that matches the signed-in account. Procedures explain how a workflow works; they do not expand the account’s permissions.

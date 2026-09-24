@@ -4,6 +4,10 @@ import { add, applyBasisPoints, money, type Currency } from '@ja/money';
 import { recordAuditEvent } from '../../core/audit.ts';
 import { canonicalJson, sha256 } from '../../core/canonical-json.ts';
 import {
+  AssignmentExpensePolicyRepository,
+  type AssignmentExpensePolicy,
+} from '../expenses/assignment-expense-policy-repository.ts';
+import {
   ensureCommand,
   ensureEvidence,
   type FinanceCommandInput,
@@ -29,6 +33,7 @@ export type ExpenseCommercialClassificationInput = Readonly<{
   taxBps: number;
   reason: string;
   idempotencyKey: string;
+  overrideExpensePolicy?: boolean;
 }>;
 
 export type ExpenseCommercialClassificationResult = Readonly<{
@@ -177,6 +182,7 @@ export class ExpenseCommercialClassificationRepository {
       taxBps,
       reason: this.text(input.reason, 'Reason', 2000),
       idempotencyKey: this.text(input.idempotencyKey, 'Idempotency key', 240),
+      overrideExpensePolicy: input.overrideExpensePolicy === true,
     };
   }
 
@@ -257,11 +263,12 @@ export class ExpenseCommercialClassificationRepository {
       const deployment = this.deployment();
       const expense = this.deps.sqlite
         .prepare(
-          `SELECT id,project_id,spent_on,worker_id,currency,amount_minor,who_paid,
+          `SELECT id,project_id,spent_on,worker_id,category,currency,amount_minor,who_paid,
                   client_treatment,billing_treatment,markup_bps,tax_amount_minor,
                   project_currency_amount_minor,billing_amount_minor,fx_rate_bps,approval_state,
                   billing_state,billing_lock_id,invoice_id,version,
-                  commercial_classification_state
+                  commercial_classification_state,expense_policy_required,assignment_expense_policy_id,
+                  reimbursement_amount_minor
              FROM expense WHERE id=?`,
         )
         .get(normalized.expenseId) as DbRow | undefined;
@@ -330,6 +337,94 @@ export class ExpenseCommercialClassificationRepository {
       const sourceAmountMinor = rowValue<number>(expense, 'amount_minor');
       if (!Number.isSafeInteger(sourceAmountMinor) || (sourceAmountMinor ?? 0) <= 0)
         return this.failValidation('Expense amount is invalid');
+      const policyRequired = rowValue<number>(expense, 'expense_policy_required') === 1;
+      const firstPolicyClassification =
+        policyRequired && rowValue(expense, 'commercial_classification_state') !== 'classified';
+      let selectedPolicyId =
+        rowValue<string | null>(expense, 'assignment_expense_policy_id') ?? null;
+      let policy: Pick<
+        AssignmentExpensePolicy,
+        'clientRecovery' | 'markupBps' | 'workerReimbursement'
+      > | null = null;
+      let workerReimbursementMinor: number | null = null;
+      let reimbursementState: string | null = null;
+      if (policyRequired) {
+        if (firstPolicyClassification) {
+          const resolution = new AssignmentExpensePolicyRepository(this.deps.sqlite).resolve({
+            projectId,
+            workerId: this.text(rowValue(expense, 'worker_id'), 'Expense worker id', 200),
+            spentOn,
+            category: this.text(rowValue(expense, 'category'), 'Expense category', 80),
+            whoPaid,
+          });
+          if (!resolution.policy)
+            return this.failValidation(
+              `Assignment expense policy is required: ${resolution.issue}`,
+            );
+          selectedPolicyId = resolution.policy.id;
+          policy = resolution.policy;
+        } else {
+          if (!selectedPolicyId)
+            return this.failConflict(
+              'Classified expense is missing its selected assignment policy',
+            );
+          const bound = this.deps.sqlite
+            .prepare(
+              'SELECT client_recovery,markup_bps,worker_reimbursement FROM assignment_expense_policy WHERE id=?',
+            )
+            .get(selectedPolicyId) as
+            | {
+                client_recovery: AssignmentExpensePolicy['clientRecovery'];
+                markup_bps: number;
+                worker_reimbursement: AssignmentExpensePolicy['workerReimbursement'];
+              }
+            | undefined;
+          if (!bound) return this.failConflict('Selected assignment expense policy is missing');
+          policy = {
+            clientRecovery: bound.client_recovery,
+            markupBps: bound.markup_bps,
+            workerReimbursement: bound.worker_reimbursement,
+          };
+        }
+        if (!policy) return this.failConflict('Selected assignment expense policy is missing');
+        const expectedClientTreatment =
+          policy.clientRecovery === 'at_cost' || policy.clientRecovery === 'markup'
+            ? 'reimbursable'
+            : policy.clientRecovery === 'included'
+              ? 'all_in'
+              : 'non_billable';
+        const expectedBillingTreatment =
+          policy.clientRecovery === 'at_cost'
+            ? 'reimbursable_at_cost'
+            : policy.clientRecovery === 'markup'
+              ? 'reimbursable_plus_markup'
+              : policy.clientRecovery === 'included'
+                ? 'all_in'
+                : policy.clientRecovery === 'client_direct'
+                  ? 'client_direct'
+                  : 'internal_non_billable';
+        const policyMatchesInput =
+          normalized.clientTreatment === expectedClientTreatment &&
+          normalized.billingTreatment === expectedBillingTreatment &&
+          normalized.markupBps === policy.markupBps;
+        if (!policyMatchesInput && !normalized.overrideExpensePolicy)
+          return this.failValidation('Expense classification conflicts with the assignment policy');
+        if (!policyMatchesInput && normalized.reason.length < 10)
+          return this.failValidation('Expense policy override requires a reason');
+        if (firstPolicyClassification) {
+          if (policy.workerReimbursement === 'at_cost') {
+            if (sourceCurrency !== projectCurrency)
+              return this.failValidation(
+                'Expense reimbursement requires an exact currency conversion',
+              );
+            workerReimbursementMinor = sourceAmountMinor as number;
+            reimbursementState = 'pending';
+          } else {
+            workerReimbursementMinor = 0;
+            reimbursementState = 'not_applicable';
+          }
+        }
+      }
       let projectCurrencyAmountMinor: number | null = null;
       let billingAmountMinor: number | null = null;
       let taxAmountMinor: number | null = null;
@@ -375,6 +470,13 @@ export class ExpenseCommercialClassificationRepository {
         tax_bps: normalized.taxBps,
         source_currency: sourceCurrency,
         source_amount_minor: String(sourceAmountMinor),
+        assignment_expense_policy_id: selectedPolicyId,
+        assignment_expense_policy_override: normalized.overrideExpensePolicy === true,
+        worker_reimbursement_minor: firstPolicyClassification
+          ? String(workerReimbursementMinor)
+          : rowValue(expense, 'reimbursement_amount_minor') == null
+            ? null
+            : String(rowValue(expense, 'reimbursement_amount_minor')),
         project_currency: projectCurrency,
         project_currency_amount_minor:
           projectCurrencyAmountMinor === null ? null : String(projectCurrencyAmountMinor),
@@ -487,6 +589,8 @@ export class ExpenseCommercialClassificationRepository {
           effective_at: spentOn,
           expected_version: normalized.expectedVersion,
           reason: normalized.reason,
+          assignmentExpensePolicyId: selectedPolicyId,
+          assignmentExpensePolicyOverride: normalized.overrideExpensePolicy === true,
           created_at: createdAt,
           created_by: principal.userId,
           command_id: command.commandId,
@@ -637,6 +741,9 @@ export class ExpenseCommercialClassificationRepository {
               SET client_treatment=?,billing_treatment=?,markup_bps=?,
                   billing_amount_minor=?,project_currency_amount_minor=?,
                   tax_amount_minor=?,fx_rate_bps=NULL,
+                  assignment_expense_policy_id=CASE WHEN expense_policy_required=1 AND commercial_classification_state<>'classified' THEN ? ELSE assignment_expense_policy_id END,
+                  reimbursement_amount_minor=CASE WHEN expense_policy_required=1 AND commercial_classification_state<>'classified' THEN ? ELSE reimbursement_amount_minor END,
+                  reimbursement_state=CASE WHEN expense_policy_required=1 AND commercial_classification_state<>'classified' THEN ? ELSE reimbursement_state END,
                   commercial_classification_state='classified',version=version+1,updated_at=?
             WHERE id=? AND version=? AND invoice_id IS NULL
               AND billing_state='unlocked' AND billing_lock_id IS NULL`,
@@ -648,6 +755,9 @@ export class ExpenseCommercialClassificationRepository {
           billingAmountMinor,
           projectCurrencyAmountMinor,
           taxAmountMinor,
+          selectedPolicyId,
+          workerReimbursementMinor,
+          reimbursementState,
           createdAt,
           normalized.expenseId,
           normalized.expectedVersion,

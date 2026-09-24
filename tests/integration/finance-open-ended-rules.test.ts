@@ -31,6 +31,22 @@ function approveTime(value: B5LifecycleSecurityFixture, workDate: string, summar
   value.repository.operationalApproveTime(value.manager, entry.id, 'approved');
 }
 
+function optInToGlobalRules(
+  value: B5LifecycleSecurityFixture,
+  finance: B5LifecycleSecurityFixture['finance'],
+  options: { compensation: boolean; internalCost: boolean },
+): void {
+  const assignment = value.sqlite
+    .prepare('SELECT id,version FROM project_member WHERE project_id=? AND user_id=?')
+    .get(value.project.id, value.worker.userId) as { id: string; version: number };
+  value.v3.setAssignmentCommercialFallback(finance, {
+    projectMemberId: assignment.id,
+    expectedVersion: assignment.version,
+    allowGlobalCompensation: options.compensation,
+    allowGlobalInternalCost: options.internalCost,
+  });
+}
+
 describe('Finance open-ended effective-date rules', () => {
   it('normalizes blank global compensation scope and blank expiry, while a bounded project rule expires', () => {
     const value = fixture();
@@ -53,6 +69,7 @@ describe('Finance open-ended effective-date rules', () => {
       effectiveFrom: '2026-08-01',
       effectiveTo: '2026-08-24',
     });
+    optInToGlobalRules(value, finance, { compensation: true, internalCost: false });
 
     expect(
       value.sqlite
@@ -93,6 +110,7 @@ describe('Finance open-ended effective-date rules', () => {
       effectiveFrom: '2026-08-01',
       effectiveTo: '2026-08-24',
     });
+    optInToGlobalRules(value, finance, { compensation: false, internalCost: true });
 
     expect(
       value.sqlite

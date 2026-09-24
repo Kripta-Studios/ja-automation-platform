@@ -21,6 +21,25 @@ describe('Worker expense operational input', () => {
     if (result.success) expect(result.data.amountMinor).toBe(12345n);
   });
 
+  it('accepts optional local occurrence time and linked shift, and rejects impossible clock times', () => {
+    expect(
+      expenseInputSchema.safeParse({ ...operationalExpense, occurredTimeLocal: '09:35' }).success,
+    ).toBe(true);
+    expect(
+      expenseInputSchema.safeParse({
+        ...operationalExpense,
+        occurredTimeLocal: '',
+        timeEntryId: '',
+      }).success,
+    ).toBe(true);
+    expect(
+      expenseInputSchema.safeParse({ ...operationalExpense, occurredTimeLocal: '24:00' }).success,
+    ).toBe(false);
+    expect(
+      expenseInputSchema.safeParse({ ...operationalExpense, occurredTimeLocal: '09:75' }).success,
+    ).toBe(false);
+  });
+
   it.each([
     ['clientTreatment', 'reimbursable'],
     ['billingTreatment', 'reimbursable_at_cost'],

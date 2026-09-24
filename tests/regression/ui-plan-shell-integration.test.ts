@@ -37,12 +37,14 @@ describe('UI_PLAN shell integration', () => {
   it('does not initialize conditional offline identity when deployment disables it', () => {
     const shell = read('apps/portal/src/lib/PortalShell.svelte');
     const layout = read('apps/portal/src/routes/+layout.server.ts');
+    const appLayout = read('apps/portal/src/routes/app/+layout.server.ts');
 
     expect(layout).toContain('offlineEnabled:');
     expect(layout).toContain('JA_OFFLINE_ENABLED');
     expect(shell).toMatch(
       /if \(data\.offlineEnabled !== false\) \{[\s\S]*?configureOfflineIdentity\(data\.user\.id\)/,
     );
+    expect(appLayout).toContain('offlineEnabled: !locals.user?.workforceProfile');
   });
 
   it('updates the locale URL through the SvelteKit router state API', () => {

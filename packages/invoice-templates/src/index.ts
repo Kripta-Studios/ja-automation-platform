@@ -71,6 +71,8 @@ type InvoiceCopy = Readonly<{
   laborDetailedInvoice: string;
   laborSummaryInvoice: string;
   expensesDetailedInvoice: string;
+  laborSubtotal: string;
+  expenseSubtotal: string;
   fixedMilestoneInvoice: string;
   creditAdjustment: string;
   date: string;
@@ -157,6 +159,8 @@ const copy: Readonly<Record<InvoiceLanguage, InvoiceCopy>> = {
     laborDetailedInvoice: 'Labor Detailed Invoice',
     laborSummaryInvoice: 'Labor Summary Invoice',
     expensesDetailedInvoice: 'Expenses Detailed Invoice',
+    laborSubtotal: 'Labor subtotal',
+    expenseSubtotal: 'Expenses subtotal',
     fixedMilestoneInvoice: 'Fixed / Milestone Invoice',
     creditAdjustment: 'Credit / Adjustment',
     date: 'Date',
@@ -208,6 +212,8 @@ const copy: Readonly<Record<InvoiceLanguage, InvoiceCopy>> = {
     laborDetailedInvoice: 'Factura Detallada de Mano de Obra',
     laborSummaryInvoice: 'Factura Resumida de Mano de Obra',
     expensesDetailedInvoice: 'Factura Detallada de Gastos',
+    laborSubtotal: 'Subtotal de mano de obra',
+    expenseSubtotal: 'Subtotal de gastos',
     fixedMilestoneInvoice: 'Factura Fija / por Hito',
     creditAdjustment: 'Crédito / Ajuste',
     date: 'Fecha',
@@ -259,6 +265,8 @@ const copy: Readonly<Record<InvoiceLanguage, InvoiceCopy>> = {
     laborDetailedInvoice: 'Fatura Detallada de Mão de Obra',
     laborSummaryInvoice: 'Fatura Resumida de Mão de Obra',
     expensesDetailedInvoice: 'Fatura Detalhada de Despesas',
+    laborSubtotal: 'Subtotal de mão de obra',
+    expenseSubtotal: 'Subtotal de despesas',
     fixedMilestoneInvoice: 'Fatura Fixa / por Marco',
     creditAdjustment: 'Crédito / Ajuste',
     date: 'Data',
@@ -821,6 +829,7 @@ const lineSubtotalMinorSum = (
   lines: readonly Readonly<Record<string, unknown>>[],
   snapshot: InvoiceTemplateSnapshot,
 ): bigint => {
+  let hasExplicitLineAmount = false;
   const sum = lines.reduce((acc, line) => {
     const raw = lineValue(
       line,
@@ -833,9 +842,13 @@ const lineSubtotalMinorSum = (
       'total_minor',
       'totalMinor',
     );
-    return acc + (raw !== undefined && raw !== null && raw !== '' ? BigInt(String(raw)) : 0n);
+    if (raw !== undefined && raw !== null && raw !== '') {
+      hasExplicitLineAmount = true;
+      return acc + BigInt(String(raw));
+    }
+    return acc;
   }, 0n);
-  if (sum !== 0n) return sum;
+  if (hasExplicitLineAmount) return sum;
   const snapMinor = snapshot.calculation?.subtotalMinor ?? snapshot.calculation?.totalMinor;
   return snapMinor ? BigInt(String(snapMinor)) : 0n;
 };
@@ -1210,12 +1223,30 @@ export function renderInvoiceTemplate(snapshot: InvoiceTemplateSnapshot): Render
     .map(nonEmptyString)
     .filter((value): value is string => Boolean(value))
     .join(' → ');
+  const lines = snapshot.lines ?? [];
+  const laborLines = lines.filter(
+    (line) => line.source_type !== 'expense' && line.sourceType !== 'expense',
+  );
+  const expenseLines = lines.filter(
+    (line) => line.source_type === 'expense' || line.sourceType === 'expense',
+  );
+  const combined =
+    (definition.id === 'labor-detailed' || definition.id === 'labor-summary') &&
+    laborLines.length > 0 &&
+    expenseLines.length > 0;
+  const currency = calculationCurrency(snapshot);
+  const combinedBody = combined
+    ? `${(definition.id === 'labor-summary' ? renderLaborSummary : renderLaborDetailed)({ ...snapshot, lines: laborLines }, localized, locale)}
+       <div class="invoice-section-subtotal"><strong>${escape(localized.laborSubtotal)}</strong> ${escape(formatMinorUnits(currency, lineSubtotalMinorSum(laborLines, snapshot), locale))}</div>
+       ${renderExpensesDetailed({ ...snapshot, lines: expenseLines }, localized, locale)}
+       <div class="invoice-section-subtotal"><strong>${escape(localized.expenseSubtotal)}</strong> ${escape(formatMinorUnits(currency, lineSubtotalMinorSum(expenseLines, snapshot), locale))}</div>`
+    : renderers[definition.id](snapshot, localized, locale);
   return {
     definition,
     locale,
     title: titleFor(definition.id, localized),
     subtitle,
-    body: `${renderCommon(snapshot, localized)}${renderers[definition.id](snapshot, localized, locale)}${renderTotals(snapshot, localized, locale)}`,
+    body: `${renderCommon(snapshot, localized)}${combinedBody}${renderTotals(snapshot, localized, locale)}`,
   };
 }
 

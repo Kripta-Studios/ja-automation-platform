@@ -2,7 +2,12 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { newId, type Principal, type Role } from '@ja/domain';
-import { createDatabase, PortalRepository, V3Repository } from './index.ts';
+import {
+  AssignmentExpensePolicyRepository,
+  createDatabase,
+  PortalRepository,
+  V3Repository,
+} from './index.ts';
 import {
   assertSyntheticDeploymentConfiguration,
   canonicalFixtureDirectoryPath,
@@ -316,6 +321,7 @@ repository.createClientContact(owner, {
   isBillingContact: true,
 });
 const line = repository.createProject(owner, {
+  costCenterCode: 'QA-DEMO-SEED-1',
   clientId: automotive.id,
   name: 'Body Shop Line 4 Controls Upgrade · Demo',
   timezone: 'America/Detroit',
@@ -328,6 +334,7 @@ const line = repository.createProject(owner, {
   poNumber: 'DEMO-PO-24017',
 });
 const palletizer = repository.createProject(owner, {
+  costCenterCode: 'QA-DEMO-SEED-2',
   clientId: packaging.id,
   name: 'High-Speed Palletizer Commissioning · Demo',
   timezone: 'America/New_York',
@@ -339,6 +346,7 @@ const palletizer = repository.createProject(owner, {
   poNumber: 'DEMO-PO-11804',
 });
 const recovery = repository.createProject(owner, {
+  costCenterCode: 'QA-DEMO-SEED-3',
   clientId: processClient.id,
   name: 'Caustic Recovery Skid Integration · Demo',
   timezone: 'America/Chicago',
@@ -350,6 +358,7 @@ const recovery = repository.createProject(owner, {
   poNumber: 'DEMO-PO-8842',
 });
 const support = repository.createProject(owner, {
+  costCenterCode: 'QA-DEMO-SEED-4',
   clientId: automotive.id,
   name: 'Remote Controls Support Retainer · Demo',
   timezone: 'America/Detroit',
@@ -452,14 +461,26 @@ const assignments = [
   [recovery.id, 'worker3', false],
   [support.id, 'worker', false],
 ] as const;
-for (const [projectId, key, canReview] of assignments)
-  repository.assignWorker(owner, {
+for (const [projectId, key, canReview] of assignments) {
+  const assignment = repository.assignWorker(owner, {
     projectId,
     workerId: userIds.get(key)!,
     startsOn: '2026-07-01',
     plannedMinutes: projectId === line.id ? 24000 : 12000,
     canReview,
   });
+  const assignmentRow = sqlite
+    .prepare('SELECT id,version FROM project_member WHERE id=?')
+    .get(assignment.id) as { id: string; version: number };
+  // These synthetic projects intentionally use the global pay and loaded-cost
+  // rules below. New real assignments keep the safer default-off setting.
+  v3.setAssignmentCommercialFallback(finance, {
+    projectMemberId: assignmentRow.id,
+    allowGlobalCompensation: true,
+    allowGlobalInternalCost: true,
+    expectedVersion: assignmentRow.version,
+  });
+}
 const projectIdsByUser = (key: string) =>
   assignments.filter((row) => row[1] === key).map((row) => row[0]);
 const worker = principal('worker', 'worker', projectIdsByUser('worker'));
@@ -1231,6 +1252,32 @@ const addExpense = (
     description: string;
   },
 ) => {
+  const member = sqlite
+    .prepare('SELECT id FROM project_member WHERE project_id=? AND user_id=?')
+    .get(projectId, actor.userId) as { id: string } | undefined;
+  if (!member) throw new Error('Synthetic expense worker needs a project assignment');
+  const existingPolicy = sqlite
+    .prepare(
+      "SELECT id FROM assignment_expense_policy WHERE project_member_id=? AND payer='worker' AND category=? AND effective_from='2026-07-01'",
+    )
+    .get(member.id, input.category);
+  if (!existingPolicy)
+    new AssignmentExpensePolicyRepository(sqlite).create(finance, {
+      projectMemberId: member.id,
+      payer: 'worker',
+      category: input.category,
+      effectiveFrom: '2026-07-01',
+      workerReimbursement: 'at_cost',
+      clientRecovery:
+        input.treatment === 'all_in'
+          ? 'included'
+          : input.billingTreatment === 'reimbursable_plus_markup'
+            ? 'markup'
+            : 'at_cost',
+      markupBps:
+        input.billingTreatment === 'reimbursable_plus_markup' ? input.markupBps : undefined,
+      reason: 'Explicit synthetic fixture expense policy',
+    });
   const filename =
     input.category === 'airfare'
       ? 'airfare-ticket-demo.pdf'
@@ -1271,6 +1318,7 @@ const addExpense = (
     markupBps: input.markupBps ?? 0,
     taxBps: 0,
     reason: 'Synthetic demo commercial classification',
+    overrideExpensePolicy: input.billingTreatment === 'allowance_per_diem',
     idempotencyKey: `demo-expense-classification:${record.id}`,
   });
   repository.submitExpense(actor, record.id, classified.version);

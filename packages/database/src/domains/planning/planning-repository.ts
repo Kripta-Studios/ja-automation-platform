@@ -59,6 +59,31 @@ export class PlanningRepository {
     return this.deps.now().slice(0, 10);
   }
 
+  private todayInZone(timezone: string): string {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(new Date(this.deps.now()));
+      const part = (type: string) => parts.find((item) => item.type === type)?.value;
+      const year = part('year');
+      const month = part('month');
+      const day = part('day');
+      return year && month && day ? `${year}-${month}-${day}` : this.today();
+    } catch {
+      return this.today();
+    }
+  }
+
+  private todayForProject(projectId: string): string {
+    const project = this.deps.sqlite
+      .prepare('SELECT timezone FROM project WHERE id=?')
+      .get(projectId) as { timezone: string } | undefined;
+    return project ? this.todayInZone(project.timezone) : this.today();
+  }
+
   private assertOperationalProject(projectId: string): void {
     const project = this.deps.sqlite
       .prepare('SELECT status FROM project WHERE id=?')
@@ -93,9 +118,10 @@ export class PlanningRepository {
 
   private assertManagerScope(principal: Principal, projectId: string): void {
     if (principal.role !== 'project_manager') return;
+    const today = this.todayForProject(projectId);
     if (
       !principal.projectIds.has(projectId) ||
-      !this.assignmentCoversWindow(projectId, principal.userId, this.today(), this.today())
+      !this.assignmentCoversWindow(projectId, principal.userId, today, today)
     )
       throw this.deps.errors.accessDenied('Project assignment is not currently effective');
   }
@@ -263,10 +289,16 @@ export class PlanningRepository {
           'SELECT id,project_number,name,status,currency,timezone,start_date,planned_end_date,actual_end_date,version FROM project ORDER BY project_number',
         )
         .all();
-    return this.deps.sqlite
+    const rows = this.deps.sqlite
       .prepare(
-        "SELECT p.id,p.project_number,p.name,p.status,p.currency,p.timezone,p.start_date,p.planned_end_date,p.actual_end_date,p.version FROM project p JOIN project_member pm ON pm.project_id=p.id WHERE p.status IN ('active','planned','paused') AND pm.user_id=? AND pm.status='active' AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?) ORDER BY p.project_number",
+        "SELECT p.id,p.project_number,p.name,p.status,p.currency,p.timezone,p.start_date,p.planned_end_date,p.actual_end_date,p.version,pm.starts_on,pm.ends_on FROM project p JOIN project_member pm ON pm.project_id=p.id WHERE p.status IN ('active','planned','paused') AND pm.user_id=? AND pm.status='active' ORDER BY p.project_number",
       )
-      .all(principal.userId, this.today(), this.today());
+      .all(principal.userId) as Array<
+      Record<string, unknown> & { timezone: string; starts_on: string; ends_on: string | null }
+    >;
+    return rows.flatMap(({ starts_on, ends_on, ...project }) => {
+      const today = this.todayInZone(project.timezone as string);
+      return starts_on <= today && (!ends_on || ends_on >= today) ? [project] : [];
+    });
   }
 }

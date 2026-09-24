@@ -20,6 +20,9 @@ describe('supplier operational surface', () => {
     '/api/documents/other/download',
     '/my-pay/__data.json',
     '/supplier/admin',
+    '/crew/admin',
+    '/crew/time/other/more',
+    '/api/expenses/other',
     '/api/offline/sync',
   ])('denies financial and unapproved surface %s', (path) => {
     expect(supplierRouteAllowed(path)).toBe(false);
@@ -27,6 +30,9 @@ describe('supplier operational surface', () => {
   it.each([
     '/time',
     '/time/own-id',
+    '/crew',
+    '/crew/__data.json',
+    '/crew/time/own-id',
     '/expenses',
     '/expenses/own-id',
     '/help/employee-field-guide/download',
@@ -37,6 +43,8 @@ describe('supplier operational surface', () => {
     '/supplier/report.csv',
     '/time/__data.json',
     '/api/localized-pdf',
+    '/api/expenses/crew-workers',
+    '/api/expenses/time-options',
     '/api/reports/own-id/attachments',
     '/profile',
     '/service-worker.js',

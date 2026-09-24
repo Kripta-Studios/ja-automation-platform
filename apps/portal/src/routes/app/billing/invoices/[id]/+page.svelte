@@ -55,14 +55,24 @@
   const pdfPolling = createInvoicePdfPollingController(() => invalidateAll());
   const money = (minor: unknown) =>
     formatMoney(minor, String(invoice.currency), locale === 'pt' ? 'pt-BR' : locale);
-  const totalQty = $derived(
-    preview.lines.reduce(
+  const quantityFor = (lines: Row[]) =>
+    lines.reduce(
       (sum, line) =>
         sum +
         (Number(line.quantity_numerator ?? 1) / Number(line.quantity_denominator ?? 1) ||
           Number(line.quantity ?? 1)),
       0,
-    ),
+    );
+  const laborLines = $derived(preview.lines.filter((line) => line.source_type !== 'expense'));
+  const expenseLines = $derived(preview.lines.filter((line) => line.source_type === 'expense'));
+  const mixedLines = $derived(laborLines.length > 0 && expenseLines.length > 0);
+  const invoiceLineGroups = $derived(
+    mixedLines
+      ? [
+          { kind: 'Labor', lines: laborLines, subtotal: invoice.labor_subtotal_minor },
+          { kind: 'Expenses', lines: expenseLines, subtotal: invoice.expense_subtotal_minor },
+        ]
+      : [{ kind: null, lines: preview.lines, subtotal: invoice.subtotal_minor }],
   );
   const subtotalLessDiscountMinor = $derived(
     BigInt(String(invoice.subtotal_minor ?? 0)) - BigInt(String(invoice.discount_minor ?? 0)),
@@ -106,6 +116,7 @@
 
   function invoiceStatusText(row: Row): string {
     const raw = String(row.state ?? '').toLowerCase();
+    if (raw === 'superseded') return t('Superseded');
     const status = translateControlledValue(locale, 'status', raw) || t('Unknown');
     return raw === 'paid' ? `✓ ${status}` : status;
   }
@@ -144,74 +155,93 @@
       onclick={() => window.print()}><PrintIcon /> {t('Print Report')}</button
     >
   </nav>
-  <section class="invoice-pdf-panel no-print" aria-labelledby="invoice-pdf-heading">
-    <div class="invoice-pdf-panel__heading">
-      <div>
-        <p class="invoice-pdf-panel__eyebrow">{t('PDF')}</p>
-        <h2 id="invoice-pdf-heading">{t('Preview')}</h2>
+  {#if invoiceState === 'draft' || invoiceState === 'approved'}
+    <section class="invoice-pdf-panel no-print" aria-labelledby="invoice-pdf-heading">
+      <div class="invoice-pdf-panel__heading">
+        <div>
+          <p class="invoice-pdf-panel__eyebrow">{t('PDF')}</p>
+          <h2 id="invoice-pdf-heading">{t('Preview')}</h2>
+        </div>
       </div>
-      <span class="invoice-pdf-panel__status" data-invoice-pdf-status={pdfStatus} aria-live="polite"
-        >{t('PDF')} · {pdfStatusLabel(pdfStatus)}</span
+      <p class="invoice-pdf-panel__help">{t('Draft')} · {t('Preview')}</p>
+      <a
+        class="invoice-pdf-panel__action"
+        href={`${base}/app/api/invoices/${encodeURIComponent(invoiceId)}/draft-preview?lang=${locale}`}
+        download>{t('Download PDF')} · {t('Preview')}</a
       >
-    </div>
-    {#if pdfStatus === 'ready'}
-      <p class="invoice-pdf-panel__help">{t('Ready')}</p>
-      <div class="invoice-pdf-panel__actions">
-        <button
-          type="button"
-          class="invoice-pdf-panel__action"
-          aria-controls="invoice-pdf-frame"
-          aria-expanded={securePdfPreviewOpen}
-          onclick={() => (securePdfPreviewOpen = !securePdfPreviewOpen)}
-          >{securePdfPreviewOpen ? t('Close') : t('Open PDF')}</button
-        >
-        <a
-          class="invoice-pdf-panel__action invoice-pdf-panel__action--secondary"
-          href={pdfUrl}
-          target="_blank"
-          rel="noopener noreferrer">{t('Open PDF')}</a
-        >
-        <a
-          class="invoice-pdf-panel__action invoice-pdf-panel__action--secondary"
-          href={pdfUrl}
-          download>{t('Download PDF')}</a
+    </section>
+  {:else}
+    <section class="invoice-pdf-panel no-print" aria-labelledby="invoice-pdf-heading">
+      <div class="invoice-pdf-panel__heading">
+        <div>
+          <p class="invoice-pdf-panel__eyebrow">{t('PDF')}</p>
+          <h2 id="invoice-pdf-heading">{t('Preview')}</h2>
+        </div>
+        <span
+          class="invoice-pdf-panel__status"
+          data-invoice-pdf-status={pdfStatus}
+          aria-live="polite">{t('PDF')} · {pdfStatusLabel(pdfStatus)}</span
         >
       </div>
-      {#if securePdfPreviewOpen}
-        <div class="invoice-pdf-panel__frame-wrap">
-          <!-- The authorized endpoint remains the source of truth. Keep the explicit
+      {#if pdfStatus === 'ready'}
+        <p class="invoice-pdf-panel__help">{t('Ready')}</p>
+        <div class="invoice-pdf-panel__actions">
+          <button
+            type="button"
+            class="invoice-pdf-panel__action"
+            aria-controls="invoice-pdf-frame"
+            aria-expanded={securePdfPreviewOpen}
+            onclick={() => (securePdfPreviewOpen = !securePdfPreviewOpen)}
+            >{securePdfPreviewOpen ? t('Close') : t('Open PDF')}</button
+          >
+          <a
+            class="invoice-pdf-panel__action invoice-pdf-panel__action--secondary"
+            href={pdfUrl}
+            target="_blank"
+            rel="noopener noreferrer">{t('Open PDF')}</a
+          >
+          <a
+            class="invoice-pdf-panel__action invoice-pdf-panel__action--secondary"
+            href={pdfUrl}
+            download>{t('Download PDF')}</a
+          >
+        </div>
+        {#if securePdfPreviewOpen}
+          <div class="invoice-pdf-panel__frame-wrap">
+            <!-- The authorized endpoint remains the source of truth. Keep the explicit
                same-origin fallback because attachment/CSP policy may prevent an
                inline browser PDF viewer from rendering inside this frame. -->
-          <iframe
-            id="invoice-pdf-frame"
-            title={`${t('PDF')} · ${invoice.invoice_number || t('PREVIEW')}`}
-            src={pdfUrl}
-            loading="lazy"
-          ></iframe>
-          <p class="invoice-pdf-panel__fallback">
-            <a href={pdfUrl} target="_blank" rel="noopener noreferrer">{t('Open PDF')}</a>
-          </p>
-        </div>
+            <iframe
+              id="invoice-pdf-frame"
+              title={`${t('PDF')} · ${invoice.invoice_number || t('PREVIEW')}`}
+              src={pdfUrl}
+              loading="lazy"
+            ></iframe>
+            <p class="invoice-pdf-panel__fallback">
+              <a href={pdfUrl} target="_blank" rel="noopener noreferrer">{t('Open PDF')}</a>
+            </p>
+          </div>
+        {/if}
+      {:else if pdfStatus === 'queued'}
+        <p class="invoice-pdf-panel__message" role="status" aria-live="polite">
+          {t(pdfStatus)} · {t('Loading')}
+        </p>
+      {:else if pdfStatus === 'running'}
+        <p class="invoice-pdf-panel__message" role="status" aria-live="polite">
+          {t(pdfStatus)} · {t('Loading')}
+        </p>
+      {:else if pdfStatus === 'failed'}
+        <p class="invoice-pdf-panel__message invoice-pdf-panel__message--error" role="alert">
+          {t('Failed')} · {t('Error')}
+        </p>
+      {:else if pdfStatus === 'unavailable'}
+        <p class="invoice-pdf-panel__message" role="status">{t('Unavailable')}</p>
       {/if}
-    {:else if pdfStatus === 'queued'}
-      <p class="invoice-pdf-panel__message" role="status" aria-live="polite">
-        {t(pdfStatus)} · {t('Loading')}
-      </p>
-    {:else if pdfStatus === 'running'}
-      <p class="invoice-pdf-panel__message" role="status" aria-live="polite">
-        {t(pdfStatus)} · {t('Loading')}
-      </p>
-    {:else if pdfStatus === 'failed'}
-      <p class="invoice-pdf-panel__message invoice-pdf-panel__message--error" role="alert">
-        {t('Failed')} · {t('Error')}
-      </p>
-    {:else if pdfStatus === 'unavailable'}
-      <p class="invoice-pdf-panel__message" role="status">{t('Unavailable')}</p>
-    {/if}
-  </section>
-  <div class="no-print localized-pdf-slot">
-    <LocalizedPdfPanel ownerType="invoice" ownerId={invoiceId} {locale} title={t('PDF')} />
-  </div>
+    </section>
+    <div class="no-print localized-pdf-slot">
+      <LocalizedPdfPanel ownerType="invoice" ownerId={invoiceId} {locale} title={t('PDF')} />
+    </div>
+  {/if}
   {#if invoiceState === 'draft'}
     <details class="no-print draft-edit-details">
       <summary class="draft-edit-summary"
@@ -298,11 +328,11 @@
       <div class="brand-block">
         <img src={`${base}/app/logo.png`} alt="J&A Automation" />
         <div class="company-details">
-          <strong>{invoice.company_info?.name || invoice.issuer_name || '—'}</strong>
+          <strong>{invoice.display_issuer_name || t('Issuing authority not configured')}</strong>
           {#if invoice.company_info?.division}<div>{invoice.company_info.division}</div>{/if}
           {#if invoicePhone}<div>{t('Phone')}: {invoicePhone}</div>{/if}
-          {#if invoice.company_info?.address || invoice.issuer_address}<div>
-              {invoice.company_info?.address || invoice.issuer_address}
+          {#if invoice.display_issuer_address}<div>
+              {invoice.display_issuer_address}
             </div>{/if}
           {#if invoice.company_info?.email}<div>{invoice.company_info.email}</div>{/if}
           {#if invoice.company_info?.website}<div>{invoice.company_info.website}</div>{/if}
@@ -360,43 +390,52 @@
       aria-labelledby="invoice-line-items-heading"
     >
       <h2 class="visually-hidden" id="invoice-line-items-heading">{t('Invoice line items')}</h2>
-      <table>
-        <caption class="visually-hidden">{t('Invoice line items and amounts')}</caption>
-        <thead>
-          <tr>
-            <th scope="col">{t('DESCRIPTION')}</th>
-            <th scope="col" class="amount">{t('QTY')}</th>
-            <th scope="col" class="amount">{t('UNIT PRICE')}</th>
-            <th scope="col" class="amount">{t('TOTAL')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each preview.lines as line}
-            <tr>
-              <td data-label={t('Description')}>{line.description}</td>
-              <td data-label={t('Quantity')} class="amount">
-                {(Number(line.quantity_numerator) / Number(line.quantity_denominator)).toFixed(2)}
-              </td>
-              <td data-label={t('Unit Price')} class="amount">{money(line.unit_price_minor)}</td>
-              <td data-label={t('Total')} class="amount">{money(line.subtotal_minor)}</td>
-            </tr>
-          {/each}
-        </tbody>
-        <tfoot>
-          <tr class="qty-total-row">
-            <td><strong>{t('Total')}</strong></td>
-            <td class="amount qty-total-cell">
-              <strong>{totalQty.toFixed(2)}</strong>
-            </td>
-            <td></td>
-            <td class="amount total-amount-cell">
-              <strong
-                >{money(invoice.calculation?.subtotalMinor || invoice.subtotal_minor || 0)}</strong
-              >
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+      {#each invoiceLineGroups as group}
+        <div class="invoice-line-group">
+          {#if group.kind}<h3>{t(group.kind)}</h3>{/if}
+          <table>
+            <caption class="visually-hidden">{t('Invoice line items and amounts')}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{t('DESCRIPTION')}</th>
+                <th scope="col" class="amount">{t('QTY')}</th>
+                <th scope="col" class="amount">{t('UNIT PRICE')}</th>
+                <th scope="col" class="amount">{t('TOTAL')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each group.lines as line}
+                <tr>
+                  <td data-label={t('Description')}>{line.description}</td>
+                  <td data-label={t('Quantity')} class="amount">
+                    {(Number(line.quantity_numerator) / Number(line.quantity_denominator)).toFixed(
+                      2,
+                    )}
+                  </td>
+                  <td data-label={t('Unit Price')} class="amount">{money(line.unit_price_minor)}</td
+                  >
+                  <td data-label={t('Total')} class="amount">{money(line.subtotal_minor)}</td>
+                </tr>
+              {/each}
+            </tbody>
+            <tfoot>
+              <tr class="qty-total-row">
+                <td
+                  ><strong>{group.kind ? `${t(group.kind)} · ${t('Subtotal')}` : t('Total')}</strong
+                  ></td
+                >
+                <td class="amount qty-total-cell"
+                  ><strong>{quantityFor(group.lines).toFixed(2)}</strong></td
+                >
+                <td></td>
+                <td class="amount total-amount-cell"
+                  ><strong>{money(group.subtotal || 0)}</strong></td
+                >
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      {/each}
     </section>
     <section class="invoice-bottom-grid">
       <div class="invoice-terms-card">

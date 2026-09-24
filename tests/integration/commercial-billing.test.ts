@@ -101,6 +101,7 @@ describe('commercial billing controls', () => {
       billingEmail: 'billing@commercial.example',
     });
     const capped = repository.createProject(owner, {
+      costCenterCode: 'QA-COMMERCIAL-BILLING-TEST-1',
       clientId: client.id,
       name: 'Capped Project',
       timezone: 'UTC',
@@ -345,6 +346,7 @@ describe('commercial billing controls', () => {
     ).toThrow(/Billing period is not ready/);
 
     const fixed = repository.createProject(owner, {
+      costCenterCode: 'QA-COMMERCIAL-BILLING-TEST-2',
       clientId: client.id,
       name: 'Fixed Project',
       timezone: 'UTC',
@@ -433,6 +435,7 @@ describe('commercial billing controls', () => {
     ).toEqual({ invoice_id: null, billing_status: 'unlocked', billing_lock_id: null });
 
     const hybrid = repository.createProject(owner, {
+      costCenterCode: 'QA-COMMERCIAL-BILLING-TEST-3',
       clientId: client.id,
       name: 'Hybrid Project',
       timezone: 'UTC',

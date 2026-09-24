@@ -1,4 +1,10 @@
 export { hasEmailConsent, quarantineUnconfirmedEmail } from './core/email-policy.ts';
+export {
+  ProjectBillingSetupRepository,
+  projectCalendarDate,
+  type ProjectBillingSetupInput,
+  type ProjectPersonTermsInput,
+} from './domains/billing/project-billing-setup-repository.ts';
 import {
   accessSync,
   constants,
@@ -280,6 +286,17 @@ const REVIEWED_B5_MIGRATION_NAMES: Readonly<Record<number, string>> = {
   47: 'supplier_time_batch_idempotency',
   48: 'accounting_pack_signed_credit_balances',
   49: 'availability_calendar_edits',
+  50: 'expense_occurrence_time_shift_link',
+  51: 'crew_leader_time',
+  52: 'crew_expense_recorder',
+  53: 'assignment_commercial_fallback',
+  54: 'assignment_expense_policy',
+  55: 'operational_time_expense_request',
+  56: 'crew_shared_expense_allocation',
+  57: 'combined_time_expense_billing',
+  58: 'project_billing_setup_templates',
+  59: 'approved_invoice_supersession',
+  60: 'project_expense_budget',
 };
 
 const MIGRATION_CONTRACT_VERSION = 'ja-migration-contract-v1';
@@ -288,7 +305,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  '102e5cd7a8c52dee6177dba76808cf522e028ba52cf99d87b51c3794a50be452';
+  '825791045b46cd3028e1faf6333ebe2eed1d88156398e6201cad93ee2dd76f59';
 
 type MigrationContractEntry = Readonly<{
   version: number;
@@ -1051,11 +1068,19 @@ export { recordAuditEvent } from './core/audit.ts';
 export { assertLiveSession } from './core/authorization.ts';
 export * from './domains/localized-artifacts/index.ts';
 export * from './domains/accounting-pack/index.ts';
+export * from './domains/expenses/assignment-expense-policy-repository.ts';
 export * from './domains/worker-statements/index.ts';
 export * from './domains/identity/index.ts';
 export * from './domains/reports/period-followup-repository.ts';
 export * from './domains/workforce/supplier-access.ts';
 export * from './domains/workforce/supplier-workforce-repository.ts';
+export * from './domains/workforce/crew-leader-repository.ts';
+export * from './domains/expenses/crew-shared-expense-allocation-repository.ts';
+export {
+  projectPeriodExplanation,
+  type CanonicalProjectFinance,
+  type ProjectPeriodExplanationInput,
+} from './domains/commercial/project-period-explanation.ts';
 export {
   DURABLE_JOB_CAPABILITY_BY_KIND,
   DURABLE_JOB_CAPABILITIES,

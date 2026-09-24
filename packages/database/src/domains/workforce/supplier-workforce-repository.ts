@@ -1394,7 +1394,11 @@ export class SupplierWorkforceRepository {
 
   createTimeBatch(
     principal: Principal,
-    input: TimeEntryInput & { workerIds: readonly string[]; requestId: string },
+    input: TimeEntryInput & {
+      workerIds: readonly string[];
+      requestId: string;
+      workerMinutes?: Readonly<Record<string, number>>;
+    },
   ): { created: readonly { id: string; version: number }[]; replayed: boolean } {
     const requestId = requiredText(input.requestId, 'Batch request', 200);
     if (requestId.length < 16) throw new ValidationError('Batch request is invalid');
@@ -1402,6 +1406,21 @@ export class SupplierWorkforceRepository {
     if (workerIds.length === 0) throw new ValidationError('Select at least one technician');
     if (workerIds.length > 100)
       throw new ValidationError('A time batch is limited to 100 technicians');
+    const workerMinutes = input.workerMinutes;
+    if (workerMinutes) {
+      if (input.startTime || input.endTime || input.breakMinutes)
+        throw new ValidationError('Individual hours cannot include a shared time interval');
+      if (
+        Object.keys(workerMinutes).length !== workerIds.length ||
+        workerIds.some(
+          (id) =>
+            !Number.isInteger(workerMinutes[id]) ||
+            workerMinutes[id]! < 1 ||
+            workerMinutes[id]! > 1440,
+        )
+      )
+        throw new ValidationError('Enter valid hours for every selected technician');
+    }
     return this.transaction(() => {
       // Resolve every object permission before the first insert. The outer
       // transaction then makes the batch all-or-nothing if any row conflicts.
@@ -1419,6 +1438,9 @@ export class SupplierWorkforceRepository {
         category: input.category,
         activityCode: input.activityCode?.trim() || null,
         minutes: input.minutes,
+        workerMinutes: workerMinutes
+          ? workerIds.map((workerId) => [workerId, workerMinutes[workerId]])
+          : null,
         summary: input.summary.trim(),
         site: input.site?.trim() || null,
         startTime: input.startTime?.trim() || null,
@@ -1450,7 +1472,12 @@ export class SupplierWorkforceRepository {
       const created: { id: string; version: number }[] = [];
       for (const workerId of workerIds) {
         try {
-          created.push(this.time.createTimeEntryForWorker(principal, workerId, input));
+          created.push(
+            this.time.createTimeEntryForWorker(principal, workerId, {
+              ...input,
+              minutes: workerMinutes?.[workerId] ?? input.minutes,
+            }),
+          );
         } catch (caught) {
           if (caught instanceof ValidationError || caught instanceof ConflictError) {
             const Failure = caught instanceof ConflictError ? ConflictError : ValidationError;

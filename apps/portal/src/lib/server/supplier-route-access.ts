@@ -7,6 +7,7 @@ export function supplierRouteAllowed(path: string): boolean {
       '/',
       '/login',
       '/time',
+      '/crew',
       '/expenses',
       '/reports',
       '/profile',
@@ -19,6 +20,8 @@ export function supplierRouteAllowed(path: string): boolean {
       '/manifest.webmanifest',
       '/icon-192.png',
       '/icon-512.png',
+      '/api/expenses/crew-workers',
+      '/api/expenses/time-options',
     ].includes(route)
   )
     return true;
@@ -28,6 +31,7 @@ export function supplierRouteAllowed(path: string): boolean {
       route,
     );
   }
+  if (/^\/crew\/time\/[^/]+$/u.test(route)) return true;
   if (/^\/help\/[^/]+(?:\/download)?$/u.test(route)) return true;
   if (/^\/api\/auth(?:\/|$)/u.test(route)) return true;
   if (route === '/api/security/mfa') return true;

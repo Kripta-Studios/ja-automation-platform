@@ -100,6 +100,7 @@ describe('duplicate private uploads', () => {
   it('never returns another project owner or document identity for a content collision', () => {
     setup();
     const project = value.repository.createProject(value.owner, {
+      costCenterCode: 'QA-DUPLICATE-UPLOAD-TEST-1',
       clientId: value.client.id,
       name: 'Other private project',
       timezone: 'Europe/Madrid',

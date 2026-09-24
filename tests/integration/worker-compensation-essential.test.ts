@@ -2,7 +2,13 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { V3ConflictError, V3Repository, PortalRepository, createDatabase } from '@ja/database';
+import {
+  AssignmentExpensePolicyRepository,
+  V3ConflictError,
+  V3Repository,
+  PortalRepository,
+  createDatabase,
+} from '@ja/database';
 import type { Principal, Role } from '@ja/domain';
 import {
   installB5TestDeploymentIdentity,
@@ -118,6 +124,7 @@ function fixture(): CompensationFixture {
 
 function addProject(value: CompensationFixture, name: string) {
   const project = value.repository.createProject(value.owner, {
+    costCenterCode: 'QA-WORKER-COMPENSATION-ESSENTIAL-TEST-1',
     clientId: value.clientId,
     name,
     timezone: 'UTC',
@@ -342,6 +349,18 @@ describe('Client Essential worker compensation truth', () => {
   it('makes finalized reimbursement retries idempotent and rejects changed final truth', () => {
     const value = fixture();
     const project = addProject(value, 'Reimbursement compensation');
+    const member = value.sqlite
+      .prepare('SELECT id FROM project_member WHERE project_id=? AND user_id=?')
+      .get(project.id, value.worker.userId) as { id: string };
+    new AssignmentExpensePolicyRepository(value.sqlite).create(value.finance, {
+      projectMemberId: member.id,
+      payer: 'worker',
+      category: 'hotel',
+      effectiveFrom: '2026-08-01',
+      workerReimbursement: 'at_cost',
+      clientRecovery: 'at_cost',
+      reason: 'Worker hotel is reimbursed and recovered at cost',
+    });
     const expense = value.repository.createExpense(value.worker, {
       projectId: project.id,
       spentOn: '2026-08-03',

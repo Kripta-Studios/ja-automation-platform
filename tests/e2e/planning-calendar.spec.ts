@@ -192,7 +192,8 @@ test('Owner publishes from a day and edits the published shift from its agenda',
   const form = page.locator('form[action="?/createPlanning"]');
   await expect(form.locator('select[name=projectId]')).toHaveValue(projectId);
   await expect(form.locator('select[name=workerId]')).toHaveValue(id);
-  await form.getByLabel('Planned minutes', { exact: true }).fill('480');
+  await form.getByLabel('Planned hours', { exact: true }).fill('8');
+  await expect(form.locator('input[name="plannedMinutes"]')).toHaveValue('480');
   await form.getByLabel('Site', { exact: true }).fill('Calendar original site');
   await form.getByRole('button', { name: 'Publish assignment', exact: true }).click();
   const agenda = page.locator('.calendar-agenda');

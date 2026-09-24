@@ -131,6 +131,7 @@ function fixture(): Fixture {
     paymentTermsDays: 30,
   });
   const project = repository.createProject(owner, {
+    costCenterCode: 'QA-WORKER-STATEMENT-HIGH-VOLUME-TEST-1',
     clientId: client.id,
     name: 'Worker Statement Project',
     timezone: 'UTC',

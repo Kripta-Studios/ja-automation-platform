@@ -10,7 +10,7 @@
 | Chief / delegated team lead | [Crew guide](Role_Guide_chief_EN.md) | Crew hours on a 768-pixel tablet; no test delegation currently exists. |
 | Finance administrator | [Billing guide](Role_Guide_finance_EN.md) | One/two-invoice arrangement and the empty invoice register. |
 
-The current guide records the exact capture account, route, viewport, image hash and deployed image tag. Test credentials are kept separately in a private, ignored manual and are **not** embedded in public PDFs or PNGs. No real worker compensation, receipts, mailbox contents or password is included. Browser phone/tablet viewports are not physical iPhone/iPad Safari verification.
+The current guide records the exact capture account, route, viewport, image hash and deployed image tag. [Test credentials](Portal_Test_Accounts.private.md) are published separately in this public repository at the owner's explicit request; they are **not** embedded in the guide PDFs or PNGs. No real worker compensation, receipts or mailbox contents are included. Browser phone/tablet viewports are not physical iPhone/iPad Safari verification.
 
 ## Existing portal PDFs and generated examples
 

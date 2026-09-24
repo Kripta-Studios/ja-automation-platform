@@ -1,0 +1,11 @@
+{
+  "projectId": "01a0cfae-9005-76a9-871a-8cf4edf877dd",
+  "responses": [
+    {
+      "url": "https://j-aautomation.com/j-aautomation/app/reports?/createDailyReport",
+      "status": 200
+    }
+  ],
+  "alerts": [],
+  "visible": true
+}

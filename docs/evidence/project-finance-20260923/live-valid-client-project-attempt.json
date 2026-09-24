@@ -1,0 +1,14 @@
+{
+  "clientName": "JA QA Client 1790189483707",
+  "createClientHttpStatus": 200,
+  "visibleAlert": [],
+  "clientPersisted": true,
+  "clientId": "01a0cf9b-bec4-72cd-a97d-8de393f89dd5",
+  "projectName": "JA QA Project 1790189500519",
+  "createProjectHttpStatus": 400,
+  "projectAlerts": [
+    "Error Check project fields.  ×"
+  ],
+  "projectPersisted": false,
+  "projectId": null
+}

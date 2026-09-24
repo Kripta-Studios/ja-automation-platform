@@ -1,0 +1,9 @@
+{
+  "responses": [
+    {
+      "url": "https://j-aautomation.com/j-aautomation/app/billing?/createTaxProfile",
+      "status": 200
+    }
+  ],
+  "alerts": []
+}

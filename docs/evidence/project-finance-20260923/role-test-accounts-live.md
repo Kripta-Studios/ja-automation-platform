@@ -1,0 +1,9 @@
+# Portal role test accounts after clean slate, 2026-09-24
+
+Three new **portal-only** accounts were created through the owner browser UI on deployed release `zip-d215671b99323d6d8c4ce34b74b4f8e0`: Finance Administrator, Project Manager and Read-only Auditor. Each uses a distinct `*-test@j-aautomation.com` address and the user-requested password convention (email local part). Their exact credentials and access instructions are in the private, mode-600, git-ignored `docs/manuals/Portal_Test_Accounts.private.md`; passwords are intentionally absent here. Eight previously created worker test accounts already use the same convention. The canonical real owner remains the only owner account.
+
+**Publication update, 2026-09-24:** The owner explicitly requested that the test-account manual be committed and pushed to the public GitHub repository. The private-file handling described above was the state at the time of this test and has been superseded.
+
+For each new role, the browser signed in and checked an allowed route (HTTP 200) and a forbidden owner/finance route (HTTP 403). A worker test login was also checked at 390 px. The manual now separates legacy demo accounts whose passwords use a different convention and explains that supplier-specific and crew-chief access requires new supplier/project grants after the clean slate.
+
+Read-only database comparison after the account additions: `user=121`, `account=121`, `mail_identity=99` and `mailbox_external_command=8`. Both mail-related tables have exactly the same row digests as the cold pre-cutover database. No new test account has a mailbox identity, `outbox_event=0`, and Stalwart stayed active. Operational data remained `client=1`, `project=2`, `invoice=0`, `time_entry=0`, `expense=0`; SQLite quick check was `ok` with zero foreign-key violations.

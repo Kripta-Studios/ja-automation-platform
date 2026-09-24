@@ -1,0 +1,14 @@
+{
+  "projectId": "01a0cfae-9005-76a9-871a-8cf4edf877dd",
+  "status": 200,
+  "alerts": [],
+  "summary": "QA actual 7.5 hours 1790190897418",
+  "time": {
+    "id": "01a0cfb1-4f36-7221-af72-7d1b9bb097cd",
+    "minutes": 450,
+    "startTime": null,
+    "endTime": null,
+    "projectId": "01a0cfae-9005-76a9-871a-8cf4edf877dd",
+    "workerId": "37f3058b-062a-40c8-9cba-3af07da3903b"
+  }
+}

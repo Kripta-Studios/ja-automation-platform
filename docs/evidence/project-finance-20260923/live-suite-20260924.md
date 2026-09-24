@@ -1,0 +1,15 @@
+# Authenticated deployed browser acceptance — 2026-09-24
+
+Public origin: `https://j-aautomation.com/j-aautomation/app/projects`.
+Release: `zip-d444cae7d8a9b6c5d4d6309b72177837` (full checksum `d444cae7d8a9b6c5d4d6309b7217783751474c75104d02a515a92fc12b7cd2a9`).
+Portal and site containers were healthy and the jobs container running when the suite completed. No mailbox or mail service was changed.
+
+The isolated production acceptance configuration used ordinary authenticated owner, worker, finance and delegated chief sessions. It does not run local fixture resets against production. The suite ran with one worker against the public HTTPS origin and completed with **37 passed, 3 configured desktop-only duplicates skipped, 0 failed** in 1.7 minutes. Viewports were 360×800 and 390×844 (phone), 768×1024 (tablet), and 1440×900 (desktop). The three skips were alias-edit mutations limited to desktop to avoid simultaneous writes to the same QA record; the surrounding read and navigation checks ran at all widths.
+
+Assertions covered visible controls and saved state after navigation/reload: create a minimal EUR QA project with required cost center and blank budget/planned end, then remove its empty temporary record; project → time and report links; time detail → approved report and back; Finance commercial summary; all eight source lines and €3,640 on the mixed-rate draft invoice; owner alias edit and restoration; worker and finance authorization boundaries; delegated chief crew controls and preselected chief expense project/person/shift at all four widths. The chief expense picker had failed on the preceding release; its correction passed a separate **4/4** viewport retest and a real 390-px chief browser saved a €1.25 draft expense linked to that worker's 45-minute shift. The owner saw no page overflow in the invoice/detail checks.
+
+A separate deployed expertise journey passed **4/4** widths. The owner created `QA-INSTALL-SUPERVISION`, assigned it to QA Worker 1 at proficiency 4, then filtered project assignment workers by that expertise. SQLite readback found the exact skill/worker relation. These are designated QA records; no mailbox identity was created or altered.
+
+A separate deployed responsive interaction check passed **3/3** at 360/390/768 px (desktop intentionally skipped): the navigation drawer opened with full Projects/Team/Time/Expenses labels and closed with Escape; the new-project cost center, optional end date and budget controls were visible, at least 40 px tall and inside the viewport; project detail loaded without document overflow. This checks those controls, not every screen in the application.
+
+The eight-worker labor draft is documented in [live-mixed-rate-20260924.md](live-mixed-rate-20260924.md), including PDF checksum and extracted totals. These results do not certify a live-issued invoice, payment, shared receipt allocation, project-level expertise requirement, completed production-data cleanup, or changes that remain local after this release.

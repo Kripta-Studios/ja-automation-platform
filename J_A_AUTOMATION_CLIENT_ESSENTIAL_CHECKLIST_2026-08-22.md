@@ -6,6 +6,25 @@
 **Client validation update:** 2026-08-24
 The requirements clarified directly with J&A on 2026-08-24 are release-authoritative. Existing PASS/PARTIAL evidence must be revalidated where these clarifications materially change the behavior; no prior PASS may be assumed to prove a newly clarified rule.
 
+## Corrección de interfaz desplegada — 2026-09-24
+
+El commit `85b8ee0` está desplegado como `zip-ae5996e51fa6c1fe20cc6d321e4d3e3f`.
+Se corrigieron la altura de tarjetas colapsadas, la densidad y alineación de formularios,
+la búsqueda de trabajadores al crear proyectos, la identificación de gestores con el mismo nombre,
+el selector de proyectos según la asignación y fecha del trabajador en Log time, y los enlaces
+de atención de tiempo, gastos, informes, aprobaciones, proyectos y reembolsos a sus registros.
+Las dos cuentas activas llamadas «Project Manager Test» conservan sus identidades y ahora se
+distinguen por correo en los selectores.
+
+Evidencia local: typecheck, lint de archivos modificados y build de portal correctos; las pruebas
+E2E focalizadas de tarjetas, búsqueda, asignaciones, navegación y alineación pasaron en 360, 390,
+768 y 1440 px. La cola de reembolsos pasó con Owner en 360 y 1440 px. El desplegador creó el backup
+online `2026-09-24T164133759Z-e8952a7d-d6d0-44ff-bbd0-5898001eb07e`, completó sus comprobaciones
+de salud local y URLs públicas, y los contenedores portal y site quedaron saludables. Las cuatro
+URL comprobadas devolvieron HTTP 200. La limpieza de la caché de construcción Docker liberó 6,906 GB
+y dejó Build Cache en 0 B. Esta corrección no modifica por sí sola las aprobaciones pendientes de
+Client Essential ni acredita `CLIENT READY`.
+
 ## Estado actual consolidado — 2026-09-19
 
 **Producción operativa; aceptación Client Essential pendiente. No se acredita el 100 % ni `CLIENT READY`.**

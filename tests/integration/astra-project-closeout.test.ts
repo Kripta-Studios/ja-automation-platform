@@ -578,8 +578,24 @@ describe('ASTRA project closeout revisions', () => {
     expect(() => value.repository.finalizeProjectCloseoutRevision(principal, draft.id)).toThrow(
       ConflictError,
     );
+    const current = value.sqlite
+      .prepare(
+        'SELECT client_snapshot_sha256,internal_snapshot_sha256,client_confirmation_hash,updated_at FROM project_closeout_revision WHERE id=?',
+      )
+      .get(draft.id) as {
+      client_snapshot_sha256: string;
+      internal_snapshot_sha256: string;
+      client_confirmation_hash: string | null;
+      updated_at: string;
+    };
     const refreshed = value.repository.refreshProjectCloseoutDraft(principal, {
       revisionId: draft.id,
+      expectedState: {
+        clientSnapshotHash: current.client_snapshot_sha256,
+        internalSnapshotHash: current.internal_snapshot_sha256,
+        confirmationHash: current.client_confirmation_hash ?? '',
+        updatedAt: current.updated_at,
+      },
     });
     expect(refreshed.clientSnapshotHash).not.toBe(draft.clientSnapshotHash);
     expect(
@@ -593,6 +609,45 @@ describe('ASTRA project closeout revisions', () => {
       refreshed.clientSnapshotHash,
     );
     expect(value.repository.finalizeProjectCloseoutRevision(principal, draft.id)).toHaveLength(2);
+  });
+
+  it('does not clear a confirmation added after the refresh form opened', () => {
+    const value = fixture();
+    const principal = owner(value);
+    const draft = value.repository.prepareProjectCloseout(principal, {
+      projectId: value.project.id,
+    });
+    const opened = value.sqlite
+      .prepare(
+        'SELECT client_snapshot_sha256,internal_snapshot_sha256,client_confirmation_hash,updated_at FROM project_closeout_revision WHERE id=?',
+      )
+      .get(draft.id) as {
+      client_snapshot_sha256: string;
+      internal_snapshot_sha256: string;
+      client_confirmation_hash: string | null;
+      updated_at: string;
+    };
+    value.repository.confirmProjectCloseoutClientPublication(
+      principal,
+      draft.id,
+      draft.clientSnapshotHash,
+    );
+    expect(() =>
+      value.repository.refreshProjectCloseoutDraft(principal, {
+        revisionId: draft.id,
+        expectedState: {
+          clientSnapshotHash: opened.client_snapshot_sha256,
+          internalSnapshotHash: opened.internal_snapshot_sha256,
+          confirmationHash: opened.client_confirmation_hash ?? '',
+          updatedAt: opened.updated_at,
+        },
+      }),
+    ).toThrow(ConflictError);
+    expect(
+      value.sqlite
+        .prepare('SELECT client_confirmation_hash FROM project_closeout_revision WHERE id=?')
+        .get(draft.id),
+    ).toEqual({ client_confirmation_hash: draft.clientSnapshotHash });
   });
 
   it.each(['finance', 'identity', 'hr', 'security', 'confidential', 'receipt'] as const)(

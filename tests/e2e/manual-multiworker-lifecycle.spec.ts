@@ -9,6 +9,7 @@ import {
   signIn,
 } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 let workDate = '2026-08-24';
 const PERIOD_START = '2026-08-01';
@@ -77,7 +78,7 @@ function createIsolatedProject(projectName: string): IsolatedProject {
     const repository = new PortalRepository(database.sqlite);
     const name = `Manual same-project compensation ${randomUUID()}`;
     const created = repository.createProject(repository.principalFor(owner.id), {
-      costCenterCode: 'QA-MANUAL-MULTIWORKER-LIFECYCLE-SPEC-1',
+      costCenterCode: e2eCostCenter('QA-MANUAL-MULTIWORKER-LIFECYCLE-SPEC', 22, projectName),
       clientId: lifecycle.client.id,
       name,
       timezone: lifecycle.project.timezone,

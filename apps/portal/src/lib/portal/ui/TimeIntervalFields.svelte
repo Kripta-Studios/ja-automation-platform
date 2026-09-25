@@ -18,15 +18,27 @@
   const isLegacy = $derived(legacyMinutes !== undefined && !initialStart && !initialEnd);
   let useInterval = $state(untrack(() => !!initialStart || !!initialEnd));
   let hours = $state(
-    untrack(() => (legacyMinutes === undefined ? '' : String(legacyMinutes / 60))),
+    untrack(() =>
+      legacyMinutes === undefined ? '' : String(Number((legacyMinutes / 60).toFixed(4))),
+    ),
   );
   let start = $state(untrack(() => initialStart));
   let end = $state(untrack(() => initialEnd));
-  let pause = $state<number | undefined>(untrack(() => initialBreak));
+  let pauseHours = $state(untrack(() => String(Number((initialBreak / 60).toFixed(4)))));
   let endInput = $state<HTMLInputElement>();
   let hoursInput = $state<HTMLInputElement>();
-  const minutes = $derived(intervalMinutes(start, end, pause ?? 0));
+  let pauseHoursInput = $state<HTMLInputElement>();
+  const pauseMinutes = $derived(pauseHours.trim() === '' ? 0 : durationMinutes(pauseHours));
+  const minutes = $derived(intervalMinutes(start, end, pauseMinutes ?? NaN));
   const enteredMinutes = $derived(durationMinutes(hours));
+  const decimalHours = (value: number): string => String(Number((value / 60).toFixed(4)));
+  $effect(() => {
+    pauseHoursInput?.setCustomValidity(
+      pauseMinutes === null || pauseMinutes > 1439
+        ? translate('Enter a valid break in decimal hours, shorter than 24 hours.')
+        : '',
+    );
+  });
   $effect(() => {
     endInput?.setCustomValidity(
       useInterval && start && end && minutes === null
@@ -77,19 +89,18 @@
       /></label
     >
     <label
-      ><span>{translate('Break (minutes)')}</span><input
-        name="breakMinutes"
-        type="number"
-        min="0"
-        max="1439"
-        step="1"
-        inputmode="numeric"
-        bind:value={pause}
+      ><span>{translate('Break (decimal hours)')}</span><input
+        name="breakHours"
+        type="text"
+        inputmode="decimal"
+        bind:value={pauseHours}
+        bind:this={pauseHoursInput}
       /></label
     >
+    <input name="breakMinutes" type="hidden" value={pauseMinutes ?? ''} />
     <div class="time-range-total">
       <span>{translate('Calculated duration')}</span><output aria-live="polite"
-        >{minutes === null ? '—' : `${Math.floor(minutes / 60)} h ${minutes % 60} min`}</output
+        >{minutes === null ? '—' : `${decimalHours(minutes)} h`}</output
       >
     </div>
     <input name="minutes" type="hidden" value={minutes ?? ''} />
@@ -101,6 +112,7 @@
 {:else}
   <label
     ><span>{translate('Actual hours')}</span><input
+      name="durationHours"
       type="text"
       inputmode="decimal"
       required
@@ -112,12 +124,10 @@
   <p class="time-range-help">
     {translate('Actual duration')}: {enteredMinutes === null
       ? '—'
-      : `${Math.floor(enteredMinutes / 60)} h ${enteredMinutes % 60} min`}
+      : `${decimalHours(enteredMinutes)} h`}
   </p>
   <p class="time-range-help">
-    {translate(
-      'Enter decimal hours, for example 7.5 for 7 h 30 min. The amount is rounded to the nearest minute.',
-    )}
+    {translate('Enter decimal hours, for example 7.5.')}
   </p>
 {/if}
 

@@ -214,7 +214,7 @@ describe('Client Essential CORE-02/09/11 identifiers and planned-versus-actual d
     value.repository.updateProject(value.owner, {
       projectId: project.id,
       version: projectBeforeUpdate.version,
-      costCenterCode: 'CC-ESSENTIAL-UPDATED',
+      costCenterCode: 'CC-ESSENTIAL-UPDATED-002',
     });
     value.repository.assignWorker(value.owner, {
       projectId: project.id,
@@ -224,10 +224,10 @@ describe('Client Essential CORE-02/09/11 identifiers and planned-versus-actual d
     });
     const projectManager = value.repository.principalFor('b5-manager');
     expect(value.repository.projectOverview(value.owner, project.id).project).toMatchObject({
-      cost_center_code: 'CC-ESSENTIAL-UPDATED',
+      cost_center_code: 'CC-ESSENTIAL-UPDATED-002',
     });
     expect(value.repository.projectOverview(projectManager, project.id).project).toMatchObject({
-      cost_center_code: 'CC-ESSENTIAL-UPDATED',
+      cost_center_code: 'CC-ESSENTIAL-UPDATED-002',
     });
   });
 

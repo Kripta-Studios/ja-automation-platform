@@ -4,6 +4,10 @@
   import { portalText, normalizePortalLocale } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
   import { SectionCard, StatusBadge, formValidation } from '$lib/portal/ui';
+  import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
+  import type { ProblemData } from '$lib/problem/contract';
+  import { tick } from 'svelte';
   let { data, form } = $props();
   let search = $state('');
   const t = (text: string, params?: Record<string, string | number>) =>
@@ -29,6 +33,39 @@
     )
       params.fieldLabel = t(params.fieldLabel);
     return t(result.messageKey ?? result.message ?? '', params);
+  });
+  const formProblem = $derived(
+    form?.code && form?.messageKey && form?.correlationId ? (form as ProblemData) : null,
+  );
+  const failedRecordId = $derived(String(form?.recordId ?? ''));
+  const reviewRecordHref = $derived.by(() => {
+    const params = new URLSearchParams();
+    if (data.area) params.set('area', data.area);
+    else params.set('type', data.recordType);
+    if (failedRecordId) params.set('focus', failedRecordId);
+    return `${base}/app/manage?${params}`;
+  });
+  const correctionHref = $derived(
+    failedRecordId
+      ? `${base}/app/${data.recordType === 'time_entry' ? 'time' : data.recordType === 'expense' ? 'expenses' : 'reports'}/${encodeURIComponent(failedRecordId)}`
+      : `${base}/app/${data.recordType === 'time_entry' ? 'time' : data.recordType === 'expense' ? 'expenses' : 'reports'}`,
+  );
+  let focusedProblemId = '';
+  $effect(() => {
+    const id = formProblem?.correlationId;
+    if (!id || id === focusedProblemId) return;
+    focusedProblemId = id;
+    void tick().then(() => {
+      const targetForm = [
+        ...document.querySelectorAll<HTMLFormElement>('[data-management-record-id]'),
+      ].find((candidate) => candidate.dataset.managementRecordId === failedRecordId);
+      if (targetForm && formProblem.fieldErrors)
+        reportFormFieldErrors(targetForm, formProblem.fieldErrors);
+      const target =
+        targetForm?.querySelector<HTMLElement>('[data-validation-summary]') ??
+        document.querySelector<HTMLElement>('[data-management-problem] [data-ui="problem-notice"]');
+      target?.focus({ preventScroll: true });
+    });
   });
   const types = [
     ['expense', 'Expenses'],
@@ -87,7 +124,24 @@
       >{t('Worker pay review')} →</a
     >
   </header>
-  {#if feedback}<p class="management-feedback" role={form?.success ? 'status' : 'alert'}>
+  {#if formProblem}
+    <div data-management-problem>
+      <ProblemNotice
+        problem={formProblem}
+        kind={formProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        remedyLinks={{
+          contact_owner: { label: t('Contact an owner') },
+          review_updated_record: { label: t('Review updated record'), href: reviewRecordHref },
+          review_linked_invoice: { label: t('Review linked invoice'), href: `${base}/app/billing` },
+          review_financial_history: {
+            label: t('Review financial history'),
+            href: `${base}/app/finance/cash`,
+          },
+          review_correction_path: { label: t('Review correction path'), href: correctionHref },
+        }}
+      />
+    </div>
+  {:else if feedback}<p class="management-feedback" role={form?.success ? 'status' : 'alert'}>
       {feedback}
     </p>{/if}
   <nav class="management-tabs" aria-label={t('Management areas')}>
@@ -221,6 +275,7 @@
                   method="POST"
                   action={`?/manageRecord&type=${data.recordType}`}
                   use:formValidation
+                  data-management-record-id={row.id}
                 >
                   <input type="hidden" name="recordType" value={data.recordType} /><input
                     type="hidden"
@@ -273,7 +328,12 @@
 </div>
 
 {#snippet catalogForm(row: Record<string, unknown> | null)}
-  <form method="POST" action={`?/manageCatalog&area=${data.area}`} use:formValidation>
+  <form
+    method="POST"
+    action={`?/manageCatalog&area=${data.area}`}
+    use:formValidation
+    data-management-record-id={String(row?.id ?? '')}
+  >
     <input type="hidden" name="kind" value={data.area} /><input
       type="hidden"
       name="id"

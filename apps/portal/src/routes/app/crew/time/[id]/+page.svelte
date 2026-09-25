@@ -1,7 +1,13 @@
 <script lang="ts">
   import { SectionCard } from '$lib/portal/ui';
+  import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
+  import type { ProblemData } from '$lib/problem/contract';
+  import { durationMinutes } from '$lib/portal/ui/time-entry-clock';
   import { page } from '$app/stores';
-  import { onMount } from 'svelte';
+  import { enhance } from '$app/forms';
+  import type { SubmitFunction } from '@sveltejs/kit';
+  import { onMount, tick } from 'svelte';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
   import {
@@ -18,6 +24,35 @@
   const t = (key: string, params?: Record<string, string | number>) =>
     standaloneText(locale, key, params);
   const record = $derived(data.record);
+  const problem = $derived(form?.code && form?.messageKey ? (form as ProblemData) : null);
+  const remedyLinks = $derived({
+    review_time: {
+      label: t('Review updated crew time'),
+      href: `/j-aautomation/app/crew/time/${encodeURIComponent(record.id)}?review=1`,
+    },
+    contact_project_owner: { label: t('Contact the project owner to review access.') },
+  });
+  function showFieldProblems(result: Record<string, unknown> | null | undefined): void {
+    if (!result?.operation) return;
+    const target = document.querySelector<HTMLFormElement>(
+      `[data-crew-time-operation="${String(result.operation)}"]`,
+    );
+    const fields = result.fieldErrors;
+    if (target && fields && typeof fields === 'object' && !Array.isArray(fields))
+      reportFormFieldErrors(target, fields as Record<string, readonly string[]>);
+    document.querySelector<HTMLElement>('[data-crew-time-problem]')?.focus({ preventScroll: true });
+  }
+  const preserveDetailForm: SubmitFunction = () => {
+    const scrollTop = window.scrollY;
+    return async ({ result, update }) => {
+      await update({ reset: false });
+      if (result.type === 'failure') {
+        await tick();
+        showFieldProblems(result.data);
+        window.scrollTo({ top: scrollTop, behavior: 'instant' });
+      }
+    };
+  };
   const approvalLabel = (value: string) => translateControlledValue(locale, 'status', value);
   const correctionHref = $derived(
     record.activeCorrectionId
@@ -25,9 +60,25 @@
       : null,
   );
   const submittedValue = (name: string, fallback: string) =>
-    form && ['update', 'correct'].includes(form.operation)
+    form && ['update', 'correct', 'submit', 'discard'].includes(form.operation)
       ? String(form.values?.[name] ?? fallback)
       : fallback;
+  const decimalHours = (minutes: number): string => String(Number((minutes / 60).toFixed(4)));
+  function syncMinutes(event: Event, breakField = false): void {
+    const input = event.currentTarget as HTMLInputElement;
+    const hidden = input.nextElementSibling as HTMLInputElement;
+    const minutes = durationMinutes(input.value);
+    const valid =
+      minutes !== null && minutes >= (breakField ? 0 : 1) && minutes <= (breakField ? 1439 : 1440);
+    input.setCustomValidity(
+      valid
+        ? ''
+        : breakField
+          ? t('Enter a valid break in decimal hours, shorter than 24 hours.')
+          : t('Enter decimal hours greater than zero and at most 24.'),
+    );
+    hidden.value = valid ? String(minutes) : '';
+  }
   const crewHref = $derived(
     `/j-aautomation/app/crew?${new URLSearchParams({ project: record.projectId, date: record.workDate })}#crew-entries`,
   );
@@ -43,6 +94,7 @@
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
     persistStandaloneLocale(locale);
     applyStandaloneDocumentLocale(locale);
+    if (problem) void tick().then(() => showFieldProblems(form));
   });
   $effect(() => applyStandaloneDocumentLocale(locale));
 </script>
@@ -51,7 +103,16 @@
 <main class="crew-detail">
   <a href={crewHref}>{t('← Back to crew hours')}</a>
   <h1>{record.workerName} · {record.workDate}</h1>
-  {#if form?.message}<div class="notice error" role="alert">{form.message}</div>{/if}
+  {#if problem}
+    <div tabindex="-1" data-crew-time-problem>
+      <ProblemNotice
+        {problem}
+        kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        status={`${t('Current status')}: ${approvalLabel(record.approvalState)}`}
+        {remedyLinks}
+      />
+    </div>
+  {:else if form?.message}<div class="notice error" role="alert">{form.message}</div>{/if}
   <SectionCard title={t('Recorded work')}>
     <dl>
       <div>
@@ -68,7 +129,7 @@
       </div>
       <div>
         <dt>{t('Actual time')}</dt>
-        <dd>{Math.floor(record.minutes / 60)} h {record.minutes % 60} {t('min')}</dd>
+        <dd>{decimalHours(record.minutes)} h</dd>
       </div>
       <div>
         <dt>{t('Category')}</dt>
@@ -126,8 +187,19 @@
           'Review every revised field before creating the correction. The linked draft cannot be edited afterward.',
         )}
       </p>
-      <form method="POST" action="?/correct" class="draft-form">
-        <input type="hidden" name="version" value={record.version} />
+      <form
+        method="POST"
+        action="?/correct"
+        data-crew-time-operation="correct"
+        use:enhance={preserveDetailForm}
+        use:formValidation
+        class="draft-form"
+      >
+        <input
+          type="hidden"
+          name="version"
+          value={submittedValue('version', String(record.version))}
+        />
         <input
           type="hidden"
           name="requestId"
@@ -158,15 +230,19 @@
           </select>
         </label>
         <label
-          >{t('Minutes')}
+          >{t('Actual hours')}
           <input
-            type="number"
-            name="minutes"
-            min="1"
-            max="1440"
-            step="1"
-            value={submittedValue('minutes', String(record.minutes))}
+            type="text"
+            inputmode="decimal"
+            name="durationHours"
+            value={submittedValue('durationHours', decimalHours(record.minutes))}
+            oninput={(event) => syncMinutes(event)}
             required
+          />
+          <input
+            type="hidden"
+            name="minutes"
+            value={submittedValue('minutes', String(record.minutes))}
           />
         </label>
         {#if record.startTime && record.endTime}
@@ -189,15 +265,19 @@
             />
           </label>
           <label
-            >{t('Break')}
+            >{t('Break (decimal hours)')}
             <input
-              type="number"
-              name="breakMinutes"
-              min="0"
-              max="1439"
-              step="1"
-              value={submittedValue('breakMinutes', String(record.breakMinutes ?? 0))}
+              type="text"
+              inputmode="decimal"
+              name="breakHours"
+              value={submittedValue('breakHours', decimalHours(record.breakMinutes ?? 0))}
+              oninput={(event) => syncMinutes(event, true)}
               required
+            />
+            <input
+              type="hidden"
+              name="breakMinutes"
+              value={submittedValue('breakMinutes', String(record.breakMinutes ?? 0))}
             />
           </label>
         {/if}
@@ -212,15 +292,36 @@
     </SectionCard>
   {/if}
   {#if record.approvalState === 'draft'}
-    <form method="POST" action="?/submit">
-      <input type="hidden" name="version" value={record.version} />
+    <form
+      method="POST"
+      action="?/submit"
+      data-crew-time-operation="submit"
+      use:enhance={preserveDetailForm}
+      use:formValidation
+    >
+      <input
+        type="hidden"
+        name="version"
+        value={submittedValue('version', String(record.version))}
+      />
       <button type="submit" class="submit-draft">{t('Submit for approval now')}</button>
     </form>
   {/if}
   {#if record.editable}
     <SectionCard title={t('Edit draft')}>
-      <form method="POST" action="?/update" class="draft-form">
-        <input type="hidden" name="version" value={record.version} />
+      <form
+        method="POST"
+        action="?/update"
+        data-crew-time-operation="update"
+        use:enhance={preserveDetailForm}
+        use:formValidation
+        class="draft-form"
+      >
+        <input
+          type="hidden"
+          name="version"
+          value={submittedValue('version', String(record.version))}
+        />
         <label
           >{t('Work date')}
           <input
@@ -240,15 +341,19 @@
           </select>
         </label>
         <label
-          >{t('Minutes')}
+          >{t('Actual hours')}
           <input
-            type="number"
-            name="minutes"
-            min="1"
-            max="1440"
-            step="1"
-            value={submittedValue('minutes', String(record.minutes))}
+            type="text"
+            inputmode="decimal"
+            name="durationHours"
+            value={submittedValue('durationHours', decimalHours(record.minutes))}
+            oninput={(event) => syncMinutes(event)}
             required
+          />
+          <input
+            type="hidden"
+            name="minutes"
+            value={submittedValue('minutes', String(record.minutes))}
           />
         </label>
         <label
@@ -259,8 +364,18 @@
         </label>
         <button type="submit">{t('Save changes')}</button>
       </form>
-      <form method="POST" action="?/discard">
-        <input type="hidden" name="version" value={record.version} />
+      <form
+        method="POST"
+        action="?/discard"
+        data-crew-time-operation="discard"
+        use:enhance={preserveDetailForm}
+        use:formValidation
+      >
+        <input
+          type="hidden"
+          name="version"
+          value={submittedValue('version', String(record.version))}
+        />
         <button type="submit" class="discard">{t('Discard draft')}</button>
       </form>
     </SectionCard>

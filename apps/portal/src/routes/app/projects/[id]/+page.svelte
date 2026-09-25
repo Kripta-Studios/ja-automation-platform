@@ -1244,7 +1244,11 @@
               value={display(project.cost_center_code, '')}
               required
               maxlength="120"
-            /></label
+            /><small
+              >{t(
+                'End the cost center with digits. Those digits become the project number suffix (for example, CP020 becomes P-020).',
+              )}</small
+            ></label
           >
           <label
             >{t('Project alias')}<input

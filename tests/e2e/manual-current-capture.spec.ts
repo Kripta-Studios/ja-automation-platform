@@ -272,8 +272,8 @@ test('capture fresh synthetic manuals for seven personas and the Spanish worker 
           await expect(form.locator('[name="workDate"]')).not.toHaveValue('');
           await form.locator('[name="startTime"]').fill('09:00');
           await form.locator('[name="endTime"]').fill('17:00');
-          await form.locator('[name="breakMinutes"]').fill('30');
-          await expect(form.locator('output')).toHaveText('7 h 30 min');
+          await form.locator('[name="breakHours"]').fill('0.5');
+          await expect(form.locator('output')).toHaveText('7.5 h');
           await capture(page, persona, locale, 'time-entry', url, form);
           await form.locator('select[name="projectId"]').click();
           await capture(

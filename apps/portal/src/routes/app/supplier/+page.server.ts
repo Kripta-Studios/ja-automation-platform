@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import {
@@ -7,8 +7,598 @@ import {
   supplierPeriod,
   supplierReadFailure,
 } from '$lib/server/supplier-context';
-import { actionFailure } from '$lib/server/portal-repository';
-import { ValidationError } from '@ja/database';
+import { actionFail, actionFailure } from '$lib/server/actions/action-message';
+import { AccessDeniedError, ConflictError, ValidationError } from '@ja/database';
+
+type SupplierRule = {
+  code: string;
+  key: `problem.${string}`;
+  field?: string;
+  remedy: string;
+};
+
+/** Match repository wording at this boundary; codes and catalog keys are the public contract. */
+const supplierRules: Record<string, SupplierRule> = {
+  'Supplier name already exists': {
+    code: 'SUPPLIER_NAME_EXISTS',
+    key: 'problem.supplier.nameExists',
+    field: 'name',
+    remedy: 'review_supplier_directory',
+  },
+  'Supplier email is invalid': {
+    code: 'SUPPLIER_EMAIL_INVALID',
+    key: 'problem.supplier.emailInvalid',
+    field: 'contactEmail',
+    remedy: 'correct_supplier_field',
+  },
+  'Technician email is invalid': {
+    code: 'SUPPLIER_TECHNICIAN_EMAIL_INVALID',
+    key: 'problem.supplier.technicianEmailInvalid',
+    field: 'email',
+    remedy: 'correct_supplier_field',
+  },
+  'Technician email already belongs to an account': {
+    code: 'SUPPLIER_TECHNICIAN_EMAIL_USED',
+    key: 'problem.supplier.technicianEmailUsed',
+    field: 'email',
+    remedy: 'review_supplier_directory',
+  },
+  'Manage login email from the account profile': {
+    code: 'SUPPLIER_LOGIN_EMAIL_MANAGED',
+    key: 'problem.supplier.loginEmailManaged',
+    field: 'email',
+    remedy: 'review_user_access',
+  },
+  'Active supplier required': {
+    code: 'SUPPLIER_ACTIVE_REQUIRED',
+    key: 'problem.supplier.activeRequired',
+    field: 'supplierId',
+    remedy: 'review_supplier_directory',
+  },
+  'Supplier not found': {
+    code: 'SUPPLIER_NOT_FOUND',
+    key: 'problem.supplier.notFound',
+    remedy: 'review_supplier_directory',
+  },
+  'Supplier technician required': {
+    code: 'SUPPLIER_TECHNICIAN_UNAVAILABLE',
+    key: 'problem.supplier.technicianUnavailable',
+    field: 'workerId',
+    remedy: 'choose_technician',
+  },
+  'Active or suspended supplier technician required': {
+    code: 'SUPPLIER_TECHNICIAN_STATUS_BLOCKED',
+    key: 'problem.supplier.technicianStatusBlocked',
+    remedy: 'review_supplier_directory',
+  },
+  'Operational project required': {
+    code: 'SUPPLIER_OPERATIONAL_PROJECT_REQUIRED',
+    key: 'problem.supplier.operationalProjectRequired',
+    field: 'projectId',
+    remedy: 'choose_operational_project',
+  },
+  'Active supplier coordinator required': {
+    code: 'SUPPLIER_COORDINATOR_UNAVAILABLE',
+    key: 'problem.supplier.coordinatorUnavailable',
+    field: 'coordinatorId',
+    remedy: 'review_supplier_profile',
+  },
+  'Supplier coordinators require a usable login account': {
+    code: 'SUPPLIER_COORDINATOR_LOGIN_REQUIRED',
+    key: 'problem.supplier.coordinatorLoginRequired',
+    field: 'userId',
+    remedy: 'review_user_access',
+  },
+  'Only existing worker accounts can receive a supplier profile': {
+    code: 'SUPPLIER_PROFILE_WORKER_REQUIRED',
+    key: 'problem.supplier.profileWorkerRequired',
+    field: 'userId',
+    remedy: 'review_user_access',
+  },
+  'Supplier profile with canonical time history cannot be reassigned': {
+    code: 'SUPPLIER_PROFILE_HISTORY_LOCKED',
+    key: 'problem.supplier.profileHistoryLocked',
+    field: 'supplierId',
+    remedy: 'review_supplier_profile',
+  },
+  'Supplier project grant overlaps an active grant': {
+    code: 'SUPPLIER_GRANT_OVERLAP',
+    key: 'problem.supplier.grantOverlap',
+    remedy: 'review_supplier_grants',
+  },
+  'Active supplier project grant required': {
+    code: 'SUPPLIER_GRANT_CHANGED',
+    key: 'problem.supplier.grantChanged',
+    remedy: 'review_supplier_grants',
+  },
+  'Technician assignment already exists': {
+    code: 'SUPPLIER_ASSIGNMENT_EXISTS',
+    key: 'problem.supplier.assignmentExists',
+    remedy: 'review_supplier_assignments',
+  },
+  'End date must follow start date': {
+    code: 'SUPPLIER_DATE_ORDER_INVALID',
+    key: 'problem.supplier.dateOrderInvalid',
+    field: 'endsOn',
+    remedy: 'correct_supplier_field',
+  },
+  'Select at least one technician': {
+    code: 'SUPPLIER_BATCH_TECHNICIAN_REQUIRED',
+    key: 'problem.supplier.batchTechnicianRequired',
+    field: 'workerIds',
+    remedy: 'choose_technician',
+  },
+  'A time batch is limited to 100 technicians': {
+    code: 'SUPPLIER_BATCH_LIMIT',
+    key: 'problem.supplier.batchLimit',
+    field: 'workerIds',
+    remedy: 'choose_technician',
+  },
+  'Batch request was already used with different values': {
+    code: 'SUPPLIER_BATCH_REPLAY_CHANGED',
+    key: 'problem.supplier.batchReplayChanged',
+    remedy: 'review_saved_drafts',
+  },
+  'Select at least one draft': {
+    code: 'SUPPLIER_DRAFT_REQUIRED',
+    key: 'problem.supplier.draftRequired',
+    field: 'entries',
+    remedy: 'review_time_drafts',
+  },
+  'A submission batch is limited to 100 drafts': {
+    code: 'SUPPLIER_DRAFT_BATCH_LIMIT',
+    key: 'problem.supplier.draftBatchLimit',
+    field: 'entries',
+    remedy: 'review_time_drafts',
+  },
+  'The selected drafts are invalid': {
+    code: 'SUPPLIER_DRAFT_SELECTION_INVALID',
+    key: 'problem.supplier.draftSelectionInvalid',
+    field: 'entries',
+    remedy: 'review_time_drafts',
+  },
+  'Time entry changed or cannot be submitted': {
+    code: 'SUPPLIER_TIME_SUBMIT_STALE',
+    key: 'problem.supplier.timeSubmitStale',
+    remedy: 'review_time_drafts',
+  },
+  'Time entry changed or cannot be edited': {
+    code: 'SUPPLIER_TIME_EDIT_STALE',
+    key: 'problem.supplier.timeEditStale',
+    remedy: 'review_time_drafts',
+  },
+  'Time entry changed or cannot be discarded': {
+    code: 'SUPPLIER_TIME_DISCARD_STALE',
+    key: 'problem.supplier.timeDiscardStale',
+    remedy: 'review_time_drafts',
+  },
+  'Time entry changed or cannot be deleted': {
+    code: 'SUPPLIER_TIME_DISCARD_STALE',
+    key: 'problem.supplier.timeDiscardStale',
+    remedy: 'review_time_drafts',
+  },
+  'Refresh this draft before discarding it': {
+    code: 'SUPPLIER_TIME_DISCARD_STALE',
+    key: 'problem.supplier.timeDiscardStale',
+    remedy: 'review_time_drafts',
+  },
+  'Only an unlocked never-submitted time draft can change': {
+    code: 'SUPPLIER_TIME_DRAFT_LOCKED',
+    key: 'problem.supplier.timeDraftLocked',
+    remedy: 'review_time_drafts',
+  },
+  'A linked correction draft cannot be edited': {
+    code: 'SUPPLIER_TIME_CORRECTION_LOCKED',
+    key: 'problem.supplier.timeCorrectionLocked',
+    remedy: 'review_time_drafts',
+  },
+  'Returned, submitted, or approved time requires the reviewed correction path': {
+    code: 'SUPPLIER_TIME_CORRECTION_REQUIRED',
+    key: 'problem.supplier.timeCorrectionRequired',
+    remedy: 'review_time_drafts',
+  },
+  'A correction draft already exists for this time entry': {
+    code: 'SUPPLIER_TIME_CORRECTION_EXISTS',
+    key: 'problem.supplier.timeCorrectionExists',
+    remedy: 'review_time_drafts',
+  },
+  'Only approved or reviewer-returned time can create a correction draft': {
+    code: 'SUPPLIER_TIME_CORRECTION_STATE',
+    key: 'problem.supplier.timeCorrectionState',
+    remedy: 'review_time_drafts',
+  },
+  'Financially finalized time requires an explicit adjustment': {
+    code: 'SUPPLIER_TIME_FINANCE_LOCKED',
+    key: 'problem.supplier.timeFinanceLocked',
+    remedy: 'contact_owner',
+  },
+  'Correction request conflicts with prior replay': {
+    code: 'SUPPLIER_TIME_CORRECTION_REPLAY',
+    key: 'problem.supplier.timeCorrectionReplay',
+    remedy: 'review_time_drafts',
+  },
+  'Correction reason must contain at least 3 characters': {
+    code: 'SUPPLIER_TIME_CORRECTION_REASON',
+    key: 'problem.supplier.timeCorrectionReason',
+    field: 'reason',
+    remedy: 'correct_supplier_field',
+  },
+  'Change at least one operational field before creating a correction': {
+    code: 'SUPPLIER_TIME_CORRECTION_EMPTY',
+    key: 'problem.supplier.timeCorrectionEmpty',
+    remedy: 'review_time_drafts',
+  },
+  'This crew time is linked to an allocated receipt; its work date cannot change': {
+    code: 'SUPPLIER_TIME_LINKED_RECEIPT_DATE',
+    key: 'problem.time.allocatedReceiptDateLocked',
+    field: 'workDate',
+    remedy: 'review_time_drafts',
+  },
+  'This crew time is linked to an allocated receipt and cannot be deleted': {
+    code: 'SUPPLIER_TIME_LINKED_RECEIPT',
+    key: 'problem.time.allocatedReceipt',
+    remedy: 'review_time_drafts',
+  },
+  'Locked or invoiced time is immutable and cannot be voided': {
+    code: 'SUPPLIER_TIME_FINANCE_LOCKED',
+    key: 'problem.supplier.timeFinanceLocked',
+    remedy: 'contact_owner',
+  },
+  'Correction drafts are immutable and cannot be deleted': {
+    code: 'SUPPLIER_TIME_CORRECTION_LOCKED',
+    key: 'problem.supplier.timeCorrectionLocked',
+    remedy: 'review_time_drafts',
+  },
+  'Invalid supplier status': {
+    code: 'SUPPLIER_STATUS_INVALID',
+    key: 'problem.supplier.statusInvalid',
+    field: 'status',
+    remedy: 'review_supplier_directory',
+  },
+  'Invalid technician status': {
+    code: 'SUPPLIER_TECHNICIAN_STATUS_INVALID',
+    key: 'problem.supplier.technicianStatusInvalid',
+    field: 'status',
+    remedy: 'review_supplier_directory',
+  },
+  'Choose shared or individual hours': {
+    code: 'SUPPLIER_BATCH_MODE_INVALID',
+    key: 'problem.supplier.batchModeInvalid',
+    field: 'batchMode',
+    remedy: 'correct_supplier_field',
+  },
+  'Enter hours for every selected technician': {
+    code: 'SUPPLIER_BATCH_HOURS_REQUIRED',
+    key: 'problem.supplier.batchHoursRequired',
+    field: 'workerHours',
+    remedy: 'correct_supplier_field',
+  },
+  'Enter valid hours for every selected technician': {
+    code: 'SUPPLIER_BATCH_HOURS_INVALID',
+    key: 'problem.supplier.batchHoursInvalid',
+    field: 'workerHours',
+    remedy: 'correct_supplier_field',
+  },
+  'Individual hours must be greater than zero and no more than 24': {
+    code: 'SUPPLIER_BATCH_HOURS_RANGE',
+    key: 'problem.supplier.batchHoursRange',
+    field: 'workerHours',
+    remedy: 'correct_supplier_field',
+  },
+  'Individual hours cannot include a shared time interval': {
+    code: 'SUPPLIER_BATCH_MODE_CONFLICT',
+    key: 'problem.supplier.batchModeConflict',
+    field: 'batchMode',
+    remedy: 'correct_supplier_field',
+  },
+  'Start and end time are both required': {
+    code: 'SUPPLIER_INTERVAL_REQUIRED',
+    key: 'problem.supplier.intervalRequired',
+    field: 'startTime',
+    remedy: 'correct_supplier_field',
+  },
+  'The time interval or break is invalid': {
+    code: 'SUPPLIER_INTERVAL_INVALID',
+    key: 'problem.supplier.intervalInvalid',
+    field: 'breakMinutes',
+    remedy: 'correct_supplier_field',
+  },
+  'Enter hours, or a start and end time': {
+    code: 'SUPPLIER_DURATION_REQUIRED',
+    key: 'problem.supplier.durationRequired',
+    field: 'durationHours',
+    remedy: 'correct_supplier_field',
+  },
+  'Duration must be greater than zero and no more than 24 hours': {
+    code: 'SUPPLIER_DURATION_RANGE',
+    key: 'problem.supplier.durationRange',
+    field: 'durationHours',
+    remedy: 'correct_supplier_field',
+  },
+  'Choose duration or time interval': {
+    code: 'SUPPLIER_DURATION_MODE_INVALID',
+    key: 'problem.supplier.durationModeInvalid',
+    field: 'durationMode',
+    remedy: 'correct_supplier_field',
+  },
+  'Phone is too long': {
+    code: 'SUPPLIER_PHONE_TOO_LONG',
+    key: 'problem.supplier.phoneTooLong',
+    field: 'phone',
+    remedy: 'correct_supplier_field',
+  },
+  'Address is too long': {
+    code: 'SUPPLIER_ADDRESS_TOO_LONG',
+    key: 'problem.supplier.addressTooLong',
+    field: 'address',
+    remedy: 'correct_supplier_field',
+  },
+  'Notes are too long': {
+    code: 'SUPPLIER_NOTES_TOO_LONG',
+    key: 'problem.supplier.notesTooLong',
+    field: 'notes',
+    remedy: 'correct_supplier_field',
+  },
+  'Company is too long': {
+    code: 'SUPPLIER_COMPANY_TOO_LONG',
+    key: 'problem.supplier.companyTooLong',
+    field: 'company',
+    remedy: 'correct_supplier_field',
+  },
+  'Contact name is too long': {
+    code: 'SUPPLIER_CONTACT_NAME_TOO_LONG',
+    key: 'problem.supplier.contactNameTooLong',
+    field: 'contactName',
+    remedy: 'correct_supplier_field',
+  },
+  'Worker not found': {
+    code: 'SUPPLIER_PROFILE_WORKER_UNAVAILABLE',
+    key: 'problem.supplier.profileWorkerUnavailable',
+    field: 'userId',
+    remedy: 'review_user_access',
+  },
+  'Current supplier project grant required': {
+    code: 'SUPPLIER_GRANT_REQUIRED',
+    key: 'problem.supplier.grantRequired',
+    remedy: 'contact_owner',
+  },
+  'Supplier technician project scope required': {
+    code: 'SUPPLIER_TECHNICIAN_SCOPE_REQUIRED',
+    key: 'problem.supplier.technicianScopeRequired',
+    remedy: 'contact_owner',
+  },
+  'Supplier scope required': {
+    code: 'SUPPLIER_SCOPE_REQUIRED',
+    key: 'problem.supplier.scopeRequired',
+    remedy: 'contact_owner',
+  },
+  'Active supplier coordinator access required': {
+    code: 'SUPPLIER_COORDINATOR_ACCESS_CHANGED',
+    key: 'problem.supplier.coordinatorAccessChanged',
+    remedy: 'contact_owner',
+  },
+  'Owner administration required': {
+    code: 'SUPPLIER_OWNER_REQUIRED',
+    key: 'problem.supplier.ownerRequired',
+    remedy: 'contact_owner',
+  },
+  'Account role changed': {
+    code: 'SUPPLIER_ACCOUNT_ROLE_CHANGED',
+    key: 'problem.supplier.accountRoleChanged',
+    remedy: 'contact_owner',
+  },
+  'Only the coordinator who recorded this draft may discard it': {
+    code: 'SUPPLIER_DRAFT_RECORDER_REQUIRED',
+    key: 'problem.supplier.draftRecorderRequired',
+    remedy: 'contact_owner',
+  },
+  'Minutes must be an integer from 0 to 1440': {
+    code: 'SUPPLIER_MINUTES_INVALID',
+    key: 'problem.supplier.minutesInvalid',
+    field: 'minutes',
+    remedy: 'correct_supplier_field',
+  },
+  'Break minutes are invalid': {
+    code: 'SUPPLIER_BREAK_INVALID',
+    key: 'problem.supplier.breakInvalid',
+    field: 'breakMinutes',
+    remedy: 'correct_supplier_field',
+  },
+  'Time entry not found': {
+    code: 'SUPPLIER_TIME_NOT_FOUND',
+    key: 'problem.supplier.timeNotFound',
+    remedy: 'review_time_drafts',
+  },
+  'Original time entry not found': {
+    code: 'SUPPLIER_TIME_NOT_FOUND',
+    key: 'problem.supplier.timeNotFound',
+    remedy: 'review_time_drafts',
+  },
+  'Returned correction changed before retry': {
+    code: 'SUPPLIER_TIME_CORRECTION_STALE',
+    key: 'problem.supplier.timeCorrectionStale',
+    remedy: 'review_time_drafts',
+  },
+  'Worker assignment does not cover corrected work date': {
+    code: 'SUPPLIER_TIME_ASSIGNMENT_DATE',
+    key: 'problem.supplier.timeAssignmentDate',
+    field: 'workDate',
+    remedy: 'contact_owner',
+  },
+  'Project assignment access required': {
+    code: 'SUPPLIER_TIME_ASSIGNMENT_REQUIRED',
+    key: 'problem.supplier.timeAssignmentRequired',
+    remedy: 'contact_owner',
+  },
+  'Active project assignment required': {
+    code: 'SUPPLIER_TIME_ASSIGNMENT_REQUIRED',
+    key: 'problem.supplier.timeAssignmentRequired',
+    remedy: 'contact_owner',
+  },
+  'Time entry ownership required': {
+    code: 'SUPPLIER_TIME_OWNERSHIP_REQUIRED',
+    key: 'problem.supplier.timeOwnershipRequired',
+    remedy: 'contact_owner',
+  },
+  'Batch request is invalid': {
+    code: 'SUPPLIER_BATCH_REQUEST_INVALID',
+    key: 'problem.supplier.batchRequestInvalid',
+    field: 'requestId',
+    remedy: 'review_saved_drafts',
+  },
+  'Source and target weeks must differ': {
+    code: 'SUPPLIER_TIME_WEEK_UNCHANGED',
+    key: 'problem.supplier.timeWeekUnchanged',
+    remedy: 'review_time_drafts',
+  },
+  'Start and end time must be provided together': {
+    code: 'SUPPLIER_INTERVAL_INCOMPLETE',
+    key: 'problem.time.intervalIncomplete',
+    field: 'startTime',
+    remedy: 'correct_supplier_field',
+  },
+  'End time must be later on the same day': {
+    code: 'SUPPLIER_INTERVAL_ORDER_INVALID',
+    key: 'problem.time.intervalOrderInvalid',
+    field: 'endTime',
+    remedy: 'correct_supplier_field',
+  },
+  'Break minutes must be an integer within the shift': {
+    code: 'SUPPLIER_BREAK_INVALID',
+    key: 'problem.time.breakInvalid',
+    field: 'breakMinutes',
+    remedy: 'correct_supplier_field',
+  },
+  'Minutes must equal elapsed time less break minutes': {
+    code: 'SUPPLIER_DURATION_MISMATCH',
+    key: 'problem.time.durationMismatch',
+    field: 'minutes',
+    remedy: 'correct_supplier_field',
+  },
+  'A worker cannot enter more than 1440 minutes per day': {
+    code: 'SUPPLIER_DAILY_LIMIT',
+    key: 'problem.time.dailyLimit',
+    field: 'workDate',
+    remedy: 'review_time_drafts',
+  },
+  'Time intervals cannot overlap for the same worker and date': {
+    code: 'SUPPLIER_TIME_INTERVAL_OVERLAP',
+    key: 'problem.time.intervalOverlap',
+    field: 'startTime',
+    remedy: 'review_time_drafts',
+  },
+  'An existing time entry has an incomplete interval': {
+    code: 'SUPPLIER_EXISTING_INTERVAL_INVALID',
+    key: 'problem.supplier.existingIntervalInvalid',
+    remedy: 'review_time_drafts',
+  },
+  'An existing time entry has an invalid interval': {
+    code: 'SUPPLIER_EXISTING_INTERVAL_INVALID',
+    key: 'problem.supplier.existingIntervalInvalid',
+    remedy: 'review_time_drafts',
+  },
+  'Live authenticated session required': {
+    code: 'SUPPLIER_SESSION_EXPIRED',
+    key: 'problem.supplier.sessionExpired',
+    remedy: 'sign_in_again',
+  },
+  'Deployment identity is not configured': {
+    code: 'SUPPLIER_CORRECTION_CONFIGURATION_MISSING',
+    key: 'problem.supplier.correctionConfigurationMissing',
+    remedy: 'contact_owner',
+  },
+};
+
+function supplierProblem(
+  caught: unknown,
+  operation: string,
+  values: Record<string, string>,
+  owner: boolean,
+  correlationId?: string,
+) {
+  if (
+    !(
+      caught instanceof ValidationError ||
+      caught instanceof ConflictError ||
+      caught instanceof AccessDeniedError
+    )
+  )
+    return null;
+  const batch = /^No time entry was saved\. (.*?): (.*)$/u.exec(caught.message);
+  const message = batch?.[2] ?? caught.message;
+  const grantEnd =
+    /^Assignment cannot extend beyond the coordinator authorization ending (\d{4}-\d{2}-\d{2})$/u.exec(
+      message,
+    );
+  const clockField = /^(Start time|End time) must use strict HH:mm format$/u.exec(message);
+  const rule =
+    supplierRules[message] ??
+    (grantEnd
+      ? {
+          code: 'SUPPLIER_ASSIGNMENT_GRANT_END',
+          key: 'problem.supplier.assignmentGrantEnd' as const,
+          remedy: 'contact_owner',
+        }
+      : clockField
+        ? {
+            code: 'SUPPLIER_CLOCK_FORMAT_INVALID',
+            key: 'problem.supplier.clockFormatInvalid' as const,
+            field: clockField[1] === 'Start time' ? 'startTime' : 'endTime',
+            remedy: 'correct_supplier_field',
+          }
+        : null) ??
+    (/^(?:Start date|End date|Work date|Date) must be an ISO date$/u.test(message)
+      ? {
+          code: 'SUPPLIER_DATE_INVALID',
+          key: 'problem.supplier.dateInvalid' as const,
+          field: /End/u.test(message) ? 'endsOn' : /Start/u.test(message) ? 'startsOn' : 'workDate',
+          remedy: 'correct_supplier_field',
+        }
+      : /^(?:Supplier name|Technician name|Activity summary|Category|Correction reason|Correction request|Batch request|Supplier) is required$/u.test(
+            message,
+          )
+        ? {
+            code: 'SUPPLIER_REQUIRED_FIELD',
+            key: 'problem.supplier.requiredField' as const,
+            field:
+              message.startsWith('Supplier name') || message.startsWith('Technician')
+                ? 'name'
+                : message.startsWith('Activity')
+                  ? 'summary'
+                  : message.startsWith('Category')
+                    ? 'category'
+                    : message.startsWith('Correction')
+                      ? message.startsWith('Correction request')
+                        ? 'requestId'
+                        : 'reason'
+                      : message.startsWith('Supplier')
+                        ? 'supplierId'
+                        : 'requestId',
+            remedy: 'correct_supplier_field',
+          }
+        : null);
+  if (!rule) return null;
+  const status =
+    caught instanceof AccessDeniedError ? 403 : caught instanceof ConflictError ? 409 : 400;
+  const params: Record<string, string> = {
+    ...(batch ? { technicianName: batch[1] ?? '' } : {}),
+    ...(grantEnd ? { grantEnd: grantEnd[1] ?? '' } : {}),
+  };
+  const ownerRemedies = new Set([
+    'review_supplier_directory',
+    'review_supplier_profile',
+    'review_supplier_grants',
+    'review_user_access',
+  ]);
+  return actionFail(status, rule.key, params, message, {
+    code: rule.code,
+    operation,
+    values,
+    correlationId,
+    fieldErrors: rule.field ? { [rule.field]: [rule.key] } : {},
+    remedies: [{ id: !owner && ownerRemedies.has(rule.remedy) ? 'contact_owner' : rule.remedy }],
+  });
+}
 
 function batchDuration(values: Record<string, string>): {
   minutes: number;
@@ -151,7 +741,15 @@ function action(operation: string): Actions[string] {
           });
           break;
         case 'setSupplierStatus':
-          if (text('confirmed') !== 'yes') return fail(400, { success: false, operation, values });
+          if (text('confirmed') !== 'yes')
+            return actionFail(400, 'problem.supplier.confirmStatusChange', {}, undefined, {
+              code: 'SUPPLIER_STATUS_CONFIRMATION_REQUIRED',
+              operation,
+              values,
+              fieldErrors: { confirmed: ['problem.supplier.confirmStatusChange'] },
+              remedies: [{ id: 'confirm_status_change' }],
+              correlationId: locals.correlationId,
+            });
           ctx.supplier.setSupplierStatus(ctx.principal, { id: text('id'), status: text('status') });
           break;
         case 'updateTechnician':
@@ -166,7 +764,15 @@ function action(operation: string): Actions[string] {
           });
           break;
         case 'setTechnicianStatus':
-          if (text('confirmed') !== 'yes') return fail(400, { success: false, operation, values });
+          if (text('confirmed') !== 'yes')
+            return actionFail(400, 'problem.supplier.confirmStatusChange', {}, undefined, {
+              code: 'SUPPLIER_STATUS_CONFIRMATION_REQUIRED',
+              operation,
+              values,
+              fieldErrors: { confirmed: ['problem.supplier.confirmStatusChange'] },
+              remedies: [{ id: 'confirm_status_change' }],
+              correlationId: locals.correlationId,
+            });
           ctx.supplier.setTechnicianStatus(ctx.principal, {
             id: text('id'),
             status: text('status'),
@@ -175,7 +781,14 @@ function action(operation: string): Actions[string] {
         case 'setProfile': {
           const profile = text('profile');
           if (!['standard', 'external_technician', 'supplier_coordinator'].includes(profile))
-            return fail(400, { success: false, operation, values });
+            return actionFail(400, 'problem.supplier.profileInvalid', {}, undefined, {
+              code: 'SUPPLIER_PROFILE_INVALID',
+              operation,
+              values,
+              fieldErrors: { profile: ['problem.supplier.profileInvalid'] },
+              remedies: [{ id: 'review_supplier_profile' }],
+              correlationId: locals.correlationId,
+            });
           ctx.supplier.setAccountProfile(ctx.principal, {
             userId: text('userId'),
             profile: profile as 'standard' | 'external_technician' | 'supplier_coordinator',
@@ -353,8 +966,15 @@ function action(operation: string): Actions[string] {
       }
       return { success: true, operation, values: {}, outcome };
     } catch (caught) {
-      const result = actionFailure(caught);
-      return fail(result.status, { ...result.data, operation, values });
+      const known = supplierProblem(
+        caught,
+        operation,
+        values,
+        ctx.principal.role === 'owner_admin',
+        locals.correlationId,
+      );
+      if (known) return known;
+      return actionFailure(caught, { operation, values, correlationId: locals.correlationId });
     } finally {
       ctx.sqlite.close();
     }

@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { createDatabase, PortalRepository, V3Repository } from '@ja/database';
 import { e2eCredentials, e2eLifecycleFixturesFor, portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 test('owner configures one assigned person’s separate customer, pay, and cost rules in Finance', async ({
   page,
@@ -30,7 +31,7 @@ test('owner configures one assigned person’s separate customer, pay, and cost 
     projectId = repository.createProject(principal, {
       clientId: e2eLifecycleFixturesFor(testInfo.project.name).client.id,
       name: `Person commercial ${randomUUID()}`,
-      costCenterCode: `PERSON-${randomUUID().slice(0, 8)}`,
+      costCenterCode: e2eCostCenter('PERSON', 1, testInfo.project.name),
       currency: 'USD',
       timezone: 'UTC',
       billingModel: 'tm',

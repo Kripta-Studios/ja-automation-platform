@@ -1,5 +1,11 @@
 import { createHash } from 'node:crypto';
 import { relative, resolve } from 'node:path';
+import {
+  V3AccessDeniedError,
+  V3ConflictError,
+  V3NotFoundError,
+  V3ValidationError,
+} from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import {
   removePrivateFileIfPresent,
@@ -11,6 +17,78 @@ import {
 } from '$lib/server/report-attachment-route';
 import { actionFail, actionFailure, actionSuccess } from './action-message';
 import { formObject, type PortalActionEvent } from '$lib/server/action-utils';
+
+export function documentProblemFor(error: unknown):
+  | Readonly<{
+      status: number;
+      code: string;
+      key: `problem.${string}`;
+      message: string;
+      remedy: string;
+    }>
+  | undefined {
+  if (!(error instanceof Error)) return undefined;
+  const known = (
+    status: number,
+    code: string,
+    key: `problem.${string}`,
+    message: string,
+    remedy: string,
+  ) => ({ status, code, key, message, remedy });
+  if (error instanceof V3NotFoundError && /document/i.test(error.message))
+    return known(
+      404,
+      'DOCUMENT_NOT_FOUND',
+      'problem.document.notFound',
+      'This document is no longer available. Refresh the document list before continuing.',
+      'review_documents',
+    );
+  if (error instanceof V3AccessDeniedError)
+    return known(
+      403,
+      'DOCUMENT_ACCESS_REQUIRED',
+      'problem.document.accessRequired',
+      'You do not have permission to change this document. Contact its owner or an authorized administrator.',
+      'contact_document_owner',
+    );
+  if (error instanceof V3ConflictError) {
+    if (/immutable|traceable|referenced|safely reclaimable/i.test(error.message))
+      return known(
+        409,
+        'DOCUMENT_TRACEABLE_IMMUTABLE',
+        'problem.document.traceableImmutable',
+        'This document is part of traceable history. Archive or supersede it through the permitted workflow.',
+        'review_documents',
+      );
+    if (/changed|already finalized|existing content/i.test(error.message))
+      return known(
+        409,
+        'DOCUMENT_CHANGED',
+        'problem.document.changed',
+        'The document changed while this form was open. Review its current state before trying another action.',
+        'review_documents',
+      );
+  }
+  if (error instanceof V3ValidationError && /archive reason/i.test(error.message))
+    return known(
+      400,
+      'DOCUMENT_ARCHIVE_REASON_REQUIRED',
+      'problem.document.archiveReasonRequired',
+      'Enter an archive reason of 3 to 500 characters.',
+      'review_documents',
+    );
+  return undefined;
+}
+
+export function documentActionFailure(error: unknown) {
+  const mapped = documentProblemFor(error);
+  return mapped
+    ? actionFail(mapped.status, mapped.key, {}, mapped.message, {
+        code: mapped.code,
+        remedies: [{ id: mapped.remedy }],
+      })
+    : actionFailure(error);
+}
 
 export const documentActions = {
   uploadPrivateDocument: async ({ locals, request, params }: PortalActionEvent) => {
@@ -171,7 +249,7 @@ export const documentActions = {
         )
           await removePrivateFileIfPresent(root, createdStorageKey).catch(() => undefined);
       }
-      return actionFailure(error);
+      return documentActionFailure(error);
     } finally {
       context.sqlite.close();
     }
@@ -189,7 +267,7 @@ export const documentActions = {
       context.v3.archiveDocument(context.principal, documentId, reason);
       return actionSuccess('action.documents.archived', {}, 'Document archived');
     } catch (error) {
-      return actionFailure(error);
+      return documentActionFailure(error);
     } finally {
       context.sqlite.close();
     }
@@ -222,7 +300,7 @@ export const documentActions = {
       await removePrivateFileIfPresent(root, deleted.storageKey);
       return actionSuccess('action.documents.deleted', {}, 'Document deleted');
     } catch (error) {
-      return actionFailure(error);
+      return documentActionFailure(error);
     } finally {
       context.sqlite.close();
     }

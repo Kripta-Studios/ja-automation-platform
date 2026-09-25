@@ -1,14 +1,124 @@
 <script lang="ts">
   import { base } from '$app/paths';
+  import { enhance, type SubmitFunction } from '$app/forms';
+  import { invalidateAll } from '$app/navigation';
+  import { onMount, tick } from 'svelte';
   import { standaloneActionMessage } from '../../../standalone-locale';
   import { portalText } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
-  import { Field, SectionCard } from '$lib/portal/ui';
+  import { Field, SectionCard, formValidation } from '$lib/portal/ui';
+  import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
+  import type { ProblemData } from '$lib/problem/contract';
   import { closeoutCopy } from './copy';
   let { data, form } = $props();
   const locale = $derived(data.locale === 'es' ? 'es' : data.locale === 'pt' ? 'pt' : 'en');
   const t = $derived(closeoutCopy[locale]);
-  const actionFeedback = $derived(standaloneActionMessage(locale, form));
+  type CloseoutForm = Partial<ProblemData> & {
+    success?: boolean;
+    actionName?: string;
+    values?: {
+      documentId?: string[];
+      revisionId?: string;
+      reason?: string;
+      replaceSelection?: boolean;
+      confirmationChecked?: boolean;
+    };
+  };
+  const closeoutForm = $derived(form as CloseoutForm | null | undefined);
+  const problem = $derived(
+    closeoutForm?.code && closeoutForm.messageKey && closeoutForm.correlationId
+      ? (closeoutForm as ProblemData)
+      : null,
+  );
+  const actionFeedback = $derived(
+    closeoutForm?.success ? standaloneActionMessage(locale, form) : null,
+  );
+  const closeoutHref = $derived(
+    base +
+      '/app/projects/' +
+      encodeURIComponent(String(data.project.id)) +
+      '/closeout?lang=' +
+      locale,
+  );
+  const remedyLinks = $derived({
+    review_projects: {
+      label: portalText(locale, 'problem.remedy.reviewProjects'),
+      href: base + '/app/projects',
+    },
+    review_closeout: {
+      label: portalText(locale, 'problem.remedy.reviewCloseout'),
+      href: closeoutHref,
+    },
+    review_closeout_documents: {
+      label: portalText(locale, 'problem.remedy.reviewCloseoutDocuments'),
+      href: closeoutHref + '#closeout-documents',
+    },
+    contact_owner: { label: portalText(locale, 'problem.remedy.contactOwner') },
+    sign_in_again: {
+      label: portalText(locale, 'problem.remedy.signInAgain'),
+      href: base + '/app/login',
+    },
+    enter_reason: {
+      label: portalText(locale, 'problem.remedy.enterReason'),
+      href: '#reopen-reason',
+    },
+  });
+  const selected = (action: string, id: string, replaceSelection = false) =>
+    closeoutForm?.actionName === action &&
+    !(action === 'refresh' && problem?.code === 'CLOSEOUT_DRAFT_CHANGED') &&
+    Boolean(closeoutForm.values?.replaceSelection) === replaceSelection &&
+    (closeoutForm.values?.documentId ?? []).includes(id);
+  const scrollKey = $derived(`closeout-form-scroll:${String(data.project.id)}`);
+  function rememberScroll() {
+    sessionStorage.setItem(scrollKey, String(window.scrollY));
+  }
+  onMount(() => {
+    window.addEventListener('pagehide', rememberScroll);
+    if (problem) {
+      const saved = sessionStorage.getItem(scrollKey);
+      if (saved !== null) {
+        sessionStorage.removeItem(scrollKey);
+        window.scrollTo({ top: Number(saved), behavior: 'auto' });
+      }
+    }
+    return () => window.removeEventListener('pagehide', rememberScroll);
+  });
+  let focusedProblemId = '';
+  $effect(() => {
+    const id = problem?.correlationId;
+    if (!id || id === focusedProblemId) return;
+    focusedProblemId = id;
+    void tick().then(() => {
+      const targetForm = document.querySelector<HTMLFormElement>(
+        `form[data-closeout-action="${closeoutForm?.actionName === 'refresh' && closeoutForm.values?.replaceSelection ? 'refreshSelection' : (closeoutForm?.actionName ?? '')}"]`,
+      );
+      if (targetForm && problem?.fieldErrors)
+        reportFormFieldErrors(targetForm, problem.fieldErrors);
+      const target =
+        targetForm?.querySelector<HTMLElement>('[data-validation-summary]') ??
+        document.querySelector<HTMLElement>('[data-closeout-problem] [data-ui="problem-notice"]');
+      target?.focus({ preventScroll: true });
+    });
+  });
+  const submitCloseout: SubmitFunction = () => {
+    rememberScroll();
+    return async ({ result, update }) => {
+      await update({ reset: false, invalidateAll: true });
+      if (
+        result.type === 'failure' &&
+        ['CLOSEOUT_DOCUMENT_UNAVAILABLE', 'CLOSEOUT_DOCUMENT_SELECTION_INVALID'].includes(
+          (result.data as { code?: string } | undefined)?.code ?? '',
+        )
+      )
+        await invalidateAll();
+      const saved = sessionStorage.getItem(scrollKey);
+      if (saved !== null) {
+        sessionStorage.removeItem(scrollKey);
+        window.scrollTo({ top: Number(saved), behavior: 'auto' });
+      }
+    };
+  };
   function documentLabel(value: unknown): string {
     const labels: Record<string, string> = {
       customer_period_pdf: 'Customer period report',
@@ -28,6 +138,15 @@
   const artifacts = $derived((data.closeout.artifacts ?? []) as Array<Record<string, unknown>>);
   const draft = $derived(revisions.find((revision) => revision.state === 'draft'));
   const eligible = $derived((data.documents ?? []) as Array<Record<string, unknown>>);
+  function unavailableSelection(action: string, replaceSelection = false): string[] {
+    if (
+      closeoutForm?.actionName !== action ||
+      Boolean(closeoutForm.values?.replaceSelection) !== replaceSelection
+    )
+      return [];
+    const available = new Set(eligible.map((document) => String(document.id)));
+    return (closeoutForm.values?.documentId ?? []).filter((id) => !available.has(id));
+  }
   function snapshot(value: unknown): Record<string, unknown> {
     try {
       const parsed = JSON.parse(String(value));
@@ -75,17 +194,72 @@
     <h1>{String(project.name ?? t.project)}</h1>
     <p>{t.immutable}</p>
   </header>
+  {#if problem}
+    <div data-closeout-problem>
+      <ProblemNotice
+        {problem}
+        {remedyLinks}
+        kind={problem.code === 'CLOSEOUT_ARTIFACT_WRITE_INCOMPLETE' ||
+        problem.code === 'UNEXPECTED_ERROR'
+          ? 'service'
+          : 'error'}
+      />
+      {#if closeoutForm?.actionName === 'reopen' && closeoutForm.values?.reason}
+        <p>
+          <strong>{portalText(locale, 'problem.closeout.reasonRetained')}:</strong>
+          {closeoutForm.values.reason}
+        </p>
+      {/if}
+      {#if closeoutForm?.actionName === 'confirmClient' && closeoutForm.values?.confirmationChecked}
+        <p>{portalText(locale, 'problem.closeout.previousConfirmation')}</p>
+      {/if}
+      {#if ((closeoutForm?.actionName === 'prepare' && draft) || (closeoutForm?.actionName === 'refresh' && closeoutForm.values?.replaceSelection && problem.code === 'CLOSEOUT_DRAFT_CHANGED')) && closeoutForm.values?.documentId?.length}
+        <div data-closeout-retained-selection>
+          <strong>{portalText(locale, 'problem.closeout.selectionRetained')}</strong>
+          <ul>
+            {#each closeoutForm.values.documentId as id}
+              {@const document = eligible.find((candidate) => String(candidate.id) === id)}
+              <li>
+                {document
+                  ? String(document.safe_filename ?? document.original_filename ?? document.id)
+                  : portalText(locale, 'problem.closeout.documentNoLongerAvailable')}
+              </li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
+    </div>
+  {/if}
   {#if actionFeedback}<p role="status">{actionFeedback}</p>{/if}
   {#if !draft}
     <SectionCard title={t.prepare}
-      ><form method="POST" action="?/prepare">
+      ><form
+        method="POST"
+        action="?/prepare"
+        data-closeout-action="prepare"
+        use:formValidation
+        use:enhance={submitCloseout}
+        onsubmit={rememberScroll}
+      >
         <p>{t.selection}</p>
-        {#each eligible as document}<label
-            ><input type="checkbox" name="documentId" value={String(document.id)} />
-            {String(document.safe_filename ?? document.original_filename ?? document.id)} · {documentLabel(
-              document.artifact_type,
-            )} · {documentLabel(document.sensitivity)}</label
-          >{/each}<button type="submit">{t.prepareAction}</button>
+        <div id="closeout-documents">
+          {#each eligible as document}<label
+              ><input
+                type="checkbox"
+                name="documentId"
+                value={String(document.id)}
+                checked={selected('prepare', String(document.id))}
+              />
+              {String(document.safe_filename ?? document.original_filename ?? document.id)} · {documentLabel(
+                document.artifact_type,
+              )} · {documentLabel(document.sensitivity)}</label
+            >{/each}
+          {#each unavailableSelection('prepare') as id}<label
+              ><input type="checkbox" checked disabled />
+              {id} · {portalText(locale, 'problem.closeout.documentUnavailable')}</label
+            >{/each}
+        </div>
+        <button type="submit">{t.prepareAction}</button>
       </form></SectionCard
     >
   {:else}
@@ -206,36 +380,102 @@
           </details>
         </article>
       </div>
-      <form method="POST" action="?/refresh">
-        <input type="hidden" name="revisionId" value={String(draft.id)} /><button type="submit"
-          >{t.refresh}</button
-        >
-      </form>
-      <form method="POST" action="?/refresh">
-        <input type="hidden" name="revisionId" value={String(draft.id)} /><input
+      <form
+        method="POST"
+        action="?/refresh"
+        data-closeout-action="refresh"
+        use:formValidation
+        use:enhance={submitCloseout}
+        onsubmit={rememberScroll}
+      >
+        <input type="hidden" name="revisionId" value={String(draft.id)} />
+        <input
           type="hidden"
-          name="replaceSelection"
-          value="true"
+          name="expectedClientSnapshotHash"
+          value={String(draft.client_snapshot_sha256)}
         />
-        <fieldset>
+        <input
+          type="hidden"
+          name="expectedInternalSnapshotHash"
+          value={String(draft.internal_snapshot_sha256)}
+        />
+        <input
+          type="hidden"
+          name="expectedConfirmationHash"
+          value={String(draft.client_confirmation_hash ?? '')}
+        />
+        <input type="hidden" name="expectedUpdatedAt" value={String(draft.updated_at)} />
+        <button type="submit">{t.refresh}</button>
+      </form>
+      <form
+        method="POST"
+        action="?/refresh"
+        data-closeout-action="refreshSelection"
+        use:formValidation
+        use:enhance={submitCloseout}
+        onsubmit={rememberScroll}
+      >
+        <input type="hidden" name="revisionId" value={String(draft.id)} />
+        <input
+          type="hidden"
+          name="expectedClientSnapshotHash"
+          value={String(draft.client_snapshot_sha256)}
+        />
+        <input
+          type="hidden"
+          name="expectedInternalSnapshotHash"
+          value={String(draft.internal_snapshot_sha256)}
+        />
+        <input
+          type="hidden"
+          name="expectedConfirmationHash"
+          value={String(draft.client_confirmation_hash ?? '')}
+        />
+        <input type="hidden" name="expectedUpdatedAt" value={String(draft.updated_at)} />
+        <input type="hidden" name="replaceSelection" value="true" />
+        <fieldset id="closeout-documents">
           <legend>{t.replace}</legend>{#each eligible as document}<label
-              ><input type="checkbox" name="documentId" value={String(document.id)} />
+              ><input
+                type="checkbox"
+                name="documentId"
+                value={String(document.id)}
+                checked={selected('refresh', String(document.id), true)}
+              />
               {String(document.safe_filename ?? document.original_filename ?? document.id)} · {documentLabel(
                 document.artifact_type,
               )}</label
             >{/each}
+          {#each unavailableSelection('refresh', true) as id}<label
+              ><input type="checkbox" checked disabled />
+              {id} · {portalText(locale, 'problem.closeout.documentUnavailable')}</label
+            >{/each}
         </fieldset>
         <button type="submit">{t.replace}</button>
       </form>
-      {#if !draft.client_confirmation_hash}<form method="POST" action="?/confirmClient">
+      {#if !draft.client_confirmation_hash}<form
+          method="POST"
+          action="?/confirmClient"
+          data-closeout-action="confirmClient"
+          use:formValidation
+          use:enhance={submitCloseout}
+          onsubmit={rememberScroll}
+        >
           <input type="hidden" name="revisionId" value={String(draft.id)} /><input
             type="hidden"
             name="clientSnapshotHash"
             value={String(draft.client_snapshot_sha256)}
-          /><label><input type="checkbox" required /> {t.confirm}</label><button type="submit"
-            >{t.confirmAction}</button
-          >
-        </form>{:else}<form method="POST" action="?/finalize">
+          /><label
+            ><input type="checkbox" name="confirmationChecked" value="yes" required />
+            {t.confirm}</label
+          ><button type="submit">{t.confirmAction}</button>
+        </form>{:else}<form
+          method="POST"
+          action="?/finalize"
+          data-closeout-action="finalize"
+          use:formValidation
+          use:enhance={submitCloseout}
+          onsubmit={rememberScroll}
+        >
           <input type="hidden" name="revisionId" value={String(draft.id)} /><button type="submit"
             >{t.finalize}</button
           >
@@ -262,14 +502,22 @@
             </div>{/if}{#if data.user.role === 'owner_admin' && revision.state === 'final' && !draft && project.status === 'closed' && revision.id === revisions[0]?.id}<form
               method="POST"
               action="?/reopen"
+              data-closeout-action="reopen"
+              use:formValidation
+              use:enhance={submitCloseout}
+              onsubmit={rememberScroll}
             >
               <input type="hidden" name="revisionId" value={String(revision.id)} /><Field
-                id={`reopen-${String(revision.id)}`}
+                id="reopen-reason"
                 label={t.reason}
                 required
                 ><input
-                  id={`reopen-${String(revision.id)}`}
+                  id="reopen-reason"
                   name="reason"
+                  value={closeoutForm?.actionName === 'reopen' &&
+                  closeoutForm.values?.revisionId === String(revision.id)
+                    ? (closeoutForm.values.reason ?? '')
+                    : ''}
                   required
                   maxlength="2000"
                 /></Field

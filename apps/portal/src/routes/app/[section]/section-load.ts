@@ -340,6 +340,33 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
       // widening the worker/PM projection to finance data.
       case 'projects': {
         const authorizedProjects = context.repository.listAssignedProjects(context.principal);
+        // A direct assignment link must retain a project that became unavailable
+        // after the link was created. Expose only the normal project-list columns,
+        // and only when this manager still has an effective membership. This is
+        // display access, never assignment permission.
+        const linkedProjectId = url.searchParams.get('project')?.trim();
+        const unavailableLinkedProject =
+          context.principal.role === 'project_manager' &&
+          url.searchParams.get('action') === 'assign-worker' &&
+          linkedProjectId &&
+          !authorizedProjects.some((project) => String(project.id) === linkedProjectId)
+            ? context.sqlite
+                .prepare(
+                  `SELECT p.id,p.project_number,p.name,p.status,p.currency,p.timezone,
+                          p.start_date,p.planned_end_date,p.actual_end_date,p.version
+                     FROM project p
+                     JOIN project_member pm ON pm.project_id=p.id
+                    WHERE p.id=? AND p.status IN ('closing','closed')
+                      AND pm.user_id=? AND pm.status='active'
+                      AND pm.starts_on<=date('now')
+                      AND (pm.ends_on IS NULL OR pm.ends_on>=date('now'))
+                    LIMIT 1`,
+                )
+                .get(linkedProjectId, context.principal.userId)
+            : undefined;
+        const visibleProjects = unavailableLinkedProject
+          ? [...authorizedProjects, unavailableLinkedProject]
+          : authorizedProjects;
         const authorizedAssignments =
           context.principal.role !== 'worker'
             ? context.repository.listAssignments(context.principal)
@@ -369,7 +396,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             : []
           ).map((row) => [row.id, row.actual_minutes]),
         );
-        const projectIds = authorizedProjects
+        const projectIds = visibleProjects
           .map((project) => String(project.id ?? ''))
           .filter(Boolean);
         const directoryProjects = projectIds.length

@@ -1,12 +1,13 @@
-import { error, fail } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import {
+  AccessDeniedError,
   OwnerRecordManagement,
   ownerRecordTypes,
   OwnerCatalogManagement,
   ownerCatalogs,
 } from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
-import { actionFailure } from '$lib/server/actions/action-message';
+import { actionFail, actionFailure, actionSuccess } from '$lib/server/actions/action-message';
 import type { Actions, PageServerLoad } from './$types';
 
 const domains = [
@@ -131,7 +132,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
 };
 
 // Only known domain messages become user-facing causes; unexpected details remain sanitized.
-const managementMessages: Record<string, string> = {
+const managementMessages: Record<string, `action.${string}`> = {
   'Record changed. Reload before continuing.': 'action.management.changed',
   'Planning overlaps another assignment': 'action.management.planningOverlap',
   'Worker is unavailable': 'action.management.workerUnavailable',
@@ -171,31 +172,79 @@ const managementMessages: Record<string, string> = {
   'Record not found': 'action.management.recordNotFound',
 };
 
-function managementFailure(caught: unknown, values: Record<string, string>) {
-  const failure = actionFailure(caught);
+function managementRemedies(key: string, recordId: string) {
+  if (key.includes('invoice') || key.includes('billing'))
+    return [{ id: 'review_linked_invoice', recordId }];
+  if (key.includes('reimbursement') || key.includes('settlement'))
+    return [{ id: 'review_financial_history', recordId }];
+  if (key.includes('correction') || key.includes('History') || key.includes('finalReport'))
+    return [{ id: 'review_correction_path', recordId }];
+  return [{ id: 'review_updated_record', recordId }];
+}
+
+const managementFields: Partial<Record<`action.${string}`, string>> = {
+  'action.management.reason': 'reason',
+  'action.management.windowOrder': 'ends_at',
+  'action.management.amount': 'amount',
+  'action.management.plannedMinutes': 'planned_minutes',
+  'action.management.activeWorker': 'worker_id',
+  'action.management.assignmentWindow': 'starts_at',
+  'action.management.reportProject': 'technical_report_id',
+  'action.management.safetyEvidence': 'validation',
+};
+
+function retainedValues(form: FormData): Record<string, string> {
+  return Object.fromEntries(
+    [...form]
+      .filter(([key]) => key !== 'token' && key !== 'confirmed')
+      .map(([key, value]) => [key, String(value)]),
+  );
+}
+
+export function _managementFailure(caught: unknown, values: Record<string, string>) {
+  if (caught instanceof AccessDeniedError && caught.message === 'Owner administration required')
+    return actionFail(
+      403,
+      'problem.management.ownerRequired',
+      {},
+      'Owner access is required for this change. Contact an Owner.',
+      {
+        code: 'MANAGEMENT_OWNER_REQUIRED',
+        values,
+        recordId: values.id ?? '',
+        remedies: [{ id: 'contact_owner' }],
+      },
+    );
+  const failure = actionFailure(caught, { values, recordId: values.id ?? '' });
   const rawMessage = caught instanceof Error ? caught.message : '';
   const knownKey =
     [400, 409].includes(failure.status) && Object.hasOwn(managementMessages, rawMessage)
       ? managementMessages[rawMessage]
       : undefined;
+  const catalog = values.kind ? ownerCatalogs[values.kind] : undefined;
   const invalidField =
     failure.status === 400 && !knownKey
-      ? Object.values(ownerCatalogs)
-          .flatMap((catalog) => catalog.fields)
-          .find((field) => rawMessage === `Invalid ${field.label}`)
+      ? (catalog?.fields ?? []).find((field) => rawMessage === `Invalid ${field.label}`)
       : undefined;
-  return fail(failure.status, {
-    ...failure.data,
-    ...(knownKey ? { messageKey: knownKey } : {}),
-    ...(invalidField
-      ? {
-          messageKey: 'action.management.invalidField',
-          messageParams: { fieldLabel: invalidField.label },
-        }
-      : {}),
-    values,
-    recordId: values.id ?? '',
-  });
+  const recordId = values.id ?? '';
+  if (knownKey)
+    return actionFail(failure.status, knownKey, {}, rawMessage, {
+      values,
+      recordId,
+      remedies: managementRemedies(knownKey, recordId),
+      ...(managementFields[knownKey]
+        ? { fieldErrors: { [managementFields[knownKey]]: [rawMessage] } }
+        : {}),
+    });
+  if (invalidField)
+    return actionFail(
+      400,
+      'action.management.invalidField',
+      { fieldLabel: invalidField.label },
+      `Check ${invalidField.label}: complete it with a valid value.`,
+      { values, recordId, fieldErrors: { [invalidField.name]: [rawMessage] } },
+    );
+  return failure;
 }
 
 export const actions: Actions = {
@@ -205,14 +254,20 @@ export const actions: Actions = {
     try {
       new OwnerRecordManagement(ctx.sqlite).assertOwner(ctx.principal);
       const form = await request.formData();
-      values = Object.fromEntries([...form].map(([key, value]) => [key, String(value)]));
+      values = retainedValues(form);
       if (form.get('confirmed') !== 'yes')
-        return fail(400, {
-          success: false,
-          message: 'Confirm the operation',
-          values,
-          recordId: values.id ?? '',
-        });
+        return actionFail(
+          400,
+          'problem.management.confirmOperation',
+          {},
+          'Confirm the operation before saving.',
+          {
+            code: 'MANAGEMENT_CONFIRMATION_REQUIRED',
+            values,
+            recordId: values.id ?? '',
+            fieldErrors: { confirmed: ['Confirm the operation'] },
+          },
+        );
       new OwnerCatalogManagement(ctx.sqlite).mutate(ctx.principal, {
         kind: String(form.get('kind')),
         id: String(form.get('id') ?? ''),
@@ -221,9 +276,9 @@ export const actions: Actions = {
         reason: String(form.get('reason') ?? ''),
         values: Object.fromEntries(form),
       });
-      return { success: true, message: 'Changes saved' };
+      return actionSuccess('problem.notice.saved', {}, 'Changes saved');
     } catch (caught) {
-      return managementFailure(caught, values);
+      return _managementFailure(caught, values);
     } finally {
       ctx.sqlite.close();
     }
@@ -235,14 +290,20 @@ export const actions: Actions = {
       const manager = new OwnerRecordManagement(ctx.sqlite);
       manager.assertOwner(ctx.principal);
       const form = await request.formData();
-      values = Object.fromEntries([...form].map(([key, value]) => [key, String(value)]));
+      values = retainedValues(form);
       if (form.get('confirmed') !== 'yes')
-        return fail(400, {
-          success: false,
-          message: 'Confirm the operation',
-          values,
-          recordId: values.id ?? '',
-        });
+        return actionFail(
+          400,
+          'problem.management.confirmOperation',
+          {},
+          'Confirm the operation before saving.',
+          {
+            code: 'MANAGEMENT_CONFIRMATION_REQUIRED',
+            values,
+            recordId: values.id ?? '',
+            fieldErrors: { confirmed: ['Confirm the operation'] },
+          },
+        );
       manager.mutate(ctx.principal, {
         recordType: String(form.get('recordType')),
         id: String(form.get('id')),
@@ -250,9 +311,9 @@ export const actions: Actions = {
         operation: String(form.get('operation')),
         reason: String(form.get('reason') ?? ''),
       });
-      return { success: true, message: 'Changes saved' };
+      return actionSuccess('problem.notice.saved', {}, 'Changes saved');
     } catch (caught) {
-      return managementFailure(caught, values);
+      return _managementFailure(caught, values);
     } finally {
       ctx.sqlite.close();
     }

@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { e2eLifecycleFixturesFor, portal, signIn } from './auth.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 const SVELTEKIT_HISTORY_INITIALIZATION_WARNING =
   "Avoid using `history.pushState(...)` and `history.replaceState(...)` as these will conflict with SvelteKit's router. Use the `pushState` and `replaceState` imports from `$app/navigation` instead.";
@@ -222,7 +223,8 @@ test('UI_PLAN client-ready shell, directories and responsive project editor', as
 
   const projectForm = editor.locator('form[action="?/updateProject"]');
   const costCenter = projectForm.locator('input[name="costCenterCode"]');
-  if (!(await costCenter.inputValue()).trim()) await costCenter.fill('E2E-COST-CENTER');
+  if (!(await costCenter.inputValue()).trim())
+    await costCenter.fill(e2eCostCenter('E2E-COST-CENTER', 6, testInfo.project.name));
   await projectForm.getByRole('button', { name: /Save project|Guardar proyecto/u }).click();
   const successToast = page.locator('[data-ui="toast"][data-variant="success"]');
   await expect(successToast).toBeVisible();

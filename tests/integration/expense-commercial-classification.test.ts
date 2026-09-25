@@ -827,6 +827,17 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
     repository.submitExpense(value.worker, created.id, classified.version);
     repository.operationalApproveExpense(value.manager, created.id, 'approved');
     value.repository.financeApproveExpense(finance, created.id);
+    const approvedReview = value.sqlite
+      .prepare('SELECT finance_approved_by,finance_approved_at,version FROM expense WHERE id=?')
+      .get(created.id);
+    expect(() => value.repository.financeApproveExpense(finance, created.id)).toThrow(
+      ConflictError,
+    );
+    expect(
+      value.sqlite
+        .prepare('SELECT finance_approved_by,finance_approved_at,version FROM expense WHERE id=?')
+        .get(created.id),
+    ).toEqual(approvedReview);
     const entity = value.repository.createLegalEntity(value.owner, {
       code: 'EXP-MARKUP',
       legalName: 'Expense Markup Entity S.L.',

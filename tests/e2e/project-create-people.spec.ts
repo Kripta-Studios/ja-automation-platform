@@ -4,6 +4,7 @@ import { PortalRepository } from '@ja/database';
 import { expect, test } from '@playwright/test';
 import { portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 type ExpertiseMatch = {
   skill_id: string;
@@ -43,7 +44,9 @@ test('owner creates a project with two people selected by expertise', async ({
     if (!clientId) throw new Error('E2E fixture requires an active client');
     await form.locator('[name="clientId"]').selectOption(clientId);
     await form.locator('[name="name"]').fill(name);
-    await form.locator('[name="costCenterCode"]').fill(`QA-PEOPLE-${testInfo.project.name}`);
+    await form
+      .locator('[name="costCenterCode"]')
+      .fill(e2eCostCenter('QA-PEOPLE', 10, testInfo.project.name, 1));
     await form.locator('[name="startDate"]').fill('2026-09-23');
     await form.locator('[name="initialWorkersStartOn"]').fill('2026-09-24');
     const first = form.locator(`[name="initialWorkerId"][value="${match.worker_id}"]`);
@@ -127,7 +130,9 @@ test('invalid selected worker displays a row error without creating a project', 
     await page.getByRole('button', { name: 'New Project', exact: true }).click();
     const form = page.locator('form[action="?/createProject"]');
     await form.locator('[name="name"]').fill(name);
-    await form.locator('[name="costCenterCode"]').fill('QA-INVALID-PEOPLE');
+    await form
+      .locator('[name="costCenterCode"]')
+      .fill(e2eCostCenter('QA-INVALID-PEOPLE', 10, testInfo.project.name, 2));
     await form.evaluate((element, id) => {
       const input = document.createElement('input');
       input.type = 'hidden';
@@ -183,7 +188,9 @@ test('changing client after a failed save uses the newly selected client default
     const form = page.locator('form[action="?/createProject"]');
     await form.locator('[name="clientId"]').selectOption(originalClient.id);
     await form.locator('[name="name"]').fill('X');
-    await form.locator('[name="costCenterCode"]').fill('QA-CLIENT-RETRY');
+    await form
+      .locator('[name="costCenterCode"]')
+      .fill(e2eCostCenter('QA-CLIENT-RETRY', 10, testInfo.project.name, 3));
     await form.getByRole('button', { name: 'Create project', exact: true }).click();
     await expect(page.locator('[data-project-field-errors]')).toContainText('Name');
     await form.locator('[name="clientId"]').selectOption(nextClient.id);
@@ -218,7 +225,9 @@ test('worker assignment outside project dates shows an error and saves nothing',
     await page.getByRole('button', { name: 'New Project', exact: true }).click();
     const form = page.locator('form[action="?/createProject"]');
     await form.locator('[name="name"]').fill(name);
-    await form.locator('[name="costCenterCode"]').fill('QA-DATE-BOUNDARY');
+    await form
+      .locator('[name="costCenterCode"]')
+      .fill(e2eCostCenter('QA-DATE-BOUNDARY', 10, testInfo.project.name, 4));
     await form.locator('[name="startDate"]').fill('2026-09-24');
     await form.locator('[name="plannedEndDate"]').fill('2026-09-30');
     await form.locator('[name="initialWorkersStartOn"]').fill('2026-10-01');

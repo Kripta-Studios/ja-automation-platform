@@ -10,6 +10,7 @@ import {
   signIn,
 } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 function periodFor(
   testInfo: { project: { name: string } },
@@ -367,7 +368,9 @@ test('owner can edit and complete the reversible project lifecycle fixture', asy
     await expect(edit).toBeVisible();
     const editedName = `${fixture.project.name} · Edited`;
     await edit.locator('input[name="name"]').fill(editedName);
-    await edit.locator('input[name="costCenterCode"]').fill(`E2E-${testInfo.project.name}`);
+    await edit
+      .locator('input[name="costCenterCode"]')
+      .fill(e2eCostCenter('E2E', 5, testInfo.project.name));
     await edit.getByRole('button', { name: /save|update/i }).click();
     await expect(projectDetail.getByRole('heading', { name: editedName })).toBeVisible();
 

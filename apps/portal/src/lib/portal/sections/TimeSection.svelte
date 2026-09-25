@@ -10,12 +10,15 @@
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import TimesheetPanel from './TimesheetPanel.svelte';
   import TimeIntervalFields from '../ui/TimeIntervalFields.svelte';
+  import ProblemNotice from '../ui/ProblemNotice.svelte';
+  import type { ProblemData } from '../../problem/contract';
   import FilterSummary from '../ui/FilterSummary.svelte';
   import DatePresets from '../ui/DatePresets.svelte';
   import { localToday } from '../ui/time-entry-clock';
   import { normalizePortalLocale } from '../../portal-i18n';
   import { standaloneActionMessage } from '../../../routes/app/standalone-locale';
   import { createOperationalSubmit, operationalFieldValidation } from '../ui/operational-submit';
+  import { reportFormFieldErrors } from '../ui/form-validation';
   import { canDeleteTimeDraft } from './time-entry-actions';
   import {
     decimalHoursToMinutes,
@@ -53,6 +56,31 @@
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
   } = $props();
 
+  const nativeTimeForm = $page.form as (ProblemData & { values?: Record<string, unknown> }) | null;
+  const nativeTimeValues =
+    nativeTimeForm?.code && nativeTimeForm.values && typeof nativeTimeForm.values === 'object'
+      ? nativeTimeForm.values
+      : {};
+  const nativeTimeValue = (field: string): string =>
+    typeof nativeTimeValues[field] === 'string' ? String(nativeTimeValues[field]) : '';
+  const nativeTimeSurface: 'create' | 'edit' | null =
+    nativeTimeForm?.code &&
+    !nativeTimeValue('recordType') &&
+    !nativeTimeValue('originalId') &&
+    !nativeTimeValue('entries')
+      ? nativeTimeValue('id') && nativeTimeValue('workDate')
+        ? 'edit'
+        : nativeTimeValue('workDate') ||
+            nativeTimeForm.messageKey === 'action.validation.timeFields' ||
+            (nativeTimeForm.messageKey === 'action.validation.expenseFields' &&
+              nativeTimeValue('withExpense') === 'on')
+          ? 'create'
+          : null
+      : null;
+  let nativeRecoveryActive = $state(Boolean(nativeTimeSurface));
+  const restoredTimeValue = (field: string): string =>
+    nativeRecoveryActive ? nativeTimeValue(field) : '';
+
   type Surface = 'create' | 'edit';
   type CategoryOption = Readonly<{ value: string; label: string }>;
 
@@ -71,8 +99,18 @@
   ];
   const filterCategories = [...primaryCategories, ...moreCategories];
 
-  let surface = $state<Surface | null>(null);
+  let surface = $state<Surface | null>(nativeTimeSurface);
   let surfaceError = $state('');
+  let surfaceProblem = $state<ProblemData | null>(nativeTimeSurface ? nativeTimeForm : null);
+  let weekProblem = $state<ProblemData | null>(
+    nativeTimeForm?.code && nativeTimeValue('weekStart') ? nativeTimeForm : null,
+  );
+  let batchProblem = $state<ProblemData | null>(
+    nativeTimeForm?.code && nativeTimeValue('entries') && !nativeTimeValue('weekStart')
+      ? nativeTimeForm
+      : null,
+  );
+  let deleteProblem = $state<ProblemData | null>(null);
   let saving = $state(false);
   const submitTime = createOperationalSubmit({
     locale: () => normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
@@ -82,6 +120,9 @@
     },
     setError: (value) => {
       surfaceError = value;
+    },
+    setProblem: (value) => {
+      surfaceProblem = value;
     },
     onSuccess: () => {
       if (surface === 'create' && createDate) {
@@ -98,18 +139,20 @@
     },
     offlineHandled: () => data.offlineEnabled !== false,
   });
-  let editTimeId = $state<string | null>(null);
-  let createCategory = $state('regular');
-  let createDate = $state('');
-  let createProject = $state('');
-  let createWorker = $state('');
-  let createExpenseEnabled = $state(false);
-  let createRequestId = $state('');
+  let editTimeId = $state<string | null>(
+    nativeTimeSurface === 'edit' ? nativeTimeValue('id') : null,
+  );
+  let createCategory = $state(nativeTimeValue('category') || 'regular');
+  let createDate = $state(nativeTimeValue('workDate'));
+  let createProject = $state(nativeTimeValue('projectId'));
+  let createWorker = $state(nativeTimeValue('workerId'));
+  let createExpenseEnabled = $state(nativeTimeValue('withExpense') === 'on');
+  let createRequestId = $state(nativeTimeValue('requestId'));
   let batchWorker = $state('');
   let batchProject = $state('');
   let batchError = $state('');
   let batchSaving = $state(false);
-  let weekSubmitWorker = $state('');
+  let weekSubmitWorker = $state(nativeTimeValue('workerId'));
   let weekSubmitError = $state('');
   let weekSubmitting = $state(false);
   let deleteError = $state('');
@@ -117,7 +160,7 @@
   let calendarMonth = $state('');
   let calendarDay = $state('');
   let dateDeepLinkConsumed = false;
-  let editCategory = $state('regular');
+  let editCategory = $state(nativeTimeValue('category') || 'regular');
   let search = $state('');
   let clientFilter = $state('');
   let statusFilter = $state('');
@@ -141,7 +184,29 @@
     }
     if (typeof saved?.page === 'number') registerPage = saved.page;
     registerStateHydrated = true;
-    if (!isAuditor && $page.url.searchParams.get('action') === 'log-time') openCreate();
+    if (!nativeRecoveryActive && !isAuditor && $page.url.searchParams.get('action') === 'log-time')
+      openCreate();
+    if (nativeTimeSurface && nativeTimeForm?.fieldErrors)
+      void tick().then(() => {
+        const form = document.querySelector<HTMLFormElement>('[data-time-entry-surface]');
+        if (!form) return;
+        const fields = Object.fromEntries(
+          Object.entries(nativeTimeForm.fieldErrors).map(([field, errors]) => [
+            field === 'minutes'
+              ? form.querySelector('[name="durationHours"]')
+                ? 'durationHours'
+                : 'endTime'
+              : field === 'breakMinutes'
+                ? 'breakHours'
+                : field,
+            errors,
+          ]),
+        );
+        reportFormFieldErrors(form, fields);
+        document
+          .querySelector<HTMLElement>('[data-operational-form-error]')
+          ?.focus({ preventScroll: true });
+      });
   });
   $effect(() => {
     if (registerStateHydrated)
@@ -232,6 +297,7 @@
     registerPage = 1;
   });
   $effect(() => {
+    if (nativeRecoveryActive) return;
     const id = $page.url.searchParams.get('edit');
     const row = records.find(
       (row) =>
@@ -394,6 +460,7 @@
   }
 
   const submitBatch: SubmitFunction = ({ formData, cancel }) => {
+    batchProblem = null;
     const workerId = String(formData.get('workerId') ?? '');
     const projectId = String(formData.get('projectId') ?? '');
     const entries: Array<Record<string, string | number>> = [];
@@ -440,12 +507,17 @@
           } catch {
             // The batch is already saved even if browser storage is unavailable.
           }
-        } else if (result.type === 'failure')
+        } else if (result.type === 'failure') {
+          batchProblem = result.data?.code ? (result.data as ProblemData) : null;
           batchError = standaloneActionMessage(
             normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
             result.data,
           );
-        else if (result.type === 'error')
+          await tick();
+          document
+            .querySelector<HTMLElement>('[data-time-batch-problem]')
+            ?.focus({ preventScroll: true });
+        } else if (result.type === 'error')
           batchError = translate('The daily entries could not be saved. Try again.');
       } finally {
         batchSaving = false;
@@ -454,17 +526,23 @@
   };
 
   const submitWeek: SubmitFunction = () => {
+    weekProblem = null;
     weekSubmitError = '';
     weekSubmitting = true;
     return async ({ result, update }) => {
       try {
         await update({ reset: false });
-        if (result.type === 'failure')
+        if (result.type === 'failure') {
+          weekProblem = result.data?.code ? (result.data as ProblemData) : null;
           weekSubmitError = standaloneActionMessage(
             normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
             result.data,
           );
-        else if (result.type === 'error')
+          await tick();
+          document
+            .querySelector<HTMLElement>('[data-time-week-problem]')
+            ?.focus({ preventScroll: true });
+        } else if (result.type === 'error')
           weekSubmitError = translate('The week could not be submitted. Refresh and try again.');
       } finally {
         weekSubmitting = false;
@@ -474,15 +552,21 @@
 
   const deleteDraft: SubmitFunction = () => {
     const scrollTop = window.scrollY;
+    deleteProblem = null;
     deleteError = '';
     return async ({ result, update }) => {
       await update({ reset: false });
-      if (result.type === 'failure')
+      if (result.type === 'failure') {
+        deleteProblem = result.data?.code ? (result.data as ProblemData) : null;
         deleteError = standaloneActionMessage(
           normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
           result.data,
         );
-      else if (result.type === 'error')
+        await tick();
+        document
+          .querySelector<HTMLElement>('[data-time-delete-problem]')
+          ?.focus({ preventScroll: true });
+      } else if (result.type === 'error')
         deleteError = translate('The draft could not be deleted. Refresh and try again.');
       await tick();
       window.scrollTo({ top: scrollTop, behavior: 'instant' });
@@ -490,7 +574,9 @@
   };
 
   function openCreate(dateOverride?: string, workerOverride?: string): void {
+    nativeRecoveryActive = false;
     surfaceError = '';
+    surfaceProblem = null;
     const requestedDate = $page.url.searchParams.get('date')?.trim() ?? '';
     const useDeepLinkDate = !dateDeepLinkConsumed && /^\d{4}-\d{2}-\d{2}$/u.test(requestedDate);
     if (useDeepLinkDate) dateDeepLinkConsumed = true;
@@ -534,14 +620,18 @@
 
   function openEdit(row: Row): void {
     if (Number(row.correction_linked ?? 0) === 1) return;
+    nativeRecoveryActive = false;
     surfaceError = '';
+    surfaceProblem = null;
     surface = 'edit';
     editTimeId = String(row.id);
     editCategory = String(row.category ?? 'regular');
   }
 
   function closeSurface(): void {
+    nativeRecoveryActive = false;
     surface = null;
+    surfaceProblem = null;
     editTimeId = null;
     createCategory = 'regular';
     editCategory = 'regular';
@@ -637,7 +727,22 @@
           {weekDrafts.length}
           {translate('draft entries ready')} · {data.weekStart} → {data.weekEnd}
         </p>
-        {#if weekSubmitError}<p role="alert">{weekSubmitError}</p>{/if}
+        {#if weekProblem}
+          <div tabindex="-1" data-time-week-problem>
+            <ProblemNotice
+              problem={weekProblem}
+              remedyLinks={{
+                review_week: {
+                  label: translate('Review updated week'),
+                  href: `${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}#time-records`,
+                },
+                contact_project_owner: {
+                  label: translate('Contact the project owner to review access.'),
+                },
+              }}
+            />
+          </div>
+        {:else if weekSubmitError}<p role="alert">{weekSubmitError}</p>{/if}
         <button type="submit" disabled={weekSubmitting || weekDrafts.length === 0}>
           {translate(weekSubmitting ? 'Submitting…' : 'Submit all week drafts')}
         </button>
@@ -647,7 +752,20 @@
 
   {#if ownerMode && !isAuditor}
     <section class="time-owner-calendar" aria-labelledby="time-calendar-title">
-      {#if deleteError}<p role="alert">{deleteError}</p>{/if}
+      {#if deleteProblem}
+        <div tabindex="-1" data-time-delete-problem>
+          <ProblemNotice
+            problem={deleteProblem}
+            remedyLinks={{
+              review_time: {
+                label: translate('Review updated time entry'),
+                href: `${base}/app/time#time-records`,
+              },
+              contact_finance: { label: translate('Contact Finance for an audited adjustment.') },
+            }}
+          />
+        </div>
+      {:else if deleteError}<p role="alert">{deleteError}</p>{/if}
       <div class="time-owner-heading">
         <div>
           <h3 id="time-calendar-title">{translate('Time calendar')}</h3>
@@ -825,7 +943,26 @@
               </div>
             {/each}
           </div>
-          {#if batchError}<p role="alert">{batchError}</p>{/if}
+          {#if batchProblem}
+            <div tabindex="-1" data-time-batch-problem>
+              <ProblemNotice
+                problem={batchProblem}
+                remedyLinks={{
+                  review_time: {
+                    label: translate('Review time entries'),
+                    href: `${base}/app/time#time-records`,
+                  },
+                  contact_project_owner: {
+                    label: translate('Contact the project owner to review access.'),
+                  },
+                  review_worker_assignment: {
+                    label: translate('Review worker assignment'),
+                    href: `${base}/app/time#time-records`,
+                  },
+                }}
+              />
+            </div>
+          {:else if batchError}<p role="alert">{batchError}</p>{/if}
           <button type="submit" disabled={batchSaving}
             >{translate(batchSaving ? 'Saving…' : 'Save daily drafts')}</button
           >
@@ -1093,7 +1230,32 @@
   class="time-entry-sheet"
   onclose={closeSurface}
 >
-  {#if surfaceError}
+  {#if surfaceProblem}
+    <div class="time-form-error" tabindex="-1" data-operational-form-error>
+      <ProblemNotice
+        problem={surfaceProblem}
+        kind={surfaceProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        remedyLinks={{
+          review_time: {
+            label: translate('Review updated time entry'),
+            href: `${base}/app/time#time-records`,
+          },
+          review_week: {
+            label: translate('Review updated week'),
+            href: `${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}#time-records`,
+          },
+          contact_project_owner: {
+            label: translate('Contact the project owner to review access.'),
+          },
+          contact_finance: { label: translate('Contact Finance for an audited adjustment.') },
+          review_worker_assignment: {
+            label: translate('Review worker assignment'),
+            href: `${base}/app/time#time-records`,
+          },
+        }}
+      />
+    </div>
+  {:else if surfaceError}
     <p role="alert" class="time-form-error" tabindex="-1" data-operational-form-error>
       {surfaceError}
     </p>
@@ -1140,6 +1302,11 @@
         <span>{translate('Assigned project')}</span>
         <select name="projectId" required bind:value={createProject}>
           <option value="">{translate('Select assignment')}</option>
+          {#if createProject && !assignedCreateProjects.some((project) => String(project.id) === createProject)}
+            <option value={createProject} disabled
+              >{translate('Previously selected project is no longer available')}</option
+            >
+          {/if}
           {#each assignedCreateProjects as project}
             <option value={String(project.id)}>{project.project_number} — {project.name}</option>
           {/each}
@@ -1181,14 +1348,25 @@
           <input
             name="activityCode"
             maxlength="100"
+            value={restoredTimeValue('activityCode')}
             placeholder={translate('Operational detail')}
           />
         </label>
       {/if}
-      <TimeIntervalFields {translate} />
+      <TimeIntervalFields
+        {translate}
+        initialStart={restoredTimeValue('startTime')}
+        initialEnd={restoredTimeValue('endTime')}
+        initialBreak={Number(restoredTimeValue('breakMinutes') || 0)}
+        legacyMinutes={restoredTimeValue('minutes')
+          ? Number(restoredTimeValue('minutes'))
+          : undefined}
+      />
       <label>
         <span>{translate('Activity summary')}</span>
-        <textarea name="summary" minlength="3" maxlength="5000" required></textarea>
+        <textarea name="summary" minlength="3" maxlength="5000" required
+          >{restoredTimeValue('summary')}</textarea
+        >
       </label>
       <label class="time-expense-toggle">
         <input type="checkbox" name="withExpense" bind:checked={createExpenseEnabled} />
@@ -1206,7 +1384,7 @@
         </div>
         <label>
           <span>{translate('Vendor')}</span>
-          <input name="expenseVendor" maxlength="200" />
+          <input name="expenseVendor" maxlength="200" value={restoredTimeValue('expenseVendor')} />
         </label>
         <div class="expense-form-grid">
           <label>
@@ -1217,7 +1395,12 @@
           </label>
           <label>
             <span>{translate('Time expense occurred (optional)')}</span>
-            <input name="expenseOccurredTimeLocal" type="time" step="60" />
+            <input
+              name="expenseOccurredTimeLocal"
+              type="time"
+              step="60"
+              value={restoredTimeValue('expenseOccurredTimeLocal')}
+            />
           </label>
         </div>
         <div class="expense-form-grid">
@@ -1228,11 +1411,16 @@
               inputmode="decimal"
               pattern="[0-9]+([.][0-9][0-9]?)?"
               required
+              value={restoredTimeValue('expenseAmount')}
             />
           </label>
           <label>
             <span>{translate('Currency')}</span>
-            <select name="expenseCurrency" required value="USD">
+            <select
+              name="expenseCurrency"
+              required
+              value={restoredTimeValue('expenseCurrency') || 'USD'}
+            >
               <option value="EUR">EUR</option>
               <option value="USD">USD</option>
               <option value="BRL">BRL</option>
@@ -1241,7 +1429,11 @@
         </div>
         <label>
           <span>{translate('Who paid')}</span>
-          <select name="expenseWhoPaid" required>
+          <select
+            name="expenseWhoPaid"
+            required
+            value={restoredTimeValue('expenseWhoPaid') || 'worker'}
+          >
             <option value="worker">{translate('Worker')}</option>
             <option value="company_card">{translate('Company card')}</option>
             <option value="company_direct">{translate('Company direct')}</option>
@@ -1251,11 +1443,17 @@
         </label>
         <label>
           <span>{translate('Description')}</span>
-          <textarea name="expenseDescription" minlength="3" maxlength="5000" required></textarea>
+          <textarea name="expenseDescription" minlength="3" maxlength="5000" required
+            >{restoredTimeValue('expenseDescription')}</textarea
+          >
         </label>
         <label>
           <span>{translate('Payment method (optional)')}</span>
-          <input name="expensePaymentMethod" maxlength="80" />
+          <input
+            name="expensePaymentMethod"
+            maxlength="80"
+            value={restoredTimeValue('expensePaymentMethod')}
+          />
         </label>
       {/if}
       <div class="expense-entry-actions time-entry-actions">
@@ -1281,9 +1479,13 @@
       onsubmit={(event) => saveOfflineDraft(event, 'time')}
     >
       <input type="hidden" name="id" value={editRow.id} />
-      <input type="hidden" name="version" value={editRow.version} />
+      <input type="hidden" name="version" value={restoredTimeValue('version') || editRow.version} />
       <input type="hidden" name="projectId" value={editRow.project_id} />
-      <input type="hidden" name="workDate" value={editRow.work_date} />
+      <input
+        type="hidden"
+        name="workDate"
+        value={restoredTimeValue('workDate') || editRow.work_date}
+      />
       <div class="expense-entry-intro time-entry-intro">
         <strong>{translate('Update actual work')}</strong>
         <span>{translate('The project and date remain bound to the original entry.')}</span>
@@ -1307,7 +1509,7 @@
           <input
             name="activityCode"
             maxlength="100"
-            value={String(editRow.activity_code ?? '')}
+            value={restoredTimeValue('activityCode') || String(editRow.activity_code ?? '')}
             placeholder={translate('Operational detail')}
           />
         </label>
@@ -1315,16 +1517,16 @@
       {#key editRow.id}
         <TimeIntervalFields
           {translate}
-          initialStart={String(editRow.start_time ?? '')}
-          initialEnd={String(editRow.end_time ?? '')}
-          initialBreak={Number(editRow.break_minutes ?? 0)}
-          legacyMinutes={Number(editRow.minutes ?? 0)}
+          initialStart={restoredTimeValue('startTime') || String(editRow.start_time ?? '')}
+          initialEnd={restoredTimeValue('endTime') || String(editRow.end_time ?? '')}
+          initialBreak={Number(restoredTimeValue('breakMinutes') || editRow.break_minutes || 0)}
+          legacyMinutes={Number(restoredTimeValue('minutes') || editRow.minutes || 0)}
         />
       {/key}
       <label>
         <span>{translate('Activity summary')}</span>
         <textarea name="summary" minlength="3" maxlength="5000" required
-          >{editRow.activity_summary}</textarea
+          >{restoredTimeValue('summary') || editRow.activity_summary}</textarea
         >
       </label>
       <div class="expense-entry-actions time-entry-actions">

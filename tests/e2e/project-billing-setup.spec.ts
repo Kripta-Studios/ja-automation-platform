@@ -4,6 +4,7 @@ import { expect, test } from '@playwright/test';
 import { PortalRepository } from '@ja/database';
 import { portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 test('owner configures one or two customer invoices from the project at phone, tablet and desktop widths', async ({
   page,
@@ -23,7 +24,9 @@ test('owner configures one or two customer invoices from the project at phone, t
     if (!clientId) throw new Error('An active client is required for project billing setup');
     await create.locator('[name="clientId"]').selectOption(clientId);
     await create.locator('[name="name"]').fill(name);
-    await create.locator('[name="costCenterCode"]').fill(`QA-BILL-SETUP-${testInfo.project.name}`);
+    await create
+      .locator('[name="costCenterCode"]')
+      .fill(e2eCostCenter('QA-BILL-SETUP', 14, testInfo.project.name, 1));
     await create.getByRole('button', { name: 'Create project', exact: true }).click();
     await expect
       .poll(() => db.prepare('SELECT id FROM project WHERE name=?').get(name))
@@ -36,8 +39,8 @@ test('owner configures one or two customer invoices from the project at phone, t
     await expect(setup.locator('[name="mode"]')).toHaveValue('combined');
     await setup.getByRole('button', { name: 'Continue' }).click();
     await expect(setup.getByText('2. Billing details')).toBeVisible();
-    await expect(setup.getByLabel('Issuing legal entity')).not.toHaveValue('');
-    await expect(setup.getByLabel('Labor tax profile')).not.toHaveValue('');
+    await expect(setup.getByLabel('Invoice issuer (J&A Automation)')).not.toHaveValue('');
+    await expect(setup.getByLabel('Labor tax profile')).toHaveValue('');
     await setup.getByRole('button', { name: 'Continue' }).click();
     await expect(setup.getByText('3. Review each person')).toBeVisible();
     await setup.getByRole('button', { name: 'Continue' }).click();
@@ -226,7 +229,7 @@ test('owner saves different project-person rates, pay and expense treatment inli
     const project = repository.createProject(owner, {
       clientId: client.id,
       name: `Project person terms ${randomUUID()}`,
-      costCenterCode: `QA-PERSON-${testInfo.project.name}`,
+      costCenterCode: e2eCostCenter('QA-PERSON', 14, testInfo.project.name, 2),
       currency: 'USD',
       timezone: 'Europe/Madrid',
       billingModel: 'tm',
@@ -314,7 +317,7 @@ test('owner saves different project-person rates, pay and expense treatment inli
   }
 });
 
-test('missing issuer and tax show a recovery path before billing setup can continue', async ({
+test('missing issuer shows a recovery path before billing setup can continue', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop');
@@ -337,7 +340,7 @@ test('missing issuer and tax show a recovery path before billing setup can conti
     const project = repository.createProject(owner, {
       clientId: client.id,
       name: `Missing issuer project ${randomUUID()}`,
-      costCenterCode: 'QA-BILLING-PREREQUISITE',
+      costCenterCode: e2eCostCenter('QA-BILLING-PREREQUISITE', 14, testInfo.project.name, 3),
       timezone: 'America/Sao_Paulo',
       currency: 'BRL',
       billingModel: 'tm',
@@ -347,12 +350,11 @@ test('missing issuer and tax show a recovery path before billing setup can conti
     await page.goto(portal(`/projects/${project.id}?tab=billing`));
     const setup = page.getByRole('region', { name: 'Project billing setup' });
     await setup.getByRole('button', { name: 'Continue' }).click();
-    await expect(setup.getByRole('alert')).toContainText(
-      'An active issuing entity and tax profile',
+    await expect(setup.getByRole('alert')).toContainText('An active invoice issuer');
+    await expect(setup.getByRole('link', { name: 'Configure invoice issuers' })).toHaveAttribute(
+      'href',
+      /\/app\/finance\?view=commercial&project=/,
     );
-    await expect(
-      setup.getByRole('link', { name: 'Configure legal entities and tax profiles' }),
-    ).toHaveAttribute('href', /\/app\/finance\?view=commercial&project=/);
     await expect(setup.getByRole('button', { name: 'Continue' })).toBeDisabled();
     expect(
       db

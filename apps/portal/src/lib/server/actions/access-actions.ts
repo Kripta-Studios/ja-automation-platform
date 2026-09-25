@@ -14,6 +14,172 @@ import {
 import { StalwartOperationRejectedError } from '$lib/server/stalwart-client';
 import { hashPortalPassword } from '$lib/server/webmail-password';
 
+const knownAccessRules: Readonly<
+  Record<
+    string,
+    {
+      status: 400 | 409;
+      code: string;
+      messageKey: `problem.${string}`;
+      message: string;
+      remedy: string;
+      field?: string;
+    }
+  >
+> = {
+  'The last active owner cannot be demoted': {
+    status: 409,
+    code: 'ACCESS_LAST_OWNER_REQUIRED',
+    messageKey: 'problem.access.lastOwnerRequired',
+    message:
+      'The last active owner must keep owner access. Add another owner before changing this role.',
+    remedy: 'review_owner_access',
+  },
+  'The last active owner cannot be offboarded or suspended': {
+    status: 409,
+    code: 'ACCESS_LAST_OWNER_REQUIRED',
+    messageKey: 'problem.access.lastOwnerRequired',
+    message:
+      'The last active owner must keep owner access. Add another owner before changing this status.',
+    remedy: 'review_owner_access',
+  },
+  'The owner cannot change their own status': {
+    status: 400,
+    code: 'ACCESS_SELF_STATUS_BLOCKED',
+    messageKey: 'problem.access.selfStatusBlocked',
+    message:
+      'An owner cannot change their own account status here. Ask another authorized owner to review the account.',
+    remedy: 'contact_owner',
+  },
+  CANONICAL_OWNER_PROTECTED: {
+    status: 409,
+    code: 'ACCESS_CANONICAL_OWNER_PROTECTED',
+    messageKey: 'problem.access.canonicalOwnerProtected',
+    message: 'The designated owner account cannot be changed through this mailbox action.',
+    remedy: 'review_owner_access',
+  },
+  PORTAL_USER_INACTIVE: {
+    status: 409,
+    code: 'ACCESS_PORTAL_USER_INACTIVE',
+    messageKey: 'problem.access.userInactive',
+    message: 'This portal account is inactive. Review its status before changing mailbox access.',
+    remedy: 'review_user_status',
+  },
+  MAIL_IDENTITY_NOT_FOUND: {
+    status: 409,
+    code: 'ACCESS_MAIL_IDENTITY_STALE',
+    messageKey: 'problem.access.mailIdentityStale',
+    message:
+      'This mailbox link changed or was removed. Review the updated account before retrying.',
+    remedy: 'review_updated_record',
+  },
+  MAILBOX_CHANGE_REASON_REQUIRED: {
+    status: 400,
+    code: 'ACCESS_CHANGE_REASON_REQUIRED',
+    messageKey: 'problem.access.reasonRequired',
+    message: 'Enter a reason for this account access change.',
+    remedy: 'enter_reason',
+    field: 'reason',
+  },
+  'An account already exists for this email': {
+    status: 409,
+    code: 'ACCESS_EMAIL_ALREADY_USED',
+    messageKey: 'problem.access.emailAlreadyUsed',
+    message:
+      'A portal account already uses this email. Choose the existing person or another email.',
+    remedy: 'review_existing_person',
+    field: 'email',
+  },
+  'This person already has portal access': {
+    status: 409,
+    code: 'ACCESS_PERSON_ALREADY_HAS_LOGIN',
+    messageKey: 'problem.access.personAlreadyHasLogin',
+    message:
+      'This person already has portal access. Review their existing account instead of creating another login.',
+    remedy: 'review_existing_person',
+  },
+  'Existing person is not active': {
+    status: 400,
+    code: 'ACCESS_PERSON_INACTIVE',
+    messageKey: 'problem.access.personInactive',
+    message:
+      'The selected person is no longer active. Review their status or choose an active person.',
+    remedy: 'review_user_status',
+    field: 'existingUserId',
+  },
+  'Existing person role does not match the selected access role': {
+    status: 400,
+    code: 'ACCESS_PERSON_ROLE_MISMATCH',
+    messageKey: 'problem.access.personRoleMismatch',
+    message:
+      'The selected person has a different role. Review their role before granting this access.',
+    remedy: 'review_existing_person',
+    field: 'accessRole',
+  },
+  'Existing person supplier profile does not match': {
+    status: 400,
+    code: 'ACCESS_PERSON_SUPPLIER_MISMATCH',
+    messageKey: 'problem.access.personSupplierMismatch',
+    message:
+      'The selected person belongs to a different supplier profile. Review that profile before granting access.',
+    remedy: 'review_existing_person',
+    field: 'supplierId',
+  },
+  'Supplier profile with canonical time history cannot be reassigned': {
+    status: 409,
+    code: 'ACCESS_SUPPLIER_HISTORY_LOCKED',
+    messageKey: 'problem.access.supplierHistoryLocked',
+    message:
+      'This person has supplier time history. Review the existing supplier profile before changing its supplier.',
+    remedy: 'review_supplier_profile',
+  },
+  'Supplier coordinators require a usable login account': {
+    status: 400,
+    code: 'ACCESS_SUPPLIER_LOGIN_REQUIRED',
+    messageKey: 'problem.access.supplierLoginRequired',
+    message:
+      'A supplier coordinator needs working portal access. Create or restore their login first.',
+    remedy: 'review_user_access',
+  },
+  'Only existing worker accounts can receive a supplier profile': {
+    status: 400,
+    code: 'ACCESS_SUPPLIER_WORKER_REQUIRED',
+    messageKey: 'problem.access.supplierWorkerRequired',
+    message:
+      'Only worker accounts can receive a supplier profile. Choose a worker or review this person’s role.',
+    remedy: 'review_existing_person',
+    field: 'workerId',
+  },
+  'Email is invalid': {
+    status: 400,
+    code: 'ACCESS_EMAIL_INVALID',
+    messageKey: 'problem.access.emailInvalid',
+    message: 'Enter a valid email address for this portal account.',
+    remedy: 'correct_email',
+    field: 'email',
+  },
+};
+
+function knownAccessFailure(
+  error: unknown,
+  correlationId: string | undefined,
+  recordId?: string,
+  actionName?: string,
+  values?: Readonly<Record<string, unknown>>,
+) {
+  if (!(error instanceof Error)) return null;
+  const rule = knownAccessRules[error.message];
+  if (!rule) return null;
+  return actionFail(rule.status, rule.messageKey, {}, rule.message, {
+    code: rule.code,
+    ...(rule.field ? { fieldErrors: { [rule.field]: [rule.message] } } : {}),
+    remedies: [{ id: rule.remedy, ...(recordId ? { recordId } : {}) }],
+    correlationId,
+    ...(actionName ? { actionName } : {}),
+    ...(values ? { values } : {}),
+  });
+}
+
 function openAccessContext(locals: PortalActionEvent['locals']) {
   try {
     return { context: openPortalRepository(locals) };
@@ -52,7 +218,22 @@ export const accessActions = {
       !userId.success ||
       !['standard', 'supplier_coordinator', 'external_technician'].includes(profile)
     )
-      return actionFail(400, 'action.validation.workerProfile', {}, 'Invalid worker profile data');
+      return actionFail(
+        400,
+        'problem.access.workforceProfileInvalid',
+        {},
+        'Choose a person and a valid workforce profile.',
+        {
+          code: 'ACCESS_WORKFORCE_PROFILE_INVALID',
+          fieldErrors: {
+            ...(!userId.success ? { workerId: ['Choose a person.'] } : {}),
+            ...(!['standard', 'supplier_coordinator', 'external_technician'].includes(profile)
+              ? { profile: ['Choose a valid workforce profile.'] }
+              : {}),
+          },
+          correlationId: event.locals.correlationId,
+        },
+      );
     const opened = openAccessContext(event.locals);
     if ('failure' in opened) return opened.failure;
     try {
@@ -66,7 +247,9 @@ export const accessActions = {
       );
       return actionSuccess('action.access.workerProfile.updated', {}, 'Worker profile updated');
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownAccessFailure(error, event.locals.correlationId, userId.data) ?? actionFailure(error)
+      );
     } finally {
       opened.context.sqlite.close();
     }
@@ -83,12 +266,37 @@ export const accessActions = {
     const password = typeof object.password === 'string' ? object.password : '';
     const accessRole = typeof object.role === 'string' ? object.role : '';
     const supplierId = typeof object.supplierId === 'string' ? object.supplierId : undefined;
+    const values = Object.fromEntries(
+      [
+        'existingUserId',
+        'name',
+        'email',
+        'role',
+        'supplierId',
+        'phone',
+        'company',
+        'contactName',
+        'notes',
+      ].map((key) => [key, typeof object[key] === 'string' ? object[key] : '']),
+    );
     if (!name.trim() || password.length < 12 || password.length > 128)
       return actionFail(
         400,
-        'action.validation.localProvision',
+        'problem.access.localCredentialsInvalid',
         {},
         'Name and a 12–128 character password are required',
+        {
+          code: 'ACCESS_LOCAL_CREDENTIALS_INVALID',
+          fieldErrors: {
+            ...(!name.trim() ? { name: ['Enter the person’s name.'] } : {}),
+            ...(password.length < 12 || password.length > 128
+              ? { password: ['Use a password with 12–128 characters.'] }
+              : {}),
+          },
+          correlationId: locals.correlationId,
+          actionName: 'createLocalPortalUser',
+          values,
+        },
       );
     const roleMap = {
       worker: { role: 'worker' as const },
@@ -106,10 +314,28 @@ export const accessActions = {
     };
     const mapped = roleMap[accessRole as keyof typeof roleMap];
     if (!mapped)
-      return actionFail(400, 'action.validation.localProvision', {}, 'Choose a valid access role');
+      return actionFail(400, 'problem.access.localRoleInvalid', {}, 'Choose a valid access role.', {
+        code: 'ACCESS_LOCAL_ROLE_INVALID',
+        fieldErrors: { role: ['Choose a valid access role.'] },
+        correlationId: locals.correlationId,
+        actionName: 'createLocalPortalUser',
+        values,
+      });
     const supplierProfile = 'supplierProfile' in mapped ? mapped.supplierProfile : undefined;
     if (supplierProfile && !supplierId?.trim())
-      return actionFail(400, 'action.validation.localProvision', {}, 'Select the supplier');
+      return actionFail(
+        400,
+        'problem.access.supplierRequired',
+        {},
+        'Select a supplier for this access role.',
+        {
+          code: 'ACCESS_SUPPLIER_REQUIRED',
+          fieldErrors: { supplierId: ['Select a supplier.'] },
+          correlationId: locals.correlationId,
+          actionName: 'createLocalPortalUser',
+          values,
+        },
+      );
     const opened = openAccessContext(locals);
     if ('failure' in opened) return opened.failure;
     try {
@@ -140,7 +366,15 @@ export const accessActions = {
         'Local portal access created',
       );
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownAccessFailure(
+          error,
+          locals.correlationId,
+          String(object.existingUserId ?? ''),
+          'createLocalPortalUser',
+          values,
+        ) ?? actionFailure(error)
+      );
     } finally {
       opened.context.sqlite.close();
     }
@@ -197,9 +431,19 @@ export const accessActions = {
     if (!parsedId.success || !['active', 'suspended', 'offboarded', 'archived'].includes(status))
       return actionFail(
         400,
-        'action.validation.accountStatus',
+        'problem.access.statusInvalid',
         {},
-        'Invalid account status change',
+        'Choose a person and a valid account status.',
+        {
+          code: 'ACCESS_STATUS_INVALID',
+          fieldErrors: {
+            ...(!parsedId.success ? { userId: ['Choose a person.'] } : {}),
+            ...(!['active', 'suspended', 'offboarded', 'archived'].includes(status)
+              ? { status: ['Choose a valid account status.'] }
+              : {}),
+          },
+          correlationId: locals.correlationId,
+        },
       );
     const opened = openAccessContext(locals);
     if ('failure' in opened) return opened.failure;
@@ -215,7 +459,7 @@ export const accessActions = {
         `Account marked ${status}`,
       );
     } catch (error) {
-      return actionFailure(error);
+      return knownAccessFailure(error, locals.correlationId, userId) ?? actionFailure(error);
     } finally {
       opened.context.sqlite.close();
     }
@@ -235,7 +479,22 @@ export const accessActions = {
 
     const parsedId = uuidSchema.safeParse(workerId);
     if (!parsedId.success || !name.trim() || !email.trim() || !role)
-      return actionFail(400, 'action.validation.workerProfile', {}, 'Invalid worker profile data');
+      return actionFail(
+        400,
+        'problem.access.workerProfileInvalid',
+        {},
+        'Complete the person’s name, email and role before saving.',
+        {
+          code: 'ACCESS_WORKER_PROFILE_INVALID',
+          fieldErrors: {
+            ...(!parsedId.success ? { workerId: ['Choose a person.'] } : {}),
+            ...(!name.trim() ? { name: ['Enter a name.'] } : {}),
+            ...(!email.trim() ? { email: ['Enter an email address.'] } : {}),
+            ...(!role ? { role: ['Choose a role.'] } : {}),
+          },
+          correlationId: locals.correlationId,
+        },
+      );
 
     const opened = openAccessContext(locals);
     if ('failure' in opened) return opened.failure;
@@ -253,16 +512,31 @@ export const accessActions = {
           : CANONICAL_OWNER_EMAIL;
       const canonical = target.email.toLowerCase() === designatedOwnerEmail;
       if ((canonical && role !== 'owner_admin') || (!canonical && role === 'owner_admin'))
-        return actionFail(409, 'action.error.conflict', {}, 'Antonny Luty is the only owner.');
+        return actionFail(
+          409,
+          'problem.access.canonicalOwnerProtected',
+          {},
+          'The designated owner account cannot be changed through this profile form.',
+          {
+            code: 'ACCESS_CANONICAL_OWNER_PROTECTED',
+            remedies: [{ id: 'review_owner_access', recordId: workerId }],
+            correlationId: locals.correlationId,
+          },
+        );
       const linked = opened.context.sqlite
         .prepare('SELECT email FROM mail_identity WHERE user_id=? AND status=?')
         .get(workerId, 'active') as { email: string } | undefined;
       if (linked && linked.email.toLowerCase() !== email.trim().toLowerCase())
         return actionFail(
           409,
-          'action.error.conflict',
+          'problem.access.linkedMailboxEmail',
           {},
-          'A linked Webmail address cannot be changed from the portal.',
+          'This person has a linked mailbox address. Change the mailbox identity through the authorized mail account flow.',
+          {
+            code: 'ACCESS_LINKED_MAILBOX_EMAIL',
+            remedies: [{ id: 'review_mailbox_identity', recordId: workerId }],
+            correlationId: locals.correlationId,
+          },
         );
       opened.context.repository.updateWorkerProfile(opened.context.principal, workerId, {
         name,
@@ -272,7 +546,7 @@ export const accessActions = {
       });
       return actionSuccess('action.access.workerProfile.updated', {}, 'Worker profile updated');
     } catch (error) {
-      return actionFailure(error);
+      return knownAccessFailure(error, locals.correlationId, workerId) ?? actionFailure(error);
     } finally {
       opened.context.sqlite.close();
     }
@@ -497,7 +771,7 @@ export const accessActions = {
       );
       return actionSuccess('action.access.workerProfile.updated', { role }, 'Portal role updated.');
     } catch (error) {
-      return actionFailure(error);
+      return knownAccessFailure(error, event.locals.correlationId, userId) ?? actionFailure(error);
     } finally {
       opened.context.sqlite.close();
     }
@@ -534,7 +808,7 @@ export const accessActions = {
         'Portal access removed; mailbox preserved.',
       );
     } catch (error) {
-      return actionFailure(error);
+      return knownAccessFailure(error, event.locals.correlationId, userId) ?? actionFailure(error);
     } finally {
       opened.context.sqlite.close();
     }

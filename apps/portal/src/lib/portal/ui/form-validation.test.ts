@@ -36,7 +36,7 @@ class FakeNode {
   readonly listeners = new Map<string, Listener[]>();
   readonly classList = new Set<string>();
   parentElement: FakeNode | null = null;
-  textContent = '';
+  private ownText = '';
   private rawInnerHTML = '';
   value = '';
   private requiredState = false;
@@ -76,6 +76,15 @@ class FakeNode {
 
   get innerHTML(): string {
     return this.rawInnerHTML;
+  }
+
+  get textContent(): string {
+    return this.ownText + this.children.map((child) => child.textContent).join('');
+  }
+
+  set textContent(value: string) {
+    this.ownText = value;
+    this.children.splice(0);
   }
 
   set innerHTML(value: string) {
@@ -254,7 +263,7 @@ class FakeNode {
     if (selector === 'input, select, textarea')
       return ['INPUT', 'SELECT', 'TEXTAREA'].includes(this.tagName);
     if (selector === 'form') return this.tagName === 'FORM';
-    if (/^(input|select|textarea|button)$/i.test(selector))
+    if (/^(input|select|textarea|button|a)$/i.test(selector))
       return this.tagName === selector.toUpperCase();
     if (selector === '[data-validation-summary]')
       return this.hasAttribute('data-validation-summary');
@@ -487,7 +496,11 @@ describe('progressive form validation contract', () => {
     const secondError = form.querySelector('[data-field-error-for="tasks"]');
     expect(firstInvalid.getAttribute('aria-describedby')).toContain(firstError?.id ?? '');
     expect(secondInvalid.getAttribute('aria-describedby')).toContain(secondError?.id ?? '');
-    expect(documentFixture.activeElement).toBe(firstInvalid);
+    expect(documentFixture.activeElement).toBe(summary);
+    expect(summary?.querySelectorAll('a').map((link) => link.getAttribute('href'))).toEqual([
+      '#summary',
+      '#tasks',
+    ]);
     expect(valid.value).toBe('Previously entered valid work');
     expect(serverMessage.textContent).toBe('Server form.message must remain truthful');
     expect(form.getAttribute('method')).toBe('POST');
@@ -749,5 +762,88 @@ describe('progressive form validation contract', () => {
     );
     expect(firstControl.getAttribute('aria-describedby')).not.toContain(secondControl.id);
     expect(secondControl.getAttribute('aria-describedby')).not.toContain(firstControl.id);
+  });
+
+  it('shows linked server errors beside fields without changing values or focus', async () => {
+    const form = new FakeForm(documentFixture);
+    const worker = new FakeNode('INPUT', documentFixture);
+    worker.name = 'workerId';
+    worker.value = 'chosen-worker';
+    const start = new FakeNode('INPUT', documentFixture);
+    start.name = 'startOn';
+    start.value = '2026-09-25';
+    form.append(worker, start);
+    documentFixture.body.appendChild(form);
+    const loaded = await loadValidationModule();
+    const report = loaded.module?.reportFormFieldErrors as
+      | ((form: HTMLFormElement, errors: Record<string, string[]>) => void)
+      | undefined;
+    expect(report).toBeTypeOf('function');
+    const action = await formValidationAction();
+    action(form as unknown as HTMLFormElement);
+    start.focus();
+    report!(form as unknown as HTMLFormElement, {
+      workerId: ['Worker is unavailable.'],
+      startOn: ['Date is outside the assignment.'],
+    });
+    const summary = form.querySelector('[data-validation-summary]');
+    expect(summary?.querySelectorAll('a')).toHaveLength(2);
+    expect(summary?.querySelectorAll('a').map((link) => link.getAttribute('href'))).toEqual([
+      `#${worker.id}`,
+      `#${start.id}`,
+    ]);
+    expect(worker.getAttribute('aria-invalid')).toBe('true');
+    expect(start.getAttribute('aria-invalid')).toBe('true');
+    expect(worker.value).toBe('chosen-worker');
+    expect(start.value).toBe('2026-09-25');
+    expect(documentFixture.activeElement).toBe(start);
+    worker.dispatchEvent(new FakeEvent('input', worker));
+    expect(worker.getAttribute('aria-invalid')).toBeNull();
+    expect(start.getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it.each([
+    ['es', 'Introduce un número válido.', 'Utiliza al menos 2 caracteres.'],
+    ['pt-BR', 'Informe um número válido.', 'Use pelo menos 2 caracteres.'],
+  ])('localizes standard schema field errors for %s', async (locale, numberText, lengthText) => {
+    documentFixture.documentElement.setAttribute('lang', locale);
+    const form = new FakeForm(documentFixture);
+    const amount = new FakeNode('INPUT', documentFixture);
+    amount.name = 'amount';
+    const name = new FakeNode('INPUT', documentFixture);
+    name.name = 'name';
+    form.append(amount, name);
+    documentFixture.body.appendChild(form);
+    const loaded = await loadValidationModule();
+    const report = loaded.module?.reportFormFieldErrors as
+      | ((form: HTMLFormElement, errors: Record<string, string[]>) => void)
+      | undefined;
+    expect(report).toBeTypeOf('function');
+    report!(form as unknown as HTMLFormElement, {
+      amount: ['Invalid input: expected number, received string'],
+      name: ['Too small: expected string to have >=2 characters'],
+    });
+    const errors = form.querySelectorAll('[data-field-error-for]');
+    expect(errors.map((error) => error.textContent)).toEqual([numberText, lengthText]);
+    expect(form.querySelector('[data-validation-summary]')?.querySelectorAll('a')).toHaveLength(2);
+  });
+
+  it('keeps numeric schema limits specific in Spanish', async () => {
+    documentFixture.documentElement.setAttribute('lang', 'es');
+    const form = new FakeForm(documentFixture);
+    const hours = new FakeNode('INPUT', documentFixture);
+    hours.name = 'hours';
+    form.append(hours);
+    documentFixture.body.appendChild(form);
+    const loaded = await loadValidationModule();
+    const report = loaded.module?.reportFormFieldErrors as
+      | ((form: HTMLFormElement, errors: Record<string, string[]>) => void)
+      | undefined;
+    report!(form as unknown as HTMLFormElement, {
+      hours: ['Too big: expected number to be <=24'],
+    });
+    expect(form.querySelector('[data-field-error-for]')?.textContent).toBe(
+      'Introduce un valor igual o inferior a 24.',
+    );
   });
 });

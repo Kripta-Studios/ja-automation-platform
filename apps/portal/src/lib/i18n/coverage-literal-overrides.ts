@@ -896,14 +896,32 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     'Las facturas nunca se emiten ni se envían automáticamente.',
     'As faturas nunca são emitidas ou enviadas automaticamente.',
   ],
-  'An active issuing entity and tax profile in the project currency are required before invoices can be configured.':
+  'An active invoice issuer in the project currency is required before invoices can be configured.':
     [
-      'Se necesita una entidad emisora y un perfil fiscal activos en la moneda del proyecto antes de configurar las facturas.',
-      'É necessária uma entidade emissora e um perfil tributário ativos na moeda do projeto antes de configurar as faturas.',
+      'Se necesita un emisor de facturas activo en la moneda del proyecto antes de configurar las facturas.',
+      'É necessário um emitente de faturas ativo na moeda do projeto antes de configurar as faturas.',
     ],
-  'Configure legal entities and tax profiles': [
-    'Configurar entidades legales y perfiles fiscales',
-    'Configurar entidades legais e perfis tributários',
+  'Configure invoice issuers': [
+    'Configurar emisores de facturas',
+    'Configurar emitentes de faturas',
+  ],
+  'Break (decimal hours)': ['Pausa (horas decimales)', 'Pausa (horas decimais)'],
+  'Enter a valid break in decimal hours, shorter than 24 hours.': [
+    'Indica una pausa válida en horas decimales, inferior a 24 horas.',
+    'Informe uma pausa válida em horas decimais, inferior a 24 horas.',
+  ],
+  'Enter decimal hours, for example 7.5.': [
+    'Indica horas decimales, por ejemplo 7,5.',
+    'Informe horas decimais, por exemplo 7,5.',
+  ],
+  'End the cost center with digits. Those digits become the project number suffix (for example, CP020 becomes P-020).':
+    [
+      'Termina el centro de coste con dígitos. Esos dígitos forman el final del número de proyecto (por ejemplo, CP020 se convierte en P-020).',
+      'Termine o centro de custo com dígitos. Eles formam o final do número do projeto (por exemplo, CP020 torna-se P-020).',
+    ],
+  'Enter decimal hours greater than zero and at most 24.': [
+    'Indica horas decimales mayores que cero y de hasta 24.',
+    'Informe horas decimais maiores que zero e de até 24.',
   ],
   'These rates and expense policies are configured per assignment. This setup does not change them.':
     [

@@ -213,7 +213,7 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
   it('creates an effective project-manager membership and exposes the project version in assigned listings', () => {
     const value = fixture();
     const created = value.repository.createProject(value.owner, {
-      costCenterCode: 'QA-CLIENT-PROJECT-ESSENTIAL-TEST-1',
+      costCenterCode: 'QA-CLIENT-PROJECT-ESSENTIAL-TEST-5',
       clientId: value.client.id,
       name: 'Managed project',
       timezone: 'Europe/Madrid',

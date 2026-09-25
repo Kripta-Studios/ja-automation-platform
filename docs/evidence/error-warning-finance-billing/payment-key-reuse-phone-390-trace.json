@@ -1,0 +1,11 @@
+[
+  {
+    "step": "first-payment",
+    "added": true
+  },
+  {
+    "step": "reused-key-conflict",
+    "code": "BILLING_IDEMPOTENCY_REUSED",
+    "unchanged": true
+  }
+]

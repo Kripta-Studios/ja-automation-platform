@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { createDatabase, PortalRepository } from '@ja/database';
 import { e2eCredentials, e2eLifecycleFixturesFor, portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 test('returned time and expense can be revised, withdrawn, recreated, and submitted', async ({
   page,
@@ -24,7 +25,7 @@ test('returned time and expense can be revised, withdrawn, recreated, and submit
     const projectId = repository.createProject(owner, {
       clientId: e2eLifecycleFixturesFor(testInfo.project.name).client.id,
       name: `Correction browser ${randomUUID()}`,
-      costCenterCode: `CORRECTION-${testInfo.project.name}`,
+      costCenterCode: e2eCostCenter('CORRECTION', 13, testInfo.project.name),
       currency: 'USD',
       timezone: 'UTC',
       billingModel: 'tm',

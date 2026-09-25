@@ -855,14 +855,14 @@
             )}</label
           >
           <p class="hint">{t('Invoices are never issued or sent automatically.')}</p>
-          {#if entityChoices.length === 0 || availableTaxes.length === 0}
+          {#if entityChoices.length === 0}
             <p class="warning" role="alert">
               {t(
-                'An active issuing entity and tax profile in the project currency are required before invoices can be configured.',
+                'An active invoice issuer in the project currency is required before invoices can be configured.',
               )}
               <a
                 href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(projectId)}`}
-                >{t('Configure legal entities and tax profiles')}</a
+                >{t('Configure invoice issuers')}</a
               >
             </p>
           {/if}
@@ -1210,8 +1210,7 @@
             type="button"
             class="primary-button"
             onclick={next}
-            disabled={step === 2 && (entityChoices.length === 0 || availableTaxes.length === 0)}
-            >{t('Continue')}</button
+            disabled={step === 2 && entityChoices.length === 0}>{t('Continue')}</button
           >
         {:else}<button type="submit" class="primary-button" disabled={submitted}
             >{submitted ? t('Saving…') : t('Save billing setup')}</button

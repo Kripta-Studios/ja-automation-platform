@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDatabase, V3Repository, WorkerStatementRepository } from '@ja/database';
+import { WORKER_STATEMENT_TEMPLATE_VERSION } from '@ja/reporting';
 import { provisionServiceActor } from '../../packages/database/src/domains/jobs/service-actor-repository.ts';
 import {
   B5_TEST_DEPLOYMENT_ID,
@@ -256,7 +257,7 @@ describe('production durable jobs runner service binding', () => {
         {
           periodStart: '2026-08-01',
           periodEnd: '2026-08-31',
-          templateVersion: 'client-essential-test-v1',
+          templateVersion: WORKER_STATEMENT_TEMPLATE_VERSION,
           generationVersion: 'client-essential-test-generation-v1',
           requestKey: 'runner-worker-statement',
           snapshot: {
@@ -302,7 +303,7 @@ describe('production durable jobs runner service binding', () => {
         .all();
       const rows = verified.sqlite
         .prepare(
-          `SELECT artifact_id,format,status,storage_key,byte_length,content_sha256
+          `SELECT artifact_id,format,status,storage_key,byte_length,content_sha256,error_code
              FROM worker_statement_artifact
             WHERE artifact_id IN (?,?) ORDER BY format`,
         )
@@ -313,11 +314,12 @@ describe('production durable jobs runner service binding', () => {
         storage_key: string;
         byte_length: number;
         content_sha256: string;
+        error_code: string | null;
       }>;
       expect(rows).toHaveLength(2);
       expect(
         rows.map((row) => row.status),
-        `${result.stdout}\n${result.stderr}\n${JSON.stringify(workerJobs)}`,
+        `${result.stdout}\n${result.stderr}\n${JSON.stringify(workerJobs)}\n${JSON.stringify(rows)}`,
       ).toEqual(['ready', 'ready']);
       expect(rows.every((row) => row.byte_length > 0 && row.content_sha256.length === 64)).toBe(
         true,

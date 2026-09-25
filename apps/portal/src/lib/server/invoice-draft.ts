@@ -1,6 +1,6 @@
 import { ReadinessError, ValidationError } from '@ja/database';
 import type { Principal } from '@ja/domain';
-import { billingReadinessMessageKey } from '../portal/billing-readiness';
+import { billingReadinessMessageKey, billingReadinessRemedyId } from '../portal/billing-readiness';
 import { actionFail, actionSuccess, type ActionMessageKey } from './actions/action-message';
 
 type DraftRepository = {
@@ -42,9 +42,17 @@ function tryCreateDraft(
 function failReadiness(
   reasons: readonly { code?: string }[],
   selection: Readonly<{ billingRuleId: string; periodStart: string; periodEnd: string }>,
+  role: string,
 ) {
   const messageKey = billingReadinessMessageKey(reasons[0]?.code) as ActionMessageKey;
-  return actionFail(409, messageKey, {}, undefined, { reasons, ...selection });
+  const reasonCode = String(reasons[0]?.code ?? 'unknown');
+  const remedyId = billingReadinessRemedyId(reasonCode, role);
+  return actionFail(409, messageKey, {}, undefined, {
+    code: `BILLING_READINESS_${reasonCode.toUpperCase()}`,
+    reasons,
+    remedies: [{ id: remedyId }],
+    ...selection,
+  });
 }
 
 export function createInvoiceDraftResolvingPeriod(
@@ -86,5 +94,5 @@ export function createInvoiceDraftResolvingPeriod(
   // generate a different period merely because the requested one is blocked.
   // The caller receives the exact readiness reasons and can explicitly review
   // pending records or choose another period.
-  return failReadiness(requested.reasons, input);
+  return failReadiness(requested.reasons, input, context.principal.role);
 }

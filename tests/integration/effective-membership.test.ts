@@ -304,7 +304,7 @@ describe('B5 effective membership (RED characterization)', () => {
   it('rejects receipts from another project in normal and offline expense creation', () => {
     const value = fixture();
     const otherProject = value.repository.createProject(value.owner, {
-      costCenterCode: 'QA-EFFECTIVE-MEMBERSHIP-TEST-1',
+      costCenterCode: 'QA-EFFECTIVE-MEMBERSHIP-TEST-2',
       clientId: value.client.id,
       name: 'Receipt isolation project',
       timezone: 'Europe/Madrid',

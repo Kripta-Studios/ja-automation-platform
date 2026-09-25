@@ -4,6 +4,7 @@ import { expect, test } from '@playwright/test';
 import { PortalRepository, V3Repository } from '@ja/database';
 import { portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 function selectedProjectId(): string {
   const db = new DatabaseSync(readE2EFixturePointer().databasePath);
@@ -74,7 +75,7 @@ test('owner sees the exact canonical mixed-rate amount in the browser at key wid
     const project = repository.createProject(owner, {
       clientId: client.id,
       name: marker,
-      costCenterCode: `QA-CALC-${testInfo.project.name}`,
+      costCenterCode: e2eCostCenter('QA-CALC', 7, testInfo.project.name),
       timezone: 'America/New_York',
       currency: 'USD',
       billingModel: 'tm',

@@ -1,11 +1,14 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import type { ProblemData } from '$lib/problem/contract';
+  import { normalizePortalLocale, portalText } from '$lib/portal-i18n';
   import PlanningCalendar from '../ui/PlanningCalendar.svelte';
   import ExpertiseWorkerSelect from './ExpertiseWorkerSelect.svelte';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
-  import { SectionCard, StatusBadge, TableRegion } from '../ui';
+  import { ProblemNotice, SectionCard, StatusBadge, TableRegion } from '../ui';
+  import { formValidation, reportFormFieldErrors } from '../ui/form-validation';
   import type { TableCardRow } from '../ui';
-  import type { PortalRow } from '../portal-data';
+  import type { PortalActionResult, PortalRow } from '../portal-data';
   import { operationalSearchText } from './operational-register';
 
   /**
@@ -53,6 +56,7 @@
     ) => readonly ProjectLifecycleAction[] | undefined;
     translate: (value: string) => string;
     controlledValue?: (domain: 'status', value: unknown) => string;
+    form?: PortalActionResult;
   };
 
   let {
@@ -70,15 +74,31 @@
     getProjectLifecycleActions,
     translate,
     controlledValue,
+    form,
   }: ProjectSectionProps = $props();
 
-  let search = $state('');
-  let statusFilter = $state('');
-
-  $effect(() => {
-    search = $page.url.searchParams.get('q')?.trim() ?? '';
-    statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
-  });
+  const assignmentFormData = $derived(
+    form as
+      | (ProblemData & {
+          actionName?: string;
+          values?: Readonly<Record<string, unknown>>;
+          fields?: Readonly<Record<string, readonly string[]>>;
+        })
+      | null
+      | undefined,
+  );
+  const assignmentValues = $derived(
+    assignmentFormData?.actionName === 'assignWorker' ? assignmentFormData.values : undefined,
+  );
+  let search = $derived($page.url.searchParams.get('q')?.trim() ?? '');
+  let statusFilter = $derived($page.url.searchParams.get('status')?.trim() ?? '');
+  let selectedAssignmentProjectId = $derived(
+    typeof assignmentValues?.projectId === 'string'
+      ? assignmentValues.projectId
+      : ($page.url.searchParams.get('project') ?? ''),
+  );
+  let assignmentForm: HTMLFormElement | undefined = $state();
+  const normalizedLocale = $derived(normalizePortalLocale(locale));
 
   const isOwnerOrFinance = $derived(role === 'owner_admin' || role === 'finance_admin');
   const canCreateProject = $derived(isOwnerOrFinance && capabilities.canCreateProject === true);
@@ -194,6 +214,78 @@
     ),
   );
   const assignableProjectIds = $derived(new Set(assignableProjects.map(projectId)));
+  const assignmentProblem = $derived(
+    assignmentFormData?.actionName === 'assignWorker' && assignmentFormData.code
+      ? assignmentFormData
+      : undefined,
+  );
+  const assignmentRecordProblem = $derived(
+    assignmentFormData?.code &&
+      ['updateAssignment', 'removeAssignment', 'deleteAssignment'].includes(
+        assignmentFormData.actionName ?? '',
+      )
+      ? assignmentFormData
+      : undefined,
+  );
+  const assignmentRecordValues = $derived(
+    assignmentRecordProblem ? assignmentFormData?.values : undefined,
+  );
+  const selectedAssignmentProject = $derived(
+    (projects ?? []).find((project) => projectId(project) === selectedAssignmentProjectId),
+  );
+  const unavailableSelectedProject = $derived.by(() => {
+    if (!selectedAssignmentProjectId || assignableProjectIds.has(selectedAssignmentProjectId))
+      return null;
+    if (selectedAssignmentProject) return selectedAssignmentProject;
+    if (
+      assignmentProblem?.code === 'PROJECT_ASSIGNMENT_BLOCKED_STATUS' &&
+      assignmentValues?.projectId === selectedAssignmentProjectId
+    )
+      return {
+        id: selectedAssignmentProjectId,
+        name: String(assignmentProblem.params.projectName ?? ''),
+        status: String(assignmentProblem.params.status ?? ''),
+      } satisfies PortalRow;
+    return null;
+  });
+  const blockedAssignmentStatus = $derived(
+    unavailableSelectedProject &&
+      !['active', 'planned', 'paused'].includes(projectStatus(unavailableSelectedProject)),
+  );
+  const blockedAssignmentWarning = $derived(
+    blockedAssignmentStatus && unavailableSelectedProject
+      ? ({
+          code: 'PROJECT_ASSIGNMENT_BLOCKED_STATUS',
+          messageKey: 'problem.project.assignmentBlockedStatus',
+          params: {
+            projectName: projectName(unavailableSelectedProject),
+            status: statusLabel(projectStatus(unavailableSelectedProject)),
+          },
+          fieldErrors: {},
+          remedies: [{ id: 'contact_project_owner' }],
+          correlationId: '',
+        } satisfies ProblemData)
+      : null,
+  );
+  const displayedAssignmentProblem = $derived(
+    assignmentProblem
+      ? {
+          ...assignmentProblem,
+          params: {
+            ...assignmentProblem.params,
+            ...(assignmentProblem.params.status
+              ? { status: statusLabel(String(assignmentProblem.params.status)) }
+              : {}),
+          },
+        }
+      : null,
+  );
+
+  $effect(() => {
+    if (assignmentFormData?.actionName !== 'assignWorker' || !assignmentForm) return;
+    const errors = assignmentFormData.fieldErrors ?? assignmentFormData.fields;
+    if (errors) reportFormFieldErrors(assignmentForm, errors);
+  });
   const activeAssignments = $derived(
     (assignments ?? []).filter(
       (assignment) =>
@@ -486,63 +578,132 @@
     {/if}
   </SectionCard>
 
-  {#if canManageAssignments && assignableProjects.length > 0}
+  {#if canManageAssignments && (assignableProjects.length > 0 || unavailableSelectedProject)}
     <section class="project-section__assignments" aria-label={translate('Project assignments')}>
       <details
         id="project-assignment"
         class="admin-details"
         data-project-workflow="assign-worker"
-        open={$page.url.searchParams.get('action') === 'assign-worker'}
+        open={$page.url.searchParams.get('action') === 'assign-worker' ||
+          assignmentFormData?.actionName === 'assignWorker'}
       >
         <summary class="secondary-button">{translate('Assign worker')}</summary>
-        <form method="POST" action="?/assignWorker" class="project-section__assignment-form">
+        <form
+          bind:this={assignmentForm}
+          use:formValidation
+          method="POST"
+          action="?/assignWorker"
+          class="project-section__assignment-form"
+        >
           <h3>{translate('Assign worker')}</h3>
+          {#if displayedAssignmentProblem}
+            <ProblemNotice
+              problem={displayedAssignmentProblem}
+              status={displayedAssignmentProblem.params.status
+                ? portalText(normalizedLocale, 'Current status: {status}', {
+                    status: String(displayedAssignmentProblem.params.status),
+                  })
+                : undefined}
+              remedyLinks={{
+                contact_project_owner: {
+                  label: portalText(normalizedLocale, 'problem.remedy.contactOwner'),
+                },
+                review_assignments: {
+                  label: portalText(normalizedLocale, 'problem.remedy.reviewAssignments'),
+                  href: `${base}/app/projects?action=update-assignment#project-assignment-list`,
+                },
+                choose_available_worker: {
+                  label: portalText(normalizedLocale, 'problem.remedy.chooseAvailableWorker'),
+                },
+              }}
+            />
+          {:else if blockedAssignmentWarning}
+            <ProblemNotice
+              problem={blockedAssignmentWarning}
+              kind="warning"
+              status={portalText(normalizedLocale, 'Current status: {status}', {
+                status: String(blockedAssignmentWarning.params.status),
+              })}
+              remedyLinks={{
+                contact_project_owner: {
+                  label: portalText(normalizedLocale, 'problem.remedy.contactOwner'),
+                },
+              }}
+            />
+          {/if}
           <label>
             <span>{translate('Project')}</span>
-            <select name="projectId" required>
-              <option
-                value=""
-                selected={!assignableProjects.some(
-                  (project) => projectId(project) === $page.url.searchParams.get('project'),
-                )}>{translate('Select project')}</option
-              >
+            <select name="projectId" required bind:value={selectedAssignmentProjectId}>
+              <option value="">{translate('Select project')}</option>
               {#each assignableProjects as project}
-                <option
-                  value={projectId(project)}
-                  selected={projectId(project) === $page.url.searchParams.get('project')}
+                <option value={projectId(project)}
                   >{projectNumber(project)} · {projectName(project)}</option
                 >
               {/each}
+              {#if unavailableSelectedProject}
+                <option value={projectId(unavailableSelectedProject)} disabled>
+                  {portalText(normalizedLocale, 'problem.project.unavailableOption', {
+                    projectName: projectName(unavailableSelectedProject),
+                    status: statusLabel(projectStatus(unavailableSelectedProject)),
+                  })}
+                </option>
+              {/if}
             </select>
           </label>
           <ExpertiseWorkerSelect
             {workers}
             {expertise}
             {workerExpertise}
-            selectedWorkerId={$page.url.searchParams.get('worker') ?? ''}
+            selectedWorkerId={typeof assignmentValues?.workerId === 'string'
+              ? assignmentValues.workerId
+              : ($page.url.searchParams.get('worker') ?? '')}
             {translate}
           />
           <label>
             <span>{translate('Starts on')}</span>
-            <input name="startsOn" type="date" required />
+            <input
+              name="startsOn"
+              type="date"
+              value={String(assignmentValues?.startsOn ?? '')}
+              required
+            />
           </label>
           <label>
             <span>{translate('Ends on (optional)')}</span>
-            <input name="endsOn" type="date" />
+            <input name="endsOn" type="date" value={String(assignmentValues?.endsOn ?? '')} />
           </label>
           <p class="form-help project-section__assignment-help">
             {translate(
               'If a worker is not listed, ask the owner to assign them to a project you manage first.',
             )}
           </p>
-          <button type="submit" disabled={workers.length === 0}>{translate('Assign')}</button>
+          <button type="submit" disabled={workers.length === 0 || Boolean(blockedAssignmentStatus)}
+            >{translate('Assign')}</button
+          >
         </form>
       </details>
 
       {#if activeAssignments.length > 0}
-        <details class="admin-details" data-project-workflow="manage-assignment">
+        <details
+          id="project-assignment-list"
+          class="admin-details"
+          data-project-workflow="manage-assignment"
+          open={$page.url.searchParams.get('action') === 'update-assignment' ||
+            Boolean(assignmentRecordProblem)}
+        >
           <summary class="secondary-button">{translate('Update assignment')}</summary>
           <div class="project-section__assignment-list">
+            {#if assignmentRecordProblem}
+              <ProblemNotice
+                problem={assignmentRecordProblem}
+                remedyLinks={{
+                  review_assignments: {
+                    label: portalText(normalizedLocale, 'problem.remedy.reviewAssignments'),
+                    href: `${base}/app/projects?action=update-assignment#project-assignment-list`,
+                  },
+                }}
+              />
+            {/if}
             {#each activeAssignments as assignment (value(assignment, 'id'))}
               <div class="project-section__assignment-item">
                 <h3>{value(assignment, 'project_number')} · {value(assignment, 'worker_name')}</h3>
@@ -558,13 +719,21 @@
                     <input
                       name="startsOn"
                       type="date"
-                      value={value(assignment, 'starts_on')}
+                      value={assignmentRecordValues?.assignmentId === value(assignment, 'id')
+                        ? String(assignmentRecordValues.startsOn ?? '')
+                        : value(assignment, 'starts_on')}
                       required
                     />
                   </label>
                   <label>
                     <span>{translate('Ends on')}</span>
-                    <input name="endsOn" type="date" value={value(assignment, 'ends_on')} />
+                    <input
+                      name="endsOn"
+                      type="date"
+                      value={assignmentRecordValues?.assignmentId === value(assignment, 'id')
+                        ? String(assignmentRecordValues.endsOn ?? '')
+                        : value(assignment, 'ends_on')}
+                    />
                   </label>
                   <button type="submit">{translate('Update assignment')}</button>
                 </form>

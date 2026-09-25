@@ -154,7 +154,7 @@ function createExpense(
   spentOn: string,
   amountMinor = 100n,
 ) {
-  return value.repository.createExpense(worker, {
+  const expense = value.repository.createExpense(worker, {
     projectId: value.projectId,
     spentOn,
     vendor: `Statement Vendor ${index}`,
@@ -167,6 +167,14 @@ function createExpense(
     paymentMethod: 'personal_card',
     receiptRequired: false,
   });
+  // Statement tests need a finance-classified reimbursement; operational
+  // expense intake no longer accepts worker-supplied commercial terms.
+  value.sqlite
+    .prepare(
+      "UPDATE expense SET commercial_classification_state='classified',reimbursement_amount_minor=? WHERE id=?",
+    )
+    .run(amountMinor, expense.id);
+  return expense;
 }
 
 function bindJobActor(value: Fixture): void {
@@ -634,7 +642,11 @@ describe('worker statement high-volume exports', () => {
       paymentMethod: 'personal_card',
       receiptRequired: false,
     });
-    value.sqlite.prepare("UPDATE expense SET approval_state='approved' WHERE id=?").run(foreign.id);
+    value.sqlite
+      .prepare(
+        "UPDATE expense SET approval_state='approved',commercial_classification_state='classified',reimbursement_amount_minor=20001 WHERE id=?",
+      )
+      .run(foreign.id);
 
     const expenses = value.repository.listWorkerStatementExpenses(
       value.worker,

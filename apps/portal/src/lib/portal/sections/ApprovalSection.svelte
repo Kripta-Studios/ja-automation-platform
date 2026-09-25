@@ -6,8 +6,9 @@
   import type { SubmitFunction } from '@sveltejs/kit';
   import { onMount, tick } from 'svelte';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
+  import type { ProblemData } from '../../problem/contract';
   import type { PortalData, PortalRow as Row } from '../portal-data';
-  import { SectionCard, StatusBadge } from '../ui';
+  import { ProblemNotice, SectionCard, StatusBadge } from '../ui';
   import {
     operationalMatches,
     operationalPage,
@@ -40,6 +41,42 @@
   } = $props();
 
   let activeTab = $state<Tab>('time');
+  const approvalProblem = $derived.by(() => {
+    const result = $page.form as (ProblemData & { success?: boolean }) | null | undefined;
+    return result?.success === false &&
+      /^(?:APPROVAL_|FINANCE_REVIEW_|EXPENSE_CLASSIFICATION_|FINANCE_ROLE_)/u.test(result.code)
+      ? result
+      : null;
+  });
+  const approvalRemedyLinks = $derived.by(() => {
+    const links: Record<string, { label: string; href?: string }> = {
+      contact_project_owner: { label: translate('Contact a project owner') },
+      contact_project_reviewer: { label: translate('Contact a project reviewer') },
+      contact_finance_owner: { label: translate('Contact Finance or an owner') },
+    };
+    const remedy = approvalProblem?.remedies.find((item) => item.id === 'review_updated_record');
+    if (
+      remedy?.recordId &&
+      ['time', 'expense'].includes(String(approvalProblem?.params.recordType))
+    ) {
+      links.review_updated_record = {
+        label: translate('Review updated record'),
+        href: recordHref({ id: remedy.recordId, type: String(approvalProblem?.params.recordType) }),
+      };
+    }
+    const classify = approvalProblem?.remedies.find((item) => item.id === 'classify_expense');
+    if (
+      classify?.recordId &&
+      canSeeFinanceReview &&
+      ['owner_admin', 'finance_admin'].includes(String(data.user.role))
+    ) {
+      links.classify_expense = {
+        label: translate('Classify expense in Finance'),
+        href: `${base}/app/finance?view=commercial&expense=${encodeURIComponent(classify.recordId)}#expense-classification`,
+      };
+    }
+    return links;
+  });
   let search = $state('');
   let stageFilter = $state<Stage>('');
   let projectFilter = $state('');
@@ -327,6 +364,11 @@
       if (result.type === 'success' || result.type === 'failure') {
         await tick();
         window.scrollTo({ top: scrollTop, behavior: 'instant' });
+        if (result.type === 'failure') {
+          (document.querySelector('[data-approval-problem]') as HTMLElement | null)?.focus({
+            preventScroll: true,
+          });
+        }
       }
     };
   };
@@ -486,6 +528,12 @@
       </a>
     {/if}
   </div>
+
+  {#if approvalProblem}
+    <div data-approval-problem tabindex="-1">
+      <ProblemNotice problem={approvalProblem} remedyLinks={approvalRemedyLinks} />
+    </div>
+  {/if}
 
   <div class="approval-tabs" aria-label={translate('Approval domains')} role="tablist">
     {#each tabs as tab}

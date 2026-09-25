@@ -3,11 +3,14 @@
   import { lastCompletePeriodForCadence, type BillingCadence } from '@ja/billing-engine';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { base } from '$app/paths';
+  import { enhance } from '$app/forms';
   import { page } from '$app/stores';
   import { tick } from 'svelte';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { ResponsiveSheet, SectionCard, StatusBadge, TableRegion } from '../ui';
+  import ProblemNotice from '../ui/ProblemNotice.svelte';
+  import type { ProblemData } from '../../problem/contract';
   import type { TableCardRow } from '../ui';
   import { billingReadinessMessageKey } from '../billing-readiness';
 
@@ -98,6 +101,12 @@
     billingRuleId?: unknown;
     periodStart?: unknown;
     periodEnd?: unknown;
+    params?: unknown;
+    fieldErrors?: unknown;
+    remedies?: unknown;
+    correlationId?: unknown;
+    billingOperation?: unknown;
+    values?: unknown;
   } | null;
 
   let {
@@ -124,7 +133,18 @@
   let stageFilter = $state<BillingStage>('all');
   let workspace = $state<BillingWorkspace>('invoices');
   let setupAction = $state<BillingSetupAction>('stream');
-  let selectedInvoiceId = $state('');
+  // Native form failures render a fresh page. Restore the affected invoice on
+  // the server render too, before client effects run after hydration.
+  let selectedInvoiceId = $state(
+    form?.success === false &&
+      form.billingOperation === 'recordPayment' &&
+      form.values &&
+      typeof form.values === 'object' &&
+      !Array.isArray(form.values) &&
+      typeof (form.values as Record<string, unknown>).invoiceId === 'string'
+      ? String((form.values as Record<string, unknown>).invoiceId)
+      : '',
+  );
   let invoiceWizardOpen = $state(false);
   let invoiceWizardStep = $state(1);
   let wizardRuleId = $state('');
@@ -133,6 +153,74 @@
   let wizardReadiness = $state<BillingReadinessPreview | null>(null);
   let wizardReadinessLoading = $state(false);
   let wizardReadinessError = $state('');
+  const billingProblem = $derived.by((): ProblemData | null => {
+    if (
+      !form ||
+      form.success !== false ||
+      typeof form.code !== 'string' ||
+      typeof form.messageKey !== 'string'
+    )
+      return null;
+    return {
+      code: form.code,
+      messageKey: form.messageKey as ProblemData['messageKey'],
+      params:
+        form.params && typeof form.params === 'object'
+          ? (form.params as ProblemData['params'])
+          : {},
+      fieldErrors:
+        form.fieldErrors && typeof form.fieldErrors === 'object'
+          ? (form.fieldErrors as ProblemData['fieldErrors'])
+          : {},
+      remedies: Array.isArray(form.remedies) ? (form.remedies as ProblemData['remedies']) : [],
+      correlationId: String(form.correlationId ?? ''),
+    };
+  });
+  let focusedProblemId = '';
+  const problemRemedyLinks = $derived({
+    review_record: {
+      label: translate('Review updated record'),
+      href: `${base}/app/billing?view=invoices`,
+    },
+    review_invoice: {
+      label: translate('Review invoice'),
+      href: `${base}/app/billing?view=invoices`,
+    },
+    review_ledger: {
+      label: translate('Review invoice ledger'),
+      href: `${base}/app/billing?view=invoices`,
+    },
+    review_billing_setup: {
+      label: translate('Review billing setup'),
+      href: `${base}/app/billing?view=setup`,
+    },
+    review_pending_records: {
+      label: translate('Review pending records'),
+      href: readinessActionHref(),
+    },
+    review_accounting_pack: {
+      label: translate('Review accounting pack'),
+      href: `${base}/app/accounting`,
+    },
+    contact_finance: { label: translate('Contact a finance administrator') },
+    contact_owner: { label: translate('Contact an owner') },
+  });
+  $effect(() => {
+    const id = billingProblem?.correlationId;
+    const inPaymentDrawer = Boolean(
+      paymentDraft?.invoiceId && selectedInvoiceId === paymentDraft.invoiceId,
+    );
+    const focusKey = `${id}:${inPaymentDrawer ? 'drawer' : 'page'}`;
+    if (!id || focusKey === focusedProblemId) return;
+    focusedProblemId = focusKey;
+    void tick().then(() => {
+      const selector = inPaymentDrawer
+        ? '[data-billing-payment-problem] [data-ui="problem-notice"]'
+        : '[data-ui="billing-section"] > [data-ui="problem-notice"]';
+      const notice = document.querySelector<HTMLElement>(selector);
+      notice?.focus({ preventScroll: true });
+    });
+  });
 
   const todayIso = $derived(new Date().toISOString().slice(0, 10));
 
@@ -186,6 +274,15 @@
     invoiceWizardOpen = true;
   }
 
+  $effect(() => {
+    if (!billingProblem || form?.billingRuleId === undefined) return;
+    wizardRuleId = String(form.billingRuleId);
+    wizardPeriodStart = String(form.periodStart ?? '');
+    wizardPeriodEnd = String(form.periodEnd ?? '');
+    invoiceWizardStep = 12;
+    invoiceWizardOpen = true;
+  });
+
   async function showSetupAction(action: BillingSetupAction): Promise<void> {
     workspace = 'setup';
     setupAction = action;
@@ -198,6 +295,25 @@
   }
 
   const invoices = $derived(data.invoices ?? []);
+  const paymentDraft = $derived.by((): Record<string, string> | null => {
+    if (form?.success !== false || form.billingOperation !== 'recordPayment') return null;
+    const values = form.values;
+    if (!values || typeof values !== 'object' || Array.isArray(values)) return null;
+    return Object.fromEntries(
+      Object.entries(values).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string',
+      ),
+    );
+  });
+  let restoredPaymentProblemId = '';
+  $effect(() => {
+    const problemId = String(form?.correlationId ?? '');
+    const invoiceId = paymentDraft?.invoiceId;
+    if (!problemId || problemId === restoredPaymentProblemId || !invoiceId) return;
+    if (!invoices.some((invoice) => rowValue(invoice, 'id') === invoiceId)) return;
+    restoredPaymentProblemId = problemId;
+    selectedInvoiceId = invoiceId;
+  });
   const billingRules = $derived(data.billingRules ?? []);
   const activeWizardRules = $derived(billingRules.filter((rule) => String(rule.enabled) === '1'));
   const visibleBillingRules = $derived(
@@ -776,6 +892,13 @@
       >
     {/if}
   </header>
+  {#if billingProblem && !invoiceWizardOpen && selectedInvoiceId !== paymentDraft?.invoiceId}
+    <ProblemNotice
+      problem={billingProblem}
+      kind={billingProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+      remedyLinks={problemRemedyLinks}
+    />
+  {/if}
   {#if form?.success && String(form.messageKey ?? '').startsWith('action.billing.invoiceDraft') && form.messageParams?.invoiceId}
     <p role="status">
       <a
@@ -803,6 +926,13 @@
       onclose={() => (invoiceWizardOpen = false)}
     >
       <form method="POST" action="?/createDraft" class="billing-section__invoice-wizard">
+        {#if billingProblem}
+          <ProblemNotice
+            problem={billingProblem}
+            kind={billingProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+            remedyLinks={problemRemedyLinks}
+          />
+        {/if}
         <input type="hidden" name="billingRuleId" value={wizardRuleId} />
         <input type="hidden" name="periodStart" value={wizardPeriodStart} />
         <input type="hidden" name="periodEnd" value={wizardPeriodEnd} />
@@ -1560,7 +1690,7 @@
                   </tr>
                 {:else}
                   <tr
-                    ><td colspan={canManageIssuerAndNumbering ? '4' : '3'}
+                    ><td colspan={canManageIssuerAndNumbering ? 4 : 3}
                       >{translate('No invoice issuers recorded.')}</td
                     ></tr
                   >
@@ -2235,7 +2365,7 @@
         {translate}
         label="Billing"
       />
-      {#if visibleInvoices.length > 0}
+      {#if visibleInvoices.length > 0 || selectedInvoice}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
@@ -2330,6 +2460,12 @@
             {@const invoice = selectedInvoice}
             {@const invoiceId = rowValue(invoice, 'id')}
             {@const invoiceStateValue = invoiceState(invoice)}
+            {@const canRecordPayment = ['issued', 'sent', 'partially_paid', 'overdue'].includes(
+              invoiceStateValue,
+            )}
+            {@const paymentRetryBlocked =
+              billingProblem?.code === 'BILLING_IDEMPOTENCY_REUSED' &&
+              paymentDraft?.invoiceId === invoiceId}
             {@const isCreditNote = isCreditNoteInvoice(invoice)}
             {@const ledger = ledgerForInvoice(invoiceId)}
             {@const currency = invoiceCurrency(invoice)}
@@ -2343,6 +2479,15 @@
               closeLabel={translate('Close')}
               onclose={() => (selectedInvoiceId = '')}
             >
+              {#if billingProblem && paymentDraft?.invoiceId === invoiceId}
+                <div data-billing-payment-problem>
+                  <ProblemNotice
+                    problem={billingProblem}
+                    kind={billingProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+                    remedyLinks={problemRemedyLinks}
+                  />
+                </div>
+              {/if}
               <article class="billing-section__invoice" data-invoice-row={invoiceId}>
                 <nav class="billing-section__drawer-tabs" aria-label={translate('Jump to')}>
                   <button type="button" onclick={() => jumpInvoiceSection('invoice-overview')}
@@ -2829,7 +2974,7 @@
                       >
                       <button type="submit">{translate('Issue invoice')}</button>
                     </form>
-                  {:else if ['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(invoiceStateValue)}
+                  {:else if ['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(invoiceStateValue) || paymentDraft?.invoiceId === invoiceId}
                     {#if isCreditNote && invoiceStateValue === 'overdue'}
                       <form method="POST" action="?/restoreCreditNoteState">
                         <input type="hidden" name="invoiceId" value={invoiceId} />
@@ -2852,8 +2997,11 @@
                         href={`${base}/app/ledger?project=${encodeURIComponent(rowValue(invoice, 'project_id', 'projectId'))}`}
                         >{translate('Review credit in ledger')} →</a
                       >
-                    {:else if invoiceStateValue !== 'paid'}
-                      <details class="billing-section__action-panel">
+                    {:else if canRecordPayment || paymentDraft?.invoiceId === invoiceId}
+                      <details
+                        class="billing-section__action-panel"
+                        open={paymentDraft?.invoiceId === invoiceId}
+                      >
                         <summary>{translate('Record payment')}</summary>
                         <p>
                           {translate(
@@ -2864,6 +3012,7 @@
                           method="POST"
                           action="?/recordPayment"
                           class="billing-section__payment-form"
+                          use:enhance
                         >
                           <input type="hidden" name="invoiceId" value={invoiceId} />
                           <label
@@ -2877,6 +3026,9 @@
                                 ledger?.outstandingMinor ??
                                   rowValue(invoice, 'total_minor', 'totalMinor'),
                               )}
+                              value={paymentDraft?.invoiceId === invoiceId
+                                ? paymentDraft.amount
+                                : ''}
                               required
                             /></label
                           >
@@ -2893,13 +3045,18 @@
                             ><span>{translate('Received on')}</span><input
                               name="receivedOn"
                               type="date"
-                              value={todayIso}
+                              value={paymentDraft?.invoiceId === invoiceId
+                                ? paymentDraft.receivedOn || todayIso
+                                : todayIso}
                               required
                             /></label
                           >
                           <label
                             ><span>{translate('Payment reference / note')}</span><input
                               name="reference"
+                              value={paymentDraft?.invoiceId === invoiceId
+                                ? paymentDraft.reference
+                                : ''}
                               required
                             /></label
                           >
@@ -2909,7 +3066,9 @@
                             value={rowValue(invoice, 'paymentCommandToken') ||
                               `payment-${invoiceId}-${currency}`}
                           />
-                          <button type="submit">{translate('Record payment')}</button>
+                          <button type="submit" disabled={!canRecordPayment || paymentRetryBlocked}
+                            >{translate('Record payment')}</button
+                          >
                         </form>
                       </details>
                     {/if}

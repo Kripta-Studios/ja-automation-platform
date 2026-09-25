@@ -1,13 +1,25 @@
 <script lang="ts">
   import RecordBrowser from '../ui/RecordBrowser.svelte';
+  import { enhance } from '$app/forms';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
+  import { onMount, tick } from 'svelte';
+  import type { SubmitFunction } from '@sveltejs/kit';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalLocale } from '../../portal-i18n';
+  import type { ProblemData } from '../../problem/contract';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { expensePolicyIssueLabels } from '../expense-policy-issues';
   import FinanceConfigurationSection from './FinanceConfigurationSection.svelte';
-  import { Field, SectionCard, StatusBadge, TableRegion, formValidation } from '../ui';
+  import {
+    Field,
+    ProblemNotice,
+    SectionCard,
+    StatusBadge,
+    TableRegion,
+    formValidation,
+    reportFormFieldErrors,
+  } from '../ui';
   import type { TableCardRow } from '../ui';
 
   type MoneyFormatter = (minor: unknown, currency?: string) => string;
@@ -112,6 +124,152 @@
   const canWriteFinance = $derived(
     financeWriteRoles.includes(String(data.user.role) as (typeof financeWriteRoles)[number]),
   );
+  const financeProblem = $derived.by(() => {
+    const result = $page.form as (ProblemData & { success?: boolean }) | null | undefined;
+    return result?.success === false &&
+      (result.messageKey?.startsWith('problem.finance.') ||
+        ['recordCompensationPayment', 'recordReimbursement'].includes(
+          String((result as { actionName?: string }).actionName),
+        ))
+      ? result
+      : null;
+  });
+  const failedFinanceForm = $derived(
+    $page.form as
+      | (ProblemData & { success?: boolean; actionName?: string; values?: Record<string, unknown> })
+      | null
+      | undefined,
+  );
+  function retainedFinanceValue(
+    actionName: string,
+    recordId: string,
+    field: string,
+    fallback: string,
+  ) {
+    const failed = failedFinanceForm;
+    if (failed?.success !== false || failed.actionName !== actionName) return fallback;
+    const submittedId = String(failed.values?.settlementId ?? failed.values?.expenseId ?? '');
+    if (submittedId !== recordId) return fallback;
+    const value = failed.values?.[field];
+    return typeof value === 'string' ? value : fallback;
+  }
+  const submitFinance: SubmitFunction = () => {
+    const scrollTop = window.scrollY;
+    return async ({ result, update }) => {
+      await update({ reset: false });
+      await tick();
+      window.scrollTo({ top: scrollTop, behavior: 'instant' });
+      if (result.type === 'failure')
+        document
+          .querySelector<HTMLElement>('[data-finance-problem]')
+          ?.focus({ preventScroll: true });
+    };
+  };
+  const financeScrollKey = 'ja-finance-failed-form-scroll';
+  function rememberFinanceScroll(): void {
+    sessionStorage.setItem(financeScrollKey, String(window.scrollY));
+  }
+  onMount(() => {
+    if (
+      failedFinanceForm?.success === false &&
+      ['recordCompensationPayment', 'recordReimbursement'].includes(
+        String(failedFinanceForm.actionName),
+      )
+    ) {
+      const saved = Number(sessionStorage.getItem(financeScrollKey));
+      if (Number.isFinite(saved) && saved >= 0)
+        requestAnimationFrame(() => window.scrollTo({ top: saved, behavior: 'instant' }));
+    }
+    sessionStorage.removeItem(financeScrollKey);
+  });
+  const financeRemedyLinks = $derived.by(() => {
+    const links: Record<string, { label: string; href?: string }> = {
+      contact_finance_owner: { label: translate('Contact Finance or an owner') },
+      review_updated_record: { label: translate('Review updated record') },
+      review_expense_policy: { label: translate('Review expense policy') },
+      review_assignment_policy: { label: translate('problem.remedy.reviewAssignmentPolicy') },
+    };
+    const remedies = financeProblem?.remedies ?? [];
+    const review = remedies.find((item) => item.id === 'review_updated_record');
+    if (review?.recordId && financeExpenses.some((row) => String(row.id) === review.recordId))
+      links.review_updated_record = {
+        label: translate('Review updated record'),
+        href: `${base}/app/expenses/${encodeURIComponent(review.recordId)}`,
+      };
+    else if (
+      review?.recordId &&
+      settlements.some((row) => String(row.id) === review.recordId) &&
+      canWriteFinance
+    )
+      links.review_updated_record = {
+        label: translate('Review updated record'),
+        href: `${base}/app/finance?view=economic&source=settlements&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}#worker-payments`,
+      };
+    const issuer = remedies.find((item) => item.id === 'configure_project_issuer');
+    const issuerProjectId = issuer?.projectId || String(data.selectedProjectId ?? '');
+    if (
+      canWriteFinance &&
+      issuer &&
+      issuerProjectId &&
+      availableProjects.some((project) => String(project.id) === issuerProjectId)
+    )
+      links.configure_project_issuer = {
+        label: translate('Review project issuing authority'),
+        href: `${base}/app/finance?view=commercial&project=${encodeURIComponent(issuerProjectId)}#project-issuing-authority`,
+      };
+    const classification = remedies.find((item) => item.id === 'review_expense_classification');
+    if (canWriteFinance && classification?.recordId)
+      links.review_expense_classification = {
+        label: translate('Review expense classification'),
+        href: `${base}/app/finance?view=commercial&expense=${encodeURIComponent(classification.recordId)}#expense-classification`,
+      };
+    if (
+      canWriteFinance &&
+      remedies.some((item) => item.id === 'review_expense_policy') &&
+      data.selectedProjectId &&
+      availableProjects.some((project) => String(project.id) === String(data.selectedProjectId))
+    )
+      links.review_expense_policy = {
+        label: translate('Review expense policy'),
+        href: `${base}/app/finance?view=commercial&project=${encodeURIComponent(String(data.selectedProjectId))}#person-expense-policies`,
+      };
+    if (
+      canWriteFinance &&
+      remedies.some((item) => item.id === 'review_assignment_policy') &&
+      data.selectedProjectId &&
+      availableProjects.some((project) => String(project.id) === String(data.selectedProjectId))
+    )
+      links.review_assignment_policy = {
+        label: translate('problem.remedy.reviewAssignmentPolicy'),
+        href: `${base}/app/finance?view=commercial&project=${encodeURIComponent(String(data.selectedProjectId))}#person-expense-policies`,
+      };
+    return links;
+  });
+  let focusedFinanceProblemId = '';
+  $effect(() => {
+    const id = financeProblem?.correlationId;
+    if (!id || id === focusedFinanceProblemId) return;
+    focusedFinanceProblemId = id;
+    void tick().then(() => {
+      const failed = failedFinanceForm;
+      if (failed?.actionName && failed.fieldErrors && failed.values) {
+        const submittedId = String(failed.values.settlementId ?? failed.values.expenseId ?? '');
+        const forms = document.querySelectorAll<HTMLFormElement>(
+          `[data-ui="finance-overview"] form[data-finance-action="${failed.actionName}"]`,
+        );
+        const form = [...forms].find(
+          (candidate) =>
+            String(
+              new FormData(candidate).get('settlementId') ??
+                new FormData(candidate).get('expenseId') ??
+                '',
+            ) === submittedId,
+        );
+        if (form) reportFormFieldErrors(form, failed.fieldErrors);
+      }
+      document.querySelector<HTMLElement>('[data-finance-problem]')?.focus({ preventScroll: true });
+    });
+  });
   const portfolioProjects = $derived(data.portfolio?.projects ?? []);
   const portfolioWorkers = $derived(data.portfolio?.byWorker ?? []);
   const timeEconomics = $derived(finance?.timeEconomics ?? []);
@@ -131,7 +289,7 @@
       return (
         Array.isArray(worker.assignmentWindows) &&
         worker.assignmentWindows.some((window) => {
-          const [startsOn, endsOn] = String(window).split('/');
+          const [startsOn = '', endsOn] = String(window).split('/');
           return startsOn <= settlementPeriodStart && (!endsOn || endsOn >= settlementPeriodEnd);
         })
       );
@@ -884,6 +1042,12 @@
           : translate('No project selected')}
       />
     </header>
+
+    {#if financeProblem}
+      <div data-finance-problem tabindex="-1">
+        <ProblemNotice problem={financeProblem} remedyLinks={financeRemedyLinks} />
+      </div>
+    {/if}
 
     {#if finance && data.selectedProjectId}
       <p class="finance-overview__calculation-link">
@@ -2192,20 +2356,37 @@
                   {#if value(settlement, 'state', 'status') === 'settled' && BigInt(remainingMinor || '0') > 0n}
                     <form
                       method="POST"
-                      action="?/recordCompensationPayment"
+                      action="?/recordCompensationPayment&view=economic&source=settlements"
                       class="finance-overview__payment-form"
+                      data-finance-action="recordCompensationPayment"
                       use:formValidation
+                      use:enhance={submitFinance}
+                      onsubmit={rememberFinanceScroll}
                     >
                       <input type="hidden" name="settlementId" value={settlementId} />
                       <input type="hidden" name="currency" value={settlement.currency} />
                       <input
                         type="hidden"
                         name="idempotencyKey"
-                        value={`compensation-payment:${settlementId}:${value(settlement, 'paidAmountMinor', 'paid_amount_minor') || '0'}`}
+                        value={retainedFinanceValue(
+                          'recordCompensationPayment',
+                          settlementId,
+                          'idempotencyKey',
+                          `compensation-payment:${settlementId}:${value(settlement, 'paidAmountMinor', 'paid_amount_minor') || '0'}`,
+                        )}
                       />
                       <label>
                         <span>{translate('Payee')}</span>
-                        <select name="payeeSelection" required>
+                        <select
+                          name="payeeSelection"
+                          value={retainedFinanceValue(
+                            'recordCompensationPayment',
+                            settlementId,
+                            'payeeSelection',
+                            `person:${value(settlement, 'workerId', 'worker_id')}`,
+                          )}
+                          required
+                        >
                           <option value={`person:${value(settlement, 'workerId', 'worker_id')}`}>
                             {translate('Person')}: {value(settlement, 'workerName', 'worker_name')}
                           </option>
@@ -2229,21 +2410,55 @@
                           type="number"
                           min="0.01"
                           step="0.01"
-                          value={minorAsDecimal(remainingMinor)}
+                          value={retainedFinanceValue(
+                            'recordCompensationPayment',
+                            settlementId,
+                            'amount',
+                            minorAsDecimal(remainingMinor),
+                          )}
                           required
                         />
                       </label>
                       <label>
                         <span>{translate('Actual payment date')}</span>
-                        <input name="paidOn" type="date" value={data.financeToday} required />
+                        <input
+                          name="paidOn"
+                          type="date"
+                          value={retainedFinanceValue(
+                            'recordCompensationPayment',
+                            settlementId,
+                            'paidOn',
+                            String(data.financeToday ?? ''),
+                          )}
+                          required
+                        />
                       </label>
                       <label>
                         <span>{translate('Payment reference')}</span>
-                        <input name="reference" maxlength="200" required />
+                        <input
+                          name="reference"
+                          maxlength="200"
+                          value={retainedFinanceValue(
+                            'recordCompensationPayment',
+                            settlementId,
+                            'reference',
+                            '',
+                          )}
+                          required
+                        />
                       </label>
                       <label class="finance-overview__payment-note">
                         <span>{translate('Note')}</span>
-                        <input name="note" maxlength="2000" />
+                        <input
+                          name="note"
+                          maxlength="2000"
+                          value={retainedFinanceValue(
+                            'recordCompensationPayment',
+                            settlementId,
+                            'note',
+                            '',
+                          )}
+                        />
                       </label>
                       <button type="submit">{translate('Register actual payment')}</button>
                     </form>
@@ -2395,18 +2610,36 @@
                 {#if canWriteFinance && reimbursementState !== 'reimbursed'}
                   <form
                     method="POST"
-                    action="?/recordReimbursement"
+                    action="?/recordReimbursement&view=economic&source=expenses"
                     class="finance-overview__reimbursement-form"
+                    data-finance-action="recordReimbursement"
+                    use:formValidation
+                    use:enhance={submitFinance}
+                    onsubmit={rememberFinanceScroll}
                   >
                     <input type="hidden" name="expenseId" value={reimbursement.id} />
                     <input
                       type="hidden"
                       name="amountMinor"
-                      value={reimbursement.reimbursementAmountMinor}
+                      value={retainedFinanceValue(
+                        'recordReimbursement',
+                        String(reimbursement.id),
+                        'amountMinor',
+                        String(reimbursement.reimbursementAmountMinor ?? ''),
+                      )}
                     />
                     <label>
                       <span>{translate('Payment reference')}</span>
-                      <input name="reference" required />
+                      <input
+                        name="reference"
+                        value={retainedFinanceValue(
+                          'recordReimbursement',
+                          String(reimbursement.id),
+                          'reference',
+                          '',
+                        )}
+                        required
+                      />
                     </label>
                     <button type="submit">{translate('Mark reimbursed')}</button>
                   </form>

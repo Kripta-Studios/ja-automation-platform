@@ -32,6 +32,7 @@
   } = $props();
 
   const original = (column: string): unknown => record[column];
+  const decimalHours = (minutes: number): string => String(Number((minutes / 60).toFixed(4)));
   const fieldValue = (name: string, column: string): string => {
     const value = values[name] ?? original(column);
     return value === null || value === undefined ? '' : String(value);
@@ -243,7 +244,7 @@
         {/if}
         {#each relatedOptions as option (option.id)}
           <option value={option.id}>
-            {option.workerName} · {Math.floor(option.minutes / 60)} h {option.minutes % 60} min · {translate(
+            {option.workerName} · {decimalHours(option.minutes)} h · {translate(
               statusLabel(option.approvalState),
             )}{option.correctionLinked ? ` · ${translate('Correction')}` : ''} · {option.summary}
           </option>

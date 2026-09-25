@@ -5,9 +5,19 @@
   import { base } from '$app/paths';
   import type { ActionResult, SubmitFunction } from '@sveltejs/kit';
   import { page } from '$app/stores';
+  import { tick } from 'svelte';
+  import type { ProblemData } from '$lib/problem/contract';
+  import { normalizePortalLocale, portalText } from '$lib/portal-i18n';
   import { SvelteSet } from 'svelte/reactivity';
-  import { ResponsiveSheet, SectionCard, StatusBadge, formValidation } from '../ui';
-  import type { PortalRow } from '../portal-data';
+  import {
+    ProblemNotice,
+    ResponsiveSheet,
+    SectionCard,
+    StatusBadge,
+    formValidation,
+    reportFormFieldErrors,
+  } from '../ui';
+  import type { PortalActionResult, PortalRow } from '../portal-data';
 
   const CORPORATE_DOMAIN = '@j-aautomation.com';
   const OWNER_EMAIL = 'antonny.luty@j-aautomation.com';
@@ -46,6 +56,7 @@
     invitationPath?: string | null;
     translate: (value: string) => string;
     controlledValue?: (domain: 'status' | 'availability' | 'role', value: unknown) => string;
+    form?: ActionResult | PortalActionResult;
   };
 
   let {
@@ -62,8 +73,36 @@
     invitationPath = null,
     translate,
     controlledValue,
+    form,
   }: TeamDirectoryProps = $props();
 
+  const problemPayload = $derived.by(() => {
+    const candidate = form as unknown as Record<string, unknown> | null | undefined;
+    if (!candidate) return null;
+    const payload =
+      candidate.data && typeof candidate.data === 'object'
+        ? (candidate.data as Record<string, unknown>)
+        : candidate;
+    return typeof payload.code === 'string' &&
+      payload.code.startsWith('ACCESS_') &&
+      typeof payload.messageKey === 'string'
+      ? (payload as unknown as ProblemData & {
+          actionName?: string;
+          values?: Readonly<Record<string, unknown>>;
+        })
+      : null;
+  });
+  const problemLocale = $derived(
+    normalizePortalLocale($page.url.searchParams.get('lang') ?? $page.data.locale),
+  );
+  const problemRecordId = $derived(
+    problemPayload?.remedies.find((remedy) => remedy.recordId)?.recordId,
+  );
+  const personReviewHref = $derived(
+    problemRecordId
+      ? `${base}/app/projects?view=team&worker=${encodeURIComponent(problemRecordId)}`
+      : `${base}/app/projects?view=team`,
+  );
   let activeTab = $derived<'specialists' | 'mailboxes'>(
     $page.url.searchParams.get('directory') === 'mailboxes' ? 'mailboxes' : 'specialists',
   );
@@ -91,6 +130,36 @@
   // These keys do not drive UI state. Keeping the cache non-reactive also avoids
   // mutating reactive state while mailbox forms are being rendered.
   const externalCommandKeys: Record<string, string> = {};
+
+  $effect(() => {
+    if (problemPayload?.actionName !== 'createLocalPortalUser') return;
+    const values = problemPayload.values;
+    if (values) {
+      existingUserId = String(values.existingUserId ?? '');
+      localName = String(values.name ?? '');
+      localEmail = String(values.email ?? '');
+      localRole = String(values.role ?? 'worker');
+      localSupplierId = String(values.supplierId ?? '');
+      localPhone = String(values.phone ?? '');
+      localCompany = String(values.company ?? '');
+      localContactName = String(values.contactName ?? '');
+      localNotes = String(values.notes ?? '');
+    }
+    creatingUser = true;
+    createLocal = true;
+    activeTab = 'specialists';
+  });
+  $effect(() => {
+    const actionName = problemPayload?.actionName;
+    const errors = problemPayload?.fieldErrors;
+    if (!actionName || !errors || !Object.keys(errors).length) return;
+    void tick().then(() => {
+      const target = document.querySelector<HTMLFormElement>(
+        `[data-team-directory] form[action*="/${actionName}"]`,
+      );
+      if (target) reportFormFieldErrors(target, errors);
+    });
+  });
 
   type MailboxActionStatus = 'idle' | 'pending' | 'success' | 'error';
   type MailboxActionState = { status: MailboxActionStatus; action: string; message: string };
@@ -448,6 +517,45 @@
     <span class="team-directory__count" aria-live="polite">{visibleWorkers.length}</span>
   </header>
 
+  {#if problemPayload && (canManageTeam || canManageMail)}
+    <ProblemNotice
+      problem={problemPayload}
+      remedyLinks={{
+        review_owner_access: {
+          label: portalText(problemLocale, 'problem.remedy.reviewOwnerAccess'),
+          href: `${base}/app/projects?view=team`,
+        },
+        review_user_status: {
+          label: portalText(problemLocale, 'problem.remedy.reviewUserStatus'),
+          href: personReviewHref,
+        },
+        review_existing_person: {
+          label: portalText(problemLocale, 'problem.remedy.reviewExistingPerson'),
+          href: personReviewHref,
+        },
+        review_supplier_profile: {
+          label: portalText(problemLocale, 'problem.remedy.reviewSupplierProfile'),
+          href: personReviewHref,
+        },
+        review_user_access: {
+          label: portalText(problemLocale, 'problem.remedy.reviewUserAccess'),
+          href: personReviewHref,
+        },
+        review_mailbox_identity: {
+          label: portalText(problemLocale, 'problem.remedy.reviewMailboxIdentity'),
+          href: canManageMail ? `${base}/app/projects?view=team&directory=mailboxes` : undefined,
+        },
+        review_updated_record: {
+          label: portalText(problemLocale, 'problem.remedy.reviewUpdatedRecord'),
+          href: personReviewHref,
+        },
+        correct_email: { label: portalText(problemLocale, 'problem.remedy.correctEmail') },
+        enter_reason: { label: portalText(problemLocale, 'problem.remedy.enterReason') },
+        contact_owner: { label: portalText(problemLocale, 'problem.remedy.contactOwner') },
+      }}
+    />
+  {/if}
+
   {#if canManageMailboxDirectory}
     <div class="team-directory__tabs" role="tablist" aria-label={translate('Team directory views')}>
       <a
@@ -546,6 +654,7 @@
                 action="?view=team&/createLocalPortalUser"
                 class="team-directory__create-form"
                 autocomplete="off"
+                use:formValidation
               >
                 <label
                   >{translate('Existing person (optional)')}<select

@@ -3,6 +3,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 const budgetColumns = `budget_minor,revenue_budget_minor,po_cap_minor,fixed_price_minor,
   labor_budget_minutes,travel_budget_minor,expense_budget_minor,other_cost_budget_minor,planned_minutes`;
@@ -32,7 +33,9 @@ test('project edit displays currency and hours, then saves, clears and preserves
     if (!clientId) throw new Error('E2E fixture needs an active client');
     await createForm.locator('[name="clientId"]').selectOption(clientId);
     await createForm.locator('[name="name"]').fill(name);
-    await createForm.locator('[name="costCenterCode"]').fill(`QA-BUDGET-${testInfo.project.name}`);
+    await createForm
+      .locator('[name="costCenterCode"]')
+      .fill(e2eCostCenter('QA-BUDGET', 8, testInfo.project.name));
     await createForm.getByRole('textbox', { name: 'Revenue budget' }).fill('15000.25');
     await createForm.getByRole('textbox', { name: 'Expense budget' }).fill('300.25');
     await createForm.getByRole('textbox', { name: 'Planned labor hours' }).fill('7.5');

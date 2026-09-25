@@ -2,7 +2,9 @@ import type { SubmitFunction } from '@sveltejs/kit';
 import { tick } from 'svelte';
 import type { PortalLocale } from '../../portal-i18n';
 import { standaloneActionMessage } from '../../../routes/app/standalone-locale';
+import type { ProblemData } from '../../problem/contract';
 import formValidation from './form-validation';
+import { reportFormFieldErrors } from './form-validation';
 
 type Control = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
@@ -31,30 +33,36 @@ export function operationalFieldValidation(form: HTMLFormElement): { destroy: ()
   };
 }
 
-function applyFieldErrors(
-  form: HTMLFormElement,
-  data: Record<string, unknown> | undefined,
-  translate: (value: string) => string,
-): void {
+function applyFieldErrors(form: HTMLFormElement, data: Record<string, unknown> | undefined): void {
   for (const control of serverErrorControls(form)) {
     control.setCustomValidity('');
     control.removeAttribute('data-operational-server-error');
   }
-  const fields = data?.fields;
-  if (!fields || typeof fields !== 'object') return;
-  for (const [field, errors] of Object.entries(fields)) {
-    if (!Array.isArray(errors) || !errors.length) continue;
-    const control = form.elements.namedItem(field === 'amountMinor' ? 'amount' : field);
-    if (
-      control instanceof HTMLInputElement ||
-      control instanceof HTMLSelectElement ||
-      control instanceof HTMLTextAreaElement
-    ) {
-      control.setCustomValidity(translate('Review this field.'));
-      control.setAttribute('data-operational-server-error', '');
-    }
+  const raw = data?.fieldErrors ?? data?.fields;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    reportFormFieldErrors(form, {});
+    return;
   }
-  if (serverErrorControls(form).length) form.reportValidity();
+  const fields = Object.fromEntries(
+    Object.entries(raw).map(([field, errors]) => [
+      field === 'amountMinor'
+        ? 'amount'
+        : field === 'minutes'
+          ? form.querySelector('[name="durationHours"]')
+            ? 'durationHours'
+            : 'endTime'
+          : field === 'breakMinutes'
+            ? 'breakHours'
+            : field,
+      errors,
+    ]),
+  ) as Record<string, readonly string[] | string>;
+  reportFormFieldErrors(form, fields);
+}
+
+function problemFromResult(data: Record<string, unknown> | undefined): ProblemData | null {
+  if (!data || typeof data.code !== 'string' || typeof data.messageKey !== 'string') return null;
+  return data as ProblemData;
 }
 
 type OperationalSubmitOptions = {
@@ -62,6 +70,7 @@ type OperationalSubmitOptions = {
   translate: (value: string) => string;
   setSaving: (value: boolean) => void;
   setError: (value: string) => void;
+  setProblem?: (problem: ProblemData | null) => void;
   onSuccess: () => void;
   offlineHandled: () => boolean;
 };
@@ -81,7 +90,7 @@ export function createOperationalSubmit(options: OperationalSubmitOptions): Subm
     form
       .closest('[data-ui="responsive-sheet"]')
       ?.querySelector<HTMLElement>('[data-operational-form-error]')
-      ?.focus();
+      ?.focus({ preventScroll: true });
   };
 
   return ({ formElement, cancel }) => {
@@ -108,6 +117,7 @@ export function createOperationalSubmit(options: OperationalSubmitOptions): Subm
     pending = true;
     options.setSaving(true);
     options.setError('');
+    options.setProblem?.(null);
     // enhance has already captured FormData. Freeze the visible values until this request
     // completes so a successful save cannot discard text entered after its snapshot.
     const controls = Array.from(formElement.querySelectorAll<Control>('input, select, textarea'));
@@ -124,24 +134,38 @@ export function createOperationalSubmit(options: OperationalSubmitOptions): Subm
       try {
         if (result.type === 'error') {
           restoreControls();
+          options.setProblem?.(null);
           options.setError(genericError());
           await focusError(formElement);
           return;
         }
         if (result.type === 'failure') {
           restoreControls();
+          options.setProblem?.(problemFromResult(result.data));
+          const message = standaloneActionMessage(options.locale(), result.data) || genericError();
+          const values = result.data?.values;
+          const receiptNeedsReattach =
+            values && typeof values === 'object' && 'receiptNeedsReattach' in values
+              ? values.receiptNeedsReattach === true
+              : false;
           options.setError(
-            standaloneActionMessage(options.locale(), result.data) || genericError(),
+            receiptNeedsReattach
+              ? `${message} ${options.translate('Reattach the receipt before saving again.')}`
+              : message,
           );
-          applyFieldErrors(formElement, result.data, options.translate);
+          applyFieldErrors(formElement, result.data);
           await focusError(formElement);
           return;
         }
-        if (result.type === 'success') savedForm = formElement;
+        if (result.type === 'success') {
+          savedForm = formElement;
+          options.setProblem?.(null);
+        }
         await update({ reset: false });
         if (result.type === 'success') options.onSuccess();
       } catch {
         restoreControls();
+        options.setProblem?.(null);
         options.setError(savedForm === formElement ? refreshError() : genericError());
         await focusError(formElement);
       } finally {

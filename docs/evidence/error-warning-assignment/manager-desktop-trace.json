@@ -1,0 +1,33 @@
+[
+  {
+    "step": "success",
+    "assignmentCreated": true
+  },
+  {
+    "step": "invalid-required-date",
+    "fieldError": true,
+    "submitted": false
+  },
+  {
+    "step": "direct-link-closing",
+    "selectedUnavailable": true
+  },
+  {
+    "step": "direct-link-closed",
+    "selectedUnavailable": true
+  },
+  {
+    "step": "native-status-race",
+    "httpStatus": 409,
+    "assignmentCreated": false,
+    "retainedProjectWorkerDates": true,
+    "focusedElement": "ASIDE",
+    "scrollY": 1940
+  },
+  {
+    "step": "enhanced-status-race",
+    "transportStatus": 200,
+    "actionStatus": 409,
+    "typedProblem": true
+  }
+]

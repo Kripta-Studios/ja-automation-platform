@@ -80,7 +80,11 @@ describe('Finance expense review classification prerequisite', () => {
     const result = await approvalActions.financeApprove(event());
     expect(result).toMatchObject({
       status: 409,
-      data: { messageKey: 'action.approval.expenseClassificationRequired' },
+      data: {
+        messageKey: 'problem.approval.expenseClassificationRequired',
+        code: 'EXPENSE_CLASSIFICATION_REQUIRED',
+        remedies: [{ id: 'classify_expense', recordId: expenseId }],
+      },
     });
     expect(get).toHaveBeenCalledWith(expenseId);
     expect(approve).not.toHaveBeenCalled();
@@ -104,7 +108,10 @@ describe('Finance expense review classification prerequisite', () => {
     });
     expect(await approvalActions.financeApprove(event())).toMatchObject({
       status: 409,
-      data: { messageKey: 'action.error.conflict' },
+      data: {
+        messageKey: 'problem.approval.financeReviewUnavailable',
+        code: 'FINANCE_REVIEW_UNAVAILABLE',
+      },
     });
   });
 });

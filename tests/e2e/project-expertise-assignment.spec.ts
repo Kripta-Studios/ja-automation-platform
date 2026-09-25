@@ -3,6 +3,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { expect, test } from '@playwright/test';
 import { portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 type ExpertiseMatch = {
   skill_id: string;
@@ -43,7 +44,9 @@ test('owner filters active workers by expertise and assignment persists', async 
     if (!clientId) throw new Error('E2E fixture needs an active client');
     await createForm.locator('[name="clientId"]').selectOption(clientId);
     await createForm.locator('[name="name"]').fill(projectName);
-    await createForm.locator('[name="costCenterCode"]').fill(`QA-EXP-${testInfo.project.name}`);
+    await createForm
+      .locator('[name="costCenterCode"]')
+      .fill(e2eCostCenter('QA-EXP', 18, testInfo.project.name));
     await createForm.getByRole('button', { name: 'Create project', exact: true }).click();
     await expect
       .poll(

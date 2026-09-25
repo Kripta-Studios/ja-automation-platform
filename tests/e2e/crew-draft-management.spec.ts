@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { createDatabase, PortalRepository } from '@ja/database';
 import { e2eCredentials, e2eLifecycleFixturesFor, portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 test('crew chief edits and discards a colleague draft in the browser', async ({
   page,
@@ -25,7 +26,7 @@ test('crew chief edits and discards a colleague draft in the browser', async ({
     projectId = repository.createProject(owner, {
       clientId: e2eLifecycleFixturesFor(testInfo.project.name).client.id,
       name: `Crew draft project ${randomUUID()}`,
-      costCenterCode: `CREW-DRAFT-${testInfo.project.name}`,
+      costCenterCode: e2eCostCenter('CREW-DRAFT', 11, testInfo.project.name),
       currency: 'USD',
       timezone: 'UTC',
       billingModel: 'tm',
@@ -69,12 +70,12 @@ test('crew chief edits and discards a colleague draft in the browser', async ({
     await chiefPage.getByRole('link', { name: 'Edit draft' }).click();
     await expect(chiefPage.getByRole('heading', { name: 'Edit draft' })).toBeVisible();
     const edit = chiefPage.locator('form[action="?/update"]');
-    await edit.getByLabel('Minutes').fill('75');
+    await edit.getByLabel('Actual hours').fill('1.25');
     await edit.getByLabel('Work performed').fill('Corrected field work');
     await edit.getByRole('button', { name: 'Save changes' }).click();
     await expect(chiefPage.getByRole('heading', { name: 'Edit draft' })).toBeVisible();
     await expect(chiefPage.locator('dl')).toContainText('Corrected field work');
-    await expect(chiefPage.locator('dl')).toContainText('1 h 15 min');
+    await expect(chiefPage.locator('dl')).toContainText('1.25 h');
     await chiefPage.getByRole('button', { name: 'Discard draft' }).click();
     await expect(chiefPage.getByText('No crew hours recorded for this date.')).toBeVisible();
     const check = createDatabase(readE2EFixturePointer().databasePath);
@@ -136,7 +137,7 @@ test('crew chief edits and discards a colleague draft in the browser', async ({
     await correctionForm
       .getByLabel('Correction reason')
       .fill('Confirmed six minute synthetic standby');
-    await correctionForm.getByLabel('Minutes').fill('6');
+    await correctionForm.getByLabel('Actual hours').fill('0.1');
     await correctionForm.getByLabel('Work performed').fill('Corrected synthetic crew work');
     await correctionForm.getByRole('button', { name: 'Create corrected draft' }).click();
     await expect(

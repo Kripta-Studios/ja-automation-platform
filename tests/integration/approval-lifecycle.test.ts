@@ -332,7 +332,7 @@ describe('Client Essential approval lifecycle', () => {
     });
     expect(value.repository.expenseDetail(value.worker, expenseId)).toMatchObject({
       approval_state: 'needs_changes',
-      active_correction_id: undefined,
+      active_correction_id: null,
     });
     const managerExpense = value.repository.createCorrectionDraft(value.manager, {
       recordType: 'expense',

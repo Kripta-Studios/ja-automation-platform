@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { createDatabase, PortalRepository } from '@ja/database';
 import { e2eCredentials, e2eLifecycleFixturesFor, portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 test('chief allocates one saved receipt across two worker shifts on phone, tablet and desktop', async ({
   page,
@@ -29,7 +30,7 @@ test('chief allocates one saved receipt across two worker shifts on phone, table
       projectId = repository.createProject(owner, {
         clientId: e2eLifecycleFixturesFor(testInfo.project.name).client.id,
         name: `Shared receipt installation ${randomUUID()}`,
-        costCenterCode: `SHR-${testInfo.project.name}`,
+        costCenterCode: e2eCostCenter('SHR', 4, testInfo.project.name),
         currency: 'USD',
         timezone: 'UTC',
         billingModel: 'tm',

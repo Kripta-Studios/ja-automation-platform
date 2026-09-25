@@ -1,0 +1,23 @@
+[
+  {
+    "step": "invalid-work-hours",
+    "code": "FINANCE_PREVIEW_INVALID_FIELDS"
+  },
+  {
+    "step": "payer-conflict-scroll",
+    "atSubmit": 1746,
+    "afterResponse": 1746,
+    "afterFocus": 1746,
+    "scrollHeight": 2892,
+    "viewportHeight": 844
+  },
+  {
+    "step": "payer-conflict",
+    "code": "FINANCE_PREVIEW_PAYER_CONFLICT",
+    "retained": true
+  },
+  {
+    "step": "worker-role-denied",
+    "status": 403
+  }
+]

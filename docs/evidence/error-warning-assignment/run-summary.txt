@@ -1,0 +1,11 @@
+Running 8 tests using 1 worker
+[1/8] [phone-390] › tests/e2e/error-warning-assignment.spec.ts:137:3 › owner assignment form explains status and retains inputs after a status race
+[2/8] [phone-390] › tests/e2e/error-warning-assignment.spec.ts:137:3 › manager assignment form explains status and retains inputs after a status race
+[3/8] [phone-390] › tests/e2e/error-warning-assignment.spec.ts:321:1 › unpermitted assignment cannot expose owner settings or create a record
+[4/8] [phone-390] › tests/e2e/error-warning-assignment.spec.ts:350:1 › Closing assignment warning and permitted remedy read clearly in Spanish and Portuguese
+[5/8] [desktop] › tests/e2e/error-warning-assignment.spec.ts:137:3 › owner assignment form explains status and retains inputs after a status race
+[6/8] [desktop] › tests/e2e/error-warning-assignment.spec.ts:137:3 › manager assignment form explains status and retains inputs after a status race
+[7/8] [desktop] › tests/e2e/error-warning-assignment.spec.ts:321:1 › unpermitted assignment cannot expose owner settings or create a record
+[8/8] [desktop] › tests/e2e/error-warning-assignment.spec.ts:350:1 › Closing assignment warning and permitted remedy read clearly in Spanish and Portuguese
+  1 skipped
+  7 passed (1.6m)

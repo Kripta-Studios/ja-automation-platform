@@ -485,18 +485,47 @@ export class WorkforceRepository {
 
   assignWorker(principal: Principal, input: AssignmentInput) {
     this.deps.assertActive(principal);
-    if (!canManageAssignments(principal, input.projectId))
-      throw this.deps.errors.accessDenied('Assignment administration required');
-    this.assertPrincipalProjectScope(principal, input.projectId);
     return this.deps.transaction(() => {
       const project = this.deps.sqlite
-        .prepare('SELECT status FROM project WHERE id=?')
-        .get(input.projectId) as { status: string } | undefined;
-      if (!project) throw this.deps.errors.validation('Project not found');
-      if (!['active', 'planned', 'paused'].includes(project.status))
-        throw this.deps.errors.conflict(
-          'Assignments are only allowed on active, planned, or paused projects',
+        .prepare('SELECT name,status FROM project WHERE id=?')
+        .get(input.projectId) as { name: string; status: string } | undefined;
+      // A status transition removes this project from a manager's current
+      // principal scope. Retain only the manager's own effective membership as
+      // read authority for the precise lifecycle blocker; it grants no write.
+      const managerMembership =
+        principal.role === 'project_manager' &&
+        Boolean(
+          this.deps.sqlite
+            .prepare(
+              `SELECT 1 FROM project_member pm
+               JOIN user u ON u.id=pm.user_id
+               WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active'
+                 AND u.status='active' AND u.role='project_manager'
+                 AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
+               LIMIT 1`,
+            )
+            .get(input.projectId, principal.userId, this.today(), this.today()),
         );
+      if (principal.role !== 'owner_admin' && !managerMembership)
+        throw this.deps.errors.accessDenied('Assignment administration required');
+      if (!project) throw this.deps.errors.validation('Project not found');
+      if (!['active', 'planned', 'paused'].includes(project.status)) {
+        try {
+          this.deps.errors.conflict(
+            'Assignments are only allowed on active, planned, or paused projects',
+          );
+        } catch (error) {
+          if (error instanceof Error)
+            Object.assign(error, {
+              code: 'PROJECT_ASSIGNMENT_BLOCKED_STATUS',
+              projectId: input.projectId,
+              projectName: project.name,
+              status: project.status,
+            });
+          throw error;
+        }
+      }
+      this.assertPrincipalProjectScope(principal, input.projectId);
 
       assertPlannedMinutes(input.plannedMinutes, this.deps.errors.validation);
       assertDate(input.startsOn, 'Start date', this.deps.errors.validation);
@@ -509,6 +538,35 @@ export class WorkforceRepository {
         )
         .get(input.workerId);
       if (!worker) throw this.deps.errors.validation('Active workforce member not found');
+      const overlap = this.deps.sqlite
+        .prepare(
+          `SELECT id FROM project_member
+           WHERE project_id=? AND user_id=? AND status='active'
+             AND (? IS NULL OR starts_on<=?)
+             AND (ends_on IS NULL OR ends_on>=?)
+           LIMIT 1`,
+        )
+        .get(
+          input.projectId,
+          input.workerId,
+          input.endsOn || null,
+          input.endsOn || null,
+          input.startsOn,
+        ) as { id: string } | undefined;
+      if (overlap) {
+        try {
+          this.deps.errors.conflict('Worker already has an overlapping project assignment');
+        } catch (error) {
+          if (error instanceof Error)
+            Object.assign(error, {
+              code: 'PROJECT_ASSIGNMENT_OVERLAP',
+              projectId: input.projectId,
+              workerId: input.workerId,
+              existingAssignmentId: overlap.id,
+            });
+          throw error;
+        }
+      }
       const id = newId();
       const timestamp = this.deps.now();
       this.deps.sqlite
@@ -576,6 +634,31 @@ export class WorkforceRepository {
       if (endsOn) assertDate(endsOn, 'End date', this.deps.errors.validation);
       if (endsOn && endsOn < startsOn)
         throw this.deps.errors.validation('Assignment end date must follow the start date');
+      const overlap = this.deps.sqlite
+        .prepare(
+          `SELECT id FROM project_member
+           WHERE project_id=? AND user_id=? AND id<>? AND status='active'
+             AND (? IS NULL OR starts_on<=?)
+             AND (ends_on IS NULL OR ends_on>=?)
+           LIMIT 1`,
+        )
+        .get(existing.project_id, existing.user_id, id, endsOn, endsOn, startsOn) as
+        | { id: string }
+        | undefined;
+      if (overlap) {
+        try {
+          this.deps.errors.conflict('Worker already has an overlapping project assignment');
+        } catch (error) {
+          if (error instanceof Error)
+            Object.assign(error, {
+              code: 'PROJECT_ASSIGNMENT_OVERLAP',
+              projectId: existing.project_id,
+              workerId: existing.user_id,
+              existingAssignmentId: overlap.id,
+            });
+          throw error;
+        }
+      }
 
       const changed = this.deps.sqlite
         .prepare(

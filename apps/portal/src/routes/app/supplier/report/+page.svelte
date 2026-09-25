@@ -4,6 +4,7 @@
   import { supplierCopy, supplierStateLabel, supplierCategoryLabel } from '../copy';
   let { data } = $props();
   const c = $derived(supplierCopy[data.locale as keyof typeof supplierCopy]);
+  const decimalHours = (minutes: number): string => String(Number((minutes / 60).toFixed(4)));
   const query = $derived(
     new URLSearchParams({
       projectId: data.projectId || '',
@@ -57,43 +58,43 @@
     ><button class="primary-button">{c.apply}</button>
   </form>
   <div id="supplier-report" class="supplier-report-results">
-  {#if data.report}
-    <h2>{data.report.project.name}</h2>
-    <p>{data.from} — {data.to}</p>
-    <strong>{c.total}: {data.report.totalMinutes}</strong>
-    <nav>
-      <a href={`/j-aautomation/app/supplier/report.csv?${query}`}>{c.download}</a><button
-        onclick={() => window.print()}>{c.print}</button
-      >
-    </nav>
-    <SectionCard title={c.report}>
-      {#each data.report.rows as row}
-        <article>
-          <h3>{row.workerName} · {row.workDate}</h3>
-          <dl>
-            <dt>{c.category}</dt>
-            <dd>{supplierCategoryLabel(data.locale, row.category)}</dd>
-            {#if row.startTime && row.endTime}
-              <dt>{c.interval}</dt>
-              <dd>{row.startTime} – {row.endTime}</dd>
-              <dt>{c.breakMinutes}</dt>
-              <dd>{row.breakMinutes ?? 0}</dd>
-            {/if}
-            <dt>{c.minutes}</dt>
-            <dd>{row.minutes}</dd>
-            <dt>{c.state}</dt>
-            <dd>
-              {supplierStateLabel(data.locale, row.state)}{#if row.isSuperseded}
-                · {c.superseded}{/if}
-            </dd>
-            <dt>{c.recordedBy}</dt>
-            <dd>{row.recordedByName}</dd>
-          </dl>
-          <p>{row.summary}</p>
-        </article>
-      {:else}<p>{c.empty}</p>{/each}
-    </SectionCard>
-  {:else}<p>{c.empty}</p>{/if}
+    {#if data.report}
+      <h2>{data.report.project.name}</h2>
+      <p>{data.from} — {data.to}</p>
+      <strong>{c.totalHours}: {decimalHours(data.report.totalMinutes)}</strong>
+      <nav>
+        <a href={`/j-aautomation/app/supplier/report.csv?${query}`}>{c.download}</a><button
+          onclick={() => window.print()}>{c.print}</button
+        >
+      </nav>
+      <SectionCard title={c.report}>
+        {#each data.report.rows as row}
+          <article>
+            <h3>{row.workerName} · {row.workDate}</h3>
+            <dl>
+              <dt>{c.category}</dt>
+              <dd>{supplierCategoryLabel(data.locale, row.category)}</dd>
+              {#if row.startTime && row.endTime}
+                <dt>{c.interval}</dt>
+                <dd>{row.startTime} – {row.endTime}</dd>
+                <dt>{c.breakHours}</dt>
+                <dd>{decimalHours(row.breakMinutes ?? 0)}</dd>
+              {/if}
+              <dt>{c.actualHours}</dt>
+              <dd>{decimalHours(row.minutes)}</dd>
+              <dt>{c.state}</dt>
+              <dd>
+                {supplierStateLabel(data.locale, row.state)}{#if row.isSuperseded}
+                  · {c.superseded}{/if}
+              </dd>
+              <dt>{c.recordedBy}</dt>
+              <dd>{row.recordedByName}</dd>
+            </dl>
+            <p>{row.summary}</p>
+          </article>
+        {:else}<p>{c.empty}</p>{/each}
+      </SectionCard>
+    {:else}<p>{c.empty}</p>{/if}
   </div>
 </div>
 

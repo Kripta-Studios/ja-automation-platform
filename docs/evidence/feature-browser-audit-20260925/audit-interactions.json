@@ -1,0 +1,621 @@
+{
+  "time-open": {
+    "url": "http://127.0.0.1:4174/j-aautomation/app/time",
+    "text": "J&A AUTOMATION\n\nLog time\n\nOperational entry only. Commercial rules are applied separately.\n\n×\nClose time form\nWorker\nSelect worker\nAlex Rivera — worker@demo.jaautomation.test\nDaniel Brooks — pm@demo.jaautomation.test\nMaya Chen — maya@demo.jaautomation.test\nRafael Santos — rafael@demo.jaautomation.test\nCapture actual work\nEnter what happened on site, not its commercial interpretation.\nAssigned project\nSelect assignment\nSelect worker\nDate\nOperational category\nWork\nOvertime\nTravel\nStandby\nCommissioning\nWeekend / holiday\nRemote support\nTraining\nInternal\nAdd start and end times\nActual hours\n\nActual duration: —\n\nEnter decimal hours, for example 7.5 for 7 h 30 min. The amount is rounded to the nearest minute.\n\nActivity summary\nAdd a meal expense with these hours\nCancel\nSave draft",
+    "fields": [
+      {
+        "tag": "select",
+        "type": "select-one",
+        "name": "workerId",
+        "id": "",
+        "value": "",
+        "required": true,
+        "options": [
+          "Select worker",
+          "Alex Rivera — worker@demo.jaautomation.test",
+          "Daniel Brooks — pm@demo.jaautomation.test",
+          "Maya Chen — maya@demo.jaautomation.test",
+          "Rafael Santos — rafael@demo.jaautomation.test"
+        ]
+      },
+      {
+        "tag": "select",
+        "type": "select-one",
+        "name": "projectId",
+        "id": "",
+        "value": "",
+        "required": true,
+        "options": [
+          "Select assignment"
+        ]
+      },
+      {
+        "tag": "input",
+        "type": "date",
+        "name": "workDate",
+        "id": "",
+        "value": "2026-09-25",
+        "required": true,
+        "placeholder": ""
+      },
+      {
+        "tag": "select",
+        "type": "select-one",
+        "name": "category",
+        "id": "",
+        "value": "regular",
+        "required": true,
+        "options": [
+          "Work",
+          "Overtime",
+          "Travel",
+          "Standby",
+          "Commissioning",
+          "Weekend / holiday",
+          "Remote support",
+          "Training",
+          "Internal"
+        ]
+      },
+      {
+        "tag": "input",
+        "type": "checkbox",
+        "name": "",
+        "id": "",
+        "value": "on",
+        "required": false,
+        "placeholder": ""
+      },
+      {
+        "tag": "input",
+        "type": "text",
+        "name": "",
+        "id": "",
+        "value": "",
+        "required": true,
+        "placeholder": ""
+      },
+      {
+        "tag": "textarea",
+        "type": "textarea",
+        "name": "summary",
+        "id": "",
+        "value": "",
+        "required": true,
+        "placeholder": ""
+      },
+      {
+        "tag": "input",
+        "type": "checkbox",
+        "name": "withExpense",
+        "id": "",
+        "value": "on",
+        "required": false,
+        "placeholder": ""
+      },
+      {
+        "tag": "input",
+        "type": "search",
+        "name": "",
+        "id": "",
+        "value": "",
+        "required": false,
+        "placeholder": ""
+      },
+      {
+        "tag": "input",
+        "type": "search",
+        "name": "",
+        "id": "",
+        "value": "",
+        "required": false,
+        "placeholder": ""
+      }
+    ],
+    "buttons": [
+      {
+        "text": "× Close time form",
+        "disabled": false
+      },
+      {
+        "text": "Cancel",
+        "disabled": false
+      },
+      {
+        "text": "Save draft",
+        "disabled": false
+      },
+      {
+        "text": "×",
+        "disabled": true
+      },
+      {
+        "text": "×",
+        "disabled": true
+      }
+    ]
+  },
+  "tableElement": "<summary class=\"svelte-ysqj5f\">Enter a week in a table</summary>",
+  "time-table-open": {
+    "url": "http://127.0.0.1:4174/j-aautomation/app/time",
+    "text": "×",
+    "fields": [
+      {
+        "tag": "input",
+        "type": "search",
+        "name": "",
+        "id": "",
+        "value": "",
+        "required": false,
+        "placeholder": ""
+      }
+    ],
+    "buttons": [
+      {
+        "text": "×",
+        "disabled": true
+      }
+    ]
+  },
+  "expense-open": {
+    "url": "http://127.0.0.1:4174/j-aautomation/app/expenses",
+    "text": "J&A AUTOMATION\n\nRecord expense\n\nOperational entry only. Commercial treatment is handled separately.\n\n×\nClose expense form\nWorker\nSelect worker\nAlex Rivera — worker@demo.jaautomation.test\nDaniel Brooks — pm@demo.jaautomation.test\nMaya Chen — maya@demo.jaautomation.test\nRafael Santos — rafael@demo.jaautomation.test\nCapture what happened\nUse the receipt and operational details you know on site.\nReceipt image or PDF\nJPG, PNG, HEIC or PDF up to 10 MB\nProject\nSelect assignment\nC-0001-P-001 — Body Shop Line 4 Controls Upgrade · Demo\nC-0001-P-002 — Remote Controls Support Retainer · Demo\nC-0002-P-001 — High-Speed Palletizer Commissioning · Demo\nC-0003-P-001 — Caustic Recovery Skid Integration · Demo\nCP005 — Valiant\nCP006 — RAM\nCP007 — Mino Automation\nCP008 — Ascension\nCP009 — KHS\nCP010 — WWC\nCP011 — InPro\nCP012 — Niagara\nCP013 — Forerunner\nCP014 — Empack\nCP015 — CAP Automation Gmbh\nCP016 — Castor Engineering\nCP017 — Joiner\nCP018 — Socaps\nCP019 — Peninsula Recycling\nCP020 — BBS Mexico\nCP020-DFW — Junkers DFW\nCP021 — Bastian Solutions\nCP022 — Zeppelin Systems\nCP023 — Oxford\nCP024 — Damon\nDate\nCategory\nHotel\nRental car\nFuel\nTolls\nParking\nAirfare\nTrain / bus / taxi / rideshare\nMeals\nPer diem\nProject materials\nTools / consumables\nShipping\nPhone / data\nVisa / permit\nOther\nTime expense occurred (optional)\nLocal time at the project site; leave blank if unknown.\nRelated logged hours (optional)\nExpense only / no linked hours\nOnly hours for this worker, project and date are shown.\nVendor (optional)\nAmount\nCurrency\nUSD\nBRL\nEUR\nWho paid\nWorker\nCompany card\nCompany direct\nClient paid directly\nThird party\nDescription\nPayment method\nCancel\nSave draft",
+    "fields": [
+      {
+        "tag": "select",
+        "type": "select-one",
+        "name": "workerId",
+        "id": "",
+        "value": "",
+        "required": true,
+        "options": [
+          "Select worker",
+          "Alex Rivera — worker@demo.jaautomation.test",
+          "Daniel Brooks — pm@demo.jaautomation.test",
+          "Maya Chen — maya@demo.jaautomation.test",
+          "Rafael Santos — rafael@demo.jaautomation.test"
+        ]
+      },
+      {
+        "tag": "input",
+        "type": "file",
+        "name": "receipt",
+        "id": "",
+        "value": "",
+        "required": false,
+        "placeholder": ""
+      },
+      {
+        "tag": "select",
+        "type": "select-one",
+        "name": "projectId",
+        "id": "",
+        "value": "",
+        "required": true,
+        "options": [
+          "Select assignment",
+          "C-0001-P-001 — Body Shop Line 4 Controls Upgrade · Demo",
+          "C-0001-P-002 — Remote Controls Support Retainer · Demo",
+          "C-0002-P-001 — High-Speed Palletizer Commissioning · Demo",
+          "C-0003-P-001 — Caustic Recovery Skid Integration · Demo",
+          "CP005 — Valiant",
+          "CP006 — RAM",
+          "CP007 — Mino Automation",
+          "CP008 — Ascension",
+          "CP009 — KHS",
+          "CP010 — WWC",
+          "CP011 — InPro",
+          "CP012 — Niagara",
+          "CP013 — Forerunner",
+          "CP014 — Empack",
+          "CP015 — CAP Automation Gmbh",
+          "CP016 — Castor Engineering",
+          "CP017 — Joiner",
+          "CP018 — Socaps",
+          "CP019 — Peninsula Recycling"
+        ]
+      },
+      {
+        "tag": "input",
+        "type": "date",
+        "name": "spentOn",
+        "id": "",
+        "value": "2026-09-25",
+        "required": true,
+        "placeholder": ""
+      },
+      {
+        "tag": "select",
+        "type": "select-one",
+        "name": "category",
+        "id": "",
+        "value": "hotel",
+        "required": true,
+        "options": [
+          "Hotel",
+          "Rental car",
+          "Fuel",
+          "Tolls",
+          "Parking",
+          "Airfare",
+          "Train / bus / taxi / rideshare",
+          "Meals",
+          "Per diem",
+          "Project materials",
+          "Tools / consumables",
+          "Shipping",
+          "Phone / data",
+          "Visa / permit",
+          "Other"
+        ]
+      },
+      {
+        "tag": "input",
+        "type": "time",
+        "name": "occurredTimeLocal",
+        "id": "",
+        "value": "",
+        "required": false,
+        "placeholder": ""
+      },
+      {
+        "tag": "select",
+        "type": "select-one",
+        "name": "timeEntryId",
+        "id": "",
+        "value": "",
+        "required": false,
+        "options": [
+          "Expense only / no linked hours"
+        ]
+      },
+      {
+        "tag": "input",
+        "type": "text",
+        "name": "vendor",
+        "id": "",
+        "value": "",
+        "required": false,
+        "placeholder": ""
+      },
+      {
+        "tag": "input",
+        "type": "text",
+        "name": "amount",
+        "id": "",
+        "value": "",
+        "required": true,
+        "placeholder": ""
+      },
+      {
+        "tag": "select",
+        "type": "select-one",
+        "name": "currency",
+        "id": "",
+        "value": "USD",
+        "required": true,
+        "options": [
+          "USD",
+          "BRL",
+          "EUR"
+        ]
+      },
+      {
+        "tag": "select",
+        "type": "select-one",
+        "name": "whoPaid",
+        "id": "",
+        "value": "worker",
+        "required": true,
+        "options": [
+          "Worker",
+          "Company card",
+          "Company direct",
+          "Client paid directly",
+          "Third party"
+        ]
+      },
+      {
+        "tag": "textarea",
+        "type": "textarea",
+        "name": "description",
+        "id": "",
+        "value": "",
+        "required": true,
+        "placeholder": ""
+      },
+      {
+        "tag": "input",
+        "type": "text",
+        "name": "paymentMethod",
+        "id": "",
+        "value": "",
+        "required": false,
+        "placeholder": "Card, transfer or cash"
+      },
+      {
+        "tag": "input",
+        "type": "search",
+        "name": "",
+        "id": "",
+        "value": "",
+        "required": false,
+        "placeholder": ""
+      },
+      {
+        "tag": "input",
+        "type": "search",
+        "name": "",
+        "id": "",
+        "value": "",
+        "required": false,
+        "placeholder": ""
+      },
+      {
+        "tag": "input",
+        "type": "search",
+        "name": "",
+        "id": "",
+        "value": "",
+        "required": false,
+        "placeholder": ""
+      },
+      {
+        "tag": "input",
+        "type": "search",
+        "name": "",
+        "id": "",
+        "value": "",
+        "required": false,
+        "placeholder": ""
+      }
+    ],
+    "buttons": [
+      {
+        "text": "× Close expense form",
+        "disabled": false
+      },
+      {
+        "text": "Cancel",
+        "disabled": false
+      },
+      {
+        "text": "Save draft",
+        "disabled": false
+      },
+      {
+        "text": "×",
+        "disabled": true
+      },
+      {
+        "text": "×",
+        "disabled": true
+      },
+      {
+        "text": "×",
+        "disabled": true
+      },
+      {
+        "text": "×",
+        "disabled": true
+      }
+    ]
+  },
+  "approvalAfterExpenses": {
+    "url": "http://127.0.0.1:4174/j-aautomation/app/approvals",
+    "text": "J&A / Approval queue\n\nApproval queue\nPrint report\nSearch workspace\nSearch\n\nOPERATIONAL CONTROL\n\nApprovals\n\nReview submitted operational truth before it moves to the next stage.\n\n72\nNeeds attention\n4\nSubmitted or correction-ready records\nReports\n10\nDaily and technical reports in scope\nFinance review\n0\nSeparate finance queue\nTime\n33\nExpenses\n29\nReports\n10\nSearch queue\nClient\nAll clients\nHarbor Packaging · Demo\nBlueRiver Process · Demo\nNorthline Mobility · Demo\nFrom\nTo\nProject\nAll projects\nHigh-Speed Palletizer Commissioning · Demo\nCaustic Recovery Skid Integration · Demo\nBody Shop Line 4 Controls Upgrade · Demo\nRemote Controls Support Retainer · Demo\nWorker\nAll workers\nDaniel Brooks\nRafael Santos\nAlex Rivera\nMaya Chen\nStatus\nAll statuses\nNeeds attention\nSubmitted\nApproved\nNeeds changes\nSort by\nPriority then oldest\nOldest first\nNewest first\nName\nStatus\nReview stage\nAll stages\nOperational review\nReport review\nCorrection draft\nOwner override\nApply filters\nClear filters\nAction queue · Expenses\n\nRecords needing action come first, then explicit priority and oldest date. Approved records remain below for audit and correction follow-up.\n\nNo submitted records match this view.\nCompleted records, if any, remain available below.\nCompleted review follow-up\nProject approvals\n\nA project appears h"
+  },
+  "approvalAfterFilter": {
+    "url": "http://127.0.0.1:4174/j-aautomation/app/approvals?tab=expenses&order=priority",
+    "text": "J&A / Approval queue\n\nApproval queue\nPrint report\nSearch workspace\nSearch\n\nOPERATIONAL CONTROL\n\nApprovals\n\nReview submitted operational truth before it moves to the next stage.\n\n72\nNeeds attention\n4\nSubmitted or correction-ready records\nReports\n10\nDaily and technical reports in scope\nFinance review\n0\nSeparate finance queue\nTime\n33\nExpenses\n29\nReports\n10\nSearch queue\nClient\nAll clients\nHarbor Packaging · Demo\nBlueRiver Process · Demo\nNorthline Mobility · Demo\nFrom\nTo\nProject\nAll projects\nHigh-Speed Palletizer Commissioning · Demo\nCaustic Recovery Skid Integration · Demo\nBody Shop Line 4 Controls Upgrade · Demo\nRemote Controls Support Retainer · Demo\nWorker\nAll workers\nDaniel Brooks\nRafael Santos\nAlex Rivera\nMaya Chen\nStatus\nAll statuses\nNeeds attention\nSubmitted\nApproved\nNeeds changes\nSort by\nPriority then oldest\nOldest first\nNewest first\nName\nStatus\nReview stage\nAll stages\nOperational review\nReport review\nCorrection draft\nOwner override\nApply filters\nClear filters\nAction queue · Expenses\n\nRecords needing action come first, then explicit priority and oldest date. Approved records remain below for audit and correction follow-up.\n\nNo submitted records match this view.\nCompleted records, if any, remain available below.\nCompleted review follow-up\nProject approvals\n\nA project appears h"
+  },
+  "billing-wizard-open": {
+    "url": "http://127.0.0.1:4174/j-aautomation/app/billing",
+    "text": "J&A AUTOMATION\n\nCreate invoice\n\nGuided invoice workflow\n\n×\nClose\n1\nClient / project\n2\nBilling stream\n3\nLabor / expenses\n4\nPeriod\n5\nIncluded records\n6\nExcluded / pending\n7\nTaxes\n8\nInvoice data\n9\nBanking / payment\n10\nCommercial adjustments\n11\nPreview\n12\nSave / issue\nClient / project\n\nChoose the project whose approved source records will be billed.\n\nProject and billing stream \nC-0001 · Northline Mobility · Demo — C-0001-P-001 · Expense · monthly · USD\nC-0001 · Northline Mobility · Demo — C-0001-P-001 · Labor · weekly · USD\nC-0001 · Northline Mobility · Demo — C-0001-P-001 · Milestone · milestone · USD\nC-0001 · Northline Mobility · Demo — C-0001-P-002 · Expense · monthly · USD\nC-0001 · Northline Mobility · Demo — C-0001-P-002 · Labor · weekly · USD\nC-0001 · Northline Mobility · Demo — C-0001-P-002 · Milestone · milestone · USD\nC-0002 · Harbor Packaging · Demo — C-0002-P-001 · Expense · monthly · USD\nC-0002 · Harbor Packaging · Demo — C-0002-P-001 · Labor · weekly · USD\nC-0002 · Harbor Packaging · Demo — C-0002-P-001 · Milestone · milestone · USD\nC-0003 · BlueRiver Process · Demo — C-0003-P-001 · Expense · monthly · USD\nC-0003 · BlueRiver Process · Demo — C-0003-P-001 · Labor · weekly · USD\nC-0003 · BlueRiver Process · Demo — C-0003-P-001 · Milestone · milestone · USD\nC-0020 · IMPC Gmbh — CP020 · Expense · monthly · USD\nC-0020 · IMPC Gmbh — CP020 · Labor · monthly · USD\nPrevious\nNext",
+    "fields": [
+      {
+        "tag": "select",
+        "type": "select-one",
+        "name": "",
+        "id": "",
+        "value": "01a0d974-e387-713a-9538-d80dc8c7dcb4",
+        "required": true,
+        "options": [
+          "C-0001 · Northline Mobility · Demo — C-0001-P-001 · Expense · monthly ·\n                    USD",
+          "C-0001 · Northline Mobility · Demo — C-0001-P-001 · Labor · weekly ·\n                    USD",
+          "C-0001 · Northline Mobility · Demo — C-0001-P-001 · Milestone · milestone ·\n                    USD",
+          "C-0001 · Northline Mobility · Demo — C-0001-P-002 · Expense · monthly ·\n                    USD",
+          "C-0001 · Northline Mobility · Demo — C-0001-P-002 · Labor · weekly ·\n                    USD",
+          "C-0001 · Northline Mobility · Demo — C-0001-P-002 · Milestone · milestone ·\n                    USD",
+          "C-0002 · Harbor Packaging · Demo — C-0002-P-001 · Expense · monthly ·\n                    USD",
+          "C-0002 · Harbor Packaging · Demo — C-0002-P-001 · Labor · weekly ·\n                    USD",
+          "C-0002 · Harbor Packaging · Demo — C-0002-P-001 · Milestone · milestone ·\n                    USD",
+          "C-0003 · BlueRiver Process · Demo — C-0003-P-001 · Expense · monthly ·\n                    USD",
+          "C-0003 · BlueRiver Process · Demo — C-0003-P-001 · Labor · weekly ·\n                    USD",
+          "C-0003 · BlueRiver Process · Demo — C-0003-P-001 · Milestone · milestone ·\n                    USD",
+          "C-0020 · IMPC Gmbh — CP020 · Expense · monthly ·\n                    USD",
+          "C-0020 · IMPC Gmbh — CP020 · Labor · monthly ·\n                    USD"
+        ]
+      },
+      {
+        "tag": "input",
+        "type": "search",
+        "name": "",
+        "id": "",
+        "value": "",
+        "required": false,
+        "placeholder": ""
+      }
+    ],
+    "buttons": [
+      {
+        "text": "× Close",
+        "disabled": false
+      },
+      {
+        "text": "1 Client / project",
+        "disabled": false
+      },
+      {
+        "text": "2 Billing stream",
+        "disabled": false
+      },
+      {
+        "text": "3 Labor / expenses",
+        "disabled": false
+      },
+      {
+        "text": "4 Period",
+        "disabled": false
+      },
+      {
+        "text": "5 Included records",
+        "disabled": false
+      },
+      {
+        "text": "6 Excluded / pending",
+        "disabled": false
+      },
+      {
+        "text": "7 Taxes",
+        "disabled": false
+      },
+      {
+        "text": "8 Invoice data",
+        "disabled": false
+      },
+      {
+        "text": "9 Banking / payment",
+        "disabled": false
+      },
+      {
+        "text": "10 Commercial adjustments",
+        "disabled": false
+      },
+      {
+        "text": "11 Preview",
+        "disabled": false
+      },
+      {
+        "text": "12 Save / issue",
+        "disabled": false
+      },
+      {
+        "text": "1Client / project",
+        "disabled": false
+      },
+      {
+        "text": "2Billing stream",
+        "disabled": false
+      },
+      {
+        "text": "3Labor / expenses",
+        "disabled": false
+      },
+      {
+        "text": "4Period",
+        "disabled": false
+      },
+      {
+        "text": "5Included records",
+        "disabled": false
+      },
+      {
+        "text": "6Excluded / pending",
+        "disabled": false
+      },
+      {
+        "text": "7Taxes",
+        "disabled": false
+      },
+      {
+        "text": "8Invoice data",
+        "disabled": false
+      },
+      {
+        "text": "9Banking / payment",
+        "disabled": false
+      },
+      {
+        "text": "10Commercial adjustments",
+        "disabled": false
+      },
+      {
+        "text": "11Preview",
+        "disabled": false
+      },
+      {
+        "text": "12Save / issue",
+        "disabled": false
+      },
+      {
+        "text": "Previous",
+        "disabled": true
+      },
+      {
+        "text": "Next",
+        "disabled": false
+      },
+      {
+        "text": "×",
+        "disabled": true
+      }
+    ]
+  },
+  "issues": [],
+  "requests": [
+    "200 /j-aautomation/app/login",
+    "200 /j-aautomation/app/logo.png",
+    "200 /j-aautomation/app/fonts/geist-latin.woff2",
+    "200 /j-aautomation/app/fonts/geist-mono-latin.woff2",
+    "200 /j-aautomation/app/icon-192.png",
+    "200 /j-aautomation/app/api/auth/sign-in/email",
+    "308 /j-aautomation/app/",
+    "200 /j-aautomation/app",
+    "200 /j-aautomation/app/logo.png",
+    "200 /j-aautomation/app/fonts/geist-latin.woff2",
+    "200 /j-aautomation/app/fonts/geist-mono-latin.woff2",
+    "200 /j-aautomation/app/icon-192.png",
+    "200 /j-aautomation/app/time",
+    "200 /j-aautomation/app/logo.png",
+    "200 /j-aautomation/app/fonts/geist-latin.woff2",
+    "200 /j-aautomation/app/fonts/geist-mono-latin.woff2",
+    "200 /j-aautomation/app/icon-192.png",
+    "200 /j-aautomation/app/api/offline/identity",
+    "200 /j-aautomation/app/api/auth/get-session",
+    "200 /j-aautomation/app/api/auth/passkey/list-user-passkeys",
+    "200 /j-aautomation/app/time",
+    "200 /j-aautomation/app/logo.png",
+    "200 /j-aautomation/app/fonts/geist-latin.woff2",
+    "200 /j-aautomation/app/fonts/geist-mono-latin.woff2",
+    "200 /j-aautomation/app/icon-192.png",
+    "200 /j-aautomation/app/api/offline/identity",
+    "200 /j-aautomation/app/api/auth/get-session",
+    "200 /j-aautomation/app/api/auth/passkey/list-user-passkeys",
+    "200 /j-aautomation/app/expenses",
+    "200 /j-aautomation/app/logo.png",
+    "200 /j-aautomation/app/fonts/geist-latin.woff2",
+    "200 /j-aautomation/app/fonts/geist-mono-latin.woff2",
+    "200 /j-aautomation/app/icon-192.png",
+    "200 /j-aautomation/app/api/offline/identity",
+    "200 /j-aautomation/app/api/auth/get-session",
+    "200 /j-aautomation/app/api/auth/passkey/list-user-passkeys",
+    "200 /j-aautomation/app/approvals",
+    "200 /j-aautomation/app/logo.png",
+    "200 /j-aautomation/app/fonts/geist-latin.woff2",
+    "200 /j-aautomation/app/fonts/geist-mono-latin.woff2",
+    "200 /j-aautomation/app/icon-192.png",
+    "200 /j-aautomation/app/api/offline/identity",
+    "200 /j-aautomation/app/api/auth/get-session",
+    "200 /j-aautomation/app/api/auth/passkey/list-user-passkeys",
+    "200 /j-aautomation/app/icon-192.png",
+    "200 /j-aautomation/app/billing",
+    "200 /j-aautomation/app/logo.png",
+    "200 /j-aautomation/app/fonts/geist-latin.woff2",
+    "200 /j-aautomation/app/fonts/geist-mono-latin.woff2",
+    "200 /j-aautomation/app/icon-192.png",
+    "200 /j-aautomation/app/api/offline/identity",
+    "200 /j-aautomation/app/api/auth/get-session",
+    "200 /j-aautomation/app/api/auth/passkey/list-user-passkeys"
+  ]
+}

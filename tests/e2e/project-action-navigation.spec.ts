@@ -3,6 +3,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { expect, test } from '@playwright/test';
 import { portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 test('project actions remain reachable from the list, detail, and selected calendar day', async ({
   page,
@@ -27,7 +28,9 @@ test('project actions remain reachable from the list, detail, and selected calen
     await create.locator('[name="clientId"]').selectOption(impcId);
     const name = `Project actions ${testInfo.project.name} ${randomUUID()}`;
     await create.locator('[name="name"]').fill(name);
-    await create.locator('[name="costCenterCode"]').fill('QA-PROJECT-ACTIONS');
+    await create
+      .locator('[name="costCenterCode"]')
+      .fill(e2eCostCenter('QA-PROJECT-ACTIONS', 3, testInfo.project.name));
     await create.getByRole('button', { name: 'Create project', exact: true }).click();
     await expect
       .poll(() => db.prepare('SELECT id FROM project WHERE name=?').get(name))

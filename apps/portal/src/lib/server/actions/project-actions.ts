@@ -10,6 +10,7 @@ import {
   versionedRecordSchema,
 } from '@ja/schemas';
 import { z } from 'zod';
+import { ConflictError, ValidationError } from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess } from './action-message';
 import { formObject, type PortalActionEvent } from '$lib/server/action-utils';
@@ -19,30 +20,315 @@ const initialProjectPeopleSchema = z.object({
   initialWorkersStartOn: z.union([z.literal(''), z.iso.date()]).optional(),
 });
 
+type KnownProjectRule = Readonly<{
+  status: 400 | 409;
+  code: string;
+  messageKey: `problem.${string}`;
+  message: string;
+  remedy: string;
+  field?: string;
+}>;
+
+const knownProjectRules: Record<string, KnownProjectRule> = {
+  'Client changed before update': {
+    status: 409,
+    code: 'CLIENT_STALE',
+    messageKey: 'problem.client.stale',
+    message:
+      'This client changed while you were editing. Review the updated client before saving again.',
+    remedy: 'review_updated_record',
+  },
+  'Client changed before lifecycle transition': {
+    status: 409,
+    code: 'CLIENT_STALE',
+    messageKey: 'problem.client.stale',
+    message:
+      'This client changed while you were editing. Review the updated client before saving again.',
+    remedy: 'review_updated_record',
+  },
+  'Project changed before lifecycle transition': {
+    status: 409,
+    code: 'PROJECT_STALE',
+    messageKey: 'problem.project.stale',
+    message:
+      'This project changed while you were editing. Review its current status before saving again.',
+    remedy: 'review_updated_record',
+  },
+  'Assignment changed before update': {
+    status: 409,
+    code: 'ASSIGNMENT_STALE',
+    messageKey: 'problem.assignment.stale',
+    message:
+      'This assignment changed while you were editing. Review the latest dates before saving again.',
+    remedy: 'review_assignments',
+  },
+  'Assignment changed before removal': {
+    status: 409,
+    code: 'ASSIGNMENT_STALE',
+    messageKey: 'problem.assignment.stale',
+    message:
+      'This assignment changed while you were editing. Review the latest dates before saving again.',
+    remedy: 'review_assignments',
+  },
+  'Client has projects that are not closed': {
+    status: 409,
+    code: 'CLIENT_CLOSE_OPEN_PROJECTS',
+    messageKey: 'problem.client.closeOpenProjects',
+    message: 'Close or archive the client’s open projects before closing the client.',
+    remedy: 'review_client_projects',
+  },
+  'Archived client cannot receive an active project': {
+    status: 409,
+    code: 'PROJECT_CLIENT_ARCHIVED',
+    messageKey: 'problem.project.clientArchived',
+    message: 'The client is archived. Review the client’s status before activating this project.',
+    remedy: 'review_client_status',
+  },
+  'Invalid client lifecycle transition': {
+    status: 409,
+    code: 'CLIENT_TRANSITION_NOT_ALLOWED',
+    messageKey: 'problem.client.transitionNotAllowed',
+    message: 'The requested client status change is not allowed from its current status.',
+    remedy: 'review_updated_record',
+  },
+  'Invalid project lifecycle transition': {
+    status: 409,
+    code: 'PROJECT_TRANSITION_NOT_ALLOWED',
+    messageKey: 'problem.project.transitionNotAllowed',
+    message: 'The requested project status change is not allowed from its current status.',
+    remedy: 'review_updated_record',
+  },
+  'Only archived records can be restored': {
+    status: 409,
+    code: 'RECORD_NOT_ARCHIVED',
+    messageKey: 'problem.record.notArchived',
+    message: 'Only an archived record can be restored. Review its current status.',
+    remedy: 'review_updated_record',
+  },
+  'Archived record has no safe restore target': {
+    status: 409,
+    code: 'RECORD_RESTORE_TARGET_MISSING',
+    messageKey: 'problem.record.restoreTargetMissing',
+    message:
+      'This archived record has no safe previous status to restore. Contact the owner for review.',
+    remedy: 'contact_owner',
+  },
+  'Archived client has no safe restore target': {
+    status: 409,
+    code: 'CLIENT_RESTORE_TARGET_MISSING',
+    messageKey: 'problem.record.restoreTargetMissing',
+    message:
+      'This archived client has no safe previous status to restore. Contact the owner for review.',
+    remedy: 'contact_owner',
+  },
+  'Client has associated projects and cannot be deleted. Please delete or archive its projects first.':
+    {
+      status: 409,
+      code: 'CLIENT_DELETE_HAS_PROJECTS',
+      messageKey: 'problem.client.deleteHasProjects',
+      message:
+        'This client still has projects. Review those projects and archive the client instead if history must be kept.',
+      remedy: 'review_client_projects',
+    },
+  'Client is referenced by invoice history and cannot be deleted. Please archive the client instead.':
+    {
+      status: 409,
+      code: 'CLIENT_DELETE_HAS_INVOICES',
+      messageKey: 'problem.client.deleteHasInvoices',
+      message:
+        'This client is referenced by invoice history. Archive the client instead of deleting it.',
+      remedy: 'archive_client',
+    },
+  'Client contact is referenced by billing history and cannot be deleted': {
+    status: 409,
+    code: 'CLIENT_CONTACT_BILLING_HISTORY',
+    messageKey: 'problem.client.contactBillingHistory',
+    message:
+      'This contact is used by billing history and cannot be deleted. Update the active billing contact instead.',
+    remedy: 'review_billing_contact',
+  },
+  'A billing email or billing contact is required': {
+    status: 400,
+    code: 'CLIENT_BILLING_CONTACT_REQUIRED',
+    messageKey: 'problem.client.billingContactRequired',
+    message: 'Keep a billing email or another billing contact before removing this contact.',
+    remedy: 'add_billing_contact',
+    field: 'isBillingContact',
+  },
+  'Only active assignments can be edited': {
+    status: 409,
+    code: 'ASSIGNMENT_INACTIVE',
+    messageKey: 'problem.assignment.inactive',
+    message:
+      'This assignment is no longer active. Review the current assignment before making changes.',
+    remedy: 'review_assignments',
+  },
+  'Assignment is already inactive': {
+    status: 409,
+    code: 'ASSIGNMENT_INACTIVE',
+    messageKey: 'problem.assignment.inactive',
+    message:
+      'This assignment is already inactive. Review the current assignment before making changes.',
+    remedy: 'review_assignments',
+  },
+  'Worker already has an overlapping project assignment': {
+    status: 409,
+    code: 'PROJECT_ASSIGNMENT_OVERLAP',
+    messageKey: 'problem.project.assignmentOverlap',
+    message:
+      'This worker already has an overlapping assignment on this project. Review the existing assignment dates.',
+    remedy: 'review_assignments',
+  },
+  'Active client not found': {
+    status: 400,
+    code: 'PROJECT_ACTIVE_CLIENT_REQUIRED',
+    messageKey: 'problem.project.activeClientRequired',
+    message:
+      'The selected client is no longer active. Choose an active client or review its status.',
+    remedy: 'review_client_status',
+    field: 'clientId',
+  },
+  'Active project manager not found': {
+    status: 400,
+    code: 'PROJECT_MANAGER_UNAVAILABLE',
+    messageKey: 'problem.project.managerUnavailable',
+    message: 'The selected project manager is no longer active. Choose an available manager.',
+    remedy: 'choose_available_manager',
+    field: 'projectManagerId',
+  },
+};
+
+for (const [message, code, messageKey, subject] of [
+  [
+    'Project has recorded time entries and cannot be deleted. Please archive the project instead.',
+    'PROJECT_DELETE_HAS_TIME',
+    'problem.project.deleteHasTime',
+    'time entries',
+  ],
+  [
+    'Project has recorded expenses and cannot be deleted. Please archive the project instead.',
+    'PROJECT_DELETE_HAS_EXPENSES',
+    'problem.project.deleteHasExpenses',
+    'expenses',
+  ],
+  [
+    'Project has generated invoices and cannot be deleted. Please archive the project instead.',
+    'PROJECT_DELETE_HAS_INVOICES',
+    'problem.project.deleteHasInvoices',
+    'invoices',
+  ],
+  [
+    'Project has recorded daily field reports and cannot be deleted. Please archive the project instead.',
+    'PROJECT_DELETE_HAS_DAILY_REPORTS',
+    'problem.project.deleteHasDailyReports',
+    'daily field reports',
+  ],
+  [
+    'Project has recorded technical reports and cannot be deleted. Please archive the project instead.',
+    'PROJECT_DELETE_HAS_TECHNICAL_REPORTS',
+    'problem.project.deleteHasTechnicalReports',
+    'technical reports',
+  ],
+] as const) {
+  knownProjectRules[message] = {
+    status: 409,
+    code,
+    messageKey,
+    message: `This project has ${subject} and cannot be deleted. Archive the project instead.`,
+    remedy: 'archive_project',
+  };
+}
+
+function knownProjectFailure(
+  error: unknown,
+  options: {
+    correlationId?: string;
+    recordId?: string;
+    projectId?: string;
+    currentStatus?: string;
+    currentVersion?: number;
+    values?: Readonly<Record<string, unknown>>;
+    actionName?: string;
+  } = {},
+) {
+  if (!(error instanceof ConflictError || error instanceof ValidationError)) return null;
+  const rule = knownProjectRules[error.message];
+  if (!rule) return null;
+  const { correlationId, recordId, projectId, currentStatus, currentVersion, ...extra } = options;
+  return actionFail(
+    rule.status,
+    rule.messageKey,
+    {
+      ...(currentStatus ? { currentStatus } : {}),
+      ...(currentVersion ? { currentVersion } : {}),
+    },
+    rule.message,
+    {
+      ...extra,
+      code: rule.code,
+      ...(rule.field ? { fieldErrors: { [rule.field]: [rule.message] } } : {}),
+      remedies: [
+        {
+          id: rule.remedy,
+          ...(projectId ? { projectId } : {}),
+          ...(recordId ? { recordId } : {}),
+        },
+      ],
+      correlationId,
+    },
+  );
+}
+
+function currentRecordState(
+  context: ReturnType<typeof openPortalRepository>,
+  kind: 'client' | 'project',
+  id: string | undefined,
+): { currentStatus?: string; currentVersion?: number } {
+  if (!id) return {};
+  const row = context.sqlite.prepare(`SELECT status,version FROM ${kind} WHERE id=?`).get(id) as
+    | { status: string; version: number }
+    | undefined;
+  if (!row) return {};
+  return {
+    currentStatus: row.status.charAt(0).toUpperCase() + row.status.slice(1),
+    currentVersion: row.version,
+  };
+}
+
+function assignmentActionExtras(
+  formData: FormData,
+  actionName: 'updateAssignment' | 'removeAssignment' | 'deleteAssignment',
+  correlationId?: string,
+) {
+  return { actionName, values: Object.fromEntries(formData), correlationId };
+}
+
 export const projectActions = {
   createClient: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
+    const values = Object.fromEntries(
+      [
+        'clientCode',
+        'legalName',
+        'displayName',
+        'currency',
+        'timezone',
+        'billingEmail',
+        'billingContactName',
+        'billingAddress',
+        'paymentTermsDays',
+        'poReference',
+        'notes',
+      ].map((key) => [key, typeof object[key] === 'string' ? object[key] : '']),
+    );
     const parsed = clientInputSchema.safeParse(object);
     if (!parsed.success)
       return actionFail(400, 'action.validation.clientFields', {}, 'Check client fields', {
         fields: parsed.error.flatten().fieldErrors,
-        values: Object.fromEntries(
-          [
-            'clientCode',
-            'legalName',
-            'displayName',
-            'currency',
-            'timezone',
-            'billingEmail',
-            'billingContactName',
-            'billingAddress',
-            'paymentTermsDays',
-            'poReference',
-            'notes',
-          ].map((key) => [key, typeof object[key] === 'string' ? object[key] : '']),
-        ),
+        values,
+        actionName: 'createClient',
       });
     const context = openPortalRepository(locals);
     try {
@@ -53,7 +339,13 @@ export const projectActions = {
         `Created ${result.clientNumber}`,
       );
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, {
+          correlationId: locals.correlationId,
+          values,
+          actionName: 'createClient',
+        }) ?? actionFailure(error, { values, actionName: 'createClient' })
+      );
     } finally {
       context.sqlite.close();
     }
@@ -74,7 +366,9 @@ export const projectActions = {
       context.repository.createClientContact(context.principal, parsed.data);
       return actionSuccess('action.projects.clientContactSaved', {}, 'Client contact saved');
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, { correlationId: locals.correlationId }) ?? actionFailure(error)
+      );
     } finally {
       context.sqlite.close();
     }
@@ -180,7 +474,9 @@ export const projectActions = {
       });
       return actionSuccess('action.projects.projectUpdated', {}, 'Project updated');
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, { correlationId: locals.correlationId }) ?? actionFailure(error)
+      );
     } finally {
       context.sqlite.close();
     }
@@ -228,19 +524,70 @@ export const projectActions = {
         error instanceof Error &&
         error.message === 'Project currency must match the client currency'
       )
-        return actionFail(400, 'action.validation.projectFields', {}, 'Check project fields', {
-          fields: { currency: [error.message] },
-          values: retainedValues,
-        });
+        return actionFail(
+          400,
+          'problem.project.clientCurrencyMismatch',
+          {},
+          'Project currency must match the selected client’s currency.',
+          {
+            code: 'PROJECT_CLIENT_CURRENCY_MISMATCH',
+            fieldErrors: { currency: [error.message] },
+            values: retainedValues,
+            remedies: [{ id: 'review_client_currency', recordId: parsed.data.clientId }],
+            correlationId: locals.correlationId,
+          },
+        );
+      if (error instanceof Error && /^Selected worker \d+ is duplicated$/u.test(error.message))
+        return actionFail(
+          400,
+          'problem.project.initialWorkerDuplicate',
+          {},
+          'A worker was selected more than once. Keep one entry for each worker.',
+          {
+            code: 'PROJECT_INITIAL_WORKER_DUPLICATE',
+            fieldErrors: { initialWorkerIds: [error.message] },
+            values: retainedValues,
+            remedies: [{ id: 'review_selected_workers' }],
+            correlationId: locals.correlationId,
+          },
+        );
       if (
         error instanceof Error &&
-        /^Selected worker \d+|^Worker assignment start date/u.test(error.message)
+        /^Selected worker \d+ is not an active workforce member$/u.test(error.message)
       )
-        return actionFail(400, 'action.validation.projectFields', {}, 'Check project fields', {
-          fields: { initialWorkerIds: [error.message] },
-          values: retainedValues,
-        });
-      return actionFailure(error);
+        return actionFail(
+          400,
+          'problem.project.initialWorkerUnavailable',
+          {},
+          'A selected worker is no longer active. Choose an available worker.',
+          {
+            code: 'PROJECT_INITIAL_WORKER_UNAVAILABLE',
+            fieldErrors: { initialWorkerIds: [error.message] },
+            values: retainedValues,
+            remedies: [{ id: 'choose_available_worker' }],
+            correlationId: locals.correlationId,
+          },
+        );
+      if (
+        error instanceof Error &&
+        error.message === 'Worker assignment start date must be within project dates'
+      )
+        return actionFail(
+          400,
+          'problem.project.initialWorkerDateOutsideProject',
+          {},
+          'The worker assignment must start within the project dates. Review the start date.',
+          {
+            code: 'PROJECT_INITIAL_WORKER_DATE_OUTSIDE_PROJECT',
+            fieldErrors: { initialWorkersStartOn: [error.message] },
+            values: retainedValues,
+            remedies: [{ id: 'review_project_dates' }],
+            correlationId: locals.correlationId,
+          },
+        );
+      return (
+        knownProjectFailure(error, { correlationId: locals.correlationId }) ?? actionFailure(error)
+      );
     } finally {
       context.sqlite.close();
     }
@@ -258,7 +605,9 @@ export const projectActions = {
       context.repository.createProjectMilestone(context.principal, parsed.data);
       return actionSuccess('action.projects.milestoneDraftSaved', {}, 'Milestone draft saved');
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, { correlationId: locals.correlationId }) ?? actionFailure(error)
+      );
     } finally {
       context.sqlite.close();
     }
@@ -282,7 +631,9 @@ export const projectActions = {
         'Milestone submitted for review',
       );
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, { correlationId: locals.correlationId }) ?? actionFailure(error)
+      );
     } finally {
       context.sqlite.close();
     }
@@ -300,7 +651,9 @@ export const projectActions = {
       context.repository.updateProjectSchedule(context.principal, parsed.data);
       return actionSuccess('action.projects.scheduleSaved', {}, 'Expected schedule saved');
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, { correlationId: locals.correlationId }) ?? actionFailure(error)
+      );
     } finally {
       context.sqlite.close();
     }
@@ -308,17 +661,85 @@ export const projectActions = {
   assignWorker: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const parsed = assignmentInputSchema.safeParse(await formObject(request));
-    if (!parsed.success)
+    const object = await formObject(request);
+    const values = Object.fromEntries(
+      ['projectId', 'workerId', 'startsOn', 'endsOn', 'plannedMinutes'].map((key) => [
+        key,
+        typeof object[key] === 'string' ? object[key] : '',
+      ]),
+    );
+    const parsed = assignmentInputSchema.safeParse(object);
+    if (!parsed.success) {
+      const fields = Object.fromEntries(
+        Object.keys(parsed.error.flatten().fieldErrors).map((field) => [
+          field,
+          [
+            field === 'startsOn' || field === 'endsOn'
+              ? 'Enter a valid date.'
+              : field === 'plannedMinutes'
+                ? 'Enter a valid number.'
+                : 'Please select an option.',
+          ],
+        ]),
+      );
       return actionFail(400, 'action.validation.assignmentFields', {}, 'Check assignment fields', {
-        fields: parsed.error.flatten().fieldErrors,
+        fields,
+        actionName: 'assignWorker',
+        values,
+        correlationId: locals.correlationId,
       });
+    }
     const context = openPortalRepository(locals);
     try {
       context.repository.assignWorker(context.principal, parsed.data);
       return actionSuccess('action.projects.assignmentCreated', {}, 'Assignment created');
     } catch (error) {
-      return actionFailure(error);
+      const domainCode = error instanceof Error ? (error as Error & { code?: string }).code : null;
+      if (domainCode === 'PROJECT_ASSIGNMENT_OVERLAP')
+        return actionFail(
+          409,
+          'problem.project.assignmentOverlap',
+          {},
+          'This worker already has an overlapping assignment on this project. Review the existing assignment dates.',
+          {
+            code: domainCode,
+            actionName: 'assignWorker',
+            values,
+            remedies: [{ id: 'review_assignments', projectId: parsed.data.projectId }],
+            correlationId: locals.correlationId,
+          },
+        );
+      if (error instanceof Error && error.message === 'Active workforce member not found')
+        return actionFail(
+          400,
+          'problem.project.assignmentWorkerUnavailable',
+          {},
+          'This worker is no longer active. Choose an available worker before assigning.',
+          {
+            code: 'PROJECT_ASSIGNMENT_WORKER_UNAVAILABLE',
+            actionName: 'assignWorker',
+            values,
+            fieldErrors: { workerId: ['Choose an active worker.'] },
+            remedies: [{ id: 'choose_available_worker' }],
+            correlationId: locals.correlationId,
+          },
+        );
+      const blockedStatus =
+        error instanceof Error &&
+        (error as Error & { code?: string }).code === 'PROJECT_ASSIGNMENT_BLOCKED_STATUS';
+      return actionFailure(error, {
+        actionName: 'assignWorker',
+        values,
+        correlationId: locals.correlationId,
+        ...(blockedStatus
+          ? {
+              remedies:
+                context.principal.role === 'owner_admin'
+                  ? [{ id: 'review_project_status', projectId: parsed.data.projectId }]
+                  : [{ id: 'contact_project_owner' }],
+            }
+          : {}),
+      });
     } finally {
       context.sqlite.close();
     }
@@ -347,7 +768,14 @@ export const projectActions = {
       context.repository.updateClient(context.principal, clientId, input, version);
       return actionSuccess('action.projects.clientUpdated', {}, 'Client updated');
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, {
+          correlationId: locals.correlationId,
+          recordId: clientId,
+          actionName: 'updateClient',
+          ...currentRecordState(context, 'client', clientId),
+        }) ?? actionFailure(error)
+      );
     } finally {
       context.sqlite.close();
     }
@@ -385,7 +813,14 @@ export const projectActions = {
         'Client lifecycle updated',
       );
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, {
+          correlationId: locals.correlationId,
+          recordId: clientId,
+          actionName: 'transitionClient',
+          ...currentRecordState(context, 'client', clientId),
+        }) ?? actionFailure(error)
+      );
     } finally {
       context.sqlite.close();
     }
@@ -442,7 +877,14 @@ export const projectActions = {
         'Project lifecycle updated',
       );
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, {
+          correlationId: locals.correlationId,
+          projectId,
+          actionName: 'transitionProject',
+          ...currentRecordState(context, 'project', projectId),
+        }) ?? actionFailure(error)
+      );
     } finally {
       context.sqlite.close();
     }
@@ -473,7 +915,14 @@ export const projectActions = {
       });
       return actionSuccess('action.projects.clientArchived', {}, 'Client archived');
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, {
+          correlationId: locals.correlationId,
+          recordId: id,
+          actionName: 'archiveClient',
+          ...currentRecordState(context, 'client', id),
+        }) ?? actionFailure(error)
+      );
     } finally {
       context.sqlite.close();
     }
@@ -489,7 +938,14 @@ export const projectActions = {
       context.repository.deleteClient(context.principal, id);
       return actionSuccess('action.projects.clientDeleted', {}, 'Client deleted');
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, {
+          correlationId: locals.correlationId,
+          recordId: id,
+          actionName: 'deleteClient',
+          ...currentRecordState(context, 'client', id),
+        }) ?? actionFailure(error)
+      );
     } finally {
       context.sqlite.close();
     }
@@ -506,7 +962,14 @@ export const projectActions = {
       context.repository.deleteProject(context.principal, id);
       return actionSuccess('action.projects.projectDeleted', {}, 'Project deleted');
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, {
+          correlationId: locals.correlationId,
+          projectId: id,
+          actionName: 'deleteProject',
+          ...currentRecordState(context, 'project', id),
+        }) ?? actionFailure(error)
+      );
     } finally {
       context.sqlite.close();
     }
@@ -534,7 +997,9 @@ export const projectActions = {
       context.repository.updateClientContact(context.principal, id, input);
       return actionSuccess('action.projects.clientContactUpdated', {}, 'Client contact updated');
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, { correlationId: locals.correlationId }) ?? actionFailure(error)
+      );
     } finally {
       context.sqlite.close();
     }
@@ -551,7 +1016,9 @@ export const projectActions = {
       context.repository.deleteClientContact(context.principal, id);
       return actionSuccess('action.projects.clientContactDeleted', {}, 'Client contact deleted');
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, { correlationId: locals.correlationId }) ?? actionFailure(error)
+      );
     } finally {
       context.sqlite.close();
     }
@@ -560,6 +1027,7 @@ export const projectActions = {
     if (params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const formData = await request.formData();
+    const extras = assignmentActionExtras(formData, 'updateAssignment', locals.correlationId);
     const id = formData.get('assignmentId')?.toString();
     if (!id)
       return actionFail(
@@ -567,6 +1035,7 @@ export const projectActions = {
         'action.validation.assignmentIdRequired',
         {},
         'Assignment ID required',
+        extras,
       );
     const versionValue = formData.get('version')?.toString().trim();
     const version = versionValue === undefined ? Number.NaN : Number(versionValue);
@@ -576,6 +1045,7 @@ export const projectActions = {
         'action.validation.lifecycleFields',
         {},
         'Assignment version is required',
+        extras,
       );
 
     const input: {
@@ -605,7 +1075,14 @@ export const projectActions = {
       context.repository.updateAssignment(context.principal, id, input);
       return actionSuccess('action.projects.assignmentUpdated', {}, 'Assignment updated');
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, {
+          correlationId: locals.correlationId,
+          recordId: id,
+          actionName: 'updateAssignment',
+          values: extras.values,
+        }) ?? actionFailure(error, extras)
+      );
     } finally {
       context.sqlite.close();
     }
@@ -614,6 +1091,7 @@ export const projectActions = {
     if (params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const formData = await request.formData();
+    const extras = assignmentActionExtras(formData, 'removeAssignment', locals.correlationId);
     const id = formData.get('assignmentId')?.toString();
     if (!id)
       return actionFail(
@@ -621,6 +1099,7 @@ export const projectActions = {
         'action.validation.assignmentIdRequired',
         {},
         'Assignment ID required',
+        extras,
       );
     const versionValue = formData.get('version')?.toString().trim();
     const version = versionValue === undefined ? Number.NaN : Number(versionValue);
@@ -630,6 +1109,7 @@ export const projectActions = {
         'action.validation.lifecycleFields',
         {},
         'Assignment version is required',
+        extras,
       );
     const reason = formData.get('reason')?.toString().trim();
     if (!reason)
@@ -638,6 +1118,7 @@ export const projectActions = {
         'action.validation.lifecycleFields',
         {},
         'A removal reason is required',
+        extras,
       );
     const context = openPortalRepository(locals);
     try {
@@ -648,7 +1129,14 @@ export const projectActions = {
       });
       return actionSuccess('action.projects.assignmentDeleted', {}, 'Assignment removed');
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, {
+          correlationId: locals.correlationId,
+          recordId: id,
+          actionName: 'removeAssignment',
+          values: extras.values,
+        }) ?? actionFailure(error, extras)
+      );
     } finally {
       context.sqlite.close();
     }
@@ -657,6 +1145,7 @@ export const projectActions = {
     if (params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const formData = await request.formData();
+    const extras = assignmentActionExtras(formData, 'deleteAssignment', locals.correlationId);
     const id = formData.get('assignmentId')?.toString();
     if (!id)
       return actionFail(
@@ -664,6 +1153,7 @@ export const projectActions = {
         'action.validation.assignmentIdRequired',
         {},
         'Assignment ID required',
+        extras,
       );
     const versionValue = formData.get('version')?.toString().trim();
     const version = versionValue === undefined ? Number.NaN : Number(versionValue);
@@ -673,6 +1163,7 @@ export const projectActions = {
         'action.validation.lifecycleFields',
         {},
         'Assignment version is required',
+        extras,
       );
     const reason =
       formData.get('reason')?.toString().trim() || 'Removed by an authorized administrator';
@@ -685,7 +1176,14 @@ export const projectActions = {
       });
       return actionSuccess('action.projects.assignmentDeleted', {}, 'Assignment removed');
     } catch (error) {
-      return actionFailure(error);
+      return (
+        knownProjectFailure(error, {
+          correlationId: locals.correlationId,
+          recordId: id,
+          actionName: 'deleteAssignment',
+          values: extras.values,
+        }) ?? actionFailure(error, extras)
+      );
     } finally {
       context.sqlite.close();
     }

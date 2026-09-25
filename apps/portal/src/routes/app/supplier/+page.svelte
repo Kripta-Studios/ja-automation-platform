@@ -1,8 +1,16 @@
 <script lang="ts">
   import TimeIntervalFields from '$lib/portal/ui/TimeIntervalFields.svelte';
-  import { localToday } from '$lib/portal/ui/time-entry-clock';
+  import { durationMinutes, localToday } from '$lib/portal/ui/time-entry-clock';
   import { portalText } from '$lib/portal-i18n';
-  import { SectionCard, StatusBadge, ResponsiveSheet } from '$lib/portal/ui';
+  import {
+    SectionCard,
+    StatusBadge,
+    ResponsiveSheet,
+    ProblemNotice,
+    formValidation,
+    reportFormFieldErrors,
+  } from '$lib/portal/ui';
+  import type { ProblemData } from '$lib/problem/contract';
   import RecordBrowser from '$lib/portal/ui/RecordBrowser.svelte';
   import { supplierCopy, supplierStateLabel, supplierManagementCopy } from './copy';
   import { standaloneActionMessage } from '../standalone-locale';
@@ -12,7 +20,21 @@
   import { tick, untrack } from 'svelte';
   let { data, form } = $props();
   const c = $derived(supplierCopy[data.locale as keyof typeof supplierCopy]);
+  const decimalHours = (minutes: number): string => String(Number((minutes / 60).toFixed(4)));
+  // Two decimal places always round back to the original whole minute on the supplier action.
+  const editableDecimalHours = (minutes: number): string => (minutes / 60).toFixed(2);
+  function syncBreakHours(event: Event): void {
+    const input = event.currentTarget as HTMLInputElement;
+    const hidden = input.nextElementSibling as HTMLInputElement;
+    const minutes = input.value.trim() === '' ? 0 : durationMinutes(input.value);
+    const valid = minutes !== null && minutes <= 1439;
+    input.setCustomValidity(valid ? '' : c.invalidBreakHours);
+    hidden.value = valid ? String(minutes) : '';
+  }
   const m = $derived(supplierManagementCopy[data.locale as keyof typeof supplierManagementCopy]);
+  const currentProblem = $derived(
+    form && !form.success && 'code' in form ? (form as unknown as ProblemData) : null,
+  );
   let search = $state('');
   let directoryStatus = $state('active');
   type WorkspaceAction = 'directory' | 'setup' | 'authorize' | 'personnel' | 'time' | 'report';
@@ -135,7 +157,21 @@
         : [],
     ),
   );
-  let selectedDraftIds = $state<string[]>([]);
+  let selectedDraftIds = $state<string[]>(
+    untrack(() => {
+      if (form?.operation !== 'submitTimeBatch' || form.success) return [];
+      try {
+        const entries = JSON.parse(String(form.values?.entries ?? '[]')) as unknown;
+        return Array.isArray(entries)
+          ? entries.flatMap((entry) =>
+              entry && typeof entry === 'object' && typeof entry.id === 'string' ? [entry.id] : [],
+            )
+          : [];
+      } catch {
+        return [];
+      }
+    }),
+  );
   let batchMode = $state<'shared' | 'individual'>(
     untrack(() =>
       form?.operation === 'createTimeBatch' && form.values?.batchMode === 'individual'
@@ -209,6 +245,67 @@
   });
   const actionUrl = (operation: string) =>
     `?/${operation}&${new URLSearchParams({ projectId: data.projectId, from: data.from, to: data.to, lang: data.locale, workspaceAction }).toString()}#supplier-workspace`;
+  const workspaceHref = (action: WorkspaceAction) =>
+    `?${new URLSearchParams({ projectId: data.projectId, from: data.from, to: data.to, lang: data.locale, workspaceAction: action }).toString()}#supplier-workspace`;
+  const remedyLinks = $derived({
+    review_supplier_directory: {
+      label: portalText(data.locale, 'problem.remedy.reviewSupplierDirectory'),
+      ...(data.owner ? { href: workspaceHref('directory') } : {}),
+    },
+    review_supplier_profile: {
+      label: portalText(data.locale, 'problem.remedy.reviewSupplierProfile'),
+      ...(data.owner ? { href: workspaceHref('setup') } : {}),
+    },
+    review_supplier_grants: {
+      label: portalText(data.locale, 'problem.remedy.reviewSupplierGrants'),
+      ...(data.owner ? { href: workspaceHref('authorize') } : {}),
+    },
+    review_user_access: { label: portalText(data.locale, 'problem.remedy.reviewUserAccess') },
+    choose_operational_project: {
+      label: portalText(data.locale, 'problem.remedy.chooseOperationalProject'),
+    },
+    review_supplier_assignments: {
+      label: portalText(data.locale, 'problem.remedy.reviewSupplierAssignments'),
+      href: workspaceHref('personnel'),
+    },
+    choose_technician: {
+      label: portalText(data.locale, 'problem.remedy.chooseAvailableWorker'),
+      href: workspaceHref('personnel'),
+    },
+    review_saved_drafts: {
+      label: portalText(data.locale, 'problem.remedy.reviewSavedDrafts'),
+      href: workspaceHref('report'),
+    },
+    review_time_drafts: {
+      label: portalText(data.locale, 'problem.remedy.reviewTimeDrafts'),
+      href: workspaceHref('report'),
+    },
+    correct_supplier_field: { label: portalText(data.locale, 'problem.remedy.correctField') },
+    confirm_status_change: { label: portalText(data.locale, 'problem.remedy.confirmStatusChange') },
+    contact_owner: { label: portalText(data.locale, 'problem.remedy.contactOwner') },
+    sign_in_again: {
+      label: portalText(data.locale, 'problem.remedy.signInAgain'),
+      href: `${base}/login`,
+    },
+  });
+  $effect(() => {
+    if (!currentProblem || !form?.operation || !Object.keys(currentProblem.fieldErrors).length)
+      return;
+    const operation = form.operation;
+    const recordId = form.values?.id;
+    const fieldErrors = currentProblem.fieldErrors;
+    void tick().then(() => {
+      const candidates = Array.from(
+        document.querySelectorAll<HTMLFormElement>(`form[data-supplier-operation="${operation}"]`),
+      );
+      const target = candidates.find(
+        (candidate) =>
+          !recordId ||
+          candidate.querySelector<HTMLInputElement>('input[name="id"]')?.value === recordId,
+      );
+      if (target) reportFormFieldErrors(target, fieldErrors);
+    });
+  });
   const value = (operation: string, key: string, fallback = '') =>
     form?.operation === operation ? (form.values?.[key] ?? fallback) : fallback;
 </script>
@@ -255,30 +352,42 @@
     >
   </nav>
   <div id="supplier-workspace" class="supplier-workspace-heading">
-  {#if form}<p role={form.success ? 'status' : 'alert'}>
-      {#if form.success && form.operation === 'createTimeBatch' && form.outcome}
-        {form.outcome.replayed ? c.batchAlreadySaved : c.batchSaved}: {form.outcome.createdCount}
-        {c.drafts} · {form.outcome.projectName} · {form.outcome.workDate} · {form.outcome
-          .totalMinutes}
-        {c.teamMinutes}
-      {:else if form.success && form.operation === 'submitTimeBatch' && form.outcome}
-        {form.outcome.submittedCount} {c.draftsSubmitted}
-      {:else}{form.success ? c.saved : c.failed}{/if}
+    {#if form?.success}<p role="status">
+        {#if form.success && form.operation === 'createTimeBatch' && form.outcome}
+          {form.outcome.replayed ? c.batchAlreadySaved : c.batchSaved}: {form.outcome.createdCount}
+          {c.drafts} · {form.outcome.projectName} · {form.outcome.workDate} · {decimalHours(
+            form.outcome.totalMinutes,
+          )}
+          {c.teamHours}
+        {:else if form.success && form.operation === 'submitTimeBatch' && form.outcome}
+          {form.outcome.submittedCount} {c.draftsSubmitted}
+        {:else}{c.saved}{/if}
+      </p>{/if}
+    {#if currentProblem && !(editor && form?.operation === editor.operation)}
+      <ProblemNotice
+        problem={currentProblem}
+        kind={currentProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        status={form?.operation === 'createTimeBatch'
+          ? portalText(data.locale, 'problem.supplier.batchNoneSaved')
+          : undefined}
+        {remedyLinks}
+      />
+    {:else if form && !form.success && !(editor && form.operation === editor.operation)}
+      <p role="alert">{standaloneActionMessage(data.locale, form)}</p>
+    {/if}
+    <p class="supplier-action-help">
+      {workspaceAction === 'directory'
+        ? m.intro
+        : workspaceAction === 'setup'
+          ? c.personnel
+          : workspaceAction === 'authorize'
+            ? c.restricted
+            : workspaceAction === 'personnel'
+              ? c.personnel
+              : workspaceAction === 'time'
+                ? c.intro
+                : c.report}
     </p>
-    {#if !form.success}<p>{standaloneActionMessage(data.locale, form)}</p>{/if}{/if}
-  <p class="supplier-action-help">
-    {workspaceAction === 'directory'
-      ? m.intro
-      : workspaceAction === 'setup'
-        ? c.personnel
-        : workspaceAction === 'authorize'
-          ? c.restricted
-          : workspaceAction === 'personnel'
-            ? c.personnel
-            : workspaceAction === 'time'
-              ? c.intro
-      : c.report}
-  </p>
   </div>
   {#if data.owner && workspaceAction === 'directory'}
     <SectionCard title={c.title} id="supplier-directory">
@@ -390,6 +499,8 @@
       <form
         method="POST"
         action={actionUrl(editor.operation)}
+        data-supplier-operation={editor.operation}
+        use:formValidation
         class="supplier-editor"
         use:enhance={() => {
           return async ({ result, update }) => {
@@ -399,9 +510,15 @@
         }}
       >
         <input type="hidden" name="id" value={editor.id} />
-        {#if form && !form.success && form.operation === editor.operation}<p role="alert">
-            {standaloneActionMessage(data.locale, form)}
-          </p>{/if}
+        {#if currentProblem && form?.operation === editor.operation}
+          <ProblemNotice
+            problem={currentProblem}
+            kind={currentProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+            {remedyLinks}
+          />
+        {:else if form && !form.success && form.operation === editor.operation}
+          <p role="alert">{standaloneActionMessage(data.locale, form)}</p>
+        {/if}
         {#if editor.kind === 'update'}
           <label data-ui="field"
             >{c.name}<input
@@ -581,7 +698,12 @@
   {/snippet}
   {#if data.owner && workspaceAction === 'setup'}
     <SectionCard title={c.createProvider} id="supplier-setup"
-      ><form method="POST" action={actionUrl('createSupplier')}>
+      ><form
+        method="POST"
+        action={actionUrl('createSupplier')}
+        data-supplier-operation="createSupplier"
+        use:formValidation
+      >
         <label data-ui="field"
           >{c.name}<input
             name="name"
@@ -622,7 +744,12 @@
     >
     <SectionCard title={c.owner}>
       <p>{c.restricted}</p>
-      <form method="POST" action={actionUrl('setProfile')}>
+      <form
+        method="POST"
+        action={actionUrl('setProfile')}
+        data-supplier-operation="setProfile"
+        use:formValidation
+      >
         <label data-ui="field"
           >{c.account}<select name="userId" required value={value('setProfile', 'userId')}
             ><option value="">{c.select}</option>{#each data.accounts as account}<option
@@ -651,7 +778,12 @@
   {/if}
   {#if data.owner && workspaceAction === 'authorize'}
     <SectionCard title={c.grant}>
-      <form method="POST" action={actionUrl('grant')}>
+      <form
+        method="POST"
+        action={actionUrl('grant')}
+        data-supplier-operation="grant"
+        use:formValidation
+      >
         {@render suppliers('grant')}{@render projects('grant')}
         <label data-ui="field"
           >{c.coordinator}<select
@@ -678,7 +810,12 @@
               grant.status,
             )}
           </p>
-          {#if grant.status === 'active'}<form method="POST" action={actionUrl('revoke')}>
+          {#if grant.status === 'active'}<form
+              method="POST"
+              action={actionUrl('revoke')}
+              data-supplier-operation="revoke"
+              use:formValidation
+            >
               <input type="hidden" name="id" value={grant.id} /><button class="primary-button"
                 >{c.revoke}</button
               >
@@ -689,7 +826,12 @@
   {#if data.projects.length && workspaceAction === 'personnel'}
     <SectionCard title={c.add} id="supplier-personnel">
       <p>{c.personnel}</p>
-      <form method="POST" action={actionUrl('addTechnician')}>
+      <form
+        method="POST"
+        action={actionUrl('addTechnician')}
+        data-supplier-operation="addTechnician"
+        use:formValidation
+      >
         {#if data.owner}{@render suppliers('addTechnician')}{/if}
         {@render projects('addTechnician')}
         <label data-ui="field"
@@ -737,7 +879,12 @@
       </form>
     </SectionCard>
     <SectionCard title={c.assign}>
-      <form method="POST" action={actionUrl('assignTechnician')}>
+      <form
+        method="POST"
+        action={actionUrl('assignTechnician')}
+        data-supplier-operation="assignTechnician"
+        use:formValidation
+      >
         <label data-ui="field"
           >{c.worker}<select name="workerId" required value={value('assignTechnician', 'workerId')}
             ><option value="">{c.select}</option>{#each data.technicians as t}<option value={t.id}
@@ -766,12 +913,19 @@
           {c.report.toLocaleLowerCase()} · {draftEntries.length}
           {c.drafts}
         </p>
-        <button type="button" class="secondary-button" onclick={() => selectWorkspaceAction('report')}
-          >{c.report} →</button
+        <button
+          type="button"
+          class="secondary-button"
+          onclick={() => selectWorkspaceAction('report')}>{c.report} →</button
         >
       {/if}
       <p>{c.batchHelp}</p>
-      <form method="POST" action={actionUrl('createTimeBatch')}>
+      <form
+        method="POST"
+        action={actionUrl('createTimeBatch')}
+        data-supplier-operation="createTimeBatch"
+        use:formValidation
+      >
         <input
           type="hidden"
           name="requestId"
@@ -878,7 +1032,13 @@
   {#if data.projects.length && workspaceAction === 'report'}
     <SectionCard title={c.report} id="supplier-report">
       {#if !data.owner && draftEntries.length}
-        <form method="POST" action={actionUrl('submitTimeBatch')} class="batch-submit">
+        <form
+          method="POST"
+          action={actionUrl('submitTimeBatch')}
+          data-supplier-operation="submitTimeBatch"
+          class="batch-submit"
+          use:formValidation
+        >
           <input type="hidden" name="entries" value={JSON.stringify(selectedDraftPayload)} />
           <button
             type="button"
@@ -914,37 +1074,59 @@
           {/if}
           <p>
             {#if entry.startTime && entry.endTime}{entry.startTime} – {entry.endTime} ·
-            {/if}{entry.minutes} · {c.minutes} · {supplierStateLabel(data.locale, entry.state)}
+            {/if}{decimalHours(entry.minutes)} · {c.actualHours} · {supplierStateLabel(
+              data.locale,
+              entry.state,
+            )}
           </p>
           <p>{entry.summary}</p>
           <p>{c.recordedBy}: {entry.recordedByName || entry.workerName}</p>
           {#if !data.owner && entry.state === 'needs_changes'}
-            <form method="POST" action={actionUrl('correctTime')}>
+            <form
+              method="POST"
+              action={actionUrl('correctTime')}
+              data-supplier-operation="correctTime"
+              use:formValidation
+            >
               <input type="hidden" name="id" value={entry.id} /><input
                 type="hidden"
                 name="requestId"
-                value={data.correctionRequestId}
+                value={form?.operation === 'correctTime' && form.values?.id === entry.id
+                  ? form.values.requestId
+                  : data.correctionRequestId}
               /><label data-ui="field"
                 >{c.reason}<input
                   name="reason"
                   required
                   maxlength="1000"
-                  value={value('correctTime', 'reason')}
+                  value={form?.operation === 'correctTime' && form.values?.id === entry.id
+                    ? form.values.reason
+                    : ''}
                 /></label
               ><button class="primary-button">{c.correction}</button>
             </form>
           {/if}
           {#if !data.owner && entry.state === 'draft'}
-            <form method="POST" action={actionUrl('submitTime')}>
+            <form
+              method="POST"
+              action={actionUrl('submitTime')}
+              data-supplier-operation="submitTime"
+              use:formValidation
+            >
               <input type="hidden" name="id" value={String(entry.id)} /><input
                 type="hidden"
                 name="version"
                 value={Number(entry.version)}
               /><button class="primary-button">{c.submit}</button>
             </form>
-            <details>
+            <details open={form?.operation === 'updateTime' && form.values?.id === entry.id}>
               <summary>{c.edit}</summary>
-              <form method="POST" action={actionUrl('updateTime')}>
+              <form
+                method="POST"
+                action={actionUrl('updateTime')}
+                data-supplier-operation="updateTime"
+                use:formValidation
+              >
                 <input type="hidden" name="id" value={String(entry.id)} /><input
                   type="hidden"
                   name="version"
@@ -1006,7 +1188,7 @@
                       value={updateValue(
                         String(entry.id),
                         'durationHours',
-                        entry.startTime ? '' : String(Number(entry.minutes) / 60),
+                        entry.startTime ? '' : editableDecimalHours(Number(entry.minutes)),
                       )}
                     /></label
                   >
@@ -1027,10 +1209,18 @@
                       /></label
                     >
                     <label data-ui="field"
-                      >{c.breakMinutes}<input
-                        type="number"
-                        min="0"
-                        max="1439"
+                      >{c.breakHours}<input
+                        type="text"
+                        inputmode="decimal"
+                        name="breakHours"
+                        value={updateValue(
+                          String(entry.id),
+                          'breakHours',
+                          decimalHours(Number(entry.breakMinutes ?? 0)),
+                        )}
+                        oninput={syncBreakHours}
+                      /><input
+                        type="hidden"
                         name="breakMinutes"
                         value={updateValue(
                           String(entry.id),
@@ -1054,6 +1244,8 @@
               <form
                 method="POST"
                 action={actionUrl('discardTime')}
+                data-supplier-operation="discardTime"
+                use:formValidation
                 onsubmit={(event) => {
                   if (!confirm(c.discardConfirm)) event.preventDefault();
                 }}

@@ -1153,8 +1153,8 @@ describe('Client Essential customer sign-off security boundary', () => {
     const pdfPath = join(value.directory, 'same-day-customer-workers.pdf');
     writeFileSync(pdfPath, pdf);
     const text = execFileSync('pdftotext', ['-raw', pdfPath, '-'], { encoding: 'utf8' });
-    expect(text).toMatch(/Alex Commissioning\s+Engineer/u);
-    expect(text).toContain('Rui Field Engineer');
+    expect(text).toMatch(/Alex\s+Commissioning\s+Engineer/u);
+    expect(text).toMatch(/Rui\s+Field\s+Engineer/u);
     expect(text).not.toContain('b5-worker-two');
     expect(text).not.toContain('b5-worker@example.test');
   });
@@ -1601,7 +1601,7 @@ describe('Client Essential customer sign-off security boundary', () => {
           principal,
           'foreign-project.pdf',
           value.repository.createProject(value.owner, {
-            costCenterCode: 'QA-CUSTOMER-CONFORMITY-BILLING-GATE-TEST-1',
+            costCenterCode: 'QA-CUSTOMER-CONFORMITY-BILLING-GATE-TEST-2',
             clientId: value.client.id,
             name: 'Foreign customer-signoff evidence project',
             timezone: 'Europe/Madrid',

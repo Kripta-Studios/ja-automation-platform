@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { createDatabase, PortalRepository } from '@ja/database';
 import { e2eCredentials, e2eLifecycleFixturesFor, portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 test('chief records a worker expense from crew hours without seeing that worker reimbursement', async ({
   page,
@@ -28,7 +29,7 @@ test('chief records a worker expense from crew hours without seeing that worker 
     projectId = repository.createProject(owner, {
       clientId: e2eLifecycleFixturesFor(testInfo.project.name).client.id,
       name: projectName,
-      costCenterCode: `EXP-${testInfo.project.name}`,
+      costCenterCode: e2eCostCenter('EXP', 2, testInfo.project.name),
       currency: 'USD',
       timezone: 'UTC',
       billingModel: 'tm',

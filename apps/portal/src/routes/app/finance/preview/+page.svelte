@@ -1,14 +1,74 @@
 <script lang="ts">
   import { base } from '$app/paths';
-  import { SectionCard, FormCard, FieldGroup, Field } from '$lib/portal/ui';
+  import { enhance } from '$app/forms';
+  import { SectionCard, FormCard, FieldGroup, Field, formValidation } from '$lib/portal/ui';
+  import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
+  import type { ProblemData } from '$lib/problem/contract';
+  import { portalText } from '$lib/portal-i18n';
+  import { tick } from 'svelte';
   import { paymentMoney } from '$lib/portal/payment-money';
   import { copy } from './copy';
   let { data, form } = $props();
+  type PreviewResult = {
+    actualMinutes: number;
+    regularMinutes: number;
+    overtimeMinutes: number;
+    minimumAdjustmentMinutes: number;
+    currency: string;
+    [key: string]: number | string;
+  };
+  type PreviewForm = Partial<ProblemData> & {
+    values?: Record<string, string>;
+    invalid?: boolean;
+    fields?: string[];
+    result?: PreviewResult | null;
+    periods?: Array<{ start: string; end: string }>;
+  };
+  const previewForm = $derived(form as PreviewForm | null | undefined);
   const locale = $derived(data.locale === 'es' ? 'es' : data.locale === 'pt' ? 'pt' : 'en');
   const t = $derived(copy[locale]);
-  const invalidFields = $derived((form?.fields ?? []) as string[]);
+  const scrollStorageKey = 'ja.finance-preview.scroll';
+  $effect(() => {
+    if (typeof window === 'undefined') return;
+    const rememberScroll = () =>
+      window.sessionStorage.setItem(scrollStorageKey, String(window.scrollY));
+    // A native POST reloads the document, including when script calls form.submit().
+    window.addEventListener('pagehide', rememberScroll);
+    return () => window.removeEventListener('pagehide', rememberScroll);
+  });
+  const invalidFields = $derived(previewForm?.fields ?? []);
+  const formProblem = $derived(
+    previewForm?.code && previewForm.messageKey && previewForm.correlationId
+      ? (previewForm as ProblemData)
+      : null,
+  );
+  let focusedProblemId = '';
+  $effect(() => {
+    const id = formProblem?.correlationId;
+    if (!id || id === focusedProblemId) return;
+    focusedProblemId = id;
+    void tick().then(() => {
+      const formElement = document.querySelector<HTMLFormElement>('[data-commercial-example]');
+      if (formElement && formProblem.fieldErrors)
+        reportFormFieldErrors(formElement, formProblem.fieldErrors);
+      const target =
+        formElement?.querySelector<HTMLElement>('[data-validation-summary]') ??
+        document.querySelector<HTMLElement>(
+          '[data-finance-preview-problem] [data-ui="problem-notice"]',
+        );
+      target?.focus({ preventScroll: true });
+      const storedScroll = window.sessionStorage.getItem(scrollStorageKey);
+      if (storedScroll !== null) {
+        window.sessionStorage.removeItem(scrollStorageKey);
+        const previousScroll = Number(storedScroll);
+        if (Number.isFinite(previousScroll) && previousScroll >= 0)
+          requestAnimationFrame(() => window.scrollTo(0, previousScroll));
+      }
+    });
+  });
   const value = (name: string) =>
-    form?.values?.[name] ?? data.defaults[name as keyof typeof data.defaults] ?? '';
+    previewForm?.values?.[name] ?? data.defaults[name as keyof typeof data.defaults] ?? '';
   const fields = [
     ['workHours', 'work', '0.1'],
     ['referenceHours', 'reference', '0.1'],
@@ -206,8 +266,35 @@
   </SectionCard>
   <FormCard title={t.sample}>
     <p>{t.scope}</p>
-    {#if form?.invalid}<p role="alert" class="form-error">{t.invalid}</p>{/if}
-    <form method="POST" data-commercial-example>
+    {#if formProblem}
+      <div data-finance-preview-problem>
+        <ProblemNotice
+          problem={formProblem}
+          kind={formProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+          remedyLinks={{
+            review_preview_inputs: { label: t.invalid },
+            contact_finance_owner: { label: portalText(locale, 'Contact Finance or an owner') },
+            sign_in_again: {
+              label: portalText(locale, 'Sign in again'),
+              href: `${base}/app/login`,
+            },
+          }}
+        />
+      </div>
+    {:else if previewForm?.invalid}<p role="alert" class="form-error">{t.invalid}</p>{/if}
+    <form
+      method="POST"
+      data-commercial-example
+      use:formValidation
+      use:enhance={() => {
+        const scrollY = window.scrollY;
+        return async ({ update }) => {
+          await update({ reset: false, invalidateAll: false });
+          await tick();
+          window.scrollTo(0, scrollY);
+        };
+      }}
+    >
       <FieldGroup>
         <Field id="example-currency" label={t.currency}
           ><select id="example-currency" name="currency" value={value('currency')}
@@ -315,34 +402,34 @@
       <button type="submit" class="calculate">{t.calculate}</button>
     </form>
   </FormCard>
-  {#if form?.result}
+  {#if previewForm?.result}
     <SectionCard title={t.result} data-commercial-result>
       <p>{t.resultNote}</p>
       <dl class="facts">
         <div>
           <dt>{t.actual}</dt>
-          <dd>{form.result.actualMinutes / 60}</dd>
+          <dd>{previewForm.result.actualMinutes / 60}</dd>
         </div>
         <div>
           <dt>{t.regular}</dt>
-          <dd>{form.result.regularMinutes / 60}</dd>
+          <dd>{previewForm.result.regularMinutes / 60}</dd>
         </div>
         <div>
           <dt>{t.overtimeHours}</dt>
-          <dd>{form.result.overtimeMinutes / 60}</dd>
+          <dd>{previewForm.result.overtimeMinutes / 60}</dd>
         </div>
         <div>
           <dt>{t.adjustment}</dt>
-          <dd>{form.result.minimumAdjustmentMinutes / 60}</dd>
+          <dd>{previewForm.result.minimumAdjustmentMinutes / 60}</dd>
         </div>
         {#each moneyResults as [key, label]}<div>
             <dt>{t[label]}</dt>
-            <dd>{paymentMoney(form.result[key], form.result.currency, locale)}</dd>
+            <dd>{paymentMoney(previewForm.result[key], previewForm.result.currency, locale)}</dd>
           </div>{/each}
       </dl>
-      {#if form.periods.length}<h3>{t.periods}</h3>
+      {#if previewForm.periods?.length}<h3>{t.periods}</h3>
         <ol>
-          {#each form.periods as period}<li>{period.start} → {period.end}</li>{/each}
+          {#each previewForm.periods as period}<li>{period.start} → {period.end}</li>{/each}
         </ol>{/if}
     </SectionCard>
   {/if}

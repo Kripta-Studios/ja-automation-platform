@@ -20,10 +20,12 @@ function fixture(): B5LifecycleSecurityFixture {
   return value;
 }
 
+let nextProjectCostCenter = 100;
+
 function projectInput(value: B5LifecycleSecurityFixture, name: string) {
   return {
     clientId: value.client.id,
-    costCenterCode: `QA-${name}`,
+    costCenterCode: `QA-${name}-${nextProjectCostCenter++}`,
     name,
     timezone: 'Europe/Madrid',
     currency: 'EUR' as const,
@@ -46,6 +48,12 @@ describe('people selected during project creation', () => {
     });
     expect(prefixed.projectNumber).toBe(`${value.client.clientNumber}-P-9876`);
 
+    const shortSuffix = value.repository.createProject(value.owner, {
+      ...projectInput(value, 'Short suffix'),
+      costCenterCode: 'QA-7',
+    });
+    expect(shortSuffix.projectNumber).toBe(`${value.client.clientNumber}-P-007`);
+
     value.repository.updateProject(value.owner, {
       projectId: numeric.id,
       costCenterCode: '005',
@@ -60,6 +68,75 @@ describe('people selected during project creation', () => {
         costCenterCode: 'QA-9876',
       }),
     ).toThrow(/Cost center code is already used/);
+
+    expect(() =>
+      value.repository.createProject(value.owner, {
+        ...projectInput(value, 'Equivalent padded center'),
+        costCenterCode: 'QA-007',
+      }),
+    ).toThrow(/Cost center code is already used/);
+
+    for (const costCenterCode of ['QA-CENTER', 'QA-123-SITE']) {
+      expect(() =>
+        value.repository.createProject(value.owner, {
+          ...projectInput(value, 'No trailing digits'),
+          costCenterCode,
+        }),
+      ).toThrow(/Cost center code must end in digits/);
+    }
+    expect(() =>
+      value.repository.updateProject(value.owner, {
+        projectId: shortSuffix.id,
+        costCenterCode: 'QA-CENTER',
+      }),
+    ).toThrow(/Cost center code must end in digits/);
+    expect(
+      value.sqlite
+        .prepare('SELECT project_number,cost_center_code FROM project WHERE id=?')
+        .get(shortSuffix.id),
+    ).toEqual({
+      project_number: `${value.client.clientNumber}-P-007`,
+      cost_center_code: 'QA-7',
+    });
+  });
+
+  it('keeps an invoiced project number fixed when its cost center suffix would change', () => {
+    const value = fixture();
+    const project = value.repository.createProject(value.owner, {
+      ...projectInput(value, 'Invoiced center'),
+      costCenterCode: 'CC-042',
+    });
+    const timestamp = '2026-09-25T12:00:00.000Z';
+    value.sqlite
+      .prepare(
+        `INSERT INTO invoice(id,project_id,stream_type,state,currency,subtotal_minor,tax_minor,total_minor,created_at,updated_at,version)
+         VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
+      )
+      .run(
+        'qa-project-number-invoice',
+        project.id,
+        'labor',
+        'draft',
+        'EUR',
+        0,
+        0,
+        0,
+        timestamp,
+        timestamp,
+        1,
+      );
+
+    expect(() =>
+      value.repository.updateProject(value.owner, {
+        projectId: project.id,
+        costCenterCode: 'CC-043',
+      }),
+    ).toThrow(/Project number cannot change after an invoice was created/);
+    expect(
+      value.sqlite
+        .prepare('SELECT project_number,cost_center_code FROM project WHERE id=?')
+        .get(project.id),
+    ).toEqual({ project_number: `${value.client.clientNumber}-P-042`, cost_center_code: 'CC-042' });
   });
 
   it('requires a cost center for every new project, including direct repository writes', () => {
@@ -197,7 +274,7 @@ describe('people selected during project creation', () => {
     ).toEqual({ count: 0 });
   });
 
-  it('rolls back project, first membership and sequence when a later insert fails', () => {
+  it('rolls back project and first membership when a later insert fails', () => {
     const value = fixture();
     value.sqlite.exec(`
       CREATE TRIGGER qa_reject_second_worker BEFORE INSERT ON project_member

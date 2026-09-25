@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { createDatabase, PortalRepository } from '@ja/database';
 import { e2eCredentials, e2eLifecycleFixturesFor, portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 test('project manager assigns an already-visible worker to an authorized project only', async ({
   page,
@@ -45,11 +46,17 @@ test('project manager assigns an already-visible worker to an authorized project
       ).id,
     );
     const owner = repo.principalFor(ownerId);
+    let projectCostCenterInstance = 0;
     const createProject = (name: string, projectManagerId?: string): string =>
       repo.createProject(owner, {
         clientId: e2eLifecycleFixturesFor(testInfo.project.name).client.id,
         name: `PM assignment ${name} ${randomUUID()}`,
-        costCenterCode: `QA-PM-${randomUUID().slice(0, 8)}`,
+        costCenterCode: e2eCostCenter(
+          'QA-PM',
+          9,
+          testInfo.project.name,
+          ++projectCostCenterInstance,
+        ),
         currency: 'USD',
         timezone: 'UTC',
         billingModel: 'tm',

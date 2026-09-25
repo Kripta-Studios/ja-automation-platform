@@ -5,8 +5,11 @@
   import { enhance } from '$app/forms';
   import { localToday } from '../ui/time-entry-clock';
   import { createOperationalSubmit, operationalFieldValidation } from '../ui/operational-submit';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
+  import { reportFormFieldErrors } from '../ui/form-validation';
   import { ResponsiveSheet, StatusBadge } from '../ui';
+  import ProblemNotice from '../ui/ProblemNotice.svelte';
+  import type { ProblemData } from '../../problem/contract';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import FilterSummary from '../ui/FilterSummary.svelte';
   import DatePresets from '../ui/DatePresets.svelte';
@@ -43,6 +46,35 @@
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
   } = $props();
 
+  const nativeReportForm = $page.form as
+    | (ProblemData & { values?: Record<string, unknown> })
+    | null;
+  const nativeReportValues =
+    nativeReportForm?.code && nativeReportForm.values && typeof nativeReportForm.values === 'object'
+      ? nativeReportForm.values
+      : {};
+  const nativeReportValue = (field: string): string =>
+    typeof nativeReportValues[field] === 'string' ? String(nativeReportValues[field]) : '';
+  const nativeReportSurface: 'daily' | 'technical' | 'generate' | null =
+    nativeReportForm?.code &&
+    !nativeReportValue('recordType') &&
+    !nativeReportValue('originalId') &&
+    !nativeReportValue('id')
+      ? nativeReportValue('workDate') ||
+        nativeReportForm.messageKey === 'action.validation.dailyReportFields'
+        ? 'daily'
+        : nativeReportValue('reportDate') ||
+            nativeReportForm.messageKey === 'action.validation.technicalReportFields'
+          ? 'technical'
+          : nativeReportValue('periodStart') ||
+              nativeReportForm.messageKey === 'action.validation.projectReportingPeriod'
+            ? 'generate'
+            : null
+      : null;
+  let nativeRecoveryActive = $state(Boolean(nativeReportSurface));
+  const restoredReportValue = (field: string): string =>
+    nativeRecoveryActive ? nativeReportValue(field) : '';
+
   const tabs = [
     { id: 'daily', label: 'Daily' },
     { id: 'technical', label: 'Technical / PLC' },
@@ -62,17 +94,22 @@
   // (including SSR), while retaining an in-page tab selection after a button
   // click.  The URL key is part of the override so a subsequent navigation to
   // another allowlisted/invalid view cannot leave the old panel selected.
-  let tabOverride = $state<{ url: string; tab: ReportTab } | null>(null);
+  let tabOverride = $state<{ url: string; tab: ReportTab } | null>(
+    nativeReportSurface === 'daily' || nativeReportSurface === 'technical'
+      ? { url: $page.url.href, tab: nativeReportSurface }
+      : null,
+  );
   let activeTab = $derived(
     tabOverride?.url === $page.url.href
       ? tabOverride.tab
       : resolveReportTab($page.url.searchParams.get('view')),
   );
-  let surface = $state<Surface>(null);
+  let surface = $state<Surface>(nativeReportSurface);
   let surfaceError = $state('');
+  let surfaceProblem = $state<ProblemData | null>(nativeReportSurface ? nativeReportForm : null);
   let saving = $state(false);
-  let createDate = $state('');
-  let createProject = $state('');
+  let createDate = $state(nativeReportValue('workDate') || nativeReportValue('reportDate'));
+  let createProject = $state(nativeReportValue('projectId'));
   const submitReport = createOperationalSubmit({
     locale: () => normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
     translate: (value) => translate(value),
@@ -81,6 +118,9 @@
     },
     setError: (value) => {
       surfaceError = value;
+    },
+    setProblem: (value) => {
+      surfaceProblem = value;
     },
     onSuccess: closeSurface,
     offlineHandled: () => data.offlineEnabled !== false,
@@ -97,13 +137,28 @@
   let technicalPage = $state(1);
   let signoffPage = $state<Row[]>([]);
   let periodReportPage = $state<Row[]>([]);
-  let periodProjectId = $state('');
-  let periodFrom = $state('');
-  let periodTo = $state('');
+  let periodProjectId = $state(nativeReportValue('projectId'));
+  let periodFrom = $state(nativeReportValue('periodStart'));
+  let periodTo = $state(nativeReportValue('periodEnd'));
   let periodContentMode = $state<
     'hours_only' | 'hours_activity' | 'hours_activity_selected_technical'
-  >('hours_activity');
-  let selectedTechnicalReportIds = $state<string[]>([]);
+  >(
+    ['hours_only', 'hours_activity', 'hours_activity_selected_technical'].includes(
+      nativeReportValue('contentMode'),
+    )
+      ? (nativeReportValue('contentMode') as
+          | 'hours_only'
+          | 'hours_activity'
+          | 'hours_activity_selected_technical')
+      : 'hours_activity',
+  );
+  let selectedTechnicalReportIds = $state<string[]>(
+    Array.isArray(nativeReportValues.technicalReportIds)
+      ? nativeReportValues.technicalReportIds.filter(
+          (value): value is string => typeof value === 'string',
+        )
+      : [],
+  );
   let registerStateHydrated = $state(false);
   const registerStateKey = (): string => `ja-operational-register:reports:${data.user.id}`;
 
@@ -121,6 +176,15 @@
     if (typeof saved?.dailyPage === 'number') dailyPage = saved.dailyPage;
     if (typeof saved?.technicalPage === 'number') technicalPage = saved.technicalPage;
     registerStateHydrated = true;
+    if (nativeReportSurface && nativeReportForm?.fieldErrors)
+      void tick().then(() => {
+        const form = document.querySelector<HTMLFormElement>('[data-report-entry-surface]');
+        if (!form) return;
+        reportFormFieldErrors(form, nativeReportForm.fieldErrors);
+        document
+          .querySelector<HTMLElement>('[data-operational-form-error]')
+          ?.focus({ preventScroll: true });
+      });
   });
   $effect(() => {
     if (registerStateHydrated)
@@ -616,7 +680,9 @@
   }
 
   function openCreate(type: 'daily' | 'technical'): void {
+    nativeRecoveryActive = false;
     surfaceError = '';
+    surfaceProblem = null;
     const requestedDate = $page.url.searchParams.get('date')?.trim() ?? '';
     createDate = /^\d{4}-\d{2}-\d{2}$/u.test(requestedDate) ? requestedDate : localToday();
     createProject = availableProjects.some((project) => String(project.id) === projectFilter)
@@ -626,12 +692,16 @@
   }
 
   function openGenerator(): void {
+    nativeRecoveryActive = false;
     surfaceError = '';
+    surfaceProblem = null;
     if (canGeneratePeriodReports) surface = 'generate';
   }
 
   function closeSurface(): void {
+    nativeRecoveryActive = false;
     surface = null;
+    surfaceProblem = null;
   }
 
   function clearTechnicalReportSelection(): void {
@@ -1332,7 +1402,27 @@
   onclose={closeSurface}
   protectChanges={surface !== 'generate'}
 >
-  {#if surfaceError}
+  {#if surfaceProblem}
+    <div class="operational-form-error" tabindex="-1" data-operational-form-error>
+      <ProblemNotice
+        problem={surfaceProblem}
+        kind={surfaceProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        remedyLinks={{
+          review_report: {
+            label: translate('Review updated report'),
+            href: `${base}/app/reports?view=${activeTab}#report-panel-${activeTab}`,
+          },
+          request_report_correction: {
+            label: translate('Review report corrections'),
+            href: `${base}/app/reports?view=${activeTab}#report-panel-${activeTab}`,
+          },
+          contact_project_owner: {
+            label: translate('Contact the project owner to review access.'),
+          },
+        }}
+      />
+    </div>
+  {:else if surfaceError}
     <p class="operational-form-error" role="alert" tabindex="-1" data-operational-form-error>
       {surfaceError}
     </p>
@@ -1350,7 +1440,10 @@
     >
       {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
         <label
-          ><span>{translate('Worker')}</span><select name="workerId" required
+          ><span>{translate('Worker')}</span><select
+            name="workerId"
+            required
+            value={restoredReportValue('workerId')}
             ><option value="">{translate('Select worker')}</option
             >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
                 >{worker.name} — {worker.email}</option
@@ -1371,6 +1464,11 @@
         <span>{translate('Project')}</span>
         <select name="projectId" required bind:value={createProject}>
           <option value="">{translate('Select assignment')}</option>
+          {#if createProject && !availableProjects.some((project) => String(project.id) === createProject)}
+            <option value={createProject} disabled
+              >{translate('Previously selected project is no longer available')}</option
+            >
+          {/if}
           {#each availableProjects as project}
             <option value={String(project.id)}>{project.project_number} — {project.name}</option>
           {/each}
@@ -1388,26 +1486,31 @@
         <label
           ><span>{translate('Site / shift')}</span><input
             name="siteShift"
+            value={restoredReportValue('siteShift')}
             placeholder={translate('Line 4 · first shift')}
           /></label
         >
       </div>
       <label
         ><span>{translate('Shift summary')}</span><textarea name="summary" required
-        ></textarea></label
+          >{restoredReportValue('summary')}</textarea
+        ></label
       >
       <label
         ><span>{translate('Tasks completed')}</span><textarea name="tasksCompleted" required
-        ></textarea></label
+          >{restoredReportValue('tasksCompleted')}</textarea
+        ></label
       >
       <div class="report-entry-grid">
         <label
           ><span>{translate('Problems found')}</span><textarea name="problemsFound"
-          ></textarea></label
+            >{restoredReportValue('problemsFound')}</textarea
+          ></label
         >
         <label
           ><span>{translate('Corrective actions')}</span><textarea name="correctiveActions"
-          ></textarea></label
+            >{restoredReportValue('correctiveActions')}</textarea
+          ></label
         >
       </div>
       <div class="report-entry-grid">
@@ -1417,17 +1520,32 @@
             type="number"
             min="0"
             max="1440"
-            value="0"
+            value={restoredReportValue('downtimeMinutes') || '0'}
           /></label
         >
-        <label><span>{translate('Standby reason')}</span><input name="standbyReason" /></label>
+        <label
+          ><span>{translate('Standby reason')}</span><input
+            name="standbyReason"
+            value={restoredReportValue('standbyReason')}
+          /></label
+        >
       </div>
-      <label><span>{translate('Open items')}</span><textarea name="openItems"></textarea></label>
       <label
-        ><span>{translate('Next-day plan')}</span><textarea name="nextDayPlan"></textarea></label
+        ><span>{translate('Open items')}</span><textarea name="openItems"
+          >{restoredReportValue('openItems')}</textarea
+        ></label
+      >
+      <label
+        ><span>{translate('Next-day plan')}</span><textarea name="nextDayPlan"
+          >{restoredReportValue('nextDayPlan')}</textarea
+        ></label
       >
       <label class="report-check"
-        ><input name="safetyRelated" type="checkbox" />
+        ><input
+          name="safetyRelated"
+          type="checkbox"
+          checked={restoredReportValue('safetyRelated') === 'on'}
+        />
         <span>{translate('Safety-related change')}</span></label
       >
       <div class="report-entry-actions">
@@ -1452,7 +1570,10 @@
     >
       {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
         <label
-          ><span>{translate('Worker')}</span><select name="workerId" required
+          ><span>{translate('Worker')}</span><select
+            name="workerId"
+            required
+            value={restoredReportValue('workerId')}
             ><option value="">{translate('Select worker')}</option
             >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
                 >{worker.name} — {worker.email}</option
@@ -1473,6 +1594,11 @@
         <span>{translate('Project')}</span>
         <select name="projectId" required bind:value={createProject}>
           <option value="">{translate('Select assignment')}</option>
+          {#if createProject && !availableProjects.some((project) => String(project.id) === createProject)}
+            <option value={createProject} disabled
+              >{translate('Previously selected project is no longer available')}</option
+            >
+          {/if}
           {#each availableProjects as project}
             <option value={String(project.id)}>{project.project_number} — {project.name}</option>
           {/each}
@@ -1490,80 +1616,131 @@
         <label
           ><span>{translate('System / machine')}</span><input
             name="systemName"
+            value={restoredReportValue('systemName')}
             placeholder={translate('Line 4 main conveyor')}
             required
           /></label
         >
-        <label><span>{translate('Plant / site')}</span><input name="plantSite" /></label>
+        <label
+          ><span>{translate('Plant / site')}</span><input
+            name="plantSite"
+            value={restoredReportValue('plantSite')}
+          /></label
+        >
       </div>
       <div class="report-entry-grid report-entry-grid-three">
-        <label><span>{translate('Area / line')}</span><input name="areaLine" /></label>
-        <label><span>{translate('Station / machine')}</span><input name="stationMachine" /></label>
-        <label><span>{translate('System type')}</span><input name="systemType" /></label>
+        <label
+          ><span>{translate('Area / line')}</span><input
+            name="areaLine"
+            value={restoredReportValue('areaLine')}
+          /></label
+        >
+        <label
+          ><span>{translate('Station / machine')}</span><input
+            name="stationMachine"
+            value={restoredReportValue('stationMachine')}
+          /></label
+        >
+        <label
+          ><span>{translate('System type')}</span><input
+            name="systemType"
+            value={restoredReportValue('systemType')}
+          /></label
+        >
       </div>
       <div class="report-entry-grid report-entry-grid-three">
         <label
           ><span>{translate('PLC platform')}</span><input
             name="plcPlatform"
+            value={restoredReportValue('plcPlatform')}
             placeholder={translate('Rockwell Automation')}
           /></label
         >
         <label
           ><span>{translate('Controller')}</span><input
             name="controller"
+            value={restoredReportValue('controller')}
             placeholder={translate('ControlLogix 5580')}
           /></label
         >
-        <label><span>{translate('HMI / SCADA')}</span><input name="hmiScada" /></label>
+        <label
+          ><span>{translate('HMI / SCADA')}</span><input
+            name="hmiScada"
+            value={restoredReportValue('hmiScada')}
+          /></label
+        >
       </div>
       <div class="report-entry-grid">
-        <label><span>{translate('Network / protocol')}</span><input name="networkProtocol" /></label
+        <label
+          ><span>{translate('Network / protocol')}</span><input
+            name="networkProtocol"
+            value={restoredReportValue('networkProtocol')}
+          /></label
         >
-        <label><span>{translate('Software version')}</span><input name="softwareVersion" /></label>
+        <label
+          ><span>{translate('Software version')}</span><input
+            name="softwareVersion"
+            value={restoredReportValue('softwareVersion')}
+          /></label
+        >
       </div>
       <label
         ><span>{translate('Program / project reference')}</span><input
           name="programReference"
+          value={restoredReportValue('programReference')}
         /></label
       >
       <label
         ><span>{translate('Problem / symptom')}</span><textarea name="problemSymptom" required
-        ></textarea></label
+          >{restoredReportValue('problemSymptom')}</textarea
+        ></label
       >
       <label
         ><span>{translate('Diagnosis / root cause')}</span><textarea
           name="diagnosisRootCause"
-          required
-        ></textarea></label
+          required>{restoredReportValue('diagnosisRootCause')}</textarea
+        ></label
       >
       <label
         ><span>{translate('Change performed')}</span><textarea name="changePerformed" required
-        ></textarea></label
+          >{restoredReportValue('changePerformed')}</textarea
+        ></label
       >
       <label
         ><span>{translate('Production impact')}</span><textarea name="productionImpact"
-        ></textarea></label
+          >{restoredReportValue('productionImpact')}</textarea
+        ></label
       >
       <div class="report-entry-grid">
         <label
           ><span>{translate('Validation performed')}</span><textarea name="validation"
-          ></textarea></label
+            >{restoredReportValue('validation')}</textarea
+          ></label
         >
         <label
           ><span>{translate('Validation result')}</span><textarea name="validationResult"
-          ></textarea></label
+            >{restoredReportValue('validationResult')}</textarea
+          ></label
         >
       </div>
       <div class="report-entry-grid">
         <label
-          ><span>{translate('Open risk / issue')}</span><textarea name="openRisk"></textarea></label
+          ><span>{translate('Open risk / issue')}</span><textarea name="openRisk"
+            >{restoredReportValue('openRisk')}</textarea
+          ></label
         >
         <label
-          ><span>{translate('Rollback plan')}</span><textarea name="rollbackPlan"></textarea></label
+          ><span>{translate('Rollback plan')}</span><textarea name="rollbackPlan"
+            >{restoredReportValue('rollbackPlan')}</textarea
+          ></label
         >
       </div>
       <label class="report-check report-check-warning">
-        <input name="safetyRelated" type="checkbox" />
+        <input
+          name="safetyRelated"
+          type="checkbox"
+          checked={restoredReportValue('safetyRelated') === 'on'}
+        />
         <span
           >{translate(
             'Safety impact: technical lead review, validation and rollback detail required',
@@ -1584,6 +1761,7 @@
       method="POST"
       action="?/generatePeriodReports"
       class="report-entry-form report-generator-form"
+      data-report-entry-surface="generate"
     >
       <div class="report-entry-intro">
         <strong>{translate('Refresh reviewed period records')}</strong>

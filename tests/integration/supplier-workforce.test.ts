@@ -750,7 +750,7 @@ describe('supplier workforce canonical time', () => {
       startsOn: '2026-01-01',
     });
     const otherProject = fixture.repository.createProject(fixture.owner, {
-      costCenterCode: 'QA-SUPPLIER-WORKFORCE-TEST-1',
+      costCenterCode: 'QA-SUPPLIER-WORKFORCE-TEST-2',
       clientId: fixture.client.id,
       name: 'Unassigned supplier project',
       timezone: 'Europe/Madrid',

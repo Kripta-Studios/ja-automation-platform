@@ -1,0 +1,6 @@
+4b035f56e2403dd2bf4a609e03dfef510584e4c22f502af3faf40145cf4e967c  docs/evidence/error-warning-assignment/manager-desktop-status-race.png
+d435606c9a200c4015aef5e16576e43e0b1e07eb08cae1d02b4d11c43aa5ebf6  docs/evidence/error-warning-assignment/owner-phone-390-status-race.png
+cd04636d08bc8b65ec5a8d6292e4c70705a14a241485e8b05b0084598c7b1a66  docs/evidence/error-warning-assignment/manager-desktop-service-responses.json
+cd04636d08bc8b65ec5a8d6292e4c70705a14a241485e8b05b0084598c7b1a66  docs/evidence/error-warning-assignment/owner-phone-390-service-responses.json
+8aa35f987c4f63688b6fac048597816c8b5dbadd007a74342ef8dbace20ce994  docs/evidence/error-warning-assignment/manager-desktop-trace.json
+940ca5a3c7056efe16e40541a8caf0e9745021a2aa29c83c316b94b3fb429777  docs/evidence/error-warning-assignment/owner-phone-390-trace.json

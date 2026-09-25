@@ -66,6 +66,7 @@ import {
 } from './domains/workforce/workforce-repository.ts';
 import { NotificationRepository } from './domains/notifications/index.ts';
 import { discardOwnerInvoice } from './domains/owner/owner-invoice-management.ts';
+import { issuerPaymentDefaults } from './domains/billing/issuer-payment-defaults.ts';
 import { V3Repository } from './v3-repository.ts';
 
 export class AccessDeniedError extends Error {}
@@ -73,9 +74,7 @@ export class ConflictError extends Error {}
 export class ValidationError extends Error {}
 
 function projectNumberForCostCenter(clientNumber: string, costCenterCode: string): string | null {
-  const digits = /^\d+$/.test(costCenterCode)
-    ? costCenterCode
-    : /(?:^|\D)(\d{3,})$/.exec(costCenterCode)?.[1];
+  const digits = /(\d+)$/.exec(costCenterCode)?.[1];
   return digits ? `${clientNumber}-P-${digits.padStart(3, '0')}` : null;
 }
 
@@ -1160,24 +1159,16 @@ export class PortalRepository {
         (!Number.isInteger(input.laborBudgetMinutes) || input.laborBudgetMinutes < 0)
       )
         throw new ValidationError('Labor budget minutes are invalid');
-      const costCenterNumber = projectNumberForCostCenter(client.client_number, costCenterCode);
-      let projectNumber = costCenterNumber;
-      if (projectNumber) {
-        const duplicate = this.sqlite
-          .prepare('SELECT 1 FROM project WHERE project_number=?')
-          .get(projectNumber);
-        if (duplicate)
-          throw new ValidationError(
-            'Cost center code is already used by another project for this client',
-          );
-      } else {
-        do {
-          const sequence = this.nextSequence('project', input.clientId);
-          projectNumber = `${client.client_number}-P-${String(sequence).padStart(3, '0')}`;
-        } while (
-          this.sqlite.prepare('SELECT 1 FROM project WHERE project_number=?').get(projectNumber)
+      const projectNumber = projectNumberForCostCenter(client.client_number, costCenterCode);
+      if (!projectNumber)
+        throw new ValidationError('Cost center code must end in digits for the project number');
+      const duplicate = this.sqlite
+        .prepare('SELECT 1 FROM project WHERE project_number=?')
+        .get(projectNumber);
+      if (duplicate)
+        throw new ValidationError(
+          'Cost center code is already used by another project for this client',
         );
-      }
       const id = newId();
       const timestamp = now();
       this.sqlite
@@ -4433,7 +4424,7 @@ export class PortalRepository {
     const timestamp = now();
     const result = this.sqlite
       .prepare(
-        "UPDATE expense SET finance_approved_by=?,finance_approved_at=?,updated_at=?,version=version+1 WHERE id=? AND approval_state='approved' AND invoice_id IS NULL AND billing_state='unlocked' AND commercial_classification_state='classified' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=expense.id AND correction.approval_state<>'rejected')",
+        "UPDATE expense SET finance_approved_by=?,finance_approved_at=?,updated_at=?,version=version+1 WHERE id=? AND approval_state='approved' AND finance_approved_at IS NULL AND invoice_id IS NULL AND billing_state='unlocked' AND commercial_classification_state='classified' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=expense.id AND correction.approval_state<>'rejected')",
       )
       .run(principal.userId, timestamp, timestamp, id);
     if (result.changes !== 1)
@@ -7693,7 +7684,14 @@ export class PortalRepository {
           context.po_number ??
           context.client_po_reference ??
           null,
-        termsAndInstructions: draftCustomizations.termsAndInstructions ?? {},
+        termsAndInstructions: {
+          ...issuerPaymentDefaults(context.code, invoice.currency),
+          ...(typeof draftCustomizations.termsAndInstructions === 'object' &&
+          draftCustomizations.termsAndInstructions !== null &&
+          !Array.isArray(draftCustomizations.termsAndInstructions)
+            ? draftCustomizations.termsAndInstructions
+            : {}),
+        },
         companyInfo: draftCustomizations.companyInfo ?? {},
         discountMinor: draftCustomizations.discountMinor ?? '0',
         servicePeriod: { start: invoice.period_start, end: invoice.period_end },
@@ -8583,7 +8581,16 @@ export class PortalRepository {
   }
   refreshProjectCloseoutDraft(
     principal: Principal,
-    input: Readonly<{ revisionId: string; clientDocumentIds?: readonly string[] }>,
+    input: Readonly<{
+      revisionId: string;
+      clientDocumentIds?: readonly string[];
+      expectedState: Readonly<{
+        clientSnapshotHash: string;
+        internalSnapshotHash: string;
+        confirmationHash: string;
+        updatedAt: string;
+      }>;
+    }>,
   ) {
     return this.closeoutService().refresh(principal, input);
   }
@@ -8617,7 +8624,7 @@ export class PortalRepository {
       throw new AccessDeniedError('Finance role required');
     const invoice = this.sqlite
       .prepare(
-        'SELECT i.*,p.project_number,p.name project_name,p.po_number project_po_number,c.client_number,c.display_name client_name,c.legal_name client_legal_name,c.billing_address client_billing_address,c.billing_email,br.template_id invoice_template_id,le.legal_name issuer_name,le.billing_address issuer_address,le.company_identifiers,tp.name tax_profile_name,rev.revision_id resolved_legal_entity_revision_id,rev.legal_name canonical_issuer_name,rev.tax_identifier canonical_tax_identifier,rev.registration_identifier canonical_registration_identifier,rev.address_line1 canonical_address_line1,rev.address_line2 canonical_address_line2,rev.locality canonical_locality,rev.region canonical_region,rev.postal_code canonical_postal_code,rev.country_code canonical_country_code,rev.base_currency canonical_currency,(SELECT COUNT(*) FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.legal_entity_revision_id=rev.revision_id AND a.tenant_id=rev.tenant_id AND a.deployment_id=rev.deployment_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) AND rev.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (rev.effective_to IS NULL OR rev.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10)))) canonical_assignment_matches FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id LEFT JOIN billing_rule br ON br.id=i.billing_rule_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id LEFT JOIN legal_entity_revision rev ON rev.revision_id=COALESCE(i.legal_entity_revision_id,(SELECT a.legal_entity_revision_id FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) ORDER BY a.effective_from DESC LIMIT 1)) WHERE i.id=?',
+        'SELECT i.*,p.project_number,p.name project_name,p.po_number project_po_number,c.client_number,c.display_name client_name,c.legal_name client_legal_name,c.billing_address client_billing_address,c.billing_email,br.template_id invoice_template_id,le.code issuer_code,le.legal_name issuer_name,le.billing_address issuer_address,le.company_identifiers,tp.name tax_profile_name,rev.revision_id resolved_legal_entity_revision_id,rev.legal_name canonical_issuer_name,rev.tax_identifier canonical_tax_identifier,rev.registration_identifier canonical_registration_identifier,rev.address_line1 canonical_address_line1,rev.address_line2 canonical_address_line2,rev.locality canonical_locality,rev.region canonical_region,rev.postal_code canonical_postal_code,rev.country_code canonical_country_code,rev.base_currency canonical_currency,(SELECT COUNT(*) FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.legal_entity_revision_id=rev.revision_id AND a.tenant_id=rev.tenant_id AND a.deployment_id=rev.deployment_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) AND rev.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (rev.effective_to IS NULL OR rev.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10)))) canonical_assignment_matches FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id LEFT JOIN billing_rule br ON br.id=i.billing_rule_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id LEFT JOIN legal_entity_revision rev ON rev.revision_id=COALESCE(i.legal_entity_revision_id,(SELECT a.legal_entity_revision_id FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) ORDER BY a.effective_from DESC LIMIT 1)) WHERE i.id=?',
       )
       .get(invoiceId) as Record<string, unknown> | undefined;
     if (!invoice) throw new ValidationError('Invoice not found');
@@ -8642,18 +8649,20 @@ export class PortalRepository {
       // legacy invoices whose legal_entity_revision_id predates canonical revisions.
       display_issuer_name: frozenInvoice
         ? (frozenLegalEntity?.legalName ?? null)
-        : invoice.canonical_issuer_name,
+        : (invoice.canonical_issuer_name ?? invoice.issuer_name),
       display_issuer_address: frozenInvoice
         ? (frozenLegalEntity?.billingAddress ?? null)
-        : [
-            invoice.canonical_address_line1,
-            invoice.canonical_address_line2,
-            [invoice.canonical_postal_code, invoice.canonical_locality].filter(Boolean).join(' '),
-            invoice.canonical_region,
-            invoice.canonical_country_code,
-          ]
-            .filter(Boolean)
-            .join('\n'),
+        : invoice.canonical_issuer_name
+          ? [
+              invoice.canonical_address_line1,
+              invoice.canonical_address_line2,
+              [invoice.canonical_postal_code, invoice.canonical_locality].filter(Boolean).join(' '),
+              invoice.canonical_region,
+              invoice.canonical_country_code,
+            ]
+              .filter(Boolean)
+              .join('\n')
+          : invoice.issuer_address,
       canonical_issuer_address: [
         invoice.canonical_address_line1,
         invoice.canonical_address_line2,
@@ -8666,6 +8675,9 @@ export class PortalRepository {
       purchase_no:
         customSnapshot.purchaseNo ?? customSnapshot.purchase_no ?? invoice.project_po_number ?? '—',
       terms_and_instructions: {
+        ...(['draft', 'approved'].includes(String(invoice.state ?? ''))
+          ? issuerPaymentDefaults(invoice.issuer_code, invoice.currency)
+          : {}),
         ...(typeof customSnapshot.termsAndInstructions === 'object' &&
         customSnapshot.termsAndInstructions !== null
           ? customSnapshot.termsAndInstructions
@@ -11023,6 +11035,7 @@ export class PortalRepository {
       ];
       if (input.costCenterCode !== undefined) {
         const costCenterCode = updates.find(([field]) => field === 'cost_center_code')?.[1];
+        const costCenterChanged = costCenterCode !== existing.cost_center_code;
         const client = this.sqlite
           .prepare('SELECT client_number FROM client WHERE id=?')
           .get(String(existing.client_id)) as { client_number: string } | undefined;
@@ -11031,13 +11044,15 @@ export class PortalRepository {
           client.client_number,
           String(costCenterCode),
         );
+        if (!projectNumber && costCenterChanged)
+          throw new ValidationError('Cost center code must end in digits for the project number');
         if (projectNumber && projectNumber !== existing.project_number) {
           const hasInvoice = Boolean(
             this.sqlite
               .prepare('SELECT 1 FROM invoice WHERE project_id=? LIMIT 1')
               .get(input.projectId),
           );
-          if (hasInvoice && costCenterCode !== existing.cost_center_code)
+          if (hasInvoice && costCenterChanged)
             throw new ConflictError('Project number cannot change after an invoice was created');
           if (!hasInvoice) {
             if (

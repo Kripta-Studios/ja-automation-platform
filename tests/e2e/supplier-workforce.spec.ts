@@ -3,6 +3,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { createDatabase, PortalRepository } from '@ja/database';
 import { e2eCredentials, e2eLifecycleFixturesFor, portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 async function verifyForms(page: Page) {
   const controls = page.locator(
@@ -91,7 +92,7 @@ test('Owner delegates installation; supplier adds technician and submits private
       .run(coordinatorId, externalId);
     const repository = new PortalRepository(db.sqlite);
     alternateProjectId = repository.createProject(repository.principalFor(ownerId), {
-      costCenterCode: 'QA-SUPPLIER-WORKFORCE-SPEC-1',
+      costCenterCode: e2eCostCenter('QA-SUPPLIER-WORKFORCE-SPEC', 20, testInfo.project.name, 1),
       clientId: e2eLifecycleFixturesFor(testInfo.project.name).client.id,
       name: `A alternate installation ${randomUUID()}`,
       timezone: 'UTC',
@@ -102,7 +103,7 @@ test('Owner delegates installation; supplier adds technician and submits private
     }).id;
     projectName = `Supplier installation ${randomUUID()}`;
     projectId = repository.createProject(repository.principalFor(ownerId), {
-      costCenterCode: 'QA-SUPPLIER-WORKFORCE-SPEC-2',
+      costCenterCode: e2eCostCenter('QA-SUPPLIER-WORKFORCE-SPEC', 20, testInfo.project.name, 2),
       clientId: e2eLifecycleFixturesFor(testInfo.project.name).client.id,
       name: projectName,
       timezone: 'UTC',
@@ -197,7 +198,7 @@ test('Owner delegates installation; supplier adds technician and submits private
     await edit.getByRole('button', { name: 'Save draft', exact: true }).click();
     await expectSaved(coordinator);
     entry = coordinator.locator('article').filter({ hasText: note });
-    await expect(entry).toContainText('90 · Actual minutes');
+    await expect(entry).toContainText('1.5 · Actual hours');
     await entry.getByRole('button', { name: 'Submit to J&A' }).click();
     await expect(coordinator.locator('article').filter({ hasText: note })).toContainText(
       'Submitted',
@@ -239,7 +240,7 @@ test('Owner delegates installation; supplier adds technician and submits private
     expect(forged.status()).toBe(403);
     await coordinator.goto(portal(`/supplier/report?projectId=${projectId}&lang=en`));
     await expect(coordinator.getByText(note, { exact: true })).toBeVisible();
-    await expect(coordinator.getByText('Total actual minutes: 120')).toBeVisible();
+    await expect(coordinator.getByText('Total actual hours: 2')).toBeVisible();
     const printedReport = await coordinator.pdf({
       path: testInfo.outputPath('supplier-operational-report.pdf'),
       format: 'A4',

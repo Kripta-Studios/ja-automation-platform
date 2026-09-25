@@ -6,6 +6,22 @@
 **Client validation update:** 2026-08-24
 The requirements clarified directly with J&A on 2026-08-24 are release-authoritative. Existing PASS/PARTIAL evidence must be revalidated where these clarifications materially change the behavior; no prior PASS may be assumed to prove a newly clarified rule.
 
+## Seguimiento de funciones y errores — 2026-09-25
+
+La versión `2fa2cb6` continúa en producción mientras se verifica esta corrección. En una base
+aislada, Chromium comprobó mediante clics las horas decimales, fecha siguiente, tabla semanal,
+envío de horas y comida vinculada, calendario del propietario, gasto sin proveedor, fecha futura,
+valores sugeridos de gasto, navegación de Aprobaciones, configuración sin perfil fiscal, emisor
+J&A y exportación XLSX con importes de gastos. El informe y sus límites están en
+`docs/evidence/feature-browser-audit-20260925.md`; las capturas siguen en el VPS. También pasaron
+pruebas de asignación
+en móvil y escritorio, y el flujo de clasificación y revisión financiera de gastos con rechazo de
+una repetición obsoleta.
+
+La revisión de 180 acciones en `docs/error-warning-action-inventory.md` conserva rutas con
+mensajes genéricos y sin prueba individual. La aceptación Client Essential completa y una prueba
+autenticada en producción aún no se acreditan; **no se declara `CLIENT READY`** con esta evidencia.
+
 ## Corrección de interfaz desplegada — 2026-09-24
 
 El commit `85b8ee0` está desplegado como `zip-ae5996e51fa6c1fe20cc6d321e4d3e3f`.
@@ -978,3 +994,10 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Repetición real en Chromium de IMPC Gmbh: proyecto creado con cliente correcto en móvil 390 y escritorio 1440 (2/2); hito creado por Owner y visible sin enlace de gestión no autorizado para Finanzas y Auditoría (1/1). Aislamiento sin conexión entre usuarios 2/2. Migraciones/permisos 26/26, integridad comercial 13/13 y catálogos/inmutabilidad 21/21; `typecheck`, `svelte-check` (0 errores/avisos) y ESLint global aprobados. Revisión independiente final: SHIP.
 - [ ] Formato global: el repositorio aún contiene 137 archivos históricos fuera de Prettier, principalmente documentación y pruebas no modificadas en esta auditoría. Todos los archivos TS, Svelte y CSS modificados en esta corrección pasan Prettier por separado; no se acredita `format:check` global.
 - [ ] Regresiones generales, migración de copia de producción y despliegue con verificación posterior. Los cambios de esta sección **todavía no acreditan el comportamiento de producción**.
+
+## 2026-09-25 — Seguimiento de horas, gastos, facturación y recuperación de errores
+
+- [x] Auditoría con Chromium real y Playwright MCP/CDP sobre una base de datos sintética aislada: formulario de horas y fecha siguiente, gasto sin proveedor y USD modificable, descripciones Perdiem/Only hours, tabla semanal, envío semanal con comida vinculada, calendario de propietario, pestaña de gastos de aprobaciones, factura sin perfil fiscal y XLSX con importes de gastos. Se inspeccionaron red, consola y almacenamiento local sin conservar tokens. [Capturas y resultados](docs/evidence/feature-browser-audit-20260925/README.md).
+- [x] Conflictos de cierre de cliente, asignación obsoleta y período de factura vacío: seis recorridos reales en móvil 390 y escritorio 1440, con formularios preservados, una advertencia accionable y bloqueo del borrador vacío. Revisión independiente de los cambios de alto riesgo sin bloqueo.
+- [x] Revisión financiera de un gasto: dos recorridos reales móvil/escritorio; el gasto sin clasificación no avanza, el clasificado sí y una repetición obsoleta deja intactos versión y fecha de aprobación. Error de cobro con factura anulada identificado en navegador y corregido con instrucción de revisar el libro de factura.
+- [ ] La matriz nueva de navegador para aprobaciones, cobros y ejemplo financiero sigue en repetición final. Tampoco se ha repetido la aceptación completa de 32 pasos ni las 180 acciones inventariadas. La producción autenticada sigue sin prueba de navegador con una cuenta real; la comprobación pública solo cubre la página de acceso. No se declara `CLIENT READY` por esta evidencia parcial.

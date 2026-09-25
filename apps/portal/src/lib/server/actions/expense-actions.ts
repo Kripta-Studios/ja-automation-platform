@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { relative, resolve } from 'node:path';
 import { expenseInputSchema, minorUnitsSchema, versionedRecordSchema } from '@ja/schemas';
+import { AccessDeniedError, ConflictError, ValidationError } from '@ja/database';
 import { z } from 'zod';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import {
@@ -11,7 +12,7 @@ import {
   assertRegularPrivateFile,
   validateReportAttachmentFile,
 } from '$lib/server/report-attachment-route';
-import { actionFail, actionFailure, actionSuccess } from './action-message';
+import { actionFail, actionFailure, actionSuccess, type ActionMessageKey } from './action-message';
 import { decimalToMinor, formObject, type PortalActionEvent } from '$lib/server/action-utils';
 
 const expenseCategorySchema = z.enum([
@@ -31,6 +32,41 @@ const expenseCategorySchema = z.enum([
   'visa_permit',
   'other',
 ]);
+
+const expenseValueFields = new Set([
+  'id',
+  'version',
+  'workerId',
+  'requestId',
+  'projectId',
+  'spentOn',
+  'occurredTimeLocal',
+  'timeEntryId',
+  'vendor',
+  'category',
+  'description',
+  'currency',
+  'amount',
+  'whoPaid',
+  'paymentMethod',
+  'receiptRequired',
+  'receiptDocumentId',
+]);
+
+function safeExpenseValues(values: Record<string, unknown>): Record<string, string | boolean> {
+  return {
+    ...Object.fromEntries(
+      Object.entries(values).filter(
+        (entry): entry is [string, string] =>
+          expenseValueFields.has(entry[0]) && typeof entry[1] === 'string',
+      ),
+    ),
+    ...((values.receipt instanceof File && values.receipt.size > 0) ||
+    values.receiptNeedsReattach === true
+      ? { receiptNeedsReattach: true }
+      : {}),
+  };
+}
 
 /**
  * The update contract deliberately exposes only fields supported by
@@ -72,11 +108,207 @@ export function parseExpenseUpdateForm(object: Record<string, unknown>) {
   return expenseUpdateSchema.safeParse(payload);
 }
 
+type ExpenseProblem = {
+  status: number;
+  code: string;
+  key: ActionMessageKey;
+  message: string;
+  field?: string;
+  remedy: string;
+};
+const expenseProblems: Record<string, ExpenseProblem> = {
+  'Expense changed, lacks receipt, or cannot be submitted': {
+    status: 409,
+    code: 'EXPENSE_SUBMISSION_BLOCKED',
+    key: 'problem.expense.submissionBlocked',
+    message:
+      'This expense changed, is no longer a draft, or requires a receipt. Review its current state and attach a receipt if required.',
+    remedy: 'review_expense',
+  },
+  'Only an unlocked editable expense draft can change': {
+    status: 409,
+    code: 'EXPENSE_NOT_EDITABLE_DRAFT',
+    key: 'problem.expense.notEditableDraft',
+    message:
+      'Only an unlocked expense draft can be edited. Review the record or request a correction.',
+    remedy: 'review_expense',
+  },
+  'Expense changed or cannot be edited': {
+    status: 409,
+    code: 'EXPENSE_DRAFT_CHANGED',
+    key: 'problem.expense.draftChanged',
+    message:
+      'This expense changed while you were editing. Review the current record before saving.',
+    remedy: 'review_expense',
+  },
+  'A committed receipt is required': {
+    status: 400,
+    code: 'EXPENSE_RECEIPT_REQUIRED',
+    key: 'problem.expense.receiptRequired',
+    message: 'Attach a committed receipt before saving this expense.',
+    field: 'receipt',
+    remedy: 'attach_receipt',
+  },
+  'This receipt is already claimed by a project expense': {
+    status: 409,
+    code: 'EXPENSE_RECEIPT_ALREADY_CLAIMED',
+    key: 'problem.expense.receiptAlreadyClaimed',
+    message:
+      'This receipt is already used by a project expense. Review the existing claim before submitting another.',
+    field: 'receipt',
+    remedy: 'review_expense',
+  },
+  'Crew expense retry has changed': {
+    status: 409,
+    code: 'EXPENSE_RETRY_CHANGED',
+    key: 'problem.expense.retryChanged',
+    message:
+      'This request ID was already used with different expense details. Review the saved expense before trying again.',
+    remedy: 'review_expense',
+  },
+  'Active project assignment required': {
+    status: 403,
+    code: 'EXPENSE_ASSIGNMENT_REQUIRED',
+    key: 'problem.expense.assignmentRequired',
+    message:
+      'An active project assignment must cover the expense date. Contact the project owner to review access.',
+    field: 'spentOn',
+    remedy: 'contact_project_owner',
+  },
+  'A matching active time record is required': {
+    status: 400,
+    code: 'EXPENSE_TIME_LINK_INVALID',
+    key: 'problem.expense.timeLinkInvalid',
+    message:
+      'The linked time entry must be active and match this worker, project, and date. Review the time entry.',
+    field: 'timeEntryId',
+    remedy: 'review_time',
+  },
+  'Expense amount must be positive': {
+    status: 400,
+    code: 'EXPENSE_AMOUNT_INVALID',
+    key: 'problem.expense.amountInvalid',
+    message: 'Enter an expense amount greater than zero.',
+    field: 'amount',
+    remedy: 'review_expense',
+  },
+  'Receipt must belong to the expense project': {
+    status: 403,
+    code: 'EXPENSE_RECEIPT_PROJECT_MISMATCH',
+    key: 'problem.expense.receiptProjectMismatch',
+    message:
+      'This receipt does not belong to the selected project. Choose a receipt for this project.',
+    field: 'receipt',
+    remedy: 'attach_receipt',
+  },
+  'A linked correction draft cannot be edited': {
+    status: 409,
+    code: 'EXPENSE_CORRECTION_DRAFT_LOCKED',
+    key: 'problem.expense.correctionDraftLocked',
+    message: 'This linked correction draft cannot be edited here. Review its correction record.',
+    remedy: 'review_expense',
+  },
+  'This receipt is allocated across crew shifts and cannot be edited. Create a documented correction instead.':
+    {
+      status: 409,
+      code: 'EXPENSE_ALLOCATED_RECEIPT_LOCKED',
+      key: 'problem.expense.allocatedReceiptLocked',
+      message:
+        'This receipt is allocated across crew shifts. Review the allocation and create a documented correction.',
+      remedy: 'review_expense',
+    },
+  'This receipt is allocated across crew shifts and cannot be deleted. Create a documented correction instead.':
+    {
+      status: 409,
+      code: 'EXPENSE_ALLOCATED_RECEIPT_LOCKED',
+      key: 'problem.expense.allocatedReceiptLocked',
+      message:
+        'This receipt is allocated across crew shifts. Review the allocation and create a documented correction.',
+      remedy: 'review_expense',
+    },
+  'Committed owned receipt required': {
+    status: 403,
+    code: 'EXPENSE_RECEIPT_NOT_AVAILABLE',
+    key: 'problem.expense.receiptNotAvailable',
+    message:
+      'The selected receipt is unavailable or was not committed for your account. Attach a valid receipt.',
+    field: 'receipt',
+    remedy: 'attach_receipt',
+  },
+  'Receipt content is already registered to another record': {
+    status: 409,
+    code: 'EXPENSE_RECEIPT_ALREADY_REGISTERED',
+    key: 'problem.expense.receiptAlreadyRegistered',
+    message:
+      'This receipt is already attached to another record. Review the existing claim before submitting another.',
+    field: 'receipt',
+    remedy: 'review_expense',
+  },
+  'Only never-submitted drafts can be deleted': {
+    status: 409,
+    code: 'EXPENSE_DELETE_DRAFT_ONLY',
+    key: 'problem.expense.deleteDraftOnly',
+    message:
+      'Only an expense draft that has never been submitted can be deleted. Review the record or request a correction.',
+    remedy: 'review_expense',
+  },
+  'Only never-submitted expense drafts can be deleted; use a reasoned correction': {
+    status: 409,
+    code: 'EXPENSE_DELETE_DRAFT_ONLY',
+    key: 'problem.expense.deleteDraftOnly',
+    message:
+      'Only an expense draft that has never been submitted can be deleted. Review the record or request a correction.',
+    remedy: 'review_expense',
+  },
+  'Billed or locked expenses cannot be deleted': {
+    status: 409,
+    code: 'EXPENSE_BILLED_OR_LOCKED',
+    key: 'problem.expense.billedOrLocked',
+    message:
+      'Billed or locked expenses cannot be deleted. Contact Finance for an audited adjustment.',
+    remedy: 'contact_finance',
+  },
+  'Expense changed before deletion': {
+    status: 409,
+    code: 'EXPENSE_DELETE_CHANGED',
+    key: 'problem.expense.deleteChanged',
+    message: 'This expense changed before deletion. Review its current state.',
+    remedy: 'review_expense',
+  },
+  'Record changed before deletion': {
+    status: 409,
+    code: 'EXPENSE_DELETE_CHANGED',
+    key: 'problem.expense.deleteChanged',
+    message: 'This expense changed before deletion. Review its current state.',
+    remedy: 'review_expense',
+  },
+};
+
+export function expenseActionFailure(error: unknown, values: Record<string, unknown> = {}) {
+  const savedValues = safeExpenseValues(values);
+  if (
+    error instanceof ValidationError ||
+    error instanceof ConflictError ||
+    error instanceof AccessDeniedError
+  ) {
+    const known = expenseProblems[error.message];
+    if (known)
+      return actionFail(known.status, known.key, {}, known.message, {
+        code: known.code,
+        values: savedValues,
+        ...(known.field ? { fields: { [known.field]: [known.message] } } : {}),
+        remedies: [{ id: known.remedy }],
+      });
+  }
+  return actionFailure(error, { values: savedValues });
+}
+
 export const expenseActions = {
   createExpense: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'expenses')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
+    const values = safeExpenseValues(object);
     const workerId =
       typeof object.workerId === 'string' && object.workerId ? object.workerId : undefined;
     delete object.workerId;
@@ -96,6 +328,7 @@ export const expenseActions = {
     if (!preflight.success)
       return actionFail(400, 'action.validation.expenseFields', {}, 'Check expense fields', {
         fields: preflight.error.flatten().fieldErrors,
+        values,
       });
     const context = openPortalRepository(locals);
     let createdReceiptId: string | undefined;
@@ -124,6 +357,13 @@ export const expenseActions = {
             'action.validation.receiptTypeOrSize',
             {},
             'Receipt must be JPG, PNG or PDF under 10 MB',
+            {
+              code: 'EXPENSE_RECEIPT_TYPE_OR_SIZE',
+              values,
+              fields: {
+                receipt: ['Choose a JPG, PNG, WebP, HEIC, HEIF, or PDF receipt under 10 MB.'],
+              },
+            },
           );
         let bytes: Uint8Array;
         try {
@@ -134,6 +374,11 @@ export const expenseActions = {
             'action.validation.receiptContent',
             {},
             'Receipt filename or content does not match its declared file type',
+            {
+              code: 'EXPENSE_RECEIPT_CONTENT_INVALID',
+              values,
+              fields: { receipt: ['Choose a receipt whose content matches its file type.'] },
+            },
           );
         }
 
@@ -159,7 +404,11 @@ export const expenseActions = {
         ) {
           context.v3.cancelUploadReservation(context.principal, reservation.reservationId);
           reservationId = undefined;
-          return actionFail(400, 'action.validation.receiptPath', {}, 'Invalid receipt path');
+          return actionFail(400, 'action.validation.receiptPath', {}, 'Invalid receipt path', {
+            code: 'EXPENSE_RECEIPT_PATH_INVALID',
+            values,
+            fields: { receipt: ['Choose a receipt with a valid filename.'] },
+          });
         }
 
         createdReceiptStorageKey = storageKey;
@@ -195,6 +444,7 @@ export const expenseActions = {
       if (!parsed.success)
         return actionFail(400, 'action.validation.expenseFields', {}, 'Check expense fields', {
           fields: parsed.error.flatten().fieldErrors,
+          values,
         });
       const created = context.repository.createExpense(
         context.principal,
@@ -251,7 +501,7 @@ export const expenseActions = {
         )
           await removePrivateFileIfPresent(root, createdReceiptStorageKey).catch(() => undefined);
       }
-      return actionFailure(error);
+      return expenseActionFailure(error, values);
     } finally {
       context.sqlite.close();
     }
@@ -259,17 +509,20 @@ export const expenseActions = {
   updateExpense: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'expenses')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const parsed = parseExpenseUpdateForm(await formObject(request));
+    const object = await formObject(request);
+    const values = safeExpenseValues(object);
+    const parsed = parseExpenseUpdateForm(object);
     if (!parsed.success)
       return actionFail(400, 'action.validation.expenseFields', {}, 'Check expense fields', {
         fields: parsed.error.flatten().fieldErrors,
+        values,
       });
     const context = openPortalRepository(locals);
     try {
       context.repository.updateExpense(context.principal, parsed.data);
       return actionSuccess('action.expense.draftSaved', {}, 'Expense changes saved');
     } catch (error) {
-      return actionFailure(error);
+      return expenseActionFailure(error, values);
     } finally {
       context.sqlite.close();
     }
@@ -277,15 +530,20 @@ export const expenseActions = {
   submitExpense: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'expenses')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const parsed = versionedRecordSchema.safeParse(await formObject(request));
+    const object = await formObject(request);
+    const values = safeExpenseValues(object);
+    const parsed = versionedRecordSchema.safeParse(object);
     if (!parsed.success)
-      return actionFail(400, 'action.validation.expenseRecord', {}, 'Invalid expense record');
+      return actionFail(400, 'action.validation.expenseRecord', {}, 'Invalid expense record', {
+        values,
+        fields: parsed.error.flatten().fieldErrors,
+      });
     const context = openPortalRepository(locals);
     try {
       context.repository.submitExpense(context.principal, parsed.data.id, parsed.data.version);
       return actionSuccess('action.expense.submitted', {}, 'Expense submitted');
     } catch (error) {
-      return actionFailure(error);
+      return expenseActionFailure(error, values);
     } finally {
       context.sqlite.close();
     }
@@ -295,15 +553,20 @@ export const expenseActions = {
   deleteExpense: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'expenses' && params.section !== 'approvals')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const parsed = versionedRecordSchema.safeParse(await formObject(request));
+    const object = await formObject(request);
+    const values = safeExpenseValues(object);
+    const parsed = versionedRecordSchema.safeParse(object);
     if (!parsed.success)
-      return actionFail(400, 'action.validation.expenseRecord', {}, 'Invalid expense record');
+      return actionFail(400, 'action.validation.expenseRecord', {}, 'Invalid expense record', {
+        values,
+        fields: parsed.error.flatten().fieldErrors,
+      });
     const context = openPortalRepository(locals);
     try {
       context.repository.deleteExpense(context.principal, parsed.data.id, parsed.data.version);
       return actionSuccess('action.reports.draftDeleted', {}, 'Expense draft deleted');
     } catch (error) {
-      return actionFailure(error);
+      return expenseActionFailure(error, values);
     } finally {
       context.sqlite.close();
     }

@@ -1,7 +1,9 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { page } from '$app/stores';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
+  import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import type { ProblemData } from '$lib/problem/contract';
   import {
     applyStandaloneDocumentLocale,
     persistStandaloneLocale,
@@ -28,6 +30,22 @@
     Array.isArray(notification.changed_fields) ? notification.changed_fields : [],
   );
   const target = $derived(notificationTargetPath(notification.target));
+  const formProblem = $derived(
+    form?.success === false && typeof form.code === 'string' && typeof form.messageKey === 'string'
+      ? (form as ProblemData)
+      : null,
+  );
+  let focusedProblemId = '';
+  $effect(() => {
+    const id = formProblem?.correlationId;
+    if (!id || id === focusedProblemId) return;
+    focusedProblemId = id;
+    void tick().then(() =>
+      document
+        .querySelector<HTMLElement>('[data-notification-problem] [data-ui="problem-notice"]')
+        ?.focus({ preventScroll: true }),
+    );
+  });
   onMount(() => {
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
     persistStandaloneLocale(locale);
@@ -63,7 +81,21 @@
       >{translateControlledValue(locale, 'status', notification.read_at ? 'read' : 'new')}</span
     >
   </header>
-  {#if standaloneActionMessage(locale, form)}<p
+  {#if formProblem}
+    <div data-notification-problem>
+      <ProblemNotice
+        problem={formProblem}
+        kind={formProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        remedyLinks={{
+          review_notifications: {
+            label: t('Activity inbox'),
+            href: `${base}/app/notifications`,
+          },
+          sign_in_again: { label: t('Sign in'), href: `${base}/app/login` },
+        }}
+      />
+    </div>
+  {:else if standaloneActionMessage(locale, form)}<p
       class:success={form?.success}
       class="action-message"
       role="status"

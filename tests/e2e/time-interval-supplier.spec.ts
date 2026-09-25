@@ -31,9 +31,9 @@ test('supplier clocks persist through edit, web report, CSV and printed PDF', as
     await form.getByLabel('Add start and end times').check();
     await form.locator('[name="startTime"]').fill(start);
     await form.locator('[name="endTime"]').fill(end);
-    await form.locator('[name="breakMinutes"]').fill('15');
+    await form.locator('[name="breakHours"]').fill('0.25');
     await form.locator('[name="summary"]').fill(summary);
-    await expect(form.locator('output')).toHaveText('0 h 45 min');
+    await expect(form.locator('output')).toHaveText('0.75 h');
     await form.locator('button[type="submit"],button.primary-button').click();
     await expect
       .poll(
@@ -48,7 +48,7 @@ test('supplier clocks persist through edit, web report, CSV and printed PDF', as
     const edit = article.locator('form[action*="updateTime"]');
     await expect(edit.locator('[name="startTime"]')).toHaveValue(start);
     await edit.locator('[name="endTime"]').fill(editedEnd);
-    await expect(edit.locator('output')).toHaveText('1 h 15 min');
+    await expect(edit.locator('output')).toHaveText('1.25 h');
     await edit.locator('button').click();
     await expect
       .poll(
@@ -61,12 +61,20 @@ test('supplier clocks persist through edit, web report, CSV and printed PDF', as
     await page.goto(portal(`/supplier/report?${query}`));
     const report = page.locator('article').filter({ hasText: summary });
     await expect(report).toContainText(`${start} – ${editedEnd}`);
-    await expect(report).toContainText('15');
+    await expect(report).toContainText('Break (decimal hours)');
+    await expect(report).toContainText('0.25');
+    await expect(report).toContainText('Actual hours');
+    await expect(report).toContainText('1.25');
     await page.screenshot({ path: testInfo.outputPath('supplier-report.png'), fullPage: true });
     const csv = await page.request.get(portal(`/supplier/report.csv?${query}`));
     expect(csv.status()).toBe(200);
-    expect(await csv.text()).toContain(start);
-    expect(await csv.text()).toContain(editedEnd);
+    const csvText = await csv.text();
+    expect(csvText).toContain(start);
+    expect(csvText).toContain(editedEnd);
+    expect(csvText).toContain(
+      '"Break (decimal hours)","Break (minutes)","Actual hours","Actual minutes"',
+    );
+    expect(csvText).toContain('"0.25","15","1.25","75"');
     const pdfPath = testInfo.outputPath('supplier-report.pdf');
     await page.pdf({ path: pdfPath, format: 'A4', printBackground: true });
     const text = execFileSync('pdftotext', [pdfPath, '-'], { encoding: 'utf8' });
@@ -101,6 +109,18 @@ test('chief saves a shared duration without invented start and end times', async
         )
         .get(summary),
     ).toEqual({ minutes: 450, startTime: null, endTime: null });
+    const entry = page.locator('article').filter({ hasText: summary });
+    await entry.locator('details > summary').click();
+    const edit = entry.locator('form[action*="updateTime"]');
+    await expect(edit.locator('[name="durationHours"]')).toHaveValue('7.50');
+    await edit.getByRole('button', { name: 'Save draft' }).click();
+    await expect
+      .poll(
+        () =>
+          db.prepare('SELECT minutes FROM time_entry WHERE activity_summary=?').get(summary)
+            ?.minutes,
+      )
+      .toBe(450);
   } finally {
     db.close();
   }

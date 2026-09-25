@@ -1,0 +1,39 @@
+{
+  "source_build_sha256": "790c0a16d501835b2f72cf456f6616cce9610d189b1896a6e5cc2367a3b57bd3",
+  "url_path": "/j-aautomation/app/billing/invoices/invoice-cp020-013",
+  "issuer_name_visible": true,
+  "issuer_review_warning_visible": true,
+  "customer_bill_to_visible": true,
+  "fields": [
+    {
+      "id": "edit-swift",
+      "name": "bankSwiftNumber",
+      "readonly": false,
+      "disabled": false,
+      "prefilled": true
+    },
+    {
+      "id": "edit-account",
+      "name": "bankAccountNumber",
+      "readonly": false,
+      "disabled": false,
+      "prefilled": true
+    },
+    {
+      "id": "edit-bank-name",
+      "name": "bankName",
+      "readonly": false,
+      "disabled": false,
+      "prefilled": true
+    },
+    {
+      "id": "edit-beneficiary",
+      "name": "beneficiary",
+      "readonly": false,
+      "disabled": false,
+      "prefilled": true
+    }
+  ],
+  "issues": [],
+  "framework_warnings": 3
+}

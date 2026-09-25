@@ -1,0 +1,26 @@
+{
+  "source": "disposable QA project C-0001-P-001; owner clicked Download finance export in browser",
+  "filename": "ja-C-0001-P-001-finance-2026-08-01-2026-09-25.xlsx",
+  "sheets": [
+    "Summary",
+    "Labor",
+    "Expenses",
+    "Unbilled WIP",
+    "Daily minimum",
+    "Invoices",
+    "Invoice expenses",
+    "Milestones",
+    "Alerts"
+  ],
+  "expenseSourceRows": 14,
+  "recordedReceiptAmountUSD": 1216.5,
+  "calculatedWorkerReimbursementUSD": 1200.0,
+  "actuallyReimbursedUSD": 0.0,
+  "financeApprovedClientChargeUSD": 850.0,
+  "invoiceExpenseRows": 12,
+  "invoicedExpenseLineAmountUSD": 850.0,
+  "invoiceRegisterExpenseCount": 12,
+  "invoiceRegisterExpenseChargeUSD": 850.0,
+  "downloadFailure": null,
+  "httpOrConsoleErrors": []
+}

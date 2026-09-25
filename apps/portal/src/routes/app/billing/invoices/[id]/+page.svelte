@@ -329,6 +329,13 @@
         <img src={`${base}/app/logo.png`} alt="J&A Automation" />
         <div class="company-details">
           <strong>{invoice.display_issuer_name || t('Issuing authority not configured')}</strong>
+          {#if (invoiceState === 'draft' || invoiceState === 'approved') && (!invoice.resolved_legal_entity_revision_id || Number(invoice.canonical_assignment_matches) !== 1)}
+            <small
+              >{t(
+                'Assign a reviewed project issuing authority before issuing this invoice.',
+              )}</small
+            >
+          {/if}
           {#if invoice.company_info?.division}<div>{invoice.company_info.division}</div>{/if}
           {#if invoicePhone}<div>{t('Phone')}: {invoicePhone}</div>{/if}
           {#if invoice.display_issuer_address}<div>

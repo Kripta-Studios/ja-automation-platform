@@ -1,5 +1,7 @@
 <script lang="ts">
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
+  import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import type { ProblemData } from '$lib/problem/contract';
   import { replaceState } from '$app/navigation';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
@@ -38,6 +40,7 @@
     TableRegion,
     ToastRegion,
     formValidation,
+    reportFormFieldErrors,
   } from './portal/ui';
   import type { ToastItem } from './portal/ui';
   import TodaySection from './portal/sections/TodaySection.svelte';
@@ -231,6 +234,14 @@
     if (form?.messageKey === 'action.validation.projectFields') projectWorkflow = 'new-project';
     if (form?.messageKey === 'action.projects.projectCreated') projectWorkflow = 'new-project';
     if (form?.messageKey === 'action.validation.clientFields') projectWorkflow = 'new-client';
+    if ((form as { actionName?: string } | undefined)?.actionName === 'createClient')
+      projectWorkflow = 'new-client';
+    if ((form as { actionName?: string } | undefined)?.actionName === 'assignWorker')
+      projectWorkflow = 'assign-worker';
+    if ((form as { actionName?: string } | undefined)?.actionName === 'updateAssignment')
+      projectWorkflow = 'update-assignment';
+    if ((form as { actionName?: string } | undefined)?.actionName === 'removeAssignment')
+      projectWorkflow = 'remove-assignment';
   });
   let projectRegisterPage = $state<Row[]>([]);
   let documentPage = $state<Row[]>([]);
@@ -334,21 +345,203 @@
   const currentView = $derived($page.url.searchParams.get('view') ?? '');
   const currentTitle = $derived(portalTitleFor(data.section, currentView));
   const actionFeedback = $derived(actionMessage(form));
-  const clientFieldErrors = $derived.by(() => {
+  const globalProblem = $derived.by(() => {
     const result = form as
-      | { messageKey?: unknown; fields?: Record<string, string[] | undefined> }
+      | (ProblemData & {
+          success?: boolean;
+          actionName?: string;
+          values?: Record<string, unknown>;
+        })
       | null
       | undefined;
-    return result?.messageKey === 'action.validation.clientFields' && result.fields
-      ? result.fields
+    const values = result?.values;
+    const hasValue = (key: string) => typeof values?.[key] === 'string' && !!values[key];
+    const handledInSection =
+      (data.section === 'time' &&
+        ((hasValue('projectId') && hasValue('workDate')) ||
+          hasValue('weekStart') ||
+          hasValue('entries'))) ||
+      (data.section === 'reports' &&
+        hasValue('projectId') &&
+        (hasValue('workDate') || hasValue('reportDate') || hasValue('periodStart'))) ||
+      (data.section === 'expenses' &&
+        (hasValue('spentOn') ||
+          hasValue('projectId') ||
+          hasValue('amount') ||
+          result?.messageKey === 'action.validation.expenseFields')) ||
+      (data.section === 'projects' && result?.actionName === 'createClient') ||
+      data.section === 'billing' ||
+      (data.section === 'projects' &&
+        ['updateAssignment', 'removeAssignment', 'deleteAssignment'].includes(
+          result?.actionName ?? '',
+        ));
+    return result &&
+      result.success === false &&
+      result.code &&
+      !handledInSection &&
+      result.actionName !== 'assignWorker' &&
+      !(
+        data.section === 'projects' &&
+        currentView === 'team' &&
+        result.code.startsWith('ACCESS_')
+      ) &&
+      !(
+        data.section === 'approvals' &&
+        /^(?:APPROVAL_|FINANCE_REVIEW_|EXPENSE_CLASSIFICATION_|FINANCE_ROLE_)/u.test(result.code)
+      ) &&
+      !(data.section === 'finance' && result.messageKey?.startsWith('problem.finance.'))
+      ? result
+      : null;
+  });
+  const globalRemedyLinks = $derived.by(() => {
+    const sections = new Set(
+      [...roleNavigation.primary, ...roleNavigation.secondary, ...roleNavigation.admin].map(
+        (item) => item.section,
+      ),
+    );
+    const canManageClients = data.user.role === 'owner_admin' || data.user.role === 'finance_admin';
+    const projectAction = (form as { actionName?: string } | null)?.actionName ?? '';
+    const isClientAction = /client/i.test(projectAction);
+    return {
+      ...(sections.has('time')
+        ? {
+            review_time: {
+              label: translate('Review updated time entry'),
+              href: `${base}/app/time#time-records`,
+            },
+          }
+        : {}),
+      ...(sections.has('expenses')
+        ? {
+            review_expense: {
+              label: translate('Review updated expense'),
+              href: `${base}/app/expenses#expense-records`,
+            },
+          }
+        : {}),
+      ...(sections.has('reports')
+        ? {
+            review_report: {
+              label: translate('Review updated report'),
+              href: `${base}/app/reports`,
+            },
+          }
+        : {}),
+      ...(sections.has('projects')
+        ? {
+            review_updated_record: {
+              label: translate('Review updated record'),
+              href:
+                isClientAction && canManageClients
+                  ? `${base}/app/projects?view=clients`
+                  : `${base}/app/projects`,
+            },
+            review_assignments: {
+              label: translate('Review assignments'),
+              href: `${base}/app/projects?action=update-assignment#project-assignment-list`,
+            },
+            archive_project: {
+              label:
+                data.user.role === 'owner_admin'
+                  ? translate('Archive project')
+                  : translate('Contact an owner'),
+              href: data.user.role === 'owner_admin' ? `${base}/app/projects` : undefined,
+            },
+            choose_available_manager: {
+              label: translate('Choose an available manager'),
+              href: `${base}/app/projects?action=new-project`,
+            },
+            review_selected_workers: {
+              label: translate('Review selected workers'),
+              href: `${base}/app/projects?action=new-project`,
+            },
+            review_project_dates: {
+              label: translate('Review project dates'),
+              href: `${base}/app/projects?action=new-project`,
+            },
+          }
+        : {}),
+      ...(canManageClients
+        ? {
+            review_client_projects: {
+              label: translate('Review client projects'),
+              href: `${base}/app/projects?view=clients`,
+            },
+            review_client_status: {
+              label: translate('Review client status'),
+              href: `${base}/app/projects?view=clients`,
+            },
+            review_client_currency: {
+              label: translate('Review client currency'),
+              href: `${base}/app/projects?view=clients`,
+            },
+            archive_client: {
+              label: translate('Archive client'),
+              href: `${base}/app/projects?view=clients`,
+            },
+            review_billing_contact: {
+              label: translate('Review billing contact'),
+              href: `${base}/app/projects?view=clients`,
+            },
+            add_billing_contact: {
+              label: translate('Add billing contact'),
+              href: `${base}/app/projects?view=clients`,
+            },
+          }
+        : {}),
+      contact_owner: { label: translate('Contact an owner') },
+    };
+  });
+  const clientFormResult = $derived(
+    (form as { actionName?: string } | undefined)?.actionName === 'createClient'
+      ? (form as AssignmentFormResult)
+      : undefined,
+  );
+  const clientProblem = $derived(
+    clientFormResult?.code && clientFormResult.messageKey && clientFormResult.correlationId
+      ? (clientFormResult as ProblemData)
+      : undefined,
+  );
+  let ownerClientForm: HTMLFormElement | undefined = $state();
+  let focusedClientProblemId = '';
+  $effect(() => {
+    const id = clientProblem?.correlationId;
+    if (!id || id === focusedClientProblemId) return;
+    focusedClientProblemId = id;
+    void tick().then(() => {
+      if (ownerClientForm && clientProblem.fieldErrors)
+        reportFormFieldErrors(ownerClientForm, clientProblem.fieldErrors);
+      const panel = document.querySelector<HTMLElement>('[data-project-workflow="new-client"]');
+      const target =
+        panel?.querySelector<HTMLElement>('[data-validation-summary]') ??
+        panel?.querySelector<HTMLElement>('[data-ui="problem-notice"]');
+      target?.focus({ preventScroll: true });
+    });
+  });
+  const clientFieldErrors = $derived.by(() => {
+    const result = form as
+      | {
+          actionName?: string;
+          messageKey?: unknown;
+          fields?: Record<string, string[] | undefined>;
+          fieldErrors?: Record<string, string[] | undefined>;
+        }
+      | null
+      | undefined;
+    return (result?.actionName === 'createClient' ||
+      result?.messageKey === 'action.validation.clientFields') &&
+      (result.fieldErrors || result.fields)
+      ? (result.fieldErrors ?? result.fields ?? {})
       : {};
   });
   const clientFormValues = $derived.by(() => {
     const result = form as
-      | { messageKey?: unknown; values?: Record<string, unknown> }
+      | { actionName?: string; messageKey?: unknown; values?: Record<string, unknown> }
       | null
       | undefined;
-    return result?.messageKey === 'action.validation.clientFields' && result.values
+    return (result?.actionName === 'createClient' ||
+      result?.messageKey === 'action.validation.clientFields') &&
+      result.values
       ? result.values
       : {};
   });
@@ -613,6 +806,146 @@
     ),
   );
   const activeProjects = $derived(operationalProjects);
+  type AssignmentFormResult = {
+    actionName?: string;
+    values?: Readonly<Record<string, unknown>>;
+    code?: string;
+    messageKey?: string;
+    params?: ProblemData['params'];
+    fieldErrors?: ProblemData['fieldErrors'];
+    remedies?: ProblemData['remedies'];
+    correlationId?: string;
+  };
+  const assignmentForm = $derived(
+    (form as AssignmentFormResult | undefined)?.actionName === 'assignWorker'
+      ? (form as AssignmentFormResult)
+      : undefined,
+  );
+  let ownerAssignmentForm: HTMLFormElement | undefined = $state();
+  $effect(() => {
+    if (assignmentForm?.fieldErrors && ownerAssignmentForm)
+      reportFormFieldErrors(ownerAssignmentForm, assignmentForm.fieldErrors);
+  });
+  const assignmentFormValue = (field: string, fallback = ''): string => {
+    const submitted = assignmentForm?.values?.[field];
+    return submitted == null ? fallback : String(submitted);
+  };
+  let assignmentSelectedProjectId = $derived(
+    assignmentFormValue('projectId', $page.url.searchParams.get('project') ?? ''),
+  );
+  const assignmentSelectedProject = $derived(
+    availableProjects.find((project) => String(project.id) === assignmentSelectedProjectId),
+  );
+  const assignmentProjectOptions = $derived(
+    assignmentSelectedProject &&
+      !activeProjects.some((project) => String(project.id) === assignmentSelectedProjectId)
+      ? [...activeProjects, assignmentSelectedProject]
+      : activeProjects,
+  );
+  const assignmentProjectUnavailable = $derived(
+    Boolean(
+      assignmentSelectedProject &&
+      !['active', 'planned', 'paused'].includes(String(assignmentSelectedProject.status)),
+    ),
+  );
+  const assignmentProblem = $derived(
+    assignmentForm?.code && assignmentForm.messageKey && assignmentForm.correlationId
+      ? (assignmentForm as ProblemData)
+      : undefined,
+  );
+  const assignmentEditForm = $derived(
+    (form as AssignmentFormResult | undefined)?.actionName === 'updateAssignment' ||
+      (form as AssignmentFormResult | undefined)?.actionName === 'removeAssignment'
+      ? (form as AssignmentFormResult)
+      : undefined,
+  );
+  const assignmentEditProblem = $derived(
+    assignmentEditForm?.code && assignmentEditForm.messageKey && assignmentEditForm.correlationId
+      ? (assignmentEditForm as ProblemData)
+      : undefined,
+  );
+  const assignmentEditValue = (field: string, assignmentId: unknown, fallback = ''): string => {
+    if (String(assignmentEditForm?.values?.assignmentId ?? '') !== String(assignmentId))
+      return fallback;
+    const submitted = assignmentEditForm?.values?.[field];
+    return submitted == null ? '' : String(submitted);
+  };
+  let focusedAssignmentEditProblemId = '';
+  $effect(() => {
+    const correlationId = assignmentEditProblem?.correlationId;
+    if (!correlationId || correlationId === focusedAssignmentEditProblemId) return;
+    focusedAssignmentEditProblemId = correlationId;
+    void tick().then(() => {
+      const workflow =
+        assignmentEditForm?.actionName === 'removeAssignment'
+          ? 'remove-assignment'
+          : 'update-assignment';
+      const panel = document.querySelector<HTMLElement>(`[data-project-workflow="${workflow}"]`);
+      const form = [...(panel?.querySelectorAll<HTMLFormElement>('form') ?? [])].find(
+        (candidate) =>
+          candidate.dataset.assignmentId === String(assignmentEditForm?.values?.assignmentId ?? ''),
+      );
+      if (form && assignmentEditProblem.fieldErrors)
+        reportFormFieldErrors(form, assignmentEditProblem.fieldErrors);
+      const target =
+        panel?.querySelector<HTMLElement>('[data-validation-summary]') ??
+        panel?.querySelector<HTMLElement>('[data-ui="problem-notice"]');
+      target?.focus({ preventScroll: true });
+    });
+  });
+  let focusedAssignmentProblemId = '';
+  $effect(() => {
+    const correlationId = assignmentProblem?.correlationId;
+    if (!correlationId || correlationId === focusedAssignmentProblemId) return;
+    focusedAssignmentProblemId = correlationId;
+    void tick().then(() => {
+      const panel = document.querySelector<HTMLElement>('[data-project-workflow="assign-worker"]');
+      const target =
+        panel?.querySelector<HTMLElement>('[data-validation-summary]') ??
+        panel?.querySelector<HTMLElement>('[data-ui="problem-notice"][data-kind="error"]');
+      target?.focus({ preventScroll: true });
+    });
+  });
+  const assignmentAdvanceProblem = $derived(
+    assignmentProjectUnavailable && assignmentSelectedProject
+      ? ({
+          code: 'PROJECT_ASSIGNMENT_BLOCKED_STATUS',
+          messageKey: 'problem.project.assignmentBlockedStatus',
+          params: {
+            projectName: String(assignmentSelectedProject.name),
+            status: String(assignmentSelectedProject.status),
+          },
+          fieldErrors: {},
+          remedies:
+            data.user.role === 'owner_admin'
+              ? [{ id: 'review_project_status', projectId: assignmentSelectedProjectId }]
+              : [{ id: 'contact_project_owner' }],
+          correlationId: '',
+        } satisfies ProblemData)
+      : undefined,
+  );
+  const assignmentRemedyLinks = $derived({
+    review_project_status: {
+      label: portalText(locale, 'problem.remedy.reviewProjectStatus'),
+      href: assignmentSelectedProjectId
+        ? `${base}/app/projects/${encodeURIComponent(assignmentSelectedProjectId)}`
+        : undefined,
+    },
+    contact_project_owner: {
+      label: portalText(locale, 'problem.remedy.contactOwner'),
+    },
+    review_assignments: {
+      label: portalText(locale, 'problem.remedy.reviewAssignments'),
+      href: `${base}/app/projects?action=update-assignment#project-assignment-list`,
+    },
+    choose_available_worker: {
+      label: portalText(locale, 'problem.remedy.chooseAvailableWorker'),
+    },
+    review_updated_record: {
+      label: translate('Review updated record'),
+      href: `${base}/app/projects?action=${assignmentEditForm?.actionName === 'removeAssignment' ? 'remove-assignment' : 'update-assignment'}#project-assignment-list`,
+    },
+  });
   const firstAuthorizedProjectId = $derived(String(data.projects?.[0]?.id ?? '').trim() || null);
   const invoiceDraftHref = $derived(
     canManageProjects && firstAuthorizedProjectId
@@ -817,7 +1150,7 @@
       );
     }
     if (syncMessage) {
-      const failed = /could not|select a project/i.test(syncMessage);
+      const failed = /could not|failed|select a project/i.test(syncMessage);
       add(
         `sync:${syncMessage}`,
         translate(syncMessage),
@@ -1442,6 +1775,13 @@
         </form>
       </div>
     </div>
+    {#if globalProblem}
+      <ProblemNotice
+        problem={globalProblem}
+        kind={globalProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        remedyLinks={globalRemedyLinks}
+      />
+    {/if}
     {#if conflictItems.length > 0}
       <section class="conflict-panel" aria-labelledby="offline-conflicts-title">
         <div>
@@ -2174,6 +2514,7 @@
       />
     {:else if data.section === 'projects' && currentView === 'team'}
       <TeamDirectorySection
+        {form}
         suppliers={data.suppliers ?? []}
         workers={data.workers ?? []}
         assignments={data.assignments ?? []}
@@ -2192,6 +2533,7 @@
       <ProjectSection
         {base}
         {locale}
+        {form}
         projects={availableProjects}
         workers={(data.workers ?? []).filter((worker) => worker.role === 'worker')}
         assignments={data.assignments ?? []}
@@ -2313,9 +2655,22 @@
               data-project-workflow="new-client"
               tabindex="-1"
             >
-              <form method="POST" action="?/createClient" class="admin-form-grid">
+              <form
+                bind:this={ownerClientForm}
+                method="POST"
+                action="?/createClient"
+                class="admin-form-grid"
+                use:formValidation
+              >
                 <h2>{translate('Create client')}</h2>
-                {#if Object.keys(clientFieldErrors).length > 0}
+                {#if clientProblem}
+                  <ProblemNotice
+                    problem={clientProblem}
+                    class="wide-field"
+                    remedyLinks={globalRemedyLinks}
+                  />
+                {/if}
+                {#if Object.keys(clientFieldErrors).length > 0 && !clientProblem}
                   <div class="form-help wide-field" role="alert" data-client-field-errors>
                     <strong>{translate('Review these client fields')}</strong>
                     <ul>
@@ -2579,7 +2934,11 @@
                     maxlength="120"
                     value={projectFormValue('costCenterCode')}
                     required
-                  /></label
+                  /><small
+                    >{translate(
+                      'End the cost center with digits. Those digits become the project number suffix (for example, CP020 becomes P-020).',
+                    )}</small
+                  ></label
                 ><label
                   >{translate('Description')}<textarea name="description" rows="2"
                     >{projectFormValue('description')}</textarea
@@ -2783,26 +3142,63 @@
                 data-project-workflow="assign-worker"
                 tabindex="-1"
               >
-                <form method="POST" action="?/assignWorker" class="admin-form-grid">
+                <form
+                  bind:this={ownerAssignmentForm}
+                  use:formValidation
+                  method="POST"
+                  action="?/assignWorker"
+                  class="admin-form-grid"
+                >
                   <h2>{translate('Assign worker')}</h2>
+                  {#if assignmentProblem}
+                    <ProblemNotice
+                      problem={assignmentProblem}
+                      class="wide-field"
+                      status={assignmentProblem.params.status
+                        ? portalText(locale, 'Current status: {status}', {
+                            status: controlledValue('status', assignmentProblem.params.status),
+                          })
+                        : undefined}
+                      remedyLinks={assignmentRemedyLinks}
+                    />
+                  {:else if assignmentAdvanceProblem}
+                    <ProblemNotice
+                      problem={assignmentAdvanceProblem}
+                      kind="warning"
+                      class="wide-field"
+                      status={portalText(locale, 'Current status: {status}', {
+                        status: controlledValue('status', assignmentSelectedProject?.status),
+                      })}
+                      remedyLinks={assignmentRemedyLinks}
+                    />
+                  {/if}
                   <label
-                    >{translate('Project')}<select name="projectId" required
-                      ><option
-                        value=""
-                        selected={!activeProjects.some(
-                          (project) => String(project.id) === $page.url.searchParams.get('project'),
-                        )}>{translate('Select project')}</option
-                      >{#each activeProjects as project}<option
+                    >{translate('Project')}<select
+                      name="projectId"
+                      bind:value={assignmentSelectedProjectId}
+                      required
+                      ><option value="">{translate('Select project')}</option
+                      >{#each assignmentProjectOptions as project}<option
                           value={project.id}
-                          selected={String(project.id) === $page.url.searchParams.get('project')}
-                          >{project.project_number}</option
+                          disabled={!['active', 'planned', 'paused'].includes(
+                            String(project.status),
+                          )}
+                          >{!['active', 'planned', 'paused'].includes(String(project.status))
+                            ? portalText(locale, 'problem.project.unavailableOption', {
+                                projectName: String(project.name),
+                                status: controlledValue('status', project.status),
+                              })
+                            : `${project.project_number} · ${project.name}`}</option
                         >{/each}</select
                     ></label
                   ><ExpertiseWorkerSelect
                     workers={data.workers ?? []}
                     expertise={data.allSkills ?? []}
                     workerExpertise={data.workerSkills ?? []}
-                    selectedWorkerId={$page.url.searchParams.get('worker') ?? ''}
+                    selectedWorkerId={assignmentFormValue(
+                      'workerId',
+                      $page.url.searchParams.get('worker') ?? '',
+                    )}
                     {translate}
                   /><label
                     >{translate('Role')}<input
@@ -2812,10 +3208,19 @@
                       required
                     /></label
                   ><label
-                    >{translate('Starts on')}<input name="startsOn" type="date" required /></label
+                    >{translate('Starts on')}<input
+                      name="startsOn"
+                      type="date"
+                      value={assignmentFormValue('startsOn')}
+                      required
+                    /></label
                   ><label
-                    >{translate('Ends on (optional)')}<input name="endsOn" type="date" /></label
-                  ><button>{translate('Assign')}</button>
+                    >{translate('Ends on (optional)')}<input
+                      name="endsOn"
+                      type="date"
+                      value={assignmentFormValue('endsOn')}
+                    /></label
+                  ><button disabled={assignmentProjectUnavailable}>{translate('Assign')}</button>
                 </form>
               </section>
             {/if}
@@ -2826,14 +3231,31 @@
                 tabindex="-1"
               >
                 <h2>{translate('Update assignment')}</h2>
+                {#if assignmentEditProblem && assignmentEditForm?.actionName === 'updateAssignment'}
+                  <ProblemNotice
+                    problem={assignmentEditProblem}
+                    remedyLinks={assignmentRemedyLinks}
+                  />
+                {/if}
                 {#each (data.assignments ?? []).filter((assignment) => assignment.status === 'active' && (!$page.url.searchParams.get('worker') || String(assignment.worker_id ?? assignment.user_id) === $page.url.searchParams.get('worker')) && (!$page.url.searchParams.get('project') || String(assignment.project_id) === $page.url.searchParams.get('project'))) as assignment}
                   <form
                     method="POST"
                     action="?/updateAssignment"
                     class="admin-form-grid assignment-edit-form"
+                    data-action="updateAssignment"
+                    data-assignment-id={assignment.id}
+                    use:formValidation
                   >
                     <input type="hidden" name="assignmentId" value={assignment.id} />
-                    <input type="hidden" name="version" value={assignment.version ?? 1} />
+                    <input
+                      type="hidden"
+                      name="version"
+                      value={assignmentEditValue(
+                        'version',
+                        assignment.id,
+                        String(assignment.version ?? 1),
+                      )}
+                    />
                     <p class="form-help wide-field">
                       {assignment.project_number} · {assignment.project_name} · {assignment.worker_name}
                     </p>
@@ -2841,7 +3263,11 @@
                       >{translate('Starts on')}<input
                         name="startsOn"
                         type="date"
-                        value={String(assignment.starts_on ?? '')}
+                        value={assignmentEditValue(
+                          'startsOn',
+                          assignment.id,
+                          String(assignment.starts_on ?? ''),
+                        )}
                         required
                       /></label
                     >
@@ -2849,20 +3275,32 @@
                       >{translate('Ends on')}<input
                         name="endsOn"
                         type="date"
-                        value={String(assignment.ends_on ?? '')}
+                        value={assignmentEditValue(
+                          'endsOn',
+                          assignment.id,
+                          String(assignment.ends_on ?? ''),
+                        )}
                       /></label
                     >
                     <ProjectBudgetInput
                       name="plannedMinutes"
                       label={translate('Planned hours')}
-                      value={String(assignment.planned_minutes ?? '')}
+                      value={assignmentEditValue(
+                        'plannedMinutes',
+                        assignment.id,
+                        String(assignment.planned_minutes ?? ''),
+                      )}
                       kind="hours"
                     />
                     <label class="check"
                       ><input type="hidden" name="canReviewPresent" value="1" /><input
                         name="canReview"
                         type="checkbox"
-                        checked={Boolean(assignment.can_review)}
+                        checked={assignmentEditForm?.actionName === 'updateAssignment' &&
+                        String(assignmentEditForm.values?.assignmentId ?? '') ===
+                          String(assignment.id)
+                          ? assignmentEditForm.values?.canReview === 'on'
+                          : Boolean(assignment.can_review)}
                       />
                       {translate('Can review')}</label
                     >
@@ -2878,6 +3316,12 @@
                 tabindex="-1"
               >
                 <h2>{translate('Remove assignment')}</h2>
+                {#if assignmentEditProblem && assignmentEditForm?.actionName === 'removeAssignment'}
+                  <ProblemNotice
+                    problem={assignmentEditProblem}
+                    remedyLinks={assignmentRemedyLinks}
+                  />
+                {/if}
                 <p class="form-help">
                   {translate(
                     'Removal ends the assignment and preserves its historical row. It never hard-deletes project history.',
@@ -2889,9 +3333,19 @@
                     action="?/removeAssignment"
                     class="admin-form-grid assignment-remove-form"
                     data-action="removeAssignment"
+                    data-assignment-id={assignment.id}
+                    use:formValidation
                   >
                     <input type="hidden" name="assignmentId" value={assignment.id} />
-                    <input type="hidden" name="version" value={assignment.version ?? 1} />
+                    <input
+                      type="hidden"
+                      name="version"
+                      value={assignmentEditValue(
+                        'version',
+                        assignment.id,
+                        String(assignment.version ?? 1),
+                      )}
+                    />
                     <p class="form-help wide-field">
                       {assignment.project_number} · {assignment.project_name} · {assignment.worker_name}
                     </p>
@@ -2900,7 +3354,11 @@
                         name="endsOn"
                         type="date"
                         min={String(assignment.starts_on ?? '')}
-                        value={String(assignment.ends_on ?? '')}
+                        value={assignmentEditValue(
+                          'endsOn',
+                          assignment.id,
+                          String(assignment.ends_on ?? ''),
+                        )}
                       /></label
                     >
                     <label class="wide-field"
@@ -2908,6 +3366,7 @@
                         name="reason"
                         required
                         maxlength="2000"
+                        value={assignmentEditValue('reason', assignment.id)}
                       /></label
                     >
                     <button class="danger">{translate('Remove assignment')}</button>
@@ -3097,6 +3556,29 @@
                   >
                 </div>
                 <div class="record-actions lifecycle-actions">
+                  {#if client.status === 'active' || client.status === 'closed'}
+                    <form method="POST" action="?/transitionClient" data-action="transitionClient">
+                      <input type="hidden" name="clientId" value={client.id} />
+                      <input type="hidden" name="version" value={client.version ?? 1} />
+                      <input
+                        type="hidden"
+                        name="status"
+                        value={client.status === 'active' ? 'closed' : 'active'}
+                      />
+                      <label class="sr-only" for={`client-status-reason-${client.id}`}
+                        >{translate('Reason')}</label
+                      >
+                      <input
+                        id={`client-status-reason-${client.id}`}
+                        name="reason"
+                        required
+                        placeholder={translate('Reason')}
+                      />
+                      <button type="submit" class="secondary-button">
+                        {translate(client.status === 'active' ? 'Close client' : 'Reopen client')}
+                      </button>
+                    </form>
+                  {/if}
                   {#if client.status === 'archived'}
                     <form method="POST" action="?/transitionClient" data-action="transitionClient">
                       <input type="hidden" name="clientId" value={client.id} />

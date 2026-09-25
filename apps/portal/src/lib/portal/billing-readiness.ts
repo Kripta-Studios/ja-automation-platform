@@ -33,3 +33,10 @@ export function billingReadinessMessageKey(code: unknown): string {
     BILLING_READINESS_MESSAGE_KEYS[String(code) as keyof typeof BILLING_READINESS_MESSAGE_KEYS];
   return mapped ?? 'action.conflict.billingPeriodIncomplete';
 }
+
+export function billingReadinessRemedyId(reasonCode: string, role?: string): string {
+  if (/time|expense|signoff/u.test(reasonCode)) return 'review_pending_records';
+  if (role && role !== 'owner_admin' && /number_policy|issuer|legal_entity/u.test(reasonCode))
+    return 'contact_owner';
+  return 'review_billing_setup';
+}

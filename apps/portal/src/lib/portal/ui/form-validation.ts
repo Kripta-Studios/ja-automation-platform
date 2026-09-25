@@ -58,14 +58,52 @@ function errorMessage(control: ValidationControl): string {
   return t('Enter a valid value.');
 }
 
-function fieldMessage(control: ValidationControl): string {
+function fieldTitle(control: ValidationControl): string {
   const label = control.labels?.[0];
-  const title =
+  return (
     label?.querySelector('span')?.textContent?.trim() ||
     label?.firstChild?.textContent?.trim() ||
     control.getAttribute('aria-label')?.trim() ||
-    control.name;
+    control.name
+  );
+}
+
+function fieldMessage(control: ValidationControl): string {
+  const title = fieldTitle(control);
   return title ? `${title}: ${errorMessage(control)}` : errorMessage(control);
+}
+
+function serverFieldMessage(control: ValidationControl, raw: string): string {
+  const locale = normalizePortalLocale(control.ownerDocument.documentElement.getAttribute('lang'));
+  const t = (key: string, params?: Record<string, string | number>) =>
+    translate(locale, key, params);
+  // Zod supplies English diagnostics even when the portal is in another
+  // language. Convert its standard diagnostics to the existing field copy;
+  // domain-specific keys and messages retain their own wording.
+  const minimumLength = raw.match(/^Too small: expected string to have >=(\d+) characters?$/u);
+  if (minimumLength) return t('Use at least {min} characters.', { min: minimumLength[1] ?? '' });
+  const maximumLength = raw.match(/^Too big: expected string to have <=(\d+) characters?$/u);
+  if (maximumLength)
+    return t('Use no more than {max} characters.', { max: maximumLength[1] ?? '' });
+  const minimumNumber = raw.match(/^Too small: expected number to be >=(-?\d+(?:\.\d+)?)$/u);
+  if (minimumNumber) return t('Enter a value of at least {min}.', { min: minimumNumber[1] ?? '' });
+  const maximumNumber = raw.match(/^Too big: expected number to be <=(-?\d+(?:\.\d+)?)$/u);
+  if (maximumNumber)
+    return t('Enter a value no greater than {max}.', { max: maximumNumber[1] ?? '' });
+  if (
+    /^Invalid input: expected number\b/u.test(raw) ||
+    /^Invalid input: expected bigint\b/u.test(raw)
+  )
+    return t('Enter a valid number.');
+  if (/^Invalid input: expected date\b/u.test(raw)) return t('Enter a valid date.');
+  if (/^Invalid (?:email address|email)$/u.test(raw)) return t('Enter a valid email address.');
+  if (/^Invalid (?:url|URL)$/u.test(raw)) return t('Enter a valid URL.');
+  if (/^Invalid option:/u.test(raw)) return t('Please select an option.');
+  if (/^Invalid input: expected \w+, received (?:undefined|null)$/u.test(raw))
+    return t('Please complete this field.');
+  if (/^Invalid string: must match pattern\b/u.test(raw)) return t('Match the requested format.');
+  if (/^Invalid input:/u.test(raw)) return t('Enter a valid value.');
+  return t(raw);
 }
 
 function slug(value: string): string {
@@ -146,6 +184,7 @@ function clearPreviousErrors(form: HTMLFormElement, fieldControls: ValidationCon
     const errorId = control.getAttribute('data-validation-error-id');
     if (errorId) removeToken(control, errorId);
     control.removeAttribute('data-validation-error-id');
+    control.removeAttribute('data-server-validation-error');
     control.removeAttribute('aria-invalid');
   }
 }
@@ -155,6 +194,7 @@ function createValidationSummary(form: HTMLFormElement): HTMLElement {
   if (existing) return existing;
   const summary = form.ownerDocument.createElement('div');
   summary.id = `${formIdentity(form)}-summary`;
+  summary.setAttribute('data-ui', 'validation-summary');
   summary.setAttribute('data-validation-summary', '');
   summary.setAttribute('role', 'alert');
   summary.setAttribute('tabindex', '-1');
@@ -162,13 +202,39 @@ function createValidationSummary(form: HTMLFormElement): HTMLElement {
   return summary;
 }
 
+function renderSummary(
+  form: HTMLFormElement,
+  items: ReadonlyArray<{ control: ValidationControl; message: string }>,
+): void {
+  const summary = createValidationSummary(form);
+  const ownerDocument = form.ownerDocument;
+  const locale = normalizePortalLocale(ownerDocument.documentElement.getAttribute('lang'));
+  summary.replaceChildren();
+  const heading = ownerDocument.createElement('p');
+  heading.textContent = translate(locale, 'Please correct the following fields: {messages}', {
+    messages: items.length > 1 ? '' : (items[0]?.message ?? ''),
+  }).trim();
+  summary.appendChild(heading);
+  if (items.length > 1) {
+    const list = ownerDocument.createElement('ul');
+    for (const { control, message } of items) {
+      const item = ownerDocument.createElement('li');
+      const link = ownerDocument.createElement('a');
+      link.setAttribute('href', `#${control.id}`);
+      link.textContent = message;
+      item.appendChild(link);
+      list.appendChild(item);
+    }
+    summary.appendChild(list);
+  }
+}
+
 function renderInvalidState(form: HTMLFormElement, invalidControls: ValidationControl[]): void {
   const fieldControls = controls(form);
   for (const [index, control] of fieldControls.entries()) ensureId(form, control, index);
   clearPreviousErrors(form, fieldControls);
-  const summary = createValidationSummary(form);
   const ownerDocument = form.ownerDocument;
-  const messages: string[] = [];
+  const items: { control: ValidationControl; message: string }[] = [];
   const indexes = new Map(fieldControls.map((control, index) => [control, index]));
 
   for (const control of invalidControls) {
@@ -176,7 +242,7 @@ function renderInvalidState(form: HTMLFormElement, invalidControls: ValidationCo
     const id = control.id;
     const errorId = `${formIdentity(form)}-${slug(id)}-${index + 1}-error`;
     const message = errorMessage(control);
-    messages.push(fieldMessage(control));
+    items.push({ control, message: fieldMessage(control) });
     const error = ownerDocument.createElement('p');
     error.id = errorId;
     error.setAttribute('data-field-error-for', id);
@@ -190,14 +256,16 @@ function renderInvalidState(form: HTMLFormElement, invalidControls: ValidationCo
     appendToken(control, errorId);
   }
 
-  summary.textContent = translate(
-    normalizePortalLocale(ownerDocument.documentElement.getAttribute('lang')),
-    'Please correct the following fields: {messages}',
-    { messages: messages.join(' ') },
-  );
+  renderSummary(form, items);
   const first = invalidControls[0];
   if (first) {
-    const focus = () => first.focus();
+    const focus = () => {
+      if (invalidControls.length > 1)
+        (form.querySelector('[data-validation-summary]') as HTMLElement | null)?.focus({
+          preventScroll: true,
+        });
+      else first.focus({ preventScroll: true });
+    };
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(focus);
     else setTimeout(focus, 0);
   }
@@ -208,6 +276,7 @@ function updateReportedErrors(form: HTMLFormElement): void {
     control.hasAttribute('data-validation-error-id'),
   );
   for (const control of reportedControls) {
+    if (control.hasAttribute('data-server-validation-error')) continue;
     if (!isInvalid(control)) removeFieldError(form, control);
     else {
       const errorId = control.getAttribute('data-validation-error-id');
@@ -217,16 +286,59 @@ function updateReportedErrors(form: HTMLFormElement): void {
   }
   const summary = form.querySelector('[data-validation-summary]');
   if (!summary) return;
-  const remaining = reportedControls.filter((control) => isInvalid(control));
+  const remaining = reportedControls.filter(
+    (control) => control.hasAttribute('data-server-validation-error') || isInvalid(control),
+  );
   if (!remaining.length) {
     summary.remove();
     return;
   }
-  summary.textContent = translate(
-    normalizePortalLocale(form.ownerDocument.documentElement.getAttribute('lang')),
-    'Please correct the following fields: {messages}',
-    { messages: remaining.map(fieldMessage).join(' ') },
+  renderSummary(
+    form,
+    remaining.map((control) => ({
+      control,
+      message: control.hasAttribute('data-server-validation-error')
+        ? `${fieldTitle(control)}: ${form.ownerDocument.getElementById(control.getAttribute('data-validation-error-id') ?? '')?.textContent ?? ''}`
+        : fieldMessage(control),
+    })),
   );
+}
+
+/** Attach server validation to the same field and summary pattern as native validation. */
+export function reportFormFieldErrors(
+  form: HTMLFormElement,
+  fieldErrors: Readonly<Record<string, readonly string[] | string>>,
+): void {
+  const fieldControls = controls(form);
+  for (const [index, control] of fieldControls.entries()) ensureId(form, control, index);
+  clearPreviousErrors(form, fieldControls);
+  const items: { control: ValidationControl; message: string }[] = [];
+  for (const [index, control] of fieldControls.entries()) {
+    if (control.tagName === 'INPUT' && control.getAttribute('type') === 'hidden') continue;
+    const raw = fieldErrors[control.name];
+    const messageKey = (typeof raw === 'string' ? raw : raw?.[0])?.trim();
+    const message = messageKey ? serverFieldMessage(control, messageKey) : '';
+    if (!message) continue;
+    const label = fieldTitle(control);
+    const errorId = `${formIdentity(form)}-${slug(control.id)}-${index + 1}-error`;
+    const error = form.ownerDocument.createElement('p');
+    error.id = errorId;
+    error.setAttribute('data-field-error-for', control.id);
+    error.setAttribute('data-validation-generated-error', '');
+    error.setAttribute('role', 'alert');
+    error.textContent = message;
+    (control.parentElement ?? form).insertBefore(error, control.nextSibling);
+    control.setAttribute('data-validation-error-id', errorId);
+    control.setAttribute('data-server-validation-error', '');
+    control.setAttribute('aria-invalid', 'true');
+    appendToken(control, errorId);
+    items.push({ control, message: label ? `${label}: ${message}` : message });
+  }
+  if (items.length) {
+    renderSummary(form, items);
+    // Do not move focus or scroll after a response: the user may already be
+    // reading the result, and SvelteKit enhanced forms do not reload the page.
+  } else form.querySelector('[data-validation-summary]')?.remove();
 }
 
 export function formValidation(form: HTMLFormElement): ActionResult {
@@ -235,7 +347,12 @@ export function formValidation(form: HTMLFormElement): ActionResult {
   let handlingSubmit = false;
   let active = true;
 
-  const onEdit = (): void => {
+  const onEdit = (event: Event): void => {
+    const target = event.target as ValidationControl | null;
+    if (target && form.contains(target) && target.hasAttribute('data-server-validation-error')) {
+      removeFieldError(form, target);
+      target.removeAttribute('data-server-validation-error');
+    }
     // Delegation also covers conditional controls such as a legacy time entry's interval.
     updateReportedErrors(form);
     // Reactive cross-field validity can settle after the input event (end time / break).
@@ -247,6 +364,7 @@ export function formValidation(form: HTMLFormElement): ActionResult {
     queueMicrotask(() => {
       if (!active || event.defaultPrevented) return;
       clearPreviousErrors(form, controls(form));
+      for (const control of controls(form)) control.removeAttribute('data-server-validation-error');
       form.querySelector('[data-validation-summary]')?.remove();
     });
   };

@@ -1,0 +1,188 @@
+{
+  "before": {
+    "time": [
+      {
+        "work_date": "2026-09-26",
+        "activity_summary": "Browser QA future-date time draft",
+        "approval_state": "draft",
+        "minutes": 90,
+        "id": "01a0d978-7558-738b-8ee3-3f58d95c09cc"
+      }
+    ],
+    "expenses": [
+      {
+        "spent_on": "2026-09-27",
+        "description": "Browser QA vendor-free future expense",
+        "approval_state": "draft",
+        "time_entry_id": null,
+        "vendor": "",
+        "currency": "USD",
+        "id": "01a0d978-7b8f-7349-8240-abfd893ab4fe"
+      }
+    ]
+  },
+  "tableBeforeSave": {
+    "worker": "01a0d974-e210-72dd-9a30-c1e4b889a0d3",
+    "project": "01a0d974-e249-71cd-b55c-7ab277c4370a",
+    "hours": [
+      "2.25",
+      "1.75"
+    ]
+  },
+  "afterTable": {
+    "time": [
+      {
+        "work_date": "2026-09-21",
+        "activity_summary": "Browser QA table Monday",
+        "approval_state": "draft",
+        "minutes": 135,
+        "id": "01a0d97e-db76-7079-ac8c-bf58e5c91c18"
+      },
+      {
+        "work_date": "2026-09-22",
+        "activity_summary": "Browser QA table Tuesday",
+        "approval_state": "draft",
+        "minutes": 105,
+        "id": "01a0d97e-db7a-711b-ad98-9e977ef13529"
+      },
+      {
+        "work_date": "2026-09-26",
+        "activity_summary": "Browser QA future-date time draft",
+        "approval_state": "draft",
+        "minutes": 90,
+        "id": "01a0d978-7558-738b-8ee3-3f58d95c09cc"
+      }
+    ],
+    "expenses": [
+      {
+        "spent_on": "2026-09-27",
+        "description": "Browser QA vendor-free future expense",
+        "approval_state": "draft",
+        "time_entry_id": null,
+        "vendor": "",
+        "currency": "USD",
+        "id": "01a0d978-7b8f-7349-8240-abfd893ab4fe"
+      }
+    ]
+  },
+  "mealBeforeSave": {
+    "category": "meals",
+    "currency": "USD",
+    "vendor": "",
+    "hours": "1.25"
+  },
+  "afterMeal": {
+    "time": [
+      {
+        "work_date": "2026-09-21",
+        "activity_summary": "Browser QA table Monday",
+        "approval_state": "draft",
+        "minutes": 135,
+        "id": "01a0d97e-db76-7079-ac8c-bf58e5c91c18"
+      },
+      {
+        "work_date": "2026-09-22",
+        "activity_summary": "Browser QA table Tuesday",
+        "approval_state": "draft",
+        "minutes": 105,
+        "id": "01a0d97e-db7a-711b-ad98-9e977ef13529"
+      },
+      {
+        "work_date": "2026-09-25",
+        "activity_summary": "Browser QA linked meal shift",
+        "approval_state": "draft",
+        "minutes": 75,
+        "id": "01a0d97e-e0db-763d-80dc-7e11d8369b31"
+      },
+      {
+        "work_date": "2026-09-26",
+        "activity_summary": "Browser QA future-date time draft",
+        "approval_state": "draft",
+        "minutes": 90,
+        "id": "01a0d978-7558-738b-8ee3-3f58d95c09cc"
+      }
+    ],
+    "expenses": [
+      {
+        "spent_on": "2026-09-25",
+        "description": "Browser QA linked meal expense",
+        "approval_state": "draft",
+        "time_entry_id": "01a0d97e-e0db-763d-80dc-7e11d8369b31",
+        "vendor": "",
+        "currency": "USD",
+        "id": "01a0d97e-e0dd-73fa-8865-f8281c7df1ec"
+      },
+      {
+        "spent_on": "2026-09-27",
+        "description": "Browser QA vendor-free future expense",
+        "approval_state": "draft",
+        "time_entry_id": null,
+        "vendor": "",
+        "currency": "USD",
+        "id": "01a0d978-7b8f-7349-8240-abfd893ab4fe"
+      }
+    ]
+  },
+  "submitForm": "<form method=\"POST\" action=\"?/submitTimeWeek\" class=\"svelte-ysqj5f\"><!--[0--><label class=\"svelte-ysqj5f\"><span>Worker</span> <select name=\"workerId\" required=\"\" data-searchable-picker=\"entity-picker-1\" aria-haspopup=\"dialog\" aria-expanded=\"false\" aria-controls=\"entity-picker-1\"><option value=\"\" selected=\"\">Select worker</option><!--[--><option value=\"01a0d974-e210-72dd-9a30-c1e4b889a0d3\">Alex Rivera</option><option value=\"01a0d974-e210-72dd-9a30-bf154c1ff8f4\">Daniel Brooks</option><option value=\"01a0d974-e211-76d9-a5a9-910b3c5a1165\">Maya Chen</option><option value=\"01a0d974-e211-76d9-a5a9-8d3857e47700\">Rafael Santos</option><!--]--></select></label><!--]--> <input type=\"hidden\" name=\"weekStart\" value=\"2026-09-21\" style=\"\"> <input type=\"hidden\" name=\"entries\" value=\"[]\" style=\"\"> <p class=\"svelte-ysqj5f\">0\n          draft entries ready · 2026-09-21 → 2026-09-27</p> <!--[-1--><!--]--> <button type=\"submit\" disabled=\"\" class=\"svelte-ysqj5f\">Submit all week drafts</button></form>",
+  "submitButtonDisabled": false,
+  "afterSubmit": {
+    "time": [
+      {
+        "work_date": "2026-09-21",
+        "activity_summary": "Browser QA table Monday",
+        "approval_state": "submitted",
+        "minutes": 135,
+        "id": "01a0d97e-db76-7079-ac8c-bf58e5c91c18"
+      },
+      {
+        "work_date": "2026-09-22",
+        "activity_summary": "Browser QA table Tuesday",
+        "approval_state": "submitted",
+        "minutes": 105,
+        "id": "01a0d97e-db7a-711b-ad98-9e977ef13529"
+      },
+      {
+        "work_date": "2026-09-25",
+        "activity_summary": "Browser QA linked meal shift",
+        "approval_state": "submitted",
+        "minutes": 75,
+        "id": "01a0d97e-e0db-763d-80dc-7e11d8369b31"
+      },
+      {
+        "work_date": "2026-09-26",
+        "activity_summary": "Browser QA future-date time draft",
+        "approval_state": "submitted",
+        "minutes": 90,
+        "id": "01a0d978-7558-738b-8ee3-3f58d95c09cc"
+      }
+    ],
+    "expenses": [
+      {
+        "spent_on": "2026-09-25",
+        "description": "Browser QA linked meal expense",
+        "approval_state": "submitted",
+        "time_entry_id": "01a0d97e-e0db-763d-80dc-7e11d8369b31",
+        "vendor": "",
+        "currency": "USD",
+        "id": "01a0d97e-e0dd-73fa-8865-f8281c7df1ec"
+      },
+      {
+        "spent_on": "2026-09-27",
+        "description": "Browser QA vendor-free future expense",
+        "approval_state": "draft",
+        "time_entry_id": null,
+        "vendor": "",
+        "currency": "USD",
+        "id": "01a0d978-7b8f-7349-8240-abfd893ab4fe"
+      }
+    ]
+  },
+  "afterSubmitText": "J&A / Time entries\n\nTime entries\nPrint report\nSearch workspace\nSearch\n\nWORKER OPERATIONS\n\nTime\n\nRecord actual operational time. Commercial interpretation is applied from configured project rules.\n\nLog time\n\nSave a draft while details are still changing. Submit time only after the recorded date, duration and activity are accurate; submitted time is reviewed and cannot be silently overwritten.\n\nActual recorded\n307.25h\nHours you really recorded.\nNeeds attention\n6\nDraft or review state\nApproved\n41\nRows approved by the workflow\nWEEKLY TIMESHEET\nActual time, one week at a glance\n\n2026-09-21 → 2026-09-27. Planning target only; it never creates time.\n\nWEEK OF\nOpen week\n← Previous week\nThis week\nNext week →\nACTUAL\nHours you really recorded.\nEXPECTED\nPlanning target only; it never creates time.\nDIFFERENCE\nActual minus expected for the day.\nSTATUS\nDraft, submitted, approved or needs changes.\n\nScroll horizontally to review all columns.\n\nWeekly actual time and approval status\nDAY\tACTUAL\tEXPECTED\tDIFFERENCE\tCATEGORIES\tSTATUS\n\nMon\n2026-09-21\n\t2.25h\t—\t—\tRegular time 2.25h\tSubmitted\n\nTue\n2026-09-22\n\t1.75h\t—\t—\tRegular time 1.75h\tSubmitted\n\nWed\n2026-09-23\n\t0.00h\t—\t—\t—\t—\n\nThu\n2026-09-24\n\t0.00h\t—\t—\t—\t—\n\nFri\n2026-09-25\n\t1.25h\t—\t—\tRegular time 1.25h\tSubmitted\n\nSat\n2026-09-26\n\t1.50h\t—\t—\tRegular time 1.50h\tSubmitted\n\nSun\n2026-09-27\n\t0.00h\t—\t—\t—\t—\nActual\t6.75h\t—\t—\tReview access is limited to operational time.\nCopy previous week layout\nSubmit this week\n\nSubmit all draft hours for one worker in the displayed week, together with meals added in Log time. Submitted records enter review.\n\nWorker\nSelect worker\nAlex Rivera\nDaniel Brooks\nMaya Chen\nRafael Santos\n\n0 draft entries ready · 2026-09-21 → 2026-09-27\n\nSubmit all week drafts\nTime calendar\n\nChoose a worker and a day to add time or manage editable ",
+  "issues": [],
+  "posts": [
+    "200 /j-aautomation/app/api/auth/sign-in/email",
+    "200 /j-aautomation/app/time",
+    "200 /j-aautomation/app/time",
+    "200 /j-aautomation/app/time"
+  ]
+}

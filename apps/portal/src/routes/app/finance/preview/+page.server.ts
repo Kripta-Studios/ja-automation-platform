@@ -1,8 +1,14 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { error, isHttpError, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
 import { assertLiveSession, AccessDeniedError } from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { previewCommercialExample, upcomingBillingPeriods } from '$lib/server/commercial-preview';
+import {
+  actionFail,
+  actionFailure,
+  type ActionFailureExtras,
+  type ActionMessageKey,
+} from '$lib/server/actions/action-message';
 import type { Actions, PageServerLoad } from './$types';
 
 const defaults = {
@@ -132,25 +138,140 @@ const schema = z.object({
   anchorDate: z.string(),
 });
 
+// The existing preview UI uses a string[] `fields` list. Keep it alongside
+// the shared problem contract's map-shaped `fieldErrors` during migration.
+function previewFail(
+  messageKey: ActionMessageKey,
+  message: string,
+  extra: Omit<ActionFailureExtras, 'fields'> & { fields: string[] },
+) {
+  return actionFail(400, messageKey, {}, message, extra as unknown as ActionFailureExtras);
+}
+
+const previewFieldGuidance: Record<string, string> = {
+  workHours: 'Enter 0 to 24 hours in whole-minute increments.',
+  referenceHours: 'Enter 0 to 24 hours in whole-minute increments.',
+  minimumHours: 'Enter 0 to 24 hours in whole-minute increments.',
+  thresholdHours: 'Enter a positive threshold of at most 24 hours.',
+  sellRate: 'Enter a non-negative customer rate with up to two decimal places.',
+  workerRate: 'Enter a non-negative worker rate with up to two decimal places.',
+  loadedCostRate: 'Enter a non-negative internal cost with up to two decimal places.',
+  expenseAmount: 'Enter a non-negative expense with up to two decimal places.',
+  fixedPrice: 'Enter a non-negative fixed price with up to two decimal places.',
+  sellMultiplier: 'Enter a customer overtime multiplier from 0 to 10.',
+  workerMultiplier: 'Enter a worker overtime multiplier from 0 to 10.',
+  costMultiplier: 'Enter an internal cost overtime multiplier from 0 to 10.',
+};
+
+export function _previewValidationFailure(values: Record<string, string>, issues: z.ZodIssue[]) {
+  const fields = [...new Set(issues.map((issue) => String(issue.path[0] ?? '')))].filter(Boolean);
+  const fieldErrors = Object.fromEntries(
+    fields.map((field) => [field, [previewFieldGuidance[field] ?? 'Choose a valid option.']]),
+  );
+  return previewFail(
+    'problem.finance.previewInvalidFields',
+    'Check the highlighted example fields and calculate again.',
+    {
+      code: 'FINANCE_PREVIEW_INVALID_FIELDS',
+      values,
+      invalid: true,
+      result: null,
+      periods: [],
+      fields,
+      fieldErrors,
+    },
+  );
+}
+
+export function _previewRangeFailure(values: Record<string, string>, cause: RangeError) {
+  if (cause.message === 'A customer-direct expense cannot also have been advanced by the worker.')
+    return previewFail(
+      'problem.finance.previewPayerConflict',
+      'A customer-direct expense cannot also have been advanced by the worker. Change the expense treatment or payer.',
+      {
+        code: 'FINANCE_PREVIEW_PAYER_CONFLICT',
+        values,
+        invalid: true,
+        result: null,
+        periods: [],
+        fields: ['expenseTreatment', 'workerAdvancedExpense'],
+        fieldErrors: {
+          expenseTreatment: ['Customer-direct and worker-advanced cannot be selected together.'],
+          workerAdvancedExpense: [
+            'Customer-direct and worker-advanced cannot be selected together.',
+          ],
+        },
+      },
+    );
+  if (
+    cause.message.startsWith('Invalid date:') ||
+    cause.message === 'Every 14 days requires an anchor date'
+  )
+    return previewFail(
+      'problem.finance.previewPeriodInvalid',
+      'Enter valid example and anchor dates before calculating billing periods.',
+      {
+        code: 'FINANCE_PREVIEW_PERIOD_INVALID',
+        values,
+        invalid: true,
+        result: null,
+        periods: [],
+        fields: ['exampleDate', 'anchorDate'],
+        fieldErrors: {
+          exampleDate: ['Enter a valid date.'],
+          anchorDate: ['Enter a valid anchor date.'],
+        },
+      },
+    );
+  return previewFail(
+    'problem.finance.previewCalculationInvalid',
+    'The example cannot be calculated with these values. Review the rates, hours, and multipliers.',
+    {
+      code: 'FINANCE_PREVIEW_CALCULATION_INVALID',
+      values,
+      invalid: true,
+      result: null,
+      periods: [],
+      fields: [],
+      remedies: [{ id: 'review_preview_inputs' }],
+    },
+  );
+}
+
 export const actions: Actions = {
   default: async ({ locals, request }) => {
-    const context = authorized(locals);
+    let context: ReturnType<typeof authorized>;
+    try {
+      context = authorized(locals);
+    } catch (cause) {
+      if (isHttpError(cause) && cause.status === 403)
+        return actionFail(
+          403,
+          'problem.finance.previewRoleRequired',
+          {},
+          'Finance access is required to calculate this example. Contact Finance or an owner.',
+          { code: 'FINANCE_PREVIEW_ROLE_REQUIRED', remedies: [{ id: 'contact_finance_owner' }] },
+        );
+      if (isHttpError(cause) && cause.status === 401)
+        return actionFail(
+          401,
+          'problem.finance.previewSessionRequired',
+          {},
+          'Sign in again before calculating this Finance example.',
+          { code: 'FINANCE_PREVIEW_SESSION_REQUIRED', remedies: [{ id: 'sign_in_again' }] },
+        );
+      throw cause;
+    }
+    let values: Record<string, string> = {};
     try {
       // Active account/role are checked by the repository before any financial preview.
       context.repository.listFinanceProjects(context.principal);
       const formData = await request.formData();
-      const values = Object.fromEntries(
+      values = Object.fromEntries(
         Object.keys(defaults).map((key) => [key, String(formData.get(key) ?? '').slice(0, 100)]),
       );
       const parsed = schema.safeParse(values);
-      if (!parsed.success)
-        return fail(400, {
-          values,
-          invalid: true,
-          result: null,
-          periods: [],
-          fields: parsed.error.issues.map((issue) => String(issue.path[0])),
-        });
+      if (!parsed.success) return _previewValidationFailure(values, parsed.error.issues);
       const input = parsed.data;
       try {
         const result = previewCommercialExample({
@@ -179,8 +300,10 @@ export const actions: Actions = {
         return { values, invalid: false, result, periods, fields: [] };
       } catch (cause) {
         if (!(cause instanceof RangeError)) throw cause;
-        return fail(400, { values, invalid: true, result: null, periods: [], fields: [] });
+        return _previewRangeFailure(values, cause);
       }
+    } catch (cause) {
+      return actionFailure(cause, { values, invalid: true, result: null, periods: [] });
     } finally {
       context.sqlite.close();
     }

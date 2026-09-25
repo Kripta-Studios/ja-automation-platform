@@ -9,12 +9,14 @@ export { default as TableRegion } from './TableRegion.svelte';
 export { default as ResponsiveSheet } from './ResponsiveSheet.svelte';
 export { default as Toast } from './Toast.svelte';
 export { default as ToastRegion } from './ToastRegion.svelte';
+export { default as ProblemNotice } from './ProblemNotice.svelte';
 export { default as LocalizedPdfPanel } from './localized-pdf/LocalizedPdfPanel.svelte';
 export { default as formValidation } from './form-validation';
 export {
   attachFormValidation,
   enhanceFormValidation,
   formValidation as attach,
+  reportFormFieldErrors,
 } from './form-validation';
 export type FieldGroupColumns = '1' | '2' | '3' | 'auto';
 export type StatusVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral';

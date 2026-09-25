@@ -2,12 +2,15 @@ import { expect, test } from '@playwright/test';
 import { DatabaseSync } from 'node:sqlite';
 import { portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 test('owner creates a project without budgets or planned end', async ({ page }, testInfo) => {
   test.skip(!['phone-360', 'phone-390', 'tablet-768', 'desktop'].includes(testInfo.project.name));
   const name = `Optional project fields ${testInfo.project.name}`;
   const costCenter =
-    testInfo.project.name === 'desktop' ? 'QA-9876' : `QA-${testInfo.project.name}`;
+    testInfo.project.name === 'desktop'
+      ? 'QA-9876'
+      : e2eCostCenter('QA', 17, testInfo.project.name, 1);
   const db = new DatabaseSync(readE2EFixturePointer().databasePath);
   try {
     await signIn(page, 'owner');
@@ -105,12 +108,13 @@ test('invalid project names show the field error and retain entered values', asy
   await page.goto(portal('/projects'));
   await page.getByRole('button', { name: 'New Project', exact: true }).click();
   const form = page.locator('form[action="?/createProject"]');
+  const costCenter = e2eCostCenter('QA-RETAIN', 17, testInfo.project.name, 2);
   await form.locator('[name="name"]').fill('X');
-  await form.locator('[name="costCenterCode"]').fill('QA-RETAIN');
+  await form.locator('[name="costCenterCode"]').fill(costCenter);
   await form.getByRole('button', { name: 'Create project', exact: true }).click();
   await expect(page.locator('[data-project-field-errors]')).toContainText('Name');
   await expect(form.locator('[name="name"]')).toHaveValue('X');
-  await expect(form.locator('[name="costCenterCode"]')).toHaveValue('QA-RETAIN');
+  await expect(form.locator('[name="costCenterCode"]')).toHaveValue(costCenter);
 });
 
 test('project budgets use currency amounts and hours in the browser but persist exact units', async ({
@@ -125,7 +129,9 @@ test('project budgets use currency amounts and hours in the browser but persist 
     await page.getByRole('button', { name: 'New Project', exact: true }).click();
     const form = page.locator('form[action="?/createProject"]');
     await form.locator('[name="name"]').fill(name);
-    await form.locator('[name="costCenterCode"]').fill('QA-BUDGET-UNITS');
+    await form
+      .locator('[name="costCenterCode"]')
+      .fill(e2eCostCenter('QA-BUDGET-UNITS', 17, testInfo.project.name, 3));
     await form.locator('[name="budgetType"]').selectOption('combined');
     await form.getByRole('textbox', { name: 'Revenue budget' }).fill('15000,25');
     await form.getByRole('textbox', { name: 'PO cap' }).fill('18000.00');

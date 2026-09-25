@@ -1,0 +1,21 @@
+[
+  {
+    "step": "invalid-summary",
+    "adjacentError": true
+  },
+  {
+    "step": "enhanced-overlap",
+    "actionStatus": 400,
+    "retainedValues": true
+  },
+  {
+    "step": "native-overlap",
+    "httpStatus": 400,
+    "retainedValues": true
+  },
+  {
+    "step": "background-scroll",
+    "before": 0,
+    "after": 0
+  }
+]

@@ -1,14 +1,18 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { replaceState } from '$app/navigation';
   import { enhance } from '$app/forms';
   import { normalizePortalLocale } from '../../portal-i18n';
   import { localToday } from '../ui/time-entry-clock';
   import { createOperationalSubmit, operationalFieldValidation } from '../ui/operational-submit';
-  import { onMount, untrack } from 'svelte';
+  import { onMount, tick, untrack } from 'svelte';
   import { base } from '$app/paths';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import { ResponsiveSheet, SectionCard, StatusBadge } from '../ui';
   import FilterSummary from '../ui/FilterSummary.svelte';
+  import ProblemNotice from '../ui/ProblemNotice.svelte';
+  import type { ProblemData } from '../../problem/contract';
+  import { reportFormFieldErrors } from '../ui/form-validation';
   import DatePresets from '../ui/DatePresets.svelte';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { money } from '../portal-format';
@@ -47,27 +51,69 @@
 
   type Surface = 'create' | 'edit';
 
-  let surface = $state<Surface | null>(null);
+  const nativeExpenseForm = $page.form as
+    | (ProblemData & { values?: Record<string, unknown> })
+    | null;
+  const nativeExpenseValues =
+    nativeExpenseForm?.code &&
+    nativeExpenseForm.values &&
+    typeof nativeExpenseForm.values === 'object'
+      ? nativeExpenseForm.values
+      : {};
+  const nativeExpenseValue = (field: string): string =>
+    typeof nativeExpenseValues[field] === 'string' ? String(nativeExpenseValues[field]) : '';
+  const nativeExpenseSurface: Surface | null =
+    nativeExpenseForm?.code &&
+    (nativeExpenseValue('spentOn') ||
+      nativeExpenseValue('projectId') ||
+      nativeExpenseValue('amount') ||
+      nativeExpenseForm.messageKey === 'action.validation.expenseFields')
+      ? nativeExpenseValue('id')
+        ? 'edit'
+        : 'create'
+      : null;
+  let nativeRecoveryActive = $state(Boolean(nativeExpenseSurface));
+  const restoredExpenseValue = (field: string): string =>
+    nativeRecoveryActive ? nativeExpenseValue(field) : '';
+
+  let surface = $state<Surface | null>(nativeExpenseSurface);
   let surfaceError = $state('');
+  let surfaceProblem = $state<ProblemData | null>(nativeExpenseSurface ? nativeExpenseForm : null);
+  const problemExpenseId = $derived.by(() => {
+    const values = (surfaceProblem as (ProblemData & { values?: Record<string, unknown> }) | null)
+      ?.values;
+    return typeof values?.id === 'string' ? values.id : '';
+  });
   let saving = $state(false);
-  let createDate = $state('');
-  let createProject = $state('');
-  let createCurrency = $state('USD');
-  let createDescription = $state('');
-  let createDescriptionEdited = $state(false);
+  let createDate = $state(nativeExpenseValue('spentOn'));
+  let createProject = $state(nativeExpenseValue('projectId'));
+  const projectSelectionUnavailable = $derived(
+    Boolean(createProject) &&
+      !availableProjects.some((project) => String(project.id) === createProject),
+  );
+  let createCurrency = $state(nativeExpenseValue('currency') || 'USD');
+  let createDescription = $state(nativeExpenseValue('description'));
+  let createDescriptionEdited = $state(Boolean(nativeExpenseValue('description')));
   let suggestedDescriptionScope = '';
   const createProjectCurrency = $derived(
     String(
       availableProjects.find((project) => String(project.id) === createProject)?.currency ?? 'USD',
     ),
   );
-  let createWorker = $state('');
-  let createRequestId = $state('');
+  let createWorker = $state(nativeExpenseValue('workerId'));
+  let createRequestId = $state(nativeExpenseValue('requestId'));
   let crewWorkerOptions = $state<Array<{ id: string; name: string }>>([]);
   let crewWorkersLoading = $state(false);
-  let createTimeEntryId = $state('');
+  const crewSelectionUnavailable = $derived(
+    data.user.role === 'worker' &&
+      Boolean(createWorker) &&
+      createWorker !== data.user.id &&
+      !crewWorkersLoading &&
+      !crewWorkerOptions.some((worker) => worker.id === createWorker),
+  );
+  let createTimeEntryId = $state(nativeExpenseValue('timeEntryId'));
   let handledTimeLink = $state('');
-  let editDate = $state('');
+  let editDate = $state(nativeExpenseValue('spentOn'));
   let linkedTimeOptions = $state<
     Array<{
       id: string;
@@ -81,6 +127,13 @@
     }>
   >([]);
   let linkedTimeLoading = $state(false);
+  const timeSelectionUnavailable = $derived(
+    surface === 'create' &&
+      Boolean(createTimeEntryId) &&
+      !linkedTimeLoading &&
+      !linkedTimeOptions.some((time) => time.id === createTimeEntryId),
+  );
+  const decimalHours = (minutes: number): string => String(Number((minutes / 60).toFixed(4)));
   const submitExpense = createOperationalSubmit({
     locale: () => normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
     translate: (value) => translate(value),
@@ -90,13 +143,18 @@
     setError: (value) => {
       surfaceError = value;
     },
+    setProblem: (value) => {
+      surfaceProblem = value;
+    },
     onSuccess: closeSurface,
     offlineHandled: () => surface === 'create' && data.offlineEnabled !== false,
   });
-  let editExpenseId = $state<string | null>(null);
+  let editExpenseId = $state<string | null>(
+    nativeExpenseSurface === 'edit' ? nativeExpenseValue('id') : null,
+  );
   $effect(() => {
     const timeEntryId = $page.url.searchParams.get('timeEntry')?.trim() ?? '';
-    if (timeEntryId && timeEntryId !== handledTimeLink) {
+    if (!nativeRecoveryActive && timeEntryId && timeEntryId !== handledTimeLink) {
       handledTimeLink = timeEntryId;
       openCreate();
     }
@@ -104,6 +162,7 @@
   $effect(() => {
     const id = $page.url.searchParams.get('edit');
     if (
+      !nativeRecoveryActive &&
       id &&
       records.some(
         (row) =>
@@ -159,7 +218,21 @@
     }
     if (typeof saved?.page === 'number') registerPage = saved.page;
     registerStateHydrated = true;
-    if (!isAuditor && $page.url.searchParams.get('action') === 'record-expense') openCreate();
+    if (
+      !nativeRecoveryActive &&
+      !isAuditor &&
+      $page.url.searchParams.get('action') === 'record-expense'
+    )
+      openCreate();
+    if (nativeExpenseSurface)
+      void tick().then(() => {
+        const form = document.querySelector<HTMLFormElement>('[data-expense-entry-surface]');
+        if (form && nativeExpenseForm?.fieldErrors)
+          reportFormFieldErrors(form, nativeExpenseForm.fieldErrors);
+        document
+          .querySelector<HTMLElement>('[data-operational-form-error]')
+          ?.focus({ preventScroll: true });
+      });
   });
   $effect(() => {
     if (registerStateHydrated)
@@ -236,20 +309,10 @@
         if (!response.ok) throw new Error('Crew workers could not be loaded');
         const payload = (await response.json()) as { workers?: typeof crewWorkerOptions };
         crewWorkerOptions = payload.workers ?? [];
-        if (
-          createWorker &&
-          createWorker !== data.user.id &&
-          !crewWorkerOptions.some((worker) => worker.id === createWorker)
-        ) {
-          createWorker = data.user.id;
-          createTimeEntryId = '';
-        }
       })
       .catch(() => {
         if (!controller.signal.aborted) {
           crewWorkerOptions = [];
-          createWorker = data.user.id;
-          createTimeEntryId = '';
           surfaceError = translate(
             'Crew workers could not be loaded. Try again or record your own expense.',
           );
@@ -278,16 +341,9 @@
         if (!response.ok) throw new Error('Could not load time records');
         const payload = (await response.json()) as { rows?: typeof linkedTimeOptions };
         linkedTimeOptions = payload.rows ?? [];
-        if (
-          surface === 'create' &&
-          createTimeEntryId &&
-          !linkedTimeOptions.some((time) => time.id === createTimeEntryId)
-        )
-          createTimeEntryId = '';
       })
       .catch(() => {
         if (!controller.signal.aborted) {
-          if (surface === 'create') createTimeEntryId = '';
           surfaceError = translate(
             'Logged hours could not be loaded. You can still save an expense without a link.',
           );
@@ -299,7 +355,16 @@
     return () => controller.abort();
   });
   $effect(() => {
-    if (surface !== 'create' || !createProject || !createDate || !createWorker) return;
+    // A failed native POST restores the user's text. A late suggestion must not
+    // replace it while the recovery form is open.
+    if (
+      nativeRecoveryActive ||
+      surface !== 'create' ||
+      !createProject ||
+      !createDate ||
+      !createWorker
+    )
+      return;
     const controller = new AbortController();
     const params = new URLSearchParams({
       projectId: createProject,
@@ -320,7 +385,7 @@
         return (await response.json()) as { description?: string };
       })
       .then((payload) => {
-        if (!controller.signal.aborted && !createDescriptionEdited)
+        if (!controller.signal.aborted && !createDescriptionEdited && !createDescription.trim())
           createDescription = translate(payload.description ?? '');
       })
       .catch(() => undefined);
@@ -527,6 +592,8 @@
 
   function openCreate(): void {
     surfaceError = '';
+    surfaceProblem = null;
+    nativeRecoveryActive = false;
     const requestedDate = $page.url.searchParams.get('date')?.trim() ?? '';
     const requestedProject = $page.url.searchParams.get('project')?.trim() || projectFilter;
     const requestedWorker = $page.url.searchParams.get('worker')?.trim() ?? '';
@@ -569,6 +636,8 @@
   function openEdit(row: Row): void {
     if (row.shared_receipt_allocated || Number(row.correction_linked ?? 0) === 1) return;
     surfaceError = '';
+    surfaceProblem = null;
+    nativeRecoveryActive = false;
     editDate = String(row.spent_on ?? '');
     surface = 'edit';
     editExpenseId = String(row.id);
@@ -576,13 +645,15 @@
 
   function closeSurface(): void {
     surface = null;
+    surfaceProblem = null;
+    nativeRecoveryActive = false;
     editExpenseId = null;
     createTimeEntryId = '';
     if (typeof window !== 'undefined' && $page.url.searchParams.has('timeEntry')) {
       const cleaned = new URL(window.location.href);
       cleaned.searchParams.delete('timeEntry');
       cleaned.searchParams.delete('date');
-      window.history.replaceState(window.history.state, '', cleaned);
+      replaceState(cleaned, $page.state);
     }
     clearReceiptPreview();
   }
@@ -1163,7 +1234,38 @@
     onclose={closeSurface}
     protectChanges
   >
-    {#if surfaceError}
+    {#if surfaceProblem}
+      <div class="operational-form-error" tabindex="-1" data-operational-form-error>
+        <ProblemNotice
+          problem={surfaceProblem}
+          kind={surfaceProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+          remedyLinks={{
+            review_expense: {
+              label: translate('Review updated record'),
+              href: problemExpenseId
+                ? `${base}/app/expenses/${encodeURIComponent(problemExpenseId)}`
+                : `${base}/app/expenses#expense-records`,
+            },
+            review_time: {
+              label: translate('Review logged hours'),
+              href: `${base}/app/time`,
+            },
+            attach_receipt: {
+              label: translate('Reattach the receipt before saving again.'),
+            },
+            contact_project_owner: {
+              label: translate('Contact the project owner to review access.'),
+            },
+            contact_finance: {
+              label: translate('Contact Finance or an owner'),
+            },
+          }}
+        />
+        {#if (surfaceProblem as ProblemData & { values?: Record<string, unknown> }).values?.receiptNeedsReattach === true}
+          <p>{translate('Reattach the receipt before saving again.')}</p>
+        {/if}
+      </div>
+    {:else if surfaceError}
       <p class="operational-form-error" role="alert" tabindex="-1" data-operational-form-error>
         {surfaceError}
       </p>
@@ -1205,7 +1307,11 @@
             >
               <option value={data.user.id}>{data.user.name} — {translate('my own expense')}</option>
               {#if createWorker !== data.user.id && !crewWorkerOptions.some((worker) => worker.id === createWorker)}
-                <option value={createWorker} disabled>{translate('Loading crew member…')}</option>
+                <option value={createWorker} disabled
+                  >{translate(
+                    crewWorkersLoading ? 'Loading crew member…' : 'Crew member unavailable',
+                  )}</option
+                >
               {/if}
               {#each crewWorkerOptions as worker (worker.id)}
                 <option value={worker.id}>{worker.name}</option>
@@ -1213,6 +1319,13 @@
             </select>
             <small>{translate('A separate expense is recorded for the selected person.')}</small>
           </label>
+          {#if crewSelectionUnavailable}
+            <p class="operational-form-error" role="alert">
+              {translate(
+                'This crew member is no longer available for this project and date. Review the selection before saving.',
+              )}
+            </p>
+          {/if}
         {/if}
 
         <div class="expense-entry-intro">
@@ -1252,11 +1365,23 @@
           <span>{translate('Project')}</span>
           <select name="projectId" required bind:value={createProject}>
             <option value="">{translate('Select assignment')}</option>
+            {#if projectSelectionUnavailable}
+              <option value={createProject} disabled
+                >{translate('Project no longer available')}</option
+              >
+            {/if}
             {#each availableProjects as project}
               <option value={String(project.id)}>{project.project_number} — {project.name}</option>
             {/each}
           </select>
         </label>
+        {#if projectSelectionUnavailable}
+          <p class="operational-form-error" role="alert">
+            {translate(
+              'This project is no longer available for this expense. Review the project selection before saving.',
+            )}
+          </p>
+        {/if}
         <div class="expense-form-grid">
           <label>
             <span>{translate('Date')}</span>
@@ -1264,7 +1389,7 @@
           </label>
           <label>
             <span>{translate('Category')}</span>
-            <select name="category" required>
+            <select name="category" value={restoredExpenseValue('category') || 'hotel'} required>
               {#each expenseCategories as [value, label]}
                 <option {value}>{translate(label)}</option>
               {/each}
@@ -1274,7 +1399,12 @@
         <div class="expense-form-grid">
           <label>
             <span>{translate('Time expense occurred (optional)')}</span>
-            <input name="occurredTimeLocal" type="time" step="60" />
+            <input
+              name="occurredTimeLocal"
+              type="time"
+              step="60"
+              value={restoredExpenseValue('occurredTimeLocal')}
+            />
             <small>{translate('Local time at the project site; leave blank if unknown.')}</small>
           </label>
           <label>
@@ -1283,12 +1413,14 @@
               <option value="">{translate('Expense only / no linked hours')}</option>
               {#if createTimeEntryId && !linkedTimeOptions.some((time) => time.id === createTimeEntryId)}
                 <option value={createTimeEntryId} disabled
-                  >{translate('Loading linked hours…')}</option
+                  >{translate(
+                    linkedTimeLoading ? 'Loading linked hours…' : 'Linked hours unavailable',
+                  )}</option
                 >
               {/if}
               {#each linkedTimeOptions as time (time.id)}
                 <option value={time.id}>
-                  {time.workerName} · {Math.floor(time.minutes / 60)} h {time.minutes % 60} min · {controlledValue(
+                  {time.workerName} · {decimalHours(time.minutes)} h · {controlledValue(
                     'status',
                     time.approvalState,
                   )}{time.correctionLinked ? ` · ${translate('Correction')}` : ''} · {time.summary}
@@ -1301,10 +1433,17 @@
                 : translate('Only hours for this worker, project and date are shown.')}</small
             >
           </label>
+          {#if timeSelectionUnavailable}
+            <p class="operational-form-error" role="alert">
+              {translate(
+                'The selected logged hours are no longer available. Review the link before saving.',
+              )}
+            </p>
+          {/if}
         </div>
         <label>
           <span>{translate('Vendor (optional)')}</span>
-          <input name="vendor" maxlength="200" />
+          <input name="vendor" maxlength="200" value={restoredExpenseValue('vendor')} />
         </label>
         <div class="expense-form-grid">
           <label>
@@ -1314,6 +1453,7 @@
               inputmode="decimal"
               pattern="[0-9]+([.][0-9][0-9]?)?"
               data-pattern-message="Amount: enter a number such as 12.34, with no more than two decimal places."
+              value={restoredExpenseValue('amount')}
               required
             />
           </label>
@@ -1331,7 +1471,7 @@
         </div>
         <label>
           <span>{translate('Who paid')}</span>
-          <select name="whoPaid" required>
+          <select name="whoPaid" value={restoredExpenseValue('whoPaid') || 'worker'} required>
             <option value="worker">{translate('Worker')}</option>
             <option value="company_card">{translate('Company card')}</option>
             <option value="company_direct">{translate('Company direct')}</option>
@@ -1356,6 +1496,7 @@
             name="paymentMethod"
             maxlength="80"
             placeholder={translate('Card, transfer or cash')}
+            value={restoredExpenseValue('paymentMethod')}
           />
         </label>
         <div class="expense-entry-actions">
@@ -1366,6 +1507,9 @@
             type="submit"
             disabled={saving ||
               crewWorkersLoading ||
+              crewSelectionUnavailable ||
+              projectSelectionUnavailable ||
+              timeSelectionUnavailable ||
               (Boolean(createTimeEntryId) && linkedTimeLoading)}
             >{translate(saving ? 'Saving…' : 'Save draft')}</button
           >
@@ -1398,7 +1542,13 @@
           </label>
           <label>
             <span>{translate('Category')}</span>
-            <select name="category" value={rowText(editRow, 'category')} required>
+            <select
+              name="category"
+              value={nativeRecoveryActive
+                ? nativeExpenseValue('category')
+                : rowText(editRow, 'category')}
+              required
+            >
               {#each expenseCategories as [value, label]}
                 <option {value}>{translate(label)}</option>
               {/each}
@@ -1412,12 +1562,19 @@
               name="occurredTimeLocal"
               type="time"
               step="60"
-              value={rowText(editRow, 'occurred_time_local')}
+              value={nativeRecoveryActive
+                ? nativeExpenseValue('occurredTimeLocal')
+                : rowText(editRow, 'occurred_time_local')}
             />
           </label>
           <label>
             <span>{translate('Related logged hours (optional)')}</span>
-            <select name="timeEntryId" value={rowText(editRow, 'time_entry_id')}>
+            <select
+              name="timeEntryId"
+              value={nativeRecoveryActive
+                ? nativeExpenseValue('timeEntryId')
+                : rowText(editRow, 'time_entry_id')}
+            >
               <option value="">{translate('Expense only / no linked hours')}</option>
               {#if editRow.time_entry_id && !linkedTimeOptions.some((time) => time.id === editRow?.time_entry_id)}
                 <option value={String(editRow.time_entry_id)}
@@ -1426,7 +1583,7 @@
               {/if}
               {#each linkedTimeOptions as time (time.id)}
                 <option value={time.id}>
-                  {time.workerName} · {Math.floor(time.minutes / 60)} h {time.minutes % 60} min · {controlledValue(
+                  {time.workerName} · {decimalHours(time.minutes)} h · {controlledValue(
                     'status',
                     time.approvalState,
                   )}{time.correctionLinked ? ` · ${translate('Correction')}` : ''} · {time.summary}
@@ -1442,7 +1599,11 @@
         </div>
         <label>
           <span>{translate('Vendor (optional)')}</span>
-          <input name="vendor" value={rowText(editRow, 'vendor')} maxlength="200" />
+          <input
+            name="vendor"
+            value={nativeRecoveryActive ? nativeExpenseValue('vendor') : rowText(editRow, 'vendor')}
+            maxlength="200"
+          />
         </label>
         <div class="expense-form-grid">
           <label>
@@ -1452,19 +1613,29 @@
               inputmode="decimal"
               pattern="[0-9]+([.][0-9][0-9]?)?"
               data-pattern-message="Amount: enter a number such as 12.34, with no more than two decimal places."
-              value={minorToDecimal(editRow.amount_minor)}
+              value={nativeRecoveryActive
+                ? nativeExpenseValue('amount')
+                : minorToDecimal(editRow.amount_minor)}
               required
             />
           </label>
           <label>
             <span>{translate('Payment method')}</span>
-            <input name="paymentMethod" value={rowText(editRow, 'payment_method')} maxlength="80" />
+            <input
+              name="paymentMethod"
+              value={nativeRecoveryActive
+                ? nativeExpenseValue('paymentMethod')
+                : rowText(editRow, 'payment_method')}
+              maxlength="80"
+            />
           </label>
         </div>
         <label>
           <span>{translate('Description')}</span>
           <textarea name="description" minlength="3" maxlength="5000"
-            >{rowText(editRow, 'description')}</textarea
+            >{nativeRecoveryActive
+              ? nativeExpenseValue('description')
+              : rowText(editRow, 'description')}</textarea
           >
         </label>
         <div class="expense-entry-actions">

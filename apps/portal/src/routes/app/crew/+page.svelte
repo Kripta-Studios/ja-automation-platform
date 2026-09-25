@@ -1,9 +1,13 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { page } from '$app/stores';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { untrack } from 'svelte';
+  import type { SubmitFunction } from '@sveltejs/kit';
   import { SectionCard } from '$lib/portal/ui';
+  import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
+  import type { ProblemData } from '$lib/problem/contract';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
   import {
@@ -22,6 +26,46 @@
   const status = (value: string) => translateControlledValue(locale, 'status', value);
   const timeCategory = (value: string) => translateControlledValue(locale, 'timeCategory', value);
   const payer = (value: string) => translateControlledValue(locale, 'role', value);
+  const problem = $derived(form?.code && form?.messageKey ? (form as ProblemData) : null);
+  const actionContext = $derived(
+    new URLSearchParams({ project: data.projectId, date: data.workDate, lang: locale }).toString(),
+  );
+  const remedyLinks = $derived({
+    review_delegations: {
+      label: t('Review current crew delegations'),
+      href: `/j-aautomation/app/crew?project=${encodeURIComponent(data.projectId)}&date=${encodeURIComponent(data.workDate)}&review=1#crew-delegations`,
+    },
+    review_crew_day: {
+      label: t('Review current crew entries'),
+      href: `/j-aautomation/app/crew?project=${encodeURIComponent(data.projectId)}&date=${encodeURIComponent(data.workDate)}&review=1#crew-entries`,
+    },
+    review_receipts: {
+      label: t('Review current receipts and allocations'),
+      href: `/j-aautomation/app/crew?project=${encodeURIComponent(data.projectId)}&date=${encodeURIComponent(data.workDate)}&review=1#crew-receipts`,
+    },
+    contact_project_owner: { label: t('Contact the project owner to review access.') },
+  });
+  function showFieldProblems(result: Record<string, unknown> | null | undefined): void {
+    if (!result?.operation) return;
+    const operation = String(result.operation);
+    const target = document.querySelector<HTMLFormElement>(`[data-crew-operation="${operation}"]`);
+    const fields = result.fieldErrors;
+    if (target && fields && typeof fields === 'object' && !Array.isArray(fields))
+      reportFormFieldErrors(target, fields as Record<string, readonly string[]>);
+    document.querySelector<HTMLElement>('[data-crew-problem]')?.focus({ preventScroll: true });
+  }
+  const preserveCrewForm: SubmitFunction = () => {
+    const scrollTop = window.scrollY;
+    return async ({ result, update }) => {
+      await update({ reset: false });
+      if (result.type === 'failure') {
+        await tick();
+        showFieldProblems(result.data);
+        window.scrollTo({ top: scrollTop, behavior: 'instant' });
+      }
+    };
+  };
+  const decimalHours = (minutes: number): string => String(Number((minutes / 60).toFixed(4)));
   let mode = $state<'shared' | 'individual'>(
     untrack(() => (form?.values?.mode === 'individual' ? 'individual' : 'shared')),
   );
@@ -49,6 +93,7 @@
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
     persistStandaloneLocale(locale);
     applyStandaloneDocumentLocale(locale);
+    if (problem) void tick().then(() => showFieldProblems(form));
   });
   $effect(() => applyStandaloneDocumentLocale(locale));
 </script>
@@ -68,11 +113,24 @@
     </p>
   </header>
 
-  {#if form?.message}
+  {#if problem}
+    <div tabindex="-1" data-crew-problem>
+      <ProblemNotice
+        {problem}
+        kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        {remedyLinks}
+      />
+    </div>
+  {:else if form?.message}
     <div class="notice error" role="alert">{form.message}</div>
   {/if}
 
-  <form method="GET" action={data.owner ? '#crew-assign' : '#crew-hours'} class="context-form">
+  <form
+    method="GET"
+    action={data.owner ? '#crew-assign' : '#crew-hours'}
+    use:formValidation
+    class="context-form"
+  >
     <label for="crew-project">{t('Project')}</label>
     <select id="crew-project" name="project" value={data.projectId} required>
       {#each data.projects as project}
@@ -92,7 +150,14 @@
         )}
       </p>
       {#if data.projectId && data.candidates.length > 1}
-        <form method="POST" action="?/grant" use:enhance class="form-grid">
+        <form
+          method="POST"
+          action={`?/grant&${actionContext}`}
+          data-crew-operation="grant"
+          use:enhance={preserveCrewForm}
+          use:formValidation
+          class="form-grid"
+        >
           <input type="hidden" name="projectId" value={data.projectId} />
           <label
             >{t('Chief')}
@@ -159,7 +224,13 @@
                 >
               </div>
               {#if grant.status === 'active'}
-                <form method="POST" action="?/revoke" use:enhance>
+                <form
+                  method="POST"
+                  action={`?/revoke&${actionContext}`}
+                  data-crew-operation="revoke"
+                  use:enhance={preserveCrewForm}
+                  use:formValidation
+                >
                   <input type="hidden" name="id" value={grant.id} />
                   <input type="hidden" name="projectId" value={data.projectId} />
                   <button type="submit" class="secondary">{t('Revoke')}</button>
@@ -179,7 +250,14 @@
         )}
       </p>
       {#if data.assigned.length}
-        <form method="POST" action="?/createBatch" use:enhance class="entry-form">
+        <form
+          method="POST"
+          action={`?/createBatch&${actionContext}`}
+          data-crew-operation="createBatch"
+          use:enhance={preserveCrewForm}
+          use:formValidation
+          class="entry-form"
+        >
           <input
             type="hidden"
             name="requestId"
@@ -212,6 +290,7 @@
                         value={submittedValue(`hours_${person.id}`)}
                         placeholder="7.5"
                         disabled={!selected.includes(person.id)}
+                        required
                       />
                     </label>
                   {/if}
@@ -244,8 +323,7 @@
                 aria-describedby="crew-shared-hours-help"
                 required
               />
-              <small id="crew-shared-hours-help"
-                >{t('Use exact one-minute increments: 0.1 hours = 6 minutes.')}</small
+              <small id="crew-shared-hours-help">{t('Enter decimal hours, for example 7.5.')}</small
               >
             </label>
           {/if}
@@ -299,8 +377,7 @@
           {#each data.entries as entry}
             <li>
               <div>
-                <strong>{entry.workerName}</strong> · {entry.minutes}
-                {t('minutes ·')}
+                <strong>{entry.workerName}</strong> · {decimalHours(entry.minutes)} h ·
                 {timeCategory(entry.category)}<br />
                 <small>{entry.summary} · {status(entry.approvalState)}</small>
               </div>
@@ -317,7 +394,13 @@
                 >
               {/if}
               {#if entry.approvalState === 'draft'}
-                <form method="POST" action="?/submit" use:enhance>
+                <form
+                  method="POST"
+                  action={`?/submit&${actionContext}`}
+                  data-crew-operation="submit"
+                  use:enhance={preserveCrewForm}
+                  use:formValidation
+                >
                   <input type="hidden" name="id" value={entry.id} />
                   <input type="hidden" name="version" value={entry.version} />
                   <input type="hidden" name="projectId" value={data.projectId} />
@@ -340,7 +423,14 @@
         )}
       </p>
       {#if data.receipts.length && data.entries.length > 1}
-        <form method="POST" action="?/allocateReceipt" use:enhance class="entry-form">
+        <form
+          method="POST"
+          action={`?/allocateReceipt&${actionContext}`}
+          data-crew-operation="allocateReceipt"
+          use:enhance={preserveCrewForm}
+          use:formValidation
+          class="entry-form"
+        >
           <input
             type="hidden"
             name="requestId"
@@ -385,7 +475,7 @@
                       bind:group={allocationSelected}
                     />
                     <span
-                      >{entry.workerName} · {entry.minutes} {t('minutes ·')} {entry.summary}</span
+                      >{entry.workerName} · {decimalHours(entry.minutes)} h · {entry.summary}</span
                     >
                   </label>
                   <label
@@ -400,6 +490,7 @@
                         : ''}
                       placeholder="6.50"
                       disabled={!allocationSelected.includes(entry.id)}
+                      required
                     />
                   </label>
                 </div>

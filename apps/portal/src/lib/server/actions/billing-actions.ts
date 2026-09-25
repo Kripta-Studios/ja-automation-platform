@@ -1,5 +1,14 @@
 import { fail } from '@sveltejs/kit';
-import { queueInvoiceEmail } from '@ja/database';
+import {
+  AccessDeniedError,
+  ConflictError,
+  ReadinessError,
+  ValidationError,
+  V3AccessDeniedError,
+  V3ConflictError,
+  V3ValidationError,
+  queueInvoiceEmail,
+} from '@ja/database';
 import {
   accountingPackPeriodSchema,
   billingCloseSchema,
@@ -19,7 +28,10 @@ import {
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess, type ActionMessageKey } from './action-message';
 import { createInvoiceDraftResolvingPeriod } from '../invoice-draft';
-import { billingReadinessMessageKey } from '../../portal/billing-readiness';
+import {
+  billingReadinessMessageKey,
+  billingReadinessRemedyId,
+} from '../../portal/billing-readiness';
 import {
   dateOnlyToEffectiveInstant,
   decimalToMinor,
@@ -28,6 +40,234 @@ import {
   type PortalActionEvent,
 } from '$lib/server/action-utils';
 import { isRealIsoDate, previousCompleteMonth } from '$lib/server/iso-date';
+
+/** A deliberately closed mapping: repository text is used only to identify a known rule. */
+export function billingProblemFor(
+  error: unknown,
+  operation: string,
+):
+  | Readonly<{
+      status: number;
+      code: string;
+      key: ActionMessageKey;
+      message: string;
+      remedies: readonly { id: string }[];
+    }>
+  | undefined {
+  if (!(error instanceof Error)) return undefined;
+  const message = error.message;
+  const known = (
+    status: number,
+    code: string,
+    key: ActionMessageKey,
+    explanation: string,
+    remedy: string,
+  ) => ({ status, code, key, message: explanation, remedies: [{ id: remedy }] });
+  if (error instanceof AccessDeniedError || error instanceof V3AccessDeniedError) {
+    if (/owner (role|administration) required/i.test(message))
+      return known(
+        403,
+        'BILLING_OWNER_REQUIRED',
+        'problem.billing.ownerRequired',
+        'An owner must perform this billing action. Contact an owner to review the record.',
+        'contact_owner',
+      );
+    if (/finance|billing|auditor/i.test(message))
+      return known(
+        403,
+        'BILLING_FINANCE_REQUIRED',
+        'problem.billing.financeRequired',
+        'Finance access is required for this billing action. Contact a finance administrator.',
+        'contact_finance',
+      );
+    return undefined;
+  }
+  if (error instanceof ReadinessError) return undefined; // Preserve structured readiness reasons below.
+  if (
+    !(
+      error instanceof ConflictError ||
+      error instanceof V3ConflictError ||
+      error instanceof ValidationError ||
+      error instanceof V3ValidationError
+    )
+  )
+    return undefined;
+  if (
+    /idempotency key was already used|idempotency key.*another|IDEMPOTENCY_CONFLICT/i.test(message)
+  )
+    return known(
+      409,
+      'BILLING_IDEMPOTENCY_REUSED',
+      'problem.billing.idempotencyReused',
+      'This request key was already used for different details. Review the existing record before submitting a new request.',
+      'review_record',
+    );
+  if (
+    /invoice changed|replacement draft changed|source.*changed|configuration.*stale|billing.*changed|changed concurrently/i.test(
+      message,
+    )
+  )
+    return known(
+      409,
+      'BILLING_RECORD_CHANGED',
+      'problem.billing.recordChanged',
+      'This billing record or its sources changed while you were reviewing it. Review the current record before deciding what to do.',
+      'review_record',
+    );
+  if (
+    /only an unissued approved invoice can be recalculated|finalized evidence.*cannot be recalculated|approved invoice draft required/i.test(
+      message,
+    )
+  )
+    return known(
+      409,
+      'BILLING_APPROVED_INVOICE_REQUIRED',
+      'problem.billing.approvedInvoiceRequired',
+      'This invoice is no longer an unissued approved draft. Review its current state before recalculating or issuing.',
+      'review_invoice',
+    );
+  if (
+    /draft invoice required|only draft or approved invoices can be modified|issued or approved invoices cannot be deleted|draft invoices with source lines must be superseded/i.test(
+      message,
+    )
+  )
+    return known(
+      409,
+      'BILLING_DRAFT_STATE_REQUIRED',
+      'problem.billing.draftStateRequired',
+      'The invoice has moved beyond the editable draft state. Review it before making another change.',
+      'review_invoice',
+    );
+  if (/invoice pdf must be ready|invoice pdf is not ready/i.test(message))
+    return known(
+      409,
+      'BILLING_PDF_NOT_READY',
+      'problem.billing.pdfNotReady',
+      'The invoice PDF is still pending or failed. Check its artifact status before sending or downloading it.',
+      'review_invoice',
+    );
+  if (/accounting pack.*export.*(not ready|failed)/i.test(message))
+    return /failed/i.test(message)
+      ? known(
+          409,
+          'BILLING_EXPORT_FAILED',
+          'problem.billing.exportFailed',
+          'This export failed. Review the pack status and request an authorized retry for this artifact.',
+          'review_accounting_pack',
+        )
+      : known(
+          409,
+          'BILLING_EXPORT_PENDING',
+          'problem.billing.exportPending',
+          'This export is still queued or running. Check the pack status before downloading.',
+          'review_accounting_pack',
+        );
+  if (/final accounting pack is immutable/i.test(message))
+    return known(
+      409,
+      'BILLING_PACK_FINAL',
+      'problem.billing.packFinal',
+      'This accounting pack is final and cannot be changed. Review its existing artifacts or create a new revision.',
+      'review_accounting_pack',
+    );
+  if (/collections must be fully reversed before the invoice can be voided/i.test(message))
+    return known(
+      409,
+      'BILLING_VOID_COLLECTIONS_PRESENT',
+      'problem.billing.voidCollectionsPresent',
+      'This invoice has collections. Review and reverse the applicable payments before an owner can void it.',
+      'review_ledger',
+    );
+  if (
+    /payment.*(exceed|positive|currency|issued|future|precede|outstanding|balance)|invoice.*payment|issued invoice in matching currency required|legacy payment truth/i.test(
+      message,
+    )
+  )
+    return known(
+      error instanceof V3ConflictError ? 409 : 400,
+      'BILLING_PAYMENT_BLOCKED',
+      'problem.billing.paymentBlocked',
+      'The payment cannot be recorded against the invoice in its current state or for this amount or date. Review the invoice ledger and payment details.',
+      'review_ledger',
+    );
+  if (
+    /only.*invoice.*void|void.*invoice|issued invoice required/i.test(message) &&
+    /void|payment|send/i.test(operation)
+  )
+    return known(
+      409,
+      'BILLING_INVOICE_STATE_BLOCKED',
+      'problem.billing.invoiceStateBlocked',
+      'The invoice is not in a state that permits this action. Review its current state and history.',
+      'review_invoice',
+    );
+  if (
+    /invoice.*(archived legal entity|inactive tax profile|currency no longer matches)|billing context is incomplete/i.test(
+      message,
+    )
+  )
+    return known(
+      400,
+      'BILLING_ISSUE_CONFIGURATION_BLOCKED',
+      'problem.billing.issueConfigurationBlocked',
+      'The invoice issuer, tax profile, or currency configuration is no longer ready for issuance. Ask Finance to review the setup.',
+      'review_billing_setup',
+    );
+  if (/recalculation reason|current invoice version is required/i.test(message))
+    return known(
+      400,
+      'BILLING_RECALCULATION_DETAILS_REQUIRED',
+      'problem.billing.recalculationDetailsRequired',
+      'Enter a reason and use the current invoice version before recalculating.',
+      'review_invoice',
+    );
+  if (/credit adjustment.*exceed|adjustment amount must be non-zero/i.test(message))
+    return known(
+      400,
+      'BILLING_ADJUSTMENT_AMOUNT_BLOCKED',
+      'problem.billing.adjustmentAmountBlocked',
+      'The adjustment amount is invalid or exceeds the remaining amount on the original invoice. Review its credits and amount.',
+      'review_invoice',
+    );
+  return undefined;
+}
+
+export { billingReadinessRemedyId } from '../../portal/billing-readiness';
+
+export function billingActionFailure(
+  error: unknown,
+  operation: string,
+  role?: string,
+  values?: Record<string, string>,
+) {
+  if (error instanceof ReadinessError) {
+    const reason = error.reasons[0];
+    const reasonCode = reason?.code || 'unknown';
+    const remedyId = billingReadinessRemedyId(reasonCode, role);
+    return actionFail(
+      409,
+      billingReadinessMessageKey(reasonCode) as ActionMessageKey,
+      {},
+      undefined,
+      {
+        code: `BILLING_READINESS_${reasonCode.toUpperCase()}`,
+        reasons: error.reasons,
+        remedies: [{ id: remedyId }],
+        billingOperation: operation,
+        ...(values ? { values } : {}),
+      },
+    );
+  }
+  const mapped = billingProblemFor(error, operation);
+  if (mapped)
+    return actionFail(mapped.status, mapped.key, {}, mapped.message, {
+      code: mapped.code,
+      remedies: mapped.remedies,
+      billingOperation: operation,
+      ...(values ? { values } : {}),
+    });
+  return actionFailure(error);
+}
 
 type AccountingPackStatusRecord = Readonly<{
   id?: unknown;
@@ -129,7 +369,7 @@ export const billingActions = {
         'Invoice planning dates saved',
       );
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'setInvoicePlanningDates');
     } finally {
       context.sqlite.close();
     }
@@ -150,7 +390,7 @@ export const billingActions = {
       context.repository.createBillingRule(context.principal, parsed.data);
       return actionSuccess('action.billing.streamSaved', {}, 'Billing stream saved');
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'createBillingRule');
     } finally {
       context.sqlite.close();
     }
@@ -172,7 +412,7 @@ export const billingActions = {
       context.repository.createLegalEntity(context.principal, parsed.data);
       return actionSuccess('action.billing.legalEntitySaved', {}, 'Legal entity saved');
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'createLegalEntity');
     } finally {
       context.sqlite.close();
     }
@@ -200,7 +440,7 @@ export const billingActions = {
         'Invoice-number policy saved',
       );
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'createInvoiceNumberPolicy');
     } finally {
       context.sqlite.close();
     }
@@ -232,7 +472,7 @@ export const billingActions = {
       });
       return actionSuccess('action.billing.taxProfileSaved', {}, 'Tax profile saved');
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'createTaxProfile');
     } finally {
       context.sqlite.close();
     }
@@ -297,7 +537,7 @@ export const billingActions = {
       context.repository.updateBillingRule(context.principal, id, input);
       return actionSuccess('action.billing.ruleUpdated', {}, 'Billing rule updated');
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'updateBillingRule');
     } finally {
       context.sqlite.close();
     }
@@ -319,7 +559,7 @@ export const billingActions = {
       context.repository.archiveBillingRule(context.principal, id);
       return actionSuccess('action.billing.ruleArchived', {}, 'Billing rule archived');
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'archiveBillingRule');
     } finally {
       context.sqlite.close();
     }
@@ -350,7 +590,7 @@ export const billingActions = {
       context.repository.updateLegalEntity(context.principal, id, input);
       return actionSuccess('action.billing.legalEntityUpdated', {}, 'Legal entity updated');
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'updateLegalEntity');
     } finally {
       context.sqlite.close();
     }
@@ -372,7 +612,7 @@ export const billingActions = {
       context.repository.archiveLegalEntity(context.principal, id);
       return actionSuccess('action.billing.legalEntityArchived', {}, 'Legal entity archived');
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'archiveLegalEntity');
     } finally {
       context.sqlite.close();
     }
@@ -398,7 +638,7 @@ export const billingActions = {
       context.repository.updateTaxProfile(context.principal, id, input);
       return actionSuccess('action.billing.taxProfileUpdated', {}, 'Tax profile updated');
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'updateTaxProfile');
     } finally {
       context.sqlite.close();
     }
@@ -420,7 +660,7 @@ export const billingActions = {
       context.repository.archiveTaxProfile(context.principal, id);
       return actionSuccess('action.billing.taxProfileArchived', {}, 'Tax profile archived');
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'archiveTaxProfile');
     } finally {
       context.sqlite.close();
     }
@@ -428,14 +668,26 @@ export const billingActions = {
   createDraft: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'billing')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const parsed = invoicePeriodSchema.safeParse(await formObject(request));
+    const object = await formObject(request);
+    const parsed = invoicePeriodSchema.safeParse(object);
     if (!parsed.success)
-      return actionFail(400, 'action.validation.billingPeriod', {}, 'Invalid billing period');
+      return actionFail(
+        400,
+        'action.validation.billingPeriod',
+        {},
+        'Choose a valid billing stream and period.',
+        {
+          fields: parsed.error.flatten().fieldErrors,
+          billingRuleId: String(object.billingRuleId ?? ''),
+          periodStart: String(object.periodStart ?? ''),
+          periodEnd: String(object.periodEnd ?? ''),
+        },
+      );
     const context = openPortalRepository(locals);
     try {
       return createInvoiceDraftResolvingPeriod(context, parsed.data);
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'createDraft');
     } finally {
       context.sqlite.close();
     }
@@ -462,7 +714,7 @@ export const billingActions = {
         'Adjustment draft created',
       );
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'createInvoiceAdjustment');
     } finally {
       context.sqlite.close();
     }
@@ -477,7 +729,7 @@ export const billingActions = {
       context.repository.approveInvoiceDraft(context.principal, parsed.data.invoiceId);
       return actionSuccess('action.billing.invoiceApproved', {}, 'Invoice approved');
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'approveInvoice');
     } finally {
       context.sqlite.close();
     }
@@ -502,7 +754,7 @@ export const billingActions = {
         'Invoice recalculated as a draft. Review and approve it again.',
       );
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'recalculateApprovedInvoice', context.principal.role);
     } finally {
       context.sqlite.close();
     }
@@ -523,7 +775,7 @@ export const billingActions = {
       );
       return actionSuccess('action.billing.invoiceDeleted', {}, 'Invoice deleted');
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'deleteInvoice');
     } finally {
       context.sqlite.close();
     }
@@ -541,12 +793,14 @@ export const billingActions = {
         parsed.data.reportLocale,
       );
       return actionSuccess(
-        'action.billing.invoiceIssued',
+        result.issued ? 'action.billing.invoiceIssued' : 'action.billing.invoiceAlreadyIssued',
         { invoiceNumber: result.invoiceNumber },
-        `Issued ${result.invoiceNumber}`,
+        result.issued
+          ? `Issued ${result.invoiceNumber}`
+          : `Invoice ${result.invoiceNumber} was already issued`,
       );
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'issueInvoice', context.principal.role);
     } finally {
       context.sqlite.close();
     }
@@ -555,19 +809,32 @@ export const billingActions = {
     if (params.section !== 'billing')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
+    const values = {
+      invoiceId: String(object.invoiceId ?? ''),
+      amount: String(object.amount ?? ''),
+      currency: String(object.currency ?? ''),
+      receivedOn: String(object.receivedOn ?? ''),
+      reference: String(object.reference ?? ''),
+    };
     object.amountMinor = decimalToMinor(object.amount);
     object.receivedAt = dateOnlyToEffectiveInstant(object.receivedOn);
     const parsed = paymentInputSchema.safeParse(object);
     if (!parsed.success)
       return actionFail(400, 'action.validation.payment', {}, 'Invalid payment', {
         fields: parsed.error.flatten().fieldErrors,
+        billingOperation: 'recordPayment',
+        values,
       });
     const context = openPortalRepository(locals);
     try {
-      context.v3.recordPayment(context.principal, parsed.data);
-      return actionSuccess('action.billing.paymentRecorded', {}, 'Payment recorded');
+      const result = context.v3.recordPayment(context.principal, parsed.data);
+      return actionSuccess(
+        result.created ? 'action.billing.paymentRecorded' : 'action.billing.paymentAlreadyRecorded',
+        {},
+        result.created ? 'Payment recorded' : 'This payment was already recorded',
+      );
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'recordPayment', context.principal.role, values);
     } finally {
       context.sqlite.close();
     }
@@ -598,7 +865,7 @@ export const billingActions = {
       });
       return actionSuccess('action.billing.paymentReversed', {}, 'Payment reversal recorded');
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'reversePayment');
     } finally {
       context.sqlite.close();
     }
@@ -620,10 +887,13 @@ export const billingActions = {
       );
       if (!result.closed) {
         const reasons = result.reasons ?? [];
-        const messageKey = billingReadinessMessageKey(
-          (reasons[0] as { code?: string } | undefined)?.code,
-        ) as ActionMessageKey;
-        return actionFail(409, messageKey, {}, undefined, { reasons });
+        const reasonCode = String((reasons[0] as { code?: string } | undefined)?.code ?? 'unknown');
+        const messageKey = billingReadinessMessageKey(reasonCode) as ActionMessageKey;
+        return actionFail(409, messageKey, {}, undefined, {
+          code: `BILLING_READINESS_${reasonCode.toUpperCase()}`,
+          reasons,
+          remedies: [{ id: billingReadinessRemedyId(reasonCode, context.principal.role) }],
+        });
       }
       return actionSuccess(
         'action.billing.periodClosed',
@@ -631,7 +901,7 @@ export const billingActions = {
         'Billing period closed and sources locked',
       );
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'closePeriod');
     } finally {
       context.sqlite.close();
     }
@@ -652,7 +922,7 @@ export const billingActions = {
       );
       return actionSuccess('action.billing.invoiceVoided', {}, 'Invoice voided with audit trail');
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'voidInvoice');
     } finally {
       context.sqlite.close();
     }
@@ -672,7 +942,7 @@ export const billingActions = {
         result.restored ? 'Credit note restored to issued state' : 'Credit note is already issued',
       );
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'restoreCreditNoteState');
     } finally {
       context.sqlite.close();
     }
@@ -702,7 +972,7 @@ export const billingActions = {
         'Invoice email request recorded',
       );
     } catch (error) {
-      const failure = actionFailure(error);
+      const failure = billingActionFailure(error, 'emailInvoice');
       return fail(failure.status, {
         ...failure.data,
         invoiceEmailRecipient: String(object.recipient ?? '').slice(0, 254),
@@ -731,7 +1001,7 @@ export const billingActions = {
         result.sent ? 'Invoice marked sent' : 'Invoice was already sent',
       );
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'sendInvoice');
     } finally {
       context.sqlite.close();
     }
@@ -793,7 +1063,7 @@ export const billingActions = {
         exportStatuses: refreshedPack?.exportStatuses ?? {},
       };
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'createAccountingPack');
     } finally {
       context.sqlite.close();
     }
@@ -812,7 +1082,7 @@ export const billingActions = {
         'Accounting Pack marked final',
       );
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'finalizeAccountingPack');
     } finally {
       context.sqlite.close();
     }
@@ -870,7 +1140,7 @@ export const billingActions = {
       });
       return actionSuccess('action.billing.invoiceUpdated', {}, 'Invoice draft details updated');
     } catch (error) {
-      return actionFailure(error);
+      return billingActionFailure(error, 'updateInvoiceDraftDetails');
     } finally {
       context.sqlite.close();
     }

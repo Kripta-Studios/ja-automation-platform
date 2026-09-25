@@ -8,6 +8,1518 @@ import { explicitCoverageLiterals } from './coverage-literals';
  */
 
 const exact: Record<string, readonly [string, string]> = {
+  'problem.notification.invalidLink': [
+    'El enlace de esta notificación no es válido. Ábrela desde la bandeja de actividad.',
+    'O link desta notificação é inválido. Abra-a pela caixa de atividades.',
+  ],
+  'problem.notification.unavailable': [
+    'Esta notificación ya no está disponible. Vuelve a la bandeja de actividad.',
+    'Esta notificação não está mais disponível. Volte à caixa de atividades.',
+  ],
+  'problem.closeout.financeRoleRequired': [
+    'Se requiere un rol activo de Finanzas o Propietario para gestionar el cierre del proyecto.',
+    'É necessária uma função ativa de Finanças ou Proprietário para gerenciar o encerramento do projeto.',
+  ],
+  'problem.closeout.ownerRoleRequired': [
+    'Solo un Propietario activo puede reabrir un proyecto cerrado.',
+    'Somente um Proprietário ativo pode reabrir um projeto encerrado.',
+  ],
+  'problem.closeout.projectNotFound': [
+    'Este proyecto ya no está disponible. Revisa la lista de proyectos.',
+    'Este projeto não está mais disponível. Revise a lista de projetos.',
+  ],
+  'problem.closeout.revisionNotFound': [
+    'Esta revisión de cierre ya no está disponible. Revisa el cierre actual.',
+    'Esta revisão de encerramento não está mais disponível. Revise o encerramento atual.',
+  ],
+  'problem.closeout.reopenReasonRequired': [
+    'Introduce un motivo de entre 1 y 2000 caracteres antes de reabrir.',
+    'Informe um motivo de 1 a 2000 caracteres antes de reabrir.',
+  ],
+  'problem.closeout.documentSelectionInvalid': [
+    'Los documentos seleccionados para el cliente contienen duplicados o superan el número permitido. Revisa la selección.',
+    'Os documentos selecionados para o cliente contêm duplicatas ou excedem a quantidade permitida. Revise a seleção.',
+  ],
+  'problem.closeout.documentUnavailable': [
+    'Un documento seleccionado no está disponible o no está autorizado para el cierre del cliente. Revisa la selección.',
+    'Um documento selecionado está indisponível ou não está autorizado para o encerramento do cliente. Revise a seleção.',
+  ],
+  'problem.closeout.packageTooLarge': [
+    'El paquete de cierre supera el límite de tamaño. Elige menos documentos o documentos más pequeños.',
+    'O pacote de encerramento excede o limite de tamanho. Escolha menos documentos ou documentos menores.',
+  ],
+  'problem.closeout.clientSnapshotFinancialReview': [
+    'La copia para el cliente puede incluir información financiera. Revisa los registros de origen antes de publicarla.',
+    'A versão para o cliente pode conter informações financeiras. Revise os registros de origem antes da publicação.',
+  ],
+  'problem.closeout.clientConfirmationStale': [
+    'La copia para el cliente cambió desde la confirmación. Revisa la versión actual y confírmala de nuevo.',
+    'A versão para o cliente mudou desde a confirmação. Revise a versão atual e confirme-a novamente.',
+  ],
+  'problem.closeout.confirmationCheckRequired': [
+    'Confirma que revisaste la copia exacta para el cliente antes de continuar.',
+    'Confirme que você revisou a versão exata para o cliente antes de continuar.',
+  ],
+  'problem.closeout.reasonRetained': ['Motivo introducido', 'Motivo informado'],
+  'problem.closeout.selectionRetained': [
+    'Documentos que seleccionaste',
+    'Documentos que você selecionou',
+  ],
+  'problem.closeout.documentNoLongerAvailable': [
+    'Documento que ya no está disponible',
+    'Documento que não está mais disponível',
+  ],
+  'problem.closeout.previousConfirmation': [
+    'Marcaste la confirmación para la copia anterior. Revisa la copia actual y vuelve a marcar la casilla.',
+    'Você marcou a confirmação para a versão anterior. Revise a versão atual e marque a caixa novamente.',
+  ],
+  'problem.closeout.confirmationRequired': [
+    'Confirma la copia exacta y actual para el cliente antes de finalizar el cierre.',
+    'Confirme a versão exata e atual para o cliente antes de finalizar o encerramento.',
+  ],
+  'problem.closeout.draftAlreadyActive': [
+    'Ya hay un borrador de cierre activo. Revísalo antes de continuar.',
+    'Já existe um rascunho de encerramento ativo. Revise-o antes de continuar.',
+  ],
+  'problem.closeout.activeDraftRequired': [
+    'Este borrador de cierre ya no está activo. Revisa el cierre actual.',
+    'Este rascunho de encerramento não está mais ativo. Revise o encerramento atual.',
+  ],
+  'problem.closeout.draftChanged': [
+    'El cierre cambió mientras este formulario estaba abierto. Revisa el borrador actualizado antes de continuar.',
+    'O encerramento mudou enquanto este formulário estava aberto. Revise o rascunho atualizado antes de continuar.',
+  ],
+  'problem.closeout.reopenUnavailable': [
+    'Esta revisión no se puede reabrir porque no es la última revisión final de un proyecto cerrado o ya fue reabierta. Revisa el cierre actual.',
+    'Esta revisão não pode ser reaberta porque não é a última revisão final de um projeto encerrado ou já foi reaberta. Revise o encerramento atual.',
+  ],
+  'problem.closeout.sourceChanged': [
+    'Los registros de origen del cierre cambiaron. Revísalos y prepara un nuevo borrador.',
+    'Os registros de origem do encerramento mudaram. Revise-os e prepare um novo rascunho.',
+  ],
+  'problem.closeout.sourceInvalid': [
+    'Un registro de origen requerido o una conformidad del cliente aceptada no es válido o está desactualizado. Revisa los registros de origen.',
+    'Um registro de origem obrigatório ou uma conformidade do cliente aceita é inválida ou está desatualizada. Revise os registros de origem.',
+  ],
+  'problem.closeout.documentIntegrityFailed': [
+    'Un documento de origen seleccionado no superó la comprobación de almacenamiento o integridad. Revisa los documentos y contacta con un propietario.',
+    'Um documento de origem selecionado falhou na verificação de armazenamento ou integridade. Revise os documentos e contate um proprietário.',
+  ],
+  'problem.closeout.artifactWriteIncomplete': [
+    'No se terminó de guardar el archivo de cierre. Comprueba la revisión actual antes de intentarlo de nuevo.',
+    'O arquivo de encerramento não terminou de ser gravado. Confira a revisão atual antes de tentar novamente.',
+  ],
+  'problem.remedy.reviewCloseout': ['Revisar el cierre actual', 'Revisar o encerramento atual'],
+  'problem.remedy.reviewCloseoutDocuments': [
+    'Revisar los documentos del cierre',
+    'Revisar os documentos do encerramento',
+  ],
+  'problem.remedy.reviewProjects': ['Revisar proyectos', 'Revisar projetos'],
+  'problem.finance.policyDuplicateStart': [
+    'Ya existe una política de gastos de esta persona que comienza en esta fecha. Revísala antes de añadir otra.',
+    'Já existe uma política de despesas desta pessoa com início nesta data. Revise-a antes de adicionar outra.',
+  ],
+  'problem.finance.policyPeriodOverlap': [
+    'Este período de política se solapa con una política existente para la misma persona, pagador y categoría. Revisa los períodos actuales.',
+    'Este período da política se sobrepõe a uma política existente para a mesma pessoa, pagador e categoria. Revise os períodos atuais.',
+  ],
+  'problem.finance.policyEndBeforeStart': [
+    'La fecha de fin de la política debe ser igual o posterior a la de inicio.',
+    'A data de término da política deve ser igual ou posterior à data de início.',
+  ],
+  'problem.finance.policyAssignmentUnavailable': [
+    'Esta persona ya no tiene una asignación activa al proyecto. Revisa la asignación antes de crear una política.',
+    'Esta pessoa não tem mais uma atribuição ativa ao projeto. Revise a atribuição antes de criar uma política.',
+  ],
+  'problem.finance.policyOutsideAssignment': [
+    'Las fechas de la política deben estar dentro de la asignación de esta persona al proyecto.',
+    'As datas da política devem estar dentro da atribuição desta pessoa ao projeto.',
+  ],
+  'problem.finance.policyEndRequired': [
+    'Esta asignación tiene fecha de fin. Introduce una fecha de fin de política dentro de ella.',
+    'Esta atribuição tem data de término. Informe uma data de término da política dentro dela.',
+  ],
+  'problem.finance.policyMarkupMismatch': [
+    'Un recargo requiere una tarifa positiva; los demás tratamientos del cliente no pueden incluir recargo.',
+    'Um acréscimo exige uma tarifa positiva; os outros tratamentos do cliente não podem incluir acréscimo.',
+  ],
+  'problem.finance.reimbursementAmountInvalid': [
+    'El importe del reembolso debe ser positivo y no puede superar el reembolso aprobado al trabajador.',
+    'O valor do reembolso deve ser positivo e não pode exceder o reembolso aprovado ao trabalhador.',
+  ],
+  'problem.finance.partialReimbursementUnsupported': [
+    'Registra el importe completo del reembolso aprobado al trabajador; aquí no se admite un reembolso parcial.',
+    'Registre o valor integral do reembolso aprovado ao trabalhador; reembolso parcial não é permitido aqui.',
+  ],
+  'problem.finance.paymentExceedsBalance': [
+    'El pago supera el saldo restante de la remuneración del trabajador. Revisa la liquidación antes de registrarlo.',
+    'O pagamento excede o saldo restante da remuneração do trabalhador. Revise a liquidação antes de registrá-lo.',
+  ],
+  'problem.finance.paymentCurrencyMismatch': [
+    'La moneda del pago debe coincidir con la de la liquidación de remuneración del trabajador.',
+    'A moeda do pagamento deve corresponder à moeda da liquidação da remuneração do trabalhador.',
+  ],
+  'problem.remedy.reviewAssignmentPolicy': [
+    'Revisar la política de la asignación',
+    'Revisar a política da atribuição',
+  ],
+  'Review current crew delegations': [
+    'Revisar las delegaciones actuales del equipo',
+    'Revisar as delegações atuais da equipe',
+  ],
+  'Review current crew entries': [
+    'Revisar los registros actuales del equipo',
+    'Revisar os registros atuais da equipe',
+  ],
+  'Review current receipts and allocations': [
+    'Revisar los recibos y repartos actuales',
+    'Revisar os recibos e distribuições atuais',
+  ],
+  'Review updated crew time': [
+    'Revisar las horas del equipo actualizadas',
+    'Revisar as horas da equipe atualizadas',
+  ],
+  'problem.crew.accountInactive': [
+    'Tu cuenta ya no está activa para esta acción. Consulta al propietario del proyecto.',
+    'Sua conta não está mais ativa para esta ação. Contate o proprietário do projeto.',
+  ],
+  'problem.crew.assignmentRequired': [
+    'Ambos trabajadores necesitan asignaciones activas al proyecto en la fecha de inicio de la delegación. Consulta al propietario del proyecto para revisar las asignaciones.',
+    'Os dois trabalhadores precisam de atribuições ativas ao projeto na data de início da delegação. Contate o proprietário do projeto para revisar as atribuições.',
+  ],
+  'problem.crew.batchRequestInvalid': [
+    'Actualiza este formulario antes de guardar las horas del equipo. Puedes copiar las horas introducidas al nuevo formulario.',
+    'Atualize este formulário antes de salvar as horas da equipe. Você pode copiar as horas informadas para o novo formulário.',
+  ],
+  'problem.crew.batchRetryChanged': [
+    'Este identificador de solicitud ya se usó con otras horas. Revisa las horas del equipo guardadas antes de enviarlas de nuevo.',
+    'Este identificador de solicitação já foi usado com outras horas. Revise as horas da equipe salvas antes de enviar novamente.',
+  ],
+  'problem.crew.batchWorkerBlocked': [
+    'No se guardaron horas del equipo porque un trabajador seleccionado tiene un conflicto de fecha, asignación u horas existentes. Revisa ese trabajador y los registros actuales.',
+    'Nenhuma hora da equipe foi salva porque um trabalhador selecionado tem conflito de data, atribuição ou horas existentes. Revise esse trabalhador e os registros atuais.',
+  ],
+  'problem.crew.categoryInvalid': [
+    'Elige una categoría operativa de horas válida.',
+    'Escolha uma categoria operacional de horas válida.',
+  ],
+  'problem.crew.chiefRoleRequired': [
+    'Registrar horas del equipo requiere un rol activo de jefe de equipo. Consulta al propietario del proyecto para revisar el acceso.',
+    'Registrar horas da equipe exige uma função ativa de chefe de equipe. Contate o proprietário do projeto para revisar o acesso.',
+  ],
+  'problem.crew.correctionStale': [
+    'Estas horas del equipo cambiaron antes de la corrección. Revisa el registro actual antes de crear un nuevo borrador.',
+    'Estas horas da equipe mudaram antes da correção. Revise o registro atual antes de criar um novo rascunho.',
+  ],
+  'problem.crew.correctionStateBlocked': [
+    'Aquí solo se puede crear un borrador corregido después de que un revisor devuelva estas horas del equipo para cambios.',
+    'Aqui só é possível criar um rascunho corrigido depois que um revisor devolver estas horas da equipe para alterações.',
+  ],
+  'problem.crew.dateOrderInvalid': [
+    'La fecha de fin debe ser posterior a la de inicio.',
+    'A data de término deve ser posterior à data de início.',
+  ],
+  'problem.crew.delegationChanged': [
+    'Esta delegación ya se cambió o revocó. Revisa las delegaciones actuales.',
+    'Esta delegação já foi alterada ou revogada. Revise as delegações atuais.',
+  ],
+  'problem.crew.delegationExists': [
+    'Estos trabajadores ya tienen una delegación activa del equipo. Revísala antes de añadir otra.',
+    'Estes trabalhadores já têm uma delegação ativa da equipe. Revise-a antes de adicionar outra.',
+  ],
+  'problem.crew.delegationNotActive': [
+    'Esta delegación del equipo o una asignación al proyecto ya no está activa para la fecha seleccionada. Consulta al propietario del proyecto.',
+    'Esta delegação da equipe ou uma atribuição ao projeto não está mais ativa para a data selecionada. Contate o proprietário do projeto.',
+  ],
+  'problem.crew.draftChanged': [
+    'Este borrador de horas del equipo cambió mientras lo editabas. Revisa la versión actual antes de guardar.',
+    'Este rascunho de horas da equipe mudou durante a edição. Revise a versão atual antes de salvar.',
+  ],
+  'problem.crew.draftLinkedEvidence': [
+    'Este borrador del equipo está vinculado a otro registro y no se puede cambiar aquí. Revisa el registro vinculado y solicita una corrección documentada.',
+    'Este rascunho da equipe está vinculado a outro registro e não pode ser alterado aqui. Revise o registro vinculado e solicite uma correção documentada.',
+  ],
+  'problem.crew.draftNotEditable': [
+    'Solo se puede editar o descartar un borrador del equipo que nunca se haya enviado. Revisa el registro.',
+    'Só é possível editar ou descartar um rascunho da equipe que nunca foi enviado. Revise o registro.',
+  ],
+  'problem.crew.draftVersionInvalid': [
+    'Este formulario no tiene una versión de borrador válida. Revisa el registro actual antes de guardar.',
+    'Este formulário não tem uma versão de rascunho válida. Revise o registro atual antes de salvar.',
+  ],
+  'problem.crew.durationInvalid': [
+    'Introduce más de cero y no más de 24 horas.',
+    'Informe mais de zero e no máximo 24 horas.',
+  ],
+  'problem.crew.hourModeRequired': [
+    'Elige horas compartidas o individuales para este registro del equipo.',
+    'Escolha horas compartilhadas ou individuais para este registro da equipe.',
+  ],
+  'problem.crew.individualHoursInvalid': [
+    'Introduce horas válidas para cada trabajador seleccionado.',
+    'Informe horas válidas para cada trabalhador selecionado.',
+  ],
+  'problem.crew.intervalNotAllowed': [
+    'El lote de horas del equipo no puede incluir una hora de inicio o fin deducida de la duración. Introduce las horas reales de cada trabajador.',
+    'O lote de horas da equipe não pode incluir horário de início ou fim inferido da duração. Informe as horas reais de cada trabalhador.',
+  ],
+  'problem.crew.membersRequired': [
+    'Selecciona entre uno y 100 miembros asignados al equipo.',
+    'Selecione de um a 100 integrantes atribuídos à equipe.',
+  ],
+  'problem.crew.ownerRoleRequired': [
+    'Solo el propietario del proyecto puede cambiar las delegaciones del equipo. Consulta al propietario para obtener ayuda.',
+    'Só o proprietário do projeto pode alterar as delegações da equipe. Contate o proprietário para obter ajuda.',
+  ],
+  'problem.crew.projectTimezoneRequired': [
+    'El proyecto necesita una zona horaria válida para comprobar el acceso del equipo. Consulta al propietario del proyecto.',
+    'O projeto precisa de um fuso horário válido para verificar o acesso da equipe. Contate o proprietário do projeto.',
+  ],
+  'problem.crew.receiptAccessRequired': [
+    'Este recibo no está disponible con tu acceso actual al equipo. Revisa los recibos actuales.',
+    'Este recibo não está disponível com seu acesso atual à equipe. Revise os recibos atuais.',
+  ],
+  'problem.crew.receiptAmountFormatInvalid': [
+    'Introduce cada reparto como un importe positivo, por ejemplo, 6,50.',
+    'Informe cada distribuição como um valor positivo, por exemplo, 6,50.',
+  ],
+  'problem.crew.receiptAmountInvalid': [
+    'El importe del recibo no es válido para repartirlo. Revisa el recibo guardado.',
+    'O valor do recibo não é válido para distribuição. Revise o recibo salvo.',
+  ],
+  'problem.crew.receiptAmountsInvalid': [
+    'Introduce un importe positivo para cada registro distinto de horas del equipo.',
+    'Informe um valor positivo para cada registro distinto de horas da equipe.',
+  ],
+  'problem.crew.receiptLinkedTimeRequired': [
+    'Incluye el registro de horas ya vinculado a este recibo.',
+    'Inclua o registro de horas já vinculado a este recibo.',
+  ],
+  'problem.crew.receiptPayerInvalid': [
+    'Un recibo compartido debe tener como pagador a un trabajador o a la empresa. Revisa el recibo antes de repartirlo.',
+    'Um recibo compartilhado deve ter como pagador um trabalhador ou a empresa. Revise o recibo antes de distribuir.',
+  ],
+  'problem.crew.receiptPayerRequired': [
+    'Incluye en el reparto al pagador del recibo o al trabajador al que se atribuye.',
+    'Inclua na distribuição o pagador do recibo ou o trabalhador ao qual ele é atribuído.',
+  ],
+  'problem.crew.receiptRequestInvalid': [
+    'Actualiza este formulario antes de repartir el recibo. Revisa los repartos existentes antes de intentarlo de nuevo.',
+    'Atualize este formulário antes de distribuir o recibo. Revise as distribuições existentes antes de tentar novamente.',
+  ],
+  'problem.crew.receiptRetryChanged': [
+    'Esta solicitud de reparto del recibo ya se usó con otros importes. Revisa los repartos existentes.',
+    'Esta solicitação de distribuição do recibo já foi usada com outros valores. Revise as distribuições existentes.',
+  ],
+  'problem.crew.receiptRowsRequired': [
+    'Selecciona entre dos y 100 registros de horas del equipo para este recibo compartido.',
+    'Selecione de dois a 100 registros de horas da equipe para este recibo compartilhado.',
+  ],
+  'problem.crew.receiptScopeMismatch': [
+    'Los registros de horas seleccionados y el recibo deben pertenecer al mismo proyecto y fecha. Revisa ambos registros.',
+    'Os registros de horas selecionados e o recibo devem pertencer ao mesmo projeto e data. Revise os dois registros.',
+  ],
+  'problem.crew.receiptTotalMismatch': [
+    'Los importes repartidos deben sumar exactamente el importe del recibo.',
+    'Os valores distribuídos devem somar exatamente o valor do recibo.',
+  ],
+  'problem.crew.receiptUnavailable': [
+    'El recibo ya no es un borrador sin repartir que hayas introducido. Revisa los recibos actuales.',
+    'O recibo não é mais um rascunho não distribuído que você registrou. Revise os recibos atuais.',
+  ],
+  'problem.crew.receiptWorkersRequired': [
+    'Reparte el recibo compartido entre al menos dos trabajadores distintos.',
+    'Distribua o recibo compartilhado entre pelo menos dois trabalhadores diferentes.',
+  ],
+  'problem.crew.samePerson': [
+    'Elige personas distintas para el jefe y el miembro del equipo.',
+    'Escolha pessoas diferentes para o chefe e o integrante da equipe.',
+  ],
+  'problem.crew.sharedHoursInvalid': [
+    'Introduce horas compartidas mayores que cero y no superiores a 24 por cada trabajador seleccionado.',
+    'Informe horas compartilhadas maiores que zero e não superiores a 24 para cada trabalhador selecionado.',
+  ],
+  'problem.crew.timeAccessRequired': [
+    'Este registro de horas del equipo no está disponible con tu delegación actual. Revisa tus registros del equipo o consulta al propietario del proyecto.',
+    'Este registro de horas da equipe não está disponível com sua delegação atual. Revise seus registros da equipe ou contate o proprietário do projeto.',
+  ],
+  'problem.crew.timeDailyLimit': [
+    'Este trabajador ya tiene horas en el día seleccionado. El total no puede superar las 24 horas.',
+    'Este trabalhador já tem horas no dia selecionado. O total não pode ultrapassar 24 horas.',
+  ],
+  'problem.crew.timeDelegationChanged': [
+    'La delegación del equipo cambió después de abrir este formulario. Consulta al propietario del proyecto para revisar el acceso.',
+    'A delegação da equipe mudou depois que este formulário foi aberto. Contate o proprietário do projeto para revisar o acesso.',
+  ],
+  'problem.crew.timeIntervalOverlap': [
+    'Este trabajador ya tiene horas registradas en el intervalo seleccionado. Ajusta la hora o la fecha.',
+    'Este trabalhador já tem horas registradas no intervalo selecionado. Ajuste o horário ou a data.',
+  ],
+  'problem.crew.timeSubmissionChanged': [
+    'Estas horas del equipo cambiaron o ya no son un borrador. Revisa el registro actual antes de enviarlas.',
+    'Estas horas da equipe mudaram ou não são mais um rascunho. Revise o registro atual antes de enviar.',
+  ],
+  'problem.crew.workerInactive': [
+    'Ambos trabajadores seleccionados necesitan cuentas activas. Consulta al propietario del proyecto para revisar el acceso.',
+    'Os dois trabalhadores selecionados precisam de contas ativas. Contate o proprietário do projeto para revisar o acesso.',
+  ],
+  'problem.remedy.reviewDelegations': [
+    'Revisar las delegaciones actuales del equipo',
+    'Revisar as delegações atuais da equipe',
+  ],
+  'problem.remedy.reviewCrewDay': [
+    'Revisar los registros actuales del equipo',
+    'Revisar os registros atuais da equipe',
+  ],
+  'problem.remedy.reviewReceipts': [
+    'Revisar los recibos y repartos actuales',
+    'Revisar os recibos e distribuições atuais',
+  ],
+  'problem.remedy.reviewCrewTime': [
+    'Revisar las horas del equipo actualizadas',
+    'Revisar as horas da equipe atualizadas',
+  ],
+  'problem.remedy.contactProjectOwner': [
+    'Consultar al propietario del proyecto para revisar el acceso',
+    'Contatar o proprietário do projeto para revisar o acesso',
+  ],
+  'problem.remedy.reviewSupplierDirectory': [
+    'Revisar el directorio de proveedores',
+    'Revisar o diretório de fornecedores',
+  ],
+  'problem.remedy.reviewSupplierGrants': [
+    'Revisar las autorizaciones del proveedor',
+    'Revisar as autorizações do fornecedor',
+  ],
+  'problem.remedy.reviewSupplierAssignments': [
+    'Revisar las asignaciones de técnicos',
+    'Revisar as atribuições dos técnicos',
+  ],
+  'problem.remedy.chooseOperationalProject': [
+    'Elegir un proyecto operativo',
+    'Escolher um projeto operacional',
+  ],
+  'problem.remedy.reviewSavedDrafts': [
+    'Revisar los borradores guardados antes de reintentar',
+    'Revisar os rascunhos salvos antes de tentar novamente',
+  ],
+  'problem.remedy.reviewTimeDrafts': [
+    'Revisar los borradores de horas',
+    'Revisar os rascunhos de horas',
+  ],
+  'problem.remedy.correctField': ['Corregir el campo señalado', 'Corrigir o campo destacado'],
+  'problem.remedy.confirmStatusChange': [
+    'Confirmar el cambio de estado',
+    'Confirmar a mudança de estado',
+  ],
+  'problem.remedy.signInAgain': ['Volver a iniciar sesión', 'Entrar novamente'],
+  'problem.supplier.nameExists': [
+    'Ya existe un proveedor con este nombre.',
+    'Já existe um fornecedor com este nome.',
+  ],
+  'problem.supplier.emailInvalid': [
+    'El correo del proveedor no es válido.',
+    'O e-mail do fornecedor não é válido.',
+  ],
+  'problem.supplier.technicianEmailInvalid': [
+    'El correo del técnico no es válido.',
+    'O e-mail do técnico não é válido.',
+  ],
+  'problem.supplier.technicianEmailUsed': [
+    'El correo del técnico ya pertenece a una cuenta.',
+    'O e-mail do técnico já pertence a uma conta.',
+  ],
+  'problem.supplier.loginEmailManaged': [
+    'Gestiona el correo de acceso desde el perfil de la cuenta.',
+    'Gerencie o e-mail de login no perfil da conta.',
+  ],
+  'problem.supplier.activeRequired': [
+    'Se requiere un proveedor activo.',
+    'É necessário um fornecedor ativo.',
+  ],
+  'problem.supplier.notFound': ['No se encontró el proveedor.', 'Fornecedor não encontrado.'],
+  'problem.supplier.technicianUnavailable': [
+    'Selecciona un técnico del proveedor.',
+    'Selecione um técnico do fornecedor.',
+  ],
+  'problem.supplier.technicianStatusBlocked': [
+    'Se requiere un técnico del proveedor activo o suspendido.',
+    'É necessário um técnico do fornecedor ativo ou suspenso.',
+  ],
+  'problem.supplier.operationalProjectRequired': [
+    'Selecciona un proyecto operativo.',
+    'Selecione um projeto operacional.',
+  ],
+  'problem.supplier.coordinatorUnavailable': [
+    'Se requiere un coordinador activo del proveedor.',
+    'É necessário um coordenador ativo do fornecedor.',
+  ],
+  'problem.supplier.coordinatorLoginRequired': [
+    'Los coordinadores del proveedor necesitan una cuenta de acceso utilizable.',
+    'Coordenadores do fornecedor precisam de uma conta de login utilizável.',
+  ],
+  'problem.supplier.profileWorkerRequired': [
+    'Solo las cuentas de trabajador existentes pueden recibir un perfil de proveedor.',
+    'Só contas de trabalhador existentes podem receber um perfil de fornecedor.',
+  ],
+  'problem.supplier.profileHistoryLocked': [
+    'Un perfil de proveedor con historial de horas confirmado no se puede reasignar.',
+    'Um perfil de fornecedor com histórico de horas confirmado não pode ser reatribuído.',
+  ],
+  'problem.supplier.grantOverlap': [
+    'La autorización del proveedor para el proyecto se solapa con otra autorización activa.',
+    'A autorização do fornecedor para o projeto se sobrepõe a outra autorização ativa.',
+  ],
+  'problem.supplier.grantChanged': [
+    'Se requiere una autorización activa del proveedor para el proyecto.',
+    'É necessária uma autorização ativa do fornecedor para o projeto.',
+  ],
+  'problem.supplier.assignmentExists': [
+    'La asignación del técnico ya existe.',
+    'A atribuição do técnico já existe.',
+  ],
+  'problem.supplier.dateOrderInvalid': [
+    'La fecha de fin debe ser posterior a la de inicio.',
+    'A data de término deve ser posterior à data de início.',
+  ],
+  'problem.supplier.batchTechnicianRequired': [
+    'Selecciona al menos un técnico.',
+    'Selecione pelo menos um técnico.',
+  ],
+  'problem.supplier.batchLimit': [
+    'Un lote de horas admite como máximo 100 técnicos.',
+    'Um lote de horas permite no máximo 100 técnicos.',
+  ],
+  'problem.supplier.batchReplayChanged': [
+    'Esta solicitud de lote ya se utilizó con otros valores.',
+    'Esta solicitação de lote já foi usada com outros valores.',
+  ],
+  'problem.supplier.draftRequired': [
+    'Selecciona al menos un borrador.',
+    'Selecione pelo menos um rascunho.',
+  ],
+  'problem.supplier.draftBatchLimit': [
+    'Un lote de envío admite como máximo 100 borradores.',
+    'Um lote de envio permite no máximo 100 rascunhos.',
+  ],
+  'problem.supplier.draftSelectionInvalid': [
+    'Los borradores seleccionados no son válidos.',
+    'Os rascunhos selecionados não são válidos.',
+  ],
+  'problem.supplier.statusInvalid': [
+    'El estado del proveedor no es válido.',
+    'O estado do fornecedor não é válido.',
+  ],
+  'problem.supplier.technicianStatusInvalid': [
+    'El estado del técnico no es válido.',
+    'O estado do técnico não é válido.',
+  ],
+  'problem.supplier.phoneTooLong': [
+    'El teléfono es demasiado largo.',
+    'O telefone é longo demais.',
+  ],
+  'problem.supplier.addressTooLong': [
+    'La dirección es demasiado larga.',
+    'O endereço é longo demais.',
+  ],
+  'problem.supplier.notesTooLong': [
+    'Las notas son demasiado largas.',
+    'As observações são longas demais.',
+  ],
+  'problem.supplier.companyTooLong': [
+    'El nombre de la empresa es demasiado largo.',
+    'O nome da empresa é longo demais.',
+  ],
+  'problem.supplier.contactNameTooLong': [
+    'El nombre del contacto es demasiado largo.',
+    'O nome do contato é longo demais.',
+  ],
+  'problem.supplier.profileWorkerUnavailable': [
+    'No se encontró el trabajador.',
+    'Trabalhador não encontrado.',
+  ],
+  'problem.supplier.grantRequired': [
+    'Se requiere una autorización vigente del proveedor para el proyecto.',
+    'É necessária uma autorização vigente do fornecedor para o projeto.',
+  ],
+  'problem.supplier.technicianScopeRequired': [
+    'El técnico debe estar autorizado para este proyecto.',
+    'O técnico deve estar autorizado para este projeto.',
+  ],
+  'problem.supplier.scopeRequired': [
+    'Se requiere acceso al proveedor.',
+    'É necessário acesso ao fornecedor.',
+  ],
+  'problem.supplier.coordinatorAccessChanged': [
+    'Se requiere acceso de coordinador activo del proveedor.',
+    'É necessário acesso de coordenador ativo do fornecedor.',
+  ],
+  'problem.supplier.ownerRequired': [
+    'Se requiere administración del Propietario.',
+    'É necessária administração do Proprietário.',
+  ],
+  'problem.supplier.accountRoleChanged': [
+    'El rol de la cuenta cambió.',
+    'A função da conta mudou.',
+  ],
+  'problem.supplier.timeSubmitStale': [
+    'El registro de horas cambió o ya no se puede enviar.',
+    'O registro de horas mudou ou não pode mais ser enviado.',
+  ],
+  'problem.supplier.timeEditStale': [
+    'El registro de horas cambió o ya no se puede editar.',
+    'O registro de horas mudou ou não pode mais ser editado.',
+  ],
+  'problem.supplier.timeDiscardStale': [
+    'Este borrador cambió o ya no se puede descartar. Revisa su estado actual antes de intentarlo de nuevo.',
+    'Este rascunho mudou ou não pode mais ser descartado. Revise o estado atual antes de tentar novamente.',
+  ],
+  'problem.supplier.timeDraftLocked': [
+    'Solo se puede cambiar un borrador de horas desbloqueado que nunca se haya enviado.',
+    'Só é possível alterar um rascunho de horas desbloqueado que nunca foi enviado.',
+  ],
+  'problem.supplier.timeCorrectionLocked': [
+    'Este borrador de corrección no se puede editar ni eliminar aquí. Revisa su registro de corrección.',
+    'Este rascunho de correção não pode ser editado nem excluído aqui. Revise o registro de correção.',
+  ],
+  'problem.supplier.timeCorrectionRequired': [
+    'Las horas devueltas, enviadas o aprobadas requieren la vía de corrección revisada.',
+    'Horas devolvidas, enviadas ou aprovadas exigem o procedimento de correção revisado.',
+  ],
+  'problem.supplier.timeCorrectionExists': [
+    'Ya existe un borrador de corrección para este registro de horas.',
+    'Já existe um rascunho de correção para este registro de horas.',
+  ],
+  'problem.supplier.timeCorrectionState': [
+    'Solo las horas aprobadas o devueltas por un revisor pueden generar un borrador de corrección.',
+    'Só horas aprovadas ou devolvidas por um revisor podem gerar um rascunho de correção.',
+  ],
+  'problem.supplier.timeFinanceLocked': [
+    'Estas horas tienen historial financiero y no se pueden cambiar aquí. Consulta a un Propietario sobre un ajuste explícito.',
+    'Estas horas têm histórico financeiro e não podem ser alteradas aqui. Contate um Proprietário sobre um ajuste explícito.',
+  ],
+  'problem.supplier.timeCorrectionReplay': [
+    'La solicitud de corrección entra en conflicto con un intento anterior.',
+    'A solicitação de correção entra em conflito com uma tentativa anterior.',
+  ],
+  'problem.supplier.timeCorrectionReason': [
+    'El motivo de la corrección debe tener al menos 3 caracteres.',
+    'O motivo da correção deve ter pelo menos 3 caracteres.',
+  ],
+  'problem.supplier.timeCorrectionEmpty': [
+    'Cambia al menos un campo operativo antes de crear una corrección.',
+    'Altere pelo menos um campo operacional antes de criar uma correção.',
+  ],
+  'problem.supplier.draftRecorderRequired': [
+    'Solo el coordinador que registró este borrador puede descartarlo.',
+    'Só o coordenador que registrou este rascunho pode descartá-lo.',
+  ],
+  'problem.supplier.minutesInvalid': [
+    'Los minutos deben ser un número entero de 0 a 1440.',
+    'Os minutos devem ser um número inteiro de 0 a 1440.',
+  ],
+  'problem.supplier.breakInvalid': [
+    'Los minutos de descanso no son válidos.',
+    'Os minutos de intervalo não são válidos.',
+  ],
+  'problem.supplier.timeNotFound': [
+    'Este registro de horas ya no está disponible. Revisa los borradores actuales.',
+    'Este registro de horas não está mais disponível. Revise os rascunhos atuais.',
+  ],
+  'problem.supplier.timeCorrectionStale': [
+    'La corrección devuelta cambió antes de repetir la solicitud.',
+    'A correção devolvida mudou antes da nova tentativa.',
+  ],
+  'problem.supplier.timeAssignmentDate': [
+    'La asignación del trabajador no cubre la fecha de trabajo corregida.',
+    'A atribuição do trabalhador não cobre a data de trabalho corrigida.',
+  ],
+  'problem.supplier.timeAssignmentRequired': [
+    'El técnico ya no tiene una asignación activa para este proyecto y fecha. Consulta a un Propietario.',
+    'O técnico não tem mais uma atribuição ativa para este projeto e data. Contate um Proprietário.',
+  ],
+  'problem.supplier.timeOwnershipRequired': [
+    'Se requiere ser propietario de este registro de horas.',
+    'É necessário ser proprietário deste registro de horas.',
+  ],
+  'problem.supplier.batchRequestInvalid': [
+    'La solicitud de lote no es válida.',
+    'A solicitação de lote não é válida.',
+  ],
+  'problem.supplier.timeWeekUnchanged': [
+    'La semana de origen y la de destino deben ser distintas.',
+    'A semana de origem e a de destino devem ser diferentes.',
+  ],
+  'problem.supplier.existingIntervalInvalid': [
+    'Es necesario revisar un intervalo de horas existente antes de guardar nuevas horas.',
+    'É necessário revisar um intervalo de horas existente antes de salvar novas horas.',
+  ],
+  'problem.supplier.sessionExpired': [
+    'Se requiere una sesión autenticada vigente.',
+    'É necessária uma sessão autenticada válida.',
+  ],
+  'problem.supplier.correctionConfigurationMissing': [
+    'La identidad del despliegue no está configurada.',
+    'A identidade da implantação não está configurada.',
+  ],
+  'problem.supplier.batchModeInvalid': [
+    'Elige horas compartidas o individuales.',
+    'Escolha horas compartilhadas ou individuais.',
+  ],
+  'problem.supplier.batchHoursRequired': [
+    'Introduce las horas de cada técnico seleccionado.',
+    'Informe as horas de cada técnico selecionado.',
+  ],
+  'problem.supplier.batchHoursInvalid': [
+    'Introduce horas válidas para cada técnico seleccionado.',
+    'Informe horas válidas para cada técnico selecionado.',
+  ],
+  'problem.supplier.batchHoursRange': [
+    'Las horas individuales deben ser mayores que cero y no superar 24.',
+    'As horas individuais devem ser maiores que zero e não ultrapassar 24.',
+  ],
+  'problem.supplier.batchModeConflict': [
+    'Las horas individuales no pueden incluir un intervalo de tiempo compartido.',
+    'Horas individuais não podem incluir um intervalo de tempo compartilhado.',
+  ],
+  'problem.supplier.intervalRequired': [
+    'Se requieren las horas de inicio y fin.',
+    'São necessários os horários de início e fim.',
+  ],
+  'problem.supplier.intervalInvalid': [
+    'El intervalo de tiempo o el descanso no es válido.',
+    'O intervalo de tempo ou a pausa não é válida.',
+  ],
+  'problem.supplier.durationRequired': [
+    'Introduce las horas o una hora de inicio y fin.',
+    'Informe as horas ou os horários de início e fim.',
+  ],
+  'problem.supplier.durationRange': [
+    'La duración debe ser mayor que cero y no superar 24 horas.',
+    'A duração deve ser maior que zero e não ultrapassar 24 horas.',
+  ],
+  'problem.supplier.durationModeInvalid': [
+    'Elige una duración o un intervalo de tiempo.',
+    'Escolha uma duração ou um intervalo de tempo.',
+  ],
+  'problem.supplier.confirmStatusChange': [
+    'Confirma este cambio de estado antes de guardar.',
+    'Confirme esta mudança de estado antes de salvar.',
+  ],
+  'problem.supplier.profileInvalid': [
+    'Elige un perfil de proveedor válido.',
+    'Escolha um perfil de fornecedor válido.',
+  ],
+  'problem.supplier.dateInvalid': [
+    'Introduce una fecha real en formato AAAA-MM-DD.',
+    'Informe uma data real no formato AAAA-MM-DD.',
+  ],
+  'problem.supplier.requiredField': [
+    'Completa este campo obligatorio.',
+    'Preencha este campo obrigatório.',
+  ],
+  'problem.supplier.assignmentGrantEnd': [
+    'Esta asignación se extendería más allá del fin de la autorización del coordinador, {grantEnd}. Pide a un Propietario que revise la autorización o acorta la asignación.',
+    'Esta atribuição ultrapassaria o fim da autorização do coordenador, {grantEnd}. Peça a um Proprietário que revise a autorização ou encurte a atribuição.',
+  ],
+  'problem.supplier.clockFormatInvalid': [
+    'Introduce una hora válida en formato HH:mm.',
+    'Informe um horário válido no formato HH:mm.',
+  ],
+  'problem.supplier.batchNoneSaved': [
+    'No se guardó ningún registro de horas.',
+    'Nenhum registro de horas foi salvo.',
+  ],
+  'Review linked invoice': ['Revisar la factura vinculada', 'Revisar a fatura vinculada'],
+  'Review financial history': ['Revisar el historial financiero', 'Revisar o histórico financeiro'],
+  'Review correction path': ['Revisar la vía de corrección', 'Revisar o procedimento de correção'],
+  'Sign in again': ['Volver a iniciar sesión', 'Entrar novamente'],
+  'problem.management.ownerRequired': [
+    'Se requiere acceso de Propietario para este cambio. Consulta a un Propietario.',
+    'É necessário acesso de Proprietário para esta alteração. Contate um Proprietário.',
+  ],
+  'problem.management.confirmOperation': [
+    'Confirma la operación antes de guardar.',
+    'Confirme a operação antes de salvar.',
+  ],
+  'problem.finance.previewInvalidFields': [
+    'Revisa los campos del ejemplo señalados y vuelve a calcular.',
+    'Revise os campos do exemplo destacados e calcule novamente.',
+  ],
+  'problem.finance.previewPayerConflict': [
+    'Un gasto pagado directamente por el cliente no puede haber sido adelantado también por el trabajador. Cambia el tratamiento del gasto o el pagador.',
+    'Uma despesa paga diretamente pelo cliente não pode também ter sido adiantada pelo trabalhador. Altere o tratamento da despesa ou o pagador.',
+  ],
+  'problem.finance.previewPeriodInvalid': [
+    'Introduce fechas válidas para el ejemplo y el ancla antes de calcular los períodos de facturación.',
+    'Informe datas válidas para o exemplo e a âncora antes de calcular os períodos de faturamento.',
+  ],
+  'problem.finance.previewCalculationInvalid': [
+    'El ejemplo no se puede calcular con estos valores. Revisa las tarifas, horas y multiplicadores.',
+    'O exemplo não pode ser calculado com estes valores. Revise as tarifas, horas e multiplicadores.',
+  ],
+  'problem.finance.previewRoleRequired': [
+    'Se requiere acceso a Finanzas para calcular este ejemplo. Consulta a Finanzas o a un propietario.',
+    'É necessário acesso a Finanças para calcular este exemplo. Contate Finanças ou um proprietário.',
+  ],
+  'problem.finance.previewSessionRequired': [
+    'Vuelve a iniciar sesión antes de calcular este ejemplo financiero.',
+    'Entre novamente antes de calcular este exemplo financeiro.',
+  ],
+  'problem.remedy.reviewOwnerAccess': [
+    'Revisar el acceso de propietarios',
+    'Revisar o acesso de proprietários',
+  ],
+  'problem.remedy.reviewUserStatus': [
+    'Revisar el estado del usuario',
+    'Revisar o estado do usuário',
+  ],
+  'problem.remedy.reviewExistingPerson': [
+    'Revisar la persona existente',
+    'Revisar a pessoa existente',
+  ],
+  'problem.remedy.reviewSupplierProfile': [
+    'Revisar el perfil de proveedor',
+    'Revisar o perfil de fornecedor',
+  ],
+  'problem.remedy.reviewUserAccess': [
+    'Revisar el acceso del usuario',
+    'Revisar o acesso do usuário',
+  ],
+  'problem.remedy.reviewMailboxIdentity': [
+    'Revisar la identidad del buzón',
+    'Revisar a identidade da caixa de correio',
+  ],
+  'problem.remedy.reviewUpdatedRecord': [
+    'Revisar el registro actualizado',
+    'Revisar o registro atualizado',
+  ],
+  'problem.remedy.correctEmail': ['Corregir el correo', 'Corrigir o e-mail'],
+  'problem.remedy.enterReason': ['Introducir un motivo', 'Informar um motivo'],
+  'Linked hours unavailable': ['Horas vinculadas no disponibles', 'Horas vinculadas indisponíveis'],
+  'The selected logged hours are no longer available. Review the link before saving.': [
+    'Las horas registradas seleccionadas ya no están disponibles. Revisa el vínculo antes de guardar.',
+    'As horas registradas selecionadas não estão mais disponíveis. Revise o vínculo antes de salvar.',
+  ],
+  'problem.access.lastOwnerRequired': [
+    'El último propietario activo debe conservar el acceso de propietario. Añade otro propietario antes de cambiar este rol.',
+    'O último proprietário ativo deve manter o acesso de proprietário. Adicione outro proprietário antes de alterar esta função.',
+  ],
+  'problem.access.selfStatusBlocked': [
+    'Un propietario no puede cambiar aquí el estado de su propia cuenta. Pide a otro propietario autorizado que revise la cuenta.',
+    'Um proprietário não pode alterar aqui o estado da própria conta. Peça a outro proprietário autorizado que revise a conta.',
+  ],
+  'problem.access.canonicalOwnerProtected': [
+    'La cuenta del propietario designado no se puede cambiar mediante esta acción de buzón.',
+    'A conta do proprietário designado não pode ser alterada por esta ação de caixa de correio.',
+  ],
+  'problem.access.userInactive': [
+    'Esta cuenta del portal está inactiva. Revisa su estado antes de cambiar el acceso al buzón.',
+    'Esta conta do portal está inativa. Revise o estado antes de alterar o acesso à caixa de correio.',
+  ],
+  'problem.access.mailIdentityStale': [
+    'Este vínculo de buzón cambió o se eliminó. Revisa la cuenta actualizada antes de intentarlo de nuevo.',
+    'Este vínculo de caixa de correio mudou ou foi removido. Revise a conta atualizada antes de tentar novamente.',
+  ],
+  'problem.access.reasonRequired': [
+    'Introduce un motivo para este cambio de acceso a la cuenta.',
+    'Informe um motivo para esta alteração de acesso à conta.',
+  ],
+  'problem.access.emailAlreadyUsed': [
+    'Una cuenta del portal ya utiliza este correo. Elige la persona existente u otro correo.',
+    'Uma conta do portal já usa este e-mail. Escolha a pessoa existente ou outro e-mail.',
+  ],
+  'problem.access.personAlreadyHasLogin': [
+    'Esta persona ya tiene acceso al portal. Revisa su cuenta existente en lugar de crear otro inicio de sesión.',
+    'Esta pessoa já tem acesso ao portal. Revise a conta existente em vez de criar outro login.',
+  ],
+  'problem.access.personInactive': [
+    'La persona seleccionada ya no está activa. Revisa su estado o elige una persona activa.',
+    'A pessoa selecionada não está mais ativa. Revise o estado ou escolha uma pessoa ativa.',
+  ],
+  'problem.access.personRoleMismatch': [
+    'La persona seleccionada tiene otro rol. Revisa su rol antes de conceder este acceso.',
+    'A pessoa selecionada tem outra função. Revise a função antes de conceder este acesso.',
+  ],
+  'problem.access.personSupplierMismatch': [
+    'La persona seleccionada pertenece a otro perfil de proveedor. Revisa ese perfil antes de conceder acceso.',
+    'A pessoa selecionada pertence a outro perfil de fornecedor. Revise esse perfil antes de conceder acesso.',
+  ],
+  'problem.access.supplierHistoryLocked': [
+    'Esta persona tiene historial de horas como proveedor. Revisa el perfil de proveedor existente antes de cambiarlo.',
+    'Esta pessoa tem histórico de horas como fornecedor. Revise o perfil de fornecedor existente antes de alterá-lo.',
+  ],
+  'problem.access.supplierLoginRequired': [
+    'Un coordinador de proveedor necesita acceso funcional al portal. Crea o restaura primero su inicio de sesión.',
+    'Um coordenador de fornecedor precisa de acesso funcional ao portal. Crie ou restaure o login primeiro.',
+  ],
+  'problem.access.supplierWorkerRequired': [
+    'Solo las cuentas de trabajador pueden recibir un perfil de proveedor. Elige un trabajador o revisa el rol de esta persona.',
+    'Só contas de trabalhador podem receber um perfil de fornecedor. Escolha um trabalhador ou revise a função desta pessoa.',
+  ],
+  'problem.access.emailInvalid': [
+    'Introduce una dirección de correo válida para esta cuenta del portal.',
+    'Informe um endereço de e-mail válido para esta conta do portal.',
+  ],
+  'problem.access.workforceProfileInvalid': [
+    'Elige una persona y un perfil laboral válido.',
+    'Escolha uma pessoa e um perfil de trabalho válido.',
+  ],
+  'problem.access.localCredentialsInvalid': [
+    'Se requiere un nombre y una contraseña de 12 a 128 caracteres.',
+    'É necessário um nome e uma senha de 12 a 128 caracteres.',
+  ],
+  'problem.access.localRoleInvalid': [
+    'Elige un rol de acceso válido.',
+    'Escolha uma função de acesso válida.',
+  ],
+  'problem.access.supplierRequired': [
+    'Selecciona un proveedor para este rol de acceso.',
+    'Selecione um fornecedor para esta função de acesso.',
+  ],
+  'problem.access.statusInvalid': [
+    'Elige una persona y un estado de cuenta válido.',
+    'Escolha uma pessoa e um estado de conta válido.',
+  ],
+  'problem.access.workerProfileInvalid': [
+    'Completa el nombre, correo y rol de la persona antes de guardar.',
+    'Preencha o nome, e-mail e função da pessoa antes de salvar.',
+  ],
+  'problem.access.linkedMailboxEmail': [
+    'Esta persona tiene una dirección de buzón vinculada. Cambia la identidad del buzón mediante el procedimiento autorizado de cuentas de correo.',
+    'Esta pessoa tem um endereço de caixa de correio vinculado. Altere a identidade da caixa de correio pelo procedimento autorizado de contas de e-mail.',
+  ],
+  'Project no longer available': ['Proyecto ya no disponible', 'Projeto não está mais disponível'],
+  'This project is no longer available for this expense. Review the project selection before saving.':
+    [
+      'Este proyecto ya no está disponible para este gasto. Revisa la selección del proyecto antes de guardar.',
+      'Este projeto não está mais disponível para esta despesa. Revise a seleção do projeto antes de salvar.',
+    ],
+  'problem.remedy.reviewAssignments': ['Revisar asignaciones', 'Revisar atribuições'],
+  'problem.remedy.chooseAvailableWorker': [
+    'Elegir un trabajador disponible',
+    'Escolher um trabalhador disponível',
+  ],
+  'problem.project.clientCurrencyMismatch': [
+    'La moneda del proyecto debe coincidir con la del cliente seleccionado.',
+    'A moeda do projeto deve corresponder à moeda do cliente selecionado.',
+  ],
+  'problem.project.initialWorkerDuplicate': [
+    'Se seleccionó un trabajador más de una vez. Deja una sola entrada por trabajador.',
+    'Um trabalhador foi selecionado mais de uma vez. Mantenha apenas uma entrada por trabalhador.',
+  ],
+  'problem.project.initialWorkerUnavailable': [
+    'Un trabajador seleccionado ya no está activo. Elige un trabajador disponible.',
+    'Um trabalhador selecionado não está mais ativo. Escolha um trabalhador disponível.',
+  ],
+  'problem.project.initialWorkerDateOutsideProject': [
+    'La asignación del trabajador debe comenzar dentro de las fechas del proyecto. Revisa la fecha de inicio.',
+    'A atribuição do trabalhador deve começar dentro das datas do projeto. Revise a data de início.',
+  ],
+  'Review client currency': ['Revisar la moneda del cliente', 'Revisar a moeda do cliente'],
+  'Review selected workers': [
+    'Revisar los trabajadores seleccionados',
+    'Revisar os trabalhadores selecionados',
+  ],
+  'Review project dates': ['Revisar las fechas del proyecto', 'Revisar as datas do projeto'],
+  'problem.project.assignmentOverlap': [
+    'Este trabajador ya tiene una asignación que se solapa en este proyecto. Revisa las fechas de la asignación existente.',
+    'Este trabalhador já tem uma atribuição sobreposta neste projeto. Revise as datas da atribuição existente.',
+  ],
+  'problem.project.assignmentWorkerUnavailable': [
+    'Este trabajador ya no está activo. Elige un trabajador disponible antes de asignarlo.',
+    'Este trabalhador não está mais ativo. Escolha um trabalhador disponível antes de atribuí-lo.',
+  ],
+  'problem.client.stale': [
+    'Este cliente cambió mientras lo editabas. Revisa el cliente actualizado antes de guardar de nuevo.',
+    'Este cliente mudou durante a edição. Revise o cliente atualizado antes de salvar novamente.',
+  ],
+  'problem.project.stale': [
+    'Este proyecto cambió mientras lo editabas. Revisa su estado actual antes de guardar de nuevo.',
+    'Este projeto mudou durante a edição. Revise o estado atual antes de salvar novamente.',
+  ],
+  'problem.assignment.stale': [
+    'Esta asignación cambió mientras la editabas. Revisa las fechas actuales antes de guardar de nuevo.',
+    'Esta atribuição mudou durante a edição. Revise as datas atuais antes de salvar novamente.',
+  ],
+  'problem.client.closeOpenProjects': [
+    'Cierra o archiva los proyectos abiertos del cliente antes de cerrar el cliente.',
+    'Feche ou arquive os projetos abertos do cliente antes de fechar o cliente.',
+  ],
+  'problem.project.clientArchived': [
+    'El cliente está archivado. Revisa el estado del cliente antes de activar este proyecto.',
+    'O cliente está arquivado. Revise o estado do cliente antes de ativar este projeto.',
+  ],
+  'problem.client.transitionNotAllowed': [
+    'El cambio de estado solicitado para el cliente no está permitido desde su estado actual.',
+    'A mudança de estado solicitada para o cliente não é permitida a partir do estado atual.',
+  ],
+  'problem.project.transitionNotAllowed': [
+    'El cambio de estado solicitado para el proyecto no está permitido desde su estado actual.',
+    'A mudança de estado solicitada para o projeto não é permitida a partir do estado atual.',
+  ],
+  'problem.record.notArchived': [
+    'Solo se puede restaurar un registro archivado. Revisa su estado actual.',
+    'Só é possível restaurar um registro arquivado. Revise o estado atual.',
+  ],
+  'problem.record.restoreTargetMissing': [
+    'Este registro archivado no tiene un estado anterior seguro al que restaurarlo. Consulta al propietario para su revisión.',
+    'Este registro arquivado não tem um estado anterior seguro para restauração. Contate o proprietário para revisão.',
+  ],
+  'problem.client.deleteHasProjects': [
+    'Este cliente aún tiene proyectos. Revísalos y archiva el cliente si se debe conservar el historial.',
+    'Este cliente ainda tem projetos. Revise-os e arquive o cliente se o histórico precisar ser preservado.',
+  ],
+  'problem.client.deleteHasInvoices': [
+    'Este cliente aparece en el historial de facturas. Archívalo en lugar de eliminarlo.',
+    'Este cliente aparece no histórico de faturas. Arquive-o em vez de excluí-lo.',
+  ],
+  'problem.client.contactBillingHistory': [
+    'Este contacto se usa en el historial de facturación y no se puede eliminar. Actualiza el contacto de facturación activo.',
+    'Este contato é usado no histórico de faturamento e não pode ser excluído. Atualize o contato de faturamento ativo.',
+  ],
+  'problem.client.billingContactRequired': [
+    'Mantén un correo de facturación u otro contacto de facturación antes de eliminar este contacto.',
+    'Mantenha um e-mail de faturamento ou outro contato de faturamento antes de remover este contato.',
+  ],
+  'problem.assignment.inactive': [
+    'Esta asignación ya no está activa. Revisa la asignación actual antes de hacer cambios.',
+    'Esta atribuição não está mais ativa. Revise a atribuição atual antes de fazer alterações.',
+  ],
+  'problem.project.activeClientRequired': [
+    'El cliente seleccionado ya no está activo. Elige un cliente activo o revisa su estado.',
+    'O cliente selecionado não está mais ativo. Escolha um cliente ativo ou revise o estado dele.',
+  ],
+  'problem.project.managerUnavailable': [
+    'El responsable de proyecto seleccionado ya no está activo. Elige un responsable disponible.',
+    'O gerente de projeto selecionado não está mais ativo. Escolha um gerente disponível.',
+  ],
+  'problem.project.deleteHasTime': [
+    'Este proyecto tiene registros de horas y no se puede eliminar. Archiva el proyecto.',
+    'Este projeto tem registros de horas e não pode ser excluído. Arquive o projeto.',
+  ],
+  'problem.project.deleteHasExpenses': [
+    'Este proyecto tiene gastos y no se puede eliminar. Archiva el proyecto.',
+    'Este projeto tem despesas e não pode ser excluído. Arquive o projeto.',
+  ],
+  'problem.project.deleteHasInvoices': [
+    'Este proyecto tiene facturas y no se puede eliminar. Archiva el proyecto.',
+    'Este projeto tem faturas e não pode ser excluído. Arquive o projeto.',
+  ],
+  'problem.project.deleteHasDailyReports': [
+    'Este proyecto tiene partes diarios de campo y no se puede eliminar. Archiva el proyecto.',
+    'Este projeto tem relatórios diários de campo e não pode ser excluído. Arquive o projeto.',
+  ],
+  'problem.project.deleteHasTechnicalReports': [
+    'Este proyecto tiene informes técnicos y no se puede eliminar. Archiva el proyecto.',
+    'Este projeto tem relatórios técnicos e não pode ser excluído. Arquive o projeto.',
+  ],
+  'Choose an active worker.': ['Elige un trabajador activo.', 'Escolha um trabalhador ativo.'],
+  'Review assignments': ['Revisar asignaciones', 'Revisar atribuições'],
+  'Choose an available worker': [
+    'Elegir un trabajador disponible',
+    'Escolher um trabalhador disponível',
+  ],
+  'Review client projects': ['Revisar los proyectos del cliente', 'Revisar os projetos do cliente'],
+  'Review client status': ['Revisar el estado del cliente', 'Revisar o estado do cliente'],
+  'Archive client': ['Archivar cliente', 'Arquivar cliente'],
+  'Close client': ['Cerrar cliente', 'Fechar cliente'],
+  'Reopen client': ['Reabrir cliente', 'Reabrir cliente'],
+  'Review billing contact': [
+    'Revisar el contacto de facturación',
+    'Revisar o contato de faturamento',
+  ],
+  'Add billing contact': ['Añadir contacto de facturación', 'Adicionar contato de faturamento'],
+  'Archive project': ['Archivar proyecto', 'Arquivar projeto'],
+  'Choose an available manager': [
+    'Elegir un responsable disponible',
+    'Escolher um gerente disponível',
+  ],
+  'This crew member is no longer available for this project and date. Review the selection before saving.':
+    [
+      'Este miembro del equipo ya no está disponible para este proyecto y fecha. Revisa la selección antes de guardar.',
+      'Este integrante da equipe não está mais disponível para este projeto e data. Revise a seleção antes de salvar.',
+    ],
+  'Crew member unavailable': [
+    'Miembro del equipo no disponible',
+    'Integrante da equipe indisponível',
+  ],
+  'problem.billing.ownerRequired': [
+    'Un propietario debe realizar esta acción de facturación. Consulta a un propietario para revisar el registro.',
+    'Um proprietário deve realizar esta ação de faturamento. Contate um proprietário para revisar o registro.',
+  ],
+  'problem.billing.financeRequired': [
+    'Se requiere acceso a Finanzas para esta acción de facturación. Consulta a un administrador de Finanzas.',
+    'É necessário acesso a Finanças para esta ação de faturamento. Contate um administrador de Finanças.',
+  ],
+  'problem.billing.idempotencyReused': [
+    'Esta clave de solicitud ya se usó con otros datos. Revisa el registro existente antes de enviar una nueva solicitud.',
+    'Esta chave de solicitação já foi usada com outros dados. Revise o registro existente antes de enviar uma nova solicitação.',
+  ],
+  'problem.billing.recordChanged': [
+    'Este registro de facturación o sus orígenes cambiaron mientras lo revisabas. Revisa el registro actual antes de decidir qué hacer.',
+    'Este registro de faturamento ou suas origens mudaram durante a revisão. Revise o registro atual antes de decidir o que fazer.',
+  ],
+  'problem.billing.approvedInvoiceRequired': [
+    'Esta factura ya no es un borrador aprobado sin emitir. Revisa su estado actual antes de recalcularla o emitirla.',
+    'Esta fatura não é mais um rascunho aprovado e não emitido. Revise o estado atual antes de recalcular ou emitir.',
+  ],
+  'problem.billing.draftStateRequired': [
+    'La factura ya pasó del estado de borrador editable. Revísala antes de hacer otro cambio.',
+    'A fatura já passou do estado de rascunho editável. Revise-a antes de fazer outra alteração.',
+  ],
+  'problem.billing.pdfNotReady': [
+    'El PDF de la factura sigue pendiente o falló. Comprueba el estado del archivo antes de enviarlo o descargarlo.',
+    'O PDF da fatura ainda está pendente ou falhou. Confira o estado do arquivo antes de enviar ou baixar.',
+  ],
+  'problem.billing.exportFailed': [
+    'Esta exportación falló. Revisa el estado del paquete y solicita un nuevo intento autorizado para este archivo.',
+    'Esta exportação falhou. Revise o estado do pacote e solicite uma nova tentativa autorizada para este arquivo.',
+  ],
+  'problem.billing.exportPending': [
+    'Esta exportación sigue en cola o en proceso. Comprueba el estado del paquete antes de descargarla.',
+    'Esta exportação ainda está na fila ou em processamento. Confira o estado do pacote antes de baixar.',
+  ],
+  'problem.billing.packFinal': [
+    'Este paquete contable es definitivo y no se puede cambiar. Revisa los archivos existentes o crea una nueva revisión.',
+    'Este pacote contábil é final e não pode ser alterado. Revise os arquivos existentes ou crie uma nova revisão.',
+  ],
+  'problem.billing.voidCollectionsPresent': [
+    'Esta factura tiene cobros. Revisa y revierte los pagos correspondientes antes de que un propietario pueda anularla.',
+    'Esta fatura tem recebimentos. Revise e estorne os pagamentos aplicáveis antes que um proprietário possa anulá-la.',
+  ],
+  'problem.billing.paymentBlocked': [
+    'El pago no se puede registrar en el estado actual de la factura o con este importe o fecha. Revisa el libro de la factura y los datos del pago.',
+    'O pagamento não pode ser registrado no estado atual da fatura ou com este valor ou data. Revise o livro da fatura e os dados do pagamento.',
+  ],
+  'problem.billing.invoiceStateBlocked': [
+    'La factura no está en un estado que permita esta acción. Revisa su estado actual y su historial.',
+    'A fatura não está em um estado que permita esta ação. Revise o estado atual e o histórico.',
+  ],
+  'problem.billing.issueConfigurationBlocked': [
+    'La entidad emisora, el perfil fiscal o la moneda de la factura ya no están listos para emitirla. Pide a Finanzas que revise la configuración.',
+    'A entidade emissora, o perfil fiscal ou a moeda da fatura não estão mais prontos para emissão. Peça à equipe de Finanças que revise a configuração.',
+  ],
+  'problem.billing.recalculationDetailsRequired': [
+    'Introduce un motivo y usa la versión actual de la factura antes de recalcularla.',
+    'Informe um motivo e use a versão atual da fatura antes de recalcular.',
+  ],
+  'problem.billing.adjustmentAmountBlocked': [
+    'El importe del ajuste no es válido o supera el importe restante de la factura original. Revisa sus abonos y el importe.',
+    'O valor do ajuste é inválido ou excede o valor restante da fatura original. Revise os créditos e o valor.',
+  ],
+  'action.billing.invoiceAlreadyIssued': [
+    'La factura {invoiceNumber} ya se emitió.',
+    'A fatura {invoiceNumber} já foi emitida.',
+  ],
+  'action.billing.paymentAlreadyRecorded': [
+    'Este pago ya está registrado.',
+    'Este pagamento já foi registrado.',
+  ],
+  'problem.document.notFound': [
+    'Este documento ya no está disponible. Actualiza la lista de documentos antes de continuar.',
+    'Este documento não está mais disponível. Atualize a lista de documentos antes de continuar.',
+  ],
+  'problem.document.accessRequired': [
+    'No tienes permiso para cambiar este documento. Consulta a su propietario o a un administrador autorizado.',
+    'Você não tem permissão para alterar este documento. Contate o proprietário ou um administrador autorizado.',
+  ],
+  'problem.document.traceableImmutable': [
+    'Este documento forma parte del historial trazable. Archívalo o sustitúyelo mediante el procedimiento permitido.',
+    'Este documento faz parte do histórico rastreável. Arquive-o ou substitua-o pelo procedimento permitido.',
+  ],
+  'problem.document.changed': [
+    'El documento cambió mientras este formulario estaba abierto. Revisa su estado actual antes de intentar otra acción.',
+    'O documento mudou enquanto este formulário estava aberto. Revise o estado atual antes de tentar outra ação.',
+  ],
+  'problem.document.archiveReasonRequired': [
+    'Introduce un motivo de archivo de 3 a 500 caracteres.',
+    'Informe um motivo de arquivamento de 3 a 500 caracteres.',
+  ],
+  'Review invoice': ['Revisar factura', 'Revisar fatura'],
+  'Review invoice ledger': ['Revisar el libro de la factura', 'Revisar o livro da fatura'],
+  'Review billing setup': [
+    'Revisar la configuración de facturación',
+    'Revisar a configuração de faturamento',
+  ],
+  'Review accounting pack': ['Revisar el paquete contable', 'Revisar o pacote contábil'],
+  'Contact a finance administrator': [
+    'Consultar a un administrador de Finanzas',
+    'Contatar um administrador de Finanças',
+  ],
+  'Contact an owner': ['Consultar a un propietario', 'Contatar um proprietário'],
+  'Contact the project owner to review access.': [
+    'Consulta al propietario del proyecto para revisar el acceso.',
+    'Contate o proprietário do projeto para revisar o acesso.',
+  ],
+  'Review logged hours': ['Revisar las horas registradas', 'Revisar as horas registradas'],
+  'problem.time.weekChanged': [
+    'La semana cambió desde que la abriste. Revisa los borradores actuales antes de enviarla.',
+    'A semana mudou depois que você a abriu. Revise os rascunhos atuais antes de enviar.',
+  ],
+  'problem.time.linkedMealChanged': [
+    'Una comida vinculada ya no coincide con su registro de horas. Revisa ambos borradores antes de enviar la semana.',
+    'Uma refeição vinculada não corresponde mais ao registro de horas. Revise os dois rascunhos antes de enviar a semana.',
+  ],
+  'problem.time.submissionChanged': [
+    'Este registro de horas cambió o ya no es un borrador. Revisa su estado actual antes de enviarlo.',
+    'Este registro de horas mudou ou não é mais um rascunho. Revise o estado atual antes de enviar.',
+  ],
+  'problem.time.draftChanged': [
+    'Este registro de horas cambió mientras lo editabas. Revisa el borrador actual antes de guardar.',
+    'Este registro de horas mudou durante a edição. Revise o rascunho atual antes de salvar.',
+  ],
+  'problem.time.notEditableDraft': [
+    'Solo se puede editar un borrador de horas desbloqueado que nunca se haya enviado. Revisa el registro o solicita una corrección.',
+    'Só é possível editar um rascunho de horas desbloqueado que nunca foi enviado. Revise o registro ou solicite uma correção.',
+  ],
+  'problem.time.assignmentRequired': [
+    'Una asignación activa al proyecto debe cubrir esta fecha de trabajo. Consulta al propietario del proyecto para revisar el acceso.',
+    'Uma atribuição ativa ao projeto deve cobrir esta data de trabalho. Contate o proprietário do projeto para revisar o acesso.',
+  ],
+  'problem.time.workerAssignmentRequired': [
+    'El trabajador seleccionado no tiene una asignación activa que cubra esta fecha de trabajo. Revisa el trabajador y la fecha.',
+    'O trabalhador selecionado não tem uma atribuição ativa que cubra esta data de trabalho. Revise o trabalhador e a data.',
+  ],
+  'problem.time.intervalOverlap': [
+    'Este trabajador ya tiene horas registradas en el intervalo seleccionado. Ajusta la hora de inicio o fin.',
+    'Este trabalhador já tem horas registradas no intervalo selecionado. Ajuste o horário de início ou fim.',
+  ],
+  'problem.time.expenseRetryChanged': [
+    'Esta solicitud de horas y comida ya se usó con otros datos. Revisa los borradores guardados antes de intentarlo de nuevo.',
+    'Esta solicitação de horas e refeição já foi usada com outros dados. Revise os rascunhos salvos antes de tentar novamente.',
+  ],
+  'problem.time.correctionDraftLocked': [
+    'Este borrador de corrección vinculado no se puede editar aquí. Revisa su registro de corrección.',
+    'Este rascunho de correção vinculado não pode ser editado aqui. Revise o registro de correção.',
+  ],
+  'problem.time.correctionRequired': [
+    'Las horas revisadas no se pueden eliminar. Abre el registro y solicita una corrección auditada.',
+    'Horas revisadas não podem ser excluídas. Abra o registro e solicite uma correção auditada.',
+  ],
+  'problem.time.lockedOrInvoiced': [
+    'Las horas bloqueadas o facturadas no se pueden anular. Consulta a Finanzas para un ajuste auditado.',
+    'Horas bloqueadas ou faturadas não podem ser anuladas. Contate a equipe de Finanças para um ajuste auditado.',
+  ],
+  'problem.time.allocatedReceipt': [
+    'Estas horas de equipo están vinculadas a un recibo repartido. Revisa el reparto y solicita una corrección documentada.',
+    'Estas horas da equipe estão vinculadas a um recibo distribuído. Revise a distribuição e solicite uma correção documentada.',
+  ],
+  'problem.time.allocatedReceiptDateLocked': [
+    'La fecha de trabajo no se puede cambiar mientras estas horas de equipo estén vinculadas a un recibo repartido. Revisa el reparto y solicita una corrección documentada.',
+    'A data de trabalho não pode mudar enquanto estas horas da equipe estiverem vinculadas a um recibo distribuído. Revise a distribuição e solicite uma correção documentada.',
+  ],
+  'problem.time.deleteChanged': [
+    'Este registro de horas cambió antes de eliminarlo. Revisa su estado actual.',
+    'Este registro de horas mudou antes da exclusão. Revise o estado atual.',
+  ],
+  'problem.time.batchDuplicateDay': [
+    'El lote contiene más de un registro para un día. Deja un registro por día y guarda de nuevo.',
+    'O lote contém mais de um registro para um dia. Mantenha um registro por dia e salve novamente.',
+  ],
+  'problem.time.weekStartInvalid': [
+    'Selecciona una semana que comience en lunes y revisa sus borradores antes de enviarla.',
+    'Selecione uma semana que comece na segunda-feira e revise os rascunhos antes de enviar.',
+  ],
+  'problem.time.minutesInvalid': [
+    'Introduce un número entero de minutos entre 0 y 1440.',
+    'Informe um número inteiro de minutos entre 0 e 1440.',
+  ],
+  'problem.time.dailyLimit': [
+    'Este trabajador ya tiene horas en el día seleccionado. El total no puede superar las 24 horas.',
+    'Este trabalhador já tem horas no dia selecionado. O total não pode ultrapassar 24 horas.',
+  ],
+  'problem.time.intervalIncomplete': [
+    'Indica tanto la hora de inicio como la de fin, o deja ambas vacías.',
+    'Informe os horários de início e fim ou deixe ambos vazios.',
+  ],
+  'problem.time.intervalOrderInvalid': [
+    'La hora de fin debe ser posterior a la de inicio en el mismo día.',
+    'O horário de fim deve ser posterior ao de início no mesmo dia.',
+  ],
+  'problem.time.breakInvalid': [
+    'Los minutos de descanso deben ser un número entero dentro del turno.',
+    'Os minutos de intervalo devem ser um número inteiro dentro do turno.',
+  ],
+  'problem.time.durationMismatch': [
+    'Los minutos registrados deben coincidir con el tiempo entre el inicio y el fin, descontando el descanso.',
+    'Os minutos registrados devem corresponder ao tempo entre o início e o fim, descontando o intervalo.',
+  ],
+  'problem.expense.submissionBlocked': [
+    'Este gasto cambió, ya no es un borrador o requiere un recibo. Revisa su estado actual y adjunta un recibo si hace falta.',
+    'Esta despesa mudou, não é mais um rascunho ou exige um recibo. Revise o estado atual e anexe um recibo, se necessário.',
+  ],
+  'problem.expense.notEditableDraft': [
+    'Solo se puede editar un borrador de gasto desbloqueado. Revisa el registro o solicita una corrección.',
+    'Só é possível editar um rascunho de despesa desbloqueado. Revise o registro ou solicite uma correção.',
+  ],
+  'problem.expense.draftChanged': [
+    'Este gasto cambió mientras lo editabas. Revisa el registro actual antes de guardar.',
+    'Esta despesa mudou durante a edição. Revise o registro atual antes de salvar.',
+  ],
+  'problem.expense.receiptRequired': [
+    'Adjunta un recibo confirmado antes de guardar este gasto.',
+    'Anexe um recibo confirmado antes de salvar esta despesa.',
+  ],
+  'problem.expense.receiptAlreadyClaimed': [
+    'Este recibo ya se usó en un gasto del proyecto. Revisa la solicitud existente antes de enviar otra.',
+    'Este recibo já foi usado em uma despesa do projeto. Revise a solicitação existente antes de enviar outra.',
+  ],
+  'problem.expense.retryChanged': [
+    'Este identificador de solicitud ya se usó con otros datos del gasto. Revisa el gasto guardado antes de intentarlo de nuevo.',
+    'Este identificador de solicitação já foi usado com outros dados da despesa. Revise a despesa salva antes de tentar novamente.',
+  ],
+  'problem.expense.assignmentRequired': [
+    'Una asignación activa al proyecto debe cubrir la fecha del gasto. Consulta al propietario del proyecto para revisar el acceso.',
+    'Uma atribuição ativa ao projeto deve cobrir a data da despesa. Contate o proprietário do projeto para revisar o acesso.',
+  ],
+  'problem.expense.timeLinkInvalid': [
+    'El registro de horas vinculado debe estar activo y coincidir con este trabajador, proyecto y fecha. Revisa el registro de horas.',
+    'O registro de horas vinculado deve estar ativo e corresponder a este trabalhador, projeto e data. Revise o registro de horas.',
+  ],
+  'problem.expense.amountInvalid': [
+    'Introduce un importe de gasto mayor que cero.',
+    'Informe um valor de despesa maior que zero.',
+  ],
+  'problem.expense.receiptProjectMismatch': [
+    'Este recibo no pertenece al proyecto seleccionado. Elige un recibo de este proyecto.',
+    'Este recibo não pertence ao projeto selecionado. Escolha um recibo deste projeto.',
+  ],
+  'problem.expense.correctionDraftLocked': [
+    'Este borrador de corrección vinculado no se puede editar aquí. Revisa su registro de corrección.',
+    'Este rascunho de correção vinculado não pode ser editado aqui. Revise o registro de correção.',
+  ],
+  'problem.expense.allocatedReceiptLocked': [
+    'Este recibo está repartido entre turnos del equipo. Revisa el reparto y crea una corrección documentada.',
+    'Este recibo está distribuído entre turnos da equipe. Revise a distribuição e crie uma correção documentada.',
+  ],
+  'problem.expense.receiptNotAvailable': [
+    'El recibo seleccionado no está disponible o no se confirmó para tu cuenta. Adjunta un recibo válido.',
+    'O recibo selecionado está indisponível ou não foi confirmado para sua conta. Anexe um recibo válido.',
+  ],
+  'problem.expense.receiptAlreadyRegistered': [
+    'Este recibo ya está adjunto a otro registro. Revisa la solicitud existente antes de enviar otra.',
+    'Este recibo já está anexado a outro registro. Revise a solicitação existente antes de enviar outra.',
+  ],
+  'problem.expense.deleteDraftOnly': [
+    'Solo se puede eliminar un borrador de gasto que nunca se haya enviado. Revisa el registro o solicita una corrección.',
+    'Só é possível excluir um rascunho de despesa que nunca foi enviado. Revise o registro ou solicite uma correção.',
+  ],
+  'problem.expense.billedOrLocked': [
+    'Los gastos facturados o bloqueados no se pueden eliminar. Consulta a Finanzas para un ajuste auditado.',
+    'Despesas faturadas ou bloqueadas não podem ser excluídas. Contate a equipe de Finanças para um ajuste auditado.',
+  ],
+  'problem.expense.deleteChanged': [
+    'Este gasto cambió antes de eliminarlo. Revisa su estado actual.',
+    'Esta despesa mudou antes da exclusão. Revise o estado atual.',
+  ],
+  'problem.report.draftChanged': [
+    'Este informe cambió mientras lo editabas. Revisa la versión actual antes de guardar.',
+    'Este relatório mudou durante a edição. Revise a versão atual antes de salvar.',
+  ],
+  'problem.report.submissionChanged': [
+    'Este informe cambió o ya no es un borrador. Revisa la versión actual antes de enviarlo.',
+    'Este relatório mudou ou não é mais um rascunho. Revise a versão atual antes de enviar.',
+  ],
+  'problem.report.correctionRequired': [
+    'Los informes enviados o aprobados requieren un borrador de corrección auditado antes de editarlos.',
+    'Relatórios enviados ou aprovados exigem um rascunho de correção auditado antes da edição.',
+  ],
+  'problem.report.finalized': [
+    'Este informe forma parte de un informe finalizado. Revisa el registro actual y solicita una corrección con nueva versión.',
+    'Este relatório faz parte de um relatório finalizado. Revise o registro atual e solicite uma correção com nova versão.',
+  ],
+  'problem.report.correctionDraftLocked': [
+    'Este borrador de corrección vinculado no se puede editar aquí. Revisa su registro de corrección.',
+    'Este rascunho de correção vinculado não pode ser editado aqui. Revise o registro de correção.',
+  ],
+  'problem.report.deleteDraftOnly': [
+    'Solo se puede eliminar un borrador de informe que nunca se haya enviado. Revisa el informe o solicita una corrección.',
+    'Só é possível excluir um rascunho de relatório que nunca foi enviado. Revise o relatório ou solicite uma correção.',
+  ],
+  'problem.report.reviewHistoryLocked': [
+    'Este informe tiene historial de revisión y no se puede eliminar. Solicita una corrección auditada.',
+    'Este relatório tem histórico de revisão e não pode ser excluído. Solicite uma correção auditada.',
+  ],
+  'problem.report.linkedTechnicalChanges': [
+    'Este informe tiene cambios técnicos vinculados. Revísalos antes de eliminar el borrador.',
+    'Este relatório tem alterações técnicas vinculadas. Revise-as antes de excluir o rascunho.',
+  ],
+  'problem.report.deleteChanged': [
+    'Este registro cambió antes de eliminarlo. Revisa su estado actual.',
+    'Este registro mudou antes da exclusão. Revise o estado atual.',
+  ],
+  'problem.report.reviewStateChanged': [
+    'Este informe ya no está enviado para revisión. Abre la versión actual antes de tomar una decisión.',
+    'Este relatório não está mais enviado para revisão. Abra a versão atual antes de decidir.',
+  ],
+  'problem.report.projectNotActive': [
+    'El proyecto ya no está activo para enviar informes. Consulta al propietario del proyecto sobre su estado.',
+    'O projeto não está mais ativo para enviar relatórios. Contate o proprietário do projeto para revisar o estado.',
+  ],
+  'problem.report.assignmentRequired': [
+    'Una asignación vigente al proyecto debe cubrir la fecha del informe. Consulta al propietario del proyecto para revisar el acceso.',
+    'Uma atribuição vigente ao projeto deve cobrir a data do relatório. Contate o proprietário do projeto para revisar o acesso.',
+  ],
+  'problem.report.safetyDetailsRequired': [
+    'Los cambios relacionados con la seguridad requieren detalles de validación y reversión antes de guardar.',
+    'Alterações relacionadas à segurança exigem detalhes de validação e reversão antes de salvar.',
+  ],
+  'problem.approval.ownerReviewRequired': [
+    'Estas horas de proveedor requieren revisión del Propietario. Consulta a un Propietario para que tome la decisión.',
+    'Estas horas do fornecedor exigem revisão do Proprietário. Contate um Proprietário para tomar a decisão.',
+  ],
+  'problem.approval.reviewPermissionRequired': [
+    'Ya no tienes permiso para revisar este proyecto. Consulta a un revisor del proyecto.',
+    'Você não tem mais permissão para revisar este projeto. Contate um revisor do projeto.',
+  ],
+  'problem.approval.recordNotSubmitted': [
+    'Este registro ya no está enviado. Revisa su estado actual antes de tomar una decisión.',
+    'Este registro não está mais enviado. Revise o estado atual antes de decidir.',
+  ],
+  'problem.approval.recordChanged': [
+    'Este registro cambió mientras lo revisabas. Revisa el registro actualizado antes de tomar una decisión.',
+    'Este registro mudou durante a revisão. Revise o registro atualizado antes de decidir.',
+  ],
+  'problem.approval.financeReviewUnavailable': [
+    'La revisión de Finanzas ya no está disponible para este registro. Revisa su estado actual de aprobación y facturación.',
+    'A revisão de Finanças não está mais disponível para este registro. Revise o estado atual de aprovação e faturamento.',
+  ],
+  'problem.approval.reasonRequired': [
+    'Introduce un motivo antes de devolver o rechazar este registro.',
+    'Informe um motivo antes de devolver ou rejeitar este registro.',
+  ],
+  'problem.approval.expenseClassificationRequired': [
+    'Clasifica este gasto en Finanzas antes de registrar la revisión financiera.',
+    'Classifique esta despesa em Finanças antes de registrar a revisão financeira.',
+  ],
+  'problem.finance.roleRequired': [
+    'Se requiere acceso a Finanzas para esta acción.',
+    'É necessário acesso a Finanças para esta ação.',
+  ],
+  'problem.finance.reimbursementConflict': [
+    'La política de reembolso al trabajador cambió. Revisa la política actual antes de guardar de nuevo; la facturación al cliente se gestiona por separado.',
+    'A política de reembolso ao trabalhador mudou. Revise a política atual antes de salvar novamente; o faturamento do cliente é separado.',
+  ],
+  'problem.finance.projectIssuingAuthorityRequired': [
+    'Configura una entidad emisora del proyecto vigente en la fecha de este gasto antes de clasificarlo.',
+    'Configure uma entidade emissora do projeto vigente na data desta despesa antes de classificá-la.',
+  ],
+  'problem.finance.issuingCurrencyMismatch': [
+    'La moneda del proyecto y la de la entidad emisora son distintas. Revisa la entidad emisora antes de clasificar este gasto.',
+    'A moeda do projeto difere da moeda da entidade emissora. Revise a entidade emissora antes de classificar esta despesa.',
+  ],
+  'problem.finance.workerReimbursementRequired': [
+    'Clasifica el gasto y define el reembolso al trabajador antes de registrar el pago. La recuperación del cliente es una decisión aparte.',
+    'Classifique a despesa e defina o reembolso ao trabalhador antes de registrar o pagamento. A recuperação junto ao cliente é uma decisão separada.',
+  ],
+  'problem.finance.reimbursementFinalized': [
+    'Este reembolso al trabajador ya se finalizó con otros datos. Revisa el pago registrado antes de hacer una corrección.',
+    'Este reembolso ao trabalhador já foi finalizado com outros dados. Revise o pagamento registrado antes de fazer uma correção.',
+  ],
+  'problem.finance.reimbursementUnavailable': [
+    'Solo se puede reembolsar un gasto aprobado y pagado por el trabajador. Revisa el estado del gasto y quién lo pagó.',
+    'Só é possível reembolsar uma despesa aprovada e paga pelo trabalhador. Revise o estado da despesa e quem a pagou.',
+  ],
+  'problem.finance.expensePayerTreatmentMismatch': [
+    'El pagador y el tratamiento no coinciden. El reembolso al trabajador solo se aplica si pagó el trabajador; los gastos pagados por el cliente requieren recuperación directa del cliente.',
+    'O pagador e o tratamento não correspondem. O reembolso ao trabalhador só se aplica quando ele pagou; despesas pagas pelo cliente exigem recuperação direta do cliente.',
+  ],
+  'problem.finance.policyConflict': [
+    'Este período de vigencia se solapa con una política o asignación existente. Revisa los períodos actuales antes de guardar.',
+    'Este período de vigência se sobrepõe a uma política ou atribuição existente. Revise os períodos atuais antes de salvar.',
+  ],
+  'problem.finance.compensationNotFinalized': [
+    'Finaliza la liquidación de remuneración del trabajador antes de registrar su pago.',
+    'Finalize a liquidação da remuneração do trabalhador antes de registrar o pagamento.',
+  ],
+  'problem.finance.paymentRetryConflict': [
+    'Esta solicitud de pago ya se usó con otros datos. Revisa los pagos registrados a trabajadores antes de intentarlo de nuevo.',
+    'Esta solicitação de pagamento já foi usada com outros dados. Revise os pagamentos registrados aos trabalhadores antes de tentar novamente.',
+  ],
+  'problem.finance.recordChanged': [
+    'Este registro de Finanzas cambió mientras el formulario estaba abierto. Revisa el registro actualizado antes de guardar de nuevo.',
+    'Este registro de Finanças mudou enquanto o formulário estava aberto. Revise o registro atualizado antes de salvar novamente.',
+  ],
+  'problem.finance.expenseImmutable': [
+    'Este gasto ya forma parte del historial de facturación o pagos a trabajadores. Revisa el registro y utiliza su vía de corrección.',
+    'Esta despesa já faz parte do histórico de faturamento ou pagamento a trabalhadores. Revise o registro e use o procedimento de correção.',
+  ],
+  'Contact a project owner': [
+    'Consultar a un propietario del proyecto',
+    'Contatar um proprietário do projeto',
+  ],
+  'Contact a project reviewer': [
+    'Consultar a un revisor del proyecto',
+    'Contatar um revisor do projeto',
+  ],
+  'Contact Finance or an owner': [
+    'Consultar a Finanzas o a un propietario',
+    'Contatar Finanças ou um proprietário',
+  ],
+  'Review updated record': ['Revisar el registro actualizado', 'Revisar o registro atualizado'],
+  'Classify expense in Finance': [
+    'Clasificar el gasto en Finanzas',
+    'Classificar a despesa em Finanças',
+  ],
+  'Review expense policy': ['Revisar la política de gastos', 'Revisar a política de despesas'],
+  'Review expense classification': [
+    'Revisar la clasificación del gasto',
+    'Revisar a classificação da despesa',
+  ],
+  'Review project issuing authority': [
+    'Revisar la entidad emisora del proyecto',
+    'Revisar a entidade emissora do projeto',
+  ],
+  'Reattach the receipt before saving again.': [
+    'Vuelve a adjuntar el recibo antes de guardar de nuevo.',
+    'Anexe o recibo novamente antes de salvar.',
+  ],
+  'problem.project.assignmentBlockedStatus': [
+    '{projectName} está en estado {status}. Las nuevas asignaciones solo se permiten en proyectos Activos, Planificados o Pausados.',
+    '{projectName} está no estado {status}. Novas atribuições só são permitidas em projetos Ativos, Planejados ou Pausados.',
+  ],
+  'problem.project.assignmentAllowedStatuses': [
+    'Las nuevas asignaciones solo se permiten en proyectos Activos, Planificados o Pausados.',
+    'Novas atribuições só são permitidas em projetos Ativos, Planejados ou Pausados.',
+  ],
+  'problem.project.unavailableOption': [
+    '{projectName} — {status} (no disponible para nuevas asignaciones)',
+    '{projectName} — {status} (indisponível para novas atribuições)',
+  ],
+  'problem.project.assignmentAdvanceWarning': [
+    'Este proyecto no admite nuevas asignaciones mientras esté en estado {status}. Revisa su estado antes de continuar.',
+    'Este projeto não aceita novas atribuições enquanto estiver no estado {status}. Revise o estado antes de continuar.',
+  ],
+  'problem.remedy.reviewProjectStatus': [
+    'Revisar el estado del proyecto',
+    'Revisar o estado do projeto',
+  ],
+  'problem.remedy.contactOwner': [
+    'Consulta al propietario del proyecto sobre su estado.',
+    'Contate o proprietário do projeto sobre o estado dele.',
+  ],
+  'problem.field.summary': [
+    'Revisa los {count} campos señalados.',
+    'Revise os {count} campos destacados.',
+  ],
+  'problem.error.unexpected': [
+    'No pudimos confirmar si la acción se completó. Comprueba el registro antes de intentarlo de nuevo. Referencia: {correlationId}.',
+    'Não foi possível confirmar se a ação foi concluída. Confira o registro antes de tentar novamente. Referência: {correlationId}.',
+  ],
+  'problem.error.reference': ['Referencia: {correlationId}', 'Referência: {correlationId}'],
+  'problem.notice.actionNeeded': ['Se requiere una acción', 'Ação necessária'],
+  'problem.notice.beforeContinue': ['Antes de continuar', 'Antes de continuar'],
+  'problem.notice.serviceUnavailable': [
+    'Servicio temporalmente no disponible',
+    'Serviço temporariamente indisponível',
+  ],
+  'problem.notice.saved': ['Cambios guardados', 'Alterações salvas'],
+  'problem.notice.checkSaveBeforeRetry': [
+    'Comprueba si el registro se guardó antes de volver a enviarlo.',
+    'Confira se o registro foi salvo antes de enviar novamente.',
+  ],
+  'Current status: {status}': ['Estado actual: {status}', 'Estado atual: {status}'],
   'Shared crew receipt · allocation locked': [
     'Recibo compartido de cuadrilla · reparto bloqueado',
     'Recibo partilhado da equipa · distribuição bloqueada',
@@ -176,6 +1688,10 @@ const exact: Record<string, readonly [string, string]> = {
   'Issuing authority not configured': [
     'Entidad emisora sin configurar',
     'Entidade emissora não configurada',
+  ],
+  'Assign a reviewed project issuing authority before issuing this invoice.': [
+    'Asigna una entidad emisora revisada al proyecto antes de emitir esta factura.',
+    'Atribua uma entidade emissora revisada ao projeto antes de emitir esta fatura.',
   ],
   Budget: ['Presupuesto', 'Orçamento'],
   'Configure person rates': ['Configurar tarifas por persona', 'Configurar tarifas por pessoa'],
@@ -2802,6 +4318,8 @@ function englishActionMessage(key: string): string {
     'action.validation.accountStatus': 'Invalid account status change.',
     'action.validation.workerProfile': 'Invalid worker profile data.',
     'action.error.conflict': 'This action conflicts with the current record state.',
+    'action.billing.invoiceAlreadyIssued': 'Invoice {invoiceNumber} was already issued',
+    'action.billing.paymentAlreadyRecorded': 'This payment was already recorded',
     'action.access.workerProfile.updated': 'Worker profile updated.',
     'action.validation.invalidForm': 'Invalid form.',
     'action.validation.missingEmails': 'No email accounts selected.',
@@ -3153,8 +4671,588 @@ function englishActionMessage(key: string): string {
   return 'The action could not be completed.';
 }
 
+const problemEnglish: Record<string, string> = {
+  'problem.notification.invalidLink':
+    'This notification link is invalid. Open it from your activity inbox.',
+  'problem.notification.unavailable':
+    'This notification is no longer available. Return to your activity inbox.',
+  'problem.closeout.financeRoleRequired':
+    'An active Finance or Owner role is required to manage closeout.',
+  'problem.closeout.ownerRoleRequired': 'Only an active Owner can reopen a closed project.',
+  'problem.closeout.projectNotFound':
+    'This project is no longer available. Review the project list.',
+  'problem.closeout.revisionNotFound':
+    'This closeout revision is no longer available. Review the current closeout.',
+  'problem.closeout.reopenReasonRequired':
+    'Enter a reason of 1 to 2000 characters before reopening.',
+  'problem.closeout.documentSelectionInvalid':
+    'The selected customer attachments contain duplicates or exceed the allowed document count. Review the selection.',
+  'problem.closeout.documentUnavailable':
+    'A selected document is unavailable or is not authorized for customer closeout. Review the selection.',
+  'problem.closeout.packageTooLarge':
+    'The closeout package exceeds its size limit. Choose fewer or smaller customer attachments.',
+  'problem.closeout.clientSnapshotFinancialReview':
+    'The client snapshot may contain financial information. Review its source records before publication.',
+  'problem.closeout.clientConfirmationStale':
+    'The client snapshot changed since confirmation. Review the current snapshot and confirm it again.',
+  'problem.closeout.confirmationCheckRequired':
+    'Confirm that you reviewed the exact client snapshot before continuing.',
+  'problem.closeout.reasonRetained': 'Reason entered',
+  'problem.closeout.selectionRetained': 'Documents you selected',
+  'problem.closeout.documentNoLongerAvailable': 'Document no longer available',
+  'problem.closeout.previousConfirmation':
+    'You checked the previous snapshot. Review the current snapshot and check the box again.',
+  'problem.closeout.confirmationRequired':
+    'Confirm the exact current client snapshot before finalizing the closeout.',
+  'problem.closeout.draftAlreadyActive':
+    'A closeout draft is already active. Review that draft before continuing.',
+  'problem.closeout.activeDraftRequired':
+    'This closeout draft is no longer active. Review the current closeout.',
+  'problem.closeout.draftChanged':
+    'The closeout changed while this form was open. Review the updated draft before continuing.',
+  'problem.closeout.reopenUnavailable':
+    'This revision cannot be reopened because it is not the latest final revision of a closed project, or it was already reopened. Review the current closeout.',
+  'problem.closeout.sourceChanged':
+    'The closeout source records changed. Review them and prepare a fresh draft.',
+  'problem.closeout.sourceInvalid':
+    'A required closeout source or accepted customer conformity record is invalid or stale. Review the source records.',
+  'problem.closeout.documentIntegrityFailed':
+    'A selected source document failed a storage or integrity check. Review the source documents and contact an owner.',
+  'problem.closeout.artifactWriteIncomplete':
+    'The closeout artifact did not finish writing. Check the current revision before trying again.',
+  'problem.remedy.reviewCloseout': 'Review current closeout',
+  'problem.remedy.reviewCloseoutDocuments': 'Review closeout documents',
+  'problem.remedy.reviewProjects': 'Review projects',
+  'problem.finance.policyDuplicateStart':
+    'A person expense policy already starts on this date. Review that policy before adding another.',
+  'problem.finance.policyPeriodOverlap':
+    'This policy period overlaps an existing policy for the same person, payer, and category. Review the current periods.',
+  'problem.finance.policyEndBeforeStart': 'The policy end date must be on or after its start date.',
+  'problem.finance.policyAssignmentUnavailable':
+    'This person no longer has an active project assignment. Review the assignment before creating a policy.',
+  'problem.finance.policyOutsideAssignment':
+    "The policy dates must stay within this person's project assignment.",
+  'problem.finance.policyEndRequired':
+    'This assignment has an end date. Enter a policy end date within it.',
+  'problem.finance.policyMarkupMismatch':
+    'A markup requires a positive rate; other client treatments cannot include markup.',
+  'problem.finance.reimbursementAmountInvalid':
+    'The reimbursement amount must be positive and cannot exceed the approved worker reimbursement.',
+  'problem.finance.partialReimbursementUnsupported':
+    'Record the full approved worker reimbursement amount; partial reimbursement is not supported here.',
+  'problem.finance.paymentExceedsBalance':
+    'The payment exceeds the remaining worker compensation balance. Review the settlement before recording it.',
+  'problem.finance.paymentCurrencyMismatch':
+    'The payment currency must match the worker compensation settlement.',
+  'problem.remedy.reviewAssignmentPolicy': 'Review assignment policy',
+  'problem.crew.accountInactive':
+    'Your account is no longer active for this action. Contact the project owner.',
+  'problem.crew.assignmentRequired':
+    'Both workers need active project assignments on the delegation start date. Contact the project owner to review assignments.',
+  'problem.crew.batchRequestInvalid':
+    'Refresh this form before saving crew time. Your entered hours can be copied into the new form.',
+  'problem.crew.batchRetryChanged':
+    'This request ID was already used with different hours. Review saved crew time before submitting again.',
+  'problem.crew.batchWorkerBlocked':
+    'No crew time was saved because a selected worker has a date, assignment, or existing time conflict. Review that worker and the current entries.',
+  'problem.crew.categoryInvalid': 'Choose a valid operational time category.',
+  'problem.crew.chiefRoleRequired':
+    'Crew time entry requires an active crew chief role. Contact the project owner to review access.',
+  'problem.crew.correctionStale':
+    'This crew time changed before the correction. Review the current record before creating a new draft.',
+  'problem.crew.correctionStateBlocked':
+    'A corrected draft can be created here only after a reviewer returns this crew time for changes.',
+  'problem.crew.dateOrderInvalid': 'The end date must follow the start date.',
+  'problem.crew.delegationChanged':
+    'This delegation was already changed or revoked. Review current delegations.',
+  'problem.crew.delegationExists':
+    'These workers already have an active crew delegation. Review it before adding another.',
+  'problem.crew.delegationNotActive':
+    'This crew delegation or a project assignment is no longer active for the selected date. Contact the project owner.',
+  'problem.crew.draftChanged':
+    'This crew draft changed while you were editing. Review the current version before saving.',
+  'problem.crew.draftLinkedEvidence':
+    'This crew draft is linked to another record and cannot be changed here. Review the linked record and request a documented correction.',
+  'problem.crew.draftNotEditable':
+    'Only a crew draft that has never been submitted can be edited or discarded. Review the record.',
+  'problem.crew.draftVersionInvalid':
+    'This form has no valid draft version. Review the current entry before saving.',
+  'problem.crew.durationInvalid': 'Enter more than zero and no more than 24 hours.',
+  'problem.crew.hourModeRequired': 'Choose shared hours or individual hours for this crew entry.',
+  'problem.crew.individualHoursInvalid': 'Enter valid hours for every selected worker.',
+  'problem.crew.intervalNotAllowed':
+    'Crew batch hours cannot include a start or end time inferred from duration. Enter actual hours for each worker.',
+  'problem.crew.membersRequired': 'Select between one and 100 assigned crew members.',
+  'problem.crew.ownerRoleRequired':
+    'Only the project owner can change crew delegations. Contact the owner for assistance.',
+  'problem.crew.projectTimezoneRequired':
+    'The project needs a valid timezone before crew access can be checked. Contact the project owner.',
+  'problem.crew.receiptAccessRequired':
+    'This receipt is unavailable under your current crew access. Review current receipts.',
+  'problem.crew.receiptAmountFormatInvalid':
+    'Enter each allocation as a positive amount, such as 6.50.',
+  'problem.crew.receiptAmountInvalid':
+    'The receipt amount is invalid for allocation. Review the saved receipt.',
+  'problem.crew.receiptAmountsInvalid': 'Enter a positive amount for each distinct crew time row.',
+  'problem.crew.receiptLinkedTimeRequired': 'Include the time row already linked to this receipt.',
+  'problem.crew.receiptPayerInvalid':
+    'A shared receipt must have one worker or the company as its payer. Review the receipt before allocation.',
+  'problem.crew.receiptPayerRequired':
+    'Include the receipt’s payer or attributed worker in the allocation.',
+  'problem.crew.receiptRequestInvalid':
+    'Refresh this form before allocating the receipt. Review existing allocations before trying again.',
+  'problem.crew.receiptRetryChanged':
+    'This receipt allocation request was already used with different amounts. Review existing allocations.',
+  'problem.crew.receiptRowsRequired': 'Select two to 100 crew time rows for this shared receipt.',
+  'problem.crew.receiptScopeMismatch':
+    'The selected time rows and receipt must belong to the same project and date. Review both records.',
+  'problem.crew.receiptTotalMismatch':
+    'The allocation amounts must add up to the receipt amount exactly.',
+  'problem.crew.receiptUnavailable':
+    'The receipt is no longer an unallocated draft you entered. Review current receipts.',
+  'problem.crew.receiptWorkersRequired':
+    'Allocate the shared receipt to at least two different workers.',
+  'problem.crew.samePerson': 'Choose different people for the chief and team member.',
+  'problem.crew.sharedHoursInvalid':
+    'Enter shared hours greater than zero and no more than 24 for each selected worker.',
+  'problem.crew.timeAccessRequired':
+    'This crew time entry is unavailable under your current delegation. Review your crew entries or contact the project owner.',
+  'problem.crew.timeDailyLimit':
+    'This worker already has time on the selected day. Total time cannot exceed 24 hours.',
+  'problem.crew.timeDelegationChanged':
+    'The crew delegation changed after this form opened. Contact the project owner to review access.',
+  'problem.crew.timeIntervalOverlap':
+    'This worker already has time recorded in the selected interval. Adjust the time or date.',
+  'problem.crew.timeSubmissionChanged':
+    'This crew time changed or is no longer a draft. Review the current entry before submitting.',
+  'problem.crew.workerInactive':
+    'Both selected workers need active accounts. Contact the project owner to review access.',
+  'problem.remedy.reviewDelegations': 'Review current crew delegations',
+  'problem.remedy.reviewCrewDay': 'Review current crew entries',
+  'problem.remedy.reviewReceipts': 'Review current receipts and allocations',
+  'problem.remedy.reviewCrewTime': 'Review updated crew time',
+  'problem.remedy.contactProjectOwner': 'Contact the project owner to review access',
+  'problem.remedy.reviewSupplierDirectory': 'Review supplier directory',
+  'problem.remedy.reviewSupplierGrants': 'Review supplier grants',
+  'problem.remedy.reviewSupplierAssignments': 'Review technician assignments',
+  'problem.remedy.chooseOperationalProject': 'Choose an operational project',
+  'problem.remedy.reviewSavedDrafts': 'Review saved drafts before retrying',
+  'problem.remedy.reviewTimeDrafts': 'Review time drafts',
+  'problem.remedy.correctField': 'Correct the highlighted field',
+  'problem.remedy.confirmStatusChange': 'Confirm the status change',
+  'problem.remedy.signInAgain': 'Sign in again',
+  'problem.supplier.nameExists': 'Supplier name already exists',
+  'problem.supplier.emailInvalid': 'Supplier email is invalid',
+  'problem.supplier.technicianEmailInvalid': 'Technician email is invalid',
+  'problem.supplier.technicianEmailUsed': 'Technician email already belongs to an account',
+  'problem.supplier.loginEmailManaged': 'Manage login email from the account profile',
+  'problem.supplier.activeRequired': 'Active supplier required',
+  'problem.supplier.notFound': 'Supplier not found',
+  'problem.supplier.technicianUnavailable': 'Supplier technician required',
+  'problem.supplier.technicianStatusBlocked': 'Active or suspended supplier technician required',
+  'problem.supplier.operationalProjectRequired': 'Operational project required',
+  'problem.supplier.coordinatorUnavailable': 'Active supplier coordinator required',
+  'problem.supplier.coordinatorLoginRequired':
+    'Supplier coordinators require a usable login account',
+  'problem.supplier.profileWorkerRequired':
+    'Only existing worker accounts can receive a supplier profile',
+  'problem.supplier.profileHistoryLocked':
+    'Supplier profile with canonical time history cannot be reassigned',
+  'problem.supplier.grantOverlap': 'Supplier project grant overlaps an active grant',
+  'problem.supplier.grantChanged': 'Active supplier project grant required',
+  'problem.supplier.assignmentExists': 'Technician assignment already exists',
+  'problem.supplier.dateOrderInvalid': 'End date must follow start date',
+  'problem.supplier.batchTechnicianRequired': 'Select at least one technician',
+  'problem.supplier.batchLimit': 'A time batch is limited to 100 technicians',
+  'problem.supplier.batchReplayChanged': 'Batch request was already used with different values',
+  'problem.supplier.draftRequired': 'Select at least one draft',
+  'problem.supplier.draftBatchLimit': 'A submission batch is limited to 100 drafts',
+  'problem.supplier.draftSelectionInvalid': 'The selected drafts are invalid',
+  'problem.supplier.timeSubmitStale': 'Time entry changed or cannot be submitted',
+  'problem.supplier.timeEditStale': 'Time entry changed or cannot be edited',
+  'problem.supplier.timeDiscardStale':
+    'This draft changed or can no longer be discarded. Review its current state before trying again.',
+  'problem.supplier.timeDraftLocked': 'Only an unlocked never-submitted time draft can change',
+  'problem.supplier.timeCorrectionLocked':
+    'This correction draft cannot be edited or deleted here. Review its correction record.',
+  'problem.supplier.timeCorrectionRequired':
+    'Returned, submitted, or approved time requires the reviewed correction path',
+  'problem.supplier.timeCorrectionExists': 'A correction draft already exists for this time entry',
+  'problem.supplier.timeCorrectionState':
+    'Only approved or reviewer-returned time can create a correction draft',
+  'problem.supplier.timeFinanceLocked':
+    'This time has financial history and cannot be changed here. Contact an Owner about an explicit adjustment.',
+  'problem.supplier.timeCorrectionReplay': 'Correction request conflicts with prior replay',
+  'problem.supplier.timeCorrectionReason': 'Correction reason must contain at least 3 characters',
+  'problem.supplier.timeCorrectionEmpty':
+    'Change at least one operational field before creating a correction',
+  'problem.supplier.statusInvalid': 'Invalid supplier status',
+  'problem.supplier.technicianStatusInvalid': 'Invalid technician status',
+  'problem.supplier.batchModeInvalid': 'Choose shared or individual hours',
+  'problem.supplier.batchHoursRequired': 'Enter hours for every selected technician',
+  'problem.supplier.batchHoursInvalid': 'Enter valid hours for every selected technician',
+  'problem.supplier.batchHoursRange':
+    'Individual hours must be greater than zero and no more than 24',
+  'problem.supplier.batchModeConflict': 'Individual hours cannot include a shared time interval',
+  'problem.supplier.intervalRequired': 'Start and end time are both required',
+  'problem.supplier.intervalInvalid': 'The time interval or break is invalid',
+  'problem.supplier.durationRequired': 'Enter hours, or a start and end time',
+  'problem.supplier.durationRange': 'Duration must be greater than zero and no more than 24 hours',
+  'problem.supplier.durationModeInvalid': 'Choose duration or time interval',
+  'problem.supplier.phoneTooLong': 'Phone is too long',
+  'problem.supplier.addressTooLong': 'Address is too long',
+  'problem.supplier.notesTooLong': 'Notes are too long',
+  'problem.supplier.companyTooLong': 'Company is too long',
+  'problem.supplier.contactNameTooLong': 'Contact name is too long',
+  'problem.supplier.profileWorkerUnavailable': 'Worker not found',
+  'problem.supplier.grantRequired': 'Current supplier project grant required',
+  'problem.supplier.technicianScopeRequired': 'Supplier technician project scope required',
+  'problem.supplier.scopeRequired': 'Supplier scope required',
+  'problem.supplier.coordinatorAccessChanged': 'Active supplier coordinator access required',
+  'problem.supplier.ownerRequired': 'Owner administration required',
+  'problem.supplier.accountRoleChanged': 'Account role changed',
+  'problem.supplier.draftRecorderRequired':
+    'Only the coordinator who recorded this draft may discard it',
+  'problem.supplier.minutesInvalid': 'Minutes must be an integer from 0 to 1440',
+  'problem.supplier.breakInvalid': 'Break minutes are invalid',
+  'problem.supplier.timeNotFound':
+    'This time entry is no longer available. Review the current drafts.',
+  'problem.supplier.timeCorrectionStale': 'Returned correction changed before retry',
+  'problem.supplier.timeAssignmentDate': 'Worker assignment does not cover corrected work date',
+  'problem.supplier.timeAssignmentRequired':
+    'The technician no longer has an active assignment for this project and date. Contact an Owner.',
+  'problem.supplier.timeOwnershipRequired': 'Time entry ownership required',
+  'problem.supplier.batchRequestInvalid': 'Batch request is invalid',
+  'problem.supplier.timeWeekUnchanged': 'Source and target weeks must differ',
+  'problem.supplier.existingIntervalInvalid':
+    'An existing time interval needs review before new time can be saved.',
+  'problem.supplier.sessionExpired': 'Live authenticated session required',
+  'problem.supplier.correctionConfigurationMissing': 'Deployment identity is not configured',
+  'problem.supplier.confirmStatusChange': 'Confirm this status change before saving.',
+  'problem.supplier.profileInvalid': 'Choose a valid supplier profile.',
+  'problem.supplier.dateInvalid': 'Enter a real date in YYYY-MM-DD format.',
+  'problem.supplier.requiredField': 'Complete this required field.',
+  'problem.supplier.assignmentGrantEnd':
+    'This assignment would extend beyond the coordinator’s authorization ending {grantEnd}. Ask an Owner to review the grant or shorten the assignment.',
+  'problem.supplier.clockFormatInvalid': 'Enter a valid time in HH:mm format.',
+  'problem.supplier.batchNoneSaved': 'No time entry was saved.',
+  'problem.management.ownerRequired': 'Owner access is required for this change. Contact an Owner.',
+  'problem.management.confirmOperation': 'Confirm the operation before saving.',
+  'problem.finance.previewInvalidFields':
+    'Check the highlighted example fields and calculate again.',
+  'problem.finance.previewPayerConflict':
+    'A customer-direct expense cannot also have been advanced by the worker. Change the expense treatment or payer.',
+  'problem.finance.previewPeriodInvalid':
+    'Enter valid example and anchor dates before calculating billing periods.',
+  'problem.finance.previewCalculationInvalid':
+    'The example cannot be calculated with these values. Review the rates, hours, and multipliers.',
+  'problem.finance.previewRoleRequired':
+    'Finance access is required to calculate this example. Contact Finance or an owner.',
+  'problem.finance.previewSessionRequired':
+    'Sign in again before calculating this Finance example.',
+  'problem.remedy.reviewOwnerAccess': 'Review owner access',
+  'problem.remedy.reviewUserStatus': 'Review user status',
+  'problem.remedy.reviewExistingPerson': 'Review existing person',
+  'problem.remedy.reviewSupplierProfile': 'Review supplier profile',
+  'problem.remedy.reviewUserAccess': 'Review user access',
+  'problem.remedy.reviewMailboxIdentity': 'Review mailbox identity',
+  'problem.remedy.reviewUpdatedRecord': 'Review updated record',
+  'problem.remedy.correctEmail': 'Correct email',
+  'problem.remedy.enterReason': 'Enter a reason',
+  'problem.access.lastOwnerRequired':
+    'The last active owner must keep owner access. Add another owner before changing this role.',
+  'problem.access.selfStatusBlocked':
+    'An owner cannot change their own account status here. Ask another authorized owner to review the account.',
+  'problem.access.canonicalOwnerProtected':
+    'The designated owner account cannot be changed through this mailbox action.',
+  'problem.access.userInactive':
+    'This portal account is inactive. Review its status before changing mailbox access.',
+  'problem.access.mailIdentityStale':
+    'This mailbox link changed or was removed. Review the updated account before retrying.',
+  'problem.access.reasonRequired': 'Enter a reason for this account access change.',
+  'problem.access.emailAlreadyUsed':
+    'A portal account already uses this email. Choose the existing person or another email.',
+  'problem.access.personAlreadyHasLogin':
+    'This person already has portal access. Review their existing account instead of creating another login.',
+  'problem.access.personInactive':
+    'The selected person is no longer active. Review their status or choose an active person.',
+  'problem.access.personRoleMismatch':
+    'The selected person has a different role. Review their role before granting this access.',
+  'problem.access.personSupplierMismatch':
+    'The selected person belongs to a different supplier profile. Review that profile before granting access.',
+  'problem.access.supplierHistoryLocked':
+    'This person has supplier time history. Review the existing supplier profile before changing its supplier.',
+  'problem.access.supplierLoginRequired':
+    'A supplier coordinator needs working portal access. Create or restore their login first.',
+  'problem.access.supplierWorkerRequired':
+    'Only worker accounts can receive a supplier profile. Choose a worker or review this person’s role.',
+  'problem.access.emailInvalid': 'Enter a valid email address for this portal account.',
+  'problem.access.workforceProfileInvalid': 'Choose a person and a valid workforce profile.',
+  'problem.access.localCredentialsInvalid': 'Name and a 12–128 character password are required',
+  'problem.access.localRoleInvalid': 'Choose a valid access role.',
+  'problem.access.supplierRequired': 'Select a supplier for this access role.',
+  'problem.access.statusInvalid': 'Choose a person and a valid account status.',
+  'problem.access.workerProfileInvalid':
+    'Complete the person’s name, email and role before saving.',
+  'problem.access.linkedMailboxEmail':
+    'This person has a linked mailbox address. Change the mailbox identity through the authorized mail account flow.',
+  'problem.remedy.reviewAssignments': 'Review assignments',
+  'problem.remedy.chooseAvailableWorker': 'Choose an available worker',
+  'problem.project.clientCurrencyMismatch':
+    'Project currency must match the selected client’s currency.',
+  'problem.project.initialWorkerDuplicate':
+    'A worker was selected more than once. Keep one entry for each worker.',
+  'problem.project.initialWorkerUnavailable':
+    'A selected worker is no longer active. Choose an available worker.',
+  'problem.project.initialWorkerDateOutsideProject':
+    'The worker assignment must start within the project dates. Review the start date.',
+  'problem.project.assignmentOverlap':
+    'This worker already has an overlapping assignment on this project. Review the existing assignment dates.',
+  'problem.project.assignmentWorkerUnavailable':
+    'This worker is no longer active. Choose an available worker before assigning.',
+  'problem.client.stale':
+    'This client changed while you were editing. Review the updated client before saving again.',
+  'problem.project.stale':
+    'This project changed while you were editing. Review its current status before saving again.',
+  'problem.assignment.stale':
+    'This assignment changed while you were editing. Review the latest dates before saving again.',
+  'problem.client.closeOpenProjects':
+    'Close or archive the client’s open projects before closing the client.',
+  'problem.project.clientArchived':
+    'The client is archived. Review the client’s status before activating this project.',
+  'problem.client.transitionNotAllowed':
+    'The requested client status change is not allowed from its current status.',
+  'problem.project.transitionNotAllowed':
+    'The requested project status change is not allowed from its current status.',
+  'problem.record.notArchived':
+    'Only an archived record can be restored. Review its current status.',
+  'problem.record.restoreTargetMissing':
+    'This archived record has no safe previous status to restore. Contact the owner for review.',
+  'problem.client.deleteHasProjects':
+    'This client still has projects. Review those projects and archive the client instead if history must be kept.',
+  'problem.client.deleteHasInvoices':
+    'This client is referenced by invoice history. Archive the client instead of deleting it.',
+  'problem.client.contactBillingHistory':
+    'This contact is used by billing history and cannot be deleted. Update the active billing contact instead.',
+  'problem.client.billingContactRequired':
+    'Keep a billing email or another billing contact before removing this contact.',
+  'problem.assignment.inactive':
+    'This assignment is no longer active. Review the current assignment before making changes.',
+  'problem.project.activeClientRequired':
+    'The selected client is no longer active. Choose an active client or review its status.',
+  'problem.project.managerUnavailable':
+    'The selected project manager is no longer active. Choose an available manager.',
+  'problem.project.deleteHasTime':
+    'This project has time entries and cannot be deleted. Archive the project instead.',
+  'problem.project.deleteHasExpenses':
+    'This project has expenses and cannot be deleted. Archive the project instead.',
+  'problem.project.deleteHasInvoices':
+    'This project has invoices and cannot be deleted. Archive the project instead.',
+  'problem.project.deleteHasDailyReports':
+    'This project has daily field reports and cannot be deleted. Archive the project instead.',
+  'problem.project.deleteHasTechnicalReports':
+    'This project has technical reports and cannot be deleted. Archive the project instead.',
+  'problem.billing.ownerRequired':
+    'An owner must perform this billing action. Contact an owner to review the record.',
+  'problem.billing.financeRequired':
+    'Finance access is required for this billing action. Contact a finance administrator.',
+  'problem.billing.idempotencyReused':
+    'This request key was already used for different details. Review the existing record before submitting a new request.',
+  'problem.billing.recordChanged':
+    'This billing record or its sources changed while you were reviewing it. Review the current record before deciding what to do.',
+  'problem.billing.approvedInvoiceRequired':
+    'This invoice is no longer an unissued approved draft. Review its current state before recalculating or issuing.',
+  'problem.billing.draftStateRequired':
+    'The invoice has moved beyond the editable draft state. Review it before making another change.',
+  'problem.billing.pdfNotReady':
+    'The invoice PDF is still pending or failed. Check its artifact status before sending or downloading it.',
+  'problem.billing.exportFailed':
+    'This export failed. Review the pack status and request an authorized retry for this artifact.',
+  'problem.billing.exportPending':
+    'This export is still queued or running. Check the pack status before downloading.',
+  'problem.billing.packFinal':
+    'This accounting pack is final and cannot be changed. Review its existing artifacts or create a new revision.',
+  'problem.billing.voidCollectionsPresent':
+    'This invoice has collections. Review and reverse the applicable payments before an owner can void it.',
+  'problem.billing.paymentBlocked':
+    'The payment cannot be recorded against the invoice in its current state or for this amount or date. Review the invoice ledger and payment details.',
+  'problem.billing.invoiceStateBlocked':
+    'The invoice is not in a state that permits this action. Review its current state and history.',
+  'problem.billing.issueConfigurationBlocked':
+    'The invoice issuer, tax profile, or currency configuration is no longer ready for issuance. Ask Finance to review the setup.',
+  'problem.billing.recalculationDetailsRequired':
+    'Enter a reason and use the current invoice version before recalculating.',
+  'problem.billing.adjustmentAmountBlocked':
+    'The adjustment amount is invalid or exceeds the remaining amount on the original invoice. Review its credits and amount.',
+  'problem.document.notFound':
+    'This document is no longer available. Refresh the document list before continuing.',
+  'problem.document.accessRequired':
+    'You do not have permission to change this document. Contact its owner or an authorized administrator.',
+  'problem.document.traceableImmutable':
+    'This document is part of traceable history. Archive or supersede it through the permitted workflow.',
+  'problem.document.changed':
+    'The document changed while this form was open. Review its current state before trying another action.',
+  'problem.document.archiveReasonRequired': 'Enter an archive reason of 3 to 500 characters.',
+  'problem.time.weekChanged':
+    'The week changed after you opened it. Review its current drafts before submitting.',
+  'problem.time.linkedMealChanged':
+    'A linked meal no longer matches its time entry. Review both drafts before submitting the week.',
+  'problem.time.submissionChanged':
+    'This time entry changed or is no longer a draft. Review its current state before submitting.',
+  'problem.time.draftChanged':
+    'This time entry changed while you were editing. Review the current draft before saving.',
+  'problem.time.notEditableDraft':
+    'Only an unlocked time draft that has never been submitted can be edited. Review the record or request a correction.',
+  'problem.time.assignmentRequired':
+    'An active project assignment must cover this work date. Contact the project owner to review access.',
+  'problem.time.workerAssignmentRequired':
+    'The selected worker has no active assignment covering this work date. Review the worker and date.',
+  'problem.time.intervalOverlap':
+    'This worker already has time recorded in the selected interval. Adjust the start or end time.',
+  'problem.time.expenseRetryChanged':
+    'This time and meal request was already used with different details. Review the saved drafts before trying again.',
+  'problem.time.correctionDraftLocked':
+    'This linked correction draft cannot be edited here. Review its correction record.',
+  'problem.time.correctionRequired':
+    'Reviewed time cannot be deleted. Open the record and request an audited correction.',
+  'problem.time.lockedOrInvoiced':
+    'Locked or invoiced time cannot be voided. Contact Finance for an audited adjustment.',
+  'problem.time.allocatedReceipt':
+    'This crew time is linked to an allocated receipt. Review the allocation and request a documented correction.',
+  'problem.time.allocatedReceiptDateLocked':
+    'The work date cannot change while this crew time is linked to an allocated receipt. Review the allocation and request a documented correction.',
+  'problem.time.deleteChanged':
+    'This time entry changed before deletion. Review its current state.',
+  'problem.time.batchDuplicateDay':
+    'The batch contains more than one entry for a day. Keep one entry per day and save again.',
+  'problem.time.weekStartInvalid':
+    'Select a week that starts on Monday, then review its drafts before submitting.',
+  'problem.time.minutesInvalid': 'Enter a whole number of minutes between 0 and 1440.',
+  'problem.time.dailyLimit':
+    'This worker already has time on the selected day. Total time cannot exceed 24 hours.',
+  'problem.time.intervalIncomplete': 'Enter both start and end time, or leave both empty.',
+  'problem.time.intervalOrderInvalid': 'End time must be later than start time on the same day.',
+  'problem.time.breakInvalid': 'Break minutes must be a whole number within the shift.',
+  'problem.time.durationMismatch':
+    'Recorded minutes must equal the time between start and end, less the break.',
+  'problem.expense.submissionBlocked':
+    'This expense changed, is no longer a draft, or requires a receipt. Review its current state and attach a receipt if required.',
+  'problem.expense.notEditableDraft':
+    'Only an unlocked expense draft can be edited. Review the record or request a correction.',
+  'problem.expense.draftChanged':
+    'This expense changed while you were editing. Review the current record before saving.',
+  'problem.expense.receiptRequired': 'Attach a committed receipt before saving this expense.',
+  'problem.expense.receiptAlreadyClaimed':
+    'This receipt is already used by a project expense. Review the existing claim before submitting another.',
+  'problem.expense.retryChanged':
+    'This request ID was already used with different expense details. Review the saved expense before trying again.',
+  'problem.expense.assignmentRequired':
+    'An active project assignment must cover the expense date. Contact the project owner to review access.',
+  'problem.expense.timeLinkInvalid':
+    'The linked time entry must be active and match this worker, project, and date. Review the time entry.',
+  'problem.expense.amountInvalid': 'Enter an expense amount greater than zero.',
+  'problem.expense.receiptProjectMismatch':
+    'This receipt does not belong to the selected project. Choose a receipt for this project.',
+  'problem.expense.correctionDraftLocked':
+    'This linked correction draft cannot be edited here. Review its correction record.',
+  'problem.expense.allocatedReceiptLocked':
+    'This receipt is allocated across crew shifts. Review the allocation and create a documented correction.',
+  'problem.expense.receiptNotAvailable':
+    'The selected receipt is unavailable or was not committed for your account. Attach a valid receipt.',
+  'problem.expense.receiptAlreadyRegistered':
+    'This receipt is already attached to another record. Review the existing claim before submitting another.',
+  'problem.expense.deleteDraftOnly':
+    'Only an expense draft that has never been submitted can be deleted. Review the record or request a correction.',
+  'problem.expense.billedOrLocked':
+    'Billed or locked expenses cannot be deleted. Contact Finance for an audited adjustment.',
+  'problem.expense.deleteChanged':
+    'This expense changed before deletion. Review its current state.',
+  'problem.report.draftChanged':
+    'This report changed while you were editing. Review the current version before saving.',
+  'problem.report.submissionChanged':
+    'This report changed or is no longer a draft. Review the current version before submitting.',
+  'problem.report.correctionRequired':
+    'Submitted or approved reports require an audited correction draft before editing.',
+  'problem.report.finalized':
+    'This report is part of a finalized report. Review the current record and request a versioned correction.',
+  'problem.report.correctionDraftLocked':
+    'This linked correction draft cannot be edited here. Review its correction record.',
+  'problem.report.deleteDraftOnly':
+    'Only a report draft that has never been submitted can be deleted. Review the report or request a correction.',
+  'problem.report.reviewHistoryLocked':
+    'This report has review history and cannot be deleted. Request an audited correction.',
+  'problem.report.linkedTechnicalChanges':
+    'This report has linked technical changes. Review those changes before deleting the draft.',
+  'problem.report.deleteChanged': 'This record changed before deletion. Review its current state.',
+  'problem.report.reviewStateChanged':
+    'This report is no longer submitted for review. Open the current version before deciding.',
+  'problem.report.projectNotActive':
+    'The project is no longer active for report submission. Contact the project owner to review its status.',
+  'problem.report.assignmentRequired':
+    'An effective project assignment must cover the report date. Contact the project owner to review access.',
+  'problem.report.safetyDetailsRequired':
+    'Safety-related changes require validation and rollback details before saving.',
+  'problem.finance.roleRequired': 'Finance access is required for this action.',
+  'problem.approval.ownerReviewRequired':
+    'This supplier time requires Owner review. Contact an Owner to decide it.',
+  'problem.approval.reviewPermissionRequired':
+    'You no longer have review access to this project. Contact a project reviewer.',
+  'problem.approval.recordNotSubmitted':
+    'This record is no longer submitted. Review its current status before deciding.',
+  'problem.approval.recordChanged':
+    'This record changed while you were reviewing it. Review the updated record before deciding.',
+  'problem.approval.financeReviewUnavailable':
+    'Finance review is no longer available for this record. Review its current approval and billing status.',
+  'problem.approval.reasonRequired': 'Enter a reason before returning or rejecting this record.',
+  'problem.approval.expenseClassificationRequired':
+    'Classify this expense in Finance before recording Finance review.',
+  'problem.finance.reimbursementConflict':
+    'The worker reimbursement policy changed. Review the current policy before saving again; customer billing is separate.',
+  'problem.finance.projectIssuingAuthorityRequired':
+    'Set a project issuing authority effective on this expense date before classifying it.',
+  'problem.finance.issuingCurrencyMismatch':
+    'The project currency and issuing legal entity currency differ. Review the issuing authority before classifying this expense.',
+  'problem.finance.workerReimbursementRequired':
+    'Classify the expense and set its worker reimbursement before recording payment. Customer recovery is a separate decision.',
+  'problem.finance.reimbursementFinalized':
+    'This worker reimbursement was already finalized with different details. Review the recorded payment before making a correction.',
+  'problem.finance.reimbursementUnavailable':
+    'Only an approved worker-paid expense can be reimbursed. Review the expense status and payer.',
+  'problem.finance.expensePayerTreatmentMismatch':
+    'The payer and treatment conflict. Worker reimbursement applies only when the worker paid; customer-paid expenses need client-direct recovery.',
+  'problem.finance.policyConflict':
+    'This effective period overlaps an existing policy or assignment. Review the current periods before saving.',
+  'problem.finance.compensationNotFinalized':
+    'Finalize the worker compensation settlement before recording its payment.',
+  'problem.finance.paymentRetryConflict':
+    'This payment request was already used with different details. Review recorded worker payments before trying again.',
+  'problem.finance.recordChanged':
+    'This Finance record changed while the form was open. Review the updated record before saving again.',
+  'problem.finance.expenseImmutable':
+    'This expense has already entered billing or worker payment history. Review the record and use its correction path.',
+  'problem.project.assignmentBlockedStatus':
+    '{projectName} is {status}. New assignments are allowed only for Active, Planned, or Paused projects.',
+  'problem.project.assignmentAllowedStatuses':
+    'New assignments are allowed only for Active, Planned, or Paused projects.',
+  'problem.project.unavailableOption': '{projectName} — {status} (unavailable for new assignments)',
+  'problem.project.assignmentAdvanceWarning':
+    'This project cannot receive new assignments while it is {status}. Review its status before continuing.',
+  'problem.remedy.reviewProjectStatus': 'Review project status',
+  'problem.remedy.contactOwner': 'Contact the project owner about its status.',
+  'problem.field.summary': 'Review the {count} highlighted fields.',
+  'problem.error.unexpected':
+    'We could not confirm whether the action completed. Check the record before trying again. Reference: {correlationId}.',
+  'problem.error.reference': 'Reference: {correlationId}',
+  'problem.notice.actionNeeded': 'Action needed',
+  'problem.notice.beforeContinue': 'Before you continue',
+  'problem.notice.serviceUnavailable': 'Service temporarily unavailable',
+  'problem.notice.saved': 'Changes saved',
+  'problem.notice.checkSaveBeforeRetry':
+    'Check whether the record was saved before submitting again.',
+};
+
 export function englishCoverageKey(key: string): string {
-  return key.startsWith('action.') ? englishActionMessage(key) : key;
+  return key.startsWith('action.') ? englishActionMessage(key) : (problemEnglish[key] ?? key);
 }
 
 export function translateCoverageKey(locale: 'es' | 'pt', key: string): string {

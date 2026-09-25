@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { createDatabase, PortalRepository } from '@ja/database';
 import { e2eCredentials, e2eLifecycleFixturesFor, portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 test('project manager publishes, edits, and cancels a scoped planning shift', async ({
   page,
@@ -20,7 +21,7 @@ test('project manager publishes, edits, and cancels a scoped planning shift', as
     projectId = repo.createProject(owner, {
       clientId: e2eLifecycleFixturesFor(testInfo.project.name).client.id,
       name: `Planning manager ${randomUUID()}`,
-      costCenterCode: `QA-PLAN-${testInfo.project.name}`,
+      costCenterCode: e2eCostCenter('QA-PLAN', 12, testInfo.project.name),
       currency: 'USD',
       timezone: 'UTC',
       billingModel: 'tm',
@@ -110,7 +111,9 @@ test('project manager publishes, edits, and cancels a scoped planning shift', as
     repo.assignWorker(owner, { projectId, workerId: futureWorkerId, startsOn: futureDate });
     await page.goto(portal(`/profile?worker=${futureWorkerId}&lang=en`));
     await expect(
-      page.getByRole('combobox', { name: 'Inspect worker' }).locator(`option[value="${futureWorkerId}"]`),
+      page
+        .getByRole('combobox', { name: 'Inspect worker' })
+        .locator(`option[value="${futureWorkerId}"]`),
     ).toHaveCount(0);
     const originalWorkerId = idFor(e2eCredentials.worker.email);
     const changing = repo.createPlanningAssignment(

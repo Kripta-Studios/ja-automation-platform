@@ -2,6 +2,7 @@ import { createDatabase, PortalRepository, SupplierWorkforceRepository } from '@
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import { e2eCredentials, portal, signIn } from './auth.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 export const coordinatorCredentials = {
   email: 'manual-coordinator@demo.jaautomation.test',
@@ -99,7 +100,7 @@ export function seedSupplierPersonas(databasePath: string): string {
       currency: string;
     };
     const projectId = repository.createProject(owner, {
-      costCenterCode: 'QA-MANUAL-PERSONA-FIXTURE-1',
+      costCenterCode: e2eCostCenter('QA-MANUAL-PERSONA-FIXTURE', 21, 'desktop'),
       clientId: client.id,
       name: projectName,
       timezone: 'UTC',

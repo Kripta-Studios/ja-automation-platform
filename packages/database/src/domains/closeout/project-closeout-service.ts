@@ -641,7 +641,16 @@ export class ProjectCloseoutService {
   /** Refreshes only the mutable active draft; finalized revisions and their bytes are never touched. */
   refresh(
     principal: Principal,
-    input: Readonly<{ revisionId: string; clientDocumentIds?: readonly string[] }>,
+    input: Readonly<{
+      revisionId: string;
+      clientDocumentIds?: readonly string[];
+      expectedState: Readonly<{
+        clientSnapshotHash: string;
+        internalSnapshotHash: string;
+        confirmationHash: string;
+        updatedAt: string;
+      }>;
+    }>,
   ) {
     this.assertWriter(principal);
     const current = this.row(input.revisionId);
@@ -667,7 +676,7 @@ export class ProjectCloseoutService {
           `UPDATE project_closeout_revision SET
         internal_snapshot_json=?,client_snapshot_json=?,client_selection_json=?,internal_snapshot_sha256=?,client_snapshot_sha256=?,
         client_confirmation_hash=NULL,client_confirmed_by=NULL,client_confirmed_at=NULL,updated_at=?
-        WHERE id=? AND state='draft'`,
+        WHERE id=? AND state='draft' AND client_snapshot_sha256=? AND internal_snapshot_sha256=? AND COALESCE(client_confirmation_hash,'')=? AND updated_at=?`,
         )
         .run(
           stable(snapshot.internal),
@@ -677,6 +686,10 @@ export class ProjectCloseoutService {
           snapshot.clientHash,
           timestamp,
           current.id,
+          input.expectedState.clientSnapshotHash,
+          input.expectedState.internalSnapshotHash,
+          input.expectedState.confirmationHash,
+          input.expectedState.updatedAt,
         );
       if (result.changes !== 1) throw this.deps.conflict('Closeout draft changed concurrently');
       this.deps.audit(

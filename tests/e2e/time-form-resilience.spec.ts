@@ -23,12 +23,6 @@ async function openTimeForm(page: Page, role: 'worker' | 'owner' = 'worker'): Pr
   await page.goto(portal('/time?lang=en&q='), { waitUntil: 'networkidle' });
   await page.locator('[data-time-primary-cta]').click();
   const form = page.locator('form[data-time-entry-surface]');
-  const project = form.locator('[name="projectId"]');
-  const projectId = await project.evaluate(
-    (select: HTMLSelectElement) => Array.from(select.options).find((option) => option.value)?.value,
-  );
-  if (!projectId) throw new Error('The time fixture needs an authorized project.');
-  await project.selectOption(projectId);
   if (role === 'owner') {
     const worker = form.locator('[name="workerId"]');
     const workerId = await worker.evaluate(
@@ -38,12 +32,18 @@ async function openTimeForm(page: Page, role: 'worker' | 'owner' = 'worker'): Pr
     if (!workerId) throw new Error('The owner fixture needs an available worker.');
     await worker.selectOption(workerId);
   }
+  const project = form.locator('[name="projectId"]');
+  const projectId = await project.evaluate(
+    (select: HTMLSelectElement) => Array.from(select.options).find((option) => option.value)?.value,
+  );
+  if (!projectId) throw new Error('The time fixture needs an authorized project.');
+  await project.selectOption(projectId);
   await form.getByRole('checkbox', { name: 'Add start and end times' }).check();
   await form.locator('[name="startTime"]').fill('09:00');
   await form.locator('[name="endTime"]').fill('13:00');
-  await form.locator('[name="breakMinutes"]').fill('15');
+  await form.locator('[name="breakHours"]').fill('0.25');
   await form.locator('[name="summary"]').fill('Preserve this actual operational activity.');
-  await expect(form.locator('output')).toHaveText('3 h 45 min');
+  await expect(form.locator('output')).toHaveText('3.75 h');
   return form;
 }
 
@@ -71,7 +71,7 @@ test('time blocks duplicate writes, freezes the submitted interval and focuses n
   });
   await form.locator('button[type="submit"]').click();
   await expect(form).toHaveAttribute('aria-busy', 'true');
-  for (const name of ['startTime', 'endTime', 'breakMinutes', 'summary'])
+  for (const name of ['startTime', 'endTime', 'breakHours', 'summary'])
     await expect(form.locator(`[name="${name}"]`)).toBeDisabled();
   await form.evaluate((element: HTMLFormElement) => element.requestSubmit());
   await expect.poll(() => requests).toBe(1);
@@ -89,7 +89,7 @@ test('time blocks duplicate writes, freezes the submitted interval and focuses n
     'We could not confirm the save. Check the register before submitting again.',
   );
   await expect(error).toBeFocused();
-  for (const name of ['startTime', 'endTime', 'breakMinutes', 'summary'])
+  for (const name of ['startTime', 'endTime', 'breakHours', 'summary'])
     await expect(form.locator(`[name="${name}"]`)).toBeEnabled();
   await expect(form.locator('[name="startTime"]')).toHaveValue('09:00');
   await expect(form.locator('[name="summary"]')).toHaveValue(
@@ -105,7 +105,7 @@ test('time blocks duplicate writes, freezes the submitted interval and focuses n
   await form.locator('button[type="submit"]').click();
   await expect(form).toHaveAttribute('aria-busy', 'false');
   await expect(error).toBeFocused();
-  await expect(form.locator('output')).toHaveText('3 h 45 min');
+  await expect(form.locator('output')).toHaveText('3.75 h');
   await expect(page).toHaveURL((url) => url.pathname.endsWith('/time'));
   await error.scrollIntoViewIfNeeded();
   await sheet.screenshot({ path: info.outputPath('time-save-failure.png') });
@@ -116,12 +116,12 @@ test('time and linked expense controls fit phone and tablet sheets with each val
 }, info) => {
   test.skip(!requiredViewports.has(info.project.name));
   const form = await openTimeForm(page);
-  await form.getByRole('checkbox', { name: 'Add an expense with these hours' }).check();
-  await form.locator('[name="expenseVendor"]').fill('Site parking');
+  await form.getByRole('checkbox', { name: 'Add a meal expense with these hours' }).check();
+  await form.locator('[name="expenseVendor"]').fill('Site cafeteria');
   await form.locator('[name="expenseOccurredTimeLocal"]').fill('14:25');
   await form.locator('[name="expenseAmount"]').fill('4.50');
   await form.locator('[name="expenseCurrency"]').selectOption('EUR');
-  await form.locator('[name="expenseDescription"]').fill('Parking during installation');
+  await form.locator('[name="expenseDescription"]').fill('Meal during installation');
   await expect(form.locator('[name="requestId"]')).toHaveValue(/^[a-f0-9-]{36}$/u);
   await expect(form.locator('[name="expenseVendor"]')).toBeVisible();
   await expect(form.locator('[name="expenseAmount"]')).toHaveValue('4.50');
@@ -153,7 +153,7 @@ test('time server validation focuses its field and removes the obsolete summary 
   await expect(form.locator('[data-validation-summary]')).toHaveCount(0);
   await expect(form.locator('[data-validation-generated-error]')).toHaveCount(0);
   await expect(activity).toBeFocused();
-  await expect(form.locator('output')).toHaveText('3 h 45 min');
+  await expect(form.locator('output')).toHaveText('3.75 h');
 });
 
 test('time cross-field interval corrections and reset clear only obsolete validation without moving focus', async ({
@@ -178,7 +178,7 @@ test('time cross-field interval corrections and reset clear only obsolete valida
   await expect(end).not.toHaveAttribute('aria-invalid', 'true');
   await expect(summary).toHaveCount(0);
   await expect(start).toBeFocused();
-  await expect(form.locator('output')).toHaveText('0 h 45 min');
+  await expect(form.locator('output')).toHaveText('0.75 h');
   await form.locator('[name="summary"]').fill('');
   await form.locator('[name="projectId"]').selectOption('');
   await form.locator('button[type="submit"]').click();
@@ -193,7 +193,7 @@ test('time cross-field interval corrections and reset clear only obsolete valida
   expect(posts).toBe(0);
 });
 
-test('time reports disabled offline mode without losing the local interval or attempting a POST', async ({
+test('time fails closed offline when device identity is unavailable without attempting a POST', async ({
   page,
   context,
 }, info) => {
@@ -206,12 +206,12 @@ test('time reports disabled offline mode without losing the local interval or at
   await context.setOffline(true);
   try {
     await form.locator('button[type="submit"]').click();
-    const error = page.locator('[data-operational-form-error]');
-    await expect(error).toHaveText('Reconnect to save changes. Your entries are still here.');
-    await expect(error).toBeFocused();
-    await expect(form).toHaveAttribute('aria-busy', 'false');
+    await expect(
+      page.getByRole('banner').getByText('Offline draft could not be saved on this device.'),
+    ).toBeVisible();
     await expect(form.locator('[name="startTime"]')).toHaveValue('09:00');
     await expect(form.locator('[name="endTime"]')).toHaveValue('13:00');
+    await expect(form.locator('[name="breakHours"]')).toHaveValue('0.25');
     await expect(form.locator('[name="breakMinutes"]')).toHaveValue('15');
     await expect(form.locator('[name="summary"]')).toHaveValue(
       'Preserve this actual operational activity.',

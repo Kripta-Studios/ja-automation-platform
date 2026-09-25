@@ -89,10 +89,11 @@ for (const role of ['worker', 'owner'] as const) {
         )
         .toBe(true);
       await form.locator('[name="endTime"]').fill('13:00');
-      await form.locator('[name="breakMinutes"]').fill('15');
-      await expect(form.locator('output')).toHaveText('3 h 45 min');
+      await form.locator('[name="breakHours"]').fill('0.25');
+      await expect(form.locator('[name="breakMinutes"]')).toHaveValue('15');
+      await expect(form.locator('output')).toHaveText('3.75 h');
       await form.locator('[name="summary"]').fill(summary);
-      for (const label of ['Start time', 'End time', 'Break (minutes)']) {
+      for (const label of ['Start time', 'End time', 'Break (decimal hours)']) {
         const control = form.getByLabel(label, { exact: true });
         await expect(control).toBeVisible();
         const box = await control.boundingBox();
@@ -132,7 +133,7 @@ for (const role of ['worker', 'owner'] as const) {
       await form.getByRole('checkbox', { name: 'Add start and end times' }).check();
       await form.locator('[name="startTime"]').fill('09:00');
       await form.locator('[name="endTime"]').fill('13:00');
-      await form.locator('[name="breakMinutes"]').fill('15');
+      await form.locator('[name="breakHours"]').fill('0.25');
       await form.locator('[name="summary"]').fill(`${summary} overlap`);
       await form.getByRole('button', { name: 'Save draft', exact: true }).click();
       await expect(page.locator('.time-form-error')).toBeVisible();
@@ -151,9 +152,10 @@ for (const role of ['worker', 'owner'] as const) {
       await row.getByRole('button', { name: 'Edit draft', exact: true }).click();
       form = page.locator('form[data-time-entry-surface]');
       await expect(form.locator('[name="startTime"]')).toHaveValue('09:00');
+      await expect(form.locator('[name="breakHours"]')).toHaveValue('0.25');
       await expect(form.locator('[name="breakMinutes"]')).toHaveValue('15');
       await form.locator('[name="endTime"]').fill('14:00');
-      await expect(form.locator('output')).toHaveText('4 h 45 min');
+      await expect(form.locator('output')).toHaveText('4.75 h');
       await form.getByRole('button', { name: 'Save changes', exact: true }).click();
       await expect
         .poll(
@@ -167,13 +169,13 @@ for (const role of ['worker', 'owner'] as const) {
       await expect(page.locator('main')).toContainText('14:00');
       // Model an existing duration-only record in this disposable fixture only.
       db.prepare(
-        'UPDATE time_entry SET start_time=NULL,end_time=NULL,break_minutes=0 WHERE id=?',
+        'UPDATE time_entry SET minutes=1,start_time=NULL,end_time=NULL,break_minutes=0 WHERE id=?',
       ).run(String(stored!.id));
       await page.goto(portal(`/time?from=${workDate}&to=${workDate}`));
       await row.getByRole('button', { name: 'Edit draft', exact: true }).click();
       form = page.locator('form[data-time-entry-surface]');
-      await expect(form.getByLabel('Actual hours')).toHaveValue('4.75');
-      await expect(form.locator('input[name="minutes"]')).toHaveValue('285');
+      await expect(form.getByLabel('Actual hours')).toHaveValue('0.0167');
+      await expect(form.locator('input[name="minutes"]')).toHaveValue('1');
       await expect(form.locator('[name="startTime"]')).toHaveCount(0);
       await form.getByRole('checkbox', { name: 'Add start and end times' }).check();
       await form.locator('[name="startTime"]').fill('10:00');

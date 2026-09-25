@@ -49,7 +49,7 @@
   });
   const hours = (minutes: unknown) => {
     const actualMinutes = Number(minutes ?? 0);
-    return `${Math.floor(actualMinutes / 60)} h ${actualMinutes % 60} min`;
+    return `${String(Number((actualMinutes / 60).toFixed(4)))} h`;
   };
   const localMoment = (value: unknown): string => {
     if (!value) return t('Not submitted');
@@ -232,7 +232,11 @@
       </div>
       <div>
         <dt>{t('Break')}</dt>
-        <dd>{record.break_minutes ? String(record.break_minutes) + ' min' : '—'}</dd>
+        <dd>
+          {record.break_minutes === null || record.break_minutes === undefined
+            ? '—'
+            : hours(record.break_minutes)}
+        </dd>
       </div>
       <div>
         <dt>{t('Submitted')}</dt>

@@ -212,7 +212,7 @@ describe('expense occurrence time and linked hours', () => {
       summary: 'Manager site visit',
     });
     const anotherProject = value.repository.createProject(value.owner, {
-      costCenterCode: 'QA-EXPENSE-TIME-LINK-TEST-1',
+      costCenterCode: 'QA-EXPENSE-TIME-LINK-TEST-2',
       clientId: value.client.id,
       name: 'Other project',
       timezone: 'Europe/Madrid',

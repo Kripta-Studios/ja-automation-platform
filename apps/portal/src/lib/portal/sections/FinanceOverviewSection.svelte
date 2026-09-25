@@ -55,6 +55,23 @@
   type SourceTab = 'portfolio' | 'workers' | 'time' | 'expenses' | 'settlements';
   type ExpenseInboxFilter = 'all' | 'needs' | 'reimbursable' | 'non_billable';
 
+  function expenseRecoveryLabel(value: string): string {
+    const labels: Record<string, string> = {
+      at_cost: 'Bill at cost',
+      markup: 'Bill with markup',
+      included: 'Included in labor price',
+      non_billable: 'Non-billable',
+      client_direct: 'Customer paid directly',
+    };
+    return translate(labels[value] ?? value);
+  }
+
+  function workerReimbursementLabel(value: string): string {
+    return translate(
+      value === 'at_cost' ? 'Reimburse at cost' : value === 'none' ? 'Do not reimburse' : value,
+    );
+  }
+
   const activeView = $derived.by((): FinanceWorkspaceView => {
     const requested = String(currentView ?? '')
       .trim()
@@ -1555,6 +1572,11 @@
                 >{translate('Non-billable')} ({nonBillableCount})</button
               >
             </div>
+            <p class="muted" data-expense-billability-help>
+              {translate(
+                'Non-billable means the expense is not charged to the customer. Worker reimbursement is separate: J&A can reimburse a worker for a $100 expense while charging the customer $0.',
+              )}
+            </p>
 
             <RecordBrowser
               rows={filteredFinanceExpenses}
@@ -1694,12 +1716,19 @@
                           <div class="finance-overview__form-title" data-expense-policy-preview>
                             <strong>{translate('Configured person expense policy')}</strong>
                             <span>
-                              {translate('Worker reimbursement')}: {translate(
+                              {translate('Worker reimbursement')}: {workerReimbursementLabel(
                                 policyPreview?.policy?.workerReimbursement ?? '',
-                              )} · {translate('Customer expense recovery')}: {translate(
+                              )} · {translate('Customer expense recovery')}: {expenseRecoveryLabel(
                                 policyPreview?.policy?.clientRecovery ?? '',
                               )}
                             </span>
+                            {#if policyPreview?.policy?.clientRecovery === 'non_billable'}
+                              <small data-expense-billability-help>
+                                {translate(
+                                  'Non-billable means the expense is not charged to the customer. Worker reimbursement is separate: J&A can reimburse a worker for a $100 expense while charging the customer $0.',
+                                )}
+                              </small>
+                            {/if}
                             <small>
                               {translate('Worker amount')}: {displayMoney(
                                 policyPreview?.workerReimbursementMinor,
@@ -1793,6 +1822,11 @@
                           </select>
                         </label>
                       {/if}
+                      <p class="muted" data-expense-billability-help>
+                        {translate(
+                          'Non-billable means the expense is not charged to the customer. Worker reimbursement is separate: J&A can reimburse a worker for a $100 expense while charging the customer $0.',
+                        )}
+                      </p>
                       <label>
                         <span>{translate('Tax rate')}</span>
                         <select

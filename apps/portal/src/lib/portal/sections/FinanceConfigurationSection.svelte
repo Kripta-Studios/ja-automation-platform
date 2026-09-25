@@ -45,6 +45,23 @@
     return '';
   };
 
+  function expenseRecoveryLabel(value: string): string {
+    const labels: Record<string, string> = {
+      at_cost: 'Bill at cost',
+      markup: 'Bill with markup',
+      included: 'Included in labor price',
+      non_billable: 'Non-billable',
+      client_direct: 'Customer paid directly',
+    };
+    return translate(labels[value] ?? value);
+  }
+
+  function workerReimbursementLabel(value: string): string {
+    return translate(
+      value === 'at_cost' ? 'Reimburse at cost' : value === 'none' ? 'Do not reimburse' : value,
+    );
+  }
+
   const projectLabel = (project: Row): string => {
     const number = rowValue(project, 'projectNumber', 'project_number');
     const name = rowValue(project, 'name', 'projectName', 'project_name');
@@ -655,6 +672,9 @@
             <Field
               id="expense-policy-customer"
               label={translate('Customer expense recovery')}
+              help={translate(
+                'Non-billable means the expense is not charged to the customer. Worker reimbursement is separate: J&A can reimburse a worker for a $100 expense while charging the customer $0.',
+              )}
               required
             >
               <select
@@ -723,12 +743,19 @@
                   )}: {rowValue(policy, 'category') || translate('All categories')}</small
                 >
                 <small
-                  >{translate('Worker reimbursement')}: {translate(
+                  >{translate('Worker reimbursement')}: {workerReimbursementLabel(
                     rowValue(policy, 'workerReimbursement'),
-                  )} · {translate('Customer expense recovery')}: {translate(
+                  )} · {translate('Customer expense recovery')}: {expenseRecoveryLabel(
                     rowValue(policy, 'clientRecovery'),
                   )}</small
                 >
+                {#if rowValue(policy, 'clientRecovery') === 'non_billable'}
+                  <small data-expense-billability-help>
+                    {translate(
+                      'Non-billable means the expense is not charged to the customer. Worker reimbursement is separate: J&A can reimburse a worker for a $100 expense while charging the customer $0.',
+                    )}
+                  </small>
+                {/if}
                 <small
                   >{rowValue(policy, 'effectiveFrom')} → {rowValue(policy, 'effectiveTo') ||
                     translate('open-ended')}</small
@@ -1148,7 +1175,7 @@
             id="finance-policy-travel"
             label={translate('Travel client billability')}
             help={translate(
-              'This project policy controls client treatment; workers only record operational Travel truth.',
+              'Not client billable travel time is excluded from the customer labor charge. Worker pay follows separate labor terms; workers still record their actual travel time.',
             )}
             required
           >

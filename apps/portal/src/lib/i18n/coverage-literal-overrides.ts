@@ -1,5 +1,123 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'A selected tax profile calculates tax. Without one, the draft adds no tax.': [
+    'Si seleccionas un perfil fiscal, se calcula el impuesto. Sin perfil, el borrador no añade impuestos.',
+    'Ao selecionar um perfil tributário, o imposto é calculado. Sem ele, o rascunho não adiciona impostos.',
+  ],
+  'Customer billing address': [
+    'Dirección de facturación del cliente',
+    'Endereço de faturamento do cliente',
+  ],
+  'Customer legal entity': ['Entidad jurídica del cliente', 'Entidade jurídica do cliente'],
+  'Edit issuer': ['Editar emisor', 'Editar emitente'],
+  'Eligible expense subtotal before caps and adjustments': [
+    'Subtotal de gastos elegibles antes de límites y ajustes',
+    'Subtotal das despesas elegíveis antes de limites e ajustes',
+  ],
+  'Eligible expenses': ['Gastos elegibles', 'Despesas elegíveis'],
+  'Invoice issuer': ['Emisor de la factura', 'Emitente da fatura'],
+  'Invoice issuer (J&A Automation)': [
+    'Emisor de la factura (J&A Automation)',
+    'Emitente da fatura (J&A Automation)',
+  ],
+  'Invoice issuers (J&A Automation)': [
+    'Emisores de facturas (J&A Automation)',
+    'Emitentes de faturas (J&A Automation)',
+  ],
+  'Issuer address and phone': [
+    'Dirección y teléfono del emisor',
+    'Endereço e telefone do emitente',
+  ],
+  'New invoice issuer': ['Nuevo emisor de facturas', 'Novo emitente de faturas'],
+  'No invoice issuers recorded.': [
+    'No hay emisores de facturas registrados.',
+    'Não há emitentes de faturas cadastrados.',
+  ],
+  'No tax profile configured': [
+    'Sin perfil fiscal configurado',
+    'Nenhum perfil tributário configurado',
+  ],
+  'Payment terms come from the billing stream. Review payment instructions on the draft before issuing.':
+    [
+      'Las condiciones de pago proceden del flujo de facturación. Revisa las instrucciones de pago del borrador antes de emitirlo.',
+      'As condições de pagamento vêm do fluxo de faturamento. Confira as instruções de pagamento no rascunho antes de emitir a fatura.',
+    ],
+  'Save issuer': ['Guardar emisor', 'Salvar emitente'],
+  'Tax or registration identifier (optional)': [
+    'Identificador fiscal o de registro (opcional)',
+    'Identificador fiscal ou de registro (opcional)',
+  ],
+  'The invoice issuer is your company. The customer legal name comes from the client used to create this project.':
+    [
+      'El emisor de la factura es tu empresa. El nombre legal del cliente procede del cliente con el que se creó este proyecto.',
+      'O emitente da fatura é sua empresa. A razão social do cliente vem do cadastro usado para criar este projeto.',
+    ],
+  'Add a meal expense with these hours': [
+    'Añadir un gasto de comida con estas horas',
+    'Adicionar uma despesa com refeição junto destas horas',
+  ],
+  'Add daily hours for one assigned worker and project. Blank days are skipped. The whole batch saves as drafts or nothing saves.':
+    [
+      'Añade horas diarias para un trabajador asignado y un proyecto. Se omiten los días vacíos. El lote completo se guarda como borradores o no se guarda nada.',
+      'Adicione horas diárias para um trabalhador atribuído e um projeto. Dias vazios são ignorados. O lote inteiro é salvo como rascunhos ou nada é salvo.',
+    ],
+  'Choose a worker and a day to add time or manage editable drafts.': [
+    'Elige un trabajador y un día para añadir horas o gestionar borradores editables.',
+    'Escolha um trabalhador e um dia para adicionar horas ou gerenciar rascunhos editáveis.',
+  ],
+  'Enter a week in a table': [
+    'Introducir una semana en una tabla',
+    'Registrar uma semana em uma tabela',
+  ],
+  'Enter a worker, assigned project, valid decimal hours and activity for every filled day.': [
+    'Indica un trabajador, un proyecto asignado, horas decimales válidas y una actividad para cada día rellenado.',
+    'Informe um trabalhador, um projeto atribuído, horas decimais válidas e uma atividade para cada dia preenchido.',
+  ],
+  'Enter hours and activity for at least one day.': [
+    'Indica horas y actividad para al menos un día.',
+    'Informe horas e atividade para pelo menos um dia.',
+  ],
+  'Hours you really recorded.': [
+    'Horas que registraste realmente.',
+    'Horas que você realmente registrou.',
+  ],
+  'Log time on this day': ['Registrar horas en este día', 'Registrar horas neste dia'],
+  Month: ['Mes', 'Mês'],
+  'No time recorded for this day.': [
+    'No hay horas registradas para este día.',
+    'Não há horas registradas neste dia.',
+  ],
+  'Select a worker to review this day.': [
+    'Selecciona un trabajador para revisar este día.',
+    'Selecione um trabalhador para conferir este dia.',
+  ],
+  'Submit all draft hours for one worker in the displayed week, together with meals added in Log time. Submitted records enter review.':
+    [
+      'Envía todas las horas en borrador de un trabajador durante la semana mostrada, junto con las comidas añadidas al registrar horas. Los registros enviados pasan a revisión.',
+      'Envie todas as horas em rascunho de um trabalhador na semana exibida, junto com as refeições adicionadas ao registrar horas. Os registros enviados passam por revisão.',
+    ],
+  'Submit this week': ['Enviar esta semana', 'Enviar esta semana'],
+  'The daily entries could not be saved. Try again.': [
+    'No se pudieron guardar los registros diarios. Inténtalo de nuevo.',
+    'Não foi possível salvar os registros diários. Tente novamente.',
+  ],
+  'The draft could not be deleted. Refresh and try again.': [
+    'No se pudo eliminar el borrador. Actualiza la página e inténtalo de nuevo.',
+    'Não foi possível excluir o rascunho. Atualize a página e tente novamente.',
+  ],
+  'The week could not be submitted. Refresh and try again.': [
+    'No se pudo enviar la semana. Actualiza la página e inténtalo de nuevo.',
+    'Não foi possível enviar a semana. Atualize a página e tente novamente.',
+  ],
+  'Time calendar': ['Calendario de horas', 'Calendário de horas'],
+  'Work completed': ['Trabajo realizado', 'Trabalho concluído'],
+  'draft entries ready': ['registros en borrador listos', 'registros em rascunho prontos'],
+  'time entries': ['registros de horas', 'registros de horas'],
+  'Copies projects, categories and activity labels into zero-hour drafts. It never copies time values.':
+    [
+      'Copia proyectos, categorías y actividades en borradores con cero horas. Nunca copia los valores de horas.',
+      'Copia projetos, categorias e atividades para rascunhos com zero horas. Nunca copia os valores de horas.',
+    ],
   'Change the requested operational fields before creating this draft. Review every value: a linked correction cannot be edited after creation. You can withdraw an unsubmitted draft and start again.':
     [
       'Cambia los datos operativos solicitados antes de crear este borrador. Revisa todos los valores: una corrección vinculada no se puede editar después. Puedes retirar un borrador sin enviar y empezar de nuevo.',
@@ -4139,6 +4257,31 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
     'Políticas de gastos por persona',
     'Políticas de despesas por pessoa',
   ],
+  'Non-billable means the expense is not charged to the customer. Worker reimbursement is separate: J&A can reimburse a worker for a $100 expense while charging the customer $0.':
+    [
+      'No facturable significa que el gasto no se cobra al cliente. El reembolso al trabajador es independiente: J&A puede reembolsar a un trabajador un gasto de $100 y cobrar $0 al cliente.',
+      'Não faturável significa que a despesa não é cobrada ao cliente. O reembolso ao trabalhador é independente: a J&A pode reembolsar uma despesa de US$ 100 ao trabalhador e cobrar US$ 0 ao cliente.',
+    ],
+  'Not client billable travel time is excluded from the customer labor charge. Worker pay follows separate labor terms; workers still record their actual travel time.':
+    [
+      'El tiempo de viaje no facturable al cliente queda fuera del cargo de mano de obra. La remuneración sigue condiciones laborales separadas; los trabajadores registran igualmente el tiempo de viaje real.',
+      'O tempo de viagem não faturável ao cliente fica fora da cobrança de mão de obra. A remuneração segue condições de trabalho separadas; os trabalhadores continuam a registar o tempo real de viagem.',
+    ],
+  'Non-billable time is not charged to the customer. Worker compensation follows separate labor terms for approved work.':
+    [
+      'El tiempo no facturable no se cobra al cliente. La remuneración del trabajador sigue condiciones laborales separadas para el trabajo aprobado.',
+      'O tempo não faturável não é cobrado ao cliente. A remuneração do trabalhador segue condições de trabalho separadas para o trabalho aprovado.',
+    ],
+  'Labor and expenses approved for customer billing use independent streams, cadence and tax configuration. Non-billable expenses are excluded even if J&A reimburses the worker.':
+    [
+      'La mano de obra y los gastos aprobados para cobrar al cliente usan flujos, frecuencias y configuraciones fiscales independientes. Los gastos no facturables quedan excluidos aunque J&A reembolse al trabajador.',
+      'A mão de obra e as despesas aprovadas para cobrança ao cliente usam fluxos, cadências e configurações fiscais independentes. As despesas não faturáveis ficam excluídas mesmo que a J&A reembolse o trabalhador.',
+    ],
+  'An expense stream invoices only approved expenses marked for customer billing. Non-billable expenses are not charged to the customer; worker reimbursement is configured separately.':
+    [
+      'Un flujo de gastos factura solo los gastos aprobados y marcados para cobro al cliente. Los gastos no facturables no se cobran al cliente; el reembolso al trabajador se configura por separado.',
+      'Um fluxo de despesas fatura apenas despesas aprovadas e marcadas para cobrança ao cliente. As despesas não faturáveis não são cobradas ao cliente; o reembolso ao trabalhador é configurado separadamente.',
+    ],
   'Worker reimbursement follows the project default unless this person has an override. Customer billing is a separate expense policy. “Do not bill customer” excludes the expense from the invoice; it does not cancel worker reimbursement.':
     [
       'El reembolso al trabajador sigue el valor predeterminado del proyecto, salvo que esta persona tenga una excepción. La facturación al cliente se configura por separado. «No facturar al cliente» excluye el gasto de la factura, pero no cancela el reembolso al trabajador.',

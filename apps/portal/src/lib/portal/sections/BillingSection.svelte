@@ -868,7 +868,7 @@
             <h3>{translate('Billing stream')}</h3>
             <p>
               {translate(
-                'Labor and reimbursable expenses use independent streams, cadence and tax configuration.',
+                'Labor and expenses approved for customer billing use independent streams, cadence and tax configuration. Non-billable expenses are excluded even if J&A reimburses the worker.',
               )}
             </p>
             <dl>
@@ -1620,6 +1620,11 @@
                 <option value="other">{translate('Other')}</option>
               </select>
             </label>
+            <p data-expense-billability-help>
+              {translate(
+                'An expense stream invoices only approved expenses marked for customer billing. Non-billable expenses are not charged to the customer; worker reimbursement is configured separately.',
+              )}
+            </p>
             <label>
               <span>{translate('Cadence')}</span>
               <select name="cadenceType" required>
@@ -3383,6 +3388,13 @@
   .billing-section__config-form h4,
   .billing-section__config-form > button {
     grid-column: 1 / -1;
+  }
+
+  .billing-section__config-form > [data-expense-billability-help] {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--portal-muted, #67675f);
+    line-height: 1.5;
   }
 
   .billing-section__config-form textarea {

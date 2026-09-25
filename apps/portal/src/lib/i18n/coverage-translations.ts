@@ -1975,6 +1975,10 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Acceso local al portal creado.',
     'Acesso local ao portal criado.',
   ],
+  'action.access.denied': [
+    'No tienes permiso para realizar esta acción.',
+    'Você não tem permissão para realizar esta ação.',
+  ],
   'action.access.mailbox.aliasExists': [
     'Ese alias de correo ya existe en Stalwart.',
     'Esse alias de e-mail já existe no Stalwart.',
@@ -2521,6 +2525,10 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Rascunho de relatório PLC salvo.',
   ],
   'action.time.draftSaved': ['Borrador de horas guardado.', 'Rascunho de horas salvo.'],
+  'action.time.batchDraftsSaved': [
+    '{count} borradores diarios de horas guardados.',
+    '{count} rascunhos diários de horas salvos.',
+  ],
   'action.time.expenseDraftsSaved': [
     'Borradores de horas y gasto guardados.',
     'Rascunhos de horas e despesa salvos.',
@@ -2532,6 +2540,10 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Registro de horas excluído ou anulado.',
   ],
   'action.time.submitted': ['Registro de horas enviado.', 'Registro de horas enviado.'],
+  'action.time.weekSubmitted': [
+    '{timeSubmitted} registros de horas y {mealsSubmitted} gastos de comidas enviados para revisión.',
+    '{timeSubmitted} registros de horas e {mealsSubmitted} despesas com refeições enviados para revisão.',
+  ],
 };
 
 const validationEntities: Record<string, readonly [string, string]> = {
@@ -2796,6 +2808,7 @@ function englishActionMessage(key: string): string {
     'action.validation.invalid': 'Check the submitted values.',
     'action.validation.missingUsername': 'Username is required.',
     'action.access.localAccount.provisioned': 'Local portal access created.',
+    'action.access.denied': 'You do not have permission to perform this action.',
     'action.validation.localProvision': 'Check local access and supplier fields.',
     'action.access.mailbox.createdLinkPending':
       'The mailbox was created in Stalwart, but its portal link is pending. Retry the same creation to finish linking it; a second mailbox will not be created.',
@@ -2986,11 +2999,14 @@ function englishActionMessage(key: string): string {
     'action.projects.assignmentDeleted': 'Assignment removed.',
     'action.validation.timeFields': 'Check time fields.',
     'action.time.draftSaved': 'Time draft saved.',
+    'action.time.batchDraftsSaved': '{count} daily time drafts saved.',
     'action.time.expenseDraftsSaved': 'Time and expense drafts saved.',
     'action.validation.timeSourceWeekDifferent': 'Choose a different source week.',
     'action.time.draftUpdated': 'Time draft updated.',
     'action.validation.timeRecord': 'Invalid time record.',
     'action.time.submitted': 'Time submitted.',
+    'action.time.weekSubmitted':
+      '{timeSubmitted} time drafts and {mealsSubmitted} linked meal expenses submitted for review.',
     'action.time.removedOrVoided': 'Time entry removed/voided.',
     'action.error.invalid': 'Check the submitted values and try again.',
     'action.reports.periodFollowupRecorded': 'Period follow-up recorded.',

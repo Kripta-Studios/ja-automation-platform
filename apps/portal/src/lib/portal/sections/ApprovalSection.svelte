@@ -961,6 +961,11 @@
                         <option value="yes">{translate('Billable')}</option>
                         <option value="no">{translate('Non-billable')}</option>
                       </select>
+                      <small data-time-billability-help>
+                        {translate(
+                          'Non-billable time is not charged to the customer. Worker compensation follows separate labor terms for approved work.',
+                        )}
+                      </small>
                     </label>
                   {/if}
                   <button type="submit">{translate('Record Finance review')}</button>
@@ -1151,6 +1156,13 @@
   .approval-action-menu span {
     font-size: 0.8125rem;
     font-weight: 700;
+  }
+
+  .finance-review-form small {
+    max-width: 20rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
+    line-height: 1.4;
   }
 
   .approval-filters input,

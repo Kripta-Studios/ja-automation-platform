@@ -1056,6 +1056,11 @@
                           /></label
                         >{/if}
                     </div>
+                    <p class="hint" data-expense-billability-help>
+                      {t(
+                        'Non-billable means the expense is not charged to the customer. Worker reimbursement is separate: J&A can reimburse a worker for a $100 expense while charging the customer $0.',
+                      )}
+                    </p>
                     <p class="hint">
                       {t(
                         'Expense treatment applies to the selected payer only. Policies for other payers remain active.',
